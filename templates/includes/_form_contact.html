@@ -1,0 +1,55 @@
+<!-- _form_contact.html - Contact form component -->
+<!-- Parameters:
+     - title: Form title (default: "Send us a Message")
+     - show_name: Show name field (default: true)
+     - show_email: Show email field (default: true)
+     - show_subject: Show subject dropdown (default: true)
+     - show_message: Show message textarea (default: true)
+     - submit_text: Submit button text (default: "Send Message")
+     - subjects: List of subject options (optional)
+-->
+
+<div class="contact-card animate-fade-up delay-1">
+    <h2 class="text-2xl font-bold text-slate-900 mb-8 text-center">{{ title or "Send us a Message" }}</h2>
+    <form id="contactForm" class="space-y-6">
+        {% if show_name %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div>
+                <label for="name" class="form-label">Full Name</label>
+                <input type="text" id="name" class="form-control w-full" placeholder="John Doe" required>
+            </div>
+        {% endif %}
+        {% if show_email %}
+            <div>
+                <label for="email" class="form-label">Email Address</label>
+                <input type="email" id="email" class="form-control w-full" placeholder="john@example.com" required>
+            </div>
+        {% if show_name %}</div>{% endif %}
+        {% endif %}
+
+        {% if show_subject %}
+        <div>
+            <label for="subject" class="form-label">Subject</label>
+            <select id="subject" class="form-select w-full" required>
+                <option value="">Select a subject</option>
+                {% for subject in subjects or [('general', 'General Inquiry'), ('technical', 'Technical Support'), ('content', 'Content Submission'), ('feedback', 'Feedback'), ('other', 'Other')] %}
+                <option value="{{ subject[0] }}">{{ subject[1] }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        {% endif %}
+
+        {% if show_message %}
+        <div>
+            <label for="message" class="form-label">Message</label>
+            <textarea id="message" rows="5" class="form-control w-full" placeholder="How can we help you?" required></textarea>
+        </div>
+        {% endif %}
+
+        <div class="text-center">
+            <button type="submit" class="px-10 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
+                {{ submit_text or "Send Message" }}
+            </button>
+        </div>
+    </form>
+</div>

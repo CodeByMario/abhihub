@@ -1,0 +1,388 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+
+<style>
+  /* ── Layout ── */
+  .page-container{min-height:calc(100vh - 70px);background:linear-gradient(135deg,#f8fafc 0%,#eef2ff 100%);padding:2rem 1.5rem;display:flex;justify-content:center;align-items:flex-start;overflow-x:hidden}
+  .grid-layout{display:grid;grid-template-columns:1fr;gap:2rem;width:100%;max-width:1200px;margin:0 auto}
+  @media(min-width:1024px){.page-container{align-items:center}.grid-layout{grid-template-columns:1fr 1fr;gap:4rem;align-items:center}.visuals-col{display:flex!important;position:sticky;top:100px}}
+  .visuals-col{display:none;flex-direction:column;justify-content:center;padding:2rem}
+  .hero-title{font-size:3rem;font-weight:800;line-height:1.1;background:linear-gradient(135deg,#1e293b,#334155);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:1.5rem;letter-spacing:-1px}
+  .hero-text{font-size:1.25rem;color:#64748b;line-height:1.6;margin-bottom:2.5rem;max-width:90%}
+  .feature-list{display:flex;flex-direction:column;gap:1.5rem}
+  .feature-item{display:flex;align-items:center;gap:1rem;font-size:1.1rem;color:#475569;font-weight:500}
+  .feature-icon{width:48px;height:48px;border-radius:14px;display:flex;align-items:center;justify-content:center;font-size:1.5rem;box-shadow:0 4px 12px rgba(0,0,0,.05)}
+  .icon-blue{background:#dbeafe;color:#2563eb}.icon-purple{background:#f3e8ff;color:#9333ea}.icon-green{background:#dcfce7;color:#16a34a}
+
+  /* ── Form card ── */
+  .form-card{background:rgba(255,255,255,.75);backdrop-filter:blur(25px);-webkit-backdrop-filter:blur(25px);border-radius:28px;border:1px solid rgba(255,255,255,.6);box-shadow:0 10px 40px -10px rgba(37,99,235,.1),0 0 0 1px rgba(255,255,255,.5) inset;padding:2rem;width:100%;animation:slideUp .6s ease-out}
+  @media(min-width:1024px){.form-card{padding:2.5rem}.mobile-header{display:none!important}}
+  .mobile-header{text-align:center;margin-bottom:2rem}
+  .mobile-title{font-size:2rem;font-weight:800;color:#1e293b;display:block;margin-bottom:.5rem}
+  .mobile-subtitle{color:#64748b;display:block}
+
+  /* ── Drop zone ── */
+  .drop-zone{border:2px dashed #cbd5e1;border-radius:20px;padding:2.5rem 1.5rem;text-align:center;background:rgba(255,255,255,.5);transition:all .3s cubic-bezier(.4,0,.2,1);cursor:pointer;position:relative;overflow:hidden}
+  .drop-zone:hover,.drop-zone.drag-over{border-color:#2563eb;background:rgba(37,99,235,.05);transform:translateY(-2px)}
+  .drop-zone.has-file{border-color:#10b981;background:rgba(16,185,129,.05)}
+  .drop-icon{font-size:3rem;margin-bottom:.75rem;display:block;transition:transform .3s}
+  .drop-zone:hover .drop-icon{transform:scale(1.1) rotate(5deg)}
+  .drop-label{font-weight:700;color:#334155;font-size:1.05rem;display:block;margin-bottom:.25rem}
+  .drop-hint{font-size:.85rem;color:#94a3b8;display:block}
+
+  /* ── Scan btn ── */
+  .scan-row{display:flex;gap:.75rem;margin-top:.75rem}
+  .scan-btn{flex:1;padding:.7rem;border:2px solid #e2e8f0;border-radius:14px;font-size:.9rem;font-weight:600;color:#475569;background:white;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:.4rem}
+  .scan-btn:hover{border-color:#2563eb;color:#2563eb;background:#eff6ff}
+
+  /* ── File grid ── */
+  #fileGrid{display:none;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:.75rem;margin-top:1rem;max-height:280px;overflow-y:auto;padding:.25rem}
+  .bu-thumb{border-radius:14px;border:2px solid #e2e8f0;overflow:hidden;background:white;transition:box-shadow .2s}
+  .bu-thumb:hover{box-shadow:0 4px 16px rgba(0,0,0,.1)}
+  .bu-thumb.bu-done{border-color:#10b981}.bu-thumb.bu-error{border-color:#ef4444}
+  .bu-thumb-img{position:relative;aspect-ratio:1;overflow:hidden;background:#f8fafc}
+  .bu-thumb-img img{width:100%;height:100%;object-fit:cover;display:block}
+  .bu-pdf-icon{display:flex;align-items:center;justify-content:center;width:100%;height:100%;font-size:2rem}
+  .bu-badge{position:absolute;top:4px;left:4px;font-size:.6rem;background:#7c3aed;color:white;border-radius:6px;padding:2px 5px}
+  .bu-thumb-actions{position:absolute;inset:0;background:rgba(0,0,0,.5);opacity:0;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:.3rem}
+  .bu-thumb-img:hover .bu-thumb-actions{opacity:1}
+  .bu-thumb-actions button{background:white;border:none;border-radius:8px;font-size:.75rem;padding:4px 7px;cursor:pointer;font-weight:600}
+  .bu-thumb-meta{padding:5px 6px;border-top:1px solid #f1f5f9}
+  .bu-fname{display:block;font-size:.65rem;font-weight:600;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bu-fsize{display:block;font-size:.6rem;color:#94a3b8}
+  .bu-bar-wrap{height:4px;background:#e2e8f0;margin:0;display:none}
+  .bu-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,#3b82f6,#8b5cf6);transition:width .2s}
+  .bu-status{font-size:.6rem;text-align:center;padding:2px;color:#475569;min-height:14px}
+
+  /* ── Form fields ── */
+  .input-grid{display:grid;grid-template-columns:1fr 1fr;gap:1.25rem;margin-top:1.25rem}
+  @media(max-width:640px){.input-grid{grid-template-columns:1fr}}
+  .form-field{position:relative;margin-bottom:1.25rem}
+  .field-label{position:absolute;top:-.6rem;left:1rem;background:white;padding:0 .5rem;font-size:.8rem;font-weight:600;color:#2563eb;border-radius:4px;z-index:2}
+  .modern-input,.modern-select{width:100%;padding:1rem 1.25rem;border:2px solid #e2e8f0;border-radius:16px;font-size:1rem;background:white;color:#1e293b;font-weight:500;transition:all .2s;appearance:none}
+  .modern-input:focus,.modern-select:focus{border-color:#2563eb;box-shadow:0 0 0 4px rgba(37,99,235,.1);outline:none}
+
+  /* ── Submit btn ── */
+  .upload-btn{width:100%;padding:1.1rem;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:white;border:none;border-radius:16px;font-size:1.1rem;font-weight:700;cursor:pointer;box-shadow:0 4px 15px rgba(37,99,235,.3);transition:all .3s cubic-bezier(.4,0,.2,1);margin-top:1rem;position:relative;overflow:hidden}
+  .upload-btn:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 8px 25px rgba(37,99,235,.4)}
+  .upload-btn:disabled{opacity:.7;cursor:not-allowed}
+
+  /* ── Crop modal ── */
+  .crop-modal{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,.85);align-items:center;justify-content:center;padding:1rem}
+  .crop-box{background:white;border-radius:20px;overflow:hidden;width:100%;max-width:600px;display:flex;flex-direction:column;max-height:90vh}
+  .crop-header{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0}
+  .crop-header h3{font-weight:700;color:#1e293b;margin:0}
+  .crop-header button{background:none;border:none;font-size:1.25rem;cursor:pointer;color:#64748b;width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center}
+  .crop-header button:hover{background:#f1f5f9}
+  .crop-canvas{flex:1;overflow:hidden;min-height:300px;max-height:55vh;background:#000}
+  .crop-canvas img{max-width:100%}
+  .crop-footer{display:flex;gap:.75rem;padding:1rem 1.25rem;border-top:1px solid #e2e8f0;flex-wrap:wrap}
+  .crop-footer button{flex:1;min-width:80px;padding:.65rem .5rem;border-radius:12px;border:2px solid #e2e8f0;font-size:.85rem;font-weight:600;cursor:pointer;background:white;color:#475569;transition:all .2s}
+  .crop-footer button:hover{border-color:#2563eb;color:#2563eb}
+  .crop-footer .apply-btn{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:white;border-color:transparent}
+  .crop-footer .apply-btn:hover{box-shadow:0 4px 12px rgba(37,99,235,.4);transform:translateY(-1px)}
+
+  /* ── Toast ── */
+  #toastContainer{position:fixed;bottom:1.5rem;right:1.5rem;z-index:10000;display:flex;flex-direction:column;gap:.5rem;pointer-events:none}
+  .bu-toast{padding:.75rem 1.25rem;border-radius:14px;font-weight:600;font-size:.9rem;box-shadow:0 4px 20px rgba(0,0,0,.15);animation:slideIn .3s ease;pointer-events:auto;max-width:320px}
+  .bu-toast-success{background:#10b981;color:white}
+  .bu-toast-error{background:#ef4444;color:white}
+  .bu-toast-info{background:#2563eb;color:white}
+
+  /* ── Floating upload indicator ── */
+  #uploadFloat{display:none;position:fixed;bottom:1.5rem;left:1.5rem;z-index:10000;background:white;border-radius:16px;padding:.75rem 1.25rem;box-shadow:0 4px 24px rgba(0,0,0,.15);border:2px solid #2563eb;align-items:center;gap:.75rem;min-width:220px}
+  #uploadFloatText{font-size:.85rem;font-weight:600;color:#1e293b}
+  .mini-spin{width:18px;height:18px;border:2px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+
+  /* ── Dynamic fields ── */
+  #unitGroup,#practicalGroup{display:none}
+
+  /* ── Meta bar on each thumb ── */
+  .bu-meta-bar{padding:4px 6px;font-size:.6rem;font-weight:600;cursor:pointer;text-align:center;border-top:1px solid #e2e8f0;transition:background .2s;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bu-meta-bar.meta-ok{background:#f0fdf4;color:#15803d}
+  .bu-meta-bar.meta-warn{background:#fff7ed;color:#c2410c}
+  .bu-meta-bar span{display:inline}
+  @keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(239,68,68,.4)}50%{box-shadow:0 0 0 6px rgba(239,68,68,0)}}
+  .bu-pulse{animation:pulse 1s 3}
+
+  /* ── Metadata modal ── */
+  .meta-modal{display:none;position:fixed;inset:0;z-index:10000;background:rgba(0,0,0,.7);align-items:center;justify-content:center;padding:1rem}
+  .meta-box{background:white;border-radius:20px;width:100%;max-width:440px;overflow:hidden}
+  .meta-hdr{display:flex;align-items:center;justify-content:space-between;padding:1rem 1.25rem;border-bottom:1px solid #e2e8f0}
+  .meta-hdr h3{margin:0;font-size:1rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:300px}
+  .meta-hdr button{background:none;border:none;font-size:1.25rem;cursor:pointer;color:#64748b;width:32px;height:32px;border-radius:8px;flex-shrink:0}
+  .meta-body{padding:1.25rem;display:flex;flex-direction:column;gap:1rem}
+  .meta-field label{display:block;font-size:.8rem;font-weight:600;color:#2563eb;margin-bottom:.35rem}
+  .meta-field input,.meta-field select{width:100%;padding:.75rem 1rem;border:2px solid #e2e8f0;border-radius:12px;font-size:.95rem;color:#1e293b;font-weight:500;background:white;transition:border-color .2s;appearance:none}
+  .meta-field input:focus,.meta-field select:focus{border-color:#2563eb;outline:none;box-shadow:0 0 0 3px rgba(37,99,235,.1)}
+  .meta-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+  .meta-ftr{display:flex;gap:.75rem;padding:1rem 1.25rem;border-top:1px solid #e2e8f0}
+  .meta-ftr button{flex:1;padding:.75rem;border-radius:12px;border:2px solid #e2e8f0;font-size:.9rem;font-weight:600;cursor:pointer;background:white;color:#475569;transition:all .2s}
+  .meta-ftr .meta-save{background:linear-gradient(135deg,#2563eb,#1d4ed8);color:white;border-color:transparent}
+  .meta-ftr .meta-save:hover{box-shadow:0 4px 12px rgba(37,99,235,.4)}
+
+  @keyframes slideUp{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+  @keyframes slideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+  @keyframes spin{to{transform:rotate(360deg)}}
+</style>
+
+<div class="page-container">
+  <div class="grid-layout">
+
+    <!-- Left: Branding -->
+    <div class="visuals-col">
+      <h1 class="hero-title">Contribute to the<br>Community 🚀</h1>
+      <p class="hero-text">Thousands of students rely on AbhiHub. Upload your notes, papers, and practicals to help juniors and peers ace their exams.</p>
+      <div class="feature-list">
+        <div class="feature-item"><div class="feature-icon icon-blue">⚡</div><span>Bulk upload multiple images at once</span></div>
+        <div class="feature-item"><div class="feature-icon icon-purple">✂️</div><span>Crop &amp; rotate before uploading</span></div>
+        <div class="feature-item"><div class="feature-icon icon-green">📷</div><span>Scan directly from your camera</span></div>
+      </div>
+    </div>
+
+    <!-- Right: Upload form -->
+    <div class="upload-form-container">
+      <div class="form-card">
+        <div class="mobile-header">
+          <span class="mobile-title">Upload Files</span>
+          <span class="mobile-subtitle">Share resources with friends</span>
+        </div>
+
+        <form id="uploadForm" onsubmit="startBulkUpload(event)">
+
+          <!-- Drop zone -->
+          <div class="drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
+            <span class="drop-icon">📂</span>
+            <span class="drop-label">Select Files / Drag &amp; Drop</span>
+            <span class="drop-hint" id="fileHint">Images accepted • Max 50 MB each</span>
+            <input type="file" id="fileInput" name="upload_document" hidden multiple accept="image/*,application/pdf"
+                   onchange="handleFilesSelected(this.files)">
+          </div>
+
+          <!-- Scan / camera row -->
+          <div class="scan-row">
+            <button type="button" class="scan-btn" onclick="document.getElementById('cameraInput').click()">
+              📷 Scan / Camera
+            </button>
+            <button type="button" class="scan-btn" onclick="document.getElementById('fileInput').click()">
+              🗂 Browse Files
+            </button>
+          </div>
+          <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden
+                 onchange="handleFilesSelected(this.files)">
+
+          <!-- File thumbnail grid -->
+          <div id="fileGrid"></div>
+
+          <!-- Shared fields: college + branch -->
+          <div class="input-grid" style="margin-top:1rem">
+            <div class="form-field">
+              <label class="field-label">College</label>
+              <select name="college_id" id="college_id" class="modern-select" required>
+                <option value="" disabled selected>Loading…</option>
+              </select>
+            </div>
+            <div class="form-field">
+              <label class="field-label">Branch</label>
+              <select name="branch_id" id="branch_id" class="modern-select" required>
+                <option value="" disabled selected>Loading…</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Default values (pre-fill each image's info modal) -->
+          <details style="margin-bottom:.75rem">
+            <summary style="cursor:pointer;font-size:.85rem;font-weight:600;color:#64748b;padding:.5rem 0">⚙ Set Defaults (auto-fill per-image info)</summary>
+            <div class="input-grid" style="margin-top:.75rem">
+              <div class="form-field">
+                <label class="field-label">Default Year</label>
+                <select name="Year" id="Year" class="modern-select">
+                  <option value="2022">2022</option>
+                  <option value="2023">2023</option>
+                  <option value="2024">2024</option>
+                  <option value="2025" selected>2025</option>
+                  <option value="2026">2026</option>
+                </select>
+              </div>
+              <div class="form-field">
+                <label class="field-label">Default Category</label>
+                <select name="type" id="type" class="modern-select" onchange="updateDynamicFields()">
+                  <option value="" disabled selected>Select Type</option>
+                  <option value="papers">Papers 📄</option>
+                  <option value="notes">Notes 📚</option>
+                  <option value="practical">Practical 🧪</option>
+                  <option value="syllabus">Syllabus 📜</option>
+                  <option value="assisment">Assignment 📝</option>
+                  <option value="timetable">Timetable 📅</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-field" id="unitGroup">
+              <label class="field-label">Default Unit</label>
+              <select name="unit" id="unit" class="modern-select"></select>
+            </div>
+            <div class="form-field">
+              <label class="field-label">Default Subject</label>
+              <input type="text" name="subject" id="subject" class="modern-input" placeholder="e.g. DBMS, CN…">
+            </div>
+          </details>
+          <p style="font-size:.8rem;color:#64748b;margin-bottom:.5rem;text-align:center">📝 Click a thumbnail to fill/edit its individual info</p>
+
+          <!-- Submit -->
+          <button type="submit" class="upload-btn" id="submitBtn">Upload Files</button>
+
+        </form>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ── Per-image Metadata Modal ── -->
+<div class="meta-modal" id="metaModal">
+  <div class="meta-box">
+    <div class="meta-hdr">
+      <h3 id="metaModalTitle">📝 Image Info</h3>
+      <button onclick="closeMetaModal()">✕</button>
+    </div>
+    <div class="meta-body">
+      <div class="meta-row">
+        <div class="meta-field">
+          <label>Category *</label>
+          <select id="metaType" onchange="updateMetaUnit()" required>
+            <option value="" disabled selected>Select</option>
+            <option value="papers">Papers 📄</option>
+            <option value="notes">Notes 📚</option>
+            <option value="practical">Practical 🧪</option>
+            <option value="syllabus">Syllabus 📜</option>
+            <option value="assisment">Assignment 📝</option>
+            <option value="timetable">Timetable 📅</option>
+          </select>
+        </div>
+        <div class="meta-field">
+          <label>Year *</label>
+          <select id="metaYear">
+            <option value="2022">2022</option>
+            <option value="2023">2023</option>
+            <option value="2024">2024</option>
+            <option value="2025" selected>2025</option>
+            <option value="2026">2026</option>
+          </select>
+        </div>
+      </div>
+      <div class="meta-field" id="metaUnitWrap" style="display:none">
+        <label>Exam / Unit *</label>
+        <select id="metaUnit"></select>
+      </div>
+      <div class="meta-field">
+        <label>Subject *</label>
+        <input type="text" id="metaSubject" placeholder="e.g. DBMS, Mathematics, CN">
+      </div>
+    </div>
+    <div class="meta-ftr">
+      <button onclick="closeMetaModal()">Cancel</button>
+      <button class="meta-save" onclick="saveMetaModal()">✓ Save Info</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Crop Modal ── -->
+<div class="crop-modal" id="cropModal">
+  <div class="crop-box">
+    <div class="crop-header">
+      <h3>✂ Crop Image</h3>
+      <button onclick="closeCropModal()">✕</button>
+    </div>
+    <div class="crop-canvas">
+      <img id="cropImg" src="" alt="crop target">
+    </div>
+    <div class="crop-footer">
+      <button onclick="rotateCrop(-90)">↺ Rotate L</button>
+      <button onclick="rotateCrop(90)">↻ Rotate R</button>
+      <button class="apply-btn" onclick="applyCrop()">✓ Apply Crop</button>
+      <button onclick="closeCropModal()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── Toast container ── -->
+<div id="toastContainer"></div>
+
+<!-- ── Floating upload indicator ── -->
+<div id="uploadFloat">
+  <div class="mini-spin"></div>
+  <span id="uploadFloatText">Uploading…</span>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script src="{{ url_for('static', filename='js/bulk_upload.js') }}"></script>
+<script>
+  /* ── Dynamic fields ── */
+  function updateDynamicFields() {
+    const type = document.getElementById('type')?.value || '';
+    const unitG = document.getElementById('unitGroup');
+    const pracG = document.getElementById('practicalGroup');
+    const unitSel = document.getElementById('unit');
+
+    if (unitG) unitG.style.display = 'none';
+    if (pracG) pracG.style.display = 'none';
+
+    if (type === 'notes') {
+      if (unitG) unitG.style.display = 'block';
+      if (unitSel) unitSel.innerHTML = '<option value="U1">Unit 1</option><option value="U2">Unit 2</option><option value="U3">Unit 3</option><option value="U4">Unit 4</option><option value="U5">Unit 5</option><option value="All">All Units</option>';
+    } else if (type === 'papers') {
+      if (unitG) unitG.style.display = 'block';
+      if (unitSel) unitSel.innerHTML = '<option value="CAE1">CAE-1</option><option value="CAE2">CAE-2</option><option value="CAE3">CAE-3</option><option value="ESE">End Sem/Resit</option>';
+    } else if (type === 'practical') {
+      if (pracG) pracG.style.display = 'grid';
+    }
+
+    // Update file hint
+    const hint = document.getElementById('fileHint');
+    const fileInput = document.getElementById('fileInput');
+    if (hint && fileInput) {
+      if (['papers','practical'].includes(type)) {
+        hint.textContent = 'Images only for this type • Max 50 MB each';
+        fileInput.accept = 'image/*';
+      } else {
+        hint.textContent = 'PDF or Images • Max 50 MB each';
+        fileInput.accept = 'image/*,application/pdf';
+      }
+    }
+  }
+
+  /* ── Load dropdowns + autofill profile ── */
+  document.addEventListener('DOMContentLoaded', async () => {
+    updateDynamicFields();
+    const [colR, brR] = await Promise.all([
+      fetch('/api/colleges').then(r => r.json()).catch(() => ({})),
+      fetch('/api/branches').then(r => r.json()).catch(() => ({}))
+    ]);
+
+    const colSel = document.getElementById('college_id');
+    const brSel  = document.getElementById('branch_id');
+
+    colSel.innerHTML = '<option value="" disabled selected>Select College</option>';
+    (colR.colleges || []).forEach(c => {
+      const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; colSel.appendChild(o);
+    });
+
+    brSel.innerHTML = '<option value="" disabled selected>Select Branch</option>';
+    (brR.branches || []).forEach(b => {
+      const o = document.createElement('option'); o.value = b.id || b.branch_id; o.textContent = b.name || b.branch_name; brSel.appendChild(o);
+    });
+
+    try {
+      const p = await fetch('/api/profile').then(r => r.json());
+      if (p.success && p.user && p.user.user_metadata) {
+        const m = p.user.user_metadata;
+        if (m.college_id) colSel.value = m.college_id;
+        if (m.branch_id)  brSel.value  = m.branch_id;
+      }
+    } catch {}
+  });
+</script>
+
+{% endblock %}

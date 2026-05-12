@@ -1,0 +1,54 @@
+<!-- _auth_form.html - Reusable authentication form component -->
+<!-- Parameters:
+     - form_type: 'login', 'signup', or 'reset'
+     - title: Form title
+     - submit_text: Submit button text
+     - show_confirm_password: boolean for signup
+     - show_forgot_password: boolean for login
+     - show_signup_link: boolean for login
+     - show_login_link: boolean for signup
+-->
+
+<div class="p-{{ form_type }}-container">
+  <h2 class="p-{{ form_type }}-title">{{ title }}</h2>
+
+  {% if form_type == 'reset' %}
+  <div id="email-error-message" class="error-msg"></div>
+  <input type="email" id="email-input" class="p-input-field" placeholder="Email" required>
+  {% else %}
+  <input type="email" id="email-input" class="p-input-field" placeholder="Email" required>
+  <div id="email-error-message" class="error-msg"></div>
+
+  <input type="password" id="password-input" class="p-input-field" placeholder="Password" required>
+  <div id="password-error-message" class="error-msg"></div>
+
+  {% if show_confirm_password %}
+  <input type="password" id="confirm-password-input" class="p-input-field" placeholder="Confirm Password" required>
+  <div id="confirm-password-error-message" class="error-msg"></div>
+  {% endif %}
+  {% endif %}
+
+  <button id="{% if form_type == 'login' %}sign-in-btn{% elif form_type == 'signup' %}create-account-btn{% else %}reset-password-btn{% endif %}" class="p-{{ form_type }}-btn">{{ submit_text }}</button>
+
+  {% if form_type != 'reset' %}
+  <div class="p-divider">OR</div>
+
+  <button id="{% if form_type == 'login' %}sign-in-with-google-btn{% else %}sign-up-with-google-btn{% endif %}" class="p-google-btn">
+    <img src="{{ url_for('static', filename='images/google-icon.png') }}" alt="Google logo">
+    {% if form_type == 'login' %}Sign in with Google{% else %}Sign up with Google{% endif %}
+  </button>
+  <div id="google-signin-error-message" class="error-msg"></div>
+  {% endif %}
+
+  <div class="p-links">
+    {% if show_signup_link %}
+    <div>Don't have an account? <a href="{{ url_for('signup') }}">Sign up</a></div>
+    {% endif %}
+    {% if show_forgot_password %}
+    <div><a href="{{ url_for('reset_password') }}">Forgot Password?</a></div>
+    {% endif %}
+    {% if show_login_link %}
+    <div>Already have an account? <a href="{{ url_for('login') }}">Login</a></div>
+    {% endif %}
+  </div>
+</div>

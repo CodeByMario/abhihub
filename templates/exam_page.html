@@ -1,0 +1,231 @@
+{% extends 'p_struct.html' %}
+
+{% block content %}
+<div class="exam-sections">
+    <!-- Important Section -->
+    <div class="important-section">
+        <h2>Important Information</h2>
+        <p>Here you can find the most critical updates and announcements related to your exams.</p>
+        <ul>
+            <li>Exam Timetable:
+                <img src="{{ url_for('static', filename='/premium/images/6th_CAE1_2025_timetabel.jpg')}}"
+                    alt="the Timetabel" class="styled-image">
+            </li>
+            <li>6th Semester AI Syllabus: <a href="{{ url_for('view_pdf', pdf_name='premium/documents/syllabus.pdf') }}"
+                    class="link-highlight">Download</a></li>
+        </ul>
+    </div>
+
+    <!-- Notes Section -->
+    <div class="notes-section">
+        <h2>Notes</h2>
+        <p>Access all the notes for your subjects here:</p>
+        <div class="notes-items">
+            {% for file in data %}
+            {% if file['type'] == 'Notes' %}
+            <div class="note-item">
+                <h3>{{ file['subject'] }}</h3>
+                <p>Shared by: {{ file['author'] }}</p>
+                <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id', '')) }}"
+                    class="button-86">{{ file['file-name'] }}</a>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+
+    <!-- Papers Section -->
+    <div class="papers-section">
+        <h2>Previous Year Papers</h2>
+        <p>Find all the previous year question papers for practice:</p>
+        <div class="papers-items">
+            {% for file in data %}
+            {% if file['type'] == 'Papers' %}
+            <div class="paper-item">
+                <h3>{{ file['subject'] }}</h3>
+                <p>Shared by: {{ file['author'] }}</p>
+                <a href="{{ url_for('preview', file_path=file['file-path'], record_id=file.get('record_id', '')) }}"
+                    class="button-86">{{ file['file-name'] }}</a>
+            </div>
+            {% endif %}
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+
+<!-- Enhanced button to redirect to the upload page -->
+<div class="redirect-upload">
+    <h2>Share Your Notes or Papers</h2>
+    <p>Help others by sharing your study materials. Click the button below to upload your files easily!</p>
+    <a href="{{ url_for('upload') }}" class="button-86 enhanced-button">Upload Now</a>
+</div>
+
+<div class="footer-info">
+    <p>Page created by: Abhijeet Shende</p>
+    <p>Date: April 25, 2025</p>
+</div>
+
+<style>
+    .exam-sections {
+        font-family: Arial, sans-serif;
+        margin: 20px;
+        padding: 20px;
+        background-color: #f9f9f9;
+        border-radius: 8px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        animation: fadeIn 1.5s ease-in-out;
+    }
+
+    .exam-sections h2 {
+        color: #333;
+        border-bottom: 2px solid #007BFF;
+        padding-bottom: 5px;
+        margin-bottom: 15px;
+    }
+
+    .exam-sections p {
+        color: #555;
+        line-height: 1.6;
+    }
+
+    .link-highlight {
+        color: #007BFF;
+        text-decoration: none;
+        font-weight: bold;
+    }
+
+    .link-highlight:hover {
+        text-decoration: underline;
+    }
+
+    .notes-items,
+    .papers-items {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 15px;
+    }
+
+    .note-item,
+    .paper-item {
+        background-color: #fff;
+        border: 1px solid #ddd;
+        border-radius: 5px;
+        padding: 15px;
+        text-align: center;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .note-item:hover,
+    .paper-item:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .note-item h3,
+    .paper-item h3 {
+        color: #007BFF;
+        margin-bottom: 10px;
+    }
+
+    .note-item p,
+    .paper-item p {
+        color: #666;
+        font-size: 14px;
+        margin-bottom: 10px;
+    }
+
+    .button-86 {
+        display: inline-block;
+        padding: 10px 20px;
+        font-size: 14px;
+        color: #fff;
+        background-color: #007BFF;
+        border: none;
+        border-radius: 5px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.3s;
+    }
+
+    .button-86:hover {
+        transform: scale(1.05);
+    }
+
+    .footer-info {
+        margin-top: 20px;
+        font-size: 14px;
+        color: #666;
+        text-align: center;
+    }
+
+    .styled-image {
+        max-width: 100%;
+        height: auto;
+        border: 2px solid #ddd;
+        border-radius: 5px;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        margin-top: 10px;
+        transition: transform 0.3s, box-shadow 0.3s;
+    }
+
+    .styled-image:hover {
+        transform: scale(1.1);
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .redirect-upload {
+        text-align: center;
+        margin: 30px 0;
+        padding: 20px;
+        background-color: #f0f8ff;
+        border: 2px dashed #007BFF;
+        border-radius: 10px;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        animation: fadeIn 1.5s ease-in-out;
+    }
+
+    .redirect-upload h2 {
+        color: #007BFF;
+        font-size: 24px;
+        margin-bottom: 10px;
+    }
+
+    .redirect-upload p {
+        color: #555;
+        font-size: 16px;
+        margin-bottom: 20px;
+    }
+
+    .enhanced-button {
+        display: inline-block;
+        padding: 12px 25px;
+        font-size: 16px;
+        color: #fff;
+        background-color: #007BFF;
+        border: none;
+        border-radius: 5px;
+        text-decoration: none;
+        cursor: pointer;
+        transition: background-color 0.3s, transform 0.3s;
+    }
+
+    .enhanced-button:hover {
+        background-color: #0056b3;
+        transform: scale(1.1);
+    }
+</style>
+{% endblock %}

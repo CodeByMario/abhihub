@@ -1,0 +1,26 @@
+{
+  "anonymous": {
+    "subscription": {
+      "endpoint": "https://wns2-pn1p.notify.windows.com/w/?token=BQYAAADKAZYdOl%2fIcic0V2HWvE%2fV4DJ03lXWzUdT7m6f4ZyvYmTiumU4qhaSS220YfH%2bC668aLAi0UnQLn8Jb9IwgDrjMF6dUOlLm5PV%2fuU1vNKrqDtGDkyEIDywsFH9IvyrjV06tX4V0dUkwLfs%2bs14bvahqLFujNbBlcAkZkY%2bh%2brKAw0juVfJFDdqZY8WPeDRlPUtNAI8YZG5envMZXkx51OnyJEf1MSWP6aTQ4tbkqRGSzMRH0hw27waZfd9IWzsiPpgeOgPdVMK9sxT%2fLvNHpa3W4pLDAhd%2bdO8JcgE7%2fAGgflKqiJVB24ehzF32rpgg3Y%3d",
+      "expirationTime": null,
+      "keys": {
+        "p256dh": "BE75RdCdwxc-GhTbk1O4RmFy7JDOFdFZqASKR2YRaWxDHmoR0-R_1yRQoCZW7be6yRyz1nb4AMiz6G5GZzKUcoQ",
+        "auth": "XER4kg6U2ByA-VG4xRg6Uw"
+      }
+    },
+    "created_at": "2026-01-04T05:54:45.843345",
+    "updated_at": "2026-01-04T05:54:45.843366"
+  },
+  "abhijeetshende4053@gmail.com": {
+    "subscription": {
+      "endpoint": "https://wns2-pn1p.notify.windows.com/w/?token=BQYAAAAt9leNqKPDwZUhVAw3YeOB8PFalWUIyc39y5zUcSQLy19jI22OEvK6cYRC2JrLwY8gpSmItwEZBVxFDpMNgp3PAHi990cMuTkMWhw5rDNejghfNzPnwMDElYgCtK%2fHl1ukPSaB6Dsj9UwjrYLUbobhEhTj0Yq5nt%2fR%2f4tDFUFUH1yEwtL0cUwn3EitJDS7gkUDEAlu0xy9DZ00oABaHTlArxLyKQbmhBtqrg9x9Irr5e0jBfybA5dA1s21wis5VnZ4cxHSZ2iZyluffi4x3AQiU0Id5tXpTFQBXz9KL%2b4FNyF1Nu63IC7HfLRVlAuudVE%3d",
+      "expirationTime": null,
+      "keys": {
+        "p256dh": "BDc9kGc8DEuV-xMNnzSKgKcmH_sZ1z7qHQ0Y7Jx0SBZpObP_s1BAtt6ptvzaZ2mVoquEXY2FvLJhWRB9mTzHAnY",
+        "auth": "n8RC63gFU1BO8uCutAvUEQ"
+      }
+    },
+    "created_at": "2026-01-25T18:47:15.152589",
+    "updated_at": "2026-01-25T18:47:15.154504"
+  }
+}

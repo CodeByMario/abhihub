@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+
+  {% include 'favicon.html' %}
+  <title>AbhiHub</title>
+
+
+  {% include 'google_tag.html' %}
+</head>
+
+  <body>
+
+    {% include 'navbar_public.html' %}
+
+    <main>
+
+      <h1>Terms of Service</h1>
+
+      <p>The main aim of this service is to facilitate knowledge sharing in a reliable manner, ensuring that accurate information is being passed forward.</p>
+      <p>Users are required to share data that is true to the best of their knowledge. They must not use data from this site for commercial purposes without the permission of the resource owner.</p>
+      <p>While ownership is not guaranteed, the individual who uploads the data will be considered the owner of that content.</p>
+      <p>The service provider shall not be liable for any damages arising from the use of the service, including but not limited to direct, indirect, incidental, or consequential damages.</p>
+      <p>These terms shall be governed by the right to education principles.</p>
+
+    </main>
+
+    {% include 'footer.html' %}
+
+
+
+    <script src="{{ url_for('static', filename='scripts.js') }}" type="module"></script>
+  </body>
+
+</html>

@@ -1,0 +1,649 @@
+{% extends "p_struct.html" %}
+
+{% block content %}
+<style>
+    /* Scoped styles for Admin Panel - Light Mode */
+    :root {
+        --glass-surface: rgba(255, 255, 255, 0.85);
+        /* Light glass */
+        --glass-border: 1px solid rgba(0, 0, 0, 0.1);
+        --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+        --text-primary: #1e293b;
+        --text-secondary: #64748b;
+        --bg-hover: rgba(0, 0, 0, 0.03);
+    }
+
+    .admin-container {
+        max-width: 1200px;
+        margin: 2rem auto;
+        padding: 0 1.5rem;
+    }
+
+    /* Glass Panels */
+    .glass-panel {
+        background: var(--glass-surface);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: var(--glass-border);
+        border-radius: 16px;
+        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
+        /* Softer shadow */
+        padding: 2rem;
+        margin-bottom: 2rem;
+    }
+
+    /* Page Header */
+    .page-header {
+        margin-bottom: 2rem;
+    }
+
+    .page-title {
+        font-size: 2.25rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+    }
+
+    .page-subtitle {
+        color: var(--text-secondary);
+        font-size: 1.1rem;
+    }
+
+    /* Stats Grid */
+    .stats-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: 1.5rem;
+        margin-bottom: 2rem;
+    }
+
+    .stat-card {
+        background: white;
+        border: var(--glass-border);
+        border-radius: 12px;
+        padding: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        transition: transform 0.2s;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+    }
+
+    .stat-card:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+    }
+
+    .stat-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.25rem;
+    }
+
+    .stat-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1;
+    }
+
+    .stat-label {
+        color: var(--text-secondary);
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    /* Layout */
+    .content-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 2rem;
+    }
+
+    @media (max-width: 992px) {
+        .content-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    /* Forms */
+    .form-group {
+        margin-bottom: 1.5rem;
+    }
+
+    .form-label {
+        display: block;
+        margin-bottom: 0.5rem;
+        color: var(--text-primary);
+        font-weight: 600;
+    }
+
+    .form-control {
+        width: 100%;
+        padding: 0.75rem 1rem;
+        background: #f8fafc;
+        border: 1px solid #cbd5e1;
+        border-radius: 8px;
+        color: var(--text-primary);
+        transition: all 0.2s;
+    }
+
+    .form-control:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+        background: white;
+    }
+
+    .char-counter {
+        text-align: right;
+        font-size: 0.8rem;
+        color: var(--text-secondary);
+        margin-top: 0.25rem;
+    }
+
+    .char-counter.warning {
+        color: #f59e0b;
+    }
+
+    .char-counter.danger {
+        color: #ef4444;
+    }
+
+    /* Custom Checkbox */
+    .custom-checkbox {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        cursor: pointer;
+        padding: 0.75rem;
+        background: #f1f5f9;
+        border-radius: 8px;
+        transition: background 0.2s;
+        border: 1px solid transparent;
+    }
+
+    .custom-checkbox:hover {
+        background: #e2e8f0;
+    }
+
+    .custom-checkbox input {
+        width: 18px;
+        height: 18px;
+        accent-color: #6366f1;
+    }
+
+    .checkbox-label {
+        color: var(--text-primary);
+        font-weight: 500;
+    }
+
+    /* User List */
+    .user-list {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 8px;
+        max-height: 250px;
+        overflow-y: auto;
+        padding: 0.5rem;
+    }
+
+    .user-item {
+        padding: 0.5rem;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        color: var(--text-primary);
+    }
+
+    .user-item:hover {
+        background: #f1f5f9;
+    }
+
+    /* History Items */
+    .history-item {
+        background: white;
+        border: 1px solid #e2e8f0;
+        border-radius: 10px;
+        padding: 1rem;
+        margin-bottom: 1rem;
+        transition: transform 0.2s;
+        position: relative;
+        overflow: hidden;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+    }
+
+    .history-item::before {
+        content: '';
+        position: absolute;
+        left: 0;
+        top: 0;
+        bottom: 0;
+        width: 4px;
+        background: #6366f1;
+    }
+
+    .history-item:hover {
+        transform: translateX(4px);
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .history-title {
+        color: var(--text-primary);
+        font-weight: 600;
+        margin-bottom: 0.25rem;
+    }
+
+    .history-body {
+        color: var(--text-secondary);
+        font-size: 0.9rem;
+        margin-bottom: 0.75rem;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        overflow: hidden;
+    }
+
+    .history-meta {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        font-size: 0.8rem;
+    }
+
+    .badge {
+        padding: 0.2rem 0.6rem;
+        border-radius: 20px;
+        font-weight: 600;
+    }
+
+    .badge-success {
+        background: #dcfce7;
+        color: #166534;
+    }
+
+    .badge-fail {
+        background: #fee2e2;
+        color: #991b1b;
+    }
+
+    .badge-warn {
+        background: #fef3c7;
+        color: #92400e;
+    }
+
+    /* Buttons */
+    .btn-action {
+        width: 100%;
+        padding: 0.875rem;
+        border-radius: 8px;
+        font-weight: 600;
+        border: none;
+        cursor: pointer;
+        transition: transform 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 0.5rem;
+    }
+
+    .btn-primary {
+        background: var(--primary-gradient);
+        color: white;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+    }
+
+    .btn-primary:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-secondary {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+    }
+
+    .btn-secondary:hover {
+        background: #e2e8f0;
+        color: #1e293b;
+    }
+
+    /* Alert */
+    .alert {
+        padding: 1rem;
+        border-radius: 12px;
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        animation: slideDown 0.3s ease;
+    }
+
+    @keyframes slideDown {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .alert-success {
+        background: #dcfce7;
+        border: 1px solid #bbf7d0;
+        color: #166534;
+    }
+
+    .alert-error {
+        background: #fee2e2;
+        border: 1px solid #fecaca;
+        color: #991b1b;
+    }
+
+    /* Scrollbar */
+    ::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+        background: #f1f5f9;
+    }
+
+    ::-webkit-scrollbar-thumb {
+        background: #cbd5e1;
+        border-radius: 10px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+        background: #94a3b8;
+    }
+</style>
+
+<div class="admin-container">
+    <!-- Header -->
+    <div class="page-header">
+        <h1 class="page-title">
+            <i class="fas fa-paper-plane text-indigo-400"></i>
+            Notification Control
+        </h1>
+        <p class="page-subtitle">Manage push notifications for Mobile App users</p>
+    </div>
+
+    <!-- Stats -->
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1); color: #818cf8;">
+                <i class="fas fa-users"></i>
+            </div>
+            <div>
+                <div class="stat-value" id="subscriberCount">0</div>
+                <div class="stat-label">Total Subscribers</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(236, 72, 153, 0.1); color: #f472b6;">
+                <i class="fas fa-check-circle"></i>
+            </div>
+            <div>
+                <div class="stat-value" id="selectedCount">0</div>
+                <div class="stat-label">Selected Users</div>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #34d399;">
+                <i class="fas fa-history"></i>
+            </div>
+            <div>
+                <div class="stat-value" id="lastSentCount">-</div>
+                <div class="stat-label">Last Sent</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Alert Area -->
+    <div id="alertContainer"></div>
+
+    <div class="content-grid">
+        <!-- Composition Panel -->
+        <div class="glass-panel">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text-primary);">
+                <i class="fas fa-pen-to-square text-pink-500"></i> Compose
+            </h2>
+
+            <form id="notificationForm">
+                <div class="form-group">
+                    <label class="form-label">Title <span class="text-red-500">*</span></label>
+                    <input type="text" id="title" class="form-control" required maxlength="100"
+                        placeholder="Notification Title">
+                    <div class="char-counter" id="titleCounter">0 / 100</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Message <span class="text-red-500">*</span></label>
+                    <textarea id="body" class="form-control" rows="4" required maxlength="500"
+                        placeholder="Notification Body"></textarea>
+                    <div class="char-counter" id="bodyCounter">0 / 500</div>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Action URL</label>
+                    <input type="url" id="url" class="form-control" value="/premium" placeholder="https://...">
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label">Icon URL</label>
+                    <input type="url" id="icon" class="form-control" value="/static/images/android-chrome-192x192.png"
+                        placeholder="https://...">
+                </div>
+
+                <input type="hidden" id="tag" value="admin-notification">
+
+                <label class="custom-checkbox mb-4">
+                    <input type="checkbox" id="sendToAll" checked>
+                    <span class="checkbox-label">Broadcast to all subscribers</span>
+                </label>
+
+                <div id="userSelectionGroup" class="form-group" style="display: none;">
+                    <label class="form-label">Select Recipients</label>
+                    <div class="user-list" id="userList">
+                        <div class="text-center p-4 text-gray-500">
+                            <i class="fas fa-spinner fa-spin"></i> Loading...
+                        </div>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4 mt-6">
+                    <button type="submit" class="btn-action btn-primary" id="sendBtn">
+                        <i class="fas fa-paper-plane"></i> Send
+                    </button>
+                    <button type="button" class="btn-action btn-secondary" id="clearBtn">
+                        <i class="fas fa-eraser"></i> Clear
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- History Panel -->
+        <div class="glass-panel">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text-primary);">
+                <i class="fas fa-clock-rotate-left text-blue-500"></i> Recent History
+            </h2>
+            <div id="historyContainer" style="max-height: 600px; overflow-y: auto;">
+                <div class="text-center p-8 text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Loading history...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let subscribers = [];
+
+    document.addEventListener('DOMContentLoaded', function () {
+        loadSubscribers();
+        loadHistory();
+        setupEventListeners();
+    });
+
+    function setupEventListeners() {
+        document.getElementById('title').addEventListener('input', () => updateCharCounter('title', 'titleCounter', 100));
+        document.getElementById('body').addEventListener('input', () => updateCharCounter('body', 'bodyCounter', 500));
+
+        document.getElementById('sendToAll').addEventListener('change', function () {
+            document.getElementById('userSelectionGroup').style.display = this.checked ? 'none' : 'block';
+            updateSelectedCount();
+        });
+
+        document.getElementById('notificationForm').addEventListener('submit', (e) => {
+            e.preventDefault();
+            sendNotification();
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', () => {
+            document.getElementById('notificationForm').reset();
+            updateCharCounter('title', 'titleCounter', 100);
+            updateCharCounter('body', 'bodyCounter', 500);
+        });
+    }
+
+    function updateCharCounter(inputId, counterId, max) {
+        const len = document.getElementById(inputId).value.length;
+        const counter = document.getElementById(counterId);
+        counter.textContent = `${len} / ${max}`;
+        counter.className = 'char-counter ' + (len > max * 0.9 ? 'danger' : len > max * 0.7 ? 'warning' : '');
+    }
+
+    async function loadSubscribers() {
+        try {
+            const res = await fetch('/api/admin/subscribers');
+            const data = await res.json();
+            if (data.success) {
+                subscribers = data.subscribers || [];
+                document.getElementById('subscriberCount').textContent = data.count;
+                renderUserList();
+            }
+        } catch (e) {
+            console.error('Failed to load subscribers', e);
+        }
+    }
+
+    function renderUserList() {
+        const list = document.getElementById('userList');
+        if (!subscribers.length) {
+            list.innerHTML = '<div class="text-center p-4 text-gray-500">No subscribers yet</div>';
+            return;
+        }
+        list.innerHTML = subscribers.map(sub => `
+            <div class="user-item">
+                <input type="checkbox" class="user-checkbox accent-indigo-500 w-4 h-4" value="${sub.user_id}" onchange="updateSelectedCount()">
+                <span>${sub.email || sub.user_id}</span>
+            </div>
+        `).join('');
+    }
+
+    function updateSelectedCount() {
+        if (document.getElementById('sendToAll').checked) {
+            document.getElementById('selectedCount').textContent = subscribers.length;
+        } else {
+            document.getElementById('selectedCount').textContent = document.querySelectorAll('.user-checkbox:checked').length;
+        }
+    }
+
+    async function sendNotification() {
+        const btn = document.getElementById('sendBtn');
+        const originalText = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+
+        try {
+            const payload = {
+                title: document.getElementById('title').value.trim(),
+                body: document.getElementById('body').value.trim(),
+                url: document.getElementById('url').value.trim() || '/premium',
+                icon: document.getElementById('icon').value.trim(),
+                tag: document.getElementById('tag').value,
+                user_ids: document.getElementById('sendToAll').checked ? null :
+                    Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value)
+            };
+
+            if (!payload.user_ids && !document.getElementById('sendToAll').checked) {
+                throw new Error("Please select at least one user");
+            }
+
+            const res = await fetch('/api/admin/send-notification', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+
+            const result = await res.json();
+            if (result.success) {
+                showAlert(`Sent successfully! (Sent: ${result.sent})`, 'success');
+                document.getElementById('lastSentCount').textContent = result.sent;
+                loadHistory();
+                document.getElementById('notificationForm').reset();
+            } else {
+                throw new Error(result.error);
+            }
+        } catch (e) {
+            showAlert(e.message, 'error');
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    }
+
+    async function loadHistory() {
+        try {
+            const res = await fetch('/api/admin/notification-history');
+            const data = await res.json();
+            if (data.success) {
+                renderHistory(data.history);
+            }
+        } catch (e) { console.error(e); }
+    }
+
+    function renderHistory(history) {
+        const container = document.getElementById('historyContainer');
+        if (!history || !history.length) {
+            container.innerHTML = '<div class="text-center p-4 text-gray-500">No history yet</div>';
+            return;
+        }
+        container.innerHTML = history.map(h => `
+            <div class="history-item">
+                <div class="history-title">${h.title || '(no title)'}</div>
+                <div class="history-body">${h.message || h.body || ''}</div>
+                <div class="history-meta">
+                    <span class="badge badge-success"><i class="fas fa-check"></i> sent</span>
+                    <span class="badge badge-warn">${h.type || 'system'}</span>
+                    <span class="text-gray-400 ml-auto">${new Date(h.created_at || h.timestamp).toLocaleString()}</span>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function showAlert(msg, type) {
+        const div = document.createElement('div');
+        div.className = `alert alert-${type}`;
+        div.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${msg}`;
+        const container = document.getElementById('alertContainer');
+        container.innerHTML = '';
+        container.appendChild(div);
+        setTimeout(() => div.remove(), 5000);
+    }
+</script>
+{% endblock %}

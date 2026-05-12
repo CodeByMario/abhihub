@@ -1,0 +1,144 @@
+{% extends 'p_struct.html' %}
+
+{% block content %}
+<div class="video-sections">
+    <h2>UNIVERSAL HUMAN VALUES</h2>
+    <p>Watch the following videos to enhance your learning experience:</p>
+    <div class="video-items">
+        <div class="video-item">
+            <h3>UHV ALL UNIT</h3>
+            <div class="responsive-iframe-container">
+                <iframe src="https://www.youtube-nocookie.com/embed/videoseries?si=Fg76atQEArphYEdz&amp;list=PLBvTTYUOHEmeYjzc3qrXrX5O6VQhgGEA-" title="YouTube video player" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<button class="uhv-btn" onclick="location.href='/prepair/UHV'">UHV Paper</button>
+<div class="footer-info">
+    <p>Page created by: Abhijeet Shende</p>
+    <p>Date: April 25, 2025</p>
+</div>
+
+<style>
+.video-sections {
+    font-family: Arial, sans-serif;
+    margin: 20px auto;
+    padding: 20px;
+    background-color: #f9f9f9;
+    border-radius: 12px;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
+    max-width: 900px;
+}
+
+.video-sections h2 {
+    color: #222;
+    border-bottom: 2px solid #007BFF;
+    padding-bottom: 8px;
+    margin-bottom: 18px;
+    font-size: 2rem;
+}
+
+.video-sections p {
+    color: #555;
+    line-height: 1.7;
+    font-size: 1.1rem;
+}
+
+.video-items {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 20px;
+}
+
+.video-item {
+    background-color: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 18px 10px 10px 10px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.07);
+}
+
+.video-item h3 {
+    color: #007BFF;
+    margin-bottom: 12px;
+    font-size: 1.2rem;
+}
+
+/* Responsive iframe container */
+.responsive-iframe-container {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+    border-radius: 6px;
+    background: #000;
+}
+.responsive-iframe-container iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    border-radius: 6px;
+}
+
+.uhv-btn {
+    display: block;
+    margin: 28px auto 0 auto;
+    padding: 12px 32px;
+    background: linear-gradient(90deg, #007BFF 60%, #0056b3 100%);
+    color: #fff;
+    border: none;
+    border-radius: 25px;
+    font-size: 1.1rem;
+    font-weight: 600;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,123,255,0.08);
+    transition: background 0.2s, transform 0.1s;
+}
+.uhv-btn:hover, .uhv-btn:focus {
+    background: linear-gradient(90deg, #0056b3 60%, #007BFF 100%);
+    outline: none;
+    transform: translateY(-2px) scale(1.03);
+}
+
+.footer-info {
+    margin-top: 28px;
+    font-size: 15px;
+    color: #666;
+    text-align: center;
+    letter-spacing: 0.02em;
+}
+
+/* Responsive Styles */
+@media (max-width: 600px) {
+    .video-sections {
+        padding: 10px 2vw;
+        margin: 10px 0;
+    }
+    .video-sections h2 {
+        font-size: 1.3rem;
+        padding-bottom: 5px;
+    }
+    .video-items {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+    .responsive-iframe-container {
+        padding-bottom: 60%;
+    }
+    .uhv-btn {
+        width: 100%;
+        font-size: 1rem;
+        padding: 10px 0;
+    }
+    .footer-info {
+        font-size: 13px;
+    }
+}
+</style>
+{% endblock %}

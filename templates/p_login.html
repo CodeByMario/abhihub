@@ -1,0 +1,151 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+<style>
+  .p-login-container {
+    max-width: 400px;
+    margin: 2rem auto;
+    padding: 2rem;
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+  }
+
+  .p-login-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: #333;
+  }
+
+  .p-input-field {
+    width: 100%;
+    padding: 0.75rem;
+    margin-bottom: 1rem;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    font-size: 1rem;
+  }
+
+  .p-signin-btn {
+    width: 100%;
+    padding: 0.75rem;
+    background: #4285f4;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-bottom: 1rem;
+  }
+
+  .p-divider {
+    text-align: center;
+    margin: 1rem 0;
+    color: #666;
+  }
+
+  .p-google-btn {
+    width: 100%;
+    padding: 0.75rem;
+    background: white;
+    border: 1px solid #e0e0e0;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+    cursor: pointer;
+    margin-bottom: 1rem;
+  }
+
+  .p-google-btn img {
+    width: 24px;
+    height: 24px;
+  }
+
+  .p-links {
+    text-align: center;
+    font-size: 0.9rem;
+    color: #666;
+  }
+
+  .p-links a {
+    color: #4285f4;
+    text-decoration: none;
+  }
+</style>
+
+<div class="p-login-container">
+  <h2 class="p-login-title">Login</h2>
+
+  <div id="email-error-message" class="error-msg"></div>
+  <div id="password-error-message" class="error-msg"></div>
+  <div id="google-signin-error-message" class="error-msg"></div>
+
+  <input type="email" id="email-input" class="p-input-field" placeholder="Email" required>
+  <input type="password" id="password-input" class="p-input-field" placeholder="Password" required>
+
+  <button id="sign-in-btn" class="p-signin-btn">Sign In</button>
+
+  <div class="p-divider">OR</div>
+
+  <button id="sign-in-with-google-btn" class="p-google-btn">
+    <img src="{{ url_for('static', filename='images/google-icon.png') }}" alt="Google logo">
+    Sign in with Google
+  </button>
+
+  <div class="p-links">
+    <div>Don't have an account? <a href="{{ url_for('signup') }}">Sign up</a></div>
+    <div><a href="{{ url_for('reset_password') }}">Forgot Password?</a></div>
+  </div>
+
+</div>
+
+<script type="module">
+  function showLoading() {
+    const loadingPage = document.getElementById('loading-page');
+    if (loadingPage) {
+      loadingPage.style.display = 'flex';
+      loadingPage.setAttribute('aria-label', 'Signing in, please wait');
+    }
+  }
+
+  function hideLoading() {
+    const loadingPage = document.getElementById('loading-page');
+    if (loadingPage) {
+      loadingPage.style.display = 'none';
+    }
+  }
+
+  // Improved Google login handling
+  document.addEventListener('DOMContentLoaded', function () {
+    const googleBtn = document.getElementById('sign-in-with-google-btn');
+
+    if (googleBtn) {
+      googleBtn.addEventListener('click', function () {
+        showLoading();
+
+        // Hide loading after a timeout as fallback
+        setTimeout(function () {
+          const hasError = false; // Replace with actual error checking logic
+          if (hasError) {
+            hideLoading();
+            // Show error message
+          } else {
+            // Keep loading until actual redirect happens
+            // The actual login process will handle hiding the loading
+          }
+        }, 5000);
+      });
+    }
+
+    // Hide loading on page show (back button)
+    window.addEventListener('pageshow', hideLoading);
+  });
+</script>
+
+<script src="{{ url_for('static', filename='login-auth.js') }}" type="module"></script>
+<script src="{{ url_for('static', filename='scripts.js') }}" type="module"></script>
+
+{% endblock %}

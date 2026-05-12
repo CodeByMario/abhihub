@@ -1,0 +1,1047 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Data Information - AbhiHub</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: #333;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            padding: 30px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #667eea;
+            padding-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #667eea;
+            font-size: 2.5rem;
+            margin: 0;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.1);
+        }
+
+        .header p {
+            color: #666;
+            font-size: 1.1rem;
+            margin: 10px 0 0 0;
+        }
+
+        .data-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .data-card {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            border-left: 4px solid #667eea;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .data-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+        }
+
+        .data-card[data-verified="false"][data-new="false"] {
+            border-left-color: #dc3545;
+            background: linear-gradient(45deg, rgba(220, 53, 69, 0.05), white);
+        }
+
+        .data-card[data-verified="true"] {
+            border-left-color: #28a745;
+        }
+
+        .data-card[data-new="true"] {
+            border-left-color: #ffc107;
+            background: linear-gradient(45deg, rgba(255, 193, 7, 0.1), white);
+        }
+
+        .file-info {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .file-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+            word-break: break-word;
+        }
+
+        .info-row {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .info-label {
+            font-weight: bold;
+            color: #555;
+            min-width: 80px;
+            font-size: 0.9rem;
+        }
+
+        .info-value {
+            color: #333;
+            flex: 1;
+            padding: 4px 8px;
+            background: #f8f9fa;
+            border-radius: 4px;
+            font-size: 0.9rem;
+        }
+
+        .file-type {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #28a745;
+            color: white;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+        }
+
+        .action-buttons {
+            margin-top: 15px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            text-decoration: none;
+            display: inline-block;
+            transition: background-color 0.3s ease;
+        }
+
+        .btn-primary {
+            background: #667eea;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #5a6fd8;
+        }
+
+        .btn-secondary {
+            background: #6c757d;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #545b62;
+        }
+
+        .no-data {
+            text-align: center;
+            color: #666;
+            font-size: 1.2rem;
+            margin-top: 50px;
+        }
+
+        .stats {
+            display: flex;
+            justify-content: space-around;
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+        }
+
+        .stat-item {
+            text-align: center;
+        }
+
+        .stat-number {
+            font-size: 2rem;
+            font-weight: bold;
+            color: #667eea;
+        }
+
+        .stat-label {
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .filters {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+        }
+
+        .filter-section h3 {
+            margin: 0 0 15px 0;
+            color: #667eea;
+            font-size: 1.3rem;
+        }
+
+        .filter-row {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .filter-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 150px;
+        }
+
+        .filter-group label {
+            font-weight: bold;
+            margin-bottom: 5px;
+            color: #555;
+            font-size: 0.9rem;
+        }
+
+        .filter-group select,
+        .filter-group input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            font-size: 0.9rem;
+        }
+
+        .filter-group select:focus,
+        .filter-group input:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
+        .data-card.unverified {
+            border-left-color: #dc3545;
+            background: linear-gradient(45deg, rgba(220, 53, 69, 0.05), white);
+        }
+
+        .data-card.verified {
+            border-left-color: #28a745;
+        }
+
+        .data-card.new-file {
+            border-left-color: #ffc107;
+            background: linear-gradient(45deg, rgba(255, 193, 7, 0.1), white);
+        }
+
+        .status-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 15px;
+            font-size: 0.8rem;
+            font-weight: bold;
+            text-transform: uppercase;
+        }
+
+        .status-verified {
+            background: #28a745;
+            color: white;
+        }
+
+        .status-unverified {
+            background: #dc3545;
+            color: white;
+        }
+
+        .status-new {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        .file-title-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .editable-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            color: #667eea;
+            border: 1px solid transparent;
+            background: transparent;
+            padding: 5px;
+            border-radius: 4px;
+            flex: 1;
+        }
+
+        .editable-title:focus {
+            border-color: #667eea;
+            background: white;
+            outline: none;
+        }
+
+        .edit-toggle-btn {
+            background: none;
+            border: none;
+            font-size: 1rem;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+        }
+
+        .edit-toggle-btn:hover {
+            background: #f0f0f0;
+        }
+
+        .editable-input,
+        .editable-select {
+            border: 1px solid #ddd;
+            padding: 6px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            background: white;
+            flex: 1;
+            max-width: 200px;
+        }
+
+        .editable-input:focus,
+        .editable-select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 5px rgba(102, 126, 234, 0.3);
+        }
+
+        .status-container {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+
+        .status-select {
+            min-width: 120px;
+        }
+
+        .readonly {
+            background: #f8f9fa;
+            border-radius: 4px;
+            padding: 4px 8px;
+        }
+
+        .btn-success {
+            background: #28a745;
+            color: white;
+        }
+
+        .btn-success:hover {
+            background: #218838;
+        }
+
+        .btn-warning {
+            background: #ffc107;
+            color: #333;
+        }
+
+        .btn-warning:hover {
+            background: #e0a800;
+        }
+
+        .data-card.modified {
+            border-left-color: #ffc107;
+            background: linear-gradient(45deg, rgba(255, 193, 7, 0.1), white);
+        }
+
+        .data-card.saving {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        .premium-indicator {
+            background: linear-gradient(45deg, #ffd700, #ffed4e);
+            color: #333;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+
+        .free-indicator {
+            background: #28a745;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Data Information</h1>
+            <p>Comprehensive file management and information display</p>
+        </div>
+
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-number" id="totalFiles">0</div>
+                <div class="stat-label">Total Files</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="totalAuthors">0</div>
+                <div class="stat-label">Authors</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="totalSubjects">0</div>
+                <div class="stat-label">Subjects</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-number" id="unverifiedFiles">0</div>
+                <div class="stat-label">Unverified</div>
+            </div>
+        </div>
+
+        <div class="filters">
+            <div class="filter-section">
+                <h3>🔍 Filters</h3>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="statusFilter">Status:</label>
+                        <select id="statusFilter" onchange="applyFilters()">
+                            <option value="all">All Files</option>
+                            <option value="unverified" selected>Unverified First</option>
+                            <option value="verified">Verified Only</option>
+                            <option value="new">New Files Only</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="authorFilter">Author:</label>
+                        <select id="authorFilter" onchange="applyFilters()">
+                            <option value="all">All Authors</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="typeFilter">Type:</label>
+                        <select id="typeFilter" onchange="applyFilters()">
+                            <option value="all">All Types</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="subjectFilter">Subject:</label>
+                        <select id="subjectFilter" onchange="applyFilters()">
+                            <option value="all">All Subjects</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="filter-row">
+                    <div class="filter-group">
+                        <label for="yearFilter">Year:</label>
+                        <select id="yearFilter" onchange="applyFilters()">
+                            <option value="all">All Years</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="fileTypeFilter">File Type:</label>
+                        <select id="fileTypeFilter" onchange="applyFilters()">
+                            <option value="all">All File Types</option>
+                        </select>
+                    </div>
+                    <div class="filter-group">
+                        <label for="searchInput">Search:</label>
+                        <input type="text" id="searchInput" placeholder="Search files..." onkeyup="applyFilters()">
+                    </div>
+                    <div class="filter-group">
+                        <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        {% if data %}
+            <div class="data-grid" id="dataGrid">
+                {% for item in data %}
+                <div class="data-card" 
+                     data-author="{{ item['author'] or '' }}" 
+                     data-type="{{ item['type'] or '' }}"
+                     data-subject="{{ item['subject'] or '' }}"
+                     data-year="{{ item['year'] or '' }}"
+                     data-file-type="{{ item['file-path'] }}"
+                     data-verified="{{ 'true' if item.get('verified') else 'false' }}"
+                     data-new="{{ 'true' if not item.get('last_updated') else 'false' }}"
+                     data-file-path="{{ item['file-path'] }}">
+                    <div class="file-info">
+                        <div class="file-title-container">
+                            <input type="text" class="editable-title" value="{{ item['file-name'] or 'Unknown File' }}" 
+                                   data-field="file-name" onchange="markAsModified(this)">
+                            <button class="edit-toggle-btn" onclick="toggleEditMode(this)">✏️</button>
+                        </div>
+                        
+                        <div class="info-row">
+                            <span class="info-label">Type:</span>
+                            <select class="editable-select" data-field="file-type" onchange="markAsModified(this)">
+                                <option value="pdf" {{ 'selected' if item['file-type'] == 'pdf' else '' }}>PDF</option>
+                                <option value="jpg" {{ 'selected' if item['file-type'] == 'jpg' else '' }}>JPG</option>
+                                <option value="png" {{ 'selected' if item['file-type'] == 'png' else '' }}>PNG</option>
+                                <option value="doc" {{ 'selected' if item['file-type'] == 'doc' else '' }}>DOC</option>
+                                <option value="docx" {{ 'selected' if item['file-type'] == 'docx' else '' }}>DOCX</option>
+                                <option value="txt" {{ 'selected' if item['file-type'] == 'txt' else '' }}>TXT</option>
+                                <option value="other" {{ 'selected' if item['file-type'] not in ['pdf', 'jpg', 'png', 'doc', 'docx', 'txt'] else '' }}>Other</option>
+                            </select>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-label">Status:</span>
+                            <div class="status-container">
+                                {% if item.get('verified') %}
+                                    <span class="status-badge status-verified">✅ Verified</span>
+                                {% elif not item.get('last_updated') %}
+                                    <span class="status-badge status-new">🆕 New</span>
+                                {% else %}
+                                    <span class="status-badge status-unverified">❌ Unverified</span>
+                                {% endif %}
+                                <select class="editable-select status-select" data-field="access_status" onchange="markAsModified(this)">
+                                    <option value="free" {{ 'selected' if item.get('access_status') == 'free' else '' }}>🆓 Free</option>
+                                    <option value="premium" {{ 'selected' if item.get('access_status') == 'premium' else '' }}>💎 Premium</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-label">Author:</span>
+                            <input type="text" class="editable-input" value="{{ item['author'] or '' }}" 
+                                   data-field="author" onchange="markAsModified(this)" placeholder="Enter author name">
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-label">Subject:</span>
+                            <input type="text" class="editable-input" value="{{ item['subject'] or '' }}" 
+                                   data-field="subject" onchange="markAsModified(this)" placeholder="Enter subject">
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-label">Category:</span>
+                            <select class="editable-select" data-field="type" onchange="markAsModified(this)">
+                                <option value="">Select Category</option>
+                                <option value="Papers" {{ 'selected' if item['type'] == 'Papers' else '' }}>Papers</option>
+                                <option value="PYQ" {{ 'selected' if item['type'] == 'PYQ' else '' }}>Previous Year Questions</option>
+                                <option value="Notes" {{ 'selected' if item['type'] == 'Notes' else '' }}>Notes</option>
+                                <option value="Practicals" {{ 'selected' if item['type'] == 'Practicals' else '' }}>Practicals</option>
+                                <option value="Assignments" {{ 'selected' if item['type'] == 'Assignments' else '' }}>Assignments</option>
+                                <option value="Reference" {{ 'selected' if item['type'] == 'Reference' else '' }}>Reference Material</option>
+                            </select>
+                        </div>
+
+                        <div class="info-row">
+                            <span class="info-label">Year:</span>
+                            <input type="number" class="editable-input" value="{{ item['year'] or '' }}" 
+                                   data-field="year" onchange="markAsModified(this)" placeholder="e.g., 2024" min="2000" max="2030">
+                        </div>
+
+                        {% if item['exam'] %}
+                        <div class="info-row">
+                            <span class="info-label">Exam:</span>
+                            <select class="editable-select" data-field="exam" onchange="markAsModified(this)">
+                                <option value="">Select Exam</option>
+                                <option value="ESE" {{ 'selected' if item['exam'] == 'ESE' else '' }}>End Semester Exam</option>
+                                <option value="MSE" {{ 'selected' if item['exam'] == 'MSE' else '' }}>Mid Semester Exam</option>
+                                <option value="IA" {{ 'selected' if item['exam'] == 'IA' else '' }}>Internal Assessment</option>
+                                <option value="Quiz" {{ 'selected' if item['exam'] == 'Quiz' else '' }}>Quiz</option>
+                                <option value="Assignment" {{ 'selected' if item['exam'] == 'Assignment' else '' }}>Assignment</option>
+                            </select>
+                        </div>
+                        {% endif %}
+
+                        <div class="info-row">
+                            <span class="info-label">Path:</span>
+                            <span class="info-value readonly" style="font-size: 0.8rem; word-break: break-all;">{{ item['file-path'] }}</span>
+                        </div>
+
+                        <div class="action-buttons">
+                            <button class="btn btn-primary" onclick="viewFile('{{ item['file-path'] }}')">📖 View File</button>
+                            <button class="btn btn-secondary" onclick="verifyFile('{{ item['file-path'] }}')">✅ Verify</button>
+                            <button class="btn btn-success save-btn" onclick="saveChanges(this)" style="display: none;">💾 Save Changes</button>
+                            <button class="btn btn-warning cancel-btn" onclick="cancelChanges(this)" style="display: none;">❌ Cancel</button>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        {% else %}
+            <div class="no-data">
+                <p>No data available to display.</p>
+            </div>
+        {% endif %}
+    </div>
+
+    <script>
+        async function viewFile(filePath) {
+            try {
+                const response = await fetch('/get-file-url', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        file_path: filePath
+                    })
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    window.open(result.url, '_blank');
+                } else {
+                    showNotification('Failed to get file URL: ' + result.message, 'error');
+                }
+            } catch (error) {
+                showNotification('Error getting file URL: ' + error.message, 'error');
+            }
+        }
+
+        async function verifyFile(filePath) {
+            const button = event.target;
+            button.disabled = true;
+            button.innerHTML = '🔄 Verifying...';
+
+            try {
+                const response = await fetch('/verify-file', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        file_path: filePath
+                    })
+                });
+
+                const result = await response.json();
+
+                if (result.success) {
+                    button.innerHTML = '✅ Verified';
+                    button.style.backgroundColor = '#28a745';
+                    button.disabled = true;
+
+                    // Update the file's status dynamically in the DOM
+                    const card = button.closest('.data-card');
+                    card.setAttribute('data-verified', 'true');
+                    card.style.display = 'none';
+
+                    showNotification('File verified successfully!', 'success');
+                } else {
+                    button.innerHTML = '❌ Failed';
+                    button.style.backgroundColor = '#dc3545';
+                    showNotification('Verification failed: ' + result.message, 'error');
+                }
+            } catch (error) {
+                button.innerHTML = '❌ Error';
+                button.style.backgroundColor = '#dc3545';
+                showNotification('Error during verification: ' + error.message, 'error');
+            }
+
+            setTimeout(() => {
+                button.disabled = false;
+                if (button.innerHTML !== '✅ Verified') {
+                    button.innerHTML = '✅ Verify';
+                    button.style.backgroundColor = '#6c757d';
+                }
+            }, 3000);
+        }
+        
+        function showNotification(message, type) {
+            // Create notification element
+            const notification = document.createElement('div');
+            notification.className = `notification notification-${type}`;
+            notification.innerHTML = `
+                <span>${message}</span>
+                <button onclick="this.parentElement.remove()">×</button>
+            `;
+            
+            // Add notification styles
+            notification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                padding: 15px 20px;
+                border-radius: 5px;
+                color: white;
+                font-weight: bold;
+                z-index: 1000;
+                max-width: 400px;
+                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+                background-color: ${type === 'success' ? '#28a745' : '#dc3545'};
+                display: flex;
+                justify-content: space-between;
+                align-items: center;
+                gap: 10px;
+            `;
+            
+            // Style the close button
+            const closeBtn = notification.querySelector('button');
+            closeBtn.style.cssText = `
+                background: none;
+                border: none;
+                color: white;
+                font-size: 18px;
+                cursor: pointer;
+                padding: 0;
+                margin: 0;
+            `;
+            
+            document.body.appendChild(notification);
+            
+            // Auto-remove after 5 seconds
+            setTimeout(() => {
+                if (notification.parentElement) {
+                    notification.remove();
+                }
+            }, 5000);
+        }
+        
+        let allData = [];
+        let originalData = new Map(); // Store original values for cancellation
+        
+        function toggleEditMode(button) {
+            const card = button.closest('.data-card');
+            const isEditing = card.classList.contains('editing');
+            
+            if (isEditing) {
+                card.classList.remove('editing');
+                button.textContent = '✏️';
+            } else {
+                card.classList.add('editing');
+                button.textContent = '👁️';
+                // Store original data for potential cancellation
+                storeOriginalData(card);
+            }
+        }
+        
+        function storeOriginalData(card) {
+            const filePath = card.dataset.filePath;
+            const data = {};
+            
+            card.querySelectorAll('.editable-input, .editable-select, .editable-title').forEach(input => {
+                data[input.dataset.field] = input.value;
+            });
+            
+            originalData.set(filePath, data);
+        }
+        
+        function markAsModified(element) {
+            const card = element.closest('.data-card');
+            card.classList.add('modified');
+            
+            // Show save/cancel buttons
+            const saveBtn = card.querySelector('.save-btn');
+            const cancelBtn = card.querySelector('.cancel-btn');
+            saveBtn.style.display = 'inline-block';
+            cancelBtn.style.display = 'inline-block';
+        }
+        
+        async function saveChanges(button) {
+            const card = button.closest('.data-card');
+            const filePath = card.dataset.filePath;
+            
+            // Collect all editable data
+            const updatedData = {
+                'file-path': filePath
+            };
+            
+            card.querySelectorAll('.editable-input, .editable-select, .editable-title').forEach(input => {
+                updatedData[input.dataset.field] = input.value;
+            });
+            
+            // Show saving state
+            card.classList.add('saving');
+            button.innerHTML = '⏳ Saving...';
+            
+            try {
+                const response = await fetch('/update-file-metadata', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(updatedData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    card.classList.remove('modified', 'saving');
+                    button.innerHTML = '💾 Save Changes';
+                    
+                    // Hide save/cancel buttons
+                    const saveBtn = card.querySelector('.save-btn');
+                    const cancelBtn = card.querySelector('.cancel-btn');
+                    saveBtn.style.display = 'none';
+                    cancelBtn.style.display = 'none';
+                    
+                    // Update card dataset attributes
+                    Object.keys(updatedData).forEach(key => {
+                        if (key !== 'file-path') {
+                            card.dataset[key.replace('-', '')] = updatedData[key];
+                        }
+                    });
+                    
+                    showNotification('File metadata updated successfully!', 'success');
+                    
+                    // Remove from original data store
+                    originalData.delete(filePath);
+                } else {
+                    card.classList.remove('saving');
+                    button.innerHTML = '💾 Save Changes';
+                    showNotification('Failed to update metadata: ' + result.message, 'error');
+                }
+            } catch (error) {
+                card.classList.remove('saving');
+                button.innerHTML = '💾 Save Changes';
+                showNotification('Error updating metadata: ' + error.message, 'error');
+            }
+        }
+        
+        function cancelChanges(button) {
+            const card = button.closest('.data-card');
+            const filePath = card.dataset.filePath;
+            const original = originalData.get(filePath);
+            
+            if (original) {
+                // Restore original values
+                card.querySelectorAll('.editable-input, .editable-select, .editable-title').forEach(input => {
+                    if (original[input.dataset.field] !== undefined) {
+                        input.value = original[input.dataset.field];
+                    }
+                });
+                
+                // Remove modification indicators
+                card.classList.remove('modified');
+                
+                // Hide save/cancel buttons
+                const saveBtn = card.querySelector('.save-btn');
+                const cancelBtn = card.querySelector('.cancel-btn');
+                saveBtn.style.display = 'none';
+                cancelBtn.style.display = 'none';
+                
+                // Remove from original data store
+                originalData.delete(filePath);
+                
+                showNotification('Changes cancelled', 'success');
+            }
+        }
+        
+        function applyFilters() {
+            const statusFilter = document.getElementById('statusFilter').value;
+            const authorFilter = document.getElementById('authorFilter').value;
+            const typeFilter = document.getElementById('typeFilter').value;
+            const subjectFilter = document.getElementById('subjectFilter').value;
+            const yearFilter = document.getElementById('yearFilter').value;
+            const fileTypeFilter = document.getElementById('fileTypeFilter').value;
+            const searchTerm = document.getElementById('searchInput').value.toLowerCase();
+            
+            const cards = document.querySelectorAll('.data-card');
+            let visibleCount = 0;
+            
+            cards.forEach(card => {
+                let show = true;
+                
+                // Status filter
+                if (statusFilter !== 'all') {
+                    const isVerified = card.dataset.verified === 'true';
+                    const isNew = card.dataset.new === 'true';
+                    
+                    if (statusFilter === 'verified' && !isVerified) show = false;
+                    if (statusFilter === 'unverified' && (isVerified || isNew)) show = false;
+                    if (statusFilter === 'new' && !isNew) show = false;
+                }
+                
+                // Author filter
+                if (authorFilter !== 'all' && card.dataset.author !== authorFilter) show = false;
+                
+                // Type filter
+                if (typeFilter !== 'all' && card.dataset.type !== typeFilter) show = false;
+                
+                // Subject filter
+                if (subjectFilter !== 'all' && card.dataset.subject !== subjectFilter) show = false;
+                
+                // Year filter
+                if (yearFilter !== 'all' && card.dataset.year !== yearFilter) show = false;
+                
+                // File type filter
+                if (fileTypeFilter !== 'all' && card.dataset.fileType !== fileTypeFilter) show = false;
+                
+                // Search filter
+                if (searchTerm) {
+                    const title = card.querySelector('.file-title').textContent.toLowerCase();
+                    const path = card.dataset.filePath || '';
+                    if (!title.includes(searchTerm) && !path.toLowerCase().includes(searchTerm)) {
+                        show = false;
+                    }
+                }
+                
+                if (show) {
+                    card.classList.remove('hidden');
+                    visibleCount++;
+                } else {
+                    card.classList.add('hidden');
+                }
+            });
+            
+            // Update displayed count
+            document.getElementById('totalFiles').textContent = visibleCount;
+        }
+        
+        function clearFilters() {
+            document.getElementById('statusFilter').value = 'unverified';
+            document.getElementById('authorFilter').value = 'all';
+            document.getElementById('typeFilter').value = 'all';
+            document.getElementById('subjectFilter').value = 'all';
+            document.getElementById('yearFilter').value = 'all';
+            document.getElementById('fileTypeFilter').value = 'all';
+            document.getElementById('searchInput').value = '';
+            applyFilters();
+        }
+        
+        function sortCardsByPriority() {
+            const grid = document.getElementById('dataGrid');
+            const cards = Array.from(grid.children);
+            
+            // Sort: New files first, then unverified, then verified
+            cards.sort((a, b) => {
+                const aNew = a.dataset.new === 'true';
+                const bNew = b.dataset.new === 'true';
+                const aVerified = a.dataset.verified === 'true';
+                const bVerified = b.dataset.verified === 'true';
+                
+                // New files first
+                if (aNew && !bNew) return -1;
+                if (!aNew && bNew) return 1;
+                
+                // If both or neither are new, then unverified before verified
+                if (!aVerified && bVerified) return -1;
+                if (aVerified && !bVerified) return 1;
+                
+                return 0;
+            });
+            
+            // Re-append cards in sorted order
+            cards.forEach(card => grid.appendChild(card));
+        }
+        
+        function populateFilterOptions() {
+            const cards = document.querySelectorAll('.data-card');
+            const authors = new Set();
+            const types = new Set();
+            const subjects = new Set();
+            const years = new Set();
+            const fileTypes = new Set();
+            
+            cards.forEach(card => {
+                if (card.dataset.author) authors.add(card.dataset.author);
+                if (card.dataset.type) types.add(card.dataset.type);
+                if (card.dataset.subject) subjects.add(card.dataset.subject);
+                if (card.dataset.year) years.add(card.dataset.year);
+                if (card.dataset.fileType) fileTypes.add(card.dataset.fileType);
+            });
+            
+            // Populate dropdowns
+            populateSelect('authorFilter', authors);
+            populateSelect('typeFilter', types);
+            populateSelect('subjectFilter', subjects);
+            populateSelect('yearFilter', years);
+            populateSelect('fileTypeFilter', fileTypes);
+        }
+        
+        function populateSelect(selectId, values) {
+            const select = document.getElementById(selectId);
+            const currentValue = select.value;
+            
+            // Remove existing options except "All"
+            while (select.children.length > 1) {
+                select.removeChild(select.lastChild);
+            }
+            
+            // Add new options
+            Array.from(values).sort().forEach(value => {
+                const option = document.createElement('option');
+                option.value = value;
+                option.textContent = value;
+                select.appendChild(option);
+            });
+            
+            // Restore previous selection if still valid
+            if (Array.from(values).includes(currentValue)) {
+                select.value = currentValue;
+            }
+        }
+
+        // Calculate and display statistics
+        document.addEventListener('DOMContentLoaded', function() {
+            {% if data %}
+            const data = {{ data | tojson }};
+            
+            // Total files
+            document.getElementById('totalFiles').textContent = data.length;
+            
+            // Unique authors
+            const authors = new Set(data.map(item => item.author).filter(author => author));
+            document.getElementById('totalAuthors').textContent = authors.size;
+            
+            // Unique subjects
+            const subjects = new Set(data.map(item => item.subject).filter(subject => subject));
+            document.getElementById('totalSubjects').textContent = subjects.size;
+            
+            // Unverified files
+            const unverifiedCount = data.filter(item => !item.verified).length;
+            document.getElementById('unverifiedFiles').textContent = unverifiedCount;
+            
+            // Populate filter options
+            populateFilterOptions();
+            
+            // Sort cards by priority (new and unverified first)
+            sortCardsByPriority();
+            
+            // Apply initial filter (unverified first)
+            applyFilters();
+            {% endif %}
+        });
+
+        function filterFiles() {
+            const cards = document.querySelectorAll('.data-card');
+            cards.forEach(card => {
+                const isVerified = card.getAttribute('data-verified') === 'true';
+                if (isVerified) {
+                    card.style.display = 'none';
+                } else {
+                    card.style.display = 'block';
+                }
+            });
+        }
+
+        // Call filterFiles on page load
+        document.addEventListener('DOMContentLoaded', filterFiles);
+    </script>
+</body>
+</html>

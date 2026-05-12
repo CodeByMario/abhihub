@@ -1,0 +1,634 @@
+<!-- Google Analytics 4 - Comprehensive Tracking -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=G-EH5BGS9BEG"></script>
+<script>
+  // Initialize GA4
+  window.dataLayer = window.dataLayer || [];
+  function gtag() { dataLayer.push(arguments); }
+  gtag('js', new Date());
+
+  // Configuration with enhanced user properties and event tracking
+  gtag('config', 'G-EH5BGS9BEG', {
+    'page_path': window.location.pathname,
+    'page_title': document.title,
+    'send_page_view': true,
+    'anonymize_ip': false,
+    'allow_google_signals': true,
+    'allow_ad_personalization_signals': true,
+    'user_id': '{{ session.get("user", {}).get("uid", "") }}'
+  });
+
+  // ==========================================
+  // CUSTOM USER PROPERTIES (Enhanced User Identification)
+  // ==========================================
+  // Set user ID explicitly for cross-device tracking
+  {% if session.get('user') %}
+  gtag('set', { 'user_id': '{{ session.get("user", {}).get("uid", "") }}' });
+  {% endif %}
+
+  gtag('set', {
+    'user_properties': {
+      'user_type': '{{ "authenticated" if session.get("user") else "anonymous" }}',
+      'user_name': '{{ session.get("user", {}).get("name", "anonymous") | e }}',
+      'user_email': '{{ session.get("user", {}).get("email", "") | e }}',
+      'login_provider': '{{ session.get("user", {}).get("provider", "none") | e }}',
+      'platform': /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+      'app_version': '{{ app_version | default("1.0.0") }}'
+    }
+  });
+
+  // ==========================================
+  // PAGE VIEW TRACKING WITH CUSTOM DIMENSIONS
+  // ==========================================
+  function trackPageView(pageName, pageCategory) {
+    gtag('event', 'page_view', {
+      'page_title': document.title,
+      'page_path': window.location.pathname,
+      'page_location': window.location.href,
+      'page_category': pageCategory || 'general',
+      'page_name': pageName || document.title,
+      'referrer': document.referrer,
+      'session_id': getOrCreateSessionId()
+    });
+  }
+
+  // ==========================================
+  // SESSION MANAGEMENT
+  // ==========================================
+  function getOrCreateSessionId() {
+    let sessionId = sessionStorage.getItem('ga_session_id');
+    if (!sessionId) {
+      sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+      sessionStorage.setItem('ga_session_id', sessionId);
+    }
+    return sessionId;
+  }
+
+  // ==========================================
+  // ENHANCED DATA LAYER & CUSTOM DIMENSIONS
+  // ==========================================
+
+  // Helper: Get content metadata from page
+  function getContentMetadata() {
+    const path = window.location.pathname;
+    const metadata = {
+      content_type: 'unknown',
+      subject: 'unknown',
+      semester: 'unknown',
+      year: 'unknown',
+      branch: 'unknown'
+    };
+
+    // Extract from URL patterns
+    if (path.includes('/notes')) metadata.content_type = 'notes';
+    else if (path.includes('/pyq') || path.includes('/papers')) metadata.content_type = 'pyq';
+    else if (path.includes('/practicals')) metadata.content_type = 'practicals';
+
+    // Try to get from page title or meta tags
+    const titleMatch = document.title.match(/(\w+)\s*-\s*(SE|FE|TE|BE)/i);
+    if (titleMatch) {
+      metadata.subject = titleMatch[1];
+      metadata.year = titleMatch[2].toUpperCase();
+    }
+
+    return metadata;
+  }
+
+  // Helper: Calculate file size bucket
+  function getFileSizeBucket(sizeKB) {
+    if (sizeKB < 1024) return 'small'; // < 1MB
+    if (sizeKB < 5120) return 'medium'; // 1-5MB
+    return 'large'; // > 5MB
+  }
+
+  // Helper: Get user cohort (weeks since registration)
+  function getUserCohort() {
+    const regDate = localStorage.getItem('registration_date');
+    if (!regDate) return 'unknown';
+
+    const daysSince = Math.floor((Date.now() - new Date(regDate)) / (1000 * 60 * 60 * 24));
+    const weeksSince = Math.floor(daysSince / 7);
+
+    if (weeksSince === 0) return 'week_0';
+    if (weeksSince <= 1) return 'week_1';
+    if (weeksSince <= 4) return 'week_2-4';
+    if (weeksSince <= 12) return 'month_1-3';
+    return 'month_3plus';
+  }
+
+  // Session-level tracking
+  let sessionData = {
+    downloads: 0,
+    searches: 0,
+    fileViews: 0,
+    pageViews: 0,
+    interactions: 0,
+    startTime: Date.now()
+  };
+
+  // Helper: Calculate session quality score (0-100)
+  function calculateSessionQuality() {
+    const timeOnSite = (Date.now() - sessionData.startTime) / 1000 / 60; // minutes
+
+    let score = 0;
+    score += Math.min(timeOnSite / 3 * 20, 20); // Max 20 for 3+ min
+    score += Math.min(sessionData.pageViews * 10, 30); // Max 30 for 3 pages
+    score += Math.min(sessionData.downloads * 15, 30); // Max 30 for 2 downloads
+    score += sessionData.searches > 0 ? 10 : 0; // 10 for search usage
+    score += sessionData.interactions > 2 ? 10 : 0; // 10 for multiple interactions
+
+    return Math.min(Math.round(score), 100);
+  }
+
+  // Helper: Get engagement quality bucket
+  function getEngagementQuality() {
+    const score = calculateSessionQuality();
+    if (score >= 75) return 'high';
+    if (score >= 40) return 'medium';
+    return 'low';
+  }
+
+  // Helper: Get content age in days
+  function getContentAge(uploadDate) {
+    if (!uploadDate) return null;
+    const days = Math.floor((Date.now() - new Date(uploadDate)) / (1000 * 60 * 60 * 24));
+    return days;
+  }
+
+  // Push enhanced data layer on page load
+  window.dataLayer = window.dataLayer || [];
+  window.dataLayer.push({
+    'event': 'enhanced_page_data',
+    'page_metadata': getContentMetadata(),
+    'user_cohort': getUserCohort(),
+    'session_id': getOrCreateSessionId(),
+    'platform': /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'mobile' : 'desktop'
+  });
+
+  // ==========================================
+  // FILE INTERACTION TRACKING
+  // ==========================================
+  window.AbhiHubTracking = {
+    // Track PDF/File View (Enhanced with Ecommerce)
+    trackFileView: function (fileName, fileType, subject, fileSize, uploadDate) {
+      sessionData.fileViews++;
+      sessionData.interactions++;
+
+      const metadata = getContentMetadata();
+      const sizeBucket = getFileSizeBucket(fileSize || 0);
+
+      // Standard event
+      gtag('event', 'file_view', {
+        'file_name': fileName,
+        'file_type': fileType || 'unknown',
+        'subject': subject || metadata.subject,
+        'file_size_kb': fileSize || 0,
+        'file_size_bucket': sizeBucket,
+        'content_type': metadata.content_type,
+        'semester': metadata.semester,
+        'year': metadata.year,
+        'user_cohort': getUserCohort(),
+        'engagement_quality': getEngagementQuality(),
+        'session_quality_score': calculateSessionQuality(),
+        'content_age_days': getContentAge(uploadDate),
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+
+      // GA4 Ecommerce: view_item
+      gtag('event', 'view_item', {
+        'items': [{
+          'item_id': 'file_' + fileName.replace(/[^a-zA-Z0-9]/g, '_'),
+          'item_name': fileName,
+          'item_category': metadata.content_type,
+          'item_category2': subject || metadata.subject,
+          'item_category3': metadata.semester,
+          'item_variant': fileType || 'unknown',
+          'item_brand': metadata.year,
+          'price': 0,
+          'quantity': 1
+        }]
+      });
+
+      console.log('[Analytics] File viewed:', fileName, '| Quality:', getEngagementQuality());
+    },
+
+    // Track File Download (Enhanced with Ecommerce)
+    trackFileDownload: function (fileName, fileType, subject, fileSize) {
+      sessionData.downloads++;
+      sessionData.interactions++;
+
+      const metadata = getContentMetadata();
+      const sizeBucket = getFileSizeBucket(fileSize || 0);
+
+      // Standard download event
+      gtag('event', 'file_download', {
+        'file_name': fileName,
+        'file_type': fileType || 'unknown',
+        'subject': subject || metadata.subject,
+        'file_size_bucket': sizeBucket,
+        'content_type': metadata.content_type,
+        'user_cohort': getUserCohort(),
+        'engagement_quality': getEngagementQuality(),
+        'session_downloads': sessionData.downloads,
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+
+      // GA4 Ecommerce: select_content (download is like adding to cart)
+      gtag('event', 'select_content', {
+        'content_type': 'file',
+        'item_id': 'file_' + fileName.replace(/[^a-zA-Z0-9]/g, '_'),
+        'content_id': fileName,
+        'items': [{
+          'item_id': 'file_' + fileName.replace(/[^a-zA-Z0-9]/g, '_'),
+          'item_name': fileName,
+          'item_category': metadata.content_type,
+          'item_category2': subject || metadata.subject,
+          'item_variant': fileType,
+          'price': 0,
+          'quantity': 1
+        }]
+      });
+
+      console.log('[Analytics] Download #' + sessionData.downloads + ':', fileName);
+    },
+
+    // Track File Search/Filter (Enhanced)
+    trackSearch: function (searchQuery, resultCount, searchType, refinementLevel) {
+      sessionData.searches++;
+      sessionData.interactions++;
+
+      const isZeroResults = resultCount === 0;
+
+      gtag('event', 'search', {
+        'search_term': searchQuery,
+        'search_type': searchType || 'general',
+        'result_count': resultCount || 0,
+        'search_refinement_level': refinementLevel || 0,
+        'zero_results': isZeroResults,
+        'user_cohort': getUserCohort(),
+        'session_searches': sessionData.searches,
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+
+      console.log('[Analytics] Search:', searchQuery, '| Results:', resultCount, isZeroResults ? '(ZERO)' : '');
+    },
+
+    // Track Subject Click/Browse
+    trackSubjectAccess: function (subjectName, contentType) {
+      gtag('event', 'subject_access', {
+        'subject_name': subjectName,
+        'content_type': contentType || 'notes',
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] Subject accessed:', subjectName);
+    },
+
+    // Track User Authentication
+    trackLogin: function (loginMethod, userId) {
+      gtag('event', 'login', {
+        'method': loginMethod || 'email',
+        'user_id': userId || 'unknown',
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] User login:', loginMethod);
+    },
+
+    trackSignup: function (signupMethod, userId) {
+      gtag('event', 'sign_up', {
+        'method': signupMethod || 'email',
+        'user_id': userId || 'unknown',
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] User signup:', signupMethod);
+    },
+
+    trackLogout: function (userId) {
+      gtag('event', 'logout', {
+        'user_id': userId || 'unknown',
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] User logout');
+    },
+
+    // Track Premium Signup/Upgrade
+    trackPremiumInteraction: function (action, planType) {
+      gtag('event', 'premium_interaction', {
+        'action': action,
+        'plan_type': planType || 'basic',
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] Premium action:', action);
+    },
+
+    // Track Share Action
+    trackShare: function (shareMethod, contentType, contentName) {
+      gtag('event', 'share', {
+        'method': shareMethod || 'copy_link',
+        'content_type': contentType || 'file',
+        'content_name': contentName || 'unknown',
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] Content shared:', contentName, 'via', shareMethod);
+    },
+
+    // Track File Upload
+    trackUpload: function (fileName, fileType, fileSize) {
+      gtag('event', 'file_upload', {
+        'file_name': fileName,
+        'file_type': fileType || 'unknown',
+        'file_size_kb': fileSize || 0,
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] File uploaded:', fileName);
+    },
+
+    // Track Filter/Sort Action
+    trackFilterAction: function (filterType, filterValue, resultCount) {
+      gtag('event', 'filter_applied', {
+        'filter_type': filterType,
+        'filter_value': filterValue,
+        'result_count': resultCount || 0,
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] Filter applied:', filterType, '=', filterValue);
+    },
+
+    // Track Page Section Engagement
+    trackSectionEngagement: function (sectionName, engagementType) {
+      gtag('event', 'section_engagement', {
+        'section_name': sectionName,
+        'engagement_type': engagementType || 'view',
+        'page_path': window.location.pathname,
+        'scroll_depth': getScrollPercentage(),
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] Section engagement:', sectionName);
+    },
+
+    // Track Click on Important Elements
+    trackElementClick: function (elementName, elementType, actionValue) {
+      gtag('event', 'element_click', {
+        'element_name': elementName,
+        'element_type': elementType || 'button',
+        'action_value': actionValue || 'click',
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] Element clicked:', elementName);
+    },
+
+    // Track Error Events
+    trackError: function (errorType, errorMessage, severity) {
+      gtag('event', 'app_error', {
+        'error_type': errorType,
+        'error_message': errorMessage,
+        'severity': severity || 'warning',
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] Error tracked:', errorType);
+    },
+
+    // Track Performance Metrics
+    trackPerformance: function () {
+      if (window.performance && window.performance.timing) {
+        const timing = window.performance.timing;
+        const navigation = window.performance.navigation;
+
+        const pageLoadTime = timing.loadEventEnd - timing.navigationStart;
+        const domContentLoadedTime = timing.domContentLoadedEventEnd - timing.navigationStart;
+        const timeToFirstByte = timing.responseStart - timing.navigationStart;
+
+        gtag('event', 'page_performance', {
+          'page_load_time_ms': pageLoadTime,
+          'dom_content_loaded_ms': domContentLoadedTime,
+          'time_to_first_byte_ms': timeToFirstByte,
+          'page_path': window.location.pathname
+        });
+
+        console.log('[Analytics] Performance: Load=' + pageLoadTime + 'ms, DCL=' + domContentLoadedTime + 'ms');
+      }
+    },
+
+    // Track Form Submission
+    trackFormSubmission: function (formName, formData) {
+      gtag('event', 'form_submit', {
+        'form_name': formName,
+        'form_fields': Object.keys(formData || {}).join(','),
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] Form submitted:', formName);
+    },
+
+    // Track Exception/Custom Events
+    trackException: function (description, isFatal) {
+      gtag('event', 'exception', {
+        'description': description,
+        'fatal': isFatal || false,
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] Exception:', description);
+    },
+
+    // Track Time on Page (engagement)
+    trackTimeOnPage: function (timeSeconds) {
+      gtag('event', 'engagement_time', {
+        'time_on_page_seconds': timeSeconds,
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] Time on page:', timeSeconds, 'seconds');
+    },
+
+    // Track Content Impression (for recommendation tracking)
+    trackContentImpression: function (contentName, contentType, contentId) {
+      gtag('event', 'view_item', {
+        'items': [{
+          'item_name': contentName,
+          'item_category': contentType,
+          'item_id': contentId
+        }],
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] Content impression:', contentName);
+    },
+
+    // Track List View (for file listing pages)
+    trackItemList: function (listName, items) {
+      gtag('event', 'view_item_list', {
+        'item_list_name': listName,
+        'items': items.map((item, index) => ({
+          'item_id': 'file_' + (item.name || item.fileName || 'unknown').replace(/[^a-zA-Z0-9]/g, '_'),
+          'item_name': item.name || item.fileName,
+          'item_category': item.category || item.contentType || 'unknown',
+          'item_category2': item.subject,
+          'item_variant': item.type || item.fileType,
+          'index': index,
+          'price': 0,
+          'quantity': 1
+        }))
+      });
+
+      console.log('[Analytics] Item list viewed:', listName, '|', items.length, 'items');
+    },
+
+    // === FUNNEL TRACKING ===
+    // Funnel 1: Discovery to Download
+    trackDiscoveryFunnel: function (step) {
+      const funnel = 'discovery_to_download';
+      const validSteps = ['page_view', 'search_or_browse', 'file_view', 'file_download'];
+
+      if (!validSteps.includes(step)) return;
+
+      gtag('event', 'funnel_step', {
+        'funnel_name': funnel,
+        'funnel_step': step,
+        'funnel_step_number': validSteps.indexOf(step) + 1,
+        'session_quality': calculateSessionQuality(),
+        'timestamp': new Date().toISOString()
+      });
+
+      // Track in localStorage for completion analysis
+      const funnelData = JSON.parse(localStorage.getItem('funnel_' + funnel) || '[]');
+      funnelData.push({ step, time: Date.now() });
+      localStorage.setItem('funnel_' + funnel, JSON.stringify(funnelData));
+
+      console.log('[Analytics] Funnel:', funnel, '| Step:', step);
+    },
+
+    // Funnel 2: New User Activation
+    trackActivationFunnel: function (step) {
+      const funnel = 'new_user_activation';
+      const validSteps = ['first_visit', 'sign_up', 'first_file_view', 'first_download'];
+
+      if (!validSteps.includes(step)) return;
+
+      gtag('event', 'funnel_step', {
+        'funnel_name': funnel,
+        'funnel_step': step,
+        'funnel_step_number': validSteps.indexOf(step) + 1,
+        'user_cohort': getUserCohort(),
+        'timestamp': new Date().toISOString()
+      });
+
+      console.log('[Analytics] Activation Funnel | Step:', step);
+    },
+
+    // Funnel 3: Premium Conversion
+    trackPremiumFunnel: function (step) {
+      const funnel = 'premium_conversion';
+      const validSteps = ['premium_page_view', 'view_plans', 'start_checkout', 'complete_purchase'];
+
+      if (!validSteps.includes(step)) return;
+
+      gtag('event', 'funnel_step', {
+        'funnel_name': funnel,
+        'funnel_step': step,
+        'funnel_step_number': validSteps.indexOf(step) + 1,
+        'user_type': '{{ "authenticated" if session.get("user") else "anonymous" }}',
+        'timestamp': new Date().toISOString()
+      });
+
+      console.log('[Analytics] Premium Funnel | Step:', step);
+    }
+  };
+
+  // ==========================================
+  // AUTO-TRACK SCROLL DEPTH
+  // ==========================================
+  function getScrollPercentage() {
+    const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
+    const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    return height > 0 ? Math.round((winScroll / height) * 100) : 0;
+  }
+
+  let scrollTracked = false;
+  window.addEventListener('scroll', function () {
+    const scrollPercent = getScrollPercentage();
+    if (scrollPercent >= 50 && !scrollTracked) {
+      scrollTracked = true;
+      gtag('event', 'scroll_depth_50', {
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] Scroll depth 50%');
+    }
+  });
+
+  // ==========================================
+  // AUTO-TRACK PAGE ENGAGEMENT TIME
+  // ==========================================
+  let startTime = Date.now();
+  window.addEventListener('beforeunload', function () {
+    const engagementTime = Math.round((Date.now() - startTime) / 1000);
+    AbhiHubTracking.trackTimeOnPage(engagementTime);
+  });
+
+  // ==========================================
+  // TRACK INITIAL PAGE VIEW
+  // ==========================================
+  document.addEventListener('DOMContentLoaded', function () {
+    trackPageView(document.title, getPageCategory());
+    AbhiHubTracking.trackPerformance();
+  });
+
+  // ==========================================
+  // HELPER: Get Page Category
+  // ==========================================
+  function getPageCategory() {
+    const path = window.location.pathname;
+    if (path.includes('/notes')) return 'notes';
+    if (path.includes('/pyq') || path.includes('/papers')) return 'pyq';
+    if (path.includes('/practicals')) return 'practicals';
+    if (path.includes('/upload')) return 'upload';
+    if (path.includes('/dashboard')) return 'dashboard';
+    if (path.includes('/profile')) return 'profile';
+    if (path.includes('/premium') || path.includes('/store')) return 'premium';
+    if (path.includes('/search')) return 'search';
+    if (path.includes('/login')) return 'authentication';
+    if (path.includes('/signup')) return 'authentication';
+    return 'general';
+  }
+
+  // ==========================================
+  // EXPOSE GLOBAL TRACKING FUNCTION
+  // ==========================================
+  window.trackEvent = function (eventName, eventData) {
+    gtag('event', eventName, eventData || {});
+    console.log('[Analytics] Event tracked:', eventName, eventData);
+  };
+
+  console.log('[Analytics] Google Analytics 4 loaded and ready. Use window.AbhiHubTracking.trackEventName() to track events.');
+</script>
+
+<!-- Schema.org Organization Markup -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "AbhiHub",
+  "url": "https://abhihub.in",
+  "logo": "https://abhihub.in/static/premium/icons/icon-512x512.png",
+  "description": "AbhiHub - Engineering exam papers, notes, and practicals repository",
+  "sameAs": [
+    "https://www.facebook.com/abhihub",
+    "https://www.twitter.com/abhihub",
+    "https://www.instagram.com/abhihub"
+  ],
+  "contactPoint": {
+    "@type": "ContactPoint",
+    "contactType": "Customer Service",
+    "email": "support@abhihub.in"
+  }
+}
+</script>

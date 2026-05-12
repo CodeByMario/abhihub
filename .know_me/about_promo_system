@@ -1,0 +1,103 @@
+
+date: 03-05-2026 22:07 {
+
+    ============================================================================
+    PROMO / ANNOUNCEMENT SYSTEM — p_struct.html
+    ============================================================================
+
+    WHAT WAS ADDED:
+    Two promotional UI elements added directly to the base template (p_struct.html)
+    so they are inherited by EVERY page in the AbhiHub Premium app automatically.
+
+    ============================================================================
+    1. TOP ANNOUNCEMENT STRIP  (#promoStrip)
+    ============================================================================
+    - Fixed to the very top of the viewport (z-index: 8500)
+    - Background: linear-gradient(90deg, #7c3aed → #2563eb → #06b6d4)
+    - Contains:
+        • A pill badge  → class="promo-tag"     (e.g. "✨ New")
+        • Message text  → id="promoStripText"
+        • CTA link      → id="promoStripLink"   (yellow color #ffe769)
+        • Dismiss btn   → id="promoStripClose"  (calls dismissPromoStrip())
+    - Animates in with promoSlideDown keyframe (0.45s)
+    - Hides with class="hidden" (slides top: -60px)
+    - Pushes body paddingTop so content isn't overlapped
+
+    localStorage key : 'abhihub_promo_strip_dismissed'
+    Version string   : PROMO_VER = 'v2'  ← bump to re-show after an update
+
+    ============================================================================
+    2. PROMO CARD MODAL  (#promoCardOverlay / #promoCard)
+    ============================================================================
+    - Full-screen overlay with backdrop-filter: blur(4px), z-index: 9200
+    - Card appears with fade + slide-up animation
+    - Auto-shows after 4000ms on page load (only if not dismissed)
+    - Structure:
+        • .promo-card-header  — gradient header with bouncing emoji + title + subtitle
+        • .promo-features-list — icon chips (violet/blue/teal/amber) + feature text
+        • .promo-cta-btn      — gradient CTA button (links to /features by default)
+        • .promo-dismiss-link — "Maybe later" text link
+    - Closes on: close button click / "Maybe later" / backdrop click
+
+    localStorage key : 'abhihub_promo_card_dismissed'
+    Version string   : PROMO_VER = 'v2'  ← same var, shared with strip
+
+    ============================================================================
+    3. JAVASCRIPT API  (window.showPromo)
+    ============================================================================
+    Call from ANY page's JS to trigger a custom promo without touching the template:
+
+        window.showPromo({
+            stripText    : 'Summer Sale — 50% off premium!',
+            stripLink    : { href: '/sale', label: 'Claim offer →' },
+            cardEmoji    : '🎉',
+            cardTitle    : 'Limited-time offer',
+            cardDesc     : 'Get premium at half the price',
+            cardFeatures : [
+                { icon: '💰', color: 'amber', text: '50% discount on all plans' },
+                { icon: '📄', color: 'violet', text: 'Unlimited PDF downloads' }
+            ],
+            ctaLabel     : 'Grab the deal',
+            ctaHref      : '/sale'
+        });
+
+    Available pf-icon colors: violet | blue | teal | amber
+
+    ============================================================================
+    4. CONTROL FUNCTIONS (global)
+    ============================================================================
+        dismissPromoStrip()   — hides strip + saves to localStorage permanently
+        dismissPromoCard()    — hides card + saves to localStorage permanently
+        closePromoCard()      — hides card without saving (re-shows next visit)
+        showPromo(cfg)        — show a fully custom promo (see API above)
+
+    ============================================================================
+    5. HOW TO UPDATE / RE-SHOW PROMO
+    ============================================================================
+    In p_struct.html, inside the <!-- ===== PROMO LOGIC ===== --> script block,
+    change the PROMO_VER constant:
+
+        const PROMO_VER = 'v3';   // was 'v2' — users who dismissed v2 will see v3
+
+    This invalidates any previously stored dismissal and shows the promo again.
+
+    ============================================================================
+    6. DEFAULT CONTENT (as of 03-05-2026)
+    ============================================================================
+    Strip text  : "Smart PDF Reader is here — read, highlight & search smarter!"
+    Strip link  : /pdf-reader  →  "Try it free →"
+    Card title  : "AbhiHub just got better"
+    Card desc   : "Discover powerful new features built for students"
+    Card emoji  : 🚀
+    Features    : Smart PDF Reader / Live Rankings / Store Room / Push Notifications
+    CTA button  : "Explore All Features"  →  /features
+
+    ============================================================================
+    7. FILE LOCATION
+    ============================================================================
+    Template  : app/templates/p_struct.html
+    Styles    : inline <style> block — search "PROMO / ANNOUNCEMENT STYLES"
+    HTML      : body top — search "PROMO ANNOUNCEMENT STRIP" / "PROMO CARD MODAL"
+    JS logic  : bottom of body — search "PROMO LOGIC"
+
+}

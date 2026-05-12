@@ -1,0 +1,292 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+<style>
+  /* Simplified ranking page styles */
+  .ranking-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: var(--spacing-md);
+  }
+  
+  .ranking-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    background-color: var(--light-color);
+    border-radius: var(--border-radius-md);
+  }
+  
+  .ranking-header h1 {
+    color: var(--dark-color);
+    font-size: 2rem;
+    margin-bottom: var(--spacing-sm);
+  }
+  
+  .ranking-header p {
+    color: var(--text-color);
+    font-size: 1rem;
+    margin: 0;
+  }
+  
+  .content-grid {
+    display: grid;
+    grid-template-columns: 1fr 2fr;
+    gap: var(--spacing-lg);
+    margin-bottom: var(--spacing-xl);
+  }
+  
+  .points-card {
+    background-color: var(--light-color);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--medium-color);
+    overflow: hidden;
+  }
+  
+  .points-header {
+    background-color: var(--dark-color);
+    color: var(--background-color);
+    padding: var(--spacing-md);
+    text-align: center;
+  }
+  
+  .points-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+  
+  .points-list {
+    padding: var(--spacing-md);
+  }
+  
+  .point-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: var(--spacing-sm) 0;
+    border-bottom: 1px solid rgba(45, 51, 107, 0.1);
+  }
+  
+  .point-item:last-child {
+    border-bottom: none;
+  }
+  
+  .point-label {
+    color: var(--dark-color);
+    font-weight: 500;
+  }
+  
+  .point-value {
+    background-color: var(--medium-color);
+    color: var(--background-color);
+    padding: 0.2rem 0.5rem;
+    border-radius: var(--border-radius-sm);
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  
+  .leaderboard-card {
+    background-color: var(--light-color);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--medium-color);
+    overflow: hidden;
+  }
+  
+  .leaderboard-header {
+    background-color: var(--dark-color);
+    color: var(--background-color);
+    padding: var(--spacing-md);
+    text-align: center;
+  }
+  
+  .leaderboard-header h3 {
+    margin: 0;
+    font-size: 1.1rem;
+  }
+  
+  .ranking-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  
+  .ranking-table th {
+    background-color: var(--medium-color);
+    color: var(--background-color);
+    padding: var(--spacing-sm);
+    text-align: center;
+    font-weight: 600;
+  }
+  
+  .ranking-table td {
+    padding: var(--spacing-sm);
+    text-align: center;
+    border-bottom: 1px solid rgba(45, 51, 107, 0.1);
+    color: var(--text-color);
+  }
+  
+  .ranking-table tbody tr:hover {
+    background-color: rgba(120, 134, 199, 0.1);
+  }
+  
+  .current-user-row {
+    background-color: rgba(120, 134, 199, 0.25) !important;
+    border-left: 4px solid var(--accent-color);
+  }
+  
+  .rank-number {
+    font-weight: 700;
+    color: var(--dark-color);
+  }
+  
+  .author-name {
+    font-weight: 600;
+    color: var(--dark-color);
+  }
+  
+  .points-value {
+    font-weight: 700;
+    color: var(--dark-color);
+  }
+  
+  .empty-message {
+    text-align: center;
+    padding: var(--spacing-xl);
+    color: var(--text-color);
+  }
+  
+  .upload-cta {
+    background-color: var(--dark-color);
+    color: var(--background-color);
+    padding: var(--spacing-lg);
+    text-align: center;
+    border-radius: var(--border-radius-md);
+  }
+  
+  .upload-cta h2 {
+    margin-bottom: var(--spacing-sm);
+    font-size: 1.5rem;
+  }
+  
+  .upload-cta p {
+    margin-bottom: var(--spacing-md);
+    opacity: 0.9;
+  }
+  
+  .upload-button {
+    background-color: var(--accent-color);
+    color: var(--background-color);
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border-radius: var(--border-radius-sm);
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-block;
+  }
+  
+  .upload-button:hover {
+    background-color: #e55a5a;
+    color: var(--background-color);
+  }
+  
+  /* Mobile responsive */
+  @media (max-width: 768px) {
+    .content-grid {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-md);
+    }
+    
+    .ranking-header h1 {
+      font-size: 1.5rem;
+    }
+    
+    .ranking-table th,
+    .ranking-table td {
+      padding: var(--spacing-xs);
+      font-size: 0.9rem;
+    }
+    
+    .upload-cta h2 {
+      font-size: 1.2rem;
+    }
+  }
+</style>
+
+<main>
+  <div class="ranking-container">
+    <!-- Header Section -->
+    <div class="ranking-header">
+      <h1 class="kanit-bold">Community Leaderboard</h1>
+      <p class="kanit-medium">Share your knowledge, earn points, and climb the ranks!</p>
+    </div>
+
+    <!-- Content Grid -->
+    <div class="content-grid">
+      <!-- Points Card -->
+      <div class="points-card">
+        <div class="points-header">
+          <h3 class="kanit-semibold">How to Earn Points</h3>
+        </div>
+        <div class="points-list">
+          <div class="point-item">
+            <span class="point-label kanit-medium">📄 Paper / PYQ</span>
+            <span class="point-value">1 pt</span>
+          </div>
+          <div class="point-item">
+            <span class="point-label kanit-medium">📚 Notes</span>
+            <span class="point-value">3 pts</span>
+          </div>
+          <div class="point-item">
+            <span class="point-label kanit-medium">❓ Imp Questions</span>
+            <span class="point-value">3 pts</span>
+          </div>
+          <div class="point-item">
+            <span class="point-label kanit-medium">🧩 Other Types</span>
+            <span class="point-value">0.5 pt</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Leaderboard Card -->
+      <div class="leaderboard-card">
+        <div class="leaderboard-header">
+          <h3 class="kanit-semibold">Top Contributors</h3>
+        </div>
+        <table class="ranking-table">
+          <thead>
+            <tr>
+              <th class="kanit-semibold">Rank</th>
+              <th class="kanit-semibold">Author</th>
+              <th class="kanit-semibold">Points</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for entry in rank %}
+            <tr {% if current_user_id and entry.uploader_id == current_user_id %}class="current-user-row"{% endif %}>
+              <td class="rank-number">
+                {% if loop.index == 1 %}🥇
+                {% elif loop.index == 2 %}🥈
+                {% elif loop.index == 3 %}🥉
+                {% else %}{{ loop.index }}{% endif %}
+              </td>
+              <td class="author-name kanit-medium">{{ entry.author }}</td>
+              <td class="points-value">{{ entry.points }}</td>
+            </tr>
+            {% else %}
+            <tr>
+              <td colspan="3" class="empty-message kanit-medium">
+                No ranking data available yet.<br>Be the first to contribute!
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Upload CTA -->
+    <div class="upload-cta">
+      <h2 class="kanit-bold">Ready to Climb the Ranks?</h2>
+      <p class="kanit-medium">Your contributions make a difference. Share your study materials and earn recognition!</p>
+      <a href="{{ url_for('upload') }}" class="upload-button kanit-semibold">📤 Share & Earn Points</a>
+    </div>
+  </div>
+</main>
+{% endblock %}

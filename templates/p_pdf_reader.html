@@ -1,0 +1,416 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+<head>
+    <title>AbhiHub PDF Reader - {{ pdf_name }}</title>
+    <!-- Suppress Adobe iframe console warnings & CSP -->
+    <meta name="referrer" content="same-origin">
+    <meta http-equiv="Content-Security-Policy"
+        content="frame-src 'self' https://acrobatservices.adobe.com; script-src 'self' 'unsafe-inline' https://acrobatservices.adobe.com https://www.googletagmanager.com;">
+
+    <!-- Load Adobe API immediately -->
+    <script src="https://acrobatservices.adobe.com/view-sdk/viewer.js"></script>
+
+    <style>
+        /* PDF Reader Specific Styles */
+        :root {
+            --glass-bg: rgba(255, 255, 255, 0.85);
+            --glass-border: rgba(255, 255, 255, 0.6);
+            --glass-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.1);
+            --header-height: 70px;
+        }
+
+        body {
+            background: #f1f5f9;
+            /* Neutral background for reading */
+            overflow: hidden;
+            /* Prevent body scroll, handle in container */
+        }
+
+        /* Floating Glass Header */
+        .reader-header {
+            position: fixed;
+            top: 1rem;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 95%;
+            max-width: 1200px;
+            height: var(--header-height);
+            background: var(--glass-bg);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border);
+            border-radius: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 1.5rem;
+            box-shadow: var(--glass-shadow);
+            z-index: 1000;
+            transition: all 0.3s ease;
+        }
+
+        .header-left {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+
+        .back-btn {
+            background: rgba(37, 99, 235, 0.1);
+            color: #2563eb;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .back-btn:hover {
+            background: rgba(37, 99, 235, 0.2);
+            transform: translateX(-2px);
+        }
+
+        .doc-title {
+            font-weight: 600;
+            color: #1e293b;
+            font-size: 1.1rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 300px;
+        }
+
+        .header-actions {
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        .action-btn {
+            padding: 0.6rem 1.2rem;
+            border-radius: 10px;
+            font-weight: 500;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.2s;
+            text-decoration: none;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+            color: white;
+            border: none;
+            box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(37, 99, 235, 0.3);
+        }
+
+        /* PDF Container */
+        .pdf-wrapper {
+            position: absolute;
+            top: calc(1rem + var(--header-height) + 1rem);
+            left: 50%;
+            transform: translateX(-50%);
+            width: 95%;
+            max-width: 1200px;
+            height: calc(100vh - (1rem + var(--header-height) + 2rem));
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+            border: 1px solid rgba(255, 255, 255, 0.8);
+        }
+
+        #adobe-dc-view {
+            width: 100%;
+            height: 100%;
+        }
+
+        /* Loading Overlay - Glass Style */
+        .loading-overlay {
+            position: absolute;
+            inset: 0;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(5px);
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            border-radius: 20px;
+        }
+
+        .spinner {
+            width: 40px;
+            height: 40px;
+            border: 3px solid #e2e8f0;
+            border-top: 3px solid #2563eb;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+            margin-bottom: 1rem;
+        }
+
+        .loading-text {
+            color: #64748b;
+            font-weight: 500;
+        }
+
+        @keyframes spin {
+            0% {
+                transform: rotate(0deg);
+            }
+
+            100% {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* Mobile Optimizations */
+        @media (max-width: 768px) {
+            .reader-header {
+                width: 100%;
+                top: 0;
+                border-radius: 0 0 20px 20px;
+                padding: 0 1rem;
+                height: 60px;
+            }
+
+            .doc-title {
+                font-size: 1rem;
+                max-width: 180px;
+            }
+
+            .pdf-wrapper {
+                width: 100%;
+                top: 70px;
+                height: calc(100vh - 70px);
+                border-radius: 0;
+                border-left: none;
+                border-right: none;
+            }
+
+            .header-actions .btn-text {
+                display: none;
+            }
+
+            .action-btn {
+                padding: 0.6rem;
+            }
+        }
+
+        /* AdBlock/Promo Overlay - Glass Style */
+        .glass-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0, 0, 0, 0.6);
+            backdrop-filter: blur(4px);
+            z-index: 3000;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .glass-popup {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 2rem;
+            border-radius: 24px;
+            max-width: 400px;
+            width: 90%;
+            text-align: center;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.2);
+            position: relative;
+            transform: scale(0.95);
+            animation: scaleUp 0.3s ease forwards;
+        }
+
+        .popup-icon {
+            width: 60px;
+            height: 60px;
+            margin-bottom: 1rem;
+            filter: drop-shadow(0 4px 6px rgba(37, 99, 235, 0.2));
+        }
+
+        .popup-title {
+            font-size: 1.5rem;
+            color: #1e293b;
+            margin-bottom: 0.5rem;
+            font-weight: 700;
+        }
+
+        .popup-text {
+            color: #64748b;
+            margin-bottom: 1.5rem;
+            line-height: 1.5;
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes scaleUp {
+            to {
+                transform: scale(1);
+            }
+        }
+
+        /* Utility to hide Adobe junk */
+        .adobe-dc-view .toolbar {
+            display: none !important;
+        }
+    </style>
+</head>
+
+<div class="reader-header">
+    <div class="header-left">
+        <button class="back-btn" onclick="goBack()" aria-label="Go Back">
+            <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
+            </svg>
+        </button>
+        <span class="doc-title">{{ pdf_name }}</span>
+    </div>
+
+</div>
+
+<div class="pdf-wrapper">
+    <!-- Loading State -->
+    <div class="loading-overlay" id="loadingOverlay">
+        <div class="spinner"></div>
+        <p class="loading-text">Preparing your document...</p>
+    </div>
+
+    <!-- Adobe Viewer Container -->
+    <div id="adobe-dc-view"></div>
+</div>
+
+<!-- Promo Overlay -->
+<div class="glass-overlay" id="promoOverlay">
+    <div class="glass-popup">
+        <button class="notification-close" onclick="closePromo()"
+            style="position: absolute; top: 1rem; right: 1rem; background: none; border: none; font-size: 1.2rem; cursor: pointer; color: #64748b;">×</button>
+        <div style="font-size: 3rem; margin-bottom: 1rem;">🚀</div>
+        <h2 class="popup-title">Coming Soon!</h2>
+        <p class="popup-text">We are building an even better experience. Join the waiting list to get early access.</p>
+        <a href="https://abhi-hub-v02-e1ae04210f71.herokuapp.com/user/register" target="_blank"
+            class="action-btn btn-primary" style="justify-content: center; width: 100%; box-sizing: border-box;">
+            Join Waiting List
+        </a>
+    </div>
+</div>
+
+<!-- AdBlocker Overlay -->
+<div class="glass-overlay" id="adBlockerOverlay">
+    <div class="glass-popup">
+        <div style="font-size: 3rem; margin-bottom: 1rem;">⚠️</div>
+        <h2 class="popup-title">AdBlocker Detected</h2>
+        <p class="popup-text">An extension is blocking the PDF viewer. <span
+                style="color: #ef4444; font-weight: 600;">Please disable ad blockers</span> for this site to view the
+            document.</p>
+        <button onclick="location.reload()" class="action-btn btn-primary"
+            style="justify-content: center; width: 100%;">
+            Refresh Page
+        </button>
+    </div>
+</div>
+
+<script>
+    function goBack() {
+        if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) {
+            history.back();
+        } else {
+            window.location.href = "{{ url_for('store_room') }}";
+        }
+    }
+
+    function closePromo() {
+        document.getElementById('promoOverlay').style.display = 'none';
+        // Can add logic to save dismissal preference here
+    }
+
+    // Initialize Adobe PDF Viewer
+    document.addEventListener("adobe_dc_view_sdk.ready", function () {
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const pdfUrl = "{{ pdf_url | safe }}";
+        const pdfName = "{{ pdf_name }}";
+        const clientId = "eab5f878b6684648b54763245865faed"; // Make sure to use env var in prod if possible, or keep existing
+
+        try {
+            var adobeDCView = new AdobeDC.View({
+                clientId: clientId,
+                divId: "adobe-dc-view"
+            });
+
+            adobeDCView.previewFile({
+                content: { location: { url: pdfUrl } },
+                metaData: { fileName: pdfName }
+            }, {
+                embedMode: "SIZED_CONTAINER",
+                showAnnotationTools: false,
+                showDownloadPDF: false,
+                showPrintPDF: false,
+                dockPageControls: false
+            }).then(() => {
+                // Success
+                loadingOverlay.style.display = 'none';
+            }).catch((error) => {
+                console.error("Adobe PDF Load Error:", error);
+                loadingOverlay.style.display = 'none';
+
+                // Fallback to native iframe viewer if Adobe fails
+                const container = document.getElementById('adobe-dc-view');
+                container.innerHTML = `
+                    <iframe src="${pdfUrl}" width="100%" height="100%" style="border: none; background: #f1f5f9;" title="${pdfName}">
+                        <p style="text-align: center; padding: 2rem;">
+                            Unable to display directly. <a href="${pdfUrl}" target="_blank" style="color: #2563eb; text-decoration: underline;">Click here to download</a>.
+                        </p>
+                    </iframe>
+                `;
+            });
+        } catch (e) {
+            console.error("Adobe Init Error:", e);
+            loadingOverlay.style.display = 'none';
+            // Fallback for init error
+            const container = document.getElementById('adobe-dc-view');
+            container.innerHTML = `
+                <iframe src="${pdfUrl}" width="100%" height="100%" style="border: none; background: #f1f5f9;" title="${pdfName}">
+                    <p style="text-align: center; padding: 2rem;">
+                        Unable to display directly. <a href="${pdfUrl}" target="_blank" style="color: #2563eb; text-decoration: underline;">Click here to download</a>.
+                    </p>
+                </iframe>
+            `;
+        }
+    });
+
+    // Simple AdBlock Detection
+    window.addEventListener('load', () => {
+        // Show promo after a delay
+        setTimeout(() => {
+            // document.getElementById('promoOverlay').style.display = 'flex'; 
+        }, 2000);
+
+        // Check if Adobe fails to load (proxy for adblock)
+        setTimeout(() => {
+            if (!window.AdobeDC) {
+                document.getElementById('adBlockerOverlay').style.display = 'flex';
+            }
+        }, 3000);
+    });
+</script>
+
+{% endblock %}

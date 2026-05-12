@@ -1,0 +1,111 @@
+{
+    "$schema": "http://adaptivecards.io/schemas/adaptive-card.json",
+    "type": "AdaptiveCard",
+    "version": "1.5",
+    "body": [
+        {
+            "type": "Container",
+            "style": "emphasis",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "📚 AbhiHub",
+                    "weight": "Bolder",
+                    "size": "Medium"
+                }
+            ]
+        },
+        {
+            "type": "Container",
+            "items": [
+                {
+                    "type": "TextBlock",
+                    "text": "Latest Documents",
+                    "weight": "Bolder",
+                    "spacing": "Small"
+                },
+                {
+                    "type": "ColumnSet",
+                    "columns": [
+                        {
+                            "type": "Column",
+                            "width": "auto",
+                            "items": [
+                                {
+                                    "type": "Image",
+                                    "url": "${image1}",
+                                    "size": "Small",
+                                    "style": "Default"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Column",
+                            "width": "stretch",
+                            "items": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": "${title1}",
+                                    "weight": "Bolder",
+                                    "wrap": true
+                                },
+                                {
+                                    "type": "TextBlock",
+                                    "text": "${subtitle1}",
+                                    "size": "Small",
+                                    "color": "Accent",
+                                    "spacing": "None"
+                                }
+                            ],
+                            "verticalContentAlignment": "Center"
+                        }
+                    ]
+                },
+                {
+                    "type": "ColumnSet",
+                    "columns": [
+                        {
+                            "type": "Column",
+                            "width": "auto",
+                            "items": [
+                                {
+                                    "type": "Image",
+                                    "url": "${image2}",
+                                    "size": "Small",
+                                    "style": "Default"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "Column",
+                            "width": "stretch",
+                            "items": [
+                                {
+                                    "type": "TextBlock",
+                                    "text": "${title2}",
+                                    "weight": "Bolder",
+                                    "wrap": true
+                                },
+                                {
+                                    "type": "TextBlock",
+                                    "text": "${subtitle2}",
+                                    "size": "Small",
+                                    "color": "Accent",
+                                    "spacing": "None"
+                                }
+                            ],
+                            "verticalContentAlignment": "Center"
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "actions": [
+        {
+            "type": "Action.OpenUrl",
+            "title": "Open AbhiHub",
+            "url": "/premium"
+        }
+    ]
+}

@@ -1,0 +1,396 @@
+<style>
+    /* Premium Search Container */
+    .advanced-search-container {
+        margin: 2rem auto 3rem auto;
+        padding: 1.5rem;
+        background: rgba(255, 255, 255, 0.7);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        border: 1px solid rgba(255, 255, 255, 0.5);
+        border-radius: 20px;
+        box-shadow: 0 10px 40px -10px rgba(37, 99, 235, 0.1);
+        max-width: 1000px;
+
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+        gap: 1rem;
+        align-items: center;
+        transition: transform 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    .advanced-search-container:hover {
+        box-shadow: 0 15px 50px -10px rgba(37, 99, 235, 0.15);
+        transform: translateY(-2px);
+    }
+
+    /* Input Fields & Dropdowns */
+    .dropdown,
+    .input-field {
+        width: 100%;
+        padding: 0.8rem 1.2rem;
+        border: 1.5px solid #e2e8f0;
+        border-radius: 14px;
+        background: #ffffff;
+        font-size: 0.95rem;
+        color: #1e293b;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+        box-sizing: border-box;
+        appearance: none;
+    }
+
+    /* Custom dropdown arrow for selects */
+    .dropdown {
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+        background-repeat: no-repeat;
+        background-position: right 1rem center;
+        background-size: 1.2em;
+        padding-right: 2.5rem;
+    }
+
+    .dropdown:hover,
+    .input-field:hover {
+        border-color: #cbd5e1;
+    }
+
+    .dropdown:focus,
+    .input-field:focus {
+        border-color: #3b82f6;
+        background: #ffffff;
+        box-shadow: 0 0 0 4px rgba(59, 130, 246, 0.15);
+        outline: none;
+    }
+
+    .dropdown::placeholder,
+    .input-field::placeholder {
+        color: #94a3b8;
+    }
+
+    /* Search Button */
+    .button-86 {
+        width: 100%;
+        padding: 0.8rem 1.6rem;
+        font-size: 1rem;
+        border-radius: 14px;
+        background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+        color: #ffffff;
+        border: none;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 4px 12px rgba(37, 99, 235, 0.3);
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+    .button-86:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(37, 99, 235, 0.4);
+        background: linear-gradient(135deg, #3b82f6 0%, #2563eb 100%);
+    }
+
+    .button-86:active {
+        transform: translateY(0);
+        box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+    }
+
+    /* Search Results Grid */
+    .search-file-list {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+        gap: 1.5rem;
+        padding: 0.5rem;
+    }
+
+    /* Search Card Improvements */
+    .search-file-card {
+        background: #ffffff;
+        border: 1px solid #f1f5f9;
+        border-radius: 16px;
+        padding: 1.2rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        text-align: left;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        cursor: pointer;
+        text-decoration: none;
+        color: inherit;
+        position: relative;
+        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .search-file-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: #3b82f6;
+        opacity: 0.8;
+        transition: height 0.3s ease;
+    }
+
+    .search-file-card:hover {
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+        transform: translateY(-6px);
+        border-color: #e2e8f0;
+    }
+
+    .search-file-card:hover::before {
+        height: 6px;
+    }
+
+    /* Type-specific top border colors */
+    .search-file-card.notes::before {
+        background: linear-gradient(90deg, #10b981, #34d399);
+    }
+
+    .search-file-card.papers::before {
+        background: linear-gradient(90deg, #f59e0b, #fbbf24);
+    }
+
+    .search-file-card.practicals::before {
+        background: linear-gradient(90deg, #8b5cf6, #a78bfa);
+    }
+
+    .search-card-header {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        margin-bottom: 0.75rem;
+    }
+
+    .search-card-icon {
+        width: 36px;
+        height: 36px;
+        object-fit: contain;
+        padding: 4px;
+        background: #f8fafc;
+        border-radius: 10px;
+    }
+
+    .search-file-card-title {
+        font-size: 1.1rem;
+        font-weight: 700;
+        color: #0f172a;
+        margin-bottom: 0.4rem;
+        line-height: 1.4;
+    }
+
+    .search-file-card-meta {
+        font-size: 0.9rem;
+        color: #64748b;
+        margin-bottom: 1rem;
+        flex-grow: 1;
+    }
+
+    .search-card-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        font-size: 0.85rem;
+        color: #94a3b8;
+        padding-top: 1rem;
+        border-top: 1px solid #f1f5f9;
+        margin-top: auto;
+    }
+
+    .search-card-author,
+    .search-card-year {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        font-weight: 500;
+    }
+
+    /* Type badges */
+    .type-badge {
+        display: inline-flex;
+        padding: 4px 10px;
+        border-radius: 8px;
+        font-size: 0.7rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .type-badge--notes {
+        background: #ecfdf5;
+        color: #059669;
+        border: 1px solid #a7f3d0;
+    }
+
+    .type-badge--papers {
+        background: #fffbeb;
+        color: #d97706;
+        border: 1px solid #fde68a;
+    }
+
+    .type-badge--practicals {
+        background: #f5f3ff;
+        color: #7c3aed;
+        border: 1px solid #ddd6fe;
+    }
+
+    /* Empty state */
+    .empty-state {
+        text-align: center;
+        padding: 4rem 2rem;
+        background: #f8fafc;
+        border-radius: 20px;
+        border: 2px dashed #e2e8f0;
+        margin: 2rem 0;
+    }
+
+    .empty-state-icon {
+        font-size: 3.5rem;
+        margin-bottom: 1rem;
+        opacity: 0.8;
+    }
+
+    .empty-state-title {
+        font-size: 1.25rem;
+        font-weight: 700;
+        color: #334155;
+        margin-bottom: 0.5rem;
+    }
+
+    .empty-state-description {
+        font-size: 0.95rem;
+        color: #64748b;
+        max-width: 400px;
+        margin: 0 auto;
+    }
+
+    /* History Tags */
+    .search-history {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+        margin: 1.5rem 0;
+        justify-content: center;
+    }
+
+    .history-tag {
+        background: #f1f5f9;
+        color: #475569;
+        padding: 0.4rem 1rem;
+        border-radius: 20px;
+        font-size: 0.85rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        border: 1px solid #e2e8f0;
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+    }
+
+    .history-tag::before {
+        content: '🕒';
+        font-size: 0.8rem;
+        opacity: 0.7;
+    }
+
+    .history-tag:hover {
+        background: #e2e8f0;
+        color: #0f172a;
+        transform: translateY(-1px);
+        border-color: #cbd5e1;
+    }
+
+    /* Loader */
+    .loader {
+        display: none;
+        width: 36px;
+        height: 36px;
+        border: 4px solid #f1f5f9;
+        border-top: 4px solid #3b82f6;
+        border-radius: 50%;
+        animation: spin 1s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+        margin: 3rem auto;
+    }
+
+    @keyframes spin {
+        0% {
+            transform: rotate(0deg);
+        }
+
+        100% {
+            transform: rotate(360deg);
+        }
+    }
+
+    /* Accessibility improvements */
+    .sr-only {
+        position: absolute;
+        width: 1px;
+        height: 1px;
+        padding: 0;
+        margin: -1px;
+        overflow: hidden;
+        clip: rect(0, 0, 0, 0);
+        white-space: nowrap;
+        border: 0;
+    }
+
+    @media (max-width: 768px) {
+        .advanced-search-container {
+            grid-template-columns: 1fr 1fr;
+            padding: 1.2rem;
+            border-radius: 16px;
+        }
+
+        #searchFileName {
+            grid-column: 1 / -1;
+            /* Make primary search full width on mobile */
+        }
+
+        .button-86 {
+            grid-column: 1 / -1;
+        }
+
+        .search-file-list {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="advanced-search-container" role="search">
+    <label for="searchFileName" class="sr-only">File name</label>
+    <input type="text" id="searchFileName" placeholder="🔍 File name..." class="input-field"
+        aria-label="Search by file name">
+
+    <label for="searchAuthor" class="sr-only">Author</label>
+    <input type="text" id="searchAuthor" placeholder="👤 Author..." class="input-field" aria-label="Search by author">
+
+    <label for="searchType" class="sr-only">File type</label>
+    <select id="searchType" class="dropdown" aria-label="Filter by file type">
+        <option value="">📁 All Types</option>
+    </select>
+
+    <label for="searchSubject" class="sr-only">Subject</label>
+    <select id="searchSubject" class="dropdown" aria-label="Filter by subject">
+        <option value="">📚 All Subjects</option>
+    </select>
+
+    <label for="searchYear" class="sr-only">Year</label>
+    <select id="searchYear" class="dropdown" aria-label="Filter by year">
+        <option value="">📅 All Years</option>
+    </select>
+
+    <button id="searchBtn" class="button-86" aria-label="Perform search">Search</button>
+</div>
+
+<div id="searchHistory" class="search-history" aria-live="polite"></div>
+<div id="loader" class="loader" role="status" aria-label="Loading results"></div>
+<div id="error" class="error-message" role="alert"></div>
+<div id="searchResults" class="search-file-list" aria-live="polite"></div>
+<div id="noResults" class="empty-list" style="display:none;" role="status"></div>
+
+<!-- Inline Search Initialization removed. SearchManager in script.js now handles functionality. -->

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}" >
+
+  {% include 'favicon.html' %}
+  <title>AbhiHub</title>
+
+
+  {% include 'google_tag.html' %}
+</head>
+
+  <body>
+
+    {% include 'navbar_public.html' %}
+
+    <main>
+
+      <h1>Privacy Policy</h1>
+
+      <p><strong>Information Collection:</strong> We collect personal data (<i>this include : Email and user name</i>) and usage data to provide and improve our services.</p>
+      <p><strong>Use of Information:</strong> The information collected is used to enhance user experience and communicate with users.</p>
+      <p><strong>Data Sharing:</strong> We do not share personal information with third parties without user consent, except as required by law.</p>
+      <p><strong>Data Security:</strong> We implement appropriate security measures to protect user data from unauthorized access.</p>
+      <p><strong>User Rights:</strong> Users have the right to access, correct, or delete their personal data at any time.</p>
+      <p><strong>Changes to the Privacy Policy:</strong> We will notify users of any changes to this policy through our website.</p>
+
+    </main>
+
+    {% include 'footer.html' %}
+
+
+
+    <script src="{{ url_for('static', filename='scripts.js') }}" type="module"></script>
+  </body>
+
+</html>

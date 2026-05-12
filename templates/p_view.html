@@ -1,0 +1,69 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+{{ file }}
+
+{{ file['url']}}
+<style>
+    #adobe-dc-view {
+        width: 100%;
+        height: 100%;
+        box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+</style>
+<div id="adobe-dc-view"></div>
+<script src="https://documentcloud.adobe.com/view-sdk/main.js"></script>
+<script>
+    document.addEventListener("adobe_dc_view_sdk.ready", function() {
+        // Fetch Adobe configuration and token from server
+        Promise.all([
+            fetch('/api/adobe-config').then(r => r.json()),
+            fetch('/api/adobe-token').then(r => r.json())
+        ])
+        .then(([configData, tokenData]) => {
+            if (!configData.success || !tokenData.success) {
+                throw new Error('Failed to get Adobe configuration');
+            }
+            
+            if (!configData.clientId || !tokenData.token) {
+                throw new Error('Missing Adobe client ID or token');
+            }
+            
+            // Initialize Adobe DC View with Client ID from server
+            var adobeDCView = new AdobeDC.View({
+                clientId: configData.clientId,
+                divId: "adobe-dc-view"
+            });
+            
+            // Set the access token
+            AdobeDC.View.setAuthDelegate(new Promise((resolve) => {
+                resolve({
+                    token: tokenData.token,
+                    expiration: new Date().getTime() + (tokenData.expires_in * 1000)
+                });
+            }));
+            
+            // Preview the file
+            adobeDCView.previewFile({
+                content: { location: { url: "static/{{pdf_name}}" } },
+                metaData: { fileName: "Sample PDF" }
+            }, {
+                embedMode: "FULL_WINDOW",
+                showPrintPDF: false,
+                showDownloadPDF: false,
+                showAnnotationTools: false,
+                dockPageControls: true,
+                showLeftHandPanel: false,
+                disablePrint: true,
+                disableDownload: true
+            });
+        })
+        .catch(error => {
+            console.error('Error initializing Adobe DC View:', error);
+            document.getElementById('adobe-dc-view').innerHTML = 
+                '<p style="padding: 20px; color: red;">Error loading PDF viewer. Please try again.</p>';
+        });
+    });
+</script>
+
+{% endblock %}

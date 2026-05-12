@@ -1,0 +1,128 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+{% include 'google_tag.html' %}
+
+<style>
+  .p-error-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: calc(100vh - 180px);
+    /* Account for header and footer */
+    padding: 2rem;
+  }
+
+  .p-error-content {
+    width: 100%;
+    max-width: 600px;
+    padding: 2rem;
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+    text-align: center;
+  }
+
+  .p-error-icon {
+    width: 80px;
+    height: 80px;
+    margin: 0 auto 1.5rem;
+    background: #FEE2E2;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .p-error-icon svg {
+    width: 40px;
+    height: 40px;
+    color: #DC2626;
+  }
+
+  .p-error-message {
+    color: #1F2937;
+    font-size: 1.25rem;
+    margin-bottom: 1.5rem;
+    line-height: 1.6;
+  }
+
+  .p-error-description {
+    color: #6B7280;
+    font-size: 1rem;
+    margin-bottom: 2rem;
+  }
+
+  .p-error-action {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.75rem 1.5rem;
+    background: linear-gradient(90deg, #2563eb 60%, #1d4ed8 100%);
+    color: white;
+    border-radius: 8px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: transform 0.2s;
+  }
+
+  .p-error-action:hover {
+    transform: translateY(-2px);
+  }
+
+  .p-error-action svg {
+    width: 20px;
+    height: 20px;
+    margin-right: 8px;
+  }
+
+  @media (max-width: 640px) {
+    .p-error-container {
+      padding: 1rem;
+    }
+
+    .p-error-content {
+      padding: 1.5rem;
+    }
+
+    .p-error-icon {
+      width: 60px;
+      height: 60px;
+    }
+
+    .p-error-icon svg {
+      width: 30px;
+      height: 30px;
+    }
+
+    .p-error-message {
+      font-size: 1.1rem;
+    }
+  }
+</style>
+
+<div class="p-error-container">
+  <div class="p-error-content">
+    <div class="p-error-icon">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+      </svg>
+    </div>
+    <div class="p-error-message">
+      {{ error }}
+    </div>
+    <div class="p-error-description">
+      We apologize for the inconvenience. Please try again or return to the home page.
+    </div>
+
+    {% include 'dino_game.html' %}
+    <a href="/premium/" class="p-error-action">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+      </svg>
+      Return to Home
+    </a>
+  </div>
+</div>
+
+{% endblock %}

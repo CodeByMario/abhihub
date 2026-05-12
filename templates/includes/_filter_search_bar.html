@@ -1,0 +1,46 @@
+<!-- _filter_search_bar.html - Advanced search/filter bar component -->
+<!-- Parameters:
+     - show_filename: Show filename input (default: true)
+     - show_author: Show author input (default: true)
+     - show_type: Show file type dropdown (default: true)
+     - show_subject: Show subject dropdown (default: true)
+     - show_year: Show year dropdown (default: true)
+     - button_text: Search button text (default: "Search")
+     - container_class: Additional CSS class for container (default: "")
+-->
+
+<div class="advanced-search-container {{ container_class }}" role="search">
+    {% if show_filename|default(true) %}
+    <label for="searchFileName" class="sr-only">File name</label>
+    <input type="text" id="searchFileName" placeholder="🔍 File name..." class="input-field"
+        aria-label="Search by file name">
+    {% endif %}
+
+    {% if show_author|default(true) %}
+    <label for="searchAuthor" class="sr-only">Author</label>
+    <input type="text" id="searchAuthor" placeholder="👤 Author..." class="input-field" aria-label="Search by author">
+    {% endif %}
+
+    {% if show_type|default(true) %}
+    <label for="searchType" class="sr-only">File type</label>
+    <select id="searchType" class="dropdown" aria-label="Filter by file type">
+        <option value="">📁 All Types</option>
+    </select>
+    {% endif %}
+
+    {% if show_subject|default(true) %}
+    <label for="searchSubject" class="sr-only">Subject</label>
+    <select id="searchSubject" class="dropdown" aria-label="Filter by subject">
+        <option value="">📚 All Subjects</option>
+    </select>
+    {% endif %}
+
+    {% if show_year|default(true) %}
+    <label for="searchYear" class="sr-only">Year</label>
+    <select id="searchYear" class="dropdown" aria-label="Filter by year">
+        <option value="">📅 All Years</option>
+    </select>
+    {% endif %}
+
+    <button id="searchBtn" class="button-86" aria-label="Perform search">{{ button_text or "Search" }}</button>
+</div>

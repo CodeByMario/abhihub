@@ -1,0 +1,249 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+<style>
+    .file-receiver-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        min-height: calc(100vh - 180px);
+        padding: 2rem;
+        text-align: center;
+    }
+
+    .file-receiver-icon {
+        width: 100px;
+        height: 100px;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        border-radius: 24px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 32px rgba(37, 99, 235, 0.3);
+    }
+
+    .file-receiver-icon svg {
+        width: 48px;
+        height: 48px;
+        color: white;
+    }
+
+    .file-receiver-title {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1F2937;
+        margin-bottom: 0.5rem;
+    }
+
+    .file-receiver-message {
+        font-size: 1.1rem;
+        color: #6B7280;
+        margin-bottom: 2rem;
+        max-width: 500px;
+    }
+
+    .file-drop-zone {
+        border: 2px dashed #D1D5DB;
+        border-radius: 16px;
+        padding: 3rem 2rem;
+        max-width: 500px;
+        width: 100%;
+        transition: all 0.3s;
+        cursor: pointer;
+    }
+
+    .file-drop-zone:hover,
+    .file-drop-zone.dragover {
+        border-color: #2563eb;
+        background: rgba(37, 99, 235, 0.05);
+    }
+
+    .file-drop-zone p {
+        margin: 0;
+        color: #6B7280;
+    }
+
+    .file-input {
+        display: none;
+    }
+
+    .browse-btn {
+        display: inline-block;
+        margin-top: 1rem;
+        padding: 0.75rem 2rem;
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: white;
+        border: none;
+        border-radius: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: transform 0.2s;
+    }
+
+    .browse-btn:hover {
+        transform: translateY(-2px);
+    }
+
+    .file-list {
+        margin-top: 2rem;
+        width: 100%;
+        max-width: 500px;
+    }
+
+    .file-item {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        background: #F9FAFB;
+        border-radius: 12px;
+        margin-bottom: 0.5rem;
+    }
+
+    .file-item-icon {
+        width: 40px;
+        height: 40px;
+        background: #E5E7EB;
+        border-radius: 8px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+    }
+
+    .file-item-info {
+        flex: 1;
+        text-align: left;
+    }
+
+    .file-item-name {
+        font-weight: 600;
+        color: #1F2937;
+    }
+
+    .file-item-size {
+        font-size: 0.85rem;
+        color: #6B7280;
+    }
+</style>
+
+<div class="file-receiver-container">
+    <div class="file-receiver-icon">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12">
+            </path>
+        </svg>
+    </div>
+
+    <h1 class="file-receiver-title">Open File</h1>
+
+    <p class="file-receiver-message">
+        Files opened with AbhiHub will appear here. You can also drag and drop files or browse from your device.
+    </p>
+
+    <div class="file-drop-zone" id="dropZone">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"
+            style="margin-bottom: 1rem;">
+            <path stroke-linecap="round" stroke-linejoin="round"
+                d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+            </path>
+        </svg>
+        <p>Drag and drop files here</p>
+        <p style="font-size: 0.9rem; margin-top: 0.5rem;">Supports images and PDFs</p>
+        <input type="file" id="fileInput" class="file-input" accept="image/*,.pdf" multiple>
+        <button class="browse-btn" onclick="document.getElementById('fileInput').click()">Browse Files</button>
+    </div>
+
+    <div class="file-list" id="fileList"></div>
+</div>
+
+<script>
+    const dropZone = document.getElementById('dropZone');
+    const fileInput = document.getElementById('fileInput');
+    const fileList = document.getElementById('fileList');
+
+    // Handle drag events
+    dropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        dropZone.classList.add('dragover');
+    });
+
+    dropZone.addEventListener('dragleave', () => {
+        dropZone.classList.remove('dragover');
+    });
+
+    dropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        dropZone.classList.remove('dragover');
+        handleFiles(e.dataTransfer.files);
+    });
+
+    // Handle file input change
+    fileInput.addEventListener('change', (e) => {
+        handleFiles(e.target.files);
+    });
+
+    // Handle files from Launch Handler API
+    if ('launchQueue' in window) {
+        window.launchQueue.setConsumer(async (launchParams) => {
+            if (launchParams.files && launchParams.files.length > 0) {
+                const files = [];
+                for (const handle of launchParams.files) {
+                    const file = await handle.getFile();
+                    files.push(file);
+                }
+                handleFiles(files);
+            }
+        });
+    }
+
+    function handleFiles(files) {
+        const allowedTypes = ['image/png', 'image/jpeg', 'image/gif', 'image/webp', 'image/svg+xml', 'application/pdf'];
+
+        Array.from(files).forEach(file => {
+            if (!allowedTypes.includes(file.type) && !file.name.toLowerCase().endsWith('.pdf')) {
+                alert(`File type not supported: ${file.name}`);
+                return;
+            }
+
+            displayFile(file);
+        });
+    }
+
+    function displayFile(file) {
+        const item = document.createElement('div');
+        item.className = 'file-item';
+
+        const icon = file.type.startsWith('image/') ? '🖼️' : '📄';
+        const sizeKB = (file.size / 1024).toFixed(1);
+        const size = sizeKB > 1024 ? `${(sizeKB / 1024).toFixed(1)} MB` : `${sizeKB} KB`;
+
+        item.innerHTML = `
+      <div class="file-item-icon">${icon}</div>
+      <div class="file-item-info">
+        <div class="file-item-name">${file.name}</div>
+        <div class="file-item-size">${size}</div>
+      </div>
+    `;
+
+        fileList.appendChild(item);
+
+        // Create preview for images
+        if (file.type.startsWith('image/')) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = document.createElement('img');
+                img.src = e.target.result;
+                img.style.maxWidth = '100%';
+                img.style.borderRadius = '8px';
+                img.style.marginTop = '1rem';
+                fileList.appendChild(img);
+            };
+            reader.readAsDataURL(file);
+        }
+    }
+</script>
+
+{% endblock %}

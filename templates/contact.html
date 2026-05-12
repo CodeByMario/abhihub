@@ -1,0 +1,297 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+<style>
+    :root {
+        --primary: #2563eb;
+        --primary-dark: #1d4ed8;
+        --secondary: #64748b;
+        --accent: #f59e0b;
+        --glass: rgba(255, 255, 255, 0.7);
+        --glass-border: rgba(255, 255, 255, 0.3);
+    }
+
+    /* Hero Section */
+    .hero-section {
+        padding: 6rem 1rem 4rem;
+        background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.1), transparent),
+            radial-gradient(circle at bottom left, rgba(37, 99, 235, 0.05), transparent);
+        position: relative;
+        overflow: hidden;
+        text-align: center;
+    }
+
+    .hero-title {
+        font-size: clamp(2.5rem, 8vw, 4rem);
+        font-weight: 800;
+        line-height: 1.1;
+        margin-bottom: 1.5rem;
+        background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%);
+        -webkit-background-clip: text;
+        background-clip: text;
+        -webkit-text-fill-color: transparent;
+        letter-spacing: -0.02em;
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        color: var(--secondary);
+        max-width: 600px;
+        margin: 0 auto 2.5rem;
+        line-height: 1.6;
+    }
+
+    /* Contact Card */
+    .contact-card {
+        background: var(--glass);
+        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(12px);
+        border: 1px solid var(--glass-border);
+        padding: 3rem;
+        border-radius: 32px;
+        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
+        transition: transform 0.3s ease;
+    }
+
+    .form-label {
+        font-weight: 600;
+        color: #1e293b;
+        margin-bottom: 0.5rem;
+    }
+
+    .form-control,
+    .form-select {
+        border-radius: 12px;
+        padding: 0.75rem 1rem;
+        border: 1px solid #e2e8f0;
+        background: rgba(255, 255, 255, 0.8);
+        transition: all 0.2s;
+    }
+
+    .form-control:focus,
+    .form-select:focus {
+        border-color: var(--primary);
+        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
+        background: white;
+    }
+
+    /* Contact Methods */
+    .method-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+        gap: 2rem;
+        margin: 4rem 0;
+    }
+
+    .method-card {
+        background: white;
+        border: 1px solid #e2e8f0;
+        padding: 2rem;
+        border-radius: 24px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .method-card:hover {
+        transform: translateY(-8px);
+        border-color: var(--primary);
+        box-shadow: 0 20px 40px rgba(37, 99, 235, 0.08);
+    }
+
+    .method-icon {
+        font-size: 2.5rem;
+        margin-bottom: 1rem;
+        display: block;
+    }
+
+    /* FAQ Section */
+    .faq-section {
+        margin: 6rem 0;
+    }
+
+    .accordion-item {
+        border: 1px solid #e2e8f0;
+        border-radius: 16px !important;
+        margin-bottom: 1rem;
+        overflow: hidden;
+    }
+
+    .accordion-button {
+        font-weight: 700;
+        padding: 1.25rem;
+        color: #1e293b;
+        background: white;
+    }
+
+    .accordion-button:not(.collapsed) {
+        background: rgba(37, 99, 235, 0.05);
+        color: var(--primary);
+        box-shadow: none;
+    }
+
+    /* Animations */
+    @keyframes fadeInUp {
+        from {
+            opacity: 0;
+            transform: translateY(20px);
+        }
+
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    .animate-fade-up {
+        animation: fadeInUp 0.6s ease-out forwards;
+    }
+
+    .delay-1 {
+        animation-delay: 0.1s;
+    }
+
+    .delay-2 {
+        animation-delay: 0.2s;
+    }
+</style>
+
+<div class="container mx-auto px-4">
+    <!-- Hero -->
+    <section class="hero-section">
+        <div class="animate-fade-up">
+            <h1 class="hero-title">Get in Touch</h1>
+            <p class="hero-subtitle">
+                Have questions? We're here to help. Reach out to our team and we'll get back to you as soon as possible.
+            </p>
+        </div>
+    </section>
+
+    <!-- Contact Form -->
+    <section class="max-w-4xl mx-auto py-12">
+        <div class="contact-card animate-fade-up delay-1">
+            <h2 class="text-2xl font-bold text-slate-900 mb-8 text-center">Send us a Message</h2>
+            <form id="contactForm" class="space-y-6">
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label for="name" class="form-label">Full Name</label>
+                        <input type="text" id="name" class="form-control w-full" placeholder="John Doe" required>
+                    </div>
+                    <div>
+                        <label for="email" class="form-label">Email Address</label>
+                        <input type="email" id="email" class="form-control w-full" placeholder="john@example.com"
+                            required>
+                    </div>
+                </div>
+                <div>
+                    <label for="subject" class="form-label">Subject</label>
+                    <select id="subject" class="form-select w-full" required>
+                        <option value="">Select a subject</option>
+                        <option value="general">General Inquiry</option>
+                        <option value="technical">Technical Support</option>
+                        <option value="content">Content Submission</option>
+                        <option value="feedback">Feedback</option>
+                        <option value="other">Other</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="message" class="form-label">Message</label>
+                    <textarea id="message" rows="5" class="form-control w-full" placeholder="How can we help you?"
+                        required></textarea>
+                </div>
+                <div class="text-center">
+                    <button type="submit"
+                        class="px-10 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
+                        Send Message
+                    </button>
+                </div>
+            </form>
+        </div>
+    </section>
+
+    <!-- Contact Methods -->
+    <section class="method-grid animate-fade-up delay-2">
+        <div class="method-card">
+            <span class="method-icon">📧</span>
+            <h3 class="text-xl font-bold mb-2">Email Us</h3>
+            <p class="text-slate-500 mb-4">For detailed inquiries and support.</p>
+            <a href="mailto:support@abhihub.com" class="text-blue-600 font-bold hover:underline">support@abhihub.com</a>
+        </div>
+        <div class="method-card">
+            <span class="method-icon">💬</span>
+            <h3 class="text-xl font-bold mb-2">Live Chat</h3>
+            <p class="text-slate-500 mb-4">Quick help from our support team.</p>
+            <span class="text-slate-400 text-sm">Available 9 AM - 6 PM</span>
+        </div>
+        <div class="method-card">
+            <span class="method-icon">🤝</span>
+            <h3 class="text-xl font-bold mb-2">Community</h3>
+            <p class="text-slate-500 mb-4">Join our peer support network.</p>
+            <span class="text-slate-400 text-sm">24/7 Community Support</span>
+        </div>
+    </section>
+
+    <!-- FAQ -->
+    <section class="faq-section animate-fade-up delay-2">
+        <div class="text-center mb-12">
+            <h2 class="text-3xl font-bold text-slate-900">Frequently Asked Questions</h2>
+        </div>
+        <div class="max-w-3xl mx-auto">
+            <div class="accordion" id="faqAccordion">
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
+                            How can I upload my study materials?
+                        </button>
+                    </h2>
+                    <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body text-slate-600">
+                            Simply create an account, log in, and use the upload feature. Make sure your materials are
+                            properly labeled and follow our content guidelines.
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#faq2">
+                            Is AbhiHub free to use?
+                        </button>
+                    </h2>
+                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body text-slate-600">
+                            Yes! AbhiHub offers free access to most features. We also have premium features for enhanced
+                            functionality.
+                        </div>
+                    </div>
+                </div>
+                <div class="accordion-item">
+                    <h2 class="accordion-header">
+                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
+                            data-bs-target="#faq3">
+                            How do I report inappropriate content?
+                        </button>
+                    </h2>
+                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
+                        <div class="accordion-body text-slate-600">
+                            You can report any inappropriate content using the report button on each resource, or
+                            contact us directly through this form.
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<script>
+    document.getElementById('contactForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        const name = document.getElementById('name').value;
+        if (name) {
+            alert('Thank you, ' + name + '! Your message has been sent successfully.');
+            this.reset();
+        }
+    });
+</script>
+
+{% endblock %}

@@ -1,0 +1,1042 @@
+"""
+Supabase Helper Module
+Provides functions to interact with Supabase for storing labeled papers and documents.
+"""
+
+import os
+import json
+from datetime import datetime
+from typing import Dict, Optional, List, Any
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+# Try to import supabase
+try:
+    from supabase import create_client, Client, ClientOptions
+    SUPABASE_AVAILABLE = True
+except ImportError:
+    SUPABASE_AVAILABLE = False
+    Client = None
+    ClientOptions = None
+    print("Warning: supabase-py not installed. Install with: pip install supabase")
+
+SUPABASE_URL = os.getenv("SUPABASE_URL")
+SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+
+_supabase_client = None
+
+def init_supabase():
+    global _supabase_client
+    if not SUPABASE_AVAILABLE:
+        print("❌ list_supabase: SUPABASE_AVAILABLE is False")
+        return None
+    if not SUPABASE_URL:
+        print("❌ list_supabase: SUPABASE_URL is empty")
+        return None
+    if not SUPABASE_KEY:
+        print("❌ list_supabase: SUPABASE_KEY is empty")
+        return None
+        
+    if _supabase_client is None:
+        try:
+            _supabase_client = create_client(
+                SUPABASE_URL, 
+                SUPABASE_KEY,
+                options=ClientOptions(schema="abhihub")
+            )
+            print("Success: Supabase client initialized with abhihub schema")
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            print(f"Error initializing Supabase client: {e}")
+            return None
+    return _supabase_client
+
+def format_file_size(bytes: int) -> str:
+    if not bytes: return "0 B"
+    units = ['B', 'KB', 'MB', 'GB']
+    index = 0
+    size = float(bytes)
+    while size >= 1024 and index < len(units) - 1:
+        size /= 1024
+        index += 1
+    return f"{size:.1f} {units[index]}"
+
+def validate_uuid(val):
+    import uuid
+    try:
+        uuid.UUID(str(val))
+        return True
+    except:
+        return False
+
+def get_all_colleges() -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False, "data": []}
+    try:
+        response = client.table("colleges").select("*").order("name").execute()
+        for c in response.data:
+            c['short_name'] = c.get('abbreviation')
+        return {"success": True, "data": response.data}
+    except Exception as e:
+        return {"success": False, "data": []}
+
+def get_all_branches() -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False, "data": []}
+    try:
+        response = client.table("departments").select("*").order("name").execute()
+        for b in response.data:
+            b['short_name'] = b.get('abbreviation')
+            b['branch_id'] = b.get('id')
+            b['branch_name'] = b.get('name')
+        return {"success": True, "data": response.data}
+    except Exception as e:
+        return {"success": False, "data": []}
+
+def save_file_record(
+    user_id: str, user_email: str, file_name: str, file_url: str,
+    file_type: str, file_size: int, cloudinary_public_id: str,
+    subject_name: str, document_type: str, year: str = '',
+    college_id=None, branch_id=None, subject_code: str = '',
+    semesters: list = None, title: str = '', description: str = ''
+) -> Dict:
+    client = init_supabase()
+    if not client: return {'success': False, 'message': 'No client'}
+    try:
+        c_id = college_id if validate_uuid(college_id) else None
+        d_id = branch_id if validate_uuid(branch_id) else None
+        u_id = user_id if validate_uuid(user_id) else None
+
+        # If u_id is not a valid UUID, try to look it up using user_email
+        if not u_id and user_email:
+            p_res = client.table('profiles').select('id').eq('email', user_email).execute()
+            if p_res.data:
+                u_id = p_res.data[0]['id']
+                print(f"[Supabase] Resolved uploader_id from email: {u_id}")
+        
+        # Ensure that if we have a u_id, the profile exists safely
+        if u_id:
+            p_check = client.table('profiles').select('id').eq('id', u_id).execute()
+            if not p_check.data:
+                print(f"[Supabase] Profile for {u_id} not found, creating base profile.")
+                try:
+                    # Provide default full_name if user_email is available, else generic name
+                    name_part = user_email.split('@')[0] if user_email else 'Unknown User'
+                    email_part = user_email if user_email else 'unknown@example.com'
+                    client.table('profiles').insert({
+                        'id': u_id,
+                        'email': email_part,
+                        'full_name': name_part,
+                        'role': 'student'
+                    }).execute()
+                    print(f"[Supabase] Base profile created successfully.")
+                except Exception as p_err:
+                    print(f"[Supabase] Failed to create base profile: {p_err}")
+
+        # Resolve subject
+        sub_id = None
+        if subject_code:
+            sub_res = client.table("subjects").select("id").eq("subject_code", subject_code).limit(1).execute()
+            if sub_res.data: sub_id = sub_res.data[0]['id']
+        
+        if not sub_id and subject_name:
+            sub_res = client.table("subjects").select("id").ilike("name", f"%{subject_name}%").limit(1).execute()
+            if sub_res.data: sub_id = sub_res.data[0]['id']
+
+        # Construct description if not provided
+        if not description:
+            desc_data = {
+                "subject": subject_name,
+                "year": year,
+                "subject_code": subject_code,
+                "semesters": semesters or []
+            }
+            description = json.dumps(desc_data)
+        
+        data = {
+            'uploader_id': u_id,
+            'college_id': c_id,
+            'department_id': d_id,
+            'subject_id': sub_id,
+            'title': title or file_name,
+            'document_category': document_type or 'notes',
+            'description': description,
+            'file_url': file_url,
+            'storage_provider': 'cloudinary' if cloudinary_public_id else 'firebase',
+            'provider_public_id': cloudinary_public_id,
+            'file_type': file_type,
+            'file_size_bytes': file_size,
+            'status': 'pending'  # All new uploads start as pending
+        }
+        
+        print(f"[Supabase] Inserting document: {data.get('title')}")
+        res = client.table('documents').insert(data).execute()
+        
+        if res.data:
+            print(f"[Supabase] Successfully saved document record: {res.data[0].get('id')}")
+            return {'success': True, 'message': 'Saved successfully', 'data': res.data[0]}
+        
+        print(f"[Supabase] Failed to save document record. Response empty.")
+        return {'success': False, 'message': 'Failed to save record to database'}
+        
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"[Supabase] Error saving file record: {e}")
+        return {'success': False, 'message': str(e)}
+
+def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
+    title = doc.get('title', 'Untitled')
+    url = doc.get('file_url', '')
+    doc_type = str(doc.get('document_category', 'Other')).capitalize()
+    
+    prof = doc.get('profiles') or {}
+    author = prof.get('full_name', 'Unknown')
+    author_email = prof.get('email', '')
+    
+    subj_data = doc.get('subjects') or {}
+    subject = subj_data.get('name', 'General')
+    subject_code = subj_data.get('subject_code', '')
+    year = ''
+    
+    desc_str = doc.get('description') or '{}'
+    try:
+        if desc_str.startswith('{'):
+            desc = json.loads(desc_str)
+            if not subj_data: subject = desc.get('subject', subject)
+            year = desc.get('year', '')
+        else:
+            if 'Year:' in desc_str:
+                year = desc_str.split('Year:')[1].split('|')[0].strip()
+    except:
+        pass
+
+    file_path = url if url else f"Documents/{author}/{doc_type}/{year}/{subject}/{title}"
+    
+    # Check interaction status if current_user_id is provided
+    is_liked = False
+    is_bookmarked = False
+    if current_user_id:
+        if isinstance(doc.get('document_votes'), list):
+            is_liked = any(str(v.get('user_id')) == str(current_user_id) for v in doc['document_votes'])
+        if isinstance(doc.get('bookmarks'), list):
+            is_bookmarked = any(str(b.get('user_id')) == str(current_user_id) for b in doc['bookmarks'])
+    
+    return {
+        'file-name': title,
+        'file-type': doc.get('file_type', 'pdf'),
+        'file-path': file_path,
+        'url': url,
+        'type': doc_type,
+        'subject': subject,
+        'subject_code': subject_code,
+        'year': str(year),
+        'author': author,
+        'author_email': author_email,
+        'date': doc.get('created_at', '')[:10] if doc.get('created_at') else '',
+        'size': format_file_size(doc.get('file_size_bytes') or 0),
+        'cloudinary_id': doc.get('provider_public_id', ''),
+        'source': doc.get('storage_provider', 'unknown'),
+        'verified': doc.get('status') == 'approved',
+        'record_id': doc.get('id', ''),
+        'view_count': doc.get('view_count', 0),
+        'like_count': doc.get('like_count', 0),
+        'comment_count': len(doc.get('document_comments') or []) if 'document_comments' in doc else doc.get('comment_count', 0),
+        'bookmark_count': doc.get('bookmark_count', 0),
+        'is_liked': is_liked,
+        'is_bookmarked': is_bookmarked
+    }
+
+def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dict:
+    client = init_supabase()
+    if not client: return {'success': False, 'data': [], 'count': 0}
+    try:
+        res = client.table('documents') \
+            .select('*, profiles!documents_uploader_id_fkey(full_name, email), subjects(name, subject_code), document_votes(user_id), bookmarks(user_id), document_comments(id)') \
+            .in_('status', ['approved', 'pending']) \
+            .order('created_at', desc=True) \
+            .execute()
+        
+        files = [_doc_to_json(d, current_user_id) for d in res.data] if res.data else []
+        return {'success': True, 'data': files, 'count': len(files)}
+    except Exception as e:
+        return {'success': False, 'data': [], 'count': 0, 'message': str(e)}
+
+def get_all_file_records_formatted(current_user_id=None) -> List[Dict]:
+    return get_all_files_merged(current_user_id=current_user_id).get('data', [])
+
+def search_file_records(search_query='', document_type=None, college_id=None, branch_id=None, year=None, limit=50) -> List[Dict]:
+    client = init_supabase()
+    if not client: return []
+    try:
+        q = client.table('documents').select('*, profiles!documents_uploader_id_fkey(full_name, email), subjects(name)')
+        if document_type: q = q.eq('document_category', document_type)
+        if college_id and validate_uuid(college_id): q = q.eq('college_id', college_id)
+        if branch_id and validate_uuid(branch_id): q = q.eq('department_id', branch_id)
+        if search_query:
+            q = q.or_(f"title.ilike.%{search_query}%,description.ilike.%{search_query}%")
+        res = q.order('created_at', desc=True).limit(limit).execute()
+        return res.data if res.data else []
+    except:
+        return []
+
+def get_user_uploaded_files(user_email: str, limit: int = 20) -> Dict:
+    client = init_supabase()
+    if not client: return {'success': False, 'data': []}
+    try:
+        p_res = client.table('profiles').select('id').eq('email', user_email).execute()
+        if not p_res.data: return {'success': True, 'data': []}
+        u_id = p_res.data[0]['id']
+        
+        res = client.table('documents') \
+            .select('*, profiles!documents_uploader_id_fkey(full_name, email), subjects(name)') \
+            .eq('uploader_id', u_id) \
+            .order('created_at', desc=True) \
+            .limit(limit).execute()
+        
+        return {'success': True, 'data': res.data, 'count': len(res.data) if res.data else 0}
+    except Exception as e:
+        return {'success': False, 'data': [], 'message': str(e)}
+
+def delete_file_record(record_id: str, user_email: str) -> Dict:
+    client = init_supabase()
+    if not client: return {'success': False}
+    try:
+        p_res = client.table('profiles').select('id').eq('email', user_email).execute()
+        if not p_res.data: return {'success': False, 'message': 'User not found'}
+        u_id = p_res.data[0]['id']
+        
+        res = client.table('documents').delete().eq('id', record_id).eq('uploader_id', u_id).execute()
+        return {'success': True} if res.data else {'success': False}
+    except:
+        return {'success': False}
+
+def toggle_like(user_email: str, document_id: str) -> Dict:
+    client = init_supabase()
+    if not client: return {'success': False, 'message': 'No client'}
+    try:
+        p_res = client.table('profiles').select('id').eq('email', user_email).execute()
+        if not p_res.data: return {'success': False, 'message': 'User not found'}
+        u_id = p_res.data[0]['id']
+        
+        # Check if already voted
+        vote_res = client.table('document_votes').select('*').eq('document_id', document_id).eq('user_id', u_id).execute()
+        if vote_res.data:
+            # Unlike
+            client.table('document_votes').delete().eq('document_id', document_id).eq('user_id', u_id).execute()
+            # Decrement document count (could be done via trigger, doing manually if no trigger available)
+            doc_res = client.table('documents').select('like_count').eq('id', document_id).execute()
+            count = max(0, (doc_res.data[0]['like_count'] or 0) - 1)
+            client.table('documents').update({'like_count': count}).eq('id', document_id).execute()
+            return {'success': True, 'is_liked': False, 'like_count': count}
+        else:
+            # Like
+            client.table('document_votes').insert({'document_id': document_id, 'user_id': u_id, 'vote': 'like'}).execute()
+            doc_res = client.table('documents').select('like_count').eq('id', document_id).execute()
+            count = (doc_res.data[0]['like_count'] or 0) + 1
+            client.table('documents').update({'like_count': count}).eq('id', document_id).execute()
+            return {'success': True, 'is_liked': True, 'like_count': count}
+    except Exception as e:
+        return {'success': False, 'message': str(e)}
+
+def toggle_bookmark(user_email: str, document_id: str) -> Dict:
+    client = init_supabase()
+    if not client: return {'success': False, 'message': 'No client'}
+    try:
+        p_res = client.table('profiles').select('id').eq('email', user_email).execute()
+        if not p_res.data: return {'success': False, 'message': 'User not found'}
+        u_id = p_res.data[0]['id']
+        
+        check_res = client.table('bookmarks').select('*').eq('document_id', document_id).eq('user_id', u_id).execute()
+        if check_res.data:
+            # Remove bookmark
+            client.table('bookmarks').delete().eq('document_id', document_id).eq('user_id', u_id).execute()
+            # Update Document Counter
+            doc_res = client.table('documents').select('bookmark_count').eq('id', document_id).execute()
+            count = max(0, (doc_res.data[0]['bookmark_count'] or 0) - 1)
+            client.table('documents').update({'bookmark_count': count}).eq('id', document_id).execute()
+            return {'success': True, 'is_bookmarked': False, 'bookmark_count': count}
+        else:
+            # Add bookmark
+            client.table('bookmarks').insert({'document_id': document_id, 'user_id': u_id}).execute()
+            doc_res = client.table('documents').select('bookmark_count').eq('id', document_id).execute()
+            count = (doc_res.data[0]['bookmark_count'] or 0) + 1
+            client.table('documents').update({'bookmark_count': count}).eq('id', document_id).execute()
+            return {'success': True, 'is_bookmarked': True, 'bookmark_count': count}
+    except Exception as e:
+        return {'success': False, 'message': str(e)}
+
+def add_comment(user_email: str, document_id: str, content: str) -> Dict:
+    client = init_supabase()
+    if not client: return {'success': False, 'message': 'No client'}
+    try:
+        p_res = client.table('profiles').select('id, full_name, role').eq('email', user_email).execute()
+        if not p_res.data: return {'success': False, 'message': 'User not found'}
+        u_id = p_res.data[0]['id']
+        
+        res = client.table('document_comments').insert({
+            'document_id': document_id,
+            'user_id': u_id,
+            'content': content
+        }).execute()
+        
+        if res.data:
+            return {
+                'success': True, 
+                'comment': {
+                    'id': res.data[0]['id'],
+                    'content': res.data[0]['content'],
+                    'created_at': res.data[0]['created_at'],
+                    'user_id': u_id,
+                    'profiles': {
+                        'full_name': p_res.data[0]['full_name'],
+                        'role': p_res.data[0]['role']
+                    }
+                }
+            }
+        return {'success': False, 'message': 'Failed'}
+    except Exception as e:
+        return {'success': False, 'message': str(e)}
+
+def get_comments(document_id: str) -> Dict:
+    client = init_supabase()
+    if not client: return {'success': False, 'data': []}
+    try:
+        res = client.table('document_comments') \
+            .select('id, content, created_at, user_id, profiles(full_name, role)') \
+            .eq('document_id', document_id) \
+            .eq('is_deleted', False) \
+            .order('created_at', desc=False) \
+            .execute()
+        return {'success': True, 'data': res.data if res.data else []}
+    except Exception as e:
+        return {'success': False, 'data': [], 'message': str(e)}
+
+def get_student_profile(user_id: str) -> Dict:
+    client = init_supabase()
+    if not client: return {'success': False, 'data': None}
+    try:
+        # colleges and departments are FKs on profiles, NOT students
+        # must be nested: profiles(*, colleges(*), departments(*))
+        res = client.table('students') \
+            .select('*, profiles(*, colleges(*), departments(*))') \
+            .eq('profile_id', user_id) \
+            .execute()
+
+        if res.data:
+            row     = res.data[0]
+            prof    = row.get('profiles') or {}
+            college = prof.get('colleges') or {}
+            dept    = prof.get('departments') or {}
+            flat = {
+                'student_id':            row.get('profile_id'),
+                'registration_number':   row.get('registration_number'),
+                'pursuing_year':         row.get('pursuing_year'),
+                'year_of_joining':       row.get('year_of_joining'),
+                'profile_completed':     row.get('profile_completed', False),
+                'student_name':          prof.get('full_name', ''),
+                'student_email':         prof.get('email', ''),
+                'student_moblie_number': prof.get('phone_number', ''),
+                'user_role':             prof.get('role', 'student'),
+                'college_id':            prof.get('college_id'),
+                'branch_id':             prof.get('department_id'),
+                'college_name':          college.get('name', ''),
+                'branch_name':           dept.get('name', ''),
+            }
+            print(f"[Profile] student row found -> {flat}")
+            return {'success': True, 'data': flat}
+
+        # Fallback: teacher role or no students row yet — read from profiles directly
+        prof_res = client.table('profiles') \
+            .select('*, colleges(*), departments(*)') \
+            .eq('id', user_id) \
+            .execute()
+
+        if prof_res.data:
+            prof    = prof_res.data[0]
+            college = prof.get('colleges') or {}
+            dept    = prof.get('departments') or {}
+            flat = {
+                'student_id':            user_id,
+                'registration_number':   None,
+                'pursuing_year':         None,
+                'year_of_joining':       None,
+                'profile_completed':     False,
+                'student_name':          prof.get('full_name', ''),
+                'student_email':         prof.get('email', ''),
+                'student_moblie_number': prof.get('phone_number', ''),
+                'user_role':             prof.get('role', 'student'),
+                'college_id':            prof.get('college_id'),
+                'branch_id':             prof.get('department_id'),
+                'college_name':          college.get('name', ''),
+                'branch_name':           dept.get('name', ''),
+            }
+            print(f"[Profile] profiles fallback -> {flat}")
+            return {'success': True, 'data': flat}
+
+        return {'success': True, 'data': None, 'message': 'Not found'}
+    except Exception as e:
+        import traceback; traceback.print_exc()
+        return {'success': False, 'data': None, 'message': str(e)}
+
+def get_user_profile(user_id: str) -> Dict:
+    """Fetch base profile data from the profiles table."""
+    client = init_supabase()
+    if not client: return {'success': False, 'data': None}
+    try:
+        res = client.table('profiles').select('*').eq('id', user_id).execute()
+        if res.data: return {'success': True, 'data': res.data[0]}
+        return {'success': False, 'data': None, 'message': 'Not found'}
+    except Exception as e:
+        return {'success': False, 'data': None, 'message': str(e)}
+
+def create_or_update_student_profile(user_id: str, profile_data: dict) -> Dict:
+    client = init_supabase()
+    if not client:
+        return {'success': False, 'message': 'Supabase client unavailable'}
+    try:
+        b_id  = profile_data.get('branch_id')
+        c_id  = profile_data.get('college_id')
+        role  = profile_data.get('user_role', 'student')
+
+        # Validate UUIDs – both college and branch are UUID FKs in abhihub schema
+        valid_college_id    = c_id if validate_uuid(c_id) else None
+        valid_department_id = b_id if validate_uuid(b_id) else None
+
+        # Safely cast numeric fields
+        def _int(val):
+            try: return int(val) if val not in (None, '') else None
+            except (ValueError, TypeError): return None
+
+        print(f"[Profile] Upserting profile for user_id={user_id}, role={role}, college={valid_college_id}, dept={valid_department_id}")
+
+        profile_res = client.table('profiles').upsert({
+            'id':            user_id,
+            'role':          role,
+            'email':         profile_data.get('student_email'),
+            'full_name':     profile_data.get('student_name'),
+            'college_id':    valid_college_id,
+            'department_id': valid_department_id,
+            'phone_number':  str(profile_data.get('student_moblie_number', '') or ''),
+        }).execute()
+        print(f"[Profile] profiles upsert result: {profile_res.data}")
+
+        if role == 'student':
+            student_res = client.table('students').upsert({
+                'profile_id':          user_id,
+                'registration_number': profile_data.get('registration_number') or None,
+                'pursuing_year':       _int(profile_data.get('pursuing_year')),
+                'year_of_joining':     _int(profile_data.get('year_of_joining')),
+                'profile_completed':   True
+            }).execute()
+            print(f"[Profile] students upsert result: {student_res.data}")
+        elif role == 'teacher':
+            teacher_res = client.table('teachers').upsert({
+                'profile_id':        user_id,
+                'profile_completed': True
+            }).execute()
+            print(f"[Profile] teachers upsert result: {teacher_res.data}")
+
+        return {'success': True, 'message': 'Profile updated successfully'}
+
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        print(f"[Profile ERROR] create_or_update_student_profile failed: {e}")
+        return {'success': False, 'message': str(e)}
+
+def check_profile_completed(user_id: str) -> bool:
+    client = init_supabase()
+    if not client: return False
+    try:
+        res = client.table('students').select('profile_completed').eq('profile_id', user_id).execute()
+        if res.data: return res.data[0].get('profile_completed', False)
+        return False
+    except:
+        return False
+        
+def get_all_file_records(limit=100, offset=0):
+    client = init_supabase()
+    try:
+        res = client.table('documents').select('*', count='exact').range(offset, offset + limit - 1).execute()
+        return {'success': True, 'data': res.data, 'total': getattr(res, 'count', 0), 'limit': limit, 'offset': offset}
+    except Exception as e:
+        return {'success': False, 'data': [], 'total': 0, 'message': str(e)}
+
+def get_user_file_records(user_email: str, limit: int = 50) -> List[Dict]:
+    res = get_user_uploaded_files(user_email, limit)
+    return res.get('data', [])
+
+# --- Analytics & Security Helpers ---
+
+def log_security_audit_event(user_email: str, event_type: str, ip_address: str, user_agent: str, metadata: dict = None) -> Dict:
+    client = init_supabase()
+    if not client: return {'success': False, 'message': 'No client'}
+    try:
+        user_id = None
+        if user_email and user_email != 'unknown':
+            p_res = client.table('profiles').select('id').eq('email', user_email).execute()
+            if p_res.data:
+                user_id = p_res.data[0]['id']
+        
+        client.table('security_audit_logs').insert({
+            'user_id': user_id,
+            'event': event_type,
+            'ip_address': ip_address,
+            'user_agent': user_agent,
+            'metadata': metadata or {}
+        }).execute()
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'message': str(e)}
+
+def save_push_subscription(user_email: str, endpoint: str, p256dh: str, auth: str, device_type: str = None) -> Dict:
+    client = init_supabase()
+    if not client: return {'success': False, 'message': 'No client'}
+    try:
+        p_res = client.table('profiles').select('id').eq('email', user_email).execute()
+        if not p_res.data: return {'success': False, 'message': 'User not found'}
+        user_id = p_res.data[0]['id']
+        
+        client.table('push_subscriptions').upsert({
+            'user_id': user_id,
+            'endpoint': endpoint,
+            'p256dh': p256dh,
+            'auth': auth,
+            'device_type': device_type
+        }, on_conflict='endpoint').execute()
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'message': str(e)}
+
+def get_all_push_subscriptions() -> Dict:
+    client = init_supabase()
+    if not client: return {}
+    try:
+        res = client.table('push_subscriptions').select('*, profiles(email)').execute()
+        subs = {}
+        for row in res.data:
+            user_id = row['user_id']
+            subs[user_id] = {
+                'subscription': {
+                    'endpoint': row['endpoint'],
+                    'keys': {
+                        'p256dh': row['p256dh'],
+                        'auth': row['auth']
+                    }
+                },
+                'email': row.get('profiles', {}).get('email', ''),
+                'created_at': row.get('created_at'),
+                'device_type': row.get('device_type')
+            }
+        return subs
+    except Exception as e:
+        print(f"Error fetching subscriptions: {e}")
+        return {}
+
+def remove_push_subscription_by_endpoint(endpoint: str) -> bool:
+    client = init_supabase()
+    if not client: return False
+    try:
+        client.table('push_subscriptions').delete().eq('endpoint', endpoint).execute()
+        return True
+    except Exception as e:
+        print(f"Error removing subscription: {e}")
+        return False
+
+def log_notification(user_email: str, notification_type: str, title: str, message: str, url: str = None) -> Dict:
+    client = init_supabase()
+    if not client: return {'success': False, 'message': 'No client'}
+    try:
+        if user_email == 'all':
+            # Note: logging a system notification to a specific dummy table or leaving user_id null
+            # The schema states user_id is NOT NULL, so logging an 'all' broadcast must be done differently.
+            # We'll skip inserting into notifications table for 'all' broadcasts for now, 
+            # or we could iterate users, which is heavy.
+            return {'success': True, 'message': 'Broadcast not logged per-user'}
+            
+        p_res = client.table('profiles').select('id').eq('email', user_email).execute()
+        if not p_res.data: return {'success': False, 'message': 'User not found'}
+        user_id = p_res.data[0]['id']
+        
+        client.table('notifications').insert({
+            'user_id': user_id,
+            'type': notification_type,
+            'title': title,
+            'message': message,
+            'action_url': url
+        }).execute()
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'message': str(e)}
+
+def get_notification_history(limit: int = 10) -> List[Dict]:
+    client = init_supabase()
+    if not client: return []
+    try:
+        res = client.table('notifications').select('*').order('created_at', desc=True).limit(limit).execute()
+        return res.data if res.data else []
+    except Exception as e:
+        print(f"Error fetching notifications: {e}")
+        return []
+
+# ── Points awarded per document category ───────────────────────────────────
+POINTS_MAP = {
+    'notes':          3,
+    'imp questions':  3,
+    'imp_questions':  3,
+    'papers':         1,
+    'paper':          1,
+    'pyq':            1,
+    'practical':      0.5,
+    'syllabus':       0.5,
+    'assisment':      0.5,
+    'timetable':      0.5,
+}
+DEFAULT_POINTS = 0.5
+# ────────────────────────────────────────────────────────────────────────────
+
+def _doc_points(doc_category: str) -> float:
+    """Return points for a given document_category string."""
+    return POINTS_MAP.get((doc_category or '').lower(), DEFAULT_POINTS)
+
+
+def calculate_user_ranks() -> List[Dict]:
+    """
+    Calculate the leaderboard by summing points per uploader across ALL
+    their documents (both 'approved' and 'pending'), so new uploaders
+    appear in the list immediately after their first upload.
+
+    Returns a sorted list of dicts:
+        [
+          {
+            'uploader_id': '<uuid>',
+            'author':      '<full_name>',
+            'points':      <float>,
+            'upload_count': <int>
+          },
+          ...
+        ]
+    """
+    client = init_supabase()
+    if not client:
+        return []
+    try:
+        # Include BOTH approved and pending so new uploaders are visible
+        res = (
+            client.table('documents')
+            .select(
+                'uploader_id, document_category, status, '
+                'profiles!documents_uploader_id_fkey(full_name)'
+            )
+            .in_('status', ['approved', 'pending'])
+            .execute()
+        )
+
+        # Key by uploader_id (UUID) — avoids name-collision bugs
+        data_map: Dict[str, Dict] = {}  # uploader_id -> {author, points, upload_count}
+
+        for doc in (res.data or []):
+            uid = doc.get('uploader_id')
+            if not uid:
+                continue
+
+            prof = doc.get('profiles')
+            author_name = (
+                prof.get('full_name', 'Unknown')
+                if isinstance(prof, dict)
+                else 'Unknown'
+            )
+
+            if uid not in data_map:
+                data_map[uid] = {
+                    'uploader_id':  uid,
+                    'author':       author_name,
+                    'points':       0.0,
+                    'upload_count': 0,
+                }
+
+            # Always prefer a real name over 'Unknown'
+            if author_name != 'Unknown':
+                data_map[uid]['author'] = author_name
+
+            cat = (doc.get('document_category') or '').lower()
+            pts = _doc_points(cat)
+
+            # Pending documents award half points until approved
+            if doc.get('status') == 'pending':
+                pts *= 0.5
+
+            data_map[uid]['points']       += pts
+            data_map[uid]['upload_count'] += 1
+
+        rank_list = list(data_map.values())
+        rank_list.sort(key=lambda x: x['points'], reverse=True)
+        return rank_list
+
+    except Exception as e:
+        print(f"[Ranking] Error calculating ranks: {e}")
+        return []
+
+
+def recalculate_and_persist_user_rank(user_id: str) -> Dict:
+    """
+    Recalculate the reputation score for a single user and write it
+    back to abhihub.profiles.reputation_score.
+
+    Call this after every successful upload so the DB stays in sync.
+    """
+    client = init_supabase()
+    if not client:
+        return {'success': False, 'message': 'No client'}
+    try:
+        res = (
+            client.table('documents')
+            .select('document_category, status')
+            .eq('uploader_id', user_id)
+            .in_('status', ['approved', 'pending'])
+            .execute()
+        )
+
+        total_points = 0.0
+        for doc in (res.data or []):
+            cat = (doc.get('document_category') or '').lower()
+            pts = _doc_points(cat)
+            if doc.get('status') == 'pending':
+                pts *= 0.5
+            total_points += pts
+
+        score = int(total_points)  # store as integer in the DB column
+
+        client.table('profiles').update(
+            {'reputation_score': score}
+        ).eq('id', user_id).execute()
+
+        print(f"[Ranking] Persisted reputation_score={score} for user {user_id}")
+        return {'success': True, 'score': score}
+
+    except Exception as e:
+        print(f"[Ranking] Error persisting rank for {user_id}: {e}")
+        return {'success': False, 'message': str(e)}
+
+def update_document_metadata(file_path: str, update_data: dict) -> Dict:
+    client = init_supabase()
+    if not client: return {'success': False, 'message': 'No client'}
+    try:
+        # Match using file_url ilike mapping
+        res = client.table('documents').select('id, description').ilike('file_url', f'%{file_path}%').limit(1).execute()
+        if not res.data:
+            return {'success': False, 'message': 'File not found'}
+            
+        doc_id = res.data[0]['id']
+        current_desc_str = res.data[0].get('description') or '{}'
+        try:
+            desc = json.loads(current_desc_str)
+        except:
+            desc = {}
+            
+        updates = {}
+        if 'file-name' in update_data: updates['title'] = update_data['file-name']
+        if 'file-type' in update_data: updates['file_type'] = update_data['file-type']
+        if 'type' in update_data: updates['document_category'] = update_data['type']
+        
+        # update description JSON payload for subject and year
+        if 'subject' in update_data: desc['subject'] = update_data['subject']
+        if 'year' in update_data: desc['year'] = update_data['year']
+        if 'exam' in update_data: desc['exam'] = update_data['exam']
+        
+        updates['description'] = json.dumps(desc)
+        
+        client.table('documents').update(updates).eq('id', doc_id).execute()
+        return {'success': True}
+    except Exception as e:
+        return {'success': False, 'message': str(e)}
+
+# Dummy definitions for unused but imported
+def get_all_uploaded_files(*a, **kw): return []
+def save_uploaded_file_record(*a, **kw): pass
+def validate_mobile_number(*a): return True
+def validate_year_of_joining(*a): return True
+def save_file_access(user_email: str, file_name: str, file_type: str = 'pdf', file_path: str = '', file_url: str = '', record_id: str = None) -> Dict:
+    """
+    Log a file access event and increment the view count for the document.
+    Uses document_views table for tracking.
+    """
+    client = init_supabase()
+    if not client: 
+        return {'success': False, 'message': 'No Supabase client'}
+    
+    try:
+        # 1. Resolve document_id from record_id or file metadata
+        doc_id = record_id if record_id and validate_uuid(record_id) else None
+        
+        if not doc_id and file_url:
+            res = client.table('documents').select('id').ilike('file_url', f'%{file_url}%').limit(1).execute()
+            if res.data: 
+                doc_id = res.data[0]['id']
+        
+        if not doc_id and file_path:
+            res = client.table('documents').select('id').ilike('file_url', f'%{file_path}%').limit(1).execute()
+            if res.data: 
+                doc_id = res.data[0]['id']
+
+        if not doc_id and file_name:
+            res = client.table('documents').select('id').ilike('title', f'%{file_name}%').limit(1).execute()
+            if res.data: 
+                doc_id = res.data[0]['id']
+
+        # 2. Get user_id from email
+        user_id = None
+        if user_email and user_email != 'unknown':
+            profile_res = client.table('profiles').select('id').eq('email', user_email).limit(1).execute()
+            if profile_res.data:
+                user_id = profile_res.data[0]['id']
+
+        # 3. Increment view_count in documents table
+        if doc_id:
+            try:
+                doc_res = client.table('documents').select('view_count').eq('id', doc_id).execute()
+                if doc_res.data:
+                    current_views = doc_res.data[0].get('view_count') or 0
+                    client.table('documents').update({'view_count': current_views + 1}).eq('id', doc_id).execute()
+            except Exception as view_err:
+                print(f"Warning: Could not increment view count: {view_err}")
+
+        # 4. Log in document_views table
+        if doc_id and user_id:
+            try:
+                from data.interactions import DocumentView
+                result = DocumentView.log_view(
+                    user_id=user_id,
+                    document_id=doc_id,
+                    ip_address='',
+                    device_type=''
+                )
+                if result.get('success'):
+                    print(f"[FILE_ACCESS] Logged view for {user_email}: {file_name} (doc={doc_id[:8]})")
+                else:
+                    print(f"[FILE_ACCESS] Failed to log view: {result.get('message')}")
+            except Exception as dv_err:
+                print(f"Warning: Could not log to document_views: {dv_err}")
+        else:
+            print(f"[FILE_ACCESS] Skipped logging - doc_id={doc_id}, user_id={user_id}, file={file_name}")
+
+        return {'success': True}
+        
+    except Exception as e:
+        print(f"Error in save_file_access: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'success': False, 'message': str(e)}
+
+def get_user_file_history(user_email: str, limit: int = 10) -> Dict:
+    """
+    Get file access history for a user using document_views table.
+    """
+    client = init_supabase()
+    if not client: 
+        return {'success': False, 'data': []}
+    
+    try:
+        # Get user profile to find user_id
+        profile_res = client.table('profiles').select('id').eq('email', user_email).limit(1).execute()
+        if not profile_res.data:
+            return {'success': False, 'data': [], 'message': 'User not found'}
+        
+        user_id = profile_res.data[0]['id']
+        
+        # Query document_views with document details
+        res = client.table('document_views') \
+            .select('id, document_id, accessed_at, documents(id, title, file_url, file_type, document_category)') \
+            .eq('user_id', user_id) \
+            .order('accessed_at', desc=True) \
+            .limit(limit) \
+            .execute()
+        
+        if res.data:
+            # Transform to expected format, dedup by document_id
+            history = []
+            seen = set()
+            for view in res.data:
+                doc = view.get('documents')
+                if doc and doc['id'] not in seen:
+                    seen.add(doc['id'])
+                    history.append({
+                        'file_name': doc.get('title', 'Unknown'),
+                        'file_type': doc.get('file_type', 'pdf'),
+                        'file_url': doc.get('file_url', ''),
+                        'accessed_at': view.get('accessed_at', ''),
+                        'document_id': doc['id'],
+                        'document_category': doc.get('document_category', ''),
+                    })
+            return {'success': True, 'data': history}
+        
+        return {'success': True, 'data': []}
+            
+    except Exception as e:
+        print(f"Error in get_user_file_history: {e}")
+        import traceback
+        traceback.print_exc()
+        return {'success': False, 'data': [], 'message': str(e)}
+
+def get_papo_meter_data(user_id: str) -> Dict:
+    """
+    Get Papo Meter data for a user.
+    - pap_count: unique documents the user has accessed/viewed
+    - punya_count: total views on all documents uploaded by the user
+    """
+    client = init_supabase()
+    if not client:
+        return {'pap_count': 0, 'punya_count': 0}
+    
+    pap_count = 0
+    punya_count = 0
+    
+    try:
+        # Pap: count distinct documents accessed by user
+        views_res = client.table('document_views') \
+            .select('document_id') \
+            .eq('user_id', user_id) \
+            .execute()
+        if views_res.data:
+            unique_docs = set(v['document_id'] for v in views_res.data)
+            pap_count = len(unique_docs)
+    except Exception as e:
+        print(f"[PapoMeter] Error getting pap count: {e}")
+    
+    try:
+        # Punya: sum view_count of all documents uploaded by user
+        docs_res = client.table('documents') \
+            .select('view_count') \
+            .eq('uploader_id', user_id) \
+            .execute()
+        if docs_res.data:
+            punya_count = sum((d.get('view_count') or 0) for d in docs_res.data)
+    except Exception as e:
+        print(f"[PapoMeter] Error getting punya count: {e}")
+    
+    return {'pap_count': pap_count, 'punya_count': punya_count}
+
+def check_if_labeled(filename: str) -> bool:
+    client = init_supabase()
+    if not client: return False
+    try:
+        res = client.table('documents').select('id').eq('title', filename).limit(1).execute()
+        return len(res.data) > 0
+    except:
+        return False
+def save_labeled_paper(*a): return {'success': True}
+def get_labeled_papers():
+    client = init_supabase()
+    if not client: return {'success': False, 'data': []}
+    try:
+        res = client.table('documents').select('*').execute()
+        return {'success': True, 'data': res.data}
+    except Exception as e:
+        return {'success': False, 'data': [], 'message': str(e)}
+def add_paper_verification(*a): return {'success': True}
+def get_pending_verification_papers(*a): return {'success': True, 'data': []}
+def create_labeled_papers_table(*a): return True

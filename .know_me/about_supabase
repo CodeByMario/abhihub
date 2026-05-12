@@ -1,0 +1,483 @@
+
+data:07-03-2026 01:14 {
+    -- ============================================================================
+-- 1. SCHEMA & ENUMS
+-- ============================================================================
+CREATE SCHEMA IF NOT EXISTS abhihub;
+
+CREATE TYPE abhihub.user_role AS ENUM ('student', 'teacher', 'admin', 'moderator');
+CREATE TYPE abhihub.subscription_tier AS ENUM ('free', 'premium', 'institutional');
+CREATE TYPE abhihub.storage_provider AS ENUM ('firebase', 'cloudinary', 'supabase');
+CREATE TYPE abhihub.verification_state AS ENUM ('pending', 'approved', 'rejected');
+CREATE TYPE abhihub.vote_type AS ENUM ('like', 'dislike');
+CREATE TYPE abhihub.security_event_type AS ENUM ('screenshot_detected', 'right_click_prevented', 'devtools_opened', 'unauthorized_access');
+CREATE TYPE abhihub.notification_type AS ENUM ('system', 'document_approved', 'document_rejected', 'new_comment', 'achievement_unlocked', 'marketing');
+
+-- ============================================================================
+-- 2. HELPER FUNCTIONS (Part 1 - No dependencies)
+-- ============================================================================
+-- Auto-update timestamp
+CREATE OR REPLACE FUNCTION abhihub.set_current_timestamp_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+  NEW.updated_at = NOW();
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+
+-- ============================================================================
+-- 3. CORE HIERARCHY (Colleges -> Depts -> Subjects)
+-- ============================================================================
+CREATE TABLE abhihub.colleges (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL UNIQUE,
+    abbreviation TEXT,
+    city TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE abhihub.departments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    college_id UUID NOT NULL REFERENCES abhihub.colleges(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    abbreviation TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(college_id, name)
+);
+
+CREATE TABLE abhihub.subjects (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    department_id UUID NOT NULL REFERENCES abhihub.departments(id) ON DELETE CASCADE,
+    name TEXT NOT NULL,
+    subject_code TEXT NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    UNIQUE(department_id, subject_code)
+);
+
+-- ============================================================================
+-- 4. PROFILES & ROLES
+-- ============================================================================
+CREATE TABLE abhihub.profiles (
+    id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
+    role abhihub.user_role NOT NULL DEFAULT 'student',
+    email TEXT NOT NULL UNIQUE,
+    full_name TEXT NOT NULL,
+    phone_number TEXT,
+    college_id UUID REFERENCES abhihub.colleges(id) ON DELETE SET NULL,
+    department_id UUID REFERENCES abhihub.departments(id) ON DELETE SET NULL,
+    
+    subscription_tier abhihub.subscription_tier DEFAULT 'free',
+    subscription_expires_at TIMESTAMPTZ,
+    
+    reputation_score INTEGER DEFAULT 0,
+    rank_title TEXT DEFAULT 'Beginner', 
+    
+    is_verified BOOLEAN DEFAULT FALSE,
+    verified_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    verified_at TIMESTAMPTZ,
+    
+    referral_code TEXT UNIQUE,
+    referred_by UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    
+    total_active_minutes INTEGER DEFAULT 0,
+    last_active_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================================
+-- 4.5 HELPER FUNCTIONS (Part 2 - Depends on Profiles)
+-- ============================================================================
+-- Function to check if a user is an admin or moderator (used heavily in RLS)
+CREATE OR REPLACE FUNCTION abhihub.is_admin_or_mod(user_id UUID)
+RETURNS BOOLEAN AS $$
+  SELECT EXISTS (
+    SELECT 1 FROM abhihub.profiles
+    WHERE id = user_id AND role IN ('admin', 'moderator')
+  );
+$$ LANGUAGE sql SECURITY DEFINER;
+
+
+-- ============================================================================
+-- 5. SPECIFIC USER DATA
+-- ============================================================================
+CREATE TABLE abhihub.students (
+    profile_id UUID PRIMARY KEY REFERENCES abhihub.profiles(id) ON DELETE CASCADE,
+    registration_number TEXT,
+    pursuing_year INTEGER,
+    year_of_joining INTEGER,
+    profile_completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE abhihub.teachers (
+    profile_id UUID PRIMARY KEY REFERENCES abhihub.profiles(id) ON DELETE CASCADE,
+    employee_id TEXT,
+    designation TEXT,
+    profile_completed BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE abhihub.user_sessions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES abhihub.profiles(id) ON DELETE CASCADE,
+    login_time TIMESTAMPTZ DEFAULT NOW(),
+    logout_time TIMESTAMPTZ,
+    duration_minutes INTEGER,
+    ip_address TEXT,
+    user_agent TEXT,
+    device_type TEXT
+);
+
+-- ============================================================================
+-- 6. DOCUMENTS, TAGS, & ENGAGEMENT
+-- ============================================================================
+CREATE TABLE abhihub.documents (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    uploader_id UUID REFERENCES abhihub.profiles(id) ON DELETE SET NULL,
+    college_id UUID REFERENCES abhihub.colleges(id) ON DELETE CASCADE,
+    department_id UUID REFERENCES abhihub.departments(id) ON DELETE CASCADE,
+    subject_id UUID REFERENCES abhihub.subjects(id) ON DELETE CASCADE,
+    
+    title TEXT NOT NULL,
+    document_category TEXT NOT NULL CHECK (document_category IN ('papers', 'notes', 'practical', 'syllabus', 'assisment', 'timetable')),
+    description TEXT,
+    
+    file_url TEXT NOT NULL,
+    storage_provider abhihub.storage_provider NOT NULL,
+    provider_public_id TEXT,
+    file_type TEXT,
+    file_size_bytes BIGINT,
+    
+    status abhihub.verification_state DEFAULT 'pending',
+    verified_by UUID REFERENCES abhihub.profiles(id) ON DELETE SET NULL,
+    verification_notes TEXT,
+    verified_at TIMESTAMPTZ,
+    
+    view_count INTEGER DEFAULT 0,
+    like_count INTEGER DEFAULT 0,
+    bookmark_count INTEGER DEFAULT 0,
+    
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE abhihub.bookmarks (
+    user_id UUID NOT NULL REFERENCES abhihub.profiles(id) ON DELETE CASCADE,
+    document_id UUID NOT NULL REFERENCES abhihub.documents(id) ON DELETE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (user_id, document_id)
+);
+
+CREATE TABLE abhihub.document_comments (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id UUID NOT NULL REFERENCES abhihub.documents(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES abhihub.profiles(id) ON DELETE CASCADE,
+    content TEXT NOT NULL,
+    is_deleted BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE abhihub.tags (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    name TEXT NOT NULL UNIQUE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE abhihub.document_tags (
+    document_id UUID NOT NULL REFERENCES abhihub.documents(id) ON DELETE CASCADE,
+    tag_id UUID NOT NULL REFERENCES abhihub.tags(id) ON DELETE CASCADE,
+    PRIMARY KEY (document_id, tag_id)
+);
+
+-- ============================================================================
+-- 7. ANALYTICS & SECURITY 
+-- ============================================================================
+CREATE TABLE abhihub.document_views (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    document_id UUID NOT NULL REFERENCES abhihub.documents(id) ON DELETE CASCADE,
+    user_id UUID REFERENCES abhihub.profiles(id) ON DELETE SET NULL,
+    ip_address TEXT,
+    device_type TEXT,
+    accessed_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE abhihub.document_votes (
+    document_id UUID NOT NULL REFERENCES abhihub.documents(id) ON DELETE CASCADE,
+    user_id UUID NOT NULL REFERENCES abhihub.profiles(id) ON DELETE CASCADE,
+    vote abhihub.vote_type NOT NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    PRIMARY KEY (document_id, user_id)
+);
+
+CREATE TABLE abhihub.security_audit_logs (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID REFERENCES abhihub.profiles(id) ON DELETE SET NULL,
+    document_id UUID REFERENCES abhihub.documents(id) ON DELETE SET NULL,
+    event abhihub.security_event_type NOT NULL,
+    ip_address TEXT,
+    user_agent TEXT,
+    metadata JSONB,
+    detected_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE abhihub.push_subscriptions (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES abhihub.profiles(id) ON DELETE CASCADE,
+    endpoint TEXT NOT NULL UNIQUE,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    device_type TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+CREATE TABLE abhihub.notifications (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    user_id UUID NOT NULL REFERENCES abhihub.profiles(id) ON DELETE CASCADE,
+    type abhihub.notification_type NOT NULL,
+    title TEXT NOT NULL,
+    message TEXT NOT NULL,
+    action_url TEXT,
+    is_read BOOLEAN DEFAULT FALSE,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- ============================================================================
+-- 8. ATTACH TRIGGERS
+-- ============================================================================
+CREATE TRIGGER set_abhihub_colleges_updated_at BEFORE UPDATE ON abhihub.colleges FOR EACH ROW EXECUTE FUNCTION abhihub.set_current_timestamp_updated_at();
+CREATE TRIGGER set_abhihub_departments_updated_at BEFORE UPDATE ON abhihub.departments FOR EACH ROW EXECUTE FUNCTION abhihub.set_current_timestamp_updated_at();
+CREATE TRIGGER set_abhihub_subjects_updated_at BEFORE UPDATE ON abhihub.subjects FOR EACH ROW EXECUTE FUNCTION abhihub.set_current_timestamp_updated_at();
+CREATE TRIGGER set_abhihub_profiles_updated_at BEFORE UPDATE ON abhihub.profiles FOR EACH ROW EXECUTE FUNCTION abhihub.set_current_timestamp_updated_at();
+CREATE TRIGGER set_abhihub_students_updated_at BEFORE UPDATE ON abhihub.students FOR EACH ROW EXECUTE FUNCTION abhihub.set_current_timestamp_updated_at();
+CREATE TRIGGER set_abhihub_teachers_updated_at BEFORE UPDATE ON abhihub.teachers FOR EACH ROW EXECUTE FUNCTION abhihub.set_current_timestamp_updated_at();
+CREATE TRIGGER set_abhihub_documents_updated_at BEFORE UPDATE ON abhihub.documents FOR EACH ROW EXECUTE FUNCTION abhihub.set_current_timestamp_updated_at();
+CREATE TRIGGER set_abhihub_document_comments_updated_at BEFORE UPDATE ON abhihub.document_comments FOR EACH ROW EXECUTE FUNCTION abhihub.set_current_timestamp_updated_at();
+
+-- ============================================================================
+-- 9. ROW LEVEL SECURITY (RLS) POLICIES
+-- ============================================================================
+
+-- Enable RLS on all tables
+ALTER TABLE abhihub.colleges ENABLE ROW LEVEL SECURITY;
+ALTER TABLE abhihub.departments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE abhihub.subjects ENABLE ROW LEVEL SECURITY;
+ALTER TABLE abhihub.profiles ENABLE ROW LEVEL SECURITY;
+ALTER TABLE abhihub.students ENABLE ROW LEVEL SECURITY;
+ALTER TABLE abhihub.teachers ENABLE ROW LEVEL SECURITY;
+ALTER TABLE abhihub.documents ENABLE ROW LEVEL SECURITY;
+ALTER TABLE abhihub.bookmarks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE abhihub.document_comments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE abhihub.document_views ENABLE ROW LEVEL SECURITY;
+ALTER TABLE abhihub.document_votes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE abhihub.security_audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE abhihub.notifications ENABLE ROW LEVEL SECURITY;
+
+-- 1. Hierarchy Data (Colleges/Depts/Subjects): Anyone can read, only admins modify
+CREATE POLICY "Public read colleges" ON abhihub.colleges FOR SELECT USING (true);
+CREATE POLICY "Admin modify colleges" ON abhihub.colleges USING (abhihub.is_admin_or_mod(auth.uid()));
+
+CREATE POLICY "Public read departments" ON abhihub.departments FOR SELECT USING (true);
+CREATE POLICY "Admin modify departments" ON abhihub.departments USING (abhihub.is_admin_or_mod(auth.uid()));
+
+CREATE POLICY "Public read subjects" ON abhihub.subjects FOR SELECT USING (true);
+CREATE POLICY "Admin modify subjects" ON abhihub.subjects USING (abhihub.is_admin_or_mod(auth.uid()));
+
+-- 2. Profiles: Users read all basic profiles, but can only update their own
+CREATE POLICY "Public read profiles" ON abhihub.profiles FOR SELECT USING (true);
+CREATE POLICY "Update own profile" ON abhihub.profiles FOR UPDATE USING (auth.uid() = id);
+CREATE POLICY "Admin full profile access" ON abhihub.profiles USING (abhihub.is_admin_or_mod(auth.uid()));
+
+CREATE POLICY "Public read students" ON abhihub.students FOR SELECT USING (true);
+CREATE POLICY "Update own student data" ON abhihub.students FOR UPDATE USING (auth.uid() = profile_id);
+CREATE POLICY "Insert own student data" ON abhihub.students FOR INSERT WITH CHECK (auth.uid() = profile_id);
+
+CREATE POLICY "Public read teachers" ON abhihub.teachers FOR SELECT USING (true);
+CREATE POLICY "Update own teacher data" ON abhihub.teachers FOR UPDATE USING (auth.uid() = profile_id);
+CREATE POLICY "Insert own teacher data" ON abhihub.teachers FOR INSERT WITH CHECK (auth.uid() = profile_id);
+
+-- 3. Documents: Read 'approved', read own 'pending', admins read all. Authenticated can upload.
+CREATE POLICY "Read approved documents" ON abhihub.documents FOR SELECT USING (status = 'approved');
+CREATE POLICY "Read own pending documents" ON abhihub.documents FOR SELECT USING (auth.uid() = uploader_id);
+CREATE POLICY "Allow authenticated uploads" ON abhihub.documents FOR INSERT WITH CHECK (auth.uid() IS NOT NULL);
+CREATE POLICY "Update own pending document" ON abhihub.documents FOR UPDATE USING (auth.uid() = uploader_id AND status = 'pending');
+CREATE POLICY "Admin full document access" ON abhihub.documents USING (abhihub.is_admin_or_mod(auth.uid()));
+
+-- 4. Interactions (Bookmarks / Votes / Comments)
+CREATE POLICY "Read own bookmarks" ON abhihub.bookmarks FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Manage own bookmarks" ON abhihub.bookmarks FOR ALL USING (auth.uid() = user_id);
+
+CREATE POLICY "Read all comments" ON abhihub.document_comments FOR SELECT USING (NOT is_deleted);
+CREATE POLICY "Manage own comments" ON abhihub.document_comments FOR ALL USING (auth.uid() = user_id);
+
+CREATE POLICY "Read all votes" ON abhihub.document_votes FOR SELECT USING (true);
+CREATE POLICY "Manage own votes" ON abhihub.document_votes FOR ALL USING (auth.uid() = user_id);
+
+-- 5. Security & Analytics: Users insert their own events, only admins read them
+CREATE POLICY "Insert own analytics" ON abhihub.document_views FOR INSERT WITH CHECK (true); -- allowed for anon too if needed
+CREATE POLICY "Admin read analytics" ON abhihub.document_views FOR SELECT USING (abhihub.is_admin_or_mod(auth.uid()));
+
+CREATE POLICY "Insert own audit logs" ON abhihub.security_audit_logs FOR INSERT WITH CHECK (auth.uid() = user_id OR user_id IS NULL);
+CREATE POLICY "Admin read audit logs" ON abhihub.security_audit_logs FOR SELECT USING (abhihub.is_admin_or_mod(auth.uid()));
+
+-- 6. Notifications: Users can only read and update their own notifications
+CREATE POLICY "Manage own notifications" ON abhihub.notifications FOR ALL USING (auth.uid() = user_id);
+
+
+}
+date:-07-03-2026
+{-- WARNING: This schema is for context only and is not meant to be run.
+-- Table order and constraints may not be valid for execution.
+
+CREATE TABLE public.branch (
+  branch_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL UNIQUE,
+  branch_name text NOT NULL UNIQUE,
+  branch_abbreviation text UNIQUE,
+  id uuid DEFAULT uuid_generate_v4(),
+  name text NOT NULL UNIQUE,
+  short_name text,
+  created_at timestamp with time zone DEFAULT now(),
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT branch_pkey PRIMARY KEY (branch_id)
+);
+CREATE TABLE public.cae1 (
+  cae1_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  student_id bigint,
+  college_id bigint,
+  cae1_path text,
+  verification_status boolean,
+  subject_id uuid,
+  CONSTRAINT cae1_pkey PRIMARY KEY (cae1_id),
+  CONSTRAINT cae1_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(student_id),
+  CONSTRAINT cae1_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES public.subject(subject_id),
+  CONSTRAINT cae1_college_id_fkey FOREIGN KEY (college_id) REFERENCES public.college(id)
+);
+CREATE TABLE public.cae2 (
+  cae2_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  student_id bigint,
+  college_id bigint,
+  cae2_path text,
+  verification_status boolean,
+  subject_id uuid,
+  CONSTRAINT cae2_pkey PRIMARY KEY (cae2_id),
+  CONSTRAINT cae1_duplicate_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(student_id),
+  CONSTRAINT cae1_duplicate_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES public.subject(subject_id),
+  CONSTRAINT cae2_college_id_fkey FOREIGN KEY (college_id) REFERENCES public.college(id)
+);
+CREATE TABLE public.cae3 (
+  cae3_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  student_id bigint,
+  college_id bigint,
+  cae3_path text,
+  verification_status boolean,
+  subject_id uuid,
+  CONSTRAINT cae3_pkey PRIMARY KEY (cae3_id),
+  CONSTRAINT cae3_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(student_id),
+  CONSTRAINT cae3_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES public.subject(subject_id),
+  CONSTRAINT cae3_college_id_fkey FOREIGN KEY (college_id) REFERENCES public.college(id)
+);
+CREATE TABLE public.college (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  college_name text NOT NULL UNIQUE,
+  college_abbreviation text,
+  city text,
+  name text NOT NULL UNIQUE,
+  short_name text,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT college_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.ese (
+  ese_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  student_id bigint,
+  college_id bigint,
+  ese_path text,
+  verification_status boolean,
+  subject_id uuid,
+  CONSTRAINT ese_pkey PRIMARY KEY (ese_id),
+  CONSTRAINT ese_student_id_fkey FOREIGN KEY (student_id) REFERENCES public.students(student_id),
+  CONSTRAINT ese_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES public.subject(subject_id),
+  CONSTRAINT ese_college_id_fkey FOREIGN KEY (college_id) REFERENCES public.college(id)
+);
+CREATE TABLE public.exam (
+  id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  exam text,
+  Date date,
+  subject_id uuid,
+  CONSTRAINT exam_pkey PRIMARY KEY (id),
+  CONSTRAINT exam_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES public.subject(subject_id)
+);
+CREATE TABLE public.file_access_history (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_email text NOT NULL,
+  file_name text NOT NULL,
+  file_type text,
+  file_path text,
+  file_url text,
+  accessed_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT file_access_history_pkey PRIMARY KEY (id)
+);
+CREATE TABLE public.file_records (
+  id uuid NOT NULL DEFAULT uuid_generate_v4(),
+  user_id text NOT NULL,
+  user_email text NOT NULL,
+  file_name text NOT NULL,
+  file_url text NOT NULL,
+  file_type text NOT NULL,
+  file_size bigint NOT NULL,
+  cloudinary_public_id text NOT NULL UNIQUE,
+  subject_name text NOT NULL,
+  document_type text NOT NULL,
+  year text,
+  college_id bigint,
+  branch_id bigint,
+  uploaded_at timestamp with time zone DEFAULT now(),
+  last_accessed_at timestamp with time zone,
+  access_count integer DEFAULT 0,
+  CONSTRAINT file_records_pkey PRIMARY KEY (id),
+  CONSTRAINT file_records_college_id_fkey FOREIGN KEY (college_id) REFERENCES public.college(id),
+  CONSTRAINT file_records_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branch(branch_id)
+);
+CREATE TABLE public.students (
+  student_id bigint GENERATED ALWAYS AS IDENTITY NOT NULL,
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  student_name text NOT NULL,
+  college_id bigint,
+  student_email text,
+  student_moblie_number bigint,
+  pursuing_year integer,
+  branch_id bigint,
+  registration_number character varying,
+  user_id uuid DEFAULT auth.uid(),
+  user_role text CHECK (user_role = ANY (ARRAY['student'::text, 'teacher'::text])),
+  year_of_joining integer CHECK (year_of_joining >= 1900 AND year_of_joining <= 2100),
+  profile_completed boolean DEFAULT false,
+  updated_at timestamp with time zone DEFAULT now(),
+  CONSTRAINT students_pkey PRIMARY KEY (student_id),
+  CONSTRAINT students_college_id_fkey FOREIGN KEY (college_id) REFERENCES public.college(id),
+  CONSTRAINT students_branch_id_fkey FOREIGN KEY (branch_id) REFERENCES public.branch(branch_id),
+  CONSTRAINT students_user_id_fkey FOREIGN KEY (user_id) REFERENCES auth.users(id)
+);
+CREATE TABLE public.subject (
+  subject_id uuid NOT NULL DEFAULT gen_random_uuid(),
+  created_at timestamp with time zone NOT NULL DEFAULT now(),
+  subject_name text,
+  subject_abbreviation text,
+  subject_code text UNIQUE,
+  college_id bigint,
+  CONSTRAINT subject_pkey PRIMARY KEY (subject_id),
+  CONSTRAINT subject_college_id_fkey FOREIGN KEY (college_id) REFERENCES public.college(id)
+);}

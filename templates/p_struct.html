@@ -1,0 +1,1080 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1, user-scalable=no">
+    <meta name="language" content="en">
+    <meta name="google" content="translate">
+    <meta name="description"
+        content="AbhiHub - Best platform to organize exam resources, engineering papers, GHRCE PYQ, and study materials. Free access to exam papers, practicals, and notes.">
+    <meta name="keywords"
+        content="AbhiHub, engineering papers, GHRCE papers, exam resources, PYQ, practice papers, engineering notes, study materials, exam preparation">
+    <meta name="theme-color" content="#2563eb">
+
+    <!-- Open Graph Tags -->
+    <meta property="og:title" content="AbhiHub - Engineering Exam Papers & Resources">
+    <meta property="og:description"
+        content="Organize and access engineering exam papers, GHRCE PYQ, practicals, and study notes. Your all-in-one platform for exam resources.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://app.abhihub.run.place">
+    <meta property="og:image" content="https://app.abhihub.run.place/static/images/android-chrome-512x512.png">
+
+    <!-- Twitter Card Tags -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="AbhiHub - Engineering Exam Papers & Resources">
+    <meta name="twitter:description"
+        content="Best site to organize exam resources and access engineering papers, notes, and practicals.">
+    <meta name="twitter:image" content="https://app.abhihub.run.place/static/premium/icons/icon-512x512.png">
+
+    <!-- Canonical URL -->
+    <link rel="canonical" href="https://app.abhihub.run.place">
+
+    <!-- Author & Copyright -->
+    <meta name="author" content="AbhiHub">
+    <meta name="copyright" content="© 2024 AbhiHub. All rights reserved.">
+    <meta name="robots" content="index, follow">
+
+    <!-- PWA Manifest -->
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
+    <script src="/static/js/push-notifications.js" defer></script>
+    <title>AbhiHub Premium</title>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
+        rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='premium/css/style.css', v='2.0.1')}}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.min.css') }}">
+
+    <!-- Feature Tour Styles -->
+    <style>
+        #featureTourOverlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(0, 0, 0, 0.55);
+            z-index: 4000;
+            pointer-events: auto;
+            transition: background 0.2s;
+        }
+
+        #featureTourTooltip {
+            position: absolute;
+            z-index: 4100;
+            background: #fff;
+            border-radius: 14px;
+            box-shadow: 0 8px 32px rgba(37, 99, 235, 0.13);
+            padding: 1.2rem 1.2rem 1rem 1.2rem;
+            min-width: 220px;
+            max-width: 320px;
+            font-size: 1.08rem;
+            color: #222;
+            line-height: 1.6;
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            animation: fadeIn 0.2s;
+        }
+
+        #featureTourTooltip .ft-title {
+            font-weight: 700;
+            font-size: 1.15rem;
+            margin-bottom: 0.5rem;
+        }
+
+        #featureTourTooltip .ft-actions {
+            margin-top: 1.1rem;
+            width: 100%;
+            display: flex;
+            gap: 0.7rem;
+            justify-content: flex-end;
+        }
+
+        #featureTourTooltip button {
+            background: linear-gradient(90deg, #2563eb 60%, #1d4ed8 100%);
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1.3rem;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.18s, transform 0.1s;
+        }
+
+        #featureTourTooltip button.ft-skip {
+            background: #f3f4f6;
+            color: #374151;
+            border: 1px solid #d1d5db;
+        }
+
+        #featureTourTooltip button:hover {
+            transform: scale(1.04);
+        }
+
+        .ft-highlight {
+            position: relative;
+            z-index: 4050 !important;
+            box-shadow: 0 0 0 4px #ffe769, 0 0 0 12px #62eea8a0;
+            border-radius: 10px !important;
+            transition: box-shadow 0.2s;
+        }
+    </style>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js', {
+                    scope: '/'
+                })
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+
+    <!-- PWA Install Popup Script -->
+    <script>
+        // PWA Install Prompt Handler
+        let deferredPrompt;
+        const INSTALL_DISMISSED_KEY = 'pwa_install_dismissed';
+        const INSTALL_DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Check if user dismissed recently
+            const dismissed = localStorage.getItem(INSTALL_DISMISSED_KEY);
+            if (dismissed && Date.now() - parseInt(dismissed) < INSTALL_DISMISS_DURATION) {
+                return;
+            }
+
+            // Check if already installed
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                return;
+            }
+
+            // Show install popup after a delay
+            setTimeout(() => {
+                showInstallPopup();
+            }, 3000);
+        });
+
+        function showInstallPopup() {
+            const popup = document.getElementById('pwaInstallPopup');
+            if (popup) {
+                popup.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function hideInstallPopup() {
+            const popup = document.getElementById('pwaInstallPopup');
+            if (popup) {
+                popup.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        }
+
+        function dismissInstallPopup() {
+            localStorage.setItem(INSTALL_DISMISSED_KEY, Date.now().toString());
+            hideInstallPopup();
+        }
+
+        async function installPWA() {
+            if (!deferredPrompt) {
+                document.getElementById('installInstructions').style.display = 'block';
+                document.getElementById('installActions').style.display = 'none';
+                return;
+            }
+
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+
+            if (outcome === 'accepted') {
+                console.log('PWA installed');
+                hideInstallPopup();
+            }
+
+            deferredPrompt = null;
+        }
+
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA was installed');
+            hideInstallPopup();
+            deferredPrompt = null;
+        });
+    </script>
+
+    <!-- PWA Install Popup Styles -->
+    <style>
+        .pwa-install-popup {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.7);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .pwa-install-popup.show {
+            display: flex;
+        }
+
+        .pwa-popup-content {
+            background: #fff;
+            border-radius: 24px;
+            max-width: 420px;
+            width: 90%;
+            box-shadow: 0 25px 80px rgba(0, 0, 0, 0.4);
+            animation: slideUp 0.4s ease-out;
+        }
+
+        .pwa-popup-header {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            padding: 2rem;
+            text-align: center;
+            border-radius: 24px 24px 0 0;
+            position: relative;
+        }
+
+        .pwa-popup-close {
+            position: absolute;
+            top: 1rem;
+            right: 1rem;
+            background: rgba(255, 255, 255, 0.2);
+            border: none;
+            color: white;
+            font-size: 1.2rem;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            cursor: pointer;
+        }
+
+        .pwa-popup-close:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .pwa-app-icon {
+            width: 80px;
+            height: 80px;
+            border-radius: 18px;
+            margin-bottom: 1rem;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+        }
+
+        .pwa-popup-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            margin-bottom: 0.5rem;
+        }
+
+        .pwa-popup-subtitle {
+            opacity: 0.9;
+            font-size: 0.95rem;
+        }
+
+        .pwa-popup-body {
+            padding: 1.5rem 2rem 2rem;
+        }
+
+        .pwa-feature {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.75rem 0;
+            border-bottom: 1px solid #f3f4f6;
+        }
+
+        .pwa-feature:last-child {
+            border-bottom: none;
+        }
+
+        .pwa-feature-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.25rem;
+        }
+
+        .pwa-feature-icon.purple {
+            background: #ede9fe;
+        }
+
+        .pwa-feature-icon.green {
+            background: #d1fae5;
+        }
+
+        .pwa-feature-icon.blue {
+            background: #dbeafe;
+        }
+
+        .pwa-feature-text {
+            font-size: 0.95rem;
+            color: #374151;
+        }
+
+        .pwa-install-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+        }
+
+        .pwa-install-btn {
+            width: 100%;
+            padding: 1rem;
+            font-size: 1.1rem;
+            font-weight: 600;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .pwa-install-btn.primary {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+        }
+
+        .pwa-install-btn.primary:hover {
+            transform: translateY(-2px);
+        }
+
+        .pwa-install-btn.secondary {
+            background: #f3f4f6;
+            color: #6b7280;
+        }
+
+        .pwa-install-btn.secondary:hover {
+            background: #e5e7eb;
+        }
+
+        .pwa-instructions {
+            display: none;
+            background: #fefce8;
+            border: 1px solid #fef08a;
+            border-radius: 12px;
+            padding: 1rem;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+            color: #854d0e;
+        }
+
+        .pwa-instructions ol {
+            margin: 0.5rem 0 0 1.25rem;
+            padding: 0;
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(40px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+    </style>
+
+    <!-- ===== PROMO / ANNOUNCEMENT STYLES ===== -->
+    <style>
+        /* ---- Top Announcement Strip ---- */
+        #promoStrip {
+            position: fixed;
+            top: 0; left: 0; right: 0;
+            z-index: 8500;
+            background: linear-gradient(90deg, #7c3aed 0%, #2563eb 50%, #06b6d4 100%);
+            color: #fff;
+            font-size: 0.92rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.6rem;
+            padding: 0.55rem 3rem 0.55rem 1rem;
+            text-align: center;
+            animation: promoSlideDown 0.45s cubic-bezier(.4,0,.2,1);
+            box-shadow: 0 2px 12px rgba(37,99,235,0.18);
+            transition: top 0.3s;
+        }
+        #promoStrip.hidden { top: -60px; pointer-events: none; }
+        #promoStrip a {
+            color: #ffe769;
+            text-decoration: underline;
+            font-weight: 700;
+            transition: opacity 0.15s;
+        }
+        #promoStrip a:hover { opacity: 0.8; }
+        #promoStrip .promo-tag {
+            background: rgba(255,255,255,0.22);
+            border-radius: 30px;
+            padding: 0.15rem 0.7rem;
+            font-size: 0.78rem;
+            letter-spacing: 0.04em;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+        #promoStripClose {
+            position: absolute;
+            right: 0.75rem;
+            background: rgba(255,255,255,0.18);
+            border: none;
+            color: #fff;
+            font-size: 1.1rem;
+            width: 28px; height: 28px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.15s;
+        }
+        #promoStripClose:hover { background: rgba(255,255,255,0.35); }
+
+        /* ---- Promo Card Modal ---- */
+        #promoCardOverlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(10,10,30,0.62);
+            z-index: 9200;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(4px);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.3s;
+        }
+        #promoCardOverlay.show {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        #promoCard {
+            background: #fff;
+            border-radius: 22px;
+            max-width: 400px;
+            width: 92%;
+            box-shadow: 0 30px 80px rgba(37,99,235,0.22), 0 2px 12px rgba(0,0,0,0.12);
+            overflow: hidden;
+            transform: translateY(30px) scale(0.97);
+            transition: transform 0.35s cubic-bezier(.4,0,.2,1);
+            position: relative;
+        }
+        #promoCardOverlay.show #promoCard {
+            transform: translateY(0) scale(1);
+        }
+        .promo-card-header {
+            background: linear-gradient(135deg, #7c3aed 0%, #2563eb 60%, #06b6d4 100%);
+            padding: 2rem 1.5rem 1.4rem;
+            text-align: center;
+            position: relative;
+        }
+        .promo-card-header .promo-emoji {
+            font-size: 2.8rem;
+            display: block;
+            margin-bottom: 0.5rem;
+            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));
+            animation: promoBounce 1.8s infinite;
+        }
+        .promo-card-header h2 {
+            color: #fff;
+            font-size: 1.4rem;
+            font-weight: 800;
+            margin: 0 0 0.3rem;
+        }
+        .promo-card-header p {
+            color: rgba(255,255,255,0.88);
+            font-size: 0.92rem;
+            margin: 0;
+        }
+        .promo-close-btn {
+            position: absolute;
+            top: 0.9rem; right: 0.9rem;
+            background: rgba(255,255,255,0.18);
+            border: none;
+            color: #fff;
+            font-size: 1.1rem;
+            width: 32px; height: 32px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center;
+            transition: background 0.15s;
+        }
+        .promo-close-btn:hover { background: rgba(255,255,255,0.35); }
+        .promo-card-body {
+            padding: 1.4rem 1.5rem 1.6rem;
+        }
+        .promo-features-list {
+            list-style: none;
+            padding: 0; margin: 0 0 1.2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.65rem;
+        }
+        .promo-features-list li {
+            display: flex;
+            align-items: center;
+            gap: 0.7rem;
+            font-size: 0.95rem;
+            color: #374151;
+        }
+        .promo-features-list li .pf-icon {
+            width: 34px; height: 34px;
+            border-radius: 9px;
+            display: flex; align-items: center; justify-content: center;
+            font-size: 1.15rem;
+            flex-shrink: 0;
+        }
+        .pf-icon.violet { background: #ede9fe; }
+        .pf-icon.blue   { background: #dbeafe; }
+        .pf-icon.teal   { background: #ccfbf1; }
+        .pf-icon.amber  { background: #fef3c7; }
+        .promo-cta-btn {
+            display: block;
+            width: 100%;
+            padding: 0.9rem;
+            border: none;
+            border-radius: 12px;
+            background: linear-gradient(135deg, #7c3aed, #2563eb);
+            color: #fff;
+            font-size: 1.05rem;
+            font-weight: 700;
+            cursor: pointer;
+            text-align: center;
+            text-decoration: none;
+            letter-spacing: 0.01em;
+            box-shadow: 0 4px 18px rgba(37,99,235,0.28);
+            transition: transform 0.15s, box-shadow 0.15s;
+            margin-bottom: 0.55rem;
+        }
+        .promo-cta-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 28px rgba(37,99,235,0.38);
+        }
+        .promo-dismiss-link {
+            display: block;
+            text-align: center;
+            font-size: 0.88rem;
+            color: #9ca3af;
+            cursor: pointer;
+            transition: color 0.15s;
+        }
+        .promo-dismiss-link:hover { color: #6b7280; }
+
+        /* ---- Keyframes ---- */
+        @keyframes promoSlideDown {
+            from { top: -60px; opacity: 0; }
+            to   { top: 0;     opacity: 1; }
+        }
+        @keyframes promoBounce {
+            0%,100% { transform: translateY(0); }
+            50%      { transform: translateY(-6px); }
+        }
+    </style>
+
+    <!-- Google Tag & Analytics -->
+    {% include 'google_tag.html' %}
+
+    <!-- Analytics Helper for Auto-Tracking -->
+    <script src="{{ url_for('static', filename='js/analytics-helper.js') }}" defer></script>
+
+    <!-- Security: expose current user to client-side security.js -->
+    <script>
+        window.__CURRENT_USER__ = {
+            uid: "{{ session.get('user', {}).get('uid', '') | e }}",
+            email: "{{ session.get('user', {}).get('email', '') | e }}",
+            name: "{{ session.get('user', {}).get('name', '') | e }}"
+        };
+    </script>
+
+
+</head>
+
+<body class="font-regular">
+    <!-- ===== PROMO ANNOUNCEMENT STRIP ===== -->
+    <div id="promoStrip">
+        <span class="promo-tag">📤 May Drive</span>
+        <span id="promoStripText">Help your juniors — upload a paper this month &amp; boost your rank!</span>
+        <a href="/upload" id="promoStripLink">Upload now →</a>
+        <button id="promoStripClose" onclick="dismissPromoStrip()" aria-label="Close announcement">✕</button>
+    </div>
+
+    <!-- ===== PROMO CARD MODAL ===== -->
+    <div id="promoCardOverlay" role="dialog" aria-modal="true" aria-labelledby="promoCardTitle">
+        <div id="promoCard">
+            <div class="promo-card-header">
+                <button class="promo-close-btn" onclick="closePromoCard()" aria-label="Close">✕</button>
+                <span class="promo-emoji">📤</span>
+                <h2 id="promoCardTitle">Share your knowledge!</h2>
+                <p id="promoCardDesc">Upload one paper this May &amp; make a difference for your peers</p>
+            </div>
+            <div class="promo-card-body">
+                <ul class="promo-features-list">
+                    <li>
+                        <span class="pf-icon amber">🏆</span>
+                        <span><strong>Earn reputation points</strong> — every upload boosts your rank</span>
+                    </li>
+                    <li>
+                        <span class="pf-icon violet">🎓</span>
+                        <span><strong>Help your juniors</strong> — be the reason someone aced their exam</span>
+                    </li>
+                    <li>
+                        <span class="pf-icon teal">⚡</span>
+                        <span><strong>Takes under 60 seconds</strong> — photo, scan, or PDF — any format</span>
+                    </li>
+                    <li>
+                        <span class="pf-icon blue">📊</span>
+                        <span><strong>Track your impact</strong> — see how many students used your paper</span>
+                    </li>
+                </ul>
+                <a href="/upload" class="promo-cta-btn" id="promoUploadBtn" onclick="markUploadClicked()">Upload a Paper Now 🚀</a>
+                <span class="promo-dismiss-link" onclick="snoozePromoCard()">Remind me tomorrow</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Feature Tour Elements -->
+    <div id="featureTourOverlay" style="display:none;"></div>
+    <div id="featureTourTooltip" style="display:none;"></div>
+
+    <!-- Popup Container -->
+    <div id="popup" class="popup">
+        <div class="close" id="close">X</div>
+        <img id="popupImg" class="image" src="#" width="400" alt="Timetable">
+    </div>
+
+    <!-- Search Overlay -->
+    <!-- PWA Install Popup -->
+    <div id="pwaInstallPopup" class="pwa-install-popup">
+        <div class="pwa-popup-content">
+            <div class="pwa-popup-header">
+                <button class="pwa-popup-close" onclick="dismissInstallPopup()">✕</button>
+                <img src="/static/images/android-chrome-192x192.png" alt="AbhiHub" class="pwa-app-icon">
+                <h2 class="pwa-popup-title">Install AbhiHub</h2>
+                <p class="pwa-popup-subtitle">Get the full app experience</p>
+            </div>
+            <div class="pwa-popup-body">
+                <div class="pwa-features">
+                    <div class="pwa-feature">
+                        <div class="pwa-feature-icon purple">⚡</div>
+                        <span class="pwa-feature-text">Faster access from home screen</span>
+                    </div>
+                    <div class="pwa-feature">
+                        <div class="pwa-feature-icon green">📴</div>
+                        <span class="pwa-feature-text">Works offline - study anywhere</span>
+                    </div>
+                    <div class="pwa-feature">
+                        <div class="pwa-feature-icon blue">🔔</div>
+                        <span class="pwa-feature-text">Get notified about new materials</span>
+                    </div>
+                </div>
+                <div id="installActions" class="pwa-install-actions">
+                    <button class="pwa-install-btn primary" onclick="installPWA()">Install App</button>
+                    <button class="pwa-install-btn secondary" onclick="dismissInstallPopup()">Maybe Later</button>
+                </div>
+                <div id="installInstructions" class="pwa-instructions">
+                    <strong>How to install:</strong>
+                    <ol>
+                        <li>Tap the menu button (⋮) in your browser</li>
+                        <li>Select "Add to Home Screen" or "Install App"</li>
+                        <li>Tap "Install" to confirm</li>
+                    </ol>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===== PROFILE COMPLETION + NOTIFICATION POPUP ===== -->
+    <div id="profileNudgeOverlay" role="dialog" aria-modal="true" aria-labelledby="profileNudgeTitle"
+        style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(8,8,25,0.68);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+        <div id="profileNudgeCard"
+            style="background:#fff;border-radius:24px;max-width:420px;width:92%;box-shadow:0 32px 80px rgba(124,58,237,0.22),0 2px 16px rgba(0,0,0,0.13);overflow:hidden;transform:translateY(36px) scale(0.96);transition:transform 0.38s cubic-bezier(.4,0,.2,1);position:relative;">
+
+            <!-- Step 1: Complete Profile -->
+            <div id="nudgeStep1">
+                <div style="background:linear-gradient(135deg,#7c3aed 0%,#2563eb 55%,#0891b2 100%);padding:2rem 1.5rem 1.5rem;text-align:center;position:relative;">
+                    <button onclick="dismissProfileNudge()" aria-label="Close"
+                        style="position:absolute;top:.9rem;right:.9rem;background:rgba(255,255,255,.18);border:none;color:#fff;font-size:1.1rem;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;">&times;</button>
+                    <span style="font-size:2.6rem;display:block;margin-bottom:.5rem;animation:promoBounce 1.8s infinite;">👤</span>
+                    <h2 id="profileNudgeTitle" style="color:#fff;font-size:1.35rem;font-weight:800;margin:0 0 .3rem;">Complete Your Profile</h2>
+                    <p style="color:rgba(255,255,255,.88);font-size:.9rem;margin:0;">You're almost there — finish your profile to unlock the full AbhiHub experience</p>
+                </div>
+                <div style="padding:1.4rem 1.5rem 1.6rem;">
+                    <!-- Progress bar -->
+                    <div style="margin-bottom:1.2rem;">
+                        <div style="display:flex;justify-content:space-between;font-size:.82rem;color:#6b7280;margin-bottom:.4rem;">
+                            <span>Profile completeness</span><span id="nudgeProgressPct">–</span>
+                        </div>
+                        <div style="background:#e5e7eb;border-radius:99px;height:8px;overflow:hidden;">
+                            <div id="nudgeProgressBar" style="height:100%;background:linear-gradient(90deg,#7c3aed,#2563eb);border-radius:99px;width:0%;transition:width .5s ease;"></div>
+                        </div>
+                    </div>
+                    <ul style="list-style:none;padding:0;margin:0 0 1.2rem;display:flex;flex-direction:column;gap:.6rem;">
+                        <li style="display:flex;align-items:center;gap:.7rem;font-size:.93rem;color:#374151;">
+                            <span style="width:32px;height:32px;border-radius:8px;background:#ede9fe;display:flex;align-items:center;justify-content:center;">🎓</span>
+                            <span>Add your <strong>college & department</strong></span>
+                        </li>
+                        <li style="display:flex;align-items:center;gap:.7rem;font-size:.93rem;color:#374151;">
+                            <span style="width:32px;height:32px;border-radius:8px;background:#dbeafe;display:flex;align-items:center;justify-content:center;">📅</span>
+                            <span>Set your <strong>year of joining & pursuing year</strong></span>
+                        </li>
+                        <li style="display:flex;align-items:center;gap:.7rem;font-size:.93rem;color:#374151;">
+                            <span style="width:32px;height:32px;border-radius:8px;background:#ccfbf1;display:flex;align-items:center;justify-content:center;">🏅</span>
+                            <span>Earn <strong>verified contributor</strong> badge</span>
+                        </li>
+                    </ul>
+                    <a href="/account" class="promo-cta-btn" onclick="dismissProfileNudge()" style="display:block;width:100%;padding:.9rem;border:none;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;font-size:1.05rem;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;letter-spacing:.01em;box-shadow:0 4px 18px rgba(37,99,235,.28);transition:transform .15s,box-shadow .15s;margin-bottom:.55rem;">Complete Profile Now 🚀</a>
+                    <span class="promo-dismiss-link" onclick="nudgeGoToStep2()" style="display:block;text-align:center;font-size:.87rem;color:#9ca3af;cursor:pointer;transition:color .15s;">Enable notifications instead →</span>
+                </div>
+            </div>
+
+            <!-- Step 2: Enable Notifications -->
+            <div id="nudgeStep2" style="display:none;">
+                <div style="background:linear-gradient(135deg,#0891b2 0%,#2563eb 55%,#7c3aed 100%);padding:2rem 1.5rem 1.5rem;text-align:center;position:relative;">
+                    <button onclick="dismissProfileNudge()" aria-label="Close"
+                        style="position:absolute;top:.9rem;right:.9rem;background:rgba(255,255,255,.18);border:none;color:#fff;font-size:1.1rem;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
+                    <span style="font-size:2.6rem;display:block;margin-bottom:.5rem;animation:promoBounce 1.8s infinite;">🔔</span>
+                    <h2 style="color:#fff;font-size:1.35rem;font-weight:800;margin:0 0 .3rem;">Stay in the Loop!</h2>
+                    <p style="color:rgba(255,255,255,.88);font-size:.9rem;margin:0;">Get notified when new papers are uploaded, your rank changes, or documents are approved</p>
+                </div>
+                <div style="padding:1.4rem 1.5rem 1.6rem;">
+                    <ul style="list-style:none;padding:0;margin:0 0 1.2rem;display:flex;flex-direction:column;gap:.6rem;">
+                        <li style="display:flex;align-items:center;gap:.7rem;font-size:.93rem;color:#374151;">
+                            <span style="width:32px;height:32px;border-radius:8px;background:#ccfbf1;display:flex;align-items:center;justify-content:center;">📄</span>
+                            <span>Notified when <strong>new papers</strong> are added</span>
+                        </li>
+                        <li style="display:flex;align-items:center;gap:.7rem;font-size:.93rem;color:#374151;">
+                            <span style="width:32px;height:32px;border-radius:8px;background:#fef3c7;display:flex;align-items:center;justify-content:center;">🏆</span>
+                            <span>Get <strong>rank change</strong> alerts instantly</span>
+                        </li>
+                        <li style="display:flex;align-items:center;gap:.7rem;font-size:.93rem;color:#374151;">
+                            <span style="width:32px;height:32px;border-radius:8px;background:#ede9fe;display:flex;align-items:center;justify-content:center;">✅</span>
+                            <span>Know when your <strong>upload is approved</strong></span>
+                        </li>
+                    </ul>
+                    <button id="nudgeEnableNotifBtn" onclick="nudgeEnableNotifications()"
+                        style="display:block;width:100%;padding:.9rem;border:none;border-radius:12px;background:linear-gradient(135deg,#0891b2,#2563eb);color:#fff;font-size:1.05rem;font-weight:700;cursor:pointer;text-align:center;box-shadow:0 4px 18px rgba(8,145,178,.28);transition:transform .15s,box-shadow .15s;margin-bottom:.55rem;">Enable Notifications 🔔</button>
+                    <span onclick="dismissProfileNudge()" style="display:block;text-align:center;font-size:.87rem;color:#9ca3af;cursor:pointer;">Maybe later</span>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+
+        <header>
+            <nav class="main-nav">
+                <div class="logo kanit-bold" onclick="switchToEliteVersion()" style="cursor: pointer;">
+                    <span class="logo-text">AbhiHub</span>
+                    <span class="premium-badge">Premium</span>
+                </div>
+
+            </nav>
+        </header>
+        <main>
+            {% block content %}
+
+
+            {% endblock %}
+        </main>
+        {% include 'p_nav.html' %}
+
+        <!-- Main Script -->
+        <script src="{{ url_for('static', filename='premium/js/script.js')}}"></script>
+
+        <!-- ===== UPLOAD CAMPAIGN PROMO LOGIC (May 2026) ===== -->
+        <script>
+            (function () {
+
+                // ── Campaign window ──────────────────────────────────────────
+                const CAMPAIGN_START = new Date('2026-05-01T00:00:00');
+                const CAMPAIGN_END   = new Date('2026-05-31T23:59:59');
+
+                // ── Storage keys ─────────────────────────────────────────────
+                const KEY_STRIP_SNOOZE  = 'abhihub_upload_strip_snooze';   // timestamp
+                const KEY_CARD_SNOOZE   = 'abhihub_upload_card_snooze';    // timestamp
+                const KEY_UPLOADED      = 'abhihub_user_has_uploaded';      // 'yes'
+                const KEY_CARD_TODAY    = 'abhihub_upload_card_shown_date'; // 'YYYY-MM-DD'
+
+                // ── Helpers ───────────────────────────────────────────────────
+                function todayStr() {
+                    return new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+                }
+                function inCampaign() {
+                    const now = new Date();
+                    return now >= CAMPAIGN_START && now <= CAMPAIGN_END;
+                }
+                function snoozedUntilTomorrow(key) {
+                    const ts = parseInt(localStorage.getItem(key) || '0', 10);
+                    if (!ts) return false;
+                    const tomorrow = new Date();
+                    tomorrow.setHours(0, 0, 0, 0);
+                    tomorrow.setDate(tomorrow.getDate() + 1);
+                    return Date.now() < tomorrow.getTime() && Date.now() < ts + 86400000;
+                }
+                function hasUploaded() {
+                    return localStorage.getItem(KEY_UPLOADED) === 'yes';
+                }
+
+                // ── Rotating strip messages (one per day-of-month) ────────────
+                var STRIP_MSGS = [
+                    { text: 'Help your juniors — upload a paper this month!',                   link: 'Upload now →' },
+                    { text: 'May Upload Drive 🎯 — one paper from you helps hundreds!',         link: 'Start uploading →' },
+                    { text: 'Your papers = someone else\'s rank boost. Share them!',            link: 'Upload a paper →' },
+                    { text: 'Uploaders earn 2× reputation this month. Don\'t miss out!',        link: 'Upload today →' },
+                    { text: 'Be a contributor — upload your exam papers on AbhiHub!',           link: 'Upload now →' },
+                    { text: 'Did you save your question papers? Share them with AbhiHub!',      link: 'Share a paper →' },
+                    { text: '60 seconds is all it takes to help a fellow student. Upload!',     link: 'Go upload →' },
+                    { text: 'Your upload today could be someone\'s lifesaver in exams!',        link: 'Upload now →' },
+                    { text: 'May Drive: every upload boosts your rank + helps peers!',          link: 'Upload now →' },
+                    { text: 'Give back to the community — upload your saved papers!',           link: 'Share papers →' },
+                ];
+                function todayMsg() {
+                    var day = new Date().getDate(); // 1-31
+                    return STRIP_MSGS[(day - 1) % STRIP_MSGS.length];
+                }
+
+                // ── Strip ─────────────────────────────────────────────────────
+                function initPromoStrip() {
+                    if (!inCampaign() || hasUploaded() || snoozedUntilTomorrow(KEY_STRIP_SNOOZE)) return;
+                    var strip = document.getElementById('promoStrip');
+                    var msg   = todayMsg();
+                    var textEl = document.getElementById('promoStripText');
+                    var linkEl = document.getElementById('promoStripLink');
+                    if (textEl) textEl.textContent = msg.text;
+                    if (linkEl) linkEl.textContent  = msg.link;
+                    if (strip)  strip.classList.remove('hidden');
+                    document.body.style.paddingTop = ((strip && strip.offsetHeight) || 40) + 'px';
+                }
+
+                window.dismissPromoStrip = function () {
+                    // snooze until midnight (next calendar day)
+                    var midnight = new Date();
+                    midnight.setHours(23, 59, 59, 999);
+                    localStorage.setItem(KEY_STRIP_SNOOZE, midnight.getTime().toString());
+                    var strip = document.getElementById('promoStrip');
+                    if (strip) { strip.classList.add('hidden'); document.body.style.paddingTop = ''; }
+                };
+
+                // ── Card modal ────────────────────────────────────────────────
+                function initPromoCard() {
+                    if (!inCampaign() || hasUploaded()) return;
+                    // Only show once per calendar day
+                    if (localStorage.getItem(KEY_CARD_TODAY) === todayStr()) return;
+                    // Respect snooze
+                    if (snoozedUntilTomorrow(KEY_CARD_SNOOZE)) return;
+
+                    setTimeout(function () {
+                        var overlay = document.getElementById('promoCardOverlay');
+                        if (overlay) {
+                            overlay.classList.add('show');
+                            localStorage.setItem(KEY_CARD_TODAY, todayStr());
+                        }
+                    }, 5000);
+                }
+
+                window.closePromoCard = function () {
+                    var overlay = document.getElementById('promoCardOverlay');
+                    if (overlay) overlay.classList.remove('show');
+                };
+
+                // "Remind me tomorrow" — snoozes card until tomorrow
+                window.snoozePromoCard = function () {
+                    var midnight = new Date();
+                    midnight.setHours(23, 59, 59, 999);
+                    localStorage.setItem(KEY_CARD_SNOOZE, midnight.getTime().toString());
+                    closePromoCard();
+                };
+
+                // Call this right after a successful upload (from upload page JS)
+                window.markUserUploaded = function () {
+                    localStorage.setItem(KEY_UPLOADED, 'yes');
+                    closePromoCard();
+                    var strip = document.getElementById('promoStrip');
+                    if (strip) { strip.classList.add('hidden'); document.body.style.paddingTop = ''; }
+                };
+
+                // Track CTA click — navigates to upload; markUserUploaded() should be
+                // called from the upload success handler on p_upload.html
+                window.markUploadClicked = function () {
+                    closePromoCard();
+                };
+
+                // Close on backdrop click (snooze, not permanent)
+                document.getElementById('promoCardOverlay').addEventListener('click', function (e) {
+                    if (e.target === this) window.snoozePromoCard();
+                });
+
+                document.addEventListener('DOMContentLoaded', function () {
+                    initPromoStrip();
+                    initPromoCard();
+                });
+
+            })();
+        </script>
+
+        <!-- ===== PROFILE NUDGE + NOTIFICATION POPUP LOGIC ===== -->
+        <script>
+        (function () {
+            var NUDGE_SNOOZE_KEY = 'abhihub_profile_nudge_snooze';
+            var NUDGE_NOTIF_DONE_KEY = 'abhihub_notif_nudge_done';
+            var NUDGE_DELAY_MS = 3500;
+
+            function snoozeActive() {
+                var ts = parseInt(localStorage.getItem(NUDGE_SNOOZE_KEY) || '0', 10);
+                return ts && Date.now() < ts;
+            }
+
+            function showNudge(step) {
+                var overlay = document.getElementById('profileNudgeOverlay');
+                var card    = document.getElementById('profileNudgeCard');
+                if (!overlay) return;
+                document.getElementById('nudgeStep1').style.display = step === 1 ? 'block' : 'none';
+                document.getElementById('nudgeStep2').style.display = step === 2 ? 'block' : 'none';
+                overlay.style.display = 'flex';
+                // Trigger animation
+                requestAnimationFrame(function () {
+                    requestAnimationFrame(function () {
+                        card.style.transform = 'translateY(0) scale(1)';
+                    });
+                });
+            }
+
+            window.dismissProfileNudge = function () {
+                var overlay = document.getElementById('profileNudgeOverlay');
+                var card    = document.getElementById('profileNudgeCard');
+                if (!overlay) return;
+                card.style.transform = 'translateY(36px) scale(0.96)';
+                setTimeout(function () { overlay.style.display = 'none'; }, 350);
+                // Snooze for 24 h
+                var tomorrow = Date.now() + 86400000;
+                localStorage.setItem(NUDGE_SNOOZE_KEY, tomorrow.toString());
+            };
+
+            window.nudgeGoToStep2 = function () {
+                document.getElementById('nudgeStep1').style.display = 'none';
+                document.getElementById('nudgeStep2').style.display = 'block';
+            };
+
+            window.nudgeEnableNotifications = async function () {
+                var btn = document.getElementById('nudgeEnableNotifBtn');
+                if (btn) { btn.textContent = 'Enabling…'; btn.disabled = true; }
+                try {
+                    if (window.PushNotifications && window.PushNotifications.isSupported()) {
+                        var result = await window.PushNotifications.subscribe();
+                        if (result.success) {
+                            localStorage.setItem(NUDGE_NOTIF_DONE_KEY, '1');
+                            if (btn) { btn.textContent = '✅ Notifications enabled!'; }
+                            setTimeout(function () { window.dismissProfileNudge(); }, 1200);
+                        } else {
+                            if (btn) {
+                                btn.textContent = result.error === 'Permission denied'
+                                    ? '⚠️ Permission blocked in browser settings'
+                                    : '⚠️ Could not enable — try later';
+                                btn.disabled = false;
+                            }
+                        }
+                    } else {
+                        if (btn) { btn.textContent = '⚠️ Not supported on this browser'; btn.disabled = false; }
+                    }
+                } catch (e) {
+                    console.error('[NudgeNotif]', e);
+                    if (btn) { btn.textContent = '⚠️ Error — try again'; btn.disabled = false; }
+                }
+            };
+
+            // Close on backdrop click
+            var overlay = document.getElementById('profileNudgeOverlay');
+            if (overlay) {
+                overlay.addEventListener('click', function (e) {
+                    if (e.target === overlay) window.dismissProfileNudge();
+                });
+            }
+
+            async function maybeShowNudge() {
+                if (snoozeActive()) return;
+
+                // --- Check push notification status ---
+                var notifDone = localStorage.getItem(NUDGE_NOTIF_DONE_KEY) === '1';
+                var notifBlocked = false;
+                if (!notifDone && window.PushNotifications && window.PushNotifications.isSupported()) {
+                    try {
+                        var status = await window.PushNotifications.init();
+                        // Already subscribed → mark done
+                        if (status.subscribed) {
+                            localStorage.setItem(NUDGE_NOTIF_DONE_KEY, '1');
+                            notifDone = true;
+                        }
+                        // Permission explicitly denied → treat as blocked (can't ask again)
+                        if (status.permission === 'denied') notifBlocked = true;
+                    } catch (e) { /* ignore */ }
+                } else if (!window.PushNotifications || !window.PushNotifications.isSupported()) {
+                    notifDone = true; // not supported — skip notification step
+                }
+
+                // --- Check profile completion via API ---
+                try {
+                    var resp = await fetch('/api/check-profile');
+                    if (!resp.ok) throw new Error('not ok');
+                    var json = await resp.json();
+                    var profileComplete = json.profile_completed === true;
+
+                    // Calculate rough progress for the bar
+                    // (profile table fields we know about: name, email, college, dept, role)
+                    // We derive it from what's in the profile page — for now use binary 30% / 100%
+                    var pct = profileComplete ? 100 : 30;
+                    var bar = document.getElementById('nudgeProgressBar');
+                    var pctEl = document.getElementById('nudgeProgressPct');
+                    if (bar) bar.style.width = pct + '%';
+                    if (pctEl) pctEl.textContent = pct + '%';
+
+                    if (!profileComplete) {
+                        showNudge(1); // show profile step first
+                    } else if (!notifDone && !notifBlocked) {
+                        showNudge(2); // profile done, but notifications not enabled
+                    }
+                    // else everything done — don't show
+                } catch (e) {
+                    // If API fails (e.g. not logged in), still check notification
+                    if (!notifDone && !notifBlocked) showNudge(2);
+                }
+            }
+
+            document.addEventListener('DOMContentLoaded', function () {
+                // Wait a bit after page load so it doesn't feel intrusive
+                setTimeout(maybeShowNudge, NUDGE_DELAY_MS);
+            });
+        })();
+        </script>
+
+
+        <!-- Security Module -->
+        <script src="{{ url_for('static', filename='js/security.js') }}"></script>
+    </body>
+
+</html>

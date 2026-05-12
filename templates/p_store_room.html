@@ -1,0 +1,441 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+<head>
+    <link rel="stylesheet" href="{{ url_for('static', filename='premium/css/style.css', v='2.0.1')}}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/abhihub-theme.css', v='2.0.1') }}">
+    <script src="{{ url_for('static', filename='premium/js/interactions.js', v='2.0.1') }}"></script>
+</head>
+
+<!-- Header Hero -->
+<div class="store-header-bg">
+    <div class="store-room-container">
+        <h1 class="page-title">📦 Store Room</h1>
+        <p class="page-subtitle">Organize and label your unsorted papers with ease.</p>
+    </div>
+</div>
+
+<div class="store-room-container fade-in">
+    <!-- Stats Section -->
+    <div class="stats-container">
+        <div class="stat-card total">
+            <div class="stat-number" id="totalCount">{{ total_papers }}</div>
+            <div class="stat-label">Total Files</div>
+        </div>
+        <div class="stat-card sorted">
+            <div class="stat-number" id="sortedCount">{{ sorted_papers }}</div>
+            <div class="stat-label">Sorted</div>
+        </div>
+        <div class="stat-card remaining">
+            <div class="stat-number" id="remainingCount">{{ remaining_papers }}</div>
+            <div class="stat-label">Pending</div>
+        </div>
+    </div>
+
+    <!-- Controls & Search -->
+    <div class="controls-container delay-100">
+        <div class="search-box">
+            <svg class="search-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <circle cx="11" cy="11" r="8"></circle>
+                <path d="M21 21l-4.35-4.35"></path>
+            </svg>
+            <input type="text" id="storeRoomSearchInput" placeholder="Search files by name, format, or folder..." />
+        </div>
+        <div class="filters-row">
+            <select class="control-select" id="sortSelect">
+                <option value="date">📅 Newest First</option>
+                <option value="name">🔤 Name A-Z</option>
+                <option value="size">📊 Size</option>
+            </select>
+            <select class="control-select" id="verificationFilter">
+                <option value="">All Status</option>
+                <option value="pending">⏳ Pending Verification</option>
+                <option value="verified">✅ Verified</option>
+            </select>
+            <select class="control-select" id="formatFilter">
+                <option value="">All Formats</option>
+                {% for format in formats %}
+                <option value="{{ format }}">{{ format|upper }}</option>
+                {% endfor %}
+            </select>
+        </div>
+    </div>
+
+    <!-- File Grid -->
+    <div class="files-grid delay-200" id="filesGrid">
+        {% if files %}
+        {% for file in files %}
+        <div class="file-card fade-in" data-file='{{ file|tojson|safe }}'>
+            {% if file.get('verified') %}
+            <div class="label-badge">Verified</div>
+            {% endif %}
+
+            <div class="file-icon-wrapper">
+                {% if file.format == 'pdf' or file.filename.endswith('.pdf') %}
+                <img src="/static/premium/icon/notes.gif" class="file-icon" alt="PDF">
+                {% else %}
+                <img src="/static/premium/icon/practicals.gif" class="file-icon" alt="Image">
+                {% endif %}
+            </div>
+
+            <div class="file-name" title="{{ file.filename }}">{{ file.filename }}</div>
+            <div class="file-meta">
+                <span>{{ file.format|upper }}</span>
+                <span>•</span>
+                <span>{{ file.size }}</span>
+            </div>
+            <div class="file-meta" style="margin-top: 4px; font-size: 0.7rem;">
+                {{ file.created_at[:10] if file.created_at else 'Recent' }}
+            </div>
+
+            {% if file.get('record_id') %}
+            <div class="file-card-footer"
+                style="display: flex; justify-content: space-around; padding-top: 10px; margin-top: 10px; border-top: 1px solid #eee;"
+                onclick="event.stopPropagation();">
+                <!-- Like button -->
+                <button class="action-btn like-btn {{ 'liked' if file.get('is_liked') else '' }}"
+                    style="background:none; border:none; cursor:pointer;"
+                    onclick="toggleLike(event, '{{ file.record_id }}')">
+                    <i class="fas fa-heart" style="color: {{ '#ef4444' if file.get('is_liked') else '#94a3b8' }};"></i>
+                    <span class="like-count" style="font-size: 0.8rem; margin-left: 4px;">{{ file.get('like_count') if
+                        file.get('like_count', 0) > 0 else '' }}</span>
+                </button>
+
+                <!-- Comment button -->
+                <button class="action-btn comment-btn" style="background:none; border:none; cursor:pointer;"
+                    onclick="openComments(event, '{{ file.record_id }}')">
+                    <i class="fas fa-comment" style="color: #94a3b8;"></i>
+                    <span class="comment-count" style="font-size: 0.8rem; margin-left: 4px;">{{
+                        file.get('comment_count') if file.get('comment_count', 0) > 0 else '' }}</span>
+                </button>
+
+                <!-- Bookmark button -->
+                <button class="action-btn bookmark-btn {{ 'bookmarked' if file.get('is_bookmarked') else '' }}"
+                    style="background:none; border:none; cursor:pointer;"
+                    onclick="toggleBookmark(event, '{{ file.record_id }}')">
+                    <i class="fas fa-bookmark"
+                        style="color: {{ '#3b82f6' if file.get('is_bookmarked') else '#94a3b8' }};"></i>
+                </button>
+            </div>
+            {% endif %}
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+            <div class="empty-icon">📂</div>
+            <h3 class="empty-title">No Unsorted Files</h3>
+            <p class="empty-text">Everything is organized! Upload more files to get started.</p>
+            <a href="{{ url_for('upload') }}" class="upload-btn">Upload Files</a>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Load More -->
+    <div class="view-more-container" id="viewMoreContainer" style="text-align: center; margin-bottom: 4rem;">
+        <button class="view-more-btn" id="viewMoreBtn" onclick="loadMoreFiles()"
+            style="background: white; border: 1px solid var(--color-gray-300); padding: 0.75rem 2rem; border-radius: 2rem; cursor: pointer; color: var(--color-gray-600); font-weight: 600;">
+            Load More Files
+        </button>
+    </div>
+</div>
+
+<!-- Modern Labeling UI Overlay -->
+<div class="labeling-view" id="labelingView" data-dirty="false">
+    <!-- Image Panel -->
+    <div class="image-panel">
+        <div class="image-panel-header">
+            <button class="close-btn" onclick="closeLabelingView()">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div class="file-info-badge" id="fileInfoBadge">filename.pdf</div>
+        </div>
+
+        <div class="image-container" id="imageContainer">
+            <img id="previewImg" class="preview-img" src="" alt="Document preview" />
+            <iframe id="previewFrame" class="preview-img" style="display: none; background: white;"
+                frameborder="0"></iframe>
+        </div>
+
+        <div class="image-controls">
+            <button class="img-ctrl-btn" onclick="resetView()" title="Reset View">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
+                    <path d="M3 3v5h5"></path>
+                </svg>
+            </button>
+            <div class="divider" style="width: 1px; height: 24px; background: rgba(255,255,255,0.2); margin: 0 4px;">
+            </div>
+            <button class="img-ctrl-btn" onclick="zoomOut()" title="Zoom Out">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+            </button>
+            <button class="img-ctrl-btn" onclick="zoomIn()" title="Zoom In">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="11" y1="8" x2="11" y2="14"></line>
+                    <line x1="8" y1="11" x2="14" y2="11"></line>
+                </svg>
+            </button>
+            <button class="img-ctrl-btn" onclick="rotateImage()" title="Rotate">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path>
+                </svg>
+            </button>
+            <div class="divider" style="width: 1px; height: 24px; background: rgba(255,255,255,0.2); margin: 0 4px;">
+            </div>
+            <button class="img-ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen" id="fullscreenBtn">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path
+                        d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
+                    </path>
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <!-- Form Panel -->
+    <div class="form-panel" id="formPanel">
+        <div class="form-panel-header" id="drawerHandle">
+            <div class="drawer-indicator">
+            </div>
+            <button class="drawer-toggle-btn" onclick="toggleDrawer()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="18 15 12 9 6 15"></polyline>
+                </svg>
+            </button>
+            <div style="margin-top: 10px;">
+                <h2 class="form-title">Label Paper</h2>
+                <p class="form-subtitle">Fill details to organize this file</p>
+            </div>
+            <div class="nav-buttons-container">
+                <button class="nav-btn" id="prevBtn" onclick="navigateFile(-1)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
+                </button>
+                <span class="nav-counter" id="navCounter">1 / 10</span>
+                <button class="nav-btn" id="nextBtn" onclick="navigateFile(1)">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
+                </button>
+            </div>
+        </div>
+
+        <div class="form-panel-content">
+            <form id="labelForm">
+                <!-- Section 1: Basic Identity -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <span class="section-title">Document Identity</span>
+                    </div>
+
+                    <div class="form-group full">
+                        <label class="form-label">Document Title</label>
+                        <div class="form-input-container">
+                            <input type="text" class="form-input" id="documentTitle"
+                                placeholder="Give this file a clear name">
+                        </div>
+                    </div>
+
+                    <div class="form-group full" style="margin-top: 1.25rem;">
+                        <label class="form-label">Category</label>
+                        <div class="category-grid">
+                            <label class="category-chip">
+                                <input type="radio" name="documentCategory" value="papers" checked>
+                                <i class="fas fa-file-contract"></i>
+                                <span>Papers</span>
+                            </label>
+                            <label class="category-chip">
+                                <input type="radio" name="documentCategory" value="notes">
+                                <i class="fas fa-notes-medical"></i>
+                                <span>Notes</span>
+                            </label>
+                            <label class="category-chip">
+                                <input type="radio" name="documentCategory" value="practical">
+                                <i class="fas fa-flask"></i>
+                                <span>Practical</span>
+                            </label>
+                            <label class="category-chip">
+                                <input type="radio" name="documentCategory" value="syllabus">
+                                <i class="fas fa-list-ul"></i>
+                                <span>Syllabus</span>
+                            </label>
+                            <label class="category-chip">
+                                <input type="radio" name="documentCategory" value="assisment">
+                                <i class="fas fa-tasks"></i>
+                                <span>Assesment</span>
+                            </label>
+                            <label class="category-chip">
+                                <input type="radio" name="documentCategory" value="timetable">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>Timetable</span>
+                            </label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 2: Academic Context -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                            <path d="M6 12.5V16a6 6 0 0 0 12 0v-3.5"></path>
+                        </svg>
+                        <span class="section-title">Academic Details</span>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group full">
+                            <label class="form-label">College Name <span style="color:red">*</span></label>
+                            <select class="form-input" id="collegeName" required>
+                                <option value="">Select College...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group full">
+                            <label class="form-label">Branch <span style="color:red">*</span></label>
+                            <select class="form-input" id="branch" required>
+                                <option value="">Select Branch...</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Year <span style="color:red">*</span></label>
+                            <input type="number" class="form-input" id="year" placeholder="2024" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label">Exam Type</label>
+                            <select class="form-input" id="examType">
+                                <option value="">Select Exam</option>
+                                <option value="summer">Summer</option>
+                                <option value="winter">Winter</option>
+                                <option value="viva">Viva</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Subject Info -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a4 4 0 0 0-4-4H2z"></path>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a4 4 0 0 1 4-4h6z"></path>
+                        </svg>
+                        <span class="section-title">Subject Information</span>
+                    </div>
+
+                    <div class="form-grid">
+                        <div class="form-group full">
+                            <label class="form-label">Subject Name <span style="color:red">*</span></label>
+                            <input type="text" class="form-input" id="subjectName" placeholder="e.g. Data Structures"
+                                required>
+                        </div>
+
+                        <div class="form-group full">
+                            <label class="form-label">Subject Code</label>
+                            <input type="text" class="form-input" id="subjectCode" placeholder="e.g. CS201">
+                        </div>
+                    </div>
+
+                    <div class="form-group full" style="margin-top: 1rem;">
+                        <label class="form-label">Semesters</label>
+                        <div class="semester-grid">
+                            <label class="semester-chip"><input type="checkbox" name="semester" value="1"> 1</label>
+                            <label class="semester-chip"><input type="checkbox" name="semester" value="2"> 2</label>
+                            <label class="semester-chip"><input type="checkbox" name="semester" value="3"> 3</label>
+                            <label class="semester-chip"><input type="checkbox" name="semester" value="4"> 4</label>
+                            <label class="semester-chip"><input type="checkbox" name="semester" value="5"> 5</label>
+                            <label class="semester-chip"><input type="checkbox" name="semester" value="6"> 6</label>
+                            <label class="semester-chip"><input type="checkbox" name="semester" value="7"> 7</label>
+                            <label class="semester-chip"><input type="checkbox" name="semester" value="8"> 8</label>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 4: Extra Metadata -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        <span class="section-title">Additional Notes</span>
+                    </div>
+
+                    <div class="form-group full">
+                        <textarea class="form-input" id="description"
+                            placeholder="Add any extra details or important notes here..."></textarea>
+                    </div>
+                </div>
+
+            </form>
+        </div>
+
+        <div class="sticky-save-container">
+            <div class="remember-toggle-wrapper" title="Remember my inputs for the next file">
+                <div class="toggle-switch" id="rememberToggle" role="switch" aria-checked="false" tabindex="0"></div>
+                <span class="toggle-label">Remember</span>
+            </div>
+            <button type="button" class="save-btn" id="saveBtn" onclick="handleSave()">
+                ✅ Save & Organize
+            </button>
+        </div>
+    </div>
+</div>
+
+
+<!-- Scripts -->
+<script src="{{ url_for('static', filename='js/file-history-tracker.js') }}"></script>
+<script src="{{ url_for('static', filename='premium/js/store_room.js') }}"></script>
+<script src="{{ url_for('static', filename='premium/js/verification.js') }}"></script>
+<script>
+    // Include necessary JS logic for the labeling view UI if not already in store_room.js
+    // This script block ensures the new visual elements work as expected with the existing logic
+
+    // Zoom logic for new buttons
+    let currentZoom = 1;
+    let currentRotation = 0;
+
+    function zoomIn() {
+        currentZoom += 0.2;
+        updateTransform();
+    }
+
+    function zoomOut() {
+        if (currentZoom > 0.4) currentZoom -= 0.2;
+        updateTransform();
+    }
+
+    function rotateImage() {
+        currentRotation = (currentRotation + 90) % 360;
+        updateTransform();
+    }
+
+    function updateTransform() {
+        const img = document.getElementById('previewImg');
+        if (img) img.style.transform = `scale(${currentZoom}) rotate(${currentRotation}deg)`;
+    }
+
+    function closeLabelingView() {
+        document.getElementById('labelingView').classList.remove('active');
+    }
+</script>
+
+{% endblock %}

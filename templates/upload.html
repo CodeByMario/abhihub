@@ -1,0 +1,1195 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+<style>
+  :root {
+    /* Core colors */
+    --dark-color: #2D336B;
+    --medium-color: #7886C7;
+    --background-color: #FFF2F2;
+    --light-color: #A9B5DF;
+    --accent-color: #FF6B6B;
+    --text-color: #333333;
+    --shadow-color: rgba(45, 51, 107, 0.2);
+    --success-color: #28a745;
+    --error-color: #dc3545;
+
+    /* Spacing variables */
+    --spacing-xs: 0.25rem;
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --spacing-xl: 2rem;
+
+    /* Transitions */
+    --transition-fast: 0.2s ease;
+    --transition-medium: 0.3s ease;
+
+    /* Border radius */
+    --border-radius-sm: 5px;
+    --border-radius-md: 10px;
+    --border-radius-lg: 20px;
+  }
+
+  * {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+  }
+
+  body {
+    font-family: "Kanit", serif;
+    background-color: var(--background-color);
+    color: var(--text-color);
+    min-height: 100vh;
+    line-height: 1.6;
+  }
+
+  .upload-container {
+    max-width: 600px;
+    margin: var(--spacing-xl) auto;
+    padding: var(--spacing-md);
+  }
+
+  .upload-header {
+    text-align: center;
+    margin-bottom: var(--spacing-xl);
+    padding: var(--spacing-lg);
+    background: linear-gradient(135deg, var(--medium-color) 0%, var(--light-color) 100%);
+    border-radius: var(--border-radius-lg);
+    color: var(--dark-color);
+  }
+
+  .upload-header h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .upload-header p {
+    font-size: 1rem;
+    font-weight: 500;
+    opacity: 0.95;
+    color: white;
+  }
+
+  .upload-info-banner {
+    text-align: center;
+    padding: var(--spacing-md);
+    background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+    border-radius: var(--border-radius-md);
+    color: white;
+    margin-bottom: var(--spacing-lg);
+    box-shadow: 0 4px 8px rgba(16, 185, 129, 0.2);
+  }
+
+  .upload-info-banner p {
+    margin: 0;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .upload-info-banner strong {
+    font-weight: 700;
+  }
+
+  .upload-form {
+    background-color: white;
+    padding: var(--spacing-xl);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 4px 6px var(--shadow-color);
+    border: 1px solid var(--light-color);
+  }
+
+  .form-group {
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: 600;
+    color: var(--dark-color);
+    margin-bottom: var(--spacing-sm);
+    font-size: 0.95rem;
+  }
+
+  .file-input-wrapper {
+    position: relative;
+    display: inline-block;
+    width: 100%;
+  }
+
+  .file-input-custom {
+    display: none;
+  }
+
+  .file-input-label {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-xl);
+    border: 3px dashed var(--medium-color);
+    border-radius: var(--border-radius-lg);
+    background: linear-gradient(135deg, rgba(169, 181, 223, 0.1) 0%, rgba(120, 134, 199, 0.05) 100%);
+    color: var(--dark-color);
+    cursor: pointer;
+    transition: all var(--transition-medium);
+    font-weight: 600;
+    font-size: 1.1rem;
+    min-height: 120px;
+  }
+
+  .file-input-label:hover {
+    border-color: var(--accent-color);
+    background: linear-gradient(135deg, rgba(255, 107, 107, 0.1) 0%, rgba(229, 90, 90, 0.05) 100%);
+    color: var(--accent-color);
+    transform: scale(1.02);
+    box-shadow: 0 6px 20px rgba(255, 107, 107, 0.2);
+  }
+
+  .file-input-label.dragover {
+    border-color: var(--success-color);
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.15) 0%, rgba(40, 167, 69, 0.05) 100%);
+    color: var(--success-color);
+    transform: scale(1.05);
+    box-shadow: 0 8px 24px rgba(40, 167, 69, 0.3);
+  }
+
+  .file-input-label.has-file {
+    border-color: var(--success-color);
+    border-style: solid;
+    background: linear-gradient(135deg, rgba(40, 167, 69, 0.1) 0%, rgba(40, 167, 69, 0.05) 100%);
+    color: var(--success-color);
+  }
+
+  .file-icon {
+    font-size: 1.2rem;
+    margin-right: var(--spacing-sm);
+  }
+
+  /* Upload Status Indicator */
+  .upload-status {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    background: white;
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 4px 12px var(--shadow-color);
+    padding: var(--spacing-md);
+    z-index: 1001;
+    min-width: 280px;
+    transform: translateX(100%);
+    transition: transform var(--transition-medium);
+    border-left: 4px solid var(--accent-color);
+  }
+
+  .upload-status.show {
+    transform: translateX(0);
+  }
+
+  .upload-status.success {
+    border-left-color: var(--success-color);
+  }
+
+  .upload-status.error {
+    border-left-color: var(--error-color);
+  }
+
+  .status-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .status-title {
+    font-weight: 600;
+    color: var(--dark-color);
+    font-size: 0.9rem;
+  }
+
+  .status-close {
+    background: none;
+    border: none;
+    color: var(--text-color);
+    cursor: pointer;
+    font-size: 1.2rem;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .status-progress {
+    width: 100%;
+    height: 6px;
+    background-color: var(--light-color);
+    border-radius: 3px;
+    overflow: hidden;
+    margin-bottom: var(--spacing-sm);
+  }
+
+  .status-progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--accent-color) 0%, var(--medium-color) 100%);
+    width: 0%;
+    transition: width 0.2s ease-out;
+  }
+
+  .status-text {
+    font-size: 0.8rem;
+    color: var(--text-color);
+    margin: 0;
+  }
+
+  /* File Preview Improvements */
+  .file-selected {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-sm);
+    background-color: rgba(40, 167, 69, 0.1);
+    border: 1px solid var(--success-color);
+    border-radius: var(--border-radius-sm);
+    margin-top: var(--spacing-sm);
+  }
+
+  .file-selected .file-info {
+    flex: 1;
+    margin-left: var(--spacing-sm);
+  }
+
+  .file-selected .file-name {
+    font-weight: 500;
+    color: var(--success-color);
+    font-size: 0.9rem;
+  }
+
+  .file-selected .file-size {
+    font-size: 0.8rem;
+    color: var(--text-color);
+    opacity: 0.8;
+  }
+
+  .remove-file {
+    background: none;
+    border: none;
+    color: var(--error-color);
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    border-radius: 50%;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .remove-file:hover {
+    background-color: rgba(220, 53, 69, 0.1);
+  }
+
+  .form-control {
+    width: 100%;
+    padding: var(--spacing-sm) var(--spacing-md);
+    border: 1px solid var(--light-color);
+    border-radius: var(--border-radius-sm);
+    font-size: 0.95rem;
+    font-family: "Kanit", serif;
+    transition: border-color var(--transition-fast);
+    background-color: white;
+  }
+
+  .form-control:focus {
+    outline: none;
+    border-color: var(--medium-color);
+    box-shadow: 0 0 0 2px rgba(120, 134, 199, 0.2);
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: var(--spacing-md);
+  }
+
+  .conditional-field {
+    transition: all var(--transition-medium);
+  }
+
+  .submit-btn {
+    width: 100%;
+    padding: var(--spacing-lg) var(--spacing-xl);
+    background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+    color: white;
+    border: none;
+    border-radius: var(--border-radius-lg);
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-family: "Kanit", serif;
+    cursor: pointer;
+    transition: all var(--transition-medium);
+    margin-top: var(--spacing-lg);
+    box-shadow: 0 4px 16px rgba(37, 99, 235, 0.3);
+    letter-spacing: 0.5px;
+  }
+
+  .submit-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.4);
+    background: linear-gradient(135deg, #1d4ed8 0%, #1e40af 100%);
+  }
+
+  .submit-btn:active {
+    transform: translateY(-1px);
+  }
+
+  .submit-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .progress-container {
+    margin-top: var(--spacing-lg);
+    display: none;
+  }
+
+  .progress-bar {
+    width: 100%;
+    height: 8px;
+    background-color: var(--light-color);
+    border-radius: var(--border-radius-sm);
+    overflow: hidden;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--medium-color) 0%, var(--accent-color) 100%);
+    width: 0%;
+    transition: width 0.2s ease-out;
+  }
+
+  .progress-text {
+    text-align: center;
+    margin-top: var(--spacing-sm);
+    font-size: 0.9rem;
+    color: var(--text-color);
+    font-weight: 500;
+  }
+
+  .file-preview {
+    margin-top: var(--spacing-lg);
+    text-align: center;
+  }
+
+  .preview-image {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: var(--border-radius-md);
+    box-shadow: 0 4px 6px var(--shadow-color);
+  }
+
+  /* Popup styles */
+  .popup-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 99999;
+    backdrop-filter: blur(2px);
+  }
+
+  .popup-overlay.show {
+    display: flex !important;
+  }
+
+  .popup {
+    background: white;
+    padding: 2rem;
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.4);
+    text-align: center;
+    max-width: 420px;
+    width: 90%;
+    margin: 20px;
+    transform: scale(0.8);
+    transition: transform 0.3s ease;
+    position: relative;
+    z-index: 100000;
+  }
+
+  .popup-overlay.show .popup {
+    transform: scale(1);
+  }
+
+  .popup h3 {
+    color: var(--dark-color);
+    margin-bottom: var(--spacing-md);
+    font-weight: 600;
+  }
+
+  .popup p {
+    color: var(--text-color);
+    margin-bottom: var(--spacing-lg);
+  }
+
+  .popup-btn {
+    padding: var(--spacing-sm) var(--spacing-lg);
+    border: none;
+    border-radius: var(--border-radius-sm);
+    font-family: "Kanit", serif;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+  }
+
+  .popup-btn.success {
+    background-color: var(--success-color);
+    color: white;
+  }
+
+  .popup-btn.error {
+    background-color: var(--error-color);
+    color: white;
+  }
+
+  .popup-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  /* Responsive design */
+  @media (max-width: 768px) {
+    .upload-container {
+      margin: var(--spacing-md) auto;
+      padding: var(--spacing-sm);
+    }
+
+    .upload-form {
+      padding: var(--spacing-lg);
+    }
+
+    .upload-header h1 {
+      font-size: 1.5rem;
+    }
+
+    .form-row {
+      grid-template-columns: 1fr;
+      gap: var(--spacing-sm);
+    }
+
+    .file-input-label {
+      padding: var(--spacing-md);
+    }
+
+    .upload-status {
+      top: 10px;
+      right: 10px;
+      left: 10px;
+      min-width: auto;
+      transform: translateY(-100%);
+    }
+
+    .upload-status.show {
+      transform: translateY(0);
+    }
+
+    .file-selected {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--spacing-xs);
+    }
+
+    .file-selected .remove-file {
+      align-self: flex-end;
+      margin-top: -24px;
+    }
+  }
+
+  @media (max-width: 480px) {
+    .upload-header {
+      padding: var(--spacing-md);
+    }
+
+    .upload-header h1 {
+      font-size: 1.3rem;
+    }
+
+    .upload-form {
+      padding: var(--spacing-md);
+    }
+
+    .popup {
+      padding: var(--spacing-lg);
+      width: 95%;
+    }
+  }
+
+  /* Font weight classes */
+  .kanit-medium {
+    font-weight: 500;
+  }
+
+  .kanit-semibold {
+    font-weight: 600;
+  }
+
+  .kanit-bold {
+    font-weight: 700;
+  }
+</style>
+
+{% include 'google_tag.html' %}
+</head>
+<main>
+
+  <div class="upload-container">
+    <!-- Header Section -->
+    <div class="upload-header">
+      <h1 class="kanit-bold">Share Your Knowledge</h1>
+      <p class="kanit-medium">Upload your study materials and help the community grow!</p>
+    </div>
+
+    <!-- Upload Info Banner -->
+    <div class="upload-info-banner">
+      <p>✨ <strong>Auto-Compression Enabled:</strong> Images are automatically compressed for faster sharing. All files
+        securely stored on Cloudinary.</p>
+    </div>
+
+    <!-- Upload Form -->
+    <form class="upload-form" action="/upload" method="post" enctype="multipart/form-data"
+      onsubmit="showProgressBar(event)">
+      <!-- File Upload -->
+      <div class="form-group">
+        <label for="upload_document" class="kanit-semibold">Choose File</label>
+        <div class="file-input-wrapper">
+          <input type="file" name="upload_document" id="upload_document" class="file-input-custom" required
+            onchange="previewFile()">
+          <label for="upload_document" class="file-input-label" id="file-label">
+            <span class="file-icon">📁</span>
+            <span>Click to select file or drag & drop</span>
+          </label>
+        </div>
+        <div id="file-selected" class="file-selected" style="display: none;">
+          <span class="file-icon">📄</span>
+          <div class="file-info">
+            <div class="file-name" id="selected-file-name"></div>
+            <div class="file-size" id="selected-file-size"></div>
+          </div>
+          <button type="button" class="remove-file" onclick="removeFile()">×</button>
+        </div>
+      </div>
+
+      <!-- Year and Document Type Row -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="Year" class="kanit-semibold">Year</label>
+          <select name="Year" id="Year" class="form-control" required>
+            <option value="2022">2022</option>
+            <option value="2023">2023</option>
+            <option value="2024">2024</option>
+            <option value="2025">2025</option>
+            <option value="2026" selected>2026</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="document_type" class="kanit-semibold">Document Type</label>
+          <select name="document_type" id="document_type" class="form-control" required onchange="updateUnitOptions()">
+            <option value="Notes">Notes</option>
+            <option value="PYQ">PYQ</option>
+            <option value="Imp">Important</option>
+            <option value="Timetable">Timetable</option>
+            <option value="Announcement">Announcement</option>
+            <option value="Practical">Practical</option>
+            <option value="Other">Other</option>
+          </select>
+          <!-- Hidden field for backward compatibility -->
+          <input type="hidden" name="type" id="type" value="">
+        </div>
+      </div>
+
+      <!-- College and Branch Row -->
+      <div class="form-row">
+        <div class="form-group">
+          <label for="college_id" class="kanit-semibold">College</label>
+          <select name="college_id" id="college_id" class="form-control" required>
+            <option value="">Loading...</option>
+          </select>
+        </div>
+
+        <div class="form-group">
+          <label for="branch_id" class="kanit-semibold">Branch</label>
+          <select name="branch_id" id="branch_id" class="form-control" required>
+            <option value="">Loading...</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Unit Selection -->
+      <div id="unit-container" class="form-group conditional-field">
+        <label for="unit" class="kanit-semibold">Unit</label>
+        <select name="unit" id="unit" class="form-control" required>
+          <option value="U1">U1</option>
+          <option value="U2">U2</option>
+          <option value="U3">U3</option>
+          <option value="U4">U4</option>
+          <option value="U5">U5</option>
+        </select>
+      </div>
+
+      <!-- Practical Options -->
+      <div id="practical-container" class="conditional-field" style="display: none;">
+        <div class="form-row">
+          <div class="form-group">
+            <label for="practical" class="kanit-semibold">Practical</label>
+            <select name="practical" id="practical" class="form-control">
+              <option value="Practical 1">Practical 1</option>
+              <option value="Practical 2">Practical 2</option>
+              <option value="Practical 3">Practical 3</option>
+              <option value="Practical 4">Practical 4</option>
+              <option value="Practical 5">Practical 5</option>
+              <option value="Practical 6">Practical 6</option>
+              <option value="Practical 7">Practical 7</option>
+              <option value="Practical 8">Practical 8</option>
+              <option value="Practical 9">Practical 9</option>
+              <option value="Practical 10">Practical 10</option>
+              <option value="Practical 11">Practical 11</option>
+              <option value="Practical 12">Practical 12</option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label for="practical-type" class="kanit-semibold">Practical Type</label>
+            <select name="practical-type" id="practical-type" class="form-control">
+              <option value="Writeup">Writeup</option>
+              <option value="Output">Output</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Subject -->
+      <div class="form-group">
+        <label for="subject" class="kanit-semibold">Subject Name</label>
+        <input type="text" name="subject" id="subject" class="form-control"
+          placeholder="e.g., Machine Learning, Database Management, etc." required>
+      </div> <!-- Submit Button -->
+      <button type="submit" class="submit-btn kanit-semibold" id="submit-btn">
+        📤 Upload File
+      </button>
+
+      <!-- Progress Bar -->
+      <div class="progress-container" id="progress-container">
+        <div class="progress-bar">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div class="progress-text" id="progress-text">Preparing upload...</div>
+      </div>
+
+      <!-- File Preview -->
+      <div class="file-preview" id="file-preview-container" style="display: none;">
+        <img id="file-preview" class="preview-image" src="#" alt="File Preview">
+      </div>
+    </form>
+  </div>
+
+  <!-- Upload Status Notification -->
+  <div class="upload-status" id="upload-status">
+    <div class="status-header">
+      <span class="status-title" id="status-title">Uploading file...</span>
+      <button class="status-close" onclick="hideUploadStatus()">×</button>
+    </div>
+    <div class="status-progress">
+      <div class="status-progress-fill" id="status-progress-fill"></div>
+    </div>
+    <p class="status-text" id="status-text">Preparing upload...</p>
+  </div> <!-- Success Popup -->
+  <div class="popup-overlay" id="success-popup" onclick="closePopupOnOverlay(event, 'success-popup')">
+    <div class="popup" onclick="event.stopPropagation()">
+      <h3 class="kanit-semibold">🎉 Upload Complete!</h3>
+      <p class="kanit-medium">Your file has been successfully uploaded and shared with the community.</p>
+      <button class="popup-btn success kanit-semibold" onclick="closePopup('success-popup')">Awesome!</button>
+    </div>
+  </div>
+
+  <!-- Error Popup -->
+  <div class="popup-overlay" id="fail-popup" onclick="closePopupOnOverlay(event, 'fail-popup')">
+    <div class="popup" onclick="event.stopPropagation()">
+      <h3 class="kanit-semibold">❌ Upload Failed</h3>
+      <p class="kanit-medium">Something went wrong. Please check your file and try again.</p>
+      <button class="popup-btn error kanit-semibold" onclick="closePopup('fail-popup')">Try Again</button>
+    </div>
+  </div>
+  <script src="{{ url_for('static', filename='login-auth.js') }}" type="module"></script>
+  <script src="{{ url_for('static', filename='scripts.js') }}" type="module"></script>
+  <script>
+    let fileCache = null;
+    let currentUpload = null;
+
+    function formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes';
+      const k = 1024;
+      const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+      const i = Math.floor(Math.log(bytes) / Math.log(k));
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function previewFile() {
+      const file = document.getElementById('upload_document').files[0];
+      const preview = document.getElementById('file-preview');
+      const previewContainer = document.getElementById('file-preview-container');
+      const fileLabel = document.getElementById('file-label');
+      const fileSelected = document.getElementById('file-selected');
+      const selectedFileName = document.getElementById('selected-file-name');
+      const selectedFileSize = document.getElementById('selected-file-size');
+      const reader = new FileReader();
+
+      if (file) {
+        // Update file selection display
+        selectedFileName.textContent = file.name;
+        selectedFileSize.textContent = formatFileSize(file.size);
+        fileSelected.style.display = 'flex';
+
+        // Update file label
+        fileLabel.innerHTML = `<span class="file-icon">✅</span><span>File selected: ${file.name}</span>`;
+        fileLabel.classList.add('has-file');
+
+        // Handle preview for images
+        if (file.type.startsWith('image/')) {
+          if (fileCache && fileCache.name === file.name) {
+            preview.src = fileCache.src;
+            previewContainer.style.display = 'block';
+            return;
+          }
+
+          reader.addEventListener('load', function () {
+            preview.src = reader.result;
+            previewContainer.style.display = 'block';
+            fileCache = { name: file.name, src: reader.result };
+          }, false);
+
+          reader.readAsDataURL(file);
+        } else {
+          previewContainer.style.display = 'none';
+        }
+      } else {
+        resetFileSelection();
+      }
+    }
+
+    function removeFile() {
+      const fileInput = document.getElementById('upload_document');
+      fileInput.value = '';
+      resetFileSelection();
+    }
+
+    function resetFileSelection() {
+      const fileLabel = document.getElementById('file-label');
+      const fileSelected = document.getElementById('file-selected');
+      const previewContainer = document.getElementById('file-preview-container');
+
+      fileLabel.innerHTML = `<span class="file-icon">📁</span><span>Click to select file or drag & drop</span>`;
+      fileLabel.classList.remove('has-file');
+      fileSelected.style.display = 'none';
+      previewContainer.style.display = 'none';
+    }
+
+    function showUploadStatus(title, text, type = '') {
+      const uploadStatus = document.getElementById('upload-status');
+      const statusTitle = document.getElementById('status-title');
+      const statusText = document.getElementById('status-text');
+
+      statusTitle.textContent = title;
+      statusText.textContent = text;
+
+      uploadStatus.className = 'upload-status show';
+      if (type) {
+        uploadStatus.classList.add(type);
+      }
+    }
+
+    function hideUploadStatus() {
+      const uploadStatus = document.getElementById('upload-status');
+      uploadStatus.classList.remove('show', 'success', 'error');
+    }
+
+    function updateUploadProgress(percent, text) {
+      const statusProgressFill = document.getElementById('status-progress-fill');
+      const statusText = document.getElementById('status-text');
+      const progressFill = document.getElementById('progress-fill');
+      const progressText = document.getElementById('progress-text');
+
+      statusProgressFill.style.width = percent + '%';
+      statusText.textContent = text;
+
+      if (progressFill) {
+        progressFill.style.width = percent + '%';
+        progressText.textContent = text;
+      }
+    } function showProgressBar(event) {
+      event.preventDefault();
+      const progressContainer = document.getElementById('progress-container');
+      const submitBtn = document.getElementById('submit-btn');
+      const form = event.target;
+
+      // Show local progress bar
+      progressContainer.style.display = 'block';
+      submitBtn.disabled = true;
+      submitBtn.textContent = 'Uploading...';
+
+      // Show background upload status
+      showUploadStatus('📤 Uploading file...', 'Preparing upload...');
+      updateUploadProgress(0, 'Preparing upload...');
+
+      const formData = new FormData(form);
+      const xhr = new XMLHttpRequest();
+
+      // Store current upload reference
+      currentUpload = xhr;
+
+      // Variables for progress simulation if real progress isn't available
+      let simulatedProgress = 0;
+      let progressInterval = null;
+      let hasRealProgress = false;
+
+      xhr.open('POST', form.action, true);
+
+      // Real upload progress tracking
+      xhr.upload.onloadstart = function () {
+        console.log('Upload started');
+        updateUploadProgress(1, 'Starting upload...');
+      };
+
+      xhr.upload.onprogress = function (event) {
+        if (event.lengthComputable && event.total > 0) {
+          hasRealProgress = true;
+          // Clear any simulation interval if real progress is available
+          if (progressInterval) {
+            clearInterval(progressInterval);
+            progressInterval = null;
+          }
+
+          const percentComplete = Math.round((event.loaded / event.total) * 100);
+          const totalSizeMB = (event.total / (1024 * 1024)).toFixed(2);
+          const uploadedMB = (event.loaded / (1024 * 1024)).toFixed(2);
+
+          let statusText;
+          if (totalSizeMB < 1) {
+            // Show in KB for small files
+            const totalSizeKB = (event.total / 1024).toFixed(0);
+            const uploadedKB = (event.loaded / 1024).toFixed(0);
+            statusText = `${percentComplete}% • ${uploadedKB}/${totalSizeKB} KB`;
+          } else {
+            statusText = `${percentComplete}% • ${uploadedMB}/${totalSizeMB} MB`;
+          }
+
+          updateUploadProgress(percentComplete, statusText);
+          console.log(`Real upload progress: ${percentComplete}%`);
+        } else if (!hasRealProgress && !progressInterval) {
+          // Start simulated progress only if no real progress is detected
+          console.log('Starting simulated progress...');
+          simulatedProgress = 5;
+          updateUploadProgress(simulatedProgress, 'Uploading...');
+
+          progressInterval = setInterval(() => {
+            if (simulatedProgress < 85) {
+              // Increase progress slowly and randomly
+              const increment = Math.random() * 3 + 1; // 1-4% increments
+              simulatedProgress += increment;
+              if (simulatedProgress > 85) simulatedProgress = 85; // Cap at 85%
+
+              updateUploadProgress(Math.round(simulatedProgress), `Uploading... ${Math.round(simulatedProgress)}%`);
+            }
+          }, 800); // Update every 800ms for more realistic feel
+        }
+      };
+
+      xhr.onreadystatechange = function () {
+        if (xhr.readyState === XMLHttpRequest.HEADERS_RECEIVED) {
+          // Headers received, bump progress
+          if (!hasRealProgress && simulatedProgress < 90) {
+            simulatedProgress = 90;
+            updateUploadProgress(90, 'Processing...');
+          }
+        }
+      };
+
+      xhr.onload = function () {
+        currentUpload = null;
+
+        // Clear any intervals
+        if (progressInterval) {
+          clearInterval(progressInterval);
+          progressInterval = null;
+        }
+
+        // Complete the progress
+        updateUploadProgress(100, 'Upload complete!');
+
+        // Wait a moment before hiding progress bar to show completion
+        setTimeout(() => {
+          progressContainer.style.display = 'none';
+          submitBtn.disabled = false;
+          submitBtn.textContent = '📤 Upload File';
+        }, 1000);
+
+        if (xhr.status === 200) {
+          try {
+            const response = JSON.parse(xhr.responseText);
+            if (response.success) {
+              showUploadStatus('🎉 Upload Complete!', 'Your file has been successfully shared with the community.', 'success');
+              showPopup('success-popup');
+              form.reset();
+              resetFileSelection();
+
+              // Auto-hide success status after 5 seconds
+              setTimeout(() => {
+                hideUploadStatus();
+              }, 5000);
+            } else {
+              showUploadStatus('❌ Upload Failed', response.message || 'Something went wrong. Please try again.', 'error');
+              showPopup('fail-popup');
+            }
+          } catch (e) {
+            console.log('Response parsing failed, assuming success');
+            showUploadStatus('🎉 Upload Complete!', 'Your file has been successfully shared with the community.', 'success');
+            showPopup('success-popup');
+            form.reset();
+            resetFileSelection();
+
+            setTimeout(() => {
+              hideUploadStatus();
+            }, 5000);
+          }
+        } else {
+          showUploadStatus('❌ Upload Failed', 'Server error. Please try again later.', 'error');
+          showPopup('fail-popup');
+        }
+      };
+
+      xhr.onerror = function () {
+        currentUpload = null;
+
+        // Clear any intervals
+        if (progressInterval) {
+          clearInterval(progressInterval);
+          progressInterval = null;
+        }
+
+        progressContainer.style.display = 'none';
+        submitBtn.disabled = false;
+        submitBtn.textContent = '📤 Upload File';
+        showUploadStatus('❌ Network Error', 'Check your connection and try again.', 'error');
+        showPopup('fail-popup');
+      };
+
+      xhr.ontimeout = function () {
+        currentUpload = null;
+
+        if (progressInterval) {
+          clearInterval(progressInterval);
+          progressInterval = null;
+        }
+
+        progressContainer.style.display = 'none';
+        submitBtn.disabled = false;
+        submitBtn.textContent = '📤 Upload File';
+        showUploadStatus('❌ Upload Timeout', 'Upload took too long. Please try again.', 'error');
+        showPopup('fail-popup');
+      };
+
+      // Set a reasonable timeout (30 seconds)
+      xhr.timeout = 30000;
+
+      xhr.send(formData);
+    } function showPopup(popupId) {
+      console.log('Showing popup:', popupId);
+      const popup = document.getElementById(popupId);
+      if (popup) {
+        popup.style.display = 'flex';
+        popup.classList.add('show');
+
+        // Ensure popup content is visible
+        const popupContent = popup.querySelector('.popup');
+        if (popupContent) {
+          popupContent.style.display = 'block';
+        }
+
+        console.log('Popup displayed:', popup.style.display);
+        console.log('Popup has show class:', popup.classList.contains('show'));
+      } else {
+        console.error('Popup not found:', popupId);
+      }
+    }
+
+    function closePopup(popupId) {
+      console.log('Closing popup:', popupId);
+      const popup = document.getElementById(popupId);
+      if (popup) {
+        popup.classList.remove('show');
+        setTimeout(() => {
+          popup.style.display = 'none';
+        }, 300);
+      }
+    }
+
+    function closePopupOnOverlay(event, popupId) {
+      if (event.target === event.currentTarget) {
+        closePopup(popupId);
+      }
+    }
+
+    function updateUnitOptions() {
+      const fileType = document.getElementById('document_type').value;
+      const unitContainer = document.getElementById('unit-container');
+      const practicalContainer = document.getElementById('practical-container');
+      const unitSelect = document.getElementById('unit');
+      const typeHidden = document.getElementById('type');
+
+      // Sync hidden type field for backward compatibility
+      typeHidden.value = fileType;
+
+      if (fileType === 'Notes') {
+        unitContainer.style.display = 'block';
+        practicalContainer.style.display = 'none';
+        unitSelect.innerHTML = `
+          <option value="U1">U1</option>
+          <option value="U2">U2</option>
+          <option value="U3">U3</option>
+          <option value="U4">U4</option>
+          <option value="U5">U5</option>
+        `;
+      } else if (fileType === 'PYQ') {
+        unitContainer.style.display = 'block';
+        practicalContainer.style.display = 'none';
+        unitSelect.innerHTML = `
+          <option value="CAE1">CAE1</option>
+          <option value="CAE2">CAE2</option>
+          <option value="CAE3">CAE3</option>
+          <option value="ESE">ESE</option>
+          <option value="ESE2">ESE2 (Back)</option>
+        `;
+      } else if (fileType === 'Practical') {
+        unitContainer.style.display = 'none';
+        practicalContainer.style.display = 'block';
+      } else {
+        unitContainer.style.display = 'none';
+        practicalContainer.style.display = 'none';
+      }
+    }
+
+    // Fetch colleges from API
+    async function fetchColleges() {
+      try {
+        const response = await fetch('/api/colleges');
+        const data = await response.json();
+
+        const collegeSelect = document.getElementById('college_id');
+        collegeSelect.innerHTML = '<option value="">Select College</option>';
+
+        if (data.success && data.colleges) {
+          data.colleges.forEach(college => {
+            const option = document.createElement('option');
+            option.value = college.id;
+            option.textContent = college.name;
+            collegeSelect.appendChild(option);
+          });
+        } else {
+          collegeSelect.innerHTML = '<option value="">Failed to load colleges</option>';
+          console.error('Failed to fetch colleges:', data.message);
+        }
+      } catch (error) {
+        console.error('Error fetching colleges:', error);
+        const collegeSelect = document.getElementById('college_id');
+        collegeSelect.innerHTML = '<option value="">Error loading colleges</option>';
+      }
+    }
+
+    // Fetch branches from API
+    async function fetchBranches() {
+      try {
+        const response = await fetch('/api/branches');
+        const data = await response.json();
+
+        const branchSelect = document.getElementById('branch_id');
+        branchSelect.innerHTML = '<option value="">Select Branch</option>';
+
+        if (data.success && data.branches) {
+          data.branches.forEach(branch => {
+            const option = document.createElement('option');
+            option.value = branch.id;
+            option.textContent = branch.name;
+            branchSelect.appendChild(option);
+          });
+        } else {
+          branchSelect.innerHTML = '<option value="">Failed to load branches</option>';
+          console.error('Failed to fetch branches:', data.message);
+        }
+      } catch (error) {
+        console.error('Error fetching branches:', error);
+        const branchSelect = document.getElementById('branch_id');
+        branchSelect.innerHTML = '<option value="">Error loading branches</option>';
+      }
+    }
+
+    // Handle page navigation during upload
+    window.addEventListener('beforeunload', function (e) {
+      if (currentUpload) {
+        e.preventDefault();
+        e.returnValue = 'Upload is in progress. Are you sure you want to leave?';
+        return e.returnValue;
+      }
+    });    // Initialize on page load
+    document.addEventListener('DOMContentLoaded', function () {
+      updateUnitOptions();
+
+      // Fetch colleges and branches for dropdowns
+      fetchColleges();
+      fetchBranches();
+
+      // Add drag and drop functionality
+      const fileLabel = document.getElementById('file-label');
+
+      fileLabel.addEventListener('dragover', function (e) {
+        e.preventDefault();
+        this.classList.add('dragover');
+      });
+
+      fileLabel.addEventListener('dragleave', function (e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+      });
+
+      fileLabel.addEventListener('drop', function (e) {
+        e.preventDefault();
+        this.classList.remove('dragover');
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+          document.getElementById('upload_document').files = files;
+          previewFile();
+        }
+      });
+
+      // Add keyboard support for closing popups
+      document.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape') {
+          // Close any open popups
+          const openPopups = document.querySelectorAll('.popup-overlay.show');
+          openPopups.forEach(popup => {
+            popup.classList.remove('show');
+            setTimeout(() => {
+              popup.style.display = 'none';
+            }, 300);
+          });
+        }
+      });
+    });
+  </script>
+</main>
+{% endblock %}

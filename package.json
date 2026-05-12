@@ -1,0 +1,12 @@
+{
+    "name": "abhihub",
+    "version": "1.0.0",
+    "description": "AbhiHub - Academic Resources Platform",
+    "scripts": {
+        "build:css": "tailwindcss -i ./static/css/tailwind-input.css -o ./static/css/tailwind.min.css --minify",
+        "watch:css": "tailwindcss -i ./static/css/tailwind-input.css -o ./static/css/tailwind.min.css --watch"
+    },
+    "devDependencies": {
+        "tailwindcss": "^3.4.1"
+    }
+}

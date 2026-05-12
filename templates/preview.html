@@ -1,0 +1,373 @@
+
+{% extends 'p_struct.html' %}
+{% block content %}
+    <style>
+        .preview-container {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+            touch-action: none; /* Prevents browser default touch actions */
+            position: relative; /* For positioning the share button */
+            background: #f5f5f5;
+        }
+        
+        .preview-container picture {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+        
+        .preview-container img {
+            max-width: 100%;
+            object-fit: contain;
+            transform-origin: center; /* Set the transform origin to center */
+            transition: transform 0.1s ease; /* Smooth transition for non-gesture transforms */
+            opacity: 0;
+            animation: fadeIn 0.3s ease forwards;
+        }
+
+        @keyframes fadeIn {
+            to {
+                opacity: 1;
+            }
+        }
+
+        /* Loading spinner styles */
+        .loading-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            z-index: 50;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .loading-spinner {
+            width: 50px;
+            height: 50px;
+            border: 4px solid #e0e0e0;
+            border-top-color: #3b82f6;
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .loading-text {
+            font-size: 14px;
+            color: #666;
+            font-weight: 500;
+        }
+
+        .loading-container.hidden {
+            display: none;
+        }
+        
+        /* For laptops and larger screens */
+        @media (min-width: 992px) {
+            .preview-container img {
+                max-height: 100vh;
+                width: auto;
+            }
+        }
+        
+        /* For mobile devices */
+        @media (max-width: 991px) {
+            .preview-container img {
+                width: 100%;
+                height: auto;
+            }
+        }
+
+        .zoomable {
+            transform-origin: 0 0;
+            will-change: transform; /* Optimize for animations */
+        }
+
+        /* Share button styles */
+        .share-button {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            background-color: rgba(0, 0, 0, 0.6);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            z-index: 100;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            transition: all 0.3s ease;
+        }
+
+        .share-button:hover {
+            background-color: rgba(0, 0, 0, 0.8);
+            transform: scale(1.05);
+        }
+
+        .share-button svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        /* Toast notification for copy link */
+        .toast {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: rgba(0, 0, 0, 0.7);
+            color: white;
+            padding: 10px 20px;
+            border-radius: 20px;
+            font-size: 14px;
+            z-index: 1000;
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .toast.show {
+            opacity: 1;
+        }
+    </style>
+    
+    <div class="preview-container" id="previewContainer">
+        <div class="loading-container" id="loadingContainer">
+            <div class="loading-spinner"></div>
+            <div class="loading-text">Loading image...</div>
+        </div>
+        <picture>
+            <img 
+                src="{{file}}" 
+                alt="{{file}}" 
+                id="previewImage" 
+                class="zoomable"
+                decoding="async"
+                fetchpriority="high">
+        </picture>
+        <button class="share-button" id="shareButton" aria-label="Share">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="18" cy="5" r="3"></circle>
+                <circle cx="6" cy="12" r="3"></circle>
+                <circle cx="18" cy="19" r="3"></circle>
+                <line x1="8.59" y1="13.51" x2="15.42" y2="17.49"></line>
+                <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
+            </svg>
+        </button>
+    </div>
+    
+    <!-- Toast notification for copy feedback -->
+    <div class="toast" id="toast">Link copied to clipboard!</div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const container = document.getElementById('previewContainer');
+            const image = document.getElementById('previewImage');
+            const shareButton = document.getElementById('shareButton');
+            const toast = document.getElementById('toast');
+            const loadingContainer = document.getElementById('loadingContainer');
+            
+            // Hide loading container when image loads
+            image.addEventListener('load', function() {
+                if (loadingContainer) {
+                    loadingContainer.classList.add('hidden');
+                }
+            });
+
+            // Hide loading container on error too
+            image.addEventListener('error', function() {
+                if (loadingContainer) {
+                    loadingContainer.classList.add('hidden');
+                }
+            });
+            
+            // Initial transform values
+            let currentScale = 1;
+            let posX = 0;
+            let posY = 0;
+            let startX = 0;
+            let startY = 0;
+            let lastDistance = 0;
+            let isDragging = false;
+            
+            // Apply transform to the image
+            function updateTransform() {
+                // Limit minimum scale to prevent the image from becoming too small
+                if (currentScale < 0.5) currentScale = 0.5;
+                
+                image.style.transform = `translate(${posX}px, ${posY}px) scale(${currentScale})`;
+            }
+            
+            // Share functionality
+            shareButton.addEventListener('click', function() {
+                const currentUrl = window.location.href;
+                const title = document.title || 'Shared Image';
+                
+                // Use Web Share API if available
+                if (navigator.share) {
+                    navigator.share({
+                        title: title,
+                        url: currentUrl
+                    }).catch(err => {
+                        console.error('Error sharing:', err);
+                        copyToClipboard(currentUrl);
+                    });
+                } else {
+                    // Fallback to clipboard copy
+                    copyToClipboard(currentUrl);
+                }
+            });
+            
+            // Function to copy URL to clipboard
+            function copyToClipboard(text) {
+                // Create a temporary input element
+                const tempInput = document.createElement('input');
+                tempInput.value = text;
+                document.body.appendChild(tempInput);
+                tempInput.select();
+                
+                try {
+                    // Execute copy command
+                    document.execCommand('copy');
+                    showToast();
+                } catch (err) {
+                    console.error('Failed to copy: ', err);
+                    
+                    // Try the newer clipboard API as fallback
+                    if (navigator.clipboard) {
+                        navigator.clipboard.writeText(text)
+                            .then(() => showToast())
+                            .catch(err => console.error('Clipboard API failed: ', err));
+                    }
+                }
+                
+                // Remove the temporary element
+                document.body.removeChild(tempInput);
+            }
+            
+            // Show toast notification
+            function showToast() {
+                toast.classList.add('show');
+                setTimeout(() => {
+                    toast.classList.remove('show');
+                }, 2000);
+            }
+            
+            // Handle touch start
+            container.addEventListener('touchstart', function(e) {
+                // Don't handle events if they originated from the share button
+                if (e.target === shareButton || shareButton.contains(e.target)) {
+                    return;
+                }
+                
+                if (e.touches.length === 2) {
+                    // For pinch gesture - calculate initial distance
+                    const touch1 = e.touches[0];
+                    const touch2 = e.touches[1];
+                    lastDistance = Math.hypot(
+                        touch2.clientX - touch1.clientX,
+                        touch2.clientY - touch1.clientY
+                    );
+                } else if (e.touches.length === 1) {
+                    // For drag gesture
+                    isDragging = true;
+                    startX = e.touches[0].clientX - posX;
+                    startY = e.touches[0].clientY - posY;
+                }
+                
+                e.preventDefault(); // Prevent default browser behavior
+            }, { passive: false });
+            
+            // Handle touch move
+            container.addEventListener('touchmove', function(e) {
+                // Don't handle events if they originated from the share button
+                if (e.target === shareButton || shareButton.contains(e.target)) {
+                    return;
+                }
+                
+                if (e.touches.length === 2 && lastDistance > 0) {
+                    // Pinch to zoom
+                    const touch1 = e.touches[0];
+                    const touch2 = e.touches[1];
+                    const distance = Math.hypot(
+                        touch2.clientX - touch1.clientX,
+                        touch2.clientY - touch1.clientY
+                    );
+                    
+                    // Calculate new scale
+                    const scaleDiff = distance / lastDistance;
+                    currentScale *= scaleDiff;
+                    
+                    // Upper limit to prevent excessive zooming
+                    if (currentScale > 5) currentScale = 5;
+                    
+                    lastDistance = distance;
+                    updateTransform();
+                } else if (e.touches.length === 1 && isDragging) {
+                    // Handle drag when zoomed in
+                    if (currentScale > 1) {
+                        posX = e.touches[0].clientX - startX;
+                        posY = e.touches[0].clientY - startY;
+                        updateTransform();
+                    }
+                }
+                
+                e.preventDefault(); // Prevent default browser behavior
+            }, { passive: false });
+            
+            // Handle touch end
+            container.addEventListener('touchend', function(e) {
+                lastDistance = 0;
+                isDragging = false;
+                
+                // Reset to initial state on double tap
+                if (e.touches.length === 0) {
+                    const now = new Date().getTime();
+                    
+                    if (!this.lastTap || (now - this.lastTap > 500)) {
+                        this.lastTap = now;
+                    } else {
+                        // Double tap detected - reset zoom or zoom to 2x
+                        if (currentScale === 1) {
+                            currentScale = 2;
+                            posX = 0;
+                            posY = 0;
+                        } else {
+                            currentScale = 1;
+                            posX = 0;
+                            posY = 0;
+                        }
+                        updateTransform();
+                        this.lastTap = null;
+                    }
+                }
+            });
+            
+            // Reset zoom on orientation change
+            window.addEventListener('orientationchange', function() {
+                currentScale = 1;
+                posX = 0;
+                posY = 0;
+                updateTransform();
+            });
+        });
+    </script>
+            
+{% endblock %}

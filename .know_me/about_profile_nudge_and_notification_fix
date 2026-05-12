@@ -1,0 +1,112 @@
+
+date: 04-05-2026 19:14 {
+
+    ============================================================================
+    PROFILE COMPLETION NUDGE POPUP + NOTIFICATION BUG FIX
+    ============================================================================
+
+    ============================================================================
+    1. PROFILE COMPLETION + NOTIFICATION POPUP  (#profileNudgeOverlay)
+    ============================================================================
+    Location : templates/p_struct.html  (inherited by ALL premium pages)
+    z-index  : 9500  (above promoCard 9200, below nothing critical)
+    Delay    : 3500ms after DOMContentLoaded
+
+    HOW IT WORKS:
+    - After 3.5s the JS calls /api/check-profile (GET, requires auth)
+    - Simultaneously checks window.PushNotifications.init() for subscription state
+    - Decision logic:
+        • profile_completed === false  →  show Step 1 (Complete Profile)
+        • profile done + notifications not enabled + not blocked  →  show Step 2 (Enable Notifications)
+        • everything done  →  do nothing
+    - Snooze: dismissing stores a 24-hour timestamp in localStorage
+      Key: 'abhihub_profile_nudge_snooze'
+    - Notification done flag: 'abhihub_notif_nudge_done' (set on successful subscribe)
+
+    STEP 1 — Complete Profile:
+        Header : violet→blue gradient + 👤 emoji (bouncing)
+        Body   : animated progress bar (30% if incomplete, 100% if complete)
+                 3 feature bullets (college/dept, year, verified badge)
+        CTA    : "Complete Profile Now 🚀"  →  href="/account"
+        Skip   : "Enable notifications instead →"  →  switches to Step 2
+
+    STEP 2 — Enable Notifications:
+        Header : teal→blue→violet gradient + 🔔 emoji (bouncing)
+        Body   : 3 bullets (new papers, rank alerts, upload approved)
+        CTA    : "Enable Notifications 🔔"  →  calls PushNotifications.subscribe()
+                 Button states: Enabling... / ✅ enabled / ⚠️ error messages
+        Skip   : "Maybe later"  →  dismisses with 24h snooze
+
+    Closes on backdrop click (same 24h snooze).
+
+    GLOBAL FUNCTIONS (window.*):
+        dismissProfileNudge()        — close + 24h snooze
+        nudgeGoToStep2()             — switch from step 1 → step 2
+        nudgeEnableNotifications()   — async; calls PushNotifications.subscribe()
+
+    ============================================================================
+    2. NOTIFICATION BUG FIXES
+    ============================================================================
+
+    BUG 1 — Key mismatch in send_notification / is_user_subscribed
+    ──────────────────────────────────────────────────────────────────
+    File    : push_notifications.py
+    Root cause: get_all_push_subscriptions() returns a dict keyed by USER UUID
+                but send_notification() and is_user_subscribed() were looking up
+                by email string  →  always "User not subscribed".
+
+    Fix:
+        - send_notification(user_id, ...) now expects a UUID (not email)
+        - Subscription info is extracted from sub_data dict correctly
+        - On 410/404 expiry, uses remove_subscription_by_endpoint(endpoint)
+          instead of the broken remove_subscription(user_id) (which expected email)
+        - Default url changed from '/premium' → '/dashboard'
+        - is_user_subscribed() docstring updated to clarify UUID requirement
+
+    BUG 2 — /api/push/status used email, looked up UUID dict
+    ──────────────────────────────────────────────────────────────────
+    File    : push_api.py
+    Root cause: status() route passed email to is_user_subscribed(), which
+                checks presence in UUID-keyed dict → always returns False.
+
+    Fix in status():
+        - Reads user_uid from session['user']['uid'] first
+        - Falls back to Supabase lookup (profiles table) if uid missing
+        - Passes resolved UUID to is_user_subscribed()
+
+    BUG 3 — subscribe() route used email but add_subscription expects email
+    ──────────────────────────────────────────────────────────────────
+    push_api.py subscribe() → calls add_subscription(user_email, subscription)
+    save_push_subscription(user_email, ...) looks up UUID from email internally.
+    This was already correct; variable just renamed for clarity.
+
+    ============================================================================
+    3. API ENDPOINTS INVOLVED
+    ============================================================================
+    GET  /api/check-profile         → returns { profile_completed: bool }
+    GET  /api/push/vapid-public-key → returns { publicKey: str }
+    POST /api/push/subscribe        → body: { subscription: {...} }
+    GET  /api/push/status           → returns { enabled: bool, subscribed: bool }
+    DELETE /api/push/unsubscribe    → unsubscribes current user
+
+    ============================================================================
+    4. DATABASE TABLES USED
+    ============================================================================
+    abhihub.students        — profile_completed (bool)
+    abhihub.push_subscriptions — endpoint, p256dh, auth, user_id (UUID FK)
+    abhihub.profiles        — id (UUID), email
+
+    ============================================================================
+    5. LOCALSTORAGE KEYS
+    ============================================================================
+    abhihub_profile_nudge_snooze   — timestamp; nudge hidden until this time
+    abhihub_notif_nudge_done       — '1' if user has enabled notifications
+
+    ============================================================================
+    6. FILES CHANGED
+    ============================================================================
+    templates/p_struct.html    — HTML + JS for profile nudge popup
+    push_notifications.py      — Fixed send_notification, is_user_subscribed
+    push_api.py                — Fixed subscribe() + status() routes
+
+}
