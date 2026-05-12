@@ -18,7 +18,14 @@ load_dotenv()
 # Initialize Supabase client for authentication
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY, options=ClientOptions(schema="abhihub"))
+supabase = None
+if SUPABASE_URL and SUPABASE_KEY:
+    try:
+        supabase = create_client(SUPABASE_URL, SUPABASE_KEY, options=ClientOptions(schema="abhihub"))
+    except Exception as _e:
+        logging.error(f"Failed to initialize Supabase client: {_e}")
+else:
+    logging.warning("SUPABASE_URL or SUPABASE_KEY not set; Supabase client not initialized")
 
 # Initialize Firebase Admin SDK for storage only
 import firebase_admin
@@ -26,19 +33,35 @@ from firebase_admin import credentials, storage
 
 # Try to load Firebase credentials from environment variable first, fallback to file
 firebase_service_account = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
+cred = None
 if firebase_service_account:
     # Load from environment variable (recommended for production)
-    import json
-    cred_dict = json.loads(firebase_service_account)
-    cred = credentials.Certificate(cred_dict)
+    try:
+        import json as _json
+        cred_dict = _json.loads(firebase_service_account)
+        cred = credentials.Certificate(cred_dict)
+    except Exception as _e:
+        logging.error(f"Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: {_e}")
 else:
     # Fallback to file (for local development only)
     # IMPORTANT: This file should NOT be committed to Git!
-    cred = credentials.Certificate("firebase-auth.json")
+    try:
+        if os.path.exists("firebase-auth.json"):
+            cred = credentials.Certificate("firebase-auth.json")
+        else:
+            logging.warning("firebase-auth.json not found; skipping Firebase init")
+    except Exception as _e:
+        logging.error(f"Failed to load firebase-auth.json: {_e}")
 
-firebase_admin.initialize_app(cred, {
-    'storageBucket': 'abhi-hub.appspot.com'
-})
+if cred:
+    try:
+        firebase_admin.initialize_app(cred, {
+            'storageBucket': 'abhi-hub.appspot.com'
+        })
+    except Exception as _e:
+        logging.error(f"Failed to initialize Firebase Admin SDK: {_e}")
+else:
+    logging.warning("Firebase Admin SDK not initialized; storage features disabled")
 
 # --- Advanced Search helpers (add after imports) ---
 import re
