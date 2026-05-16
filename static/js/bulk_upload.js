@@ -38,10 +38,17 @@ function handleFilesSelected(files) {
     }
     if (file.size > 50*1024*1024) return showToast(file.name + ': exceeds 50 MB', 'error');
 
-    selectedFiles.push({
+    const newItem = {
       id: uid(), file, blob: null, name: file.name, cropped: false, status: 'pending',
       meta: { subject: gv('subject'), year: gv('Year')||'2025', type: gv('type'), unit: gv('unit') }
-    });
+    };
+    selectedFiles.push(newItem);
+
+    // If meta is incomplete (camera or browse without defaults set), auto-open modal
+    if (!newItem.meta.subject || !newItem.meta.type) {
+      renderGrid();
+      setTimeout(() => openMetaModal(newItem.id), 80);
+    }
   });
   renderGrid();
 }
@@ -195,6 +202,13 @@ function buildFormData(item) {
 
 async function uploadOne(item) {
   return new Promise(resolve => {
+    // Guard: must have metadata before sending
+    if (!item.meta?.subject || !item.meta?.type) {
+      setFileStatus(item.id, 'error', 0, 'Fill metadata first');
+      showToast(`${item.name}: fill metadata (📝) first`, 'error');
+      return resolve({ ok: false, msg: 'Missing metadata' });
+    }
+
     const xhr = new XMLHttpRequest();
     xhr.open('POST', '/upload', true);
     xhr.upload.onprogress = e => {
@@ -203,11 +217,19 @@ async function uploadOne(item) {
     xhr.onload = () => {
       try {
         const r = JSON.parse(xhr.responseText);
-        if (xhr.status === 200 && r.success) { setFileStatus(item.id,'done',100); resolve({ok:true}); }
-        else { setFileStatus(item.id,'error',0,r.message||'Failed'); resolve({ok:false,msg:r.message}); }
-      } catch { setFileStatus(item.id,'done',100); resolve({ok:true}); }
+        if (xhr.status === 200 && r.success) {
+          setFileStatus(item.id, 'done', 100);
+          resolve({ ok: true, xp: r.data?.xp_gained || 0, score: r.data?.new_score || 0 });
+        } else {
+          setFileStatus(item.id, 'error', 0, r.message || 'Failed');
+          resolve({ ok: false, msg: r.message });
+        }
+      } catch {
+        setFileStatus(item.id, 'error', 0, 'Invalid response');
+        resolve({ ok: false, msg: 'Invalid response' });
+      }
     };
-    xhr.onerror = () => { setFileStatus(item.id,'error',0,'Network error'); resolve({ok:false}); };
+    xhr.onerror = () => { setFileStatus(item.id, 'error', 0, 'Network error'); resolve({ ok: false }); };
     xhr.send(buildFormData(item));
   });
 }
@@ -237,10 +259,12 @@ async function startBulkUpload(event) {
   setFloatStatus(true, '0 / '+selectedFiles.length+' uploaded');
 
   let done=0, failed=0;
+  const results = [];
   for (const item of selectedFiles) {
     setFloatStatus(true, done+' / '+selectedFiles.length+' uploading…');
     setFileStatus(item.id, 'uploading', 0);
     const res = await uploadOne(item);
+    results.push(res);
     res.ok ? done++ : failed++;
     setFloatStatus(true, done+' / '+selectedFiles.length+' done');
   }
@@ -251,11 +275,21 @@ async function startBulkUpload(event) {
   if (btn) { btn.disabled=false; btn.textContent='Upload Files'; }
 
   if (failed === 0) {
-    showToast('All '+done+' files uploaded! 🎉', 'success');
+    // Collect XP data from successful uploads
+    const totalXp = results.filter(r => r.ok).reduce((sum, r) => sum + (r.xp || 0), 0);
+    const lastScore = results.filter(r => r.ok).slice(-1)[0]?.score || 0;
+    showToast('All ' + done + ' files uploaded! 🎉', 'success');
     if (typeof window.markUserUploaded === 'function') window.markUserUploaded();
-    setTimeout(() => { window.location.href = '/premium'; }, 1500);
+    // Show XP celebration modal, then redirect
+    if (typeof showXpModal === 'function') {
+      showXpModal(totalXp, lastScore, done);
+    } else {
+      setTimeout(() => { window.location.href = '/premium'; }, 1500);
+    }
+  } else if (done > 0) {
+    showToast(done + ' succeeded, ' + failed + ' failed.', 'error');
   } else {
-    showToast(done+' succeeded, '+failed+' failed.', 'error');
+    showToast('All uploads failed. Check metadata and try again.', 'error');
   }
 }
 

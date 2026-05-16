@@ -391,11 +391,12 @@ header {
     height: fit-content;
     display: flex;
     position: sticky;
-    top: 0;
+    top: var(--strip-h, 0px);
     z-index: 1000;
     backdrop-filter: blur(20px);
     background: rgba(255, 255, 255, 0.9);
     border-bottom: 1px solid var(--border-light);
+    transition: top 0.3s;
 }
 
 .main-nav {

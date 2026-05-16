@@ -18,14 +18,7 @@ load_dotenv()
 # Initialize Supabase client for authentication
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
-supabase = None
-if SUPABASE_URL and SUPABASE_KEY:
-    try:
-        supabase = create_client(SUPABASE_URL, SUPABASE_KEY, options=ClientOptions(schema="abhihub"))
-    except Exception as _e:
-        logging.error(f"Failed to initialize Supabase client: {_e}")
-else:
-    logging.warning("SUPABASE_URL or SUPABASE_KEY not set; Supabase client not initialized")
+supabase = create_client(SUPABASE_URL, SUPABASE_KEY, options=ClientOptions(schema="abhihub"))
 
 # Initialize Firebase Admin SDK for storage only
 import firebase_admin
@@ -33,35 +26,19 @@ from firebase_admin import credentials, storage
 
 # Try to load Firebase credentials from environment variable first, fallback to file
 firebase_service_account = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
-cred = None
 if firebase_service_account:
     # Load from environment variable (recommended for production)
-    try:
-        import json as _json
-        cred_dict = _json.loads(firebase_service_account)
-        cred = credentials.Certificate(cred_dict)
-    except Exception as _e:
-        logging.error(f"Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: {_e}")
+    import json
+    cred_dict = json.loads(firebase_service_account)
+    cred = credentials.Certificate(cred_dict)
 else:
     # Fallback to file (for local development only)
     # IMPORTANT: This file should NOT be committed to Git!
-    try:
-        if os.path.exists("firebase-auth.json"):
-            cred = credentials.Certificate("firebase-auth.json")
-        else:
-            logging.warning("firebase-auth.json not found; skipping Firebase init")
-    except Exception as _e:
-        logging.error(f"Failed to load firebase-auth.json: {_e}")
+    cred = credentials.Certificate("firebase-auth.json")
 
-if cred:
-    try:
-        firebase_admin.initialize_app(cred, {
-            'storageBucket': 'abhi-hub.appspot.com'
-        })
-    except Exception as _e:
-        logging.error(f"Failed to initialize Firebase Admin SDK: {_e}")
-else:
-    logging.warning("Firebase Admin SDK not initialized; storage features disabled")
+firebase_admin.initialize_app(cred, {
+    'storageBucket': 'abhi-hub.appspot.com'
+})
 
 # --- Advanced Search helpers (add after imports) ---
 import re
@@ -952,6 +929,33 @@ def api_get_file_access_history():
         }), 500
 
 
+@app.route('/api/my-notifications', methods=['GET'])
+@auth_required
+def api_get_my_notifications():
+    """Return paginated notifications for the logged-in user."""
+    user_id = session.get('user', {}).get('uid')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    limit  = min(request.args.get('limit', 20, type=int), 50)
+    offset = request.args.get('offset', 0, type=int)
+    from methods.supabase_helper import get_user_notifications
+    items = get_user_notifications(user_id, limit=limit, offset=offset)
+    unread = sum(1 for n in items if not n.get('is_read'))
+    return jsonify({'success': True, 'data': items, 'unread': unread}), 200
+
+
+@app.route('/api/my-notifications/read', methods=['POST'])
+@auth_required
+def api_mark_notifications_read():
+    """Mark all notifications as read for the logged-in user."""
+    user_id = session.get('user', {}).get('uid')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    from methods.supabase_helper import mark_notifications_read
+    res = mark_notifications_read(user_id)
+    return jsonify(res), 200 if res.get('success') else 500
+
+
 @app.route('/api/files/all', methods=['GET'])
 def get_all_files():
     """
@@ -1135,9 +1139,16 @@ def upload():
             _grant_upload_credits()
 
             # ── Recalculate & persist reputation score in DB ────────
+            xp_gained = 0.0
+            new_score = 0.0
             try:
-                from methods.supabase_helper import recalculate_and_persist_user_rank
-                recalculate_and_persist_user_rank(user_id)
+                from methods.supabase_helper import recalculate_and_persist_user_rank, POINTS_MAP, DEFAULT_POINTS
+                # XP for this specific upload (before persist)
+                cat = document_type.lower()
+                raw_pts = POINTS_MAP.get(cat, DEFAULT_POINTS)
+                xp_gained = round(raw_pts * 0.5, 2)  # pending = half pts initially
+                result_rank = recalculate_and_persist_user_rank(user_id)
+                new_score = result_rank.get('score', 0.0)
             except Exception as rank_err:
                 logging.warning(f"[UPLOAD] Rank recalc failed (non-critical): {rank_err}")
 
@@ -1152,7 +1163,9 @@ def upload():
                     'file_type': file_type_category,
                     'compressed': upload_result.get('resource_type') == 'image',
                     'credits_granted': QUOTA_PER_UPLOAD,
-                    'credits_remaining': _get_quota().get('credits', 0)
+                    'credits_remaining': _get_quota().get('credits', 0),
+                    'xp_gained': xp_gained,
+                    'new_score': new_score
                 }
             ), 200
             

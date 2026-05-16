@@ -316,6 +316,39 @@
   <span id="uploadFloatText">Uploading…</span>
 </div>
 
+<!-- ── XP Celebration Modal ── -->
+<div id="xpModal" style="display:none;position:fixed;inset:0;z-index:11000;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+  <div id="xpCard" style="background:#fff;border-radius:28px;max-width:380px;width:92%;overflow:hidden;box-shadow:0 30px 80px rgba(37,99,235,.3);transform:scale(.85);transition:transform .4s cubic-bezier(.34,1.56,.64,1);position:relative;">
+    <div style="background:linear-gradient(135deg,#7c3aed,#2563eb,#0891b2);padding:2.2rem 1.5rem 1.8rem;text-align:center;">
+      <div id="xpEmoji" style="font-size:3.5rem;display:block;margin-bottom:.4rem;animation:xpBounce 1.2s ease infinite;">⚡</div>
+      <h2 style="color:#fff;font-size:1.5rem;font-weight:800;margin:0 0 .3rem;">Upload Complete!</h2>
+      <p id="xpFilesMsg" style="color:rgba(255,255,255,.88);font-size:.92rem;margin:0;">Your file is now live</p>
+    </div>
+    <div style="padding:1.6rem 1.5rem 1.8rem;text-align:center;">
+      <div style="display:flex;gap:1rem;justify-content:center;margin-bottom:1.4rem;">
+        <div style="background:#f0fdf4;border-radius:16px;padding:1rem 1.4rem;">
+          <div id="xpGainedVal" style="font-size:2rem;font-weight:800;color:#16a34a;line-height:1;">+0</div>
+          <div style="font-size:.75rem;color:#64748b;font-weight:600;margin-top:.2rem;">XP EARNED</div>
+        </div>
+        <div style="background:#eff6ff;border-radius:16px;padding:1rem 1.4rem;">
+          <div id="xpScoreVal" style="font-size:2rem;font-weight:800;color:#2563eb;line-height:1;">0</div>
+          <div style="font-size:.75rem;color:#64748b;font-weight:600;margin-top:.2rem;">TOTAL SCORE</div>
+        </div>
+      </div>
+      <p style="font-size:.88rem;color:#64748b;margin:0 0 1.2rem;">🏆 Your rank on the leaderboard has been updated!</p>
+      <div style="display:flex;gap:.75rem;">
+        <a href="/premium" style="flex:1;padding:.85rem;border-radius:14px;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#fff;font-weight:700;font-size:.95rem;text-align:center;text-decoration:none;box-shadow:0 4px 14px rgba(37,99,235,.35);transition:transform .2s;" onmouseover="this.style.transform='translateY(-2px)'" onmouseout="this.style.transform=''">Go to Dashboard</a>
+        <button onclick="closeXpModal()" style="flex:1;padding:.85rem;border-radius:14px;border:2px solid #e2e8f0;background:#fff;color:#475569;font-weight:600;font-size:.95rem;cursor:pointer;transition:border-color .2s;" onmouseover="this.style.borderColor='#2563eb'" onmouseout="this.style.borderColor='#e2e8f0'">Upload More</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  @keyframes xpBounce{0%,100%{transform:translateY(0) scale(1)}50%{transform:translateY(-8px) scale(1.1)}}
+  @keyframes xpCountUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+</style>
+
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
 <script src="{{ url_for('static', filename='js/bulk_upload.js') }}"></script>
 <script>
@@ -383,6 +416,34 @@
       }
     } catch {}
   });
+
+  /* ── XP Modal ── */
+  function showXpModal(xpGained, newScore, fileCount) {
+    const modal = document.getElementById('xpModal');
+    const card  = document.getElementById('xpCard');
+    if (!modal) return;
+    document.getElementById('xpGainedVal').textContent = '+' + (Math.round(xpGained * 100) / 100);
+    document.getElementById('xpScoreVal').textContent  = Math.round(newScore * 100) / 100;
+    document.getElementById('xpFilesMsg').textContent  =
+      fileCount > 1 ? `${fileCount} files submitted — pending review` : 'File submitted — pending review';
+    modal.style.display = 'flex';
+    requestAnimationFrame(() => { card.style.transform = 'scale(1)'; });
+  }
+
+  function closeXpModal() {
+    const modal = document.getElementById('xpModal');
+    const card  = document.getElementById('xpCard');
+    if (!modal) return;
+    card.style.transform = 'scale(.85)';
+    setTimeout(() => {
+      modal.style.display = 'none';
+      // Reset form for next upload
+      document.getElementById('uploadForm')?.reset();
+      if (typeof selectedFiles !== 'undefined') { selectedFiles.length = 0; }
+      const grid = document.getElementById('fileGrid');
+      if (grid) { grid.style.display = 'none'; grid.innerHTML = ''; }
+    }, 350);
+  }
 </script>
 
 {% endblock %}

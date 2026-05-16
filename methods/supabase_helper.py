@@ -809,10 +809,15 @@ def recalculate_and_persist_user_rank(user_id: str) -> Dict:
                 pts *= 0.5
             total_points += pts
 
-        score = int(total_points)  # store as integer in the DB column
+        from decimal import Decimal, ROUND_HALF_UP
+        precise = Decimal(str(total_points)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        # profiles.reputation_score is INTEGER in DB — store rounded int
+        # Run: ALTER COLUMN reputation_score TYPE numeric(10,2) to unlock decimals
+        score_int = int(precise.to_integral_value(rounding=ROUND_HALF_UP))
+        score = float(precise)  # returned in API response for XP display
 
         client.table('profiles').update(
-            {'reputation_score': score}
+            {'reputation_score': score_int}
         ).eq('id', user_id).execute()
 
         print(f"[Ranking] Persisted reputation_score={score} for user {user_id}")
@@ -860,6 +865,103 @@ def get_all_uploaded_files(*a, **kw): return []
 def save_uploaded_file_record(*a, **kw): pass
 def validate_mobile_number(*a): return True
 def validate_year_of_joining(*a): return True
+
+
+def _notify_uploader_of_view(doc_id: str, viewer_id: str, viewer_email: str):
+    """
+    Notify the uploader when someone views their file.
+    Throttled: skips if a 'file_view' notification was already sent for
+    this uploader within the last 10 minutes (prevents spam).
+    Runs in a daemon thread — non-blocking.
+    """
+    try:
+        client = init_supabase()
+        if not client:
+            return
+
+        # Fetch uploader_id, doc title, uploader profile name
+        doc_res = client.table('documents') \
+            .select('uploader_id, title, profiles!documents_uploader_id_fkey(full_name)') \
+            .eq('id', doc_id).limit(1).execute()
+        if not doc_res.data:
+            return
+
+        row = doc_res.data[0]
+        uploader_id = row.get('uploader_id')
+        doc_title = (row.get('title') or 'your file')[:50]
+
+        # Skip self-view
+        if not uploader_id or uploader_id == viewer_id:
+            return
+
+        # Throttle: if uploader already got a file_view notification in last 10 min, skip
+        from datetime import datetime, timedelta, timezone
+        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
+        recent = client.table('notifications') \
+            .select('id') \
+            .eq('user_id', uploader_id) \
+            .eq('type', 'file_view') \
+            .gte('created_at', cutoff) \
+            .limit(1).execute()
+        if recent.data:
+            return  # Throttled
+
+        # Resolve viewer display name from profile
+        viewer_name = 'Someone'
+        try:
+            vr = client.table('profiles').select('full_name').eq('id', viewer_id).limit(1).execute()
+            if vr.data:
+                viewer_name = vr.data[0].get('full_name') or viewer_email.split('@')[0]
+        except Exception:
+            viewer_name = viewer_email.split('@')[0] if viewer_email else 'Someone'
+
+        client.table('notifications').insert({
+            'user_id': uploader_id,
+            'type': 'file_view',
+            'title': '\U0001f441\ufe0f Your file was viewed!',
+            'message': f'{viewer_name} just viewed \u201c{doc_title}\u201d',
+            'action_url': None,
+            'is_read': False
+        }).execute()
+        print(f'[NOTIFY] Sent file_view notification to uploader {uploader_id[:8]} from {viewer_name}')
+
+    except Exception as e:
+        print(f'[NOTIFY] Non-critical notify error: {e}')
+
+
+def get_user_notifications(user_id: str, limit: int = 20, offset: int = 0) -> List[Dict]:
+    """Fetch paginated notifications for a user, newest first."""
+    client = init_supabase()
+    if not client:
+        return []
+    try:
+        res = client.table('notifications') \
+            .select('id, type, title, message, action_url, is_read, created_at') \
+            .eq('user_id', user_id) \
+            .order('created_at', desc=True) \
+            .range(offset, offset + limit - 1) \
+            .execute()
+        return res.data if res.data else []
+    except Exception as e:
+        print(f'[NOTIFY] get_user_notifications error: {e}')
+        return []
+
+
+def mark_notifications_read(user_id: str) -> Dict:
+    """Mark all unread notifications as read for a user."""
+    client = init_supabase()
+    if not client:
+        return {'success': False}
+    try:
+        client.table('notifications') \
+            .update({'is_read': True}) \
+            .eq('user_id', user_id) \
+            .eq('is_read', False) \
+            .execute()
+        return {'success': True}
+    except Exception as e:
+        print(f'[NOTIFY] mark_notifications_read error: {e}')
+        return {'success': False, 'message': str(e)}
 def save_file_access(user_email: str, file_name: str, file_type: str = 'pdf', file_path: str = '', file_url: str = '', record_id: str = None) -> Dict:
     """
     Log a file access event and increment the view count for the document.
@@ -904,6 +1006,14 @@ def save_file_access(user_email: str, file_name: str, file_type: str = 'pdf', fi
                     client.table('documents').update({'view_count': current_views + 1}).eq('id', doc_id).execute()
             except Exception as view_err:
                 print(f"Warning: Could not increment view count: {view_err}")
+
+            # Fire-and-forget: notify uploader (non-blocking)
+            import threading
+            threading.Thread(
+                target=_notify_uploader_of_view,
+                args=(doc_id, user_id, user_email),
+                daemon=True
+            ).start()
 
         # 4. Log in document_views table
         if doc_id and user_id:
