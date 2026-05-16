@@ -49,33 +49,38 @@ def get_cloudinary_resource_type(filename: str) -> str:
 
 def compress_image(file_data: bytes, format: str = 'JPEG', quality: int = 90) -> bytes:
     """
-    Compress image and strip all EXIF/metadata.
+    Compress image, auto-rotate from EXIF, and strip all metadata.
     Quality 90 keeps text in scanned papers sharp.
     """
     try:
         img = Image.open(io.BytesIO(file_data))
 
-        # Strip EXIF by rebuilding from raw pixels
-        clean = Image.new(img.mode, img.size)
-        clean.putdata(list(img.getdata()))
+        # Auto-rotate based on EXIF orientation before stripping
+        try:
+            from PIL import ImageOps
+            img = ImageOps.exif_transpose(img)
+        except Exception:
+            pass  # Non-critical; continue without rotation fix
 
-        # Convert to RGB for JPEG/WEBP
-        if format.upper() in ('JPEG', 'WEBP') and clean.mode in ('RGBA', 'LA', 'P'):
-            bg = Image.new('RGB', clean.size, (255, 255, 255))
-            mask = clean.split()[-1] if clean.mode in ('RGBA', 'LA') else None
-            bg.paste(clean, mask=mask)
-            clean = bg
-        elif format.upper() == 'JPEG' and clean.mode != 'RGB':
-            clean = clean.convert('RGB')
+        # Convert to RGB for JPEG/WEBP (drop alpha, palette)
+        if format.upper() in ('JPEG', 'WEBP') and img.mode not in ('RGB',):
+            bg = Image.new('RGB', img.size, (255, 255, 255))
+            if img.mode in ('RGBA', 'LA'):
+                bg.paste(img, mask=img.split()[-1])
+            else:
+                bg.paste(img.convert('RGB'))
+            img = bg
 
+        # Strip EXIF by saving clean to buffer (no putdata needed after convert)
         output = io.BytesIO()
         save_kwargs = {'format': format, 'optimize': True}
         if format.upper() in ('JPEG', 'WEBP'):
             save_kwargs['quality'] = quality
 
-        clean.save(output, **save_kwargs)
-        print(f"✓ EXIF stripped, compressed to {len(output.getvalue())} bytes")
-        return output.getvalue()
+        img.save(output, **save_kwargs)
+        compressed = output.getvalue()
+        print(f"✓ EXIF stripped+rotated, compressed to {len(compressed)} bytes")
+        return compressed
 
     except Exception as e:
         print(f"Error compressing image: {e}")

@@ -219,7 +219,10 @@ ALLOWED_EXTENSIONS = {
 
 def allowed_file(filename):
     """Check if file extension is allowed"""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    if '.' not in filename:
+        return False  # no extension — rejected
+    ext = filename.rsplit('.', 1)[1].lower()
+    return ext in ALLOWED_EXTENSIONS
 
 def sanitize_filename(filename):
     """Sanitize filename to prevent path traversal and other attacks"""

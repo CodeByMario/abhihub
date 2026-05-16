@@ -1,10 +1,16 @@
 'use strict';
 
-let selectedFiles = [];
-let isUploading   = false;
-let cropperInst   = null;
-let currentCropId = null;
-let currentMetaId = null;
+let selectedFiles        = [];
+let isUploading          = false;
+let cropperInst          = null;
+let currentCropId        = null;
+let currentMetaId        = null;
+let uploadedFingerprints = new Set(); // duplicate guard (session-scoped)
+
+function fileFingerprint(item) {
+  var f = item.file;
+  return [f.name, f.size, f.lastModified || 0].join('|');
+}
 
 function fmtSize(b) {
   if (b < 1024) return b + 'B';
@@ -186,6 +192,25 @@ function applyCrop() {
 }
 
 /* ── Upload ── */
+async function compressImage(fileObj, quality) {
+  quality = quality || 0.72;
+  return new Promise(function(resolve) {
+    if (!fileObj.type.startsWith('image/')) return resolve(fileObj);
+    var img = new Image();
+    img.onload = function() {
+      var MAX = 1280;
+      var scale = img.width > MAX ? MAX / img.width : 1;
+      var canvas = document.createElement('canvas');
+      canvas.width  = Math.round(img.width  * scale);
+      canvas.height = Math.round(img.height * scale);
+      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      canvas.toBlob(function(blob) { resolve(blob || fileObj); }, 'image/jpeg', quality);
+    };
+    img.onerror = function() { resolve(fileObj); };
+    img.src = URL.createObjectURL(fileObj);
+  });
+}
+
 function buildFormData(item) {
   const fd = new FormData();
   fd.append('college_id', gv('college_id'));
@@ -196,40 +221,93 @@ function buildFormData(item) {
   fd.append('type',          m.type    || '');
   fd.append('document_type', m.type    || '');
   fd.append('unit',          m.unit    || '');
-  fd.append('upload_document', item.blob || item.file, item.name);
+  let fileObj = item.blob || item.file;
+  const fileName = item.name || (fileObj && fileObj.name) || `camera_${Date.now()}.jpg`;
+  if (!(fileObj instanceof File)) {
+    fileObj = new File([fileObj], fileName, { type: fileObj.type || 'image/jpeg' });
+  }
+  fd.append('upload_document', fileObj, fileName);
   return fd;
 }
 
-async function uploadOne(item) {
-  return new Promise(resolve => {
-    // Guard: must have metadata before sending
-    if (!item.meta?.subject || !item.meta?.type) {
-      setFileStatus(item.id, 'error', 0, 'Fill metadata first');
-      showToast(`${item.name}: fill metadata (📝) first`, 'error');
-      return resolve({ ok: false, msg: 'Missing metadata' });
-    }
+async function uploadOne(item, retries) {
+  retries = (retries === undefined) ? 2 : retries;
 
-    const xhr = new XMLHttpRequest();
+  if (!item.meta || !item.meta.subject || !item.meta.type) {
+    setFileStatus(item.id, 'error', 0, 'Fill metadata first');
+    showToast(item.name + ': fill metadata (📝) first', 'error');
+    return { ok: false, msg: 'Missing metadata' };
+  }
+
+  // Duplicate guard — skip if already uploaded this session
+  var fp = fileFingerprint(item);
+  if (uploadedFingerprints.has(fp)) {
+    setFileStatus(item.id, 'done', 100);
+    showToast((item.name || 'File') + ': already uploaded, skipping', 'info');
+    return { ok: true, xp: 0, score: 0 };
+  }
+
+  // Compress image before building FormData
+  var rawFile = item.blob || item.file;
+  if (rawFile && rawFile.type && rawFile.type.startsWith('image/') && rawFile.size > 500 * 1024) {
+    var compressed = await compressImage(rawFile);
+    if (compressed && compressed !== rawFile && compressed.size > 0) {
+      item.blob = compressed;
+    } else if (compressed && compressed.size === 0) {
+      // Compression failed silently — keep original
+      console.warn('[upload] Compression returned empty blob, using original.');
+    }
+  }
+
+  // Zero-byte guard
+  var finalFile = item.blob || item.file;
+  if (!finalFile || finalFile.size === 0) {
+    setFileStatus(item.id, 'error', 0, 'File is empty');
+    showToast((item.name || 'File') + ': empty file, cannot upload', 'error');
+    return { ok: false, msg: 'Empty file' };
+  }
+
+  return new Promise(function(resolve) {
+    var xhr = new XMLHttpRequest();
     xhr.open('POST', '/upload', true);
-    xhr.upload.onprogress = e => {
-      if (e.lengthComputable) setFileStatus(item.id, 'uploading', Math.round(e.loaded/e.total*100));
+    xhr.timeout = 45000; // 45s — covers slow mobile 3G
+    xhr.upload.onprogress = function(e) {
+      if (e.lengthComputable) setFileStatus(item.id, 'uploading', Math.round(e.loaded / e.total * 100));
     };
-    xhr.onload = () => {
+    xhr.onload = function() {
       try {
-        const r = JSON.parse(xhr.responseText);
+        var r = JSON.parse(xhr.responseText);
         if (xhr.status === 200 && r.success) {
+          uploadedFingerprints.add(fp); // mark as uploaded for this session
           setFileStatus(item.id, 'done', 100);
-          resolve({ ok: true, xp: r.data?.xp_gained || 0, score: r.data?.new_score || 0 });
+          resolve({ ok: true, xp: (r.data && r.data.xp_gained) || 0, score: (r.data && r.data.new_score) || 0 });
         } else {
           setFileStatus(item.id, 'error', 0, r.message || 'Failed');
           resolve({ ok: false, msg: r.message });
         }
-      } catch {
+      } catch(e) {
         setFileStatus(item.id, 'error', 0, 'Invalid response');
         resolve({ ok: false, msg: 'Invalid response' });
       }
     };
-    xhr.onerror = () => { setFileStatus(item.id, 'error', 0, 'Network error'); resolve({ ok: false }); };
+    xhr.onerror = function() {
+      if (retries > 0) {
+        showToast('Network error — retrying…', 'error');
+        setTimeout(function() { uploadOne(item, retries - 1).then(resolve); }, 1500);
+      } else {
+        setFileStatus(item.id, 'error', 0, 'Network error');
+        resolve({ ok: false });
+      }
+    };
+    xhr.ontimeout = function() {
+      if (retries > 0) {
+        showToast('Upload timed out — retrying…', 'error');
+        setTimeout(function() { uploadOne(item, retries - 1).then(resolve); }, 2000);
+      } else {
+        setFileStatus(item.id, 'error', 0, 'Timed out');
+        resolve({ ok: false, msg: 'Upload timed out' });
+      }
+    };
     xhr.send(buildFormData(item));
   });
 }
