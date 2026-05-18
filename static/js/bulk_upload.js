@@ -35,6 +35,13 @@ function showToast(msg, type) {
 /* ── File selection ── */
 function handleFilesSelected(files) {
   const imgOnly = ['papers','practical'].includes(gv('type').toLowerCase());
+  // Detect camera captures (no lastModified or name starts with 'image')
+  const fromCamera = Array.from(files).some(f =>
+    !f.lastModified || f.name.toLowerCase().startsWith('image') || f.name.toLowerCase() === 'blob'
+  );
+  if (fromCamera && typeof window.AbhiHubTracking !== 'undefined') {
+    window.AbhiHubTracking.trackCameraUpload();
+  }
   Array.from(files).forEach(file => {
     if (imgOnly && !file.type.startsWith('image/')) {
       return showToast(file.name + ': images only for this type', 'error');
@@ -312,7 +319,14 @@ async function uploadOne(item, retries) {
   });
 }
 
-function handleBeforeUnload(e) { e.preventDefault(); e.returnValue='Upload in progress.'; }
+function handleBeforeUnload(e) {
+  if (isUploading) {
+    if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadAbandoned('uploading');
+    e.preventDefault(); e.returnValue='Upload in progress.';
+  } else if (selectedFiles.length > 0) {
+    if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadAbandoned('metadata');
+  }
+}
 
 async function startBulkUpload(event) {
   event.preventDefault();
@@ -322,19 +336,35 @@ async function startBulkUpload(event) {
   // Validate all have metadata
   const missing = selectedFiles.filter(f => !f.meta || !f.meta.subject || !f.meta.type);
   if (missing.length) {
+    if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed('missing_metadata', 'validation_error', 'file');
     showToast('Fill metadata (📝) for all ' + missing.length + ' image(s) first', 'error');
     // Highlight missing
     missing.forEach(f => { const t = document.getElementById('thumb_'+f.id); if(t) t.classList.add('bu-pulse'); });
     return;
   }
-  if (!gv('college_id')) return showToast('Select a college', 'error');
-  if (!gv('branch_id'))  return showToast('Select a branch', 'error');
+  if (!gv('college_id')) {
+    if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed('missing_college', 'validation_error', 'file');
+    return showToast('Select a college', 'error');
+  }
+  if (!gv('branch_id')) {
+    if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed('missing_branch', 'validation_error', 'file');
+    return showToast('Select a branch', 'error');
+  }
 
   isUploading = true;
   const btn = document.getElementById('submitBtn');
   if (btn) { btn.disabled=true; btn.textContent='Uploading…'; }
   window.addEventListener('beforeunload', handleBeforeUnload);
   setFloatStatus(true, '0 / '+selectedFiles.length+' uploaded');
+
+  // GA4 — upload funnel start
+  const _gaMethod = selectedFiles.some(f =>
+    !f.file.lastModified || f.file.name.toLowerCase().startsWith('image')
+  ) ? 'camera' : 'file';
+  if (typeof window.AbhiHubTracking !== 'undefined') {
+    const _category = gv('type') || 'unknown';
+    window.AbhiHubTracking.trackUploadStarted(selectedFiles.length, _gaMethod, _category);
+  }
 
   let done=0, failed=0;
   const results = [];
@@ -343,7 +373,20 @@ async function startBulkUpload(event) {
     setFileStatus(item.id, 'uploading', 0);
     const res = await uploadOne(item);
     results.push(res);
-    res.ok ? done++ : failed++;
+    if (res.ok) {
+      done++;
+      // GA4 — per-file upload event
+      if (typeof window.AbhiHubTracking !== 'undefined') {
+        window.AbhiHubTracking.trackUpload(
+          item.name,
+          item.file.type || 'image/jpeg',
+          Math.round((item.blob || item.file).size / 1024)
+        );
+      }
+    } else {
+      failed++;
+      if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed(res.msg || 'network_error', 'system_error', _gaMethod);
+    }
     setFloatStatus(true, done+' / '+selectedFiles.length+' done');
   }
 
@@ -357,8 +400,14 @@ async function startBulkUpload(event) {
     const totalXp = results.filter(r => r.ok).reduce((sum, r) => sum + (r.xp || 0), 0);
     const lastScore = results.filter(r => r.ok).slice(-1)[0]?.score || 0;
     showToast('All ' + done + ' files uploaded! 🎉', 'success');
+    // GA4 — upload_completed + xp_earned
+    if (typeof window.AbhiHubTracking !== 'undefined') {
+      const types = Array.from(new Set(selectedFiles.map(f => f.file.type || 'image/jpeg'))).join(',');
+      const totalSizeKb = Math.round(selectedFiles.reduce((sum, f) => sum + (f.blob || f.file).size, 0) / 1024);
+      window.AbhiHubTracking.trackUploadCompleted(done, _gaMethod, types, totalSizeKb);
+      if (totalXp > 0) window.AbhiHubTracking.trackXpEarned(totalXp, lastScore, done);
+    }
     if (typeof window.markUserUploaded === 'function') window.markUserUploaded();
-    // Show XP celebration modal, then redirect
     if (typeof showXpModal === 'function') {
       showXpModal(totalXp, lastScore, done);
     } else {

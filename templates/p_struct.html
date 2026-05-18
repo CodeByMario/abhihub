@@ -907,6 +907,12 @@
             panel.style.display = _notifOpen ? 'block' : 'none';
             if (_notifOpen) {
               _fetchNotifications(false);
+              // GA4 tracking
+              if (typeof window.AbhiHubTracking !== 'undefined') {
+                const badge = document.getElementById('notifBadge');
+                const unread = (badge && badge.style.display !== 'none') ? parseInt(badge.textContent) || 0 : 0;
+                window.AbhiHubTracking.trackNotificationOpen(unread);
+              }
             }
           };
 

@@ -6,6 +6,8 @@
   function gtag() { dataLayer.push(arguments); }
   gtag('js', new Date());
 
+  window.USER_ID = '{{ session.get("user", {}).get("uid", "") }}' || null;
+
   // Configuration with enhanced user properties and event tracking
   gtag('config', 'G-EH5BGS9BEG', {
     'page_path': window.location.pathname,
@@ -21,9 +23,10 @@
   // CUSTOM USER PROPERTIES (Enhanced User Identification)
   // ==========================================
   // Set user ID explicitly for cross-device tracking
-  {% if session.get('user') %}
-  gtag('set', { 'user_id': '{{ session.get("user", {}).get("uid", "") }}' });
-  {% endif %}
+  if (window.USER_ID && typeof gtag === "function") {
+    gtag('set', { 'user_id': window.USER_ID });
+    gtag('event', 'session_start_custom', { logged_in: true });
+  }
 
   gtag('set', {
     'user_properties': {
@@ -168,8 +171,8 @@
   // FILE INTERACTION TRACKING
   // ==========================================
   window.AbhiHubTracking = {
-    // Track PDF/File View (Enhanced with Ecommerce)
-    trackFileView: function (fileName, fileType, subject, fileSize, uploadDate) {
+    // Track PDF/File View (Enhanced with Ecommerce, Throttled)
+    trackFileView: gaThrottle(function (fileName, fileType, subject, fileSize, uploadDate) {
       sessionData.fileViews++;
       sessionData.interactions++;
 
@@ -177,7 +180,7 @@
       const sizeBucket = getFileSizeBucket(fileSize || 0);
 
       // Standard event
-      gtag('event', 'file_view', {
+      safeGtag('event', 'file_view', {
         'file_name': fileName,
         'file_type': fileType || 'unknown',
         'subject': subject || metadata.subject,
@@ -195,7 +198,7 @@
       });
 
       // GA4 Ecommerce: view_item
-      gtag('event', 'view_item', {
+      safeGtag('event', 'view_item', {
         'items': [{
           'item_id': 'file_' + fileName.replace(/[^a-zA-Z0-9]/g, '_'),
           'item_name': fileName,
@@ -210,7 +213,7 @@
       });
 
       console.log('[Analytics] File viewed:', fileName, '| Quality:', getEngagementQuality());
-    },
+    }, 2000),
 
     // Track File Download (Enhanced with Ecommerce)
     trackFileDownload: function (fileName, fileType, subject, fileSize) {
@@ -544,6 +547,124 @@
   };
 
   // ==========================================
+  // SAFE GTAG WRAPPER (ad-blocker & idempotency guard)
+  // ==========================================
+  window._firedEvents = window._firedEvents || {};
+  window.safeGtag = function(cmd, name, params, dedupeTimeMs = 5000) {
+    if (cmd === 'event') {
+      const key = name + JSON.stringify(params || {});
+      const now = Date.now();
+      if (window._firedEvents[key] && (now - window._firedEvents[key] < dedupeTimeMs)) {
+        return; // Skip if fired recently
+      }
+      window._firedEvents[key] = now;
+      setTimeout(() => delete window._firedEvents[key], dedupeTimeMs + 100); // Prevent memory leak
+    }
+    if (typeof gtag === 'function') {
+      gtag(cmd, name, params || {});
+    }
+  };
+
+  // ==========================================
+  // THROTTLE HELPER
+  // ==========================================
+  window.gaThrottle = function(fn, limit) {
+    var inThrottle;
+    return function() {
+      var args = arguments;
+      var context = this;
+      if (!inThrottle) {
+        fn.apply(context, args);
+        inThrottle = true;
+        setTimeout(function() { inThrottle = false; }, limit);
+      }
+    };
+  };
+
+  // ==========================================
+  // MISSING EVENTS — Phase 3-4 from plan
+  // ==========================================
+  Object.assign(window.AbhiHubTracking, {
+
+    // Upload funnel — Phase 4
+    trackUploadStarted: function(fileCount, method, contentCategory) {
+      safeGtag('event', 'upload_started', {
+        file_count: fileCount || 1,
+        upload_method: method || 'file',
+        content_category: contentCategory || 'unknown',
+        page_path: window.location.pathname
+      });
+    },
+
+    trackUploadCompleted: function(fileCount, method, fileTypes, totalSizeKb) {
+      safeGtag('event', 'upload_completed', {
+        file_count: fileCount || 1,
+        file_types: fileTypes || 'unknown',
+        upload_method: method || 'file',
+        total_size_kb: totalSizeKb || 0,
+        page_path: window.location.pathname
+      });
+      // Funnel step
+      safeGtag('event', 'funnel_step', {
+        funnel_name: 'visitor_to_uploader',
+        funnel_step: 'upload_completed',
+        funnel_step_number: 3
+      });
+    },
+
+    trackUploadFailed: function(reason, errorCategory, method) {
+      safeGtag('event', 'upload_failed', {
+        error_category: errorCategory || 'unknown',
+        error_reason: reason || 'unknown',
+        upload_method: method || 'file',
+        page_path: window.location.pathname
+      });
+    },
+
+    trackUploadAbandoned: function(step) {
+      safeGtag('event', 'upload_abandoned', {
+        step: step || 'metadata',
+        page_path: window.location.pathname
+      });
+    },
+
+    // Camera upload — Phase 3
+    trackCameraUpload: function() {
+      safeGtag('event', 'upload_method_camera', {
+        page_path: window.location.pathname
+      });
+    },
+
+    // XP earned — Phase 3
+    trackXpEarned: function(xp, newRank, fileCount) {
+      safeGtag('event', 'xp_earned', {
+        xp: xp || 0,
+        new_rank: newRank || 0,
+        files_uploaded: fileCount || 1,
+        page_path: window.location.pathname
+      });
+    },
+
+    // Notification open — Phase 3
+    trackNotificationOpen: function(unreadCount) {
+      safeGtag('event', 'notification_open', {
+        notification_count: unreadCount || 0,
+        type: 'file_view',
+        page_path: window.location.pathname
+      });
+    },
+
+    trackApiLatency: function(endpoint, latencyMs, statusCode) {
+      safeGtag('event', 'api_performance', {
+        endpoint: endpoint,
+        latency_ms: latencyMs,
+        status_code: statusCode,
+        page_path: window.location.pathname
+      });
+    }
+  });
+
+  // ==========================================
   // AUTO-TRACK SCROLL DEPTH
   // ==========================================
   function getScrollPercentage() {
@@ -566,13 +687,29 @@
   });
 
   // ==========================================
-  // AUTO-TRACK PAGE ENGAGEMENT TIME
+  // AUTO-TRACK PAGE ENGAGEMENT TIME (Delta-based)
   // ==========================================
-  let startTime = Date.now();
-  window.addEventListener('beforeunload', function () {
-    const engagementTime = Math.round((Date.now() - startTime) / 1000);
-    AbhiHubTracking.trackTimeOnPage(engagementTime);
+  let lastVisibleTime = Date.now();
+  let totalEngagementSent = 0;
+
+  function sendEngagementDelta() {
+    const now = Date.now();
+    const deltaSeconds = Math.round((now - lastVisibleTime) / 1000);
+    if (deltaSeconds > 0) {
+      AbhiHubTracking.trackTimeOnPage(deltaSeconds);
+      totalEngagementSent += deltaSeconds;
+    }
+    lastVisibleTime = now;
+  }
+
+  document.addEventListener('visibilitychange', function () {
+    if (document.visibilityState === 'hidden') {
+      sendEngagementDelta();
+    } else {
+      lastVisibleTime = Date.now(); // Reset on return
+    }
   });
+  window.addEventListener('pagehide', sendEngagementDelta);
 
   // ==========================================
   // TRACK INITIAL PAGE VIEW
@@ -604,7 +741,7 @@
   // EXPOSE GLOBAL TRACKING FUNCTION
   // ==========================================
   window.trackEvent = function (eventName, eventData) {
-    gtag('event', eventName, eventData || {});
+    safeGtag('event', eventName, eventData || {});
     console.log('[Analytics] Event tracked:', eventName, eventData);
   };
 
