@@ -3,7 +3,7 @@
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0,maximum-scale=1, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="language" content="en">
     <meta name="google" content="translate">
     <meta name="description"
@@ -407,8 +407,6 @@
     <style>
         /* ---- Top Announcement Strip ---- */
         #promoStrip {
-            position: fixed;
-            top: 0; left: 0; right: 0;
             z-index: 8500;
             background: linear-gradient(90deg, #7c3aed 0%, #2563eb 50%, #06b6d4 100%);
             color: #fff;
@@ -420,20 +418,31 @@
             gap: 0.6rem;
             padding: 0.55rem 3rem 0.55rem 1rem;
             text-align: center;
-            animation: promoSlideDown 0.45s cubic-bezier(.4,0,.2,1);
-            box-shadow: 0 2px 12px rgba(37,99,235,0.18);
-            transition: top 0.3s;
+            animation: promoSlideDown 0.45s cubic-bezier(.4, 0, .2, 1);
+            box-shadow: 0 2px 12px rgba(37, 99, 235, 0.18);
+            transition: transform 0.3s, opacity 0.3s, visibility 0.3s;
         }
-        #promoStrip.hidden { top: -60px; pointer-events: none; }
+
+        #promoStrip.hidden {
+            transform: translateY(-100%);
+            opacity: 0;
+            visibility: hidden;
+            pointer-events: none;
+        }
+
         #promoStrip a {
             color: #ffe769;
             text-decoration: underline;
             font-weight: 700;
             transition: opacity 0.15s;
         }
-        #promoStrip a:hover { opacity: 0.8; }
+
+        #promoStrip a:hover {
+            opacity: 0.8;
+        }
+
         #promoStrip .promo-tag {
-            background: rgba(255,255,255,0.22);
+            background: rgba(255, 255, 255, 0.22);
             border-radius: 30px;
             padding: 0.15rem 0.7rem;
             font-size: 0.78rem;
@@ -441,101 +450,128 @@
             text-transform: uppercase;
             white-space: nowrap;
         }
+
         #promoStripClose {
             position: absolute;
             right: 0.75rem;
-            background: rgba(255,255,255,0.18);
+            background: rgba(255, 255, 255, 0.18);
             border: none;
             color: #fff;
             font-size: 1.1rem;
-            width: 28px; height: 28px;
+            width: 28px;
+            height: 28px;
             border-radius: 50%;
             cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transition: background 0.15s;
         }
-        #promoStripClose:hover { background: rgba(255,255,255,0.35); }
+
+        #promoStripClose:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
 
         /* ---- Promo Card Modal ---- */
         #promoCardOverlay {
             position: fixed;
             inset: 0;
-            background: rgba(10,10,30,0.62);
+            background: rgba(10, 10, 30, 0.62);
             z-index: 9200;
             display: flex;
             align-items: center;
             justify-content: center;
+            -webkit-backdrop-filter: blur(4px);
             backdrop-filter: blur(4px);
             opacity: 0;
             pointer-events: none;
             transition: opacity 0.3s;
         }
+
         #promoCardOverlay.show {
             opacity: 1;
             pointer-events: auto;
         }
+
         #promoCard {
             background: #fff;
             border-radius: 22px;
             max-width: 400px;
             width: 92%;
-            box-shadow: 0 30px 80px rgba(37,99,235,0.22), 0 2px 12px rgba(0,0,0,0.12);
+            box-shadow: 0 30px 80px rgba(37, 99, 235, 0.22), 0 2px 12px rgba(0, 0, 0, 0.12);
             overflow: hidden;
             transform: translateY(30px) scale(0.97);
-            transition: transform 0.35s cubic-bezier(.4,0,.2,1);
+            transition: transform 0.35s cubic-bezier(.4, 0, .2, 1);
             position: relative;
         }
+
         #promoCardOverlay.show #promoCard {
             transform: translateY(0) scale(1);
         }
+
         .promo-card-header {
             background: linear-gradient(135deg, #7c3aed 0%, #2563eb 60%, #06b6d4 100%);
             padding: 2rem 1.5rem 1.4rem;
             text-align: center;
             position: relative;
         }
+
         .promo-card-header .promo-emoji {
             font-size: 2.8rem;
             display: block;
             margin-bottom: 0.5rem;
-            filter: drop-shadow(0 2px 8px rgba(0,0,0,0.15));
+            filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
             animation: promoBounce 1.8s infinite;
         }
+
         .promo-card-header h2 {
             color: #fff;
             font-size: 1.4rem;
             font-weight: 800;
             margin: 0 0 0.3rem;
         }
+
         .promo-card-header p {
-            color: rgba(255,255,255,0.88);
+            color: rgba(255, 255, 255, 0.88);
             font-size: 0.92rem;
             margin: 0;
         }
+
         .promo-close-btn {
             position: absolute;
-            top: 0.9rem; right: 0.9rem;
-            background: rgba(255,255,255,0.18);
+            top: 0.9rem;
+            right: 0.9rem;
+            background: rgba(255, 255, 255, 0.18);
             border: none;
             color: #fff;
             font-size: 1.1rem;
-            width: 32px; height: 32px;
+            width: 32px;
+            height: 32px;
             border-radius: 50%;
             cursor: pointer;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             transition: background 0.15s;
         }
-        .promo-close-btn:hover { background: rgba(255,255,255,0.35); }
+
+        .promo-close-btn:hover {
+            background: rgba(255, 255, 255, 0.35);
+        }
+
         .promo-card-body {
             padding: 1.4rem 1.5rem 1.6rem;
         }
+
         .promo-features-list {
             list-style: none;
-            padding: 0; margin: 0 0 1.2rem;
+            padding: 0;
+            margin: 0 0 1.2rem;
             display: flex;
             flex-direction: column;
             gap: 0.65rem;
         }
+
         .promo-features-list li {
             display: flex;
             align-items: center;
@@ -543,17 +579,34 @@
             font-size: 0.95rem;
             color: #374151;
         }
+
         .promo-features-list li .pf-icon {
-            width: 34px; height: 34px;
+            width: 34px;
+            height: 34px;
             border-radius: 9px;
-            display: flex; align-items: center; justify-content: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
             font-size: 1.15rem;
             flex-shrink: 0;
         }
-        .pf-icon.violet { background: #ede9fe; }
-        .pf-icon.blue   { background: #dbeafe; }
-        .pf-icon.teal   { background: #ccfbf1; }
-        .pf-icon.amber  { background: #fef3c7; }
+
+        .pf-icon.violet {
+            background: #ede9fe;
+        }
+
+        .pf-icon.blue {
+            background: #dbeafe;
+        }
+
+        .pf-icon.teal {
+            background: #ccfbf1;
+        }
+
+        .pf-icon.amber {
+            background: #fef3c7;
+        }
+
         .promo-cta-btn {
             display: block;
             width: 100%;
@@ -568,14 +621,16 @@
             text-align: center;
             text-decoration: none;
             letter-spacing: 0.01em;
-            box-shadow: 0 4px 18px rgba(37,99,235,0.28);
+            box-shadow: 0 4px 18px rgba(37, 99, 235, 0.28);
             transition: transform 0.15s, box-shadow 0.15s;
             margin-bottom: 0.55rem;
         }
+
         .promo-cta-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 8px 28px rgba(37,99,235,0.38);
+            box-shadow: 0 8px 28px rgba(37, 99, 235, 0.38);
         }
+
         .promo-dismiss-link {
             display: block;
             text-align: center;
@@ -584,16 +639,34 @@
             cursor: pointer;
             transition: color 0.15s;
         }
-        .promo-dismiss-link:hover { color: #6b7280; }
+
+        .promo-dismiss-link:hover {
+            color: #6b7280;
+        }
 
         /* ---- Keyframes ---- */
         @keyframes promoSlideDown {
-            from { top: -60px; opacity: 0; }
-            to   { top: 0;     opacity: 1; }
+            from {
+                top: -60px;
+                opacity: 0;
+            }
+
+            to {
+                top: 0;
+                opacity: 1;
+            }
         }
+
         @keyframes promoBounce {
-            0%,100% { transform: translateY(0); }
-            50%      { transform: translateY(-6px); }
+
+            0%,
+            100% {
+                transform: translateY(0);
+            }
+
+            50% {
+                transform: translateY(-6px);
+            }
         }
     </style>
 
@@ -652,7 +725,8 @@
                         <span><strong>Track your impact</strong> — see how many students used your paper</span>
                     </li>
                 </ul>
-                <a href="/upload" class="promo-cta-btn" id="promoUploadBtn" onclick="markUploadClicked()">Upload a Paper Now 🚀</a>
+                <a href="/upload" class="promo-cta-btn" id="promoUploadBtn" onclick="markUploadClicked()">Upload a Paper
+                    Now 🚀</a>
                 <span class="promo-dismiss-link" onclick="snoozePromoCard()">Remind me tomorrow</span>
             </div>
         </div>
@@ -711,75 +785,100 @@
 
     <!-- ===== PROFILE COMPLETION + NOTIFICATION POPUP ===== -->
     <div id="profileNudgeOverlay" role="dialog" aria-modal="true" aria-labelledby="profileNudgeTitle"
-        style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(8,8,25,0.68);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
+        style="display:none;position:fixed;inset:0;z-index:9500;background:rgba(8,8,25,0.68);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px);align-items:center;justify-content:center;">
         <div id="profileNudgeCard"
             style="background:#fff;border-radius:24px;max-width:420px;width:92%;box-shadow:0 32px 80px rgba(124,58,237,0.22),0 2px 16px rgba(0,0,0,0.13);overflow:hidden;transform:translateY(36px) scale(0.96);transition:transform 0.38s cubic-bezier(.4,0,.2,1);position:relative;">
 
             <!-- Step 1: Complete Profile -->
             <div id="nudgeStep1">
-                <div style="background:linear-gradient(135deg,#7c3aed 0%,#2563eb 55%,#0891b2 100%);padding:2rem 1.5rem 1.5rem;text-align:center;position:relative;">
+                <div
+                    style="background:linear-gradient(135deg,#7c3aed 0%,#2563eb 55%,#0891b2 100%);padding:2rem 1.5rem 1.5rem;text-align:center;position:relative;">
                     <button onclick="dismissProfileNudge()" aria-label="Close"
                         style="position:absolute;top:.9rem;right:.9rem;background:rgba(255,255,255,.18);border:none;color:#fff;font-size:1.1rem;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;">&times;</button>
-                    <span style="font-size:2.6rem;display:block;margin-bottom:.5rem;animation:promoBounce 1.8s infinite;">👤</span>
-                    <h2 id="profileNudgeTitle" style="color:#fff;font-size:1.35rem;font-weight:800;margin:0 0 .3rem;">Complete Your Profile</h2>
-                    <p style="color:rgba(255,255,255,.88);font-size:.9rem;margin:0;">You're almost there — finish your profile to unlock the full AbhiHub experience</p>
+                    <span
+                        style="font-size:2.6rem;display:block;margin-bottom:.5rem;animation:promoBounce 1.8s infinite;">👤</span>
+                    <h2 id="profileNudgeTitle" style="color:#fff;font-size:1.35rem;font-weight:800;margin:0 0 .3rem;">
+                        Complete Your Profile</h2>
+                    <p style="color:rgba(255,255,255,.88);font-size:.9rem;margin:0;">You're almost there — finish your
+                        profile to unlock the full AbhiHub experience</p>
                 </div>
                 <div style="padding:1.4rem 1.5rem 1.6rem;">
                     <!-- Progress bar -->
                     <div style="margin-bottom:1.2rem;">
-                        <div style="display:flex;justify-content:space-between;font-size:.82rem;color:#6b7280;margin-bottom:.4rem;">
+                        <div
+                            style="display:flex;justify-content:space-between;font-size:.82rem;color:#6b7280;margin-bottom:.4rem;">
                             <span>Profile completeness</span><span id="nudgeProgressPct">–</span>
                         </div>
                         <div style="background:#e5e7eb;border-radius:99px;height:8px;overflow:hidden;">
-                            <div id="nudgeProgressBar" style="height:100%;background:linear-gradient(90deg,#7c3aed,#2563eb);border-radius:99px;width:0%;transition:width .5s ease;"></div>
+                            <div id="nudgeProgressBar"
+                                style="height:100%;background:linear-gradient(90deg,#7c3aed,#2563eb);border-radius:99px;width:0%;transition:width .5s ease;">
+                            </div>
                         </div>
                     </div>
-                    <ul style="list-style:none;padding:0;margin:0 0 1.2rem;display:flex;flex-direction:column;gap:.6rem;">
+                    <ul
+                        style="list-style:none;padding:0;margin:0 0 1.2rem;display:flex;flex-direction:column;gap:.6rem;">
                         <li style="display:flex;align-items:center;gap:.7rem;font-size:.93rem;color:#374151;">
-                            <span style="width:32px;height:32px;border-radius:8px;background:#ede9fe;display:flex;align-items:center;justify-content:center;">🎓</span>
+                            <span
+                                style="width:32px;height:32px;border-radius:8px;background:#ede9fe;display:flex;align-items:center;justify-content:center;">🎓</span>
                             <span>Add your <strong>college & department</strong></span>
                         </li>
                         <li style="display:flex;align-items:center;gap:.7rem;font-size:.93rem;color:#374151;">
-                            <span style="width:32px;height:32px;border-radius:8px;background:#dbeafe;display:flex;align-items:center;justify-content:center;">📅</span>
+                            <span
+                                style="width:32px;height:32px;border-radius:8px;background:#dbeafe;display:flex;align-items:center;justify-content:center;">📅</span>
                             <span>Set your <strong>year of joining & pursuing year</strong></span>
                         </li>
                         <li style="display:flex;align-items:center;gap:.7rem;font-size:.93rem;color:#374151;">
-                            <span style="width:32px;height:32px;border-radius:8px;background:#ccfbf1;display:flex;align-items:center;justify-content:center;">🏅</span>
+                            <span
+                                style="width:32px;height:32px;border-radius:8px;background:#ccfbf1;display:flex;align-items:center;justify-content:center;">🏅</span>
                             <span>Earn <strong>verified contributor</strong> badge</span>
                         </li>
                     </ul>
-                    <a href="/account" class="promo-cta-btn" onclick="dismissProfileNudge()" style="display:block;width:100%;padding:.9rem;border:none;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;font-size:1.05rem;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;letter-spacing:.01em;box-shadow:0 4px 18px rgba(37,99,235,.28);transition:transform .15s,box-shadow .15s;margin-bottom:.55rem;">Complete Profile Now 🚀</a>
-                    <span class="promo-dismiss-link" onclick="nudgeGoToStep2()" style="display:block;text-align:center;font-size:.87rem;color:#9ca3af;cursor:pointer;transition:color .15s;">Enable notifications instead →</span>
+                    <a href="/account" class="promo-cta-btn" onclick="dismissProfileNudge()"
+                        style="display:block;width:100%;padding:.9rem;border:none;border-radius:12px;background:linear-gradient(135deg,#7c3aed,#2563eb);color:#fff;font-size:1.05rem;font-weight:700;cursor:pointer;text-align:center;text-decoration:none;letter-spacing:.01em;box-shadow:0 4px 18px rgba(37,99,235,.28);transition:transform .15s,box-shadow .15s;margin-bottom:.55rem;">Complete
+                        Profile Now 🚀</a>
+                    <span class="promo-dismiss-link" onclick="nudgeGoToStep2()"
+                        style="display:block;text-align:center;font-size:.87rem;color:#9ca3af;cursor:pointer;transition:color .15s;">Enable
+                        notifications instead →</span>
                 </div>
             </div>
 
             <!-- Step 2: Enable Notifications -->
             <div id="nudgeStep2" style="display:none;">
-                <div style="background:linear-gradient(135deg,#0891b2 0%,#2563eb 55%,#7c3aed 100%);padding:2rem 1.5rem 1.5rem;text-align:center;position:relative;">
+                <div
+                    style="background:linear-gradient(135deg,#0891b2 0%,#2563eb 55%,#7c3aed 100%);padding:2rem 1.5rem 1.5rem;text-align:center;position:relative;">
                     <button onclick="dismissProfileNudge()" aria-label="Close"
                         style="position:absolute;top:.9rem;right:.9rem;background:rgba(255,255,255,.18);border:none;color:#fff;font-size:1.1rem;width:32px;height:32px;border-radius:50%;cursor:pointer;display:flex;align-items:center;justify-content:center;">✕</button>
-                    <span style="font-size:2.6rem;display:block;margin-bottom:.5rem;animation:promoBounce 1.8s infinite;">🔔</span>
+                    <span
+                        style="font-size:2.6rem;display:block;margin-bottom:.5rem;animation:promoBounce 1.8s infinite;">🔔</span>
                     <h2 style="color:#fff;font-size:1.35rem;font-weight:800;margin:0 0 .3rem;">Stay in the Loop!</h2>
-                    <p style="color:rgba(255,255,255,.88);font-size:.9rem;margin:0;">Get notified when new papers are uploaded, your rank changes, or documents are approved</p>
+                    <p style="color:rgba(255,255,255,.88);font-size:.9rem;margin:0;">Get notified when new papers are
+                        uploaded, your rank changes, or documents are approved</p>
                 </div>
                 <div style="padding:1.4rem 1.5rem 1.6rem;">
-                    <ul style="list-style:none;padding:0;margin:0 0 1.2rem;display:flex;flex-direction:column;gap:.6rem;">
+                    <ul
+                        style="list-style:none;padding:0;margin:0 0 1.2rem;display:flex;flex-direction:column;gap:.6rem;">
                         <li style="display:flex;align-items:center;gap:.7rem;font-size:.93rem;color:#374151;">
-                            <span style="width:32px;height:32px;border-radius:8px;background:#ccfbf1;display:flex;align-items:center;justify-content:center;">📄</span>
+                            <span
+                                style="width:32px;height:32px;border-radius:8px;background:#ccfbf1;display:flex;align-items:center;justify-content:center;">📄</span>
                             <span>Notified when <strong>new papers</strong> are added</span>
                         </li>
                         <li style="display:flex;align-items:center;gap:.7rem;font-size:.93rem;color:#374151;">
-                            <span style="width:32px;height:32px;border-radius:8px;background:#fef3c7;display:flex;align-items:center;justify-content:center;">🏆</span>
+                            <span
+                                style="width:32px;height:32px;border-radius:8px;background:#fef3c7;display:flex;align-items:center;justify-content:center;">🏆</span>
                             <span>Get <strong>rank change</strong> alerts instantly</span>
                         </li>
                         <li style="display:flex;align-items:center;gap:.7rem;font-size:.93rem;color:#374151;">
-                            <span style="width:32px;height:32px;border-radius:8px;background:#ede9fe;display:flex;align-items:center;justify-content:center;">✅</span>
+                            <span
+                                style="width:32px;height:32px;border-radius:8px;background:#ede9fe;display:flex;align-items:center;justify-content:center;">✅</span>
                             <span>Know when your <strong>upload is approved</strong></span>
                         </li>
                     </ul>
                     <button id="nudgeEnableNotifBtn" onclick="nudgeEnableNotifications()"
-                        style="display:block;width:100%;padding:.9rem;border:none;border-radius:12px;background:linear-gradient(135deg,#0891b2,#2563eb);color:#fff;font-size:1.05rem;font-weight:700;cursor:pointer;text-align:center;box-shadow:0 4px 18px rgba(8,145,178,.28);transition:transform .15s,box-shadow .15s;margin-bottom:.55rem;">Enable Notifications 🔔</button>
-                    <span onclick="dismissProfileNudge()" style="display:block;text-align:center;font-size:.87rem;color:#9ca3af;cursor:pointer;">Maybe later</span>
+                        style="display:block;width:100%;padding:.9rem;border:none;border-radius:12px;background:linear-gradient(135deg,#0891b2,#2563eb);color:#fff;font-size:1.05rem;font-weight:700;cursor:pointer;text-align:center;box-shadow:0 4px 18px rgba(8,145,178,.28);transition:transform .15s,box-shadow .15s;margin-bottom:.55rem;">Enable
+                        Notifications 🔔</button>
+                    <span onclick="dismissProfileNudge()"
+                        style="display:block;text-align:center;font-size:.87rem;color:#9ca3af;cursor:pointer;">Maybe
+                        later</span>
                 </div>
             </div>
 
@@ -787,86 +886,113 @@
     </div>
 
 
-        <header>
-            <nav class="main-nav">
-                <div class="logo kanit-bold" onclick="switchToEliteVersion()" style="cursor: pointer;">
-                    <span class="logo-text">AbhiHub</span>
-                    <span class="premium-badge">Premium</span>
-                </div>
+    <header>
+        <nav class="main-nav">
+            <div class="logo kanit-bold" onclick="switchToEliteVersion()" style="cursor: pointer;">
+                <span class="logo-text">AbhiHub</span>
+                <span class="premium-badge">Premium</span>
+            </div>
 
-                <!-- ── Notification Bell ── -->
-                <div id="notifBellWrap" style="position:relative;margin-left:auto;">
-                  <button id="notifBell" onclick="toggleNotifPanel()" aria-label="Notifications"
+            <!-- ── Notification Bell ── -->
+            <div id="notifBellWrap" style="position:relative;margin-left:auto;">
+                <button id="notifBell" onclick="toggleNotifPanel()" aria-label="Notifications"
                     style="background:none;border:none;cursor:pointer;position:relative;width:40px;height:40px;border-radius:12px;display:flex;align-items:center;justify-content:center;transition:background .2s;"
                     onmouseover="this.style.background='rgba(37,99,235,.1)'" onmouseout="this.style.background='none'">
-                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                      <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/>
-                      <path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
                     </svg>
-                    <span id="notifBadge" style="display:none;position:absolute;top:4px;right:4px;background:#ef4444;color:#fff;border-radius:99px;font-size:.6rem;font-weight:800;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px;"></span>
-                  </button>
+                    <span id="notifBadge"
+                        style="display:none;position:absolute;top:4px;right:4px;background:#ef4444;color:#fff;border-radius:99px;font-size:.6rem;font-weight:800;min-width:16px;height:16px;line-height:16px;text-align:center;padding:0 3px;"></span>
+                </button>
 
-                  <!-- Dropdown panel -->
-                  <div id="notifPanel" style="display:none;position:absolute;right:0;top:calc(100% + 10px);width:320px;background:#fff;border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,.15),0 0 0 1px rgba(0,0,0,.06);z-index:9000;overflow:hidden;animation:notifSlideIn .25s ease;">
-                    <div style="display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.1rem .75rem;border-bottom:1px solid #f1f5f9;">
-                      <span style="font-weight:700;font-size:.95rem;color:#1e293b;">🔔 Notifications</span>
-                      <button onclick="markAllRead()" style="background:none;border:none;font-size:.75rem;color:#2563eb;font-weight:600;cursor:pointer;padding:.2rem .5rem;border-radius:6px;transition:background .15s;" onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='none'">Mark all read</button>
+                <!-- Dropdown panel -->
+                <div id="notifPanel"
+                    style="display:none;position:absolute;right:0;top:calc(100% + 10px);width:320px;background:#fff;border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,.15),0 0 0 1px rgba(0,0,0,.06);z-index:9000;overflow:hidden;animation:notifSlideIn .25s ease;">
+                    <div
+                        style="display:flex;align-items:center;justify-content:space-between;padding:.9rem 1.1rem .75rem;border-bottom:1px solid #f1f5f9;">
+                        <span style="font-weight:700;font-size:.95rem;color:#1e293b;">🔔 Notifications</span>
+                        <button onclick="markAllRead()"
+                            style="background:none;border:none;font-size:.75rem;color:#2563eb;font-weight:600;cursor:pointer;padding:.2rem .5rem;border-radius:6px;transition:background .15s;"
+                            onmouseover="this.style.background='#eff6ff'" onmouseout="this.style.background='none'">Mark
+                            all read</button>
                     </div>
                     <div id="notifList" style="max-height:340px;overflow-y:auto;">
-                      <div style="text-align:center;padding:2rem;color:#94a3b8;font-size:.88rem;">Loading…</div>
+                        <div style="text-align:center;padding:2rem;color:#94a3b8;font-size:.88rem;">Loading…</div>
                     </div>
                     <div style="padding:.7rem 1.1rem;border-top:1px solid #f1f5f9;text-align:center;">
-                      <span style="font-size:.78rem;color:#94a3b8;">Updates every 3 min</span>
+                        <span style="font-size:.78rem;color:#94a3b8;">Updates every 3 min</span>
                     </div>
-                  </div>
                 </div>
+            </div>
 
-            </nav>
-        </header>
-        <main>
-            {% block content %}
+        </nav>
+    </header>
+    <main>
+        {% block content %}
 
 
-            {% endblock %}
-        </main>
-        {% include 'p_nav.html' %}
+        {% endblock %}
+    </main>
+    {% include 'p_nav.html' %}
 
-        <!-- Main Script -->
-        <script src="{{ url_for('static', filename='premium/js/script.js')}}"></script>
+    <!-- Main Script -->
+    <script src="{{ url_for('static', filename='premium/js/script.js')}}"></script>
 
-        <!-- ── Notification Bell Logic ── -->
-        <style>
-          @keyframes notifSlideIn{from{opacity:0;transform:translateY(-8px)}to{opacity:1;transform:translateY(0)}}
-          #notifList::-webkit-scrollbar{width:4px}
-          #notifList::-webkit-scrollbar-track{background:#f8fafc}
-          #notifList::-webkit-scrollbar-thumb{background:#cbd5e1;border-radius:4px}
-        </style>
-        <script>
-        (function(){
-          let _notifOpen = false;
-          let _pollTimer = null;
-
-          function _timeAgo(iso) {
-            const diff = Date.now() - new Date(iso).getTime();
-            const m = Math.floor(diff / 60000);
-            if (m < 1)  return 'just now';
-            if (m < 60) return m + 'm ago';
-            const h = Math.floor(m / 60);
-            if (h < 24) return h + 'h ago';
-            return Math.floor(h / 24) + 'd ago';
-          }
-
-          function _renderNotifs(items) {
-            const list = document.getElementById('notifList');
-            if (!list) return;
-            if (!items.length) {
-              list.innerHTML = '<div style="text-align:center;padding:2rem 1rem;color:#94a3b8;font-size:.88rem;">No notifications yet 🎉</div>';
-              return;
+    <!-- ── Notification Bell Logic ── -->
+    <style>
+        @keyframes notifSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(-8px)
             }
-            list.innerHTML = items.map(n => `
+
+            to {
+                opacity: 1;
+                transform: translateY(0)
+            }
+        }
+
+        #notifList::-webkit-scrollbar {
+            width: 4px
+        }
+
+        #notifList::-webkit-scrollbar-track {
+            background: #f8fafc
+        }
+
+        #notifList::-webkit-scrollbar-thumb {
+            background: #cbd5e1;
+            border-radius: 4px
+        }
+    </style>
+    <script>
+        (function () {
+            let _notifOpen = false;
+            let _pollTimer = null;
+
+            function _timeAgo(iso) {
+                const diff = Date.now() - new Date(iso).getTime();
+                const m = Math.floor(diff / 60000);
+                if (m < 1) return 'just now';
+                if (m < 60) return m + 'm ago';
+                const h = Math.floor(m / 60);
+                if (h < 24) return h + 'h ago';
+                return Math.floor(h / 24) + 'd ago';
+            }
+
+            function _renderNotifs(items) {
+                const list = document.getElementById('notifList');
+                if (!list) return;
+                if (!items.length) {
+                    list.innerHTML = '<div style="text-align:center;padding:2rem 1rem;color:#94a3b8;font-size:.88rem;">No notifications yet 🎉</div>';
+                    return;
+                }
+                list.innerHTML = items.map(n => `
               <div style="display:flex;gap:.75rem;padding:.75rem 1.1rem;border-bottom:1px solid #f8fafc;background:${n.is_read ? '#fff' : '#f0f7ff'};transition:background .2s;">
-                <div style="width:36px;height:36px;border-radius:10px;background:${n.type==='file_view'?'#dbeafe':'#dcfce7'};display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">
-                  ${n.type==='file_view' ? '👁' : '🔔'}
+                <div style="width:36px;height:36px;border-radius:10px;background:${n.type === 'file_view' ? '#dbeafe' : '#dcfce7'};display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;">
+                  ${n.type === 'file_view' ? '👁' : '🔔'}
                 </div>
                 <div style="flex:1;min-width:0;">
                   <div style="font-size:.83rem;font-weight:700;color:#1e293b;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${n.title}</div>
@@ -875,212 +1001,215 @@
                 </div>
                 ${!n.is_read ? '<div style="width:8px;height:8px;border-radius:50%;background:#3b82f6;flex-shrink:0;margin-top:4px;"></div>' : ''}
               </div>`).join('');
-          }
-
-          function _updateBadge(unread) {
-            const badge = document.getElementById('notifBadge');
-            if (!badge) return;
-            if (unread > 0) {
-              badge.style.display = 'block';
-              badge.textContent = unread > 9 ? '9+' : unread;
-            } else {
-              badge.style.display = 'none';
             }
-          }
 
-          window._fetchNotifications = async function(silent) {
-            try {
-              const r = await fetch('/api/my-notifications?limit=20');
-              if (!r.ok) return;
-              const d = await r.json();
-              if (d.success) {
-                _updateBadge(d.unread || 0);
-                if (_notifOpen || !silent) _renderNotifs(d.data || []);
-              }
-            } catch(e) { /* non-critical */ }
-          };
-
-          window.toggleNotifPanel = function() {
-            const panel = document.getElementById('notifPanel');
-            if (!panel) return;
-            _notifOpen = !_notifOpen;
-            panel.style.display = _notifOpen ? 'block' : 'none';
-            if (_notifOpen) {
-              _fetchNotifications(false);
-              // GA4 tracking
-              if (typeof window.AbhiHubTracking !== 'undefined') {
+            function _updateBadge(unread) {
                 const badge = document.getElementById('notifBadge');
-                const unread = (badge && badge.style.display !== 'none') ? parseInt(badge.textContent) || 0 : 0;
-                window.AbhiHubTracking.trackNotificationOpen(unread);
-              }
+                if (!badge) return;
+                if (unread > 0) {
+                    badge.style.display = 'block';
+                    badge.textContent = unread > 9 ? '9+' : unread;
+                } else {
+                    badge.style.display = 'none';
+                }
             }
-          };
 
-          window.markAllRead = async function() {
-            try {
-              await fetch('/api/my-notifications/read', { method: 'POST' });
-              _updateBadge(0);
-              // Re-render with is_read=true for all
-              const list = document.getElementById('notifList');
-              if (list) list.querySelectorAll('[style*="f0f7ff"]').forEach(el => el.style.background = '#fff');
-              list?.querySelectorAll('[style*="border-radius:50%"]').forEach(el => el.remove());
-            } catch(e) {}
-          };
+            window._fetchNotifications = async function (silent) {
+                try {
+                    const r = await fetch('/api/my-notifications?limit=20');
+                    if (!r.ok) return;
+                    const d = await r.json();
+                    if (d.success) {
+                        _updateBadge(d.unread || 0);
+                        if (_notifOpen || !silent) _renderNotifs(d.data || []);
+                    }
+                } catch (e) { /* non-critical */ }
+            };
 
-          // Close panel on outside click
-          document.addEventListener('click', function(e) {
-            const wrap = document.getElementById('notifBellWrap');
-            if (wrap && !wrap.contains(e.target) && _notifOpen) {
-              _notifOpen = false;
-              const panel = document.getElementById('notifPanel');
-              if (panel) panel.style.display = 'none';
+            window.toggleNotifPanel = function () {
+                const panel = document.getElementById('notifPanel');
+                if (!panel) return;
+                _notifOpen = !_notifOpen;
+                panel.style.display = _notifOpen ? 'block' : 'none';
+                if (_notifOpen) {
+                    _fetchNotifications(false);
+                    // GA4 tracking
+                    if (typeof window.AbhiHubTracking !== 'undefined') {
+                        const badge = document.getElementById('notifBadge');
+                        const unread = (badge && badge.style.display !== 'none') ? parseInt(badge.textContent) || 0 : 0;
+                        window.AbhiHubTracking.trackNotificationOpen(unread);
+                    }
+                }
+            };
+
+            window.markAllRead = async function () {
+                try {
+                    await fetch('/api/my-notifications/read', { method: 'POST' });
+                    _updateBadge(0);
+                    // Re-render with is_read=true for all
+                    const list = document.getElementById('notifList');
+                    if (list) list.querySelectorAll('[style*="f0f7ff"]').forEach(el => el.style.background = '#fff');
+                    list?.querySelectorAll('[style*="border-radius:50%"]').forEach(el => el.remove());
+                } catch (e) { }
+            };
+
+            // Close panel on outside click
+            document.addEventListener('click', function (e) {
+                const wrap = document.getElementById('notifBellWrap');
+                if (wrap && !wrap.contains(e.target) && _notifOpen) {
+                    _notifOpen = false;
+                    const panel = document.getElementById('notifPanel');
+                    if (panel) panel.style.display = 'none';
+                }
+            });
+
+            // Initial fetch + poll every 3 min
+            if (window.__CURRENT_USER__?.uid) {
+                _fetchNotifications(true);
+                _pollTimer = setInterval(() => _fetchNotifications(true), 3 * 60 * 1000);
             }
-          });
-
-          // Initial fetch + poll every 3 min
-          if (window.__CURRENT_USER__?.uid) {
-            _fetchNotifications(true);
-            _pollTimer = setInterval(() => _fetchNotifications(true), 3 * 60 * 1000);
-          }
         })();
-        </script>
+    </script>
 
-        <!-- ===== UPLOAD CAMPAIGN PROMO LOGIC (May 2026) ===== -->
-        <script>
-            (function () {
+    <!-- ===== UPLOAD CAMPAIGN PROMO LOGIC (May 2026) ===== -->
+    <script>
+        (function () {
 
-                // ── Campaign window ──────────────────────────────────────────
-                const CAMPAIGN_START = new Date('2026-05-01T00:00:00');
-                const CAMPAIGN_END   = new Date('2026-05-31T23:59:59');
+            // ── Campaign window ──────────────────────────────────────────
+            const CAMPAIGN_START = new Date('2026-05-01T00:00:00');
+            const CAMPAIGN_END = new Date('2026-05-31T23:59:59');
 
-                // ── Storage keys ─────────────────────────────────────────────
-                const KEY_STRIP_SNOOZE  = 'abhihub_upload_strip_snooze';   // timestamp
-                const KEY_CARD_SNOOZE   = 'abhihub_upload_card_snooze';    // timestamp
-                const KEY_UPLOADED      = 'abhihub_user_has_uploaded';      // 'yes'
-                const KEY_CARD_TODAY    = 'abhihub_upload_card_shown_date'; // 'YYYY-MM-DD'
+            // ── Storage keys ─────────────────────────────────────────────
+            const KEY_STRIP_SNOOZE = 'abhihub_upload_strip_snooze';   // timestamp
+            const KEY_CARD_SNOOZE = 'abhihub_upload_card_snooze';    // timestamp
+            const KEY_UPLOADED = 'abhihub_user_has_uploaded';      // 'yes'
+            const KEY_CARD_TODAY = 'abhihub_upload_card_shown_date'; // 'YYYY-MM-DD'
 
-                // ── Helpers ───────────────────────────────────────────────────
-                function todayStr() {
-                    return new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+            // ── Helpers ───────────────────────────────────────────────────
+            function todayStr() {
+                return new Date().toISOString().slice(0, 10); // 'YYYY-MM-DD'
+            }
+            function inCampaign() {
+                const now = new Date();
+                return now >= CAMPAIGN_START && now <= CAMPAIGN_END;
+            }
+            function snoozedUntilTomorrow(key) {
+                const ts = parseInt(localStorage.getItem(key) || '0', 10);
+                if (!ts) return false;
+                const tomorrow = new Date();
+                tomorrow.setHours(0, 0, 0, 0);
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                return Date.now() < tomorrow.getTime() && Date.now() < ts + 86400000;
+            }
+            function hasUploaded() {
+                return localStorage.getItem(KEY_UPLOADED) === 'yes';
+            }
+
+            // ── Rotating strip messages (one per day-of-month) ────────────
+            var STRIP_MSGS = [
+                { text: 'Help your juniors — upload a paper this month!', link: 'Upload now →' },
+                { text: 'May Upload Drive 🎯 — one paper from you helps hundreds!', link: 'Start uploading →' },
+                { text: 'Your papers = someone else\'s rank boost. Share them!', link: 'Upload a paper →' },
+                { text: 'Uploaders earn 2× reputation this month. Don\'t miss out!', link: 'Upload today →' },
+                { text: 'Be a contributor — upload your exam papers on AbhiHub!', link: 'Upload now →' },
+                { text: 'Did you save your question papers? Share them with AbhiHub!', link: 'Share a paper →' },
+                { text: '60 seconds is all it takes to help a fellow student. Upload!', link: 'Go upload →' },
+                { text: 'Your upload today could be someone\'s lifesaver in exams!', link: 'Upload now →' },
+                { text: 'May Drive: every upload boosts your rank + helps peers!', link: 'Upload now →' },
+                { text: 'Give back to the community — upload your saved papers!', link: 'Share papers →' },
+            ];
+            function todayMsg() {
+                var day = new Date().getDate(); // 1-31
+                return STRIP_MSGS[(day - 1) % STRIP_MSGS.length];
+            }
+
+            // ── Strip ─────────────────────────────────────────────────────
+            function initPromoStrip() {
+                if (!inCampaign() || hasUploaded() || snoozedUntilTomorrow(KEY_STRIP_SNOOZE)) return;
+                var strip = document.getElementById('promoStrip');
+                var msg = todayMsg();
+                var textEl = document.getElementById('promoStripText');
+                var linkEl = document.getElementById('promoStripLink');
+                if (textEl) textEl.textContent = msg.text;
+                if (linkEl) linkEl.textContent = msg.link;
+                if (strip) strip.classList.remove('hidden');
+                // Push sticky header below the strip using CSS var
+                var h = (strip && strip.offsetHeight) || 38;
+                document.documentElement.style.setProperty('--strip-h', h + 'px');
+            }
+
+            window.dismissPromoStrip = function () {
+                var midnight = new Date();
+                midnight.setHours(23, 59, 59, 999);
+                localStorage.setItem(KEY_STRIP_SNOOZE, midnight.getTime().toString());
+                var strip = document.getElementById('promoStrip');
+                if (strip) {
+                    strip.classList.add('hidden');
+                    setTimeout(function () { strip.style.display = 'none'; }, 300);
                 }
-                function inCampaign() {
-                    const now = new Date();
-                    return now >= CAMPAIGN_START && now <= CAMPAIGN_END;
-                }
-                function snoozedUntilTomorrow(key) {
-                    const ts = parseInt(localStorage.getItem(key) || '0', 10);
-                    if (!ts) return false;
-                    const tomorrow = new Date();
-                    tomorrow.setHours(0, 0, 0, 0);
-                    tomorrow.setDate(tomorrow.getDate() + 1);
-                    return Date.now() < tomorrow.getTime() && Date.now() < ts + 86400000;
-                }
-                function hasUploaded() {
-                    return localStorage.getItem(KEY_UPLOADED) === 'yes';
-                }
+                document.documentElement.style.setProperty('--strip-h', '0px');
+            };
 
-                // ── Rotating strip messages (one per day-of-month) ────────────
-                var STRIP_MSGS = [
-                    { text: 'Help your juniors — upload a paper this month!',                   link: 'Upload now →' },
-                    { text: 'May Upload Drive 🎯 — one paper from you helps hundreds!',         link: 'Start uploading →' },
-                    { text: 'Your papers = someone else\'s rank boost. Share them!',            link: 'Upload a paper →' },
-                    { text: 'Uploaders earn 2× reputation this month. Don\'t miss out!',        link: 'Upload today →' },
-                    { text: 'Be a contributor — upload your exam papers on AbhiHub!',           link: 'Upload now →' },
-                    { text: 'Did you save your question papers? Share them with AbhiHub!',      link: 'Share a paper →' },
-                    { text: '60 seconds is all it takes to help a fellow student. Upload!',     link: 'Go upload →' },
-                    { text: 'Your upload today could be someone\'s lifesaver in exams!',        link: 'Upload now →' },
-                    { text: 'May Drive: every upload boosts your rank + helps peers!',          link: 'Upload now →' },
-                    { text: 'Give back to the community — upload your saved papers!',           link: 'Share papers →' },
-                ];
-                function todayMsg() {
-                    var day = new Date().getDate(); // 1-31
-                    return STRIP_MSGS[(day - 1) % STRIP_MSGS.length];
-                }
+            // ── Card modal ────────────────────────────────────────────────
+            function initPromoCard() {
+                if (!inCampaign() || hasUploaded()) return;
+                // Only show once per calendar day
+                if (localStorage.getItem(KEY_CARD_TODAY) === todayStr()) return;
+                // Respect snooze
+                if (snoozedUntilTomorrow(KEY_CARD_SNOOZE)) return;
 
-                // ── Strip ─────────────────────────────────────────────────────
-                function initPromoStrip() {
-                    if (!inCampaign() || hasUploaded() || snoozedUntilTomorrow(KEY_STRIP_SNOOZE)) return;
-                    var strip = document.getElementById('promoStrip');
-                    var msg   = todayMsg();
-                    var textEl = document.getElementById('promoStripText');
-                    var linkEl = document.getElementById('promoStripLink');
-                    if (textEl) textEl.textContent = msg.text;
-                    if (linkEl) linkEl.textContent  = msg.link;
-                    if (strip)  strip.classList.remove('hidden');
-                    // Push sticky header below the strip using CSS var
-                    var h = (strip && strip.offsetHeight) || 38;
-                    document.documentElement.style.setProperty('--strip-h', h + 'px');
-                }
-
-                window.dismissPromoStrip = function () {
-                    var midnight = new Date();
-                    midnight.setHours(23, 59, 59, 999);
-                    localStorage.setItem(KEY_STRIP_SNOOZE, midnight.getTime().toString());
-                    var strip = document.getElementById('promoStrip');
-                    if (strip) { strip.classList.add('hidden'); }
-                    document.documentElement.style.setProperty('--strip-h', '0px');
-                };
-
-                // ── Card modal ────────────────────────────────────────────────
-                function initPromoCard() {
-                    if (!inCampaign() || hasUploaded()) return;
-                    // Only show once per calendar day
-                    if (localStorage.getItem(KEY_CARD_TODAY) === todayStr()) return;
-                    // Respect snooze
-                    if (snoozedUntilTomorrow(KEY_CARD_SNOOZE)) return;
-
-                    setTimeout(function () {
-                        var overlay = document.getElementById('promoCardOverlay');
-                        if (overlay) {
-                            overlay.classList.add('show');
-                            localStorage.setItem(KEY_CARD_TODAY, todayStr());
-                        }
-                    }, 5000);
-                }
-
-                window.closePromoCard = function () {
+                setTimeout(function () {
                     var overlay = document.getElementById('promoCardOverlay');
-                    if (overlay) overlay.classList.remove('show');
-                };
+                    if (overlay) {
+                        overlay.classList.add('show');
+                        localStorage.setItem(KEY_CARD_TODAY, todayStr());
+                    }
+                }, 5000);
+            }
 
-                // "Remind me tomorrow" — snoozes card until tomorrow
-                window.snoozePromoCard = function () {
-                    var midnight = new Date();
-                    midnight.setHours(23, 59, 59, 999);
-                    localStorage.setItem(KEY_CARD_SNOOZE, midnight.getTime().toString());
-                    closePromoCard();
-                };
+            window.closePromoCard = function () {
+                var overlay = document.getElementById('promoCardOverlay');
+                if (overlay) overlay.classList.remove('show');
+            };
 
-                // Call this right after a successful upload (from upload page JS)
-                window.markUserUploaded = function () {
-                    localStorage.setItem(KEY_UPLOADED, 'yes');
-                    closePromoCard();
-                    var strip = document.getElementById('promoStrip');
-                    if (strip) { strip.classList.add('hidden'); }
-                    document.documentElement.style.setProperty('--strip-h', '0px');
-                };
+            // "Remind me tomorrow" — snoozes card until tomorrow
+            window.snoozePromoCard = function () {
+                var midnight = new Date();
+                midnight.setHours(23, 59, 59, 999);
+                localStorage.setItem(KEY_CARD_SNOOZE, midnight.getTime().toString());
+                closePromoCard();
+            };
 
-                // Track CTA click — navigates to upload; markUserUploaded() should be
-                // called from the upload success handler on p_upload.html
-                window.markUploadClicked = function () {
-                    closePromoCard();
-                };
+            // Call this right after a successful upload (from upload page JS)
+            window.markUserUploaded = function () {
+                localStorage.setItem(KEY_UPLOADED, 'yes');
+                closePromoCard();
+                var strip = document.getElementById('promoStrip');
+                if (strip) { strip.classList.add('hidden'); }
+                document.documentElement.style.setProperty('--strip-h', '0px');
+            };
 
-                // Close on backdrop click (snooze, not permanent)
-                document.getElementById('promoCardOverlay').addEventListener('click', function (e) {
-                    if (e.target === this) window.snoozePromoCard();
-                });
+            // Track CTA click — navigates to upload; markUserUploaded() should be
+            // called from the upload success handler on p_upload.html
+            window.markUploadClicked = function () {
+                closePromoCard();
+            };
 
-                document.addEventListener('DOMContentLoaded', function () {
-                    initPromoStrip();
-                    initPromoCard();
-                });
+            // Close on backdrop click (snooze, not permanent)
+            document.getElementById('promoCardOverlay').addEventListener('click', function (e) {
+                if (e.target === this) window.snoozePromoCard();
+            });
 
-            })();
-        </script>
+            document.addEventListener('DOMContentLoaded', function () {
+                initPromoStrip();
+                initPromoCard();
+            });
 
-        <!-- ===== PROFILE NUDGE + NOTIFICATION POPUP LOGIC ===== -->
-        <script>
+        })();
+    </script>
+
+    <!-- ===== PROFILE NUDGE + NOTIFICATION POPUP LOGIC ===== -->
+    <script>
         (function () {
             var NUDGE_SNOOZE_KEY = 'abhihub_profile_nudge_snooze';
             var NUDGE_NOTIF_DONE_KEY = 'abhihub_notif_nudge_done';
@@ -1093,7 +1222,7 @@
 
             function showNudge(step) {
                 var overlay = document.getElementById('profileNudgeOverlay');
-                var card    = document.getElementById('profileNudgeCard');
+                var card = document.getElementById('profileNudgeCard');
                 if (!overlay) return;
                 document.getElementById('nudgeStep1').style.display = step === 1 ? 'block' : 'none';
                 document.getElementById('nudgeStep2').style.display = step === 2 ? 'block' : 'none';
@@ -1108,7 +1237,7 @@
 
             window.dismissProfileNudge = function () {
                 var overlay = document.getElementById('profileNudgeOverlay');
-                var card    = document.getElementById('profileNudgeCard');
+                var card = document.getElementById('profileNudgeCard');
                 if (!overlay) return;
                 card.style.transform = 'translateY(36px) scale(0.96)';
                 setTimeout(function () { overlay.style.display = 'none'; }, 350);
@@ -1211,11 +1340,11 @@
                 setTimeout(maybeShowNudge, NUDGE_DELAY_MS);
             });
         })();
-        </script>
+    </script>
 
 
-        <!-- Security Module -->
-        <script src="{{ url_for('static', filename='js/security.js') }}"></script>
-    </body>
+    <!-- Security Module -->
+    <script src="{{ url_for('static', filename='js/security.js') }}"></script>
+</body>
 
 </html>
