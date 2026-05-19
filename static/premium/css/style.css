@@ -431,16 +431,7 @@ header {
     letter-spacing: -0.025em;
 }
 
-.premium-badge {
-    background: var(--gradient-secondary);
-    color: var(--text-inverse);
-    font-size: var(--text-xs);
-    font-weight: 600;
-    padding: var(--space-1) var(--space-2);
-    border-radius: var(--radius-full);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-}
+
 
 .nav-actions {
     display: flex;

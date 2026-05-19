@@ -330,6 +330,13 @@
 </div>
 
 <script>
+    // ── Signal OverlayManager: studying mode ON ──────────────────────────────
+    document.dispatchEvent(new CustomEvent('abhihub:studying:start'));
+    window.addEventListener('beforeunload', function () {
+        document.dispatchEvent(new CustomEvent('abhihub:studying:end'));
+    });
+
+
     function goBack() {
         if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) {
             history.back();
@@ -337,6 +344,7 @@
             window.location.href = "{{ url_for('store_room') }}";
         }
     }
+
 
     function closePromo() {
         document.getElementById('promoOverlay').style.display = 'none';

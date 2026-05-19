@@ -10,7 +10,7 @@
   <meta name="theme-color" content="#ffffff">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="default">
-  <meta name="apple-mobile-web-app-title" content="AbhiHub Premium">
+  <meta name="apple-mobile-web-app-title" content="AbhiHub">
   <link rel="apple-touch-icon" href="{{ url_for('static', filename='premium/icons/icon-192x192.png') }}">
   <style>
     body {
@@ -951,6 +951,13 @@
                 <div style="font-size: 0.9rem; opacity: 0.9;">Students Helped</div>
               </div>
               {% endif %}
+
+              <!-- Study Views Remaining -->
+              <div
+                style="background: linear-gradient(135deg, rgba(16, 185, 129, 0.25), rgba(5, 150, 105, 0.2)); backdrop-filter: blur(10px); border-radius: 12px; padding: 1rem 1.5rem; min-width: 140px; text-align: center; border: 1px solid rgba(255,255,255,0.25);">
+                <div style="font-size: 2rem; font-weight: bold; color: #fff;">{{ user_data.get('paper_quota_remaining', 19) }} 📚</div>
+                <div style="font-size: 0.9rem; opacity: 0.9;">Study Views Left</div>
+              </div>
 
               <!-- New Profile & Rank Info -->
               <div

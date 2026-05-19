@@ -279,21 +279,52 @@ def admin_required(f):
 # Each upload grants QUOTA_PER_UPLOAD paper opens.
 # Admins and unauthenticated users are not affected (unauthenticated is blocked
 # by @auth_required anyway).
-QUOTA_PER_UPLOAD = 3
+QUOTA_PER_UPLOAD = 19
 
 def _get_quota():
-    """Return the current quota dict from session, creating it if absent."""
-    if 'paper_quota' not in session:
-        session['paper_quota'] = {'credits': 0, 'total_views': 0}
-    return session['paper_quota']
+    """Return the current quota dict from session, synced with backend, processing monthly resets."""
+    user = session.get('user', {})
+    user_id = user.get('uid')
+    if not user_id:
+        return {'credits': 19, 'total_views': 0}
 
-def _grant_upload_credits():
-    """Award QUOTA_PER_UPLOAD credits to the user after a successful upload."""
-    q = _get_quota()
-    q['credits'] = q.get('credits', 0) + QUOTA_PER_UPLOAD
+    # Fetch from Supabase
+    res = supabase.table('profiles').select('paper_quota_remaining, last_quota_reset').eq('id', user_id).execute()
+    db_quota = 19
+    last_reset = '2026-05'
+    if res.data:
+        db_quota = res.data[0].get('paper_quota_remaining')
+        if db_quota is None:
+            db_quota = 19
+        last_reset = res.data[0].get('last_quota_reset') or '2026-05'
+
+    current_month = datetime.utcnow().strftime('%Y-%m')
+    if last_reset != current_month:
+        db_quota = 19
+        last_reset = current_month
+        supabase.table('profiles').update({
+            'paper_quota_remaining': db_quota,
+            'last_quota_reset': last_reset
+        }).eq('id', user_id).execute()
+
+    q = {'credits': db_quota, 'total_views': session.get('paper_quota', {}).get('total_views', 0)}
     session['paper_quota'] = q
     session.modified = True
-    logging.info(f"[QUOTA] Granted {QUOTA_PER_UPLOAD} credits → total credits: {q['credits']}")
+    return q
+
+def _grant_upload_credits():
+    """Award +1 reputation score to the user after a successful upload."""
+    user = session.get('user', {})
+    user_id = user.get('uid')
+    if not user_id:
+        return
+    
+    # Fetch current rep
+    res = supabase.table('profiles').select('reputation_score').eq('id', user_id).execute()
+    if res.data:
+        curr_rep = res.data[0].get('reputation_score') or 0
+        supabase.table('profiles').update({'reputation_score': curr_rep + 1}).eq('id', user_id).execute()
+        logging.info(f"[REWARD] Granted +1 reputation to {user.get('email')} -> {curr_rep + 1}")
 
 def _consume_credit():
     """
@@ -303,16 +334,26 @@ def _consume_credit():
     """
     user = session.get('user', {})
     user_email = user.get('email', '').lower()
+    user_id = user.get('uid')
+    
     # Admins bypass the gate
     if user_email in ['abhijeetshende4053@gmail.com', 'codebymario@gmail.com']:
         return True
+        
     q = _get_quota()
     if q.get('credits', 0) <= 0:
         return False
-    q['credits'] -= 1
+        
+    new_credits = q['credits'] - 1
+    q['credits'] = new_credits
     q['total_views'] = q.get('total_views', 0) + 1
     session['paper_quota'] = q
     session.modified = True
+    
+    # Update backend
+    if user_id:
+        supabase.table('profiles').update({'paper_quota_remaining': new_credits}).eq('id', user_id).execute()
+        
     return True
 
 @app.route('/api/quota', methods=['GET'])
@@ -1408,8 +1449,16 @@ def dashboard():
             'subscription_tier': profile_data.get('subscription_tier', 'free'),
             'global_rank': global_rank,
             'students_helped': students_helped,
-            'badges': badges
+            'badges': badges,
+            'paper_quota_remaining': _get_quota().get('credits', 19)
         }
+    
+    promo_context = {
+        'remaining_views': user_data.get('paper_quota_remaining', 19) if user_data else 19,
+        'students_helped': user_data.get('students_helped', 0) if user_data else 0,
+        'reputation_score': user_data.get('reputation_score', 0) if user_data else 0,
+        'upload_goal_month': 'May'
+    }
     
     return render_template('p_index.html', 
                          data=files,
@@ -1419,7 +1468,8 @@ def dashboard():
                          notes_count=notes_count,
                          user_data=user_data,
                          file_history=file_history,
-                         now=datetime.now())
+                         now=datetime.now(),
+                         promo_context=promo_context)
 
 
 @app.route('/profile')
@@ -1662,15 +1712,27 @@ def premium():
             'practicals_count': user_practicals_count,
             'subjects_contributed': len(user_subjects),
             'user_files': user_files[:10],
-            'reputation_score': 0,
-            'global_rank': '-',
-            'rank_title': 'Beginner',
-            'is_verified': False,
-            'role': 'student',
-            'students_helped': 0,
-            'badges': []
+            'role': 'student'
         }
+        
+    if user_data is None:
+        user_data = {}
+        
+    user_data.setdefault('paper_quota_remaining', _get_quota().get('credits', 19))
+    user_data.setdefault('students_helped', 0)
+    user_data.setdefault('reputation_score', 0)
+    user_data.setdefault('badges', [])
+    user_data.setdefault('global_rank', '-')
+    user_data.setdefault('rank_title', 'Beginner')
+    user_data.setdefault('is_verified', False)
     
+    promo_context = {
+        'remaining_views': user_data.get('paper_quota_remaining', 19) if user_data else 19,
+        'students_helped': user_data.get('students_helped', 0) if user_data else 0,
+        'reputation_score': user_data.get('reputation_score', 0) if user_data else 0,
+        'upload_goal_month': 'May'
+    }
+
     return render_template('p_index.html', 
                          data=files,
                          seo_keywords=seo_keywords,
@@ -1678,7 +1740,8 @@ def premium():
                          paper_count=paper_count,
                          notes_count=notes_count,
                          user_data=user_data,
-                         now=datetime.now())
+                         now=datetime.now(),
+                         promo_context=promo_context)
 
 def cors_headers(f):
     @wraps(f)

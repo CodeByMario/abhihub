@@ -39,7 +39,7 @@
     <link rel="manifest" href="/static/manifest.json">
     <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
     <script src="/static/js/push-notifications.js" defer></script>
-    <title>AbhiHub Premium</title>
+    <title>AbhiHub</title>
 
     <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -50,6 +50,7 @@
 
     <!-- Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='premium/css/style.css', v='2.0.1')}}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/overlay-system.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.min.css') }}">
 
     <!-- Feature Tour Styles -->
@@ -690,48 +691,8 @@
 </head>
 
 <body class="font-regular">
-    <!-- ===== PROMO ANNOUNCEMENT STRIP ===== -->
-    <div id="promoStrip">
-        <span class="promo-tag">📤 May Drive</span>
-        <span id="promoStripText">Help your juniors — upload a paper this month &amp; boost your rank!</span>
-        <a href="/upload" id="promoStripLink">Upload now →</a>
-        <button id="promoStripClose" onclick="dismissPromoStrip()" aria-label="Close announcement">✕</button>
-    </div>
-
-    <!-- ===== PROMO CARD MODAL ===== -->
-    <div id="promoCardOverlay" role="dialog" aria-modal="true" aria-labelledby="promoCardTitle">
-        <div id="promoCard">
-            <div class="promo-card-header">
-                <button class="promo-close-btn" onclick="closePromoCard()" aria-label="Close">✕</button>
-                <span class="promo-emoji">📤</span>
-                <h2 id="promoCardTitle">Share your knowledge!</h2>
-                <p id="promoCardDesc">Upload one paper this May &amp; make a difference for your peers</p>
-            </div>
-            <div class="promo-card-body">
-                <ul class="promo-features-list">
-                    <li>
-                        <span class="pf-icon amber">🏆</span>
-                        <span><strong>Earn reputation points</strong> — every upload boosts your rank</span>
-                    </li>
-                    <li>
-                        <span class="pf-icon violet">🎓</span>
-                        <span><strong>Help your juniors</strong> — be the reason someone aced their exam</span>
-                    </li>
-                    <li>
-                        <span class="pf-icon teal">⚡</span>
-                        <span><strong>Takes under 60 seconds</strong> — photo, scan, or PDF — any format</span>
-                    </li>
-                    <li>
-                        <span class="pf-icon blue">📊</span>
-                        <span><strong>Track your impact</strong> — see how many students used your paper</span>
-                    </li>
-                </ul>
-                <a href="/upload" class="promo-cta-btn" id="promoUploadBtn" onclick="markUploadClicked()">Upload a Paper
-                    Now 🚀</a>
-                <span class="promo-dismiss-link" onclick="snoozePromoCard()">Remind me tomorrow</span>
-            </div>
-        </div>
-    </div>
+    <!-- ===== PROMO COMPONENTS ===== -->
+    {% include 'includes/promo_card.html' %}
 
     <!-- Feature Tour Elements -->
     <div id="featureTourOverlay" style="display:none;"></div>
@@ -891,7 +852,6 @@
         <nav class="main-nav">
             <div class="logo kanit-bold" onclick="switchToEliteVersion()" style="cursor: pointer;">
                 <span class="logo-text">AbhiHub</span>
-                <span class="premium-badge">Premium</span>
             </div>
 
             <!-- ── Notification Bell ── -->
@@ -1152,7 +1112,7 @@
                             strip.style.display = 'none';
                         }
                     }, 400);
-                    
+
                     strip.addEventListener('transitionend', function handler(e) {
                         if (e.propertyName === 'transform' && !handled) {
                             handled = true;
@@ -1351,15 +1311,56 @@
             }
 
             document.addEventListener('DOMContentLoaded', function () {
-                // Wait a bit after page load so it doesn't feel intrusive
-                setTimeout(maybeShowNudge, NUDGE_DELAY_MS);
+                // Route existing nudge through OverlayManager if available
+                setTimeout(function () {
+                    if (window.OverlayManager) {
+                        // Delegate to AccessGates which uses OverlayManager properly
+                        if (window.AccessGates) {
+                            // AccessGates.init() already called from engagement layer boot
+                            return;
+                        }
+                    }
+                    // Fallback: legacy flow if OverlayManager not loaded yet
+                    setTimeout(maybeShowNudge, NUDGE_DELAY_MS);
+                }, NUDGE_DELAY_MS);
             });
+
+            // ── Studying mode bridge ─────────────────────────────────────────
+            // Signal OverlayManager when user enters/exits paper reading
+            document.addEventListener('abhihub:studying:start', function () {
+                window.OverlayManager && window.OverlayManager.enterStudyingMode();
+            });
+            document.addEventListener('abhihub:studying:end', function () {
+                window.OverlayManager && window.OverlayManager.exitStudyingMode();
+            });
+
+            // Auto-detect PDF reader page
+            if (window.location.pathname.includes('/pdf-reader') ||
+                window.location.pathname.includes('/preview')) {
+                window.OverlayManager && window.OverlayManager.enterStudyingMode();
+                window.addEventListener('beforeunload', function () {
+                    window.OverlayManager && window.OverlayManager.exitStudyingMode();
+                });
+            }
         })();
     </script>
 
 
     <!-- Security Module -->
     <script src="{{ url_for('static', filename='js/security.js') }}" defer></script>
+
+    <!-- Engagement Layer -->
+    <script src="{{ url_for('static', filename='js/overlay-manager.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/access-gates.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/ad-manager.js') }}" defer></script>
+    <script>
+      // Boot engagement layer after DOM + deferred scripts are ready
+      document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () {
+          if (window.AccessGates) window.AccessGates.init();
+        }, 1000);
+      });
+    </script>
 
     <!-- Phase 1: Soft Warning Toast -->
     {% set user_credits = session.get('paper_quota', {}).get('credits', -1) %}
@@ -1368,16 +1369,19 @@
         <span style="font-size:1.2rem;">📚</span>
         <div>
             <strong>1 paper view left</strong><br>
-            <span style="opacity:0.8;font-size:0.8rem;">Share a paper anytime to keep your study flow uninterrupted.</span>
+            <span style="opacity:0.8;font-size:0.8rem;">Share a paper anytime to keep your study flow
+                uninterrupted.</span>
         </div>
-        <button onclick="this.parentElement.remove(); window.AbhiHubTracking && window.AbhiHubTracking.trackStudyPassDismiss();" aria-label="Close">&times;</button>
+        <button
+            onclick="this.parentElement.remove(); window.AbhiHubTracking && window.AbhiHubTracking.trackStudyPassDismiss();"
+            aria-label="Close">&times;</button>
     </div>
     <script>
         if (sessionStorage.getItem('study_pass_toast_shown')) { document.getElementById('studyPassToast')?.remove(); }
-        else { 
-            sessionStorage.setItem('study_pass_toast_shown', 'true'); 
+        else {
+            sessionStorage.setItem('study_pass_toast_shown', 'true');
             if (window.AbhiHubTracking) { window.AbhiHubTracking.trackStudyPassWarning(); }
-            setTimeout(() => document.getElementById('studyPassToast')?.remove(), 8000); 
+            setTimeout(() => document.getElementById('studyPassToast')?.remove(), 8000);
         }
     </script>
     {% endif %}
