@@ -418,14 +418,35 @@
   });
 
   /* ── XP Modal ── */
-  function showXpModal(xpGained, newScore, fileCount) {
+  async function showXpModal(xpGained, newScore, fileCount) {
     const modal = document.getElementById('xpModal');
     const card  = document.getElementById('xpCard');
     if (!modal) return;
     document.getElementById('xpGainedVal').textContent = '+' + (Math.round(xpGained * 100) / 100);
     document.getElementById('xpScoreVal').textContent  = Math.round(newScore * 100) / 100;
-    document.getElementById('xpFilesMsg').textContent  =
-      fileCount > 1 ? `${fileCount} files submitted — pending review` : 'File submitted — pending review';
+    
+    let msg = 'Your upload may help someone pass their exam ✨<br><strong style="color:#fcd34d;">+3 paper views added</strong>';
+    
+    try {
+      const p = await fetch('/api/profile').then(r => r.json());
+      if (p.success && p.user) {
+        const studentsHelped = p.user.students_helped || 0;
+        const badges = p.user.badges || [];
+        
+        if (studentsHelped > 0) {
+          msg = `Your uploads helped ${studentsHelped} students 💙<br><strong style="color:#fcd34d;">+3 paper views added</strong>`;
+        }
+        if (badges.length > 0) {
+          const latestBadge = badges[badges.length - 1];
+          msg += `<br><br><span style="background:rgba(255,255,255,0.2);padding:4px 8px;border-radius:12px;font-size:0.85rem;">🏆 You are a ${latestBadge}!</span>`;
+          if (window.AbhiHubTracking && typeof window.AbhiHubTracking.trackBadgeUnlocked === 'function') {
+            window.AbhiHubTracking.trackBadgeUnlocked(latestBadge);
+          }
+        }
+      }
+    } catch(err) { console.error('Failed to fetch reputation stats', err); }
+    
+    document.getElementById('xpFilesMsg').innerHTML = msg;
     modal.style.display = 'flex';
     requestAnimationFrame(() => { card.style.transform = 'scale(1)'; });
   }

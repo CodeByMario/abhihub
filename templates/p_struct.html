@@ -685,7 +685,8 @@
         };
     </script>
 
-
+    <!-- Study Pass System Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/study-pass.css') }}">
 </head>
 
 <body class="font-regular">
@@ -1145,7 +1146,21 @@
                 var strip = document.getElementById('promoStrip');
                 if (strip) {
                     strip.classList.add('hidden');
-                    setTimeout(function () { strip.style.display = 'none'; }, 300);
+                    var handled = false;
+                    var fallbackTimeout = setTimeout(function () {
+                        if (!handled) {
+                            strip.style.display = 'none';
+                        }
+                    }, 400);
+                    
+                    strip.addEventListener('transitionend', function handler(e) {
+                        if (e.propertyName === 'transform' && !handled) {
+                            handled = true;
+                            clearTimeout(fallbackTimeout);
+                            strip.style.display = 'none';
+                            strip.removeEventListener('transitionend', handler);
+                        }
+                    });
                 }
                 document.documentElement.style.setProperty('--strip-h', '0px');
             };
@@ -1344,7 +1359,29 @@
 
 
     <!-- Security Module -->
-    <script src="{{ url_for('static', filename='js/security.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/security.js') }}" defer></script>
+
+    <!-- Phase 1: Soft Warning Toast -->
+    {% set user_credits = session.get('paper_quota', {}).get('credits', -1) %}
+    {% if user_credits == 1 %}
+    <div class="study-pass-toast" id="studyPassToast">
+        <span style="font-size:1.2rem;">📚</span>
+        <div>
+            <strong>1 paper view left</strong><br>
+            <span style="opacity:0.8;font-size:0.8rem;">Share a paper anytime to keep your study flow uninterrupted.</span>
+        </div>
+        <button onclick="this.parentElement.remove(); window.AbhiHubTracking && window.AbhiHubTracking.trackStudyPassDismiss();" aria-label="Close">&times;</button>
+    </div>
+    <script>
+        if (sessionStorage.getItem('study_pass_toast_shown')) { document.getElementById('studyPassToast')?.remove(); }
+        else { 
+            sessionStorage.setItem('study_pass_toast_shown', 'true'); 
+            if (window.AbhiHubTracking) { window.AbhiHubTracking.trackStudyPassWarning(); }
+            setTimeout(() => document.getElementById('studyPassToast')?.remove(), 8000); 
+        }
+    </script>
+    {% endif %}
+
 </body>
 
 </html>

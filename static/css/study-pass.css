@@ -1,0 +1,286 @@
+/* =========================================
+   STUDY PASS & RESTRICTION SYSTEM STYLES
+   ========================================= */
+
+/* --- Phase 1: Soft Warning Toast (p_struct.html) --- */
+.study-pass-toast {
+    position: fixed;
+    bottom: 80px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1f2937;
+    color: #fff;
+    padding: 12px 20px;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.9rem;
+    width: max-content;
+    max-width: 90vw;
+    animation: slideUpToast 0.4s ease;
+}
+
+@keyframes slideUpToast {
+    from { opacity: 0; transform: translate(-50%, 20px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.study-pass-toast button {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    font-size: 1.2rem;
+    cursor: pointer;
+    margin-left: 8px;
+}
+
+/* --- Phase 2: Upload Gate Modal (p_upload_gate.html) --- */
+.gate-page {
+    min-height: calc(100vh - 70px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem 1rem;
+    background: linear-gradient(135deg, #eef2ff, #f3e8ff);
+    position: relative;
+    overflow: hidden;
+}
+
+.gate-page::before, .gate-page::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    filter: blur(80px);
+    z-index: 0;
+    animation: floatOrb 8s infinite alternate ease-in-out;
+}
+.gate-page::before {
+    width: 420px; height: 420px;
+    background: radial-gradient(circle, rgba(124,58,237,0.15), transparent 70%);
+    top: -100px; left: -100px;
+}
+.gate-page::after {
+    width: 380px; height: 380px;
+    background: radial-gradient(circle, rgba(37,99,235,0.15), transparent 70%);
+    bottom: -100px; right: -80px;
+    animation-delay: 2s;
+}
+
+@keyframes floatOrb {
+    0% { transform: translate(0, 0) scale(1); }
+    100% { transform: translate(30px, 40px) scale(1.1); }
+}
+
+.gate-card {
+    background: rgba(255,255,255,0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255,255,255,0.6);
+    border-radius: 28px;
+    max-width: 480px;
+    width: 100%;
+    padding: 2.8rem 2.2rem 2.4rem;
+    text-align: center;
+    position: relative;
+    z-index: 1;
+    box-shadow: 0 32px 64px rgba(17,24,39,0.08), 0 0 0 1px rgba(255,255,255,0.8) inset;
+    animation: cardIn 0.5s cubic-bezier(.4,0,.2,1);
+}
+@keyframes cardIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.98); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.gate-lock {
+    font-size: 3.8rem;
+    display: block;
+    margin-bottom: 1.2rem;
+    animation: lockPulse 2.2s ease-in-out infinite;
+    filter: drop-shadow(0 4px 16px rgba(37,99,235,0.3));
+}
+@keyframes lockPulse {
+    0%,100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+.gate-title {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #1f2937;
+    margin: 0 0 0.6rem;
+    letter-spacing: -0.3px;
+}
+
+.gate-subtitle {
+    font-size: 1rem;
+    color: #4b5563;
+    margin: 0 0 2rem;
+    line-height: 1.6;
+}
+
+.credit-meter {
+    background: #f9fafb;
+    border-radius: 14px;
+    padding: 1.1rem 1.4rem;
+    margin-bottom: 1.8rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    border: 1px solid #e5e7eb;
+}
+.credit-label {
+    font-size: 0.88rem;
+    color: #6b7280;
+    text-align: left;
+}
+.credit-label strong {
+    display: block;
+    font-size: 1.1rem;
+    color: #111827;
+    margin-bottom: 0.2rem;
+}
+.credit-dots {
+    display: flex;
+    gap: 0.6rem;
+}
+.credit-dot {
+    width: 18px; height: 18px;
+    border-radius: 50%;
+    background: #e5e7eb;
+    border: 2px solid #d1d5db;
+}
+.credit-dot.used {
+    background: #3b82f6;
+    border-color: #3b82f6;
+    box-shadow: 0 0 8px rgba(59,130,246,0.4);
+}
+
+.how-it-works {
+    display: flex;
+    justify-content: center;
+    gap: 0.6rem;
+    margin-bottom: 2.2rem;
+}
+.how-step {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: #f3f4f6;
+    border-radius: 30px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.82rem;
+    color: #4b5563;
+    border: 1px solid #e5e7eb;
+    white-space: nowrap;
+}
+.how-step .step-icon { font-size: 1rem; }
+.how-arrow { color: #9ca3af; font-size: 1rem; align-self: center; }
+
+.gate-upload-btn {
+    display: block;
+    width: 100%;
+    background: linear-gradient(135deg, #7c3aed, #2563eb);
+    color: #fff;
+    padding: 1.1rem;
+    border-radius: 14px;
+    font-size: 1.1rem;
+    font-weight: 700;
+    text-decoration: none;
+    box-shadow: 0 10px 25px rgba(37,99,235,0.3);
+    margin-bottom: 1.2rem;
+    transition: all 0.2s;
+    border: none;
+    cursor: pointer;
+}
+.gate-upload-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 30px rgba(37,99,235,0.4);
+}
+
+.gate-back-link {
+    display: block;
+    font-size: 0.95rem;
+    color: #4b5563;
+    background: #f3f4f6;
+    padding: 0.8rem;
+    border-radius: 12px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: background 0.15s;
+}
+.gate-back-link:hover { background: #e5e7eb; }
+
+.gate-perks {
+    margin: 1.6rem 0 0;
+    padding-top: 1.4rem;
+    border-top: 1px solid #e5e7eb;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+.gate-perk {
+    font-size: 0.82rem;
+    color: #6b7280;
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+}
+
+/* --- Phase 3: Floating Chip (preview.html) --- */
+.study-pass-chip-full {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(10px);
+    color: #1f2937;
+    padding: 10px 16px;
+    border-radius: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    z-index: 9000;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    font-size: 0.85rem;
+    border: 1px solid rgba(229,231,235,0.8);
+    transition: all 0.3s ease;
+    transform-origin: bottom right;
+}
+.study-pass-chip-full a {
+    color: #2563eb;
+    font-weight: 600;
+    text-decoration: none;
+}
+.study-pass-chip-full button {
+    background: none;
+    border: none;
+    color: #9ca3af;
+    cursor: pointer;
+    padding: 0;
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.study-pass-chip-mini {
+    position: fixed;
+    bottom: 80px;
+    right: 20px;
+    background: rgba(255,255,255,0.9);
+    backdrop-filter: blur(10px);
+    color: #2563eb;
+    padding: 8px 12px;
+    border-radius: 24px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    z-index: 8999;
+    font-size: 0.8rem;
+    font-weight: 700;
+    border: 1px solid rgba(229,231,235,0.8);
+    cursor: pointer;
+    display: none;
+    transition: all 0.3s ease;
+}

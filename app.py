@@ -480,15 +480,28 @@ def get_profile():
     """Get current user profile"""
     try:
         user_info = session.get('user', {})
+        user_id = user_info.get('uid')
+        
+        # Get detailed reputation stats (students helped, badges)
+        students_helped = 0
+        badges = []
+        if user_id:
+            from methods.supabase_helper import get_reputation_stats
+            rep_stats = get_reputation_stats(user_id)
+            if rep_stats.get('success'):
+                students_helped = rep_stats.get('students_helped', 0)
+                badges = rep_stats.get('badges', [])
+
         return jsonify({
             'success': True,
             'user': {
                 'uid': user_info.get('uid'),
                 'email': user_info.get('email'),
                 'name': user_info.get('name'),
-                'name': user_info.get('name'),
                 'provider': user_info.get('provider'),
-                'user_metadata': user_info.get('user_metadata', {})
+                'user_metadata': user_info.get('user_metadata', {}),
+                'students_helped': students_helped,
+                'badges': badges
             }
         }), 200
     except Exception as e:
@@ -1373,6 +1386,12 @@ def dashboard():
                 computed_score = entry.get('points', 0)
                 break
         
+        # Get detailed reputation stats (students helped, badges)
+        from methods.supabase_helper import get_reputation_stats
+        rep_stats = get_reputation_stats(user_id)
+        students_helped = rep_stats.get('students_helped', 0) if rep_stats.get('success') else 0
+        badges = rep_stats.get('badges', []) if rep_stats.get('success') else []
+        
         user_data = {
             'name': user_name,
             'email': user_info.get('email', ''),
@@ -1387,7 +1406,9 @@ def dashboard():
             'rank_title': profile_data.get('rank_title', 'Beginner'),
             'is_verified': profile_data.get('is_verified', False),
             'subscription_tier': profile_data.get('subscription_tier', 'free'),
-            'global_rank': global_rank
+            'global_rank': global_rank,
+            'students_helped': students_helped,
+            'badges': badges
         }
     
     return render_template('p_index.html', 
@@ -1640,7 +1661,14 @@ def premium():
             'papers_count': user_papers_count,
             'practicals_count': user_practicals_count,
             'subjects_contributed': len(user_subjects),
-            'user_files': user_files[:10],  # Latest 10 user files for "Your Files" section
+            'user_files': user_files[:10],
+            'reputation_score': 0,
+            'global_rank': '-',
+            'rank_title': 'Beginner',
+            'is_verified': False,
+            'role': 'student',
+            'students_helped': 0,
+            'badges': []
         }
     
     return render_template('p_index.html', 
@@ -1937,7 +1965,7 @@ def index():
     paper_count = sum(1 for item in data if item.get('type') == 'Papers')
     notes_count = sum(1 for item in data if item.get('type') == 'Notes')
     
-    return render_template('p_index.html', data=data, paper_count=paper_count, notes_count=notes_count)
+    return render_template('p_index.html', data=data, paper_count=paper_count, notes_count=notes_count, user_data=None)
 
 @app.route('/premium/search', methods=['POST', 'GET'])
 @auth_required
@@ -1951,7 +1979,7 @@ def search():
     paper_count = sum(1 for item in data if item.get('type') == 'Papers')
     notes_count = sum(1 for item in data if item.get('type') == 'Notes')
     
-    return render_template('p_index.html', data=data, paper_count=paper_count, notes_count=notes_count)
+    return render_template('p_index.html', data=data, paper_count=paper_count, notes_count=notes_count, user_data=None)
 
 @app.route('/premium/view', methods=['POST', 'GET'])
 @auth_required

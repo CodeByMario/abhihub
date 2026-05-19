@@ -900,8 +900,19 @@
             {% else %}
             <h1 style="font-size: 2rem; color: white; margin-bottom: 0.3rem;">🌙 Good Night, {{ user_data.name }}!</h1>
             {% endif %}
-            <p style="font-size: 1.1rem; color: rgba(255, 255, 255, 0.9); margin-bottom: 1.2rem;">Ready to level up your
+            <p style="font-size: 1.1rem; color: rgba(255, 255, 255, 0.9); margin-bottom: 0.5rem;">Ready to level up your
               exam prep? 🚀</p>
+            {% if user_data.get('badges') %}
+            <div style="display: flex; gap: 0.5rem; justify-content: center; margin-bottom: 1.2rem; flex-wrap: wrap;">
+              {% for badge in user_data.badges %}
+              <span style="background: rgba(255,255,255,0.2); padding: 0.3rem 0.8rem; border-radius: 12px; font-size: 0.85rem; font-weight: 600; backdrop-filter: blur(4px);">
+                🏆 {{ badge }}
+              </span>
+              {% endfor %}
+            </div>
+            {% else %}
+            <div style="margin-bottom: 1.2rem;"></div>
+            {% endif %}
 
             <!-- User Statistics Cards -->
             <div style="display: flex; flex-wrap: wrap; gap: 1rem; justify-content: center; margin-top: 1.5rem;">
@@ -929,6 +940,15 @@
                 style="background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(10px); border-radius: 12px; padding: 1rem 1.5rem; min-width: 140px; text-align: center;">
                 <div style="font-size: 2rem; font-weight: bold;">{{ user_data.subjects_contributed }}</div>
                 <div style="font-size: 0.9rem; opacity: 0.9;">Subjects</div>
+              </div>
+              {% endif %}
+
+              <!-- Impact Counter -->
+              {% if user_data.get('students_helped', 0) > 0 %}
+              <div
+                style="background: linear-gradient(135deg, rgba(236, 72, 153, 0.2), rgba(244, 63, 94, 0.2)); backdrop-filter: blur(10px); border-radius: 12px; padding: 1rem 1.5rem; min-width: 140px; text-align: center; border: 1px solid rgba(255,255,255,0.3);">
+                <div style="font-size: 2rem; font-weight: bold; color: #fff;">{{ user_data.get('students_helped', 0) }} 💙</div>
+                <div style="font-size: 0.9rem; opacity: 0.9;">Students Helped</div>
               </div>
               {% endif %}
 

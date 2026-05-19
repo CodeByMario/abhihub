@@ -827,6 +827,48 @@ def recalculate_and_persist_user_rank(user_id: str) -> Dict:
         print(f"[Ranking] Error persisting rank for {user_id}: {e}")
         return {'success': False, 'message': str(e)}
 
+def get_reputation_stats(user_id: str) -> Dict:
+    """
+    Dynamically calculate the 'students helped' metric and badges based on the user's approved documents.
+    """
+    client = init_supabase()
+    if not client:
+        return {'success': False, 'message': 'No client'}
+    try:
+        res = (
+            client.table('documents')
+            .select('status, view_count')
+            .eq('uploader_id', user_id)
+            .in_('status', ['approved', 'pending'])
+            .execute()
+        )
+        
+        approved_count = 0
+        total_views = 0
+        
+        for doc in (res.data or []):
+            if doc.get('status') == 'approved':
+                approved_count += 1
+            total_views += doc.get('view_count') or 0
+            
+        badges = []
+        if approved_count >= 1:
+            badges.append("Junior Helper")
+        if approved_count >= 5:
+            badges.append("Community Contributor")
+        if total_views >= 500:
+            badges.append("Senior Lifesaver")
+            
+        return {
+            'success': True,
+            'approved_uploads': approved_count,
+            'students_helped': total_views,
+            'badges': badges
+        }
+    except Exception as e:
+        print(f"[Ranking] Error calculating reputation stats for {user_id}: {e}")
+        return {'success': False, 'message': str(e)}
+
 def update_document_metadata(file_path: str, update_data: dict) -> Dict:
     client = init_supabase()
     if not client: return {'success': False, 'message': 'No client'}

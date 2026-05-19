@@ -661,6 +661,32 @@
         status_code: statusCode,
         page_path: window.location.pathname
       });
+    },
+
+    // Study Pass Restriction Events
+    trackStudyPassWarning: function() {
+      safeGtag('event', 'study_pass_warning_shown', { page_path: window.location.pathname });
+    },
+    trackStudyPassPopup: function() {
+      safeGtag('event', 'study_pass_popup_opened', { page_path: window.location.pathname });
+    },
+    trackStudyPassUploadClick: function() {
+      safeGtag('event', 'study_pass_upload_clicked', { page_path: window.location.pathname });
+    },
+    trackStudyPassStoreRoomClick: function() {
+      safeGtag('event', 'study_pass_store_room_clicked', { page_path: window.location.pathname });
+    },
+    trackStudyPassUnlocked: function() {
+      safeGtag('event', 'study_pass_unlocked', { page_path: window.location.pathname });
+    },
+    trackStudyPassDismiss: function() {
+      safeGtag('event', 'study_pass_dismiss', { page_path: window.location.pathname });
+    },
+    trackStudyPassIgnored: function() {
+      safeGtag('event', 'study_pass_ignored', { page_path: window.location.pathname });
+    },
+    trackBadgeUnlocked: function(badge_name) {
+      safeGtag('event', 'badge_unlocked', { badge_name: badge_name, page_path: window.location.pathname });
     }
   });
 
