@@ -12,19 +12,19 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='premium/css/style.css', v='2.0.1') }}">
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/know-me.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/know-me.css', v='2.1.0') }}">
   {% include 'google_tag.html' %}
 </head>
 
-<body class="km-page" style="padding-bottom:4rem;">
+<body class="km-page">
 
   <!-- Hero with Gradient Header and Profile Photo -->
-  <div class="km-hero" style="padding: 4rem 1.5rem 3rem;">
-    <div class="km-profile-photo" style="width:110px; height:110px; font-size:3rem; margin-bottom:1rem;">
+  <div class="km-hero" style="padding: 1.75rem 1rem 1.25rem;">
+    <div class="km-profile-photo" style="width:88px; height:88px; font-size:2.5rem; margin-bottom:0.65rem;">
       {{ wall.title[0] if wall.title else 'U' }}
     </div>
-    <h1>{{ wall.title }}</h1>
-    <p style="font-weight: 500; font-size:1.05rem;">
+    <h1 style="font-size:1.5rem;">{{ wall.title }}</h1>
+    <p style="font-weight: 500; font-size:0.9rem; margin-top:0.25rem;">
       {% set parts = [] %}
       {% if wall.branch %}{% set _ = parts.append(wall.branch) %}{% endif %}
       {% if wall.college %}{% set _ = parts.append(wall.college) %}{% endif %}
@@ -33,7 +33,7 @@
     </p>
   </div>
 
-  <div class="km-container" style="margin-top:-2rem;">
+  <div class="km-container" style="margin-top:-0.75rem;">
 
     <!-- Success card (hidden until submitted) -->
     <div class="km-card" id="km-success-card" style="display:none;text-align:center;padding:2.5rem 1.5rem;">
@@ -49,11 +49,11 @@
 
     <!-- Submission Card with Glassmorphism -->
     <div class="km-card km-glass-card" id="km-form-card">
-      <h2 style="font-weight:800; font-size:1.3rem; margin-bottom:0.5rem; color:var(--km-text); text-align:center;">
-        Sign MemoryWall
+      <h2 style="font-weight:800; font-size:1.15rem; margin-bottom:0.35rem; color:var(--km-text); text-align:center;">
+        Sign {{ wall.title }}'s Wall
       </h2>
-      <p style="text-align:center; font-size:0.88rem; color:var(--km-text-secondary); margin-bottom:1.5rem;">
-        Leave 3 describing words, a digital signature, and an optional message.
+      <p style="text-align:center; font-size:0.83rem; color:var(--km-text-secondary); margin-bottom:1.25rem;">
+        3 words · signature · optional memory
       </p>
 
       <form id="km-submit-form" data-wall-id="{{ wall.id }}" novalidate>

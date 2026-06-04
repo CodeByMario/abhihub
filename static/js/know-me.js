@@ -188,29 +188,71 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ── Share Buttons & Link Copying ──────────────────────────────────────────
+  // ── Toast notification ────────────────────────────────────────────────────
+  function showToast(msg, duration = 2200) {
+    let t = document.getElementById('km-toast');
+    if (!t) {
+      t = document.createElement('div');
+      t.id = 'km-toast';
+      t.style.cssText = [
+        'position:fixed', 'bottom:5.5rem', 'left:50%', 'transform:translateX(-50%) translateY(12px)',
+        'background:#1a202c', 'color:#ffffff', 'font-family:Kanit,sans-serif',
+        'font-size:0.88rem', 'font-weight:700', 'padding:0.6rem 1.25rem',
+        'border-radius:99px', 'box-shadow:0 8px 24px rgba(0,0,0,0.18)',
+        'z-index:99999', 'opacity:0', 'transition:opacity 0.22s,transform 0.22s',
+        'white-space:nowrap', 'pointer-events:none'
+      ].join(';');
+      document.body.appendChild(t);
+    }
+    t.textContent = msg;
+    // Animate in
+    requestAnimationFrame(() => {
+      t.style.opacity = '1';
+      t.style.transform = 'translateX(-50%) translateY(0)';
+    });
+    clearTimeout(t._timer);
+    t._timer = setTimeout(() => {
+      t.style.opacity = '0';
+      t.style.transform = 'translateX(-50%) translateY(12px)';
+    }, duration);
+  }
+
+  // ── Copy link ─────────────────────────────────────────────────────────────
   const copyBtn = document.getElementById('km-copy-link');
   if (copyBtn) {
     copyBtn.addEventListener('click', function () {
-      const url = copyBtn.dataset.url || window.location.href;
-      navigator.clipboard.writeText(url).then(function () {
-        const orig = copyBtn.textContent;
-        copyBtn.textContent = '✅ Copied Link!';
-        setTimeout(() => { copyBtn.textContent = orig; }, 2000);
-      });
-      trackEvent('memorywall_share', { method: 'copy_link' });
+      const url = this.dataset.url || window.location.href;
+      const doCopy = (text) => {
+        showToast('🔗 Link copied!');
+        trackEvent('memorywall_share', { method: 'copy_link' });
+      };
+      if (navigator.clipboard && window.isSecureContext) {
+        navigator.clipboard.writeText(url).then(() => doCopy(url));
+      } else {
+        // Fallback for http / older browsers
+        const ta = document.createElement('textarea');
+        ta.value = url;
+        ta.style.cssText = 'position:fixed;opacity:0;';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        doCopy(url);
+      }
     });
   }
 
+  // ── WhatsApp share ────────────────────────────────────────────────────────
   const waBtn = document.getElementById('km-wa-share');
   if (waBtn) {
     waBtn.addEventListener('click', function () {
-      const url  = waBtn.dataset.url  || window.location.href;
-      const text = waBtn.dataset.text || 'Check out my MemoryWall on AbhiHub!';
+      const url  = this.dataset.url  || window.location.href;
+      const text = this.dataset.text || 'Check out my MemoryWall on AbhiHub!';
       window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
       trackEvent('memorywall_share', { method: 'whatsapp' });
     });
   }
+
 
   // Helper to draw rounded rectangles on canvas
   function drawRoundRect(ctx, x, y, width, height, radius, fillStyle) {
@@ -229,172 +271,186 @@
     ctx.fill();
   }
 
-  // ── Instagram Story Card (1080x1920) — Upgraded Generator ──────────────
+  // ── Instagram Story Card (1080x1920) — Premium Redesign ─────────────
   const downloadCardBtn = document.getElementById('km-download-card');
   if (downloadCardBtn) {
     downloadCardBtn.addEventListener('click', async function () {
-      const btn   = downloadCardBtn;
-      const name  = btn.dataset.name  || 'My';
-      const count = parseInt(btn.dataset.count  || '0', 10);
-      const trait = btn.dataset.trait || '';
-      const tcount= parseInt(btn.dataset.traitcount || '0', 10);
-      const w1    = btn.dataset.w1 || '';
-      const w2    = btn.dataset.w2 || '';
-      const w3    = btn.dataset.w3 || '';
-      const url   = (btn.dataset.url || 'abhihub.run.place').replace(/https?:\/\//, '');
+      const btn    = downloadCardBtn;
+      const name   = btn.dataset.name  || 'My';
+      const count  = parseInt(btn.dataset.count || '0', 10);
+      const trait  = btn.dataset.trait || '';
+      const tcount = parseInt(btn.dataset.traitcount || '0', 10);
+      const w1 = btn.dataset.w1 || '', w2 = btn.dataset.w2 || '', w3 = btn.dataset.w3 || '';
+      const rawUrl = (btn.dataset.url || 'abhihub.in').replace(/https?:\/\//, '');
+      const sigCount = parseInt(btn.dataset.sigcount || '0', 10);
 
       const orig = btn.textContent;
-      btn.disabled = true;
-      btn.textContent = 'Generating…';
+      btn.disabled = true; btn.textContent = 'Generating…';
 
-      const c   = document.createElement('canvas');
-      c.width   = 1080;
-      c.height  = 1920;
+      const c = document.createElement('canvas');
+      c.width = 1080; c.height = 1920;
       const ctx = c.getContext('2d');
 
-      // ── Background gradient ──────────────────────────────────────────
+      // ── S1: Dark background ──────────────────────────────────────────
       const bg = ctx.createLinearGradient(0, 0, 1080, 1920);
-      bg.addColorStop(0,   '#0f1117');
-      bg.addColorStop(0.5, '#1a1f2e');
-      bg.addColorStop(1,   '#0f1117');
-      ctx.fillStyle = bg;
-      ctx.fillRect(0, 0, 1080, 1920);
+      bg.addColorStop(0, '#0d1117'); bg.addColorStop(0.5, '#161b27'); bg.addColorStop(1, '#0d1117');
+      ctx.fillStyle = bg; ctx.fillRect(0, 0, 1080, 1920);
 
-      // ── Soft accent orb (top-left) ──────────────────────────────────
-      const orb1 = ctx.createRadialGradient(150, 300, 0, 150, 300, 400);
-      orb1.addColorStop(0,   'rgba(98,238,168,0.22)');
-      orb1.addColorStop(1,   'rgba(98,238,168,0)');
-      ctx.fillStyle = orb1;
-      ctx.fillRect(0, 0, 1080, 700);
+      // Glow orbs
+      const orb = (x, y, r, col) => {
+        const g = ctx.createRadialGradient(x, y, 0, x, y, r);
+        g.addColorStop(0, col); g.addColorStop(1, 'rgba(0,0,0,0)');
+        ctx.fillStyle = g; ctx.fillRect(0, 0, 1080, 1920);
+      };
+      orb(100, 400, 500, 'rgba(98,238,168,0.18)');
+      orb(980, 1600, 550, 'rgba(255,231,105,0.14)');
+      orb(540, 960, 350, 'rgba(98,238,168,0.07)');
 
-      // ── Soft accent orb (bottom-right) ─────────────────────────────
-      const orb2 = ctx.createRadialGradient(950, 1700, 0, 950, 1700, 500);
-      orb2.addColorStop(0,   'rgba(255,231,105,0.18)');
-      orb2.addColorStop(1,   'rgba(255,231,105,0)');
-      ctx.fillStyle = orb2;
-      ctx.fillRect(0, 1200, 1080, 720);
+      // Subtle grid texture overlay
+      ctx.strokeStyle = 'rgba(255,255,255,0.025)';
+      ctx.lineWidth = 1;
+      for (let i = 0; i < 1920; i += 60) { ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(1080, i); ctx.stroke(); }
 
-      // ── Helpers ──────────────────────────────────────────────────────
-      function pill(text, cx, cy, w, h, bg, fg, fs) {
+      // Helper: rounded rect fill
+      function rr(x, y, w, h, r, fill) {
+        ctx.fillStyle = fill;
+        ctx.beginPath();
+        ctx.moveTo(x+r,y); ctx.lineTo(x+w-r,y); ctx.arcTo(x+w,y,x+w,y+r,r);
+        ctx.lineTo(x+w,y+h-r); ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+        ctx.lineTo(x+r,y+h); ctx.arcTo(x,y+h,x,y+h-r,r);
+        ctx.lineTo(x,y+r); ctx.arcTo(x,y,x+r,y,r);
+        ctx.closePath(); ctx.fill();
+      }
+
+      // Helper: centered text
+      function ct(text, y, font, color, maxW) {
+        ctx.font = font; ctx.fillStyle = color;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        if (maxW) {
+          // wrap text
+          const words = String(text).split(' '); let line = '', lineY = y;
+          words.forEach((word, i) => {
+            const test = line + word + ' ';
+            if (ctx.measureText(test).width > maxW && i > 0) {
+              ctx.fillText(line.trim(), 540, lineY); line = word + ' '; lineY += 52;
+            } else line = test;
+          });
+          ctx.fillText(line.trim(), 540, lineY);
+          return lineY;
+        }
+        ctx.fillText(text, 540, y); return y;
+      }
+
+      // Helper: pill
+      function pill(text, cx, cy, w, h, bg2, fg, fs) {
         ctx.save();
-        ctx.shadowColor = 'rgba(0,0,0,0.25)';
-        ctx.shadowBlur  = 24;
-        ctx.shadowOffsetY = 6;
-        drawRoundRect(ctx, cx - w/2, cy - h/2, w, h, h/2, bg);
-        ctx.restore();
-        ctx.fillStyle   = fg;
-        ctx.font        = `800 ${fs}px Kanit, sans-serif`;
-        ctx.textAlign   = 'center';
-        ctx.textBaseline = 'middle';
+        ctx.shadowColor = 'rgba(98,238,168,0.3)'; ctx.shadowBlur = 30;
+        rr(cx-w/2, cy-h/2, w, h, h/2, bg2); ctx.restore();
+        ctx.font = `800 ${fs}px Kanit, sans-serif`;
+        ctx.fillStyle = fg; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
         ctx.fillText(text, cx, cy);
       }
 
-      // ── Brand header ─────────────────────────────────────────────────
-      ctx.textAlign   = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.font        = '900 42px Kanit, sans-serif';
-      ctx.fillStyle   = '#62EEA8';
-      ctx.fillText('AbhiHub', 540, 110);
-      ctx.font        = '600 22px Kanit, sans-serif';
-      ctx.fillStyle   = 'rgba(255,255,255,0.35)';
-      ctx.fillText('M E M O R Y W A L L', 540, 158);
+      // ── S2: Brand header ─────────────────────────────────────────────
+      // Top bar
+      rr(0, 0, 1080, 6, 0, 'linear-gradient(90deg,#FFE769,#62EEA8)');
+      const topGrad = ctx.createLinearGradient(0, 0, 1080, 0);
+      topGrad.addColorStop(0,'#FFE769'); topGrad.addColorStop(1,'#62EEA8');
+      ctx.fillStyle = topGrad; ctx.fillRect(0, 0, 1080, 6);
 
-      // ── Profile initial circle ────────────────────────────────────────
-      const initials = name.trim().split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
-      const circleGrad = ctx.createLinearGradient(440, 260, 640, 460);
-      circleGrad.addColorStop(0, '#FFE769');
-      circleGrad.addColorStop(1, '#62EEA8');
-      ctx.beginPath();
-      ctx.arc(540, 360, 90, 0, Math.PI*2);
-      ctx.fillStyle = circleGrad;
-      ctx.fill();
-      ctx.font = '900 68px Kanit, sans-serif';
-      ctx.fillStyle = '#1a202c';
-      ctx.fillText(initials, 540, 362);
+      ct('AbhiHub', 90, '900 52px Kanit, sans-serif', '#62EEA8');
+      ct('M E M O R Y W A L L', 148, '600 22px Kanit, sans-serif', 'rgba(255,255,255,0.3)');
 
-      // ── Name ─────────────────────────────────────────────────────────
-      ctx.font        = '800 72px Kanit, sans-serif';
-      ctx.fillStyle   = '#ffffff';
-      ctx.fillText(name, 540, 510);
+      // Divider line
+      ctx.strokeStyle = 'rgba(98,238,168,0.15)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(80,185); ctx.lineTo(1000,185); ctx.stroke();
 
-      // ── Emotional memory story line ──────────────────────────────────
-      ctx.font        = '500 32px Kanit, sans-serif';
-      ctx.fillStyle   = 'rgba(255,255,255,0.55)';
-      const storyLine = count === 1
-        ? `1 person took time to leave something behind for you ❤️`
-        : `${count} people took time to leave something behind for you ❤️`;
-      // Wrap if long
-      wrapText(ctx, storyLine, 540, 590, 860, 44);
+      // ── S3: Profile circle ───────────────────────────────────────────
+      const initials = name.trim().split(' ').map(w=>w[0]||'').join('').slice(0,2).toUpperCase() || '?';
+      const cg = ctx.createLinearGradient(450,250,650,450);
+      cg.addColorStop(0,'#FFE769'); cg.addColorStop(1,'#62EEA8');
+      // Glow ring
+      ctx.save(); ctx.shadowColor='rgba(98,238,168,0.5)'; ctx.shadowBlur=60;
+      ctx.beginPath(); ctx.arc(540,330,100,0,Math.PI*2); ctx.fillStyle=cg; ctx.fill(); ctx.restore();
+      // Initials
+      ctx.font = '900 72px Kanit, sans-serif'; ctx.fillStyle = '#1a202c';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.fillText(initials, 540, 332);
+      // Name
+      ct(name, 470, '800 68px Kanit, sans-serif', '#ffffff');
 
-      // ── Most Loved Trait ─────────────────────────────────────────────
+      // ── S4: Headline ─────────────────────────────────────────────────
+      rr(80, 530, 920, 2, 1, 'rgba(255,255,255,0.06)');
+      ct('This is how people remember you.', 590, '700 36px Kanit, sans-serif', 'rgba(255,255,255,0.5)', 860);
+
+      // ── S5: Social proof stats ───────────────────────────────────────
+      rr(60, 650, 960, 110, 20, 'rgba(255,255,255,0.05)');
+      // border
+      ctx.strokeStyle = 'rgba(98,238,168,0.15)'; ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.roundRect(60,650,960,110,20); ctx.stroke();
+
+      const stats = [['❤️', count, 'Memories'], ['✍️', sigCount||0, 'Signatures'], ['👥', count, 'People']];
+      stats.forEach(([icon, val, label], i) => {
+        const x = 180 + i * 320;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.font = '700 30px Kanit, sans-serif'; ctx.fillStyle = '#ffffff';
+        ctx.fillText(`${icon} ${val}`, x, 693);
+        ctx.font = '500 18px Kanit, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.fillText(label, x, 727);
+      });
+
+      // ── S6: Most Loved Trait ─────────────────────────────────────────
+      let curY = 820;
       if (trait) {
-        ctx.font      = '600 24px Kanit, sans-serif';
-        ctx.fillStyle = 'rgba(255,255,255,0.4)';
-        ctx.fillText('THE TRAIT PEOPLE NOTICED MOST', 540, 720);
-
-        // Glowing pill
+        ct('THE TRAIT PEOPLE NOTICED MOST', curY, '600 22px Kanit, sans-serif', 'rgba(255,255,255,0.35)');
+        curY += 55;
         ctx.save();
-        ctx.shadowColor = 'rgba(98,238,168,0.5)';
-        ctx.shadowBlur  = 40;
-        pill(trait.toUpperCase() + ' 💚', 540, 820, 640, 110, 'rgba(98,238,168,0.15)', '#62EEA8', 56);
+        ctx.shadowColor='rgba(98,238,168,0.6)'; ctx.shadowBlur=60;
+        pill(trait.toUpperCase() + ' 💚', 540, curY+55, 700, 120, 'rgba(98,238,168,0.12)', '#62EEA8', 60);
         ctx.restore();
-
+        curY += 130;
         if (tcount > 0) {
-          ctx.font      = '500 26px Kanit, sans-serif';
-          ctx.fillStyle = 'rgba(255,255,255,0.45)';
-          ctx.fillText(`${tcount} people independently chose this word`, 540, 900);
+          ct(`Chosen independently by ${tcount} people.`, curY, '500 26px Kanit, sans-serif', 'rgba(255,255,255,0.4)');
+          curY += 50;
         }
       }
 
-      // ── Top 3 Words ──────────────────────────────────────────────────
-      const words = [w1, w2, w3].filter(w => w.trim() !== '');
+      // ── S7: Top traits pills ─────────────────────────────────────────
+      const words = [w1, w2, w3].filter(w => w.trim());
       if (words.length) {
-        ctx.font      = '600 24px Kanit, sans-serif';
-        ctx.fillStyle = 'rgba(255,255,255,0.35)';
-        ctx.fillText('ALSO DESCRIBED AS', 540, trait ? 990 : 750);
-        const startY  = trait ? 1060 : 820;
-        const pillColors = [
-          ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.9)'],
-          ['rgba(255,231,105,0.12)', '#FFE769'],
-          ['rgba(255,228,186,0.12)', '#FFE4BA'],
-        ];
+        curY += 20;
+        rr(80, curY, 920, 2, 1, 'rgba(255,255,255,0.06)');
+        curY += 30;
+        ct('ALSO DESCRIBED AS', curY, '600 20px Kanit, sans-serif', 'rgba(255,255,255,0.3)');
+        curY += 45;
+        const pc = [['rgba(255,255,255,0.08)','rgba(255,255,255,0.85)'],['rgba(255,231,105,0.1)','#FFE769'],['rgba(255,228,186,0.1)','#FFE4BA']];
         words.forEach((word, i) => {
-          const [bg2, fg2] = pillColors[i] || pillColors[0];
-          pill(word.toUpperCase(), 540, startY + i * 140, 560, 96, bg2, fg2, 42);
+          pill(word.toUpperCase(), 540, curY, 500, 86, pc[i][0], pc[i][1], 38);
+          curY += 110;
         });
       }
 
-      // ── Stats row ────────────────────────────────────────────────────
-      const statsY = 1600;
-      ctx.fillStyle = 'rgba(255,255,255,0.06)';
-      roundedRect(ctx, 80, statsY, 920, 110, 24);
-      const statItems = [
-        ['❤️', count + ' Memories'],
-        ['🌐', url],
-      ];
-      statItems.forEach((item, i) => {
-        const x = 230 + i * 480;
-        ctx.font      = '700 30px Kanit, sans-serif';
-        ctx.fillStyle = '#ffffff';
-        ctx.fillText(item[0] + ' ' + item[1], x, statsY + 55);
-      });
+      // ── S8: Emotional message ────────────────────────────────────────
+      curY = Math.max(curY + 20, 1560);
+      rr(80, curY, 920, 2, 1, 'rgba(255,255,255,0.06)');
+      curY += 30;
+      const msg = count === 1
+        ? '1 person took time to leave something behind for you ❤️'
+        : `${count} people took time to leave something behind for you ❤️`;
+      ctx.font = '500 28px Kanit, sans-serif'; ctx.fillStyle = 'rgba(255,255,255,0.45)';
+      ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+      wrapText(ctx, msg, 540, curY + 10, 860, 40);
 
-      // ── Footer ───────────────────────────────────────────────────────
-      ctx.font      = '600 24px Kanit, sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.3)';
-      ctx.fillText('Sign the wall at ' + url, 540, 1780);
-      ctx.font      = '500 20px Kanit, sans-serif';
-      ctx.fillStyle = 'rgba(255,255,255,0.18)';
-      ctx.fillText(new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }), 540, 1830);
+      // ── S9: CTA footer ───────────────────────────────────────────────
+      rr(0, 1860, 1080, 60, 0, 'rgba(0,0,0,0.3)');
+      ct(`See yourself through the eyes of your friends`, 1878, '600 22px Kanit, sans-serif', 'rgba(255,255,255,0.35)');
+      ct(rawUrl, 1908, '700 24px Kanit, sans-serif', '#62EEA8');
 
       // ── Download ─────────────────────────────────────────────────────
       const link = document.createElement('a');
       link.download = `${name.toLowerCase().replace(/\s+/g,'_')}_memorywall_story.png`;
-      link.href = c.toDataURL('image/png');
-      link.click();
+      link.href = c.toDataURL('image/png'); link.click();
 
-      btn.disabled = false;
-      btn.textContent = orig;
+      btn.disabled = false; btn.textContent = orig;
       trackEvent('memorywall_story_download', { name });
     });
   }
@@ -542,26 +598,25 @@
     }, duration / (target / step || 1));
   }
 
-  // Scroll-reveal for .km-sr elements
+  // Scroll-reveal for ALL .km-sr elements (cards + sigcards)
   if ('IntersectionObserver' in window) {
     const srObs = new IntersectionObserver((entries) => {
-      entries.forEach((entry, i) => {
+      entries.forEach((entry) => {
         if (entry.isIntersecting) {
-          // Stagger by index within visible batch
+          const delay = parseInt(entry.target.dataset.srIdx || '0', 10) * 60;
           setTimeout(() => {
             entry.target.classList.add('km-sr--visible');
-          }, (entry.target.dataset.srIdx || 0) * 60);
+          }, delay);
           srObs.unobserve(entry.target);
         }
       });
-    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+    }, { threshold: 0.08, rootMargin: '0px 0px -30px 0px' });
 
     document.querySelectorAll('.km-sr').forEach((el, i) => {
       el.dataset.srIdx = i;
       srObs.observe(el);
     });
   } else {
-    // Fallback: show all immediately
     document.querySelectorAll('.km-sr').forEach(el => el.classList.add('km-sr--visible'));
   }
 
@@ -613,6 +668,16 @@
     if (rel) el.textContent = '\uD83D\uDD52 ' + rel;  // 🕒
   });
 
+  // Activity feed — convert raw date strings to relative time
+  document.querySelectorAll('.km-act-time').forEach(el => {
+    const raw = el.dataset.iso || el.textContent.trim();
+    if (!raw) return;
+    // Handle YYYY-MM-DD format from backend
+    const iso = raw.includes('T') ? raw : raw + 'T00:00:00';
+    const rel = relTime(iso);
+    if (rel && rel !== raw) el.textContent = rel;
+  });
+
   // Reaction button toggle (local state only)
   document.querySelectorAll('.km-reaction-btn').forEach(btn => {
     btn.addEventListener('click', function () {
@@ -642,7 +707,7 @@
 
     // Track signature wall view on reveal page
     if (path.includes('/reveal/')) {
-      const sigWall = document.querySelector('.km-sig-masonry, .km-sw-img');
+      const sigWall = document.querySelector('.km-sigwall-card, .km-sig-masonry, .km-sw-img');
       if (sigWall && 'IntersectionObserver' in window) {
         const obs = new IntersectionObserver(entries => {
           if (entries[0].isIntersecting) {
@@ -658,6 +723,32 @@
     document.querySelectorAll('#km-copy-link, #km-wa-share').forEach(btn => {
       btn.addEventListener('click', () => {
         trackEvent('memorywall_share_click', { method: btn.id === 'km-copy-link' ? 'copy' : 'whatsapp' });
+      });
+    });
+
+    // ── Sticky reveal CTA (public wall page) ───────────────────────────
+    const stickyReveal = document.querySelector('.km-reveal-sticky');
+    if (stickyReveal) {
+      let lastY = window.scrollY;
+      const show = () => stickyReveal.classList.add('km-reveal-sticky--show');
+      const hide = () => stickyReveal.classList.remove('km-reveal-sticky--show');
+      window.addEventListener('scroll', () => {
+        const y = window.scrollY;
+        // Show after 120px of scroll, hide when near top
+        if (y > 120) show(); else hide();
+        lastY = y;
+      }, { passive: true });
+    }
+
+    // ── Word input auto-focus next field ──────────────────────────────
+    ['km-word1','km-word2','km-word3'].forEach((id, i, arr) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.addEventListener('input', () => {
+        if (el.value.trim().length >= 12 && arr[i+1]) {
+          const next = document.getElementById(arr[i+1]);
+          if (next) next.focus();
+        }
       });
     });
   });

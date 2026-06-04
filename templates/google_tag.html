@@ -6,6 +6,20 @@
   function gtag() { dataLayer.push(arguments); }
   gtag('js', new Date());
 
+  // ── Throttle helper — defined FIRST so AbhiHubTracking can use it ──
+  window.gaThrottle = function(fn, limit) {
+    var inThrottle;
+    return function() {
+      var args = arguments, context = this;
+      if (!inThrottle) {
+        fn.apply(context, args);
+        inThrottle = true;
+        setTimeout(function() { inThrottle = false; }, limit);
+      }
+    };
+  };
+
+
   window.USER_ID = '{{ session.get("user", {}).get("uid", "") }}' || null;
 
   // Configuration with enhanced user properties and event tracking
