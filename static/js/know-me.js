@@ -94,19 +94,6 @@
     });
   });
 
-  // ── Anonymous Toggle ──────────────────────────────────────────────────────
-  let isAnonymous = false;
-  const toggleRow    = document.getElementById('km-anon-toggle');
-  const toggleSwitch = document.getElementById('km-anon-switch');
-  if (toggleRow) {
-    toggleRow.addEventListener('click', function () {
-      isAnonymous = !isAnonymous;
-      toggleSwitch.classList.toggle('on', isAnonymous);
-      const label = document.getElementById('km-anon-label');
-      if (label) label.textContent = isAnonymous ? 'Posting anonymously' : 'Include my name';
-    });
-  }
-
   // ── Form Submission ───────────────────────────────────────────────────────
   const form = document.getElementById('km-submit-form');
   if (form) {
@@ -130,8 +117,8 @@
         if (btn) { btn.disabled = false; btn.textContent = 'Send to MemoryWall ✨'; }
         return;
       }
-      if (!name && !isAnonymous) {
-        showError('Please enter your name, or post anonymously.');
+      if (!name) {
+        showError('Please enter your name.');
         if (btn) { btn.disabled = false; btn.textContent = 'Send to MemoryWall ✨'; }
         return;
       }
@@ -156,11 +143,11 @@
       // Submit response
       const payload = {
         wall_id: wallId,
-        friend_name: isAnonymous ? 'Anonymous' : name,
+        friend_name: name,
         word_1: w1, word_2: w2, word_3: w3,
         memory_message: mem,
         emoji: selectedEmoji,
-        anonymous: isAnonymous,
+        anonymous: false,
         signature_url: signatureUrl,
         _honey: honey, // honeypot
       };

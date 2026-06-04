@@ -3119,11 +3119,15 @@ def api_memorywall_submit():
     word_3 = (data.get('word_3') or '').strip()
     message = (data.get('memory_message') or '').strip() or None
     emoji = (data.get('emoji') or '').strip() or None
-    anonymous = bool(data.get('anonymous', False))
+    anonymous = False
     signature_url = (data.get('signature_url') or '').strip() or None
 
     if not all([wall_id, friend_name, word_1, word_2, word_3]):
         return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+
+    if friend_name.lower() == 'anonymous':
+        return jsonify({'success': False, 'message': 'Anonymous submissions are not allowed. Please enter your name.'}), 400
+
 
     raw_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
     if raw_ip and ',' in raw_ip:

@@ -7,7 +7,7 @@ No auth required. Rate limited: 5 per hour per IP hash.
 ```json
 {
   "wall_id":       "uuid",
-  "friend_name":   "string (max 50)",
+  "friend_name":   "string (max 50, required, cannot be 'anonymous')",
   "word_1":        "string (max 30, required)",
   "word_2":        "string (max 30, required)",
   "word_3":        "string (max 30, required)",
