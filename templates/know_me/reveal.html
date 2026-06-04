@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ wall.title }} — MemoryWall Reveal</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='premium/css/style.css', v='2.0.1') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/know-me.css') }}">
+  {% include 'google_tag.html' %}
+</head>
+<body class="km-page">
+
+  <div class="km-hero">
+    <span class="km-hero-emoji">🎁</span>
+    <h1>{{ wall.title }}'s MemoryWall</h1>
+    <p>{{ responses|length }} friend{{ 's' if responses|length != 1 }} left a memory</p>
+  </div>
+
+  <div class="km-container" style="margin-top:-1rem;">
+
+    <!-- Word Cloud -->
+    {% if wc_path %}
+    <div class="km-card">
+      <div style="font-weight:800;font-size:1.1rem;margin-bottom:0.8rem;">☁️ Your Word Cloud</div>
+      <img src="{{ url_for('static', filename=wc_path) }}" alt="Word Cloud" class="km-wc-img">
+      <div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+        {% for entry in words[:10] %}
+        <span class="km-word-tag">{{ entry.word }} ×{{ entry.count }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% elif words %}
+    <div class="km-card">
+      <div style="font-weight:800;font-size:1.1rem;margin-bottom:0.8rem;">🔤 Top Words</div>
+      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+        {% for entry in words %}
+        <span class="km-word-tag" style="font-size:{{ [0.8 + entry.count * 0.12, 1.5]|min }}rem;">
+          {{ entry.word }}
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- Signature Wall -->
+    {% if sw_path %}
+    <div class="km-card">
+      <div style="font-weight:800;font-size:1.1rem;margin-bottom:0.8rem;">✍️ Signature Wall</div>
+      <img src="{{ url_for('static', filename=sw_path) }}" alt="Signature Wall" class="km-sw-img">
+    </div>
+    {% endif %}
+
+    <!-- Download / Share buttons -->
+    <div class="km-card" style="text-align:center;">
+      <div style="font-weight:700;margin-bottom:0.8rem;">Share your reveal!</div>
+      <div style="display:flex;gap:0.6rem;justify-content:center;flex-wrap:wrap;">
+        <button id="km-copy-link" class="km-btn km-btn--ghost"
+                data-url="{{ request.host_url }}m/{{ wall.slug }}"
+                style="font-size:0.88rem;padding:0.6rem 1.2rem;">
+          📋 Copy Wall Link
+        </button>
+        <button id="km-wa-share" class="km-btn km-btn--green"
+                data-url="{{ request.host_url }}m/{{ wall.slug }}"
+                data-text="✨ {{ responses|length }} people described me on my MemoryWall! Come sign yours:"
+                style="font-size:0.88rem;padding:0.6rem 1.2rem;">
+          💬 WhatsApp
+        </button>
+      </div>
+    </div>
+
+    <!-- Response list -->
+    {% if responses %}
+    <div class="km-card">
+      <div style="font-weight:800;font-size:1.1rem;margin-bottom:0.8rem;">💬 What They Said</div>
+      {% for r in responses %}
+      <div class="km-response-item">
+        <div class="km-response-avatar">
+          {% if r.anonymous %}🎭{% else %}{{ (r.friend_name or '?')[0].upper() }}{% endif %}
+        </div>
+        <div style="flex:1;min-width:0;">
+          <div class="km-response-name">
+            {% if r.anonymous %}Anonymous{% else %}{{ r.friend_name }}{% endif %}
+            {% if r.emoji %} {{ r.emoji }}{% endif %}
+          </div>
+          <div class="km-response-words">
+            <span class="km-word-tag">{{ r.word_1 }}</span>
+            <span class="km-word-tag">{{ r.word_2 }}</span>
+            <span class="km-word-tag">{{ r.word_3 }}</span>
+          </div>
+          {% if r.memory_message %}
+          <div class="km-response-memory">"{{ r.memory_message }}"</div>
+          {% endif %}
+          {% if r.signature %}
+          <div class="km-response-sig">
+            <img src="{{ r.signature[0].signature_url }}" alt="Signature" loading="lazy">
+          </div>
+          {% endif %}
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="km-card" style="text-align:center;color:var(--km-muted);">
+      No responses yet. Share your link to get started!
+    </div>
+    {% endif %}
+
+    <a href="{{ url_for('memorywall_dashboard') }}"
+       class="km-btn km-btn--ghost" style="display:block;text-align:center;">
+      ← Back to Dashboard
+    </a>
+
+  </div>
+
+  {% include 'p_nav.html' %}
+  <script src="{{ url_for('static', filename='js/know-me.js') }}" defer></script>
+</body>
+</html>

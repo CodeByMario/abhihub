@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MemoryWall Closed</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='premium/css/style.css', v='2.0.1') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/know-me.css') }}">
+</head>
+<body class="km-page" style="display:flex;align-items:center;justify-content:center;min-height:100vh;">
+  <div style="text-align:center;padding:2rem;">
+    <div style="font-size:3.5rem;margin-bottom:1rem;">🔒</div>
+    <div style="font-weight:800;font-size:1.5rem;color:var(--km-text);margin-bottom:0.5rem;">
+      This MemoryWall is Closed
+    </div>
+    <div style="color:var(--km-muted);font-size:0.95rem;">
+      {{ wall.title }} has closed their wall. No more submissions accepted.
+    </div>
+  </div>
+</body>
+</html>

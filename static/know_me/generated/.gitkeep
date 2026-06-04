@@ -1,0 +1,2 @@
+This directory stores generated MemoryWall assets (word clouds, signature walls).
+Files are generated at reveal time and also uploaded to Firebase Storage.

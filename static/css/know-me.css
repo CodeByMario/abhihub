@@ -1,0 +1,248 @@
+/* know-me.css — MemoryWall feature styles */
+/* Mobile-first, matches AbhiHub's premium/css/style.css conventions */
+
+:root {
+  --km-bg: #0f172a;
+  --km-card: #1e293b;
+  --km-card2: #253047;
+  --km-accent: #7c3aed;
+  --km-accent2: #2563eb;
+  --km-teal: #06b6d4;
+  --km-text: #e2e8f0;
+  --km-muted: #94a3b8;
+  --km-border: rgba(255,255,255,0.08);
+  --km-radius: 18px;
+  --km-shadow: 0 8px 40px rgba(124,58,237,0.18);
+}
+
+/* ── Page shell ───────────────────────────────────────────────────── */
+.km-page {
+  min-height: 100vh;
+  background: var(--km-bg);
+  color: var(--km-text);
+  font-family: 'Kanit', sans-serif;
+  padding-bottom: 6rem; /* space for bottom nav */
+}
+
+/* ── Hero Header ──────────────────────────────────────────────────── */
+.km-hero {
+  background: linear-gradient(135deg, #4c1d95 0%, #1e3a8a 55%, #0e7490 100%);
+  padding: 3rem 1.5rem 2rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.km-hero::before {
+  content: '';
+  position: absolute; inset: 0;
+  background: radial-gradient(ellipse at 60% 40%, rgba(124,58,237,0.3) 0%, transparent 70%);
+  pointer-events: none;
+}
+.km-hero-emoji { font-size: 3rem; display: block; margin-bottom: 0.5rem; animation: km-float 3s ease-in-out infinite; }
+.km-hero h1 { font-size: 1.8rem; font-weight: 800; color: #fff; margin: 0; }
+.km-hero p  { color: rgba(255,255,255,0.8); font-size: 0.95rem; margin: 0.5rem 0 0; }
+
+@keyframes km-float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-8px); }
+}
+
+/* ── Cards ────────────────────────────────────────────────────────── */
+.km-container { max-width: 640px; margin: 0 auto; padding: 1.5rem 1rem; }
+
+.km-card {
+  background: var(--km-card);
+  border: 1px solid var(--km-border);
+  border-radius: var(--km-radius);
+  padding: 1.5rem;
+  margin-bottom: 1.25rem;
+  box-shadow: var(--km-shadow);
+}
+
+/* ── Form ─────────────────────────────────────────────────────────── */
+.km-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--km-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.4rem;
+}
+.km-input, .km-textarea, .km-select {
+  width: 100%;
+  background: var(--km-card2);
+  border: 1.5px solid var(--km-border);
+  border-radius: 10px;
+  color: var(--km-text);
+  padding: 0.75rem 1rem;
+  font-size: 1rem;
+  font-family: 'Kanit', sans-serif;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+.km-input:focus, .km-textarea:focus {
+  outline: none;
+  border-color: var(--km-accent);
+}
+.km-textarea { resize: vertical; min-height: 80px; }
+.km-form-row { margin-bottom: 1.1rem; }
+.km-word-row { display: flex; gap: 0.6rem; }
+.km-word-row .km-input { flex: 1; text-align: center; }
+
+/* ── Buttons ──────────────────────────────────────────────────────── */
+.km-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 0.5rem;
+  padding: 0.85rem 1.6rem;
+  border: none; border-radius: 12px; font-size: 1rem; font-weight: 700;
+  font-family: 'Kanit', sans-serif; cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s;
+  text-decoration: none;
+}
+.km-btn:disabled { opacity: 0.6; cursor: not-allowed; }
+.km-btn:hover:not(:disabled) { transform: translateY(-2px); }
+.km-btn--primary {
+  background: linear-gradient(135deg, var(--km-accent), var(--km-accent2));
+  color: #fff;
+  box-shadow: 0 4px 18px rgba(124,58,237,0.35);
+  width: 100%;
+}
+.km-btn--primary:hover:not(:disabled) { box-shadow: 0 8px 28px rgba(124,58,237,0.5); }
+.km-btn--ghost {
+  background: rgba(255,255,255,0.07);
+  border: 1.5px solid var(--km-border);
+  color: var(--km-text);
+}
+.km-btn--teal  { background: linear-gradient(135deg, #0891b2, #0e7490); color: #fff; }
+.km-btn--green { background: linear-gradient(135deg, #059669, #047857); color: #fff; }
+
+/* ── Signature Canvas ─────────────────────────────────────────────── */
+.km-sig-wrap {
+  background: #fff;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px dashed var(--km-accent);
+  position: relative;
+}
+#km-sig-canvas {
+  display: block;
+  width: 100%;
+  height: 200px;
+  touch-action: none;
+  cursor: crosshair;
+}
+.km-sig-hint {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
+  color: #94a3b8; font-size: 0.9rem; pointer-events: none; transition: opacity 0.2s;
+}
+.km-sig-hint.hidden { opacity: 0; }
+.km-sig-actions { display: flex; gap: 0.5rem; margin-top: 0.6rem; }
+.km-sig-actions .km-btn { flex: 1; padding: 0.6rem; font-size: 0.88rem; }
+
+/* ── Emoji Picker strip ───────────────────────────────────────────── */
+.km-emoji-strip { display: flex; gap: 0.4rem; flex-wrap: wrap; margin-top: 0.5rem; }
+.km-emoji-btn {
+  font-size: 1.4rem; background: var(--km-card2); border: 1.5px solid transparent;
+  border-radius: 8px; padding: 0.3rem 0.4rem; cursor: pointer;
+  transition: border-color 0.15s, transform 0.1s;
+}
+.km-emoji-btn.selected { border-color: var(--km-accent); transform: scale(1.15); }
+
+/* ── Anonymous toggle ─────────────────────────────────────────────── */
+.km-toggle-row {
+  display: flex; align-items: center; gap: 0.8rem;
+  background: var(--km-card2); border-radius: 10px; padding: 0.75rem 1rem;
+  cursor: pointer;
+}
+.km-toggle-switch {
+  width: 44px; height: 24px; background: var(--km-border); border-radius: 99px;
+  position: relative; transition: background 0.2s; flex-shrink: 0;
+}
+.km-toggle-switch.on { background: var(--km-accent); }
+.km-toggle-switch::after {
+  content: ''; position: absolute; top: 3px; left: 3px;
+  width: 18px; height: 18px; border-radius: 50%; background: #fff;
+  transition: transform 0.2s;
+}
+.km-toggle-switch.on::after { transform: translateX(20px); }
+
+/* ── Share card (dashboard) ───────────────────────────────────────── */
+.km-share-card {
+  background: linear-gradient(135deg, #4c1d95, #1e3a8a, #0e7490);
+  border-radius: var(--km-radius);
+  padding: 2rem 1.5rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+}
+.km-share-card h2 { color: #fff; font-size: 1.3rem; font-weight: 800; margin: 0 0 0.25rem; }
+.km-share-card p  { color: rgba(255,255,255,0.8); font-size: 0.88rem; margin: 0 0 1rem; }
+.km-share-url {
+  background: rgba(255,255,255,0.12); border-radius: 8px;
+  padding: 0.6rem 1rem; font-size: 0.88rem; color: #fff;
+  word-break: break-all; margin-bottom: 1rem;
+}
+.km-share-btns { display: flex; gap: 0.6rem; flex-wrap: wrap; justify-content: center; }
+
+/* ── Stat counters ────────────────────────────────────────────────── */
+.km-stat { text-align: center; }
+.km-stat-num { font-size: 2.5rem; font-weight: 900; color: var(--km-accent); line-height: 1; }
+.km-stat-label { font-size: 0.8rem; color: var(--km-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+
+/* ── Word cloud image ─────────────────────────────────────────────── */
+.km-wc-img { width: 100%; border-radius: 12px; display: block; }
+.km-sw-img { width: 100%; border-radius: 12px; display: block; background: #0f172a; }
+
+/* ── Response list ────────────────────────────────────────────────── */
+.km-response-item {
+  border-bottom: 1px solid var(--km-border);
+  padding: 0.9rem 0;
+  display: flex; align-items: flex-start; gap: 0.8rem;
+}
+.km-response-item:last-child { border-bottom: none; }
+.km-response-avatar {
+  width: 40px; height: 40px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--km-accent), var(--km-teal));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 1.1rem; font-weight: 700; color: #fff; flex-shrink: 0;
+}
+.km-response-name { font-weight: 700; font-size: 0.95rem; }
+.km-response-words { display: flex; gap: 0.4rem; flex-wrap: wrap; margin: 0.3rem 0; }
+.km-word-tag {
+  background: rgba(124,58,237,0.18); border: 1px solid rgba(124,58,237,0.3);
+  border-radius: 99px; padding: 0.15rem 0.7rem; font-size: 0.8rem; color: var(--km-accent);
+  font-weight: 600;
+}
+.km-response-memory { font-size: 0.88rem; color: var(--km-muted); font-style: italic; }
+.km-response-sig img { max-height: 50px; border-radius: 6px; margin-top: 0.4rem; background: #fff; padding: 2px; }
+
+/* ── Success animation ────────────────────────────────────────────── */
+.km-success-tick {
+  width: 72px; height: 72px; border-radius: 50%;
+  background: linear-gradient(135deg, #059669, #0891b2);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 2rem; margin: 0 auto 1rem;
+  animation: km-pop 0.4s cubic-bezier(.4,0,.2,1);
+}
+@keyframes km-pop {
+  from { transform: scale(0.5); opacity: 0; }
+  to   { transform: scale(1);   opacity: 1; }
+}
+
+/* ── Error alert ──────────────────────────────────────────────────── */
+.km-alert {
+  border-radius: 10px; padding: 0.8rem 1rem;
+  font-size: 0.9rem; margin-bottom: 1rem;
+}
+.km-alert--error { background: rgba(239,68,68,0.12); border: 1px solid rgba(239,68,68,0.3); color: #fca5a5; }
+.km-alert--success { background: rgba(5,150,105,0.12); border: 1px solid rgba(5,150,105,0.3); color: #6ee7b7; }
+
+/* ── Honeypot (hidden from humans) ───────────────────────────────── */
+.km-hp { position: absolute; left: -9999px; opacity: 0; pointer-events: none; }
+
+/* ── Responsive ───────────────────────────────────────────────────── */
+@media (min-width: 640px) {
+  .km-hero h1 { font-size: 2.4rem; }
+  .km-share-btns { gap: 0.8rem; }
+  #km-sig-canvas { height: 240px; }
+}

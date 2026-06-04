@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My MemoryWall — AbhiHub</title>
+  <meta name="description" content="Share your MemoryWall and see what your friends say about you.">
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='premium/css/style.css', v='2.0.1') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/know-me.css') }}">
+  {% include 'google_tag.html' %}
+</head>
+<body class="km-page">
+
+  <div class="km-hero">
+    <span class="km-hero-emoji">🧠</span>
+    <h1>MemoryWall</h1>
+    <p>Share your link, collect memories</p>
+  </div>
+
+  <div class="km-container" style="margin-top:-1rem;">
+
+    {% if wall %}
+
+    <!-- Share Card -->
+    <div class="km-share-card">
+      <h2>{{ wall.title }}</h2>
+      {% if wall.college %}<p>{{ wall.college }}{% if wall.branch %} · {{ wall.branch }}{% endif %}{% if wall.graduation_year %} · {{ wall.graduation_year }}{% endif %}</p>{% endif %}
+      <div class="km-share-url" id="km-wall-url">
+        {{ request.host_url }}m/{{ wall.slug }}
+      </div>
+      <div class="km-share-btns">
+        <button id="km-copy-link" class="km-btn km-btn--ghost"
+                data-url="{{ request.host_url }}m/{{ wall.slug }}"
+                style="font-size:0.88rem;padding:0.6rem 1.2rem;">
+          📋 Copy Link
+        </button>
+        <button id="km-wa-share" class="km-btn km-btn--green"
+                data-url="{{ request.host_url }}m/{{ wall.slug }}"
+                data-text="✨ Tell me 3 words that describe me — sign my MemoryWall on AbhiHub!"
+                style="font-size:0.88rem;padding:0.6rem 1.2rem;">
+          💬 WhatsApp
+        </button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div class="km-card" style="display:flex;justify-content:space-around;align-items:center;padding:1.5rem 1rem;">
+      <div class="km-stat">
+        <div class="km-stat-num" id="km-resp-count">{{ wall.response_count or 0 }}</div>
+        <div class="km-stat-label">Responses</div>
+      </div>
+      <div style="width:1px;height:48px;background:var(--km-border);"></div>
+      <div class="km-stat">
+        <div class="km-stat-num">✨</div>
+        <div class="km-stat-label">MemoryWall Live</div>
+      </div>
+    </div>
+
+    <!-- Reveal CTA -->
+    <div class="km-card" style="text-align:center;">
+      <div style="font-size:2rem;margin-bottom:0.5rem;">🎁</div>
+      <div style="font-weight:700;font-size:1.1rem;margin-bottom:0.3rem;">Ready to see what they said?</div>
+      <div style="font-size:0.88rem;color:var(--km-muted);margin-bottom:1rem;">
+        Reveal your word cloud and signature wall.
+      </div>
+      <a href="{{ url_for('memorywall_reveal', wall_id=wall.id) }}"
+         class="km-btn km-btn--primary" id="km-reveal-btn">
+        🔮 Reveal My MemoryWall
+      </a>
+    </div>
+
+    <!-- Public link reminder -->
+    <div class="km-card" style="text-align:center;padding:1rem;">
+      <div style="font-size:0.85rem;color:var(--km-muted);">
+        🔗 Public link: <strong style="color:var(--km-text);">{{ request.host_url }}m/{{ wall.slug }}</strong>
+      </div>
+    </div>
+
+    {% else %}
+
+    <!-- No wall yet -->
+    <div class="km-card" style="text-align:center;padding:2.5rem 1.5rem;">
+      <div style="font-size:3rem;margin-bottom:0.75rem;">🏗️</div>
+      <div style="font-weight:800;font-size:1.3rem;margin-bottom:0.5rem;">No MemoryWall Yet</div>
+      <div style="color:var(--km-muted);font-size:0.9rem;margin-bottom:1.5rem;">
+        Create your wall and start collecting memories from friends.
+      </div>
+      <a href="{{ url_for('memorywall_create') }}" class="km-btn km-btn--primary">
+        ✨ Create My MemoryWall
+      </a>
+    </div>
+
+    {% endif %}
+
+  </div>
+
+  {% include 'p_nav.html' %}
+  <script src="{{ url_for('static', filename='js/know-me.js') }}" defer></script>
+</body>
+</html>

@@ -2973,5 +2973,226 @@ def get_comments_route(document_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 # ────────────────────────────────────────────────────────────────────────────
 
+
+# ─── MemoryWall (know_me) ─────────────────────────────────────────────────────
+
+@app.route('/memorywall')
+@auth_required
+def memorywall_dashboard():
+    """Creator dashboard — shows wall status, share link, response count."""
+    from methods.know_me import get_wall_by_user
+    user = session.get('user', {})
+    user_id = user.get('uid')
+    wall_result = get_wall_by_user(user_id)
+    wall = wall_result.get('data') if wall_result.get('success') else None
+    return render_template('know_me/dashboard.html', wall=wall, user=user)
+
+
+@app.route('/memorywall/create', methods=['GET', 'POST'])
+@auth_required
+def memorywall_create():
+    """Create a new MemoryWall."""
+    from methods.know_me import get_wall_by_user, create_wall
+    user = session.get('user', {})
+    user_id = user.get('uid')
+
+    # Already has a wall — redirect to dashboard
+    existing = get_wall_by_user(user_id)
+    if existing.get('success') and existing.get('data'):
+        return redirect(url_for('memorywall_dashboard'))
+
+    if request.method == 'POST':
+        title = (request.form.get('title') or '').strip()[:80]
+        college = (request.form.get('college') or '').strip()[:100]
+        branch = (request.form.get('branch') or '').strip()[:100]
+        try:
+            grad_year = int(request.form.get('graduation_year') or 0) or None
+        except ValueError:
+            grad_year = None
+
+        if not title:
+            return render_template('know_me/create.html', error='Please enter a title.', user=user)
+
+        result = create_wall(user_id, title, college, branch, grad_year)
+        if result.get('success'):
+            logging.info(f"[MemoryWall] Wall created for {user.get('email')}")
+            return redirect(url_for('memorywall_dashboard'))
+        elif result.get('message') == 'already_exists':
+            return redirect(url_for('memorywall_dashboard'))
+        else:
+            return render_template('know_me/create.html',
+                                   error='Something went wrong. Please try again.', user=user)
+
+    return render_template('know_me/create.html', user=user)
+
+
+@app.route('/m/<slug>')
+def memorywall_public(slug):
+    """Public submission page — no auth required."""
+    from methods.know_me import get_wall_by_slug
+    result = get_wall_by_slug(slug)
+    if not result.get('success') or not result.get('data'):
+        abort(404)
+    wall = result['data']
+    if wall.get('status') == 'closed':
+        return render_template('know_me/closed.html', wall=wall), 410
+    return render_template('know_me/public_wall.html', wall=wall)
+
+
+@app.route('/memorywall/reveal/<wall_id>')
+@auth_required
+def memorywall_reveal(wall_id):
+    """Reveal page — authenticated wall owner only."""
+    from methods.know_me import reveal_wall, get_wall_by_user
+    from methods.know_me_generator import generate_wordcloud, generate_signature_wall, upload_to_firebase
+
+    user = session.get('user', {})
+    user_id = user.get('uid')
+
+    # Verify ownership
+    owner_check = get_wall_by_user(user_id)
+    if not owner_check.get('success') or not owner_check.get('data'):
+        abort(403)
+    if owner_check['data']['id'] != wall_id:
+        abort(403)
+
+    data = reveal_wall(wall_id)
+    responses = data.get('responses', [])
+    word_list = data.get('word_list', [])
+
+    # Generate assets
+    wc_path = generate_wordcloud(word_list, wall_id)
+    sig_urls = [
+        r['signature'][0]['signature_url']
+        for r in responses
+        if r.get('signature') and r['signature'][0].get('signature_url')
+    ]
+    sw_path = generate_signature_wall(sig_urls, wall_id)
+
+    # Upload to Firebase (non-blocking best-effort)
+    wc_firebase = ""
+    sw_firebase = ""
+    try:
+        if wc_path:
+            wc_firebase = upload_to_firebase(wc_path, f"know_me/{wall_id}/wordcloud.png")
+        if sw_path:
+            sw_firebase = upload_to_firebase(sw_path, f"know_me/{wall_id}/signature_wall.png")
+    except Exception as e:
+        logging.warning(f"[MemoryWall] Firebase upload skipped: {e}")
+
+    wall = owner_check['data']
+    return render_template('know_me/reveal.html',
+                           wall=wall, user=user,
+                           responses=responses,
+                           words=data.get('words', []),
+                           wc_path=wc_path,
+                           sw_path=sw_path,
+                           wc_firebase=wc_firebase,
+                           sw_firebase=sw_firebase)
+
+
+# ── MemoryWall API Endpoints ──────────────────────────────────────────────────
+
+@app.route('/api/memorywall/submit', methods=['POST'])
+def api_memorywall_submit():
+    """Public response submission — no auth, rate-limited by IP hash."""
+    from methods.know_me import submit_response, get_wall_by_slug
+
+    # Honeypot check
+    data = request.get_json(silent=True) or {}
+    if data.get('_honey'):
+        return jsonify({'success': False, 'message': 'rejected'}), 400
+
+    wall_id = (data.get('wall_id') or '').strip()
+    friend_name = (data.get('friend_name') or '').strip()
+    word_1 = (data.get('word_1') or '').strip()
+    word_2 = (data.get('word_2') or '').strip()
+    word_3 = (data.get('word_3') or '').strip()
+    message = (data.get('memory_message') or '').strip() or None
+    emoji = (data.get('emoji') or '').strip() or None
+    anonymous = bool(data.get('anonymous', False))
+    signature_url = (data.get('signature_url') or '').strip() or None
+
+    if not all([wall_id, friend_name, word_1, word_2, word_3]):
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+
+    raw_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    if raw_ip and ',' in raw_ip:
+        raw_ip = raw_ip.split(',')[0].strip()
+
+    result = submit_response(
+        wall_id=wall_id,
+        friend_name=friend_name,
+        word_1=word_1, word_2=word_2, word_3=word_3,
+        message=message, emoji=emoji,
+        anonymous=anonymous,
+        raw_ip=raw_ip,
+        signature_url=signature_url,
+    )
+
+    if result.get('message') == 'rate_limited':
+        return jsonify({'success': False, 'message': 'Too many submissions. Try again later.'}), 429
+
+    return jsonify(result), 200 if result.get('success') else 500
+
+
+@app.route('/api/memorywall/upload-signature', methods=['POST'])
+def api_memorywall_upload_signature():
+    """Upload a signature PNG to Firebase Storage. Returns public URL."""
+    try:
+        if 'signature' not in request.files:
+            return jsonify({'success': False, 'message': 'No file'}), 400
+
+        f = request.files['signature']
+        if not f or f.content_type not in ('image/png', 'image/jpeg'):
+            return jsonify({'success': False, 'message': 'Invalid file type'}), 400
+
+        f.seek(0, 2)
+        size = f.tell()
+        f.seek(0)
+        if size > 512 * 1024:  # 512 KB limit
+            return jsonify({'success': False, 'message': 'File too large'}), 400
+
+        # Validate it's a real image
+        from PIL import Image as PILImage
+        try:
+            img = PILImage.open(f)
+            img.verify()
+            f.seek(0)
+        except Exception:
+            return jsonify({'success': False, 'message': 'Invalid image'}), 400
+
+        import uuid
+        from firebase_admin import storage as fb_storage
+        blob_name = f"know_me/signatures/{uuid.uuid4().hex}.png"
+        bucket = fb_storage.bucket()
+        blob = bucket.blob(blob_name)
+        blob.upload_from_file(f, content_type='image/png')
+        blob.make_public()
+        return jsonify({'success': True, 'url': blob.public_url}), 200
+
+    except Exception as e:
+        logging.error(f"[MemoryWall] Signature upload error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/memorywall/stats/<wall_id>', methods=['GET'])
+@auth_required
+def api_memorywall_stats(wall_id):
+    """Wall stats — auth required, owner only."""
+    from methods.know_me import get_response_count, get_top_words, get_wall_by_user
+    user = session.get('user', {})
+    owner_check = get_wall_by_user(user.get('uid'))
+    if not owner_check.get('success') or owner_check.get('data', {}).get('id') != wall_id:
+        return jsonify({'success': False, 'message': 'Forbidden'}), 403
+
+    count = get_response_count(wall_id)
+    words = get_top_words(wall_id)
+    return jsonify({'success': True, 'response_count': count, 'top_words': words[:10]}), 200
+
+# ─────────────────────────────────────────────────────────────────────────────
+
+
 if __name__ == '__main__':
     app.run(debug=True)
+
