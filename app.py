@@ -2980,20 +2980,25 @@ def get_comments_route(document_id):
 @auth_required
 def memorywall_dashboard():
     """Creator dashboard — shows wall status, share link, stats, and recent activity."""
-    from methods.know_me import get_wall_by_user, get_top_words, get_recent_responses
+    from methods.know_me import get_wall_by_user, get_recent_responses, get_dashboard_metrics
     user = session.get('user', {})
     user_id = user.get('uid')
     wall_result = get_wall_by_user(user_id)
     wall = wall_result.get('data') if wall_result.get('success') else None
-    
-    stats = {}
+
+    dashboard_data = None
     recent_responses = []
     if wall:
-        words = get_top_words(wall['id'])
-        stats['unique_words'] = len(words)
+        dashboard_data = get_dashboard_metrics(wall['id'])
         recent_responses = get_recent_responses(wall['id'], limit=5)
-        
-    return render_template('know_me/dashboard.html', wall=wall, user=user, stats=stats, recent_responses=recent_responses)
+
+    return render_template(
+        'know_me/dashboard.html',
+        wall=wall,
+        user=user,
+        dashboard_data=dashboard_data,
+        recent_responses=recent_responses
+    )
 
 
 
@@ -3052,7 +3057,7 @@ def memorywall_public(slug):
 @auth_required
 def memorywall_reveal(wall_id):
     """Reveal page — authenticated wall owner only."""
-    from methods.know_me import reveal_wall, get_wall_by_user
+    from methods.know_me import reveal_wall, get_wall_by_user, get_dashboard_metrics, generate_personality_summary
     from methods.know_me_generator import generate_wordcloud, generate_signature_wall, upload_to_firebase
 
     user = session.get('user', {})
@@ -3068,6 +3073,20 @@ def memorywall_reveal(wall_id):
     data = reveal_wall(wall_id)
     responses = data.get('responses', [])
     word_list = data.get('word_list', [])
+    words = data.get('words', [])
+
+    # Track reveal view
+    try:
+        from methods.know_me import increment_view_count
+        increment_view_count(wall_id)
+    except Exception:
+        pass
+
+    # Dashboard metrics (top_traits, most_loved_trait)
+    metrics = get_dashboard_metrics(wall_id)
+
+    # Template-based AI personality summary
+    personality_summary = generate_personality_summary(metrics)
 
     # Generate assets
     wc_path = generate_wordcloud(word_list, wall_id)
@@ -3093,11 +3112,13 @@ def memorywall_reveal(wall_id):
     return render_template('know_me/reveal.html',
                            wall=wall, user=user,
                            responses=responses,
-                           words=data.get('words', []),
+                           words=words,
                            wc_path=wc_path,
                            sw_path=sw_path,
                            wc_firebase=wc_firebase,
-                           sw_firebase=sw_firebase)
+                           sw_firebase=sw_firebase,
+                           metrics=metrics,
+                           personality_summary=personality_summary)
 
 
 # ── MemoryWall API Endpoints ──────────────────────────────────────────────────

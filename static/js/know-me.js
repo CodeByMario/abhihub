@@ -229,113 +229,399 @@
     ctx.fill();
   }
 
-  // ── Instagram Story Card (1080x1920) Client Generation ──────────────────
+  // ── Instagram Story Card (1080x1920) — Upgraded Generator ──────────────
   const downloadCardBtn = document.getElementById('km-download-card');
   if (downloadCardBtn) {
-    downloadCardBtn.addEventListener('click', function () {
-      const name = downloadCardBtn.dataset.name || 'My';
-      const count = downloadCardBtn.dataset.count || '0';
-      const w1 = downloadCardBtn.dataset.w1 || '';
-      const w2 = downloadCardBtn.dataset.w2 || '';
-      const w3 = downloadCardBtn.dataset.w3 || '';
-      const url = downloadCardBtn.dataset.url || 'abhibhub.com';
+    downloadCardBtn.addEventListener('click', async function () {
+      const btn   = downloadCardBtn;
+      const name  = btn.dataset.name  || 'My';
+      const count = parseInt(btn.dataset.count  || '0', 10);
+      const trait = btn.dataset.trait || '';
+      const tcount= parseInt(btn.dataset.traitcount || '0', 10);
+      const w1    = btn.dataset.w1 || '';
+      const w2    = btn.dataset.w2 || '';
+      const w3    = btn.dataset.w3 || '';
+      const url   = (btn.dataset.url || 'abhihub.run.place').replace(/https?:\/\//, '');
 
-      // Create a canvas element
-      const c = document.createElement('canvas');
-      c.width = 1080;
-      c.height = 1920;
+      const orig = btn.textContent;
+      btn.disabled = true;
+      btn.textContent = 'Generating…';
+
+      const c   = document.createElement('canvas');
+      c.width   = 1080;
+      c.height  = 1920;
       const ctx = c.getContext('2d');
 
-      // 1. Draw gradient background
-      const grad = ctx.createLinearGradient(0, 0, 0, 1920);
-      grad.addColorStop(0, '#FFE769');
-      grad.addColorStop(1, '#62EEA8');
-      ctx.fillStyle = grad;
+      // ── Background gradient ──────────────────────────────────────────
+      const bg = ctx.createLinearGradient(0, 0, 1080, 1920);
+      bg.addColorStop(0,   '#0f1117');
+      bg.addColorStop(0.5, '#1a1f2e');
+      bg.addColorStop(1,   '#0f1117');
+      ctx.fillStyle = bg;
       ctx.fillRect(0, 0, 1080, 1920);
 
-      // 2. Draw brand header
-      ctx.textAlign = 'center';
+      // ── Soft accent orb (top-left) ──────────────────────────────────
+      const orb1 = ctx.createRadialGradient(150, 300, 0, 150, 300, 400);
+      orb1.addColorStop(0,   'rgba(98,238,168,0.22)');
+      orb1.addColorStop(1,   'rgba(98,238,168,0)');
+      ctx.fillStyle = orb1;
+      ctx.fillRect(0, 0, 1080, 700);
+
+      // ── Soft accent orb (bottom-right) ─────────────────────────────
+      const orb2 = ctx.createRadialGradient(950, 1700, 0, 950, 1700, 500);
+      orb2.addColorStop(0,   'rgba(255,231,105,0.18)');
+      orb2.addColorStop(1,   'rgba(255,231,105,0)');
+      ctx.fillStyle = orb2;
+      ctx.fillRect(0, 1200, 1080, 720);
+
+      // ── Helpers ──────────────────────────────────────────────────────
+      function pill(text, cx, cy, w, h, bg, fg, fs) {
+        ctx.save();
+        ctx.shadowColor = 'rgba(0,0,0,0.25)';
+        ctx.shadowBlur  = 24;
+        ctx.shadowOffsetY = 6;
+        drawRoundRect(ctx, cx - w/2, cy - h/2, w, h, h/2, bg);
+        ctx.restore();
+        ctx.fillStyle   = fg;
+        ctx.font        = `800 ${fs}px Kanit, sans-serif`;
+        ctx.textAlign   = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(text, cx, cy);
+      }
+
+      // ── Brand header ─────────────────────────────────────────────────
+      ctx.textAlign   = 'center';
       ctx.textBaseline = 'middle';
+      ctx.font        = '900 42px Kanit, sans-serif';
+      ctx.fillStyle   = '#62EEA8';
+      ctx.fillText('AbhiHub', 540, 110);
+      ctx.font        = '600 22px Kanit, sans-serif';
+      ctx.fillStyle   = 'rgba(255,255,255,0.35)';
+      ctx.fillText('M E M O R Y W A L L', 540, 158);
+
+      // ── Profile initial circle ────────────────────────────────────────
+      const initials = name.trim().split(' ').map(w=>w[0]).join('').slice(0,2).toUpperCase();
+      const circleGrad = ctx.createLinearGradient(440, 260, 640, 460);
+      circleGrad.addColorStop(0, '#FFE769');
+      circleGrad.addColorStop(1, '#62EEA8');
+      ctx.beginPath();
+      ctx.arc(540, 360, 90, 0, Math.PI*2);
+      ctx.fillStyle = circleGrad;
+      ctx.fill();
+      ctx.font = '900 68px Kanit, sans-serif';
       ctx.fillStyle = '#1a202c';
-      ctx.font = '900 48px Kanit, sans-serif';
-      ctx.fillText('AbhiHub', 540, 140);
-      ctx.font = '500 24px Kanit, sans-serif';
-      ctx.fillStyle = '#4a5568';
-      ctx.fillText('MEMORYWALL', 540, 195);
+      ctx.fillText(initials, 540, 362);
 
-      // Draw subtle horizontal division line
-      ctx.fillStyle = 'rgba(26, 32, 44, 0.1)';
-      ctx.fillRect(440, 230, 200, 4);
+      // ── Name ─────────────────────────────────────────────────────────
+      ctx.font        = '800 72px Kanit, sans-serif';
+      ctx.fillStyle   = '#ffffff';
+      ctx.fillText(name, 540, 510);
 
-      // 3. Draw User Title
-      ctx.fillStyle = '#1a202c';
-      ctx.font = '800 76px Kanit, sans-serif';
-      ctx.fillText(name + "'s", 540, 430);
-      ctx.font = '300 64px Kanit, sans-serif';
-      ctx.fillText('MemoryWall', 540, 520);
+      // ── Emotional memory story line ──────────────────────────────────
+      ctx.font        = '500 32px Kanit, sans-serif';
+      ctx.fillStyle   = 'rgba(255,255,255,0.55)';
+      const storyLine = count === 1
+        ? `1 person took time to leave something behind for you ❤️`
+        : `${count} people took time to leave something behind for you ❤️`;
+      // Wrap if long
+      wrapText(ctx, storyLine, 540, 590, 860, 44);
 
-      // 4. Draw words section title
-      ctx.font = 'bold 28px Kanit, sans-serif';
-      ctx.fillStyle = '#4a5568';
-      ctx.fillText('DESCRIBED AS', 540, 700);
+      // ── Most Loved Trait ─────────────────────────────────────────────
+      if (trait) {
+        ctx.font      = '600 24px Kanit, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.4)';
+        ctx.fillText('THE TRAIT PEOPLE NOTICED MOST', 540, 720);
 
-      // 5. Draw the 3 word capsules
+        // Glowing pill
+        ctx.save();
+        ctx.shadowColor = 'rgba(98,238,168,0.5)';
+        ctx.shadowBlur  = 40;
+        pill(trait.toUpperCase() + ' 💚', 540, 820, 640, 110, 'rgba(98,238,168,0.15)', '#62EEA8', 56);
+        ctx.restore();
+
+        if (tcount > 0) {
+          ctx.font      = '500 26px Kanit, sans-serif';
+          ctx.fillStyle = 'rgba(255,255,255,0.45)';
+          ctx.fillText(`${tcount} people independently chose this word`, 540, 900);
+        }
+      }
+
+      // ── Top 3 Words ──────────────────────────────────────────────────
       const words = [w1, w2, w3].filter(w => w.trim() !== '');
-      let startY = 780;
-      words.forEach((word, idx) => {
-        const pillWidth = 560;
-        const pillHeight = 110;
-        const pillX = 540 - (pillWidth / 2);
-        const pillY = startY + (idx * 150);
+      if (words.length) {
+        ctx.font      = '600 24px Kanit, sans-serif';
+        ctx.fillStyle = 'rgba(255,255,255,0.35)';
+        ctx.fillText('ALSO DESCRIBED AS', 540, trait ? 990 : 750);
+        const startY  = trait ? 1060 : 820;
+        const pillColors = [
+          ['rgba(255,255,255,0.1)', 'rgba(255,255,255,0.9)'],
+          ['rgba(255,231,105,0.12)', '#FFE769'],
+          ['rgba(255,228,186,0.12)', '#FFE4BA'],
+        ];
+        words.forEach((word, i) => {
+          const [bg2, fg2] = pillColors[i] || pillColors[0];
+          pill(word.toUpperCase(), 540, startY + i * 140, 560, 96, bg2, fg2, 42);
+        });
+      }
 
-        // Pill shadow
-        ctx.shadowColor = 'rgba(0, 0, 0, 0.08)';
-        ctx.shadowBlur = 24;
-        ctx.shadowOffsetY = 8;
-
-        drawRoundRect(ctx, pillX, pillY, pillWidth, pillHeight, 55, '#ffffff');
-
-        // Reset shadow for text
-        ctx.shadowColor = 'transparent';
-        ctx.shadowBlur = 0;
-        ctx.shadowOffsetY = 0;
-
-        // Draw text
-        ctx.fillStyle = '#1a202c';
-        ctx.font = '800 44px Kanit, sans-serif';
-        ctx.fillText(word.toUpperCase(), 540, pillY + 55);
+      // ── Stats row ────────────────────────────────────────────────────
+      const statsY = 1600;
+      ctx.fillStyle = 'rgba(255,255,255,0.06)';
+      roundedRect(ctx, 80, statsY, 920, 110, 24);
+      const statItems = [
+        ['❤️', count + ' Memories'],
+        ['🌐', url],
+      ];
+      statItems.forEach((item, i) => {
+        const x = 230 + i * 480;
+        ctx.font      = '700 30px Kanit, sans-serif';
+        ctx.fillStyle = '#ffffff';
+        ctx.fillText(item[0] + ' ' + item[1], x, statsY + 55);
       });
 
-      // 6. Draw statistics
-      ctx.fillStyle = '#4a5568';
-      ctx.font = 'bold 36px Kanit, sans-serif';
-      ctx.fillText(count + ' memories shared', 540, 1420);
+      // ── Footer ───────────────────────────────────────────────────────
+      ctx.font      = '600 24px Kanit, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.3)';
+      ctx.fillText('Sign the wall at ' + url, 540, 1780);
+      ctx.font      = '500 20px Kanit, sans-serif';
+      ctx.fillStyle = 'rgba(255,255,255,0.18)';
+      ctx.fillText(new Date().toLocaleDateString('en-IN', { month: 'long', year: 'numeric' }), 540, 1830);
 
-      // 7. Draw date
-      const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-      ctx.font = '500 28px Kanit, sans-serif';
-      ctx.fillStyle = '#718096';
-      ctx.fillText(dateStr, 540, 1480);
-
-      // 8. Draw Link box
-      const linkBoxY = 1630;
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.04)';
-      ctx.shadowBlur = 16;
-      drawRoundRect(ctx, 540 - 350, linkBoxY, 700, 100, 50, 'rgba(255, 255, 255, 0.8)');
-      ctx.shadowColor = 'transparent';
-
-      ctx.fillStyle = '#1a202c';
-      ctx.font = 'bold 32px Kanit, sans-serif';
-      ctx.fillText(url.replace('https://', '').replace('http://', ''), 540, linkBoxY + 50);
-
-      // 9. Download trigger
+      // ── Download ─────────────────────────────────────────────────────
       const link = document.createElement('a');
-      link.download = `${name.toLowerCase().replace(/\s+/g, '_')}_memorywall.png`;
+      link.download = `${name.toLowerCase().replace(/\s+/g,'_')}_memorywall_story.png`;
       link.href = c.toDataURL('image/png');
       link.click();
-      trackEvent('memorywall_share', { method: 'download_card' });
+
+      btn.disabled = false;
+      btn.textContent = orig;
+      trackEvent('memorywall_story_download', { name });
     });
   }
+
+  function wrapText(ctx, text, x, y, maxW, lineH) {
+    const words = text.split(' ');
+    let line = '';
+    let lineY = y;
+    words.forEach((word, i) => {
+      const test = line + word + ' ';
+      if (ctx.measureText(test).width > maxW && i > 0) {
+        ctx.fillText(line.trim(), x, lineY);
+        line  = word + ' ';
+        lineY += lineH;
+      } else {
+        line = test;
+      }
+    });
+    ctx.fillText(line.trim(), x, lineY);
+  }
+
+  function roundedRect(ctx, x, y, w, h, r) {
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w-r, y);
+    ctx.arcTo(x+w, y, x+w, y+r, r);
+    ctx.lineTo(x+w, y+h-r);
+    ctx.arcTo(x+w, y+h, x+w-r, y+h, r);
+    ctx.lineTo(x+r, y+h);
+    ctx.arcTo(x, y+h, x, y+h-r, r);
+    ctx.lineTo(x, y+r);
+    ctx.arcTo(x, y, x+r, y, r);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // ── First Reveal Celebration (once per session) ──────────────────────────
+  const celebModal = document.getElementById('km-celebrate-modal');
+  const celebClose = document.getElementById('km-celebrate-close');
+  const celebProgress = document.querySelector('.km-celebrate-progress');
+  if (celebModal) {
+    const KEY = 'km_revealed_' + (window.location.pathname);
+    if (!sessionStorage.getItem(KEY)) {
+      sessionStorage.setItem(KEY, '1');
+      celebModal.style.display = 'flex';
+      document.body.style.overflow = 'hidden';
+      // Start progress bar
+      requestAnimationFrame(() => {
+        if (celebProgress) celebProgress.style.width = '100%';
+      });
+      // Auto-close after 3s
+      const autoClose = setTimeout(closeCelebration, 3200);
+      function closeCelebration() {
+        clearTimeout(autoClose);
+        celebModal.style.opacity = '0';
+        celebModal.style.transition = 'opacity 0.3s';
+        setTimeout(() => {
+          celebModal.style.display = 'none';
+          document.body.style.overflow = '';
+        }, 320);
+      }
+      if (celebClose) celebClose.addEventListener('click', closeCelebration);
+      celebModal.addEventListener('click', e => {
+        if (e.target === celebModal) closeCelebration();
+      });
+    }
+  }
+
+  // ── Signature Card → Modal ───────────────────────────────────────────────
+  const sigModal      = document.getElementById('km-sig-modal');
+  const sigModalImg   = document.getElementById('km-sig-modal-img');
+  const sigModalName  = document.getElementById('km-sig-modal-name');
+  const sigModalTime  = document.getElementById('km-sig-modal-time');
+  const sigModalAvatar= document.getElementById('km-sig-modal-avatar');
+  const sigModalClose = document.getElementById('km-sig-modal-close');
+
+  if (sigModal) {
+    document.querySelectorAll('.km-sigcard').forEach(card => {
+      card.addEventListener('click', e => {
+        // Don't open if clicking reaction btn
+        if (e.target.closest('.km-reaction-btn')) return;
+        const img  = card.querySelector('.km-sigcard-img');
+        const name = card.dataset.name || 'Anonymous';
+        const iso  = card.dataset.date || '';
+        if (!img) return;
+
+        sigModalImg.src = img.src;
+        sigModalName.textContent = name;
+        sigModalAvatar.textContent = name[0].toUpperCase();
+        sigModalTime.textContent = '🕒 ' + (relTime(iso) || iso.split('T')[0] || '—');
+
+        sigModal.style.display = 'flex';
+        sigModal.style.opacity = '1';
+        sigModal.style.transition = '';
+        document.body.style.overflow = 'hidden';
+      });
+    });
+
+    function closeSigModal() {
+      sigModal.style.opacity = '0';
+      sigModal.style.transition = 'opacity 0.25s';
+      setTimeout(() => {
+        sigModal.style.display = 'none';
+        document.body.style.overflow = '';
+      }, 260);
+    }
+    if (sigModalClose) sigModalClose.addEventListener('click', closeSigModal);
+    sigModal.addEventListener('click', e => {
+      if (e.target === sigModal) closeSigModal();
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape') { closeSigModal(); }
+    });
+  }
+
+  // ── Most Loved Trait Share Button ────────────────────────────────────────
+  const shareTraitBtn = document.getElementById('km-share-trait');
+  if (shareTraitBtn) {
+    shareTraitBtn.addEventListener('click', () => {
+      const text = shareTraitBtn.dataset.text || '';
+      const url  = shareTraitBtn.dataset.url  || window.location.href;
+      const full = text + '\n\n' + url;
+      if (navigator.share) {
+        navigator.share({ text, url }).catch(() => {});
+      } else {
+        const wa = 'https://wa.me/?text=' + encodeURIComponent(full);
+        window.open(wa, '_blank');
+      }
+    });
+  }
+
+  // ── Signature Wall: counter + scroll-reveal + sort ───────────────────────
+
+  // Animated counter
+  const sigCounter = document.getElementById('km-sig-count');
+  if (sigCounter) {
+    const target = parseInt(sigCounter.dataset.target || '0', 10);
+    const duration = 1200;
+    const step = Math.max(1, Math.floor(target / 60));
+    let current = 0;
+    const timer = setInterval(() => {
+      current = Math.min(current + step, target);
+      sigCounter.textContent = current;
+      if (current >= target) clearInterval(timer);
+    }, duration / (target / step || 1));
+  }
+
+  // Scroll-reveal for .km-sr elements
+  if ('IntersectionObserver' in window) {
+    const srObs = new IntersectionObserver((entries) => {
+      entries.forEach((entry, i) => {
+        if (entry.isIntersecting) {
+          // Stagger by index within visible batch
+          setTimeout(() => {
+            entry.target.classList.add('km-sr--visible');
+          }, (entry.target.dataset.srIdx || 0) * 60);
+          srObs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.1, rootMargin: '0px 0px -40px 0px' });
+
+    document.querySelectorAll('.km-sr').forEach((el, i) => {
+      el.dataset.srIdx = i;
+      srObs.observe(el);
+    });
+  } else {
+    // Fallback: show all immediately
+    document.querySelectorAll('.km-sr').forEach(el => el.classList.add('km-sr--visible'));
+  }
+
+  // Client-side sort (newest / oldest)
+  const sortBtns = document.querySelectorAll('.km-sort-btn');
+  const sigGrid  = document.getElementById('km-sigwall-grid');
+  if (sortBtns.length && sigGrid) {
+    sortBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        sortBtns.forEach(b => b.classList.remove('km-sort-btn--active'));
+        btn.classList.add('km-sort-btn--active');
+
+        const order = btn.dataset.sort;
+        const items = Array.from(sigGrid.querySelectorAll('.km-sigcard'));
+
+        items.sort((a, b) => {
+          const da = a.dataset.date || '';
+          const db = b.dataset.date || '';
+          return order === 'newest' ? db.localeCompare(da) : da.localeCompare(db);
+        });
+
+        items.forEach(item => {
+          item.classList.remove('km-sr--visible');
+          sigGrid.appendChild(item);
+        });
+        items.forEach((item, i) => {
+          setTimeout(() => item.classList.add('km-sr--visible'), i * 40);
+        });
+      });
+    });
+  }
+
+  // Relative time for .km-sigcard-time elements
+  function relTime(iso) {
+    if (!iso) return null;
+    const diff = Date.now() - new Date(iso).getTime();
+    const m = Math.floor(diff / 60000);
+    const h = Math.floor(m / 60);
+    const d = Math.floor(h / 24);
+    if (m < 1)  return 'Just now';
+    if (m < 60) return `${m} min ago`;
+    if (h < 24) return `${h}h ago`;
+    if (d < 7)  return `${d}d ago`;
+    return new Date(iso).toLocaleDateString('en-IN', { day:'numeric', month:'short' });
+  }
+  document.querySelectorAll('.km-sigcard-time').forEach(el => {
+    const iso = el.dataset.iso;
+    const rel = relTime(iso);
+    if (rel) el.textContent = '\uD83D\uDD52 ' + rel;  // 🕒
+  });
+
+  // Reaction button toggle (local state only)
+  document.querySelectorAll('.km-reaction-btn').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const reacted = this.classList.toggle('km-reacted');
+      // Micro bounce
+      this.style.transform = 'scale(1.4)';
+      setTimeout(() => { this.style.transform = ''; }, 200);
+    });
+  });
 
   // ── Analytics helpers ─────────────────────────────────────────────────────
   function trackEvent(name, params) {
@@ -349,10 +635,31 @@
   // Auto-track page views
   document.addEventListener('DOMContentLoaded', function () {
     const path = window.location.pathname;
-    if (path === '/memorywall')               trackEvent('memorywall_view',     { view: 'dashboard' });
-    else if (path === '/memorywall/create')   trackEvent('memorywall_create',   {});
-    else if (path.startsWith('/m/'))          trackEvent('memorywall_view',     { view: 'public_wall', slug: path.split('/m/')[1] });
-    else if (path.includes('/reveal/'))       trackEvent('memorywall_reveal',   {});
+    if (path === '/memorywall')               trackEvent('memorywall_dashboard_view', { view: 'dashboard' });
+    else if (path === '/memorywall/create')   trackEvent('memorywall_create',         {});
+    else if (path.startsWith('/m/'))          trackEvent('memorywall_view',           { view: 'public_wall', slug: path.split('/m/')[1] });
+    else if (path.includes('/reveal/'))       trackEvent('memorywall_reveal_view',    {});
+
+    // Track signature wall view on reveal page
+    if (path.includes('/reveal/')) {
+      const sigWall = document.querySelector('.km-sig-masonry, .km-sw-img');
+      if (sigWall && 'IntersectionObserver' in window) {
+        const obs = new IntersectionObserver(entries => {
+          if (entries[0].isIntersecting) {
+            trackEvent('memorywall_signature_view', {});
+            obs.disconnect();
+          }
+        }, { threshold: 0.3 });
+        obs.observe(sigWall);
+      }
+    }
+
+    // Track share button clicks
+    document.querySelectorAll('#km-copy-link, #km-wa-share').forEach(btn => {
+      btn.addEventListener('click', () => {
+        trackEvent('memorywall_share_click', { method: btn.id === 'km-copy-link' ? 'copy' : 'whatsapp' });
+      });
+    });
   });
 
 })();

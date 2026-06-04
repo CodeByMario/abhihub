@@ -241,6 +241,86 @@ def get_recent_responses(wall_id: str, limit: int = 20) -> List[Dict]:
         return []
 
 
+def increment_view_count(wall_id: str) -> None:
+    """Increment the view_count for a wall."""
+    client = init_supabase()
+    if not client: return
+    try:
+        # Fetch current count
+        res = client.table("memory_wall").select("view_count").eq("id", wall_id).execute()
+        current = res.data[0].get("view_count") if res.data else 0
+        current = current if current is not None else 0
+        # Update
+        client.table("memory_wall").update({"view_count": current + 1}).eq("id", wall_id).execute()
+    except Exception as e:
+        logging.error(f"[MemoryWall] increment_view_count error (may need column): {e}")
+
+
+def get_dashboard_metrics(wall_id: str) -> Dict:
+    """Build the single-source-of-truth dashboard data."""
+    client = init_supabase()
+    if not client:
+        return {}
+    
+    try:
+        # 1. Fetch wall for response & view counts
+        wall_res = client.table("memory_wall").select("response_count, view_count").eq("id", wall_id).execute()
+        wall_data = wall_res.data[0] if wall_res.data else {}
+        memory_count = wall_data.get("response_count", 0) or 0
+        view_count = wall_data.get("view_count", 0) or 0
+        
+        # 2. Get top words for most loved trait
+        words = get_top_words(wall_id)
+        word_count = len(words)
+        
+        most_loved_trait = ""
+        most_loved_trait_count = 0
+        top_traits = []
+        
+        if words:
+            most_loved_trait = words[0]["word"].capitalize()
+            most_loved_trait_count = words[0]["count"]
+            top_traits = [(w["word"].capitalize(), w["count"]) for w in words[:5]]
+            
+        # 3. Get all recent responses to build activity feed & count signatures
+        responses = get_recent_responses(wall_id, limit=100)
+        signature_count = sum(1 for r in responses if r.get("signature"))
+        
+        recent_activity = []
+        for r in responses:
+            fname = r.get("friend_name") or "Someone"
+            time_str = r.get("created_at", "").split("T")[0]
+            
+            # Activities per response
+            if r.get("signature"):
+                recent_activity.append({"type": "signature", "icon": "✍️", "text": f"{fname} signed your wall", "time": time_str})
+            recent_activity.append({"type": "memory", "icon": "💭", "text": f"{fname} left a memory", "time": time_str})
+            if r.get("word_1"):
+                recent_activity.append({"type": "word", "icon": "🏷️", "text": f"{fname} described you as '{r['word_1']}'", "time": time_str})
+                
+        # Limit activity feed to top 10
+        recent_activity = recent_activity[:10]
+        
+        # 4. Progress percentage (Goal: 50)
+        goal = 50
+        progress_percentage = min(int((memory_count / goal) * 100) if goal > 0 else 0, 100)
+        
+        return {
+            "memory_count": memory_count,
+            "signature_count": signature_count,
+            "word_count": word_count,
+            "view_count": view_count,
+            "most_loved_trait": most_loved_trait,
+            "most_loved_trait_count": most_loved_trait_count,
+            "progress_percentage": progress_percentage,
+            "recent_activity": recent_activity,
+            "top_traits": top_traits
+        }
+    except Exception as e:
+        logging.error(f"[MemoryWall] get_dashboard_metrics error: {e}")
+        return {}
+
+
 def reveal_wall(wall_id: str) -> Dict:
     """Return full response list + word frequency for reveal page."""
     responses = get_recent_responses(wall_id, limit=200)
@@ -255,3 +335,84 @@ def reveal_wall(wall_id: str) -> Dict:
         "words": words,
         "word_list": word_list,
     }
+
+
+def generate_personality_summary(metrics: Dict) -> Dict:
+    """
+    Build a warm, human-sounding personality summary from trait data.
+    Fully template-based — no external API needed.
+    Swap the return value for a Gemini call later without changing callers.
+    """
+    if not metrics:
+        return {}
+
+    top_traits = metrics.get("top_traits", [])       # [("Helpful", 12), ...]
+    memory_count = metrics.get("memory_count", 0)
+    most_loved = metrics.get("most_loved_trait", "")
+    word_count = metrics.get("word_count", 0)
+    sig_count = metrics.get("signature_count", 0)
+
+    if not top_traits or memory_count < 1:
+        return {}
+
+    trait_names = [t[0] for t in top_traits]
+    t1 = trait_names[0] if len(trait_names) > 0 else ""
+    t2 = trait_names[1] if len(trait_names) > 1 else ""
+    t3 = trait_names[2] if len(trait_names) > 2 else ""
+
+    # ── Sentence 1: Opening (based on memory count) ──────────────────
+    if memory_count >= 50:
+        s1 = f"Across {memory_count} memories, a clear picture of you has emerged."
+    elif memory_count >= 20:
+        s1 = f"{memory_count} people have now shared how they see you, and the picture is becoming very clear."
+    elif memory_count >= 10:
+        s1 = f"With {memory_count} people sharing their thoughts, some strong patterns are already visible."
+    else:
+        s1 = f"Even from {memory_count} {'person' if memory_count == 1 else 'people'}, something meaningful has been said about you."
+
+    # ── Sentence 2: Lead trait ────────────────────────────────────────
+    lead_templates = [
+        f"You are remembered above all else as someone {t1.lower()}.",
+        f"The word that keeps coming back is \"{t1}\" — chosen independently by multiple people.",
+        f"People consistently reach for \"{t1}\" when they think of you.",
+        f"At the core of how others see you is one clear quality: {t1.lower()}.",
+    ]
+    import random as _r
+    _seed = memory_count + len(t1)
+    s2 = lead_templates[_seed % len(lead_templates)]
+
+    # ── Sentence 3: Secondary traits ─────────────────────────────────
+    if t2 and t3:
+        s3 = f"Alongside that, \"{t2}\" and \"{t3}\" surfaced repeatedly — qualities that seem to define how you show up for others."
+    elif t2:
+        s3 = f"People also frequently described you as \"{t2}\", which speaks to a consistent side of your personality."
+    else:
+        s3 = f"This trait seems to be a consistent anchor in how people experience you."
+
+    # ── Sentence 4: Depth / reflection ───────────────────────────────
+    depth_templates = [
+        f"What stands out is that these words weren't suggested — {memory_count} people arrived at them independently.",
+        f"These aren't just adjectives. They're {memory_count} separate moments where someone thought of you and felt something.",
+        f"There's something powerful about {memory_count} people, on their own, choosing words that overlap this much.",
+        f"The consistency across {memory_count} responses suggests this is genuinely how people feel — not just what they thought they should say.",
+    ]
+    s4 = depth_templates[(_seed + 1) % len(depth_templates)]
+
+    # ── Sentence 5: Closing ───────────────────────────────────────────
+    if word_count >= 30:
+        s5 = f"With {word_count} unique words used across all responses, the full picture of you is rich and layered."
+    elif sig_count > 0:
+        s5 = f"{sig_count} people even took the time to leave their signature — a small gesture that says a lot."
+    else:
+        s5 = "The people in your life clearly notice more about you than they may say out loud."
+
+    sentences = [s1, s2, s3, s4, s5]
+    summary = " ".join(sentences)
+
+    return {
+        "headline": "How people see you",
+        "summary": summary,
+        "sentences": sentences,
+        "lead_trait": t1,
+    }
+

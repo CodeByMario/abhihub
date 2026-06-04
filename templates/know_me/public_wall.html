@@ -120,6 +120,102 @@
 
   </div>
 
+  <!-- Floating mobile CTA -->
+  <div id="km-float-cta" class="km-float-cta" aria-hidden="true">
+    <a href="#km-submit-btn" id="km-float-btn" class="km-float-btn">
+      ✍️ Leave a Memory
+    </a>
+  </div>
+
   <script src="{{ url_for('static', filename='js/know-me.js') }}" defer></script>
+  <style>
+    .km-float-cta {
+      position: fixed;
+      bottom: 1.25rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 500;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+    .km-float-cta.km-float--visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .km-float-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: linear-gradient(135deg, #FFE769, #62EEA8);
+      color: #1a202c;
+      font-weight: 800;
+      font-size: 0.95rem;
+      font-family: 'Kanit', sans-serif;
+      padding: 0.75rem 1.75rem;
+      border-radius: 99px;
+      box-shadow: 0 8px 24px rgba(0,0,0,.15);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .km-float-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(0,0,0,.18);
+    }
+    /* Desktop: hide it — form is visible immediately */
+    @media (min-width: 640px) {
+      .km-float-cta { display: none; }
+    }
+  </style>
+  <script>
+    (function () {
+      const floatCta = document.getElementById('km-float-cta');
+      const submitBtn = document.getElementById('km-submit-btn');
+      const successCard = document.getElementById('km-success-card');
+      if (!floatCta || !submitBtn) return;
+
+      // Smooth scroll to form on click
+      document.getElementById('km-float-btn').addEventListener('click', function (e) {
+        e.preventDefault();
+        submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => submitBtn.focus(), 400);
+      });
+
+      // Show after scrolling 120px
+      let shown = false;
+      window.addEventListener('scroll', function () {
+        if (window.scrollY > 120 && !shown) {
+          floatCta.classList.add('km-float--visible');
+          floatCta.removeAttribute('aria-hidden');
+          shown = true;
+        }
+      }, { passive: true });
+
+      // Hide when submit button is in view (user found the form)
+      if ('IntersectionObserver' in window) {
+        const obs = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              floatCta.classList.remove('km-float--visible');
+            } else if (shown) {
+              floatCta.classList.add('km-float--visible');
+            }
+          });
+        }, { threshold: 0.5 });
+        obs.observe(submitBtn);
+      }
+
+      // Hide permanently after successful submission
+      const successObs = new MutationObserver(() => {
+        if (successCard && successCard.style.display !== 'none') {
+          floatCta.style.display = 'none';
+        }
+      });
+      if (successCard) {
+        successObs.observe(successCard, { attributes: true, attributeFilter: ['style'] });
+      }
+    })();
+  </script>
 </body>
 </html>

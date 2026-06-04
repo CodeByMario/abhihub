@@ -54,43 +54,92 @@
             💬 WhatsApp
           </button>
         </div>
+      </div>
+    </div>
 
-        <a href="{{ url_for('memorywall_reveal', wall_id=wall.id) }}" class="km-btn km-btn--primary" style="margin-top:1rem; width:100%;">
-          🔮 Reveal My MemoryWall
-        </a>
+    <!-- Progress Card -->
+    <div class="km-card">
+      <h3 style="font-weight:800; font-size:1.1rem; margin-bottom:0.25rem;">Memory Goal</h3>
+      {% set mem = dashboard_data.memory_count if dashboard_data else (wall.response_count or 0) %}
+      {% set pct = dashboard_data.progress_percentage if dashboard_data else ([[(mem / 50 * 100)|int, 100]|min, 0]|max) %}
+      <div style="display:flex; justify-content:space-between; font-size:0.9rem; font-weight:700; color:var(--km-text-secondary);">
+        <span>{{ mem }} / 50 Memories</span>
+        <span>{{ pct }}% Complete</span>
+      </div>
+      <div class="km-progress-bar">
+        <div class="km-progress-fill" style="width:{{ pct }}%;"></div>
+      </div>
+      <div style="background:var(--km-bg); border:1px solid var(--km-border); border-radius:var(--radius-md); padding:0.75rem; margin-top:1rem; font-size:0.85rem; font-weight:600; text-align:center;">
+        🚀 Share your MemoryWall with 10 more friends to unlock richer personality insights.
       </div>
     </div>
 
     <!-- Statistics Section -->
-    <h3 class="km-label" style="margin-left:0.5rem; margin-bottom:0.75rem;">Statistics</h3>
     <div class="km-stats-grid">
       <div class="km-stat-box">
-        <div class="km-stat-num">{{ wall.response_count or 0 }}</div>
-        <div class="km-stat-label">Memories</div>
+        <div class="km-stat-num">{{ dashboard_data.memory_count if dashboard_data else (wall.response_count or 0) }}</div>
+        <div class="km-stat-label">❤️ Memories</div>
       </div>
       <div class="km-stat-box">
-        <div class="km-stat-num">{{ stats.unique_words or 0 }}</div>
-        <div class="km-stat-label">Unique Words</div>
+        <div class="km-stat-num">{{ dashboard_data.signature_count if dashboard_data else (wall.response_count or 0) }}</div>
+        <div class="km-stat-label">✍️ Signatures</div>
       </div>
       <div class="km-stat-box">
-        <div class="km-stat-num">
-          {% if recent_responses %}
-            {% set last = recent_responses[0].created_at %}
-            {% if 'T' in last %}
-              {{ last.split('T')[0].split('-')[1] }}/{{ last.split('T')[0].split('-')[2] }}
-            {% else %}
-              Active
-            {% endif %}
-          {% else %}
-            -
-          {% endif %}
-        </div>
-        <div class="km-stat-label">Last Active</div>
+        <div class="km-stat-num">{{ dashboard_data.word_count if dashboard_data else (stats.unique_words or 0) }}</div>
+        <div class="km-stat-label">🏷️ Words</div>
+      </div>
+      <div class="km-stat-box">
+        <div class="km-stat-num">{{ dashboard_data.view_count if dashboard_data else 0 }}</div>
+        <div class="km-stat-label">👀 Views</div>
       </div>
     </div>
 
+    <!-- Most Loved Trait -->
+    <div class="km-card" style="text-align:center; padding:2rem 1.5rem;">
+      <h3 style="font-weight:800; font-size:1.1rem; margin-bottom:0.75rem; color:var(--km-text);">💚 Most Loved Trait</h3>
+      {% if dashboard_data and dashboard_data.most_loved_trait %}
+        <div style="font-size:2.2rem; font-weight:900; background:var(--km-primary-grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent; margin-bottom:0.4rem;">
+          {{ dashboard_data.most_loved_trait }}
+        </div>
+        <div style="font-size:0.85rem; color:var(--km-muted); font-weight:600;">
+          Mentioned by {{ dashboard_data.most_loved_trait_count }} {{ 'person' if dashboard_data.most_loved_trait_count == 1 else 'people' }}
+        </div>
+      {% else %}
+        <div class="km-skeleton" style="height:36px; width:160px; margin:0 auto 0.5rem;"></div>
+        <div style="font-size:0.85rem; color:var(--km-muted); font-weight:600;">Collecting more data...</div>
+      {% endif %}
+    </div>
+
     <!-- Activity Section -->
-    <h3 class="km-label" style="margin-left:0.5rem; margin-bottom:0.75rem;">Recent Activity</h3>
+    <div class="km-card">
+      <h4 style="font-weight:800; font-size:1.1rem; margin-bottom:1rem; border-bottom:1px solid var(--km-border); padding-bottom:0.5rem;">
+        ⚡ Recent Activity
+      </h4>
+      <div style="display:flex; flex-direction:column; gap:1rem;">
+        {% if dashboard_data and dashboard_data.recent_activity %}
+          {% for act in dashboard_data.recent_activity %}
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+              <div style="width:36px; height:36px; border-radius:50%; background:#f1f5f9; display:flex; align-items:center; justify-content:center; font-size:1rem;">
+                {{ act.icon }}
+              </div>
+              <div style="flex:1;">
+                <div style="font-weight:700; font-size:0.9rem; color:var(--km-text);">{{ act.text }}</div>
+                <div style="font-size:0.75rem; color:var(--km-muted); font-weight:600;">{{ act.time }}</div>
+              </div>
+            </div>
+          {% endfor %}
+        {% else %}
+          <!-- Mock Data -->
+          <div style="display:flex; align-items:center; gap:0.75rem;">
+            <div style="width:36px; height:36px; border-radius:50%; background:#f1f5f9; display:flex; align-items:center; justify-content:center; font-size:1rem;">✍️</div>
+            <div style="flex:1;">
+              <div style="font-weight:700; font-size:0.9rem; color:var(--km-text);">Waiting for first signature</div>
+              <div style="font-size:0.75rem; color:var(--km-muted); font-weight:600;">Just now</div>
+            </div>
+          </div>
+        {% endif %}
+      </div>
+    </div>
 
     <!-- Recent Memories Card -->
     <div class="km-card">
@@ -166,6 +215,11 @@
         </div>
       {% endif %}
     </div>
+
+    <!-- Reveal CTA -->
+    <a href="{{ url_for('memorywall_reveal', wall_id=wall.id) }}" class="km-btn km-btn--primary" style="display:block; text-align:center; margin-bottom:1.5rem;">
+      🔮 Reveal My MemoryWall
+    </a>
 
     {% else %}
 
