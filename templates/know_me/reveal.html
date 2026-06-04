@@ -13,103 +13,141 @@
 </head>
 <body class="km-page">
 
+  <!-- Hero Header -->
   <div class="km-hero">
     <span class="km-hero-emoji">🎁</span>
     <h1>{{ wall.title }}'s MemoryWall</h1>
-    <p>{{ responses|length }} friend{{ 's' if responses|length != 1 }} left a memory</p>
+    <p>{{ responses|length }} memory card{{ 's' if responses|length != 1 }} unlocked</p>
   </div>
 
-  <div class="km-container" style="margin-top:-1rem;">
+  <div class="km-container" style="margin-top:-2rem;">
 
-    <!-- Word Cloud -->
+    <!-- Word Cloud Centerpiece -->
     {% if wc_path %}
     <div class="km-card">
-      <div style="font-weight:800;font-size:1.1rem;margin-bottom:0.8rem;">☁️ Your Word Cloud</div>
+      <h3 style="font-weight:800; font-size:1.15rem; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem;">
+        ☁️ Top Character Traits
+      </h3>
       <img src="{{ url_for('static', filename=wc_path) }}" alt="Word Cloud" class="km-wc-img">
-      <div style="margin-top:0.8rem;display:flex;gap:0.5rem;flex-wrap:wrap;">
+      <div style="margin-top:1rem; display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center;">
         {% for entry in words[:10] %}
-        <span class="km-word-tag">{{ entry.word }} ×{{ entry.count }}</span>
+        <span class="km-word-tag" style="background:#edf2f7; font-weight:700;">{{ entry.word | upper }} ×{{ entry.count }}</span>
         {% endfor %}
       </div>
     </div>
     {% elif words %}
     <div class="km-card">
-      <div style="font-weight:800;font-size:1.1rem;margin-bottom:0.8rem;">🔤 Top Words</div>
-      <div style="display:flex;gap:0.5rem;flex-wrap:wrap;">
+      <h3 style="font-weight:800; font-size:1.15rem; margin-bottom:0.75rem;">
+        🔤 Word Tag Cloud
+      </h3>
+      <div style="display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center; padding:1rem 0;">
         {% for entry in words %}
-        <span class="km-word-tag" style="font-size:{{ [0.8 + entry.count * 0.12, 1.5]|min }}rem;">
-          {{ entry.word }}
+        <span class="km-word-tag" style="font-size:{{ [0.85 + entry.count * 0.15, 1.6]|min }}rem; font-weight:700; background:#f7fafc; border-color:#e2e8f0; color:#2d3748; padding:0.3rem 0.9rem;">
+          {{ entry.word | upper }}
         </span>
         {% endfor %}
       </div>
     </div>
     {% endif %}
 
-    <!-- Signature Wall -->
+    <!-- Signature Wall Composite -->
     {% if sw_path %}
     <div class="km-card">
-      <div style="font-weight:800;font-size:1.1rem;margin-bottom:0.8rem;">✍️ Signature Wall</div>
-      <img src="{{ url_for('static', filename=sw_path) }}" alt="Signature Wall" class="km-sw-img">
+      <h3 style="font-weight:800; font-size:1.15rem; margin-bottom:0.75rem; display:flex; align-items:center; gap:0.5rem;">
+        ✍️ Signature Wall
+      </h3>
+      <div style="background:#ffffff; border-radius:var(--radius-lg); overflow:hidden; border:1px solid var(--km-border); padding:0.5rem;">
+        <img src="{{ url_for('static', filename=sw_path) }}" alt="Signature Wall" class="km-sw-img" style="border:none;">
+      </div>
     </div>
     {% endif %}
 
-    <!-- Download / Share buttons -->
+    <!-- Share & Download Card Options -->
     <div class="km-card" style="text-align:center;">
-      <div style="font-weight:700;margin-bottom:0.8rem;">Share your reveal!</div>
-      <div style="display:flex;gap:0.6rem;justify-content:center;flex-wrap:wrap;">
+      <h3 style="font-weight:800; font-size:1.1rem; margin-bottom:0.5rem; color:var(--km-text);">
+        Share Your MemoryWall
+      </h3>
+      <p style="font-size:0.88rem; color:var(--km-muted); margin-bottom:1.25rem;">
+        Showcase what people said or download a high-res Instagram Story card.
+      </p>
+
+      <div style="display:flex; gap:0.6rem; justify-content:center; flex-wrap:wrap; margin-bottom:0.75rem;">
         <button id="km-copy-link" class="km-btn km-btn--ghost"
                 data-url="{{ request.host_url }}m/{{ wall.slug }}"
-                style="font-size:0.88rem;padding:0.6rem 1.2rem;">
+                style="flex:1; min-width:140px; font-size:0.9rem;">
           📋 Copy Wall Link
         </button>
         <button id="km-wa-share" class="km-btn km-btn--green"
                 data-url="{{ request.host_url }}m/{{ wall.slug }}"
-                data-text="✨ {{ responses|length }} people described me on my MemoryWall! Come sign yours:"
-                style="font-size:0.88rem;padding:0.6rem 1.2rem;">
-          💬 WhatsApp
+                data-text="✨ {{ responses|length }} friends left responses on my MemoryWall! See what they said or sign yours here:"
+                style="flex:1; min-width:140px; font-size:0.9rem;">
+          💬 WhatsApp Share
         </button>
       </div>
+
+      <!-- Instagram story download button -->
+      <button id="km-download-card" class="km-btn km-btn--primary"
+              data-name="{{ wall.title }}"
+              data-count="{{ responses|length }}"
+              data-w1="{{ words[0].word if words|length > 0 else 'Ambitious' }}"
+              data-w2="{{ words[1].word if words|length > 1 else 'Creative' }}"
+              data-w3="{{ words[2].word if words|length > 2 else 'Kind' }}"
+              data-url="{{ request.host_url }}m/{{ wall.slug }}"
+              style="width:100%;">
+        📸 Download Instagram Story Card (1080x1920)
+      </button>
     </div>
 
-    <!-- Response list -->
-    {% if responses %}
+    <!-- Feed Section -->
     <div class="km-card">
-      <div style="font-weight:800;font-size:1.1rem;margin-bottom:0.8rem;">💬 What They Said</div>
-      {% for r in responses %}
-      <div class="km-response-item">
-        <div class="km-response-avatar">
-          {% if r.anonymous %}🎭{% else %}{{ (r.friend_name or '?')[0].upper() }}{% endif %}
-        </div>
-        <div style="flex:1;min-width:0;">
-          <div class="km-response-name">
-            {% if r.anonymous %}Anonymous{% else %}{{ r.friend_name }}{% endif %}
-            {% if r.emoji %} {{ r.emoji }}{% endif %}
-          </div>
-          <div class="km-response-words">
-            <span class="km-word-tag">{{ r.word_1 }}</span>
-            <span class="km-word-tag">{{ r.word_2 }}</span>
-            <span class="km-word-tag">{{ r.word_3 }}</span>
-          </div>
-          {% if r.memory_message %}
-          <div class="km-response-memory">"{{ r.memory_message }}"</div>
-          {% endif %}
-          {% if r.signature %}
-          <div class="km-response-sig">
-            <img src="{{ r.signature[0].signature_url }}" alt="Signature" loading="lazy">
-          </div>
-          {% endif %}
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-    {% else %}
-    <div class="km-card" style="text-align:center;color:var(--km-muted);">
-      No responses yet. Share your link to get started!
-    </div>
-    {% endif %}
+      <h3 style="font-weight:800; font-size:1.15rem; margin-bottom:1rem; border-bottom:1px solid var(--km-border); padding-bottom:0.5rem;">
+        💭 Memory Cards Recieved
+      </h3>
 
-    <a href="{{ url_for('memorywall_dashboard') }}"
-       class="km-btn km-btn--ghost" style="display:block;text-align:center;">
+      {% if responses %}
+        {% for r in responses %}
+        <div class="km-response-item">
+          <div class="km-response-avatar">
+            {% if r.anonymous %}🎭{% else %}{{ (r.friend_name or '?')[0].upper() }}{% endif %}
+          </div>
+          <div style="flex:1; min-width:0;">
+            <div class="km-response-name">
+              {% if r.anonymous %}Anonymous Friend{% else %}{{ r.friend_name }}{% endif %}
+              {% if r.emoji %} <span style="margin-left:0.25rem;">{{ r.emoji }}</span>{% endif %}
+            </div>
+            
+            <div class="km-response-words">
+              <span class="km-word-tag">{{ r.word_1 }}</span>
+              <span class="km-word-tag">{{ r.word_2 }}</span>
+              <span class="km-word-tag">{{ r.word_3 }}</span>
+            </div>
+
+            {% if r.memory_message %}
+            <div class="km-response-memory">
+              "{{ r.memory_message }}"
+            </div>
+            {% endif %}
+
+            {% if r.signature %}
+            <div class="km-response-sig">
+              <img src="{{ r.signature[0].signature_url }}" alt="Friend Signature" loading="lazy">
+            </div>
+            {% endif %}
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+        <!-- Branded Empty State -->
+        <div style="text-align:center; padding:3rem 1rem;">
+          <div style="font-size:3rem; margin-bottom:0.75rem;">✍️</div>
+          <p style="font-weight:800; font-size:1.15rem; margin-bottom:0.25rem; color:var(--km-text);">No memories yet</p>
+          <p style="color:var(--km-muted); font-size:0.9rem; margin:0;">Share your link above to collect thoughts and signatures!</p>
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Back to Dashboard -->
+    <a href="{{ url_for('memorywall_dashboard') }}" class="km-btn km-btn--ghost" style="display:block; text-align:center;">
       ← Back to Dashboard
     </a>
 

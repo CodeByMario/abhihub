@@ -14,42 +14,49 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/know-me.css') }}">
   {% include 'google_tag.html' %}
 </head>
-<body class="km-page" style="padding-bottom:2rem;">
+<body class="km-page" style="padding-bottom:4rem;">
 
-  <!-- Hero -->
-  <div class="km-hero">
-    <span class="km-hero-emoji">✍️</span>
+  <!-- Hero with Gradient Header and Profile Photo -->
+  <div class="km-hero" style="padding: 4rem 1.5rem 3rem;">
+    <div class="km-profile-photo" style="width:110px; height:110px; font-size:3rem; margin-bottom:1rem;">
+      {{ wall.title[0] if wall.title else 'U' }}
+    </div>
     <h1>{{ wall.title }}</h1>
-    <p>
-      {% if wall.college %}{{ wall.college }}{% endif %}
-      {% if wall.branch %} · {{ wall.branch }}{% endif %}
-      {% if wall.graduation_year %} · Class of {{ wall.graduation_year }}{% endif %}
+    <p style="font-weight: 500; font-size:1.05rem;">
+      {% set parts = [] %}
+      {% if wall.branch %}{% set _ = parts.append(wall.branch) %}{% endif %}
+      {% if wall.college %}{% set _ = parts.append(wall.college) %}{% endif %}
+      {% if wall.graduation_year %}{% set _ = parts.append("Class of " ~ wall.graduation_year) %}{% endif %}
+      {{ parts | join(' · ') }}
     </p>
   </div>
 
-  <div class="km-container" style="margin-top:-1rem;">
-
-    <!-- Instructions card -->
-    <div class="km-card" style="text-align:center;padding:1.2rem 1rem;">
-      <div style="font-size:1.5rem;margin-bottom:0.3rem;">🎁</div>
-      <div style="font-weight:700;font-size:1rem;color:var(--km-text);">Leave a memory for <strong>{{ wall.title }}</strong></div>
-      <div style="font-size:0.85rem;color:var(--km-muted);margin-top:0.3rem;">3 words · signature · optional memory</div>
-    </div>
+  <div class="km-container" style="margin-top:-2rem;">
 
     <!-- Success card (hidden until submitted) -->
-    <div class="km-card" id="km-success-card" style="display:none;text-align:center;padding:2rem;">
+    <div class="km-card" id="km-success-card" style="display:none;text-align:center;padding:2.5rem 1.5rem;">
       <div class="km-success-tick">✓</div>
-      <div style="font-weight:800;font-size:1.3rem;margin-bottom:0.5rem;">Memory Sent! 🎉</div>
-      <div style="color:var(--km-muted);font-size:0.9rem;">
-        Your words have been added to {{ wall.title }}'s MemoryWall.
-      </div>
+      <h2 style="font-weight:800;font-size:1.4rem;margin-bottom:0.5rem;color:var(--km-text);">Memory Sent! 🎉</h2>
+      <p style="color:var(--km-muted);font-size:0.95rem;margin:0 0 1.5rem;">
+        Your words and memory have been successfully added to {{ wall.title }}'s MemoryWall.
+      </p>
+      <a href="https://abhihub.com" class="km-btn km-btn--ghost" style="width:100%;">
+        Visit AbhiHub
+      </a>
     </div>
 
-    <!-- Submission form -->
-    <div class="km-card" id="km-form-card">
+    <!-- Submission Card with Glassmorphism -->
+    <div class="km-card km-glass-card" id="km-form-card">
+      <h2 style="font-weight:800; font-size:1.3rem; margin-bottom:0.5rem; color:var(--km-text); text-align:center;">
+        Sign MemoryWall
+      </h2>
+      <p style="text-align:center; font-size:0.88rem; color:var(--km-text-secondary); margin-bottom:1.5rem;">
+        Leave 3 describing words, a digital signature, and an optional message.
+      </p>
+
       <form id="km-submit-form" data-wall-id="{{ wall.id }}" novalidate>
 
-        <!-- Honeypot (hidden from humans) -->
+        <!-- Honeypot -->
         <div class="km-hp" aria-hidden="true">
           <input type="text" id="km-honey" name="_honey" tabindex="-1" autocomplete="off">
         </div>
@@ -57,20 +64,20 @@
         <!-- Error alert -->
         <div class="km-alert km-alert--error" id="km-form-error" style="display:none;"></div>
 
-        <!-- 3 Words -->
+        <!-- 3 Words: Large, Friendly, Mobile-Optimized Inputs -->
         <div class="km-form-row">
-          <label class="km-label">3 Words That Describe Them *</label>
+          <label class="km-label">Describe them in 3 words *</label>
           <div class="km-word-row">
-            <input class="km-input" type="text" id="km-word1" placeholder="Word 1" maxlength="30" required autocomplete="off">
-            <input class="km-input" type="text" id="km-word2" placeholder="Word 2" maxlength="30" required autocomplete="off">
-            <input class="km-input" type="text" id="km-word3" placeholder="Word 3" maxlength="30" required autocomplete="off">
+            <input class="km-input" type="text" id="km-word1" placeholder="Word 1" maxlength="30" required autocomplete="off" style="font-weight:700;">
+            <input class="km-input" type="text" id="km-word2" placeholder="Word 2" maxlength="30" required autocomplete="off" style="font-weight:700;">
+            <input class="km-input" type="text" id="km-word3" placeholder="Word 3" maxlength="30" required autocomplete="off" style="font-weight:700;">
           </div>
         </div>
 
         <!-- Name -->
         <div class="km-form-row">
           <label class="km-label" for="km-name">Your Name</label>
-          <input class="km-input" type="text" id="km-name" placeholder="How do they know you?" maxlength="50">
+          <input class="km-input" type="text" id="km-name" placeholder="E.g. Friend, Batchmate, Brother..." maxlength="50" style="font-weight:600;">
         </div>
 
         <!-- Anonymous toggle -->
@@ -78,8 +85,8 @@
           <div class="km-toggle-row" id="km-anon-toggle">
             <div class="km-toggle-switch" id="km-anon-switch"></div>
             <div>
-              <div style="font-weight:600;font-size:0.9rem;" id="km-anon-label">Include my name</div>
-              <div style="font-size:0.78rem;color:var(--km-muted);">Toggle to post anonymously</div>
+              <div style="font-weight:700;font-size:0.9rem;" id="km-anon-label">Include my name</div>
+              <div style="font-size:0.78rem;color:var(--km-muted); font-weight:500;">Toggle to sign anonymously</div>
             </div>
           </div>
         </div>
@@ -97,22 +104,24 @@
         <!-- Memory message -->
         <div class="km-form-row">
           <label class="km-label" for="km-memory">A Memory (optional)</label>
-          <textarea class="km-textarea" id="km-memory" placeholder="Share a favourite memory or message…" maxlength="500"></textarea>
+          <textarea class="km-textarea" id="km-memory" placeholder="Recall a funny incident or leave a warm note..." maxlength="500"></textarea>
         </div>
 
-        <!-- Signature -->
+        <!-- Signature: Canvas, Rounded border, Light Background, Clear Button -->
         <div class="km-form-row">
-          <label class="km-label">Your Signature (optional)</label>
-          <div class="km-sig-wrap">
-            <canvas id="km-sig-canvas"></canvas>
+          <label class="km-label">Draw your signature (optional)</label>
+          <div class="km-sig-wrap" style="background:#f8fafc; border-radius:var(--radius-lg); border:2px dashed var(--km-border);">
+            <canvas id="km-sig-canvas" style="background:#ffffff;"></canvas>
             <div class="km-sig-hint">✍️ Draw your signature here</div>
           </div>
-          <div class="km-sig-actions" style="margin-top:0.5rem;">
-            <button type="button" id="km-sig-clear" class="km-btn km-btn--ghost">🗑 Clear</button>
+          <div class="km-sig-actions">
+            <button type="button" id="km-sig-clear" class="km-btn km-btn--ghost" style="padding:0.5rem; min-height:40px; font-size:0.85rem;">
+              🗑 Clear Signature
+            </button>
           </div>
         </div>
 
-        <button type="submit" class="km-btn km-btn--primary" id="km-submit-btn">
+        <button type="submit" class="km-btn km-btn--primary" id="km-submit-btn" style="margin-top:1rem;">
           Send to MemoryWall ✨
         </button>
 

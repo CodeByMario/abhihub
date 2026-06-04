@@ -2979,13 +2979,22 @@ def get_comments_route(document_id):
 @app.route('/memorywall')
 @auth_required
 def memorywall_dashboard():
-    """Creator dashboard — shows wall status, share link, response count."""
-    from methods.know_me import get_wall_by_user
+    """Creator dashboard — shows wall status, share link, stats, and recent activity."""
+    from methods.know_me import get_wall_by_user, get_top_words, get_recent_responses
     user = session.get('user', {})
     user_id = user.get('uid')
     wall_result = get_wall_by_user(user_id)
     wall = wall_result.get('data') if wall_result.get('success') else None
-    return render_template('know_me/dashboard.html', wall=wall, user=user)
+    
+    stats = {}
+    recent_responses = []
+    if wall:
+        words = get_top_words(wall['id'])
+        stats['unique_words'] = len(words)
+        recent_responses = get_recent_responses(wall['id'], limit=5)
+        
+    return render_template('know_me/dashboard.html', wall=wall, user=user, stats=stats, recent_responses=recent_responses)
+
 
 
 @app.route('/memorywall/create', methods=['GET', 'POST'])

@@ -1,6 +1,6 @@
 /**
  * know-me.js — MemoryWall client logic
- * Signature canvas (mouse + touch + stylus), form submission, sharing, GA4 tracking
+ * Signature canvas (mouse + touch + stylus), form submission, sharing, GA4 tracking, Instagram card generation
  */
 
 (function () {
@@ -14,8 +14,8 @@
 
   if (canvas) {
     const ctx = canvas.getContext('2d');
-    ctx.strokeStyle = '#1e293b';
-    ctx.lineWidth   = 2.5;
+    ctx.strokeStyle = '#1a202c';
+    ctx.lineWidth   = 3.0;
     ctx.lineCap     = 'round';
     ctx.lineJoin    = 'round';
 
@@ -25,8 +25,8 @@
       canvas.width  = rect.width  * window.devicePixelRatio;
       canvas.height = rect.height * window.devicePixelRatio;
       ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-      ctx.strokeStyle = '#1e293b';
-      ctx.lineWidth   = 2.5;
+      ctx.strokeStyle = '#1a202c';
+      ctx.lineWidth   = 3.0;
       ctx.lineCap     = 'round';
       ctx.lineJoin    = 'round';
     }
@@ -201,14 +201,14 @@
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  // ── Share Buttons ─────────────────────────────────────────────────────────
+  // ── Share Buttons & Link Copying ──────────────────────────────────────────
   const copyBtn = document.getElementById('km-copy-link');
   if (copyBtn) {
     copyBtn.addEventListener('click', function () {
       const url = copyBtn.dataset.url || window.location.href;
       navigator.clipboard.writeText(url).then(function () {
         const orig = copyBtn.textContent;
-        copyBtn.textContent = '✅ Copied!';
+        copyBtn.textContent = '✅ Copied Link!';
         setTimeout(() => { copyBtn.textContent = orig; }, 2000);
       });
       trackEvent('memorywall_share', { method: 'copy_link' });
@@ -222,6 +222,131 @@
       const text = waBtn.dataset.text || 'Check out my MemoryWall on AbhiHub!';
       window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`, '_blank');
       trackEvent('memorywall_share', { method: 'whatsapp' });
+    });
+  }
+
+  // Helper to draw rounded rectangles on canvas
+  function drawRoundRect(ctx, x, y, width, height, radius, fillStyle) {
+    ctx.fillStyle = fillStyle;
+    ctx.beginPath();
+    ctx.moveTo(x + radius, y);
+    ctx.lineTo(x + width - radius, y);
+    ctx.quadraticCurveTo(x + width, y, x + width, y + radius);
+    ctx.lineTo(x + width, y + height - radius);
+    ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
+    ctx.lineTo(x + radius, y + height);
+    ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
+    ctx.lineTo(x, y + radius);
+    ctx.quadraticCurveTo(x, y, x + radius, y);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // ── Instagram Story Card (1080x1920) Client Generation ──────────────────
+  const downloadCardBtn = document.getElementById('km-download-card');
+  if (downloadCardBtn) {
+    downloadCardBtn.addEventListener('click', function () {
+      const name = downloadCardBtn.dataset.name || 'My';
+      const count = downloadCardBtn.dataset.count || '0';
+      const w1 = downloadCardBtn.dataset.w1 || '';
+      const w2 = downloadCardBtn.dataset.w2 || '';
+      const w3 = downloadCardBtn.dataset.w3 || '';
+      const url = downloadCardBtn.dataset.url || 'abhibhub.com';
+
+      // Create a canvas element
+      const c = document.createElement('canvas');
+      c.width = 1080;
+      c.height = 1920;
+      const ctx = c.getContext('2d');
+
+      // 1. Draw gradient background
+      const grad = ctx.createLinearGradient(0, 0, 0, 1920);
+      grad.addColorStop(0, '#FFE769');
+      grad.addColorStop(1, '#62EEA8');
+      ctx.fillStyle = grad;
+      ctx.fillRect(0, 0, 1080, 1920);
+
+      // 2. Draw brand header
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillStyle = '#1a202c';
+      ctx.font = '900 48px Kanit, sans-serif';
+      ctx.fillText('AbhiHub', 540, 140);
+      ctx.font = '500 24px Kanit, sans-serif';
+      ctx.fillStyle = '#4a5568';
+      ctx.fillText('MEMORYWALL', 540, 195);
+
+      // Draw subtle horizontal division line
+      ctx.fillStyle = 'rgba(26, 32, 44, 0.1)';
+      ctx.fillRect(440, 230, 200, 4);
+
+      // 3. Draw User Title
+      ctx.fillStyle = '#1a202c';
+      ctx.font = '800 76px Kanit, sans-serif';
+      ctx.fillText(name + "'s", 540, 430);
+      ctx.font = '300 64px Kanit, sans-serif';
+      ctx.fillText('MemoryWall', 540, 520);
+
+      // 4. Draw words section title
+      ctx.font = 'bold 28px Kanit, sans-serif';
+      ctx.fillStyle = '#4a5568';
+      ctx.fillText('DESCRIBED AS', 540, 700);
+
+      // 5. Draw the 3 word capsules
+      const words = [w1, w2, w3].filter(w => w.trim() !== '');
+      let startY = 780;
+      words.forEach((word, idx) => {
+        const pillWidth = 560;
+        const pillHeight = 110;
+        const pillX = 540 - (pillWidth / 2);
+        const pillY = startY + (idx * 150);
+
+        // Pill shadow
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.08)';
+        ctx.shadowBlur = 24;
+        ctx.shadowOffsetY = 8;
+
+        drawRoundRect(ctx, pillX, pillY, pillWidth, pillHeight, 55, '#ffffff');
+
+        // Reset shadow for text
+        ctx.shadowColor = 'transparent';
+        ctx.shadowBlur = 0;
+        ctx.shadowOffsetY = 0;
+
+        // Draw text
+        ctx.fillStyle = '#1a202c';
+        ctx.font = '800 44px Kanit, sans-serif';
+        ctx.fillText(word.toUpperCase(), 540, pillY + 55);
+      });
+
+      // 6. Draw statistics
+      ctx.fillStyle = '#4a5568';
+      ctx.font = 'bold 36px Kanit, sans-serif';
+      ctx.fillText(count + ' memories shared', 540, 1420);
+
+      // 7. Draw date
+      const dateStr = new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+      ctx.font = '500 28px Kanit, sans-serif';
+      ctx.fillStyle = '#718096';
+      ctx.fillText(dateStr, 540, 1480);
+
+      // 8. Draw Link box
+      const linkBoxY = 1630;
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.04)';
+      ctx.shadowBlur = 16;
+      drawRoundRect(ctx, 540 - 350, linkBoxY, 700, 100, 50, 'rgba(255, 255, 255, 0.8)');
+      ctx.shadowColor = 'transparent';
+
+      ctx.fillStyle = '#1a202c';
+      ctx.font = 'bold 32px Kanit, sans-serif';
+      ctx.fillText(url.replace('https://', '').replace('http://', ''), 540, linkBoxY + 50);
+
+      // 9. Download trigger
+      const link = document.createElement('a');
+      link.download = `${name.toLowerCase().replace(/\s+/g, '_')}_memorywall.png`;
+      link.href = c.toDataURL('image/png');
+      link.click();
+      trackEvent('memorywall_share', { method: 'download_card' });
     });
   }
 
