@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -14,6 +15,7 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/know-me.css') }}">
   {% include 'google_tag.html' %}
 </head>
+
 <body class="km-page" style="padding-bottom:4rem;">
 
   <!-- Hero with Gradient Header and Profile Photo -->
@@ -68,16 +70,20 @@
         <div class="km-form-row">
           <label class="km-label">Describe them in 3 words *</label>
           <div class="km-word-row">
-            <input class="km-input" type="text" id="km-word1" placeholder="Word 1" maxlength="30" required autocomplete="off" style="font-weight:700;">
-            <input class="km-input" type="text" id="km-word2" placeholder="Word 2" maxlength="30" required autocomplete="off" style="font-weight:700;">
-            <input class="km-input" type="text" id="km-word3" placeholder="Word 3" maxlength="30" required autocomplete="off" style="font-weight:700;">
+            <input class="km-input" type="text" id="km-word1" placeholder="Word 1" maxlength="30" required
+              autocomplete="off" style="font-weight:700;">
+            <input class="km-input" type="text" id="km-word2" placeholder="Word 2" maxlength="30" required
+              autocomplete="off" style="font-weight:700;">
+            <input class="km-input" type="text" id="km-word3" placeholder="Word 3" maxlength="30" required
+              autocomplete="off" style="font-weight:700;">
           </div>
         </div>
 
         <!-- Name -->
         <div class="km-form-row">
           <label class="km-label" for="km-name">Your Name *</label>
-          <input class="km-input" type="text" id="km-name" placeholder="E.g. Friend, Batchmate, Brother..." maxlength="50" required style="font-weight:600;">
+          <input class="km-input" type="text" id="km-name" placeholder="Enter your name by which i know you."
+            maxlength="50" required style="font-weight:600;">
         </div>
 
 
@@ -94,18 +100,21 @@
         <!-- Memory message -->
         <div class="km-form-row">
           <label class="km-label" for="km-memory">A Memory (optional)</label>
-          <textarea class="km-textarea" id="km-memory" placeholder="Recall a funny incident or leave a warm note..." maxlength="500"></textarea>
+          <textarea class="km-textarea" id="km-memory" placeholder="Recall a funny incident or leave a warm note..."
+            maxlength="500"></textarea>
         </div>
 
         <!-- Signature: Canvas, Rounded border, Light Background, Clear Button -->
         <div class="km-form-row">
           <label class="km-label">Draw your signature (optional)</label>
-          <div class="km-sig-wrap" style="background:#f8fafc; border-radius:var(--radius-lg); border:2px dashed var(--km-border);">
+          <div class="km-sig-wrap"
+            style="background:#f8fafc; border-radius:var(--radius-lg); border:2px dashed var(--km-border);">
             <canvas id="km-sig-canvas" style="background:#ffffff;"></canvas>
             <div class="km-sig-hint">✍️ Draw your signature here</div>
           </div>
           <div class="km-sig-actions">
-            <button type="button" id="km-sig-clear" class="km-btn km-btn--ghost" style="padding:0.5rem; min-height:40px; font-size:0.85rem;">
+            <button type="button" id="km-sig-clear" class="km-btn km-btn--ghost"
+              style="padding:0.5rem; min-height:40px; font-size:0.85rem;">
               🗑 Clear Signature
             </button>
           </div>
@@ -139,10 +148,12 @@
       opacity: 0;
       transition: opacity 0.3s ease, transform 0.3s ease;
     }
+
     .km-float-cta.km-float--visible {
       opacity: 1;
       pointer-events: auto;
     }
+
     .km-float-btn {
       display: inline-flex;
       align-items: center;
@@ -154,18 +165,22 @@
       font-family: 'Kanit', sans-serif;
       padding: 0.75rem 1.75rem;
       border-radius: 99px;
-      box-shadow: 0 8px 24px rgba(0,0,0,.15);
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .15);
       text-decoration: none;
       white-space: nowrap;
       transition: transform 0.2s, box-shadow 0.2s;
     }
+
     .km-float-btn:hover {
       transform: translateY(-2px);
-      box-shadow: 0 12px 32px rgba(0,0,0,.18);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, .18);
     }
+
     /* Desktop: hide it — form is visible immediately */
     @media (min-width: 640px) {
-      .km-float-cta { display: none; }
+      .km-float-cta {
+        display: none;
+      }
     }
   </style>
   <script>
@@ -218,4 +233,5 @@
     })();
   </script>
 </body>
+
 </html>
