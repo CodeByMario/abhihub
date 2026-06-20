@@ -115,25 +115,21 @@
             showDesktopToast();
             return;
         }
-
-        document.getElementById('targetAmountText').textContent = amount;
-        var modal = document.getElementById('paymentRedirectModal');
-        modal.style.display = 'flex';
-
-        setTimeout(function() {
-            modal.style.display = 'none';
-            // Clean link to avoid security blocks for non-merchant UPI IDs
-            var link = 'upi://pay?pa=abhijeetshende@pingpay&pn=Abhijeet%20Ashok%20Shende';
-
-            if (/Android/i.test(navigator.userAgent)) {
-                var intentLink = 'intent://pay?pa=abhijeetshende@pingpay' +
-                    '&pn=Abhijeet%20Ashok%20Shende' +
-                    '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
-                window.location.href = intentLink;
-            } else {
-                window.location.href = link;
-            }
-        }, 3000);
+        var link = getUPILink(amount);
+        // Use intent fallback for Android Chrome
+        if (/Android/i.test(navigator.userAgent)) {
+            var txRef = 'AH' + Date.now() + Math.floor(Math.random() * 1000);
+            var intentLink = 'intent://pay?pa=abhijeetshende@pingpay' +
+                '&pn=Abhijeet%20Ashok%20Shende' +
+                '&am=' + amount +
+                '&cu=INR' +
+                '&tn=Support%20AbhiHub' +
+                '&tr=' + txRef +
+                '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
+            window.location.href = intentLink;
+        } else {
+            window.location.href = link;
+        }
     }
 
     function customPay() {
@@ -146,7 +142,13 @@
             return;
         }
 
-        pay(num.toFixed(2));
+        if (!isMobile) {
+            showDesktopToast();
+            return;
+        }
+
+        var link = getUPILink(num.toFixed(2));
+        window.location.href = link;
     }
 
     function copyUPI() {
@@ -186,34 +188,4 @@
         });
     }
 </script>
-
-<!-- ── Payment Redirect Modal ──────────────────────────────────────── -->
-<div id="paymentRedirectModal" style="
-  display:none;position:fixed;inset:0;
-  background:rgba(10,10,25,0.75);
-  backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
-  z-index:99999;align-items:center;justify-content:center;padding:1.5rem;
-">
-  <div style="
-    background:#fff;border-radius:24px;max-width:340px;width:100%;
-    padding:2rem 1.5rem;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,0.3);
-    position:relative;animation:supportPopIn 0.35s cubic-bezier(.34,1.56,.64,1);
-  ">
-    <div style="font-size:3rem;margin-bottom:1rem;animation:supportHeartPop 1.5s infinite;">📲</div>
-    <h3 style="margin:0 0 0.5rem;font-size:1.2rem;font-weight:800;color:#1f2937;">Opening Payment App</h3>
-    <p style="margin:0 0 1.5rem;font-size:0.9rem;color:#4b5563;line-height:1.5;">
-      Please enter <strong>₹<span id="targetAmountText">0</span></strong> manually in your UPI app to complete the support.
-    </p>
-    <div style="font-size:0.75rem;color:#9ca3af;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;animation:supportBlink 1.5s infinite;">
-      Redirecting in 3 seconds...
-    </div>
-  </div>
-</div>
-
-<style>
-  @keyframes supportBlink {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
-  }
-</style>
 {% endblock %}
