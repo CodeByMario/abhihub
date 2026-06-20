@@ -1,0 +1,188 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+<div style="max-width:520px;margin:1.5rem auto;padding:0 1rem 5rem;">
+    <div style="background:#fff;border-radius:24px;box-shadow:0 8px 40px rgba(37,99,235,0.10),0 2px 8px rgba(0,0,0,0.06);overflow:hidden;border:1.5px solid #e5e7eb;">
+
+        <!-- Header Banner -->
+        <div style="background:linear-gradient(135deg,#2563eb 0%,#7c3aed 50%,#a855f7 100%);padding:2.2rem 1.5rem 2rem;text-align:center;position:relative;overflow:hidden;">
+            <div style="position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.08);pointer-events:none;"></div>
+            <div style="position:absolute;bottom:-30px;left:-30px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,0.06);pointer-events:none;"></div>
+            <div style="font-size:2.8rem;margin-bottom:0.5rem;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.15));animation:promoBounce 1.8s infinite;">💖</div>
+            <h1 style="color:#fff;font-size:1.6rem;font-weight:800;margin:0 0 0.4rem;letter-spacing:-0.02em;">Support AbhiHub</h1>
+            <p style="color:rgba(255,255,255,0.88);font-size:0.9rem;margin:0;max-width:320px;display:inline-block;line-height:1.5;">Your contributions help us keep the platform fast, secure, and free for all students.</p>
+        </div>
+
+        <!-- Body -->
+        <div style="padding:1.5rem 1.25rem 1.5rem;">
+
+            <!-- QR Code -->
+            <div style="text-align:center;margin-bottom:1.5rem;">
+                <div style="display:inline-block;padding:8px;background:linear-gradient(135deg,#2563eb,#a855f7);border-radius:20px;box-shadow:0 6px 24px rgba(37,99,235,0.18);">
+                    <div style="background:#fff;padding:8px;border-radius:16px;width:240px;height:240px;display:flex;align-items:center;justify-content:center;">
+                        <img src="/static/payment/Samsungpay Upi.jpeg" alt="UPI QR Code" width="224" height="224" style="width:224px !important;height:224px !important;min-width:224px;min-height:224px;max-width:none;object-fit:contain;border-radius:10px;display:block;">
+                    </div>
+                </div>
+                <p style="margin:0.8rem 0 0;font-size:0.72rem;color:#9ca3af;text-transform:uppercase;letter-spacing:0.12em;font-weight:600;">Scan to Pay with any UPI App</p>
+            </div>
+
+            <!-- Trust Note -->
+            <div style="background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:1px solid #dbeafe;border-radius:14px;padding:0.85rem 1rem;margin-bottom:1.5rem;text-align:center;">
+                <p style="margin:0;font-size:0.85rem;color:#4b5563;line-height:1.6;font-style:italic;font-weight:500;">AbhiHub is free for everyone. Contributions are completely optional and help cover hosting, storage, and future improvements.</p>
+            </div>
+
+            <!-- UPI ID Card -->
+            <div style="background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:16px;padding:1rem 1.1rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:0.8rem;flex-wrap:wrap;">
+                <div style="flex:1;min-width:0;">
+                    <span style="font-size:0.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.1em;display:block;margin-bottom:0.3rem;">UPI ID</span>
+                    <p style="margin:0;font-size:1rem;font-weight:700;color:#1f2937;word-break:break-all;">abhijeetshende@pingpay</p>
+                    <p style="margin:0.2rem 0 0;font-size:0.78rem;color:#6b7280;">Abhijeet Ashok Shende</p>
+                </div>
+                <button id="copyBtn" onclick="copyUPI()" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1rem;background:#fff;border:1.5px solid #d1d5db;border-radius:10px;font-size:0.82rem;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap;transition:all 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+                    <span id="copyIcon">📋</span>
+                    <span id="copyText">Copy</span>
+                </button>
+            </div>
+
+            <!-- Amount Heading -->
+            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
+                <span style="font-size:1.1rem;">⚡</span>
+                <h3 style="margin:0;font-size:1rem;font-weight:700;color:#1f2937;">Pay Directly</h3>
+            </div>
+
+            <!-- Amount Buttons Grid -->
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin-bottom:0.75rem;">
+                <button onclick="pay(29)" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem 0.5rem;background:#fff;border:1.5px solid #e5e7eb;border-radius:16px;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.04);" onmouseover="this.style.borderColor='#93c5fd';this.style.background='#eff6ff';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fff';this.style.transform='none'">
+                    <span style="font-size:1.6rem;margin-bottom:0.35rem;">💾</span>
+                    <span style="font-size:1.2rem;font-weight:800;color:#1f2937;">₹29</span>
+                    <span style="font-size:0.7rem;color:#6b7280;font-weight:500;margin-top:0.2rem;">Storage</span>
+                </button>
+                <button onclick="pay(49)" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem 0.5rem;background:#fff;border:1.5px solid #e5e7eb;border-radius:16px;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.04);" onmouseover="this.style.borderColor='#93c5fd';this.style.background='#eff6ff';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fff';this.style.transform='none'">
+                    <span style="font-size:1.6rem;margin-bottom:0.35rem;">☁️</span>
+                    <span style="font-size:1.2rem;font-weight:800;color:#1f2937;">₹49</span>
+                    <span style="font-size:0.7rem;color:#6b7280;font-weight:500;margin-top:0.2rem;">Hosting</span>
+                </button>
+                <button onclick="pay(99)" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem 0.5rem;background:#fff;border:1.5px solid #e5e7eb;border-radius:16px;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.04);" onmouseover="this.style.borderColor='#93c5fd';this.style.background='#eff6ff';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fff';this.style.transform='none'">
+                    <span style="font-size:1.6rem;margin-bottom:0.35rem;">🚀</span>
+                    <span style="font-size:1.2rem;font-weight:800;color:#1f2937;">₹99</span>
+                    <span style="font-size:0.7rem;color:#6b7280;font-weight:500;margin-top:0.2rem;">Development</span>
+                </button>
+            </div>
+
+            <!-- Custom Amount -->
+            <button onclick="customPay()" style="width:100%;padding:0.85rem;background:linear-gradient(135deg,#1e293b,#334155);color:#fff;font-size:0.95rem;font-weight:700;border:none;border-radius:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;box-shadow:0 4px 16px rgba(0,0,0,0.12);transition:transform 0.15s,box-shadow 0.15s;margin-bottom:1.2rem;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,0.18)'" onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.12)'">
+                ✏️ Custom Amount
+            </button>
+
+            <!-- Footer -->
+            <p style="text-align:center;font-size:0.72rem;color:#9ca3af;margin:0;padding-top:0.75rem;border-top:1px solid #f3f4f6;">🔒 Secure payment routing via UPI standard protocol</p>
+        </div>
+    </div>
+</div>
+
+<script>
+    var isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+    function getUPILink(amount) {
+        return 'upi://pay?pa=abhijeetshende@pingpay' +
+            '&pn=Abhijeet%20Ashok%20Shende' +
+            '&am=' + amount +
+            '&cu=INR' +
+            '&tn=Support%20AbhiHub';
+    }
+
+    function showDesktopToast() {
+        var existing = document.getElementById('desktopToast');
+        if (existing) existing.remove();
+
+        var toast = document.createElement('div');
+        toast.id = 'desktopToast';
+        toast.innerHTML = '📱 <strong>Open this page on your phone</strong> to pay via UPI app, or scan the QR code above.';
+        toast.style.cssText = 'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:0.9rem 1.3rem;border-radius:14px;font-size:0.88rem;line-height:1.5;z-index:9999;max-width:380px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.25);animation:toastIn 0.35s ease-out;';
+        document.body.appendChild(toast);
+
+        setTimeout(function() {
+            toast.style.opacity = '0';
+            toast.style.transition = 'opacity 0.3s';
+            setTimeout(function() { toast.remove(); }, 300);
+        }, 4000);
+    }
+
+    function pay(amount) {
+        if (!isMobile) {
+            showDesktopToast();
+            return;
+        }
+        var link = getUPILink(amount);
+        // Use intent fallback for Android Chrome
+        if (/Android/i.test(navigator.userAgent)) {
+            var intentLink = 'intent://pay?pa=abhijeetshende@pingpay' +
+                '&pn=Abhijeet%20Ashok%20Shende' +
+                '&am=' + amount +
+                '&cu=INR' +
+                '&tn=Support%20AbhiHub' +
+                '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
+            // Try upi:// first, fall back to intent
+            window.location.href = link;
+        } else {
+            window.location.href = link;
+        }
+    }
+
+    function customPay() {
+        var amount = prompt('Enter custom amount (₹):');
+        if (!amount) return;
+
+        var num = parseFloat(amount);
+        if (isNaN(num) || num <= 0) {
+            alert('Please enter a valid amount.');
+            return;
+        }
+
+        if (!isMobile) {
+            showDesktopToast();
+            return;
+        }
+
+        var link = getUPILink(num.toFixed(2));
+        window.location.href = link;
+    }
+
+    function copyUPI() {
+        var upiId = 'abhijeetshende@pingpay';
+        navigator.clipboard.writeText(upiId).then(function() {
+            var btn = document.getElementById('copyBtn');
+            var txt = document.getElementById('copyText');
+            var ico = document.getElementById('copyIcon');
+
+            txt.textContent = 'Copied!';
+            ico.textContent = '✅';
+            btn.style.borderColor = '#86efac';
+            btn.style.background = '#f0fdf4';
+            btn.style.color = '#15803d';
+
+            setTimeout(function() {
+                txt.textContent = 'Copy';
+                ico.textContent = '📋';
+                btn.style.borderColor = '#d1d5db';
+                btn.style.background = '#fff';
+                btn.style.color = '#374151';
+            }, 2000);
+        }).catch(function(err) {
+            /* Fallback for older browsers */
+            var ta = document.createElement('textarea');
+            ta.value = upiId;
+            ta.style.position = 'fixed';
+            ta.style.left = '-9999px';
+            document.body.appendChild(ta);
+            ta.select();
+            document.execCommand('copy');
+            document.body.removeChild(ta);
+
+            var txt = document.getElementById('copyText');
+            txt.textContent = 'Copied!';
+            setTimeout(function() { txt.textContent = 'Copy'; }, 2000);
+        });
+    }
+</script>
+{% endblock %}

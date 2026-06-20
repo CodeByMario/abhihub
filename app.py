@@ -1634,6 +1634,12 @@ def api_check_profile():
 def settings():
     return render_template('settings.html')
 
+
+@app.route('/support')
+@auth_required
+def support():
+    return render_template('p_support.html')
+
 # Public pages
 @app.route('/about')
 def about():
@@ -1651,6 +1657,11 @@ def features():
     # load the login page which will extract and process the token
     # Otherwise show the features page
     return render_template('p_landing.html')
+
+@app.route('/join')
+def join_team():
+    """Collaborator recruitment landing page"""
+    return render_template('join.html')
 
 @app.route('/team')
 def team():

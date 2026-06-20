@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +13,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/know-me.css', v='2.1.0') }}">
   {% include 'google_tag.html' %}
 </head>
-<body class="km-page">
+
+<body>
 
   <div class="km-hero">
     <span class="km-hero-emoji" style="font-size:1.8rem;">🧠</span>
@@ -27,7 +29,8 @@
     <!-- Stats — above the fold -->
     <div class="km-stats-grid km-sr">
       <div class="km-stat-box">
-        <div class="km-stat-num">{{ dashboard_data.memory_count if dashboard_data else (wall.response_count or 0) }}</div>
+        <div class="km-stat-num">{{ dashboard_data.memory_count if dashboard_data else (wall.response_count or 0) }}
+        </div>
         <div class="km-stat-label">❤️ Memories</div>
       </div>
       <div class="km-stat-box">
@@ -45,7 +48,8 @@
     </div>
 
     <!-- Reveal CTA — prominent -->
-    <a href="{{ url_for('memorywall_reveal', wall_id=wall.id) }}" class="km-btn km-btn--primary km-sr" style="display:block; text-align:center; margin-bottom:0.85rem; font-size:1rem; letter-spacing:0.01em;">
+    <a href="{{ url_for('memorywall_reveal', wall_id=wall.id) }}" class="km-btn km-btn--primary km-sr"
+      style="display:block; text-align:center; margin-bottom:0.85rem; font-size:1rem; letter-spacing:0.01em;">
       🔮 Reveal My MemoryWall
     </a>
 
@@ -67,10 +71,12 @@
           🔗 {{ request.host_url }}m/{{ wall.slug }}
         </div>
         <div class="km-btn-row">
-          <button id="km-copy-link" class="km-btn km-btn--ghost" data-url="{{ request.host_url }}m/{{ wall.slug }}" style="font-size:0.88rem;">
+          <button id="km-copy-link" class="km-btn km-btn--ghost" data-url="{{ request.host_url }}m/{{ wall.slug }}"
+            style="font-size:0.88rem;">
             📋 Copy
           </button>
-          <button id="km-wa-share" class="km-btn km-btn--green" data-url="{{ request.host_url }}m/{{ wall.slug }}" data-text="✨ Tell me 3 words that describe me — sign my MemoryWall on AbhiHub!" style="font-size:0.88rem;">
+          <button id="km-wa-share" class="km-btn km-btn--green" data-url="{{ request.host_url }}m/{{ wall.slug }}"
+            data-text="✨ Tell me 3 words that describe me — sign my MemoryWall on AbhiHub!" style="font-size:0.88rem;">
             💬 WhatsApp
           </button>
         </div>
@@ -90,7 +96,8 @@
       </div>
       <div style="margin-top:0.5rem; font-size:0.8rem; font-weight:600; text-align:center;
         color:{{ '#065f46' if mem >= 10 else 'var(--km-muted)' }};">
-        {% if mem >= 10 %}🎉 {{ mem }} people remembered you!{% else %}🚀 {{ 10 - mem }} more to unlock insights{% endif %}
+        {% if mem >= 10 %}🎉 {{ mem }} people remembered you!{% else %}🚀 {{ 10 - mem }} more to unlock insights{% endif
+        %}
       </div>
     </div>
 
@@ -99,7 +106,8 @@
     <div class="km-card km-trait-card km-sr">
       <div class="km-trait-label">💚 Most Loved Trait</div>
       <div class="km-trait-word">{{ dashboard_data.most_loved_trait }}</div>
-      <div class="km-trait-desc">Mentioned by {{ dashboard_data.most_loved_trait_count }} {{ 'person' if dashboard_data.most_loved_trait_count == 1 else 'people' }}</div>
+      <div class="km-trait-desc">Mentioned by {{ dashboard_data.most_loved_trait_count }} {{ 'person' if
+        dashboard_data.most_loved_trait_count == 1 else 'people' }}</div>
     </div>
     {% endif %}
 
@@ -108,26 +116,33 @@
       <div class="km-section-title">⚡ Recent Activity</div>
       <div style="display:flex; flex-direction:column; gap:0.85rem;">
         {% if dashboard_data and dashboard_data.recent_activity %}
-          {% for act in dashboard_data.recent_activity[:5] %}
-          <div style="display:flex; align-items:center; gap:0.65rem; padding:0.45rem 0;
+        {% for act in dashboard_data.recent_activity[:5] %}
+        <div style="display:flex; align-items:center; gap:0.65rem; padding:0.45rem 0;
             {{ 'border-bottom:1px solid var(--km-border);' if not loop.last else '' }}">
-            <div style="width:34px; height:34px; border-radius:50%; background:#f1f5f9; display:flex; align-items:center; justify-content:center; font-size:0.95rem; flex-shrink:0;">{{ act.icon }}</div>
-            <div style="flex:1; min-width:0;">
-              <div style="font-weight:700; font-size:0.85rem; color:var(--km-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">{{ act.text }}</div>
-              <div class="km-act-time" data-iso="{{ act.time }}" style="font-size:0.7rem; color:var(--km-muted); font-weight:600; margin-top:1px;">{{ act.time }}</div>
-            </div>
+          <div
+            style="width:34px; height:34px; border-radius:50%; background:#f1f5f9; display:flex; align-items:center; justify-content:center; font-size:0.95rem; flex-shrink:0;">
+            {{ act.icon }}</div>
+          <div style="flex:1; min-width:0;">
+            <div
+              style="font-weight:700; font-size:0.85rem; color:var(--km-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+              {{ act.text }}</div>
+            <div class="km-act-time" data-iso="{{ act.time }}"
+              style="font-size:0.7rem; color:var(--km-muted); font-weight:600; margin-top:1px;">{{ act.time }}</div>
           </div>
-          {% endfor %}
-          {% if dashboard_data.recent_activity|length > 5 %}
-          <div style="text-align:center; font-size:0.75rem; color:var(--km-muted); font-weight:700; padding-top:0.5rem;">
-            +{{ dashboard_data.recent_activity|length - 5 }} more on reveal page
-          </div>
-          {% endif %}
+        </div>
+        {% endfor %}
+        {% if dashboard_data.recent_activity|length > 5 %}
+        <div style="text-align:center; font-size:0.75rem; color:var(--km-muted); font-weight:700; padding-top:0.5rem;">
+          +{{ dashboard_data.recent_activity|length - 5 }} more on reveal page
+        </div>
+        {% endif %}
         {% else %}
-          <div style="display:flex; align-items:center; gap:0.75rem; color:var(--km-muted);">
-            <div style="width:38px; height:38px; border-radius:50%; background:#f1f5f9; display:flex; align-items:center; justify-content:center;">✍️</div>
-            <div style="font-size:0.88rem; font-weight:600;">Waiting for your first memory...</div>
-          </div>
+        <div style="display:flex; align-items:center; gap:0.75rem; color:var(--km-muted);">
+          <div
+            style="width:38px; height:38px; border-radius:50%; background:#f1f5f9; display:flex; align-items:center; justify-content:center;">
+            ✍️</div>
+          <div style="font-size:0.88rem; font-weight:600;">Waiting for your first memory...</div>
+        </div>
         {% endif %}
       </div>
     </div>
@@ -136,37 +151,39 @@
     <div class="km-card km-sr">
       <div class="km-section-title">💭 Recent Memories</div>
       {% if recent_responses %}
-        <div style="display:flex; flex-direction:column; gap:0.25rem;">
-          {% for resp in recent_responses %}
-          <div class="km-mem-card">
-            <div class="km-mem-header">
-              <div class="km-response-avatar" style="width:38px; height:38px; font-size:1rem; flex-shrink:0;">
-                {{ resp.friend_name[0] if resp.friend_name else 'A' }}
+      <div style="display:flex; flex-direction:column; gap:0.25rem;">
+        {% for resp in recent_responses %}
+        <div class="km-mem-card">
+          <div class="km-mem-header">
+            <div class="km-response-avatar" style="width:38px; height:38px; font-size:1rem; flex-shrink:0;">
+              {{ resp.friend_name[0] if resp.friend_name else 'A' }}
+            </div>
+            <div style="flex:1; min-width:0;">
+              <div
+                style="font-weight:800; font-size:0.9rem; color:var(--km-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                {{ resp.friend_name or 'Anonymous Friend' }}
+                {% if resp.emoji %}<span style="margin-left:0.25rem;">{{ resp.emoji }}</span>{% endif %}
               </div>
-              <div style="flex:1; min-width:0;">
-                <div style="font-weight:800; font-size:0.9rem; color:var(--km-text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
-                  {{ resp.friend_name or 'Anonymous Friend' }}
-                  {% if resp.emoji %}<span style="margin-left:0.25rem;">{{ resp.emoji }}</span>{% endif %}
-                </div>
-                <div class="km-response-words" style="margin:0.25rem 0 0;">
-                  <span class="km-word-tag">{{ resp.word_1 }}</span>
-                  <span class="km-word-tag">{{ resp.word_2 }}</span>
-                  <span class="km-word-tag">{{ resp.word_3 }}</span>
-                </div>
+              <div class="km-response-words" style="margin:0.25rem 0 0;">
+                <span class="km-word-tag">{{ resp.word_1 }}</span>
+                <span class="km-word-tag">{{ resp.word_2 }}</span>
+                <span class="km-word-tag">{{ resp.word_3 }}</span>
               </div>
             </div>
-            {% if resp.memory_message %}
-            <div class="km-mem-quote" style="font-size:0.88rem;">{{ resp.memory_message[:120] }}{% if resp.memory_message|length > 120 %}…{% endif %}</div>
-            {% endif %}
           </div>
-          {% endfor %}
+          {% if resp.memory_message %}
+          <div class="km-mem-quote" style="font-size:0.88rem;">{{ resp.memory_message[:120] }}{% if
+            resp.memory_message|length > 120 %}…{% endif %}</div>
+          {% endif %}
         </div>
+        {% endfor %}
+      </div>
       {% else %}
-        <div style="text-align:center; padding:1.25rem 1rem;">
-          <div style="font-size:2rem; margin-bottom:0.35rem;">✍️</div>
-          <p style="font-weight:700; color:var(--km-text); margin:0 0 0.2rem; font-size:0.95rem;">No memories yet</p>
-          <p style="font-size:0.82rem; color:var(--km-muted); margin:0;">Share your link to get responses!</p>
-        </div>
+      <div style="text-align:center; padding:1.25rem 1rem;">
+        <div style="font-size:2rem; margin-bottom:0.35rem;">✍️</div>
+        <p style="font-weight:700; color:var(--km-text); margin:0 0 0.2rem; font-size:0.95rem;">No memories yet</p>
+        <p style="font-size:0.82rem; color:var(--km-muted); margin:0;">Share your link to get responses!</p>
+      </div>
       {% endif %}
     </div>
 
@@ -175,26 +192,28 @@
       <div class="km-section-title">✍️ Recent Signatures</div>
       {% set sigs = [] %}
       {% if recent_responses %}
-        {% for resp in recent_responses %}
-          {% if resp.signature and resp.signature.signature_url %}
-            {% set _ = sigs.append(resp.signature.signature_url) %}
-          {% endif %}
-        {% endfor %}
+      {% for resp in recent_responses %}
+      {% if resp.signature and resp.signature.signature_url %}
+      {% set _ = sigs.append(resp.signature.signature_url) %}
+      {% endif %}
+      {% endfor %}
       {% endif %}
       {% if sigs %}
-        <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:0.6rem;">
-          {% for sig_url in sigs %}
-          <div style="background:#fafafa; border:1px solid var(--km-border); border-radius:12px; padding:6px; display:flex; align-items:center; justify-content:center; min-height:72px;">
-            <img src="{{ sig_url }}" alt="Signature" style="max-height:60px; max-width:100%; object-fit:contain; display:block;" loading="lazy">
-          </div>
-          {% endfor %}
+      <div style="display:grid; grid-template-columns:repeat(2, 1fr); gap:0.6rem;">
+        {% for sig_url in sigs %}
+        <div
+          style="background:#fafafa; border:1px solid var(--km-border); border-radius:12px; padding:6px; display:flex; align-items:center; justify-content:center; min-height:72px;">
+          <img src="{{ sig_url }}" alt="Signature"
+            style="max-height:60px; max-width:100%; object-fit:contain; display:block;" loading="lazy">
         </div>
+        {% endfor %}
+      </div>
       {% else %}
-        <div style="text-align:center; padding:1.25rem 1rem;">
-          <div style="font-size:2rem; margin-bottom:0.35rem;">🎨</div>
-          <p style="font-weight:700; color:var(--km-text); margin:0 0 0.2rem; font-size:0.95rem;">No signatures yet</p>
-          <p style="font-size:0.82rem; color:var(--km-muted); margin:0;">Friends can draw when signing your wall.</p>
-        </div>
+      <div style="text-align:center; padding:1.25rem 1rem;">
+        <div style="font-size:2rem; margin-bottom:0.35rem;">🎨</div>
+        <p style="font-weight:700; color:var(--km-text); margin:0 0 0.2rem; font-size:0.95rem;">No signatures yet</p>
+        <p style="font-size:0.82rem; color:var(--km-muted); margin:0;">Friends can draw when signing your wall.</p>
+      </div>
       {% endif %}
     </div>
 
@@ -206,7 +225,7 @@
       <div style="color:var(--km-muted); font-size:0.9rem; margin-bottom:1.5rem;">
         Create your wall and start collecting memories from friends.
       </div>
-      <a href="{{ url_for('memorywall_create') }}" class="km-btn km-btn--primary">
+      <a href="https://app.abhihub.run.place/" class="km-btn km-btn--primary">
         ✨ Create My MemoryWall
       </a>
     </div>
@@ -215,7 +234,7 @@
 
   </div>
 
-  {% include 'p_nav.html' %}
   <script src="{{ url_for('static', filename='js/know-me.js') }}" defer></script>
 </body>
+
 </html>

@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -12,7 +13,8 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='css/know-me.css') }}">
   {% include 'google_tag.html' %}
 </head>
-<body class="km-page">
+
+<body>
 
   <div class="km-hero" style="padding-bottom:3rem;">
     <span class="km-hero-emoji">🧠</span>
@@ -31,9 +33,8 @@
 
         <div class="km-form-row">
           <label class="km-label" for="km-title">Your Name / Wall Title *</label>
-          <input class="km-input" type="text" id="km-title" name="title"
-                 placeholder="e.g. Abhijeet's MemoryWall"
-                 maxlength="80" required autocomplete="off">
+          <input class="km-input" type="text" id="km-title" name="title" placeholder="e.g. Abhijeet's MemoryWall"
+            maxlength="80" required autocomplete="off">
           <div style="font-size:0.78rem;color:var(--km-muted);margin-top:0.3rem;">
             This is what friends will see when they visit your wall.
           </div>
@@ -41,20 +42,20 @@
 
         <div class="km-form-row">
           <label class="km-label" for="km-college">College</label>
-          <input class="km-input" type="text" id="km-college" name="college"
-                 placeholder="e.g. GHRCE, Nagpur" maxlength="100">
+          <input class="km-input" type="text" id="km-college" name="college" placeholder="e.g. GHRCE, Nagpur"
+            maxlength="100">
         </div>
 
         <div style="display:flex;gap:0.8rem;">
           <div class="km-form-row" style="flex:1;">
             <label class="km-label" for="km-branch">Branch</label>
-            <input class="km-input" type="text" id="km-branch" name="branch"
-                   placeholder="e.g. Computer Science" maxlength="100">
+            <input class="km-input" type="text" id="km-branch" name="branch" placeholder="e.g. Computer Science"
+              maxlength="100">
           </div>
           <div class="km-form-row" style="flex:0 0 110px;">
             <label class="km-label" for="km-year">Grad Year</label>
-            <input class="km-input" type="number" id="km-year" name="graduation_year"
-                   placeholder="2026" min="2000" max="2035">
+            <input class="km-input" type="number" id="km-year" name="graduation_year" placeholder="2026" min="2000"
+              max="2035">
           </div>
         </div>
 
@@ -66,12 +67,12 @@
     </div>
 
     <a href="{{ url_for('memorywall_dashboard') }}" class="km-btn km-btn--ghost"
-       style="display:block;text-align:center;margin-top:0.5rem;">
+      style="display:block;text-align:center;margin-top:0.5rem;">
       ← Back
     </a>
   </div>
 
-  {% include 'p_nav.html' %}
   <script src="{{ url_for('static', filename='js/know-me.js') }}" defer></script>
 </body>
+
 </html>
