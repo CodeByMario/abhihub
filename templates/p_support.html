@@ -116,7 +116,7 @@
             return;
         }
         var link = getUPILink(amount);
-        // Use intent fallback for Android Chrome
+        // Use intent fallback for Android Chrome to open the system UPI chooser
         if (/Android/i.test(navigator.userAgent)) {
             var txRef = 'AH' + Date.now() + Math.floor(Math.random() * 1000);
             var intentLink = 'intent://pay?pa=abhijeetshende@pingpay' +
@@ -125,7 +125,7 @@
                 '&cu=INR' +
                 '&tn=Support%20AbhiHub' +
                 '&tr=' + txRef +
-                '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
+                '#Intent;scheme=upi;end';
             window.location.href = intentLink;
         } else {
             window.location.href = link;
@@ -147,8 +147,7 @@
             return;
         }
 
-        var link = getUPILink(num.toFixed(2));
-        window.location.href = link;
+        pay(num.toFixed(2));
     }
 
     function copyUPI() {
