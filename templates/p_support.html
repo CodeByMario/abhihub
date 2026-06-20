@@ -84,11 +84,13 @@
     var isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
     function getUPILink(amount) {
+        var txRef = 'AH' + Date.now() + Math.floor(Math.random() * 1000);
         return 'upi://pay?pa=abhijeetshende@pingpay' +
             '&pn=Abhijeet%20Ashok%20Shende' +
             '&am=' + amount +
             '&cu=INR' +
-            '&tn=Support%20AbhiHub';
+            '&tn=Support%20AbhiHub' +
+            '&tr=' + txRef;
     }
 
     function showDesktopToast() {
@@ -116,14 +118,15 @@
         var link = getUPILink(amount);
         // Use intent fallback for Android Chrome
         if (/Android/i.test(navigator.userAgent)) {
+            var txRef = 'AH' + Date.now() + Math.floor(Math.random() * 1000);
             var intentLink = 'intent://pay?pa=abhijeetshende@pingpay' +
                 '&pn=Abhijeet%20Ashok%20Shende' +
                 '&am=' + amount +
                 '&cu=INR' +
                 '&tn=Support%20AbhiHub' +
+                '&tr=' + txRef +
                 '#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end';
-            // Try upi:// first, fall back to intent
-            window.location.href = link;
+            window.location.href = intentLink;
         } else {
             window.location.href = link;
         }
