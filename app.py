@@ -1811,11 +1811,12 @@ def view_pdf():
         abort(400, description="PDF name is required")
 
     try:
+        record_id = request.args.get('record_id')
+
         # Log file access
         if 'user' in session:
             user_email = session['user'].get('email', '')
             file_basename = os.path.basename(pdf_name)
-            record_id = request.args.get('record_id')
             save_file_access(
                 user_email=user_email,
                 file_name=file_basename,
@@ -1830,13 +1831,32 @@ def view_pdf():
             proxy_url = pdf_name
         else:
             proxy_url = url_for('pdf_proxy', pdf_name=pdf_name, _external=True)
-        
-        # Pass the proxy URL to the PDF viewer template
-        return render_template('p_pdf_reader.html', pdf_name=pdf_name, pdf_url=proxy_url)
-    
+
+        # Fetch document metadata for info panel
+        file_meta = {}
+        if record_id:
+            try:
+                from methods.supabase_helper import init_supabase, _doc_to_json, validate_uuid
+                if validate_uuid(record_id):
+                    client = init_supabase()
+                    if client:
+                        res = client.table('documents') \
+                            .select('*, profiles!documents_uploader_id_fkey(full_name, email), subjects(name, subject_code)') \
+                            .eq('id', record_id).limit(1).execute()
+                        if res.data:
+                            file_meta = _doc_to_json(res.data[0])
+            except Exception as meta_err:
+                logging.warning(f"Could not fetch metadata for {record_id}: {meta_err}")
+
+        return render_template('p_pdf_reader.html',
+                               pdf_name=pdf_name,
+                               pdf_url=proxy_url,
+                               file_meta=file_meta)
+
     except Exception as e:
         logging.error(f"Error generating proxy URL for {pdf_name}: {e}")
         abort(404, description="PDF not found or error generating access URL")
+
 
 @app.route('/pdf-proxy/<path:pdf_name>')
 @auth_required
