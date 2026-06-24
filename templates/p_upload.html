@@ -183,11 +183,27 @@
               <select name="college_id" id="college_id" class="modern-select" required>
                 <option value="" disabled selected>Loading…</option>
               </select>
+              <div id="otherCollegeWrap" style="display:none;margin-top:.5rem">
+                <input type="text" id="otherCollegeName" class="modern-input" placeholder="College full name *" style="margin-bottom:.4rem">
+                <input type="text" id="otherCollegeAbbr" class="modern-input" placeholder="Abbreviation (e.g. GHRCE)">
+                <button type="button" onclick="addNewCollege()" style="margin-top:.4rem;padding:.5rem 1rem;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.85rem">➕ Add College</button>
+              </div>
             </div>
             <div class="form-field">
-              <label class="field-label">Branch</label>
-              <select name="branch_id" id="branch_id" class="modern-select" required>
-                <option value="" disabled selected>Loading…</option>
+              <label class="field-label">Department</label>
+              <select name="branch_id" id="branch_id" class="modern-select" required onchange="loadSemestersFor(this.value)">
+                <option value="" disabled selected>Select College first</option>
+              </select>
+              <div id="otherDeptWrap" style="display:none;margin-top:.5rem">
+                <input type="text" id="otherDeptName" class="modern-input" placeholder="Department full name *" style="margin-bottom:.4rem">
+                <input type="text" id="otherDeptAbbr" class="modern-input" placeholder="Abbreviation (e.g. AI)">
+                <button type="button" onclick="addNewDepartment()" style="margin-top:.4rem;padding:.5rem 1rem;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.85rem">➕ Add Department</button>
+              </div>
+            </div>
+            <div class="form-field">
+              <label class="field-label">Semester</label>
+              <select name="semester" id="semester" class="modern-select" onchange="loadSubjectsDropdown(document.getElementById('branch_id').value, this.value)">
+                <option value="" disabled selected>Select Department first</option>
               </select>
             </div>
           </div>
@@ -225,7 +241,14 @@
             </div>
             <div class="form-field">
               <label class="field-label">Default Subject</label>
-              <input type="text" name="subject" id="subject" class="modern-input" placeholder="e.g. DBMS, CN…">
+              <select name="subject_id" id="subject" class="modern-select" onchange="handleDefaultSubjectChange(this.value)">
+                <option value="" disabled selected>Select Semester first</option>
+              </select>
+              <div id="otherSubjectDefault" style="display:none;margin-top:.5rem">
+                <input type="text" id="otherSubjectNameDefault" class="modern-input" placeholder="Subject Name *" style="margin-bottom:.4rem">
+                <input type="text" id="otherSubjectCodeDefault" class="modern-input" placeholder="Subject Code (e.g. CS501)">
+                <button type="button" onclick="addNewSubjectDefault()" style="margin-top:.4rem;padding:.5rem 1rem;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.85rem">➕ Add Subject</button>
+              </div>
             </div>
           </details>
           <p style="font-size:.8rem;color:#64748b;margin-bottom:.5rem;text-align:center">📝 Click a thumbnail to fill/edit its individual info</p>
@@ -278,7 +301,14 @@
       </div>
       <div class="meta-field">
         <label>Subject *</label>
-        <input type="text" id="metaSubject" placeholder="e.g. DBMS, Mathematics, CN">
+        <select id="metaSubject" onchange="handleMetaSubjectChange(this.value)" style="width:100%;padding:.75rem 1rem;border:2px solid #e2e8f0;border-radius:12px;font-size:.95rem;color:#1e293b;font-weight:500;background:white;appearance:none">
+          <option value="" disabled selected>Select subject</option>
+        </select>
+        <div id="otherSubjectWrap" style="display:none;margin-top:.5rem">
+          <input type="text" id="otherSubjectName" placeholder="Subject Name *" style="width:100%;padding:.75rem 1rem;border:2px solid #e2e8f0;border-radius:12px;font-size:.95rem;margin-bottom:.4rem">
+          <input type="text" id="otherSubjectCode" placeholder="Subject Code (e.g. CS501)" style="width:100%;padding:.75rem 1rem;border:2px solid #e2e8f0;border-radius:12px;font-size:.95rem">
+          <button type="button" onclick="addNewSubjectMeta()" style="margin-top:.4rem;padding:.5rem 1rem;background:#2563eb;color:#fff;border:none;border-radius:8px;cursor:pointer;font-size:.85rem;width:100%">➕ Add Subject</button>
+        </div>
       </div>
     </div>
     <div class="meta-ftr">
@@ -386,33 +416,257 @@
     }
   }
 
+  /* ── T1: Cascading dropdown state ── */
+  let _subjectCache = {};
+  let _deptCache = {};
+  let _selectedSubjectId = null;
+  let _selectedSubjectName = '';
+
+  async function loadDepartments(collegeId) {
+    const brSel = document.getElementById('branch_id');
+    const semSel = document.getElementById('semester');
+    const subjSel = document.getElementById('subject');
+    brSel.innerHTML = '<option value="" disabled selected>Loading…</option>';
+    if (semSel) semSel.innerHTML = '<option value="" disabled selected>Select Department first</option>';
+    if (subjSel) subjSel.innerHTML = '<option value="" disabled selected>Select Semester first</option>';
+    document.getElementById('otherDeptWrap').style.display = 'none';
+    if (!collegeId) return;
+    try {
+      const r = await fetch(`/api/departments?college_id=${collegeId}`).then(r => r.json());
+      brSel.innerHTML = '<option value="" disabled selected>Select Department</option>';
+      (r.departments || []).forEach(d => {
+        const o = document.createElement('option');
+        o.value = d.id; o.textContent = d.name; brSel.appendChild(o);
+      });
+      brSel.innerHTML += '<option value="__other__">➕ Other (Add New)</option>';
+      brSel.addEventListener('change', function handler() {
+        document.getElementById('otherDeptWrap').style.display =
+          this.value === '__other__' ? 'block' : 'none';
+        if (this.value !== '__other__') loadSemestersFor(this.value);
+        brSel.removeEventListener('change', handler);
+      }, {once: false});
+      _deptCache[collegeId] = r.departments || [];
+    } catch { brSel.innerHTML = '<option value="" disabled selected>Failed to load</option>'; }
+  }
+
+  async function addNewCollege() {
+    const name = document.getElementById('otherCollegeName')?.value?.trim();
+    const abbr = document.getElementById('otherCollegeAbbr')?.value?.trim();
+    if (!name) return showToast('College name is required', 'error');
+    try {
+      const r = await fetch('/api/colleges', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ name, abbreviation: abbr })
+      }).then(r => r.json());
+      if (r.success && r.college?.id) {
+        const sel = document.getElementById('college_id');
+        const o = document.createElement('option');
+        o.value = r.college.id; o.textContent = r.college.name;
+        sel.appendChild(o); sel.value = r.college.id;
+        document.getElementById('otherCollegeWrap').style.display = 'none';
+        document.getElementById('otherCollegeName').value = '';
+        document.getElementById('otherCollegeAbbr').value = '';
+        await loadDepartments(r.college.id);
+        showToast('College added ✅', 'success');
+      } else { showToast(r.message || 'Failed to add college', 'error'); }
+    } catch { showToast('Network error', 'error'); }
+  }
+
+  async function addNewDepartment() {
+    const name = document.getElementById('otherDeptName')?.value?.trim();
+    const abbr = document.getElementById('otherDeptAbbr')?.value?.trim();
+    const collegeId = document.getElementById('college_id')?.value;
+    if (!name) return showToast('Department name is required', 'error');
+    try {
+      const r = await fetch('/api/departments', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ name, abbreviation: abbr, college_id: collegeId })
+      }).then(r => r.json());
+      if (r.success && r.department?.id) {
+        const sel = document.getElementById('branch_id');
+        const o = document.createElement('option');
+        o.value = r.department.id; o.textContent = r.department.name;
+        // Insert before the "Other" option
+        const otherOpt = sel.querySelector('option[value="__other__"]');
+        if (otherOpt) sel.insertBefore(o, otherOpt); else sel.appendChild(o);
+        sel.value = r.department.id;
+        document.getElementById('otherDeptWrap').style.display = 'none';
+        document.getElementById('otherDeptName').value = '';
+        document.getElementById('otherDeptAbbr').value = '';
+        loadSemestersFor(r.department.id);
+        showToast('Department added ✅', 'success');
+      } else { showToast(r.message || 'Failed to add department', 'error'); }
+    } catch { showToast('Network error', 'error'); }
+  }
+
+  function loadSemestersFor(deptId) {
+    const semSel = document.getElementById('semester');
+    const subjSel = document.getElementById('subject');
+    if (semSel) semSel.innerHTML = '<option value="" disabled selected>Select Semester</option>';
+    if (subjSel) subjSel.innerHTML = '<option value="" disabled selected>Select Semester first</option>';
+    if (!deptId) return;
+    for (let i = 1; i <= 8; i++) {
+      const o = document.createElement('option');
+      o.value = i; o.textContent = `Semester ${i}`; semSel.appendChild(o);
+    }
+    semSel.innerHTML += '<option value="0">All Semesters</option>';
+  }
+
+  async function addNewSubjectDefault() {
+    const name = document.getElementById('otherSubjectNameDefault')?.value?.trim();
+    const code = document.getElementById('otherSubjectCodeDefault')?.value?.trim();
+    const deptId = document.getElementById('branch_id')?.value;
+    const semester = document.getElementById('semester')?.value;
+    if (!name) return showToast('Subject name is required', 'error');
+    if (!deptId) return showToast('Select a department first', 'error');
+    try {
+      const r = await fetch('/api/subjects', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ name, subject_code: code, department_id: deptId, semester })
+      }).then(r => r.json());
+      if (r.success && r.subject?.id) {
+        const sel = document.getElementById('subject');
+        const o = document.createElement('option');
+        o.value = r.subject.id;
+        o.dataset.name = r.subject.name;
+        o.dataset.code = r.subject.subject_code || '';
+        o.textContent = r.subject.subject_code ? `${r.subject.name} (${r.subject.subject_code})` : r.subject.name;
+        
+        const otherOpt = sel.querySelector('option[value="__other__"]');
+        if (otherOpt) sel.insertBefore(o, otherOpt); else sel.appendChild(o);
+        
+        sel.value = r.subject.id;
+        _selectedSubjectId = r.subject.id;
+        _selectedSubjectName = r.subject.name;
+        
+        document.getElementById('otherSubjectDefault').style.display = 'none';
+        document.getElementById('otherSubjectNameDefault').value = '';
+        document.getElementById('otherSubjectCodeDefault').value = '';
+        showToast('Subject added ✅', 'success');
+      } else { showToast(r.message || 'Failed to add subject', 'error'); }
+    } catch { showToast('Network error', 'error'); }
+  }
+
+  async function addNewSubjectMeta() {
+    const name = document.getElementById('otherSubjectName')?.value?.trim();
+    const code = document.getElementById('otherSubjectCode')?.value?.trim();
+    const deptId = document.getElementById('branch_id')?.value;
+    const semester = document.getElementById('semester')?.value;
+    if (!name) return showToast('Subject name is required', 'error');
+    if (!deptId) return showToast('Select a department first', 'error');
+    try {
+      const r = await fetch('/api/subjects', {
+        method: 'POST', headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ name, subject_code: code, department_id: deptId, semester })
+      }).then(r => r.json());
+      if (r.success && r.subject?.id) {
+        const sel = document.getElementById('metaSubject');
+        const o = document.createElement('option');
+        o.value = r.subject.id;
+        o.dataset.name = r.subject.name;
+        o.dataset.code = r.subject.subject_code || '';
+        o.textContent = r.subject.subject_code ? `${r.subject.name} (${r.subject.subject_code})` : r.subject.name;
+        
+        const otherOpt = sel.querySelector('option[value="__other__"]');
+        if (otherOpt) sel.insertBefore(o, otherOpt); else sel.appendChild(o);
+        
+        sel.value = r.subject.id;
+        
+        document.getElementById('otherSubjectWrap').style.display = 'none';
+        document.getElementById('otherSubjectName').value = '';
+        document.getElementById('otherSubjectCode').value = '';
+        showToast('Subject added ✅', 'success');
+      } else { showToast(r.message || 'Failed to add subject', 'error'); }
+    } catch { showToast('Network error', 'error'); }
+  }
+
+  async function loadSubjectsDropdown(deptId, semester) {
+    const subjSel = document.getElementById('subject');
+    if (!subjSel) return;
+    subjSel.innerHTML = '<option value="" disabled selected>Loading…</option>';
+    document.getElementById('otherSubjectDefault').style.display = 'none';
+    if (!deptId) return;
+    const sem = semester && String(semester) !== '0' ? `&semester=${semester}` : '';
+    try {
+      const r = await fetch(`/api/subjects?department_id=${deptId}${sem}`).then(r => r.json());
+      subjSel.innerHTML = '<option value="" disabled selected>Select Subject</option>';
+      (r.subjects || []).forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.id; o.dataset.name = s.name; o.dataset.code = s.subject_code || '';
+        o.textContent = s.subject_code ? `${s.name} (${s.subject_code})` : s.name;
+        subjSel.appendChild(o);
+      });
+      subjSel.innerHTML += '<option value="__other__">➕ Other (Add New)</option>';
+      _subjectCache[`${deptId}:${semester}`] = r.subjects || [];
+    } catch { subjSel.innerHTML = '<option value="" disabled selected>Failed to load</option>'; }
+  }
+
+  function handleDefaultSubjectChange(val) {
+    const wrap = document.getElementById('otherSubjectDefault');
+    if (val === '__other__') { wrap.style.display = 'block'; _selectedSubjectId = null; }
+    else {
+      wrap.style.display = 'none';
+      const opt = document.querySelector(`#subject option[value="${val}"]`);
+      _selectedSubjectId = val;
+      _selectedSubjectName = opt ? opt.dataset.name : '';
+    }
+  }
+
+  /* ── Per-image meta modal: subject select ── */
+  async function loadMetaSubjects(deptId) {
+    const sel = document.getElementById('metaSubject');
+    if (!sel) return;
+    sel.innerHTML = '<option value="" disabled selected>Loading…</option>';
+    if (!deptId) return;
+    try {
+      const r = await fetch(`/api/subjects?department_id=${deptId}`).then(r => r.json());
+      sel.innerHTML = '<option value="" disabled selected>Select Subject</option>';
+      (r.subjects || []).forEach(s => {
+        const o = document.createElement('option');
+        o.value = s.id; o.dataset.name = s.name; o.dataset.code = s.subject_code;
+        o.textContent = s.subject_code ? `${s.name} (${s.subject_code})` : s.name;
+        sel.appendChild(o);
+      });
+      sel.innerHTML += '<option value="__other__">➕ Other (Add New)</option>';
+    } catch {}
+  }
+
+  function handleMetaSubjectChange(val) {
+    const wrap = document.getElementById('otherSubjectWrap');
+    if (val === '__other__') { wrap.style.display = 'block'; }
+    else { wrap.style.display = 'none'; }
+  }
+
   /* ── Load dropdowns + autofill profile ── */
   document.addEventListener('DOMContentLoaded', async () => {
     updateDynamicFields();
-    const [colR, brR] = await Promise.all([
-      fetch('/api/colleges').then(r => r.json()).catch(() => ({})),
-      fetch('/api/branches').then(r => r.json()).catch(() => ({}))
-    ]);
-
+    const colR = await fetch('/api/colleges').then(r => r.json()).catch(() => ({}));
     const colSel = document.getElementById('college_id');
-    const brSel  = document.getElementById('branch_id');
-
     colSel.innerHTML = '<option value="" disabled selected>Select College</option>';
     (colR.colleges || []).forEach(c => {
       const o = document.createElement('option'); o.value = c.id; o.textContent = c.name; colSel.appendChild(o);
     });
-
-    brSel.innerHTML = '<option value="" disabled selected>Select Branch</option>';
-    (brR.branches || []).forEach(b => {
-      const o = document.createElement('option'); o.value = b.id || b.branch_id; o.textContent = b.name || b.branch_name; brSel.appendChild(o);
+    colSel.innerHTML += '<option value="__other__">➕ Other (Add New)</option>';
+    colSel.addEventListener('change', () => {
+      document.getElementById('otherCollegeWrap').style.display =
+        colSel.value === '__other__' ? 'block' : 'none';
+      if (colSel.value !== '__other__') loadDepartments(colSel.value);
     });
 
     try {
       const p = await fetch('/api/profile').then(r => r.json());
-      if (p.success && p.user && p.user.user_metadata) {
-        const m = p.user.user_metadata;
-        if (m.college_id) colSel.value = m.college_id;
-        if (m.branch_id)  brSel.value  = m.branch_id;
+      if (p.success && p.user) {
+        const collegeId = p.user.college_id || p.user.user_metadata?.college_id;
+        const branchId = p.user.department_id || p.user.user_metadata?.branch_id;
+        if (collegeId) {
+          colSel.value = collegeId;
+          await loadDepartments(collegeId);
+          if (branchId) {
+            document.getElementById('branch_id').value = branchId;
+            loadSemestersFor(branchId);  // populate semesters, user picks manually
+            await loadMetaSubjects(branchId);
+          }
+        }
       }
     } catch {}
   });

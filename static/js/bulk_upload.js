@@ -118,19 +118,27 @@ function setFileStatus(id, status, pct, msg) {
 }
 
 /* ── Per-image metadata modal ── */
-function openMetaModal(id) {
+async function openMetaModal(id) {
   currentMetaId = id;
   const item = selectedFiles.find(f => f.id === id);
   if (!item) return;
   const m = item.meta || {};
   const el = id => document.getElementById(id);
   el('metaModalTitle').textContent = '📝 ' + item.name;
-  el('metaSubject').value = m.subject || gv('subject');
-  el('metaYear').value    = m.year    || gv('Year') || '2025';
-  el('metaType').value    = m.type    || gv('type') || '';
+  el('metaYear').value = m.year  || gv('Year') || '2025';
+  el('metaType').value = m.type  || gv('type') || '';
   updateMetaUnit();
-  el('metaUnit').value    = m.unit    || gv('unit') || '';
+  el('metaUnit').value = m.unit  || gv('unit') || '';
   el('metaModal').style.display = 'flex';
+
+  // Load subjects into modal dropdown (department from main cascade)
+  const deptId = gv('branch_id');
+  if (deptId && typeof loadMetaSubjects === 'function') {
+    await loadMetaSubjects(deptId);
+  }
+  // Restore previously saved subject_id (UUID) if available
+  const savedId = m.subject_id || gv('subject');
+  if (savedId) el('metaSubject').value = savedId;
 }
 
 function updateMetaUnit() {
@@ -150,12 +158,25 @@ function updateMetaUnit() {
 
 function saveMetaModal() {
   if (!currentMetaId) return;
-  const subj = (document.getElementById('metaSubject')||{}).value?.trim();
+  const subjectEl = document.getElementById('metaSubject');
+  const subj = subjectEl?.value?.trim();
   const type = gv('metaType');
   if (!subj || !type) return showToast('Subject and Category are required', 'error');
+  if (subj === '__other__') return showToast('Click "➕ Add Subject" first to insert this new subject', 'error');
+
+  const subjectId = subj;
+  const selectedOpt = subjectEl?.options[subjectEl.selectedIndex];
+  const subjectName = selectedOpt?.dataset?.name || selectedOpt?.textContent || subj;
+
   const idx = selectedFiles.findIndex(f => f.id === currentMetaId);
   if (idx !== -1) {
-    selectedFiles[idx].meta = { subject: subj, year: gv('metaYear')||'2025', type, unit: gv('metaUnit') };
+    selectedFiles[idx].meta = {
+      subject:    subjectName,
+      subject_id: subjectId,          // UUID from cascade dropdown
+      year:       gv('metaYear') || '2025',
+      type,
+      unit:       gv('metaUnit')
+    };
   }
   closeMetaModal();
   renderGrid();
@@ -222,20 +243,41 @@ function buildFormData(item) {
   const fd = new FormData();
   fd.append('college_id', gv('college_id'));
   fd.append('branch_id',  gv('branch_id'));
+  fd.append('semester',   gv('semester'));
   const m = item.meta || {};
-  fd.append('subject',       m.subject || '');
-  fd.append('Year',          m.year    || '2025');
-  fd.append('type',          m.type    || '');
-  fd.append('document_type', m.type    || '');
-  fd.append('unit',          m.unit    || '');
+  fd.append('subject',       m.subject    || '');
+  fd.append('subject_id',    m.subject_id || gv('subject') || '');
+  fd.append('Year',          m.year       || '2025');
+  fd.append('type',          m.type       || '');
+  fd.append('document_type', m.type       || '');
+  fd.append('unit',          m.unit       || '');
+
+  // ── Build a clean filename ──────────────────────────────────────────
+  const origName  = item.name || (item.file && item.file.name) || `file_${Date.now()}`;
+  const ext       = origName.includes('.') ? origName.split('.').pop().toLowerCase() : 'jpg';
+  const sanitize  = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  // Prefer subject_code from dropdown dataset, fallback to subject name
+  const subjectEl = document.getElementById('metaSubject') || document.getElementById('subject');
+  const selOpt    = subjectEl?.options[subjectEl?.selectedIndex];
+  const code      = sanitize(selOpt?.dataset?.code || m.subject || '');
+  const docType   = sanitize(m.type || '');
+  const year      = sanitize(m.year || gv('Year') || '2025');
+  const unit      = sanitize(m.unit || gv('unit') || '');
+  const parts     = [code, docType, year];
+  if (unit) parts.push(unit);
+  const cleanName = parts.filter(Boolean).join('_') || sanitize(origName.replace(/\.[^.]+$/, ''));
+  const finalName = `${cleanName}.${ext}`;
+
   let fileObj = item.blob || item.file;
-  const fileName = item.name || (fileObj && fileObj.name) || `camera_${Date.now()}.jpg`;
   if (!(fileObj instanceof File)) {
-    fileObj = new File([fileObj], fileName, { type: fileObj.type || 'image/jpeg' });
+    fileObj = new File([fileObj], finalName, { type: fileObj.type || 'image/jpeg' });
+  } else {
+    fileObj = new File([fileObj], finalName, { type: fileObj.type });
   }
-  fd.append('upload_document', fileObj, fileName);
+  fd.append('upload_document', fileObj, finalName);
   return fd;
 }
+
 
 async function uploadOne(item, retries) {
   retries = (retries === undefined) ? 2 : retries;
@@ -350,6 +392,9 @@ async function startBulkUpload(event) {
     if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed('missing_branch', 'validation_error', 'file');
     return showToast('Select a branch', 'error');
   }
+  if (gv('subject') === '__other__') {
+    return showToast('Click "➕ Add Subject" first to insert the default subject', 'error');
+  }
 
   isUploading = true;
   const btn = document.getElementById('submitBtn');
@@ -396,6 +441,17 @@ async function startBulkUpload(event) {
   if (btn) { btn.disabled=false; btn.textContent='Upload Files'; }
 
   if (failed === 0) {
+    // Save/update user profile college_id and department_id in background
+    const colVal = gv('college_id');
+    const deptVal = gv('branch_id');
+    if (colVal && deptVal && colVal !== '__other__' && deptVal !== '__other__') {
+      fetch('/api/profile/update', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ college_id: colVal, department_id: deptVal })
+      }).catch(err => console.error('Failed to update profile selection', err));
+    }
+
     // Collect XP data from successful uploads
     const totalXp = results.filter(r => r.ok).reduce((sum, r) => sum + (r.xp || 0), 0);
     const lastScore = results.filter(r => r.ok).slice(-1)[0]?.score || 0;

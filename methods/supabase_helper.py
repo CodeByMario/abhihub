@@ -96,12 +96,148 @@ def get_all_branches() -> Dict:
     except Exception as e:
         return {"success": False, "data": []}
 
+
+# ── T8: In-memory cache (colleges / departments / subjects) ──────────────────
+import time as _time
+_cache: Dict[str, Any] = {}
+_CACHE_TTL = 300  # 5 minutes
+
+def _cache_get(key: str):
+    entry = _cache.get(key)
+    if entry and (_time.time() - entry['ts']) < _CACHE_TTL:
+        return entry['val']
+    return None
+
+def _cache_set(key: str, val):
+    _cache[key] = {'val': val, 'ts': _time.time()}
+
+
+def get_departments_by_college(college_id: str) -> Dict:
+    """Return departments mapped to a college via college_departments table."""
+    cache_key = f"depts:{college_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return {"success": True, "data": cached}
+
+    client = init_supabase()
+    if not client: return {"success": False, "data": []}
+    try:
+        res = client.table("college_departments") \
+            .select("department_id, departments(id, name, abbreviation)") \
+            .eq("college_id", college_id) \
+            .execute()
+        data = []
+        for row in (res.data or []):
+            dept = row.get("departments") or {}
+            if dept:
+                data.append({
+                    "id": dept.get("id"),
+                    "name": dept.get("name"),
+                    "abbreviation": dept.get("abbreviation"),
+                })
+        _cache_set(cache_key, data)
+        return {"success": True, "data": data}
+    except Exception as e:
+        return {"success": False, "data": [], "message": str(e)}
+
+
+def get_subjects_by_department(department_id: str, semester: int = None) -> Dict:
+    """Return subjects for a department. Optionally filter by semester."""
+    cache_key = f"subjs:{department_id}:{semester}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return {"success": True, "data": cached}
+
+    client = init_supabase()
+    if not client: return {"success": False, "data": []}
+    try:
+        q = client.table("subjects") \
+            .select("id, name, subject_code, semester") \
+            .eq("department_id", department_id)
+        if semester:
+            # Include exact semester match AND subjects with NULL semester (spans all semesters)
+            res = q.or_(f"semester.eq.{semester},semester.is.null").order("name").execute()
+        else:
+            res = q.order("name").execute()
+        data = res.data or []
+        _cache_set(cache_key, data)
+        return {"success": True, "data": data}
+    except Exception as e:
+        return {"success": False, "data": [], "message": str(e)}
+
+
+def create_subject_request(user_id: str, college_id: str, department_id: str,
+                           subject_name: str, subject_code: str = '',
+                           semester: int = None) -> Dict:
+    """Insert a pending_subject_requests row. Duplicate protection via DB index."""
+    client = init_supabase()
+    if not client: return {"success": False, "message": "No client"}
+    try:
+        res = client.table("pending_subject_requests").insert({
+            "user_id": user_id,
+            "college_id": college_id or None,
+            "department_id": department_id or None,
+            "subject_name": subject_name,
+            "subject_code": subject_code or None,
+            "semester": semester or None,
+            "status": "pending"
+        }).execute()
+        if res.data:
+            return {"success": True, "data": res.data[0]}
+        return {"success": False, "message": "Insert returned no data"}
+    except Exception as e:
+        # Unique constraint violation = duplicate pending request
+        if 'unique' in str(e).lower() or '23505' in str(e):
+            return {"success": False, "message": "A pending request for this subject already exists", "duplicate": True}
+        return {"success": False, "message": str(e)}
+
+
+def get_onboarding_status(user_id: str) -> Dict:
+    """Read welcome_seen from profiles table (lightweight, no extra table)."""
+    client = init_supabase()
+    if not client: return {"success": False, "data": None}
+    try:
+        res = client.table("profiles").select("welcome_seen, last_donation_popup_at").eq("id", user_id).execute()
+        if res.data:
+            return {"success": True, "data": res.data[0]}
+        return {"success": True, "data": {"welcome_seen": False}}
+    except Exception as e:
+        return {"success": False, "data": None, "message": str(e)}
+
+
+def mark_welcome_seen(user_id: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        client.table("profiles").update({"welcome_seen": True}).eq("id", user_id).execute()
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+def track_user_event(user_id: str, event_type: str, metadata: dict = None) -> None:
+    """Fire-and-forget. Only tracks UPLOAD, DOWNLOAD, SUBJECT_REQUEST."""
+    _ALLOWED = {'UPLOAD', 'DOWNLOAD', 'SUBJECT_REQUEST'}
+    if event_type not in _ALLOWED:
+        return  # silently ignore non-tracked types
+    try:
+        client = init_supabase()
+        if not client: return
+        client.table("user_events").insert({
+            "user_id": user_id or None,
+            "event_type": event_type,
+            "metadata": metadata or {}
+        }).execute()
+    except Exception:
+        pass  # Non-blocking; never raise
+
 def save_file_record(
     user_id: str, user_email: str, file_name: str, file_url: str,
     file_type: str, file_size: int, cloudinary_public_id: str,
     subject_name: str, document_type: str, year: str = '',
     college_id=None, branch_id=None, subject_code: str = '',
-    semesters: list = None, title: str = '', description: str = ''
+    semesters: list = None, title: str = '', description: str = '',
+    subject_id: str = None, semester: int = None
 ) -> Dict:
     client = init_supabase()
     if not client: return {'success': False, 'message': 'No client'}
@@ -136,12 +272,14 @@ def save_file_record(
                 except Exception as p_err:
                     print(f"[Supabase] Failed to create base profile: {p_err}")
 
-        # Resolve subject
-        sub_id = None
-        if subject_code:
+        # Resolve subject_id — prefer direct UUID from cascade dropdown
+        sub_id = subject_id if validate_uuid(subject_id) else None
+
+        # Fallback: fuzzy lookup by code or name (legacy / per-image modal path)
+        if not sub_id and subject_code:
             sub_res = client.table("subjects").select("id").eq("subject_code", subject_code).limit(1).execute()
             if sub_res.data: sub_id = sub_res.data[0]['id']
-        
+
         if not sub_id and subject_name:
             sub_res = client.table("subjects").select("id").ilike("name", f"%{subject_name}%").limit(1).execute()
             if sub_res.data: sub_id = sub_res.data[0]['id']
@@ -152,7 +290,8 @@ def save_file_record(
                 "subject": subject_name,
                 "year": year,
                 "subject_code": subject_code,
-                "semesters": semesters or []
+                "semesters": semesters or [],
+                "semester": semester  # new: integer semester from cascade
             }
             description = json.dumps(desc_data)
         

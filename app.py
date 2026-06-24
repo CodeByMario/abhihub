@@ -517,37 +517,90 @@ def logout():
 
 @app.route('/api/profile', methods=['GET'])
 @auth_required
-def get_profile():
+def get_profile(user_data=None):
     """Get current user profile"""
     try:
         user_info = session.get('user', {})
         user_id = user_info.get('uid')
-        
-        # Get detailed reputation stats (students helped, badges)
+
+        # Get reputation stats
         students_helped = 0
         badges = []
+        college_id = None
+        department_id = None
+
         if user_id:
-            from methods.supabase_helper import get_reputation_stats
+            from methods.supabase_helper import get_reputation_stats, init_supabase
             rep_stats = get_reputation_stats(user_id)
             if rep_stats.get('success'):
                 students_helped = rep_stats.get('students_helped', 0)
                 badges = rep_stats.get('badges', [])
 
+            # Fetch college_id + department_id from profiles table
+            try:
+                client = init_supabase()
+                pres = client.table('profiles') \
+                    .select('college_id, department_id') \
+                    .eq('id', user_id).single().execute()
+                if pres.data:
+                    college_id    = pres.data.get('college_id')
+                    department_id = pres.data.get('department_id')
+            except Exception:
+                pass  # non-fatal — form remains editable
+
         return jsonify({
             'success': True,
             'user': {
-                'uid': user_info.get('uid'),
-                'email': user_info.get('email'),
-                'name': user_info.get('name'),
-                'provider': user_info.get('provider'),
+                'uid':          user_info.get('uid'),
+                'email':        user_info.get('email'),
+                'name':         user_info.get('name'),
+                'provider':     user_info.get('provider'),
                 'user_metadata': user_info.get('user_metadata', {}),
+                'college_id':   college_id,
+                'department_id': department_id,
                 'students_helped': students_helped,
-                'badges': badges
+                'badges':       badges
             }
         }), 200
     except Exception as e:
         logging.error(f"Error getting profile: {e}")
         return jsonify({'success': False, 'message': 'Failed to get profile'}), 500
+
+
+@app.route('/api/profile/update', methods=['POST'])
+@auth_required
+def api_update_profile(user_data=None):
+    """Update profile's default college and department selection."""
+    try:
+        user_info = session.get('user', {})
+        user_id = user_info.get('uid')
+        if not user_id:
+            return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+        
+        data = request.get_json() or {}
+        college_id = (data.get('college_id') or '').strip()
+        department_id = (data.get('department_id') or '').strip()
+        
+        from methods.supabase_helper import init_supabase, validate_uuid
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'message': 'Supabase client unavailable'}), 500
+
+        update_data = {}
+        if validate_uuid(college_id):
+            update_data['college_id'] = college_id
+        if validate_uuid(department_id):
+            update_data['department_id'] = department_id
+
+        if update_data:
+            client.table('profiles').update(update_data).eq('id', user_id).execute()
+            return jsonify({'success': True}), 200
+        
+        return jsonify({'success': False, 'message': 'No valid fields provided'}), 400
+    except Exception as e:
+        logging.error(f"Error updating profile: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @app.route('/api/check-auth', methods=['GET'])
 def check_auth():
@@ -631,6 +684,172 @@ def api_get_branches():
             'message': result.get('message', 'Failed to fetch branches'),
             'branches': []
         }), 500
+
+
+# T1 — Cascading dropdowns
+@app.route('/api/departments', methods=['GET'])
+def api_get_departments():
+    """Return departments for a college (cascading dropdown, T1/T8)."""
+    college_id = request.args.get('college_id', '').strip()
+    if not college_id:
+        return jsonify({'success': False, 'departments': [], 'message': 'college_id required'}), 400
+    from methods.supabase_helper import get_departments_by_college
+    result = get_departments_by_college(college_id)
+    return jsonify({'success': result.get('success', False), 'departments': result.get('data', [])}), 200
+
+
+@app.route('/api/subjects', methods=['GET'])
+def api_get_subjects():
+    """Return subjects for a department, optionally filtered by semester."""
+    department_id = request.args.get('department_id', '').strip()
+    semester = request.args.get('semester', type=int)  # optional
+    if not department_id:
+        return jsonify({'success': False, 'subjects': [], 'message': 'department_id required'}), 400
+    from methods.supabase_helper import get_subjects_by_department
+    result = get_subjects_by_department(department_id, semester=semester)
+    return jsonify({'success': result.get('success', False), 'subjects': result.get('data', [])}), 200
+
+
+# Direct-insert: new subject
+@app.route('/api/subjects', methods=['POST'])
+@auth_required
+def api_add_subject(user_data=None):
+    data = request.get_json() or {}
+    name = (data.get('name') or '').strip()
+    code = (data.get('subject_code') or '').strip()
+    dept_id = (data.get('department_id') or '').strip()
+    semester = data.get('semester')
+    
+    if not name:
+        return jsonify({'success': False, 'message': 'Subject name required'}), 400
+    if not dept_id:
+        return jsonify({'success': False, 'message': 'Department ID required'}), 400
+        
+    try:
+        sem_val = int(semester) if semester not in (None, '', 0, '0') else None
+    except (ValueError, TypeError):
+        sem_val = None
+
+    from methods.supabase_helper import init_supabase
+    client = init_supabase()
+    try:
+        insert_data = {
+            'name': name,
+            'subject_code': code or None,
+            'department_id': dept_id
+        }
+        if sem_val is not None:
+            insert_data['semester'] = sem_val
+            
+        res = client.table('subjects').insert(insert_data).execute()
+        subj = res.data[0] if res.data else {}
+        return jsonify({'success': True, 'subject': subj}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+
+# Direct-insert: new college
+@app.route('/api/colleges', methods=['POST'])
+@auth_required
+def api_add_college(user_data=None):
+    data = request.get_json() or {}
+    name = (data.get('name') or '').strip()
+    abbr = (data.get('abbreviation') or '').strip()
+    if not name:
+        return jsonify({'success': False, 'message': 'College name required'}), 400
+    from methods.supabase_helper import init_supabase
+    client = init_supabase()
+    try:
+        res = client.table('colleges').insert({'name': name, 'abbreviation': abbr or None}).execute()
+        college = res.data[0] if res.data else {}
+        return jsonify({'success': True, 'college': college}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+
+# Direct-insert: new department + map to college
+@app.route('/api/departments', methods=['POST'])
+@auth_required
+def api_add_department(user_data=None):
+    data = request.get_json() or {}
+    name      = (data.get('name') or '').strip()
+    abbr      = (data.get('abbreviation') or '').strip()
+    college_id = (data.get('college_id') or '').strip()
+    if not name:
+        return jsonify({'success': False, 'message': 'Department name required'}), 400
+    from methods.supabase_helper import init_supabase
+    client = init_supabase()
+    try:
+        res = client.table('departments').insert({'name': name, 'abbreviation': abbr or None}).execute()
+        dept = res.data[0] if res.data else {}
+        dept_id = dept.get('id')
+        # Map to college if provided
+        if dept_id and college_id:
+            client.table('college_departments').insert(
+                {'college_id': college_id, 'department_id': dept_id}
+            ).execute()
+        return jsonify({'success': True, 'department': dept}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+
+# T2 — Missing subject request
+@app.route('/api/subject-request', methods=['POST'])
+@auth_required
+def api_create_subject_request():
+    """Create a pending_subject_requests row (T2). Duplicate-safe via DB index."""
+    user_id = session.get('user', {}).get('uid')
+    data = request.get_json(silent=True) or {}
+    subject_name = (data.get('subject_name') or '').strip()
+    if not subject_name:
+        return jsonify({'success': False, 'message': 'subject_name required'}), 400
+    from methods.supabase_helper import create_subject_request, track_user_event
+    result = create_subject_request(
+        user_id=user_id,
+        college_id=data.get('college_id', ''),
+        department_id=data.get('department_id', ''),
+        subject_name=subject_name,
+        subject_code=data.get('subject_code', ''),
+        semester=data.get('semester') or None
+    )
+    if result.get('success'):
+        track_user_event(user_id, 'SUBJECT_REQUEST', {'subject_name': subject_name})
+    elif result.get('duplicate'):
+        return jsonify({'success': False, 'message': result.get('message'), 'duplicate': True}), 409
+    return jsonify(result), 200 if result.get('success') else 500
+
+
+# T4 — Onboarding status
+@app.route('/api/onboarding/status', methods=['GET'])
+@auth_required
+def api_onboarding_status():
+    user_id = session.get('user', {}).get('uid')
+    from methods.supabase_helper import get_onboarding_status
+    result = get_onboarding_status(user_id)
+    return jsonify(result), 200 if result.get('success') else 500
+
+
+@app.route('/api/onboarding/welcome-seen', methods=['POST'])
+@auth_required
+def api_onboarding_welcome_seen():
+    user_id = session.get('user', {}).get('uid')
+    from methods.supabase_helper import mark_welcome_seen
+    result = mark_welcome_seen(user_id)
+    return jsonify(result), 200 if result.get('success') else 500
+
+
+# T7 — Analytics event tracking
+@app.route('/api/events', methods=['POST'])
+@auth_required
+def api_track_event():
+    """Tracks only UPLOAD, DOWNLOAD, SUBJECT_REQUEST. Returns 200 always."""
+    user_id = session.get('user', {}).get('uid')
+    data = request.get_json(silent=True) or {}
+    event_type = (data.get('event_type') or '').upper().strip()
+    # track_user_event already filters to 3 allowed types
+    from methods.supabase_helper import track_user_event
+    track_user_event(user_id, event_type, data.get('metadata', {}))
+    return jsonify({'success': True}), 200
 
 
 @app.route('/store-room/api/label', methods=['POST'])
@@ -1150,17 +1369,25 @@ def upload():
             # Resolve metadata from form
             college_id = request.form.get('college_id', '').strip()
             branch_id = request.form.get('branch_id', '').strip()
-            # The form might send 'type' or 'document_type'
+            subject_id = request.form.get('subject_id', '').strip()
+            semester_raw = request.form.get('semester', '').strip()
+            semester = int(semester_raw) if semester_raw.isdigit() and 1 <= int(semester_raw) <= 8 else None
             document_type = request.form.get('document_type') or request.form.get('type') or 'Other'
             subject_name = subject.strip()
-            
-            # Additional metadata for description
             unit = request.form.get('unit', '')
             practical_num = request.form.get('practical', '')
             practical_type = request.form.get('practical-type', '')
-            
-            print(f"[UPLOAD] Processing upload for User: {user_email}")
-            print(f"[UPLOAD] Metadata - College: {college_id}, Branch: {branch_id}, Type: {document_type}, Subject: {subject_name}")
+
+            # Guard: reject uploads with no subject selected
+            if not subject_id or subject_id == '__other__':
+                print(f"[UPLOAD REJECTED] Reason:Missing subject_id Uploader:{user_id} File:{original_filename}")
+                return jsonify(
+                    success=False,
+                    message="Subject selection is required. Please select a subject from the dropdown."
+                ), 400
+
+
+            print(f"[UPLOAD] Uploader:{user_id} College:{college_id} Branch:{branch_id} Semester:{semester} Subject:{subject_name!r} SubjectID:{subject_id}")
             
             # Save to file_records table (Supabase abhihub.documents)
             from methods.supabase_helper import save_file_record
@@ -1178,7 +1405,9 @@ def upload():
                 year=year,
                 college_id=college_id if college_id else None,
                 branch_id=branch_id if branch_id else None,
-                title=subject_name if subject_name else original_filename
+                title=subject_name if subject_name else original_filename,
+                subject_id=subject_id if subject_id else None,
+                semester=semester
             )
             
             if not file_record_result.get('success'):
@@ -1192,7 +1421,18 @@ def upload():
             
             print(f"[UPLOAD SUCCESS] Document ID: {file_record_result.get('data', {}).get('id')}")
 
-            # ── Grant paper-access credits for this upload ──────────────
+            # ── Track UPLOAD event (non-blocking) ───────────────────────
+            try:
+                from methods.supabase_helper import track_user_event
+                track_user_event(user_id, 'UPLOAD', {
+                    'document_id': file_record_result.get('data', {}).get('id'),
+                    'subject_id': subject_id or None,
+                    'semester': semester,
+                    'document_type': document_type.lower()
+                })
+            except Exception:
+                pass
+
             _grant_upload_credits()
 
             # ── Recalculate & persist reputation score in DB ────────

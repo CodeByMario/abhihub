@@ -1230,151 +1230,167 @@
 </script>
 {% endif %}
 
-<!-- ── Support AbhiHub Popup (once per day) ────────────────────────── -->
-<div id="supportPopup" style="
+<!-- ── T4: Premium First-Login Onboarding Modal ──────────────────── -->
+{% if user_data %}
+<div id="welcomeOnboardingModal" style="
+  display:none;position:fixed;inset:0;
+  background:rgba(10,10,25,0.75);
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);
+  z-index:10100;align-items:center;justify-content:center;padding:1rem;
+">
+  <div style="
+    background:#fff;border-radius:28px;max-width:420px;width:100%;
+    box-shadow:0 32px 90px rgba(37,99,235,0.28);overflow:hidden;
+    animation:welcomePopIn 0.5s cubic-bezier(.34,1.56,.64,1);
+  ">
+    <div style="background:linear-gradient(135deg,#2563eb 0%,#7c3aed 60%,#ec4899 100%);padding:2.5rem 1.5rem 2rem;text-align:center;position:relative;overflow:hidden;">
+      <div style="position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.07);"></div>
+      <div style="font-size:3.5rem;margin-bottom:.5rem;filter:drop-shadow(0 4px 8px rgba(0,0,0,0.2));">🎓</div>
+      <h2 style="color:#fff;font-size:1.5rem;font-weight:900;margin:0 0 .4rem;line-height:1.2;">Welcome to AbhiHub!</h2>
+      <p style="color:rgba(255,255,255,0.88);font-size:.88rem;margin:0;font-weight:500;">Your academic community awaits</p>
+    </div>
+    <div style="padding:1.5rem 1.5rem .5rem;">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-bottom:1rem;">
+        <div style="background:#eff6ff;border-radius:14px;padding:.85rem .6rem;text-align:center;">
+          <div style="font-size:1.6rem;margin-bottom:.2rem;">📄</div>
+          <div style="font-size:.75rem;font-weight:700;color:#1e40af;">PYQs</div>
+        </div>
+        <div style="background:#f5f3ff;border-radius:14px;padding:.85rem .6rem;text-align:center;">
+          <div style="font-size:1.6rem;margin-bottom:.2rem;">📚</div>
+          <div style="font-size:.75rem;font-weight:700;color:#6d28d9;">Notes</div>
+        </div>
+        <div style="background:#ecfdf5;border-radius:14px;padding:.85rem .6rem;text-align:center;">
+          <div style="font-size:1.6rem;margin-bottom:.2rem;">🧪</div>
+          <div style="font-size:.75rem;font-weight:700;color:#065f46;">Practicals</div>
+        </div>
+        <div style="background:#fefce8;border-radius:14px;padding:.85rem .6rem;text-align:center;">
+          <div style="font-size:1.6rem;margin-bottom:.2rem;">🏆</div>
+          <div style="font-size:.75rem;font-weight:700;color:#92400e;">Leaderboard</div>
+        </div>
+        <div style="background:#fdf2f8;border-radius:14px;padding:.85rem .6rem;text-align:center;">
+          <div style="font-size:1.6rem;margin-bottom:.2rem;">🧠</div>
+          <div style="font-size:.75rem;font-weight:700;color:#9d174d;">MemoryWall</div>
+        </div>
+        <div style="background:#f0fdf4;border-radius:14px;padding:.85rem .6rem;text-align:center;">
+          <div style="font-size:1.6rem;margin-bottom:.2rem;">🔗</div>
+          <div style="font-size:.75rem;font-weight:700;color:#14532d;">Community</div>
+        </div>
+      </div>
+    </div>
+    <div style="padding:0 1.5rem 1.5rem;">
+      <button id="welcomeStartBtn" onclick="dismissWelcomeModal()" style="
+        width:100%;padding:1rem;border:none;border-radius:16px;
+        background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;
+        font-size:1rem;font-weight:800;cursor:pointer;
+        box-shadow:0 6px 20px rgba(37,99,235,0.35);
+        transition:transform .15s,box-shadow .15s;
+      " onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 10px 28px rgba(37,99,235,0.45)'" onmouseout="this.style.transform='';this.style.boxShadow='0 6px 20px rgba(37,99,235,0.35)'">
+        🚀 Start Exploring
+      </button>
+    </div>
+  </div>
+</div>
+<style>
+  @keyframes welcomePopIn {
+    from { opacity:0; transform:scale(0.8) translateY(30px); }
+    to   { opacity:1; transform:scale(1) translateY(0); }
+  }
+</style>
+<script>
+  async function dismissWelcomeModal() {
+    document.getElementById('welcomeOnboardingModal').style.display = 'none';
+    try { await fetch('/api/onboarding/welcome-seen', {method:'POST'}); } catch {}
+  }
+  (async function() {
+    try {
+      const r = await fetch('/api/onboarding/status').then(r => r.json());
+      if (r.success && r.data && !r.data.welcome_seen) {
+        // First login — show onboarding modal, suppress all other popups
+        window.__ABHIHUB_FIRST_LOGIN = true;
+        document.getElementById('welcomeOnboardingModal').style.display = 'flex';
+      }
+    } catch {}
+  })();
+</script>
+{% endif %}
+ ────────────────────────── -->
+
+<!-- ── T6: Floating ☕ Support Button (logged-in users, Dashboard only) ── -->
+{% if user_data %}
+<button id="floatSupportBtn" onclick="openSupportModal()" aria-label="Support AbhiHub" style="
+  position:fixed;bottom:1.5rem;right:1.5rem;z-index:9000;
+  background:linear-gradient(135deg,#2563eb,#7c3aed);
+  color:#fff;border:none;border-radius:99px;
+  padding:.7rem 1.2rem;font-size:.88rem;font-weight:700;
+  cursor:pointer;box-shadow:0 4px 18px rgba(37,99,235,0.35);
+  display:flex;align-items:center;gap:.4rem;
+  transition:transform .2s,box-shadow .2s;
+  animation:floatBtnPulse 3s ease-in-out infinite;
+" onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 28px rgba(37,99,235,0.45)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 18px rgba(37,99,235,0.35)'">
+  ☕ Support AbhiHub
+</button>
+
+<div id="supportModal" style="
   display:none;position:fixed;inset:0;
   background:rgba(10,10,25,0.65);
   backdrop-filter:blur(8px);-webkit-backdrop-filter:blur(8px);
   z-index:9800;align-items:center;justify-content:center;padding:1rem;
-" onclick="if(event.target===this)dismissSupportPopup()">
+" onclick="if(event.target===this)closeSupportModal()">
   <div style="
     background:#fff;border-radius:26px;max-width:380px;width:100%;
-    box-shadow:0 28px 80px rgba(37,99,235,0.22),0 4px 16px rgba(0,0,0,0.12);
+    box-shadow:0 28px 80px rgba(37,99,235,0.22);
     overflow:hidden;position:relative;
     animation:supportPopIn 0.45s cubic-bezier(.34,1.56,.64,1);
   ">
-    <!-- Close -->
-    <button onclick="dismissSupportPopup()" aria-label="Close" style="
+    <button onclick="closeSupportModal()" aria-label="Close" style="
       position:absolute;top:14px;right:14px;background:rgba(255,255,255,0.35);
       border:none;border-radius:50%;width:34px;height:34px;font-size:1.15rem;
       cursor:pointer;display:flex;align-items:center;justify-content:center;
-      color:#fff;font-weight:700;z-index:2;transition:background 0.15s;
-    " onmouseover="this.style.background='rgba(255,255,255,0.5)'" onmouseout="this.style.background='rgba(255,255,255,0.35)'">✕</button>
-
-    <!-- Header -->
-    <div style="
-      background:linear-gradient(135deg,#2563eb 0%,#7c3aed 50%,#ec4899 100%);
-      padding:2rem 1.5rem 1.5rem;text-align:center;position:relative;overflow:hidden;
-    ">
-      <div style="position:absolute;top:-30px;right:-30px;width:100px;height:100px;border-radius:50%;background:rgba(255,255,255,0.08);pointer-events:none;"></div>
-      <div style="position:absolute;bottom:-20px;left:-20px;width:80px;height:80px;border-radius:50%;background:rgba(255,255,255,0.06);pointer-events:none;"></div>
-      <div style="font-size:3rem;margin-bottom:0.4rem;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.12));animation:supportHeartPop 1.6s ease-in-out infinite;">💝</div>
-      <h2 style="color:#fff;font-size:1.3rem;font-weight:800;margin:0 0 0.3rem;line-height:1.25;">Keep AbhiHub Free</h2>
-      <p style="color:rgba(255,255,255,0.88);font-size:0.82rem;margin:0;font-weight:500;">Your small contribution helps thousands of students access free resources</p>
+      color:#fff;font-weight:700;z-index:2;">✕</button>
+    <div style="background:linear-gradient(135deg,#2563eb 0%,#7c3aed 50%,#ec4899 100%);padding:2rem 1.5rem 1.5rem;text-align:center;position:relative;overflow:hidden;">
+      <div style="font-size:3rem;margin-bottom:0.4rem;animation:supportHeartPop 1.6s ease-in-out infinite;">💝</div>
+      <h2 style="color:#fff;font-size:1.3rem;font-weight:800;margin:0 0 0.3rem;">Keep AbhiHub Free</h2>
+      <p style="color:rgba(255,255,255,0.88);font-size:0.82rem;margin:0;">Your small contribution helps thousands of students</p>
     </div>
-
-    <!-- Body -->
     <div style="padding:1.3rem 1.4rem 0.5rem;">
-      <!-- Impact stats -->
       <div style="display:flex;gap:0.6rem;margin-bottom:1.1rem;">
-        <div style="flex:1;background:#eff6ff;border-radius:12px;padding:0.7rem 0.5rem;text-align:center;">
-          <div style="font-size:1.3rem;font-weight:800;color:#2563eb;">☁️</div>
-          <div style="font-size:0.68rem;color:#4b5563;font-weight:600;margin-top:0.2rem;">Hosting</div>
-        </div>
-        <div style="flex:1;background:#f5f3ff;border-radius:12px;padding:0.7rem 0.5rem;text-align:center;">
-          <div style="font-size:1.3rem;font-weight:800;color:#7c3aed;">💾</div>
-          <div style="font-size:0.68rem;color:#4b5563;font-weight:600;margin-top:0.2rem;">Storage</div>
-        </div>
-        <div style="flex:1;background:#fdf2f8;border-radius:12px;padding:0.7rem 0.5rem;text-align:center;">
-          <div style="font-size:1.3rem;font-weight:800;color:#ec4899;">🚀</div>
-          <div style="font-size:0.68rem;color:#4b5563;font-weight:600;margin-top:0.2rem;">Development</div>
-        </div>
+        <div style="flex:1;background:#eff6ff;border-radius:12px;padding:0.7rem 0.5rem;text-align:center;"><div style="font-size:1.3rem;">☁️</div><div style="font-size:0.68rem;color:#4b5563;font-weight:600;">Hosting</div></div>
+        <div style="flex:1;background:#f5f3ff;border-radius:12px;padding:0.7rem 0.5rem;text-align:center;"><div style="font-size:1.3rem;">💾</div><div style="font-size:0.68rem;color:#4b5563;font-weight:600;">Storage</div></div>
+        <div style="flex:1;background:#fdf2f8;border-radius:12px;padding:0.7rem 0.5rem;text-align:center;"><div style="font-size:1.3rem;">🚀</div><div style="font-size:0.68rem;color:#4b5563;font-weight:600;">Dev</div></div>
       </div>
-
-      <!-- Amount buttons -->
       <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-bottom:0.8rem;">
-        <a href="{{ url_for('support') }}" onclick="dismissSupportPopup()" style="
-          display:flex;flex-direction:column;align-items:center;justify-content:center;
-          padding:0.7rem 0.3rem;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;
-          text-decoration:none;transition:all 0.2s;
-        " onmouseover="this.style.borderColor='#93c5fd';this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fff'">
-          <span style="font-size:1.1rem;font-weight:800;color:#1f2937;">₹29</span>
-          <span style="font-size:0.62rem;color:#6b7280;font-weight:500;">Storage</span>
-        </a>
-        <a href="{{ url_for('support') }}" onclick="dismissSupportPopup()" style="
-          display:flex;flex-direction:column;align-items:center;justify-content:center;
-          padding:0.7rem 0.3rem;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;
-          text-decoration:none;transition:all 0.2s;
-        " onmouseover="this.style.borderColor='#c4b5fd';this.style.background='#f5f3ff'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fff'">
-          <span style="font-size:1.1rem;font-weight:800;color:#1f2937;">₹49</span>
-          <span style="font-size:0.62rem;color:#6b7280;font-weight:500;">Hosting</span>
-        </a>
-        <a href="{{ url_for('support') }}" onclick="dismissSupportPopup()" style="
-          display:flex;flex-direction:column;align-items:center;justify-content:center;
-          padding:0.7rem 0.3rem;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;
-          text-decoration:none;transition:all 0.2s;
-        " onmouseover="this.style.borderColor='#f9a8d4';this.style.background='#fdf2f8'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fff'">
-          <span style="font-size:1.1rem;font-weight:800;color:#1f2937;">₹99</span>
-          <span style="font-size:0.62rem;color:#6b7280;font-weight:500;">Dev</span>
-        </a>
+        <a href="{{ url_for('support') }}" onclick="closeSupportModal()" style="display:flex;flex-direction:column;align-items:center;padding:0.7rem 0.3rem;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;text-decoration:none;" onmouseover="this.style.borderColor='#93c5fd';this.style.background='#eff6ff'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fff'"><span style="font-size:1.1rem;font-weight:800;color:#1f2937;">₹29</span><span style="font-size:0.62rem;color:#6b7280;">Storage</span></a>
+        <a href="{{ url_for('support') }}" onclick="closeSupportModal()" style="display:flex;flex-direction:column;align-items:center;padding:0.7rem 0.3rem;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;text-decoration:none;" onmouseover="this.style.borderColor='#c4b5fd';this.style.background='#f5f3ff'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fff'"><span style="font-size:1.1rem;font-weight:800;color:#1f2937;">₹49</span><span style="font-size:0.62rem;color:#6b7280;">Hosting</span></a>
+        <a href="{{ url_for('support') }}" onclick="closeSupportModal()" style="display:flex;flex-direction:column;align-items:center;padding:0.7rem 0.3rem;background:#fff;border:1.5px solid #e5e7eb;border-radius:12px;text-decoration:none;" onmouseover="this.style.borderColor='#f9a8d4';this.style.background='#fdf2f8'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fff'"><span style="font-size:1.1rem;font-weight:800;color:#1f2937;">₹99</span><span style="font-size:0.62rem;color:#6b7280;">Dev</span></a>
       </div>
-
-      <!-- CTA -->
-      <a href="{{ url_for('support') }}" onclick="dismissSupportPopup()" style="
-        display:flex;align-items:center;justify-content:center;gap:0.5rem;
-        width:100%;padding:0.85rem;border:none;border-radius:14px;
-        background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;
-        font-size:0.95rem;font-weight:700;text-decoration:none;
-        box-shadow:0 4px 18px rgba(37,99,235,0.28);
-        transition:transform 0.15s,box-shadow 0.15s;margin-bottom:0.6rem;
-      " onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 28px rgba(37,99,235,0.38)'" onmouseout="this.style.transform='';this.style.boxShadow='0 4px 18px rgba(37,99,235,0.28)'">
-        💝 Support AbhiHub
-      </a>
-
-      <!-- Dismiss -->
-      <button onclick="dismissSupportPopup()" style="
-        width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:14px;
-        padding:0.65rem;font-size:0.82rem;font-weight:600;color:#94a3b8;cursor:pointer;
-        transition:background 0.15s;margin-bottom:0.3rem;
-      " onmouseover="this.style.background='#f1f5f9'" onmouseout="this.style.background='#f8fafc'">
-        Maybe Later
-      </button>
-
-      <!-- Note -->
-      <p style="text-align:center;font-size:0.68rem;color:#c0c7d0;margin:0.5rem 0 0;line-height:1.4;">
-        AbhiHub is free for everyone. Contributions are completely optional.
-      </p>
+      <a href="{{ url_for('support') }}" onclick="closeSupportModal()" style="display:flex;align-items:center;justify-content:center;gap:0.5rem;width:100%;padding:0.85rem;border:none;border-radius:14px;background:linear-gradient(135deg,#2563eb,#7c3aed);color:#fff;font-size:0.95rem;font-weight:700;text-decoration:none;box-shadow:0 4px 18px rgba(37,99,235,0.28);margin-bottom:0.6rem;">💝 Support AbhiHub</a>
+      <button onclick="closeSupportModal()" style="width:100%;background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:14px;padding:0.65rem;font-size:0.82rem;font-weight:600;color:#94a3b8;cursor:pointer;margin-bottom:0.3rem;">Maybe Later</button>
+      <p style="text-align:center;font-size:0.68rem;color:#c0c7d0;margin:0.4rem 0 0;">AbhiHub is free. Contributions are optional.</p>
     </div>
   </div>
 </div>
 
 <style>
-  @keyframes supportPopIn {
-    from { opacity:0; transform:scale(0.85) translateY(20px); }
-    to   { opacity:1; transform:scale(1) translateY(0); }
-  }
-  @keyframes supportHeartPop {
-    0%, 100% { transform: scale(1); }
-    15% { transform: scale(1.2); }
-    30% { transform: scale(1); }
-  }
+  @keyframes floatBtnPulse { 0%,100%{box-shadow:0 4px 18px rgba(37,99,235,.35)} 50%{box-shadow:0 4px 28px rgba(124,58,237,.5)} }
+  @keyframes supportPopIn { from{opacity:0;transform:scale(0.85) translateY(20px)} to{opacity:1;transform:scale(1) translateY(0)} }
+  @keyframes supportHeartPop { 0%,100%{transform:scale(1)} 15%{transform:scale(1.2)} 30%{transform:scale(1)} }
 </style>
 
 <script>
-  function dismissSupportPopup() {
-    var el = document.getElementById('supportPopup');
-    if (el) { el.style.display = 'none'; }
-    try { localStorage.setItem('support_popup_last', Date.now().toString()); } catch(e) {}
+  function openSupportModal() {
+    document.getElementById('supportModal').style.display = 'flex';
   }
-  (function() {
-    var COOLDOWN = 24 * 60 * 60 * 1000; // 24 hours
-    try {
-      var last = localStorage.getItem('support_popup_last');
-      if (last && (Date.now() - parseInt(last)) < COOLDOWN) return;
-    } catch(e) { return; }
-
-    // Delay to avoid clashing with other popups (mw-awareness, profile nudge, etc.)
-    setTimeout(function() {
-      // Don't show if another popup is already visible
-      var mw = document.getElementById('mw-awareness');
-      var nudge = document.getElementById('profileNudgeOverlay');
-      if ((mw && mw.style.display === 'flex') || (nudge && nudge.style.display === 'flex')) return;
-
-      var el = document.getElementById('supportPopup');
-      if (el) { el.style.display = 'flex'; }
-    }, 5000);
-  })();
+  function closeSupportModal() {
+    document.getElementById('supportModal').style.display = 'none';
+  }
+  // Hide float btn on first login (onboarding modal takes priority)
+  if (window.__ABHIHUB_FIRST_LOGIN) {
+    var btn = document.getElementById('floatSupportBtn');
+    if (btn) btn.style.display = 'none';
+  }
 </script>
+{% endif %}
+
 
 <div class="section-layout beta-test">
   <div class="file-section">
