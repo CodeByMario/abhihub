@@ -1,0 +1,126 @@
+/* extracted page styles from p_file_receiver.html */
+
+.file-receiver-container {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: calc(100vh - 180px);
+    padding: 2rem;
+    text-align: center;
+}
+
+.file-receiver-icon {
+    width: 100px;
+    height: 100px;
+    margin-bottom: 1.5rem;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    border-radius: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 8px 32px rgba(37, 99, 235, 0.3);
+}
+
+.file-receiver-icon svg {
+    width: 48px;
+    height: 48px;
+    color: white;
+}
+
+.file-receiver-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: #1F2937;
+    margin-bottom: 0.5rem;
+}
+
+.file-receiver-message {
+    font-size: 1.1rem;
+    color: #6B7280;
+    margin-bottom: 2rem;
+    max-width: 500px;
+}
+
+.file-drop-zone {
+    border: 2px dashed #D1D5DB;
+    border-radius: 16px;
+    padding: 3rem 2rem;
+    max-width: 500px;
+    width: 100%;
+    transition: all 0.3s;
+    cursor: pointer;
+}
+
+.file-drop-zone:hover,
+.file-drop-zone.dragover {
+    border-color: #2563eb;
+    background: rgba(37, 99, 235, 0.05);
+}
+
+.file-drop-zone p {
+    margin: 0;
+    color: #6B7280;
+}
+
+.file-input {
+    display: none;
+}
+
+.browse-btn {
+    display: inline-block;
+    margin-top: 1rem;
+    padding: 0.75rem 2rem;
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.browse-btn:hover {
+    transform: translateY(-2px);
+}
+
+.file-list {
+    margin-top: 2rem;
+    width: 100%;
+    max-width: 500px;
+}
+
+.file-item {
+    display: flex;
+    align-items: center;
+    padding: 1rem;
+    background: #F9FAFB;
+    border-radius: 12px;
+    margin-bottom: 0.5rem;
+}
+
+.file-item-icon {
+    width: 40px;
+    height: 40px;
+    background: #E5E7EB;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+}
+
+.file-item-info {
+    flex: 1;
+    text-align: left;
+}
+
+.file-item-name {
+    font-weight: 600;
+    color: #1F2937;
+}
+
+.file-item-size {
+    font-size: 0.85rem;
+    color: #6B7280;
+}
