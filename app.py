@@ -508,7 +508,7 @@ def sitemap():
     documents = data.get('documents', [])
     
     urls = []
-    base_url = "https://abhihub.in"
+    base_url = "https://app.abhihub.run.place"
     
     def slugify(text):
         return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
