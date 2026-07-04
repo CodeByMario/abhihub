@@ -462,6 +462,10 @@
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     border: none;
+    border-radius: 24px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 10px 30px rgba(102, 126, 234, 0.2);
 }
 .dashboard-welcome-card {
     background: #fff;
@@ -640,6 +644,12 @@
 .dashboard-float-support-btn:hover {
     transform: translateY(-3px);
     box-shadow: 0 8px 28px rgba(37, 99, 235, 0.45);
+}
+@media (max-width: 768px) {
+    .dashboard-float-support-btn {
+        bottom: 5.5rem; /* Lift above mobile navigation bar */
+        right: 1rem;
+    }
 }
 .mw-awareness-overlay {
     display: none;

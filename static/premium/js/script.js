@@ -159,13 +159,18 @@ const SearchManager = {
     searchDebounceTimer: null,
     searchHistory: [],
     MAX_HISTORY: 5,
+    baseLimit: 12,
+    displayLimit: 12,
+    currentResults: [],
 
     elements: {
         fileName: () => document.getElementById("searchFileName"),
         author: () => document.getElementById("searchAuthor"),
+        college: () => document.getElementById("searchCollege"),
         type: () => document.getElementById("searchType"),
         subject: () => document.getElementById("searchSubject"),
         year: () => document.getElementById("searchYear"),
+        sort: () => document.getElementById("searchSort"),
         results: () => document.getElementById("searchResults"),
         noResults: () => document.getElementById("noResults"),
         loader: () => document.getElementById("loader"),
@@ -178,6 +183,7 @@ const SearchManager = {
         this.loadSearchHistory();
         this.setupEventListeners();
         await this.preloadData();
+        await this.performSearch();
         console.log('[SearchManager] Init complete. Cache size:', this.cache?.length);
     },
 
@@ -232,20 +238,34 @@ const SearchManager = {
     },
 
     setupEventListeners() {
+        // hidden btn still works for hero search form compatibility
         document.getElementById("searchBtn")?.addEventListener("click", () => this.performSearch());
 
-        Object.values(this.elements).forEach(elementGetter => {
-            const element = elementGetter();
-            if (element) {
-                if (element.tagName === 'INPUT') {
-                    element.addEventListener("input", () => this.debounceSearch());
-                    element.addEventListener("keypress", e => {
-                        if (e.key === "Enter") this.performSearch();
-                    });
-                } else if (element.tagName === 'SELECT') {
-                    element.addEventListener("change", () => this.performSearch());
-                }
-            }
+        // Clear button
+        const clearBtn = document.getElementById('searchClearBtn');
+        const fileInput = this.elements.fileName();
+        if (fileInput && clearBtn) {
+            fileInput.addEventListener('input', () => {
+                clearBtn.style.display = fileInput.value ? 'block' : 'none';
+                this.debounceSearch();
+            });
+            fileInput.addEventListener('keypress', e => {
+                if (e.key === 'Enter') this.performSearch();
+            });
+            clearBtn.addEventListener('click', () => {
+                fileInput.value = '';
+                clearBtn.style.display = 'none';
+                fileInput.focus();
+                this.performSearch();
+            });
+        }
+
+        // Selects — instant search on change
+        ['searchCollege','searchType','searchSubject','searchYear','searchSort'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', (e) => {
+                e.target.classList.toggle('active', !!e.target.value);
+                this.performSearch();
+            });
         });
     },
 
@@ -258,10 +278,13 @@ const SearchManager = {
             if (error) error.style.display = 'none';
 
             console.log('[SearchManager] Fetching files from API...');
-            const response = await fetch("/api/files/all");
-            console.log('[SearchManager] Fetch response:', response.status, response.ok);
-            if (!response.ok) throw new Error("Failed to load data");
-            const result = await response.json();
+            const [filesRes] = await Promise.all([
+                fetch("/api/files/all"),
+                this.loadColleges()
+            ]);
+            console.log('[SearchManager] Fetch response:', filesRes.status, filesRes.ok);
+            if (!filesRes.ok) throw new Error("Failed to load data");
+            const result = await filesRes.json();
             const data = result.data || [];  // Extract data array from API response
             this.cache = data;
             console.log(`[SearchManager] Loaded ${data.length} files from API (includes data.json + file_records)`);
@@ -286,9 +309,44 @@ const SearchManager = {
         });
 
         Object.entries(cache).forEach(([field, values]) => {
-            console.log(`[SearchManager] Filling dropdown search${field.charAt(0).toUpperCase() + field.slice(1)} with ${values.length} values`);
             this.fillDropdown(`search${field.charAt(0).toUpperCase() + field.slice(1)}`, values);
         });
+    },
+
+    async loadColleges() {
+        try {
+            const res = await fetch('/api/colleges');
+            const data = await res.json();
+            if (!data.success) return;
+
+            const collegeSelect = document.getElementById('searchCollege');
+            if (!collegeSelect) return;
+
+            collegeSelect.innerHTML = '<option value="">🏫 All Colleges</option>';
+            data.colleges.forEach(c => {
+                const opt = document.createElement('option');
+                opt.value = c.name;
+                opt.textContent = c.name;
+                collegeSelect.appendChild(opt);
+            });
+
+            // Auto-select user's college
+            const userCollege = window.ABHIHUB_USER_COLLEGE;
+            if (userCollege) {
+                const lc = userCollege.toLowerCase();
+                const options = Array.from(collegeSelect.options);
+                // Exact match first
+                let match = options.find(o => o.value.toLowerCase() === lc);
+                // Partial match fallback
+                if (!match) match = options.find(o => o.value && lc.includes(o.value.toLowerCase()));
+                if (match) {
+                    collegeSelect.value = match.value;
+                    console.log('[SearchManager] Auto-selected college:', match.value);
+                }
+            }
+        } catch (e) {
+            console.warn('[SearchManager] Could not load colleges from API:', e);
+        }
     },
 
     fillDropdown(id, values) {
@@ -320,16 +378,20 @@ const SearchManager = {
 
         const fileName = this.elements.fileName()?.value.trim();
         const author = this.elements.author()?.value.trim();
+        const college = this.elements.college()?.value;
         const type = this.elements.type()?.value;
         const subject = this.elements.subject()?.value;
         const year = this.elements.year()?.value;
+        const sort = this.elements.sort()?.value;
 
         const searchTerms = {
             fileName: fileName?.toLowerCase(),
             author: author?.toLowerCase(),
+            college: college,
             type: type,
             subject: subject,
-            year: year
+            year: year,
+            sort: sort
         };
 
         if (fileName) {
@@ -358,8 +420,9 @@ const SearchManager = {
             } else {
                 filtered = this.filterResults(searchTerms);
             }
-
-            this.displayResults(filtered);
+            this.displayLimit = this.baseLimit;
+            this.currentResults = filtered;
+            this.displayResults(this.currentResults);
         } catch (error) {
             console.error('Search error:', error);
         } finally {
@@ -377,7 +440,7 @@ const SearchManager = {
         const cleanFileName = sanitize(terms.fileName);
         const cleanAuthor = sanitize(terms.author);
 
-        return this.cache.filter(file => {
+        const results = this.cache.filter(file => {
             // File name matching (matches against file name, subject, and subject code)
             const matchesFileName = !cleanFileName ||
                 sanitize(file["file-name"]).includes(cleanFileName) ||
@@ -392,91 +455,134 @@ const SearchManager = {
             const matchesType = !terms.type || file.type === terms.type;
             const matchesSubject = !terms.subject || file.subject === terms.subject;
             const matchesYear = !terms.year || file.year === terms.year;
+            const matchesCollege = !terms.college || file.college === terms.college;
 
-            return matchesFileName && matchesAuthor && matchesType && matchesSubject && matchesYear;
+            return matchesFileName && matchesAuthor && matchesType && matchesSubject && matchesYear && matchesCollege;
         });
+
+        if (terms.sort) {
+            if (terms.sort === 'views_desc') {
+                results.sort((a, b) => (b.view_count || 0) - (a.view_count || 0));
+            } else if (terms.sort === 'likes_desc') {
+                results.sort((a, b) => (b.like_count || 0) - (a.like_count || 0));
+            } else if (terms.sort === 'bookmarks_desc') {
+                results.sort((a, b) => (b.bookmark_count || 0) - (a.bookmark_count || 0));
+            } else if (terms.sort === 'date_desc') {
+                results.sort((a, b) => {
+                    const dA = a.date ? new Date(a.date) : new Date(0);
+                    const dB = b.date ? new Date(b.date) : new Date(0);
+                    return dB - dA;
+                });
+            }
+        }
+        return results;
     },
 
     displayResults(results) {
         const container = this.elements.results();
         const noResults = this.elements.noResults();
+        const header = document.getElementById('searchResultsHeader');
+        const countEl = document.getElementById('searchResultCount');
 
         if (!container || !noResults) return;
 
-        container.innerHTML = "";
-        noResults.style.display = results.length ? "none" : "block";
+        container.innerHTML = '';
+        noResults.style.display = results.length ? 'none' : 'block';
+
+        if (header) header.style.display = 'flex';
+        if (countEl) countEl.textContent = `${results.length} result${results.length !== 1 ? 's' : ''}`;
+
+        const loadMoreContainer = document.getElementById('loadMoreContainer');
 
         if (results.length) {
             const fragment = document.createDocumentFragment();
-            results.forEach(file => {
+            const visibleResults = results.slice(0, this.displayLimit);
+            visibleResults.forEach(file => {
                 const card = this.createResultCard(file);
                 fragment.appendChild(card);
             });
             container.appendChild(fragment);
+
+            if (loadMoreContainer) {
+                loadMoreContainer.style.display = results.length > this.displayLimit ? 'block' : 'none';
+            }
+        } else if (loadMoreContainer) {
+            loadMoreContainer.style.display = 'none';
         }
     },
 
+    loadMore() {
+        this.displayLimit += this.baseLimit;
+        this.displayResults(this.currentResults);
+    },
+
     createResultCard(file) {
-        const card = document.createElement("a");
+        const card = document.createElement('a');
         const typeClass = (file.type || 'default').toLowerCase();
-        card.className = "search-file-card " + typeClass;
+        card.className = 'search-file-card ' + typeClass;
         card.href = this.getFileUrl(file);
 
-        // Sanitize content
-        const sanitize = str => str ? str.toString()
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;') : '';
+        const s = str => str ? str.toString()
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#039;') : '';
 
-        let badgeClass = '';
-        if (typeClass === 'notes') badgeClass = 'type-badge--notes';
-        else if (typeClass === 'papers') badgeClass = 'type-badge--papers';
-        else if (typeClass === 'practicals') badgeClass = 'type-badge--practicals';
-
-        const recordId = sanitize(file.record_id || '');
+        const recordId = s(file.record_id || '');
         const isLiked = file.is_liked ? 'active' : '';
         const isBookmarked = file.is_bookmarked ? 'active' : '';
-        const likeColor = file.is_liked ? '#ef4444' : '#6b7280';
-        const bookmarkColor = file.is_bookmarked ? '#3b82f6' : '#6b7280';
         const likeFill = file.is_liked ? 'currentColor' : 'none';
         const bookmarkFill = file.is_bookmarked ? 'currentColor' : 'none';
 
         card.innerHTML = `
-            <div class="search-card-header">
-                <img src="/static/premium/icon/${typeClass}.gif" alt="" class="search-card-icon" onerror="this.src='/static/premium/icon/default.png'">
-                <span class="type-badge ${badgeClass}">${sanitize(file.type || 'File')}</span>
-            </div>
-            <span class="search-file-card-title">${sanitize(file.subject)}</span>
-            <span class="search-file-card-meta">${sanitize(file["file-name"])}</span>
-            <div class="search-card-footer">
-                <span class="search-card-author">👤 ${sanitize(file.author)}</span>
-                <span class="search-card-year">📅 ${sanitize(file.year)}</span>
-            </div>
-            
-            <div class="file-card-actions" style="display: flex; gap: 0.5rem; justify-content: space-around; padding-top: 0.5rem; border-top: 1px solid #e5e7eb; width: 100%; margin-top: 10px;" onclick="event.preventDefault(); event.stopPropagation();">
-              <button class="action-btn view-btn" data-id="${recordId}" style="background:none; border:none; cursor:pointer; color: #6b7280; display:flex; gap:4px; align-items:center;" onclick="window.location.href='${this.getFileUrl(file)}'">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
-                <span class="count">${file.view_count > 0 ? file.view_count : ''}</span>
-              </button>
-              <button class="action-btn like-btn ${isLiked}" data-id="${recordId}" onclick="window.toggleFileAction(this, 'like')" style="background:none; border:none; cursor:pointer; color: ${likeColor}; display:flex; gap:4px; align-items:center;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="${likeFill}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-                <span class="count">${file.like_count > 0 ? file.like_count : ''}</span>
-              </button>
-              <button class="action-btn comment-btn" data-id="${recordId}" onclick="window.openComments(event, '${recordId}')" style="background:none; border:none; cursor:pointer; color: #6b7280; display:flex; gap:4px; align-items:center;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
-                <span class="count">${file.comment_count > 0 ? file.comment_count : ''}</span>
-              </button>
-              <button class="action-btn bookmark-btn ${isBookmarked}" data-id="${recordId}" onclick="window.toggleFileAction(this, 'bookmark')" style="background:none; border:none; cursor:pointer; color: ${bookmarkColor}; display:flex; gap:4px; align-items:center;">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="${bookmarkFill}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"></path></svg>
-                <span class="count">${file.bookmark_count > 0 ? file.bookmark_count : ''}</span>
-              </button>
-            </div>
+          <div class="search-card-top">
+            <span class="type-badge ${typeClass}">${s(file.type || 'File')}</span>
+            <span style="font-size:0.72rem;color:#94a3b8;">${s(file.year || '')}</span>
+          </div>
+          <div class="search-file-card-title">${s(file.subject)}</div>
+          <div class="search-file-card-meta">${s(file['file-name'])}</div>
+          <div class="search-card-footer">
+            <span>👤 ${s(file.author)}</span>
+            <span class="search-card-stats">
+              <span>👁 ${file.view_count || 0}</span>
+              <span>❤ ${file.like_count || 0}</span>
+            </span>
+          </div>
+          <div class="file-card-actions" onclick="event.preventDefault();event.stopPropagation();">
+            <button class="action-btn view-btn" data-id="${recordId}" onclick="window.location.href='${this.getFileUrl(file)}'">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+              <span class="count">${file.view_count > 0 ? file.view_count : ''}</span>
+            </button>
+            <button class="action-btn like-btn ${isLiked}" data-id="${recordId}" onclick="window.toggleFileAction(this,'like')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="${likeFill}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+              <span class="count">${file.like_count > 0 ? file.like_count : ''}</span>
+            </button>
+            <button class="action-btn comment-btn" data-id="${recordId}" onclick="window.openComments(event,'${recordId}')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+              <span class="count">${file.comment_count > 0 ? file.comment_count : ''}</span>
+            </button>
+            <button class="action-btn bookmark-btn ${isBookmarked}" data-id="${recordId}" onclick="window.toggleFileAction(this,'bookmark')">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="${bookmarkFill}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+              <span class="count">${file.bookmark_count > 0 ? file.bookmark_count : ''}</span>
+            </button>
+          </div>
         `;
-
         return card;
     },
+
+    resetFilters() {
+        ['searchCollege','searchType','searchSubject','searchYear'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) { el.value = ''; el.classList.remove('active'); }
+        });
+        const sort = document.getElementById('searchSort');
+        if (sort) sort.value = 'date_desc';
+        const input = this.elements.fileName();
+        if (input) { input.value = ''; document.getElementById('searchClearBtn').style.display = 'none'; }
+        this.performSearch();
+    },
+
+
+
+
 
     getFileUrl(file) {
         const path = encodeURIComponent(file["file-path"] || '');

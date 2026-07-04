@@ -332,13 +332,17 @@ def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
     url = doc.get('file_url', '')
     doc_type = str(doc.get('document_category', 'Other')).capitalize()
     
-    prof = doc.get('profiles') or {}
-    author = prof.get('full_name', 'Unknown')
-    author_email = prof.get('email', '')
+    prof = doc.get('profiles') or doc.get('profiles!documents_uploader_id_fkey') or {}
+    author = prof.get('full_name') or (prof.get('email') and prof.get('email').split('@')[0]) or 'Unknown'
+    author_email = prof.get('email') or ''
     
-    subj_data = doc.get('subjects') or {}
-    subject = subj_data.get('name', 'General')
-    subject_code = subj_data.get('subject_code', '')
+    subj_data = doc.get('subjects') or doc.get('subjects!documents_subject_id_fkey') or {}
+    subject = subj_data.get('name') or 'General'
+    subject_code = subj_data.get('subject_code') or ''
+    
+    coll_data = doc.get('colleges') or doc.get('colleges!documents_college_id_fkey') or {}
+    college_name = coll_data.get('name') or coll_data.get('abbreviation') or ''
+    
     year = ''
     
     desc_str = doc.get('description') or '{}'
@@ -386,7 +390,8 @@ def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
         'comment_count': len(doc.get('document_comments') or []) if 'document_comments' in doc else doc.get('comment_count', 0),
         'bookmark_count': doc.get('bookmark_count', 0),
         'is_liked': is_liked,
-        'is_bookmarked': is_bookmarked
+        'is_bookmarked': is_bookmarked,
+        'college': college_name or 'Other'
     }
 
 def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dict:
@@ -394,7 +399,7 @@ def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dic
     if not client: return {'success': False, 'data': [], 'count': 0}
     try:
         res = client.table('documents') \
-            .select('*, profiles!documents_uploader_id_fkey(full_name, email), subjects(name, subject_code), document_votes(user_id), bookmarks(user_id), document_comments(id)') \
+            .select('*, profiles!documents_uploader_id_fkey(full_name, email), subjects(name, subject_code), colleges(name, abbreviation), document_votes(user_id), bookmarks(user_id), document_comments(id)') \
             .in_('status', ['approved', 'pending']) \
             .order('created_at', desc=True) \
             .execute()

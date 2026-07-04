@@ -689,16 +689,13 @@ def api_get_branches():
 # T1 — Cascading dropdowns
 @app.route('/api/departments', methods=['GET'])
 def api_get_departments():
-    """Return departments — all if no college_id, filtered if college_id provided."""
+    """Return departments for a college (cascading dropdown, T1/T8)."""
     college_id = request.args.get('college_id', '').strip()
-    if college_id:
-        from methods.supabase_helper import get_departments_by_college
-        result = get_departments_by_college(college_id)
-    else:
-        from methods.supabase_helper import get_all_branches
-        result = get_all_branches()
-        result['departments'] = result.pop('data', [])
-    return jsonify({'success': result.get('success', False), 'departments': result.get('departments', result.get('data', []))}), 200
+    if not college_id:
+        return jsonify({'success': False, 'departments': [], 'message': 'college_id required'}), 400
+    from methods.supabase_helper import get_departments_by_college
+    result = get_departments_by_college(college_id)
+    return jsonify({'success': result.get('success', False), 'departments': result.get('data', [])}), 200
 
 
 @app.route('/api/subjects', methods=['GET'])
@@ -1610,8 +1607,8 @@ def dashboard():
     # Extract SEO data
     all_subjects = list(set([f.get('subject', '') for f in files if f.get('subject', '').strip()]))
     top_subjects = sorted(all_subjects)[:8]
-    paper_count = len([f for f in files if f.get('type', '').lower() == 'pyq'])
-    notes_count = len([f for f in files if f.get('type', '').lower() == 'notes'])
+    paper_count = len([f for f in files if f.get('type', '').lower() in ('papers', 'paper', 'pyq')])
+    notes_count = len([f for f in files if f.get('type', '').lower() in ('notes', 'imp questions', 'imp_questions')])
     
     seo_keywords = "AbhiHub, GHRCE papers, engineering papers, " + ", ".join(top_subjects) + ", exam resources, study materials"
     
@@ -1642,9 +1639,20 @@ def dashboard():
             file_history = history_result.get('data', [])
             
         # Get user profile basics from about_supabase schema
-        from methods.supabase_helper import get_user_profile, calculate_user_ranks
+        from methods.supabase_helper import get_user_profile, get_student_profile, calculate_user_ranks
         profile_res = get_user_profile(user_id)
         profile_data = profile_res.get('data', {}) if profile_res.get('success') else {}
+        
+        # Get college name/abbreviation
+        student_res = get_student_profile(user_id)
+        student_data = student_res.get('data', {}) if student_res.get('success') else {}
+        
+        # Enforce profile completion
+        if not student_data or not student_data.get('college_id'):
+            flash("Welcome to AbhiHub! Please complete your profile to access all personalized features.", "warning")
+            return redirect(url_for('profile'))
+            
+        college_name = student_data.get('college_name') or ''
         
         # Calculate global rank and live score
         # Match by uploader_id (UUID) — avoids fragile full_name string comparison
@@ -1680,7 +1688,8 @@ def dashboard():
             'global_rank': global_rank,
             'students_helped': students_helped,
             'badges': badges,
-            'paper_quota_remaining': _get_quota().get('credits', 19)
+            'paper_quota_remaining': _get_quota().get('credits', 19),
+            'college_name': college_name
         }
     
     promo_context = {
@@ -1689,8 +1698,25 @@ def dashboard():
         'reputation_score': user_data.get('reputation_score', 0) if user_data else 0,
         'upload_goal_month': 'May'
     }
-    
-    return render_template('p_index.html', 
+
+    # ── Personalized & trending papers ──────────────────────────────────────
+    all_papers = [f for f in files if f.get('type', '').lower() in ('papers', 'paper', 'pyq')]
+    all_papers_by_views = sorted(all_papers, key=lambda f: f.get('view_count', 0), reverse=True)
+
+    # Personalized: same college, sorted by views
+    user_college = user_data.get('college_name', '') if user_data else ''
+    if user_college:
+        relevant_papers = [f for f in all_papers_by_views if f.get('college', '') == user_college][:8]
+    else:
+        relevant_papers = all_papers_by_views[:8]
+
+    # Trending: top viewed overall (may overlap with relevant but that's fine)
+    trending_papers = all_papers_by_views[:8]
+
+    # Recent papers: newest first
+    recent_papers = sorted(all_papers, key=lambda f: f.get('date', ''), reverse=True)[:8]
+
+    return render_template('p_index.html',
                          data=files,
                          seo_keywords=seo_keywords,
                          top_subjects=top_subjects,
@@ -1699,7 +1725,10 @@ def dashboard():
                          user_data=user_data,
                          file_history=file_history,
                          now=datetime.now(),
-                         promo_context=promo_context)
+                         promo_context=promo_context,
+                         relevant_papers=relevant_papers,
+                         trending_papers=trending_papers,
+                         recent_papers=recent_papers)
 
 
 @app.route('/profile')
@@ -2962,8 +2991,7 @@ def store_room_api_rename_file():
         
         # Extract metadata from form
         college = data.get('college_name', '').strip()[:3].upper()  # First 3 chars
-        subject_code = data.get('subject_code', '').strip()
-        subject_name = data.get('subject_name', '').strip().replace(' ', '_')
+        subject_code = data.get('subject_code', '').strip() or data.get('subject_name', '')[:4].upper()
         exam_type = data.get('exam_type', 'unknown')[0].upper()  # S, W, V
         year = data.get('year', '')
         branch = data.get('branch', '').strip()[:3].upper()  # First 3 chars
@@ -2974,8 +3002,8 @@ def store_room_api_rename_file():
         file_ext = os.path.splitext(original_filename)[1]
         
         # Create new filename with metadata
-        subj_part = f"{subject_code}_{subject_name}".strip('_') if subject_code and subject_code != subject_name else subject_name or subject_code
-        new_filename = f"{college}_{subj_part}_{exam_type}_{year}_{branch}_{sem}{file_ext}"
+        # Format: College_SubjectCode_ExamType_Year_Branch_Sem.ext
+        new_filename = f"{college}_{subject_code}_{exam_type}_{year}_{branch}_{sem}{file_ext}"
         
         # Remove/replace invalid characters for filenames
         new_filename = "".join(c for c in new_filename if c.isalnum() or c in ('_', '.'))

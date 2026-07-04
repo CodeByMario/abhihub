@@ -1415,7 +1415,50 @@ function populateSuggestions() {
     loadLastLabels();
 }
 
-// fetchMetadata() removed: handled by p_store_room.html inline script
+async function fetchMetadata() {
+    try {
+        const [collegesRes, branchesRes] = await Promise.all([
+            fetch('/api/colleges'),
+            fetch('/api/branches')
+        ]);
+
+        const collegesData = await collegesRes.json();
+        const branchesData = await branchesRes.json();
+
+        if (collegesData.success) {
+            const collegeSelect = document.getElementById('collegeName');
+            if (collegeSelect) {
+                // Keep the first "Select College..." option
+                collegeSelect.innerHTML = '<option value="">Select College...</option>';
+                collegesData.colleges.forEach(college => {
+                    const option = document.createElement('option');
+                    option.value = college.name;
+                    option.textContent = college.name;
+                    collegeSelect.appendChild(option);
+                });
+            }
+        }
+
+        if (branchesData.success) {
+            const branchSelect = document.getElementById('branch');
+            if (branchSelect) {
+                // Keep the first "Select Branch..." option
+                branchSelect.innerHTML = '<option value="">Select Branch...</option>';
+                branchesData.branches.forEach(branch => {
+                    const option = document.createElement('option');
+                    option.value = branch.name;
+                    option.textContent = branch.name;
+                    branchSelect.appendChild(option);
+                });
+            }
+        }
+
+        // After populating, try to load last used labels
+        loadLastLabels();
+    } catch (e) {
+        console.error('Error fetching metadata:', e);
+    }
+}
 
 // ==========================================
 // Remember Labels
@@ -1637,9 +1680,44 @@ async function handleSave() {
     }
 }
 
-// validateForm() removed: handled by p_store_room.html inline script
+function validateForm() {
+    const collegeName = document.getElementById('collegeName')?.value.trim();
+    if (!collegeName) return { valid: false, field: 'collegeName', message: 'College Name is required' };
 
-// getFormData() removed: handled by p_store_room.html inline script
+    const subjectName = document.getElementById('subjectName')?.value.trim();
+    if (!subjectName) return { valid: false, field: 'subjectName', message: 'Subject Name is required' };
+
+    const yearRaw = document.getElementById('year')?.value;
+    if (!yearRaw) return { valid: false, field: 'year', message: 'Year is required' };
+    const year = parseInt(yearRaw, 10);
+    const thisYear = new Date().getFullYear();
+    if (isNaN(year) || year < 1900 || year > thisYear + 1) return { valid: false, field: 'year', message: 'Please enter a valid year' };
+
+    const branch = document.getElementById('branch')?.value.trim();
+    if (!branch) return { valid: false, field: 'branch', message: 'Branch is required' };
+
+    const category = document.querySelector('input[name="documentCategory"]:checked');
+    if (!category) return { valid: false, field: 'documentCategory', message: 'Please select a Category' };
+
+    return { valid: true };
+}
+
+function getFormData() {
+    return {
+        filename: currentFileData.filename,
+        url: currentFileData.url,
+        title: document.getElementById('documentTitle')?.value.trim(),
+        document_category: document.querySelector('input[name="documentCategory"]:checked')?.value,
+        college_name: document.getElementById('collegeName')?.value.trim(),
+        subject_name: document.getElementById('subjectName')?.value.trim(),
+        subject_code: document.getElementById('subjectCode')?.value.trim(),
+        exam_type: document.getElementById('examType')?.value,
+        year: parseInt(document.getElementById('year')?.value),
+        branch: document.getElementById('branch')?.value.trim(),
+        semesters: Array.from(document.querySelectorAll('input[name="semester"]:checked')).map(cb => cb.value),
+        description: document.getElementById('description')?.value.trim()
+    };
+}
 
 // ==========================================
 // Toast Notifications

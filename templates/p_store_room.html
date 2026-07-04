@@ -194,99 +194,173 @@
                 <p class="form-subtitle">Fill details to organize this file</p>
             </div>
             <div class="nav-buttons-container">
-                <button class="nav-btn" id="prevBtn" onclick="navigateToPreviousFile()" aria-label="Previous file">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
+                <button class="nav-btn" id="prevBtn" onclick="navigateFile(-1)" aria-label="Previous file">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="15 18 9 12 15 6"></polyline>
+                    </svg>
                 </button>
                 <span class="nav-counter" id="navCounter">1 / 10</span>
-                <button class="nav-btn" id="nextBtn" onclick="navigateToNextFile()" aria-label="Next file">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
+                <button class="nav-btn" id="nextBtn" onclick="navigateFile(1)" aria-label="Next file">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <polyline points="9 18 15 12 9 6"></polyline>
+                    </svg>
                 </button>
             </div>
         </div>
 
         <div class="form-panel-content">
             <form id="labelForm">
+                <!-- Section 1: Basic Identity -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                        </svg>
+                        <span class="section-title">Document Identity</span>
+                    </div>
 
-                <!-- Category -->
-                <div class="lf-field">
-                    <span class="lf-label">Category</span>
-                    <div class="category-grid">
-                        <label class="category-chip"><input type="radio" name="documentCategory" value="papers" checked><i class="fas fa-file-contract"></i><span>Papers</span></label>
-                        <label class="category-chip"><input type="radio" name="documentCategory" value="notes"><i class="fas fa-notes-medical"></i><span>Notes</span></label>
-                        <label class="category-chip"><input type="radio" name="documentCategory" value="practical"><i class="fas fa-flask"></i><span>Practical</span></label>
-                        <label class="category-chip"><input type="radio" name="documentCategory" value="syllabus"><i class="fas fa-list-ul"></i><span>Syllabus</span></label>
-                        <label class="category-chip"><input type="radio" name="documentCategory" value="assisment"><i class="fas fa-tasks"></i><span>Assessment</span></label>
-                        <label class="category-chip"><input type="radio" name="documentCategory" value="timetable"><i class="fas fa-calendar-alt"></i><span>Timetable</span></label>
+                        <div class="form-group full">
+                            <label class="form-label" for="documentTitle">Document Title</label>
+                            <div class="form-input-container">
+                                <input type="text" class="form-input" id="documentTitle" name="documentTitle"
+                                    placeholder="Give this file a clear name" aria-label="Document Title">
+                            </div>
+                        </div>
+
+                    <div class="form-group full mt-xl">
+                        <label class="form-label">Category</label>
+                        <div class="category-grid">
+                            <label class="category-chip">
+                                <input type="radio" name="documentCategory" value="papers" checked>
+                                <i class="fas fa-file-contract"></i>
+                                <span>Papers</span>
+                            </label>
+                            <label class="category-chip">
+                                <input type="radio" name="documentCategory" value="notes">
+                                <i class="fas fa-notes-medical"></i>
+                                <span>Notes</span>
+                            </label>
+                            <label class="category-chip">
+                                <input type="radio" name="documentCategory" value="practical">
+                                <i class="fas fa-flask"></i>
+                                <span>Practical</span>
+                            </label>
+                            <label class="category-chip">
+                                <input type="radio" name="documentCategory" value="syllabus">
+                                <i class="fas fa-list-ul"></i>
+                                <span>Syllabus</span>
+                            </label>
+                            <label class="category-chip">
+                                <input type="radio" name="documentCategory" value="assisment">
+                                <i class="fas fa-tasks"></i>
+                                <span>Assesment</span>
+                            </label>
+                            <label class="category-chip">
+                                <input type="radio" name="documentCategory" value="timetable">
+                                <i class="fas fa-calendar-alt"></i>
+                                <span>Timetable</span>
+                            </label>
+                        </div>
                     </div>
                 </div>
 
-                <!-- College -->
-                <div class="lf-field">
-                    <label class="lf-label" for="collegeName">College <span class="required-star">*</span></label>
-                    <select class="lf-input" id="collegeName" name="collegeName" required>
-                        <option value="" disabled selected>Select College…</option>
-                    </select>
-                </div>
+                <!-- Section 2: Academic Context -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
+                            <path d="M6 12.5V16a6 6 0 0 0 12 0v-3.5"></path>
+                        </svg>
+                        <span class="section-title">Academic Details</span>
+                    </div>
 
-                <!-- Department -->
-                <div class="lf-field">
-                    <label class="lf-label" for="branch">Department <span class="required-star">*</span></label>
-                    <select class="lf-input" id="branch" name="branch" required>
-                        <option value="" disabled selected>Select College first</option>
-                    </select>
-                </div>
-
-                <!-- Semester + Year -->
-                <div class="lf-row">
-                    <div class="lf-field">
-                        <label class="lf-label" for="semester">Semester <span class="required-star">*</span></label>
-                        <select class="lf-input" id="semester" name="semester" required>
-                            <option value="" disabled selected>Select</option>
+                    <div class="form-group full">
+                        <label class="form-label" for="collegeName">College <span class="required-star">*</span></label>
+                        <select class="form-input" id="collegeName" name="collegeName" required>
+                            <option value="" disabled selected>Select College…</option>
                         </select>
                     </div>
-                    <div class="lf-field">
-                        <label class="lf-label" for="year">Year <span class="required-star">*</span></label>
-                        <select class="lf-input" id="year" name="year" required>
-                            <option value="2022">2022</option>
-                            <option value="2023">2023</option>
-                            <option value="2024">2024</option>
-                            <option value="2025" selected>2025</option>
-                            <option value="2026">2026</option>
+
+                    <div class="form-group full" style="margin-top:0.75rem">
+                        <label class="form-label" for="branch">Branch <span class="required-star">*</span></label>
+                        <select class="form-input" id="branch" name="branch" required>
+                            <option value="" disabled selected>Select College first</option>
+                        </select>
+                    </div>
+
+                    <div class="form-grid" style="margin-top:0.75rem">
+                        <div class="form-group">
+                            <label class="form-label" for="semester">Semester <span class="required-star">*</span></label>
+                            <select class="form-input" id="semester" name="semester" required>
+                                <option value="" disabled selected>Select Semester</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="year">Year <span class="required-star">*</span></label>
+                            <select class="form-input" id="year" name="year" required>
+                                <option value="2022">2022</option>
+                                <option value="2023">2023</option>
+                                <option value="2024">2024</option>
+                                <option value="2025" selected>2025</option>
+                                <option value="2026">2026</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Section 3: Subject Info -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a4 4 0 0 0-4-4H2z"></path>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a4 4 0 0 1 4-4h6z"></path>
+                        </svg>
+                        <span class="section-title">Subject Information</span>
+                    </div>
+
+                    <div class="form-group full">
+                        <label class="form-label" for="subjectName">Subject <span class="required-star">*</span></label>
+                        <select class="form-input" id="subjectName" name="subjectName" required>
+                            <option value="" disabled selected>Select Semester first</option>
+                        </select>
+                        <div id="srOtherSubjectWrap" style="display:none;margin-top:0.5rem">
+                            <input type="text" class="form-input" id="srOtherSubjectName" placeholder="Subject name *" style="margin-bottom:0.4rem">
+                            <input type="text" class="form-input" id="srOtherSubjectCode" placeholder="Subject code (e.g. CS501)" style="margin-bottom:0.4rem">
+                            <button type="button" class="sr-add-btn" onclick="srAddSubject()">➕ Add Subject</button>
+                        </div>
+                    </div>
+
+                    <div class="form-group full" style="margin-top:0.75rem">
+                        <label class="form-label" for="subjectCode">Subject Code</label>
+                        <input type="text" class="form-input" id="subjectCode" name="subjectCode" placeholder="Auto-filled or enter manually">
+                    </div>
+
+                    <div class="form-group full" id="srUnitGroup" style="display:none;margin-top:0.75rem">
+                        <label class="form-label" for="examType">Exam / Unit</label>
+                        <select class="form-input" id="examType">
+                            <option value="">Select…</option>
                         </select>
                     </div>
                 </div>
 
-                <!-- Subject -->
-                <div class="lf-field">
-                    <label class="lf-label" for="subjectName">Subject <span class="required-star">*</span></label>
-                    <select class="lf-input" id="subjectName" name="subjectName" required>
-                        <option value="" disabled selected>Select Semester first</option>
-                    </select>
-                    <div id="srOtherSubjectWrap" style="display:none;margin-top:0.5rem">
-                        <input type="text" class="lf-input" id="srOtherSubjectName" placeholder="Subject name *" style="margin-bottom:0.4rem">
-                        <input type="text" class="lf-input" id="srOtherSubjectCode" placeholder="Subject code (e.g. CS501)" style="margin-bottom:0.4rem">
-                        <button type="button" class="sr-add-btn" onclick="srAddSubject()">➕ Add Subject</button>
+                <!-- Section 4: Extra Metadata -->
+                <div class="form-section">
+                    <div class="section-header">
+                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                            stroke-width="2">
+                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                        </svg>
+                        <span class="section-title">Additional Notes</span>
                     </div>
-                </div>
 
-                <!-- Subject Code (auto-filled, read-only feel) -->
-                <div class="lf-field">
-                    <label class="lf-label" for="subjectCode">Subject Code</label>
-                    <input type="text" class="lf-input" id="subjectCode" name="subjectCode" placeholder="Auto-filled from subject">
-                </div>
-
-                <!-- Exam / Unit (conditional) -->
-                <div class="lf-field" id="srUnitGroup" style="display:none">
-                    <label class="lf-label" for="examType">Exam / Unit</label>
-                    <select class="lf-input" id="examType">
-                        <option value="">Select…</option>
-                    </select>
-                </div>
-
-                <!-- New filename preview -->
-                <div class="lf-field" id="filenamePreviewWrap" style="display:none">
-                    <span class="lf-label">New filename</span>
-                    <div class="lf-filename-preview" id="filenamePreview"></div>
+                    <div class="form-group full">
+                        <textarea class="form-input" id="description" name="description"
+                            placeholder="Add any extra details or important notes here..." aria-label="Additional Notes"></textarea>
+                    </div>
                 </div>
 
             </form>
@@ -298,20 +372,8 @@
                 <span class="toggle-label">Remember</span>
             </div>
             <button type="button" class="save-btn idle" id="saveBtn" onclick="handleSave()" aria-live="polite" aria-label="Save and organize">
-                <span class="btn-text">Save &amp; Rename</span>
+                <span class="btn-text">Save Label</span>
             </button>
-        </div>
-    </div>
-</div>
-
-<!-- Confirm Dialog -->
-<style>#confirmDialog{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center}#confirmDialog.active{display:flex}</style>
-<div id="confirmDialog">
-    <div style="background:#fff;border-radius:12px;padding:1.5rem;max-width:360px;width:90%;text-align:center">
-        <p style="margin:0 0 1rem;font-size:1rem;font-weight:600">You have unsaved changes. Discard them?</p>
-        <div style="display:flex;gap:0.75rem;justify-content:center">
-            <button onclick="cancelClose()" style="padding:0.5rem 1.25rem;border:1px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer">Cancel</button>
-            <button onclick="confirmClose()" style="padding:0.5rem 1.25rem;border:none;border-radius:8px;background:#ef4444;color:#fff;cursor:pointer">Discard</button>
         </div>
     </div>
 </div>
@@ -337,11 +399,13 @@
 
     async function srLoadDepartments(collegeId) {
         const brSel = document.getElementById('branch');
-        brSel.innerHTML = '<option value="" disabled selected>Loading...</option>';
-        document.getElementById('subjectName').innerHTML = '<option value="" disabled selected>Select Branch first</option>';
-        const url = collegeId ? '/api/departments?college_id=' + collegeId : '/api/departments';
+        const semSel = document.getElementById('semester');
+        const subjSel = document.getElementById('subjectName');
+        brSel.innerHTML = '<option value="" disabled selected>Loading…</option>';
+        subjSel.innerHTML = '<option value="" disabled selected>Select Semester first</option>';
+        if (!collegeId) return;
         try {
-            const r = await fetch(url).then(r => r.json());
+            const r = await fetch(`/api/departments?college_id=${collegeId}`).then(r => r.json());
             brSel.innerHTML = '<option value="" disabled selected>Select Branch</option>';
             (r.departments || []).forEach(d => {
                 const o = document.createElement('option');
@@ -351,12 +415,14 @@
         } catch { brSel.innerHTML = '<option value="" disabled selected>Failed to load</option>'; }
     }
 
-    function srLoadSemesters() {
+    function srLoadSemesters(deptId) {
         const semSel = document.getElementById('semester');
+        const subjSel = document.getElementById('subjectName');
         semSel.innerHTML = '<option value="" disabled selected>Select Semester</option>';
+        subjSel.innerHTML = '<option value="" disabled selected>Select Semester first</option>';
         for (let i = 1; i <= 8; i++) {
             const o = document.createElement('option');
-            o.value = i; o.textContent = 'Semester ' + i;
+            o.value = i; o.textContent = `Semester ${i}`;
             semSel.appendChild(o);
         }
         semSel.appendChild(Object.assign(document.createElement('option'), { value: '0', textContent: 'All Semesters' }));
@@ -364,20 +430,20 @@
 
     async function srLoadSubjects(deptId, semester) {
         const subjSel = document.getElementById('subjectName');
-        subjSel.innerHTML = '<option value="" disabled selected>Loading...</option>';
+        subjSel.innerHTML = '<option value="" disabled selected>Loading…</option>';
         document.getElementById('srOtherSubjectWrap').style.display = 'none';
         if (!deptId) return;
+        const sem = semester && String(semester) !== '0' ? `&semester=${semester}` : '';
         try {
-            const sem = semester && String(semester) !== '0' ? '&semester=' + semester : '';
-            const r = await fetch('/api/subjects?department_id=' + deptId + sem).then(r => r.json());
+            const r = await fetch(`/api/subjects?department_id=${deptId}${sem}`).then(r => r.json());
             subjSel.innerHTML = '<option value="" disabled selected>Select Subject</option>';
             (r.subjects || []).forEach(s => {
                 const o = document.createElement('option');
                 o.value = s.id; o.dataset.name = s.name; o.dataset.code = s.subject_code || '';
-                o.textContent = s.subject_code ? s.name + ' (' + s.subject_code + ')' : s.name;
+                o.textContent = s.subject_code ? `${s.name} (${s.subject_code})` : s.name;
                 subjSel.appendChild(o);
             });
-            subjSel.appendChild(Object.assign(document.createElement('option'), { value: '__other__', textContent: '+ Other (Add New)' }));
+            subjSel.appendChild(Object.assign(document.createElement('option'), { value: '__other__', textContent: '➕ Other (Add New)' }));
         } catch { subjSel.innerHTML = '<option value="" disabled selected>Failed to load</option>'; }
     }
 
@@ -397,7 +463,7 @@
                 const sel = document.getElementById('subjectName');
                 const o = document.createElement('option');
                 o.value = r.subject.id; o.dataset.name = r.subject.name; o.dataset.code = r.subject.subject_code || '';
-                o.textContent = r.subject.subject_code ? r.subject.name + ' (' + r.subject.subject_code + ')' : r.subject.name;
+                o.textContent = r.subject.subject_code ? `${r.subject.name} (${r.subject.subject_code})` : r.subject.name;
                 const other = sel.querySelector('option[value="__other__"]');
                 if (other) sel.insertBefore(o, other); else sel.appendChild(o);
                 sel.value = r.subject.id;
@@ -405,7 +471,7 @@
                 document.getElementById('srOtherSubjectWrap').style.display = 'none';
                 document.getElementById('srOtherSubjectName').value = '';
                 document.getElementById('srOtherSubjectCode').value = '';
-                showToast('Subject added', 'success');
+                showToast('Subject added ✅', 'success');
             } else { showToast(r.message || 'Failed to add subject', 'error'); }
         } catch { showToast('Network error', 'error'); }
     }
@@ -418,7 +484,7 @@
             codeInput.value = '';
         } else {
             wrap.style.display = 'none';
-            const opt = document.querySelector('#subjectName option[value="' + val + '"]');
+            const opt = document.querySelector(`#subjectName option[value="${val}"]`);
             if (opt) codeInput.value = opt.dataset.code || '';
         }
     }
@@ -430,52 +496,56 @@
         if (!unitGroup || !examSel) return;
         if (cat === 'papers') {
             unitGroup.style.display = 'block';
-            examSel.innerHTML = '<option value="">Select...</option><option value="CAE1">CAE-1</option><option value="CAE2">CAE-2</option><option value="CAE3">CAE-3</option><option value="ESE">End Sem / Resit</option><option value="summer">Summer</option><option value="winter">Winter</option>';
+            examSel.innerHTML = '<option value="">Select…</option><option value="CAE1">CAE-1</option><option value="CAE2">CAE-2</option><option value="CAE3">CAE-3</option><option value="ESE">End Sem / Resit</option><option value="summer">Summer</option><option value="winter">Winter</option>';
         } else if (cat === 'notes') {
             unitGroup.style.display = 'block';
-            examSel.innerHTML = '<option value="">Select...</option><option value="U1">Unit 1</option><option value="U2">Unit 2</option><option value="U3">Unit 3</option><option value="U4">Unit 4</option><option value="U5">Unit 5</option><option value="All">All Units</option>';
+            examSel.innerHTML = '<option value="">Select…</option><option value="U1">Unit 1</option><option value="U2">Unit 2</option><option value="U3">Unit 3</option><option value="U4">Unit 4</option><option value="U5">Unit 5</option><option value="All">All Units</option>';
         } else if (cat === 'practical') {
             unitGroup.style.display = 'block';
-            examSel.innerHTML = '<option value="">Select...</option><option value="viva">Viva</option><option value="journal">Journal</option><option value="All">All</option>';
+            examSel.innerHTML = '<option value="">Select…</option><option value="viva">Viva</option><option value="journal">Journal</option><option value="All">All</option>';
         } else {
             unitGroup.style.display = 'none';
             examSel.value = '';
         }
     }
 
-    // -- Wire up events after DOM ready --
+    // ── Wire up events after DOM ready ──
     document.addEventListener('DOMContentLoaded', () => {
-        srLoadSemesters();
+        // College change → load departments + semesters (semester independent of branch)
         document.getElementById('collegeName').addEventListener('change', function () {
             srLoadDepartments(this.value);
+            srLoadSemesters();
         });
+        // Department change → load semesters (only if value looks like a UUID from cascade)
         document.getElementById('branch').addEventListener('change', function () {
-            const sem = document.getElementById('semester')?.value;
-            if (this.value) srLoadSubjects(this.value, sem);
+            const val = this.value;
+            // UUID pattern — only cascade if selected from our /api/departments dropdown
+            if (/^[0-9a-f-]{36}$/i.test(val) || /^\d+$/.test(val)) {
+                srLoadSemesters(val);
+            }
         });
+        // Semester change → load subjects (only if branch is a real ID)
         document.getElementById('semester').addEventListener('change', function () {
-            const deptId = document.getElementById('branch')?.value;
-            if (deptId && deptId !== '__other__') srLoadSubjects(deptId, this.value);
+            const deptId = document.getElementById('branch').value;
+            if (/^[0-9a-f-]{36}$/i.test(deptId) || /^\d+$/.test(deptId)) {
+                srLoadSubjects(deptId, this.value);
+            }
         });
+        // Subject change → auto-fill code / show add-new
         document.getElementById('subjectName').addEventListener('change', function () {
             srOnSubjectChange(this.value);
         });
+        // Category change → update unit/exam field
         document.querySelectorAll('input[name="documentCategory"]').forEach(r =>
-            r.addEventListener('change', () => { srUpdateUnitField(); srUpdateFilenamePreview(); })
+            r.addEventListener('change', srUpdateUnitField)
         );
-        ['subjectName','subjectCode','examType','year'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener('change', srUpdateFilenamePreview);
-        });
-        ['srOtherSubjectName','srOtherSubjectCode'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.addEventListener('input', srUpdateFilenamePreview);
-        });
     });
 
-    // -- Override fetchMetadata --
+    // ── Override fetchMetadata so store_room.js uses cascading flow ──
     async function fetchMetadata() {
         await srLoadColleges();
+        srLoadSemesters();
+        // Auto-fill from user profile
         try {
             const p = await fetch('/api/profile').then(r => r.json());
             if (p.success && p.user) {
@@ -484,134 +554,95 @@
                 if (collegeId) {
                     document.getElementById('collegeName').value = collegeId;
                     await srLoadDepartments(collegeId);
-                }
-                if (deptId) {
-                    document.getElementById('branch').value = deptId;
-                    srLoadSemesters();
-                    await srLoadSubjects(deptId);
+                    if (deptId) {
+                        document.getElementById('branch').value = deptId;
+                        srLoadSemesters(deptId);
+                    }
                 }
             }
         } catch {}
         loadLastLabels();
     }
 
-    // -- Override getFormData --
-    function srBuildFilename(data) {
-        const ext = (currentFileData.filename || '').includes('.')
-            ? currentFileData.filename.split('.').pop().toLowerCase() : 'jpg';
-        const sanitize = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/, '');
-        const code    = sanitize(data.subject_code);
-        const name    = sanitize(data.subject_name);
-        const docType = sanitize(data.document_category);
-        const year    = sanitize(String(data.year || ''));
-        const unit    = sanitize(data.exam_type || '');
-        
-        let subjPart = code && code !== name ? `${code}_${name}` : (name || code);
-        
-        const parts   = [subjPart, docType, year];
-        if (unit) parts.push(unit);
-        return (parts.filter(Boolean).join('_') || sanitize(currentFileData.filename.replace(/\.[^.]+$/, ''))) + '.' + ext;
-    }
-
-    function srUpdateFilenamePreview() {
-        try {
-            const data = getFormData();
-            if (!data.subject_name && !data.subject_code) {
-                document.getElementById('filenamePreviewWrap').style.display = 'none';
-                return;
-            }
-            document.getElementById('filenamePreview').textContent = srBuildFilename(data);
-            document.getElementById('filenamePreviewWrap').style.display = 'block';
-        } catch {}
-    }
-
+    // ── Override getFormData to read select value + name correctly ──
     function getFormData() {
-        const subjSel  = document.getElementById('subjectName');
-        const subjOpt  = subjSel.options[subjSel.selectedIndex];
-        let subjName = subjOpt?.dataset?.name || subjOpt?.textContent?.replace(/\s*\(.*\)$/, '').trim() || '';
-        const subjId   = subjSel.value !== '__other__' ? subjSel.value : null;
-        let subjCode   = document.getElementById('subjectCode')?.value.trim();
+        const subjSel = document.getElementById('subjectName');
+        const subjOpt = subjSel.options[subjSel.selectedIndex];
+        const subjName = subjOpt?.dataset?.name || subjOpt?.textContent?.replace(/\s*\(.*\)$/, '').trim() || '';
+        const subjId = subjSel.value !== '__other__' ? subjSel.value : null;
 
-        if (subjSel.value === '__other__') {
-            subjName = document.getElementById('srOtherSubjectName')?.value.trim() || 'New_Subject';
-            subjCode = document.getElementById('srOtherSubjectCode')?.value.trim() || '';
-        }
-
-        const colSel  = document.getElementById('collegeName');
-        const colOpt  = colSel.options[colSel.selectedIndex];
+        const colSel = document.getElementById('collegeName');
+        const colOpt = colSel.options[colSel.selectedIndex];
         const colName = colOpt?.dataset?.name || colOpt?.textContent || '';
 
-        const brSel  = document.getElementById('branch');
-        const brOpt  = brSel.options[brSel.selectedIndex];
+        const brSel = document.getElementById('branch');
+        const brOpt = brSel.options[brSel.selectedIndex];
         const brName = brOpt?.dataset?.name || brOpt?.textContent || '';
 
         const semRaw = document.getElementById('semester')?.value;
         const semInt = semRaw && semRaw !== '0' ? parseInt(semRaw) : null;
 
-        const data = {
-            filename:          currentFileData.filename,
-            url:               currentFileData.url,
+        return {
+            filename: currentFileData.filename,
+            url: currentFileData.url,
+            title: document.getElementById('documentTitle')?.value.trim(),
             document_category: document.querySelector('input[name="documentCategory"]:checked')?.value,
-            college_name:      colName,
-            college_id:        colSel.value,
-            subject_name:      subjName,
-            subject_id:        subjId,
-            subject_code:      subjCode,
-            exam_type:         document.getElementById('examType')?.value,
-            year:              parseInt(document.getElementById('year')?.value),
-            branch:            brName,
-            branch_id:         brSel.value,
-            semester:          semInt,
-            semesters:         semInt ? [String(semInt)] : []
+            college_name: colName,
+            college_id: colSel.value,
+            subject_name: subjName,
+            subject_id: subjId,
+            subject_code: document.getElementById('subjectCode')?.value.trim(),
+            exam_type: document.getElementById('examType')?.value,
+            year: parseInt(document.getElementById('year')?.value),
+            branch: brName,
+            branch_id: brSel.value,
+            semester: semInt,
+            semesters: semInt ? [String(semInt)] : [],
+            description: document.getElementById('description')?.value.trim()
         };
-        data.new_filename = srBuildFilename(data);
-        return data;
     }
 
-    // -- Override validateForm --
+    // ── Override validateForm to match new fields ──
     function validateForm() {
-        const collegeId = document.getElementById('collegeName')?.value;
-        if (!collegeId || collegeId === '__other__')
+        if (!document.getElementById('collegeName')?.value)
             return { valid: false, field: 'collegeName', message: 'College is required' };
-        const branchId = document.getElementById('branch')?.value;
-        if (!branchId || branchId === '__other__')
-            return { valid: false, field: 'branch', message: 'Department is required' };
+        if (!document.getElementById('branch')?.value)
+            return { valid: false, field: 'branch', message: 'Branch is required' };
         if (!document.getElementById('semester')?.value)
             return { valid: false, field: 'semester', message: 'Semester is required' };
         const subj = document.getElementById('subjectName')?.value;
         if (!subj || subj === '__other__')
-            return { valid: false, field: 'subjectName', message: 'Subject is required — select or add one' };
+            return { valid: false, field: 'subjectName', message: 'Subject is required' };
         if (!document.querySelector('input[name="documentCategory"]:checked'))
-            return { valid: false, field: 'documentCategory', message: 'Category is required' };
+            return { valid: false, field: 'documentCategory', message: 'Please select a Category' };
         if (!document.getElementById('year')?.value)
             return { valid: false, field: 'year', message: 'Year is required' };
         return { valid: true };
     }
 
-    // -- Override saveLastLabels / loadLastLabels --
+    // ── Override saveLastLabels / loadLastLabels for new field IDs ──
     function saveLastLabels() {
         localStorage.setItem('storeroom_last_labels', JSON.stringify({
-            collegeName:      document.getElementById('collegeName')?.value,
-            branch:           document.getElementById('branch')?.value,
-            semester:         document.getElementById('semester')?.value,
+            collegeName: document.getElementById('collegeName')?.value,
+            branch: document.getElementById('branch')?.value,
+            semester: document.getElementById('semester')?.value,
             documentCategory: document.querySelector('input[name="documentCategory"]:checked')?.value,
-            examType:         document.getElementById('examType')?.value
+            examType: document.getElementById('examType')?.value
         }));
     }
 
-    async function loadLastLabels() {
+    function loadLastLabels() {
         try {
             const stored = localStorage.getItem('storeroom_last_labels');
             if (!stored) return;
             const l = JSON.parse(stored);
-            if (l.collegeName) document.getElementById('collegeName').value = l.collegeName;
-            if (l.branch) {
+            if (l.collegeName && document.getElementById('collegeName').value === '')
+                document.getElementById('collegeName').value = l.collegeName;
+            if (l.branch && document.getElementById('branch').value === '')
                 document.getElementById('branch').value = l.branch;
-                await srLoadSubjects(l.branch);
-            }
             if (l.semester) document.getElementById('semester').value = l.semester;
             if (l.documentCategory) {
-                const r = document.querySelector('input[name="documentCategory"][value="' + l.documentCategory + '"]');
+                const r = document.querySelector(`input[name="documentCategory"][value="${l.documentCategory}"]`);
                 if (r) { r.checked = true; srUpdateUnitField(); }
             }
             if (l.examType) document.getElementById('examType').value = l.examType;
@@ -622,6 +653,21 @@
 <script src="{{ url_for('static', filename='js/file-history-tracker.js') }}"></script>
 <script src="{{ url_for('static', filename='premium/js/store_room.js') }}"></script>
 <script src="{{ url_for('static', filename='premium/js/verification.js') }}"></script>
+<script>
+    // ── Image viewer helpers (override store_room.js zoom vars) ──
+    let currentZoom = 1;
+    let currentRotation = 0;
 
+    function zoomIn()  { currentZoom += 0.2; updateTransform(); }
+    function zoomOut() { if (currentZoom > 0.4) currentZoom -= 0.2; updateTransform(); }
+    function rotateImage() { currentRotation = (currentRotation + 90) % 360; updateTransform(); }
+    function updateTransform() {
+        const img = document.getElementById('previewImg');
+        if (img) img.style.transform = `scale(${currentZoom}) rotate(${currentRotation}deg)`;
+    }
+    function closeLabelingView() {
+        document.getElementById('labelingView').classList.remove('active');
+    }
+</script>
 
 {% endblock %}
