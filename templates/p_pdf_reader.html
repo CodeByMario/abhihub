@@ -305,8 +305,7 @@
   }
 
   @media (min-width: 641px) {
-    /* Hide mobile-only download button on desktop (open-tab covers it) */
-    .rdr-download { display: none; }
+
   }
 
   @media (max-width: 480px) {
@@ -359,17 +358,7 @@
     <!-- Actions -->
     <div class="reader-actions">
       {% if file_meta.get('url') %}
-      <!-- Download: always visible on mobile, hidden on desktop -->
-      <a class="rdr-btn rdr-btn-ghost rdr-download"
-         href="{{ pdf_url | safe }}"
-         download
-         aria-label="Download PDF"
-         title="Download">
-        <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5 5-5M12 15V3"/>
-        </svg>
-        <span class="btn-label">Download</span>
-      </a>
+
       <!-- Open in new tab: desktop only -->
       <a class="rdr-btn rdr-btn-ghost rdr-open-tab"
          href="{{ file_meta['url'] }}"

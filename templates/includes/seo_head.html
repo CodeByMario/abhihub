@@ -1,0 +1,61 @@
+<!-- SEO FOUNDATION TEMPLATE -->
+<!-- 1. Performance & Hints -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://fonts.googleapis.com">
+
+<!-- 2. Core Meta Tags -->
+<title>{{ seo_title | default('AbhiHub - Engineering Exam Papers & Resources') }}</title>
+<meta name="description" content="{{ seo_description | default('AbhiHub is the best platform to organize exam resources, engineering papers, GHRCE PYQ, and study materials. Free access to exam papers, practicals, and notes.') }}">
+<meta name="keywords" content="{{ seo_keywords | default('AbhiHub, engineering papers, GHRCE papers, exam resources, PYQ, practice papers, engineering notes, study materials, exam preparation') }}">
+<meta name="author" content="AbhiHub">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+<meta name="theme-color" content="#2563eb">
+
+<!-- 3. Robots Directives -->
+{% set noindex_routes = ['/login', '/signup', '/dashboard', '/settings', '/admin'] %}
+{% set is_noindex = false %}
+{% for route in noindex_routes %}
+  {% if request.path.startswith(route) %}
+    {% set is_noindex = true %}
+  {% endif %}
+{% endfor %}
+
+{% if is_noindex %}
+<meta name="robots" content="noindex, nofollow">
+{% else %}
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+{% endif %}
+
+<!-- 4. Canonical URLs (Dynamic) -->
+<link rel="canonical" href="{{ request.base_url }}">
+
+<!-- 5. Open Graph Tags -->
+<meta property="og:site_name" content="AbhiHub">
+<meta property="og:type" content="{{ og_type | default('website') }}">
+<meta property="og:title" content="{{ og_title | default(seo_title | default('AbhiHub - Engineering Exam Papers & Resources')) }}">
+<meta property="og:description" content="{{ og_description | default(seo_description | default('AbhiHub is the best platform to organize exam resources...')) }}">
+<meta property="og:url" content="{{ request.base_url }}">
+<meta property="og:image" content="{{ og_image | default(url_for('static', filename='images/android-chrome-512x512.png', _external=True)) }}">
+
+<!-- 6. Twitter Card Tags -->
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ twitter_title | default(og_title | default(seo_title | default('AbhiHub'))) }}">
+<meta name="twitter:description" content="{{ twitter_description | default(og_description | default(seo_description | default(''))) }}">
+<meta name="twitter:image" content="{{ twitter_image | default(og_image | default(url_for('static', filename='premium/icons/icon-512x512.png', _external=True))) }}">
+
+<!-- 7. Organization JSON-LD Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "Organization",
+  "name": "AbhiHub",
+  "url": "https://abhihub.run.place",
+  "logo": "https://abhihub.run.place/static/images/apple-touch-icon.png",
+  "description": "Student-driven platform for engineering resources and PYQs.",
+  "sameAs": [
+    "https://www.instagram.com/_abhihub_",
+    "https://www.linkedin.com/company/abhihub"
+  ]
+}
+</script>

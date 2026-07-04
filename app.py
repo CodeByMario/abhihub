@@ -1475,6 +1475,11 @@ def preview():
     file_url = request.args.get('file_path')
     if not file_url:
         abort(404)
+        
+    record_id = request.args.get('record_id')
+    if record_id:
+        return redirect(url_for('resource_landing', slug=f"legacy-redirect-{record_id}"), code=301)
+
 
     # ── Quota gate ────────────────────────────────────────────────────────
     if not _consume_credit():
@@ -1920,6 +1925,124 @@ def features():
 @app.route('/features-tour')
 def features_tour():
     return render_template('features.html')
+@app.route('/college/<college_slug>')
+def college_landing(college_slug):
+    """Dynamic SEO-optimized college landing page"""
+    from methods.supabase_helper import get_college_by_slug, get_college_stats, get_recent_college_files, get_all_branches
+    
+    # 1. Resolve slug to college
+    college_res = get_college_by_slug(college_slug)
+    if not college_res.get('success'):
+        abort(404)
+        
+    college = college_res.get('data')
+    college_id = college.get('id')
+    
+    # 2. Fetch stats, recent files, and departments
+    stats = get_college_stats(college_id).get('data', {})
+    recent_files = get_recent_college_files(college_id, limit=6).get('data', [])
+    departments = get_all_branches().get('data', [])
+    
+    return render_template('college.html', 
+                           college=college, 
+                           stats=stats, 
+                           recent_files=recent_files,
+                           departments=departments)
+
+@app.route('/college/<college_slug>/<department_slug>')
+def department_landing(college_slug, department_slug):
+    """Dynamic SEO-optimized department landing page"""
+    from methods.supabase_helper import get_college_by_slug, get_department_by_slug, get_department_stats, get_recent_department_files
+    
+    # 1. Resolve college
+    college_res = get_college_by_slug(college_slug)
+    if not college_res.get('success'):
+        abort(404)
+    college = college_res.get('data')
+    college_id = college.get('id')
+    
+    # 2. Resolve department
+    dept_res = get_department_by_slug(department_slug)
+    if not dept_res.get('success'):
+        abort(404)
+    department = dept_res.get('data')
+    dept_id = department.get('id')
+    
+    # 3. Fetch stats and recent files
+    stats = get_department_stats(college_id, dept_id).get('data', {})
+    recent_files = get_recent_department_files(college_id, dept_id, limit=6).get('data', [])
+    
+    return render_template('department.html', 
+                           college=college,
+                           department=department,
+                           stats=stats, 
+                           recent_files=recent_files)
+
+@app.route('/subject/<subject_slug>')
+def subject_landing(subject_slug):
+    """Dynamic SEO-optimized subject landing page (aggregated across colleges)"""
+    from methods.supabase_helper import get_subjects_by_slug, get_subject_stats, get_recent_subject_files
+    
+    # 1. Resolve subject slug to a list of DB IDs
+    subject_res = get_subjects_by_slug(subject_slug)
+    if not subject_res.get('success'):
+        abort(404)
+        
+    subject_data = subject_res.get('data')
+    subject_ids = subject_data.get('ids')
+    subject_name = subject_data.get('name')
+    
+    # 2. Fetch aggregate stats and recent files
+    stats = get_subject_stats(subject_ids).get('data', {})
+    recent_files = get_recent_subject_files(subject_ids, limit=12).get('data', [])
+    
+    return render_template('subject.html', 
+                           subject_name=subject_name,
+                           stats=stats, 
+                           recent_files=recent_files)
+
+@app.route('/resource/<path:slug>')
+def resource_landing(slug):
+    """Dynamic SEO-optimized resource landing page"""
+    from methods.supabase_helper import get_document_by_id_rich
+    import re
+    
+    # Extract UUID from the end of the slug
+    # A standard UUID is 36 chars long (e.g. 847afaa6-cec4-48db-9016-2218c169bb87)
+    # The slug format is something like ghrce-ai-dbms-pyq-<uuid>
+    uuid_pattern = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    match = re.search(uuid_pattern, slug.lower())
+    if not match:
+        abort(404)
+        
+    doc_id = match.group(0)
+    
+    # Fetch rich document data
+    doc_res = get_document_by_id_rich(doc_id)
+    if not doc_res.get('success'):
+        abort(404)
+        
+    document = doc_res.get('data')
+    
+    # Construct canonical slug
+    college_data = document.get('college') or {}
+    dept_data = document.get('department') or {}
+    subj_data = document.get('subject') or {}
+    
+    college_abbr = (college_data.get('abbreviation') or college_data.get('name') or 'college').lower()
+    dept_abbr = (dept_data.get('abbreviation') or dept_data.get('name') or 'dept').lower()
+    subj_name = (subj_data.get('name') or 'subject').lower()
+    title = (document.get('title') or 'file').lower()
+    
+    raw_slug = f"{college_abbr}-{dept_abbr}-{subj_name}-{title}"
+    canonical_prefix = re.sub(r'[^a-z0-9]+', '-', raw_slug).strip('-')
+    canonical_slug = f"{canonical_prefix}-{doc_id}"
+    
+    # 301 Redirect to canonical if mismatch
+    if slug.lower() != canonical_slug:
+        return redirect(url_for('resource_landing', slug=canonical_slug), code=301)
+        
+    return render_template('resource.html', document=document)
 
 @app.route('/join')
 def join_team():
@@ -2075,6 +2198,10 @@ def view_pdf():
 
     try:
         record_id = request.args.get('record_id')
+        if record_id:
+            # 301 redirect to the new SEO URL structure
+            return redirect(url_for('resource_landing', slug=f"legacy-redirect-{record_id}"), code=301)
+
 
         # Log file access
         if 'user' in session:

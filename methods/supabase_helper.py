@@ -83,6 +83,163 @@ def get_all_colleges() -> Dict:
     except Exception as e:
         return {"success": False, "data": []}
 
+def get_college_by_slug(slug: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        response = client.table("colleges").select("*").execute()
+        import re
+        for c in response.data:
+            abbr = (c.get('abbreviation') or '').lower()
+            if abbr and abbr == slug:
+                return {"success": True, "data": c}
+            name_slug = re.sub(r'[^a-z0-9]+', '-', (c.get('name') or '').lower()).strip('-')
+            if name_slug == slug:
+                return {"success": True, "data": c}
+        return {"success": False, "message": "College not found"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_college_stats(college_id: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        doc_resp = client.table('documents').select('id', count='exact').eq('college_id', college_id).execute()
+        sub_resp = client.table('subjects').select('id', count='exact').eq('college_id', college_id).execute()
+        return {
+            "success": True, 
+            "data": {
+                "total_documents": doc_resp.count or 0,
+                "total_subjects": sub_resp.count or 0
+            }
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_recent_college_files(college_id: str, limit: int = 5) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        response = client.table('documents')\
+            .select('*, subject:subjects(name), uploader:profiles(name)')\
+            .eq('college_id', college_id)\
+            .order('created_at', desc=True)\
+            .limit(limit)\
+            .execute()
+        return {"success": True, "data": response.data}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_department_by_slug(slug: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        response = client.table("departments").select("*").execute()
+        import re
+        for c in response.data:
+            abbr = (c.get('abbreviation') or '').lower()
+            if abbr and abbr == slug:
+                return {"success": True, "data": c}
+            name_slug = re.sub(r'[^a-z0-9]+', '-', (c.get('name') or '').lower()).strip('-')
+            if name_slug == slug:
+                return {"success": True, "data": c}
+        return {"success": False, "message": "Department not found"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_department_stats(college_id: str, dept_id: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        doc_resp = client.table('documents').select('id', count='exact').eq('college_id', college_id).eq('department_id', dept_id).execute()
+        sub_resp = client.table('subjects').select('id', count='exact').eq('college_id', college_id).eq('department_id', dept_id).execute()
+        return {
+            "success": True, 
+            "data": {
+                "total_documents": doc_resp.count or 0,
+                "total_subjects": sub_resp.count or 0
+            }
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_recent_department_files(college_id: str, dept_id: str, limit: int = 6) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        response = client.table('documents')\
+            .select('*, subject:subjects(name), uploader:profiles(name)')\
+            .eq('college_id', college_id)\
+            .eq('department_id', dept_id)\
+            .order('created_at', desc=True)\
+            .limit(limit)\
+            .execute()
+        return {"success": True, "data": response.data}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_subjects_by_slug(slug: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        response = client.table("subjects").select("*").execute()
+        import re
+        matching_ids = []
+        canonical_name = None
+        for s in response.data:
+            name_slug = re.sub(r'[^a-z0-9]+', '-', (s.get('name') or '').lower()).strip('-')
+            if name_slug == slug:
+                matching_ids.append(s.get('id'))
+                if not canonical_name:
+                    canonical_name = s.get('name')
+        if not matching_ids:
+            return {"success": False, "message": "Subject not found"}
+        return {"success": True, "data": {"ids": matching_ids, "name": canonical_name}}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_subject_stats(subject_ids: list) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        # Aggregating across multiple IDs using 'in'
+        doc_resp = client.table('documents').select('id', count='exact').in_('subject_id', subject_ids).execute()
+        return {
+            "success": True, 
+            "data": {
+                "total_documents": doc_resp.count or 0
+            }
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_recent_subject_files(subject_ids: list, limit: int = 10) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        response = client.table('documents')\
+            .select('*, college:colleges(name, abbreviation), uploader:profiles(name)')\
+            .in_('subject_id', subject_ids)\
+            .order('created_at', desc=True)\
+            .limit(limit)\
+            .execute()
+        return {"success": True, "data": response.data}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_document_by_id_rich(doc_id: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        response = client.table('documents')\
+            .select('*, college:colleges(name, abbreviation), department:departments(name, abbreviation), subject:subjects(name), uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)')\
+            .eq('id', doc_id)\
+            .single()\
+            .execute()
+        return {"success": True, "data": response.data}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
 def get_all_branches() -> Dict:
     client = init_supabase()
     if not client: return {"success": False, "data": []}

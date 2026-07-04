@@ -1,0 +1,275 @@
+{% set seo_title = college.name ~ ' Notes, PYQs, Practicals & Study Materials | AbhiHub' %}
+{% set seo_description = 'Download previous year question papers, notes, practicals, and study materials for ' ~ college.name ~ '. Free academic resources organized by department and subject.' %}
+{% set seo_keywords = college.name ~ ', ' ~ college.name ~ ' Notes, ' ~ college.name ~ ' PYQ, ' ~ college.name ~ ' Previous Year Question Papers, ' ~ college.name ~ ' Study Material, ' ~ college.name ~ ' Practical Files' %}
+{% set og_title = seo_title %}
+{% set og_description = seo_description %}
+{% set og_type = 'website' %}
+
+{% extends 'p_struct.html' %}
+{% block page_head %}
+<!-- Dynamic Organization/College Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "CollegeOrUniversity",
+  "name": "{{ college.name }}",
+  "url": "{{ request.base_url }}",
+  "description": "Academic resources, PYQs, and notes for {{ college.name }} provided by AbhiHub."
+}
+</script>
+
+<style>
+:root {
+  --c-primary: #2563eb;
+  --c-bg: #f8fafc;
+  --c-card: #ffffff;
+  --c-text: #0f172a;
+  --c-muted: #64748b;
+  --c-border: #e2e8f0;
+}
+
+body { background-color: var(--c-bg); }
+
+.college-hero {
+  padding: 6rem 1.5rem 4rem;
+  background: linear-gradient(135deg, #1e293b 0%, var(--c-primary) 100%);
+  color: white;
+  text-align: center;
+  border-bottom-left-radius: 40px;
+  border-bottom-right-radius: 40px;
+  box-shadow: 0 20px 40px rgba(37, 99, 235, 0.15);
+  margin-bottom: -3rem; /* overlap stats */
+}
+
+.college-hero h1 {
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 900;
+  margin-bottom: 1rem;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.college-hero p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.college-city-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255,255,255,0.2);
+  backdrop-filter: blur(8px);
+  padding: 0.5rem 1.2rem;
+  border-radius: 99px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+.college-stats-container {
+  max-width: 900px;
+  margin: 0 auto 4rem;
+  position: relative;
+  z-index: 10;
+  padding: 0 1.5rem;
+}
+
+.college-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  background: var(--c-card);
+  padding: 2rem;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+  border: 1px solid var(--c-border);
+}
+
+.stat-card {
+  text-align: center;
+  padding: 1rem;
+}
+
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--c-primary);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+
+.stat-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--c-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.college-section {
+  max-width: 1100px;
+  margin: 0 auto 5rem;
+  padding: 0 1.5rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--c-text);
+}
+
+.file-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.file-card {
+  background: var(--c-card);
+  border: 1px solid var(--c-border);
+  border-radius: 20px;
+  padding: 1.5rem;
+  transition: all 0.2s;
+  text-decoration: none;
+  color: var(--c-text);
+  display: block;
+}
+
+.file-card:hover {
+  transform: translateY(-5px);
+  border-color: var(--c-primary);
+  box-shadow: 0 15px 30px rgba(37,99,235,0.08);
+}
+
+.file-type-badge {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+}
+
+.type-notes { background: #eff6ff; color: #2563eb; }
+.type-pyq { background: #fdf4ff; color: #c026d3; }
+.type-practical { background: #f0fdf4; color: #16a34a; }
+
+.file-name {
+  font-weight: 700;
+  font-size: 1.1rem;
+  margin-bottom: 0.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.file-meta {
+  font-size: 0.85rem;
+  color: var(--c-muted);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+@media(max-width: 768px) {
+  .college-stats-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .stat-card { padding: 0.5rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="college-hero">
+  <div class="college-city-badge">
+    📍 {{ college.city | default('India') }}
+  </div>
+  <h1>{{ college.name }}</h1>
+  <p>Access free notes, previous year question papers, and practical files uploaded by your seniors and peers.</p>
+</div>
+
+<div class="college-stats-container">
+  <div class="college-stats-grid">
+    <div class="stat-card">
+      <div class="stat-value">{{ stats.total_documents }}</div>
+      <div class="stat-label">Total Resources</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ stats.total_subjects }}</div>
+      <div class="stat-label">Subjects</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">💯</div>
+      <div class="stat-label">Free Forever</div>
+    </div>
+  </div>
+</div>
+
+{% if departments %}
+<div class="college-section">
+  <div class="section-header">
+    <h2 class="section-title">Departments</h2>
+  </div>
+  <div class="file-grid">
+    {% for dept in departments %}
+      <a href="/college/{{ college.abbreviation | default(college.name) | lower | replace(' ', '-') }}/{{ dept.abbreviation | default(dept.name) | lower | replace(' ', '-') }}" class="file-card" style="text-align:center; padding: 2rem 1.5rem;">
+        <div style="font-size:2rem; margin-bottom:1rem;">🏢</div>
+        <div class="file-name" style="font-size:1.2rem;">{{ dept.name }}</div>
+        <div class="file-meta" style="justify-content:center; color: var(--c-primary); font-weight:700; margin-top:0.5rem;">Explore Resources →</div>
+      </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<div class="college-section">
+  <div class="section-header">
+    <h2 class="section-title">Latest Uploads</h2>
+    <a href="{{ url_for('store_room') }}" class="btn btn-outline" style="font-weight:700; color:var(--c-primary);">Browse All →</a>
+  </div>
+  
+  <div class="file-grid">
+    {% for file in recent_files %}
+      <a href="{{ url_for('preview_file', document_id=file.id) }}" class="file-card">
+        {% if 'pyq' in (file.type|lower) %}
+          <div class="file-type-badge type-pyq">📄 PYQ</div>
+        {% elif 'practical' in (file.type|lower) %}
+          <div class="file-type-badge type-practical">🧪 Practical</div>
+        {% else %}
+          <div class="file-type-badge type-notes">📚 Notes</div>
+        {% endif %}
+        
+        <div class="file-name">{{ file.title }}</div>
+        
+        <div class="file-meta">
+          <span>🏷️ {{ file.subject.name if file.subject else 'Uncategorized' }}</span>
+          <span>👤 {{ file.uploader.name if file.uploader else 'Anonymous' }}</span>
+        </div>
+      </a>
+    {% else %}
+      <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: var(--c-card); border-radius: 20px; border: 1px dashed var(--c-border); color: var(--c-muted);">
+        No files uploaded for this college yet. Be the first to contribute!
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- CTA -->
+<div style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); padding: 5rem 1.5rem; text-align: center; margin-top: 4rem;">
+  <h2 style="font-size: 2rem; font-weight: 800; margin-bottom: 1rem;">Are you a student at {{ college.abbreviation or 'this college' }}?</h2>
+  <p style="color: #64748b; font-size: 1.1rem; max-width: 600px; margin: 0 auto 2rem;">Help your juniors by uploading your old notes and exam papers. Earn reputation points and rank up on the leaderboard!</p>
+  <a href="{{ url_for('upload') }}" style="display:inline-block; padding: 1rem 2rem; background: var(--c-primary); color: white; border-radius: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 20px rgba(37,99,235,0.2);">📤 Upload a File Now</a>
+</div>
+
+{% endblock %}

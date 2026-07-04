@@ -6,47 +6,15 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="language" content="en">
     <meta name="google" content="translate">
-    <meta name="description"
-        content="AbhiHub - Best platform to organize exam resources, engineering papers, GHRCE PYQ, and study materials. Free access to exam papers, practicals, and notes.">
-    <meta name="keywords"
-        content="AbhiHub, engineering papers, GHRCE papers, exam resources, PYQ, practice papers, engineering notes, study materials, exam preparation">
-    <meta name="theme-color" content="#2563eb">
+    
+    <!-- Central SEO Template -->
+    {% include 'includes/seo_head.html' %}
 
-    <!-- Open Graph Tags -->
-    <meta property="og:title" content="AbhiHub - Engineering Exam Papers & Resources">
-    <meta property="og:description"
-        content="Organize and access engineering exam papers, GHRCE PYQ, practicals, and study notes. Your all-in-one platform for exam resources.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://app.abhihub.run.place">
-    <meta property="og:image" content="https://app.abhihub.run.place/static/images/android-chrome-512x512.png">
-
-    <!-- Twitter Card Tags -->
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="AbhiHub - Engineering Exam Papers & Resources">
-    <meta name="twitter:description"
-        content="Best site to organize exam resources and access engineering papers, notes, and practicals.">
-    <meta name="twitter:image" content="https://app.abhihub.run.place/static/premium/icons/icon-512x512.png">
-
-    <!-- Canonical URL -->
-    <link rel="canonical" href="https://app.abhihub.run.place">
-
-    <!-- Author & Copyright -->
-    <meta name="author" content="AbhiHub">
-    <meta name="copyright" content="© 2024 AbhiHub. All rights reserved.">
-    <meta name="robots" content="index, follow">
-
-    <!-- PWA Manifest -->
+    <!-- PWA Manifest & App Icons -->
     <link rel="manifest" href="/static/manifest.json">
     <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
+    
     <script src="/static/js/push-notifications.js" defer></script>
-    <title>AbhiHub</title>
-
-    <!-- Fonts -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Kanit:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap"
-        rel="stylesheet">
 
     {% block page_head %}{% endblock %}
 
