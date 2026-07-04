@@ -240,6 +240,41 @@ def get_document_by_id_rich(doc_id: str) -> Dict:
     except Exception as e:
         return {"success": False, "message": str(e)}
 
+def get_sitemap_urls() -> Dict:
+    """Fetches lightweight data across the entire database to generate SEO slugs for the XML sitemap."""
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        # 1. Colleges
+        colleges = client.table('colleges').select('name, abbreviation, created_at').execute().data
+        
+        # 2. Departments
+        # Since department pages are nested under colleges in the UI, we just need unique departments 
+        # (Though technically a department page route requires both. Let's just fetch all colleges and departments)
+        depts = client.table('departments').select('name, abbreviation, created_at').execute().data
+        
+        # 3. Subjects
+        subjects = client.table('subjects').select('name, created_at').execute().data
+        
+        # 4. Resources
+        # We need the relations to generate the canonical slug
+        docs = client.table('documents')\
+            .select('id, title, updated_at, created_at, college:colleges(name, abbreviation), department:departments(name, abbreviation), subject:subjects(name)')\
+            .in_('status', ['approved', 'pending'])\
+            .execute().data
+            
+        return {
+            "success": True, 
+            "data": {
+                "colleges": colleges,
+                "departments": depts,
+                "subjects": subjects,
+                "documents": docs
+            }
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
 def get_all_branches() -> Dict:
     client = init_supabase()
     if not client: return {"success": False, "data": []}

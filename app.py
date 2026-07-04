@@ -495,7 +495,63 @@ def terms():
 
 @app.route('/sitemap.xml')
 def sitemap():
-    return render_template('sitemap.xml')
+    from methods.supabase_helper import get_sitemap_urls
+    import re
+    
+    # 1. Fetch raw data
+    sitemap_res = get_sitemap_urls()
+    data = sitemap_res.get('data', {}) if sitemap_res.get('success') else {}
+    
+    colleges = data.get('colleges', [])
+    departments = data.get('departments', [])
+    subjects = data.get('subjects', [])
+    documents = data.get('documents', [])
+    
+    urls = []
+    base_url = "https://abhihub.in"
+    
+    def slugify(text):
+        return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
+        
+    # Standard static URLs
+    for static_route in ['/', '/login', '/contact', '/features-tour']:
+        urls.append({"loc": f"{base_url}{static_route}", "priority": "1.00" if static_route == '/' else "0.80"})
+        
+    # Colleges
+    for c in colleges:
+        c_slug = slugify(c.get('abbreviation') or c.get('name'))
+        urls.append({"loc": f"{base_url}/college/{c_slug}", "lastmod": c.get('created_at'), "priority": "0.90"})
+        
+        # Departments (Nested under colleges)
+        for d in departments:
+            d_slug = slugify(d.get('abbreviation') or d.get('name'))
+            urls.append({"loc": f"{base_url}/college/{c_slug}/{d_slug}", "lastmod": d.get('created_at'), "priority": "0.85"})
+            
+    # Subjects (Unique)
+    seen_subjects = set()
+    for s in subjects:
+        s_slug = slugify(s.get('name'))
+        if s_slug and s_slug not in seen_subjects:
+            seen_subjects.add(s_slug)
+            urls.append({"loc": f"{base_url}/subject/{s_slug}", "lastmod": s.get('created_at'), "priority": "0.90"})
+            
+    # Resources
+    for doc in documents:
+        college_data = doc.get('college') or {}
+        dept_data = doc.get('department') or {}
+        subj_data = doc.get('subject') or {}
+        
+        c_slug = slugify(college_data.get('abbreviation') or college_data.get('name') or 'college')
+        d_slug = slugify(dept_data.get('abbreviation') or dept_data.get('name') or 'dept')
+        s_slug = slugify(subj_data.get('name') or 'subject')
+        t_slug = slugify(doc.get('title') or 'file')
+        
+        canonical_slug = f"{c_slug}-{d_slug}-{s_slug}-{t_slug}-{doc.get('id')}"
+        urls.append({"loc": f"{base_url}/resource/{canonical_slug}", "lastmod": doc.get('updated_at') or doc.get('created_at'), "priority": "0.75"})
+        
+    response = make_response(render_template('sitemap.xml', urls=urls))
+    response.headers['Content-Type'] = 'application/xml'
+    return response
 
 @app.route('/privacy')
 def privacy():
