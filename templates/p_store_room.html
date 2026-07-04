@@ -1,11 +1,8 @@
 {% extends 'p_struct.html' %}
+{% block page_styles %}
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/p_store_room.css') }}">
+{% endblock %}
 {% block content %}
-
-<head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='premium/css/style.css', v='2.0.1')}}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/abhihub-theme.css', v='2.0.1') }}">
-    <script src="{{ url_for('static', filename='premium/js/interactions.js', v='2.0.1') }}"></script>
-</head>
 
 <!-- Header Hero -->
 <div class="store-header-bg">
@@ -85,37 +82,31 @@
                 <span>•</span>
                 <span>{{ file.size }}</span>
             </div>
-            <div class="file-meta" style="margin-top: 4px; font-size: 0.7rem;">
+            <div class="file-meta file-meta-small">
                 {{ file.created_at[:10] if file.created_at else 'Recent' }}
             </div>
 
             {% if file.get('record_id') %}
             <div class="file-card-footer"
-                style="display: flex; justify-content: space-around; padding-top: 10px; margin-top: 10px; border-top: 1px solid #eee;"
                 onclick="event.stopPropagation();">
                 <!-- Like button -->
                 <button class="action-btn like-btn {{ 'liked' if file.get('is_liked') else '' }}"
-                    style="background:none; border:none; cursor:pointer;"
                     onclick="toggleLike(event, '{{ file.record_id }}')">
-                    <i class="fas fa-heart" style="color: {{ '#ef4444' if file.get('is_liked') else '#94a3b8' }};"></i>
-                    <span class="like-count" style="font-size: 0.8rem; margin-left: 4px;">{{ file.get('like_count') if
-                        file.get('like_count', 0) > 0 else '' }}</span>
+                    <i class="fas fa-heart {{ 'icon-heart active' if file.get('is_liked') else 'icon-heart inactive' }}"></i>
+                    <span class="like-count">{{ file.get('like_count') if file.get('like_count', 0) > 0 else '' }}</span>
                 </button>
 
                 <!-- Comment button -->
-                <button class="action-btn comment-btn" style="background:none; border:none; cursor:pointer;"
+                <button class="action-btn comment-btn"
                     onclick="openComments(event, '{{ file.record_id }}')">
-                    <i class="fas fa-comment" style="color: #94a3b8;"></i>
-                    <span class="comment-count" style="font-size: 0.8rem; margin-left: 4px;">{{
-                        file.get('comment_count') if file.get('comment_count', 0) > 0 else '' }}</span>
+                    <i class="fas fa-comment icon-comment"></i>
+                    <span class="comment-count">{{ file.get('comment_count') if file.get('comment_count', 0) > 0 else '' }}</span>
                 </button>
 
                 <!-- Bookmark button -->
                 <button class="action-btn bookmark-btn {{ 'bookmarked' if file.get('is_bookmarked') else '' }}"
-                    style="background:none; border:none; cursor:pointer;"
                     onclick="toggleBookmark(event, '{{ file.record_id }}')">
-                    <i class="fas fa-bookmark"
-                        style="color: {{ '#3b82f6' if file.get('is_bookmarked') else '#94a3b8' }};"></i>
+                    <i class="fas fa-bookmark {{ 'icon-bookmark active' if file.get('is_bookmarked') else 'icon-bookmark inactive' }}"></i>
                 </button>
             </div>
             {% endif %}
@@ -132,9 +123,8 @@
     </div>
 
     <!-- Load More -->
-    <div class="view-more-container" id="viewMoreContainer" style="text-align: center; margin-bottom: 4rem;">
-        <button class="view-more-btn" id="viewMoreBtn" onclick="loadMoreFiles()"
-            style="background: white; border: 1px solid var(--color-gray-300); padding: 0.75rem 2rem; border-radius: 2rem; cursor: pointer; color: var(--color-gray-600); font-weight: 600;">
+    <div class="view-more-container" id="viewMoreContainer">
+        <button class="view-more-btn" id="viewMoreBtn" onclick="loadMoreFiles()">
             Load More Files
         </button>
     </div>
@@ -145,7 +135,7 @@
     <!-- Image Panel -->
     <div class="image-panel">
         <div class="image-panel-header">
-            <button class="close-btn" onclick="closeLabelingView()">
+            <button class="close-btn" onclick="closeLabelingView()" aria-label="Close">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -156,19 +146,15 @@
 
         <div class="image-container" id="imageContainer">
             <img id="previewImg" class="preview-img" src="" alt="Document preview" />
-            <iframe id="previewFrame" class="preview-img" style="display: none; background: white;"
-                frameborder="0"></iframe>
-        </div>
-
-        <div class="image-controls">
+            <iframe id="previewFrame" class="preview-frame" frameborder="0"></iframe>
+            <div class="image-controls">
             <button class="img-ctrl-btn" onclick="resetView()" title="Reset View">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
                     <path d="M3 3v5h5"></path>
                 </svg>
             </button>
-            <div class="divider" style="width: 1px; height: 24px; background: rgba(255,255,255,0.2); margin: 0 4px;">
-            </div>
+            <div class="divider"></div>
             <button class="img-ctrl-btn" onclick="zoomOut()" title="Zoom Out">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"></circle>
@@ -187,8 +173,7 @@
                     <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path>
                 </svg>
             </button>
-            <div class="divider" style="width: 1px; height: 24px; background: rgba(255,255,255,0.2); margin: 0 4px;">
-            </div>
+            <div class="divider"></div>
             <button class="img-ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen" id="fullscreenBtn">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path
@@ -196,193 +181,112 @@
                     </path>
                 </svg>
             </button>
+            </div>
         </div>
     </div>
 
     <!-- Form Panel -->
     <div class="form-panel" id="formPanel">
         <div class="form-panel-header" id="drawerHandle">
-            <div class="drawer-indicator">
-            </div>
-            <button class="drawer-toggle-btn" onclick="toggleDrawer()">
-                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <polyline points="18 15 12 9 6 15"></polyline>
-                </svg>
-            </button>
-            <div style="margin-top: 10px;">
+            <div class="drawer-indicator"></div>
+            <div class="form-title-wrap">
                 <h2 class="form-title">Label Paper</h2>
                 <p class="form-subtitle">Fill details to organize this file</p>
             </div>
             <div class="nav-buttons-container">
-                <button class="nav-btn" id="prevBtn" onclick="navigateFile(-1)">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="15 18 9 12 15 6"></polyline>
-                    </svg>
+                <button class="nav-btn" id="prevBtn" onclick="navigateToPreviousFile()" aria-label="Previous file">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 </button>
                 <span class="nav-counter" id="navCounter">1 / 10</span>
-                <button class="nav-btn" id="nextBtn" onclick="navigateFile(1)">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <polyline points="9 18 15 12 9 6"></polyline>
-                    </svg>
+                <button class="nav-btn" id="nextBtn" onclick="navigateToNextFile()" aria-label="Next file">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
             </div>
         </div>
 
         <div class="form-panel-content">
             <form id="labelForm">
-                <!-- Section 1: Basic Identity -->
-                <div class="form-section">
-                    <div class="section-header">
-                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-                            <polyline points="14 2 14 8 20 8"></polyline>
-                        </svg>
-                        <span class="section-title">Document Identity</span>
-                    </div>
 
-                    <div class="form-group full">
-                        <label class="form-label">Document Title</label>
-                        <div class="form-input-container">
-                            <input type="text" class="form-input" id="documentTitle"
-                                placeholder="Give this file a clear name">
-                        </div>
-                    </div>
-
-                    <div class="form-group full" style="margin-top: 1.25rem;">
-                        <label class="form-label">Category</label>
-                        <div class="category-grid">
-                            <label class="category-chip">
-                                <input type="radio" name="documentCategory" value="papers" checked>
-                                <i class="fas fa-file-contract"></i>
-                                <span>Papers</span>
-                            </label>
-                            <label class="category-chip">
-                                <input type="radio" name="documentCategory" value="notes">
-                                <i class="fas fa-notes-medical"></i>
-                                <span>Notes</span>
-                            </label>
-                            <label class="category-chip">
-                                <input type="radio" name="documentCategory" value="practical">
-                                <i class="fas fa-flask"></i>
-                                <span>Practical</span>
-                            </label>
-                            <label class="category-chip">
-                                <input type="radio" name="documentCategory" value="syllabus">
-                                <i class="fas fa-list-ul"></i>
-                                <span>Syllabus</span>
-                            </label>
-                            <label class="category-chip">
-                                <input type="radio" name="documentCategory" value="assisment">
-                                <i class="fas fa-tasks"></i>
-                                <span>Assesment</span>
-                            </label>
-                            <label class="category-chip">
-                                <input type="radio" name="documentCategory" value="timetable">
-                                <i class="fas fa-calendar-alt"></i>
-                                <span>Timetable</span>
-                            </label>
-                        </div>
+                <!-- Category -->
+                <div class="lf-field">
+                    <span class="lf-label">Category</span>
+                    <div class="category-grid">
+                        <label class="category-chip"><input type="radio" name="documentCategory" value="papers" checked><i class="fas fa-file-contract"></i><span>Papers</span></label>
+                        <label class="category-chip"><input type="radio" name="documentCategory" value="notes"><i class="fas fa-notes-medical"></i><span>Notes</span></label>
+                        <label class="category-chip"><input type="radio" name="documentCategory" value="practical"><i class="fas fa-flask"></i><span>Practical</span></label>
+                        <label class="category-chip"><input type="radio" name="documentCategory" value="syllabus"><i class="fas fa-list-ul"></i><span>Syllabus</span></label>
+                        <label class="category-chip"><input type="radio" name="documentCategory" value="assisment"><i class="fas fa-tasks"></i><span>Assessment</span></label>
+                        <label class="category-chip"><input type="radio" name="documentCategory" value="timetable"><i class="fas fa-calendar-alt"></i><span>Timetable</span></label>
                     </div>
                 </div>
 
-                <!-- Section 2: Academic Context -->
-                <div class="form-section">
-                    <div class="section-header">
-                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M22 10v6M2 10l10-5 10 5-10 5z"></path>
-                            <path d="M6 12.5V16a6 6 0 0 0 12 0v-3.5"></path>
-                        </svg>
-                        <span class="section-title">Academic Details</span>
+                <!-- College -->
+                <div class="lf-field">
+                    <label class="lf-label" for="collegeName">College <span class="required-star">*</span></label>
+                    <select class="lf-input" id="collegeName" name="collegeName" required>
+                        <option value="" disabled selected>Select College…</option>
+                    </select>
+                </div>
+
+                <!-- Department -->
+                <div class="lf-field">
+                    <label class="lf-label" for="branch">Department <span class="required-star">*</span></label>
+                    <select class="lf-input" id="branch" name="branch" required>
+                        <option value="" disabled selected>Select College first</option>
+                    </select>
+                </div>
+
+                <!-- Semester + Year -->
+                <div class="lf-row">
+                    <div class="lf-field">
+                        <label class="lf-label" for="semester">Semester <span class="required-star">*</span></label>
+                        <select class="lf-input" id="semester" name="semester" required>
+                            <option value="" disabled selected>Select</option>
+                        </select>
                     </div>
-
-                    <div class="form-grid">
-                        <div class="form-group full">
-                            <label class="form-label">College Name <span style="color:red">*</span></label>
-                            <select class="form-input" id="collegeName" required>
-                                <option value="">Select College...</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group full">
-                            <label class="form-label">Branch <span style="color:red">*</span></label>
-                            <select class="form-input" id="branch" required>
-                                <option value="">Select Branch...</option>
-                            </select>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Year <span style="color:red">*</span></label>
-                            <input type="number" class="form-input" id="year" placeholder="2024" required>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label">Exam Type</label>
-                            <select class="form-input" id="examType">
-                                <option value="">Select Exam</option>
-                                <option value="summer">Summer</option>
-                                <option value="winter">Winter</option>
-                                <option value="viva">Viva</option>
-                            </select>
-                        </div>
+                    <div class="lf-field">
+                        <label class="lf-label" for="year">Year <span class="required-star">*</span></label>
+                        <select class="lf-input" id="year" name="year" required>
+                            <option value="2022">2022</option>
+                            <option value="2023">2023</option>
+                            <option value="2024">2024</option>
+                            <option value="2025" selected>2025</option>
+                            <option value="2026">2026</option>
+                        </select>
                     </div>
                 </div>
 
-                <!-- Section 3: Subject Info -->
-                <div class="form-section">
-                    <div class="section-header">
-                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M2 3h6a4 4 0 0 1 4 4v14a4 4 0 0 0-4-4H2z"></path>
-                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a4 4 0 0 1 4-4h6z"></path>
-                        </svg>
-                        <span class="section-title">Subject Information</span>
-                    </div>
-
-                    <div class="form-grid">
-                        <div class="form-group full">
-                            <label class="form-label">Subject Name <span style="color:red">*</span></label>
-                            <input type="text" class="form-input" id="subjectName" placeholder="e.g. Data Structures"
-                                required>
-                        </div>
-
-                        <div class="form-group full">
-                            <label class="form-label">Subject Code</label>
-                            <input type="text" class="form-input" id="subjectCode" placeholder="e.g. CS201">
-                        </div>
-                    </div>
-
-                    <div class="form-group full" style="margin-top: 1rem;">
-                        <label class="form-label">Semesters</label>
-                        <div class="semester-grid">
-                            <label class="semester-chip"><input type="checkbox" name="semester" value="1"> 1</label>
-                            <label class="semester-chip"><input type="checkbox" name="semester" value="2"> 2</label>
-                            <label class="semester-chip"><input type="checkbox" name="semester" value="3"> 3</label>
-                            <label class="semester-chip"><input type="checkbox" name="semester" value="4"> 4</label>
-                            <label class="semester-chip"><input type="checkbox" name="semester" value="5"> 5</label>
-                            <label class="semester-chip"><input type="checkbox" name="semester" value="6"> 6</label>
-                            <label class="semester-chip"><input type="checkbox" name="semester" value="7"> 7</label>
-                            <label class="semester-chip"><input type="checkbox" name="semester" value="8"> 8</label>
-                        </div>
+                <!-- Subject -->
+                <div class="lf-field">
+                    <label class="lf-label" for="subjectName">Subject <span class="required-star">*</span></label>
+                    <select class="lf-input" id="subjectName" name="subjectName" required>
+                        <option value="" disabled selected>Select Semester first</option>
+                    </select>
+                    <div id="srOtherSubjectWrap" style="display:none;margin-top:0.5rem">
+                        <input type="text" class="lf-input" id="srOtherSubjectName" placeholder="Subject name *" style="margin-bottom:0.4rem">
+                        <input type="text" class="lf-input" id="srOtherSubjectCode" placeholder="Subject code (e.g. CS501)" style="margin-bottom:0.4rem">
+                        <button type="button" class="sr-add-btn" onclick="srAddSubject()">➕ Add Subject</button>
                     </div>
                 </div>
 
-                <!-- Section 4: Extra Metadata -->
-                <div class="form-section">
-                    <div class="section-header">
-                        <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                            stroke-width="2">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
-                        </svg>
-                        <span class="section-title">Additional Notes</span>
-                    </div>
+                <!-- Subject Code (auto-filled, read-only feel) -->
+                <div class="lf-field">
+                    <label class="lf-label" for="subjectCode">Subject Code</label>
+                    <input type="text" class="lf-input" id="subjectCode" name="subjectCode" placeholder="Auto-filled from subject">
+                </div>
 
-                    <div class="form-group full">
-                        <textarea class="form-input" id="description"
-                            placeholder="Add any extra details or important notes here..."></textarea>
-                    </div>
+                <!-- Exam / Unit (conditional) -->
+                <div class="lf-field" id="srUnitGroup" style="display:none">
+                    <label class="lf-label" for="examType">Exam / Unit</label>
+                    <select class="lf-input" id="examType">
+                        <option value="">Select…</option>
+                    </select>
+                </div>
+
+                <!-- New filename preview -->
+                <div class="lf-field" id="filenamePreviewWrap" style="display:none">
+                    <span class="lf-label">New filename</span>
+                    <div class="lf-filename-preview" id="filenamePreview"></div>
                 </div>
 
             </form>
@@ -390,52 +294,334 @@
 
         <div class="sticky-save-container">
             <div class="remember-toggle-wrapper" title="Remember my inputs for the next file">
-                <div class="toggle-switch" id="rememberToggle" role="switch" aria-checked="false" tabindex="0"></div>
+                <div class="toggle-switch" id="rememberToggle" role="switch" aria-checked="false" tabindex="0" aria-label="Remember labels"></div>
                 <span class="toggle-label">Remember</span>
             </div>
-            <button type="button" class="save-btn" id="saveBtn" onclick="handleSave()">
-                ✅ Save & Organize
+            <button type="button" class="save-btn idle" id="saveBtn" onclick="handleSave()" aria-live="polite" aria-label="Save and organize">
+                <span class="btn-text">Save &amp; Rename</span>
             </button>
         </div>
     </div>
 </div>
 
+<!-- Confirm Dialog -->
+<style>#confirmDialog{display:none;position:fixed;inset:0;z-index:9999;background:rgba(0,0,0,0.5);align-items:center;justify-content:center}#confirmDialog.active{display:flex}</style>
+<div id="confirmDialog">
+    <div style="background:#fff;border-radius:12px;padding:1.5rem;max-width:360px;width:90%;text-align:center">
+        <p style="margin:0 0 1rem;font-size:1rem;font-weight:600">You have unsaved changes. Discard them?</p>
+        <div style="display:flex;gap:0.75rem;justify-content:center">
+            <button onclick="cancelClose()" style="padding:0.5rem 1.25rem;border:1px solid #e2e8f0;border-radius:8px;background:#fff;cursor:pointer">Cancel</button>
+            <button onclick="confirmClose()" style="padding:0.5rem 1.25rem;border:none;border-radius:8px;background:#ef4444;color:#fff;cursor:pointer">Discard</button>
+        </div>
+    </div>
+</div>
 
-<!-- Scripts -->
+<!-- Toast container -->
+<div id="toastContainer"></div>
+
+<!-- Cascade helpers + overrides — must load BEFORE store_room.js -->
+<script>
+    // ── Cascading dropdowns ──
+    async function srLoadColleges() {
+        const sel = document.getElementById('collegeName');
+        try {
+            const r = await fetch('/api/colleges').then(r => r.json());
+            sel.innerHTML = '<option value="" disabled selected>Select College…</option>';
+            (r.colleges || []).forEach(c => {
+                const o = document.createElement('option');
+                o.value = c.id; o.dataset.name = c.name; o.textContent = c.name;
+                sel.appendChild(o);
+            });
+        } catch { sel.innerHTML = '<option value="" disabled selected>Failed to load</option>'; }
+    }
+
+    async function srLoadDepartments(collegeId) {
+        const brSel = document.getElementById('branch');
+        brSel.innerHTML = '<option value="" disabled selected>Loading...</option>';
+        document.getElementById('subjectName').innerHTML = '<option value="" disabled selected>Select Branch first</option>';
+        const url = collegeId ? '/api/departments?college_id=' + collegeId : '/api/departments';
+        try {
+            const r = await fetch(url).then(r => r.json());
+            brSel.innerHTML = '<option value="" disabled selected>Select Branch</option>';
+            (r.departments || []).forEach(d => {
+                const o = document.createElement('option');
+                o.value = d.id; o.dataset.name = d.name; o.textContent = d.name;
+                brSel.appendChild(o);
+            });
+        } catch { brSel.innerHTML = '<option value="" disabled selected>Failed to load</option>'; }
+    }
+
+    function srLoadSemesters() {
+        const semSel = document.getElementById('semester');
+        semSel.innerHTML = '<option value="" disabled selected>Select Semester</option>';
+        for (let i = 1; i <= 8; i++) {
+            const o = document.createElement('option');
+            o.value = i; o.textContent = 'Semester ' + i;
+            semSel.appendChild(o);
+        }
+        semSel.appendChild(Object.assign(document.createElement('option'), { value: '0', textContent: 'All Semesters' }));
+    }
+
+    async function srLoadSubjects(deptId, semester) {
+        const subjSel = document.getElementById('subjectName');
+        subjSel.innerHTML = '<option value="" disabled selected>Loading...</option>';
+        document.getElementById('srOtherSubjectWrap').style.display = 'none';
+        if (!deptId) return;
+        try {
+            const sem = semester && String(semester) !== '0' ? '&semester=' + semester : '';
+            const r = await fetch('/api/subjects?department_id=' + deptId + sem).then(r => r.json());
+            subjSel.innerHTML = '<option value="" disabled selected>Select Subject</option>';
+            (r.subjects || []).forEach(s => {
+                const o = document.createElement('option');
+                o.value = s.id; o.dataset.name = s.name; o.dataset.code = s.subject_code || '';
+                o.textContent = s.subject_code ? s.name + ' (' + s.subject_code + ')' : s.name;
+                subjSel.appendChild(o);
+            });
+            subjSel.appendChild(Object.assign(document.createElement('option'), { value: '__other__', textContent: '+ Other (Add New)' }));
+        } catch { subjSel.innerHTML = '<option value="" disabled selected>Failed to load</option>'; }
+    }
+
+    async function srAddSubject() {
+        const name = document.getElementById('srOtherSubjectName').value.trim();
+        const code = document.getElementById('srOtherSubjectCode').value.trim();
+        const deptId = document.getElementById('branch').value;
+        const semester = document.getElementById('semester').value;
+        if (!name) return showToast('Subject name is required', 'error');
+        if (!deptId) return showToast('Select a department first', 'error');
+        try {
+            const r = await fetch('/api/subjects', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, subject_code: code, department_id: deptId, semester })
+            }).then(r => r.json());
+            if (r.success && r.subject?.id) {
+                const sel = document.getElementById('subjectName');
+                const o = document.createElement('option');
+                o.value = r.subject.id; o.dataset.name = r.subject.name; o.dataset.code = r.subject.subject_code || '';
+                o.textContent = r.subject.subject_code ? r.subject.name + ' (' + r.subject.subject_code + ')' : r.subject.name;
+                const other = sel.querySelector('option[value="__other__"]');
+                if (other) sel.insertBefore(o, other); else sel.appendChild(o);
+                sel.value = r.subject.id;
+                srOnSubjectChange(r.subject.id);
+                document.getElementById('srOtherSubjectWrap').style.display = 'none';
+                document.getElementById('srOtherSubjectName').value = '';
+                document.getElementById('srOtherSubjectCode').value = '';
+                showToast('Subject added', 'success');
+            } else { showToast(r.message || 'Failed to add subject', 'error'); }
+        } catch { showToast('Network error', 'error'); }
+    }
+
+    function srOnSubjectChange(val) {
+        const wrap = document.getElementById('srOtherSubjectWrap');
+        const codeInput = document.getElementById('subjectCode');
+        if (val === '__other__') {
+            wrap.style.display = 'block';
+            codeInput.value = '';
+        } else {
+            wrap.style.display = 'none';
+            const opt = document.querySelector('#subjectName option[value="' + val + '"]');
+            if (opt) codeInput.value = opt.dataset.code || '';
+        }
+    }
+
+    function srUpdateUnitField() {
+        const cat = document.querySelector('input[name="documentCategory"]:checked')?.value;
+        const unitGroup = document.getElementById('srUnitGroup');
+        const examSel = document.getElementById('examType');
+        if (!unitGroup || !examSel) return;
+        if (cat === 'papers') {
+            unitGroup.style.display = 'block';
+            examSel.innerHTML = '<option value="">Select...</option><option value="CAE1">CAE-1</option><option value="CAE2">CAE-2</option><option value="CAE3">CAE-3</option><option value="ESE">End Sem / Resit</option><option value="summer">Summer</option><option value="winter">Winter</option>';
+        } else if (cat === 'notes') {
+            unitGroup.style.display = 'block';
+            examSel.innerHTML = '<option value="">Select...</option><option value="U1">Unit 1</option><option value="U2">Unit 2</option><option value="U3">Unit 3</option><option value="U4">Unit 4</option><option value="U5">Unit 5</option><option value="All">All Units</option>';
+        } else if (cat === 'practical') {
+            unitGroup.style.display = 'block';
+            examSel.innerHTML = '<option value="">Select...</option><option value="viva">Viva</option><option value="journal">Journal</option><option value="All">All</option>';
+        } else {
+            unitGroup.style.display = 'none';
+            examSel.value = '';
+        }
+    }
+
+    // -- Wire up events after DOM ready --
+    document.addEventListener('DOMContentLoaded', () => {
+        srLoadSemesters();
+        document.getElementById('collegeName').addEventListener('change', function () {
+            srLoadDepartments(this.value);
+        });
+        document.getElementById('branch').addEventListener('change', function () {
+            const sem = document.getElementById('semester')?.value;
+            if (this.value) srLoadSubjects(this.value, sem);
+        });
+        document.getElementById('semester').addEventListener('change', function () {
+            const deptId = document.getElementById('branch')?.value;
+            if (deptId && deptId !== '__other__') srLoadSubjects(deptId, this.value);
+        });
+        document.getElementById('subjectName').addEventListener('change', function () {
+            srOnSubjectChange(this.value);
+        });
+        document.querySelectorAll('input[name="documentCategory"]').forEach(r =>
+            r.addEventListener('change', () => { srUpdateUnitField(); srUpdateFilenamePreview(); })
+        );
+        ['subjectName','subjectCode','examType','year'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('change', srUpdateFilenamePreview);
+        });
+        ['srOtherSubjectName','srOtherSubjectCode'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.addEventListener('input', srUpdateFilenamePreview);
+        });
+    });
+
+    // -- Override fetchMetadata --
+    async function fetchMetadata() {
+        await srLoadColleges();
+        try {
+            const p = await fetch('/api/profile').then(r => r.json());
+            if (p.success && p.user) {
+                const collegeId = p.user.college_id || p.user.user_metadata?.college_id;
+                const deptId    = p.user.department_id || p.user.user_metadata?.branch_id;
+                if (collegeId) {
+                    document.getElementById('collegeName').value = collegeId;
+                    await srLoadDepartments(collegeId);
+                }
+                if (deptId) {
+                    document.getElementById('branch').value = deptId;
+                    srLoadSemesters();
+                    await srLoadSubjects(deptId);
+                }
+            }
+        } catch {}
+        loadLastLabels();
+    }
+
+    // -- Override getFormData --
+    function srBuildFilename(data) {
+        const ext = (currentFileData.filename || '').includes('.')
+            ? currentFileData.filename.split('.').pop().toLowerCase() : 'jpg';
+        const sanitize = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/, '');
+        const code    = sanitize(data.subject_code);
+        const name    = sanitize(data.subject_name);
+        const docType = sanitize(data.document_category);
+        const year    = sanitize(String(data.year || ''));
+        const unit    = sanitize(data.exam_type || '');
+        
+        let subjPart = code && code !== name ? `${code}_${name}` : (name || code);
+        
+        const parts   = [subjPart, docType, year];
+        if (unit) parts.push(unit);
+        return (parts.filter(Boolean).join('_') || sanitize(currentFileData.filename.replace(/\.[^.]+$/, ''))) + '.' + ext;
+    }
+
+    function srUpdateFilenamePreview() {
+        try {
+            const data = getFormData();
+            if (!data.subject_name && !data.subject_code) {
+                document.getElementById('filenamePreviewWrap').style.display = 'none';
+                return;
+            }
+            document.getElementById('filenamePreview').textContent = srBuildFilename(data);
+            document.getElementById('filenamePreviewWrap').style.display = 'block';
+        } catch {}
+    }
+
+    function getFormData() {
+        const subjSel  = document.getElementById('subjectName');
+        const subjOpt  = subjSel.options[subjSel.selectedIndex];
+        let subjName = subjOpt?.dataset?.name || subjOpt?.textContent?.replace(/\s*\(.*\)$/, '').trim() || '';
+        const subjId   = subjSel.value !== '__other__' ? subjSel.value : null;
+        let subjCode   = document.getElementById('subjectCode')?.value.trim();
+
+        if (subjSel.value === '__other__') {
+            subjName = document.getElementById('srOtherSubjectName')?.value.trim() || 'New_Subject';
+            subjCode = document.getElementById('srOtherSubjectCode')?.value.trim() || '';
+        }
+
+        const colSel  = document.getElementById('collegeName');
+        const colOpt  = colSel.options[colSel.selectedIndex];
+        const colName = colOpt?.dataset?.name || colOpt?.textContent || '';
+
+        const brSel  = document.getElementById('branch');
+        const brOpt  = brSel.options[brSel.selectedIndex];
+        const brName = brOpt?.dataset?.name || brOpt?.textContent || '';
+
+        const semRaw = document.getElementById('semester')?.value;
+        const semInt = semRaw && semRaw !== '0' ? parseInt(semRaw) : null;
+
+        const data = {
+            filename:          currentFileData.filename,
+            url:               currentFileData.url,
+            document_category: document.querySelector('input[name="documentCategory"]:checked')?.value,
+            college_name:      colName,
+            college_id:        colSel.value,
+            subject_name:      subjName,
+            subject_id:        subjId,
+            subject_code:      subjCode,
+            exam_type:         document.getElementById('examType')?.value,
+            year:              parseInt(document.getElementById('year')?.value),
+            branch:            brName,
+            branch_id:         brSel.value,
+            semester:          semInt,
+            semesters:         semInt ? [String(semInt)] : []
+        };
+        data.new_filename = srBuildFilename(data);
+        return data;
+    }
+
+    // -- Override validateForm --
+    function validateForm() {
+        const collegeId = document.getElementById('collegeName')?.value;
+        if (!collegeId || collegeId === '__other__')
+            return { valid: false, field: 'collegeName', message: 'College is required' };
+        const branchId = document.getElementById('branch')?.value;
+        if (!branchId || branchId === '__other__')
+            return { valid: false, field: 'branch', message: 'Department is required' };
+        if (!document.getElementById('semester')?.value)
+            return { valid: false, field: 'semester', message: 'Semester is required' };
+        const subj = document.getElementById('subjectName')?.value;
+        if (!subj || subj === '__other__')
+            return { valid: false, field: 'subjectName', message: 'Subject is required — select or add one' };
+        if (!document.querySelector('input[name="documentCategory"]:checked'))
+            return { valid: false, field: 'documentCategory', message: 'Category is required' };
+        if (!document.getElementById('year')?.value)
+            return { valid: false, field: 'year', message: 'Year is required' };
+        return { valid: true };
+    }
+
+    // -- Override saveLastLabels / loadLastLabels --
+    function saveLastLabels() {
+        localStorage.setItem('storeroom_last_labels', JSON.stringify({
+            collegeName:      document.getElementById('collegeName')?.value,
+            branch:           document.getElementById('branch')?.value,
+            semester:         document.getElementById('semester')?.value,
+            documentCategory: document.querySelector('input[name="documentCategory"]:checked')?.value,
+            examType:         document.getElementById('examType')?.value
+        }));
+    }
+
+    async function loadLastLabels() {
+        try {
+            const stored = localStorage.getItem('storeroom_last_labels');
+            if (!stored) return;
+            const l = JSON.parse(stored);
+            if (l.collegeName) document.getElementById('collegeName').value = l.collegeName;
+            if (l.branch) {
+                document.getElementById('branch').value = l.branch;
+                await srLoadSubjects(l.branch);
+            }
+            if (l.semester) document.getElementById('semester').value = l.semester;
+            if (l.documentCategory) {
+                const r = document.querySelector('input[name="documentCategory"][value="' + l.documentCategory + '"]');
+                if (r) { r.checked = true; srUpdateUnitField(); }
+            }
+            if (l.examType) document.getElementById('examType').value = l.examType;
+        } catch {}
+    }
+</script>
+
 <script src="{{ url_for('static', filename='js/file-history-tracker.js') }}"></script>
 <script src="{{ url_for('static', filename='premium/js/store_room.js') }}"></script>
 <script src="{{ url_for('static', filename='premium/js/verification.js') }}"></script>
-<script>
-    // Include necessary JS logic for the labeling view UI if not already in store_room.js
-    // This script block ensures the new visual elements work as expected with the existing logic
 
-    // Zoom logic for new buttons
-    let currentZoom = 1;
-    let currentRotation = 0;
-
-    function zoomIn() {
-        currentZoom += 0.2;
-        updateTransform();
-    }
-
-    function zoomOut() {
-        if (currentZoom > 0.4) currentZoom -= 0.2;
-        updateTransform();
-    }
-
-    function rotateImage() {
-        currentRotation = (currentRotation + 90) % 360;
-        updateTransform();
-    }
-
-    function updateTransform() {
-        const img = document.getElementById('previewImg');
-        if (img) img.style.transform = `scale(${currentZoom}) rotate(${currentRotation}deg)`;
-    }
-
-    function closeLabelingView() {
-        document.getElementById('labelingView').classList.remove('active');
-    }
-</script>
 
 {% endblock %}

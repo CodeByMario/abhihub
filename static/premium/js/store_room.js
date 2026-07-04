@@ -572,7 +572,7 @@ function createFileCard(file) {
     if (file.record_id) {
         const footer = document.createElement('div');
         footer.className = 'file-card-footer';
-        footer.style.display = 'flex';
+        footer.classList.add('flex');
         footer.style.justifyContent = 'space-around';
         footer.style.paddingTop = '10px';
         footer.style.marginTop = '10px';
@@ -730,9 +730,11 @@ function openLabelingView(fileData) {
     const isPdf = fileData.format === 'pdf' || (fileData.filename && fileData.filename.toLowerCase().endsWith('.pdf'));
 
     if (isPdf) {
-        if (previewImg) previewImg.style.display = 'none';
+        if (previewImg) {
+            previewImg.classList.add('hidden');
+        }
         if (previewFrame) {
-            previewFrame.style.display = 'block';
+            previewFrame.classList.remove('hidden');
             previewFrame.src = fileData.url;
             // PDF needs height to scroll
             previewFrame.style.width = '100%';
@@ -740,11 +742,11 @@ function openLabelingView(fileData) {
         }
     } else {
         if (previewFrame) {
-            previewFrame.style.display = 'none';
+            previewFrame.classList.add('hidden');
             previewFrame.src = '';
         }
         if (previewImg) {
-            previewImg.style.display = 'block';
+            previewImg.classList.remove('hidden');
             previewImg.src = fileData.url;
         }
     }
@@ -881,7 +883,7 @@ function rotateImage() {
 function updateImageTransform() {
     const previewImg = document.getElementById('previewImg');
     // Only apply transform if image is visible
-    if (previewImg && previewImg.style.display !== 'none') {
+    if (previewImg && !previewImg.classList.contains('hidden')) {
         previewImg.style.transform = `translate(${panX}px, ${panY}px) scale(${currentZoom}) rotate(${currentRotation}deg)`;
     }
 }
@@ -1413,50 +1415,7 @@ function populateSuggestions() {
     loadLastLabels();
 }
 
-async function fetchMetadata() {
-    try {
-        const [collegesRes, branchesRes] = await Promise.all([
-            fetch('/api/colleges'),
-            fetch('/api/branches')
-        ]);
-
-        const collegesData = await collegesRes.json();
-        const branchesData = await branchesRes.json();
-
-        if (collegesData.success) {
-            const collegeSelect = document.getElementById('collegeName');
-            if (collegeSelect) {
-                // Keep the first "Select College..." option
-                collegeSelect.innerHTML = '<option value="">Select College...</option>';
-                collegesData.colleges.forEach(college => {
-                    const option = document.createElement('option');
-                    option.value = college.name;
-                    option.textContent = college.name;
-                    collegeSelect.appendChild(option);
-                });
-            }
-        }
-
-        if (branchesData.success) {
-            const branchSelect = document.getElementById('branch');
-            if (branchSelect) {
-                // Keep the first "Select Branch..." option
-                branchSelect.innerHTML = '<option value="">Select Branch...</option>';
-                branchesData.branches.forEach(branch => {
-                    const option = document.createElement('option');
-                    option.value = branch.name;
-                    option.textContent = branch.name;
-                    branchSelect.appendChild(option);
-                });
-            }
-        }
-
-        // After populating, try to load last used labels
-        loadLastLabels();
-    } catch (e) {
-        console.error('Error fetching metadata:', e);
-    }
-}
+// fetchMetadata() removed: handled by p_store_room.html inline script
 
 // ==========================================
 // Remember Labels
@@ -1540,35 +1499,37 @@ function loadLastLabels() {
 function updateSaveButton(state, message = '') {
     const saveBtn = document.getElementById('saveBtn');
     if (!saveBtn) return;
-
-    saveBtn.className = `save-btn ${state}`;
-
-    const btnText = saveBtn.querySelector('.btn-text');
-    let spinnerHtml = '';
-    let checkmarkHtml = '';
+    // Ensure consistent internal structure for the button
+    let spinnerHtml = '<div class="spinner" aria-hidden="true"></div>';
+    let checkmarkHtml = `<svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
+                <polyline points="20 6 9 17 4 12"></polyline>
+            </svg>`;
 
     switch (state) {
         case 'idle':
-            if (btnText) btnText.textContent = 'Save Label';
+            saveBtn.className = 'save-btn idle';
+            saveBtn.innerHTML = `<span class="btn-text">Save Label</span>`;
             saveBtn.disabled = false;
             break;
         case 'saving':
-            spinnerHtml = '<div class="spinner"></div>';
+            saveBtn.className = 'save-btn saving';
             saveBtn.innerHTML = `${spinnerHtml}<span class="btn-text">Saving...</span>`;
             saveBtn.disabled = true;
             break;
         case 'saved':
-            checkmarkHtml = `<svg class="checkmark" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3">
-                <polyline points="20 6 9 17 4 12"></polyline>
-            </svg>`;
+            saveBtn.className = 'save-btn saved';
             saveBtn.innerHTML = `${checkmarkHtml}<span class="btn-text">Saved!</span>`;
             saveBtn.disabled = true;
             setTimeout(() => updateSaveButton('idle'), 2000);
             break;
         case 'error':
-            if (btnText) btnText.textContent = message || 'Error - Retry';
+            saveBtn.className = 'save-btn error';
+            saveBtn.innerHTML = `<span class="btn-text">${message || 'Error - Retry'}</span>`;
             saveBtn.disabled = false;
             break;
+        default:
+            saveBtn.className = `save-btn ${state}`;
+            if (!saveBtn.querySelector('.btn-text')) saveBtn.innerHTML = `<span class="btn-text">${message || 'Save'}</span>`;
     }
 }
 
@@ -1676,41 +1637,9 @@ async function handleSave() {
     }
 }
 
-function validateForm() {
-    const collegeName = document.getElementById('collegeName')?.value.trim();
-    if (!collegeName) return { valid: false, field: 'collegeName', message: 'College Name is required' };
+// validateForm() removed: handled by p_store_room.html inline script
 
-    const subjectName = document.getElementById('subjectName')?.value.trim();
-    if (!subjectName) return { valid: false, field: 'subjectName', message: 'Subject Name is required' };
-
-    const year = document.getElementById('year')?.value;
-    if (!year) return { valid: false, field: 'year', message: 'Year is required' };
-
-    const branch = document.getElementById('branch')?.value.trim();
-    if (!branch) return { valid: false, field: 'branch', message: 'Branch is required' };
-
-    const category = document.querySelector('input[name="documentCategory"]:checked');
-    if (!category) return { valid: false, field: 'documentCategory', message: 'Please select a Category' };
-
-    return { valid: true };
-}
-
-function getFormData() {
-    return {
-        filename: currentFileData.filename,
-        url: currentFileData.url,
-        title: document.getElementById('documentTitle')?.value.trim(),
-        document_category: document.querySelector('input[name="documentCategory"]:checked')?.value,
-        college_name: document.getElementById('collegeName')?.value.trim(),
-        subject_name: document.getElementById('subjectName')?.value.trim(),
-        subject_code: document.getElementById('subjectCode')?.value.trim(),
-        exam_type: document.getElementById('examType')?.value,
-        year: parseInt(document.getElementById('year')?.value),
-        branch: document.getElementById('branch')?.value.trim(),
-        semesters: Array.from(document.querySelectorAll('input[name="semester"]:checked')).map(cb => cb.value),
-        description: document.getElementById('description')?.value.trim()
-    };
-}
+// getFormData() removed: handled by p_store_room.html inline script
 
 // ==========================================
 // Toast Notifications

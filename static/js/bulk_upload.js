@@ -112,9 +112,35 @@ function setFileStatus(id, status, pct, msg) {
   const thm  = document.getElementById('thumb_'+id);
   if (!bar) return;
   bar.style.display = 'block';
-  if (status === 'uploading') { fill.style.width = pct+'%'; if(st) st.textContent = pct+'%'; }
-  else if (status === 'done')  { fill.style.width='100%'; fill.style.background='#10b981'; if(st) st.textContent='✓'; if(thm) thm.classList.add('bu-done'); }
-  else if (status === 'error') { fill.style.width='100%'; fill.style.background='#ef4444'; if(st) st.textContent=msg||'✗'; if(thm) thm.classList.add('bu-error'); }
+  if (status === 'uploading') {
+    fill.style.width = pct+'%';
+    fill.classList.remove('success', 'error');
+    if(st) {
+      st.classList.remove('success', 'error');
+      st.classList.add('uploading');
+      st.textContent = pct+'%';
+    }
+  } else if (status === 'done') {
+    fill.style.width = '100%';
+    fill.classList.add('success');
+    fill.classList.remove('error');
+    if(st) {
+      st.classList.remove('uploading', 'error');
+      st.classList.add('success');
+      st.textContent = '✓';
+    }
+    if(thm) thm.classList.add('bu-done');
+  } else if (status === 'error') {
+    fill.style.width = '100%';
+    fill.classList.add('error');
+    fill.classList.remove('success');
+    if(st) {
+      st.classList.remove('uploading', 'success');
+      st.classList.add('error');
+      st.textContent = msg || '✗';
+    }
+    if(thm) thm.classList.add('bu-error');
+  }
 }
 
 /* ── Per-image metadata modal ── */
@@ -129,7 +155,7 @@ async function openMetaModal(id) {
   el('metaType').value = m.type  || gv('type') || '';
   updateMetaUnit();
   el('metaUnit').value = m.unit  || gv('unit') || '';
-  el('metaModal').style.display = 'flex';
+  openPopupSection('popupMeta');
 
   // Load subjects into modal dropdown (department from main cascade)
   const deptId = gv('branch_id');
@@ -183,7 +209,36 @@ function saveMetaModal() {
 }
 
 function closeMetaModal() {
-  document.getElementById('metaModal').style.display = 'none';
+  closePopup();
+  currentMetaId = null;
+}
+
+function openPopupSection(sectionId) {
+  const overlay = document.getElementById('popupModal');
+  if (!overlay) return;
+  Array.from(overlay.querySelectorAll('.popup-section')).forEach(sec => sec.classList.remove('active'));
+  const section = document.getElementById(sectionId);
+  if (!section) return;
+  overlay.classList.add('show');
+  section.classList.add('active');
+  if (sectionId === 'popupXp') {
+    const card = document.getElementById('xpCard');
+    if (card) {
+      card.style.transform = 'scale(.85)';
+      requestAnimationFrame(() => { card.style.transform = 'scale(1)'; });
+    }
+  }
+}
+
+function closePopup() {
+  const overlay = document.getElementById('popupModal');
+  if (!overlay) return;
+  const xpCard = document.getElementById('xpCard');
+  if (xpCard) { xpCard.style.transform = 'scale(.85)'; }
+  if (cropperInst) { cropperInst.destroy(); cropperInst = null; }
+  overlay.classList.remove('show');
+  Array.from(overlay.querySelectorAll('.popup-section')).forEach(sec => sec.classList.remove('active'));
+  currentCropId = null;
   currentMetaId = null;
 }
 
@@ -194,7 +249,7 @@ function openCrop(id) {
   if (!item) return;
   const img = document.getElementById('cropImg');
   img.src = URL.createObjectURL(item.blob || item.file);
-  document.getElementById('cropModal').style.display = 'flex';
+  openPopupSection('popupCrop');
   setTimeout(() => {
     if (cropperInst) cropperInst.destroy();
     cropperInst = new Cropper(img, { viewMode:1, movable:true, zoomable:true, rotatable:true });
@@ -203,7 +258,7 @@ function openCrop(id) {
 
 function closeCropModal() {
   if (cropperInst) { cropperInst.destroy(); cropperInst = null; }
-  document.getElementById('cropModal').style.display = 'none';
+  closePopup();
   currentCropId = null;
 }
 
@@ -398,7 +453,11 @@ async function startBulkUpload(event) {
 
   isUploading = true;
   const btn = document.getElementById('submitBtn');
-  if (btn) { btn.disabled=true; btn.textContent='Uploading…'; }
+  if (btn) {
+    btn.disabled = true;
+    btn.classList.add('uploading');
+    btn.textContent = 'Uploading…';
+  }
   window.addEventListener('beforeunload', handleBeforeUnload);
   setFloatStatus(true, '0 / '+selectedFiles.length+' uploaded');
 
@@ -438,7 +497,11 @@ async function startBulkUpload(event) {
   isUploading = false;
   window.removeEventListener('beforeunload', handleBeforeUnload);
   setFloatStatus(false);
-  if (btn) { btn.disabled=false; btn.textContent='Upload Files'; }
+  if (btn) {
+    btn.disabled = false;
+    btn.classList.remove('uploading');
+    btn.textContent = 'Upload Files';
+  }
 
   if (failed === 0) {
     // Save/update user profile college_id and department_id in background

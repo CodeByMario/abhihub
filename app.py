@@ -689,13 +689,16 @@ def api_get_branches():
 # T1 — Cascading dropdowns
 @app.route('/api/departments', methods=['GET'])
 def api_get_departments():
-    """Return departments for a college (cascading dropdown, T1/T8)."""
+    """Return departments — all if no college_id, filtered if college_id provided."""
     college_id = request.args.get('college_id', '').strip()
-    if not college_id:
-        return jsonify({'success': False, 'departments': [], 'message': 'college_id required'}), 400
-    from methods.supabase_helper import get_departments_by_college
-    result = get_departments_by_college(college_id)
-    return jsonify({'success': result.get('success', False), 'departments': result.get('data', [])}), 200
+    if college_id:
+        from methods.supabase_helper import get_departments_by_college
+        result = get_departments_by_college(college_id)
+    else:
+        from methods.supabase_helper import get_all_branches
+        result = get_all_branches()
+        result['departments'] = result.pop('data', [])
+    return jsonify({'success': result.get('success', False), 'departments': result.get('departments', result.get('data', []))}), 200
 
 
 @app.route('/api/subjects', methods=['GET'])
@@ -879,52 +882,44 @@ def label_store_room_paper():
                 'message': 'No data provided'
             }), 400
         
-        # Extract required fields
+        # Extract fields — IDs come directly from the cascade dropdowns (same as upload route)
         filename = data.get('filename', '')
         file_url = data.get('url', '')
-        college_name = data.get('college_name', '')
+        college_id = data.get('college_id', '').strip() or None
+        branch_id = data.get('branch_id', '').strip() or None
+        subject_id = data.get('subject_id', '').strip() or None
         subject_name = data.get('subject_name', '')
         subject_code = data.get('subject_code', '')
-        branch_name = data.get('branch', '')
-        year = str(data.get('year', ''))
-        
-        # New redesign fields
+        year_raw = data.get('year', '')
+        year = str(year_raw)
+        try:
+            year_int = int(year_raw)
+            from datetime import datetime
+            current_year = datetime.now().year
+            if year_int < 1900 or year_int > current_year + 1:
+                return jsonify({'success': False, 'message': 'Invalid year provided'}), 400
+        except Exception:
+            return jsonify({'success': False, 'message': 'Year must be a number'}), 400
+
         custom_title = data.get('title', '')
         document_category = data.get('document_category', 'papers')
         custom_description = data.get('description', '')
-        
-        exam_type = data.get('exam_type', 'PYQ')  # Default to PYQ
-        semesters = data.get('semesters', [])
-        
-        # Validate required fields
-        if not all([filename, file_url, college_name, subject_name, branch_name, year]):
+        exam_type = data.get('exam_type', '')
+        semester_raw = data.get('semester')
+        semester = int(semester_raw) if semester_raw and str(semester_raw).isdigit() and 1 <= int(semester_raw) <= 8 else None
+
+        if not all([filename, file_url, subject_name, year]):
             return jsonify({'success': False, 'message': 'Missing required fields'}), 400
-        
-        # Validate document category
+        if not subject_id:
+            return jsonify({'success': False, 'message': 'Subject selection is required'}), 400
+
         allowed_categories = ['papers', 'notes', 'practical', 'syllabus', 'assisment', 'timetable']
         if document_category not in allowed_categories:
-            document_category = 'papers' # Fallback
-            
+            document_category = 'papers'
+
         print(f"[STORE_ROOM_LABEL] User: {user_email}, File: {filename}")
-        print(f"[STORE_ROOM_LABEL] Category: {document_category}, Title: {custom_title or filename}")
-        
-        # Look up college_id and branch_id
-        from methods.supabase_helper import init_supabase
-        client = init_supabase()
-        college_id = None
-        branch_id = None
-        
-        if client:
-            try:
-                college_res = client.table('colleges').select('id').ilike('name', college_name).limit(1).execute()
-                if college_res.data: college_id = college_res.data[0]['id']
-            except: pass
-            
-            try:
-                branch_res = client.table('departments').select('id').ilike('name', branch_name).limit(1).execute()
-                if branch_res.data: branch_id = branch_res.data[0]['id']
-            except: pass
-        
+        print(f"[STORE_ROOM_LABEL] College:{college_id} Branch:{branch_id} Subject:{subject_id} Sem:{semester}")
+
         # Extract cloudinary_public_id from URL
         cloudinary_public_id = filename
         if 'cloudinary.com' in file_url:
@@ -934,18 +929,12 @@ def label_store_room_paper():
                 if idx + 1 < len(parts):
                     p_id_ext = '/'.join(parts[idx + 1:])
                     cloudinary_public_id = p_id_ext.rsplit('.', 1)[0]
-        
-        # Determine file type
+
         file_ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'jpg'
         file_type = 'pdf' if file_ext == 'pdf' else 'image'
-        
-        # Save to file_records table
+
         from methods.supabase_helper import save_file_record
-        
-        # Merge custom description with metadata JSON if desired, OR just pass custom
-        # Here we'll merge custom notes if provided
-        final_description = custom_description if custom_description else ''
-        
+
         result = save_file_record(
             user_id=user_id or user_email.split('@')[0],
             user_email=user_email,
@@ -959,10 +948,11 @@ def label_store_room_paper():
             year=year,
             college_id=college_id,
             branch_id=branch_id,
+            subject_id=subject_id,
             subject_code=subject_code,
-            semesters=semesters,
-            title=custom_title,
-            description=final_description
+            semester=semester,
+            title=custom_title or subject_name,
+            description=custom_description
         )
         
         if result.get('success'):
@@ -2927,58 +2917,6 @@ def store_room_api_files():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-@app.route('/store-room/api/label', methods=['POST'])
-@auth_required
-def store_room_api_label():
-    """
-    API endpoint for saving labeled papers to Supabase
-    """
-    try:
-        # Get form data
-        data = request.get_json()
-        
-        # Validate required fields
-        required_fields = ['filename', 'url', 'college_name', 'subject_name', 'exam_name', 
-                          'exam_type', 'year', 'branch', 'semesters']
-        
-        for field in required_fields:
-            if field not in data or not data[field]:
-                return jsonify({
-                    'success': False,
-                    'message': f'Missing required field: {field}'
-                }), 400
-        
-        # Get user email from session
-        user_email = session.get('user', {}).get('email', '')
-        
-        if not user_email:
-            return jsonify({
-                'success': False,
-                'message': 'User email not found in session'
-            }), 401
-        
-        # Add user email to data
-        data['user_email'] = user_email
-        
-        # Save to Supabase
-        result = save_labeled_paper(data)
-        
-        if result.get('success'):
-            return jsonify({
-                'success': True,
-                'message': 'Paper labeled successfully',
-                'data': result.get('data')
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'message': result.get('message', 'Failed to save labeled paper')
-            }), 500
-    
-    except Exception as e:
-        logging.error(f"Error saving labeled paper: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
 
 @app.route('/store-room/api/check-labeled', methods=['POST'])
 @auth_required
@@ -3024,7 +2962,8 @@ def store_room_api_rename_file():
         
         # Extract metadata from form
         college = data.get('college_name', '').strip()[:3].upper()  # First 3 chars
-        subject_code = data.get('subject_code', '').strip() or data.get('subject_name', '')[:4].upper()
+        subject_code = data.get('subject_code', '').strip()
+        subject_name = data.get('subject_name', '').strip().replace(' ', '_')
         exam_type = data.get('exam_type', 'unknown')[0].upper()  # S, W, V
         year = data.get('year', '')
         branch = data.get('branch', '').strip()[:3].upper()  # First 3 chars
@@ -3035,8 +2974,8 @@ def store_room_api_rename_file():
         file_ext = os.path.splitext(original_filename)[1]
         
         # Create new filename with metadata
-        # Format: College_SubjectCode_ExamType_Year_Branch_Sem.ext
-        new_filename = f"{college}_{subject_code}_{exam_type}_{year}_{branch}_{sem}{file_ext}"
+        subj_part = f"{subject_code}_{subject_name}".strip('_') if subject_code and subject_code != subject_name else subject_name or subject_code
+        new_filename = f"{college}_{subj_part}_{exam_type}_{year}_{branch}_{sem}{file_ext}"
         
         # Remove/replace invalid characters for filenames
         new_filename = "".join(c for c in new_filename if c.isalnum() or c in ('_', '.'))

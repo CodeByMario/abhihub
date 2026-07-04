@@ -188,7 +188,7 @@
 
     <!-- Search Overlay -->
     <!-- PWA Install Popup -->
-    <div id="pwaInstallPopup" class="pwa-install-popup">
+    <div id="pwaInstallPopup" class="popup-overlay pwa-install-popup" onclick="if(event.target===this) dismissInstallPopup()">
         <div class="pwa-popup-content">
             <div class="pwa-popup-header">
                 <button class="pwa-popup-close" onclick="dismissInstallPopup()">✕</button>
@@ -229,7 +229,7 @@
 
     <!-- ===== PROFILE COMPLETION + NOTIFICATION POPUP ===== -->
     <!-- Styles: css/pipeline/profile-nudge.css -->
-    <div id="profileNudgeOverlay" role="dialog" aria-modal="true" aria-labelledby="profileNudgeTitle">
+    <div id="profileNudgeOverlay" class="popup-overlay profile-nudge-overlay" role="dialog" aria-modal="true" aria-labelledby="profileNudgeTitle" onclick="if(event.target===this) dismissProfileNudge()">
         <div id="profileNudgeCard">
 
             <!-- Step 1: Complete Profile -->
@@ -618,8 +618,8 @@
                 if (!overlay) return;
                 document.getElementById('nudgeStep1').style.display = step === 1 ? 'block' : 'none';
                 document.getElementById('nudgeStep2').style.display = step === 2 ? 'block' : 'none';
-                overlay.style.display = 'flex';
-                // Trigger animation
+                overlay.classList.add('show');
+                // Trigger animation after overlay becomes visible
                 requestAnimationFrame(function () {
                     requestAnimationFrame(function () {
                         card.style.transform = 'translateY(0) scale(1)';
@@ -632,7 +632,7 @@
                 var card = document.getElementById('profileNudgeCard');
                 if (!overlay) return;
                 card.style.transform = 'translateY(36px) scale(0.96)';
-                setTimeout(function () { overlay.style.display = 'none'; }, 350);
+                overlay.classList.remove('show');
                 // Snooze for 24 h
                 var tomorrow = Date.now() + 86400000;
                 localStorage.setItem(NUDGE_SNOOZE_KEY, tomorrow.toString());
@@ -761,9 +761,69 @@
             }
         })();
     </script>
+        </script>
 
+        <!-- Global overlay helpers (make some common popup controls available on every page) -->
+        <script>
+            window.openSupportModal = function() {
+                try {
+                    var showFn = function() {
+                        var el = document.getElementById('supportModal');
+                        if (el) { el.classList.add('show'); el.style.display = ''; document.body.style.overflow = 'hidden'; }
+                    };
 
-    <!-- Security Module -->
+                    if (window.OverlayManager && typeof window.OverlayManager.request === 'function') {
+                        window.OverlayManager.request({
+                            id: 'supportModal',
+                            priority: 60,
+                            show: showFn,
+                            immediate: true
+                        });
+                    } else {
+                        showFn();
+                    }
+                } catch(e){}
+            };
+
+            window.closeSupportModal = function() {
+                try {
+                    var el = document.getElementById('supportModal');
+                    if (window.OverlayManager && typeof window.OverlayManager.dismiss === 'function') {
+                        window.OverlayManager.dismiss('supportModal', 6 * 60 * 60 * 1000); // 6h cooldown
+                    }
+                    if (el) { el.classList.remove('show'); el.style.display = ''; document.body.style.overflow = ''; }
+                } catch(e){}
+            };
+            // Ensure clicking modal close buttons inside support modal always closes it
+            document.addEventListener('click', function(e){
+                try {
+                    var btn = e.target.closest('.dashboard-modal-close, .dashboard-modal-secondary-button');
+                    if (!btn) return;
+                    var support = document.getElementById('supportModal');
+                    if (support && support.contains(btn)) {
+                        window.closeSupportModal();
+                    }
+                } catch(e){}
+            });
+            // Debug helper: force-close any overlay (use from browser console)
+            window.forceCloseAllOverlays = function() {
+                try {
+                    var sels = ['.popup-overlay', '.dashboard-modal-body', '.profile-nudge-overlay', '.pwa-install-popup', '.mw-awareness-overlay'];
+                    sels.forEach(s => {
+                        document.querySelectorAll(s).forEach(el => {
+                            el.classList.remove('show');
+                            try { el.style.display = 'none'; } catch(e){}
+                        });
+                    });
+                    // also hide any inline popup containers
+                    document.querySelectorAll('[id$="-popup"]').forEach(el => { el.classList.remove('show'); try{el.style.display='none';}catch(e){} });
+                    document.body.style.overflow = '';
+                    console.log('[forceCloseAllOverlays] closed overlays');
+                } catch(e) { console.error('[forceCloseAllOverlays]', e); }
+            };
+        </script>
+
+        <!-- Security Module -->
     <script src="{{ url_for('static', filename='js/security.js') }}" defer></script>
 
     <!-- Engagement Layer -->

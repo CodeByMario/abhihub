@@ -183,7 +183,7 @@
 </div>
 
 <!-- ── MemoryWall Awareness Popup (shows once) ─────────────────────── -->
-<div id="mw-awareness" class="mw-awareness-overlay" onclick="if(event.target===this)mwDismiss()">
+<div id="mw-awareness" class="popup-overlay mw-awareness-overlay" onclick="if(event.target===this)mwDismiss()">
   <div class="mw-aw-box">
     <!-- Close -->
     <button onclick="mwDismiss()" aria-label="Close" class="mw-aw-close">✕</button>
@@ -243,7 +243,7 @@
   // Show awareness popup once per user
   function mwDismiss() {
     var el = document.getElementById('mw-awareness');
-    if (el) { el.classList.remove('show'); el.style.display = 'none'; }
+    if (el) { el.classList.remove('show'); el.style.display = ''; }
     try { localStorage.setItem('mw_awareness_seen', '1'); } catch(e) {}
   }
   (function() {
@@ -260,8 +260,8 @@
 
 <!-- ── T4: Premium First-Login Onboarding Modal ──────────────────── -->
 {% if user_data %}
-<div id="welcomeOnboardingModal" class="dashboard-modal-body">
-  <div class="dashboard-welcome-card">
+<div id="welcomeOnboardingModal" class="popup-overlay dashboard-modal-body">
+  <div class="popup-card dashboard-welcome-card">
     <div class="dashboard-welcome-header">
       <div class="dashboard-welcome-banner"></div>
       <div class="dashboard-welcome-icon">🎓</div>
@@ -305,7 +305,7 @@
 </div>
 <script>
   async function dismissWelcomeModal() {
-    document.getElementById('welcomeOnboardingModal').style.display = 'none';
+    document.getElementById('welcomeOnboardingModal')?.classList.remove('show');
     try { await fetch('/api/onboarding/welcome-seen', {method:'POST'}); } catch {}
   }
   (async function() {
@@ -314,7 +314,7 @@
       if (r.success && r.data && !r.data.welcome_seen) {
         // First login — show onboarding modal, suppress all other popups
         window.__ABHIHUB_FIRST_LOGIN = true;
-        document.getElementById('welcomeOnboardingModal').style.display = 'flex';
+        document.getElementById('welcomeOnboardingModal')?.classList.add('show');
       }
     } catch {}
   })();
@@ -328,8 +328,8 @@
   ☕ Support AbhiHub
 </button>
 
-<div id="supportModal" class="dashboard-modal-body" onclick="if(event.target===this)closeSupportModal()">
-  <div class="dashboard-modal-card">
+<div id="supportModal" class="popup-overlay dashboard-modal-body" onclick="if(event.target===this)closeSupportModal()">
+  <div class="popup-card dashboard-modal-card">
     <button onclick="closeSupportModal()" aria-label="Close" class="dashboard-modal-close">✕</button>
     <div class="dashboard-modal-primary">
       <div class="dashboard-modal-banner"></div>
@@ -375,12 +375,7 @@
   </div>
 </div>
 <script>
-  function openSupportModal() {
-    document.getElementById('supportModal').style.display = 'flex';
-  }
-  function closeSupportModal() {
-    document.getElementById('supportModal').style.display = 'none';
-  }
+  // Support modal handlers are provided globally by the base template.
   // Hide float btn on first login (onboarding modal takes priority)
   if (window.__ABHIHUB_FIRST_LOGIN) {
     var btn = document.getElementById('floatSupportBtn');
