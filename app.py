@@ -1917,6 +1917,10 @@ def features():
     # Otherwise show the features page
     return render_template('p_landing.html')
 
+@app.route('/features-tour')
+def features_tour():
+    return render_template('features.html')
+
 @app.route('/join')
 def join_team():
     """Collaborator recruitment landing page"""

@@ -284,6 +284,55 @@
       }
     }
 
+    /* ── Psychological Triggers & Animations ── */
+    .pulse-glow {
+      animation: pulseGlow 2s infinite;
+    }
+    @keyframes pulseGlow {
+      0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.4); }
+      70% { box-shadow: 0 0 0 15px rgba(37, 99, 235, 0); }
+      100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); }
+    }
+    
+    .stagger-in {
+      opacity: 0;
+      transform: translateY(30px);
+      animation: slideUpFade 0.7s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    }
+    .stagger-in:nth-child(1) { animation-delay: 0.1s; }
+    .stagger-in:nth-child(2) { animation-delay: 0.2s; }
+    .stagger-in:nth-child(3) { animation-delay: 0.3s; }
+    .stagger-in:nth-child(4) { animation-delay: 0.4s; }
+
+    @keyframes slideUpFade {
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    .fomo-banner {
+      background: rgba(16, 185, 129, 0.1);
+      border: 1px solid rgba(16, 185, 129, 0.3);
+      color: #065f46;
+      padding: 0.5rem 1rem;
+      border-radius: 99px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      margin-top: 1.5rem;
+      animation: slideUpFade 0.5s ease forwards;
+    }
+    .fomo-banner span {
+      display: inline-block;
+      width: 8px;
+      height: 8px;
+      background: #10b981;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #10b981;
+      animation: blink 1.5s infinite;
+    }
+    @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+
     /* Notification & Popup specific styles retained */
     .notification-popup {
       display: none;
@@ -307,22 +356,21 @@
   <div class="hero-bg-blob"></div>
   <div class="hero-bg-blob"></div>
 
-  <div class="hero-badge">
+  <div class="hero-badge stagger-in" style="animation-delay: 0s;">
     <span>✨</span> New: Premium Mobile Experience
   </div>
 
-  <h1 class="hero-title">
+  <h1 class="hero-title stagger-in" style="animation-delay: 0.1s;">
     Master Your Engineering<br>
     <span>Exams with AbhiHub</span>
   </h1>
 
-  <p class="hero-subtitle">
-    The ultimate platform for engineering students. Access verified notes, previous year papers, and practical files
-    instantly.
+  <p class="hero-subtitle stagger-in" style="animation-delay: 0.2s;">
+    Stop wasting time searching for notes. Join top engineering students to access verified PYQs, practicals, and rank higher instantly.
   </p>
 
-  <div class="hero-actions">
-    <a href="{{ url_for('upload') }}" class="btn btn-primary">
+  <div class="hero-actions stagger-in" style="animation-delay: 0.3s;">
+    <a href="{{ url_for('upload') }}" class="btn btn-primary pulse-glow">
       <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
@@ -336,6 +384,13 @@
       </svg>
       Explore Files
     </a>
+    <a href="{{ url_for('features_tour') }}" class="btn btn-glass">
+      ✨ View Features
+    </a>
+  </div>
+
+  <div class="fomo-banner stagger-in" style="animation-delay: 0.4s;">
+    <span></span> 12+ students are studying right now
   </div>
 
   <div class="stats-bar">
@@ -355,29 +410,34 @@
 </div>
 
 <div class="features-section">
-  <h2 class="section-title">Everything You Need</h2>
+  <h2 class="section-title">Why Students Choose AbhiHub</h2>
   <div class="features-grid">
-    <a href="{{ url_for('store_room') }}" class="glass-card">
+    <a href="{{ url_for('memorywall_dashboard') }}" class="glass-card stagger-in">
+      <div class="icon-box">🧠</div>
+      <h3 class="card-title">MemoryWall</h3>
+      <p class="card-desc">Create your wall, let friends describe you in 3 words, and see your AI personality insights before you graduate.</p>
+      <span class="card-link" style="color: #6366f1;">Build Your Wall →</span>
+    </a>
+
+    <a href="{{ url_for('dashboard') }}" class="glass-card stagger-in">
+      <div class="icon-box">🎯</div>
+      <h3 class="card-title">Personalized Dashboard</h3>
+      <p class="card-desc">A tailored feed based on your college and branch for lightning-fast access to your exact PYQs and notes.</p>
+      <span class="card-link" style="color: #ec4899;">View Dashboard →</span>
+    </a>
+
+    <a href="{{ url_for('store_room') }}" class="glass-card stagger-in">
       <div class="icon-box">📚</div>
       <h3 class="card-title">Store Room</h3>
-      <p class="card-desc">Your personal library of saved files. Verify, label, and organize your study materials
-        efficiently.</p>
-      <span class="card-link">Go to Store Room →</span>
+      <p class="card-desc">Your personal study library. Save, label, and organize your study materials efficiently with custom tags.</p>
+      <span class="card-link" style="color: #10b981;">Go to Store Room →</span>
     </a>
 
-    <a href="{{ url_for('show_rank') }}" class="glass-card">
-      <div class="icon-box">🏆</div>
-      <h3 class="card-title">Top Rankers</h3>
-      <p class="card-desc">See who's contributing the most. Compete with peers and earn your spot on the leaderboard.
-      </p>
-      <span class="card-link">Check Rankings →</span>
-    </a>
-
-    <a href="{{ url_for('profile') }}" class="glass-card">
-      <div class="icon-box">👤</div>
-      <h3 class="card-title">Student Profile</h3>
-      <p class="card-desc">Track your uploads, manage your account, and see your contribution analytics.</p>
-      <span class="card-link">View Profile →</span>
+    <a href="{{ url_for('upload') }}" class="glass-card stagger-in">
+      <div class="icon-box">📤</div>
+      <h3 class="card-title">Smart Upload</h3>
+      <p class="card-desc">Upload files seamlessly, earn reputation points, and climb the global leaderboard to become a top contributor.</p>
+      <span class="card-link" style="color: #f59e0b;">Start Uploading →</span>
     </a>
   </div>
 </div>
