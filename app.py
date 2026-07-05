@@ -1,4 +1,4 @@
-from flask import Flask, redirect, render_template, request, make_response, session, abort, jsonify, url_for, send_file
+from flask import Flask, redirect, render_template, request, make_response, session, abort, jsonify, url_for, send_file, send_from_directory, flash
 import secrets
 from functools import wraps
 from push_api import init_push_api
@@ -175,6 +175,9 @@ from flask_compress import Compress
 app = Flask(__name__)
 Compress(app)
 
+import mimetypes
+mimetypes.add_type('application/javascript', '.mjs')
+
 # Security Configuration - Load from environment variables
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
 
@@ -212,9 +215,7 @@ except Exception as e:
 # File Upload Security Configuration
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB max file size
 ALLOWED_EXTENSIONS = {
-    'pdf', 'doc', 'docx', 'txt', 'ppt', 'pptx', 'xls', 'xlsx',
-    'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg',
-    'zip', 'rar', '7z'
+    'pdf', 'png', 'jpg', 'jpeg'
 }
 
 def allowed_file(filename):
@@ -376,6 +377,12 @@ import jwt
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
+
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    if filename.endswith(".mjs"):
+        return send_from_directory("static", filename, mimetype="application/javascript")
+    return send_from_directory("static", filename)
 
 
 @app.route('/auth', methods=['POST'])
@@ -570,6 +577,23 @@ def logout():
     response = make_response(redirect(url_for('login')))
     response.set_cookie('session', '', expires=0)  # Optionally clear the session cookie
     return response
+
+@app.route('/api/profile-status')
+@auth_required
+def profile_status(user_data=None):
+    """Lightweight endpoint for access-gates.js — returns profile completion state."""
+    try:
+        user_id = session.get('user', {}).get('uid')
+        if not user_id:
+            return jsonify({'profile_completed': False}), 200
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        res = client.table('profiles').select('college_id, department_id').eq('id', user_id).single().execute()
+        completed = bool(res.data and res.data.get('college_id') and res.data.get('department_id'))
+        return jsonify({'profile_completed': completed}), 200
+    except Exception:
+        return jsonify({'profile_completed': False}), 200
+
 
 @app.route('/api/profile', methods=['GET'])
 @auth_required
@@ -1641,6 +1665,44 @@ def logo():
     return send_file('static/images/logo.png', mimetype='image/png')
 
 
+_ALLOWED_PROXY_HOSTS = {
+    'storage.googleapis.com',
+    'firebasestorage.googleapis.com',
+    'res.cloudinary.com',
+}
+
+@app.route('/api/proxy-file')
+@auth_required
+def proxy_file():
+    """Server-side proxy for Firebase/Cloudinary files to bypass browser CORS."""
+    file_url = request.args.get('url', '').strip()
+    if not file_url:
+        abort(400)
+
+    from urllib.parse import urlparse
+    parsed = urlparse(file_url)
+    if parsed.hostname not in _ALLOWED_PROXY_HOSTS:
+        abort(403)
+
+    try:
+        upstream = requests.get(file_url, stream=True, timeout=30)
+        content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
+
+        def generate():
+            for chunk in upstream.iter_content(chunk_size=8192):
+                yield chunk
+
+        resp = make_response(generate())
+        resp.headers['Content-Type'] = content_type
+        resp.headers['Cache-Control'] = 'private, max-age=86400'
+        resp.headers['X-Content-Type-Options'] = 'nosniff'
+        resp.headers['Content-Disposition'] = 'inline'
+        return resp
+    except Exception as e:
+        logging.error(f"[PROXY] Failed to proxy {file_url}: {e}")
+        abort(502)
+
+
 def get_all_files_unified():
     """
     Get all active documents from Supabase `abhihub.documents`.
@@ -2080,6 +2142,24 @@ def resource_landing(slug):
         
     document = doc_res.get('data')
     
+    # Rewrite file URL through same-origin proxy to avoid CORS issues
+    file_url = document.get('file_url', '')
+    if file_url:
+        from urllib.parse import quote as url_quote
+        if not file_url.startswith('http'):
+            # Firebase Storage path — generate a signed download URL first, then proxy it
+            try:
+                bucket = storage.bucket()
+                blob = bucket.blob(file_url)
+                signed_url = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
+                document['file_url'] = url_for('proxy_file', url=signed_url, _external=False)
+            except Exception as e:
+                logging.error(f"Error generating signed URL in resource_landing for {file_url}: {e}")
+        elif 'storage.googleapis.com' in file_url or 'firebasestorage.googleapis.com' in file_url or 'res.cloudinary.com' in file_url:
+            # Already a public/signed URL from Firebase or Cloudinary — proxy it
+            document['file_url'] = url_for('proxy_file', url=file_url, _external=False)
+    
+
     # Construct canonical slug
     college_data = document.get('college') or {}
     dept_data = document.get('department') or {}

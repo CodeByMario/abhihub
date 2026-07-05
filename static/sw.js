@@ -2,7 +2,8 @@
  * AbhiHub Service Worker
  * Production-ready PWA service worker with:
  * - Offline-first caching strategy
- * - Image/PDF runtime caching
+ * - Encrypted PDF caching (AES-GCM, 24h TTL)
+ * - Image runtime caching
  * - Upload/auth exclusion
  * - Widget update support
  * - Background sync
@@ -13,6 +14,158 @@ const CACHE_NAME = `abhihub-${CACHE_VERSION}`;
 const STATIC_CACHE = `abhihub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `abhihub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `abhihub-images-${CACHE_VERSION}`;
+
+// ==================== ENCRYPTED PDF CACHE ====================
+const PDF_IDB_NAME = 'abhihub-pdf-cache';
+const PDF_IDB_STORE = 'encrypted-pdfs';
+const PDF_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/** Open (or create) the PDF IndexedDB */
+function openPdfDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(PDF_IDB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(PDF_IDB_STORE)) {
+        db.createObjectStore(PDF_IDB_STORE, { keyPath: 'key' });
+      }
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e.target.error);
+  });
+}
+
+/** Get or create a persistent AES-GCM CryptoKey stored in IDB */
+async function getOrCreateCryptoKey(db) {
+  const tx = db.transaction(PDF_IDB_STORE, 'readwrite');
+  const store = tx.objectStore(PDF_IDB_STORE);
+  const existing = await new Promise((res) => {
+    const r = store.get('__cryptokey__');
+    r.onsuccess = () => res(r.result);
+    r.onerror = () => res(null);
+  });
+  if (existing) {
+    return crypto.subtle.importKey('raw', existing.keyData, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+  }
+  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+  const raw = await crypto.subtle.exportKey('raw', key);
+  await new Promise((res, rej) => {
+    const r = store.put({ key: '__cryptokey__', keyData: raw });
+    r.onsuccess = res; r.onerror = rej;
+  });
+  return key;
+}
+
+/** Encrypt ArrayBuffer -> { iv, data } */
+async function encryptPdf(cryptoKey, buffer) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, cryptoKey, buffer);
+  return { iv, data };
+}
+
+/** Decrypt { iv, data } -> ArrayBuffer */
+async function decryptPdf(cryptoKey, iv, data) {
+  return crypto.subtle.decrypt({ name: 'AES-GCM', iv }, cryptoKey, data);
+}
+
+/** Store encrypted PDF in IDB with timestamp */
+async function storePdfInIdb(db, cacheKey, encryptedPayload, contentType) {
+  const tx = db.transaction(PDF_IDB_STORE, 'readwrite');
+  const store = tx.objectStore(PDF_IDB_STORE);
+  await new Promise((res, rej) => {
+    const r = store.put({
+      key: cacheKey,
+      iv: encryptedPayload.iv,
+      data: encryptedPayload.data,
+      contentType,
+      cachedAt: Date.now()
+    });
+    r.onsuccess = res; r.onerror = rej;
+  });
+}
+
+/** Retrieve and validate PDF from IDB */
+async function getPdfFromIdb(db, cacheKey) {
+  return new Promise((res) => {
+    const tx = db.transaction(PDF_IDB_STORE, 'readonly');
+    const r = tx.objectStore(PDF_IDB_STORE).get(cacheKey);
+    r.onsuccess = () => res(r.result || null);
+    r.onerror = () => res(null);
+  });
+}
+
+/** Delete a single PDF entry from IDB */
+async function deletePdfFromIdb(db, cacheKey) {
+  const tx = db.transaction(PDF_IDB_STORE, 'readwrite');
+  tx.objectStore(PDF_IDB_STORE).delete(cacheKey);
+}
+
+/** Evict all IDB PDF entries older than TTL */
+async function evictExpiredPdfs(db) {
+  const now = Date.now();
+  const tx = db.transaction(PDF_IDB_STORE, 'readwrite');
+  const store = tx.objectStore(PDF_IDB_STORE);
+  const req = store.openCursor();
+  req.onsuccess = (e) => {
+    const cursor = e.target.result;
+    if (!cursor) return;
+    const entry = cursor.value;
+    if (entry.key !== '__cryptokey__' && entry.cachedAt && (now - entry.cachedAt) > PDF_CACHE_TTL_MS) {
+      cursor.delete();
+    }
+    cursor.continue();
+  };
+}
+
+/**
+ * Fetch and cache a cross-origin PDF (Firebase/Cloudinary signed URL)
+ * Encrypts bytes into IDB. Returns decrypted Response.
+ */
+async function handleEncryptedPdfFetch(originalUrl) {
+  const db = await openPdfDb();
+  const cryptoKey = await getOrCreateCryptoKey(db);
+  const cacheKey = originalUrl; // use full URL as key
+
+  // Evict stale entries opportunistically
+  evictExpiredPdfs(db);
+
+  // Check IDB cache
+  const cached = await getPdfFromIdb(db, cacheKey);
+  if (cached) {
+    if ((Date.now() - cached.cachedAt) < PDF_CACHE_TTL_MS) {
+      try {
+        const decrypted = await decryptPdf(cryptoKey, cached.iv, cached.data);
+        return new Response(decrypted, {
+          headers: { 'Content-Type': cached.contentType || 'application/pdf' }
+        });
+      } catch {
+        await deletePdfFromIdb(db, cacheKey); // corrupt entry
+      }
+    } else {
+      await deletePdfFromIdb(db, cacheKey); // expired
+    }
+  }
+
+  // Fetch fresh
+  let networkResponse;
+  try {
+    networkResponse = await fetch(originalUrl, { mode: 'cors' });
+  } catch {
+    return new Response('PDF unavailable offline', { status: 503 });
+  }
+
+  if (!networkResponse.ok) return networkResponse;
+
+  const buffer = await networkResponse.clone().arrayBuffer();
+  const contentType = networkResponse.headers.get('Content-Type') || 'application/octet-stream';
+  const encrypted = await encryptPdf(cryptoKey, buffer);
+  await storePdfInIdb(db, cacheKey, encrypted, contentType);
+
+  return new Response(buffer, { headers: { 'Content-Type': contentType } });
+}
+// Alias for clarity — handles ALL file types, not just PDFs
+const handleEncryptedFileFetch = handleEncryptedPdfFetch;
+// ==================== END ENCRYPTED FILE CACHE ====================
 
 // Core files to cache immediately on install
 const PRECACHE_URLS = [
@@ -30,12 +183,18 @@ const PRECACHE_URLS = [
   '/static/images/apple-touch-icon.png',
   '/static/images/logo.png',
   '/static/widget/template.json',
-  '/static/widget/data.json'
+  '/static/widget/data.json',
+  // Key app pages — cached on install for offline access
+  '/dashboard',
+  '/account',
+  '/profile',
+  '/premium',
+  '/premium/',
 ];
 
 // Paths that should NEVER be cached (security-sensitive)
 const NEVER_CACHE_PATTERNS = [
-  /\/api\//,
+  /\/api\/(?!profile-status)/,  // block all /api/ except profile-status
   /\/auth\//,
   /\/login/,
   /\/logout/,
@@ -47,6 +206,13 @@ const NEVER_CACHE_PATTERNS = [
   /\/token/,
   /\/premium\/share-receiver/
 ];
+
+// Lightweight API responses to cache with stale-while-revalidate (short TTL)
+const CACHEABLE_API_PATHS = [
+  '/api/profile-status',
+];
+const API_CACHE = `abhihub-api-${CACHE_VERSION}`;
+const API_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 // File extensions eligible for caching
 const CACHEABLE_EXTENSIONS = [
@@ -75,6 +241,13 @@ function isCacheableUrl(url) {
   return CACHEABLE_EXTENSIONS.some(ext => pathname.endsWith(ext));
 }
 
+// All file types to cache for user access
+const USER_FILE_EXTS = new Set([
+  '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico',
+  '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.txt',
+  '.zip', '.rar', '.7z'
+]);
+
 /**
  * Check if URL is an image
  */
@@ -84,10 +257,24 @@ function isImageUrl(url) {
 }
 
 /**
- * Check if URL is a PDF
+ * Check if URL is a user-accessible file (any type we cache)
  */
-function isPdfUrl(url) {
-  return url.pathname.toLowerCase().endsWith('.pdf');
+function isUserFile(url) {
+  const p = url.pathname.toLowerCase();
+  return Array.from(USER_FILE_EXTS).some(ext => p.endsWith(ext));
+}
+
+/**
+ * Check if cross-origin URL is a Firebase/Cloudinary file
+ */
+function isCrossOriginFile(url) {
+  // Cloudinary: res.cloudinary.com, Firebase Storage, or signed URL patterns
+  return isUserFile(url)
+    || url.hostname.includes('cloudinary.com')
+    || url.hostname.includes('firebasestorage.googleapis.com')
+    || url.hostname.includes('storage.googleapis.com')
+    || url.searchParams.has('alt')
+    || url.pathname.includes('/object/');
 }
 
 /**
@@ -171,8 +358,11 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Skip cross-origin requests
+  // Intercept cross-origin file requests (Firebase/Cloudinary signed URLs — all types)
   if (url.origin !== self.location.origin) {
+    if (isCrossOriginFile(url)) {
+      event.respondWith(handleEncryptedFileFetch(request.url));
+    }
     return;
   }
 
@@ -187,15 +377,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle images with stale-while-revalidate
-  if (isImageUrl(url)) {
-    event.respondWith(handleImageRequest(request));
+  // Cacheable API endpoints (profile-status etc.) — stale-while-revalidate
+  if (CACHEABLE_API_PATHS.some(p => url.pathname === p)) {
+    event.respondWith(handleCacheableApiRequest(request));
     return;
   }
 
-  // Handle PDFs with cache-first strategy
-  if (isPdfUrl(url)) {
-    event.respondWith(handlePdfRequest(request));
+  // All same-origin user files (images, PDFs, docs) → encrypted IDB cache-first
+  if (isUserFile(url)) {
+    event.respondWith(handleEncryptedFileFetch(request.url));
     return;
   }
 
@@ -274,36 +464,76 @@ async function handlePdfRequest(request) {
 }
 
 /**
- * Handle navigation requests with network-first fallback to cache
+ * Handle navigation requests — stale-while-revalidate for offline-first UX.
+ * Serves cached page immediately, refreshes cache in background.
  */
 async function handleNavigationRequest(request) {
-  try {
-    const networkResponse = await fetch(request);
+  const cache = await caches.open(DYNAMIC_CACHE);
+  const cachedResponse = await cache.match(request, { ignoreSearch: true });
+
+  // Kick off network refresh in background
+  const networkFetch = fetch(request).then(async (networkResponse) => {
     if (networkResponse.ok) {
-      // Cache successful navigation responses
-      const cache = await caches.open(DYNAMIC_CACHE);
       await cache.put(request, networkResponse.clone());
     }
     return networkResponse;
-  } catch (error) {
-    // Network failed, try cache
-    const cachedResponse = await caches.match(request, { ignoreSearch: true });
-    if (cachedResponse) {
-      return cachedResponse;
-    }
+  }).catch(() => null);
 
-    // Return offline page
-    const offlineResponse = await caches.match('/offline');
-    if (offlineResponse) {
-      return offlineResponse;
-    }
-
-    // Last resort: basic offline message
-    return new Response(
-      '<!DOCTYPE html><html><body><h1>Offline</h1><p>Please check your connection.</p></body></html>',
-      { headers: { 'Content-Type': 'text/html' } }
-    );
+  // Serve cached immediately if available (instant load)
+  if (cachedResponse) {
+    return cachedResponse;
   }
+
+  // No cache — wait for network
+  const networkResponse = await networkFetch;
+  if (networkResponse) return networkResponse;
+
+  // Fully offline fallback
+  const offlinePage = await caches.match('/offline');
+  return offlinePage || new Response(
+    `<!DOCTYPE html><html><head><title>Offline — AbhiHub</title><style>
+      body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0f172a;color:#e2e8f0;text-align:center;}
+      .card{background:#1e293b;border-radius:16px;padding:2rem;max-width:360px;}
+      h1{font-size:1.5rem;margin-bottom:.5rem;} p{color:#94a3b8;}
+      a{display:inline-block;margin-top:1rem;padding:.7rem 1.5rem;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;}
+    </style></head><body>
+      <div class="card">
+        <div style="font-size:3rem">📚</div>
+        <h1>You're Offline</h1>
+        <p>AbhiHub isn't available right now. Previously visited pages are still accessible.</p>
+        <a href="/dashboard">Go to Dashboard</a>
+      </div>
+    </body></html>`,
+    { headers: { 'Content-Type': 'text/html' } }
+  );
+}
+
+/**
+ * Stale-while-revalidate handler for lightweight cacheable API responses.
+ */
+async function handleCacheableApiRequest(request) {
+  const cache = await caches.open(API_CACHE);
+  const cacheKey = request.url;
+  const cachedResponse = await cache.match(cacheKey);
+
+  // Refresh in background
+  const networkFetch = fetch(request, { credentials: 'same-origin' }).then(async (networkResponse) => {
+    if (networkResponse.ok) {
+      await cache.put(cacheKey, networkResponse.clone());
+    }
+    return networkResponse;
+  }).catch(() => null);
+
+  // Serve stale immediately if available
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  // No cache yet — wait for network
+  const networkResponse = await networkFetch;
+  return networkResponse || new Response(JSON.stringify({ profile_completed: false }), {
+    headers: { 'Content-Type': 'application/json' }
+  });
 }
 
 /**
