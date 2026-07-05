@@ -1685,22 +1685,79 @@ def proxy_file():
         abort(403)
 
     try:
-        upstream = requests.get(file_url, stream=True, timeout=30)
+        upstream = requests.get(
+            file_url,
+            timeout=30,
+            verify=True,
+            headers={'User-Agent': 'AbhiHub-Proxy/1.0'}
+        )
+        if not upstream.ok:
+            logging.error(f"[PROXY] Upstream returned {upstream.status_code} for {file_url}")
+            abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
+
         content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
-
-        def generate():
-            for chunk in upstream.iter_content(chunk_size=8192):
-                yield chunk
-
-        resp = make_response(generate())
+        resp = make_response(upstream.content)
         resp.headers['Content-Type'] = content_type
         resp.headers['Cache-Control'] = 'private, max-age=86400'
         resp.headers['X-Content-Type-Options'] = 'nosniff'
         resp.headers['Content-Disposition'] = 'inline'
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        return resp
+    except requests.exceptions.RequestException as e:
+        logging.error(f"[PROXY] Request failed for {file_url}: {e}")
+        abort(502)
+    except Exception as e:
+        logging.error(f"[PROXY] Unexpected error for {file_url}: {e}")
+        abort(502)
+
+
+@app.route('/api/view-doc/<doc_id>')
+@app.route('/api/view-doc/<doc_id>/<filename>')
+def view_doc(doc_id, filename=None):
+    """Clean proxy endpoint for viewing docs — no URL encoding needed in PDF.js file= param."""
+    from methods.supabase_helper import get_document_by_id_rich
+    doc_res = get_document_by_id_rich(doc_id)
+    if not doc_res.get('success'):
+        abort(404)
+    document = doc_res.get('data', {})
+    file_url = document.get('file_url', '')
+    if not file_url:
+        abort(404)
+
+    # Resolve Firebase storage paths to signed URLs
+    if not file_url.startswith('http'):
+        try:
+            bucket = storage.bucket()
+            blob = bucket.blob(file_url)
+            file_url = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
+        except Exception as e:
+            logging.error(f"[VIEW-DOC] Signed URL error for {doc_id}: {e}")
+            abort(500)
+
+    from urllib.parse import urlparse
+    parsed = urlparse(file_url)
+    if parsed.hostname not in _ALLOWED_PROXY_HOSTS:
+        abort(403)
+
+    try:
+        upstream = requests.get(file_url, timeout=30, verify=True, headers={'User-Agent': 'AbhiHub-Proxy/1.0'})
+        if not upstream.ok:
+            abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
+        content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
+        if document.get('file_type') == 'pdf' or '.pdf' in file_url.lower():
+            content_type = 'application/pdf'
+            
+        resp = make_response(upstream.content)
+        resp.headers['Content-Type'] = content_type
+        resp.headers['Cache-Control'] = 'private, max-age=86400'
+        resp.headers['Content-Disposition'] = 'inline'
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+
         return resp
     except Exception as e:
-        logging.error(f"[PROXY] Failed to proxy {file_url}: {e}")
+        logging.error(f"[VIEW-DOC] Proxy error for {doc_id}: {e}")
         abort(502)
+
 
 
 def get_all_files_unified():
@@ -2145,19 +2202,15 @@ def resource_landing(slug):
     # Rewrite file URL through same-origin proxy to avoid CORS issues
     file_url = document.get('file_url', '')
     if file_url:
-        from urllib.parse import quote as url_quote
-        if not file_url.startswith('http'):
-            # Firebase Storage path — generate a signed download URL first, then proxy it
-            try:
-                bucket = storage.bucket()
-                blob = bucket.blob(file_url)
-                signed_url = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
-                document['file_url'] = url_for('proxy_file', url=signed_url, _external=False)
-            except Exception as e:
-                logging.error(f"Error generating signed URL in resource_landing for {file_url}: {e}")
-        elif 'storage.googleapis.com' in file_url or 'firebasestorage.googleapis.com' in file_url or 'res.cloudinary.com' in file_url:
-            # Already a public/signed URL from Firebase or Cloudinary — proxy it
-            document['file_url'] = url_for('proxy_file', url=file_url, _external=False)
+        ext = ''
+        if document.get('file_type') == 'pdf':
+            ext = '.pdf'
+        elif '.' in file_url.split('/')[-1]:
+            ext = '.' + file_url.split('/')[-1].split('.')[-1].split('?')[0]
+        
+        # Use clean path-based route for proxying
+        document['file_url'] = f'/api/view-doc/{doc_id}/file{ext}'
+
     
 
     # Construct canonical slug
