@@ -27,15 +27,16 @@
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
 {% endif %}
 
-<!-- 4. Canonical URLs (Dynamic) -->
-<link rel="canonical" href="{{ request.base_url }}">
+<!-- 4. Canonical URLs (Enforced Single Domain to prevent conflicts) -->
+{% set canonical_domain = 'https://app.abhihub.run.place' %}
+<link rel="canonical" href="{{ canonical_domain }}{{ request.path }}">
 
 <!-- 5. Open Graph Tags -->
 <meta property="og:site_name" content="AbhiHub">
 <meta property="og:type" content="{{ og_type | default('website') }}">
 <meta property="og:title" content="{{ og_title | default(seo_title | default('AbhiHub - Engineering Exam Papers & Resources')) }}">
 <meta property="og:description" content="{{ og_description | default(seo_description | default('AbhiHub is the best platform to organize exam resources...')) }}">
-<meta property="og:url" content="{{ request.base_url }}">
+<meta property="og:url" content="{{ canonical_domain }}{{ request.path }}">
 <meta property="og:image" content="{{ og_image | default(url_for('static', filename='images/android-chrome-512x512.png', _external=True)) }}">
 
 <!-- 6. Twitter Card Tags -->
@@ -50,8 +51,8 @@
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "AbhiHub",
-  "url": "https://abhihub.run.place",
-  "logo": "https://abhihub.run.place/static/images/apple-touch-icon.png",
+  "url": "https://app.abhihub.run.place",
+  "logo": "https://app.abhihub.run.place/static/images/apple-touch-icon.png",
   "description": "Student-driven platform for engineering resources and PYQs.",
   "sameAs": [
     "https://www.instagram.com/_abhihub_",
