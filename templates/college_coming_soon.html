@@ -1,0 +1,494 @@
+{% set _abbr = college.abbreviation or college.name %}
+{% set _popular = college.popular_name or '' %}
+{% set _city = college.city or 'India' %}
+{% set seo_title = _abbr ~ ' PYQ & Notes Coming Soon | AbhiHub' %}
+{% set seo_description = 'AbhiHub is coming to ' ~ college.name ~ ' (' ~ _abbr ~ '). Join the waitlist and help bring free PYQs, notes and study materials to your college faster.' %}
+{% set seo_keywords = 'PYQ ' ~ _abbr ~ ', ' ~ _abbr ~ ' PYQ, ' ~ college.name ~ ' PYQ, ' ~ _abbr ~ ' notes, ' ~ college.name ~ ' study material, ' ~ _city ~ ' college PYQ, AbhiHub ' ~ _abbr %}
+{% set og_title = seo_title %}
+{% set og_description = seo_description %}
+{% set og_type = 'website' %}
+
+{% extends 'p_struct.html' %}
+{% block page_head %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "CollegeOrUniversity",
+      "name": "{{ college.name }}",
+      "alternateName": ["{{ _abbr }}"{% if _popular %}, "{{ _popular }}"{% endif %}],
+      "address": { "@type": "PostalAddress", "addressLocality": "{{ _city }}", "addressCountry": "IN" },
+      "url": "{{ request.base_url }}"
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://app.abhihub.run.place/" },
+        { "@type": "ListItem", "position": 2, "name": "{{ college.name }}", "item": "{{ request.base_url }}" }
+      ]
+    }
+  ]
+}
+</script>
+
+<style>
+:root {
+  --cs-primary: #6d28d9;
+  --cs-accent: #a855f7;
+  --cs-bg: #faf5ff;
+  --cs-card: #ffffff;
+  --cs-text: #0f172a;
+  --cs-muted: #64748b;
+  --cs-border: #ede9fe;
+  --cs-success: #059669;
+}
+
+body { background-color: var(--cs-bg); overflow-x: hidden; }
+
+/* Hero */
+.cs-hero {
+  position: relative;
+  padding: 5rem 1.5rem 4rem;
+  background: linear-gradient(135deg, #1e1b4b 0%, var(--cs-primary) 55%, var(--cs-accent) 100%);
+  color: white;
+  text-align: center;
+  border-bottom-left-radius: 48px;
+  border-bottom-right-radius: 48px;
+  overflow: hidden;
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Floating bubbles background */
+.cs-hero::before {
+  content: '';
+  position: absolute;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(168,85,247,0.2) 0%, transparent 70%);
+  border-radius: 50%;
+  top: -200px; right: -200px;
+  animation: float 8s ease-in-out infinite;
+}
+.cs-hero::after {
+  content: '';
+  position: absolute;
+  width: 400px; height: 400px;
+  background: radial-gradient(circle, rgba(109,40,217,0.2) 0%, transparent 70%);
+  border-radius: 50%;
+  bottom: -150px; left: -100px;
+  animation: float 10s ease-in-out infinite reverse;
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-30px); }
+}
+
+.cs-badge {
+  display: inline-block;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  backdrop-filter: blur(8px);
+  padding: 0.4rem 1.2rem;
+  border-radius: 99px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  position: relative; z-index: 2;
+}
+
+.cs-hero h1 {
+  font-size: clamp(2.2rem, 6vw, 4rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 4px 24px rgba(0,0,0,0.2);
+  position: relative; z-index: 2;
+}
+
+.cs-hero .subtitle {
+  font-size: 1.05rem;
+  opacity: 0.9;
+  max-width: 560px;
+  line-height: 1.6;
+  margin-bottom: 2rem;
+  position: relative; z-index: 2;
+}
+
+/* Counter */
+.cs-counter-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.75rem;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  backdrop-filter: blur(12px);
+  padding: 0.6rem 1.5rem;
+  border-radius: 99px;
+  position: relative; z-index: 2;
+}
+
+.cs-counter-number {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: #fbbf24;
+}
+
+.cs-counter-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  opacity: 0.9;
+}
+
+/* Main card */
+.cs-main {
+  max-width: 680px;
+  margin: -2rem auto 4rem;
+  padding: 0 1.5rem;
+  position: relative; z-index: 10;
+}
+
+.cs-card {
+  background: var(--cs-card);
+  border: 1.5px solid var(--cs-border);
+  border-radius: 28px;
+  box-shadow: 0 32px 64px rgba(109,40,217,0.12);
+  padding: 2.5rem;
+}
+
+.cs-card-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--cs-text);
+  margin-bottom: 0.5rem;
+  text-align: center;
+}
+
+.cs-card-sub {
+  color: var(--cs-muted);
+  text-align: center;
+  font-size: 0.95rem;
+  margin-bottom: 2rem;
+  line-height: 1.5;
+}
+
+/* Form */
+.cs-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.cs-input-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.cs-input {
+  width: 100%;
+  padding: 0.9rem 1.2rem;
+  border: 1.5px solid var(--cs-border);
+  border-radius: 14px;
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--cs-text);
+  background: var(--cs-bg);
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.cs-input:focus {
+  border-color: var(--cs-primary);
+  background: white;
+}
+
+.cs-submit-btn {
+  width: 100%;
+  padding: 1rem;
+  background: linear-gradient(135deg, var(--cs-primary), var(--cs-accent));
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+  box-shadow: 0 8px 20px rgba(109,40,217,0.3);
+}
+
+.cs-submit-btn:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(109,40,217,0.4); }
+.cs-submit-btn:active { transform: none; }
+.cs-submit-btn:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+/* Success state */
+.cs-success {
+  display: none;
+  text-align: center;
+  padding: 1.5rem 0 0.5rem;
+}
+
+.cs-success-icon {
+  font-size: 3rem;
+  margin-bottom: 0.75rem;
+  display: block;
+  animation: pop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes pop {
+  0% { transform: scale(0); }
+  100% { transform: scale(1); }
+}
+
+.cs-success h3 {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--cs-text);
+  margin-bottom: 0.5rem;
+}
+
+.cs-success p { color: var(--cs-muted); font-size: 0.95rem; }
+
+/* Share section */
+.cs-share {
+  margin-top: 1.5rem;
+  padding: 1.25rem;
+  background: var(--cs-bg);
+  border-radius: 16px;
+  border: 1px solid var(--cs-border);
+  text-align: center;
+}
+
+.cs-share p {
+  font-size: 0.85rem;
+  color: var(--cs-muted);
+  margin-bottom: 0.75rem;
+  font-weight: 600;
+}
+
+.cs-share-row {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.cs-share-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cs-share-btn.whatsapp { background: #25d366; color: white; }
+.cs-share-btn.copy { background: #f1f5f9; color: var(--cs-text); border: 1px solid var(--cs-border); }
+.cs-share-btn:hover { transform: translateY(-2px); }
+
+/* Why section */
+.cs-why {
+  max-width: 800px;
+  margin: 0 auto 5rem;
+  padding: 0 1.5rem;
+}
+
+.cs-why-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--cs-text);
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+
+.cs-why-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+}
+
+.cs-why-item {
+  background: var(--cs-card);
+  border: 1px solid var(--cs-border);
+  border-radius: 18px;
+  padding: 1.5rem 1rem;
+  text-align: center;
+}
+
+.cs-why-item .icon { font-size: 2rem; margin-bottom: 0.75rem; }
+.cs-why-item h4 { font-size: 0.95rem; font-weight: 800; color: var(--cs-text); margin-bottom: 0.4rem; }
+.cs-why-item p { font-size: 0.82rem; color: var(--cs-muted); line-height: 1.5; }
+
+.cs-error { color: #ef4444; font-size: 0.85rem; text-align: center; display: none; margin-top: 0.5rem; }
+
+@media(max-width: 640px) {
+  .cs-input-row { grid-template-columns: 1fr; }
+  .cs-why-grid { grid-template-columns: 1fr; }
+  .cs-card { padding: 1.5rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="cs-hero">
+  <div class="cs-badge">🚀 Coming Soon</div>
+  <h1>{{ _abbr }} × AbhiHub</h1>
+  <p class="subtitle">
+    We're building a free library of PYQs, notes and practicals for <strong>{{ college.name }}</strong>.
+    Join the waitlist and help us get there faster.
+  </p>
+  <div class="cs-counter-wrap">
+    <span class="cs-counter-number" id="waitlistCount">{{ waitlist_count }}</span>
+    <span class="cs-counter-label">students already waiting 🔥</span>
+  </div>
+</div>
+
+<div class="cs-main">
+  <div class="cs-card">
+    <div class="cs-card-title">Get notified when we launch at {{ _abbr }}</div>
+    <div class="cs-card-sub">
+      The more students from <strong>{{ _abbr }}</strong> who join, the faster we prioritise your college.
+      It takes 10 seconds — no spam, ever.
+    </div>
+
+    <!-- Form -->
+    <form class="cs-form" id="waitlistForm" onsubmit="submitWaitlist(event)">
+      <div class="cs-input-row">
+        <input class="cs-input" type="text" id="wlName" name="name" placeholder="Your name" autocomplete="name">
+        <input class="cs-input" type="email" id="wlEmail" name="email" placeholder="College email ID *" required autocomplete="email">
+      </div>
+      <button class="cs-submit-btn" type="submit" id="wlBtn">
+        🔔 Join the Waitlist — It's Free
+      </button>
+      <div class="cs-error" id="wlError"></div>
+    </form>
+
+    <!-- Success state -->
+    <div class="cs-success" id="wlSuccess">
+      <span class="cs-success-icon">🎉</span>
+      <h3>You're on the list!</h3>
+      <p>We'll notify you as soon as AbhiHub launches for <strong>{{ _abbr }}</strong>. Spread the word to make it happen sooner!</p>
+    </div>
+
+    <!-- Share -->
+    <div class="cs-share" id="shareSection">
+      <p>📣 Share with your batchmates — more signups = faster launch!</p>
+      <div class="cs-share-row">
+        <a class="cs-share-btn whatsapp" id="waShareBtn" href="#" target="_blank" rel="noopener">
+          📲 Share on WhatsApp
+        </a>
+        <button class="cs-share-btn copy" id="copyBtn" onclick="copyLink()">
+          🔗 Copy Link
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Why AbhiHub -->
+<div class="cs-why">
+  <h2 class="cs-why-title">Why AbhiHub?</h2>
+  <div class="cs-why-grid">
+    <div class="cs-why-item">
+      <div class="icon">📄</div>
+      <h4>Free PYQs Forever</h4>
+      <p>All previous year question papers are free — no paywalls, no limits.</p>
+    </div>
+    <div class="cs-why-item">
+      <div class="icon">🎓</div>
+      <h4>By Students, For Students</h4>
+      <p>Resources uploaded by your seniors who aced the same exams.</p>
+    </div>
+    <div class="cs-why-item">
+      <div class="icon">⚡</div>
+      <h4>Organised & Verified</h4>
+      <p>Sorted by department, semester and subject — find what you need in seconds.</p>
+    </div>
+  </div>
+</div>
+
+<!-- CTA for uploaders -->
+<div style="background:linear-gradient(135deg,#1e1b4b 0%,var(--cs-primary) 100%); padding:4rem 1.5rem; text-align:center;">
+  <h2 style="font-size:1.8rem; font-weight:900; color:white; margin-bottom:0.75rem;">Study at {{ _abbr }}?</h2>
+  <p style="color:rgba(255,255,255,0.85); font-size:1rem; max-width:520px; margin:0 auto 2rem; line-height:1.6;">
+    Be the first contributor! Upload a question paper or notes and <strong>instantly unlock AbhiHub</strong> for your entire college.
+  </p>
+  <a href="/upload" style="display:inline-block; padding:0.9rem 2.2rem; background:white; color:var(--cs-primary); border-radius:14px; font-weight:900; text-decoration:none; font-size:1rem; box-shadow:0 12px 24px rgba(0,0,0,0.2);">
+    📤 Upload & Unlock {{ _abbr }}
+  </a>
+</div>
+
+<script>
+  const PAGE_URL = window.location.href;
+  const COLLEGE_ABBR = '{{ _abbr }}';
+  const COLLEGE_ID = '{{ college.id }}';
+  const WA_MSG = encodeURIComponent(
+    `AbhiHub is coming to ${COLLEGE_ABBR}! Join the waitlist to get free PYQs and notes faster 👇\n${PAGE_URL}`
+  );
+
+  // Init WhatsApp share link
+  document.getElementById('waShareBtn').href = `https://wa.me/?text=${WA_MSG}`;
+
+  async function submitWaitlist(e) {
+    e.preventDefault();
+    const btn = document.getElementById('wlBtn');
+    const errEl = document.getElementById('wlError');
+    const email = document.getElementById('wlEmail').value.trim();
+    const name = document.getElementById('wlName').value.trim();
+
+    if (!email) return;
+
+    btn.disabled = true;
+    btn.textContent = 'Joining...';
+    errEl.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/waitlist/join', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ college_id: COLLEGE_ID, email, name })
+      });
+      const data = await res.json();
+
+      if (data.success || data.already_joined) {
+        document.getElementById('waitlistForm').style.display = 'none';
+        document.getElementById('wlSuccess').style.display = 'block';
+        // Update counter
+        const countEl = document.getElementById('waitlistCount');
+        if (data.count) countEl.textContent = data.count;
+        else countEl.textContent = parseInt(countEl.textContent) + 1;
+      } else {
+        errEl.textContent = data.message || 'Something went wrong. Try again.';
+        errEl.style.display = 'block';
+        btn.disabled = false;
+        btn.textContent = '🔔 Join the Waitlist — It\'s Free';
+      }
+    } catch (err) {
+      errEl.textContent = 'Network error. Please try again.';
+      errEl.style.display = 'block';
+      btn.disabled = false;
+      btn.textContent = '🔔 Join the Waitlist — It\'s Free';
+    }
+  }
+
+  function copyLink() {
+    navigator.clipboard.writeText(PAGE_URL).then(() => {
+      const btn = document.getElementById('copyBtn');
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => { btn.textContent = '🔗 Copy Link'; }, 2000);
+    });
+  }
+</script>
+{% endblock %}

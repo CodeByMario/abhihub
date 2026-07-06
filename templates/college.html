@@ -1,6 +1,9 @@
-{% set seo_title = college.name ~ ' Notes, PYQs, Practicals & Study Materials | AbhiHub' %}
-{% set seo_description = 'Download previous year question papers, notes, practicals, and study materials for ' ~ college.name ~ '. Free academic resources organized by department and subject.' %}
-{% set seo_keywords = college.name ~ ', ' ~ college.name ~ ' Notes, ' ~ college.name ~ ' PYQ, ' ~ college.name ~ ' Previous Year Question Papers, ' ~ college.name ~ ' Study Material, ' ~ college.name ~ ' Practical Files' %}
+{% set _abbr = college.abbreviation or college.name %}
+{% set _popular = college.popular_name or '' %}
+{% set _city = college.city or 'India' %}
+{% set seo_title = _abbr ~ ' PYQ & Notes | ' ~ college.name ~ ' Previous Year Question Papers | AbhiHub' %}
+{% set seo_description = 'Download free previous year question papers (PYQ), notes, practicals and study materials for ' ~ college.name ~ ' (' ~ _abbr ~ '). ' ~ (_popular ~ ' ' if _popular else '') ~ 'All resources organized by department and subject on AbhiHub.' %}
+{% set seo_keywords = 'PYQ ' ~ _abbr ~ ', ' ~ _abbr ~ ' PYQ, ' ~ college.name ~ ' PYQ, PYQ ' ~ college.name ~ ', ' ~ (_popular ~ ' PYQ, PYQ ' ~ _popular ~ ', ' if _popular else '') ~ _abbr ~ ' Notes, ' ~ college.name ~ ' Previous Year Question Papers, ' ~ college.name ~ ' Study Material, ' ~ _city ~ ' college PYQ, ' ~ _city ~ ' engineering notes, AbhiHub' %}
 {% set og_title = seo_title %}
 {% set og_description = seo_description %}
 {% set og_type = 'website' %}
@@ -11,10 +14,38 @@
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "CollegeOrUniversity",
-  "name": "{{ college.name }}",
-  "url": "{{ request.base_url }}",
-  "description": "Academic resources, PYQs, and notes for {{ college.name }} provided by AbhiHub."
+  "@graph": [
+    {
+      "@type": "CollegeOrUniversity",
+      "name": "{{ college.name }}",
+      "alternateName": ["{{ _abbr }}"{% if _popular %}, "{{ _popular }}"{% endif %}],
+      "address": { "@type": "PostalAddress", "addressLocality": "{{ _city }}", "addressCountry": "IN" },
+      "url": "{{ request.base_url }}",
+      "description": "Free PYQs, notes and study materials for {{ college.name }} ({{ _abbr }}) on AbhiHub."
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://app.abhihub.run.place/" },
+        { "@type": "ListItem", "position": 2, "name": "{{ college.name }}", "item": "{{ request.base_url }}" }
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Where can I find {{ _abbr }} PYQ (Previous Year Question Papers)?",
+          "acceptedAnswer": { "@type": "Answer", "text": "AbhiHub has free PYQs for {{ college.name }} ({{ _abbr }}){% if _popular %} also known as {{ _popular }}{% endif %} organized by department and subject. Browse the resources below." }
+        },
+        {
+          "@type": "Question",
+          "name": "Are {{ _abbr }} notes available for free on AbhiHub?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes! All notes, practicals, and PYQs for {{ college.name }} are completely free on AbhiHub, uploaded by senior students." }
+        }
+      ]
+    }
+  ]
 }
 </script>
 
@@ -193,10 +224,15 @@ body { background-color: var(--c-bg); }
 {% block content %}
 <div class="college-hero">
   <div class="college-city-badge">
-    📍 {{ college.city | default('India') }}
+    📍 {{ _city }}
   </div>
-  <h1>{{ college.name }}</h1>
-  <p>Access free notes, previous year question papers, and practical files uploaded by your seniors and peers.</p>
+  {% if _popular %}
+  <div style="display:inline-block; background:rgba(255,255,255,0.15); border:1px solid rgba(255,255,255,0.3); border-radius:99px; padding:0.3rem 1rem; font-size:0.8rem; font-weight:600; margin-bottom:0.8rem; backdrop-filter:blur(8px);">
+    Also known as: {{ _popular }} &bull; {{ _abbr }}
+  </div>
+  {% endif %}
+  <h1>{{ college.name }} PYQ & Notes</h1>
+  <p>Free previous year question papers (PYQ), notes and practicals for <strong>{{ _abbr }}</strong>{% if _popular %} / <strong>{{ _popular }}</strong>{% endif %} — uploaded by your seniors.</p>
 </div>
 
 <div class="college-stats-container">
@@ -263,6 +299,11 @@ body { background-color: var(--c-bg); }
       </div>
     {% endfor %}
   </div>
+</div>
+
+<!-- Hidden SEO keyword block (screen-reader accessible, visually hidden) -->
+<div style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);" aria-hidden="true">
+  {{ _abbr }} PYQ, {{ _abbr }} notes, {{ _abbr }} previous year question papers, {{ college.name }} study material{% if _popular %}, {{ _popular }} PYQ, {{ _popular }} notes, {{ _popular }} previous year papers{% endif %}, {{ _city }} college PYQ, {{ _city }} engineering notes
 </div>
 
 <!-- CTA -->

@@ -748,6 +748,7 @@ function openLabelingView(fileData) {
         if (previewImg) {
             previewImg.classList.remove('hidden');
             previewImg.src = fileData.url;
+            previewImg.alt = `${fileData.filename} - Document Preview for ${fileData.format ? fileData.format.toUpperCase() : 'Unknown'}`;
         }
     }
 

@@ -1,6 +1,6 @@
-{% set seo_title = department.name ~ ' Engineering Notes, PYQs & Practicals | ' ~ college.name ~ ' | AbhiHub' %}
-{% set seo_description = 'Download notes, previous year question papers, practicals and study resources for the ' ~ department.name ~ ' department of ' ~ college.name ~ '. Free academic resources.' %}
-{% set seo_keywords = department.name ~ ' Notes, ' ~ department.name ~ ' PYQ, ' ~ department.name ~ ' Previous Year Papers, ' ~ college.name ~ ' ' ~ department.name ~ ', ' ~ department.name ~ ' Engineering' %}
+{% set seo_title = department.name ~ ' PYQ & Notes | ' ~ college.name ~ ' Previous Year Papers | AbhiHub' %}
+{% set seo_description = 'Download PYQ (previous year question papers), notes, practicals and study resources for the ' ~ department.name ~ ' department of ' ~ college.name ~ '. Free academic resources.' %}
+{% set seo_keywords = department.name ~ ' PYQ, PYQ ' ~ department.name ~ ', ' ~ department.name ~ ' Notes, ' ~ department.name ~ ' Previous Year Papers, ' ~ college.name ~ ' ' ~ department.name ~ ' PYQ, ' ~ department.name ~ ' Engineering, AbhiHub' %}
 {% set og_title = seo_title %}
 {% set og_description = seo_description %}
 {% set og_type = 'website' %}
@@ -207,7 +207,7 @@ body { background-color: var(--d-bg); }
     <a href="/">Home</a> <span>›</span>
     <span>{{ college.abbreviation or college.name }}</span>
   </div>
-  <h1>{{ department.name }}</h1>
+  <h1>{{ department.name }} PYQ & Notes</h1>
   <span class="dept-college-name">{{ college.name }}</span>
   <p>The best study materials, lecture notes, and previous year question papers curated specifically for the {{ department.name }} curriculum.</p>
 </div>

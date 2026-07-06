@@ -1,2 +1,12 @@
 User-agent: *
-Disallow:
+Disallow: /admin/
+Disallow: /api/
+Disallow: /dashboard
+Disallow: /account
+Disallow: /settings
+Disallow: /login
+Disallow: /signup
+Disallow: /store-room
+Allow: /
+
+Sitemap: https://app.abhihub.run.place/sitemap.xml

@@ -89,28 +89,116 @@ def get_college_by_slug(slug: str) -> Dict:
     try:
         response = client.table("colleges").select("*").execute()
         import re
+        def _slug(text):
+            return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
+        
         for c in response.data:
+            # Match abbreviation slug (canonical)
             abbr = (c.get('abbreviation') or '').lower()
             if abbr and abbr == slug:
                 return {"success": True, "data": c}
-            name_slug = re.sub(r'[^a-z0-9]+', '-', (c.get('name') or '').lower()).strip('-')
+            # Match full name slug
+            name_slug = _slug(c.get('name') or '')
             if name_slug == slug:
                 return {"success": True, "data": c}
+            # Match popular_name (e.g. "raisoni" for GHRCE)
+            popular = (c.get('popular_name') or '')
+            if popular and _slug(popular) == slug:
+                return {"success": True, "data": c}
+            # Match aliases array (e.g. ["raisoni", "gh raisoni"])
+            for alias in (c.get('aliases') or []):
+                if alias and _slug(alias) == slug:
+                    return {"success": True, "data": c}
         return {"success": False, "message": "College not found"}
     except Exception as e:
         return {"success": False, "message": str(e)}
+
+def get_colleges_by_brand(brand_slug: str) -> Dict:
+    """Return all colleges that share the same popular_name (brand group).
+    E.g. brand_slug='raisoni' → [GHRCEN, GHRCEM, GHRCEMNG, ...]
+    """
+    client = init_supabase()
+    if not client: return {"success": False, "data": []}
+    try:
+        import re
+        def _slug(text):
+            return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
+        
+        response = client.table("colleges").select("*").execute()
+        matches = []
+        brand_display = None
+        for c in response.data:
+            popular = (c.get('popular_name') or '')
+            if popular and _slug(popular) == brand_slug:
+                matches.append(c)
+                if not brand_display:
+                    brand_display = popular
+            else:
+                # Also check aliases
+                for alias in (c.get('aliases') or []):
+                    if alias and _slug(alias) == brand_slug:
+                        matches.append(c)
+                        break
+        
+        if not matches:
+            return {"success": False, "message": "Brand not found"}
+        return {"success": True, "data": matches, "brand_name": brand_display or brand_slug.capitalize()}
+    except Exception as e:
+        return {"success": False, "data": [], "message": str(e)}
+
+def get_waitlist_count(college_id: str) -> int:
+    """Return how many students have joined the waitlist for a college."""
+    client = init_supabase()
+    if not client: return 0
+    try:
+        res = client.table('college_waitlist').select('id', count='exact').eq('college_id', college_id).execute()
+        return res.count or 0
+    except Exception:
+        return 0
+
+def join_college_waitlist(college_id: str, email: str, name: str = '') -> Dict:
+    """Add a student to the college waitlist. Returns count after insert."""
+    client = init_supabase()
+    if not client: return {'success': False, 'message': 'Service unavailable'}
+    try:
+        client.table('college_waitlist').insert({
+            'college_id': college_id,
+            'email': email.lower().strip(),
+            'name': name.strip() or None
+        }).execute()
+        count = get_waitlist_count(college_id)
+        return {'success': True, 'count': count}
+    except Exception as e:
+        if 'unique' in str(e).lower() or '23505' in str(e):
+            count = get_waitlist_count(college_id)
+            return {'success': True, 'already_joined': True, 'count': count}
+        return {'success': False, 'message': str(e)}
 
 def get_college_stats(college_id: str) -> Dict:
     client = init_supabase()
     if not client: return {"success": False}
     try:
         doc_resp = client.table('documents').select('id', count='exact').eq('college_id', college_id).execute()
-        sub_resp = client.table('subjects').select('id', count='exact').eq('college_id', college_id).execute()
+        total_docs = doc_resp.count or 0
+        
+        total_subs = 0
+        try:
+            # Subjects are linked to departments, not colleges directly.
+            # To get an exact count we'd need to join or fetch departments first.
+            # For now, we fetch departments and then sum their subjects.
+            depts_resp = client.table('college_departments').select('department_id').eq('college_id', college_id).execute()
+            dept_ids = [d['department_id'] for d in (depts_resp.data or [])]
+            if dept_ids:
+                sub_resp = client.table('subjects').select('id', count='exact').in_('department_id', dept_ids).execute()
+                total_subs = sub_resp.count or 0
+        except Exception:
+            pass
+
         return {
             "success": True, 
             "data": {
-                "total_documents": doc_resp.count or 0,
-                "total_subjects": sub_resp.count or 0
+                "total_documents": total_docs,
+                "total_subjects": total_subs
             }
         }
     except Exception as e:
@@ -246,7 +334,7 @@ def get_sitemap_urls() -> Dict:
     if not client: return {"success": False}
     try:
         # 1. Colleges
-        colleges = client.table('colleges').select('name, abbreviation, created_at').execute().data
+        colleges = client.table('colleges').select('name, abbreviation, popular_name, created_at').execute().data
         
         # 2. Departments
         # Since department pages are nested under colleges in the UI, we just need unique departments 

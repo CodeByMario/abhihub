@@ -227,7 +227,7 @@ body { background-color: var(--r-bg); }
     
     <!-- PDF / Image Previewer -->
     {% if document.file_type == 'pdf' or '.pdf' in (document.file_url|lower) %}
-      <iframe class="preview-iframe" src="{{ url_for('static', filename='pdfjs-6.1.200-dist/web/viewer.html') }}?file={{ document.file_url }}" title="{{ document.title }}"></iframe>
+      <iframe class="preview-iframe" src="{{ url_for('static', filename='pdfjs-6.1.200-dist/web/viewer.html') }}?file=/api/view-doc/{{ document.id }}/document.pdf" title="{{ document.title }}"></iframe>
     {% elif document.file_type == 'image' or '.jpg' in (document.file_url|lower) or '.png' in (document.file_url|lower) or '.jpeg' in (document.file_url|lower) or '.webp' in (document.file_url|lower) %}
       <div style="text-align:center; padding: 2rem; background: #f1f5f9; position: relative; min-height: 300px; display: flex; align-items: center; justify-content: center; border-radius: 12px; overflow: hidden;">
         <!-- Skeleton Loader -->
@@ -239,7 +239,7 @@ body { background-color: var(--r-bg); }
           </svg>
         </div>
         <!-- Actual Image -->
-        <img src="{{ document.file_url }}" alt="{{ document.title }}" onload="this.style.opacity=1; document.getElementById('imageSkeleton').style.display='none';" style="max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); position: relative; z-index: 2; opacity: 0; transition: opacity 0.3s ease;">
+        <img src="/api/view-doc/{{ document.id }}" alt="{{ document.title }} - {{ subj_name }} {{ file_type }} for {{ coll_name }}" onload="this.style.opacity=1; document.getElementById('imageSkeleton').style.display='none';" style="max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); position: relative; z-index: 2; opacity: 0; transition: opacity 0.3s ease;">
       </div>
     {% else %}
       <div style="text-align:center; padding: 5rem 2rem; background: #f1f5f9;">

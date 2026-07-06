@@ -1,4 +1,4 @@
-from flask import Flask, redirect, render_template, request, make_response, session, abort, jsonify, url_for, send_file, send_from_directory, flash
+from flask import Flask, redirect, render_template, request, make_response, session, abort, jsonify, url_for, send_file, send_from_directory, flash, Response
 import secrets
 from functools import wraps
 from push_api import init_push_api
@@ -521,13 +521,22 @@ def sitemap():
         return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
         
     # Standard static URLs
-    for static_route in ['/', '/login', '/contact', '/features-tour']:
-        urls.append({"loc": f"{base_url}{static_route}", "priority": "1.00" if static_route == '/' else "0.80"})
+    for static_route in ['/', '/pyq', '/contact', '/features-tour', '/about']:
+        priority = "1.00" if static_route == '/' else ("0.95" if static_route == '/pyq' else "0.80")
+        urls.append({"loc": f"{base_url}{static_route}", "priority": priority})
         
-    # Colleges
+    # Colleges + popular_name alias/brand URLs
+    seen_brands = set()
     for c in colleges:
         c_slug = slugify(c.get('abbreviation') or c.get('name'))
         urls.append({"loc": f"{base_url}/college/{c_slug}", "lastmod": c.get('created_at'), "priority": "0.90"})
+        # Add brand page URL (one per unique popular_name)
+        popular = c.get('popular_name')
+        if popular:
+            p_slug = slugify(popular)
+            if p_slug not in seen_brands:
+                seen_brands.add(p_slug)
+                urls.append({"loc": f"{base_url}/college/{p_slug}", "lastmod": c.get('created_at'), "priority": "0.92"})
         
         # Departments (Nested under colleges)
         for d in departments:
@@ -897,6 +906,25 @@ def api_create_subject_request():
     elif result.get('duplicate'):
         return jsonify({'success': False, 'message': result.get('message'), 'duplicate': True}), 409
     return jsonify(result), 200 if result.get('success') else 500
+
+
+@app.route('/api/waitlist/join', methods=['POST'])
+def api_waitlist_join():
+    """Public endpoint — join college waitlist. No auth required."""
+    data = request.get_json(silent=True) or {}
+    college_id = (data.get('college_id') or '').strip()
+    email = (data.get('email') or '').strip()
+    name = (data.get('name') or '').strip()
+
+    if not college_id or not email or '@' not in email:
+        return jsonify({'success': False, 'message': 'Valid email and college required'}), 400
+
+    from methods.supabase_helper import join_college_waitlist, validate_uuid
+    if not validate_uuid(college_id):
+        return jsonify({'success': False, 'message': 'Invalid college'}), 400
+
+    result = join_college_waitlist(college_id, email, name)
+    return jsonify(result), 200
 
 
 # T4 — Onboarding status
@@ -1502,6 +1530,16 @@ def upload():
 
             _grant_upload_credits()
 
+            # ── IndexNow: fast-track indexing of new resource ────────────
+            try:
+                doc_id = file_record_result.get('data', {}).get('id', '')
+                _trigger_indexnow([
+                    f"https://{BASE_DOMAIN}/pyq",
+                    f"https://{BASE_DOMAIN}/resource/{doc_id}" if doc_id else None,
+                ])
+            except Exception:
+                pass
+
             # ── Recalculate & persist reputation score in DB ────────
             xp_gained = 0.0
             new_score = 0.0
@@ -1740,20 +1778,30 @@ def view_doc(doc_id, filename=None):
         abort(403)
 
     try:
-        upstream = requests.get(file_url, timeout=30, verify=True, headers={'User-Agent': 'AbhiHub-Proxy/1.0'})
+        upstream = requests.get(file_url, stream=True, timeout=30, verify=True, headers={'User-Agent': 'AbhiHub-Proxy/1.0'})
         if not upstream.ok:
             abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
+            
         content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
         if document.get('file_type') == 'pdf' or '.pdf' in file_url.lower():
             content_type = 'application/pdf'
             
-        resp = make_response(upstream.content)
-        resp.headers['Content-Type'] = content_type
-        resp.headers['Cache-Control'] = 'private, max-age=86400'
-        resp.headers['Content-Disposition'] = 'inline'
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-
-        return resp
+        def generate():
+            try:
+                for chunk in upstream.iter_content(chunk_size=65536):
+                    if chunk:
+                        yield chunk
+            except Exception as e:
+                logging.error(f"[VIEW-DOC] Stream interrupted for {doc_id}: {e}")
+                
+        return Response(generate(),
+                        status=upstream.status_code,
+                        content_type=content_type,
+                        headers={
+                            'Cache-Control': 'private, max-age=86400',
+                            'Content-Disposition': 'inline',
+                            'Access-Control-Allow-Origin': '*'
+                        })
     except Exception as e:
         logging.error(f"[VIEW-DOC] Proxy error for {doc_id}: {e}")
         abort(502)
@@ -2100,27 +2148,92 @@ def features():
 @app.route('/features-tour')
 def features_tour():
     return render_template('features.html')
+@app.route('/pyq')
+def pyq_landing():
+    """SEO landing page targeting 'PYQ' and '[college] PYQ' searches"""
+    from methods.supabase_helper import get_all_colleges, init_supabase
+    import re
+    colleges_res = get_all_colleges()
+    colleges = colleges_res.get('data', [])
+    # Attach doc count to each college
+    try:
+        client = init_supabase()
+        if client:
+            counts = client.table('documents').select('college_id', count='exact').execute()
+            # Build per-college count via grouped query
+            raw = client.table('documents').select('college_id').execute()
+            count_map = {}
+            for row in (raw.data or []):
+                cid = row.get('college_id')
+                if cid:
+                    count_map[cid] = count_map.get(cid, 0) + 1
+            for c in colleges:
+                c['doc_count'] = count_map.get(c.get('id'), 0)
+    except Exception:
+        pass
+    return render_template('pyq_landing.html', colleges=colleges)
+
+
 @app.route('/college/<college_slug>')
 def college_landing(college_slug):
-    """Dynamic SEO-optimized college landing page"""
-    from methods.supabase_helper import get_college_by_slug, get_college_stats, get_recent_college_files, get_all_branches
-    
-    # 1. Resolve slug to college
+    """Dynamic SEO-optimized college landing page.
+    Priority: brand group page > individual college page > 404
+    """
+    import re
+    from methods.supabase_helper import (
+        get_colleges_by_brand, get_college_by_slug,
+        get_college_stats, get_recent_college_files, get_all_branches
+    )
+
+    def slugify(text):
+        return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
+
+    # 1. Check if slug matches a brand group (popular_name shared by 2+ colleges)
+    brand_res = get_colleges_by_brand(college_slug)
+    if brand_res.get('success'):
+        brand_colleges = brand_res.get('data', [])
+        brand_name = brand_res.get('brand_name', college_slug.capitalize())
+        if len(brand_colleges) > 1:
+            return render_template('brand.html', colleges=brand_colleges, brand_name=brand_name)
+        elif len(brand_colleges) == 1:
+            c = brand_colleges[0]
+            canonical_slug = slugify(c.get('abbreviation') or c.get('name'))
+            if college_slug != canonical_slug:
+                return redirect(f"/college/{canonical_slug}", code=301)
+            # Else fall through to normal college resolution
+
+    # 2. Resolve as individual college slug
     college_res = get_college_by_slug(college_slug)
     if not college_res.get('success'):
         abort(404)
-        
+
     college = college_res.get('data')
     college_id = college.get('id')
-    
-    # 2. Fetch stats, recent files, and departments
+
+    # 3. If accessed via alias (not canonical abbr), 301-redirect
+    canonical_slug = slugify(college.get('abbreviation') or college.get('name'))
+    if college_slug != canonical_slug:
+        return redirect(f"/college/{canonical_slug}", code=301)
+
+    # 4. Check doc count — show coming soon if empty
+    COMING_SOON_THRESHOLD = 1  
     stats = get_college_stats(college_id).get('data', {})
+    total_docs = stats.get('total_documents', 0)
+
+    if total_docs < COMING_SOON_THRESHOLD:
+        from methods.supabase_helper import get_waitlist_count
+        waitlist_count = get_waitlist_count(college_id)
+        return render_template('college_coming_soon.html',
+                               college=college,
+                               waitlist_count=waitlist_count)
+
+    # 5. Enough material — render full college page
     recent_files = get_recent_college_files(college_id, limit=6).get('data', [])
     departments = get_all_branches().get('data', [])
-    
-    return render_template('college.html', 
-                           college=college, 
-                           stats=stats, 
+
+    return render_template('college.html',
+                           college=college,
+                           stats=stats,
                            recent_files=recent_files,
                            departments=departments)
 
@@ -2522,20 +2635,37 @@ def pdf_proxy(pdf_name):
 #         download_name=pdf_name
 #     )
 
+INDEXNOW_KEY = '358beb4ba88947458503f632b81ca8cf'
+BASE_DOMAIN = 'app.abhihub.run.place'
+
+def _trigger_indexnow(urls: list):
+    """Submit a list of URLs to IndexNow for fast Google indexing. Fire-and-forget."""
+    try:
+        import requests as _req
+        payload = {
+            "host": BASE_DOMAIN,
+            "key": INDEXNOW_KEY,
+            "keyLocation": f"https://{BASE_DOMAIN}/{INDEXNOW_KEY}.txt",
+            "urlList": [u for u in urls if u.startswith('https://')]
+        }
+        _req.post("https://api.indexnow.org/indexnow", json=payload, timeout=5)
+    except Exception:
+        pass  # non-critical
+
 @app.route('/indexnow', methods=['POST'])
 def indexnow():
     urls = [
-        "https://abhi-hub-06bba7f4101d.herokuapp.com/",
-        "https://abhi-hub-06bba7f4101d.herokuapp.com/dashboard",
+        f"https://{BASE_DOMAIN}/",
+        f"https://{BASE_DOMAIN}/pyq",
         # Add more URLs as needed
     ]
     
     indexnow_url = "https://api.indexnow.org/indexnow"
     
     payload = {
-        "host": "abhi-hub-06bba7f4101d.herokuapp.com",
-        "key": '358beb4ba88947458503f632b81ca8cf',
-        "keyLocation": f"https://abhi-hub-06bba7f4101d.herokuapp.com/358beb4ba88947458503f632b81ca8cf.txt",
+        "host": BASE_DOMAIN,
+        "key": INDEXNOW_KEY,
+        "keyLocation": f"https://{BASE_DOMAIN}/{INDEXNOW_KEY}.txt",
         "urlList": urls
     }
     
