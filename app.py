@@ -2344,6 +2344,32 @@ def resource_landing(slug):
     if slug.lower() != canonical_slug:
         return redirect(url_for('resource_landing', slug=canonical_slug), code=301)
         
+    document['is_liked'] = False
+    document['is_bookmarked'] = False
+    
+    current_user_id = session.get('user', {}).get('uid')
+    if current_user_id:
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        if client:
+            like_check = client.table('document_votes').select('*').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
+            document['is_liked'] = bool(like_check.data)
+            
+            bm_check = client.table('bookmarks').select('*').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
+            document['is_bookmarked'] = bool(bm_check.data)
+            
+    # Track view
+    from methods.supabase_helper import save_file_access
+    user_email = session.get('user', {}).get('email')
+    save_file_access(
+        user_email=user_email,
+        file_name=title,
+        file_type=document.get('file_type'),
+        file_path=document.get('file_url'),
+        file_url=document.get('file_url'),
+        record_id=doc_id
+    )
+        
     return render_template('resource.html', document=document)
 
 @app.route('/join')

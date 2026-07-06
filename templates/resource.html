@@ -112,7 +112,16 @@ body { background-color: var(--r-bg); }
   align-items: center;
   gap: 0.5rem;
 }
-
+.meta-pill.like-btn.liked {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+.meta-pill.bookmark-btn.bookmarked {
+  background-color: #e0e7ff;
+  border-color: #a5b4fc;
+  color: #4338ca;
+}
 .preview-container {
   max-width: 1100px;
   margin: 0 auto 5rem;
@@ -211,7 +220,12 @@ body { background-color: var(--r-bg); }
 
 <div class="meta-bar">
   <div class="meta-pill">👁️ {{ document.view_count or 0 }} Views</div>
-  <div class="meta-pill">❤️ {{ document.like_count or 0 }} Likes</div>
+  <button class="meta-pill like-btn {{ 'liked' if document.is_liked else '' }}" style="cursor: pointer; border: none; transition: background-color 0.2s;" onclick="window.toggleLike(event, '{{ document.id }}')">
+    ❤️ <span class="like-count">{{ document.like_count or 0 }}</span> Likes
+  </button>
+  <button class="meta-pill bookmark-btn {{ 'bookmarked' if document.is_bookmarked else '' }}" style="cursor: pointer; border: none; transition: background-color 0.2s;" onclick="window.toggleBookmark(event, '{{ document.id }}')">
+    🔖 <span class="bookmark-count">{{ document.bookmark_count or 0 }}</span> Save
+  </button>
   <div class="meta-pill">📅 {{ document.created_at[:10] }}</div>
   <div class="meta-pill">📦 {{ (document.file_size_bytes|int / 1024 / 1024)|round(2) if document.file_size_bytes else 'Unknown' }} MB</div>
 </div>
