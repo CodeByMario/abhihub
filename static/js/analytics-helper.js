@@ -235,6 +235,23 @@
   }
 
   // ==========================================
+  // AUTO-TRACK FEATURE USAGE & EXPERIENCE
+  // ==========================================
+  function setupFeatureTracking() {
+    document.addEventListener('click', function (e) {
+      const featureBtn = e.target.closest('[data-feature]');
+      if (featureBtn) {
+        const featureName = featureBtn.dataset.feature || featureBtn.textContent.trim() || 'unknown';
+        const featureStatus = featureBtn.dataset.featureStatus || 'used';
+        const experienceRating = featureBtn.dataset.experienceRating || 0;
+        const feedbackMsg = featureBtn.dataset.featureFeedback || '';
+
+        Analytics.trackFeatureUsage(featureName, featureStatus, experienceRating, feedbackMsg);
+      }
+    });
+  }
+
+  // ==========================================
   // GLOBAL ERROR TRACKING
   // ==========================================
   window.addEventListener('error', function (e) {
@@ -258,6 +275,7 @@
         setupFormTracking();
         setupIntersectionObserver();
         setupButtonTracking();
+        setupFeatureTracking();
 
         console.log('[Analytics] All tracking handlers initialized');
       });
@@ -272,6 +290,7 @@
       setupFormTracking();
       setupIntersectionObserver();
       setupButtonTracking();
+      setupFeatureTracking();
 
       console.log('[Analytics] All tracking handlers initialized');
     }

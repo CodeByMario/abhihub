@@ -154,55 +154,39 @@ body { background-color: var(--s-bg); }
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 1.5rem;
 }
-
-.file-card {
-  background: var(--s-card);
-  border: 1px solid var(--s-border);
-  border-radius: 20px;
-  padding: 1.5rem;
-  transition: all 0.2s;
-  text-decoration: none;
-  color: var(--s-text);
-  display: block;
+.pcard {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.1rem;
+  text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 0.6rem;
+  transition: transform 0.25s, box-shadow 0.25s; position: relative; overflow: hidden;
 }
-
-.file-card:hover {
-  transform: translateY(-5px);
-  border-color: var(--s-primary);
-  box-shadow: 0 15px 30px rgba(236,72,153,0.08);
+.pcard::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
 }
-
-.file-type-badge {
-  display: inline-block;
-  padding: 0.3rem 0.8rem;
-  border-radius: 8px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  margin-bottom: 1rem;
-  text-transform: uppercase;
+.pcard.notes-card::before { background: linear-gradient(90deg, #10b981, #3b82f6); }
+.pcard.practical-card::before { background: linear-gradient(90deg, #8b5cf6, #ec4899); }
+.pcard:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1); }
+.pcard-badge {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase; padding: 3px 8px; border-radius: 6px;
+  background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; width: fit-content;
 }
-
-.type-notes { background: #eff6ff; color: #2563eb; }
-.type-pyq { background: #fdf4ff; color: #c026d3; }
-.type-practical { background: #f0fdf4; color: #16a34a; }
-
-.file-name {
-  font-weight: 700;
-  font-size: 1.1rem;
-  margin-bottom: 0.5rem;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
-  overflow: hidden;
+.pcard-badge.notes { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+.pcard-badge.practical { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
+.pcard-subject {
+  font-size: 1rem; font-weight: 700; color: #0f172a; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
 }
-
-.file-meta {
-  font-size: 0.85rem;
-  color: var(--s-muted);
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+.pcard-name {
+  font-size: 0.78rem; color: #64748b;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
 }
+.pcard-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: auto; padding-top: 0.6rem; border-top: 1px solid #f1f5f9;
+}
+.pcard-meta { font-size: 0.75rem; color: #94a3b8; display: flex; align-items: center; gap: 0.35rem; }
+.pcard-views { font-size: 0.75rem; color: #3b82f6; font-weight: 600; display: flex; align-items: center; gap: 3px; }
 
 /* Educational Content Blocks for SEO */
 .seo-content-grid {
@@ -285,20 +269,24 @@ body { background-color: var(--s-bg); }
   <h2 class="section-title">Latest Resources for {{ subject_name }}</h2>
   <div class="file-grid">
     {% for file in recent_files %}
-      <a href="{{ url_for('preview_file', document_id=file.id) }}" class="file-card">
-        {% if 'pyq' in (file.type|lower) %}
-          <div class="file-type-badge type-pyq">📄 PYQ</div>
-        {% elif 'practical' in (file.type|lower) %}
-          <div class="file-type-badge type-practical">🧪 Practical</div>
+      {% set cat = (file.get('document_category', '')|string|lower) %}
+      {% set is_pyq = cat in ['pyq', 'papers', 'paper'] %}
+      {% set is_practical = cat in ['practical', 'practicals'] %}
+      <a href="{{ url_for('resource_landing', slug='legacy-redirect-' ~ file.get('id', '')) }}" class="pcard {% if is_practical %}practical-card{% elif not is_pyq %}notes-card{% endif %}">
+        {% if is_pyq %}
+          <span class="pcard-badge">📄 PYQ</span>
+        {% elif is_practical %}
+          <span class="pcard-badge practical">🧪 Practical</span>
         {% else %}
-          <div class="file-type-badge type-notes">📚 Notes</div>
+          <span class="pcard-badge notes">📝 Notes</span>
         {% endif %}
         
-        <div class="file-name">{{ file.title }}</div>
+        <div class="pcard-subject">{{ file.get('subject', {}).get('name', 'Uncategorized') if file.get('subject') else 'Uncategorized' }}</div>
+        <div class="pcard-name">{{ file.get('title', 'File') }}</div>
         
-        <div class="file-meta">
-          <span>🎓 {{ file.college.abbreviation if file.college else 'College' }}</span>
-          <span>👤 {{ file.uploader.name if file.uploader else 'Anonymous' }}</span>
+        <div class="pcard-footer">
+          <span class="pcard-meta">👤 {{ file.get('uploader', {}).get('full_name', 'Anonymous') if file.get('uploader') else 'Anonymous' }}</span>
+          <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
         </div>
       </a>
     {% else %}

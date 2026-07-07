@@ -186,7 +186,7 @@
     </div>
 
     <!-- Form Panel -->
-    <div class="form-panel" id="formPanel">
+    <div class="form-panel" id="formPanel" style="border-top: 55px solid transparent;">
         <div class="form-panel-header" id="drawerHandle">
             <div class="drawer-indicator"></div>
             <div class="form-title-wrap">
@@ -281,6 +281,10 @@
                         <select class="form-input" id="collegeName" name="collegeName" required>
                             <option value="" disabled selected>Select College…</option>
                         </select>
+                        <div id="srOtherCollegeWrap" style="display:none;margin-top:0.5rem">
+                            <input type="text" class="form-input" id="srOtherCollegeName" placeholder="College name *" style="margin-bottom:0.4rem">
+                            <button type="button" class="sr-add-btn" onclick="srAddCollege()">➕ Add College</button>
+                        </div>
                     </div>
 
                     <div class="form-group full" style="margin-top:0.75rem">
@@ -394,6 +398,7 @@
                 o.value = c.id; o.dataset.name = c.name; o.textContent = c.name;
                 sel.appendChild(o);
             });
+            sel.appendChild(Object.assign(document.createElement('option'), { value: '__other__', textContent: '➕ Other (Add New)' }));
         } catch { sel.innerHTML = '<option value="" disabled selected>Failed to load</option>'; }
     }
 
@@ -489,6 +494,29 @@
         }
     }
 
+    async function srAddCollege() {
+        const name = document.getElementById('srOtherCollegeName').value.trim();
+        if (!name) return showToast('College name is required', 'error');
+        try {
+            const r = await fetch('/api/colleges', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name })
+            }).then(r => r.json());
+            if (r.success && r.college?.id) {
+                const sel = document.getElementById('collegeName');
+                const o = document.createElement('option');
+                o.value = r.college.id; o.dataset.name = r.college.name; o.textContent = r.college.name;
+                const other = sel.querySelector('option[value="__other__"]');
+                if (other) sel.insertBefore(o, other); else sel.appendChild(o);
+                sel.value = r.college.id;
+                document.getElementById('srOtherCollegeWrap').style.display = 'none';
+                document.getElementById('srOtherCollegeName').value = '';
+                showToast('College added ✅', 'success');
+                srLoadDepartments(r.college.id);
+            } else { showToast(r.message || 'Failed to add college', 'error'); }
+        } catch { showToast('Network error', 'error'); }
+    }
+
     function srUpdateUnitField() {
         const cat = document.querySelector('input[name="documentCategory"]:checked')?.value;
         const unitGroup = document.getElementById('srUnitGroup');
@@ -513,8 +541,14 @@
     document.addEventListener('DOMContentLoaded', () => {
         // College change → load departments + semesters (semester independent of branch)
         document.getElementById('collegeName').addEventListener('change', function () {
-            srLoadDepartments(this.value);
-            srLoadSemesters();
+            if (this.value === '__other__') {
+                document.getElementById('srOtherCollegeWrap').style.display = 'block';
+                document.getElementById('branch').innerHTML = '<option value="" disabled selected>Select College first</option>';
+            } else {
+                document.getElementById('srOtherCollegeWrap').style.display = 'none';
+                srLoadDepartments(this.value);
+                srLoadSemesters();
+            }
         });
         // Department change → load semesters (only if value looks like a UUID from cascade)
         document.getElementById('branch').addEventListener('change', function () {

@@ -209,7 +209,7 @@ def get_recent_college_files(college_id: str, limit: int = 5) -> Dict:
     if not client: return {"success": False}
     try:
         response = client.table('documents')\
-            .select('*, subject:subjects(name), uploader:profiles(name)')\
+            .select('*, subject:subjects(name), uploader:profiles!documents_uploader_id_fkey(full_name)')\
             .eq('college_id', college_id)\
             .order('created_at', desc=True)\
             .limit(limit)\
@@ -240,7 +240,7 @@ def get_department_stats(college_id: str, dept_id: str) -> Dict:
     if not client: return {"success": False}
     try:
         doc_resp = client.table('documents').select('id', count='exact').eq('college_id', college_id).eq('department_id', dept_id).execute()
-        sub_resp = client.table('subjects').select('id', count='exact').eq('college_id', college_id).eq('department_id', dept_id).execute()
+        sub_resp = client.table('subjects').select('id', count='exact').eq('department_id', dept_id).execute()
         return {
             "success": True, 
             "data": {
@@ -256,7 +256,7 @@ def get_recent_department_files(college_id: str, dept_id: str, limit: int = 6) -
     if not client: return {"success": False}
     try:
         response = client.table('documents')\
-            .select('*, subject:subjects(name), uploader:profiles(name)')\
+            .select('*, subject:subjects(name), uploader:profiles!documents_uploader_id_fkey(full_name)')\
             .eq('college_id', college_id)\
             .eq('department_id', dept_id)\
             .order('created_at', desc=True)\
@@ -306,7 +306,7 @@ def get_recent_subject_files(subject_ids: list, limit: int = 10) -> Dict:
     if not client: return {"success": False}
     try:
         response = client.table('documents')\
-            .select('*, college:colleges(name, abbreviation), uploader:profiles(name)')\
+            .select('*, college:colleges(name, abbreviation), uploader:profiles!documents_uploader_id_fkey(full_name)')\
             .in_('subject_id', subject_ids)\
             .order('created_at', desc=True)\
             .limit(limit)\

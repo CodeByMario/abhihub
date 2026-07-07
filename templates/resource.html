@@ -4,7 +4,7 @@
 {% set dept_name = document.department.name if document.department else '' %}
 {% set uploader_name = document.uploader.full_name if document.uploader else 'Anonymous' %}
 
-{% set seo_title = subj_name ~ ' ' ~ file_type ~ ' | ' ~ coll_name ~ ' | AbhiHub' %}
+{% set seo_title = subj_name ~ ' ' ~ file_type ~ ' Download | ' ~ coll_name ~ ' Exam Resources | AbhiHub' %}
 {% set seo_description = 'Download ' ~ document.title ~ ', a verified ' ~ file_type ~ ' for ' ~ subj_name ~ ' from ' ~ coll_name ~ ' uploaded by ' ~ uploader_name ~ '. Free academic resources.' %}
 {% set seo_keywords = subj_name ~ ' ' ~ file_type ~ ', ' ~ coll_name ~ ' ' ~ subj_name ~ ', ' ~ document.title ~ ', ' ~ uploader_name %}
 {% set og_title = seo_title %}
@@ -220,10 +220,10 @@ body { background-color: var(--r-bg); }
 
 <div class="meta-bar">
   <div class="meta-pill">👁️ {{ document.view_count or 0 }} Views</div>
-  <button class="meta-pill like-btn {{ 'liked' if document.is_liked else '' }}" style="cursor: pointer; border: none; transition: background-color 0.2s;" onclick="window.toggleLike(event, '{{ document.id }}')">
+  <button class="meta-pill like-btn {{ 'liked' if document.is_liked else '' }}" style="cursor: pointer; border: none; transition: background-color 0.2s;" onclick="window.toggleLike(event, '{{ document.id }}')" data-feature="Resource Like" data-experience-rating="5">
     ❤️ <span class="like-count">{{ document.like_count or 0 }}</span> Likes
   </button>
-  <button class="meta-pill bookmark-btn {{ 'bookmarked' if document.is_bookmarked else '' }}" style="cursor: pointer; border: none; transition: background-color 0.2s;" onclick="window.toggleBookmark(event, '{{ document.id }}')">
+  <button class="meta-pill bookmark-btn {{ 'bookmarked' if document.is_bookmarked else '' }}" style="cursor: pointer; border: none; transition: background-color 0.2s;" onclick="window.toggleBookmark(event, '{{ document.id }}')" data-feature="Resource Save" data-experience-rating="5">
     🔖 <span class="bookmark-count">{{ document.bookmark_count or 0 }}</span> Save
   </button>
   <div class="meta-pill">📅 {{ document.created_at[:10] }}</div>
@@ -241,9 +241,9 @@ body { background-color: var(--r-bg); }
     
     <!-- PDF / Image Previewer -->
     {% if document.file_type == 'pdf' or '.pdf' in (document.file_url|lower) %}
-      <iframe class="preview-iframe" src="{{ url_for('static', filename='pdfjs-6.1.200-dist/web/viewer.html') }}?file=/api/view-doc/{{ document.id }}/document.pdf" title="{{ document.title }}"></iframe>
+      <iframe class="preview-iframe" src="{{ url_for('static', filename='pdfjs-6.1.200-dist/web/viewer.html') }}?file=/api/view-doc/{{ document.id }}/document.pdf" title="{{ document.title }}" data-feature="PDF Viewer"></iframe>
     {% elif document.file_type == 'image' or '.jpg' in (document.file_url|lower) or '.png' in (document.file_url|lower) or '.jpeg' in (document.file_url|lower) or '.webp' in (document.file_url|lower) %}
-      <div style="text-align:center; padding: 2rem; background: #f1f5f9; position: relative; min-height: 300px; display: flex; align-items: center; justify-content: center; border-radius: 12px; overflow: hidden;">
+      <div style="text-align:center; padding: 2rem; background: #f1f5f9; position: relative; min-height: 300px; display: flex; align-items: center; justify-content: center; border-radius: 12px; overflow: hidden;" data-feature="Image Viewer">
         <!-- Skeleton Loader -->
         <div id="imageSkeleton" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite; z-index: 1;">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
@@ -296,7 +296,7 @@ body { background-color: var(--r-bg); }
 <div style="background: linear-gradient(135deg, #f8fafc 0%, var(--r-bg) 100%); padding: 5rem 1.5rem; text-align: center; margin-top: 4rem;">
   <h2 style="font-size: 2rem; font-weight: 800; margin-bottom: 1rem;">Was this file helpful?</h2>
   <p style="color: #64748b; font-size: 1.1rem; max-width: 600px; margin: 0 auto 2rem;">Pay it forward! Upload your own notes, assignments, or practical files to help the next batch of students.</p>
-  <a href="{{ url_for('upload') }}" style="display:inline-block; padding: 1rem 2rem; background: var(--r-primary); color: white; border-radius: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 20px rgba(245,158,11,0.2);">📤 Upload a File</a>
+  <a href="{{ url_for('upload') }}" style="display:inline-block; padding: 1rem 2rem; background: var(--r-primary); color: white; border-radius: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 20px rgba(245,158,11,0.2);" data-feature="Resource Upload CTA">📤 Upload a File</a>
 </div>
 
 {% endblock %}

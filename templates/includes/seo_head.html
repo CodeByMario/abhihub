@@ -5,7 +5,7 @@
 <link rel="dns-prefetch" href="https://fonts.googleapis.com">
 
 <!-- 2. Core Meta Tags -->
-<title>{{ seo_title | default('AbhiHub - Engineering Exam Papers & Resources') }}</title>
+<title>{{ seo_title | default('AbhiHub - Engineering Exam Papers, PYQs & Study Resources') }}</title>
 <meta name="description" content="{{ seo_description | default('AbhiHub is the best platform to organize exam resources, engineering papers, GHRCE PYQ, and study materials. Free access to exam papers, practicals, and notes.') }}">
 <meta name="keywords" content="{{ seo_keywords | default('AbhiHub, engineering papers, GHRCE papers, exam resources, PYQ, practice papers, engineering notes, study materials, exam preparation') }}">
 <meta name="author" content="AbhiHub">
@@ -34,7 +34,7 @@
 <!-- 5. Open Graph Tags -->
 <meta property="og:site_name" content="AbhiHub">
 <meta property="og:type" content="{{ og_type | default('website') }}">
-<meta property="og:title" content="{{ og_title | default(seo_title | default('AbhiHub - Engineering Exam Papers & Resources')) }}">
+<meta property="og:title" content="{{ og_title | default(seo_title | default('AbhiHub - Engineering Exam Papers, PYQs & Study Resources')) }}">
 <meta property="og:description" content="{{ og_description | default(seo_description | default('AbhiHub is the best platform to organize exam resources...')) }}">
 <meta property="og:url" content="{{ canonical_domain }}{{ request.path }}">
 <meta property="og:image" content="{{ og_image | default(url_for('static', filename='images/android-chrome-512x512.png', _external=True)) }}">

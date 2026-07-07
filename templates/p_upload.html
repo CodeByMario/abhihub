@@ -35,7 +35,7 @@
             <span class="drop-label">Select Files / Drag &amp; Drop</span>
             <span class="drop-hint" id="fileHint">Images accepted • Max 50 MB each</span>
             <input type="file" id="fileInput" name="upload_document" hidden multiple accept="image/*,application/pdf"
-                   onchange="handleFilesSelected(this.files)">
+                   onchange="if(window.gtag){gtag('event', 'upload_funnel', {'funnel_step': '1_files_selected'});} handleFilesSelected(this.files)">
           </div>
 
           <!-- Scan / camera row -->
@@ -48,7 +48,7 @@
             </button>
           </div>
           <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden
-                 onchange="handleFilesSelected(this.files)">
+                 onchange="if(window.gtag){gtag('event', 'upload_funnel', {'funnel_step': '1_camera_used'});} handleFilesSelected(this.files)">
 
           <!-- File thumbnail grid -->
           <div id="fileGrid"></div>
@@ -86,7 +86,7 @@
           </div>
 
           <!-- Default values (pre-fill each image's info modal) -->
-          <details class="upload-defaults-toggle">
+          <details class="upload-defaults-toggle" onclick="if(!this.open && window.gtag){gtag('event', 'upload_funnel', {'funnel_step': '2_opened_metadata'});}">
             <summary class="upload-defaults-summary">⚙ Set Defaults (auto-fill per-image info)</summary>
             <div class="input-grid input-grid--slim">
               <div class="form-field">
@@ -131,7 +131,7 @@
           <p class="upload-note">📝 Click a thumbnail to fill/edit its individual info</p>
 
           <!-- Submit -->
-          <button type="submit" class="upload-btn" id="submitBtn">Upload Files</button>
+          <button type="submit" class="upload-btn" id="submitBtn" onclick="if(window.gtag){gtag('event', 'upload_funnel', {'funnel_step': '3_upload_started'});}">Upload Files</button>
 
         </form>
       </div>
@@ -221,6 +221,7 @@
           <div id="xpEmoji" class="xp-emoji">⚡</div>
           <h2 class="xp-title">Upload Complete!</h2>
           <p id="xpFilesMsg" class="xp-copy">Your file is now live</p>
+          <script>if(window.gtag){gtag('event', 'upload_funnel', {'funnel_step': '4_upload_completed'});}</script>
         </div>
         <div class="xp-card-body">
           <div class="xp-stats-row">

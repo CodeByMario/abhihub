@@ -3297,14 +3297,28 @@ def store_room():
         # Fetch all files from Cloudinary to get counts and metadata
         all_files = fetch_all_files(resource_type="image")
         
-        # Get labeled papers count from Supabase
+        # Get labeled papers and cross-reference
         labeled_result = get_labeled_papers()
-        labeled_count = len(labeled_result.get('data', [])) if labeled_result.get('success') else 0
+        labeled_papers = labeled_result.get('data', []) if labeled_result.get('success') else []
+        labeled_urls = {p.get('file_url') for p in labeled_papers if p.get('file_url')}
+        labeled_titles = {p.get('title') for p in labeled_papers if p.get('title')}
+        labeled_pids = {p.get('provider_public_id') for p in labeled_papers if p.get('provider_public_id')}
         
+        unlabeled_files = []
+        for f in all_files:
+            if (f.get('url') in labeled_urls or f.get('path') in labeled_urls or 
+                f.get('filename') in labeled_titles or f.get('public_id') in labeled_pids):
+                continue
+            unlabeled_files.append(f)
+            
+        all_files = unlabeled_files
+
         # Calculate statistics
-        total_papers = len(all_files)
-        sorted_papers = labeled_count
-        remaining_papers = total_papers - sorted_papers
+        # total_papers should represent all files found originally
+        total_papers_original_count = len(unlabeled_files) + len(labeled_papers)
+        total_papers = total_papers_original_count
+        sorted_papers = len(labeled_papers)
+        remaining_papers = len(unlabeled_files)
         
         # Get unique formats and folders for filters
         formats = get_unique_formats(all_files)
@@ -3365,37 +3379,32 @@ def store_room_api_files():
         labeled_result = get_labeled_papers()
         labeled_papers = labeled_result.get('data', []) if labeled_result.get('success') else []
         
-        # Create lookup map for quick access (using provider_public_id)
-        labeled_map = {p.get('provider_public_id'): p for p in labeled_papers if p.get('provider_public_id')}
+        labeled_urls = {p.get('file_url') for p in labeled_papers if p.get('file_url')}
+        labeled_titles = {p.get('title') for p in labeled_papers if p.get('title')}
+        labeled_pids = {p.get('provider_public_id') for p in labeled_papers if p.get('provider_public_id')}
         
-        # Mark each file with its status and engagement data
+        unlabeled_files = []
         for f in all_files:
-            doc = labeled_map.get(f.get('public_id'))
-            if doc:
-                f['record_id'] = doc.get('id')
-                f['verified'] = (doc.get('status') == 'approved')
-                f['verification_status'] = doc.get('status')
-                # Include engagement stats
-                f['like_count'] = doc.get('like_count', 0)
-                f['bookmark_count'] = doc.get('bookmark_count', 0)
-                f['comment_count'] = doc.get('comment_count', 0)
-                f['view_count'] = doc.get('view_count', 0)
-                # Check if liked/bookmarked (placeholders for now, or fetch from DB if needed)
-                f['is_liked'] = False 
-                f['is_bookmarked'] = False
-            else:
-                f['record_id'] = None
-                f['verified'] = False
-                f['verification_status'] = None
-                f['like_count'] = 0
-                f['bookmark_count'] = 0
-                f['comment_count'] = 0
-                f['view_count'] = 0
+            if (f.get('url') in labeled_urls or f.get('path') in labeled_urls or 
+                f.get('filename') in labeled_titles or f.get('public_id') in labeled_pids):
+                continue
+            
+            f['record_id'] = None
+            f['verified'] = False
+            f['verification_status'] = None
+            f['like_count'] = 0
+            f['bookmark_count'] = 0
+            f['comment_count'] = 0
+            f['view_count'] = 0
+            unlabeled_files.append(f)
+            
+        all_files = unlabeled_files
         
         # Calculate statistics
-        total_papers = len(all_files)
-        sorted_papers = len([f for f in all_files if f.get('record_id')])
-        remaining_papers = total_papers - sorted_papers
+        total_papers_original_count = len(unlabeled_files) + len(labeled_papers)
+        total_papers = total_papers_original_count
+        sorted_papers = len(labeled_papers)
+        remaining_papers = len(unlabeled_files)
         
         # Apply pagination
         paginated_files = all_files[offset:offset + limit]

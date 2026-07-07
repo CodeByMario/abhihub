@@ -36,9 +36,14 @@
   // ==========================================
   // CUSTOM USER PROPERTIES (Enhanced User Identification)
   // ==========================================
-  // Set user ID explicitly for cross-device tracking
+  // Set global event parameters to attach to ALL events (share, search, file_view, etc)
+  gtag('set', { 
+    'user_id': window.USER_ID || 'anonymous',
+    'user_email': '{{ session.get("user", {}).get("email", "anonymous") | e }}',
+    'user_name': '{{ session.get("user", {}).get("name", "anonymous") | e }}'
+  });
+
   if (window.USER_ID && typeof gtag === "function") {
-    gtag('set', { 'user_id': window.USER_ID });
     gtag('event', 'session_start_custom', { logged_in: true });
   }
 
@@ -208,7 +213,10 @@
         'session_quality_score': calculateSessionQuality(),
         'content_age_days': getContentAge(uploadDate),
         'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
+        'timestamp': new Date().toISOString(),
+        'user_id': window.USER_ID || 'anonymous',
+        'user_email': '{{ session.get("user", {}).get("email", "anonymous") | e }}',
+        'user_name': '{{ session.get("user", {}).get("name", "anonymous") | e }}'
       });
 
       // GA4 Ecommerce: view_item
@@ -248,7 +256,10 @@
         'engagement_quality': getEngagementQuality(),
         'session_downloads': sessionData.downloads,
         'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
+        'timestamp': new Date().toISOString(),
+        'user_id': window.USER_ID || 'anonymous',
+        'user_email': '{{ session.get("user", {}).get("email", "anonymous") | e }}',
+        'user_name': '{{ session.get("user", {}).get("name", "anonymous") | e }}'
       });
 
       // GA4 Ecommerce: select_content (download is like adding to cart)
@@ -399,6 +410,19 @@
         'timestamp': new Date().toISOString()
       });
       console.log('[Analytics] Element clicked:', elementName);
+    },
+
+    // Track Feature Usage and Experience
+    trackFeatureUsage: function (featureName, featureStatus, experienceRating, feedbackMsg) {
+      gtag('event', 'feature_usage', {
+        'feature_name': featureName,
+        'feature_status': featureStatus || 'used',
+        'experience_rating': experienceRating || 0,
+        'feedback_message': feedbackMsg || '',
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[Analytics] Feature used:', featureName, '| Status:', featureStatus, '| Exp:', experienceRating);
     },
 
     // Track Error Events
@@ -752,9 +776,35 @@
   window.addEventListener('pagehide', sendEngagementDelta);
 
   // ==========================================
+  // TRACK VISIT MILESTONES (1, 3, 7, 21...)
+  // ==========================================
+  function trackVisitMilestones() {
+    const sessionAlreadyCounted = sessionStorage.getItem('visit_milestone_counted');
+    
+    if (!sessionAlreadyCounted) {
+      sessionStorage.setItem('visit_milestone_counted', 'true');
+      let visits = parseInt(localStorage.getItem('user_total_visits') || '0', 10);
+      visits++;
+      localStorage.setItem('user_total_visits', visits);
+
+      const milestones = [1, 3, 7, 21, 50, 100, 365];
+      if (milestones.includes(visits)) {
+        gtag('event', 'user_retention_milestone', {
+          'milestone_visit_count': visits,
+          'user_status': visits === 1 ? 'new_user' : 'returning_user',
+          'page_path': window.location.pathname,
+          'timestamp': new Date().toISOString()
+        });
+        console.log('[Analytics] Retention Milestone Reached:', visits, 'visits');
+      }
+    }
+  }
+
+  // ==========================================
   // TRACK INITIAL PAGE VIEW
   // ==========================================
   document.addEventListener('DOMContentLoaded', function () {
+    trackVisitMilestones();
     trackPageView(document.title, getPageCategory());
     AbhiHubTracking.trackPerformance();
   });
