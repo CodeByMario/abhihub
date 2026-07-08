@@ -257,10 +257,7 @@ body { background-color: var(--br-bg); }
   </div>
 </div>
 
-<!-- Hidden SEO text -->
-<div style="position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0,0,0,0);" aria-hidden="true">
-  {% for c in colleges %}{{ c.abbreviation or c.name }} PYQ, {{ c.name }} notes, {{ c.abbreviation }} previous year papers{% if not loop.last %}, {% endif %}{% endfor %}
-</div>
+
 
 <!-- CTA -->
 <div style="background:linear-gradient(135deg,#042f2e 0%,var(--br-primary) 100%); padding:5rem 1.5rem; text-align:center; margin-top:2rem;">
