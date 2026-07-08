@@ -500,6 +500,10 @@ def reset_password_confirm():
 def terms():
     return render_template('terms.html')
 
+@app.route('/ads.txt')
+def ads_txt():
+    return "google.com, pub-8274846157272362, DIRECT, f08c47fec0942fa0", 200, {'Content-Type': 'text/plain'}
+
 @app.route('/sitemap.xml')
 def sitemap():
     from methods.supabase_helper import get_sitemap_urls
