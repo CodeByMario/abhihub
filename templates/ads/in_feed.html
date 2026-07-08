@@ -1,0 +1,42 @@
+{# 
+  Premium In-Feed Ad Unit
+  Usage: Place this between resource cards or lists.
+  Goal: Blends natively with the content. Maximizes CTR without breaking UX.
+#}
+<div class="ad-container ad-infeed">
+  <div class="ad-label">Sponsored</div>
+  <!-- AdSense Code Here -->
+  <ins class="adsbygoogle"
+       style="display:block"
+       data-ad-format="fluid"
+       data-ad-layout-key="-fb+5w+4e-db+86"
+       data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
+       data-ad-slot="XXXXXXXXXX"></ins>
+  <script>
+       (adsbygoogle = window.adsbygoogle || []).push({});
+  </script>
+</div>
+
+<style>
+.ad-infeed {
+    background: var(--surface);
+    border: 1px solid var(--border-light);
+    border-radius: var(--radius-xl);
+    padding: var(--space-4);
+    margin: var(--space-6) 0;
+    min-height: 150px; /* Prevents CLS */
+    position: relative;
+    box-shadow: var(--shadow-sm);
+    overflow: hidden;
+}
+.ad-infeed .ad-label {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    letter-spacing: 0.05em;
+    z-index: 2;
+}
+</style>
