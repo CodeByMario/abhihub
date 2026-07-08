@@ -77,7 +77,7 @@
         <p style="color:#64748b;font-size:.95rem;line-height:1.55;margin-bottom:1.5rem;">
           Adding your branch and semester helps AbhiHub recommend the most relevant papers and notes for you.
         </p>
-        <a href="/profile" id="agProfileCTA"
+        <a href="/account" id="agProfileCTA"
            style="display:block;width:100%;padding:.85rem;background:linear-gradient(135deg,#2563eb,#1d4ed8);
                   color:#fff;border-radius:12px;font-weight:700;font-size:1rem;text-decoration:none;
                   margin-bottom:.6rem;box-shadow:0 4px 16px rgba(37,99,235,.28);"

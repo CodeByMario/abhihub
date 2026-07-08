@@ -1878,7 +1878,7 @@ def dashboard():
         # Enforce profile completion
         if not student_data or not student_data.get('college_id'):
             flash("Welcome to AbhiHub! Please complete your profile to access all personalized features.", "warning")
-            return redirect(url_for('profile'))
+            return redirect(url_for('account'))
             
         college_name = student_data.get('college_name') or ''
         
