@@ -239,6 +239,24 @@
 
   </form>
 
+  <!-- Danger Zone -->
+  <div style="margin: 2rem 0 0; border: 1.5px solid #fee2e2; border-radius: 20px; padding: 1.5rem 2rem; background: #fff5f5;">
+    <div style="font-weight: 800; font-size: 1rem; color: #dc2626; margin-bottom: 1rem; display:flex; align-items:center; gap:0.5rem;">⚠️ Danger Zone</div>
+    <div style="display:flex; flex-wrap:wrap; gap: 1rem; align-items:center; justify-content:space-between;">
+      <div style="color:#64748b; font-size:0.9rem; line-height:1.5;">
+        <strong style="color:#0f172a;">Sign out</strong> from your account or submit a request to permanently <strong style="color:#dc2626;">delete your account</strong> and all associated data.
+      </div>
+      <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
+        <a href="{{ url_for('logout') }}" style="padding:0.65rem 1.25rem; background:#f1f5f9; border:1.5px solid #e2e8f0; border-radius:12px; font-weight:700; font-size:0.9rem; color:#334155; text-decoration:none;">
+          🚪 Sign Out
+        </a>
+        <a href="{{ url_for('delete_account') }}" style="padding:0.65rem 1.25rem; background:#dc2626; border-radius:12px; font-weight:700; font-size:0.9rem; color:white; text-decoration:none;">
+          🗑️ Delete Account
+        </a>
+      </div>
+    </div>
+  </div>
+
   <!-- spacer for fixed bar -->
   <div class="ac-footer-spacer"></div>
 </div>

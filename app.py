@@ -2387,6 +2387,11 @@ def contact():
     """Contact page"""
     return render_template('contact.html')
 
+@app.route('/delete-account')
+def delete_account():
+    """Account deletion request page"""
+    return render_template('delete_account.html')
+
 @app.route('/register')
 def register():
     """Register page (alias for signup)"""

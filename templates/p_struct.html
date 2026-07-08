@@ -18,123 +18,26 @@
 
     {% block page_head %}{% endblock %}
 
-    <!-- Styles: single pipeline entry point -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/pipeline.css') }}">
+    <!-- Styles: Flattened pipeline entry to avoid @import render blocking -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/01_tokens.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/02_base.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/app-shell.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/03_components.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/04_layout.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/05_utilities.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/feature-tour.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/pwa-install.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/promo.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/profile-nudge.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/notification-bell.css') }}">
+    
     <link rel="stylesheet" href="{{ url_for('static', filename='css/overlay-system.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.min.css') }}">
     {% block page_styles %}{% endblock %}
 
     <!-- Feature Tour: styles in css/pipeline/feature-tour.css -->
 
-    <!-- Service Worker Registration -->
-    <script>
-        if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js', {
-                    scope: '/'
-                })
-                    .then(registration => {
-                        console.log('Service Worker registered with scope:', registration.scope);
-                    })
-                    .catch(error => {
-                        console.error('Service Worker registration failed:', error);
-                    });
-            });
-        }
-    </script>
 
-    <!-- PWA Install Popup Script -->
-    <script>
-        // PWA Install Prompt Handler
-        let deferredPrompt;
-        const INSTALL_DISMISSED_KEY = 'pwa_install_dismissed';
-        const INSTALL_DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
-
-        window.addEventListener('beforeinstallprompt', (e) => {
-            e.preventDefault();
-            deferredPrompt = e;
-
-            // Check if user dismissed recently
-            const dismissed = localStorage.getItem(INSTALL_DISMISSED_KEY);
-            if (dismissed && Date.now() - parseInt(dismissed) < INSTALL_DISMISS_DURATION) {
-                return;
-            }
-
-            // Check if already installed
-            if (window.matchMedia('(display-mode: standalone)').matches) {
-                return;
-            }
-
-            // Show install popup after a delay
-            setTimeout(() => {
-                showInstallPopup();
-            }, 3000);
-        });
-
-        function showInstallPopup() {
-            const popup = document.getElementById('pwaInstallPopup');
-            if (popup) {
-                popup.classList.add('show');
-                document.body.style.overflow = 'hidden';
-            }
-        }
-
-        function hideInstallPopup() {
-            const popup = document.getElementById('pwaInstallPopup');
-            if (popup) {
-                popup.classList.remove('show');
-                document.body.style.overflow = '';
-            }
-        }
-
-        function dismissInstallPopup() {
-            localStorage.setItem(INSTALL_DISMISSED_KEY, Date.now().toString());
-            hideInstallPopup();
-        }
-
-        async function installPWA() {
-            if (!deferredPrompt) {
-                document.getElementById('installInstructions').style.display = 'block';
-                document.getElementById('installActions').style.display = 'none';
-                return;
-            }
-
-            deferredPrompt.prompt();
-            const { outcome } = await deferredPrompt.userChoice;
-
-            if (outcome === 'accepted') {
-                console.log('PWA installed');
-                hideInstallPopup();
-            }
-
-            deferredPrompt = null;
-        }
-
-        window.addEventListener('appinstalled', () => {
-            console.log('PWA was installed');
-            hideInstallPopup();
-            deferredPrompt = null;
-        });
-    </script>
-
-    <!-- PWA Install: styles in css/pipeline/pwa-install.css -->
-
-    <!-- Promo strip + card: styles in css/pipeline/promo.css -->
-
-    <!-- Google Tag & Analytics -->
-    {% include 'google_tag.html' %}
-
-    <!-- Analytics Helper for Auto-Tracking -->
-    <script src="{{ url_for('static', filename='js/analytics-helper.js') }}" defer></script>
-
-    <!-- Security: expose current user to client-side security.js -->
-    <script>
-        window.__CURRENT_USER__ = {
-            uid: "{{ session.get('user', {}).get('uid', '') | e }}",
-            email: "{{ session.get('user', {}).get('email', '') | e }}",
-            name: "{{ session.get('user', {}).get('name', '') | e }}"
-        };
-    </script>
 
     <!-- Study Pass System Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/study-pass.css') }}">
@@ -197,13 +100,12 @@
 
     <!-- ===== PROFILE COMPLETION + NOTIFICATION POPUP ===== -->
     <!-- Styles: css/pipeline/profile-nudge.css -->
-    <div id="profileNudgeOverlay" class="popup-overlay profile-nudge-overlay" role="dialog" aria-modal="true" aria-labelledby="profileNudgeTitle" onclick="if(event.target===this) dismissProfileNudge()">
+    <div id="profileNudgeOverlay" class="popup-overlay profile-nudge-overlay" role="dialog" aria-modal="true" aria-labelledby="profileNudgeTitle">
         <div id="profileNudgeCard">
 
             <!-- Step 1: Complete Profile -->
             <div id="nudgeStep1">
                 <div class="nudge-header nudge-header--profile">
-                    <button onclick="dismissProfileNudge()" aria-label="Close" class="nudge-close-btn">&times;</button>
                     <span class="nudge-emoji">👤</span>
                     <h2 id="profileNudgeTitle">Complete Your Profile</h2>
                     <p>You're almost there — finish your profile to unlock the full AbhiHub experience</p>
@@ -239,28 +141,12 @@
             <!-- Step 2: Enable Notifications -->
             <div id="nudgeStep2" style="display:none;">
                 <div class="nudge-header nudge-header--notif">
-                    <button onclick="dismissProfileNudge()" aria-label="Close" class="nudge-close-btn">✕</button>
                     <span class="nudge-emoji">🔔</span>
                     <h2>Stay in the Loop!</h2>
                     <p>Get notified when new papers are uploaded, your rank changes, or documents are approved</p>
                 </div>
                 <div class="nudge-body">
-                    <ul class="nudge-list">
-                        <li>
-                            <span class="nudge-list-icon teal">📄</span>
-                            <span>Notified when <strong>new papers</strong> are added</span>
-                        </li>
-                        <li>
-                            <span class="nudge-list-icon amber">🏆</span>
-                            <span>Get <strong>rank change</strong> alerts instantly</span>
-                        </li>
-                        <li>
-                            <span class="nudge-list-icon violet">✅</span>
-                            <span>Know when your <strong>upload is approved</strong></span>
-                        </li>
-                    </ul>
                     <button id="nudgeEnableNotifBtn" onclick="nudgeEnableNotifications()" class="nudge-cta-btn nudge-cta-btn--notif">Enable Notifications 🔔</button>
-                    <span class="nudge-secondary-link" onclick="dismissProfileNudge()">Maybe later</span>
                 </div>
             </div>
 
@@ -307,6 +193,8 @@
 
         {% endblock %}
     </main>
+
+    {% include 'p_footer.html' %}
     {% include 'p_nav.html' %}
 
     <!-- Main Script -->
@@ -829,6 +717,112 @@
         }
     </script>
     {% endif %}
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js', {
+                    scope: '/'
+                })
+                    .then(registration => {
+                        console.log('Service Worker registered with scope:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.error('Service Worker registration failed:', error);
+                    });
+            });
+        }
+    </script>
+
+    <!-- PWA Install Popup Script -->
+    <script>
+        // PWA Install Prompt Handler
+        let deferredPrompt;
+        const INSTALL_DISMISSED_KEY = 'pwa_install_dismissed';
+        const INSTALL_DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
+
+        window.addEventListener('beforeinstallprompt', (e) => {
+            e.preventDefault();
+            deferredPrompt = e;
+
+            // Check if user dismissed recently
+            const dismissed = localStorage.getItem(INSTALL_DISMISSED_KEY);
+            if (dismissed && Date.now() - parseInt(dismissed) < INSTALL_DISMISS_DURATION) {
+                return;
+            }
+
+            // Check if already installed
+            if (window.matchMedia('(display-mode: standalone)').matches) {
+                return;
+            }
+
+            // Show install popup after a delay
+            setTimeout(() => {
+                showInstallPopup();
+            }, 3000);
+        });
+
+        function showInstallPopup() {
+            const popup = document.getElementById('pwaInstallPopup');
+            if (popup) {
+                popup.classList.add('show');
+                document.body.style.overflow = 'hidden';
+            }
+        }
+
+        function hideInstallPopup() {
+            const popup = document.getElementById('pwaInstallPopup');
+            if (popup) {
+                popup.classList.remove('show');
+                document.body.style.overflow = '';
+            }
+        }
+
+        function dismissInstallPopup() {
+            localStorage.setItem(INSTALL_DISMISSED_KEY, Date.now().toString());
+            hideInstallPopup();
+        }
+
+        async function installPWA() {
+            if (!deferredPrompt) {
+                document.getElementById('installInstructions').style.display = 'block';
+                document.getElementById('installActions').style.display = 'none';
+                return;
+            }
+
+            deferredPrompt.prompt();
+            const { outcome } = await deferredPrompt.userChoice;
+
+            if (outcome === 'accepted') {
+                console.log('PWA installed');
+                hideInstallPopup();
+            }
+
+            deferredPrompt = null;
+        }
+
+        window.addEventListener('appinstalled', () => {
+            console.log('PWA was installed');
+            hideInstallPopup();
+            deferredPrompt = null;
+        });
+    </script>
+
+    <!-- Google Tag & Analytics -->
+    {% include 'google_tag.html' %}
+
+    <!-- Analytics Helper for Auto-Tracking -->
+    <script src="{{ url_for('static', filename='js/analytics-helper.js') }}" defer></script>
+
+    <!-- Security: expose current user to client-side security.js -->
+    <script>
+        window.__CURRENT_USER__ = {
+            uid: "{{ session.get('user', {}).get('uid', '') | e }}",
+            email: "{{ session.get('user', {}).get('email', '') | e }}",
+            name: "{{ session.get('user', {}).get('name', '') | e }}"
+        };
+    </script>
 
 </body>
 

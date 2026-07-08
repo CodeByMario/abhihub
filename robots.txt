@@ -10,6 +10,7 @@ Disallow: /store-room
 Disallow: /profile
 Disallow: /ranking
 Disallow: /upload-gate
+Disallow: /delete-account
 Disallow: /pdf-reader
 Allow: /
 
