@@ -1,7 +1,7 @@
 {% set _brand = brand_name %}
-{% set seo_title = _brand ~ ' PYQ & Notes | ' ~ _brand ~ ' Group of Colleges Previous Year Question Papers | AbhiHub' %}
+{% set seo_title = _brand ~ ' PYQ, Papers & Notes | ' ~ _brand ~ ' Group of Colleges Previous Year Question Papers | AbhiHub' %}
 {% set seo_description = 'Find all ' ~ _brand ~ ' colleges on AbhiHub. Browse campus-wise PYQs (previous year question papers), notes and practicals for ' ~ colleges | map(attribute='name') | list | join(', ') ~ '.' %}
-{% set seo_keywords = 'PYQ ' ~ _brand ~ ', ' ~ _brand ~ ' PYQ, ' ~ _brand ~ ' notes, ' ~ _brand ~ ' colleges, ' ~ (colleges | map(attribute='abbreviation') | select | list | join(' PYQ, ')) ~ ' PYQ, AbhiHub' %}
+{% set seo_keywords = 'PYQ ' ~ _brand ~ ', ' ~ _brand ~ ' PYQ, ' ~ _brand ~ ' papers, ' ~ _brand ~ ' papers abhihub, ' ~ _brand ~ ' notes, ' ~ _brand ~ ' colleges, ' ~ (colleges | map(attribute='abbreviation') | select | list | join(' PYQ, ')) ~ ' PYQ, AbhiHub' %}
 {% set og_title = seo_title %}
 {% set og_description = seo_description %}
 {% set og_type = 'website' %}
