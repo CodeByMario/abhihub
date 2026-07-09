@@ -6,9 +6,17 @@
 
 <!-- Header Hero -->
 <div class="store-header-bg">
-    <div class="store-room-container">
-        <h1 class="page-title">📦 Store Room</h1>
-        <p class="page-subtitle">Organize and label your unsorted papers with ease.</p>
+    <div class="store-room-container" style="display: flex; justify-content: space-between; align-items: center;">
+        <div>
+            <h1 class="page-title">📦 Labeling Queue</h1>
+            <p class="page-subtitle">Assign metadata to unprocessed storage files.</p>
+        </div>
+        <button id="syncStorageBtn" class="primary-btn" onclick="syncStorage()">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
+                <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.23-9.57l5.71 5.71"></path>
+            </svg>
+            Sync Storage
+        </button>
     </div>
 </div>
 
@@ -61,66 +69,14 @@
 
     <!-- File Grid -->
     <div class="files-grid delay-200" id="filesGrid">
-        {% if files %}
-        {% for file in files %}
-        <div class="file-card fade-in" data-file='{{ file|tojson|safe }}'>
-            {% if file.get('verified') %}
-            <div class="label-badge">Verified</div>
-            {% endif %}
-
-            <div class="file-icon-wrapper">
-                {% if file.format == 'pdf' or file.filename.endswith('.pdf') %}
-                <img src="/static/premium/icon/notes.gif" class="file-icon" alt="PDF">
-                {% else %}
-                <img src="/static/premium/icon/practicals.gif" class="file-icon" alt="Image">
-                {% endif %}
-            </div>
-
-            <div class="file-name" title="{{ file.filename }}">{{ file.filename }}</div>
-            <div class="file-meta">
-                <span>{{ file.format|upper }}</span>
-                <span>•</span>
-                <span>{{ file.size }}</span>
-            </div>
-            <div class="file-meta file-meta-small">
-                {{ file.created_at[:10] if file.created_at else 'Recent' }}
-            </div>
-
-            {% if file.get('record_id') %}
-            <div class="file-card-footer"
-                onclick="event.stopPropagation();">
-                <!-- Like button -->
-                <button class="action-btn like-btn {{ 'liked' if file.get('is_liked') else '' }}"
-                    onclick="toggleLike(event, '{{ file.record_id }}')">
-                    <i class="fas fa-heart {{ 'icon-heart active' if file.get('is_liked') else 'icon-heart inactive' }}"></i>
-                    <span class="like-count">{{ file.get('like_count') if file.get('like_count', 0) > 0 else '' }}</span>
-                </button>
-
-                <!-- Comment button -->
-                <button class="action-btn comment-btn"
-                    onclick="openComments(event, '{{ file.record_id }}')">
-                    <i class="fas fa-comment icon-comment"></i>
-                    <span class="comment-count">{{ file.get('comment_count') if file.get('comment_count', 0) > 0 else '' }}</span>
-                </button>
-
-                <!-- Bookmark button -->
-                <button class="action-btn bookmark-btn {{ 'bookmarked' if file.get('is_bookmarked') else '' }}"
-                    onclick="toggleBookmark(event, '{{ file.record_id }}')">
-                    <i class="fas fa-bookmark {{ 'icon-bookmark active' if file.get('is_bookmarked') else 'icon-bookmark inactive' }}"></i>
-                </button>
-            </div>
-            {% endif %}
-        </div>
-        {% endfor %}
-        {% else %}
-        <div class="empty-state">
-            <div class="empty-icon">📂</div>
-            <h3 class="empty-title">No Unsorted Files</h3>
-            <p class="empty-text">Everything is organized! Upload more files to get started.</p>
-            <a href="{{ url_for('upload') }}" class="upload-btn">Upload Files</a>
-        </div>
-        {% endif %}
+        <!-- JS will render files here -->
     </div>
+
+    <!-- Initial Data script -->
+    <script>
+        window.INITIAL_STORE_ROOM_FILES = {{ files|tojson|safe if files else '[]' }};
+        window.INITIAL_TOTAL_PAPERS = {{ total_papers|default(0) }};
+    </script>
 
     <!-- Load More -->
     <div class="view-more-container" id="viewMoreContainer">
@@ -133,7 +89,34 @@
 <!-- Modern Labeling UI Overlay -->
 <div class="labeling-view" id="labelingView" data-dirty="false">
     <!-- Image Panel -->
-    <div class="image-panel">
+        <div class="image-panel">
+        <div class="ai-chat-wrap" id="aiChatPanel" data-open="false" style="display:none">
+            <button type="button" id="aiChatToggleBtn" class="ai-chat-toggle" aria-expanded="false" aria-controls="aiChatPanel">
+                <span class="ai-chat-toggle-icon">💬</span>
+                <span class="ai-chat-toggle-text">Ask AI</span>
+            </button>
+
+            <div class="ai-chat-panel" role="region" aria-label="AI Paper Q&A">
+                <div class="ai-chat-header">
+                    <div class="ai-chat-title">AI Paper Q&A</div>
+<button type="button" class="ai-chat-close" aria-label="Close AI Chat" onclick="var p=document.getElementById('aiChatPanel'); if(p){p.setAttribute('data-open','false');}">✕</button>
+                </div>
+
+                <div class="ai-chat-messages" id="aiChatMessages"></div>
+
+                <div class="ai-chat-input-row">
+                    <textarea id="aiChatInput" class="ai-chat-input" rows="1" placeholder="Ask about this paper... (e.g., topic, summary, important points)"></textarea>
+                    <button type="button" id="aiChatSendBtn" class="ai-chat-send">Send</button>
+                </div>
+
+                <div class="ai-chat-hint">Uses the currently opened paper image.</div>
+            </div>
+        </div>
+
+        
+
+
+
         <div class="image-panel-header">
             <button class="close-btn" onclick="closeLabelingView()" aria-label="Close">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -278,27 +261,20 @@
 
                     <div class="form-group full">
                         <label class="form-label" for="collegeName">College <span class="required-star">*</span></label>
-                        <select class="form-input" id="collegeName" name="collegeName" required>
-                            <option value="" disabled selected>Select College…</option>
+                        <select class="form-input abhihub-select" id="collegeName" name="collegeName" data-entity="college" data-allow-add="true" required>
                         </select>
-                        <div id="srOtherCollegeWrap" style="display:none;margin-top:0.5rem">
-                            <input type="text" class="form-input" id="srOtherCollegeName" placeholder="College name *" style="margin-bottom:0.4rem">
-                            <button type="button" class="sr-add-btn" onclick="srAddCollege()">➕ Add College</button>
-                        </div>
                     </div>
 
                     <div class="form-group full" style="margin-top:0.75rem">
                         <label class="form-label" for="branch">Branch <span class="required-star">*</span></label>
-                        <select class="form-input" id="branch" name="branch" required>
-                            <option value="" disabled selected>Select College first</option>
+                        <select class="form-input abhihub-select" id="branch" name="branch" data-entity="branch" data-parent="collegeName" data-allow-add="true" required>
                         </select>
                     </div>
 
                     <div class="form-grid" style="margin-top:0.75rem">
                         <div class="form-group">
                             <label class="form-label" for="semester">Semester <span class="required-star">*</span></label>
-                            <select class="form-input" id="semester" name="semester" required>
-                                <option value="" disabled selected>Select Semester</option>
+                            <select class="form-input abhihub-select" id="semester" name="semester" data-entity="semester" data-parent="branch" required>
                             </select>
                         </div>
 
@@ -327,14 +303,8 @@
 
                     <div class="form-group full">
                         <label class="form-label" for="subjectName">Subject <span class="required-star">*</span></label>
-                        <select class="form-input" id="subjectName" name="subjectName" required>
-                            <option value="" disabled selected>Select Semester first</option>
+                        <select class="form-input abhihub-select" id="subjectName" name="subjectName" data-entity="subject" data-parent="semester" data-allow-add="true" required>
                         </select>
-                        <div id="srOtherSubjectWrap" style="display:none;margin-top:0.5rem">
-                            <input type="text" class="form-input" id="srOtherSubjectName" placeholder="Subject name *" style="margin-bottom:0.4rem">
-                            <input type="text" class="form-input" id="srOtherSubjectCode" placeholder="Subject code (e.g. CS501)" style="margin-bottom:0.4rem">
-                            <button type="button" class="sr-add-btn" onclick="srAddSubject()">➕ Add Subject</button>
-                        </div>
                     </div>
 
                     <div class="form-group full" style="margin-top:0.75rem">
@@ -385,323 +355,9 @@
 <!-- Toast container -->
 <div id="toastContainer"></div>
 
-<!-- Cascade helpers + overrides — must load BEFORE store_room.js -->
-<script>
-    // ── Cascading dropdowns ──
-    async function srLoadColleges() {
-        const sel = document.getElementById('collegeName');
-        try {
-            const r = await fetch('/api/colleges').then(r => r.json());
-            sel.innerHTML = '<option value="" disabled selected>Select College…</option>';
-            (r.colleges || []).forEach(c => {
-                const o = document.createElement('option');
-                o.value = c.id; o.dataset.name = c.name; o.textContent = c.name;
-                sel.appendChild(o);
-            });
-            sel.appendChild(Object.assign(document.createElement('option'), { value: '__other__', textContent: '➕ Other (Add New)' }));
-        } catch { sel.innerHTML = '<option value="" disabled selected>Failed to load</option>'; }
-    }
-
-    async function srLoadDepartments(collegeId) {
-        const brSel = document.getElementById('branch');
-        const semSel = document.getElementById('semester');
-        const subjSel = document.getElementById('subjectName');
-        brSel.innerHTML = '<option value="" disabled selected>Loading…</option>';
-        subjSel.innerHTML = '<option value="" disabled selected>Select Semester first</option>';
-        if (!collegeId) return;
-        try {
-            const r = await fetch(`/api/departments?college_id=${collegeId}`).then(r => r.json());
-            brSel.innerHTML = '<option value="" disabled selected>Select Branch</option>';
-            (r.departments || []).forEach(d => {
-                const o = document.createElement('option');
-                o.value = d.id; o.dataset.name = d.name; o.textContent = d.name;
-                brSel.appendChild(o);
-            });
-        } catch { brSel.innerHTML = '<option value="" disabled selected>Failed to load</option>'; }
-    }
-
-    function srLoadSemesters(deptId) {
-        const semSel = document.getElementById('semester');
-        const subjSel = document.getElementById('subjectName');
-        semSel.innerHTML = '<option value="" disabled selected>Select Semester</option>';
-        subjSel.innerHTML = '<option value="" disabled selected>Select Semester first</option>';
-        for (let i = 1; i <= 8; i++) {
-            const o = document.createElement('option');
-            o.value = i; o.textContent = `Semester ${i}`;
-            semSel.appendChild(o);
-        }
-        semSel.appendChild(Object.assign(document.createElement('option'), { value: '0', textContent: 'All Semesters' }));
-    }
-
-    async function srLoadSubjects(deptId, semester) {
-        const subjSel = document.getElementById('subjectName');
-        subjSel.innerHTML = '<option value="" disabled selected>Loading…</option>';
-        document.getElementById('srOtherSubjectWrap').style.display = 'none';
-        if (!deptId) return;
-        const sem = semester && String(semester) !== '0' ? `&semester=${semester}` : '';
-        try {
-            const r = await fetch(`/api/subjects?department_id=${deptId}${sem}`).then(r => r.json());
-            subjSel.innerHTML = '<option value="" disabled selected>Select Subject</option>';
-            (r.subjects || []).forEach(s => {
-                const o = document.createElement('option');
-                o.value = s.id; o.dataset.name = s.name; o.dataset.code = s.subject_code || '';
-                o.textContent = s.subject_code ? `${s.name} (${s.subject_code})` : s.name;
-                subjSel.appendChild(o);
-            });
-            subjSel.appendChild(Object.assign(document.createElement('option'), { value: '__other__', textContent: '➕ Other (Add New)' }));
-        } catch { subjSel.innerHTML = '<option value="" disabled selected>Failed to load</option>'; }
-    }
-
-    async function srAddSubject() {
-        const name = document.getElementById('srOtherSubjectName').value.trim();
-        const code = document.getElementById('srOtherSubjectCode').value.trim();
-        const deptId = document.getElementById('branch').value;
-        const semester = document.getElementById('semester').value;
-        if (!name) return showToast('Subject name is required', 'error');
-        if (!deptId) return showToast('Select a department first', 'error');
-        try {
-            const r = await fetch('/api/subjects', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, subject_code: code, department_id: deptId, semester })
-            }).then(r => r.json());
-            if (r.success && r.subject?.id) {
-                const sel = document.getElementById('subjectName');
-                const o = document.createElement('option');
-                o.value = r.subject.id; o.dataset.name = r.subject.name; o.dataset.code = r.subject.subject_code || '';
-                o.textContent = r.subject.subject_code ? `${r.subject.name} (${r.subject.subject_code})` : r.subject.name;
-                const other = sel.querySelector('option[value="__other__"]');
-                if (other) sel.insertBefore(o, other); else sel.appendChild(o);
-                sel.value = r.subject.id;
-                srOnSubjectChange(r.subject.id);
-                document.getElementById('srOtherSubjectWrap').style.display = 'none';
-                document.getElementById('srOtherSubjectName').value = '';
-                document.getElementById('srOtherSubjectCode').value = '';
-                showToast('Subject added ✅', 'success');
-            } else { showToast(r.message || 'Failed to add subject', 'error'); }
-        } catch { showToast('Network error', 'error'); }
-    }
-
-    function srOnSubjectChange(val) {
-        const wrap = document.getElementById('srOtherSubjectWrap');
-        const codeInput = document.getElementById('subjectCode');
-        if (val === '__other__') {
-            wrap.style.display = 'block';
-            codeInput.value = '';
-        } else {
-            wrap.style.display = 'none';
-            const opt = document.querySelector(`#subjectName option[value="${val}"]`);
-            if (opt) codeInput.value = opt.dataset.code || '';
-        }
-    }
-
-    async function srAddCollege() {
-        const name = document.getElementById('srOtherCollegeName').value.trim();
-        if (!name) return showToast('College name is required', 'error');
-        try {
-            const r = await fetch('/api/colleges', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name })
-            }).then(r => r.json());
-            if (r.success && r.college?.id) {
-                const sel = document.getElementById('collegeName');
-                const o = document.createElement('option');
-                o.value = r.college.id; o.dataset.name = r.college.name; o.textContent = r.college.name;
-                const other = sel.querySelector('option[value="__other__"]');
-                if (other) sel.insertBefore(o, other); else sel.appendChild(o);
-                sel.value = r.college.id;
-                document.getElementById('srOtherCollegeWrap').style.display = 'none';
-                document.getElementById('srOtherCollegeName').value = '';
-                showToast('College added ✅', 'success');
-                srLoadDepartments(r.college.id);
-            } else { showToast(r.message || 'Failed to add college', 'error'); }
-        } catch { showToast('Network error', 'error'); }
-    }
-
-    function srUpdateUnitField() {
-        const cat = document.querySelector('input[name="documentCategory"]:checked')?.value;
-        const unitGroup = document.getElementById('srUnitGroup');
-        const examSel = document.getElementById('examType');
-        if (!unitGroup || !examSel) return;
-        if (cat === 'papers') {
-            unitGroup.style.display = 'block';
-            examSel.innerHTML = '<option value="">Select…</option><option value="CAE1">CAE-1</option><option value="CAE2">CAE-2</option><option value="CAE3">CAE-3</option><option value="ESE">End Sem / Resit</option><option value="summer">Summer</option><option value="winter">Winter</option>';
-        } else if (cat === 'notes') {
-            unitGroup.style.display = 'block';
-            examSel.innerHTML = '<option value="">Select…</option><option value="U1">Unit 1</option><option value="U2">Unit 2</option><option value="U3">Unit 3</option><option value="U4">Unit 4</option><option value="U5">Unit 5</option><option value="All">All Units</option>';
-        } else if (cat === 'practical') {
-            unitGroup.style.display = 'block';
-            examSel.innerHTML = '<option value="">Select…</option><option value="viva">Viva</option><option value="journal">Journal</option><option value="All">All</option>';
-        } else {
-            unitGroup.style.display = 'none';
-            examSel.value = '';
-        }
-    }
-
-    // ── Wire up events after DOM ready ──
-    document.addEventListener('DOMContentLoaded', () => {
-        // College change → load departments + semesters (semester independent of branch)
-        document.getElementById('collegeName').addEventListener('change', function () {
-            if (this.value === '__other__') {
-                document.getElementById('srOtherCollegeWrap').style.display = 'block';
-                document.getElementById('branch').innerHTML = '<option value="" disabled selected>Select College first</option>';
-            } else {
-                document.getElementById('srOtherCollegeWrap').style.display = 'none';
-                srLoadDepartments(this.value);
-                srLoadSemesters();
-            }
-        });
-        // Department change → load semesters (only if value looks like a UUID from cascade)
-        document.getElementById('branch').addEventListener('change', function () {
-            const val = this.value;
-            // UUID pattern — only cascade if selected from our /api/departments dropdown
-            if (/^[0-9a-f-]{36}$/i.test(val) || /^\d+$/.test(val)) {
-                srLoadSemesters(val);
-            }
-        });
-        // Semester change → load subjects (only if branch is a real ID)
-        document.getElementById('semester').addEventListener('change', function () {
-            const deptId = document.getElementById('branch').value;
-            if (/^[0-9a-f-]{36}$/i.test(deptId) || /^\d+$/.test(deptId)) {
-                srLoadSubjects(deptId, this.value);
-            }
-        });
-        // Subject change → auto-fill code / show add-new
-        document.getElementById('subjectName').addEventListener('change', function () {
-            srOnSubjectChange(this.value);
-        });
-        // Category change → update unit/exam field
-        document.querySelectorAll('input[name="documentCategory"]').forEach(r =>
-            r.addEventListener('change', srUpdateUnitField)
-        );
-    });
-
-    // ── Override fetchMetadata so store_room.js uses cascading flow ──
-    async function fetchMetadata() {
-        await srLoadColleges();
-        srLoadSemesters();
-        // Auto-fill from user profile
-        try {
-            const p = await fetch('/api/profile').then(r => r.json());
-            if (p.success && p.user) {
-                const collegeId = p.user.college_id || p.user.user_metadata?.college_id;
-                const deptId    = p.user.department_id || p.user.user_metadata?.branch_id;
-                if (collegeId) {
-                    document.getElementById('collegeName').value = collegeId;
-                    await srLoadDepartments(collegeId);
-                    if (deptId) {
-                        document.getElementById('branch').value = deptId;
-                        srLoadSemesters(deptId);
-                    }
-                }
-            }
-        } catch {}
-        loadLastLabels();
-    }
-
-    // ── Override getFormData to read select value + name correctly ──
-    function getFormData() {
-        const subjSel = document.getElementById('subjectName');
-        const subjOpt = subjSel.options[subjSel.selectedIndex];
-        const subjName = subjOpt?.dataset?.name || subjOpt?.textContent?.replace(/\s*\(.*\)$/, '').trim() || '';
-        const subjId = subjSel.value !== '__other__' ? subjSel.value : null;
-
-        const colSel = document.getElementById('collegeName');
-        const colOpt = colSel.options[colSel.selectedIndex];
-        const colName = colOpt?.dataset?.name || colOpt?.textContent || '';
-
-        const brSel = document.getElementById('branch');
-        const brOpt = brSel.options[brSel.selectedIndex];
-        const brName = brOpt?.dataset?.name || brOpt?.textContent || '';
-
-        const semRaw = document.getElementById('semester')?.value;
-        const semInt = semRaw && semRaw !== '0' ? parseInt(semRaw) : null;
-
-        return {
-            filename: currentFileData.filename,
-            url: currentFileData.url,
-            title: document.getElementById('documentTitle')?.value.trim(),
-            document_category: document.querySelector('input[name="documentCategory"]:checked')?.value,
-            college_name: colName,
-            college_id: colSel.value,
-            subject_name: subjName,
-            subject_id: subjId,
-            subject_code: document.getElementById('subjectCode')?.value.trim(),
-            exam_type: document.getElementById('examType')?.value,
-            year: parseInt(document.getElementById('year')?.value),
-            branch: brName,
-            branch_id: brSel.value,
-            semester: semInt,
-            semesters: semInt ? [String(semInt)] : [],
-            description: document.getElementById('description')?.value.trim()
-        };
-    }
-
-    // ── Override validateForm to match new fields ──
-    function validateForm() {
-        if (!document.getElementById('collegeName')?.value)
-            return { valid: false, field: 'collegeName', message: 'College is required' };
-        if (!document.getElementById('branch')?.value)
-            return { valid: false, field: 'branch', message: 'Branch is required' };
-        if (!document.getElementById('semester')?.value)
-            return { valid: false, field: 'semester', message: 'Semester is required' };
-        const subj = document.getElementById('subjectName')?.value;
-        if (!subj || subj === '__other__')
-            return { valid: false, field: 'subjectName', message: 'Subject is required' };
-        if (!document.querySelector('input[name="documentCategory"]:checked'))
-            return { valid: false, field: 'documentCategory', message: 'Please select a Category' };
-        if (!document.getElementById('year')?.value)
-            return { valid: false, field: 'year', message: 'Year is required' };
-        return { valid: true };
-    }
-
-    // ── Override saveLastLabels / loadLastLabels for new field IDs ──
-    function saveLastLabels() {
-        localStorage.setItem('storeroom_last_labels', JSON.stringify({
-            collegeName: document.getElementById('collegeName')?.value,
-            branch: document.getElementById('branch')?.value,
-            semester: document.getElementById('semester')?.value,
-            documentCategory: document.querySelector('input[name="documentCategory"]:checked')?.value,
-            examType: document.getElementById('examType')?.value
-        }));
-    }
-
-    function loadLastLabels() {
-        try {
-            const stored = localStorage.getItem('storeroom_last_labels');
-            if (!stored) return;
-            const l = JSON.parse(stored);
-            if (l.collegeName && document.getElementById('collegeName').value === '')
-                document.getElementById('collegeName').value = l.collegeName;
-            if (l.branch && document.getElementById('branch').value === '')
-                document.getElementById('branch').value = l.branch;
-            if (l.semester) document.getElementById('semester').value = l.semester;
-            if (l.documentCategory) {
-                const r = document.querySelector(`input[name="documentCategory"][value="${l.documentCategory}"]`);
-                if (r) { r.checked = true; srUpdateUnitField(); }
-            }
-            if (l.examType) document.getElementById('examType').value = l.examType;
-        } catch {}
-    }
-</script>
-
+<!-- Cascade helpers + overrides — handled by AbhiHubSelect -->
 <script src="{{ url_for('static', filename='js/file-history-tracker.js') }}"></script>
 <script src="{{ url_for('static', filename='premium/js/store_room.js') }}"></script>
+
 <script src="{{ url_for('static', filename='premium/js/verification.js') }}"></script>
-<script>
-    // ── Image viewer helpers (override store_room.js zoom vars) ──
-    let currentZoom = 1;
-    let currentRotation = 0;
-
-    function zoomIn()  { currentZoom += 0.2; updateTransform(); }
-    function zoomOut() { if (currentZoom > 0.4) currentZoom -= 0.2; updateTransform(); }
-    function rotateImage() { currentRotation = (currentRotation + 90) % 360; updateTransform(); }
-    function updateTransform() {
-        const img = document.getElementById('previewImg');
-        if (img) img.style.transform = `scale(${currentZoom}) rotate(${currentRotation}deg)`;
-    }
-    function closeLabelingView() {
-        document.getElementById('labelingView').classList.remove('active');
-    }
-</script>
-
 {% endblock %}

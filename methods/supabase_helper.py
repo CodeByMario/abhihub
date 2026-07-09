@@ -517,7 +517,7 @@ def save_file_record(
     subject_name: str, document_type: str, year: str = '',
     college_id=None, branch_id=None, subject_code: str = '',
     semesters: list = None, title: str = '', description: str = '',
-    subject_id: str = None, semester: int = None
+    subject_id: str = None, semester: int = None, exam_type: str = ''
 ) -> Dict:
     client = init_supabase()
     if not client: return {'success': False, 'message': 'No client'}
@@ -575,6 +575,15 @@ def save_file_record(
             }
             description = json.dumps(desc_data)
         
+        storage_provider = 'cloudinary' if cloudinary_public_id else 'firebase'
+        
+        # Duplicate Protection
+        if cloudinary_public_id:
+            dup_check = client.table('documents').select('id').eq('storage_provider', storage_provider).eq('provider_public_id', cloudinary_public_id).execute()
+            if dup_check.data:
+                print(f"[Supabase] Duplicate registration prevented for {storage_provider} ID: {cloudinary_public_id}")
+                return {'success': False, 'message': 'File is already labeled and registered in the system.', 'conflict': True}
+
         data = {
             'uploader_id': u_id,
             'college_id': c_id,
@@ -584,11 +593,12 @@ def save_file_record(
             'document_category': document_type or 'notes',
             'description': description,
             'file_url': file_url,
-            'storage_provider': 'cloudinary' if cloudinary_public_id else 'firebase',
+            'storage_provider': storage_provider,
             'provider_public_id': cloudinary_public_id,
             'file_type': file_type,
             'file_size_bytes': file_size,
-            'status': 'pending'  # All new uploads start as pending
+            'status': 'pending',  # All new uploads start as pending
+            'exam_type': exam_type or None
         }
         
         print(f"[Supabase] Inserting document: {data.get('title')}")
@@ -606,6 +616,83 @@ def save_file_record(
         traceback.print_exc()
         print(f"[Supabase] Error saving file record: {e}")
         return {'success': False, 'message': str(e)}
+
+def verify_hierarchy(college_id: str, branch_id: str, subject_id: str) -> bool:
+    """Verifies that the provided academic hierarchy is valid."""
+    client = init_supabase()
+    if not client: return False
+    try:
+        # 1. Verify subject belongs to department (branch)
+        if subject_id and branch_id:
+            sub_res = client.table('subjects').select('id, department_id').eq('id', subject_id).execute()
+            if not sub_res.data or str(sub_res.data[0].get('department_id')) != str(branch_id):
+                return False
+                
+        # 2. Verify department belongs to college
+        if branch_id and college_id:
+            cd_res = client.table('college_departments').select('*').eq('college_id', college_id).eq('department_id', branch_id).execute()
+            if not cd_res.data:
+                return False
+
+        return True
+    except Exception as e:
+        print(f"[Supabase] Error in verify_hierarchy: {e}")
+        return False
+
+def get_registered_storage_ids() -> set:
+    """Returns a set of strings in format 'storage_provider_id' for all registered files."""
+    client = init_supabase()
+    if not client: return set()
+    try:
+        res = client.table('documents').select('storage_provider, provider_public_id').execute()
+        registered = set()
+        for doc in res.data:
+            prov = doc.get('storage_provider')
+            sid = doc.get('provider_public_id')
+            if prov and sid:
+                registered.add(f"{prov}_{sid}")
+        return registered
+    except Exception as e:
+        print(f"[Supabase] Error getting registered storage ids: {e}")
+        return set()
+
+def get_pending_storage_assets() -> list:
+    """Fetch all pending files directly from the storage_assets index table."""
+    client = init_supabase()
+    if not client: return []
+    try:
+        res = client.table('storage_assets').select('*').eq('status', 'PENDING').execute()
+        return res.data or []
+    except Exception as e:
+        print(f"[Supabase] Error fetching pending assets: {e}")
+        return []
+
+def mark_storage_asset_labeled(provider: str, provider_public_id: str) -> bool:
+    """Mark an asset as LABELED in the storage_assets table."""
+    client = init_supabase()
+    if not client: return False
+    try:
+        client.table('storage_assets').update({'status': 'LABELED'}).eq('provider', provider).eq('provider_public_id', provider_public_id).execute()
+        return True
+    except Exception as e:
+        print(f"[Supabase] Error updating asset status: {e}")
+        return False
+
+def log_label_audit(user_id: str, document_id: str, action: str, details: dict) -> bool:
+    """Log an audit entry for labeling actions."""
+    client = init_supabase()
+    if not client: return False
+    try:
+        client.table('label_audit_logs').insert({
+            'user_id': user_id,
+            'document_id': document_id,
+            'action': action,
+            'details': json.dumps(details)
+        }).execute()
+        return True
+    except Exception as e:
+        print(f"[Supabase] Error logging audit: {e}")
+        return False
 
 def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
     title = doc.get('title', 'Untitled')

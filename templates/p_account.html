@@ -164,7 +164,7 @@
               <span class="ac-input-icon">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5"/></svg>
               </span>
-              <select id="college_id" name="college_id" class="ac-select" required>
+              <select id="college_id" name="college_id" class="abhihub-select" data-entity="college" required>
                 <option value="">Select College</option>
                 {% for college in colleges %}
                 <option value="{{ college.id }}" {% if profile and profile.college_id|string == college.id|string %}selected{% endif %}>
@@ -181,7 +181,7 @@
               <span class="ac-input-icon">
                 <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 20l4-16m2 16l4-16M6 9h14M4 15h14"/></svg>
               </span>
-              <select id="branch_id" name="branch_id" class="ac-select" required>
+              <select id="branch_id" name="branch_id" class="abhihub-select" data-entity="branch" data-parent="college_id" required>
                 <option value="">Select Branch</option>
                 {% for branch in branches %}
                 <option value="{{ branch.branch_id }}" {% if profile and profile.branch_id|string == branch.branch_id|string %}selected{% endif %}>

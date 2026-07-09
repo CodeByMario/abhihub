@@ -4,6 +4,7 @@
   Goal: Standard monetization with strict height boundaries to prevent layout shifts.
 #}
 <div class="ad-container ad-banner">
+  <div class="ad-label">Advertisement</div>
   <!-- AdSense Code Here -->
   <ins class="adsbygoogle"
        style="display:block; width:100%; height:90px;"
@@ -20,8 +21,9 @@
 .ad-banner {
     width: 100%;
     min-height: 90px;
-    background: var(--bg-tertiary);
-    border-radius: var(--radius-lg);
+    background: transparent;
+    border: 1px dashed var(--border-light);
+    border-radius: 0;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -29,12 +31,13 @@
     overflow: hidden;
     position: relative;
 }
-.ad-banner::before {
-    content: "Advertisement";
+.ad-banner .ad-label {
     position: absolute;
+    top: 4px;
+    left: 8px;
     font-size: 10px;
     color: var(--text-tertiary);
-    z-index: 0;
+    z-index: 2;
 }
 .ad-banner ins {
     z-index: 1;

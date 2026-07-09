@@ -1,4 +1,12 @@
 <!-- SEO FOUNDATION TEMPLATE -->
+{% set noindex_routes = ['/login', '/signup', '/dashboard', '/settings', '/admin'] %}
+{% set is_noindex = false %}
+{% for route in noindex_routes %}
+  {% if request.path.startswith(route) %}
+    {% set is_noindex = true %}
+  {% endif %}
+{% endfor %}
+
 <!-- 1. Performance & Hints -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -13,15 +21,12 @@
 <meta name="theme-color" content="#2563eb">
 <meta name="google-adsense-account" content="ca-pub-8274846157272362">
 
-<!-- 3. Robots Directives -->
-{% set noindex_routes = ['/login', '/signup', '/dashboard', '/settings', '/admin'] %}
-{% set is_noindex = false %}
-{% for route in noindex_routes %}
-  {% if request.path.startswith(route) %}
-    {% set is_noindex = true %}
-  {% endif %}
-{% endfor %}
+<!-- Google AdSense & Auto-CMP Script -->
+{% if not is_noindex and not disable_ads %}
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8274846157272362" crossorigin="anonymous"></script>
+{% endif %}
 
+<!-- 3. Robots Directives -->
 {% if is_noindex %}
 <meta name="robots" content="noindex, nofollow">
 {% else %}

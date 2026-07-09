@@ -376,11 +376,19 @@
     <div class="page-header">
         <h1 class="page-title">
             <i class="fas fa-paper-plane text-indigo-400"></i>
-            Notification Control
+            Admin Control Panel
         </h1>
-        <p class="page-subtitle">Manage push notifications for Mobile App users</p>
+        <p class="page-subtitle">Manage push notifications and view user activity</p>
     </div>
 
+    <!-- Tabs -->
+    <div class="tabs-container" style="margin-bottom: 2rem; display: flex; gap: 1rem; border-bottom: 1px solid #e2e8f0;">
+        <button class="tab-btn active" onclick="switchTab('notifications')" id="tab-notifications" style="padding: 0.75rem 1.5rem; font-weight: 600; border-bottom: 3px solid #4f46e5; color: #4f46e5; background: none; border-top: none; border-left: none; border-right: none; cursor: pointer; font-size: 1.1rem;"><i class="fas fa-bell mr-2"></i>Notifications</button>
+        <button class="tab-btn" onclick="switchTab('users')" id="tab-users" style="padding: 0.75rem 1.5rem; font-weight: 600; border-bottom: 3px solid transparent; color: #64748b; background: none; border-top: none; border-left: none; border-right: none; cursor: pointer; font-size: 1.1rem;"><i class="fas fa-users mr-2"></i>Users Dashboard</button>
+    </div>
+
+    <!-- NOTIFICATIONS VIEW -->
+    <div id="view-notifications">
     <!-- Stats -->
     <div class="stats-grid">
         <div class="stat-card">
@@ -487,11 +495,168 @@
                 </div>
             </div>
         </div>
+    </div> <!-- END content-grid -->
+</div> <!-- END NOTIFICATIONS VIEW -->
+
+    <!-- USERS DASHBOARD VIEW -->
+    <div id="view-users" style="display: none;">
+        <div class="content-grid">
+            <!-- Users List Sidebar -->
+            <div class="glass-panel" style="max-height: 800px; display: flex; flex-direction: column;">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text-primary);">
+                    <i class="fas fa-users text-indigo-500"></i> All Users
+                </h2>
+                <div class="form-group">
+                    <input type="text" id="userSearch" class="form-control" placeholder="Search users by name or email..." onkeyup="filterAdminUsers()">
+                </div>
+                <div id="adminUsersList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; max-height: 500px;">
+                    <div class="text-center p-8 text-gray-500">
+                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                        <p>Loading users...</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- User Details Panel -->
+            <div class="glass-panel" id="userDetailsPanel">
+                <h2 class="text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text-primary);">
+                    <i class="fas fa-user-circle text-pink-500"></i> User Details
+                </h2>
+                <div class="text-center p-8 text-gray-500" id="userDetailsEmpty">
+                    <p>Select a user to view their detailed statistics.</p>
+                </div>
+                <div id="userDetailsContent" style="display: none;">
+                    <div class="mb-4">
+                        <h3 class="text-lg font-bold" id="detailName"></h3>
+                        <p class="text-gray-500" id="detailEmail"></p>
+                    </div>
+                    <div class="stats-grid" style="margin-bottom: 1.5rem;">
+                        <div class="stat-card" style="padding: 1rem;">
+                            <div class="stat-value" id="detailRep" style="font-size: 1.5rem;">0</div>
+                            <div class="stat-label">Reputation</div>
+                        </div>
+                        <div class="stat-card" style="padding: 1rem;">
+                            <div class="stat-value" id="detailLastVisit" style="font-size: 1.2rem;">-</div>
+                            <div class="stat-label">Last Visit</div>
+                        </div>
+                    </div>
+                    <div class="history-item">
+                        <div class="history-title"><i class="fas fa-upload text-blue-500 mr-2"></i>Files Uploaded (<span id="detailUploadCount">0</span>)</div>
+                        <div id="detailUploads" style="margin-top: 0.5rem; max-height: 200px; overflow-y: auto; font-size: 0.9rem; color: var(--text-secondary);"></div>
+                    </div>
+                    <div class="history-item">
+                        <div class="history-title"><i class="fas fa-eye text-green-500 mr-2"></i>Files Viewed (<span id="detailViewCount">0</span>)</div>
+                        <div id="detailViews" style="margin-top: 0.5rem; max-height: 200px; overflow-y: auto; font-size: 0.9rem; color: var(--text-secondary);"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+    <!-- END USERS DASHBOARD VIEW -->
 </div>
 
 <script>
     let subscribers = [];
+    let allAdminUsers = [];
+
+    function switchTab(tabId) {
+        document.getElementById('view-notifications').style.display = tabId === 'notifications' ? 'block' : 'none';
+        document.getElementById('view-users').style.display = tabId === 'users' ? 'block' : 'none';
+        
+        document.getElementById('tab-notifications').classList.toggle('active', tabId === 'notifications');
+        document.getElementById('tab-users').classList.toggle('active', tabId === 'users');
+        
+        document.getElementById('tab-notifications').style.borderBottomColor = tabId === 'notifications' ? '#4f46e5' : 'transparent';
+        document.getElementById('tab-notifications').style.color = tabId === 'notifications' ? '#4f46e5' : '#64748b';
+        
+        document.getElementById('tab-users').style.borderBottomColor = tabId === 'users' ? '#4f46e5' : 'transparent';
+        document.getElementById('tab-users').style.color = tabId === 'users' ? '#4f46e5' : '#64748b';
+
+        if(tabId === 'users' && allAdminUsers.length === 0) {
+            loadAdminUsers();
+        }
+    }
+
+    async function loadAdminUsers() {
+        try {
+            const res = await fetch('/api/admin/users');
+            const data = await res.json();
+            if(data.success) {
+                allAdminUsers = data.users;
+                renderAdminUsers(allAdminUsers);
+            }
+        } catch(e) { console.error('Failed to load users', e); }
+    }
+
+    function renderAdminUsers(users) {
+        const container = document.getElementById('adminUsersList');
+        if(!users.length) {
+            container.innerHTML = '<div class="text-center p-4 text-gray-500">No users found</div>';
+            return;
+        }
+        container.innerHTML = users.map(u => `
+            <div class="user-item" style="cursor:pointer; border: 1px solid #e2e8f0; background: #fff;" onclick="loadUserDetails('${u.id}', '${u.full_name ? u.full_name.replace(/'/g, "\\'") : ''}', '${u.email || ''}', ${u.reputation_score || 0})">
+                <i class="fas fa-user-circle text-gray-400 text-2xl"></i>
+                <div style="flex:1; min-width:0;">
+                    <div class="font-bold text-gray-800 truncate">${u.full_name || 'No Name'}</div>
+                    <div class="text-xs text-gray-500 truncate">${u.email || 'No Email'}</div>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function filterAdminUsers() {
+        const term = document.getElementById('userSearch').value.toLowerCase();
+        const filtered = allAdminUsers.filter(u => 
+            (u.full_name && u.full_name.toLowerCase().includes(term)) || 
+            (u.email && u.email.toLowerCase().includes(term))
+        );
+        renderAdminUsers(filtered);
+    }
+
+    async function loadUserDetails(userId, name, email, rep) {
+        document.getElementById('userDetailsEmpty').style.display = 'none';
+        const content = document.getElementById('userDetailsContent');
+        content.style.display = 'block';
+        
+        document.getElementById('detailName').textContent = name || 'No Name';
+        document.getElementById('detailEmail').textContent = email || 'No Email';
+        document.getElementById('detailRep').textContent = rep || 0;
+        
+        document.getElementById('detailLastVisit').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        document.getElementById('detailUploads').innerHTML = 'Loading...';
+        document.getElementById('detailViews').innerHTML = 'Loading...';
+        
+        try {
+            const res = await fetch(`/api/admin/users/${userId}/stats`);
+            const data = await res.json();
+            if(data.success) {
+                const stats = data.stats;
+                
+                // Last Visit
+                if(stats.last_visit && stats.last_visit !== 'Never') {
+                    document.getElementById('detailLastVisit').textContent = new Date(stats.last_visit).toLocaleDateString();
+                } else {
+                    document.getElementById('detailLastVisit').textContent = 'Never';
+                }
+                
+                // Uploads
+                document.getElementById('detailUploadCount').textContent = stats.uploaded_files.length;
+                document.getElementById('detailUploads').innerHTML = stats.uploaded_files.length ? 
+                    stats.uploaded_files.map(f => `<div class="truncate py-1 border-b border-gray-100 last:border-0">${f.title} <span class="text-xs text-gray-400">(${f.view_count || 0} views)</span></div>`).join('') :
+                    'No files uploaded.';
+                    
+                // Views
+                document.getElementById('detailViewCount').textContent = stats.viewed_files.length;
+                document.getElementById('detailViews').innerHTML = stats.viewed_files.length ? 
+                    stats.viewed_files.map(v => `<div class="truncate py-1 border-b border-gray-100 last:border-0">${v.documents ? v.documents.title : 'Unknown'} <span class="text-xs text-gray-400">(${new Date(v.accessed_at).toLocaleDateString()})</span></div>`).join('') :
+                    'No files viewed recently.';
+            }
+        } catch(e) {
+            console.error(e);
+            document.getElementById('detailLastVisit').textContent = 'Error';
+        }
+    }
 
     document.addEventListener('DOMContentLoaded', function () {
         loadSubscribers();

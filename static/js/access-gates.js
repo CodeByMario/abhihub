@@ -180,10 +180,13 @@
           Enable Notifications
         </button>
         ${!isEnforced ? `
-        <button onclick="window.AccessGates.dismissNotif()"
-                style="background:none;border:none;color:#94a3b8;font-size:.88rem;cursor:pointer;padding:.3rem;">
+        <button id="agNotifDismissBtn" onclick="window.AccessGates.dismissNotif()"
+                style="display:none;background:none;border:none;color:#94a3b8;font-size:.88rem;cursor:pointer;padding:.3rem;">
           Maybe Later
-        </button>` : `
+        </button>
+        <p id="agNotifWaitText" style="font-size:0.8rem;color:#94a3b8;margin-top:.4rem;">
+          Please wait <span id="agNotifCountdown">30</span>s to skip...
+        </p>` : `
         <p style="font-size:.8rem;color:#f59e0b;margin-top:.4rem;">
           ⚠️ Please enable to continue using all features.
         </p>`}
@@ -191,10 +194,27 @@
 
     document.body.appendChild(modal);
 
-    // If not enforced, allow backdrop dismiss
+    // If not enforced, allow backdrop dismiss after 30s
     if (!isEnforced) {
+      let timeLeft = 30;
+      let allowDismiss = false;
+      const countdownEl = document.getElementById('agNotifCountdown');
+      const waitTextEl = document.getElementById('agNotifWaitText');
+      const dismissBtn = document.getElementById('agNotifDismissBtn');
+
+      const timer = setInterval(() => {
+        timeLeft--;
+        if (countdownEl) countdownEl.textContent = timeLeft;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          allowDismiss = true;
+          if (waitTextEl) waitTextEl.style.display = 'none';
+          if (dismissBtn) dismissBtn.style.display = 'inline-block';
+        }
+      }, 1000);
+
       modal.addEventListener('click', e => {
-        if (e.target === modal) window.AccessGates.dismissNotif();
+        if (e.target === modal && allowDismiss) window.AccessGates.dismissNotif();
       });
     }
   }

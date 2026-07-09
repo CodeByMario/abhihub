@@ -268,6 +268,8 @@
   align-items: stretch;
   justify-content: center;
   padding: 1.25rem;
+  padding-top: calc(1.25rem + 55px);
+  padding-bottom: calc(1.25rem + 55px);
   gap: 1rem;
 }
 
@@ -507,6 +509,7 @@
   outline: none;
   transition: border-color 0.18s;
   box-sizing: border-box;
+  min-height: 44px; /* Mobile touch target standard */
 }
 
 .form-input:focus { border-color: var(--primary-500, #3b82f6); }
@@ -785,7 +788,21 @@ textarea.form-input {
 
   .controls-container { flex-direction: column; }
   .filters-row { flex-direction: column; }
-  .control-select { flex: none; width: 100%; }
+  .control-select { flex: none; width: 100%; min-height: 44px; }
+  
+  /* Touch target spacing */
+  .form-group {
+    margin-bottom: 0.5rem;
+  }
+  .save-btn {
+    min-height: 44px;
+    width: 100%;
+    justify-content: center;
+  }
+  .sticky-save-container {
+    flex-wrap: wrap;
+    justify-content: center;
+  }
 }
 
 @media (max-width: 480px) {

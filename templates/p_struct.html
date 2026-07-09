@@ -41,6 +41,11 @@
 
     <!-- Study Pass System Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/study-pass.css') }}">
+    
+    <!-- TomSelect CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <!-- AbhiHub Select Component Styles -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/abhihub-select.css') }}">
 </head>
 
 <body class="font-regular">
@@ -196,6 +201,55 @@
 
     {% include 'p_footer.html' %}
     {% include 'p_nav.html' %}
+
+    <!-- Global Entity Add Modal -->
+    <div id="globalEntityModal" class="global-entity-modal">
+        <div class="entity-modal-card">
+            <div class="entity-modal-header">
+                <h3 id="entityModalTitle">Add New</h3>
+                <button type="button" class="entity-modal-close" onclick="document.getElementById('globalEntityModal').classList.remove('show')">&times;</button>
+            </div>
+            <form id="entityModalForm">
+                <div class="entity-modal-body">
+                    <div class="entity-field-group" id="entitySemesterField" style="display: none;">
+                        <label>Semester *</label>
+                        <select id="entitySemester" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 1rem;">
+                            <option value="">Select Semester</option>
+                            <option value="1">Semester 1</option>
+                            <option value="2">Semester 2</option>
+                            <option value="3">Semester 3</option>
+                            <option value="4">Semester 4</option>
+                            <option value="5">Semester 5</option>
+                            <option value="6">Semester 6</option>
+                            <option value="7">Semester 7</option>
+                            <option value="8">Semester 8</option>
+                        </select>
+                    </div>
+                    <div class="entity-field-group" id="entityNameField">
+                        <label>Name *</label>
+                        <input type="text" id="entityName" required placeholder="Full Name">
+                    </div>
+                    <div class="entity-field-group" id="entityAbbrField" style="display: none;">
+                        <label>Abbreviation</label>
+                        <input type="text" id="entityAbbr" placeholder="e.g. CSE">
+                    </div>
+                    <div class="entity-field-group" id="entityCodeField" style="display: none;">
+                        <label>Subject Code</label>
+                        <input type="text" id="entityCode" placeholder="e.g. CS101">
+                    </div>
+                </div>
+                <div class="entity-modal-footer">
+                    <button type="button" class="entity-btn entity-btn-cancel" id="entityModalCancel">Cancel</button>
+                    <button type="submit" class="entity-btn entity-btn-submit" id="entityModalSubmit">Save</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TomSelect JS -->
+    <script src="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/js/tom-select.complete.min.js"></script>
+    <!-- AbhiHub Select Component -->
+    <script src="{{ url_for('static', filename='js/abhihub-select.js') }}"></script>
 
     <!-- Main Script -->
     <script src="{{ url_for('static', filename='premium/js/script.js')}}"></script>

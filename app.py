@@ -791,6 +791,18 @@ def api_get_departments():
     return jsonify({'success': result.get('success', False), 'departments': result.get('data', [])}), 200
 
 
+@app.route('/api/semesters', methods=['GET'])
+def api_get_semesters():
+    """Return semesters for a department (unified API)."""
+    department_id = request.args.get('department_id', '').strip()
+    if not department_id:
+        return jsonify({'success': False, 'semesters': [], 'message': 'department_id required'}), 400
+    
+    semesters = [{'id': str(i), 'name': f'Semester {i}'} for i in range(1, 9)]
+    semesters.append({'id': '0', 'name': 'All Semesters'})
+    return jsonify({'success': True, 'semesters': semesters}), 200
+
+
 @app.route('/api/subjects', methods=['GET'])
 def api_get_subjects():
     """Return subjects for a department, optionally filtered by semester."""
@@ -1022,6 +1034,11 @@ def label_store_room_paper():
         if not subject_id:
             return jsonify({'success': False, 'message': 'Subject selection is required'}), 400
 
+        # Validate the academic hierarchy
+        from methods.supabase_helper import verify_hierarchy
+        if not verify_hierarchy(college_id, branch_id, subject_id):
+            return jsonify({'success': False, 'message': 'Invalid academic hierarchy (mismatched college/branch/subject)'}), 400
+
         allowed_categories = ['papers', 'notes', 'practical', 'syllabus', 'assisment', 'timetable']
         if document_category not in allowed_categories:
             document_category = 'papers'
@@ -1061,11 +1078,33 @@ def label_store_room_paper():
             subject_code=subject_code,
             semester=semester,
             title=custom_title or subject_name,
-            description=custom_description
+            description=custom_description,
+            exam_type=exam_type
         )
         
         if result.get('success'):
             print(f"[STORE_ROOM_LABEL] SUCCESS: Saved to file_records")
+            
+            # 1. Update storage_assets status to LABELED
+            from methods.supabase_helper import mark_storage_asset_labeled, log_label_audit
+            storage_provider = 'cloudinary' if cloudinary_public_id else 'firebase'
+            if cloudinary_public_id:
+                mark_storage_asset_labeled(storage_provider, cloudinary_public_id)
+            
+            # 2. Log audit entry
+            doc_id = result.get('data', {}).get('id')
+            if doc_id:
+                log_label_audit(
+                    user_id=user_id or user_email.split('@')[0], 
+                    document_id=doc_id, 
+                    action='LABELED_FROM_QUEUE', 
+                    details={'subject_id': subject_id, 'branch_id': branch_id, 'college_id': college_id}
+                )
+            
+            # Invalidate the unlabeled files cache
+            global _unlabeled_cache
+            _unlabeled_cache['data'] = None
+            
             return jsonify({
                 'success': True,
                 'message': 'Paper labeled successfully',
@@ -1073,10 +1112,11 @@ def label_store_room_paper():
             }), 200
         else:
             print(f"[STORE_ROOM_LABEL] ERROR: {result.get('message')}")
+            status_code = 409 if result.get('conflict') else 500
             return jsonify({
                 'success': False,
                 'message': result.get('message', 'Failed to save label')
-            }), 500
+            }), status_code
     
     except Exception as e:
         print(f"[STORE_ROOM_LABEL] EXCEPTION: {e}")
@@ -3116,6 +3156,51 @@ def get_admin_notification_history():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/admin/users', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_users():
+    """Get list of users for admin dashboard"""
+    try:
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        res = client.table('profiles').select('id, full_name, email, created_at, role, reputation_score').order('created_at', desc=True).limit(500).execute()
+        return jsonify({'success': True, 'users': res.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/users/<user_id>/stats', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_user_stats(user_id):
+    """Get detailed stats for a specific user"""
+    try:
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        
+        # Last visit (from user_sessions)
+        session_res = client.table('user_sessions').select('login_time').eq('user_id', user_id).order('login_time', desc=True).limit(1).execute()
+        last_visit = session_res.data[0].get('login_time') if session_res.data else "Never"
+        
+        # Files uploaded
+        docs_res = client.table('documents').select('id, title, created_at, view_count, like_count').eq('uploader_id', user_id).order('created_at', desc=True).execute()
+        uploaded_files = docs_res.data or []
+        
+        # Files viewed
+        views_res = client.table('document_views').select('accessed_at, documents(title)').eq('user_id', user_id).order('accessed_at', desc=True).limit(20).execute()
+        viewed_files = views_res.data or []
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'last_visit': last_visit,
+                'uploaded_files': uploaded_files,
+                'viewed_files': viewed_files
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/prepair/<subject>')
 def exam_prep(subject="HE"):
     with open('static/premium/data.json', 'r') as f:
@@ -3294,6 +3379,49 @@ from methods.supabase_helper import (
     save_labeled_paper, get_labeled_papers, check_if_labeled,
     save_file_access, get_user_file_history
 )
+import time
+
+_unlabeled_cache = {
+    'data': None,
+    'labeled_count': 0,
+    'timestamp': 0,
+    'ttl': 60  # Cache for 60 seconds
+}
+
+def get_cached_unlabeled_files():
+    now = time.time()
+    if _unlabeled_cache['data'] is not None and (now - _unlabeled_cache['timestamp'] < _unlabeled_cache['ttl']):
+        return _unlabeled_cache['data'], _unlabeled_cache['labeled_count']
+        
+    from methods.supabase_helper import get_pending_storage_assets
+    pending_assets = get_pending_storage_assets()
+    
+    unlabeled_files = []
+    for f in pending_assets:
+        # Standardize format for frontend
+        unlabeled_files.append({
+            'storage_provider': f.get('provider'),
+            'storage_id': f.get('provider_public_id'),
+            'filename': f.get('filename'),
+            'url': f.get('public_url'),
+            'path': f.get('public_url'),
+            'created_at': f.get('uploaded_at'),
+            'size': 'Unknown',  # Consider adding size to storage_assets if needed
+            'format': (f.get('mime') or 'unknown').split('/')[-1],
+            'record_id': None,
+            'verified': False,
+            'verification_status': None,
+            'like_count': 0,
+            'bookmark_count': 0,
+            'comment_count': 0,
+            'view_count': 0
+        })
+        
+    _unlabeled_cache['data'] = unlabeled_files
+    _unlabeled_cache['labeled_count'] = 0 # Can be fetched separately if needed
+    _unlabeled_cache['timestamp'] = now
+    
+    return unlabeled_files, 0
 
 @app.route('/store-room')
 @auth_required
@@ -3303,30 +3431,12 @@ def store_room():
     Only loads initial batch for performance
     """
     try:
-        # Fetch all files from Cloudinary to get counts and metadata
-        all_files = fetch_all_files(resource_type="image")
-        
-        # Get labeled papers and cross-reference
-        labeled_result = get_labeled_papers()
-        labeled_papers = labeled_result.get('data', []) if labeled_result.get('success') else []
-        labeled_urls = {p.get('file_url') for p in labeled_papers if p.get('file_url')}
-        labeled_titles = {p.get('title') for p in labeled_papers if p.get('title')}
-        labeled_pids = {p.get('provider_public_id') for p in labeled_papers if p.get('provider_public_id')}
-        
-        unlabeled_files = []
-        for f in all_files:
-            if (f.get('url') in labeled_urls or f.get('path') in labeled_urls or 
-                f.get('filename') in labeled_titles or f.get('public_id') in labeled_pids):
-                continue
-            unlabeled_files.append(f)
-            
+        # Get cached files (O(1) instead of O(N+M) on every request)
+        unlabeled_files, sorted_papers = get_cached_unlabeled_files()
         all_files = unlabeled_files
 
         # Calculate statistics
-        # total_papers should represent all files found originally
-        total_papers_original_count = len(unlabeled_files) + len(labeled_papers)
-        total_papers = total_papers_original_count
-        sorted_papers = len(labeled_papers)
+        total_papers = len(unlabeled_files) + sorted_papers
         remaining_papers = len(unlabeled_files)
         
         # Get unique formats and folders for filters
@@ -3350,12 +3460,34 @@ def store_room():
         logging.error(f"Error loading store room: {e}")
         return render_template('p_error.html', error=str(e)), 500
 
-
-@app.route('/store-room/api/files', methods=['GET'])
+@app.route('/store-room/api/sync', methods=['POST'])
 @auth_required
-def store_room_api_files():
+def store_room_api_sync():
     """
-    API endpoint for fetching files with filters
+    Triggers a manual synchronization from physical storage to the storage_assets table.
+    """
+    try:
+        from methods.storage_providers import CloudinaryProvider
+        provider = CloudinaryProvider()
+        result = provider.sync()
+        
+        if result.get('success'):
+            # Invalidate cache
+            global _unlabeled_cache
+            _unlabeled_cache['data'] = None
+            return jsonify({'success': True, 'message': f"Synced {result.get('upserted', 0)} assets successfully."}), 200
+        else:
+            return jsonify({'success': False, 'message': result.get('message', 'Sync failed')}), 500
+    except Exception as e:
+        logging.error(f"Error syncing storage: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/store-room/api/unlabeled', methods=['GET'])
+@auth_required
+def store_room_api_unlabeled():
+    """
+    API endpoint for fetching unlabeled queue files
     Query params: search, sort_by, order, format, folder, offset, limit
     """
     try:
@@ -3370,8 +3502,9 @@ def store_room_api_files():
         offset = int(request.args.get('offset', 0))
         limit = int(request.args.get('limit', 20))
         
-        # Fetch all files
-        all_files = fetch_all_files(resource_type="image")
+        # Get cached unlabeled files
+        unlabeled_files, sorted_papers = get_cached_unlabeled_files()
+        all_files = unlabeled_files
         
         # Apply search
         if search_query:
@@ -3384,35 +3517,8 @@ def store_room_api_files():
         # Apply sorting
         all_files = sort_files(all_files, sort_by, order)
         
-        # Get labeled papers and cross-reference
-        labeled_result = get_labeled_papers()
-        labeled_papers = labeled_result.get('data', []) if labeled_result.get('success') else []
-        
-        labeled_urls = {p.get('file_url') for p in labeled_papers if p.get('file_url')}
-        labeled_titles = {p.get('title') for p in labeled_papers if p.get('title')}
-        labeled_pids = {p.get('provider_public_id') for p in labeled_papers if p.get('provider_public_id')}
-        
-        unlabeled_files = []
-        for f in all_files:
-            if (f.get('url') in labeled_urls or f.get('path') in labeled_urls or 
-                f.get('filename') in labeled_titles or f.get('public_id') in labeled_pids):
-                continue
-            
-            f['record_id'] = None
-            f['verified'] = False
-            f['verification_status'] = None
-            f['like_count'] = 0
-            f['bookmark_count'] = 0
-            f['comment_count'] = 0
-            f['view_count'] = 0
-            unlabeled_files.append(f)
-            
-        all_files = unlabeled_files
-        
         # Calculate statistics
-        total_papers_original_count = len(unlabeled_files) + len(labeled_papers)
-        total_papers = total_papers_original_count
-        sorted_papers = len(labeled_papers)
+        total_papers = len(unlabeled_files) + sorted_papers
         remaining_papers = len(unlabeled_files)
         
         # Apply pagination
@@ -3439,31 +3545,6 @@ def store_room_api_files():
         logging.error(f"Error fetching files: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-
-
-@app.route('/store-room/api/check-labeled', methods=['POST'])
-@auth_required
-def store_room_api_check_labeled():
-    """
-    API endpoint to check if a file has been labeled
-    """
-    try:
-        data = request.get_json()
-        filename = data.get('filename', '')
-        
-        if not filename:
-            return jsonify({'success': False, 'message': 'Filename required'}), 400
-        
-        is_labeled = check_if_labeled(filename)
-        
-        return jsonify({
-            'success': True,
-            'is_labeled': is_labeled
-        })
-    
-    except Exception as e:
-        logging.error(f"Error checking labeled status: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/store-room/api/rename-file', methods=['POST'])
@@ -3633,6 +3714,88 @@ def internal_server_error(e):
 @app.route('/offline')
 def offline_page():
     return render_template('offline.html')
+
+# ─── AI Paper Q&A ───────────────────────────────────────────────────────────
+@app.route('/api/ask-paper', methods=['POST'])
+@auth_required
+def api_ask_paper():
+    """Ask a question about a paper image using NVIDIA Gemma vision model."""
+    try:
+        data = request.get_json(silent=True) or {}
+        doc_id = (data.get('doc_id') or data.get('document_id') or '').strip()
+        question = (data.get('question') or '').strip()
+
+        if not doc_id or not question:
+            return jsonify({'success': False, 'message': 'doc_id/document_id and question required'}), 400
+
+        from methods.supabase_helper import get_document_by_id_rich
+        doc_res = get_document_by_id_rich(doc_id)
+        if not doc_res.get('success'):
+            return jsonify({'success': False, 'message': 'Document not found'}), 404
+
+        document = doc_res.get('data', {})
+        file_url = document.get('file_url', '')
+
+        # Resolve proxy URL to actual image URL for the AI
+        if file_url.startswith('/api/view-doc/'):
+            # Fetch the actual upstream URL
+            from methods.supabase_helper import init_supabase
+            client = init_supabase()
+            raw = client.table('documents').select('file_url').eq('id', doc_id).single().execute()
+            file_url = raw.data.get('file_url', '') if raw.data else ''
+
+        if not file_url or not file_url.startswith('http'):
+            return jsonify({'success': False, 'message': 'Image URL not available'}), 400
+
+        # Encode image as base64
+        import base64
+        img_resp = requests.get(file_url, timeout=15)
+        if not img_resp.ok:
+            return jsonify({'success': False, 'message': 'Could not fetch image'}), 502
+
+        b64_image = base64.b64encode(img_resp.content).decode('utf-8')
+        content_type = img_resp.headers.get('Content-Type', 'image/jpeg').split(';')[0]
+
+        nvidia_key = os.getenv('GEMINI_API_KEY', '').strip()
+        if not nvidia_key:
+            return jsonify({'success': False, 'message': 'NVIDIA/GEMINI API key not configured'}), 500
+        headers = {
+            'Authorization': nvidia_key,
+            'Accept': 'application/json'
+        }
+        payload = {
+            'model': 'google/gemma-3n-e4b-it',
+            'messages': [{
+                'role': 'user',
+                'content': [
+                    {'type': 'text', 'text': question},
+                    {'type': 'image_url', 'image_url': {'url': f'data:{content_type};base64,{b64_image}'}}
+                ]
+            }],
+            'max_tokens': 512,
+            'temperature': 0.20,
+            'top_p': 0.70,
+            'stream': False
+        }
+
+        # Use longer timeout because vision models can take time to process
+        ai_resp = requests.post(
+            'https://integrate.api.nvidia.com/v1/chat/completions',
+            headers=headers, json=payload, timeout=90
+        )
+
+        if not ai_resp.ok:
+            logging.error(f"[AI] NVIDIA API error: {ai_resp.status_code} {ai_resp.text}")
+            return jsonify({'success': False, 'message': 'AI service error'}), 502
+
+        answer = ai_resp.json()['choices'][0]['message']['content']
+        return jsonify({'success': True, 'answer': answer}), 200
+
+    except Exception as e:
+        logging.error(f"[AI] ask-paper error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+# ─────────────────────────────────────────────────────────────────────────────
+
 
 # ─── Social Interactions: Like, Bookmark, Comment ─────────────────────────
 @app.route('/api/like', methods=['POST'])
