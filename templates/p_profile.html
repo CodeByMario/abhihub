@@ -711,6 +711,38 @@
         </div>
         {% endif %}
       </div>
+      
+      <!-- PHASE 18: CONTRIBUTION TIMELINE -->
+      <div class="pf-section">
+        <div class="pf-section-head">
+          <h2 class="pf-section-title">Contribution Timeline</h2>
+        </div>
+        <div style="background: #fff; border-radius: 12px; border: 1px solid var(--border-light); padding: 1.25rem;">
+          {% if data.get('timeline') and data['timeline']|length > 0 %}
+            <div style="position: relative; padding-left: 20px;">
+              <div style="position: absolute; top: 0; bottom: 0; left: 6px; width: 2px; background: var(--border-medium);"></div>
+              {% for event in data['timeline'] %}
+                <div style="position: relative; margin-bottom: 1rem;">
+                  <div style="position: absolute; left: -20px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary-600); border: 2px solid #fff;"></div>
+                  <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary);">
+                    {{ event['description'] }}
+                  </div>
+                  <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 0.15rem; display: flex; gap: 0.5rem; align-items: center;">
+                    <span>{{ event['created_at'].split('T')[0] }}</span>
+                    {% if event['xp_awarded'] > 0 %}
+                      <span style="color: #10b981; font-weight: 600;">+{{ event['xp_awarded'] }} XP</span>
+                    {% endif %}
+                  </div>
+                </div>
+              {% endfor %}
+            </div>
+          {% else %}
+            <div class="pf-empty" style="border: none; padding: 1rem;">
+              <p>No contributions yet. Your timeline will appear here when you upload files.</p>
+            </div>
+          {% endif %}
+        </div>
+      </div>
 
       <!-- STUDY MATERIAL -->
       {% set notes_files = data['data'] | selectattr('type', 'equalto', 'Notes') | list %}

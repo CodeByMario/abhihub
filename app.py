@@ -640,6 +640,15 @@ def get_profile(user_data=None):
                     department_id = pres.data.get('department_id')
             except Exception:
                 pass  # non-fatal — form remains editable
+                
+            timeline = []
+            try:
+                from methods.supabase_helper import get_contribution_timeline
+                t_res = get_contribution_timeline(user_id)
+                if t_res.get('success'):
+                    timeline = t_res.get('timeline', [])
+            except Exception:
+                pass
 
         return jsonify({
             'success': True,
@@ -652,7 +661,8 @@ def get_profile(user_data=None):
                 'college_id':   college_id,
                 'department_id': department_id,
                 'students_helped': students_helped,
-                'badges':       badges
+                'badges':       badges,
+                'timeline':     timeline
             }
         }), 200
     except Exception as e:
@@ -887,6 +897,75 @@ def api_add_college(user_data=None):
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
 
+
+@app.route('/api/check-duplicate', methods=['POST'])
+@auth_required
+def api_check_duplicate(user_data=None):
+    data = request.get_json() or {}
+    file_hash = data.get('file_hash')
+    if not file_hash:
+        return jsonify({'success': False, 'message': 'Missing file_hash'}), 400
+        
+    from methods.supabase_helper import init_supabase
+    client = init_supabase()
+    if not client: return jsonify({'success': False}), 500
+    
+    try:
+        res = client.table('documents').select('id, title, status').eq('file_hash', file_hash).execute()
+        if res.data and len(res.data) > 0:
+            return jsonify({'success': True, 'is_duplicate': True, 'existing_file': res.data[0]}), 200
+        return jsonify({'success': True, 'is_duplicate': False}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@app.route('/api/ai/predict-metadata', methods=['POST'])
+@auth_required
+def api_predict_metadata(user_data=None):
+    """
+    Phase 5: AI Metadata Prediction.
+    Takes a filename (e.g. 'tnm_cae2.pdf') and returns predicted Subject, Type, and Unit.
+    """
+    data = request.get_json() or {}
+    filename = data.get('filename', '').lower()
+    if not filename: return jsonify({'success': False})
+    
+    from methods.supabase_helper import init_supabase
+    import re
+    client = init_supabase()
+    
+    words = re.split(r'[\W_]+', filename.split('.')[0])
+    prediction = {'subject_id': None, 'type': None, 'unit': None, 'year': '2025'}
+    
+    # 1. Predict Category / Unit
+    for w in words:
+        if w in ['notes', 'note']: prediction['type'] = 'notes'
+        elif w in ['cae1', 'cae2', 'cae3', 'ese']:
+            prediction['type'] = 'papers'
+            prediction['unit'] = w.upper()
+        elif w in ['practical', 'lab']: prediction['type'] = 'practical'
+        elif w in ['syllabus']: prediction['type'] = 'syllabus'
+        
+        # Detect Year
+        if re.match(r'^202[0-9]$', w): prediction['year'] = w
+            
+    # 2. Predict Subject via Aliases
+    try:
+        if client:
+            alias_res = client.table('subject_aliases').select('subject_id, alias').execute()
+            if alias_res.data:
+                # Find longest matching alias in filename
+                best_match = None
+                for record in alias_res.data:
+                    alias = record.get('alias', '').lower()
+                    if alias in words:
+                        best_match = record['subject_id']
+                        break
+                if best_match:
+                    prediction['subject_id'] = best_match
+    except Exception as e:
+        print("Prediction error:", e)
+
+    return jsonify({'success': True, 'prediction': prediction}), 200
 
 # Direct-insert: new department + map to college
 @app.route('/api/departments', methods=['POST'])
@@ -2048,7 +2127,11 @@ def profile():
     
     # Map uploaded files to our unified format if necessary (though get_user_uploaded_files should return raw docs)
     # Actually, p_profile.html expects the unified format for the file cards
-    from methods.supabase_helper import _doc_to_json
+    from methods.supabase_helper import _doc_to_json, get_contribution_timeline
+    
+    # Phase 18: Contribution Timeline
+    timeline_result = get_contribution_timeline(user_id)
+    timeline = timeline_result.get('timeline', []) if timeline_result.get('success') else []
     formatted_uploads = [_doc_to_json(f, user_id) for f in uploaded_files]
     
     # Get Papo Meter data
@@ -2059,14 +2142,32 @@ def profile():
         'data': files, 
         'uploaded_files': formatted_uploads,
         'profile': profile,
-        'papo_meter': papo_meter
+        'papo_meter': papo_meter,
+        'timeline': timeline
     })
 
 @app.route('/premium/profile')
 @auth_required
 def p_profile_redirect():
-    """Unify profile routes by redirecting to the main profile page"""
     return redirect(url_for('profile'))
+
+@app.route('/leaderboard', methods=['GET'])
+def leaderboard():
+    """Phase 19: Global Gamification Leaderboard"""
+    from methods.supabase_helper import get_leaderboard_data
+    
+    # Optional filter by college if requested
+    college_id = request.args.get('college_id')
+    
+    lb_result = get_leaderboard_data(college_id=college_id, limit=50)
+    leaderboard_data = lb_result.get('data', []) if lb_result.get('success') else []
+    
+    # Get current user for personalization in the template
+    user_info = session.get('user')
+    
+    return render_template('leaderboard.html', 
+                           leaderboard=leaderboard_data,
+                           current_user=user_info)
 
 
 @app.route('/account', methods=['GET'])
@@ -3300,14 +3401,8 @@ def calculate_rank():
 
 @app.route('/show_rank')
 def show_rank():
-    try:
-        from methods.supabase_helper import calculate_user_ranks
-        rank_list = calculate_user_ranks()
-    except Exception as e:
-        rank_list = []
-        
-    current_user_id = session.get('user', {}).get('uid') if 'user' in session else None
-    return render_template('p_ranking.html', rank=rank_list, current_user_id=current_user_id)
+    """Legacy route: redirect to new leaderboard"""
+    return redirect(url_for('leaderboard'))
 
 @app.route('/verify-file', methods=['POST'])
 def verify_file():

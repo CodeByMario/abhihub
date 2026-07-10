@@ -207,9 +207,17 @@ body { background-color: var(--d-bg); }
       <div class="stat-value">{{ stats.total_subjects }}</div>
       <div class="stat-label">Subjects</div>
     </div>
-    <div class="stat-card">
-      <div class="stat-value">🚀</div>
-      <div class="stat-label">Fast Access</div>
+    <div class="stat-card" style="text-align: left; padding: 1.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.5rem;">
+        <span class="stat-label">Archive Completion</span>
+        <span style="font-weight: 800; color: var(--d-primary); font-size: 1.2rem;">{{ stats.archive_completion }}%</span>
+      </div>
+      <div style="width: 100%; height: 8px; background: var(--d-border); border-radius: 99px; overflow: hidden;">
+        <div style="width: {{ stats.archive_completion }}%; height: 100%; background: linear-gradient(90deg, #8b5cf6, #3b82f6); border-radius: 99px; transition: width 1s ease-out;"></div>
+      </div>
+      <div style="font-size: 0.75rem; color: var(--d-muted); margin-top: 0.75rem;">
+        Help us reach 100% by uploading notes!
+      </div>
     </div>
   </div>
 </div>

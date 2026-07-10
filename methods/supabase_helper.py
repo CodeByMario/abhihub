@@ -241,11 +241,19 @@ def get_department_stats(college_id: str, dept_id: str) -> Dict:
     try:
         doc_resp = client.table('documents').select('id', count='exact').eq('college_id', college_id).eq('department_id', dept_id).execute()
         sub_resp = client.table('subjects').select('id', count='exact').eq('department_id', dept_id).execute()
+        total_docs = doc_resp.count or 0
+        total_subs = sub_resp.count or 0
+        target = total_subs * 5
+        completion = 0
+        if target > 0:
+            completion = min(100, int((total_docs / target) * 100))
+            
         return {
             "success": True, 
             "data": {
-                "total_documents": doc_resp.count or 0,
-                "total_subjects": sub_resp.count or 0
+                "total_documents": total_docs,
+                "total_subjects": total_subs,
+                "archive_completion": completion
             }
         }
     except Exception as e:
@@ -517,7 +525,7 @@ def save_file_record(
     subject_name: str, document_type: str, year: str = '',
     college_id=None, branch_id=None, subject_code: str = '',
     semesters: list = None, title: str = '', description: str = '',
-    subject_id: str = None, semester: int = None, exam_type: str = ''
+    subject_id: str = None, semester: int = None, exam_type: str = '', file_hash: str = None
 ) -> Dict:
     client = init_supabase()
     if not client: return {'success': False, 'message': 'No client'}
@@ -598,7 +606,8 @@ def save_file_record(
             'file_type': file_type,
             'file_size_bytes': file_size,
             'status': 'pending',  # All new uploads start as pending
-            'exam_type': exam_type or None
+            'exam_type': exam_type or None,
+            'file_hash': file_hash
         }
         
         print(f"[Supabase] Inserting document: {data.get('title')}")
@@ -625,7 +634,22 @@ def save_file_record(
                 print(f"[Supabase] Warning: Could not queue for indexing: {search_q_err}")
             # -------------------------------------------------------------
             
-            return {'success': True, 'message': 'Saved successfully', 'data': res.data[0]}
+            # Phase 15: Gamification / Dopamine Loop
+            xp_data = {}
+            if u_id:
+                desc = f"Uploaded {document_type} for {subject_name or 'subject'}"
+                xp_result = award_contribution_xp(u_id, 'upload_document', doc_id, 'document', desc, base_xp=25)
+                if xp_result.get('success'):
+                    xp_data = {
+                        'xp_gained': xp_result['xp_gained'],
+                        'new_score': xp_result['new_score'],
+                        'new_rank': xp_result['new_rank']
+                    }
+            
+            res_data = res.data[0]
+            res_data.update(xp_data)
+            
+            return {'success': True, 'message': 'Saved successfully', 'data': res_data}
         
         print(f"[Supabase] Failed to save document record. Response empty.")
         return {'success': False, 'message': 'Failed to save record to database'}
@@ -1399,6 +1423,49 @@ def get_reputation_stats(user_id: str) -> Dict:
         print(f"[Ranking] Error calculating reputation stats for {user_id}: {e}")
         return {'success': False, 'message': str(e)}
 
+def get_contribution_timeline(user_id: str) -> Dict:
+    """Fetch user's contribution logs ordered by latest first."""
+    client = init_supabase()
+    if not client or not user_id: return {'success': False, 'timeline': []}
+    try:
+        res = client.table('contribution_logs').select('*').eq('user_id', user_id).order('created_at', desc=True).limit(20).execute()
+        return {'success': True, 'timeline': res.data or []}
+    except Exception as e:
+        print(f"Error fetching timeline: {e}")
+        return {'success': False, 'timeline': []}
+
+def get_leaderboard_data(college_id: str = None, limit: int = 50) -> Dict:
+    """Fetch leaderboard data from the leaderboard_view."""
+    client = init_supabase()
+    if not client: return {'success': False, 'data': []}
+    try:
+        query = client.table('leaderboard_view').select('*').gt('total_xp', 0)
+        if college_id:
+            query = query.eq('college_id', college_id)
+        res = query.order('total_xp', desc=True).limit(limit).execute()
+        
+        # Format the response
+        leaderboard = []
+        for i, row in enumerate(res.data or []):
+            badges = []
+            if row.get('total_xp') >= 1000: badges.append('Champion')
+            elif row.get('total_xp') >= 500: badges.append('Hero')
+            elif row.get('total_xp') >= 100: badges.append('Contributor')
+                
+            leaderboard.append({
+                'rank': i + 1,
+                'user_id': row.get('user_id'),
+                'name': row.get('full_name') or 'Anonymous Student',
+                'email': row.get('email', ''),
+                'total_xp': row.get('total_xp', 0),
+                'students_helped': row.get('students_helped', 0),
+                'badges': badges
+            })
+        return {'success': True, 'data': leaderboard}
+    except Exception as e:
+        print(f"Error fetching leaderboard: {e}")
+        return {'success': False, 'data': []}
+
 def update_document_metadata(file_path: str, update_data: dict) -> Dict:
     client = init_supabase()
     if not client: return {'success': False, 'message': 'No client'}
@@ -1701,6 +1768,49 @@ def get_papo_meter_data(user_id: str) -> Dict:
         print(f"[PapoMeter] Error getting punya count: {e}")
     
     return {'pap_count': pap_count, 'punya_count': punya_count}
+
+def award_contribution_xp(user_id: str, action_type: str, entity_id: str, entity_type: str, description: str, base_xp: int = 10) -> Dict:
+    client = init_supabase()
+    if not client or not user_id: return {'success': False}
+    try:
+        # 1. Log the contribution
+        client.table('contribution_logs').insert({
+            'user_id': user_id, 'action_type': action_type, 'entity_id': entity_id,
+            'entity_type': entity_type, 'xp_awarded': base_xp, 'description': description
+        }).execute()
+        
+        # 2. Update the profile XP
+        p_res = client.table('profiles').select('reputation_score').eq('id', user_id).execute()
+        if p_res.data:
+            current_xp = p_res.data[0].get('reputation_score') or 0
+            new_xp = current_xp + base_xp
+            
+            # Simple rank calculation based on new_xp
+            rank = "Beginner"
+            if new_xp >= 50: rank = "First Contribution"
+            if new_xp >= 200: rank = "Contributor"
+            if new_xp >= 500: rank = "Scholar"
+            if new_xp >= 1000: rank = "Note Master"
+            if new_xp >= 2500: rank = "Campus Legend"
+            
+            client.table('profiles').update({
+                'reputation_score': new_xp,
+                'rank_title': rank
+            }).eq('id', user_id).execute()
+            
+            # 3. Badge Logic (Phase 15/17)
+            if rank != "Beginner":
+                try:
+                    client.table('user_achievements').insert({
+                        'user_id': user_id, 'badge_name': rank, 'badge_icon': '🏆'
+                    }).execute()
+                except:
+                    pass # unique constraint handles duplicates
+                    
+            return {'success': True, 'xp_gained': base_xp, 'new_score': new_xp, 'new_rank': rank}
+    except Exception as e:
+        print(f"Error awarding XP: {e}")
+    return {'success': False}
 
 def check_if_labeled(filename: str) -> bool:
     client = init_supabase()

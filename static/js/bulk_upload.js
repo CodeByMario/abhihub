@@ -22,6 +22,24 @@ function uid() {
 }
 function gv(id) { return (document.getElementById(id)||{}).value || ''; }
 
+async function computeFileHash(file) {
+  try {
+    const buffer = await file.arrayBuffer();
+    const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  } catch(e) {
+    console.error("Hashing failed", e);
+    return fileFingerprint({file: file}); // Fallback
+  }
+}
+
+// Stub for setFileStatus if it was missing from previous versions
+function setFileStatus(id, status, progress, msg) {
+  // Can be expanded to update UI badges for individual files
+  if (status === 'error' && msg) console.warn(`File ${id} error: ${msg}`);
+}
+
 function showToast(msg, type) {
   const c = document.getElementById('toastContainer');
   if (!c) return;
@@ -65,6 +83,30 @@ function handleFilesSelected(files) {
       }
     };
     selectedFiles.push(newItem);
+    
+    // Phase 5: AI Metadata Prediction (Async)
+    fetch('/api/ai/predict-metadata', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name })
+    }).then(r => r.json()).then(data => {
+      if (data.success && data.prediction) {
+        const p = data.prediction;
+        if (p.type && !newItem.meta.type) newItem.meta.type = p.type;
+        if (p.unit && !newItem.meta.unit) newItem.meta.unit = p.unit;
+        if (p.year && newItem.meta.year === '2025') newItem.meta.year = p.year;
+        if (p.subject_id && !newItem.meta.subject_id) {
+          newItem.meta.subject_id = p.subject_id;
+          newItem.meta.subject = p.subject || '';
+        }
+        
+        // If this is the currently viewed item, re-render to show AI guesses
+        if (selectedFiles[carouselIndex] && selectedFiles[carouselIndex].id === newItem.id) {
+          renderCarousel(carouselIndex);
+          showToast('🤖 AI auto-filled metadata for ' + newItem.name, 'info');
+        }
+      }
+    }).catch(e => console.warn("AI predict error:", e));
   });
 
   if (selectedFiles.length > 0) {
@@ -164,8 +206,8 @@ function renderCarousel(index) {
     if (tsCol) setTimeout(() => tsCol.setValue(m.college_id), 10);
     else colEl.value = m.college_id;
   } else {
-    if (tsCol) { tsCol.clear(); }
-    else colEl.value = '';
+    if (tsCol) { tsCol.clear(); setTimeout(() => tsCol.setValue(''), 10); }
+    colEl.value = '';
   }
 
   // Branch dropdown logic
@@ -175,8 +217,8 @@ function renderCarousel(index) {
     if (tsBranch) setTimeout(() => tsBranch.setValue(m.branch_id), 30);
     else branchEl.value = m.branch_id;
   } else {
-    if (tsBranch) { tsBranch.clear(); }
-    else branchEl.value = '';
+    if (tsBranch) { tsBranch.clear(); setTimeout(() => tsBranch.setValue(''), 10); }
+    branchEl.value = '';
   }
 
   // Semester dropdown logic
@@ -191,9 +233,9 @@ function renderCarousel(index) {
   } else {
     if (tsSem) {
         tsSem.clear();
-    } else {
-        semEl.value = '';
+        setTimeout(() => tsSem.setValue(''), 10);
     }
+    semEl.value = '';
   }
   
   // Subject dropdown logic
@@ -208,9 +250,9 @@ function renderCarousel(index) {
   } else {
     if (tsSubj) {
         tsSubj.clear();
-    } else {
-        subjEl.value = '';
+        setTimeout(() => tsSubj.setValue(''), 10);
     }
+    subjEl.value = '';
   }
 }
 
@@ -315,6 +357,11 @@ function buildFormData(item) {
     fileObj = new File([fileObj], finalName, { type: fileObj.type });
   }
   fd.append('upload_document', fileObj, finalName);
+  
+  if (item.fileHash) {
+    fd.append('file_hash', item.fileHash);
+  }
+  
   return fd;
 }
 
@@ -354,6 +401,25 @@ async function uploadOne(item, retries) {
     setFileStatus(item.id, 'error', 0, 'File is empty');
     showToast((item.name || 'File') + ': empty file, cannot upload', 'error');
     return { ok: false, msg: 'Empty file' };
+  }
+  
+  // Phase 8: Duplicate Detection
+  setFloatStatus(true, `Checking duplicates for ${item.name}...`);
+  item.fileHash = await computeFileHash(finalFile);
+  try {
+    const dupCheck = await fetch('/api/check-duplicate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ file_hash: item.fileHash })
+    }).then(r => r.json());
+    
+    if (dupCheck.success && dupCheck.is_duplicate) {
+       setFileStatus(item.id, 'error', 0, 'Duplicate File Found');
+       showToast((item.name || 'File') + ': exact duplicate already exists!', 'error');
+       return { ok: false, msg: 'Duplicate detected' };
+    }
+  } catch (e) {
+    console.warn("Duplicate check failed, continuing upload", e);
   }
 
   return new Promise(function(resolve) {

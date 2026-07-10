@@ -1,0 +1,210 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+<style>
+  :root {
+    --lb-primary: #7c3aed;
+    --lb-bg: #f8fafc;
+    --lb-card: #ffffff;
+    --lb-text: #0f172a;
+    --lb-muted: #64748b;
+    --lb-border: #e2e8f0;
+    --gold: #fbbf24;
+    --silver: #94a3b8;
+    --bronze: #b45309;
+  }
+  
+  body { background-color: var(--lb-bg); }
+  
+  .lb-header {
+    text-align: center;
+    padding: 3rem 1.5rem 1rem;
+  }
+  .lb-header h1 {
+    font-size: 2.5rem;
+    font-weight: 900;
+    color: var(--lb-text);
+    margin-bottom: 0.5rem;
+  }
+  .lb-header p {
+    color: var(--lb-muted);
+    font-size: 1.1rem;
+    max-width: 600px;
+    margin: 0 auto;
+  }
+  
+  .lb-container {
+    max-width: 900px;
+    margin: 0 auto 5rem;
+    padding: 0 1.5rem;
+  }
+  
+  /* Podium for Top 3 */
+  .podium {
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    gap: 1.5rem;
+    margin: 4rem 0 3rem;
+  }
+  
+  .podium-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    width: 140px;
+  }
+  
+  .podium-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-bottom: -40px;
+    z-index: 2;
+    border: 4px solid #fff;
+    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+  }
+  
+  .podium-item.rank-1 .podium-avatar { width: 100px; height: 100px; margin-bottom: -50px; border-color: var(--gold); }
+  .podium-item.rank-2 .podium-avatar { border-color: var(--silver); }
+  .podium-item.rank-3 .podium-avatar { border-color: var(--bronze); }
+  
+  .podium-base {
+    width: 100%;
+    background: var(--lb-card);
+    border-radius: 16px 16px 0 0;
+    padding: 3rem 1rem 1rem;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  
+  .podium-item.rank-1 .podium-base { height: 180px; background: linear-gradient(135deg, #fef3c7, #fde68a); }
+  .podium-item.rank-2 .podium-base { height: 140px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); }
+  .podium-item.rank-3 .podium-base { height: 120px; background: linear-gradient(135deg, #ffedd5, #fed7aa); }
+  
+  .podium-name { font-weight: 800; color: var(--lb-text); font-size: 0.95rem; margin-bottom: 0.2rem; }
+  .podium-xp { font-weight: 700; color: var(--lb-primary); font-size: 0.85rem; }
+  
+  /* List for Rank 4+ */
+  .lb-list {
+    background: var(--lb-card);
+    border-radius: 20px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    overflow: hidden;
+  }
+  
+  .lb-row {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--lb-border);
+    transition: background 0.2s;
+  }
+  .lb-row:last-child { border-bottom: none; }
+  .lb-row:hover { background: #f8fafc; }
+  
+  .lb-rank {
+    width: 40px;
+    font-weight: 800;
+    color: var(--lb-muted);
+    font-size: 1.1rem;
+  }
+  
+  .lb-row-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    margin-right: 1rem;
+  }
+  
+  .lb-row-info { flex: 1; }
+  .lb-row-name { font-weight: 700; color: var(--lb-text); font-size: 0.95rem; }
+  .lb-row-badges { font-size: 0.75rem; color: var(--lb-muted); margin-top: 2px; }
+  
+  .lb-row-xp {
+    font-weight: 800;
+    color: var(--lb-primary);
+    background: #ede9fe;
+    padding: 0.3rem 0.8rem;
+    border-radius: 99px;
+    font-size: 0.85rem;
+  }
+  
+  @media(max-width: 600px) {
+    .podium { gap: 0.5rem; }
+    .podium-item { width: 100px; }
+    .podium-item.rank-1 .podium-avatar { width: 80px; height: 80px; margin-bottom: -40px; }
+    .podium-avatar { width: 60px; height: 60px; margin-bottom: -30px; }
+  }
+</style>
+
+<div class="lb-header">
+  <h1>🏆 Global Leaderboard</h1>
+  <p>Top contributors who are helping thousands of students by uploading quality study materials.</p>
+</div>
+
+<div class="lb-container">
+  {% if leaderboard|length >= 3 %}
+  <div class="podium">
+    <!-- Rank 2 -->
+    <div class="podium-item rank-2">
+      {% set u2 = leaderboard[1] %}
+      <img src="{{ u2.avatar_url or 'https://ui-avatars.com/api/?name=' ~ u2.name|urlencode ~ '&background=cbd5e1&color=fff' }}" class="podium-avatar" alt="{{ u2.name }}">
+      <div class="podium-base">
+        <span class="podium-name">{{ u2.name }}</span>
+        <span class="podium-xp">{{ u2.total_xp }} XP</span>
+      </div>
+    </div>
+    
+    <!-- Rank 1 -->
+    <div class="podium-item rank-1">
+      {% set u1 = leaderboard[0] %}
+      <img src="{{ u1.avatar_url or 'https://ui-avatars.com/api/?name=' ~ u1.name|urlencode ~ '&background=fbbf24&color=fff' }}" class="podium-avatar" alt="{{ u1.name }}">
+      <div class="podium-base">
+        <div style="font-size:1.5rem; margin-bottom:0.5rem;">👑</div>
+        <span class="podium-name">{{ u1.name }}</span>
+        <span class="podium-xp">{{ u1.total_xp }} XP</span>
+      </div>
+    </div>
+    
+    <!-- Rank 3 -->
+    <div class="podium-item rank-3">
+      {% set u3 = leaderboard[2] %}
+      <img src="{{ u3.avatar_url or 'https://ui-avatars.com/api/?name=' ~ u3.name|urlencode ~ '&background=b45309&color=fff' }}" class="podium-avatar" alt="{{ u3.name }}">
+      <div class="podium-base">
+        <span class="podium-name">{{ u3.name }}</span>
+        <span class="podium-xp">{{ u3.total_xp }} XP</span>
+      </div>
+    </div>
+  </div>
+  {% endif %}
+  
+  <div class="lb-list">
+    {% for user in leaderboard %}
+      {% if loop.index > 3 or leaderboard|length < 3 %}
+        <div class="lb-row">
+          <div class="lb-rank">#{{ user.rank }}</div>
+          <img src="{{ user.avatar_url or 'https://ui-avatars.com/api/?name=' ~ user.name|urlencode ~ '&background=e2e8f0&color=64748b' }}" class="lb-row-avatar" alt="{{ user.name }}">
+          <div class="lb-row-info">
+            <div class="lb-row-name">{{ user.name }} {% if current_user and current_user.uid == user.user_id %} <span style="font-size:0.75rem; background:var(--lb-primary); color:#fff; padding:2px 6px; border-radius:4px; margin-left:5px;">You</span> {% endif %}</div>
+            <div class="lb-row-badges">
+              {% if user.students_helped > 0 %} Helped {{ user.students_helped }} students {% endif %}
+              {% for badge in user.badges %}
+                • 🏅 {{ badge }}
+              {% endfor %}
+            </div>
+          </div>
+          <div class="lb-row-xp">{{ user.total_xp }} XP</div>
+        </div>
+      {% endif %}
+    {% else %}
+      <div style="padding: 3rem; text-align: center; color: var(--lb-muted);">
+        No data available yet. Be the first to earn XP by uploading study materials!
+      </div>
+    {% endfor %}
+  </div>
+</div>
+{% endblock %}

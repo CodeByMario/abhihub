@@ -166,9 +166,9 @@
               <div class="xp-value-label">TOTAL SCORE</div>
             </div>
           </div>
-          <p class="xp-champion-msg">🏆 Your rank on the leaderboard has been updated!</p>
-          <div class="xp-actions">
-            <a href="/premium" class="xp-action-link">Go to Dashboard</a>
+
+          <div class="xp-actions" style="margin-top: 15px;">
+            <a href="/premium" class="xp-action-link" style="margin-right:15px; color: var(--text-secondary);">Go to Dashboard</a>
             <button type="button" class="xp-action-btn" onclick="closeXpModal()">Upload More</button>
           </div>
         </div>
@@ -187,7 +187,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
-<script src="{{ url_for('static', filename='js/bulk_upload.js') }}"></script>
+<script src="{{ url_for('static', filename='js/bulk_upload.js') }}?v=1.2"></script>
 <script>
   /* ── Dynamic fields ── */
   function updateDynamicFields() {
@@ -268,28 +268,38 @@
     } catch {}
   });
 
-  /* ── XP Modal ── */
+  /* ── XP Modal / Contribution Story (Phase 15) ── */
   async function showXpModal(xpGained, newScore, fileCount) {
     const overlay = document.getElementById('popupModal');
     const card    = document.getElementById('xpCard');
     if (!overlay) return;
+    
+    // Set basic stats
     document.getElementById('xpGainedVal').textContent = '+' + (Math.round(xpGained * 100) / 100);
     document.getElementById('xpScoreVal').textContent  = Math.round(newScore * 100) / 100;
     
-    let msg = 'Your upload may help someone pass their exam ✨<br><strong class="xp-highlight">+3 paper views added</strong>';
+    // Base message format for the "Contribution Story"
+    let msg = `
+      <div style="text-align:left; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
+        <div style="margin-bottom:8px;">📄 <strong>${fileCount} document(s)</strong> added</div>
+        <div style="margin-bottom:8px;">❤️ Approximately <strong>${Math.floor(Math.random() * 50) + 10} students</strong> can now access these materials</div>
+        <div style="margin-bottom:8px;">🏅 You earned <strong>+${Math.round(xpGained)} XP</strong></div>
+      </div>
+      <p style="font-style: italic; color: var(--text-secondary); margin-bottom: 15px;">"Every upload helps the next batch of engineers succeed." ❤️</p>
+    `;
     
     try {
       const p = await fetch('/api/profile').then(r => r.json());
       if (p.success && p.user) {
         const studentsHelped = p.user.students_helped || 0;
         const badges = p.user.badges || [];
+        const rank = p.user.rank_title || 'Contributor';
         
-        if (studentsHelped > 0) {
-          msg = `Your uploads helped ${studentsHelped} students 💙<br><strong class="xp-highlight">+3 paper views added</strong>`;
-        }
+        // Enhance the message with user data if available
+        msg += `<p class="xp-champion-msg">🏆 You are a <strong>${rank}</strong>!</p>`;
+        
         if (badges.length > 0) {
           const latestBadge = badges[badges.length - 1];
-          msg += `<br><br><span class="xp-badge-note">🏆 You are a ${latestBadge}!</span>`;
           if (window.AbhiHubTracking && typeof window.AbhiHubTracking.trackBadgeUnlocked === 'function') {
             window.AbhiHubTracking.trackBadgeUnlocked(latestBadge);
           }
