@@ -385,6 +385,7 @@
     <div class="tabs-container" style="margin-bottom: 2rem; display: flex; gap: 1rem; border-bottom: 1px solid #e2e8f0;">
         <button class="tab-btn active" onclick="switchTab('notifications')" id="tab-notifications" style="padding: 0.75rem 1.5rem; font-weight: 600; border-bottom: 3px solid #4f46e5; color: #4f46e5; background: none; border-top: none; border-left: none; border-right: none; cursor: pointer; font-size: 1.1rem;"><i class="fas fa-bell mr-2"></i>Notifications</button>
         <button class="tab-btn" onclick="switchTab('users')" id="tab-users" style="padding: 0.75rem 1.5rem; font-weight: 600; border-bottom: 3px solid transparent; color: #64748b; background: none; border-top: none; border-left: none; border-right: none; cursor: pointer; font-size: 1.1rem;"><i class="fas fa-users mr-2"></i>Users Dashboard</button>
+        <button class="tab-btn" onclick="switchTab('contact')" id="tab-contact" style="padding: 0.75rem 1.5rem; font-weight: 600; border-bottom: 3px solid transparent; color: #64748b; background: none; border-top: none; border-left: none; border-right: none; cursor: pointer; font-size: 1.1rem;"><i class="fas fa-envelope mr-2"></i>Contact Messages</button>
     </div>
 
     <!-- NOTIFICATIONS VIEW -->
@@ -553,6 +554,22 @@
         </div>
     </div>
     <!-- END USERS DASHBOARD VIEW -->
+    
+    <!-- CONTACT MESSAGES VIEW -->
+    <div id="view-contact" style="display: none;">
+        <div class="glass-panel">
+            <h2 class="text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text-primary);">
+                <i class="fas fa-envelope text-blue-500"></i> Contact Messages
+            </h2>
+            <div id="contactMessagesList" style="max-height: 600px; overflow-y: auto;">
+                <div class="text-center p-8 text-gray-500">
+                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
+                    <p>Loading messages...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- END CONTACT MESSAGES VIEW -->
 </div>
 
 <script>
@@ -562,9 +579,11 @@
     function switchTab(tabId) {
         document.getElementById('view-notifications').style.display = tabId === 'notifications' ? 'block' : 'none';
         document.getElementById('view-users').style.display = tabId === 'users' ? 'block' : 'none';
+        document.getElementById('view-contact').style.display = tabId === 'contact' ? 'block' : 'none';
         
         document.getElementById('tab-notifications').classList.toggle('active', tabId === 'notifications');
         document.getElementById('tab-users').classList.toggle('active', tabId === 'users');
+        document.getElementById('tab-contact').classList.toggle('active', tabId === 'contact');
         
         document.getElementById('tab-notifications').style.borderBottomColor = tabId === 'notifications' ? '#4f46e5' : 'transparent';
         document.getElementById('tab-notifications').style.color = tabId === 'notifications' ? '#4f46e5' : '#64748b';
@@ -572,8 +591,39 @@
         document.getElementById('tab-users').style.borderBottomColor = tabId === 'users' ? '#4f46e5' : 'transparent';
         document.getElementById('tab-users').style.color = tabId === 'users' ? '#4f46e5' : '#64748b';
 
+        document.getElementById('tab-contact').style.borderBottomColor = tabId === 'contact' ? '#4f46e5' : 'transparent';
+        document.getElementById('tab-contact').style.color = tabId === 'contact' ? '#4f46e5' : '#64748b';
+
         if(tabId === 'users' && allAdminUsers.length === 0) {
             loadAdminUsers();
+        }
+        if(tabId === 'contact') {
+            loadContactMessages();
+        }
+    }
+
+    async function loadContactMessages() {
+        try {
+            const res = await fetch('/api/admin/contact-messages');
+            const data = await res.json();
+            const container = document.getElementById('contactMessagesList');
+            if (data.success && data.messages.length > 0) {
+                container.innerHTML = data.messages.map(m => `
+                    <div class="history-item">
+                        <div class="history-title">${m.name || 'Anonymous'} (<a href="mailto:${m.email}" class="text-blue-500">${m.email}</a>)</div>
+                        <div class="text-sm font-bold text-gray-700 mb-2">Subject: ${m.subject || 'None'}</div>
+                        <div class="history-body" style="-webkit-line-clamp: unset; white-space: pre-wrap;">${m.message || ''}</div>
+                        <div class="history-meta mt-2">
+                            <span class="text-gray-400 ml-auto"><i class="fas fa-clock mr-1"></i>${new Date(m.timestamp).toLocaleString()}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = '<div class="text-center p-4 text-gray-500">No contact messages yet</div>';
+            }
+        } catch (e) {
+            console.error('Failed to load contact messages', e);
+            document.getElementById('contactMessagesList').innerHTML = '<div class="text-center p-4 text-red-500">Failed to load messages</div>';
         }
     }
 

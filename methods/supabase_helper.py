@@ -605,7 +605,26 @@ def save_file_record(
         res = client.table('documents').insert(data).execute()
         
         if res.data:
-            print(f"[Supabase] Successfully saved document record: {res.data[0].get('id')}")
+            doc_id = res.data[0].get('id')
+            print(f"[Supabase] Successfully saved document record: {doc_id}")
+            
+            # --- Push to new Background Search Queue (Phase 2 Migration) ---
+            try:
+                client.table('search_documents').insert({
+                    'file_id': doc_id,
+                    'source': 'uploads',
+                    'subject_id': sub_id,
+                    'college_id': c_id,
+                    'department_id': d_id,
+                    'semester': semester,
+                    'normalized_title': _normalize(title or file_name) if '_normalize' in globals() else (title or file_name).lower(),
+                    'status': 'pending'
+                }).execute()
+                print(f"[Supabase] Queued {doc_id} for background search indexing.")
+            except Exception as search_q_err:
+                print(f"[Supabase] Warning: Could not queue for indexing: {search_q_err}")
+            # -------------------------------------------------------------
+            
             return {'success': True, 'message': 'Saved successfully', 'data': res.data[0]}
         
         print(f"[Supabase] Failed to save document record. Response empty.")

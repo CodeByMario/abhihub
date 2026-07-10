@@ -53,124 +53,74 @@ function handleFilesSelected(files) {
 
     const newItem = {
       id: uid(), file, blob: null, name: file.name, cropped: false, status: 'pending',
-      meta: { subject: gv('subject'), year: gv('Year')||'2025', type: gv('type'), unit: gv('unit') }
+      meta: { 
+        college_id: gv('college_id'),
+        branch_id: gv('branch_id'),
+        subject: '', 
+        subject_id: '', 
+        semester: '',
+        year: '2025', 
+        type: '', 
+        unit: '' 
+      }
     };
     selectedFiles.push(newItem);
-
-    // If meta is incomplete (camera or browse without defaults set), auto-open modal
-    if (!newItem.meta.subject || !newItem.meta.type) {
-      renderGrid();
-      setTimeout(() => openMetaModal(newItem.id), 80);
-    }
   });
-  renderGrid();
+
+  if (selectedFiles.length > 0) {
+    document.getElementById('uploadCarousel').style.display = 'flex';
+    document.querySelector('.upload-defaults-toggle')?.remove(); // Remove defaults UI since we now edit per-file immediately
+    renderCarousel(selectedFiles.length - 1); // Go to the newest file
+  }
 }
 
 function removeFile(id) {
   selectedFiles = selectedFiles.filter(f => f.id !== id);
-  renderGrid();
-}
-
-/* ── Grid ── */
-function renderGrid() {
-  const grid = document.getElementById('fileGrid');
-  if (!grid) return;
-  if (!selectedFiles.length) { grid.style.display = 'none'; return; }
-  grid.style.display = 'grid';
-
-  grid.innerHTML = selectedFiles.map(item => {
-    const src    = URL.createObjectURL(item.blob || item.file);
-    const isImg  = item.file.type.startsWith('image/');
-    const mFill  = item.meta && item.meta.subject && item.meta.type;
-    const mLabel = mFill ? (item.meta.subject.slice(0,10) + (item.meta.unit ? ' / '+item.meta.unit : '')) : '⚠ Add info';
-    return `
-    <div class="bu-thumb ${item.status==='done'?'bu-done':''} ${item.status==='error'?'bu-error':''}" id="thumb_${item.id}">
-      <div class="bu-thumb-img">
-        ${isImg ? `<img src="${src}" alt="">` : '<div class="bu-pdf-icon">📄</div>'}
-        ${item.cropped ? '<span class="bu-badge">✂</span>' : ''}
-        <div class="bu-thumb-actions">
-          ${isImg ? `<button type="button" onclick="openCrop('${item.id}')">✂</button>` : ''}
-          <button type="button" onclick="openMetaModal('${item.id}')">📝</button>
-          <button type="button" onclick="removeFile('${item.id}')">🗑</button>
-        </div>
-      </div>
-      <div class="bu-meta-bar ${mFill?'meta-ok':'meta-warn'}" onclick="openMetaModal('${item.id}')">
-        ${mFill ? '✅ ' : '⚠️ '}<span>${mLabel}</span>
-      </div>
-      <div class="bu-bar-wrap" id="bar_${item.id}" style="display:none">
-        <div class="bu-bar-fill" id="fill_${item.id}"></div>
-      </div>
-      <div class="bu-status" id="st_${item.id}"></div>
-    </div>`;
-  }).join('');
-}
-
-function setFileStatus(id, status, pct, msg) {
-  const bar  = document.getElementById('bar_'+id);
-  const fill = document.getElementById('fill_'+id);
-  const st   = document.getElementById('st_'+id);
-  const thm  = document.getElementById('thumb_'+id);
-  if (!bar) return;
-  bar.style.display = 'block';
-  if (status === 'uploading') {
-    fill.style.width = pct+'%';
-    fill.classList.remove('success', 'error');
-    if(st) {
-      st.classList.remove('success', 'error');
-      st.classList.add('uploading');
-      st.textContent = pct+'%';
-    }
-  } else if (status === 'done') {
-    fill.style.width = '100%';
-    fill.classList.add('success');
-    fill.classList.remove('error');
-    if(st) {
-      st.classList.remove('uploading', 'error');
-      st.classList.add('success');
-      st.textContent = '✓';
-    }
-    if(thm) thm.classList.add('bu-done');
-  } else if (status === 'error') {
-    fill.style.width = '100%';
-    fill.classList.add('error');
-    fill.classList.remove('success');
-    if(st) {
-      st.classList.remove('uploading', 'success');
-      st.classList.add('error');
-      st.textContent = msg || '✗';
-    }
-    if(thm) thm.classList.add('bu-error');
+  if (selectedFiles.length === 0) {
+    document.getElementById('uploadCarousel').style.display = 'none';
+  } else {
+    if (carouselIndex >= selectedFiles.length) carouselIndex = selectedFiles.length - 1;
+    renderCarousel(carouselIndex);
   }
 }
 
-/* ── Per-image metadata modal ── */
-async function openMetaModal(id) {
-  currentMetaId = id;
-  const item = selectedFiles.find(f => f.id === id);
-  if (!item) return;
-  const m = item.meta || {};
-  const el = id => document.getElementById(id);
-  el('metaModalTitle').textContent = '📝 ' + item.name;
-  el('metaYear').value = m.year  || gv('Year') || '2025';
-  el('metaType').value = m.type  || gv('type') || '';
-  updateMetaUnit();
-  el('metaUnit').value = m.unit  || gv('unit') || '';
-  openPopupSection('popupMeta');
+/* ── Carousel Logic ── */
+let carouselIndex = 0;
+let carouselRotation = 0;
 
-  // Load subjects into modal dropdown (department from main cascade)
-  const deptId = gv('branch_id');
-  if (deptId && typeof loadMetaSubjects === 'function') {
-    await loadMetaSubjects(deptId);
+function saveCurrentMeta() {
+  if (selectedFiles.length === 0 || carouselIndex < 0 || carouselIndex >= selectedFiles.length) return;
+  const item = selectedFiles[carouselIndex];
+  
+  const typeEl = document.getElementById('metaType');
+  const yearEl = document.getElementById('metaYear');
+  const unitEl = document.getElementById('metaUnit');
+  const subjEl = document.getElementById('metaSubject');
+  const semEl = document.getElementById('semester');
+  const colEl = document.getElementById('college_id');
+  const branchEl = document.getElementById('branch_id');
+  
+  // Save to item meta
+  item.meta.type = typeEl.value;
+  item.meta.year = yearEl.value;
+  item.meta.unit = unitEl.value;
+  item.meta.semester = semEl.value;
+  item.meta.college_id = colEl.value;
+  item.meta.branch_id = branchEl.value;
+  item.meta.subject_id = subjEl.value;
+  const selOpt = subjEl.options[subjEl.selectedIndex];
+  if (selOpt && subjEl.value) {
+    item.meta.subject = selOpt.text;
   }
-  // Restore previously saved subject_id (UUID) if available
-  const savedId = m.subject_id || gv('subject');
-  if (savedId) el('metaSubject').value = savedId;
 }
 
 function updateMetaUnit() {
-  const type = gv('metaType');
+  const typeEl = document.getElementById('metaType');
+  const type = typeEl ? typeEl.value : '';
   const wrap = document.getElementById('metaUnitWrap');
   const sel  = document.getElementById('metaUnit');
+  if (!wrap || !sel) return;
+  
   if (type === 'notes') {
     wrap.style.display = 'block';
     sel.innerHTML = '<option value="U1">Unit 1</option><option value="U2">Unit 2</option><option value="U3">Unit 3</option><option value="U4">Unit 4</option><option value="U5">Unit 5</option><option value="All">All Units</option>';
@@ -182,96 +132,131 @@ function updateMetaUnit() {
   }
 }
 
-function saveMetaModal() {
-  if (!currentMetaId) return;
-  const subjectEl = document.getElementById('metaSubject');
-  const subj = subjectEl?.value?.trim();
-  const type = gv('metaType');
-  if (!subj || !type) return showToast('Subject and Category are required', 'error');
-  if (subj === '__other__') return showToast('Click "➕ Add Subject" first to insert this new subject', 'error');
-
-  const subjectId = subj;
-  const selectedOpt = subjectEl?.options[subjectEl.selectedIndex];
-  const subjectName = selectedOpt?.dataset?.name || selectedOpt?.textContent || subj;
-
-  const idx = selectedFiles.findIndex(f => f.id === currentMetaId);
-  if (idx !== -1) {
-    selectedFiles[idx].meta = {
-      subject:    subjectName,
-      subject_id: subjectId,          // UUID from cascade dropdown
-      year:       gv('metaYear') || '2025',
-      type,
-      unit:       gv('metaUnit')
-    };
+function renderCarousel(index) {
+  if (selectedFiles.length === 0) return;
+  carouselIndex = index;
+  const item = selectedFiles[carouselIndex];
+  
+  document.getElementById('cCounter').textContent = (carouselIndex + 1) + ' / ' + selectedFiles.length;
+  document.getElementById('cPrevBtn').disabled = (carouselIndex === 0);
+  document.getElementById('cNextBtn').disabled = (carouselIndex === selectedFiles.length - 1);
+  
+  document.getElementById('carouselFilename').textContent = item.name;
+  
+  const imgEl = document.getElementById('carouselImg');
+  imgEl.src = URL.createObjectURL(item.blob || item.file);
+  carouselRotation = 0;
+  imgEl.style.transform = `rotate(0deg)`;
+  
+  if (cropperInst) { cropperInst.destroy(); cropperInst = null; }
+  
+  // Populate form
+  const m = item.meta || {};
+  document.getElementById('metaType').value = m.type || '';
+  document.getElementById('metaYear').value = m.year || '2025';
+  updateMetaUnit();
+  document.getElementById('metaUnit').value = m.unit || '';
+  
+  // College dropdown logic
+  const colEl = document.getElementById('college_id');
+  const tsCol = window.AbhiHubSelect?.instances['college_id'];
+  if (m.college_id) {
+    if (tsCol) setTimeout(() => tsCol.setValue(m.college_id), 10);
+    else colEl.value = m.college_id;
+  } else {
+    if (tsCol) { tsCol.clear(); }
+    else colEl.value = '';
   }
-  closeMetaModal();
-  renderGrid();
-}
 
-function closeMetaModal() {
-  closePopup();
-  currentMetaId = null;
-}
+  // Branch dropdown logic
+  const branchEl = document.getElementById('branch_id');
+  const tsBranch = window.AbhiHubSelect?.instances['branch_id'];
+  if (m.branch_id) {
+    if (tsBranch) setTimeout(() => tsBranch.setValue(m.branch_id), 30);
+    else branchEl.value = m.branch_id;
+  } else {
+    if (tsBranch) { tsBranch.clear(); }
+    else branchEl.value = '';
+  }
 
-function openPopupSection(sectionId) {
-  const overlay = document.getElementById('popupModal');
-  if (!overlay) return;
-  Array.from(overlay.querySelectorAll('.popup-section')).forEach(sec => sec.classList.remove('active'));
-  const section = document.getElementById(sectionId);
-  if (!section) return;
-  overlay.classList.add('show');
-  section.classList.add('active');
-  if (sectionId === 'popupXp') {
-    const card = document.getElementById('xpCard');
-    if (card) {
-      card.style.transform = 'scale(.85)';
-      requestAnimationFrame(() => { card.style.transform = 'scale(1)'; });
+  // Semester dropdown logic
+  const semEl = document.getElementById('semester');
+  const tsSem = window.AbhiHubSelect?.instances['semester'];
+  if (m.semester) {
+    if (tsSem) {
+        setTimeout(() => tsSem.setValue(m.semester), 50);
+    } else {
+        semEl.value = m.semester;
+    }
+  } else {
+    if (tsSem) {
+        tsSem.clear();
+    } else {
+        semEl.value = '';
+    }
+  }
+  
+  // Subject dropdown logic
+  const subjEl = document.getElementById('metaSubject');
+  const tsSubj = window.AbhiHubSelect?.instances['metaSubject'];
+  if (m.subject_id) {
+    if (tsSubj) {
+        setTimeout(() => tsSubj.setValue(m.subject_id), 100);
+    } else {
+        subjEl.value = m.subject_id;
+    }
+  } else {
+    if (tsSubj) {
+        tsSubj.clear();
+    } else {
+        subjEl.value = '';
     }
   }
 }
 
-function closePopup() {
-  const overlay = document.getElementById('popupModal');
-  if (!overlay) return;
-  const xpCard = document.getElementById('xpCard');
-  if (xpCard) { xpCard.style.transform = 'scale(.85)'; }
-  if (cropperInst) { cropperInst.destroy(); cropperInst = null; }
-  overlay.classList.remove('show');
-  Array.from(overlay.querySelectorAll('.popup-section')).forEach(sec => sec.classList.remove('active'));
-  currentCropId = null;
-  currentMetaId = null;
+function removeCarouselImage() {
+  if (selectedFiles.length === 0 || carouselIndex < 0 || carouselIndex >= selectedFiles.length) return;
+  const item = selectedFiles[carouselIndex];
+  removeFile(item.id);
 }
 
-/* ── Crop ── */
-function openCrop(id) {
-  currentCropId = id;
-  const item = selectedFiles.find(f => f.id === id);
-  if (!item) return;
-  const img = document.getElementById('cropImg');
-  img.src = URL.createObjectURL(item.blob || item.file);
-  openPopupSection('popupCrop');
-  setTimeout(() => {
-    if (cropperInst) cropperInst.destroy();
+function navigateCarousel(dir) {
+  saveCurrentMeta();
+  const newIdx = carouselIndex + dir;
+  if (newIdx >= 0 && newIdx < selectedFiles.length) {
+    renderCarousel(newIdx);
+  }
+}
+
+function rotateCarousel(deg) {
+  if (cropperInst) {
+    cropperInst.rotate(deg);
+  } else {
+    const imgEl = document.getElementById('carouselImg');
+    carouselRotation = (carouselRotation + deg) % 360;
+    imgEl.style.transform = `rotate(${carouselRotation}deg)`;
+  }
+}
+
+function toggleCarouselCrop() {
+  const img = document.getElementById('carouselImg');
+  if (cropperInst) {
+    // Apply crop
+    cropperInst.getCroppedCanvas({ maxWidth:2400, maxHeight:2400, imageSmoothingQuality:'high' })
+      .toBlob(blob => {
+        const item = selectedFiles[carouselIndex];
+        item.blob = blob;
+        item.cropped = true;
+        cropperInst.destroy(); 
+        cropperInst = null;
+        img.src = URL.createObjectURL(blob);
+        img.style.transform = `rotate(0deg)`;
+        carouselRotation = 0;
+      }, 'image/jpeg', 0.92);
+  } else {
+    // Start crop
     cropperInst = new Cropper(img, { viewMode:1, movable:true, zoomable:true, rotatable:true });
-  }, 150);
-}
-
-function closeCropModal() {
-  if (cropperInst) { cropperInst.destroy(); cropperInst = null; }
-  closePopup();
-  currentCropId = null;
-}
-
-function rotateCrop(deg) { if (cropperInst) cropperInst.rotate(deg); }
-
-function applyCrop() {
-  if (!cropperInst || !currentCropId) return;
-  cropperInst.getCroppedCanvas({ maxWidth:2400, maxHeight:2400, imageSmoothingQuality:'high' })
-    .toBlob(blob => {
-      const idx = selectedFiles.findIndex(f => f.id === currentCropId);
-      if (idx !== -1) { selectedFiles[idx].blob = blob; selectedFiles[idx].cropped = true; }
-      closeCropModal(); renderGrid();
-    }, 'image/jpeg', 0.92);
+  }
 }
 
 /* ── Upload ── */
@@ -296,11 +281,11 @@ async function compressImage(fileObj, quality) {
 
 function buildFormData(item) {
   const fd = new FormData();
-  fd.append('college_id', gv('college_id'));
-  fd.append('branch_id',  gv('branch_id'));
-  fd.append('semester',   gv('semester'));
   const m = item.meta || {};
-  fd.append('subject',       m.subject    || '');
+  fd.append('college_id', m.college_id || gv('college_id'));
+  fd.append('branch_id',  m.branch_id || gv('branch_id'));
+  fd.append('semester',   m.semester   || '');
+  fd.append('subject',    m.subject    || '');
   fd.append('subject_id',    m.subject_id || gv('subject') || '');
   fd.append('Year',          m.year       || '2025');
   fd.append('type',          m.type       || '');
@@ -427,59 +412,62 @@ function handleBeforeUnload(e) {
 
 async function startBulkUpload(event) {
   event.preventDefault();
-  if (isUploading) return;
   if (!selectedFiles.length) return showToast('Select at least one file', 'error');
 
-  // Validate all have metadata
-  const missing = selectedFiles.filter(f => !f.meta || !f.meta.subject || !f.meta.type);
+  saveCurrentMeta(); // Ensure the active slide's data is saved before uploading
+
+  // Validate all have required metadata (including college and branch now)
+  const missing = selectedFiles.filter(f => !f.meta || !f.meta.subject || !f.meta.type || !f.meta.college_id || !f.meta.branch_id);
   if (missing.length) {
     if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed('missing_metadata', 'validation_error', 'file');
-    showToast('Fill metadata (📝) for all ' + missing.length + ' image(s) first', 'error');
-    // Highlight missing
-    missing.forEach(f => { const t = document.getElementById('thumb_'+f.id); if(t) t.classList.add('bu-pulse'); });
+    showToast('Fill metadata (College, Department, Category, Subject) for all image(s) first', 'error');
     return;
   }
-  if (!gv('college_id')) {
-    if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed('missing_college', 'validation_error', 'file');
-    return showToast('Select a college', 'error');
-  }
-  if (!gv('branch_id')) {
-    if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed('missing_branch', 'validation_error', 'file');
-    return showToast('Select a branch', 'error');
-  }
-  if (gv('subject') === '__other__') {
-    return showToast('Click "➕ Add Subject" first to insert the default subject', 'error');
+  
+  // Request Notification permission if possible
+  if (typeof Notification !== 'undefined' && Notification.permission !== "granted" && Notification.permission !== "denied") {
+    Notification.requestPermission();
   }
 
+  // Extract batch and reset UI to allow immediate re-use
+  const uploadBatch = [...selectedFiles];
+  selectedFiles.length = 0; 
+  document.getElementById('uploadCarousel').style.display = 'none';
+  
+  showToast('Upload started in background! You can prepare more files now.', 'info');
+  
+  // Kick off background processing asynchronously
+  processUploadBatch(uploadBatch);
+}
+
+let activeUploads = 0;
+
+async function processUploadBatch(batch) {
+  activeUploads++;
   isUploading = true;
-  const btn = document.getElementById('submitBtn');
-  if (btn) {
-    btn.disabled = true;
-    btn.classList.add('uploading');
-    btn.textContent = 'Uploading…';
-  }
   window.addEventListener('beforeunload', handleBeforeUnload);
-  setFloatStatus(true, '0 / '+selectedFiles.length+' uploaded');
+  
+  setFloatStatus(true, `Uploading ${batch.length} files in background...`);
 
   // GA4 — upload funnel start
-  const _gaMethod = selectedFiles.some(f =>
+  const _gaMethod = batch.some(f =>
     !f.file.lastModified || f.file.name.toLowerCase().startsWith('image')
   ) ? 'camera' : 'file';
+  
   if (typeof window.AbhiHubTracking !== 'undefined') {
-    const _category = gv('type') || 'unknown';
-    window.AbhiHubTracking.trackUploadStarted(selectedFiles.length, _gaMethod, _category);
+    const _category = batch[0].meta.type || 'unknown';
+    window.AbhiHubTracking.trackUploadStarted(batch.length, _gaMethod, _category);
   }
 
   let done=0, failed=0;
   const results = [];
-  for (const item of selectedFiles) {
-    setFloatStatus(true, done+' / '+selectedFiles.length+' uploading…');
-    setFileStatus(item.id, 'uploading', 0);
+  
+  for (const item of batch) {
+    setFloatStatus(true, `Background Upload: ${done} / ${batch.length} ...`);
     const res = await uploadOne(item);
     results.push(res);
     if (res.ok) {
       done++;
-      // GA4 — per-file upload event
       if (typeof window.AbhiHubTracking !== 'undefined') {
         window.AbhiHubTracking.trackUpload(
           item.name,
@@ -491,51 +479,54 @@ async function startBulkUpload(event) {
       failed++;
       if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed(res.msg || 'network_error', 'system_error', _gaMethod);
     }
-    setFloatStatus(true, done+' / '+selectedFiles.length+' done');
   }
 
-  isUploading = false;
-  window.removeEventListener('beforeunload', handleBeforeUnload);
-  setFloatStatus(false);
-  if (btn) {
-    btn.disabled = false;
-    btn.classList.remove('uploading');
-    btn.textContent = 'Upload Files';
+  activeUploads--;
+  if (activeUploads === 0) {
+    isUploading = false;
+    window.removeEventListener('beforeunload', handleBeforeUnload);
+    setFloatStatus(false);
+  } else {
+    setFloatStatus(true, `Remaining batches processing...`);
   }
 
-  if (failed === 0) {
-    // Save/update user profile college_id and department_id in background
-    const colVal = gv('college_id');
-    const deptVal = gv('branch_id');
-    if (colVal && deptVal && colVal !== '__other__' && deptVal !== '__other__') {
+  // Fire OS Notification if granted
+  if (typeof Notification !== 'undefined' && Notification.permission === "granted") {
+     new Notification("AbhiHub", { body: `Upload batch complete: ${done} files uploaded successfully.` });
+  }
+
+  if (failed === 0 && done > 0) {
+    // Update user profile college_id and department_id in background using the first file's values
+    const firstCol = batch[0].meta.college_id;
+    const firstBranch = batch[0].meta.branch_id;
+    if (firstCol && firstBranch && firstCol !== '__other__' && firstBranch !== '__other__') {
       fetch('/api/profile/update', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ college_id: colVal, department_id: deptVal })
+        body: JSON.stringify({ college_id: firstCol, department_id: firstBranch })
       }).catch(err => console.error('Failed to update profile selection', err));
     }
 
-    // Collect XP data from successful uploads
     const totalXp = results.filter(r => r.ok).reduce((sum, r) => sum + (r.xp || 0), 0);
     const lastScore = results.filter(r => r.ok).slice(-1)[0]?.score || 0;
-    showToast('All ' + done + ' files uploaded! 🎉', 'success');
+    
     // GA4 — upload_completed + xp_earned
     if (typeof window.AbhiHubTracking !== 'undefined') {
-      const types = Array.from(new Set(selectedFiles.map(f => f.file.type || 'image/jpeg'))).join(',');
-      const totalSizeKb = Math.round(selectedFiles.reduce((sum, f) => sum + (f.blob || f.file).size, 0) / 1024);
+      const types = Array.from(new Set(batch.map(f => f.file.type || 'image/jpeg'))).join(',');
+      const totalSizeKb = Math.round(batch.reduce((sum, f) => sum + (f.blob || f.file).size, 0) / 1024);
       window.AbhiHubTracking.trackUploadCompleted(done, _gaMethod, types, totalSizeKb);
       if (totalXp > 0) window.AbhiHubTracking.trackXpEarned(totalXp, lastScore, done);
     }
+    
     if (typeof window.markUserUploaded === 'function') window.markUserUploaded();
+    
     if (typeof showXpModal === 'function') {
       showXpModal(totalXp, lastScore, done);
-    } else {
-      setTimeout(() => { window.location.href = '/premium'; }, 1500);
     }
   } else if (done > 0) {
-    showToast(done + ' succeeded, ' + failed + ' failed.', 'error');
+    showToast(`${done} succeeded, ${failed} failed in background.`, 'error');
   } else {
-    showToast('All uploads failed. Check metadata and try again.', 'error');
+    showToast('Background uploads failed. Please try again.', 'error');
   }
 }
 

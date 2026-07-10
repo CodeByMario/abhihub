@@ -503,11 +503,11 @@ class StoreRoomUI {
             const formData = new FormData(e.target);
             const payload = Object.fromEntries(formData.entries());
             
-            // Map TomSelect values correctly
+            // Map TomSelect values correctly (fallback to native select options)
             ['documentCategory', 'examType', 'difficulty'].forEach(id => {
-                const ts = window.AbhiHubSelect?.instances[id];
-                if (ts && ts.getValue()) {
-                    payload[id] = ts.options[ts.getValue()]?.text || ts.getValue();
+                const el = document.getElementById(id);
+                if (el && el.value) {
+                    payload[id] = el.options[el.selectedIndex]?.text || el.value;
                 }
             });
             
@@ -515,26 +515,61 @@ class StoreRoomUI {
             payload.branch_id = document.getElementById('branch')?.value;
             payload.subject_id = document.getElementById('subjectName')?.value;
             
-            const tsSubj = window.AbhiHubSelect?.instances['subjectName'];
-            if (tsSubj && payload.subject_id) {
-                const opt = tsSubj.options[payload.subject_id];
-                if (opt) {
-                    const match = opt.text.match(/^(.*?)(?:\s*\((.*?)\))?$/);
-                    payload.subject_name = match ? match[1].trim() : opt.text;
+            const subjSelect = document.getElementById('subjectName');
+            if (subjSelect && subjSelect.selectedIndex >= 0) {
+                const optText = subjSelect.options[subjSelect.selectedIndex]?.text || '';
+                if (optText && optText !== 'Select…' && optText !== 'Select Subject') {
+                    const match = optText.match(/^(.*?)(?:\s*\((.*?)\))?$/);
+                    payload.subject_name = match ? match[1].trim() : optText;
                     payload.subject_code = match && match[2] ? match[2].trim() : '';
                 }
             }
             
-            if (this.state.activeFile?.record_id) {
-                payload.record_id = this.state.activeFile.record_id;
+            if (this.state.activeFile) {
+                if (this.state.activeFile.record_id) {
+                    payload.record_id = this.state.activeFile.record_id;
+                }
+                payload.filename = this.state.activeFile.filename || this.state.activeFile.name || 'Unknown File';
+                payload.url = this.state.activeFile.url || this.state.activeFile.path || '';
             }
             
             const data = await StoreRoomAPI.submitLabel(payload);
             if (data.success) {
                 this.saveLastLabels();
-                this.showToast('File labeled successfully!', 'success');
+                this.showToast('File successfully labeled! You can find it on the Home page.', 'success');
+                
+                // Optimistically remove the file from the grid and state BEFORE closing the drawer (which clears activeFile)
+                if (this.state.activeFile) {
+                    const filename = this.state.activeFile.filename || this.state.activeFile.name;
+                    this.state.files = this.state.files.filter(f => (f.filename || f.name) !== filename);
+                    
+                    if (this.grid) {
+                        Array.from(this.grid.children).forEach(card => {
+                            const nameEl = card.querySelector('.file-name');
+                            if (nameEl && nameEl.textContent.trim() === filename.trim()) {
+                                card.style.transition = 'all 0.3s ease';
+                                card.style.opacity = '0';
+                                card.style.transform = 'scale(0.8)';
+                                setTimeout(() => card.remove(), 300);
+                            }
+                        });
+                        
+                        // Show empty state if all files are processed
+                        if (this.state.files.length === 0) {
+                            setTimeout(() => {
+                                this.grid.innerHTML = `
+                                    <div class="empty-state">
+                                        <div class="empty-icon">📂</div>
+                                        <h3 class="empty-title">No Pending Files</h3>
+                                        <p class="empty-text">All storage files have been assigned metadata.</p>
+                                    </div>
+                                `;
+                            }, 300);
+                        }
+                    }
+                }
+                
                 this.closeLabelingDrawer();
-                this.reloadFiles();
             } else {
                 throw new Error(data.message || 'Failed to save');
             }

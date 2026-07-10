@@ -848,6 +848,22 @@ def api_add_subject(user_data=None):
             
         res = client.table('subjects').insert(insert_data).execute()
         subj = res.data[0] if res.data else {}
+        
+        # Auto-generate and store acronym alias (e.g. Transform Numerical Method -> tnm)
+        if subj and name:
+            import re
+            words = [w for w in re.split(r'\W+', name) if w and w.lower() not in ['and', 'of', 'the', '&']]
+            acronym = "".join([w[0] for w in words]).lower()
+            if len(acronym) > 1:
+                try:
+                    client.table('subject_aliases').insert({
+                        'subject_id': subj['id'],
+                        'alias': acronym,
+                        'priority': 1
+                    }).execute()
+                except Exception as e:
+                    print(f"Failed to save alias {acronym} for subject: {e}")
+                    
         return jsonify({'success': True, 'subject': subj}), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
@@ -1029,8 +1045,15 @@ def label_store_room_paper():
         semester_raw = data.get('semester')
         semester = int(semester_raw) if semester_raw and str(semester_raw).isdigit() and 1 <= int(semester_raw) <= 8 else None
 
-        if not all([filename, file_url, subject_name, year]):
-            return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+        missing_fields = []
+        if not filename: missing_fields.append('filename')
+        if not file_url: missing_fields.append('url')
+        if not subject_name: missing_fields.append('subject_name')
+        if not year: missing_fields.append('year')
+
+        if missing_fields:
+            print(f"[DEBUG] Missing required fields: {missing_fields}")
+            return jsonify({'success': False, 'message': f'Missing required fields: {", ".join(missing_fields)}'}), 400
         if not subject_id:
             return jsonify({'success': False, 'message': 'Subject selection is required'}), 400
 
@@ -2431,6 +2454,43 @@ def contact():
     """Contact page"""
     return render_template('contact.html')
 
+import json
+import os
+CONTACT_FILE = os.path.join('data', 'contact_messages.json')
+
+@app.route('/api/contact', methods=['POST'])
+def api_contact():
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'No data'})
+    
+    msg = {
+        'name': data.get('name'),
+        'email': data.get('email'),
+        'subject': data.get('subject'),
+        'message': data.get('message'),
+        'timestamp': datetime.now().isoformat()
+    }
+    
+    os.makedirs('data', exist_ok=True)
+    messages = []
+    if os.path.exists(CONTACT_FILE):
+        try:
+            with open(CONTACT_FILE, 'r') as f:
+                messages = json.load(f)
+        except Exception:
+            pass
+    
+    messages.insert(0, msg)
+    
+    try:
+        with open(CONTACT_FILE, 'w') as f:
+            json.dump(messages, f)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+        
+    return jsonify({'success': True})
+
 @app.route('/delete-account')
 def delete_account():
     """Account deletion request page"""
@@ -3058,6 +3118,19 @@ def service_worker():
 def admin_control_panel():
     """Admin notification control panel - restricted to admin email only"""
     return render_template('admin_notification_panel.html')
+
+@app.route('/api/admin/contact-messages', methods=['GET'])
+@auth_required
+@admin_required
+def get_contact_messages():
+    messages = []
+    if os.path.exists(CONTACT_FILE):
+        try:
+            with open(CONTACT_FILE, 'r') as f:
+                messages = json.load(f)
+        except Exception:
+            pass
+    return jsonify({'success': True, 'messages': messages})
 
 @app.route('/api/admin/subscribers', methods=['GET'])
 @auth_required
@@ -4118,6 +4191,15 @@ def api_memorywall_stats(wall_id):
     count = get_response_count(wall_id)
     words = get_top_words(wall_id)
     return jsonify({'success': True, 'response_count': count, 'top_words': words[:10]}), 200
+
+# ─── Search API V2 (Phase 3 Migration) ────────────────────────────────────
+from methods.search_api import search_v2_endpoint, search_analytics_endpoint
+app.add_url_rule('/api/v2/search', view_func=search_v2_endpoint, methods=['GET'])
+app.add_url_rule('/api/v2/search/analytics', view_func=search_analytics_endpoint, methods=['POST'])
+# ─────────────────────────────────────────────────────────────────────────────
+
+if __name__ == '__main__':
+    app.run(debug=True)
 
 # ─────────────────────────────────────────────────────────────────────────────
 

@@ -284,12 +284,38 @@
 </div>
 
 <script>
-    document.getElementById('contactForm').addEventListener('submit', function (e) {
+    document.getElementById('contactForm').addEventListener('submit', async function (e) {
         e.preventDefault();
         const name = document.getElementById('name').value;
-        if (name) {
-            alert('Thank you, ' + name + '! Your message has been sent successfully.');
-            this.reset();
+        const email = document.getElementById('email').value;
+        const subject = document.getElementById('subject').value;
+        const message = document.getElementById('message').value;
+        
+        const btn = this.querySelector('button[type="submit"]');
+        const origText = btn.innerHTML;
+        btn.innerHTML = "Sending...";
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, subject, message })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                alert('Thank you, ' + name + '! Your message has been sent successfully.');
+                this.reset();
+            } else {
+                alert('Failed to send message: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error(error);
+            alert('A network error occurred. Please try again.');
+        } finally {
+            btn.innerHTML = origText;
+            btn.disabled = false;
         }
     });
 </script>

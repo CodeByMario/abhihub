@@ -23,7 +23,7 @@ const AbhiHubSelect = {
                 sortField: { field: "text", direction: "asc" },
                 render: {
                     option_create: function(data, escape) {
-                        return '<div class="create-new-option">＋ Add New ' + escape(entity.charAt(0).toUpperCase() + entity.slice(1)) + '</div>';
+                        return '<div class="create create-new-option">＋ Add New ' + escape(entity.charAt(0).toUpperCase() + entity.slice(1)) + '</div>';
                     },
                     no_results: function(data, escape) {
                         return '<div class="no-results">No matching ' + escape(entity) + ' found.</div>';
@@ -155,8 +155,94 @@ const AbhiHubSelect = {
  * Global Add Entity Modal Logic
  */
 function openEntityModal(entityType, targetSelectId, initialInput, parentValue, tomSelectCallback) {
+    const isCarousel = document.getElementById('uploadCarousel')?.style.display === 'flex';
+    
+    if (isCarousel) {
+        // Build inline form right below the select dropdown
+        const targetEl = document.getElementById(targetSelectId);
+        const wrapper = targetEl.closest('.meta-field') || targetEl.parentElement;
+        
+        // Remove existing if any
+        wrapper.querySelector('.inline-entity-form')?.remove();
+        
+        const inlineForm = document.createElement('div');
+        inlineForm.className = 'inline-entity-form';
+        inlineForm.style.cssText = 'margin-top: 10px; padding: 12px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 12px; animation: slideDown 0.2s ease-out;';
+        
+        let html = `<div style="font-weight: 600; font-size: 0.9rem; margin-bottom: 8px; color: #1e293b;">Add New ${entityType.charAt(0).toUpperCase() + entityType.slice(1)}</div>`;
+        html += `<input type="text" id="inlineEntityName" class="modern-input" style="padding: 0.6rem; margin-bottom: 8px; font-size: 0.9rem;" value="${initialInput || ''}" placeholder="Name *">`;
+        
+        if (entityType === 'college' || entityType === 'department' || entityType === 'branch') {
+            html += `<input type="text" id="inlineEntityAbbr" class="modern-input" style="padding: 0.6rem; margin-bottom: 8px; font-size: 0.9rem;" placeholder="${entityType === 'college' ? 'Short Name' : 'Abbreviation'} (Optional)">`;
+        } else if (entityType === 'subject') {
+            html += `<input type="number" id="inlineEntitySemester" class="modern-input" style="padding: 0.6rem; margin-bottom: 8px; font-size: 0.9rem;" placeholder="Semester (1-8)" value="${parentValue || ''}">`;
+            html += `<input type="text" id="inlineEntityCode" class="modern-input" style="padding: 0.6rem; margin-bottom: 8px; font-size: 0.9rem;" placeholder="Subject Code (Optional)">`;
+        }
+        
+        html += `<div style="display: flex; gap: 8px;">
+            <button type="button" id="inlineCancel" style="flex: 1; padding: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; background: white; cursor: pointer;">Cancel</button>
+            <button type="button" id="inlineSave" style="flex: 1; padding: 0.6rem; border-radius: 8px; border: none; background: #2563eb; color: white; font-weight: 600; cursor: pointer;">Save</button>
+        </div>`;
+        
+        inlineForm.innerHTML = html;
+        wrapper.appendChild(inlineForm);
+        
+        inlineForm.querySelector('#inlineEntityName').focus();
+        
+        inlineForm.querySelector('#inlineCancel').onclick = () => {
+            inlineForm.remove();
+            if (tomSelectCallback) tomSelectCallback();
+        };
+        
+        inlineForm.querySelector('#inlineSave').onclick = async () => {
+            const btn = inlineForm.querySelector('#inlineSave');
+            btn.disabled = true;
+            btn.textContent = 'Saving...';
+            
+            const name = inlineForm.querySelector('#inlineEntityName').value.trim();
+            const abbr = inlineForm.querySelector('#inlineEntityAbbr')?.value.trim() || '';
+            const code = inlineForm.querySelector('#inlineEntityCode')?.value.trim() || '';
+            const sem  = inlineForm.querySelector('#inlineEntitySemester')?.value.trim() || parentValue || '';
+            
+            if (!name) { alert('Name is required'); btn.disabled = false; btn.textContent = 'Save'; return; }
+            
+            try {
+                const res = await fetch('/api/admin/entity/add', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ entity: entityType, name: name, short_name: abbr, code: code, semester: sem, parent_id: parentValue })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    if (tomSelectCallback) tomSelectCallback({ value: data.id, text: data.name });
+                    inlineForm.remove();
+                } else {
+                    alert(data.message || 'Error saving entity');
+                    btn.disabled = false;
+                    btn.textContent = 'Save';
+                }
+            } catch (err) {
+                alert('Network error');
+                btn.disabled = false;
+                btn.textContent = 'Save';
+            }
+        };
+        return; // Skip global modal
+    }
+
     const modal = document.getElementById('globalEntityModal');
     if (!modal) return; // if modal HTML is not injected
+    
+    // Ensure the modal is a direct child of the body to escape any nested stacking contexts (e.g. labeling-view)
+    if (modal.parentElement !== document.body) {
+        document.body.appendChild(modal);
+    }
+    
+    if (document.getElementById('labelingView')?.classList.contains('active')) {
+        modal.classList.add('store-room-mode');
+    } else {
+        modal.classList.remove('store-room-mode');
+    }
     
     // Set titles
     document.getElementById('entityModalTitle').textContent = 'Add New ' + entityType.charAt(0).toUpperCase() + entityType.slice(1);

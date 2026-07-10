@@ -407,22 +407,60 @@ const SearchManager = {
         if (resultsContainer) resultsContainer.innerHTML = '';
 
         try {
-            let filtered;
-            if (window.Worker) {
-                const worker = new Worker('/static/premium/js/search-worker.js');
-                filtered = await new Promise((resolve) => {
-                    worker.postMessage({ fileData: this.cache, filters: searchTerms });
-                    worker.onmessage = (e) => {
-                        worker.terminate();
-                        resolve(e.data);
-                    };
-                });
+            let filtered = [];
+            
+            // If we have a specific keyword, use the fast V2 Search API
+            if (fileName && fileName.length > 0) {
+                try {
+                    const res = await fetch(`/api/v2/search?q=${encodeURIComponent(fileName)}&college_id=${encodeURIComponent(college || 'ALL')}`);
+                    const data = await res.json();
+                    let serverResults = data.results || [];
+                    
+                    // Apply the dropdown filters to the server results locally
+                    filtered = serverResults.filter(file => {
+                        const matchesType = !type || file.type === type;
+                        const matchesSubject = !subject || file.subject === subject;
+                        const matchesYear = !year || file.year === year;
+                        const matchesCollege = !college || college === 'ALL' || file.college === college;
+                        // Author filter is legacy but keep for compatibility
+                        const matchesAuthor = !author || (file.author && file.author.toLowerCase().includes(author));
+                        return matchesType && matchesSubject && matchesYear && matchesCollege && matchesAuthor;
+                    });
+                } catch(e) {
+                    console.error("V2 search API error, falling back to local cache", e);
+                    filtered = this.filterResults(searchTerms);
+                }
             } else {
-                filtered = this.filterResults(searchTerms);
+                // If no keyword, just use local cache filtering
+                if (window.Worker) {
+                    const worker = new Worker('/static/premium/js/search-worker.js');
+                    filtered = await new Promise((resolve) => {
+                        worker.postMessage({ fileData: this.cache, filters: searchTerms });
+                        worker.onmessage = (e) => {
+                            worker.terminate();
+                            resolve(e.data);
+                        };
+                    });
+                } else {
+                    filtered = this.filterResults(searchTerms);
+                }
             }
+
             this.displayLimit = this.baseLimit;
             this.currentResults = filtered;
             this.displayResults(this.currentResults);
+            
+            // Phase 4 Analytics Tracking: Log search query if provided
+            if (fileName && fileName.length > 2) {
+                fetch('/api/v2/search/analytics', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        query: fileName,
+                        results_count: filtered.length
+                    })
+                }).catch(e => console.warn('Analytics logging failed', e));
+            }
         } catch (error) {
             console.error('Search error:', error);
         } finally {
