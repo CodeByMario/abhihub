@@ -50,7 +50,6 @@
           <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden
                  onchange="if(window.gtag){gtag('event', 'upload_funnel', {'funnel_step': '1_camera_used'});} handleFilesSelected(this.files)">
 
-          <!-- File thumbnail grid (removed) -->
 
           <!-- Upload Carousel (Hidden by default) -->
           <div id="uploadCarousel" class="upload-carousel" style="display: none;">
@@ -72,55 +71,62 @@
 
             <!-- Right: Meta Panel -->
             <div class="carousel-meta-panel">
-              <div class="meta-form-wrap">
-                <div class="meta-field">
-                  <label>College *</label>
-                  <select name="college_id" id="college_id" class="abhihub-select" data-entity="college" required>
-                  </select>
+              <div id="metaFormsContainer"></div>
+              
+              <template id="metaFormTemplate">
+                <div class="meta-form-wrap">
+                  <div class="meta-field">
+                    <label>College *</label>
+                    <select name="college_id" class="abhihub-select college-select" data-entity="college" required>
+                      <option value="">Select College...</option>
+                    </select>
+                  </div>
+                  <div class="meta-field">
+                    <label>Department *</label>
+                    <select name="branch_id" class="abhihub-select branch-select" data-entity="branch" data-parent-class="college-select" required>
+                      <option value="">Select Department...</option>
+                    </select>
+                  </div>
+                  <div class="meta-field">
+                    <label>Category *</label>
+                    <select class="modern-select meta-type" required>
+                      <option value="" disabled selected>Select</option>
+                      <option value="papers">Papers 📄</option>
+                      <option value="notes">Notes 📝</option>
+                      <option value="practical">Practical 🧪</option>
+                      <option value="syllabus">Syllabus 📋</option>
+                      <option value="assisment">Assignment 📝</option>
+                      <option value="timetable">Timetable 📅</option>
+                    </select>
+                  </div>
+                  <div class="meta-field">
+                    <label>Year *</label>
+                    <select class="modern-select meta-year">
+                      <option value="2022">2022</option>
+                      <option value="2023">2023</option>
+                      <option value="2024">2024</option>
+                      <option value="2025" selected>2025</option>
+                      <option value="2026">2026</option>
+                    </select>
+                  </div>
+                  <div class="meta-field upload-hidden-section meta-unit-wrap">
+                    <label>Exam / Unit *</label>
+                    <select class="modern-select meta-unit"></select>
+                  </div>
+                  <div class="meta-field">
+                    <label>Semester</label>
+                    <select name="semester" class="abhihub-select semester-select" data-entity="semester" data-parent-class="branch-select">
+                      <option value="">Select Semester...</option>
+                    </select>
+                  </div>
+                  <div class="meta-field">
+                    <label>Subject *</label>
+                    <select class="abhihub-select subject-select" data-entity="subject" data-parent-class="semester-select" required>
+                      <option value="">Select Subject...</option>
+                    </select>
+                  </div>
                 </div>
-                <div class="meta-field">
-                  <label>Department *</label>
-                  <select name="branch_id" id="branch_id" class="abhihub-select" data-entity="branch" data-parent="college_id" required>
-                  </select>
-                </div>
-                <div class="meta-field">
-                  <label>Category *</label>
-                  <select id="metaType" class="modern-select" onchange="updateMetaUnit()" required>
-                    <option value="" disabled selected>Select</option>
-                    <option value="papers">Papers 📄</option>
-                    <option value="notes">Notes 📚</option>
-                    <option value="practical">Practical 🧪</option>
-                    <option value="syllabus">Syllabus 📜</option>
-                    <option value="assisment">Assignment 📝</option>
-                    <option value="timetable">Timetable 📅</option>
-                  </select>
-                </div>
-                <div class="meta-field">
-                  <label>Year *</label>
-                  <select id="metaYear" class="modern-select">
-                    <option value="2022">2022</option>
-                    <option value="2023">2023</option>
-                    <option value="2024">2024</option>
-                    <option value="2025" selected>2025</option>
-                    <option value="2026">2026</option>
-                  </select>
-                </div>
-                <div class="meta-field upload-hidden-section" id="metaUnitWrap">
-                  <label>Exam / Unit *</label>
-                  <select id="metaUnit" class="modern-select"></select>
-                </div>
-                <div class="meta-field">
-                  <label>Semester</label>
-                  <select name="semester" id="semester" class="abhihub-select" data-entity="semester" data-parent="branch_id">
-                  </select>
-                </div>
-                <div class="meta-field">
-                  <label>Subject *</label>
-                  <!-- The Subject TomSelect must be properly initialized by JS -->
-                  <select id="metaSubject" class="abhihub-select" data-entity="subject" data-parent="semester" required>
-                  </select>
-                </div>
-              </div>
+              </template>
               
               <div class="carousel-nav-row">
                 <button type="button" class="nav-btn" id="cPrevBtn" onclick="navigateCarousel(-1)" disabled>❮</button>
@@ -143,9 +149,8 @@
 </div>
 
 <!-- ── Shared Popup Modal ── -->
-<div id="popupModal" class="popup-overlay" onclick="if(event.target===this) closePopup()">
+<div id="popupModal" class="popup-overlay" style="display:none;" onclick="if(event.target===this) closeXpModal()">
   <div class="popup-card">
-    <!-- popupMeta and popupCrop are removed -->
 
     <section id="popupXp" class="popup-section">
       <div id="xpCard">
@@ -168,7 +173,7 @@
           </div>
 
           <div class="xp-actions" style="margin-top: 15px;">
-            <a href="/premium" class="xp-action-link" style="margin-right:15px; color: var(--text-secondary);">Go to Dashboard</a>
+            <a href="/dashboard" class="xp-action-link" style="margin-right:15px; color: var(--text-secondary);">Go to Dashboard</a>
             <button type="button" class="xp-action-btn" onclick="closeXpModal()">Upload More</button>
           </div>
         </div>
@@ -187,7 +192,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
-<script src="{{ url_for('static', filename='js/bulk_upload.js') }}?v=1.2"></script>
+<script src="{{ url_for('static', filename='js/bulk_upload.js') }}?v=1.9"></script>
 <script>
   /* ── Dynamic fields ── */
   function updateDynamicFields() {
@@ -243,30 +248,16 @@
       })
       .catch(() => {});
 
-    try {
-      const p = await fetch('/api/profile').then(r => r.json());
-      if (p.success && p.user) {
-        const collegeId = p.user.college_id || p.user.user_metadata?.college_id;
-        const branchId = p.user.department_id || p.user.user_metadata?.branch_id;
-        
-        if (collegeId) {
-          const tsCol = AbhiHubSelect.instances['college_id'];
-          if (tsCol) {
-              tsCol.setValue(collegeId);
-              // The event listener inside AbhiHubSelect will automatically cascade and load departments!
-              
-              // We need to wait for departments to load before setting branch
-              setTimeout(() => {
-                  const tsBranch = AbhiHubSelect.instances['branch_id'];
-                  if (tsBranch && branchId) {
-                      tsBranch.setValue(branchId);
-                  }
-              }, 600); // give the API time to load departments
-          }
+      try {
+        const p = await fetch('/api/profile').then(r => r.json());
+        if (p.success && p.user) {
+          window.userCollegeId = p.user.college_id || p.user.user_metadata?.college_id;
+          window.userBranchId = p.user.department_id || p.user.user_metadata?.branch_id;
         }
+      } catch (err) {
+        console.warn('Could not load profile defaults', err);
       }
-    } catch {}
-  });
+    });
 
   /* ── XP Modal / Contribution Story (Phase 15) ── */
   async function showXpModal(xpGained, newScore, fileCount) {
@@ -308,7 +299,8 @@
     } catch(err) { console.error('Failed to fetch reputation stats', err); }
     
     document.getElementById('xpFilesMsg').innerHTML = msg;
-    openPopupSection('popupXp');
+    document.getElementById('popupXp').style.display = 'block';
+    overlay.style.display = 'flex';
   }
 
   function closeXpModal() {
@@ -316,13 +308,13 @@
     const card    = document.getElementById('xpCard');
     if (!overlay) return;
     if (card) card.style.transform = 'scale(.85)';
-    closePopup();
+    overlay.style.display = 'none';
+    const popupXp = document.getElementById('popupXp');
+    if (popupXp) popupXp.style.display = 'none';
     setTimeout(() => {
       // Reset form for next upload
       document.getElementById('uploadForm')?.reset();
       if (typeof selectedFiles !== 'undefined') { selectedFiles.length = 0; }
-      const grid = document.getElementById('fileGrid');
-      if (grid) { grid.style.display = 'none'; grid.innerHTML = ''; }
     }, 250);
   }
 </script>

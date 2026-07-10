@@ -448,7 +448,7 @@
 
                 <div class="form-group">
                     <label class="form-label">Action URL</label>
-                    <input type="url" id="url" class="form-control" value="/premium" placeholder="https://...">
+                    <input type="url" id="url" class="form-control" value="/dashboard" placeholder="https://...">
                 </div>
 
                 <div class="form-group">
@@ -788,7 +788,7 @@
             const payload = {
                 title: document.getElementById('title').value.trim(),
                 body: document.getElementById('body').value.trim(),
-                url: document.getElementById('url').value.trim() || '/premium',
+                url: document.getElementById('url').value.trim() || '/dashboard',
                 icon: document.getElementById('icon').value.trim(),
                 tag: document.getElementById('tag').value,
                 user_ids: document.getElementById('sendToAll').checked ? null :

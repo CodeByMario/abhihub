@@ -9,7 +9,7 @@
  * - Background sync
  */
 
-const CACHE_VERSION = 'v2.0.2';
+const CACHE_VERSION = 'v2.0.3';
 const CACHE_NAME = `abhihub-${CACHE_VERSION}`;
 const STATIC_CACHE = `abhihub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `abhihub-dynamic-${CACHE_VERSION}`;
@@ -170,8 +170,8 @@ const handleEncryptedFileFetch = handleEncryptedPdfFetch;
 // Core files to cache immediately on install
 const PRECACHE_URLS = [
   '/',
-  '/premium',
-  '/premium/',
+  '/dashboard',
+  '/dashboard/',
   '/login',
   '/signup',
   '/offline',
@@ -188,8 +188,8 @@ const PRECACHE_URLS = [
   '/dashboard',
   '/account',
   '/profile',
-  '/premium',
-  '/premium/',
+  '/dashboard',
+  '/dashboard/',
 ];
 
 // Paths that should NEVER be cached (security-sensitive)
@@ -679,7 +679,7 @@ self.addEventListener('widgetclick', (event) => {
 
   if (event.action === 'open-app') {
     event.waitUntil(
-      clients.openWindow('/premium')
+      clients.openWindow('/dashboard')
     );
   }
 });
@@ -699,7 +699,7 @@ self.addEventListener('push', (event) => {
     body: 'You have a new notification',
     icon: '/static/images/android-chrome-192x192.png',
     badge: '/static/images/favicon-32x32.png',
-    url: '/premium',
+    url: '/dashboard',
     tag: 'abhihub-notification'
   };
 
@@ -747,14 +747,14 @@ self.addEventListener('notificationclick', (event) => {
   }
 
   // Get URL from notification data or default to /premium
-  const urlToOpen = event.notification.data?.url || '/premium';
+  const urlToOpen = event.notification.data?.url || '/dashboard';
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
         // Check if app window is already open
         for (const client of clientList) {
-          if (client.url.includes('/premium') && 'focus' in client) {
+          if (client.url.includes('/dashboard') && 'focus' in client) {
             client.navigate(urlToOpen);
             return client.focus();
           }

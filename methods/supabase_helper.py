@@ -1832,3 +1832,60 @@ def get_labeled_papers():
 def add_paper_verification(*a): return {'success': True}
 def get_pending_verification_papers(*a): return {'success': True, 'data': []}
 def create_labeled_papers_table(*a): return True
+
+def add_new_entity(entity_type: str, name: str, short_name: str = '', code: str = '', semester: int = None, parent_id: str = None) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False, "message": "Database not initialized"}
+    try:
+        if entity_type == 'college':
+            res = client.table('colleges').insert({
+                'name': name,
+                'abbreviation': short_name,
+                'popular_name': name
+            }).execute()
+            # Clear any specific caches if you have them, else just return
+            return {"success": True, "id": res.data[0]['id'], "name": name}
+            
+        elif entity_type == 'department' or entity_type == 'branch':
+            existing = client.table('departments').select('id, name').ilike('name', name).execute()
+            if existing.data:
+                dept_id = existing.data[0]['id']
+            else:
+                res = client.table('departments').insert({
+                    'name': name,
+                    'abbreviation': short_name
+                }).execute()
+                dept_id = res.data[0]['id']
+                
+            if parent_id:
+                try:
+                    client.table('college_departments').insert({
+                        'college_id': parent_id,
+                        'department_id': dept_id
+                    }).execute()
+                except Exception:
+                    pass
+            
+            _cache_set(f"depts:{parent_id}", None)
+            return {"success": True, "id": dept_id, "name": name}
+            
+        elif entity_type == 'subject':
+            if not parent_id:
+                return {"success": False, "message": "Department ID is required to add a subject"}
+            res = client.table('subjects').insert({
+                'name': name,
+                'subject_code': code,
+                'semester': semester if semester else None,
+                'department_id': parent_id
+            }).execute()
+            
+            _cache_set(f"subjs:{parent_id}:{semester}", None)
+            _cache_set(f"subjs:{parent_id}:None", None)
+            return {"success": True, "id": res.data[0]['id'], "name": name}
+            
+        else:
+            return {"success": False, "message": "Unknown entity type"}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "message": str(e)}

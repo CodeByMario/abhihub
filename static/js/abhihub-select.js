@@ -3,21 +3,31 @@
  */
 const AbhiHubSelect = {
     instances: {},
+    apiCache: {},
     
     init() {
-        document.querySelectorAll('.abhihub-select').forEach(el => {
+        document.querySelectorAll('select.abhihub-select').forEach(el => {
             if (el.tomselect) return;
             
             const entity = el.dataset.entity; // college, department, semester, subject
             const parentId = el.dataset.parent; // ID of the parent select
+            const parentClass = el.dataset.parentClass; // Class of the parent select
+            
+            const getParentEl = () => {
+                if (parentId) return document.getElementById(parentId);
+                if (parentClass) return el.closest('.meta-form-wrap')?.querySelector(`.${parentClass}`);
+                return null;
+            };
             
             const ts = new TomSelect(el, {
                 valueField: 'value',
                 labelField: 'text',
                 searchField: ['text'],
                 create: function(input, callback) {
-                    const parentVal = parentId ? document.getElementById(parentId)?.value : null;
-                    openEntityModal(entity, el.id, input, parentVal, callback);
+                    const parentEl = getParentEl();
+                    const parentVal = parentEl ? parentEl.value : null;
+                    // For dynamic forms, pass the element itself so we can find relations
+                    openEntityModal(entity, el.id || el, input, parentVal, callback);
                 },
                 createFilter: function(input) { return input.trim().length > 0; },
                 sortField: { field: "text", direction: "asc" },
@@ -34,21 +44,21 @@ const AbhiHubSelect = {
                 }
             });
             
+            // Generate a unique ID if none exists for the instances map
+            if (!el.id) el.id = 'abhihub_ts_' + Math.random().toString(36).substr(2, 9);
             this.instances[el.id] = ts;
             
             // Handle dependency logic
-            if (parentId) {
-                const parentEl = document.getElementById(parentId);
-                if (parentEl) {
-                    parentEl.addEventListener('change', () => {
-                        AbhiHubSelect.handleParentChange(el.id, parentEl.value);
-                    });
-                    
-                    // Initial state
-                    if (!parentEl.value) {
-                        ts.disable();
-                        ts.clearOptions();
-                    }
+            const parentEl = getParentEl();
+            if (parentEl) {
+                parentEl.addEventListener('change', () => {
+                    AbhiHubSelect.handleParentChange(el.id, parentEl.value, parentEl);
+                });
+                
+                // Initial state
+                if (!parentEl.value) {
+                    ts.disable();
+                    ts.clearOptions();
                 }
             } else if (entity === 'college') {
                 // Auto-fetch root entity
@@ -63,8 +73,14 @@ const AbhiHubSelect = {
         ts.settings.placeholder = 'Loading colleges...';
         if (ts.control_input) ts.control_input.placeholder = 'Loading colleges...';
         try {
-            const res = await fetch('/api/colleges');
-            const json = await res.json();
+            let json;
+            if (this.apiCache['/api/colleges']) {
+                json = this.apiCache['/api/colleges'];
+            } else {
+                const res = await fetch('/api/colleges');
+                json = await res.json();
+                this.apiCache['/api/colleges'] = json;
+            }
             const items = json.colleges || json.data || [];
             ts.clearOptions();
             items.forEach(c => {
@@ -81,7 +97,7 @@ const AbhiHubSelect = {
         }
     },
     
-    async handleParentChange(selectId, parentValue) {
+    async handleParentChange(selectId, parentValue, parentEl) {
         const el = document.getElementById(selectId);
         const ts = this.instances[selectId];
         if (!el || !ts) return;
@@ -108,17 +124,21 @@ const AbhiHubSelect = {
             if (entity === 'department' || entity === 'branch') url = `/api/departments?college_id=${parentValue}`;
             else if (entity === 'semester') url = `/api/semesters?department_id=${parentValue}`;
             else if (entity === 'subject') {
-                // Our backend subject API expects department_id, not semester_id (since semester is optional)
-                // We map semester's parent (department) to this API call.
-                // Wait, if parent is semester, we need to pass department_id AND semester.
-                const semEl = document.getElementById(el.dataset.parent);
-                const deptId = semEl ? document.getElementById(semEl.dataset.parent)?.value : null;
+                const semEl = parentEl || (el.dataset.parent ? document.getElementById(el.dataset.parent) : el.closest('.meta-form-wrap')?.querySelector('.semester-select'));
+                const deptEl = semEl ? (semEl.dataset.parent ? document.getElementById(semEl.dataset.parent) : semEl.closest('.meta-form-wrap')?.querySelector('.branch-select')) : null;
+                const deptId = deptEl ? deptEl.value : null;
                 
                 url = `/api/subjects?department_id=${deptId}&semester=${parentValue}`;
             }
             
-            const response = await fetch(url);
-            const json = await response.json();
+            let json;
+            if (this.apiCache[url]) {
+                json = this.apiCache[url];
+            } else {
+                const response = await fetch(url);
+                json = await response.json();
+                this.apiCache[url] = json;
+            }
             
             const dataKey = entity === 'branch' ? 'departments' : `${entity}s`;
             const items = json[dataKey] || json.data || [];
@@ -416,3 +436,6 @@ async function submitEntityModal(tomSelectCallback) {
 document.addEventListener('DOMContentLoaded', () => {
     AbhiHubSelect.init();
 });
+
+// Expose to window for dynamic initialization (e.g. bulk upload clones)
+window.AbhiHubSelect = AbhiHubSelect;

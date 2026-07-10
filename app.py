@@ -2146,7 +2146,7 @@ def profile():
         'timeline': timeline
     })
 
-@app.route('/premium/profile')
+@app.route('/dashboard/profile')
 @auth_required
 def p_profile_redirect():
     return redirect(url_for('profile'))
@@ -2603,7 +2603,7 @@ def register():
     return redirect(url_for('signup'))
 
 # Premium features
-@app.route('/premium')
+@app.route('/dashboard')
 @auth_required
 def premium():
     # Use unified documents from database
@@ -2965,7 +2965,7 @@ def load_data(search_query=search_query[-1]):
     scored.sort(key=lambda x: (x[0], bool(x[1].get("verified")), x[1].get("file-name", "")), reverse=True)
     return [item for _, item in scored]
 
-@app.route('/premium/suggest')
+@app.route('/dashboard/suggest')
 @auth_required
 def suggest():
     q = request.args.get('q', '').strip().lower()
@@ -2994,7 +2994,7 @@ def suggest():
 
     return jsonify({"subjects": top_subjects, "types": top_types, "authors": top_authors})
 
-@app.route('/premium/')
+@app.route('/dashboard/')
 @auth_required
 def index():
     search_query = request.args.get('search_query')
@@ -3006,7 +3006,7 @@ def index():
     
     return render_template('p_index.html', data=data, paper_count=paper_count, notes_count=notes_count, user_data=None)
 
-@app.route('/premium/search', methods=['POST', 'GET'])
+@app.route('/dashboard/search', methods=['POST', 'GET'])
 @auth_required
 def search():
     search_query = request.form.get('search')
@@ -3020,7 +3020,7 @@ def search():
     
     return render_template('p_index.html', data=data, paper_count=paper_count, notes_count=notes_count, user_data=None)
 
-@app.route('/premium/view', methods=['POST', 'GET'])
+@app.route('/dashboard/view', methods=['POST', 'GET'])
 @auth_required
 def view():
     """Handle file viewing - supports both form POST and file handler GET"""
@@ -3044,7 +3044,7 @@ def view():
     }
     return render_template('p_view.html', file=file_data)
 
-@app.route('/premium/share-receiver', methods=['POST', 'GET'])
+@app.route('/dashboard/share-receiver', methods=['POST', 'GET'])
 @auth_required
 def share_receiver():
     """
@@ -3100,21 +3100,21 @@ def share_receiver():
                           url=url,
                           message=f"Received {len(received_files)} file(s)")
 
-@app.route('/premium/about')
+@app.route('/dashboard/about')
 @auth_required
 def premium_about():
     return render_template('p_about.html')
 
-@app.route('/premium/profile/old')
+@app.route('/dashboard/profile/old')
 @auth_required
 def p_profile_deprecated():
     return redirect(url_for('profile'))
-@app.route('/premium/setting')
+@app.route('/dashboard/setting')
 def p_setting():
     return render_template('settings.html')
 
 
-@app.route('/premium/static/search.json')
+@app.route('/dashboard/static/search.json')
 @auth_required
 def search_in():
     search_file = os.path.join(app.root_path, 'premium/static/search.json')
@@ -3125,7 +3125,7 @@ def search_in():
     except Exception as e:
         return jsonify({'status': 'error'}), 500
 
-@app.route('/premium/save_search', methods=['POST'])
+@app.route('/dashboard/save_search', methods=['POST'])
 @auth_required
 def save_search():
     search_data = request.get_json()
@@ -4291,14 +4291,30 @@ def api_memorywall_stats(wall_id):
 from methods.search_api import search_v2_endpoint, search_analytics_endpoint
 app.add_url_rule('/api/v2/search', view_func=search_v2_endpoint, methods=['GET'])
 app.add_url_rule('/api/v2/search/analytics', view_func=search_analytics_endpoint, methods=['POST'])
-# ─────────────────────────────────────────────────────────────────────────────
+
+@app.route('/api/admin/entity/add', methods=['POST'])
+@auth_required
+def api_add_entity():
+    data = request.json
+    entity_type = data.get('entity')
+    name = data.get('name')
+    short_name = data.get('short_name', '')
+    code = data.get('code', '')
+    semester = data.get('semester')
+    parent_id = data.get('parent_id')
+    
+    if not entity_type or not name:
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+        
+    try:
+        if semester:
+            semester = int(semester)
+    except ValueError:
+        semester = None
+        
+    from methods.supabase_helper import add_new_entity
+    result = add_new_entity(entity_type, name, short_name, code, semester, parent_id)
+    return jsonify(result), 200 if result.get('success') else 500
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-if __name__ == '__main__':
-    app.run(debug=True)
-
