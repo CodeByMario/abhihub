@@ -226,11 +226,19 @@ function openEntityModal(entityType, targetSelectId, initialInput, parentValue, 
             
             if (!name) { alert('Name is required'); btn.disabled = false; btn.textContent = 'Save'; return; }
             
+            let resolvedParentId = parentValue;
+            if (entityType === 'subject') {
+                const targetEl = typeof targetSelectId === 'string' ? document.getElementById(targetSelectId) : targetSelectId;
+                const semEl = targetEl.dataset.parent ? document.getElementById(targetEl.dataset.parent) : targetEl.closest('.meta-form-wrap')?.querySelector('.semester-select');
+                const deptEl = semEl ? (semEl.dataset.parent ? document.getElementById(semEl.dataset.parent) : semEl.closest('.meta-form-wrap')?.querySelector('.branch-select')) : null;
+                resolvedParentId = deptEl ? deptEl.value : '';
+            }
+            
             try {
                 const res = await fetch('/api/admin/entity/add', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ entity: entityType, name: name, short_name: abbr, code: code, semester: sem, parent_id: parentValue })
+                    body: JSON.stringify({ entity: entityType, name: name, short_name: abbr, code: code, semester: sem, parent_id: resolvedParentId })
                 });
                 const data = await res.json();
                 if (data.success) {

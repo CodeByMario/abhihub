@@ -1836,6 +1836,10 @@ def create_labeled_papers_table(*a): return True
 def add_new_entity(entity_type: str, name: str, short_name: str = '', code: str = '', semester: int = None, parent_id: str = None) -> Dict:
     client = init_supabase()
     if not client: return {"success": False, "message": "Database not initialized"}
+    
+    if parent_id == '0':
+        parent_id = None
+        
     try:
         if entity_type == 'college':
             res = client.table('colleges').insert({
