@@ -5,23 +5,17 @@
 #}
 <div class="ad-container ad-infeed">
   <div class="ad-label">Advertisement</div>
-  <!-- AdSense Code Here -->
-  <ins class="adsbygoogle"
-       style="display:block"
-       data-ad-format="fluid"
-       data-ad-layout-key="-fb+5w+4e-db+86"
-       data-ad-client="ca-pub-XXXXXXXXXXXXXXXX"
-       data-ad-slot="XXXXXXXXXX"></ins>
-  <script>
-       (adsbygoogle = window.adsbygoogle || []).push({});
-  </script>
+  <!-- Placeholder AbhiHub Logo -->
+  <img src="{{ url_for('static', filename='images/apple-touch-icon.png') }}" 
+       alt="AbhiHub Ad Placeholder" 
+       style="width:auto; height:100px; opacity: 0.5;">
 </div>
 
 <style>
 .ad-infeed {
-    background: transparent;
-    border: 2px dashed var(--border-light);
-    border-radius: 0;
+    background: #f1f5f9;
+    border: 2px dashed #94a3b8;
+    border-radius: 8px;
     padding: var(--space-4);
     margin: var(--space-6) 0;
     min-height: 150px; /* Prevents CLS */
