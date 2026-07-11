@@ -28,6 +28,7 @@
         </div>
 
         <form id="uploadForm" onsubmit="startBulkUpload(event)">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
           <!-- Drop zone -->
           <div class="drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">

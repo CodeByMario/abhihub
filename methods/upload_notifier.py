@@ -135,9 +135,9 @@ def mark_as_notified(file_record_id: str) -> bool:
             if response.data:
                 logging.info(f"✅ Processed document {file_record_id} status in abhihub schema")
                 return True
-        except:
-            logging.warning(f"Could not update status/notified columns for {file_record_id} (might be missing in abhihub schema)")
-            return True # Return true so we don't spam errors in scheduler
+        except Exception as e:
+            logging.warning(f"Could not update status/notified columns for {file_record_id}: {e}")
+            return True  # Return true so we don't spam errors in scheduler
             
         return False
     

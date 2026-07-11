@@ -28,7 +28,6 @@ from firebase_admin import credentials, storage
 firebase_service_account = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
 if firebase_service_account:
     # Load from environment variable (recommended for production)
-    import json
     cred_dict = json.loads(firebase_service_account)
     cred = credentials.Certificate(cred_dict)
 else:
@@ -42,7 +41,7 @@ firebase_admin.initialize_app(cred, {
 
 # --- Advanced Search helpers (add after imports) ---
 import re
-from difflib import SequenceMatcher
+from rapidfuzz import fuzz as _fuzz
 
 # Tunable weights (subject hits matter most; then file-name; then type/author)
 FIELD_WEIGHTS = {
@@ -77,8 +76,8 @@ def _tokenize(text: str) -> list[str]:
     return _ALNUM.findall(_normalize(text))
 
 def _similar(a: str, b: str) -> float:
-    """Fuzzy similarity (0..1) using stdlib difflib."""
-    return SequenceMatcher(None, a, b).ratio()
+    """Fuzzy similarity (0..1) — rapidfuzz C++ backend (~10x faster than difflib)."""
+    return _fuzz.ratio(a, b) / 100.0
 
 def _parse_query(q: str) -> tuple[list[str], dict]:
     """
@@ -134,7 +133,6 @@ def _recent_year_boost(item: dict) -> float:
     """
     Favor recent items slightly. Uses 'year' or year-like in 'date'.
     """
-    from datetime import datetime
     now_year = datetime.now().year
     year_str = item.get("year") or str(item.get("date", ""))[:4]
     try:
@@ -191,7 +189,19 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # CSRF Protection
 app.config['WTF_CSRF_ENABLED'] = True
-app.config['WTF_CSRF_TIME_LIMIT'] = None  # No time limit on CSRF tokens
+app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour expiry on CSRF tokens
+
+from flask_wtf.csrf import CSRFProtect
+csrf = CSRFProtect(app)
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False
+
+@app.before_request
+def check_csrf():
+    if request.method not in ['GET', 'HEAD', 'OPTIONS', 'TRACE']:
+        if request.path.startswith('/api/') or request.path.startswith('/auth') or request.path.startswith('/store-room/api/'):
+            return
+        csrf.protect()
+
 
 # Redirect old Heroku domain to new custom domain (301 permanent redirect)
 @app.before_request
@@ -233,6 +243,15 @@ def sanitize_filename(filename):
     filename = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
     return filename
 
+def get_device_type(user_agent: str) -> str:
+    """Detect device type from user agent string."""
+    ua = (user_agent or '').lower()
+    if 'mobile' in ua or 'android' in ua or 'iphone' in ua:
+        return 'mobile'
+    if 'tablet' in ua or 'ipad' in ua:
+        return 'tablet'
+    return 'desktop'
+
 ########################
 #-------function-------#
 from methods.storage import upload_file, list_files, download_file, delete_file
@@ -256,8 +275,9 @@ def auth_required(f):
         
     return decorated_function
 
-# Admin email from environment variable
+# Admin emails from environment variable (comma-separated)
 ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'abhijeetshende4053@gmail.com')
+ADMIN_EMAILS = [e.strip().lower() for e in os.getenv('ADMIN_EMAILS', 'abhijeetshende4053@gmail.com,codebymario@gmail.com').split(',') if e.strip()]
 
 # Decorator for admin-only routes
 def admin_required(f):
@@ -270,7 +290,7 @@ def admin_required(f):
             
         # Check if user email matches admin email
         user_email = user.get('email', '').lower()
-        if user_email not in ['abhijeetshende4053@gmail.com', 'codebymario@gmail.com']:
+        if user_email not in ADMIN_EMAILS:
             abort(403)  # Forbidden
             
         return f(*args, **kwargs)
@@ -292,12 +312,13 @@ def _get_quota():
     # Fetch from Supabase
     res = supabase.table('profiles').select('paper_quota_remaining, last_quota_reset').eq('id', user_id).execute()
     db_quota = 19
-    last_reset = '2026-05'
+    _default_month = datetime.utcnow().strftime('%Y-%m')
+    last_reset = _default_month
     if res.data:
         db_quota = res.data[0].get('paper_quota_remaining')
         if db_quota is None:
             db_quota = 19
-        last_reset = res.data[0].get('last_quota_reset') or '2026-05'
+        last_reset = res.data[0].get('last_quota_reset') or _default_month
 
     current_month = datetime.utcnow().strftime('%Y-%m')
     if last_reset != current_month:
@@ -338,7 +359,7 @@ def _consume_credit():
     user_id = user.get('uid')
     
     # Admins bypass the gate
-    if user_email in ['abhijeetshende4053@gmail.com', 'codebymario@gmail.com']:
+    if user_email in ADMIN_EMAILS:
         return True
         
     q = _get_quota()
@@ -369,9 +390,7 @@ def api_get_quota():
     }), 200
 # ─────────────────────────────────────────────────────────────────────────────
 
-import logging
 from PIL import Image
-import json
 import jwt
 
 # Configure logging
@@ -422,12 +441,7 @@ def authorize():
         user_agent = request.headers.get('User-Agent', '')
         
         # Simple device type detection
-        device_type = 'desktop'
-        userAgentLower = user_agent.lower()
-        if 'mobile' in userAgentLower or 'android' in userAgentLower or 'iphone' in userAgentLower:
-            device_type = 'mobile'
-        elif 'tablet' in userAgentLower or 'ipad' in userAgentLower:
-            device_type = 'tablet'
+        device_type = get_device_type(user_agent)
             
         session_result = UserSession.log_login(
             user_id=user_data.id,
@@ -977,6 +991,8 @@ def api_add_department(user_data=None):
     college_id = (data.get('college_id') or '').strip()
     if not name:
         return jsonify({'success': False, 'message': 'Department name required'}), 400
+    if len(name) > 120 or len(abbr) > 20:
+        return jsonify({'success': False, 'message': 'Name too long (max 120) or abbreviation too long (max 20)'}), 400
     from methods.supabase_helper import init_supabase
     client = init_supabase()
     try:
@@ -1003,6 +1019,8 @@ def api_create_subject_request():
     subject_name = (data.get('subject_name') or '').strip()
     if not subject_name:
         return jsonify({'success': False, 'message': 'subject_name required'}), 400
+    if len(subject_name) > 200:
+        return jsonify({'success': False, 'message': 'Subject name too long (max 200 chars)'}), 400
     from methods.supabase_helper import create_subject_request, track_user_event
     result = create_subject_request(
         user_id=user_id,
@@ -1821,10 +1839,22 @@ def pdf_viewer():
             record_id=record_id
         )
     
-    local_path = os.path.join('data', file_url)
+    import urllib.parse
+    safe_file_url = urllib.parse.unquote(file_url).replace('\\', '/')
+    
+    if '..' in safe_file_url or safe_file_url.startswith('/'):
+        abort(400, description="Invalid file path")
+        
+    base_dir = os.path.abspath('data')
+    local_path = os.path.abspath(os.path.join(base_dir, safe_file_url))
+    
+    if not local_path.startswith(base_dir + os.sep):
+        abort(400, description="Invalid file path")
+        
     if not os.path.exists(local_path):
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
         bucket = storage.bucket()
-        blob = bucket.blob(file_url)
+        blob = bucket.blob(safe_file_url)
         blob.download_to_filename(local_path)
     
     return send_file(local_path, mimetype='application/pdf')
@@ -2012,14 +2042,12 @@ def dashboard():
         if history_result.get('success'):
             file_history = history_result.get('data', [])
             
-        # Get user profile basics from about_supabase schema
-        from methods.supabase_helper import get_user_profile, get_student_profile, calculate_user_ranks
-        profile_res = get_user_profile(user_id)
+        # Get user profile + college data
+        from methods.supabase_helper import get_student_profile, calculate_user_ranks
+        profile_res = get_student_profile(user_id)
         profile_data = profile_res.get('data', {}) if profile_res.get('success') else {}
-        
-        # Get college name/abbreviation
-        student_res = get_student_profile(user_id)
-        student_data = student_res.get('data', {}) if student_res.get('success') else {}
+        student_res = profile_res  # same call reuse result
+        student_data = profile_data  # already fetched above
         
         # Enforce profile completion
         if not student_data or not student_data.get('college_id'):
@@ -2114,9 +2142,6 @@ def profile():
     user_id = user_info.get('uid')
     user_email = user_info.get('email', '')
     
-    # Get all files for the "Shared" sections
-    files = get_all_files_unified()
-    
     # Get student profile info
     profile_result = get_student_profile(user_id)
     profile = profile_result.get('data') if profile_result.get('success') else None
@@ -2138,8 +2163,7 @@ def profile():
     papo_meter = get_papo_meter_data(user_id)
     
     return render_template('p_profile.html', data={
-        'user': user_info, 
-        'data': files, 
+        'user': user_info,
         'uploaded_files': formatted_uploads,
         'profile': profile,
         'papo_meter': papo_meter,
@@ -2220,49 +2244,28 @@ def update_account():
         'registration_number': request.form.get('registration_number')
     }
     
+    # Fetch static form data ONCE (colleges/branches are now cached)
+    from methods.supabase_helper import get_student_profile, get_all_colleges, get_all_branches
+    colleges = get_all_colleges().get('data', [])
+    branches = get_all_branches().get('data', [])
+
     # Save profile
     result = create_or_update_student_profile(user_id, profile_data)
+
+    # Re-fetch profile after save to reflect updated data
+    profile_result = get_student_profile(user_id)
+    profile = profile_result.get('data') if profile_result.get('success') else None
     
-    if result.get('success'):
-        # Redirect back to account page with success message
-        from methods.supabase_helper import get_student_profile, get_all_colleges, get_all_branches
-        
-        profile_result = get_student_profile(user_id)
-        profile = profile_result.get('data') if profile_result.get('success') else None
-        
-        colleges_result = get_all_colleges()
-        branches_result = get_all_branches()
-        
-        colleges = colleges_result.get('data', []) if colleges_result.get('success') else []
-        branches = branches_result.get('data', []) if branches_result.get('success') else []
-        
-        return render_template('p_account.html', 
-                             user=user_info, 
-                             profile=profile,
-                             colleges=colleges,
-                             branches=branches,
-                             message=result.get('message'),
-                             message_type='success')
-    else:
-        # Show error message
-        from methods.supabase_helper import get_student_profile, get_all_colleges, get_all_branches
-        
-        profile_result = get_student_profile(user_id)
-        profile = profile_result.get('data') if profile_result.get('success') else None
-        
-        colleges_result = get_all_colleges()
-        branches_result = get_all_branches()
-        
-        colleges = colleges_result.get('data', []) if colleges_result.get('success') else []
-        branches = branches_result.get('data', []) if branches_result.get('success') else []
-        
-        return render_template('p_account.html', 
-                             user=user_info, 
-                             profile=profile,
-                             colleges=colleges,
-                             branches=branches,
-                             message=result.get('message', 'Failed to update profile'),
-                             message_type='error')
+    msg_type = 'success' if result.get('success') else 'error'
+    msg = result.get('message') or ('Profile updated!' if result.get('success') else 'Failed to update profile')
+
+    return render_template('p_account.html',
+                         user=user_info,
+                         profile=profile,
+                         colleges=colleges,
+                         branches=branches,
+                         message=msg,
+                         message_type=msg_type)
 
 
 @app.route('/api/check-profile', methods=['GET'])
@@ -3514,9 +3517,10 @@ def get_file_url():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/update-file-metadata', methods=['POST'])
+@admin_required
 def update_file_metadata():
     """
-    Update file metadata in Supabase
+    Update file metadata in Supabase (Admin Only)
     """
     try:
         from methods.supabase_helper import update_document_metadata
@@ -3924,29 +3928,49 @@ def api_ask_paper():
         b64_image = base64.b64encode(img_resp.content).decode('utf-8')
         content_type = img_resp.headers.get('Content-Type', 'image/jpeg').split(';')[0]
 
-        nvidia_key = os.getenv('GEMINI_API_KEY', '').strip()
+        nvidia_key = os.getenv('NVIDIA_API_KEY', '').strip()
         if not nvidia_key:
-            return jsonify({'success': False, 'message': 'NVIDIA/GEMINI API key not configured'}), 500
+            return jsonify({'success': False, 'message': 'API key not configured'}), 500
+            
+        # Extract document info for the AI
+        title = document.get('title', 'Unknown Title')
+        doc_type = document.get('type', 'Unknown Type')
+        subject_data = document.get('subject') or {}
+        subject_name = subject_data.get('name', 'Unknown Subject')
+        paper_info = f"Document Title: {title}\nSubject: {subject_name}\nType: {doc_type}"
+
         headers = {
-            'Authorization': nvidia_key,
-            'Accept': 'application/json'
+            'Authorization': f'Bearer {nvidia_key}',
+            'Content-Type': 'application/json'
         }
+        
+        system_prompt = (
+            f"You are a helpful AI assistant for AbhiHub. Answer questions based only on the provided authentic source image.\n\n"
+            f"Context Information about this paper:\n{paper_info}\n\n"
+            f"Provide clear, accurate, and properly formatted answers."
+        )
+
         payload = {
-            'model': 'google/gemma-3n-e4b-it',
-            'messages': [{
-                'role': 'user',
-                'content': [
-                    {'type': 'text', 'text': question},
-                    {'type': 'image_url', 'image_url': {'url': f'data:{content_type};base64,{b64_image}'}}
-                ]
-            }],
+            'model': 'meta/llama-3.2-11b-vision-instruct',
+            'messages': [
+                {
+                    'role': 'system',
+                    'content': system_prompt
+                },
+                {
+                    'role': 'user',
+                    'content': [
+                        {'type': 'text', 'text': question},
+                        {'type': 'image_url', 'image_url': {'url': f'data:{content_type};base64,{b64_image}'}}
+                    ]
+                }
+            ],
             'max_tokens': 512,
             'temperature': 0.20,
             'top_p': 0.70,
             'stream': False
         }
 
-        # Use longer timeout because vision models can take time to process
         ai_resp = requests.post(
             'https://integrate.api.nvidia.com/v1/chat/completions',
             headers=headers, json=payload, timeout=90
@@ -3961,6 +3985,69 @@ def api_ask_paper():
 
     except Exception as e:
         logging.error(f"[AI] ask-paper error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+@app.route('/api/extract-ocr', methods=['POST'])
+@auth_required
+def api_extract_ocr():
+    """Extract OCR text from a paper image using the vision model."""
+    try:
+        data = request.get_json(silent=True) or {}
+        doc_id = (data.get('doc_id') or '').strip()
+        if not doc_id:
+            return jsonify({'success': False, 'message': 'doc_id required'}), 400
+
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        raw = client.table('documents').select('file_url').eq('id', doc_id).single().execute()
+        file_url = raw.data.get('file_url', '') if raw.data else ''
+
+        if not file_url or not file_url.startswith('http'):
+            return jsonify({'success': False, 'message': 'Image URL not available'}), 400
+
+        import base64
+        img_resp = requests.get(file_url, timeout=15)
+        if not img_resp.ok:
+            return jsonify({'success': False, 'message': 'Could not fetch image'}), 502
+
+        b64_image = base64.b64encode(img_resp.content).decode('utf-8')
+        content_type = img_resp.headers.get('Content-Type', 'image/jpeg').split(';')[0]
+
+        nvidia_key = os.getenv('NVIDIA_API_KEY', '').strip()
+        if not nvidia_key:
+            return jsonify({'success': False, 'message': 'API key not configured'}), 500
+
+        headers = {
+            'Authorization': f'Bearer {nvidia_key}',
+            'Content-Type': 'application/json'
+        }
+        
+        payload = {
+            'model': 'meta/llama-3.2-11b-vision-instruct',
+            'messages': [
+                {
+                    'role': 'user',
+                    'content': [
+                        {'type': 'text', 'text': 'Extract all text, math equations, and tables from this image perfectly. Return ONLY the raw transcript without any conversational filler or formatting outside of what is in the image.'},
+                        {'type': 'image_url', 'image_url': {'url': f'data:{content_type};base64,{b64_image}'}}
+                    ]
+                }
+            ],
+            'max_tokens': 1024,
+            'temperature': 0.10,
+            'top_p': 0.70,
+            'stream': False
+        }
+
+        ai_resp = requests.post('https://integrate.api.nvidia.com/v1/chat/completions', headers=headers, json=payload, timeout=90)
+        if not ai_resp.ok:
+            return jsonify({'success': False, 'message': 'OCR service error'}), 502
+
+        ocr_text = ai_resp.json()['choices'][0]['message']['content']
+        return jsonify({'success': True, 'ocr_text': ocr_text}), 200
+
+    except Exception as e:
+        logging.error(f"[AI] extract-ocr error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -4317,4 +4404,5 @@ def api_add_entity():
     return jsonify(result), 200 if result.get('success') else 500
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    debug_mode = os.getenv('FLASK_ENV') != 'production'
+    app.run(debug=debug_mode)

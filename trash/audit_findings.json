@@ -1,0 +1,2218 @@
+[
+  {
+    "cat": "SEC",
+    "sev": "HIGH",
+    "file": "app.py",
+    "line": 194,
+    "desc": "CSRF TIME_LIMIT set to None \u2014 no expiry",
+    "fix": "Set to 3600 (1 hour)"
+  },
+  {
+    "cat": "SEC",
+    "sev": "HIGH",
+    "file": "app.py",
+    "line": 260,
+    "desc": "Hardcoded email: ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'abhijeetshende4053@gmail.com')",
+    "fix": "Move to env variable ADMIN_EMAILS"
+  },
+  {
+    "cat": "SEC",
+    "sev": "HIGH",
+    "file": "app.py",
+    "line": 273,
+    "desc": "Hardcoded email: if user_email not in ['abhijeetshende4053@gmail.com', 'codebymario@gmail.com']:",
+    "fix": "Move to env variable ADMIN_EMAILS"
+  },
+  {
+    "cat": "SEC",
+    "sev": "HIGH",
+    "file": "app.py",
+    "line": 341,
+    "desc": "Hardcoded email: if user_email in ['abhijeetshende4053@gmail.com', 'codebymario@gmail.com']:",
+    "fix": "Move to env variable ADMIN_EMAILS"
+  },
+  {
+    "cat": "BUG",
+    "sev": "HIGH",
+    "file": "methods/supabase_helper.py",
+    "line": 72,
+    "desc": "Bare except: masks all errors silently",
+    "fix": "Replace with except Exception as e and log the error"
+  },
+  {
+    "cat": "SEC",
+    "sev": "HIGH",
+    "file": "methods/supabase_helper.py",
+    "line": 552,
+    "desc": "Hardcoded email: email_part = user_email if user_email else 'unknown@example.com'",
+    "fix": "Move to env variable ADMIN_EMAILS"
+  },
+  {
+    "cat": "BUG",
+    "sev": "HIGH",
+    "file": "methods/supabase_helper.py",
+    "line": 767,
+    "desc": "Bare except: masks all errors silently",
+    "fix": "Replace with except Exception as e and log the error"
+  },
+  {
+    "cat": "BUG",
+    "sev": "HIGH",
+    "file": "methods/supabase_helper.py",
+    "line": 837,
+    "desc": "Bare except: masks all errors silently",
+    "fix": "Replace with except Exception as e and log the error"
+  },
+  {
+    "cat": "BUG",
+    "sev": "HIGH",
+    "file": "methods/supabase_helper.py",
+    "line": 868,
+    "desc": "Bare except: masks all errors silently",
+    "fix": "Replace with except Exception as e and log the error"
+  },
+  {
+    "cat": "BUG",
+    "sev": "HIGH",
+    "file": "methods/supabase_helper.py",
+    "line": 1112,
+    "desc": "Bare except: masks all errors silently",
+    "fix": "Replace with except Exception as e and log the error"
+  },
+  {
+    "cat": "BUG",
+    "sev": "HIGH",
+    "file": "methods/supabase_helper.py",
+    "line": 1482,
+    "desc": "Bare except: masks all errors silently",
+    "fix": "Replace with except Exception as e and log the error"
+  },
+  {
+    "cat": "BUG",
+    "sev": "HIGH",
+    "file": "methods/supabase_helper.py",
+    "line": 1807,
+    "desc": "Bare except: masks all errors silently",
+    "fix": "Replace with except Exception as e and log the error"
+  },
+  {
+    "cat": "BUG",
+    "sev": "HIGH",
+    "file": "methods/supabase_helper.py",
+    "line": 1821,
+    "desc": "Bare except: masks all errors silently",
+    "fix": "Replace with except Exception as e and log the error"
+  },
+  {
+    "cat": "BUG",
+    "sev": "HIGH",
+    "file": "methods/upload_notifier.py",
+    "line": 138,
+    "desc": "Bare except: masks all errors silently",
+    "fix": "Replace with except Exception as e and log the error"
+  },
+  {
+    "cat": "LIB",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 76,
+    "desc": "Custom search function `def _tokenize(text: str) -> list[str]:` \u2014 reinventing the wheel",
+    "fix": "Replace with rapidfuzz or Supabase FTS"
+  },
+  {
+    "cat": "LIB",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 79,
+    "desc": "Custom search function `def _similar(a: str, b: str) -> float:` \u2014 reinventing the wheel",
+    "fix": "Replace with rapidfuzz or Supabase FTS"
+  },
+  {
+    "cat": "LIB",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 83,
+    "desc": "Custom search function `def _parse_query(q: str) -> tuple[list[str], dict]:` \u2014 reinventing the wheel",
+    "fix": "Replace with rapidfuzz or Supabase FTS"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 137,
+    "desc": "Import `datetime` inside function `_recent_year_boost`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "BUG",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 150,
+    "desc": "Hardcoded date string: # allow partial contains for filters (e.g., year:2024 matches \"2024-05\")",
+    "fix": "Replace with datetime.now().strftime or env variable"
+  },
+  {
+    "cat": "BUG",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 295,
+    "desc": "Hardcoded date string: last_reset = '2026-05'",
+    "fix": "Replace with datetime.now().strftime or env variable"
+  },
+  {
+    "cat": "BUG",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 300,
+    "desc": "Hardcoded date string: last_reset = res.data[0].get('last_quota_reset') or '2026-05'",
+    "fix": "Replace with datetime.now().strftime or env variable"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 420,
+    "desc": "Import `data.profiles` inside function `authorize`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 509,
+    "desc": "Import `methods.supabase_helper` inside function `sitemap`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 510,
+    "desc": "Import `re` inside function `sitemap`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 585,
+    "desc": "Import `data.profiles` inside function `logout`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 602,
+    "desc": "Import `methods.supabase_helper` inside function `profile_status`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 626,
+    "desc": "Import `methods.supabase_helper` inside function `get_profile`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 646,
+    "desc": "Import `methods.supabase_helper` inside function `get_profile`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 687,
+    "desc": "Import `methods.supabase_helper` inside function `api_update_profile`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 741,
+    "desc": "Import `methods.supabase_helper` inside function `report_suspect`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 757,
+    "desc": "Import `methods.supabase_helper` inside function `api_get_colleges`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 776,
+    "desc": "Import `methods.supabase_helper` inside function `api_get_branches`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 799,
+    "desc": "Import `methods.supabase_helper` inside function `api_get_departments`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 823,
+    "desc": "Import `methods.supabase_helper` inside function `api_get_subjects`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 848,
+    "desc": "Import `methods.supabase_helper` inside function `api_add_subject`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 864,
+    "desc": "Import `re` inside function `api_add_subject`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 891,
+    "desc": "Import `methods.supabase_helper` inside function `api_add_college`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 909,
+    "desc": "Import `methods.supabase_helper` inside function `api_check_duplicate`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 932,
+    "desc": "Import `methods.supabase_helper` inside function `api_predict_metadata`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 933,
+    "desc": "Import `re` inside function `api_predict_metadata`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 980,
+    "desc": "Import `methods.supabase_helper` inside function `api_add_department`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1006,
+    "desc": "Import `methods.supabase_helper` inside function `api_create_subject_request`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1033,
+    "desc": "Import `methods.supabase_helper` inside function `api_waitlist_join`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1046,
+    "desc": "Import `methods.supabase_helper` inside function `api_onboarding_status`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1055,
+    "desc": "Import `methods.supabase_helper` inside function `api_onboarding_welcome_seen`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1069,
+    "desc": "Import `methods.supabase_helper` inside function `api_track_event`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1113,
+    "desc": "Import `datetime` inside function `label_store_room_paper`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1140,
+    "desc": "Import `methods.supabase_helper` inside function `label_store_room_paper`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1164,
+    "desc": "Import `methods.supabase_helper` inside function `label_store_room_paper`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1191,
+    "desc": "Import `methods.supabase_helper` inside function `label_store_room_paper`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1225,
+    "desc": "Import `traceback` inside function `label_store_room_paper`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1243,
+    "desc": "Import `methods.supabase_helper` inside function `api_toggle_like`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1257,
+    "desc": "Import `methods.supabase_helper` inside function `api_toggle_bookmark`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1263,
+    "desc": "Import `methods.supabase_helper` inside function `api_comments`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1318,
+    "desc": "Import `data.interactions` inside function `api_log_document_view`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1342,
+    "desc": "Import `traceback` inside function `api_log_document_view`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1368,
+    "desc": "Import `data.interactions` inside function `api_get_recent_documents`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1389,
+    "desc": "Import `traceback` inside function `api_get_recent_documents`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1417,
+    "desc": "Import `methods.supabase_helper` inside function `api_get_file_access_history`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1439,
+    "desc": "Import `traceback` inside function `api_get_file_access_history`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1458,
+    "desc": "Import `methods.supabase_helper` inside function `api_get_my_notifications`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1471,
+    "desc": "Import `methods.supabase_helper` inside function `api_mark_notifications_read`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1485,
+    "desc": "Import `methods.supabase_helper` inside function `get_all_files`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1512,
+    "desc": "Import `traceback` inside function `get_all_files`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1594,
+    "desc": "Import `methods.cloudinary_upload` inside function `upload`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1634,
+    "desc": "Import `methods.supabase_helper` inside function `upload`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1667,
+    "desc": "Import `methods.supabase_helper` inside function `upload`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1693,
+    "desc": "Import `methods.supabase_helper` inside function `upload`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1722,
+    "desc": "Import `traceback` inside function `upload`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1773,
+    "desc": "save_file_access called 7 times inline",
+    "fix": "Extract to decorator"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1866,
+    "desc": "Import `urllib.parse` inside function `proxy_file`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1902,
+    "desc": "Import `methods.supabase_helper` inside function `view_doc`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1921,
+    "desc": "Import `urllib.parse` inside function `view_doc`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 1961,
+    "desc": "Import `methods.supabase_helper` inside function `get_all_files_unified`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2016,
+    "desc": "Import `methods.supabase_helper` inside function `dashboard`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "OPT",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2036,
+    "desc": "Possible O(N) linear scan: for i, entry in enumerate(rank_list):",
+    "fix": "Convert to dict lookup"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2043,
+    "desc": "Import `methods.supabase_helper` inside function `dashboard`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2111,
+    "desc": "Import `methods.supabase_helper` inside function `profile`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2130,
+    "desc": "Import `methods.supabase_helper` inside function `profile`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2157,
+    "desc": "Import `methods.supabase_helper` inside function `leaderboard`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2177,
+    "desc": "Import `methods.supabase_helper` inside function `account`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2204,
+    "desc": "Import `methods.supabase_helper` inside function `update_account`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2228,
+    "desc": "Import `methods.supabase_helper` inside function `update_account`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2248,
+    "desc": "Import `methods.supabase_helper` inside function `update_account`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2272,
+    "desc": "Import `methods.supabase_helper` inside function `api_check_profile`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2322,
+    "desc": "Import `methods.supabase_helper` inside function `pyq_landing`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2323,
+    "desc": "Import `re` inside function `pyq_landing`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2350,
+    "desc": "Import `re` inside function `college_landing`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2351,
+    "desc": "Import `methods.supabase_helper` inside function `college_landing`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2392,
+    "desc": "Import `methods.supabase_helper` inside function `college_landing`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2411,
+    "desc": "Import `methods.supabase_helper` inside function `department_landing`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2440,
+    "desc": "Import `methods.supabase_helper` inside function `subject_landing`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2463,
+    "desc": "Import `methods.supabase_helper` inside function `resource_landing`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2464,
+    "desc": "Import `re` inside function `resource_landing`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2520,
+    "desc": "Import `methods.supabase_helper` inside function `resource_landing`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2530,
+    "desc": "Import `methods.supabase_helper` inside function `resource_landing`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2610,
+    "desc": "Import `methods.supabase_helper` inside function `premium`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2767,
+    "desc": "Import `methods.supabase_helper` inside function `view_pdf`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2801,
+    "desc": "Import `mimetypes` inside function `pdf_proxy`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 2880,
+    "desc": "Import `requests` inside function `_trigger_indexnow`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3242,
+    "desc": "Import `push_notifications` inside function `get_admin_subscribers`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3269,
+    "desc": "Import `push_notifications` inside function `send_admin_notification`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3270,
+    "desc": "Import `methods.supabase_helper` inside function `send_admin_notification`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3298,
+    "desc": "Import `push_notifications` inside function `send_admin_notification`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3326,
+    "desc": "Import `methods.supabase_helper` inside function `get_admin_notification_history`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3339,
+    "desc": "Import `methods.supabase_helper` inside function `admin_get_users`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3352,
+    "desc": "Import `methods.supabase_helper` inside function `admin_get_user_stats`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3392,
+    "desc": "Import `methods.supabase_helper` inside function `calculate_rank`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3420,
+    "desc": "Import `firebase_admin` inside function `verify_file`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3461,
+    "desc": "Import `methods.supabase_helper` inside function `verify_file`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3498,
+    "desc": "Import `firebase_admin` inside function `get_file_url`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3522,
+    "desc": "Import `methods.supabase_helper` inside function `update_file_metadata`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3564,
+    "desc": "Import `methods.supabase_helper` inside function `get_cached_unlabeled_files`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3638,
+    "desc": "Import `methods.storage_providers` inside function `store_room_api_sync`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3791,
+    "desc": "Import `methods.supabase_helper` inside function `store_room_api_verify`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3808,
+    "desc": "Import `methods.supabase_helper` inside function `store_room_api_verification_queue`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3864,
+    "desc": "Import `scheduled_tasks` inside function `send_upload_notifications_command`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3899,
+    "desc": "Import `methods.supabase_helper` inside function `api_ask_paper`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3910,
+    "desc": "Import `methods.supabase_helper` inside function `api_ask_paper`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3919,
+    "desc": "Import `base64` inside function `api_ask_paper`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 3981,
+    "desc": "Import `methods.supabase_helper` inside function `toggle_like_route`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 4000,
+    "desc": "Import `methods.supabase_helper` inside function `toggle_bookmark_route`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 4019,
+    "desc": "Import `methods.supabase_helper` inside function `add_comment_route`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 4032,
+    "desc": "Import `methods.supabase_helper` inside function `get_comments_route`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 4046,
+    "desc": "Import `methods.know_me` inside function `memorywall_dashboard`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 4072,
+    "desc": "Import `methods.know_me` inside function `memorywall_create`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 4109,
+    "desc": "Import `methods.know_me` inside function `memorywall_public`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 4123,
+    "desc": "Import `methods.know_me` inside function `memorywall_reveal`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 4124,
+    "desc": "Import `methods.know_me_generator` inside function `memorywall_reveal`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 4143,
+    "desc": "Import `methods.know_me` inside function `memorywall_reveal`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 4192,
+    "desc": "Import `methods.know_me` inside function `api_memorywall_submit`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 4254,
+    "desc": "Import `PIL` inside function `api_memorywall_upload_signature`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 4262,
+    "desc": "Import `uuid` inside function `api_memorywall_upload_signature`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 4263,
+    "desc": "Import `firebase_admin` inside function `api_memorywall_upload_signature`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 4280,
+    "desc": "Import `methods.know_me` inside function `api_memorywall_stats`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "app.py",
+    "line": 4315,
+    "desc": "Import `methods.supabase_helper` inside function `api_add_entity`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/know_me.py",
+    "line": 380,
+    "desc": "Import `random` inside function `generate_personality_summary`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 51,
+    "desc": "Import `traceback` inside function `init_supabase`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 68,
+    "desc": "Import `uuid` inside function `validate_uuid`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 91,
+    "desc": "Import `re` inside function `get_college_by_slug`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 123,
+    "desc": "Import `re` inside function `get_colleges_by_brand`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 226,
+    "desc": "Import `re` inside function `get_department_by_slug`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 282,
+    "desc": "Import `re` inside function `get_subjects_by_slug`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 658,
+    "desc": "Import `traceback` inside function `save_file_record`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 1036,
+    "desc": "Import `traceback` inside function `get_student_profile`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 1100,
+    "desc": "Import `traceback` inside function `create_or_update_student_profile`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 1366,
+    "desc": "Import `decimal` inside function `recalculate_and_persist_user_rank`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 1537,
+    "desc": "Import `datetime` inside function `_notify_uploader_of_view`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 1650,
+    "desc": "Import `threading` inside function `save_file_access`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 1660,
+    "desc": "Import `data.interactions` inside function `save_file_access`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 1680,
+    "desc": "Import `traceback` inside function `save_file_access`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 1730,
+    "desc": "Import `traceback` inside function `get_user_file_history`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/supabase_helper.py",
+    "line": 1893,
+    "desc": "Import `traceback` inside function `add_new_entity`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "MEDIUM",
+    "file": "methods/upload_notifier.py",
+    "line": 79,
+    "desc": "Import `push_notifications` inside function `send_upload_notification`",
+    "fix": "Move to top-level imports"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 10,
+    "desc": "Symbol `datetime` imported 2 times at lines [10, 1113]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 25,
+    "desc": "Symbol `storage` imported 4 times at lines [25, 3420, 3498, 4263]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 373,
+    "desc": "Symbol `Image` imported 2 times at lines [373, 4254]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 420,
+    "desc": "Symbol `UserSession` imported 2 times at lines [420, 585]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 602,
+    "desc": "Symbol `init_supabase` imported 9 times at lines [602, 687, 2520, 3339, 3352, 3461, 626, 3910, 2767]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 687,
+    "desc": "Symbol `validate_uuid` imported 2 times at lines [687, 2767]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 875,
+    "desc": "print() in production code: print(f\"Failed to save alias {acronym} for subject: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 966,
+    "desc": "print() in production code: print(\"Prediction error:\", e)",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1134,
+    "desc": "print() in production code: print(f\"[DEBUG] Missing required fields: {missing_fields}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1148,
+    "desc": "print() in production code: print(f\"[STORE_ROOM_LABEL] User: {user_email}, File: {filena",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1149,
+    "desc": "print() in production code: print(f\"[STORE_ROOM_LABEL] College:{college_id} Branch:{bran",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1164,
+    "desc": "Symbol `save_file_record` imported 2 times at lines [1164, 1634]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1188,
+    "desc": "print() in production code: print(f\"[STORE_ROOM_LABEL] SUCCESS: Saved to file_records\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1216,
+    "desc": "print() in production code: print(f\"[STORE_ROOM_LABEL] ERROR: {result.get('message')}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1224,
+    "desc": "print() in production code: print(f\"[STORE_ROOM_LABEL] EXCEPTION: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1318,
+    "desc": "Symbol `DocumentView` imported 2 times at lines [1318, 1368]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1483,
+    "desc": "print() in production code: print(\"[API /api/files/all] Request received\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1495,
+    "desc": "print() in production code: print(f\"[API /api/files/all] Returning {result.get('count', ",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1502,
+    "desc": "print() in production code: print(f\"[API /api/files/all] ERROR: {result.get('message', '",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1511,
+    "desc": "print() in production code: print(f\"[API /api/files/all] EXCEPTION: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1624,
+    "desc": "print() in production code: print(f\"[UPLOAD REJECTED] Reason:Missing subject_id Uploader",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1631,
+    "desc": "print() in production code: print(f\"[UPLOAD] Uploader:{user_id} College:{college_id} Bra",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1655,
+    "desc": "print() in production code: print(f\"[UPLOAD ERROR] Supabase record creation failed: {fil",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1663,
+    "desc": "print() in production code: print(f\"[UPLOAD SUCCESS] Document ID: {file_record_result.ge",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 1721,
+    "desc": "print() in production code: print(f\"[UPLOAD EXCEPTION] Upload error: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 2016,
+    "desc": "Symbol `get_student_profile` imported 3 times at lines [2016, 2228, 2248]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 2016,
+    "desc": "Symbol `calculate_user_ranks` imported 2 times at lines [2016, 3392]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 2043,
+    "desc": "Symbol `get_reputation_stats` imported 2 times at lines [2043, 626]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 2228,
+    "desc": "Symbol `get_all_colleges` imported 2 times at lines [2228, 2248]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 2228,
+    "desc": "Symbol `get_all_branches` imported 2 times at lines [2228, 2248]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 3242,
+    "desc": "Symbol `load_subscriptions` imported 2 times at lines [3242, 3298]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 3546,
+    "desc": "Symbol `get_user_file_history` imported 2 times at lines [3546, 1417]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 3866,
+    "desc": "print() in production code: print(\"=== Running upload notifications task ===\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "app.py",
+    "line": 3868,
+    "desc": "print() in production code: print(f\"Complete: {result['sent']} sent, {result['failed']} ",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "check2.py",
+    "line": 0,
+    "desc": "Likely dead file (0KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "check_docs.py",
+    "line": 0,
+    "desc": "Likely dead file (0KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "LIB",
+    "sev": "LOW",
+    "file": "cors.py",
+    "line": 0,
+    "desc": "Manual CORS script exists alongside flask-cors dependency",
+    "fix": "Confirm flask-cors handles all cases, delete cors.py if redundant"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "generate_vapid.py",
+    "line": 0,
+    "desc": "Likely dead file (1KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "inspect_db.py",
+    "line": 0,
+    "desc": "Likely dead file (0KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/cloudinary_helper.py",
+    "line": 52,
+    "desc": "print() in production code: print(f\"Error reading cache: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/cloudinary_helper.py",
+    "line": 75,
+    "desc": "print() in production code: print(f\"Cached {len(files)} files\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/cloudinary_helper.py",
+    "line": 77,
+    "desc": "print() in production code: print(f\"Error saving cache: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/cloudinary_helper.py",
+    "line": 96,
+    "desc": "print() in production code: print(f\"Using cached data ({len(cached_files)} files)\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/cloudinary_helper.py",
+    "line": 99,
+    "desc": "print() in production code: print(\"Fetching fresh data from Cloudinary...\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/cloudinary_helper.py",
+    "line": 142,
+    "desc": "print() in production code: print(f\"Error fetching files from Cloudinary: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/cloudinary_helper.py",
+    "line": 265,
+    "desc": "print() in production code: print(f\"Error sorting files: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/indexer.py",
+    "line": 92,
+    "desc": "print() in production code: print(f\"Error indexing document {doc.get('file_id')}: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/indexer.py",
+    "line": 97,
+    "desc": "print() in production code: print(f\"Indexer error: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/search_api.py",
+    "line": 91,
+    "desc": "print() in production code: print(f\"Search V2 error: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/search_api.py",
+    "line": 120,
+    "desc": "print() in production code: print(f\"Analytics error: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/storage.py",
+    "line": 21,
+    "desc": "print() in production code: print(f'File {file_path} uploaded to {destination_blob_name}",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/storage.py",
+    "line": 74,
+    "desc": "print() in production code: print(f\"Error decoding JSON from {data_file_path}. Using an ",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/storage.py",
+    "line": 153,
+    "desc": "print() in production code: print(f'File {destination_blob_name} downloaded to {file_pat",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/storage.py",
+    "line": 159,
+    "desc": "print() in production code: print(f'File {destination_blob_name} deleted.')",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "DUPE",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 8,
+    "desc": "Symbol `datetime` imported 2 times at lines [8, 1537]",
+    "fix": "Remove duplicate import"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 23,
+    "desc": "print() in production code: print(\"Warning: supabase-py not installed. Install with: pip",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 33,
+    "desc": "print() in production code: print(\"\u274c list_supabase: SUPABASE_AVAILABLE is False\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 36,
+    "desc": "print() in production code: print(\"\u274c list_supabase: SUPABASE_URL is empty\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 39,
+    "desc": "print() in production code: print(\"\u274c list_supabase: SUPABASE_KEY is empty\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 49,
+    "desc": "print() in production code: print(\"Success: Supabase client initialized with abhihub sch",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 53,
+    "desc": "print() in production code: print(f\"Error initializing Supabase client: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 542,
+    "desc": "print() in production code: print(f\"[Supabase] Resolved uploader_id from email: {u_id}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 548,
+    "desc": "print() in production code: print(f\"[Supabase] Profile for {u_id} not found, creating ba",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 559,
+    "desc": "print() in production code: print(f\"[Supabase] Base profile created successfully.\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 561,
+    "desc": "print() in production code: print(f\"[Supabase] Failed to create base profile: {p_err}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 592,
+    "desc": "print() in production code: print(f\"[Supabase] Duplicate registration prevented for {sto",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 613,
+    "desc": "print() in production code: print(f\"[Supabase] Inserting document: {data.get('title')}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 618,
+    "desc": "print() in production code: print(f\"[Supabase] Successfully saved document record: {doc_",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 632,
+    "desc": "print() in production code: print(f\"[Supabase] Queued {doc_id} for background search ind",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 634,
+    "desc": "print() in production code: print(f\"[Supabase] Warning: Could not queue for indexing: {s",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 654,
+    "desc": "print() in production code: print(f\"[Supabase] Failed to save document record. Response ",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 660,
+    "desc": "print() in production code: print(f\"[Supabase] Error saving file record: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 682,
+    "desc": "print() in production code: print(f\"[Supabase] Error in verify_hierarchy: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 699,
+    "desc": "print() in production code: print(f\"[Supabase] Error getting registered storage ids: {e}",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 710,
+    "desc": "print() in production code: print(f\"[Supabase] Error fetching pending assets: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 721,
+    "desc": "print() in production code: print(f\"[Supabase] Error updating asset status: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 737,
+    "desc": "print() in production code: print(f\"[Supabase] Error logging audit: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1003,
+    "desc": "print() in production code: print(f\"[Profile] student row found -> {flat}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1031,
+    "desc": "print() in production code: print(f\"[Profile] profiles fallback -> {flat}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1068,
+    "desc": "print() in production code: print(f\"[Profile] Upserting profile for user_id={user_id}, r",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1079,
+    "desc": "print() in production code: print(f\"[Profile] profiles upsert result: {profile_res.data}",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1089,
+    "desc": "print() in production code: print(f\"[Profile] students upsert result: {student_res.data}",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1095,
+    "desc": "print() in production code: print(f\"[Profile] teachers upsert result: {teacher_res.data}",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1102,
+    "desc": "print() in production code: print(f\"[Profile ERROR] create_or_update_student_profile fai",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1191,
+    "desc": "print() in production code: print(f\"Error fetching subscriptions: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1201,
+    "desc": "print() in production code: print(f\"Error removing subscription: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1237,
+    "desc": "print() in production code: print(f\"Error fetching notifications: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1335,
+    "desc": "print() in production code: print(f\"[Ranking] Error calculating ranks: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1377,
+    "desc": "print() in production code: print(f\"[Ranking] Persisted reputation_score={score} for use",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1381,
+    "desc": "print() in production code: print(f\"[Ranking] Error persisting rank for {user_id}: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1423,
+    "desc": "print() in production code: print(f\"[Ranking] Error calculating reputation stats for {us",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1434,
+    "desc": "print() in production code: print(f\"Error fetching timeline: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1466,
+    "desc": "print() in production code: print(f\"Error fetching leaderboard: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1565,
+    "desc": "print() in production code: print(f'[NOTIFY] Sent file_view notification to uploader {up",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1568,
+    "desc": "print() in production code: print(f'[NOTIFY] Non-critical notify error: {e}')",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1585,
+    "desc": "print() in production code: print(f'[NOTIFY] get_user_notifications error: {e}')",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1602,
+    "desc": "print() in production code: print(f'[NOTIFY] mark_notifications_read error: {e}')",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1647,
+    "desc": "print() in production code: print(f\"Warning: Could not increment view count: {view_err}\"",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1668,
+    "desc": "print() in production code: print(f\"[FILE_ACCESS] Logged view for {user_email}: {file_na",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1670,
+    "desc": "print() in production code: print(f\"[FILE_ACCESS] Failed to log view: {result.get('messa",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1672,
+    "desc": "print() in production code: print(f\"Warning: Could not log to document_views: {dv_err}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1674,
+    "desc": "print() in production code: print(f\"[FILE_ACCESS] Skipped logging - doc_id={doc_id}, use",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1679,
+    "desc": "print() in production code: print(f\"Error in save_file_access: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1729,
+    "desc": "print() in production code: print(f\"Error in get_user_file_history: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1757,
+    "desc": "print() in production code: print(f\"[PapoMeter] Error getting pap count: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1768,
+    "desc": "print() in production code: print(f\"[PapoMeter] Error getting punya count: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "OPT",
+    "sev": "LOW",
+    "file": "methods/supabase_helper.py",
+    "line": 1812,
+    "desc": "print() in production code: print(f\"Error awarding XP: {e}\")",
+    "fix": "Replace with logging.debug/info"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "migrate_data.py",
+    "line": 0,
+    "desc": "Likely dead file (4KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "migrate_data_and_rank.py",
+    "line": 0,
+    "desc": "Likely dead file (4KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "migrate_data_json.py",
+    "line": 0,
+    "desc": "Likely dead file (3KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "migrate_final_data.py",
+    "line": 0,
+    "desc": "Likely dead file (8KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "migrate_main_data.py",
+    "line": 0,
+    "desc": "Likely dead file (13KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "migrate_search_index.py",
+    "line": 0,
+    "desc": "Likely dead file (1KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "old_store_room.js",
+    "line": 0,
+    "desc": "Likely dead file (136KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "replace.py",
+    "line": 0,
+    "desc": "Likely dead file (0KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "test_stats.py",
+    "line": 0,
+    "desc": "Likely dead file (0KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "test_supabase.py",
+    "line": 0,
+    "desc": "Likely dead file (0KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "test_supabase2.py",
+    "line": 0,
+    "desc": "Likely dead file (0KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "test_ts.js",
+    "line": 0,
+    "desc": "Likely dead file (0KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "test_ts2.js",
+    "line": 0,
+    "desc": "Likely dead file (0KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "test_ts3.js",
+    "line": 0,
+    "desc": "Likely dead file (0KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "verify_db.py",
+    "line": 0,
+    "desc": "Likely dead file (0KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  },
+  {
+    "cat": "DEAD",
+    "sev": "LOW",
+    "file": "verify_migration.py",
+    "line": 0,
+    "desc": "Likely dead file (1KB) \u2014 one-off script or old code",
+    "fix": "Confirm and delete or move to /trash"
+  }
+]

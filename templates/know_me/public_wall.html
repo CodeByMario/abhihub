@@ -57,6 +57,7 @@
       </p>
 
       <form id="km-submit-form" data-wall-id="{{ wall.id }}" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
         <!-- Honeypot -->
         <div class="km-hp" aria-hidden="true">

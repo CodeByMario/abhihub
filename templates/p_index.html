@@ -783,6 +783,7 @@
         </div>
         <form class="hero-search-wrap" action="/dashboard"
           onsubmit="event.preventDefault(); document.getElementById('searchFileName').value=this.querySelector('input').value; document.getElementById('searchBtn').click(); document.querySelector('.container_search').scrollIntoView({behavior:'smooth'});">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
           <input type="text" placeholder="Search subjects, PYQ, notes…" autocomplete="off">
           <button type="submit" class="hero-search-btn">🔍 Search</button>
         </form>

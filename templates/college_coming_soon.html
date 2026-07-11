@@ -366,6 +366,7 @@ body { background-color: var(--cs-bg); overflow-x: hidden; }
 
     <!-- Form -->
     <form class="cs-form" id="waitlistForm" onsubmit="submitWaitlist(event)">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div class="cs-input-row">
         <input class="cs-input" type="text" id="wlName" name="name" placeholder="Your name" autocomplete="name">
         <input class="cs-input" type="email" id="wlEmail" name="email" placeholder="College email ID *" required autocomplete="email">

@@ -2,7 +2,7 @@ Flask==2.0.1
 gunicorn==20.1.0
 firebase-admin==5.2.0
 werkzeug==2.0.3
-Pillow
+Pillow>=10.0.0
 flask-socketio
 pywebpush
 python-dotenv
@@ -11,6 +11,6 @@ cloudinary
 PyJWT
 Flask-WTF
 python-multipart
-Pillow>=10.0.0
 Flask-Compress==1.23
 wordcloud
+rapidfuzz>=3.0.0

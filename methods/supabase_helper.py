@@ -5,12 +5,16 @@ Provides functions to interact with Supabase for storing labeled papers and docu
 
 import os
 import json
+import logging
+import traceback
 from datetime import datetime
 from typing import Dict, Optional, List, Any
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+log = logging.getLogger(__name__)
 
 # Try to import supabase
 try:
@@ -48,7 +52,6 @@ def init_supabase():
             )
             print("Success: Supabase client initialized with abhihub schema")
         except Exception as e:
-            import traceback
             traceback.print_exc()
             print(f"Error initializing Supabase client: {e}")
             return None
@@ -69,16 +72,20 @@ def validate_uuid(val):
     try:
         uuid.UUID(str(val))
         return True
-    except:
+    except Exception:
         return False
 
 def get_all_colleges() -> Dict:
+    cached = _cache_get('all_colleges')
+    if cached is not None:
+        return {"success": True, "data": cached}
     client = init_supabase()
     if not client: return {"success": False, "data": []}
     try:
         response = client.table("colleges").select("*").order("name").execute()
         for c in response.data:
             c['short_name'] = c.get('abbreviation')
+        _cache_set('all_colleges', response.data)
         return {"success": True, "data": response.data}
     except Exception as e:
         return {"success": False, "data": []}
@@ -372,6 +379,9 @@ def get_sitemap_urls() -> Dict:
         return {"success": False, "message": str(e)}
 
 def get_all_branches() -> Dict:
+    cached = _cache_get('all_branches')
+    if cached is not None:
+        return {"success": True, "data": cached}
     client = init_supabase()
     if not client: return {"success": False, "data": []}
     try:
@@ -380,6 +390,7 @@ def get_all_branches() -> Dict:
             b['short_name'] = b.get('abbreviation')
             b['branch_id'] = b.get('id')
             b['branch_name'] = b.get('name')
+        _cache_set('all_branches', response.data)
         return {"success": True, "data": response.data}
     except Exception as e:
         return {"success": False, "data": []}
@@ -655,7 +666,6 @@ def save_file_record(
         return {'success': False, 'message': 'Failed to save record to database'}
         
     except Exception as e:
-        import traceback
         traceback.print_exc()
         print(f"[Supabase] Error saving file record: {e}")
         return {'success': False, 'message': str(e)}
@@ -764,8 +774,8 @@ def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
         else:
             if 'Year:' in desc_str:
                 year = desc_str.split('Year:')[1].split('|')[0].strip()
-    except:
-        pass
+    except Exception as e:
+        log.debug(f'_doc_to_json: failed to parse description: {e}')
 
     file_path = url if url else f"Documents/{author}/{doc_type}/{year}/{subject}/{title}"
     
@@ -805,6 +815,12 @@ def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
     }
 
 def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dict:
+    # Cache key: anon gets shared cache; authed users get personal cache (for like/bookmark state)
+    _FILES_CACHE_TTL = 120  # 2 minutes
+    cache_key = f'all_files:{current_user_id or "anon"}'
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return {'success': True, 'data': cached, 'count': len(cached)}
     client = init_supabase()
     if not client: return {'success': False, 'data': [], 'count': 0}
     try:
@@ -813,14 +829,46 @@ def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dic
             .in_('status', ['approved', 'pending']) \
             .order('created_at', desc=True) \
             .execute()
-        
         files = [_doc_to_json(d, current_user_id) for d in res.data] if res.data else []
+        _cache[cache_key] = {'val': files, 'ts': _time.time() - (_CACHE_TTL - _FILES_CACHE_TTL)}
         return {'success': True, 'data': files, 'count': len(files)}
     except Exception as e:
         return {'success': False, 'data': [], 'count': 0, 'message': str(e)}
 
 def get_all_file_records_formatted(current_user_id=None) -> List[Dict]:
     return get_all_files_merged(current_user_id=current_user_id).get('data', [])
+
+def invalidate_files_cache():
+    """Call after any document insert/update to clear the files cache."""
+    keys_to_del = [k for k in _cache if k.startswith('all_files:')]
+    for k in keys_to_del:
+        del _cache[k]
+    log.debug(f'Invalidated {len(keys_to_del)} file cache entries')
+
+def get_related_documents(college_id: str = None, subject_id: str = None,
+                           exclude_id: str = None, limit: int = 6) -> List[Dict]:
+    """Fetch only related documents — avoids loading all 1000+ docs for sidebar."""
+    client = init_supabase()
+    if not client: return []
+    try:
+        q = client.table('documents') \
+            .select('id, title, document_category, file_type, college_id, subject_id, created_at, view_count, provider_public_id, file_url, storage_provider') \
+            .in_('status', ['approved', 'pending']) \
+            .order('view_count', desc=True) \
+            .limit(limit + 1)  # fetch one extra to exclude current doc
+        if college_id and validate_uuid(college_id):
+            q = q.eq('college_id', college_id)
+        elif subject_id and validate_uuid(subject_id):
+            q = q.eq('subject_id', subject_id)
+        res = q.execute()
+        docs = res.data or []
+        # Exclude the current document
+        if exclude_id:
+            docs = [d for d in docs if d.get('id') != exclude_id]
+        return docs[:limit]
+    except Exception as e:
+        log.error(f'get_related_documents error: {e}')
+        return []
 
 def search_file_records(search_query='', document_type=None, college_id=None, branch_id=None, year=None, limit=50) -> List[Dict]:
     client = init_supabase()
@@ -834,7 +882,8 @@ def search_file_records(search_query='', document_type=None, college_id=None, br
             q = q.or_(f"title.ilike.%{search_query}%,description.ilike.%{search_query}%")
         res = q.order('created_at', desc=True).limit(limit).execute()
         return res.data if res.data else []
-    except:
+    except Exception as e:
+        log.error(f'search_file_records error: {e}')
         return []
 
 def get_user_uploaded_files(user_email: str, limit: int = 20) -> Dict:
@@ -865,7 +914,8 @@ def delete_file_record(record_id: str, user_email: str) -> Dict:
         
         res = client.table('documents').delete().eq('id', record_id).eq('uploader_id', u_id).execute()
         return {'success': True} if res.data else {'success': False}
-    except:
+    except Exception as e:
+        log.error(f'delete_file_record error: {e}')
         return {'success': False}
 
 def toggle_like(user_email: str, document_id: str) -> Dict:
@@ -1109,7 +1159,8 @@ def check_profile_completed(user_id: str) -> bool:
         res = client.table('students').select('profile_completed').eq('profile_id', user_id).execute()
         if res.data: return res.data[0].get('profile_completed', False)
         return False
-    except:
+    except Exception as e:
+        log.error(f'check_profile_completed error: {e}')
         return False
         
 def get_all_file_records(limit=100, offset=0):
@@ -1479,7 +1530,8 @@ def update_document_metadata(file_path: str, update_data: dict) -> Dict:
         current_desc_str = res.data[0].get('description') or '{}'
         try:
             desc = json.loads(current_desc_str)
-        except:
+        except Exception as e:
+            log.debug(f'update_file_record: invalid JSON in description: {e}')
             desc = {}
             
         updates = {}
@@ -1804,8 +1856,8 @@ def award_contribution_xp(user_id: str, action_type: str, entity_id: str, entity
                     client.table('user_achievements').insert({
                         'user_id': user_id, 'badge_name': rank, 'badge_icon': '🏆'
                     }).execute()
-                except:
-                    pass # unique constraint handles duplicates
+                except Exception:
+                    pass  # unique constraint handles duplicates
                     
             return {'success': True, 'xp_gained': base_xp, 'new_score': new_xp, 'new_rank': rank}
     except Exception as e:
@@ -1818,7 +1870,8 @@ def check_if_labeled(filename: str) -> bool:
     try:
         res = client.table('documents').select('id').eq('title', filename).limit(1).execute()
         return len(res.data) > 0
-    except:
+    except Exception as e:
+        log.error(f'check_if_labeled error: {e}')
         return False
 def save_labeled_paper(*a): return {'success': True}
 def get_labeled_papers():

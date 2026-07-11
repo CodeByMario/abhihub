@@ -296,14 +296,32 @@ body { background-color: var(--r-bg); }
 {% if document.file_type == 'image' or '.jpg' in (document.file_url|lower) or '.png' in (document.file_url|lower) or '.jpeg' in (document.file_url|lower) or '.webp' in (document.file_url|lower) %}
 <div class="preview-container" style="margin-bottom: 2rem;">
   <div class="preview-card" id="aiChatPanel">
-    <div class="preview-header">
+    <div class="preview-header" style="flex-wrap: wrap; gap: 0.5rem;">
       <div style="font-weight:700;color:var(--r-text);display:flex;align-items:center;gap:.5rem;">
         <span>🤖</span> Ask AI about this paper
       </div>
-      <span style="font-size:.8rem;color:var(--r-muted);">Powered by Gemma 3n</span>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <span style="font-size:.8rem;color:var(--r-muted);">Powered by Gemma 3n</span>
+        <button onclick="shareChatWhatsApp()" style="padding: 0.3rem 0.6rem; border: none; background: #25D366; color: white; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">Share WA</button>
+        <button onclick="exportChatPDF()" style="padding: 0.3rem 0.6rem; border: none; background: #ef4444; color: white; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">Export PDF</button>
+      </div>
     </div>
 
     <div id="aiMessages" style="padding:1rem 1.5rem;min-height:80px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:.75rem;"></div>
+
+    <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <button onclick="sendPersonaPrompt('ChatGPT', this)" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--r-border); background: #f8fafc; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #10b981; transition: background 0.2s;">ChatGPT</button>
+      <button onclick="sendPersonaPrompt('Gemini', this)" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--r-border); background: #f8fafc; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #3b82f6; transition: background 0.2s;">Gemini</button>
+      <button onclick="sendPersonaPrompt('Claude', this)" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--r-border); background: #f8fafc; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #d97757; transition: background 0.2s;">Claude</button>
+    </div>
+
+    <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <span style="font-size: 0.8rem; color: var(--r-muted); align-self: center;">Suggestions:</span>
+      <button onclick="suggestQ('Solve question 1 step-by-step')" style="padding: 0.3rem 0.7rem; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.75rem; color: #475569; transition: background 0.2s;">Solve Q1</button>
+      <button onclick="suggestQ('Explain the core concepts in question 2')" style="padding: 0.3rem 0.7rem; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.75rem; color: #475569; transition: background 0.2s;">Explain Q2</button>
+      <button onclick="suggestQ('What are the most important topics in this paper?')" style="padding: 0.3rem 0.7rem; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.75rem; color: #475569; transition: background 0.2s;">Important Topics</button>
+      <button onclick="suggestQ('Summarize the entire paper')" style="padding: 0.3rem 0.7rem; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.75rem; color: #475569; transition: background 0.2s;">Summarize</button>
+    </div>
 
     <div style="padding:1rem 1.5rem;border-top:1px solid var(--r-border);display:flex;gap:.75rem;">
       <input id="aiQuestion" type="text" placeholder="e.g. What topics are covered in this paper?" maxlength="300"
@@ -317,6 +335,8 @@ body { background-color: var(--r-bg); }
   </div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
 (function(){
   const DOC_ID = '{{ document.id }}';
@@ -329,10 +349,170 @@ body { background-color: var(--r-bg); }
         ? 'align-self:flex-end;background:#f59e0b;color:#fff;'
         : 'align-self:flex-start;background:#f1f5f9;color:#1e293b;'
     }`;
-    d.textContent = text;
+    if (role === 'ai' && typeof marked !== 'undefined') {
+      d.innerHTML = marked.parse(text);
+      d.querySelectorAll('pre').forEach(p => p.style.cssText = "background:#1e293b;color:#f8fafc;padding:0.5rem;border-radius:8px;overflow-x:auto;margin:0.5rem 0;");
+      d.querySelectorAll('code').forEach(c => c.style.cssText = "font-family:monospace;background:rgba(0,0,0,0.05);padding:0.1rem 0.3rem;border-radius:4px;");
+    } else {
+      d.textContent = text;
+    }
     msgs.appendChild(d);
     msgs.scrollTop = msgs.scrollHeight;
   }
+  
+  window.shareChatWhatsApp = function() {
+    const chatElements = Array.from(document.getElementById('aiMessages').children);
+    if (chatElements.length === 0) return alert('No chat to share.');
+    let chatText = "*AbhiHub AI Reference Chat*\n\n";
+    chatElements.forEach(el => {
+      const isUser = el.style.alignSelf.includes('flex-end');
+      chatText += (isUser ? "*You*: " : "*AI*: ") + el.innerText + "\n\n";
+    });
+    chatText += `Study smarter with AbhiHub: ${window.location.href}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(chatText)}`, '_blank');
+  };
+
+  window.exportChatPDF = function() {
+    const originalMessages = document.getElementById('aiMessages');
+    if (originalMessages.children.length === 0) return alert('No chat to export.');
+
+    const userName = `{{ session.user.name if 'user' in session else 'Student' | replace('`', '\\`') | replace('$', '\\$') }}`;
+    const userEmail = `{{ session.user.email if 'user' in session else 'Not Provided' | replace('`', '\\`') | replace('$', '\\$') }}`;
+    const subjectName = `{{ subj_name | replace('`', '\\`') | replace('$', '\\$') }}`;
+    const collegeName = `{{ coll_name | replace('`', '\\`') | replace('$', '\\$') }}`;
+    const docTitle = `{{ document.title | replace('`', '\\`') | replace('$', '\\$') }}`;
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'padding: 3rem; background: #fff; color: #000; width: 800px; position: absolute; left: -9999px; top: 0;';
+    
+    const cover = document.createElement('div');
+    cover.style.cssText = 'height: 950px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; page-break-after: always;';
+    cover.innerHTML = `
+      <h1 style="font-size: 4.5rem; color: #f59e0b; margin-bottom: 0.5rem; font-weight: 900; letter-spacing: -1px;">AbhiHub</h1>
+      <h2 style="font-size: 1.8rem; margin-bottom: 4rem; color: #475569; font-weight: 600;">AI Reference Transcript</h2>
+      <div style="font-size: 1.2rem; line-height: 2.2; text-align: left; background: #f8fafc; padding: 3rem; border-radius: 16px; width: 85%; border: 1px solid #e2e8f0; color: #334155; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+        <div style="margin-bottom: 1rem;"><strong style="color: #0f172a; width: 140px; display: inline-block;">Subject:</strong> ${subjectName}</div>
+        <div style="margin-bottom: 1rem;"><strong style="color: #0f172a; width: 140px; display: inline-block;">College:</strong> ${collegeName}</div>
+        <div style="margin-bottom: 1rem;"><strong style="color: #0f172a; width: 140px; display: inline-block;">Reference:</strong> <a href="${window.location.href}" style="color: #f59e0b; text-decoration: none;">${docTitle}</a></div>
+        <hr style="margin: 2rem 0; border: none; border-top: 1px solid #cbd5e1;">
+        <div style="margin-bottom: 1rem;"><strong style="color: #0f172a; width: 140px; display: inline-block;">Generated By:</strong> ${userName}</div>
+        <div style="margin-bottom: 1rem;"><strong style="color: #0f172a; width: 140px; display: inline-block;">Email:</strong> ${userEmail}</div>
+        <div style="margin-bottom: 1rem;"><strong style="color: #0f172a; width: 140px; display: inline-block;">Date:</strong> ${new Date().toLocaleString()}</div>
+      </div>
+    `;
+    
+    const chatClone = document.createElement('div');
+    chatClone.innerHTML = '<h3 style="font-size:2rem; margin-bottom:2rem; color:#0f172a; border-bottom:3px solid #f59e0b; padding-bottom:1rem;">Conversation</h3>';
+    
+    const messagesClone = originalMessages.cloneNode(true);
+    messagesClone.style.cssText = 'max-height: none; overflow-y: visible; padding: 0; display: flex; flex-direction: column; gap: 1.5rem;';
+    
+    chatClone.appendChild(messagesClone);
+    wrapper.appendChild(cover);
+    wrapper.appendChild(chatClone);
+    document.body.appendChild(wrapper);
+    
+    const opt = {
+      margin:       [0.5, 0, 0.5, 0], // Top, Left, Bottom, Right margin
+      filename:     'AbhiHub_Chat_Transcript.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    
+    html2pdf().set(opt).from(wrapper).toPdf().get('pdf').then(function(pdf) {
+      const totalPages = pdf.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        
+        // Header
+        pdf.setFontSize(11);
+        pdf.setTextColor(245, 158, 11); // AbhiHub Orange (#f59e0b)
+        pdf.textWithLink('AbhiHub.com', 0.5, 0.3, { url: window.location.origin });
+        
+        // Footer
+        pdf.setFontSize(9);
+        pdf.setTextColor(100, 116, 139); // Slate 500
+        pdf.textWithLink('Study smarter with AbhiHub - Click here', 0.5, 10.7, { url: window.location.origin });
+        pdf.text(`Page ${i} of ${totalPages}`, 7.5, 10.7);
+      }
+    }).save().then(() => {
+      document.body.removeChild(wrapper);
+    });
+  };
+  
+  window.suggestQ = function(text) {
+    const inp = document.getElementById('aiQuestion');
+    inp.value = text;
+    window.askAI();
+  };
+  
+  window.sendPersonaPrompt = async function(persona, btnElement) {
+    const originalText = btnElement.innerText;
+    btnElement.innerText = 'Extracting OCR...';
+    btnElement.disabled = true;
+
+    let ocrText = 'OCR extraction failed or is unavailable. Please rely on the image.';
+    try {
+      const res = await fetch('/api/extract-ocr', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ doc_id: DOC_ID })
+      });
+      const data = await res.json();
+      if (data.success && data.ocr_text) {
+        ocrText = data.ocr_text.trim();
+      }
+    } catch(e) {
+      console.error('OCR fetch error:', e);
+    }
+    
+    btnElement.innerText = originalText;
+    btnElement.disabled = false;
+
+    const subjectName = `{{ subj_name | replace('`', '\\`') }}`;
+    const collegeName = `{{ coll_name | replace('`', '\\`') }}`;
+    const deptName = `{{ dept_name | replace('`', '\\`') }}`;
+    const docTitle = `{{ document.title | replace('`', '\\`') }}`;
+
+    const prompt = `Act as an expert University Professor (${persona}). Your goal is to provide a "Model Answer" for the provided question paper that maximizes student understanding and exam scores.
+
+Psychological Formatting Rules (Crucial for Student Learning):
+1. Bottom-Line Up Front: Give the final answer/solution immediately before the detailed steps to reduce cognitive load.
+2. Chunking: Break complex derivations, theories, or processes into small, numbered steps. Avoid long paragraphs.
+3. The Isolation Effect: **Bold** all critical keywords, formulas, and technical terms so they stand out for quick memorization.
+4. Cognitive Ease: Use simple, plain English for explanations. If explaining math/code, write a brief "Why we do this" before the step to provide context.
+5. Visual Structure: Use Markdown tables for comparisons and clear headings (###) for sub-parts.
+
+Document Context:
+- Title: ${docTitle}
+- Subject: ${subjectName}
+- College/Board: ${collegeName}
+- Department: ${deptName}
+
+OCR Transcript of Question Paper:
+"""
+${ocrText}
+"""
+Note: The OCR text might contain scanning errors. Please intelligently correct any obvious typos or math OCR mistakes based on the context of the subject while answering.
+
+Task:
+Identify the main questions from the transcript above and solve them following the exact structure rules.`;
+    
+    // Copy prompt to clipboard
+    navigator.clipboard.writeText(prompt).then(() => {
+      alert(`Prompt & OCR copied! Please paste it in ${persona}.`);
+      
+      let targetUrl = '';
+      if (persona === 'ChatGPT') targetUrl = `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`;
+      else if (persona === 'Gemini') targetUrl = 'https://gemini.google.com/app';
+      else if (persona === 'Claude') targetUrl = 'https://claude.ai/new';
+      
+      if (targetUrl) window.open(targetUrl, '_blank');
+    }).catch(err => {
+      alert("Failed to copy prompt to clipboard. Please try again.");
+    });
+  };
 
   window.askAI = async function() {
     const inp = document.getElementById('aiQuestion');

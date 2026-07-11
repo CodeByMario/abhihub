@@ -52,6 +52,7 @@
   {% endif %}
 
   <form method="POST" action="{{ url_for('update_account') }}" id="accountForm">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
     <!-- 1. Personal Info -->
     <div class="ac-card">

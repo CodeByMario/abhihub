@@ -30,6 +30,7 @@
       {% endif %}
 
       <form method="POST" action="{{ url_for('memorywall_create') }}" id="km-create-form">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
         <div class="km-form-row">
           <label class="km-label" for="km-title">Your Name / Wall Title *</label>
