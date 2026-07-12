@@ -518,6 +518,13 @@ def terms():
 def ads_txt():
     return "google.com, pub-8274846157272362, DIRECT, f08c47fec0942fa0", 200, {'Content-Type': 'text/plain'}
 
+@app.route('/<key>.txt')
+def index_now_key(key):
+    expected_key = os.getenv('INDEX_NOW_BING_API_KEY', '31d61c30c86d4fc7a7bb3584a4d225c9').strip()
+    if key == expected_key:
+        return expected_key, 200, {'Content-Type': 'text/plain'}
+    return abort(404)
+
 @app.route('/sitemap.xml')
 def sitemap():
     from methods.supabase_helper import get_sitemap_urls
