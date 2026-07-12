@@ -176,6 +176,20 @@ Compress(app)
 import mimetypes
 mimetypes.add_type('application/javascript', '.mjs')
 
+AI_MODELS = [
+    "google/gemma-4-26b-a4b-it:free",
+    "google/gemma-4-31b-it:free",
+    "nvidia/llama-nemotron-rerank-vl-1b-v2:free",
+    "nvidia/nemotron-3.5-content-safety:free",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    "nvidia/llama-nemotron-embed-vl-1b-v2:free",
+    "nvidia/nemotron-nano-12b-v2-vl:free"
+]
+ai_model_errors = {m: 0 for m in AI_MODELS}
+
+def get_best_ai_model():
+    return min(ai_model_errors, key=ai_model_errors.get)
+
 # Security Configuration - Load from environment variables
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
 
@@ -597,6 +611,10 @@ def sitemap():
 @app.route('/privacy')
 def privacy():
     return render_template('privacy.html')
+
+@app.route('/help')
+def help_center():
+    return render_template('help.html')
 
 @app.route('/logout')
 def logout():
@@ -2548,7 +2566,51 @@ def resource_landing(slug):
         record_id=doc_id
     )
         
-    return render_template('resource.html', document=document)
+    # Fetch Suggested Documents
+    suggested_docs = []
+    store_room_docs = []
+    try:
+        subj_id = document.get('subject_id')
+        subj_name = document.get('subject', {}).get('name', '') if document.get('subject') else ''
+        
+        # 1. Exact subject_id
+        if subj_id:
+            sug_res = client.table('documents').select('id, title, file_type, view_count, uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)').eq('subject_id', subj_id).neq('id', doc_id).limit(4).execute()
+            suggested_docs = sug_res.data or []
+            
+        # 2. Exact same subject name (if not enough)
+        similar_subj_ids = []
+        if len(suggested_docs) < 4 and subj_name:
+            name_res = client.table('subjects').select('id').ilike('name', subj_name.strip()).execute()
+            similar_subj_ids = [s['id'] for s in name_res.data if s['id'] != subj_id] if name_res.data else []
+            if similar_subj_ids:
+                sug_res2 = client.table('documents').select('id, title, file_type, view_count, uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)').in_('subject_id', similar_subj_ids).neq('id', doc_id).limit(4 - len(suggested_docs)).execute()
+                if sug_res2.data:
+                    suggested_docs.extend(sug_res2.data)
+        
+        # 3. Fuzzy matching subject name
+        if len(suggested_docs) < 4 and subj_name:
+            subj_kws = [w for w in subj_name.lower().split() if len(w) > 3]
+            if subj_kws:
+                or_cond = ','.join([f'name.ilike.*{kw}*' for kw in subj_kws[:2]])
+                fuzzy_name_res = client.table('subjects').select('id').or_(or_cond).execute()
+                fuzzy_subj_ids = [s['id'] for s in fuzzy_name_res.data if s['id'] != subj_id and s['id'] not in similar_subj_ids] if fuzzy_name_res.data else []
+                if fuzzy_subj_ids:
+                    sug_res3 = client.table('documents').select('id, title, file_type, view_count, uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)').in_('subject_id', fuzzy_subj_ids).neq('id', doc_id).limit(4 - len(suggested_docs)).execute()
+                    if sug_res3.data:
+                        suggested_docs.extend(sug_res3.data)
+            
+        if title:
+            # Simple keyword extraction (words > 3 chars) to find store room matches
+            keywords = [w for w in title.split() if len(w) > 3]
+            if keywords:
+                or_cond = ",".join([f"filename.ilike.*{kw}*" for kw in keywords[:2]])
+                sr_res = client.table('storage_assets').select('id, provider_public_id, filename').eq('status', 'PENDING').or_(or_cond).limit(4).execute()
+                store_room_docs = sr_res.data or []
+    except Exception as e:
+        print(f"[Supabase] Error fetching suggestions: {e}")
+
+    return render_template('resource.html', document=document, ai_models=AI_MODELS, best_model=get_best_ai_model(), suggested_docs=suggested_docs, store_room_docs=store_room_docs)
 
 @app.route('/join')
 def join_team():
@@ -3903,6 +3965,10 @@ def api_ask_paper():
         data = request.get_json(silent=True) or {}
         doc_id = (data.get('doc_id') or data.get('document_id') or '').strip()
         question = (data.get('question') or '').strip()
+        selected_model = data.get('model')
+        if not selected_model:
+            selected_model = get_best_ai_model()
+        logging.info(f"[AI] ask-paper using model: {selected_model}")
 
         if not doc_id or not question:
             return jsonify({'success': False, 'message': 'doc_id/document_id and question required'}), 400
@@ -3935,8 +4001,8 @@ def api_ask_paper():
         b64_image = base64.b64encode(img_resp.content).decode('utf-8')
         content_type = img_resp.headers.get('Content-Type', 'image/jpeg').split(';')[0]
 
-        nvidia_key = os.getenv('NVIDIA_API_KEY', '').strip()
-        if not nvidia_key:
+        openrouter_key = os.getenv('OPENROUTER_API_KEY', '').strip()
+        if not openrouter_key:
             return jsonify({'success': False, 'message': 'API key not configured'}), 500
             
         # Extract document info for the AI
@@ -3947,7 +4013,7 @@ def api_ask_paper():
         paper_info = f"Document Title: {title}\nSubject: {subject_name}\nType: {doc_type}"
 
         headers = {
-            'Authorization': f'Bearer {nvidia_key}',
+            'Authorization': f'Bearer {openrouter_key}',
             'Content-Type': 'application/json'
         }
         
@@ -3958,7 +4024,7 @@ def api_ask_paper():
         )
 
         payload = {
-            'model': 'meta/llama-3.2-11b-vision-instruct',
+            'model': selected_model,
             'messages': [
                 {
                     'role': 'system',
@@ -3979,20 +4045,21 @@ def api_ask_paper():
         }
 
         ai_resp = requests.post(
-            'https://integrate.api.nvidia.com/v1/chat/completions',
+            'https://openrouter.ai/api/v1/chat/completions',
             headers=headers, json=payload, timeout=90
         )
 
         if not ai_resp.ok:
-            logging.error(f"[AI] NVIDIA API error: {ai_resp.status_code} {ai_resp.text}")
-            return jsonify({'success': False, 'message': 'AI service error'}), 502
+            ai_model_errors[selected_model] = ai_model_errors.get(selected_model, 0) + 1
+            logging.error(f"[AI] OpenRouter API error: {ai_resp.status_code} {ai_resp.text}")
+            return jsonify({'success': False, 'message': 'We are experiencing high demand. Please try after some time.'}), 502
 
         answer = ai_resp.json()['choices'][0]['message']['content']
         return jsonify({'success': True, 'answer': answer}), 200
 
     except Exception as e:
         logging.error(f"[AI] ask-paper error: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'We are experiencing high demand. Please try after some time.'}), 500
 
 @app.route('/api/extract-ocr', methods=['POST'])
 @auth_required
@@ -4001,6 +4068,10 @@ def api_extract_ocr():
     try:
         data = request.get_json(silent=True) or {}
         doc_id = (data.get('doc_id') or '').strip()
+        selected_model = data.get('model')
+        if not selected_model:
+            selected_model = get_best_ai_model()
+        logging.info(f"[AI] extract-ocr using model: {selected_model}")
         if not doc_id:
             return jsonify({'success': False, 'message': 'doc_id required'}), 400
 
@@ -4020,17 +4091,17 @@ def api_extract_ocr():
         b64_image = base64.b64encode(img_resp.content).decode('utf-8')
         content_type = img_resp.headers.get('Content-Type', 'image/jpeg').split(';')[0]
 
-        nvidia_key = os.getenv('NVIDIA_API_KEY', '').strip()
-        if not nvidia_key:
+        openrouter_key = os.getenv('OPENROUTER_API_KEY', '').strip()
+        if not openrouter_key:
             return jsonify({'success': False, 'message': 'API key not configured'}), 500
 
         headers = {
-            'Authorization': f'Bearer {nvidia_key}',
+            'Authorization': f'Bearer {openrouter_key}',
             'Content-Type': 'application/json'
         }
         
         payload = {
-            'model': 'meta/llama-3.2-11b-vision-instruct',
+            'model': selected_model,
             'messages': [
                 {
                     'role': 'user',
@@ -4046,16 +4117,17 @@ def api_extract_ocr():
             'stream': False
         }
 
-        ai_resp = requests.post('https://integrate.api.nvidia.com/v1/chat/completions', headers=headers, json=payload, timeout=90)
+        ai_resp = requests.post('https://openrouter.ai/api/v1/chat/completions', headers=headers, json=payload, timeout=90)
         if not ai_resp.ok:
-            return jsonify({'success': False, 'message': 'OCR service error'}), 502
+            ai_model_errors[selected_model] = ai_model_errors.get(selected_model, 0) + 1
+            return jsonify({'success': False, 'message': 'We are experiencing high demand. Please try after some time.'}), 502
 
         ocr_text = ai_resp.json()['choices'][0]['message']['content']
         return jsonify({'success': True, 'ocr_text': ocr_text}), 200
 
     except Exception as e:
         logging.error(f"[AI] extract-ocr error: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'We are experiencing high demand. Please try after some time.'}), 500
 # ─────────────────────────────────────────────────────────────────────────────
 
 
