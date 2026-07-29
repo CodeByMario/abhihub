@@ -1,87 +1,206 @@
-AbhiHub CSS Pipeline — Complete Summary
-What Was Built
-New Folder Structure
-static/css/pipeline/
-  01_tokens.css          ← ALL design variables (colors, spacing, fonts, shadows, gradients)
-  02_base.css            ← Reset, body, typography, scrollbar, selection, animations
-  app-shell.css          ← Header, main-nav, logo, main content area, popup
-  03_components.css      ← Buttons, cards, forms, badges, modals, share panel, skeleton
-  04_layout.css          ← Bottom navbar, containers, search overlay, footer
-  05_utilities.css       ← Atomic helpers (flex, spacing, text, shadows, display)
-  feature-tour.css       ← Feature tour overlay & tooltip
-  pwa-install.css        ← PWA install popup
-  promo.css              ← Promo announcement strip + promo card modal
-  profile-nudge.css      ← Profile completion & notifications nudge overlay
-  notification-bell.css  ← Header bell + dropdown panel
-  pipeline.css           ← MASTER ENTRY — imports all 11 files in correct order
-  MIGRATION.md           ← Step-by-step migration guide
+# GitHub Automation Bot 🤖
 
-static/css/pages/
-  dashboard.css          ← p_index.html specific styles
+A complete automation system for GitHub repositories that handles **issue triage**, **PR auto-merging**, **feature planning**, and **contributor assignment** — all with zero manual configuration needed after setup.
 
-Copy
-What Was Fixed in p_struct.html
-Before	After
-7 inline <style> blocks (~400 lines)	0 inline <style> blocks
-3 wrong CSS <link> tags	1 pipeline link + 2 utility links
-onmouseover/onmouseout hover hacks on bell button	Pure CSS hover in notification-bell.css
-300+ lines of style= on HTML elements (nudge overlay, bell panel)	All replaced with CSS classes
-Notification items rendered with hardcoded style= in JS template literals	Now use .notif-item, .notif-item-icon, .notif-item-content etc.
-Duplicate :root token blocks across 3+ files	Single source in 01_tokens.css
-notification-popup defined in 2 files	Single definition in 03_components.css
-Feature tour styles duplicated in 04_layout.css AND feature-tour.css	Removed from 04_layout.css, lives only in feature-tour.css
-PWA install styles duplicated with conflicting z-index (1000 vs 9999)	Removed from 04_layout.css, lives only in pwa-install.css
-promoBounce animation used in profile-nudge.css but defined elsewhere	Added self-contained copy in profile-nudge.css
-How to Use
-In p_struct.html <head> (already done):
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/pipeline.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/overlay-system.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.min.css') }}">
+## Features
 
-Copy
-html
-For page-specific CSS, add after the pipeline:
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
+| Feature | What It Does |
+|---------|-------------|
+| **Auto-Triage** | Automatically labels issues with type (bug/enhancement/question), priority (critical/high/medium/low), and component (frontend/backend/mobile/devops/testing) |
+| **Auto-Merge** | Merges PRs that pass CI, have approvals, and meet safety checks (no protected files, reasonable size) |
+| **Feature Planning** | Breaks down feature ideas into structured sub-task issues with progress tracking |
+| **Smart Assignment** | Assigns issues to contributors based on expertise and current workload |
+| **Branch Protection** | Configures branch protection rules on your default branch |
+| **Issue Templates** | Standardized bug reports, feature requests, and question templates |
+| **Dependabot** | Automatic dependency updates with proper labeling |
 
-Copy
-html
-Files Still Needed (not yet migrated)
-These pages still need their own CSS files under static/css/pages/:
+## Quick Start
 
-Page file	Needs
-p_landing.html	pages/landing.css
-p_login.html, p_signup.html	pages/auth.css
-p_profile.html	pages/profile.css
-p_store_room.html	pages/store-room.css (extract from abhihub-theme.css)
-p_upload.html	pages/upload.css
-p_ranking.html	pages/ranking.css
-p_view.html, p_pdf_reader.html	pages/viewer.css
-know_me/ templates	already has css/know-me.css, just re-link
-Old Files That Can Be Deleted (after testing)
-File	Why
-static/css/abhihub-theme.css	Tokens → 01_tokens.css, Store Room CSS → pages/store-room.css
-static/css/common.css	notification-popup → 03_components.css
-static/premium/css/style.css	All app shell + component styles migrated to pipeline
-static/premium-cards.css	Move to pages/premium.css when ready
-methods/viewer.css	Wrong location — move to static/css/pages/viewer.css
-Quick Reference — Which Class Lives Where
-Class	File
---primary-*, --space-*, --radius-* etc.	01_tokens.css
-body, h1-h6, a, ::selection, @keyframes	02_base.css
-header, .main-nav, .logo, .logo-text, main, .popup	app-shell.css
-.btn, .card, .form-input, .badge, .notification-popup	03_components.css
-.navbar, .container, .nav-search-overlay, .site-footer	04_layout.css
-.d-flex, .mt-4, .text-center, .cursor-pointer	05_utilities.css
-#featureTourOverlay, .ft-highlight	feature-tour.css
-.pwa-install-popup, .pwa-popup-*	pwa-install.css
-#promoStrip, #promoCard, .promo-*	promo.css
-#profileNudgeOverlay, .nudge-*	profile-nudge.css
-#notifBell, #notifPanel, .notif-*	notification-bell.css
-.file-card, .interaction-bar, .updates-carousel	pages/dashboard.css
-.study-pass-toast, .gate-card	css/study-pass.css (existing, kept)
+### 1. Prerequisites
 
+- A GitHub Personal Access Token (PAT) with `repo`, `workflow`, and `read:org` scopes
+- Python 3.8+
+- `gh` CLI (optional but recommended)
 
-@Pin Context
-Active file
+### 2. Install Dependencies
 
-Rules
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Run Setup
+
+```bash
+python setup.py --repo your-username/your-repo --token $GITHUB_TOKEN
+```
+
+This will:
+- Create all standardized labels
+- Upload issue/PR templates
+- Install GitHub Actions workflows
+- Configure branch protection
+- Set up Dependabot
+
+### 4. Add Secrets
+
+Go to **Settings → Secrets and variables → Actions** and add:
+
+| Secret | Description |
+|--------|-------------|
+| `OPENROUTER_API_KEY` | For AI-powered feature planning (optional) |
+
+### 5. Done!
+
+The automation is now live. New issues will be auto-triaged, PRs will be auto-merged when ready, and you can plan features with a single command.
+
+## Usage
+
+### Run the Bot Manually
+
+```bash
+# Full automation (triage + merge + plan)
+python bot.py --repo owner/repo --token $GITHUB_TOKEN --mode all
+
+# Only triage issues
+python bot.py --repo owner/repo --token $GITHUB_TOKEN --mode triage
+
+# Only auto-merge PRs
+python bot.py --repo owner/repo --token $GITHUB_TOKEN --mode merge
+
+# Plan a specific feature
+python bot.py --repo owner/repo --token $GITHUB_TOKEN --mode plan --idea "Add dark mode"
+
+# Plan features from existing feature-request issues
+python bot.py --repo owner/repo --token $GITHUB_TOKEN --mode plan
+```
+
+### Smart Assignment
+
+```bash
+# Assign all unassigned issues
+python scripts/auto_assign.py --repo owner/repo --token $GITHUB_TOKEN --all
+
+# Assign a specific issue
+python scripts/auto_assign.py --repo owner/repo --token $GITHUB_TOKEN --issue 42
+```
+
+### Feature Planning
+
+```bash
+# Plan a feature from a text idea
+python scripts/feature_planner.py --repo owner/repo --token $GITHUB_TOKEN --idea "Add user authentication"
+
+# Plan features from issues labeled 'feature-request'
+python scripts/feature_planner.py --repo owner/repo --token $GITHUB_TOKEN --from-issues
+```
+
+### GitHub Actions Workflows
+
+The following workflows run automatically:
+
+1. **Auto-Triage** (`auto-triage.yml`) — Runs on every new issue/PR
+2. **Auto-Merge** (`auto-merge.yml`) — Runs on PR events and CI status changes
+3. **Feature Planning** (`feature-planning.yml`) — Manually triggered via workflow_dispatch
+
+## How It Works
+
+### Auto-Triage Flow
+
+```
+New Issue Created
+       ↓
+Keyword Analysis (title + body)
+       ↓
+Type Detection → bug / enhancement / question / documentation
+       ↓
+Priority Detection → critical / high / medium / low
+       ↓
+Component Detection → frontend / backend / mobile / devops / testing
+       ↓
+Labels Applied + Triage Comment Posted
+```
+
+### Auto-Merge Safety Checks
+
+Before merging a PR, the bot verifies:
+
+- ✅ Not a draft PR
+- ✅ No `do-not-merge` or `wip` labels
+- ✅ CI status is `success`
+- ✅ All check runs passed
+- ✅ At least 1 approved review
+- ✅ No changes to protected files (package.json, requirements.txt, etc.)
+- ✅ PR size under 500 lines changed
+- ✅ Author is not in protected authors list
+
+### Feature Planning Breakdown
+
+The planner uses keyword analysis to match feature ideas to pre-defined task breakdowns:
+
+- **Auth/Login** → 5 sub-tasks (UI, backend, forms, reset, tests)
+- **Dark Mode** → 5 sub-tasks (palette, toggle, components, persistence, testing)
+- **API** → 5 sub-tasks (spec, endpoints, validation, docs, tests)
+- **Dashboard** → 5 sub-tasks (layout, data, UI, charts, tests)
+- **Generic** → 5 sub-tasks (research, design, implement, test, document)
+
+## Configuration
+
+### Labels
+
+All labels are defined in `config/labels.json` with names, colors, and descriptions. Customize this file before running setup.
+
+### Contributors
+
+Edit `config/contributors.json` to map contributors to their areas of expertise:
+
+```json
+{
+  "default": "octocat",
+  "frontend": ["frontend-dev", "ui-designer"],
+  "backend": ["backend-dev", "api-engineer"]
+}
+```
+
+### Custom Workflows
+
+You can customize the GitHub Actions workflows in `.github/workflows/`. The workflows use `actions/github-script` so you can modify the JavaScript logic directly.
+
+## Project Structure
+
+```
+github-automation-bot/
+├── bot.py                          # Main automation bot
+├── setup.py                        # One-time repo setup
+├── requirements.txt                # Python dependencies
+├── README.md                       # This file
+├── config/
+│   ├── labels.json                 # Label definitions
+│   └── contributors.json           # Contributor expertise mapping
+├── scripts/
+│   ├── auto_assign.py              # Smart issue assignment
+│   └── feature_planner.py          # Feature breakdown into sub-tasks
+└── .github/
+    ├── workflows/
+    │   ├── auto-triage.yml         # Auto-label issues on creation
+    │   ├── auto-merge.yml          # Auto-merge PRs that pass CI
+    │   └── feature-planning.yml    # Plan features via workflow_dispatch
+    ├── ISSUE_TEMPLATE/
+    │   ├── bug_report.md
+    │   ├── feature_request.md
+    │   ├── question.md
+    │   └── config.yml
+    ├── PULL_REQUEST_TEMPLATE.md
+    └── dependabot.yml
+```
+
+## Safety & Best Practices
+
+- **Auto-merge is conservative** — only merges PRs under 500 lines with approvals
+- **Protected files** (package.json, requirements.txt, etc.) are never auto-merged
+- **Draft PRs** are never auto-merged
+- **Branch protection** prevents direct pushes to the default branch
+- **All actions are logged** with comments on issues/PRs
+
+## License
+
+MIT
