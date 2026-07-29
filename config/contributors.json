@@ -1,0 +1,10 @@
+{
+  "default": "octocat",
+  "frontend": ["frontend-dev", "ui-designer"],
+  "backend": ["backend-dev", "api-engineer"],
+  "mobile": ["mobile-dev"],
+  "devops": ["devops-engineer"],
+  "testing": ["qa-engineer"],
+  "security": ["security-auditor"],
+  "documentation": ["docs-maintainer"]
+}
