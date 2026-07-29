@@ -1,0 +1,127 @@
+[
+  {
+    "name": "bug",
+    "color": "e11d21",
+    "description": "Something isn't working"
+  },
+  {
+    "name": "enhancement",
+    "color": "006b75",
+    "description": "New feature or improvement"
+  },
+  {
+    "name": "feature",
+    "color": "006b75",
+    "description": "Feature request or new functionality"
+  },
+  {
+    "name": "documentation",
+    "color": "0075ca",
+    "description": "Documentation improvements"
+  },
+  {
+    "name": "question",
+    "color": "cc314b",
+    "description": "Questions about the project"
+  },
+  {
+    "name": "task",
+    "color": "5319e7",
+    "description": "A task to be completed"
+  },
+  {
+    "name": "needs-triage",
+    "color": "fbca03",
+    "description": "Needs to be triaged"
+  },
+  {
+    "name": "wontfix",
+    "color": "ffffff",
+    "description": "Not going to be fixed"
+  },
+  {
+    "name": "duplicate",
+    "color": "bdbdbd",
+    "description": "This issue already exists"
+  },
+  {
+    "name": "stale",
+    "color": "848586",
+    "description": "Inactive for 30+ days"
+  },
+  {
+    "name": "priority:critical",
+    "color": "b60205",
+    "description": "Critical priority — fix immediately"
+  },
+  {
+    "name": "priority:high",
+    "color": "e11d21",
+    "description": "High priority — fix soon"
+  },
+  {
+    "name": "priority:medium",
+    "color": "eb6420",
+    "description": "Medium priority — normal queue"
+  },
+  {
+    "name": "priority:low",
+    "color": "009800",
+    "description": "Low priority — nice to have"
+  },
+  {
+    "name": "frontend",
+    "color": "56b5f0",
+    "description": "Frontend/UI related"
+  },
+  {
+    "name": "backend",
+    "color": "006b75",
+    "description": "Backend/server related"
+  },
+  {
+    "name": "mobile",
+    "color": "7057ff",
+    "description": "Mobile app related"
+  },
+  {
+    "name": "devops",
+    "color": "e08a00",
+    "description": "CI/CD, deployment, infrastructure"
+  },
+  {
+    "name": "testing",
+    "color": "f7c600",
+    "description": "Testing related"
+  },
+  {
+    "name": "security",
+    "color": "b60205",
+    "description": "Security vulnerability"
+  },
+  {
+    "name": "good first issue",
+    "color": "7052fb",
+    "description": "Good for newcomers"
+  },
+  {
+    "name": "help wanted",
+    "color": "008672",
+    "description": "Extra attention is needed"
+  },
+  {
+    "name": "breaking",
+    "color": "b60205",
+    "description": "Breaking change"
+  },
+  {
+    "name": "do-not-merge",
+    "color": "8b0000",
+    "description": "Do not merge this PR"
+  },
+  {
+    "name": "wip",
+    "color": "fbca03",
+    "description": "Work in progress"
+  }
+]
