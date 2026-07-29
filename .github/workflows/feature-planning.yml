@@ -1,0 +1,122 @@
+name: Feature Planning
+
+on:
+  workflow_dispatch:
+    inputs:
+      feature_idea:
+        description: "Feature idea to plan"
+        required: true
+        type: string
+      create_issues:
+        description: "Create GitHub issues for sub-tasks?"
+        required: false
+        type: boolean
+        default: true
+
+permissions:
+  issues: write
+
+jobs:
+  plan-feature:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Plan feature
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const idea = `${{ inputs.feature_idea }}`;
+            const createIssues = `${{ inputs.create_issues }}` === 'true';
+
+            console.log(`Planning feature: ${idea}`);
+
+            // Break down the feature into sub-tasks
+            const ideaLower = idea.toLowerCase();
+            let tasks = [];
+
+            if (ideaLower.includes('login') || ideaLower.includes('auth') || ideaLower.includes('sign')) {
+              tasks = [
+                { title: 'Design auth UI mockups', desc: 'Create wireframes for login, register, and password reset screens.' },
+                { title: 'Implement backend auth endpoints', desc: 'Create API endpoints for login, register, logout, and token refresh.' },
+                { title: 'Add frontend auth forms', desc: 'Build login and registration forms with validation.' },
+                { title: 'Set up password reset flow', desc: 'Implement email-based password reset with secure tokens.' },
+                { title: 'Add auth tests', desc: 'Write unit and integration tests for all auth flows.' },
+              ];
+            } else if (ideaLower.includes('dark mode') || ideaLower.includes('theme') || ideaLower.includes('color')) {
+              tasks = [
+                { title: 'Design dark theme color palette', desc: 'Define all color tokens for the dark theme.' },
+                { title: 'Add theme toggle component', desc: 'Create a switch component to toggle between light/dark themes.' },
+                { title: 'Apply dark theme to all components', desc: 'Update all UI components to support dark mode.' },
+                { title: 'Persist theme preference', desc: 'Save user\'s theme preference in localStorage/cookies.' },
+                { title: 'Test dark mode across browsers', desc: 'Verify dark mode works in Chrome, Firefox, Safari, Edge.' },
+              ];
+            } else if (ideaLower.includes('api') || ideaLower.includes('endpoint') || ideaLower.includes('rest')) {
+              tasks = [
+                { title: 'Design API specification', desc: 'Write OpenAPI/Swagger spec for the new API endpoints.' },
+                { title: 'Implement API endpoints', desc: 'Build the backend routes and controllers.' },
+                { title: 'Add input validation', desc: 'Validate all request parameters and return proper error messages.' },
+                { title: 'Write API documentation', desc: 'Update API docs with examples and usage instructions.' },
+                { title: 'Add API tests', desc: 'Write integration tests for all new endpoints.' },
+              ];
+            } else if (ideaLower.includes('dashboard') || ideaLower.includes('admin') || ideaLower.includes('analytics')) {
+              tasks = [
+                { title: 'Design dashboard layout', desc: 'Create wireframes for the dashboard layout and widgets.' },
+                { title: 'Build data fetching layer', desc: 'Create API calls to fetch dashboard data.' },
+                { title: 'Implement dashboard UI', desc: 'Build the dashboard components and layout.' },
+                { title: 'Add charts and visualizations', desc: 'Integrate charting library and display data visualizations.' },
+                { title: 'Add dashboard tests', desc: 'Write tests for dashboard components and data fetching.' },
+              ];
+            } else {
+              tasks = [
+                { title: 'Research and plan implementation', desc: `Research the best approach for implementing '${idea}'.` },
+                { title: 'Design the solution architecture', desc: `Create architecture diagrams and data models for '${idea}'.` },
+                { title: 'Implement the core functionality', desc: `Build the main implementation for '${idea}'.` },
+                { title: 'Add tests', desc: `Write unit and integration tests for '${idea}'.` },
+                { title: 'Update documentation', desc: `Document the new feature and update README.` },
+              ];
+            }
+
+            if (!createIssues) {
+              console.log(`## Feature Plan: ${idea}\n`);
+              tasks.forEach((t, i) => {
+                console.log(`${i+1}. ${t.title} — ${t.desc}`);
+              });
+              return;
+            }
+
+            // Create parent tracking issue
+            const taskList = tasks.map((t, i) => `- [ ] ${t.title}`).join('\n');
+            const parentBody = `## Feature: ${idea}\n\n### Description\n${idea}\n\n### Sub-tasks\n${taskList}\n\n### Acceptance Criteria\n- [ ] All sub-tasks completed\n- [ ] Tests written and passing\n- [ ] Documentation updated\n- [ ] Code reviewed\n\n---\n*Generated by GitHub Automation Bot*`;
+
+            const parent = await github.rest.issues.create({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              title: `🚀 Feature: ${idea}`,
+              body: parentBody,
+              labels: ['enhancement', 'feature', 'priority:medium']
+            });
+
+            console.log(`Created parent issue #${parent.data.number}`);
+
+            // Create sub-task issues
+            for (let i = 0; i < tasks.length; i++) {
+              const task = tasks[i];
+              const sub = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title: `[${i+1}/${tasks.length}] ${task.title}`,
+                body: `Part of #${parent.data.number} — ${task.desc}`,
+                labels: ['task', `part:${i+1}`]
+              });
+              console.log(`Created sub-task #${sub.data.number}: ${task.title}`);
+
+              // Link to parent
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: parent.data.number,
+                body: `Sub-task: #${sub.data.number} — ${sub.data.title}`
+              });
+            }
+
+            console.log(`\n✅ Feature planned! Parent issue: #${parent.data.number}`);
