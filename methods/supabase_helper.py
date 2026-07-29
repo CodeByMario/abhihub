@@ -1486,23 +1486,21 @@ def get_contribution_timeline(user_id: str) -> Dict:
         return {'success': False, 'timeline': []}
 
 def get_leaderboard_data(college_id: str = None, limit: int = 50) -> Dict:
-    """Fetch leaderboard data from the leaderboard_view."""
+    """Fetch leaderboard data. Tries leaderboard_view first, falls back to calculate_user_ranks()."""
     client = init_supabase()
     if not client: return {'success': False, 'data': []}
-    try:
+
+    def _build_from_view():
         query = client.table('leaderboard_view').select('*').gt('total_xp', 0)
         if college_id:
             query = query.eq('college_id', college_id)
         res = query.order('total_xp', desc=True).limit(limit).execute()
-        
-        # Format the response
         leaderboard = []
         for i, row in enumerate(res.data or []):
             badges = []
             if row.get('total_xp') >= 1000: badges.append('Champion')
             elif row.get('total_xp') >= 500: badges.append('Hero')
             elif row.get('total_xp') >= 100: badges.append('Contributor')
-                
             leaderboard.append({
                 'rank': i + 1,
                 'user_id': row.get('user_id'),
@@ -1512,9 +1510,46 @@ def get_leaderboard_data(college_id: str = None, limit: int = 50) -> Dict:
                 'students_helped': row.get('students_helped', 0),
                 'badges': badges
             })
-        return {'success': True, 'data': leaderboard}
+        return leaderboard
+
+    def _build_from_ranks():
+        """Fallback: build leaderboard from calculate_user_ranks() + reputation stats."""
+        ranks = calculate_user_ranks()
+        leaderboard = []
+        for i, r in enumerate(ranks[:limit]):
+            uid = r.get('uploader_id')
+            pts = r.get('points', 0)
+            # Convert fractional points to XP (multiply by 10 for display)
+            xp = int(pts * 10)
+            badges = []
+            if xp >= 1000: badges.append('Champion')
+            elif xp >= 500: badges.append('Hero')
+            elif xp >= 100: badges.append('Contributor')
+            elif xp >= 10: badges.append('Starter')
+            leaderboard.append({
+                'rank': i + 1,
+                'user_id': uid,
+                'name': r.get('author') or 'Anonymous Student',
+                'email': '',
+                'total_xp': xp,
+                'students_helped': r.get('upload_count', 0),
+                'badges': badges
+            })
+        return leaderboard
+
+    # Try the view first; fall back to direct calculation on any error
+    try:
+        result = _build_from_view()
+        if result:
+            return {'success': True, 'data': result}
     except Exception as e:
-        print(f"Error fetching leaderboard: {e}")
+        print(f"[Leaderboard] View query failed ({e}), falling back to calculate_user_ranks()")
+
+    try:
+        result = _build_from_ranks()
+        return {'success': True, 'data': result}
+    except Exception as e2:
+        print(f"[Leaderboard] Fallback also failed: {e2}")
         return {'success': False, 'data': []}
 
 def update_document_metadata(file_path: str, update_data: dict) -> Dict:
@@ -1946,3 +1981,124 @@ def add_new_entity(entity_type: str, name: str, short_name: str = '', code: str 
         import traceback
         traceback.print_exc()
         return {"success": False, "message": str(e)}
+
+def search_users_db(query_str: str, limit: int = 20) -> list:
+    """Search student profiles by full_name, email, or document author names."""
+    client = init_supabase()
+    if not client: return []
+    try:
+        q = query_str.strip().lower()
+        if not q: return []
+        
+        users_map = {}
+
+        # 1. Search profiles table
+        try:
+            res = client.table('profiles').select('id, full_name, email, reputation_score, rank_title, is_verified, college_id, colleges(name)').or_(f"full_name.ilike.%{q}%,email.ilike.%{q}%").limit(limit).execute()
+            for u in (res.data or []):
+                uid = u.get('id')
+                col = u.get('colleges') or {}
+                name_str = u.get('full_name') or 'Student'
+                users_map[uid] = {
+                    'id': uid,
+                    'name': name_str,
+                    'email': u.get('email', ''),
+                    'reputation_score': u.get('reputation_score', 0),
+                    'rank_title': u.get('rank_title', 'Student'),
+                    'is_verified': u.get('is_verified', False),
+                    'college_name': col.get('name') or '',
+                    'uploads_count': 0
+                }
+        except Exception as e1:
+            print(f"[SearchUsersDB] Profiles query warning: {e1}")
+
+        # 2. Search calculate_user_ranks() for document contributors
+        try:
+            ranks = calculate_user_ranks()
+            for r in ranks:
+                author_name = r.get('author') or ''
+                uid = r.get('uploader_id')
+                if q in author_name.lower() or (uid and uid in users_map):
+                    if uid and uid in users_map:
+                        users_map[uid]['uploads_count'] = r.get('upload_count', users_map[uid]['uploads_count'])
+                        if r.get('points', 0) > 0:
+                            users_map[uid]['reputation_score'] = int(r.get('points', 0) * 10)
+                    elif uid:
+                        users_map[uid] = {
+                            'id': uid,
+                            'name': author_name or 'Student',
+                            'email': '',
+                            'reputation_score': int(r.get('points', 0) * 10),
+                            'rank_title': 'Contributor',
+                            'is_verified': False,
+                            'college_name': '',
+                            'uploads_count': r.get('upload_count', 0)
+                        }
+        except Exception as e2:
+            print(f"[SearchUsersDB] Ranks fallback warning: {e2}")
+
+        result = list(users_map.values())[:limit]
+        return result
+    except Exception as e:
+        print(f"[SearchUsersDB] Error: {e}")
+        return []
+
+def get_user_peer_materials_db(target_user_id: str) -> dict:
+    """Fetch user's uploaded materials and referred materials."""
+    client = init_supabase()
+    if not client: return {'success': False, 'uploads': [], 'referred': []}
+    try:
+        # 1. Fetch user's profile info
+        prof_res = client.table('profiles').select('id, full_name, email, reputation_score, rank_title, colleges(name)').eq('id', target_user_id).limit(1).execute()
+        prof = (prof_res.data or [{}])[0]
+        col = prof.get('colleges') or {}
+
+        # 2. Fetch user's uploaded documents
+        docs_res = client.table('documents').select('id, title, file_url, document_category, file_type, view_count, created_at, subjects(name)').eq('uploader_id', target_user_id).order('created_at', desc=True).limit(20).execute()
+        uploads = []
+        for d in (docs_res.data or []):
+            subj = d.get('subjects') or {}
+            uploads.append({
+                'record_id': d.get('id'),
+                'file-name': d.get('title'),
+                'file-path': d.get('file_url'),
+                'type': d.get('document_category') or 'Papers',
+                'subject': subj.get('name', 'General'),
+                'views': d.get('view_count', 0),
+                'date': str(d.get('created_at', ''))[:10]
+            })
+
+        # 3. Fetch user's referred materials (recently accessed file history)
+        history_res = client.table('user_file_views').select('file_id, created_at, documents(id, title, file_url, document_category, subjects(name))').eq('user_id', target_user_id).order('created_at', desc=True).limit(15).execute()
+        referred = []
+        seen_ids = set()
+        for h in (history_res.data or []):
+            doc = h.get('documents') or {}
+            doc_id = doc.get('id')
+            if not doc_id or doc_id in seen_ids: continue
+            seen_ids.add(doc_id)
+            subj = doc.get('subjects') or {}
+            referred.append({
+                'record_id': doc_id,
+                'file-name': doc.get('title'),
+                'file-path': doc.get('file_url'),
+                'type': doc.get('document_category') or 'Notes',
+                'subject': subj.get('name', 'General')
+            })
+
+        return {
+            'success': True,
+            'user': {
+                'id': prof.get('id'),
+                'name': prof.get('full_name') or 'Student',
+                'college_name': col.get('name') or '',
+                'reputation_score': prof.get('reputation_score', 0),
+                'rank_title': prof.get('rank_title', 'Student')
+            },
+            'uploads': uploads,
+            'referred': referred
+        }
+    except Exception as e:
+        print(f"[PeerMaterialsDB] Error: {e}")
+        return {'success': False, 'uploads': [], 'referred': []}
+

@@ -119,6 +119,7 @@ body {
 
 main {
     padding: 1rem;
+    padding-bottom: 160px; /* Bottom nav clearance — AdSense compliance */
     margin-top: 20px;
     min-height: calc(100vh - 140px);
     width: auto;
@@ -541,7 +542,9 @@ main {
     position: absolute;
     background-color: #f9f9f9;
     box-shadow: 0px 8px 16px 0px rgba(0,0,0,0.2);
-    z-index: 1;
+    /* Raised from 1 to 1005 — must be above AdSense ad units (AdSense default z-index varies)
+       and below overlays (11000) but above nav (1000). */
+    z-index: 1005;
     margin-top: 1.5rem;
     right: 0; 
     left: auto;
@@ -577,18 +580,21 @@ main {
     display: none;
 }
 
-/* === Buttons === */
+/* === Buttons ===
+   width:100% scoped to auth forms only to prevent accidental ad clicks
+   caused by oversized button hit areas near ad units (AdSense policy). */
 button {
     font-weight: 600;
-    width: 100%;
+    /* width removed from global scope — apply width:100% only where needed */
 }
 
 button:hover {
     cursor: pointer;
 }
 
-/* === Forms === */
-input, button {
+/* === Forms (auth pages only) === */
+.login-form input,
+.login-form button {
     padding: var(--element-padding);
     border-radius: var(--element-border-radius);
     width: 100%;

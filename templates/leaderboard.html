@@ -143,15 +143,20 @@
 </style>
 
 <div class="lb-header">
-  <h1>🏆 Global Leaderboard</h1>
-  <p>Top contributors who are helping thousands of students by uploading quality study materials.</p>
+  <h1>🏆 AbhiHub Leaderboard</h1>
+  <p>Top student contributors helping peers ace their exams with notes, PYQs, and study resources.</p>
+  <div style="margin-top: 1.2rem;">
+    <button onclick="openPeerSearchModal()" style="background: #7c3aed; color: #fff; border: none; padding: 0.65rem 1.4rem; border-radius: 99px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);">
+      🔍 Find Students & Notes
+    </button>
+  </div>
 </div>
 
 <div class="lb-container">
   {% if leaderboard|length >= 3 %}
   <div class="podium">
     <!-- Rank 2 -->
-    <div class="podium-item rank-2">
+    <div class="podium-item rank-2" onclick="openPeerSearchModal(); viewPeerDetail('{{ leaderboard[1].user_id }}');" style="cursor:pointer;">
       {% set u2 = leaderboard[1] %}
       <img src="{{ u2.avatar_url or 'https://ui-avatars.com/api/?name=' ~ u2.name|urlencode ~ '&background=cbd5e1&color=fff' }}" class="podium-avatar" alt="{{ u2.name }}">
       <div class="podium-base">
@@ -161,7 +166,7 @@
     </div>
     
     <!-- Rank 1 -->
-    <div class="podium-item rank-1">
+    <div class="podium-item rank-1" onclick="openPeerSearchModal(); viewPeerDetail('{{ leaderboard[0].user_id }}');" style="cursor:pointer;">
       {% set u1 = leaderboard[0] %}
       <img src="{{ u1.avatar_url or 'https://ui-avatars.com/api/?name=' ~ u1.name|urlencode ~ '&background=fbbf24&color=fff' }}" class="podium-avatar" alt="{{ u1.name }}">
       <div class="podium-base">
@@ -172,7 +177,7 @@
     </div>
     
     <!-- Rank 3 -->
-    <div class="podium-item rank-3">
+    <div class="podium-item rank-3" onclick="openPeerSearchModal(); viewPeerDetail('{{ leaderboard[2].user_id }}');" style="cursor:pointer;">
       {% set u3 = leaderboard[2] %}
       <img src="{{ u3.avatar_url or 'https://ui-avatars.com/api/?name=' ~ u3.name|urlencode ~ '&background=b45309&color=fff' }}" class="podium-avatar" alt="{{ u3.name }}">
       <div class="podium-base">
@@ -186,7 +191,7 @@
   <div class="lb-list">
     {% for user in leaderboard %}
       {% if loop.index > 3 or leaderboard|length < 3 %}
-        <div class="lb-row">
+        <div class="lb-row" onclick="openPeerSearchModal(); viewPeerDetail('{{ user.user_id }}');" style="cursor:pointer;" title="Click to view {{ user.name }}'s materials">
           <div class="lb-rank">#{{ user.rank }}</div>
           <img src="{{ user.avatar_url or 'https://ui-avatars.com/api/?name=' ~ user.name|urlencode ~ '&background=e2e8f0&color=64748b' }}" class="lb-row-avatar" alt="{{ user.name }}">
           <div class="lb-row-info">
@@ -208,4 +213,6 @@
     {% endfor %}
   </div>
 </div>
+
+{% include 'includes/_peer_search_modal.html' %}
 {% endblock %}

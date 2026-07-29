@@ -47,6 +47,8 @@
     padding: 0 1rem;
     gap: .75rem;
     box-shadow: 0 1px 4px rgba(0,0,0,.04);
+    position: relative;
+    z-index: 5;
   }
 
   .reader-back {
@@ -373,6 +375,15 @@
       </a>
       {% endif %}
 
+      <button class="rdr-btn"
+              style="background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: #ffffff; border: none; font-weight: 700; gap: 0.35rem;"
+              id="aiToggleBtn"
+              onclick="openAIModal()"
+              aria-label="Ask AI Assistant"
+              title="Ask AI & Unlimited OCR">
+        🤖 <span class="btn-label">Ask AI</span>
+      </button>
+
       <button class="rdr-btn rdr-btn-info"
               id="infoToggleBtn"
               onclick="openInfo()"
@@ -459,6 +470,55 @@
   </div><!-- /.info-panel -->
 </div><!-- /.info-backdrop -->
 
+<!-- ── AI Assistant Modal ────────────────────────────────────── -->
+<div class="info-backdrop" id="aiBackdrop" role="dialog" aria-modal="true" aria-labelledby="aiPanelTitle" onclick="if(event.target===this)closeAIModal()">
+  <div class="info-panel" id="aiPanel" style="max-width: 600px;">
+
+    <div class="info-panel-header">
+      <span class="info-panel-title" id="aiPanelTitle">🤖 AbhiHub AI Paper Assistant</span>
+      <button class="info-close-btn" onclick="closeAIModal()" aria-label="Close AI panel">✕</button>
+    </div>
+
+    <div style="padding: 1.25rem;">
+      <!-- AI Model Selector -->
+      <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; background: #f1f5f9; padding: 0.6rem 0.8rem; border-radius: 12px;">
+        <span style="font-size: 0.82rem; font-weight: 700; color: #334155;">🧠 Select AI / OCR Model:</span>
+        <select id="pdfAiModelSelect" style="flex: 1; padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 600; background: #ffffff; color: #1e293b;">
+          <option value="auto" selected>✨ Auto (NVIDIA Llama 3.1 70B & Vision Fallback)</option>
+          <option value="google/gemini-2.0-flash-lite-preview-02-05:free">Google Gemini 2.0 Flash Lite (Free)</option>
+          <option value="google/gemini-2.0-flash-exp:free">Google Gemini 2.0 Flash (Free)</option>
+          <option value="qwen/qwen-2.5-vl-72b-instruct:free">Qwen 2.5 Vision 72B (Free)</option>
+          <option value="meta-llama/llama-3.2-11b-vision-instruct:free">Meta Llama 3.2 Vision 11B (Free)</option>
+          <option value="mistralai/pixtral-12b:free">Mistral Pixtral 12B Vision (Free)</option>
+          <option value="deepseek/deepseek-r1:free">DeepSeek R1 Reasoning (Free)</option>
+        </select>
+      </div>
+
+      <!-- Quick Action Chips -->
+      <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem;">
+        <button onclick="fillPdfQuestion('Extract all text from this PDF (OCR)')" style="padding: 0.3rem 0.65rem; border-radius: 99px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 0.75rem; font-weight: 600; color: #2563eb; cursor: pointer;">🔍 Extract OCR Text</button>
+        <button onclick="fillPdfQuestion('Summarize key points in this paper')" style="padding: 0.3rem 0.65rem; border-radius: 99px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 0.75rem; font-weight: 600; color: #475569; cursor: pointer;">📌 Summarize Paper</button>
+        <button onclick="fillPdfQuestion('Solve question 1 step-by-step')" style="padding: 0.3rem 0.65rem; border-radius: 99px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 0.75rem; font-weight: 600; color: #475569; cursor: pointer;">📝 Solve Q1</button>
+        <button onclick="fillPdfQuestion('List main topics & formulas')" style="padding: 0.3rem 0.65rem; border-radius: 99px; border: 1px solid #cbd5e1; background: #ffffff; font-size: 0.75rem; font-weight: 600; color: #475569; cursor: pointer;">🧪 Formulas & Topics</button>
+      </div>
+
+      <!-- Question Box -->
+      <div style="display: flex; gap: 0.5rem; margin-bottom: 1rem;">
+        <input id="pdfAiQuestion" type="text" placeholder="Ask anything about this document..." maxlength="300"
+               style="flex: 1; padding: 0.65rem 0.9rem; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 0.9rem; outline: none;"
+               onkeydown="if(event.key==='Enter')askPdfAI()">
+        <button id="pdfAiSendBtn" onclick="askPdfAI()"
+                style="padding: 0.65rem 1.25rem; background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; white-space: nowrap;">
+          Ask AI
+        </button>
+      </div>
+
+      <!-- AI Response Container -->
+      <div id="pdfAiResult" style="display: none; padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; font-size: 0.9rem; line-height: 1.6; color: #1e293b; max-height: 250px; overflow-y: auto; white-space: pre-wrap;"></div>
+    </div>
+  </div>
+</div>
+
 <!-- ── AdBlocker overlay ──────────────────────────────────────── -->
 <div class="sys-overlay" id="adBlockerOverlay" role="alertdialog" aria-labelledby="adblockTitle">
   <div class="sys-card">
@@ -480,6 +540,59 @@
     }
   }
 
+  /* ── AI Modal & Assistant ─────────────────────────────── */
+  function openAIModal() {
+    document.getElementById('aiBackdrop').classList.add('open');
+  }
+  function closeAIModal() {
+    document.getElementById('aiBackdrop').classList.remove('open');
+  }
+  function fillPdfQuestion(q) {
+    document.getElementById('pdfAiQuestion').value = q;
+    askPdfAI();
+  }
+
+  async function askPdfAI() {
+    const qInput = document.getElementById('pdfAiQuestion');
+    const question = qInput.value.trim();
+    if (!question) return;
+
+    const btn = document.getElementById('pdfAiSendBtn');
+    const resBox = document.getElementById('pdfAiResult');
+    const model = document.getElementById('pdfAiModelSelect').value;
+    const docId = "{{ file_meta.get('id', '') }}";
+
+    btn.disabled = true;
+    btn.innerText = 'Thinking...';
+    resBox.style.display = 'block';
+    resBox.innerText = '🤖 Analyzing PDF content with selected AI model...';
+
+    try {
+      // If OCR explicitly requested, trigger OCR endpoint
+      const isOcr = question.toLowerCase().includes('ocr') || question.toLowerCase().includes('extract all text');
+      const endpoint = isOcr ? '/api/extract-ocr' : '/api/ask-paper';
+      const bodyData = isOcr ? { doc_id: docId, model: model } : { doc_id: docId, question: question, model: model };
+
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(bodyData)
+      });
+      const data = await res.json();
+
+      if (data.success) {
+        resBox.innerText = data.answer || data.ocr_text || 'No text extracted.';
+      } else {
+        resBox.innerText = '⚠️ ' + (data.message || 'AI request failed. Please try again.');
+      }
+    } catch (err) {
+      resBox.innerText = '⚠️ Error connecting to AI server. Please retry.';
+    } finally {
+      btn.disabled = false;
+      btn.innerText = 'Ask AI';
+    }
+  }
+
   /* ── Info modal ─────────────────────────────────────────── */
   function openInfo() {
     const bd = document.getElementById('infoBackdrop');
@@ -494,7 +607,7 @@
     if (e.target === document.getElementById('infoBackdrop')) closeInfo();
   }
   document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') closeInfo();
+    if (e.key === 'Escape') { closeInfo(); closeAIModal(); }
   });
 
   /* ── PDF Renderer ────────────────────────────────────────── */

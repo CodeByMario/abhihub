@@ -57,6 +57,21 @@
 }
 
 /* ════════════════════════════════════════
+   MAIN CONTENT BOTTOM PADDING
+   Prevents bottom nav (fixed, ~80px) from
+   covering page content or ad units.
+   AdSense policy: no content/ads hidden by nav.
+   ════════════════════════════════════════ */
+main, .main-content, [role="main"] {
+    padding-bottom: 160px; /* 80px nav + 80px ad clearance */
+}
+@media (min-width: 769px) {
+    main, .main-content, [role="main"] {
+        padding-bottom: 120px; /* Desktop: navbar floats at bottom:30px */
+    }
+}
+
+/* ════════════════════════════════════════
    BOTTOM NAVBAR (authenticated)
    ════════════════════════════════════════ */
 .navbar {
@@ -196,7 +211,8 @@
         border-radius: 16px;
     }
     .navbar__item--fab {
-        margin-top: -35px;
+        /* Reduced from -35px — less intrusion into content above nav */
+        margin-top: -20px;
         overflow: visible;
     }
     .navbar__item--fab .navbar__icon--fab {

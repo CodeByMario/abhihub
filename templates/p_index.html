@@ -1,4 +1,5 @@
-{% set seo_description = "Welcome to AbhiHub! Download free engineering previous year question papers (PYQs), study notes, practicals, and exam resources for top colleges across India." %}
+{% set seo_description = "Welcome to AbhiHub! Download free engineering previous year question papers (PYQs), study
+notes, practicals, and exam resources for top colleges across India." %}
 {% extends 'p_struct.html' %}
 {% block page_head %}
 <meta name="description"
@@ -28,142 +29,221 @@
 
 
 <!-- Personalized Welcome Section (shown only when user is logged in) -->
+<!-- Personalized User Status Banner (Sleek, Compact Redesign) -->
 {% if user_data %}
-<div class="section-layout dashboard-welcome-layout">
-  <div class="file-section dashboard-welcome-panel">
-    <div class="dashboard-welcome-header">
+<div class="welcome-mini-banner">
+  <div class="welcome-mini-content">
+    <div class="welcome-mini-user">
       {% set hour = (now.hour if now else 12) %}
-      {% if hour < 12 %} <h1>🌅 Good Morning, {{ user_data.name }}!</h1>
-        {% elif hour < 17 %} <h1>☀️ Good Afternoon, {{ user_data.name }}!</h1>
-          {% elif hour < 21 %} <h1>🌆 Good Evening, {{ user_data.name }}!</h1>
-            {% else %}
-            <h1>🌙 Good Night, {{ user_data.name }}!</h1>
-            {% endif %}
-            <p class="dashboard-welcome-subtitle">Ready to level up your
-              exam prep? 🚀</p>
-            {% if user_data.get('badges') %}
-            <div class="dashboard-welcome-tags">
-              {% for badge in user_data.badges %}
-              <span class="dashboard-welcome-badge">
-                🏆 {{ badge }}
-              </span>
-              {% endfor %}
-            </div>
-            {% else %}
-            <div class="dashboard-welcome-spacer"></div>
-            {% endif %}
+      <span class="welcome-mini-greeting">
+        {% if hour < 12 %}🌅 Good Morning,{% elif hour < 17 %}☀️ Good Afternoon,{% elif hour < 21 %}🌆 Good Evening,{% else %}🌙 Good Night,{% endif %}
+        <strong>{{ user_data.name }}</strong>!
+      </span>
+      {% if user_data.get('badges') %}
+        <span class="welcome-mini-badge">🏆 {{ user_data.badges[0] }}</span>
+      {% endif %}
+    </div>
 
-            <!-- User Statistics Cards -->
-            <div class="dashboard-welcome-stats">
-              <div class="dashboard-stat-card">
-                <div class="dashboard-stat-value">{{ user_data.uploads_count }}</div>
-                <div class="dashboard-stat-label">Total Uploads</div>
-              </div>
-              {% if user_data.notes_count > 0 %}
-              <div class="dashboard-stat-card">
-                <div class="dashboard-stat-value">{{ user_data.notes_count }}</div>
-                <div class="dashboard-stat-label">Notes Shared</div>
-              </div>
-              {% endif %}
-              {% if user_data.papers_count > 0 %}
-              <div class="dashboard-stat-card">
-                <div class="dashboard-stat-value">{{ user_data.papers_count }}</div>
-                <div class="dashboard-stat-label">Papers Shared</div>
-              </div>
-              {% endif %}
-              {% if user_data.subjects_contributed > 0 %}
-              <div class="dashboard-stat-card">
-                <div class="dashboard-stat-value">{{ user_data.subjects_contributed }}</div>
-                <div class="dashboard-stat-label">Subjects</div>
-              </div>
-              {% endif %}
+    <div class="welcome-mini-stats">
+      <div class="welcome-stat-pill" title="Global Rank">
+        <span class="welcome-stat-icon">🏆</span>
+        <span class="welcome-stat-val" id="live-global-rank">#{{ user_data.global_rank }}</span>
+        <span class="welcome-stat-lbl">Rank</span>
+      </div>
 
-              <!-- Impact Counter -->
-              {% if user_data.get('students_helped', 0) > 0 %}
-              <div class="dashboard-stat-card dashboard-stat-highlight dashboard-stat-pink">
-                <div class="dashboard-stat-value dashboard-highlight">{{ user_data.get('students_helped', 0) }} 💙</div>
-                <div class="dashboard-stat-label dashboard-highlight-label">Students Helped</div>
-              </div>
-              {% endif %}
+      <div class="welcome-stat-pill" title="Reputation Points">
+        <span class="welcome-stat-icon">⚡</span>
+        <span class="welcome-stat-val" id="live-reputation-score">{{ user_data.reputation_score }}</span>
+        <span class="welcome-stat-lbl">Pts</span>
+      </div>
 
-              <!-- Study Views Remaining -->
-              <div class="dashboard-stat-card dashboard-stat-highlight dashboard-stat-green">
-                <div class="dashboard-stat-value dashboard-highlight">{{ user_data.get('paper_quota_remaining', 19) }}
-                  📚</div>
-                <div class="dashboard-stat-label dashboard-highlight-label">Study Views Left</div>
-              </div>
+      <div class="welcome-stat-pill" title="Study Views Left Today">
+        <span class="welcome-stat-icon">📚</span>
+        <span class="welcome-stat-val">{{ user_data.get('paper_quota_remaining', 19) }}</span>
+        <span class="welcome-stat-lbl">Views</span>
+      </div>
 
-              <!-- New Profile & Rank Info -->
-              <div class="dashboard-stat-card dashboard-stat-muted">
-                <div id="live-global-rank" class="dashboard-stat-value">#{{ user_data.global_rank }}</div>
-                <div class="dashboard-stat-label">Global Rank</div>
-              </div>
-              <div class="dashboard-stat-card dashboard-stat-muted">
-                <div id="live-reputation-score" class="dashboard-stat-value">{{ user_data.reputation_score }}</div>
-                <div class="dashboard-stat-label">Reputation Pts</div>
-              </div>
-              <div class="dashboard-stat-card dashboard-stat-muted">
-                <div class="dashboard-stat-role">{{ user_data.role }}</div>
-                <div class="dashboard-stat-label">{{ user_data.rank_title }} {% if user_data.is_verified %}✔️{% endif %}
-                </div>
-              </div>
+      {% if user_data.get('students_helped', 0) > 0 %}
+      <div class="welcome-stat-pill highlight" title="Students Helped">
+        <span class="welcome-stat-icon">💙</span>
+        <span class="welcome-stat-val">{{ user_data.get('students_helped', 0) }}</span>
+        <span class="welcome-stat-lbl">Helped</span>
+      </div>
+      {% endif %}
+    </div>
 
-              <!-- Support Card (Highlighted + Animated) -->
-              <a href="{{ url_for('support') }}" class="support-us-card">
-                <div class="support-us-shimmer"></div>
-                <div class="support-us-heart">💝</div>
-                <div class="support-us-text">Support Us</div>
-              </a>
-
-            </div>
-
-            <script>
-              // Live poll to update rank and reputation points
-              function startLiveRankPolling() {
-                setInterval(() => {
-                  const authorName = window.ABHIHUB_USER_NAME;
-                  if (!authorName) return;
-
-                  fetch('/rank')
-                    .then(r => r.json())
-                    .then(data => {
-                      if (data.status === 'success' && data.rank) {
-                        let newRank = '-';
-                        let newPoints = 0;
-
-                        data.rank.forEach((r, idx) => {
-                          if (r.author === authorName) {
-                            newRank = (idx + 1).toString();
-                            newPoints = r.points;
-                          }
-                        });
-
-                        const elRank = document.getElementById('live-global-rank');
-                        const elPts = document.getElementById('live-reputation-score');
-                        if (elRank) elRank.innerText = newRank !== '-' ? '#' + newRank : '-';
-                        if (elPts) elPts.innerText = newPoints;
-                      }
-                    })
-                    .catch(err => console.error("Poll rank error", err));
-                }, 30000); // Poll every 30 seconds
-              }
-
-              document.addEventListener("DOMContentLoaded", () => {
-                startLiveRankPolling();
-              });
-            </script>
-
-            {% if user_data.uploads_count == 0 %}
-            <div class="dashboard-empty-state">
-              <p class="dashboard-empty-title">🎯 Ready to contribute to the community?</p>
-              <a href="/upload" class="dashboard-empty-action">
-                Upload Your First File 📤
-              </a>
-            </div>
-            {% endif %}
+    <div class="welcome-mini-actions">
+      <button onclick="openPeerSearchModal()" class="welcome-action-btn peer" title="Search Students & Peer Notes">🔍 Find Peers</button>
+      <a href="/upload" class="welcome-action-btn primary">📤 Upload</a>
+      <a href="{{ url_for('support') }}" class="welcome-action-btn support" title="Support Us">💝</a>
     </div>
   </div>
 </div>
+
+{% include 'includes/_peer_search_modal.html' %}
+
+<style>
+.welcome-mini-banner {
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+  border-radius: 18px;
+  padding: 0.85rem 1.25rem;
+  margin: 1rem 0;
+  box-shadow: 0 8px 24px rgba(49, 46, 129, 0.25);
+  color: #ffffff;
+}
+.welcome-mini-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.welcome-mini-user {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: 1rem;
+}
+.welcome-mini-greeting strong {
+  color: #a5b4fc;
+}
+.welcome-mini-badge {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.2rem 0.6rem;
+  border-radius: 99px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  backdrop-filter: blur(4px);
+}
+.welcome-mini-stats {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.welcome-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.1);
+  padding: 0.35rem 0.75rem;
+  border-radius: 12px;
+  font-size: 0.85rem;
+  backdrop-filter: blur(6px);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+}
+.welcome-stat-pill.highlight {
+  background: rgba(236, 72, 153, 0.2);
+  border-color: rgba(236, 72, 153, 0.3);
+}
+.welcome-stat-icon {
+  font-size: 0.9rem;
+}
+.welcome-stat-val {
+  font-weight: 800;
+  color: #ffffff;
+}
+.welcome-stat-lbl {
+  font-size: 0.75rem;
+  opacity: 0.75;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+.welcome-mini-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.welcome-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.45rem 0.9rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.82rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+.welcome-action-btn.primary {
+  background: #6366f1;
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+}
+.welcome-action-btn.primary:hover {
+  background: #4f46e5;
+  transform: translateY(-1px);
+}
+.welcome-action-btn.peer {
+  background: rgba(255, 255, 255, 0.18);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  cursor: pointer;
+}
+.welcome-action-btn.peer:hover {
+  background: rgba(255, 255, 255, 0.3);
+}
+.welcome-action-btn.support {
+  background: rgba(244, 63, 94, 0.2);
+  color: #fda4af;
+  border: 1px solid rgba(244, 63, 94, 0.3);
+}
+.welcome-action-btn.support:hover {
+  background: rgba(244, 63, 94, 0.35);
+}
+
+@media (max-width: 768px) {
+  .welcome-mini-content {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .welcome-mini-stats {
+    width: 100%;
+    justify-content: space-between;
+  }
+  .welcome-mini-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
+}
+</style>
+
+<script>
+  // Live poll to update rank and reputation points
+  function startLiveRankPolling() {
+    setInterval(() => {
+      const authorName = window.ABHIHUB_USER_NAME;
+      if (!authorName) return;
+
+      fetch('/rank')
+        .then(r => r.json())
+        .then(data => {
+          if (data.status === 'success' && data.rank) {
+            let newRank = '-';
+            let newPoints = 0;
+
+            data.rank.forEach((r, idx) => {
+              if (r.author === authorName) {
+                newRank = (idx + 1).toString();
+                newPoints = r.points;
+              }
+            });
+
+            const elRank = document.getElementById('live-global-rank');
+            const elPts = document.getElementById('live-reputation-score');
+            if (elRank) elRank.innerText = newRank !== '-' ? '#' + newRank : '-';
+            if (elPts) elPts.innerText = newPoints;
+          }
+        })
+        .catch(err => console.error("Poll rank error", err));
+    }, 30000);
+  }
+
+  document.addEventListener("DOMContentLoaded", () => {
+    startLiveRankPolling();
+  });
+</script>
 {% endif %}
 
 <!-- ── MemoryWall Awareness Popup (shows once) ─────────────────────── -->
@@ -783,9 +863,9 @@
           <div class="hero-stat">🔥<span>Trending</span></div>
         </div>
         <form class="hero-search-wrap" action="/dashboard"
-          onsubmit="event.preventDefault(); document.getElementById('searchFileName').value=this.querySelector('input').value; document.getElementById('searchBtn').click(); document.querySelector('.container_search').scrollIntoView({behavior:'smooth'});">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-          <input type="text" placeholder="Search subjects, PYQ, notes…" autocomplete="off">
+          onsubmit="event.preventDefault(); const val=document.getElementById('heroSearchInput').value; const target=document.getElementById('searchFileName'); if(target){ target.value=val; target.dispatchEvent(new Event('input')); } const btn=document.getElementById('searchBtn'); if(btn){ btn.click(); } const sec=document.querySelector('.container_search'); if(sec){ sec.scrollIntoView({behavior:'smooth'}); }">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="text" id="heroSearchInput" placeholder="Search subjects, PYQ, notes…" autocomplete="off">
           <button type="submit" class="hero-search-btn">🔍 Search</button>
         </form>
   </div>
@@ -793,7 +873,7 @@
 
 <!-- Ad Placement (Banner) -->
 <div class="home-section" style="padding-top:1rem; padding-bottom:0;">
-    {% include 'ads/banner.html' %}
+  {% include 'ads/banner.html' %}
 </div>
 
 <!-- ── MemoryWall Feature Card ──────────────────────────────── -->

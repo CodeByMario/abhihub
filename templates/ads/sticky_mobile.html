@@ -1,19 +1,19 @@
 {# 
-  Premium Mobile Sticky Anchor Ad
-  Usage: Place this right before </body> in the app shell.
-  Goal: Highest eCPM and Viewability. Designed to sit flush above the mobile navigation bar.
+  Mobile Sticky Anchor Ad — sits above the bottom nav bar (AdSense compliant)
+  Usage: Place right before </body> in the app shell.
+  AdSense policy: ≥150px clear gap from all navigation elements.
 #}
 <div class="ad-sticky-wrapper" id="adSticky">
   <div class="ad-sticky-header">
       <span class="ad-sticky-label">Advertisement</span>
-      <button class="ad-sticky-close" onclick="document.getElementById('adSticky').style.display='none'" aria-label="Close Ad">
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+      <button class="ad-sticky-close" id="adStickyClose" aria-label="Close Ad">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
       </button>
   </div>
   <div class="ad-sticky-content">
-      <!-- Placeholder AbhiHub Logo -->
+      <!-- Replace with real AdSense ins tag when approved -->
       <img src="{{ url_for('static', filename='images/apple-touch-icon.png') }}" 
-           alt="AbhiHub Ad Placeholder" 
+           alt="Advertisement" 
            style="width:auto; height:50px; opacity: 0.5;">
   </div>
 </div>
@@ -21,19 +21,17 @@
 <style>
 .ad-sticky-wrapper {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    margin: auto;
-    width: 100%;
+    /* Sits 110px from bottom — 20px clear gap above the 90px floating navbar pill */
+    bottom: 110px !important;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(100% - 32px);
     max-width: 400px;
-    background: var(--surface);
-    border-bottom-left-radius: var(--radius-xl);
-    border-bottom-right-radius: var(--radius-xl);
-    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
-    z-index: 9999;
-    border: 1px solid var(--border-light);
-    border-top: none;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    z-index: 990;
+    border: 1px solid rgba(0,0,0,0.08);
     overflow: hidden;
 }
 .ad-sticky-header {
@@ -41,58 +39,55 @@
     justify-content: space-between;
     align-items: center;
     padding: 4px 12px;
-    background: var(--bg-tertiary);
-    border-bottom: 1px solid var(--border-light);
+    background: #f8fafc;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
 }
 .ad-sticky-label {
     font-size: 10px;
-    color: var(--text-tertiary);
+    color: #94a3b8;
     text-transform: uppercase;
     letter-spacing: 0.05em;
 }
 .ad-sticky-close {
     background: none;
     border: none;
-    color: var(--text-secondary);
-    padding: 4px;
+    color: #94a3b8;
+    padding: 6px;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
     border-radius: 50%;
+    /* Larger touch target — AdSense requires min 32x32px hit area */
+    min-width: 32px;
+    min-height: 32px;
 }
-.ad-sticky-close:hover {
-    background: var(--gray-200);
-}
+.ad-sticky-close:hover { background: #f1f5f9; }
 .ad-sticky-content {
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 50px;
-    background: var(--bg-primary);
+    min-height: 60px;
+    background: #fff;
+    padding: 4px 0;
 }
 
 @media (min-width: 768px) {
-    /* Hide on desktop, sticky is usually annoying on desktop and less effective */
-    .ad-sticky-wrapper {
-        display: none !important;
-    }
+    /* Hide on desktop */
+    .ad-sticky-wrapper { display: none !important; }
 }
 </style>
 
 <script>
 (function() {
-    // Push the body down so the top anchor ad sits perfectly at the top edge 
-    // and pushes the sticky header down below it.
-    if (window.innerWidth < 768) {
-        document.body.style.paddingTop = '90px'; 
+    var closeBtn = document.getElementById('adStickyClose');
+    if (closeBtn) {
+        closeBtn.addEventListener('click', function() {
+            var el = document.getElementById('adSticky');
+            if (el) el.style.display = 'none';
+        });
     }
-    
-    // Override the close button to also remove the padding
-    document.querySelector('.ad-sticky-close').addEventListener('click', function(e) {
-        e.preventDefault();
-        document.getElementById('adSticky').style.display = 'none';
-        document.body.style.paddingTop = '';
-    });
 })();
 </script>
+
+

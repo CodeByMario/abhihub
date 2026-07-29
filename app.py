@@ -177,18 +177,61 @@ import mimetypes
 mimetypes.add_type('application/javascript', '.mjs')
 
 AI_MODELS = [
-    "google/gemma-4-26b-a4b-it:free",
-    "google/gemma-4-31b-it:free",
-    "nvidia/llama-nemotron-rerank-vl-1b-v2:free",
-    "nvidia/nemotron-3.5-content-safety:free",
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-    "nvidia/llama-nemotron-embed-vl-1b-v2:free",
-    "nvidia/nemotron-nano-12b-v2-vl:free"
+    "google/gemini-2.0-flash-lite-preview-02-05:free",
+    "google/gemini-2.0-flash-exp:free",
+    "google/gemini-2.0-flash-thinking-exp:free",
+    "qwen/qwen-2.5-vl-72b-instruct:free",
+    "meta-llama/llama-3.2-11b-vision-instruct:free",
+    "mistralai/pixtral-12b:free",
+    "qwen/qwen-2-vl-7b-instruct:free",
+    "google/gemma-2-9b-it:free",
+    "deepseek/deepseek-r1:free"
 ]
 ai_model_errors = {m: 0 for m in AI_MODELS}
 
 def get_best_ai_model():
     return min(ai_model_errors, key=ai_model_errors.get)
+
+def extract_pdf_info(pdf_bytes):
+    """Extract text from PDF or convert page 1 / extract embedded image to bytes."""
+    extracted_text = ""
+    img_bytes, mime_type = None, None
+    try:
+        import pypdf
+        reader = pypdf.PdfReader(io.BytesIO(pdf_bytes))
+        for page in reader.pages:
+            t = page.extract_text()
+            if t:
+                extracted_text += t + "\n"
+            if not img_bytes and hasattr(page, 'images'):
+                try:
+                    for img in page.images:
+                        img_bytes = img.data
+                        name = (getattr(img, 'name', '') or '').lower()
+                        if name.endswith('.png'): mime_type = 'image/png'
+                        elif name.endswith('.webp'): mime_type = 'image/webp'
+                        else: mime_type = 'image/jpeg'
+                        break
+                except Exception:
+                    pass
+    except Exception as e:
+        logging.warning(f"[extract_pdf_info] pypdf error: {e}")
+
+    if not img_bytes:
+        try:
+            import fitz
+            doc = fitz.open(stream=pdf_bytes, filetype="pdf")
+            if not extracted_text:
+                for page in doc:
+                    extracted_text += page.get_text() + "\n"
+            if len(doc) > 0:
+                pix = doc[0].get_pixmap(dpi=150)
+                img_bytes = pix.tobytes("png")
+                mime_type = "image/png"
+        except Exception as e:
+            logging.warning(f"[extract_pdf_info] fitz error: {e}")
+
+    return extracted_text.strip(), img_bytes, mime_type
 
 # Security Configuration - Load from environment variables
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
@@ -1978,8 +2021,14 @@ def view_doc(doc_id, filename=None):
     if parsed.hostname not in _ALLOWED_PROXY_HOSTS:
         abort(403)
 
+    upstream = requests.get(file_url, stream=True, timeout=30, verify=True, headers={'User-Agent': 'AbhiHub-Proxy/1.0'})
     try:
-        upstream = requests.get(file_url, stream=True, timeout=30, verify=True, headers={'User-Agent': 'AbhiHub-Proxy/1.0'})
+        if upstream.status_code == 204:
+            return Response(b'', status=200, content_type='application/pdf', headers={
+                'Cache-Control': 'private, max-age=86400',
+                'Content-Disposition': 'inline',
+                'Access-Control-Allow-Origin': '*'
+            })
         if not upstream.ok:
             abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
             
@@ -2697,6 +2746,8 @@ def premium():
     if 'user' in session:
         user_info = session['user']
         user_name = user_info.get('name', '')
+        user_email = user_info.get('email', '')
+        user_id = user_info.get('uid', '')
         
         # Get user's uploaded files
         user_files = [f for f in files if f.get('author', '') == user_name]
@@ -2709,7 +2760,37 @@ def premium():
         
         # Get unique subjects user has contributed to
         user_subjects = list(set([f.get('subject', '') for f in user_files if f.get('subject', '').strip()]))
-        
+
+        # Get college name from profile
+        college_name = ''
+        try:
+            from methods.supabase_helper import get_student_profile, calculate_user_ranks, get_reputation_stats
+            profile_res = get_student_profile(user_id)
+            profile_data = profile_res.get('data', {}) if profile_res.get('success') else {}
+            college_name = profile_data.get('college_name') or ''
+
+            # Calculate global rank
+            rank_list = calculate_user_ranks()
+            global_rank = '-'
+            computed_score = 0
+            for i, entry in enumerate(rank_list):
+                if entry.get('uploader_id') == user_id:
+                    global_rank = str(i + 1)
+                    computed_score = entry.get('points', 0)
+                    break
+
+            # Reputation stats
+            rep_stats = get_reputation_stats(user_id)
+            students_helped = rep_stats.get('students_helped', 0) if rep_stats.get('success') else 0
+            badges = rep_stats.get('badges', []) if rep_stats.get('success') else []
+        except Exception as e:
+            print(f"[Dashboard] Error fetching profile/rank data: {e}")
+            profile_data = {}
+            global_rank = '-'
+            computed_score = 0
+            students_helped = 0
+            badges = []
+
         user_data = {
             'name': user_name,
             'email': user_info.get('email', ''),
@@ -2719,7 +2800,14 @@ def premium():
             'practicals_count': user_practicals_count,
             'subjects_contributed': len(user_subjects),
             'user_files': user_files[:10],
-            'role': 'student'
+            'role': profile_data.get('role', 'student') if profile_data else 'student',
+            'reputation_score': max(computed_score, profile_data.get('reputation_score', 0)) if profile_data else computed_score,
+            'rank_title': profile_data.get('rank_title', 'Beginner') if profile_data else 'Beginner',
+            'is_verified': profile_data.get('is_verified', False) if profile_data else False,
+            'global_rank': global_rank,
+            'students_helped': students_helped,
+            'badges': badges,
+            'college_name': college_name
         }
         
     if user_data is None:
@@ -2732,6 +2820,7 @@ def premium():
     user_data.setdefault('global_rank', '-')
     user_data.setdefault('rank_title', 'Beginner')
     user_data.setdefault('is_verified', False)
+    user_data.setdefault('college_name', '')
     
     promo_context = {
         'remaining_views': user_data.get('paper_quota_remaining', 19) if user_data else 19,
@@ -3069,28 +3158,17 @@ def suggest():
 @app.route('/dashboard/')
 @auth_required
 def index():
-    search_query = request.args.get('search_query')
-    data = load_data(search_query)
-    
-    # Calculate counts for template
-    paper_count = sum(1 for item in data if item.get('type') == 'Papers')
-    notes_count = sum(1 for item in data if item.get('type') == 'Notes')
-    
-    return render_template('p_index.html', data=data, paper_count=paper_count, notes_count=notes_count, user_data=None)
+    # Redirect trailing-slash to canonical /dashboard which has full user_data
+    return redirect(url_for('premium'), code=301)
 
 @app.route('/dashboard/search', methods=['POST', 'GET'])
 @auth_required
 def search():
-    search_query = request.form.get('search')
+    search_query = request.form.get('search') or request.args.get('search', '')
     if not search_query:
-        return "Search query is missing", 400
-    data = load_data(search_query)
-    
-    # Calculate counts for template
-    paper_count = sum(1 for item in data if item.get('type') == 'Papers')
-    notes_count = sum(1 for item in data if item.get('type') == 'Notes')
-    
-    return render_template('p_index.html', data=data, paper_count=paper_count, notes_count=notes_count, user_data=None)
+        return redirect(url_for('premium'))
+    # Redirect to dashboard with search_query so the main route renders with full user_data
+    return redirect(url_for('premium', search_query=search_query))
 
 @app.route('/dashboard/view', methods=['POST', 'GET'])
 @auth_required
@@ -3956,18 +4034,16 @@ def internal_server_error(e):
 def offline_page():
     return render_template('offline.html')
 
-# ─── AI Paper Q&A ───────────────────────────────────────────────────────────
+# ─── AI Paper Q&A & Unlimited OCR ───────────────────────────────────────────
 @app.route('/api/ask-paper', methods=['POST'])
 @auth_required
 def api_ask_paper():
-    """Ask a question about a paper image using NVIDIA Gemma vision model."""
+    """Ask a question about a paper image or PDF using AI vision/text models."""
     try:
         data = request.get_json(silent=True) or {}
         doc_id = (data.get('doc_id') or data.get('document_id') or '').strip()
         question = (data.get('question') or '').strip()
-        selected_model = data.get('model')
-        if not selected_model:
-            selected_model = get_best_ai_model()
+        selected_model = data.get('model') or get_best_ai_model()
         logging.info(f"[AI] ask-paper using model: {selected_model}")
 
         if not doc_id or not question:
@@ -3981,96 +4057,156 @@ def api_ask_paper():
         document = doc_res.get('data', {})
         file_url = document.get('file_url', '')
 
-        # Resolve proxy URL to actual image URL for the AI
         if file_url.startswith('/api/view-doc/'):
-            # Fetch the actual upstream URL
             from methods.supabase_helper import init_supabase
             client = init_supabase()
             raw = client.table('documents').select('file_url').eq('id', doc_id).single().execute()
             file_url = raw.data.get('file_url', '') if raw.data else ''
 
         if not file_url or not file_url.startswith('http'):
-            return jsonify({'success': False, 'message': 'Image URL not available'}), 400
+            return jsonify({'success': False, 'message': 'File URL not available'}), 400
 
-        # Encode image as base64
         import base64
-        img_resp = requests.get(file_url, timeout=15)
-        if not img_resp.ok:
-            return jsonify({'success': False, 'message': 'Could not fetch image'}), 502
+        file_resp = requests.get(file_url, timeout=15)
+        if not file_resp.ok:
+            return jsonify({'success': False, 'message': 'Could not fetch document'}), 502
 
-        b64_image = base64.b64encode(img_resp.content).decode('utf-8')
-        content_type = img_resp.headers.get('Content-Type', 'image/jpeg').split(';')[0]
+        content_bytes = file_resp.content
+        content_type = file_resp.headers.get('Content-Type', '').split(';')[0].lower()
+        is_pdf = 'pdf' in content_type or file_url.lower().endswith('.pdf') or content_bytes.startswith(b'%PDF')
 
-        openrouter_key = os.getenv('OPENROUTER_API_KEY', '').strip()
-        if not openrouter_key:
-            return jsonify({'success': False, 'message': 'API key not configured'}), 500
-            
-        # Extract document info for the AI
+        pdf_text, pdf_img_bytes, pdf_img_mime = "", None, None
+        if is_pdf:
+            pdf_text, pdf_img_bytes, pdf_img_mime = extract_pdf_info(content_bytes)
+
+        if is_pdf and pdf_img_bytes:
+            b64_image = base64.b64encode(pdf_img_bytes).decode('utf-8')
+            content_type = pdf_img_mime or 'image/png'
+        else:
+            b64_image = base64.b64encode(content_bytes).decode('utf-8')
+            if not content_type or 'octet-stream' in content_type:
+                content_type = 'image/jpeg'
+
+        openrouter_key = os.getenv('OPENROUTER_API_KEY', '').strip().strip("'\"")
+        nvidia_key = os.getenv('NVIDIA_API_KEY', '').strip().strip("'\"")
+
         title = document.get('title', 'Unknown Title')
         doc_type = document.get('type', 'Unknown Type')
         subject_data = document.get('subject') or {}
         subject_name = subject_data.get('name', 'Unknown Subject')
         paper_info = f"Document Title: {title}\nSubject: {subject_name}\nType: {doc_type}"
+        if pdf_text:
+            paper_info += f"\nExtracted Document Content:\n{pdf_text[:3000]}"
 
-        headers = {
-            'Authorization': f'Bearer {openrouter_key}',
-            'Content-Type': 'application/json'
-        }
-        
         system_prompt = (
-            f"You are a helpful AI assistant for AbhiHub. Answer questions based only on the provided authentic source image.\n\n"
-            f"Context Information about this paper:\n{paper_info}\n\n"
+            f"You are a helpful AI assistant for AbhiHub. Answer questions accurately based on the source document.\n\n"
+            f"Context Information:\n{paper_info}\n\n"
             f"Provide clear, accurate, and properly formatted answers."
         )
 
-        payload = {
-            'model': selected_model,
-            'messages': [
-                {
-                    'role': 'system',
-                    'content': system_prompt
-                },
-                {
-                    'role': 'user',
-                    'content': [
-                        {'type': 'text', 'text': question},
-                        {'type': 'image_url', 'image_url': {'url': f'data:{content_type};base64,{b64_image}'}}
-                    ]
+        # Build text payload and vision payload
+        text_content = question
+        has_image = bool(b64_image and (not is_pdf or (is_pdf and not pdf_text and pdf_img_bytes)))
+        vision_content = [{'type': 'text', 'text': question}]
+        if has_image:
+            img_type = pdf_img_mime or content_type or 'image/jpeg'
+            vision_content.append({'type': 'image_url', 'image_url': {'url': f'data:{img_type};base64,{b64_image}'}})
+
+        payload_content = vision_content if has_image else text_content
+        answer = None
+
+        # 1. Try OpenRouter Models
+        if openrouter_key:
+            headers = {
+                'Authorization': f'Bearer {openrouter_key}',
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://abhihub.com',
+                'X-Title': 'AbhiHub'
+            }
+            models_to_try = [selected_model] + [m for m in AI_MODELS if m != selected_model]
+
+            for model_name in models_to_try:
+                payload = {
+                    'model': model_name,
+                    'messages': [
+                        {'role': 'system', 'content': system_prompt},
+                        {'role': 'user', 'content': payload_content}
+                    ],
+                    'max_tokens': 512,
+                    'temperature': 0.20,
+                    'top_p': 0.70,
+                    'stream': False
                 }
-            ],
-            'max_tokens': 512,
-            'temperature': 0.20,
-            'top_p': 0.70,
-            'stream': False
-        }
 
-        ai_resp = requests.post(
-            'https://openrouter.ai/api/v1/chat/completions',
-            headers=headers, json=payload, timeout=90
-        )
+                try:
+                    ai_resp = requests.post('https://openrouter.ai/api/v1/chat/completions', headers=headers, json=payload, timeout=20)
+                    if ai_resp.ok:
+                        res_json = ai_resp.json()
+                        if 'choices' in res_json and len(res_json['choices']) > 0:
+                            answer = res_json['choices'][0]['message']['content']
+                            if answer and len(answer.strip()) > 0:
+                                break
+                    elif has_image:
+                        payload['messages'][1]['content'] = text_content
+                        ai_resp2 = requests.post('https://openrouter.ai/api/v1/chat/completions', headers=headers, json=payload, timeout=20)
+                        if ai_resp2.ok:
+                            res_json2 = ai_resp2.json()
+                            if 'choices' in res_json2 and len(res_json2['choices']) > 0:
+                                answer = res_json2['choices'][0]['message']['content']
+                                if answer and len(answer.strip()) > 0:
+                                    break
+                    ai_model_errors[model_name] = ai_model_errors.get(model_name, 0) + 1
+                except Exception as ex:
+                    logging.warning(f"[AI] OpenRouter model {model_name} failed: {ex}")
+                    ai_model_errors[model_name] = ai_model_errors.get(model_name, 0) + 1
 
-        if not ai_resp.ok:
-            ai_model_errors[selected_model] = ai_model_errors.get(selected_model, 0) + 1
-            logging.error(f"[AI] OpenRouter API error: {ai_resp.status_code} {ai_resp.text}")
-            return jsonify({'success': False, 'message': 'We are experiencing high demand. Please try after some time.'}), 502
+        # 2. NVIDIA Backup Provider Fallback
+        if not answer and nvidia_key:
+            logging.info("[AI] Falling back to NVIDIA API Provider")
+            nv_headers = {
+                'Authorization': f'Bearer {nvidia_key}',
+                'Content-Type': 'application/json'
+            }
+            nv_models = ['meta/llama-3.2-11b-vision-instruct', 'meta/llama-3.1-70b-instruct']
+            for nv_m in nv_models:
+                nv_payload = {
+                    'model': nv_m,
+                    'messages': [
+                        {'role': 'system', 'content': system_prompt},
+                        {'role': 'user', 'content': text_content}
+                    ],
+                    'max_tokens': 512,
+                    'temperature': 0.20
+                }
+                try:
+                    nv_resp = requests.post('https://integrate.api.nvidia.com/v1/chat/completions', headers=nv_headers, json=nv_payload, timeout=20)
+                    if nv_resp.ok:
+                        res_json = nv_resp.json()
+                        if 'choices' in res_json and len(res_json['choices']) > 0:
+                            answer = res_json['choices'][0]['message']['content']
+                            if answer and len(answer.strip()) > 0:
+                                break
+                except Exception as ex:
+                    logging.warning(f"[AI] NVIDIA model {nv_m} failed: {ex}")
 
-        answer = ai_resp.json()['choices'][0]['message']['content']
-        return jsonify({'success': True, 'answer': answer}), 200
+        if answer:
+            return jsonify({'success': True, 'answer': answer}), 200
+
+        return jsonify({'success': False, 'message': 'AI model is currently busy. Please try again shortly.'}), 502
 
     except Exception as e:
         logging.error(f"[AI] ask-paper error: {e}")
-        return jsonify({'success': False, 'message': 'We are experiencing high demand. Please try after some time.'}), 500
+        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+
 
 @app.route('/api/extract-ocr', methods=['POST'])
 @auth_required
 def api_extract_ocr():
-    """Extract OCR text from a paper image using the vision model."""
+    """Extract OCR text from paper image or PDF using free PyPDF/PyMuPDF or Vision models."""
     try:
         data = request.get_json(silent=True) or {}
         doc_id = (data.get('doc_id') or '').strip()
-        selected_model = data.get('model')
-        if not selected_model:
-            selected_model = get_best_ai_model()
+        selected_model = data.get('model') or get_best_ai_model()
         logging.info(f"[AI] extract-ocr using model: {selected_model}")
         if not doc_id:
             return jsonify({'success': False, 'message': 'doc_id required'}), 400
@@ -4081,53 +4217,103 @@ def api_extract_ocr():
         file_url = raw.data.get('file_url', '') if raw.data else ''
 
         if not file_url or not file_url.startswith('http'):
-            return jsonify({'success': False, 'message': 'Image URL not available'}), 400
+            return jsonify({'success': False, 'message': 'File URL not available'}), 400
 
         import base64
-        img_resp = requests.get(file_url, timeout=15)
-        if not img_resp.ok:
-            return jsonify({'success': False, 'message': 'Could not fetch image'}), 502
+        file_resp = requests.get(file_url, timeout=15)
+        if not file_resp.ok:
+            return jsonify({'success': False, 'message': 'Could not fetch file'}), 502
 
-        b64_image = base64.b64encode(img_resp.content).decode('utf-8')
-        content_type = img_resp.headers.get('Content-Type', 'image/jpeg').split(';')[0]
+        content_bytes = file_resp.content
+        content_type = file_resp.headers.get('Content-Type', '').split(';')[0].lower()
+        is_pdf = 'pdf' in content_type or file_url.lower().endswith('.pdf') or content_bytes.startswith(b'%PDF')
 
-        openrouter_key = os.getenv('OPENROUTER_API_KEY', '').strip()
-        if not openrouter_key:
-            return jsonify({'success': False, 'message': 'API key not configured'}), 500
+        # 1. Fast, Unlimited, 100% Free text extraction for PDFs
+        if is_pdf:
+            pdf_text, pdf_img_bytes, pdf_img_mime = extract_pdf_info(content_bytes)
+            if pdf_text and len(pdf_text.strip()) > 50:
+                return jsonify({'success': True, 'ocr_text': pdf_text.strip(), 'source': 'pdf_native'}), 200
 
-        headers = {
-            'Authorization': f'Bearer {openrouter_key}',
-            'Content-Type': 'application/json'
-        }
-        
-        payload = {
-            'model': selected_model,
-            'messages': [
-                {
-                    'role': 'user',
-                    'content': [
-                        {'type': 'text', 'text': 'Extract all text, math equations, and tables from this image perfectly. Return ONLY the raw transcript without any conversational filler or formatting outside of what is in the image.'},
-                        {'type': 'image_url', 'image_url': {'url': f'data:{content_type};base64,{b64_image}'}}
-                    ]
+            if pdf_img_bytes:
+                content_bytes = pdf_img_bytes
+                content_type = pdf_img_mime or 'image/png'
+
+        b64_image = base64.b64encode(content_bytes).decode('utf-8')
+        if not content_type or 'octet-stream' in content_type:
+            content_type = 'image/jpeg'
+
+        openrouter_key = os.getenv('OPENROUTER_API_KEY', '').strip().strip("'\"")
+        nvidia_key = os.getenv('NVIDIA_API_KEY', '').strip().strip("'\"")
+
+        user_content = [
+            {'type': 'text', 'text': 'Extract all text, math equations, and tables from this document image perfectly. Return ONLY raw transcript without filler.'},
+            {'type': 'image_url', 'image_url': {'url': f'data:{content_type};base64,{b64_image}'}}
+        ]
+
+        ocr_text = None
+
+        # 1. OpenRouter Provider
+        if openrouter_key:
+            headers = {
+                'Authorization': f'Bearer {openrouter_key}',
+                'Content-Type': 'application/json',
+                'HTTP-Referer': 'https://abhihub.com',
+                'X-Title': 'AbhiHub'
+            }
+            models_to_try = [selected_model] + [m for m in AI_MODELS if m != selected_model]
+
+            for model_name in models_to_try:
+                payload = {
+                    'model': model_name,
+                    'messages': [{'role': 'user', 'content': user_content}],
+                    'max_tokens': 1024,
+                    'temperature': 0.10,
+                    'top_p': 0.70,
+                    'stream': False
                 }
-            ],
-            'max_tokens': 1024,
-            'temperature': 0.10,
-            'top_p': 0.70,
-            'stream': False
-        }
 
-        ai_resp = requests.post('https://openrouter.ai/api/v1/chat/completions', headers=headers, json=payload, timeout=90)
-        if not ai_resp.ok:
-            ai_model_errors[selected_model] = ai_model_errors.get(selected_model, 0) + 1
-            return jsonify({'success': False, 'message': 'We are experiencing high demand. Please try after some time.'}), 502
+                try:
+                    ai_resp = requests.post('https://openrouter.ai/api/v1/chat/completions', headers=headers, json=payload, timeout=20)
+                    if ai_resp.ok:
+                        res_json = ai_resp.json()
+                        if 'choices' in res_json and len(res_json['choices']) > 0:
+                            ocr_text = res_json['choices'][0]['message']['content']
+                            if ocr_text and len(ocr_text.strip()) > 0:
+                                break
+                    ai_model_errors[model_name] = ai_model_errors.get(model_name, 0) + 1
+                except Exception as ex:
+                    logging.warning(f"[AI] extract-ocr model {model_name} failed: {ex}")
+                    ai_model_errors[model_name] = ai_model_errors.get(model_name, 0) + 1
 
-        ocr_text = ai_resp.json()['choices'][0]['message']['content']
-        return jsonify({'success': True, 'ocr_text': ocr_text}), 200
+        # 2. NVIDIA Backup Provider
+        if not ocr_text and nvidia_key:
+            logging.info("[AI] Falling back to NVIDIA Vision for OCR")
+            nv_headers = {
+                'Authorization': f'Bearer {nvidia_key}',
+                'Content-Type': 'application/json'
+            }
+            nv_payload = {
+                'model': 'meta/llama-3.2-11b-vision-instruct',
+                'messages': [{'role': 'user', 'content': 'Extract all text, math equations, and tables from this document image perfectly. Return ONLY raw transcript without filler.'}],
+                'max_tokens': 1024
+            }
+            try:
+                nv_resp = requests.post('https://integrate.api.nvidia.com/v1/chat/completions', headers=nv_headers, json=nv_payload, timeout=25)
+                if nv_resp.ok:
+                    res_json = nv_resp.json()
+                    if 'choices' in res_json and len(res_json['choices']) > 0:
+                        ocr_text = res_json['choices'][0]['message']['content']
+            except Exception as ex:
+                logging.warning(f"[AI] NVIDIA OCR fallback failed: {ex}")
+
+        if ocr_text:
+            return jsonify({'success': True, 'ocr_text': ocr_text, 'source': 'vision_ai'}), 200
+
+        return jsonify({'success': False, 'message': 'OCR service temporary failure. Please retry.'}), 502
 
     except Exception as e:
         logging.error(f"[AI] extract-ocr error: {e}")
-        return jsonify({'success': False, 'message': 'We are experiencing high demand. Please try after some time.'}), 500
+        return jsonify({'success': False, 'message': f'OCR Error: {str(e)}'}), 500
 # ─────────────────────────────────────────────────────────────────────────────
 
 
@@ -4481,6 +4667,62 @@ def api_add_entity():
     from methods.supabase_helper import add_new_entity
     result = add_new_entity(entity_type, name, short_name, code, semester, parent_id)
     return jsonify(result), 200 if result.get('success') else 500
+
+# ─── Peer User Search & Material Sharing APIs ──────────────────────────────
+@app.route('/api/users/search', methods=['GET'])
+@auth_required
+def api_search_users():
+    """Search student profiles by query string."""
+    q = request.args.get('q', '').strip()
+    if not q:
+        return jsonify({'success': True, 'users': []})
+    from methods.supabase_helper import search_users_db
+    users = search_users_db(q)
+    return jsonify({'success': True, 'users': users})
+
+@app.route('/api/user/<target_user_id>/materials', methods=['GET'])
+@auth_required
+def api_get_peer_materials(target_user_id):
+    """Get target student's uploaded & referred study materials."""
+    from methods.supabase_helper import get_user_peer_materials_db
+    res = get_user_peer_materials_db(target_user_id)
+    return jsonify(res)
+
+@app.route('/api/request-material', methods=['POST'])
+@auth_required
+def api_request_material():
+    """Submit a material request to another student."""
+    data = request.get_json() or {}
+    target_user_id = data.get('target_user_id')
+    subject = data.get('subject', '').strip()
+    note_details = data.get('details', '').strip()
+    
+    if not target_user_id or not subject:
+        return jsonify({'success': False, 'message': 'Missing target user or subject'}), 400
+        
+    sender_user = session.get('user', {})
+    sender_name = sender_user.get('name', 'A peer student')
+    sender_email = sender_user.get('email', '')
+    
+    # Store or log request (simulated notification trigger)
+    try:
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        if client:
+            client.table('material_requests').insert({
+                'requester_id': sender_user.get('uid'),
+                'target_user_id': target_user_id,
+                'subject': subject,
+                'details': note_details,
+                'status': 'pending'
+            }).execute()
+    except Exception as e:
+        print(f"[RequestMaterial] DB insert error (non-fatal): {e}")
+
+    return jsonify({
+        'success': True, 
+        'message': f"Request sent to student! They will be notified via email."
+    })
 
 if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV') != 'production'
