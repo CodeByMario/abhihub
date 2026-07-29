@@ -1,5 +1,5 @@
 <div class="navbar">
-  <a href="{{ url_for('premium') }}" class="navbar__item -blue" data-page="home">
+  <a href="{{ url_for('dashboard') }}" class="navbar__item -blue" data-page="home" data-feature="Nav: Home">
     <span class="navbar__icon">
       <svg class="icon">
         <use xlink:href="#icon-home"></use>
@@ -7,7 +7,7 @@
     </span>
     <span class="navbar__label">Home</span>
   </a>
-  <a href="{{ url_for('show_rank') }}" class="navbar__item -orange" data-page="ranking">
+  <a href="{{ url_for('leaderboard') }}" class="navbar__item -orange" data-page="ranking" data-feature="Nav: Ranking">
     <span class="navbar__icon">
       <svg class="icon">
         <use xlink:href="#icon-cup"></use>
@@ -15,7 +15,8 @@
     </span>
     <span class="navbar__label">Ranking</span>
   </a>
-  <a href="{{ url_for('upload') }}" class="navbar__item -navy-blue navbar__item--fab" data-page="upload">
+
+  <a href="{{ url_for('upload') }}" class="navbar__item -navy-blue navbar__item--fab" data-page="upload" data-feature="Nav: Upload">
     <span class="navbar__icon navbar__icon--fab">
       <svg class="icon">
         <use xlink:href="#icon-plus"></use>
@@ -23,7 +24,7 @@
     </span>
     <span class="navbar__label">Contribute</span>
   </a>
-  <a href="{{ url_for('profile') }}" class="navbar__item -purple" id="accountNavItem" data-page="profile">
+  <a href="{{ url_for('profile') }}" class="navbar__item -purple" id="accountNavItem" data-page="profile" data-feature="Nav: Profile">
     <span class="navbar__icon">
       <svg class="icon">
         <use xlink:href="#icon-user"></use>
@@ -32,7 +33,7 @@
     </span>
     <span class="navbar__label">Account</span>
   </a>
-  <a href="{{ url_for('store_room') }}" class="navbar__item -green" data-page="store-room">
+  <a href="{{ url_for('store_room') }}" class="navbar__item -green" data-page="store-room" data-feature="Nav: Store Room">
     <span class="navbar__icon">
       <svg class="icon">
         <use xlink:href="#icon-folder"></use>
@@ -55,6 +56,7 @@
 <!-- Hidden search form -->
 <form id="navSearchOverlay" class="nav-search-overlay" action="{{ url_for('search') }}" method="post" role="search"
   aria-label="Site search">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
   <div class="nav-search-wrapper">
     <input type="text" name="search" placeholder="Search Here" class="nav-search-field" autocomplete="off"
       aria-label="Search input">
@@ -127,7 +129,7 @@
     navItems.forEach(item => {
       const page = item.dataset.page;
       if (
-        (page === 'home' && (currentPath === '/premium/' || currentPath === '/premium')) ||
+        (page === 'home' && (currentPath === '/dashboard/' || currentPath === '/dashboard')) ||
         (page === 'ranking' && currentPath.includes('rank')) ||
         (page === 'upload' && currentPath.includes('upload')) ||
         (page === 'profile' && currentPath.includes('profile')) ||

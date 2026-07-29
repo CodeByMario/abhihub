@@ -156,7 +156,7 @@
         <picture>
             <img 
                 src="{{file}}" 
-                alt="{{file}}" 
+                alt="Document Preview - AbhiHub Educational Resource" 
                 id="previewImage" 
                 class="zoomable"
                 decoding="async"
@@ -171,10 +171,56 @@
                 <line x1="15.41" y1="6.51" x2="8.59" y2="10.49"></line>
             </svg>
         </button>
+        {% set user_credits = session.get('paper_quota', {}).get('credits', -1) %}
+        {% if user_credits > 0 %}
+        <div style="position:absolute;bottom:35px;right:80px;font-size:0.75rem;color:#9ca3af;pointer-events:none;background:rgba(255,255,255,0.7);padding:2px 8px;border-radius:12px;backdrop-filter:blur(4px);">
+            {{ user_credits }} study views left
+        </div>
+        {% endif %}
     </div>
     
     <!-- Toast notification for copy feedback -->
     <div class="toast" id="toast">Link copied to clipboard!</div>
+
+    {% set user_credits = session.get('paper_quota', {}).get('credits', -1) %}
+    {% if user_credits == 0 %}
+    <div id="studyPassChipFull" style="position:fixed;bottom:80px;right:20px;background:rgba(255,255,255,0.9);backdrop-filter:blur(10px);color:#1f2937;padding:10px 16px;border-radius:24px;box-shadow:0 4px 20px rgba(0,0,0,0.1);z-index:9000;display:flex;align-items:center;gap:12px;font-size:0.85rem;border:1px solid rgba(229,231,235,0.8);transition:all 0.3s ease;transform-origin:bottom right;">
+        <span>Help someone pass their exam 💙</span>
+        <a href="{{ url_for('upload') }}" style="color:#2563eb;font-weight:600;text-decoration:none;">Upload</a>
+        <button onclick="hideStudyPassChip()" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:0;font-size:1.1rem;line-height:1;">&times;</button>
+    </div>
+    <div id="studyPassChipMini" onclick="showStudyPassChip()" style="position:fixed;bottom:80px;right:20px;background:rgba(255,255,255,0.9);backdrop-filter:blur(10px);color:#2563eb;padding:8px 12px;border-radius:24px;box-shadow:0 4px 20px rgba(0,0,0,0.1);z-index:8999;font-size:0.8rem;font-weight:700;border:1px solid rgba(229,231,235,0.8);cursor:pointer;display:none;transition:all 0.3s ease;">
+        +3 Views
+    </div>
+    <script>
+        function hideStudyPassChip() {
+            const full = document.getElementById('studyPassChipFull');
+            if (!full) return;
+            full.style.opacity = '0';
+            full.style.pointerEvents = 'none';
+            setTimeout(() => {
+                full.style.display = 'none';
+                document.getElementById('studyPassChipMini').style.display = 'block';
+            }, 300);
+            if (window.AbhiHubTracking) window.AbhiHubTracking.trackStudyPassDismiss();
+        }
+        function showStudyPassChip() {
+            document.getElementById('studyPassChipMini').style.display = 'none';
+            const full = document.getElementById('studyPassChipFull');
+            full.style.display = 'flex';
+            setTimeout(() => {
+                full.style.opacity = '1';
+                full.style.pointerEvents = 'auto';
+            }, 10);
+        }
+        setTimeout(() => {
+            const full = document.getElementById('studyPassChipFull');
+            if (full && full.style.display !== 'none') {
+                hideStudyPassChip();
+            }
+        }, 6000);
+    </script>
+    {% endif %}
 
     <script>
         document.addEventListener('DOMContentLoaded', function() {

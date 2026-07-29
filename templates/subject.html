@@ -1,0 +1,307 @@
+{% set seo_title = subject_name ~ ' Notes, PYQs, Previous Year Papers & Practicals | AbhiHub' %}
+{% set seo_description = 'Download ' ~ subject_name ~ ' notes, previous year question papers, practical files, important questions and study resources from multiple colleges on AbhiHub.' %}
+{% set seo_keywords = subject_name ~ ' Notes, ' ~ subject_name ~ ' PYQ, ' ~ subject_name ~ ' Previous Year Papers, ' ~ subject_name ~ ' Practical, ' ~ subject_name ~ ' Engineering Notes, ' ~ subject_name ~ ' PDF' %}
+{% set og_title = seo_title %}
+{% set og_description = seo_description %}
+{% set og_type = 'website' %}
+
+{% extends 'p_struct.html' %}
+{% block page_head %}
+<!-- Dynamic Learning Resource & FAQ Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "LearningResource",
+      "name": "{{ subject_name }} Study Materials",
+      "url": "{{ request.base_url }}",
+      "description": "Comprehensive study resources, notes, and previous year question papers for {{ subject_name }}.",
+      "educationalLevel": "College/University",
+      "learningResourceType": ["Course Notes", "Past Papers", "Study Guide"],
+      "provider": {
+        "@type": "Organization",
+        "name": "AbhiHub"
+      }
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [{
+        "@type": "Question",
+        "name": "Where can I find {{ subject_name }} notes and PYQs?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "AbhiHub aggregates free, high-quality {{ subject_name }} notes, practicals, and previous year question papers uploaded by top students across multiple colleges."
+        }
+      }, {
+        "@type": "Question",
+        "name": "How should I prepare for {{ subject_name }}?",
+        "acceptedAnswer": {
+          "@type": "Answer",
+          "text": "Start by reviewing the syllabus, solving past 5 years of {{ subject_name }} PYQs available on AbhiHub, and referring to the detailed study notes provided by contributors."
+        }
+      }]
+    }
+  ]
+}
+</script>
+
+<style>
+:root {
+  --s-primary: #ec4899;
+  --s-bg: #fdf2f8;
+  --s-card: #ffffff;
+  --s-text: #0f172a;
+  --s-muted: #64748b;
+  --s-border: #fce7f3;
+}
+
+body { background-color: var(--s-bg); }
+
+.subject-hero {
+  padding: 6rem 1.5rem 4rem;
+  background: linear-gradient(135deg, #4c1d95 0%, var(--s-primary) 100%);
+  color: white;
+  text-align: center;
+  border-bottom-left-radius: 40px;
+  border-bottom-right-radius: 40px;
+  box-shadow: 0 20px 40px rgba(236, 72, 153, 0.15);
+  margin-bottom: -3rem;
+}
+
+.subject-hero h1 {
+  font-size: clamp(2rem, 5vw, 3.8rem);
+  font-weight: 900;
+  margin-bottom: 1rem;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.subject-hero p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  max-width: 600px;
+  margin: 0 auto;
+}
+
+.breadcrumb-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  padding: 0.5rem 1.2rem;
+  border-radius: 99px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.breadcrumb-nav a { color: white; text-decoration: none; }
+.breadcrumb-nav a:hover { text-decoration: underline; }
+
+.subject-stats-container {
+  max-width: 900px;
+  margin: 0 auto 4rem;
+  position: relative;
+  z-index: 10;
+  padding: 0 1.5rem;
+}
+
+.subject-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  background: var(--s-card);
+  padding: 2rem;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+  border: 1px solid var(--s-border);
+}
+
+.stat-card { text-align: center; padding: 1rem; }
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--s-primary);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+.stat-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--s-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.subject-section {
+  max-width: 1100px;
+  margin: 0 auto 5rem;
+  padding: 0 1.5rem;
+}
+
+.section-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--s-text);
+  margin-bottom: 2rem;
+}
+
+/* File Grid Styles */
+.file-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+.pcard {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.1rem;
+  text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 0.6rem;
+  transition: transform 0.25s, box-shadow 0.25s; position: relative; overflow: hidden;
+}
+.pcard::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
+.pcard.notes-card::before { background: linear-gradient(90deg, #10b981, #3b82f6); }
+.pcard.practical-card::before { background: linear-gradient(90deg, #8b5cf6, #ec4899); }
+.pcard:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1); }
+.pcard-badge {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase; padding: 3px 8px; border-radius: 6px;
+  background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; width: fit-content;
+}
+.pcard-badge.notes { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+.pcard-badge.practical { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
+.pcard-subject {
+  font-size: 1rem; font-weight: 700; color: #0f172a; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pcard-name {
+  font-size: 0.78rem; color: #64748b;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pcard-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: auto; padding-top: 0.6rem; border-top: 1px solid #f1f5f9;
+}
+.pcard-meta { font-size: 0.75rem; color: #94a3b8; display: flex; align-items: center; gap: 0.35rem; }
+.pcard-views { font-size: 0.75rem; color: #3b82f6; font-weight: 600; display: flex; align-items: center; gap: 3px; }
+
+/* Educational Content Blocks for SEO */
+.seo-content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 4rem;
+}
+
+.seo-card {
+  background: var(--s-card);
+  padding: 2rem;
+  border-radius: 20px;
+  border: 1px solid var(--s-border);
+  box-shadow: 0 10px 30px rgba(0,0,0,0.02);
+}
+
+.seo-card h3 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  margin-bottom: 1rem;
+  color: var(--s-primary);
+}
+
+.seo-card p, .seo-card li {
+  color: var(--s-text);
+  line-height: 1.7;
+  margin-bottom: 1rem;
+  font-size: 1.05rem;
+}
+
+@media(max-width: 768px) {
+  .seo-content-grid { grid-template-columns: 1fr; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="subject-hero">
+  <div class="breadcrumb-nav">
+    <a href="/">Home</a> <span>›</span>
+    <span>Subject</span>
+  </div>
+  <h1>{{ subject_name }}</h1>
+  <p>Master your exams with our comprehensive collection of {{ subject_name }} notes, previous year question papers, and study guides.</p>
+</div>
+
+<div class="subject-stats-container">
+  <div class="subject-stats-grid">
+    <div class="stat-card">
+      <div class="stat-value">{{ stats.total_documents }}</div>
+      <div class="stat-label">Total Resources</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">🌍</div>
+      <div class="stat-label">Global Access</div>
+    </div>
+  </div>
+</div>
+
+<div class="subject-section">
+  <!-- Educational SEO Content -->
+  <div class="seo-content-grid">
+    <div class="seo-card">
+      <h3>Why is {{ subject_name }} Important?</h3>
+      <p>{{ subject_name }} is a fundamental subject in your academic curriculum. Mastering it provides a strong foundation for advanced topics and is frequently tested in university examinations and technical interviews.</p>
+      <p>By reviewing the provided PYQs and Notes, you can quickly identify the highest-yield topics and streamline your exam preparation.</p>
+    </div>
+    <div class="seo-card">
+      <h3>How to Prepare for {{ subject_name }}</h3>
+      <ul style="padding-left: 1.2rem; list-style-type: disc;">
+        <li><strong>Analyze the Syllabus:</strong> Break down the core modules of {{ subject_name }}.</li>
+        <li><strong>Review PYQs:</strong> Download the Previous Year Question papers below to understand the exam pattern.</li>
+        <li><strong>Study Notes:</strong> Use the curated notes from top contributors to summarize complex topics.</li>
+        <li><strong>Practice:</strong> If applicable, review the practical files and viva questions.</li>
+      </ul>
+    </div>
+  </div>
+
+  <h2 class="section-title">Latest Resources for {{ subject_name }}</h2>
+  <div class="file-grid">
+    {% for file in recent_files %}
+      {% set cat = (file.get('document_category', '')|string|lower) %}
+      {% set is_pyq = cat in ['pyq', 'papers', 'paper'] %}
+      {% set is_practical = cat in ['practical', 'practicals'] %}
+      <a href="{{ url_for('resource_landing', slug='legacy-redirect-' ~ file.get('id', '')) }}" class="pcard {% if is_practical %}practical-card{% elif not is_pyq %}notes-card{% endif %}">
+        {% if is_pyq %}
+          <span class="pcard-badge">📄 PYQ</span>
+        {% elif is_practical %}
+          <span class="pcard-badge practical">🧪 Practical</span>
+        {% else %}
+          <span class="pcard-badge notes">📝 Notes</span>
+        {% endif %}
+        
+        <div class="pcard-subject">{{ file.get('subject', {}).get('name', 'Uncategorized') if file.get('subject') else 'Uncategorized' }}</div>
+        <div class="pcard-name">{{ file.get('title', 'File') }}</div>
+        
+        <div class="pcard-footer">
+          <span class="pcard-meta">👤 {{ file.get('uploader', {}).get('full_name', 'Anonymous') if file.get('uploader') else 'Anonymous' }}</span>
+          <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
+        </div>
+      </a>
+    {% else %}
+      <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: var(--s-card); border-radius: 20px; border: 1px dashed var(--s-border); color: var(--s-muted);">
+        No resources uploaded for this subject yet.
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- CTA -->
+<div style="background: linear-gradient(135deg, #f8fafc 0%, #fdf2f8 100%); padding: 5rem 1.5rem; text-align: center; margin-top: 4rem;">
+  <h2 style="font-size: 2rem; font-weight: 800; margin-bottom: 1rem;">Have notes for {{ subject_name }}?</h2>
+  <p style="color: #64748b; font-size: 1.1rem; max-width: 600px; margin: 0 auto 2rem;">Help thousands of students globally by uploading your study materials. Become a top contributor today!</p>
+  <a href="{{ url_for('upload') }}" style="display:inline-block; padding: 1rem 2rem; background: var(--s-primary); color: white; border-radius: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 20px rgba(236,72,153,0.2);">📤 Upload Study Material</a>
+</div>
+
+{% endblock %}

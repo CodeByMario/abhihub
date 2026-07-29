@@ -1,0 +1,39 @@
+{# 
+  Premium Horizontal Banner Ad
+  Usage: Place this at the top of pages or inside wide content containers.
+  Goal: Standard monetization with strict height boundaries to prevent layout shifts.
+#}
+<div class="ad-container ad-banner">
+  <div class="ad-label">Advertisement</div>
+  <!-- Placeholder AbhiHub Logo -->
+  <img src="{{ url_for('static', filename='images/apple-touch-icon.png') }}" 
+       alt="AbhiHub Ad Placeholder" 
+       style="width:auto; height:70px; opacity: 0.5;">
+</div>
+
+<style>
+.ad-banner {
+    width: 100%;
+    min-height: 90px;
+    background: #f1f5f9; /* Light gray background */
+    border: 2px dashed #94a3b8; /* Visible dashed border */
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: var(--space-6) 0;
+    overflow: hidden;
+    position: relative;
+}
+.ad-banner .ad-label {
+    position: absolute;
+    top: 4px;
+    left: 8px;
+    font-size: 10px;
+    color: var(--text-tertiary);
+    z-index: 2;
+}
+.ad-banner ins {
+    z-index: 1;
+}
+</style>

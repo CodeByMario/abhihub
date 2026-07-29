@@ -1,0 +1,98 @@
+{# 
+  Premium Mobile Sticky Anchor Ad
+  Usage: Place this right before </body> in the app shell.
+  Goal: Highest eCPM and Viewability. Designed to sit flush above the mobile navigation bar.
+#}
+<div class="ad-sticky-wrapper" id="adSticky">
+  <div class="ad-sticky-header">
+      <span class="ad-sticky-label">Advertisement</span>
+      <button class="ad-sticky-close" onclick="document.getElementById('adSticky').style.display='none'" aria-label="Close Ad">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 6L6 18M6 6l12 12"></path></svg>
+      </button>
+  </div>
+  <div class="ad-sticky-content">
+      <!-- Placeholder AbhiHub Logo -->
+      <img src="{{ url_for('static', filename='images/apple-touch-icon.png') }}" 
+           alt="AbhiHub Ad Placeholder" 
+           style="width:auto; height:50px; opacity: 0.5;">
+  </div>
+</div>
+
+<style>
+.ad-sticky-wrapper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    width: 100%;
+    max-width: 400px;
+    background: var(--surface);
+    border-bottom-left-radius: var(--radius-xl);
+    border-bottom-right-radius: var(--radius-xl);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+    z-index: 9999;
+    border: 1px solid var(--border-light);
+    border-top: none;
+    overflow: hidden;
+}
+.ad-sticky-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 12px;
+    background: var(--bg-tertiary);
+    border-bottom: 1px solid var(--border-light);
+}
+.ad-sticky-label {
+    font-size: 10px;
+    color: var(--text-tertiary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+.ad-sticky-close {
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    padding: 4px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+}
+.ad-sticky-close:hover {
+    background: var(--gray-200);
+}
+.ad-sticky-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 50px;
+    background: var(--bg-primary);
+}
+
+@media (min-width: 768px) {
+    /* Hide on desktop, sticky is usually annoying on desktop and less effective */
+    .ad-sticky-wrapper {
+        display: none !important;
+    }
+}
+</style>
+
+<script>
+(function() {
+    // Push the body down so the top anchor ad sits perfectly at the top edge 
+    // and pushes the sticky header down below it.
+    if (window.innerWidth < 768) {
+        document.body.style.paddingTop = '90px'; 
+    }
+    
+    // Override the close button to also remove the padding
+    document.querySelector('.ad-sticky-close').addEventListener('click', function(e) {
+        e.preventDefault();
+        document.getElementById('adSticky').style.display = 'none';
+        document.body.style.paddingTop = '';
+    });
+})();
+</script>

@@ -134,7 +134,8 @@ function applyFilters() {
             }
         }
         
-        card.style.display = show ? '' : 'none';
+        // Use CSS class-based visibility for consistency with overlay system
+        card.classList.toggle('hidden', !show);
     });
 }
 

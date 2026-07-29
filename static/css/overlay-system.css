@@ -1,0 +1,95 @@
+/* Overlay system fallback stylesheet */
+
+.popup-overlay,
+.dashboard-modal-body,
+.pwa-install-popup,
+.profile-nudge-overlay,
+.mw-awareness-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 11000;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+}
+
+.popup-overlay.show,
+.dashboard-modal-body.show,
+.pwa-install-popup.show,
+.profile-nudge-overlay.show,
+.mw-awareness-overlay.show,
+.popup-overlay[style*="display:flex"] {
+  display: flex;
+}
+
+.popup-card,
+.dashboard-modal-card,
+.profile-nudge-card {
+  width: min(100%, 560px);
+  max-width: 560px;
+  position: relative;
+}
+
+.popup-section {
+  display: none;
+}
+
+.popup-section.active {
+  display: block;
+}
+
+.pwa-install-popup {
+  background: rgba(15, 23, 42, 0.72);
+}
+
+.pwa-install-popup.show {
+  display: flex;
+}
+
+.pwa-popup-content {
+  width: min(100%, 420px);
+  background: #ffffff;
+  border-radius: 24px;
+  padding: 1.5rem;
+  text-align: center;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.18);
+  position: relative;
+}
+
+.pwa-popup-header {
+  margin-bottom: 1rem;
+}
+
+.pwa-popup-heading,
+.pwa-popup-title {
+  margin: 0;
+  font-size: 1.4rem;
+  color: #111827;
+}
+
+.pwa-popup-copy,
+.pwa-popup-subtitle {
+  margin: 0.5rem 0 0;
+  color: #475569;
+  font-size: 1rem;
+  line-height: 1.6;
+}
+
+.pwa-popup-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  border: none;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  font-size: 1.25rem;
+}
+
+.pwa-popup-close:hover {
+  color: #111827;
+}

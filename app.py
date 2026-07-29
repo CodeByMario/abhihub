@@ -1,4 +1,4 @@
-from flask import Flask, redirect, render_template, request, make_response, session, abort, jsonify, url_for, send_file
+from flask import Flask, redirect, render_template, request, make_response, session, abort, jsonify, url_for, send_file, send_from_directory, flash, Response
 import secrets
 from functools import wraps
 from push_api import init_push_api
@@ -28,7 +28,6 @@ from firebase_admin import credentials, storage
 firebase_service_account = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
 if firebase_service_account:
     # Load from environment variable (recommended for production)
-    import json
     cred_dict = json.loads(firebase_service_account)
     cred = credentials.Certificate(cred_dict)
 else:
@@ -42,7 +41,7 @@ firebase_admin.initialize_app(cred, {
 
 # --- Advanced Search helpers (add after imports) ---
 import re
-from difflib import SequenceMatcher
+from rapidfuzz import fuzz as _fuzz
 
 # Tunable weights (subject hits matter most; then file-name; then type/author)
 FIELD_WEIGHTS = {
@@ -77,8 +76,8 @@ def _tokenize(text: str) -> list[str]:
     return _ALNUM.findall(_normalize(text))
 
 def _similar(a: str, b: str) -> float:
-    """Fuzzy similarity (0..1) using stdlib difflib."""
-    return SequenceMatcher(None, a, b).ratio()
+    """Fuzzy similarity (0..1) — rapidfuzz C++ backend (~10x faster than difflib)."""
+    return _fuzz.ratio(a, b) / 100.0
 
 def _parse_query(q: str) -> tuple[list[str], dict]:
     """
@@ -134,7 +133,6 @@ def _recent_year_boost(item: dict) -> float:
     """
     Favor recent items slightly. Uses 'year' or year-like in 'date'.
     """
-    from datetime import datetime
     now_year = datetime.now().year
     year_str = item.get("year") or str(item.get("date", ""))[:4]
     try:
@@ -175,6 +173,23 @@ from flask_compress import Compress
 app = Flask(__name__)
 Compress(app)
 
+import mimetypes
+mimetypes.add_type('application/javascript', '.mjs')
+
+AI_MODELS = [
+    "google/gemma-4-26b-a4b-it:free",
+    "google/gemma-4-31b-it:free",
+    "nvidia/llama-nemotron-rerank-vl-1b-v2:free",
+    "nvidia/nemotron-3.5-content-safety:free",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    "nvidia/llama-nemotron-embed-vl-1b-v2:free",
+    "nvidia/nemotron-nano-12b-v2-vl:free"
+]
+ai_model_errors = {m: 0 for m in AI_MODELS}
+
+def get_best_ai_model():
+    return min(ai_model_errors, key=ai_model_errors.get)
+
 # Security Configuration - Load from environment variables
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
 
@@ -188,7 +203,19 @@ app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
 
 # CSRF Protection
 app.config['WTF_CSRF_ENABLED'] = True
-app.config['WTF_CSRF_TIME_LIMIT'] = None  # No time limit on CSRF tokens
+app.config['WTF_CSRF_TIME_LIMIT'] = 3600  # 1 hour expiry on CSRF tokens
+
+from flask_wtf.csrf import CSRFProtect
+csrf = CSRFProtect(app)
+app.config['WTF_CSRF_CHECK_DEFAULT'] = False
+
+@app.before_request
+def check_csrf():
+    if request.method not in ['GET', 'HEAD', 'OPTIONS', 'TRACE']:
+        if request.path.startswith('/api/') or request.path.startswith('/auth') or request.path.startswith('/store-room/api/'):
+            return
+        csrf.protect()
+
 
 # Redirect old Heroku domain to new custom domain (301 permanent redirect)
 @app.before_request
@@ -212,14 +239,15 @@ except Exception as e:
 # File Upload Security Configuration
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB max file size
 ALLOWED_EXTENSIONS = {
-    'pdf', 'doc', 'docx', 'txt', 'ppt', 'pptx', 'xls', 'xlsx',
-    'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg',
-    'zip', 'rar', '7z'
+    'pdf', 'png', 'jpg', 'jpeg'
 }
 
 def allowed_file(filename):
     """Check if file extension is allowed"""
-    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    if '.' not in filename:
+        return False  # no extension — rejected
+    ext = filename.rsplit('.', 1)[1].lower()
+    return ext in ALLOWED_EXTENSIONS
 
 def sanitize_filename(filename):
     """Sanitize filename to prevent path traversal and other attacks"""
@@ -228,6 +256,15 @@ def sanitize_filename(filename):
     # Remove any potentially dangerous characters
     filename = re.sub(r'[^a-zA-Z0-9._-]', '_', filename)
     return filename
+
+def get_device_type(user_agent: str) -> str:
+    """Detect device type from user agent string."""
+    ua = (user_agent or '').lower()
+    if 'mobile' in ua or 'android' in ua or 'iphone' in ua:
+        return 'mobile'
+    if 'tablet' in ua or 'ipad' in ua:
+        return 'tablet'
+    return 'desktop'
 
 ########################
 #-------function-------#
@@ -252,8 +289,9 @@ def auth_required(f):
         
     return decorated_function
 
-# Admin email from environment variable
+# Admin emails from environment variable (comma-separated)
 ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'abhijeetshende4053@gmail.com')
+ADMIN_EMAILS = [e.strip().lower() for e in os.getenv('ADMIN_EMAILS', 'abhijeetshende4053@gmail.com,codebymario@gmail.com').split(',') if e.strip()]
 
 # Decorator for admin-only routes
 def admin_required(f):
@@ -266,7 +304,7 @@ def admin_required(f):
             
         # Check if user email matches admin email
         user_email = user.get('email', '').lower()
-        if user_email not in ['abhijeetshende4053@gmail.com', 'codebymario@gmail.com']:
+        if user_email not in ADMIN_EMAILS:
             abort(403)  # Forbidden
             
         return f(*args, **kwargs)
@@ -276,21 +314,53 @@ def admin_required(f):
 # Each upload grants QUOTA_PER_UPLOAD paper opens.
 # Admins and unauthenticated users are not affected (unauthenticated is blocked
 # by @auth_required anyway).
-QUOTA_PER_UPLOAD = 3
+QUOTA_PER_UPLOAD = 19
 
 def _get_quota():
-    """Return the current quota dict from session, creating it if absent."""
-    if 'paper_quota' not in session:
-        session['paper_quota'] = {'credits': 0, 'total_views': 0}
-    return session['paper_quota']
+    """Return the current quota dict from session, synced with backend, processing monthly resets."""
+    user = session.get('user', {})
+    user_id = user.get('uid')
+    if not user_id:
+        return {'credits': 19, 'total_views': 0}
 
-def _grant_upload_credits():
-    """Award QUOTA_PER_UPLOAD credits to the user after a successful upload."""
-    q = _get_quota()
-    q['credits'] = q.get('credits', 0) + QUOTA_PER_UPLOAD
+    # Fetch from Supabase
+    res = supabase.table('profiles').select('paper_quota_remaining, last_quota_reset').eq('id', user_id).execute()
+    db_quota = 19
+    _default_month = datetime.utcnow().strftime('%Y-%m')
+    last_reset = _default_month
+    if res.data:
+        db_quota = res.data[0].get('paper_quota_remaining')
+        if db_quota is None:
+            db_quota = 19
+        last_reset = res.data[0].get('last_quota_reset') or _default_month
+
+    current_month = datetime.utcnow().strftime('%Y-%m')
+    if last_reset != current_month:
+        db_quota = 19
+        last_reset = current_month
+        supabase.table('profiles').update({
+            'paper_quota_remaining': db_quota,
+            'last_quota_reset': last_reset
+        }).eq('id', user_id).execute()
+
+    q = {'credits': db_quota, 'total_views': session.get('paper_quota', {}).get('total_views', 0)}
     session['paper_quota'] = q
     session.modified = True
-    logging.info(f"[QUOTA] Granted {QUOTA_PER_UPLOAD} credits → total credits: {q['credits']}")
+    return q
+
+def _grant_upload_credits():
+    """Award +1 reputation score to the user after a successful upload."""
+    user = session.get('user', {})
+    user_id = user.get('uid')
+    if not user_id:
+        return
+    
+    # Fetch current rep
+    res = supabase.table('profiles').select('reputation_score').eq('id', user_id).execute()
+    if res.data:
+        curr_rep = res.data[0].get('reputation_score') or 0
+        supabase.table('profiles').update({'reputation_score': curr_rep + 1}).eq('id', user_id).execute()
+        logging.info(f"[REWARD] Granted +1 reputation to {user.get('email')} -> {curr_rep + 1}")
 
 def _consume_credit():
     """
@@ -300,16 +370,26 @@ def _consume_credit():
     """
     user = session.get('user', {})
     user_email = user.get('email', '').lower()
+    user_id = user.get('uid')
+    
     # Admins bypass the gate
-    if user_email in ['abhijeetshende4053@gmail.com', 'codebymario@gmail.com']:
+    if user_email in ADMIN_EMAILS:
         return True
+        
     q = _get_quota()
     if q.get('credits', 0) <= 0:
         return False
-    q['credits'] -= 1
+        
+    new_credits = q['credits'] - 1
+    q['credits'] = new_credits
     q['total_views'] = q.get('total_views', 0) + 1
     session['paper_quota'] = q
     session.modified = True
+    
+    # Update backend
+    if user_id:
+        supabase.table('profiles').update({'paper_quota_remaining': new_credits}).eq('id', user_id).execute()
+        
     return True
 
 @app.route('/api/quota', methods=['GET'])
@@ -324,14 +404,18 @@ def api_get_quota():
     }), 200
 # ─────────────────────────────────────────────────────────────────────────────
 
-import logging
 from PIL import Image
-import json
 import jwt
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
+
+@app.route('/static/<path:filename>')
+def static_files(filename):
+    if filename.endswith(".mjs"):
+        return send_from_directory("static", filename, mimetype="application/javascript")
+    return send_from_directory("static", filename)
 
 
 @app.route('/auth', methods=['POST'])
@@ -371,12 +455,7 @@ def authorize():
         user_agent = request.headers.get('User-Agent', '')
         
         # Simple device type detection
-        device_type = 'desktop'
-        userAgentLower = user_agent.lower()
-        if 'mobile' in userAgentLower or 'android' in userAgentLower or 'iphone' in userAgentLower:
-            device_type = 'mobile'
-        elif 'tablet' in userAgentLower or 'ipad' in userAgentLower:
-            device_type = 'tablet'
+        device_type = get_device_type(user_agent)
             
         session_result = UserSession.log_login(
             user_id=user_data.id,
@@ -449,13 +528,93 @@ def reset_password_confirm():
 def terms():
     return render_template('terms.html')
 
+@app.route('/ads.txt')
+def ads_txt():
+    return "google.com, pub-8274846157272362, DIRECT, f08c47fec0942fa0", 200, {'Content-Type': 'text/plain'}
+
+@app.route('/<key>.txt')
+def index_now_key(key):
+    expected_key = os.getenv('INDEX_NOW_BING_API_KEY', '31d61c30c86d4fc7a7bb3584a4d225c9').strip()
+    if key == expected_key:
+        return expected_key, 200, {'Content-Type': 'text/plain'}
+    return abort(404)
+
 @app.route('/sitemap.xml')
 def sitemap():
-    return render_template('sitemap.xml')
+    from methods.supabase_helper import get_sitemap_urls
+    import re
+    
+    # 1. Fetch raw data
+    sitemap_res = get_sitemap_urls()
+    data = sitemap_res.get('data', {}) if sitemap_res.get('success') else {}
+    
+    colleges = data.get('colleges', [])
+    departments = data.get('departments', [])
+    subjects = data.get('subjects', [])
+    documents = data.get('documents', [])
+    
+    urls = []
+    base_url = "https://app.abhihub.run.place"
+    
+    def slugify(text):
+        return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
+        
+    # Standard static URLs
+    for static_route in ['/', '/pyq', '/contact', '/features-tour', '/about']:
+        priority = "1.00" if static_route == '/' else ("0.95" if static_route == '/pyq' else "0.80")
+        urls.append({"loc": f"{base_url}{static_route}", "priority": priority})
+        
+    # Colleges + popular_name alias/brand URLs
+    seen_brands = set()
+    for c in colleges:
+        c_slug = slugify(c.get('abbreviation') or c.get('name'))
+        urls.append({"loc": f"{base_url}/college/{c_slug}", "lastmod": c.get('created_at'), "priority": "0.90"})
+        # Add brand page URL (one per unique popular_name)
+        popular = c.get('popular_name')
+        if popular:
+            p_slug = slugify(popular)
+            if p_slug not in seen_brands:
+                seen_brands.add(p_slug)
+                urls.append({"loc": f"{base_url}/college/{p_slug}", "lastmod": c.get('created_at'), "priority": "0.92"})
+        
+        # Departments (Nested under colleges)
+        for d in departments:
+            d_slug = slugify(d.get('abbreviation') or d.get('name'))
+            urls.append({"loc": f"{base_url}/college/{c_slug}/{d_slug}", "lastmod": d.get('created_at'), "priority": "0.85"})
+            
+    # Subjects (Unique)
+    seen_subjects = set()
+    for s in subjects:
+        s_slug = slugify(s.get('name'))
+        if s_slug and s_slug not in seen_subjects:
+            seen_subjects.add(s_slug)
+            urls.append({"loc": f"{base_url}/subject/{s_slug}", "lastmod": s.get('created_at'), "priority": "0.90"})
+            
+    # Resources
+    for doc in documents:
+        college_data = doc.get('college') or {}
+        dept_data = doc.get('department') or {}
+        subj_data = doc.get('subject') or {}
+        
+        c_slug = slugify(college_data.get('abbreviation') or college_data.get('name') or 'college')
+        d_slug = slugify(dept_data.get('abbreviation') or dept_data.get('name') or 'dept')
+        s_slug = slugify(subj_data.get('name') or 'subject')
+        t_slug = slugify(doc.get('title') or 'file')
+        
+        canonical_slug = f"{c_slug}-{d_slug}-{s_slug}-{t_slug}-{doc.get('id')}"
+        urls.append({"loc": f"{base_url}/resource/{canonical_slug}", "lastmod": doc.get('updated_at') or doc.get('created_at'), "priority": "0.75"})
+        
+    response = make_response(render_template('sitemap.xml', urls=urls))
+    response.headers['Content-Type'] = 'application/xml'
+    return response
 
 @app.route('/privacy')
 def privacy():
     return render_template('privacy.html')
+
+@app.route('/help')
+def help_center():
+    return render_template('help.html')
 
 @app.route('/logout')
 def logout():
@@ -471,26 +630,119 @@ def logout():
     response.set_cookie('session', '', expires=0)  # Optionally clear the session cookie
     return response
 
+@app.route('/api/profile-status')
+@auth_required
+def profile_status(user_data=None):
+    """Lightweight endpoint for access-gates.js — returns profile completion state."""
+    try:
+        user_id = session.get('user', {}).get('uid')
+        if not user_id:
+            return jsonify({'profile_completed': False}), 200
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        res = client.table('profiles').select('college_id, department_id').eq('id', user_id).single().execute()
+        completed = bool(res.data and res.data.get('college_id') and res.data.get('department_id'))
+        return jsonify({'profile_completed': completed}), 200
+    except Exception:
+        return jsonify({'profile_completed': False}), 200
+
+
 @app.route('/api/profile', methods=['GET'])
 @auth_required
-def get_profile():
+def get_profile(user_data=None):
     """Get current user profile"""
     try:
         user_info = session.get('user', {})
+        user_id = user_info.get('uid')
+
+        # Get reputation stats
+        students_helped = 0
+        badges = []
+        college_id = None
+        department_id = None
+
+        if user_id:
+            from methods.supabase_helper import get_reputation_stats, init_supabase
+            rep_stats = get_reputation_stats(user_id)
+            if rep_stats.get('success'):
+                students_helped = rep_stats.get('students_helped', 0)
+                badges = rep_stats.get('badges', [])
+
+            # Fetch college_id + department_id from profiles table
+            try:
+                client = init_supabase()
+                pres = client.table('profiles') \
+                    .select('college_id, department_id') \
+                    .eq('id', user_id).single().execute()
+                if pres.data:
+                    college_id    = pres.data.get('college_id')
+                    department_id = pres.data.get('department_id')
+            except Exception:
+                pass  # non-fatal — form remains editable
+                
+            timeline = []
+            try:
+                from methods.supabase_helper import get_contribution_timeline
+                t_res = get_contribution_timeline(user_id)
+                if t_res.get('success'):
+                    timeline = t_res.get('timeline', [])
+            except Exception:
+                pass
+
         return jsonify({
             'success': True,
             'user': {
-                'uid': user_info.get('uid'),
-                'email': user_info.get('email'),
-                'name': user_info.get('name'),
-                'name': user_info.get('name'),
-                'provider': user_info.get('provider'),
-                'user_metadata': user_info.get('user_metadata', {})
+                'uid':          user_info.get('uid'),
+                'email':        user_info.get('email'),
+                'name':         user_info.get('name'),
+                'provider':     user_info.get('provider'),
+                'user_metadata': user_info.get('user_metadata', {}),
+                'college_id':   college_id,
+                'department_id': department_id,
+                'students_helped': students_helped,
+                'badges':       badges,
+                'timeline':     timeline
             }
         }), 200
     except Exception as e:
         logging.error(f"Error getting profile: {e}")
         return jsonify({'success': False, 'message': 'Failed to get profile'}), 500
+
+
+@app.route('/api/profile/update', methods=['POST'])
+@auth_required
+def api_update_profile(user_data=None):
+    """Update profile's default college and department selection."""
+    try:
+        user_info = session.get('user', {})
+        user_id = user_info.get('uid')
+        if not user_id:
+            return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+        
+        data = request.get_json() or {}
+        college_id = (data.get('college_id') or '').strip()
+        department_id = (data.get('department_id') or '').strip()
+        
+        from methods.supabase_helper import init_supabase, validate_uuid
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'message': 'Supabase client unavailable'}), 500
+
+        update_data = {}
+        if validate_uuid(college_id):
+            update_data['college_id'] = college_id
+        if validate_uuid(department_id):
+            update_data['department_id'] = department_id
+
+        if update_data:
+            client.table('profiles').update(update_data).eq('id', user_id).execute()
+            return jsonify({'success': True}), 200
+        
+        return jsonify({'success': False, 'message': 'No valid fields provided'}), 400
+    except Exception as e:
+        logging.error(f"Error updating profile: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @app.route('/api/check-auth', methods=['GET'])
 def check_auth():
@@ -576,6 +828,292 @@ def api_get_branches():
         }), 500
 
 
+# T1 — Cascading dropdowns
+@app.route('/api/departments', methods=['GET'])
+def api_get_departments():
+    """Return departments for a college (cascading dropdown, T1/T8)."""
+    college_id = request.args.get('college_id', '').strip()
+    if not college_id:
+        return jsonify({'success': False, 'departments': [], 'message': 'college_id required'}), 400
+    from methods.supabase_helper import get_departments_by_college
+    result = get_departments_by_college(college_id)
+    return jsonify({'success': result.get('success', False), 'departments': result.get('data', [])}), 200
+
+
+@app.route('/api/semesters', methods=['GET'])
+def api_get_semesters():
+    """Return semesters for a department (unified API)."""
+    department_id = request.args.get('department_id', '').strip()
+    if not department_id:
+        return jsonify({'success': False, 'semesters': [], 'message': 'department_id required'}), 400
+    
+    semesters = [{'id': str(i), 'name': f'Semester {i}'} for i in range(1, 9)]
+    semesters.append({'id': '0', 'name': 'All Semesters'})
+    return jsonify({'success': True, 'semesters': semesters}), 200
+
+
+@app.route('/api/subjects', methods=['GET'])
+def api_get_subjects():
+    """Return subjects for a department, optionally filtered by semester."""
+    department_id = request.args.get('department_id', '').strip()
+    semester = request.args.get('semester', type=int)  # optional
+    if not department_id:
+        return jsonify({'success': False, 'subjects': [], 'message': 'department_id required'}), 400
+    from methods.supabase_helper import get_subjects_by_department
+    result = get_subjects_by_department(department_id, semester=semester)
+    return jsonify({'success': result.get('success', False), 'subjects': result.get('data', [])}), 200
+
+
+# Direct-insert: new subject
+@app.route('/api/subjects', methods=['POST'])
+@auth_required
+def api_add_subject(user_data=None):
+    data = request.get_json() or {}
+    name = (data.get('name') or '').strip()
+    code = (data.get('subject_code') or '').strip()
+    dept_id = (data.get('department_id') or '').strip()
+    semester = data.get('semester')
+    
+    if not name:
+        return jsonify({'success': False, 'message': 'Subject name required'}), 400
+    if not dept_id:
+        return jsonify({'success': False, 'message': 'Department ID required'}), 400
+        
+    try:
+        sem_val = int(semester) if semester not in (None, '', 0, '0') else None
+    except (ValueError, TypeError):
+        sem_val = None
+
+    from methods.supabase_helper import init_supabase
+    client = init_supabase()
+    try:
+        insert_data = {
+            'name': name,
+            'subject_code': code or None,
+            'department_id': dept_id
+        }
+        if sem_val is not None:
+            insert_data['semester'] = sem_val
+            
+        res = client.table('subjects').insert(insert_data).execute()
+        subj = res.data[0] if res.data else {}
+        
+        # Auto-generate and store acronym alias (e.g. Transform Numerical Method -> tnm)
+        if subj and name:
+            import re
+            words = [w for w in re.split(r'\W+', name) if w and w.lower() not in ['and', 'of', 'the', '&']]
+            acronym = "".join([w[0] for w in words]).lower()
+            if len(acronym) > 1:
+                try:
+                    client.table('subject_aliases').insert({
+                        'subject_id': subj['id'],
+                        'alias': acronym,
+                        'priority': 1
+                    }).execute()
+                except Exception as e:
+                    print(f"Failed to save alias {acronym} for subject: {e}")
+                    
+        return jsonify({'success': True, 'subject': subj}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+
+# Direct-insert: new college
+@app.route('/api/colleges', methods=['POST'])
+@auth_required
+def api_add_college(user_data=None):
+    data = request.get_json() or {}
+    name = (data.get('name') or '').strip()
+    abbr = (data.get('abbreviation') or '').strip()
+    if not name:
+        return jsonify({'success': False, 'message': 'College name required'}), 400
+    from methods.supabase_helper import init_supabase
+    client = init_supabase()
+    try:
+        res = client.table('colleges').insert({'name': name, 'abbreviation': abbr or None}).execute()
+        college = res.data[0] if res.data else {}
+        return jsonify({'success': True, 'college': college}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+
+@app.route('/api/check-duplicate', methods=['POST'])
+@auth_required
+def api_check_duplicate(user_data=None):
+    data = request.get_json() or {}
+    file_hash = data.get('file_hash')
+    if not file_hash:
+        return jsonify({'success': False, 'message': 'Missing file_hash'}), 400
+        
+    from methods.supabase_helper import init_supabase
+    client = init_supabase()
+    if not client: return jsonify({'success': False}), 500
+    
+    try:
+        res = client.table('documents').select('id, title, status').eq('file_hash', file_hash).execute()
+        if res.data and len(res.data) > 0:
+            return jsonify({'success': True, 'is_duplicate': True, 'existing_file': res.data[0]}), 200
+        return jsonify({'success': True, 'is_duplicate': False}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+@app.route('/api/ai/predict-metadata', methods=['POST'])
+@auth_required
+def api_predict_metadata(user_data=None):
+    """
+    Phase 5: AI Metadata Prediction.
+    Takes a filename (e.g. 'tnm_cae2.pdf') and returns predicted Subject, Type, and Unit.
+    """
+    data = request.get_json() or {}
+    filename = data.get('filename', '').lower()
+    if not filename: return jsonify({'success': False})
+    
+    from methods.supabase_helper import init_supabase
+    import re
+    client = init_supabase()
+    
+    words = re.split(r'[\W_]+', filename.split('.')[0])
+    prediction = {'subject_id': None, 'type': None, 'unit': None, 'year': '2025'}
+    
+    # 1. Predict Category / Unit
+    for w in words:
+        if w in ['notes', 'note']: prediction['type'] = 'notes'
+        elif w in ['cae1', 'cae2', 'cae3', 'ese']:
+            prediction['type'] = 'papers'
+            prediction['unit'] = w.upper()
+        elif w in ['practical', 'lab']: prediction['type'] = 'practical'
+        elif w in ['syllabus']: prediction['type'] = 'syllabus'
+        
+        # Detect Year
+        if re.match(r'^202[0-9]$', w): prediction['year'] = w
+            
+    # 2. Predict Subject via Aliases
+    try:
+        if client:
+            alias_res = client.table('subject_aliases').select('subject_id, alias').execute()
+            if alias_res.data:
+                # Find longest matching alias in filename
+                best_match = None
+                for record in alias_res.data:
+                    alias = record.get('alias', '').lower()
+                    if alias in words:
+                        best_match = record['subject_id']
+                        break
+                if best_match:
+                    prediction['subject_id'] = best_match
+    except Exception as e:
+        print("Prediction error:", e)
+
+    return jsonify({'success': True, 'prediction': prediction}), 200
+
+# Direct-insert: new department + map to college
+@app.route('/api/departments', methods=['POST'])
+@auth_required
+def api_add_department(user_data=None):
+    data = request.get_json() or {}
+    name      = (data.get('name') or '').strip()
+    abbr      = (data.get('abbreviation') or '').strip()
+    college_id = (data.get('college_id') or '').strip()
+    if not name:
+        return jsonify({'success': False, 'message': 'Department name required'}), 400
+    if len(name) > 120 or len(abbr) > 20:
+        return jsonify({'success': False, 'message': 'Name too long (max 120) or abbreviation too long (max 20)'}), 400
+    from methods.supabase_helper import init_supabase
+    client = init_supabase()
+    try:
+        res = client.table('departments').insert({'name': name, 'abbreviation': abbr or None}).execute()
+        dept = res.data[0] if res.data else {}
+        dept_id = dept.get('id')
+        # Map to college if provided
+        if dept_id and college_id:
+            client.table('college_departments').insert(
+                {'college_id': college_id, 'department_id': dept_id}
+            ).execute()
+        return jsonify({'success': True, 'department': dept}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 400
+
+
+# T2 — Missing subject request
+@app.route('/api/subject-request', methods=['POST'])
+@auth_required
+def api_create_subject_request():
+    """Create a pending_subject_requests row (T2). Duplicate-safe via DB index."""
+    user_id = session.get('user', {}).get('uid')
+    data = request.get_json(silent=True) or {}
+    subject_name = (data.get('subject_name') or '').strip()
+    if not subject_name:
+        return jsonify({'success': False, 'message': 'subject_name required'}), 400
+    if len(subject_name) > 200:
+        return jsonify({'success': False, 'message': 'Subject name too long (max 200 chars)'}), 400
+    from methods.supabase_helper import create_subject_request, track_user_event
+    result = create_subject_request(
+        user_id=user_id,
+        college_id=data.get('college_id', ''),
+        department_id=data.get('department_id', ''),
+        subject_name=subject_name,
+        subject_code=data.get('subject_code', ''),
+        semester=data.get('semester') or None
+    )
+    if result.get('success'):
+        track_user_event(user_id, 'SUBJECT_REQUEST', {'subject_name': subject_name})
+    elif result.get('duplicate'):
+        return jsonify({'success': False, 'message': result.get('message'), 'duplicate': True}), 409
+    return jsonify(result), 200 if result.get('success') else 500
+
+
+@app.route('/api/waitlist/join', methods=['POST'])
+def api_waitlist_join():
+    """Public endpoint — join college waitlist. No auth required."""
+    data = request.get_json(silent=True) or {}
+    college_id = (data.get('college_id') or '').strip()
+    email = (data.get('email') or '').strip()
+    name = (data.get('name') or '').strip()
+
+    if not college_id or not email or '@' not in email:
+        return jsonify({'success': False, 'message': 'Valid email and college required'}), 400
+
+    from methods.supabase_helper import join_college_waitlist, validate_uuid
+    if not validate_uuid(college_id):
+        return jsonify({'success': False, 'message': 'Invalid college'}), 400
+
+    result = join_college_waitlist(college_id, email, name)
+    return jsonify(result), 200
+
+
+# T4 — Onboarding status
+@app.route('/api/onboarding/status', methods=['GET'])
+@auth_required
+def api_onboarding_status():
+    user_id = session.get('user', {}).get('uid')
+    from methods.supabase_helper import get_onboarding_status
+    result = get_onboarding_status(user_id)
+    return jsonify(result), 200 if result.get('success') else 500
+
+
+@app.route('/api/onboarding/welcome-seen', methods=['POST'])
+@auth_required
+def api_onboarding_welcome_seen():
+    user_id = session.get('user', {}).get('uid')
+    from methods.supabase_helper import mark_welcome_seen
+    result = mark_welcome_seen(user_id)
+    return jsonify(result), 200 if result.get('success') else 500
+
+
+# T7 — Analytics event tracking
+@app.route('/api/events', methods=['POST'])
+@auth_required
+def api_track_event():
+    """Tracks only UPLOAD, DOWNLOAD, SUBJECT_REQUEST. Returns 200 always."""
+    user_id = session.get('user', {}).get('uid')
+    data = request.get_json(silent=True) or {}
+    event_type = (data.get('event_type') or '').upper().strip()
+    # track_user_event already filters to 3 allowed types
+    from methods.supabase_helper import track_user_event
+    track_user_event(user_id, event_type, data.get('metadata', {}))
+    return jsonify({'success': True}), 200
+
+
 @app.route('/store-room/api/label', methods=['POST'])
 @auth_required
 def label_store_room_paper():
@@ -603,52 +1141,56 @@ def label_store_room_paper():
                 'message': 'No data provided'
             }), 400
         
-        # Extract required fields
+        # Extract fields — IDs come directly from the cascade dropdowns (same as upload route)
         filename = data.get('filename', '')
         file_url = data.get('url', '')
-        college_name = data.get('college_name', '')
+        college_id = data.get('college_id', '').strip() or None
+        branch_id = data.get('branch_id', '').strip() or None
+        subject_id = data.get('subject_id', '').strip() or None
         subject_name = data.get('subject_name', '')
         subject_code = data.get('subject_code', '')
-        branch_name = data.get('branch', '')
-        year = str(data.get('year', ''))
-        
-        # New redesign fields
+        year_raw = data.get('year', '')
+        year = str(year_raw)
+        try:
+            year_int = int(year_raw)
+            from datetime import datetime
+            current_year = datetime.now().year
+            if year_int < 1900 or year_int > current_year + 1:
+                return jsonify({'success': False, 'message': 'Invalid year provided'}), 400
+        except Exception:
+            return jsonify({'success': False, 'message': 'Year must be a number'}), 400
+
         custom_title = data.get('title', '')
         document_category = data.get('document_category', 'papers')
         custom_description = data.get('description', '')
-        
-        exam_type = data.get('exam_type', 'PYQ')  # Default to PYQ
-        semesters = data.get('semesters', [])
-        
-        # Validate required fields
-        if not all([filename, file_url, college_name, subject_name, branch_name, year]):
-            return jsonify({'success': False, 'message': 'Missing required fields'}), 400
-        
-        # Validate document category
+        exam_type = data.get('exam_type', '')
+        semester_raw = data.get('semester')
+        semester = int(semester_raw) if semester_raw and str(semester_raw).isdigit() and 1 <= int(semester_raw) <= 8 else None
+
+        missing_fields = []
+        if not filename: missing_fields.append('filename')
+        if not file_url: missing_fields.append('url')
+        if not subject_name: missing_fields.append('subject_name')
+        if not year: missing_fields.append('year')
+
+        if missing_fields:
+            print(f"[DEBUG] Missing required fields: {missing_fields}")
+            return jsonify({'success': False, 'message': f'Missing required fields: {", ".join(missing_fields)}'}), 400
+        if not subject_id:
+            return jsonify({'success': False, 'message': 'Subject selection is required'}), 400
+
+        # Validate the academic hierarchy
+        from methods.supabase_helper import verify_hierarchy
+        if not verify_hierarchy(college_id, branch_id, subject_id):
+            return jsonify({'success': False, 'message': 'Invalid academic hierarchy (mismatched college/branch/subject)'}), 400
+
         allowed_categories = ['papers', 'notes', 'practical', 'syllabus', 'assisment', 'timetable']
         if document_category not in allowed_categories:
-            document_category = 'papers' # Fallback
-            
+            document_category = 'papers'
+
         print(f"[STORE_ROOM_LABEL] User: {user_email}, File: {filename}")
-        print(f"[STORE_ROOM_LABEL] Category: {document_category}, Title: {custom_title or filename}")
-        
-        # Look up college_id and branch_id
-        from methods.supabase_helper import init_supabase
-        client = init_supabase()
-        college_id = None
-        branch_id = None
-        
-        if client:
-            try:
-                college_res = client.table('colleges').select('id').ilike('name', college_name).limit(1).execute()
-                if college_res.data: college_id = college_res.data[0]['id']
-            except: pass
-            
-            try:
-                branch_res = client.table('departments').select('id').ilike('name', branch_name).limit(1).execute()
-                if branch_res.data: branch_id = branch_res.data[0]['id']
-            except: pass
-        
+        print(f"[STORE_ROOM_LABEL] College:{college_id} Branch:{branch_id} Subject:{subject_id} Sem:{semester}")
+
         # Extract cloudinary_public_id from URL
         cloudinary_public_id = filename
         if 'cloudinary.com' in file_url:
@@ -658,18 +1200,12 @@ def label_store_room_paper():
                 if idx + 1 < len(parts):
                     p_id_ext = '/'.join(parts[idx + 1:])
                     cloudinary_public_id = p_id_ext.rsplit('.', 1)[0]
-        
-        # Determine file type
+
         file_ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'jpg'
         file_type = 'pdf' if file_ext == 'pdf' else 'image'
-        
-        # Save to file_records table
+
         from methods.supabase_helper import save_file_record
-        
-        # Merge custom description with metadata JSON if desired, OR just pass custom
-        # Here we'll merge custom notes if provided
-        final_description = custom_description if custom_description else ''
-        
+
         result = save_file_record(
             user_id=user_id or user_email.split('@')[0],
             user_email=user_email,
@@ -683,14 +1219,37 @@ def label_store_room_paper():
             year=year,
             college_id=college_id,
             branch_id=branch_id,
+            subject_id=subject_id,
             subject_code=subject_code,
-            semesters=semesters,
-            title=custom_title,
-            description=final_description
+            semester=semester,
+            title=custom_title or subject_name,
+            description=custom_description,
+            exam_type=exam_type
         )
         
         if result.get('success'):
             print(f"[STORE_ROOM_LABEL] SUCCESS: Saved to file_records")
+            
+            # 1. Update storage_assets status to LABELED
+            from methods.supabase_helper import mark_storage_asset_labeled, log_label_audit
+            storage_provider = 'cloudinary' if cloudinary_public_id else 'firebase'
+            if cloudinary_public_id:
+                mark_storage_asset_labeled(storage_provider, cloudinary_public_id)
+            
+            # 2. Log audit entry
+            doc_id = result.get('data', {}).get('id')
+            if doc_id:
+                log_label_audit(
+                    user_id=user_id or user_email.split('@')[0], 
+                    document_id=doc_id, 
+                    action='LABELED_FROM_QUEUE', 
+                    details={'subject_id': subject_id, 'branch_id': branch_id, 'college_id': college_id}
+                )
+            
+            # Invalidate the unlabeled files cache
+            global _unlabeled_cache
+            _unlabeled_cache['data'] = None
+            
             return jsonify({
                 'success': True,
                 'message': 'Paper labeled successfully',
@@ -698,10 +1257,11 @@ def label_store_room_paper():
             }), 200
         else:
             print(f"[STORE_ROOM_LABEL] ERROR: {result.get('message')}")
+            status_code = 409 if result.get('conflict') else 500
             return jsonify({
                 'success': False,
                 'message': result.get('message', 'Failed to save label')
-            }), 500
+            }), status_code
     
     except Exception as e:
         print(f"[STORE_ROOM_LABEL] EXCEPTION: {e}")
@@ -929,6 +1489,33 @@ def api_get_file_access_history():
         }), 500
 
 
+@app.route('/api/my-notifications', methods=['GET'])
+@auth_required
+def api_get_my_notifications():
+    """Return paginated notifications for the logged-in user."""
+    user_id = session.get('user', {}).get('uid')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    limit  = min(request.args.get('limit', 20, type=int), 50)
+    offset = request.args.get('offset', 0, type=int)
+    from methods.supabase_helper import get_user_notifications
+    items = get_user_notifications(user_id, limit=limit, offset=offset)
+    unread = sum(1 for n in items if not n.get('is_read'))
+    return jsonify({'success': True, 'data': items, 'unread': unread}), 200
+
+
+@app.route('/api/my-notifications/read', methods=['POST'])
+@auth_required
+def api_mark_notifications_read():
+    """Mark all notifications as read for the logged-in user."""
+    user_id = session.get('user', {}).get('uid')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    from methods.supabase_helper import mark_notifications_read
+    res = mark_notifications_read(user_id)
+    return jsonify(res), 200 if res.get('success') else 500
+
+
 @app.route('/api/files/all', methods=['GET'])
 def get_all_files():
     """
@@ -1066,17 +1653,25 @@ def upload():
             # Resolve metadata from form
             college_id = request.form.get('college_id', '').strip()
             branch_id = request.form.get('branch_id', '').strip()
-            # The form might send 'type' or 'document_type'
+            subject_id = request.form.get('subject_id', '').strip()
+            semester_raw = request.form.get('semester', '').strip()
+            semester = int(semester_raw) if semester_raw.isdigit() and 1 <= int(semester_raw) <= 8 else None
             document_type = request.form.get('document_type') or request.form.get('type') or 'Other'
             subject_name = subject.strip()
-            
-            # Additional metadata for description
             unit = request.form.get('unit', '')
             practical_num = request.form.get('practical', '')
             practical_type = request.form.get('practical-type', '')
-            
-            print(f"[UPLOAD] Processing upload for User: {user_email}")
-            print(f"[UPLOAD] Metadata - College: {college_id}, Branch: {branch_id}, Type: {document_type}, Subject: {subject_name}")
+
+            # Guard: reject uploads with no subject selected
+            if not subject_id or subject_id == '__other__':
+                print(f"[UPLOAD REJECTED] Reason:Missing subject_id Uploader:{user_id} File:{original_filename}")
+                return jsonify(
+                    success=False,
+                    message="Subject selection is required. Please select a subject from the dropdown."
+                ), 400
+
+
+            print(f"[UPLOAD] Uploader:{user_id} College:{college_id} Branch:{branch_id} Semester:{semester} Subject:{subject_name!r} SubjectID:{subject_id}")
             
             # Save to file_records table (Supabase abhihub.documents)
             from methods.supabase_helper import save_file_record
@@ -1094,7 +1689,9 @@ def upload():
                 year=year,
                 college_id=college_id if college_id else None,
                 branch_id=branch_id if branch_id else None,
-                title=subject_name if subject_name else original_filename
+                title=subject_name if subject_name else original_filename,
+                subject_id=subject_id if subject_id else None,
+                semester=semester
             )
             
             if not file_record_result.get('success'):
@@ -1108,13 +1705,41 @@ def upload():
             
             print(f"[UPLOAD SUCCESS] Document ID: {file_record_result.get('data', {}).get('id')}")
 
-            # ── Grant paper-access credits for this upload ──────────────
+            # ── Track UPLOAD event (non-blocking) ───────────────────────
+            try:
+                from methods.supabase_helper import track_user_event
+                track_user_event(user_id, 'UPLOAD', {
+                    'document_id': file_record_result.get('data', {}).get('id'),
+                    'subject_id': subject_id or None,
+                    'semester': semester,
+                    'document_type': document_type.lower()
+                })
+            except Exception:
+                pass
+
             _grant_upload_credits()
 
-            # ── Recalculate & persist reputation score in DB ────────
+            # ── IndexNow: fast-track indexing of new resource ────────────
             try:
-                from methods.supabase_helper import recalculate_and_persist_user_rank
-                recalculate_and_persist_user_rank(user_id)
+                doc_id = file_record_result.get('data', {}).get('id', '')
+                _trigger_indexnow([
+                    f"https://{BASE_DOMAIN}/pyq",
+                    f"https://{BASE_DOMAIN}/resource/{doc_id}" if doc_id else None,
+                ])
+            except Exception:
+                pass
+
+            # ── Recalculate & persist reputation score in DB ────────
+            xp_gained = 0.0
+            new_score = 0.0
+            try:
+                from methods.supabase_helper import recalculate_and_persist_user_rank, POINTS_MAP, DEFAULT_POINTS
+                # XP for this specific upload (before persist)
+                cat = document_type.lower()
+                raw_pts = POINTS_MAP.get(cat, DEFAULT_POINTS)
+                xp_gained = round(raw_pts * 0.5, 2)  # pending = half pts initially
+                result_rank = recalculate_and_persist_user_rank(user_id)
+                new_score = result_rank.get('score', 0.0)
             except Exception as rank_err:
                 logging.warning(f"[UPLOAD] Rank recalc failed (non-critical): {rank_err}")
 
@@ -1129,7 +1754,9 @@ def upload():
                     'file_type': file_type_category,
                     'compressed': upload_result.get('resource_type') == 'image',
                     'credits_granted': QUOTA_PER_UPLOAD,
-                    'credits_remaining': _get_quota().get('credits', 0)
+                    'credits_remaining': _get_quota().get('credits', 0),
+                    'xp_gained': xp_gained,
+                    'new_score': new_score
                 }
             ), 200
             
@@ -1155,6 +1782,11 @@ def preview():
     file_url = request.args.get('file_path')
     if not file_url:
         abort(404)
+        
+    record_id = request.args.get('record_id')
+    if record_id:
+        return redirect(url_for('resource_landing', slug=f"legacy-redirect-{record_id}"), code=301)
+
 
     # ── Quota gate ────────────────────────────────────────────────────────
     if not _consume_credit():
@@ -1232,10 +1864,22 @@ def pdf_viewer():
             record_id=record_id
         )
     
-    local_path = os.path.join('data', file_url)
+    import urllib.parse
+    safe_file_url = urllib.parse.unquote(file_url).replace('\\', '/')
+    
+    if '..' in safe_file_url or safe_file_url.startswith('/'):
+        abort(400, description="Invalid file path")
+        
+    base_dir = os.path.abspath('data')
+    local_path = os.path.abspath(os.path.join(base_dir, safe_file_url))
+    
+    if not local_path.startswith(base_dir + os.sep):
+        abort(400, description="Invalid file path")
+        
     if not os.path.exists(local_path):
+        os.makedirs(os.path.dirname(local_path), exist_ok=True)
         bucket = storage.bucket()
-        blob = bucket.blob(file_url)
+        blob = bucket.blob(safe_file_url)
         blob.download_to_filename(local_path)
     
     return send_file(local_path, mimetype='application/pdf')
@@ -1258,6 +1902,111 @@ def upload_gate():
 @app.route("/logo")
 def logo():
     return send_file('static/images/logo.png', mimetype='image/png')
+
+
+_ALLOWED_PROXY_HOSTS = {
+    'storage.googleapis.com',
+    'firebasestorage.googleapis.com',
+    'res.cloudinary.com',
+}
+
+@app.route('/api/proxy-file')
+@auth_required
+def proxy_file():
+    """Server-side proxy for Firebase/Cloudinary files to bypass browser CORS."""
+    file_url = request.args.get('url', '').strip()
+    if not file_url:
+        abort(400)
+
+    from urllib.parse import urlparse
+    parsed = urlparse(file_url)
+    if parsed.hostname not in _ALLOWED_PROXY_HOSTS:
+        abort(403)
+
+    try:
+        upstream = requests.get(
+            file_url,
+            timeout=30,
+            verify=True,
+            headers={'User-Agent': 'AbhiHub-Proxy/1.0'}
+        )
+        if not upstream.ok:
+            logging.error(f"[PROXY] Upstream returned {upstream.status_code} for {file_url}")
+            abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
+
+        content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
+        resp = make_response(upstream.content)
+        resp.headers['Content-Type'] = content_type
+        resp.headers['Cache-Control'] = 'private, max-age=86400'
+        resp.headers['X-Content-Type-Options'] = 'nosniff'
+        resp.headers['Content-Disposition'] = 'inline'
+        resp.headers['Access-Control-Allow-Origin'] = '*'
+        return resp
+    except requests.exceptions.RequestException as e:
+        logging.error(f"[PROXY] Request failed for {file_url}: {e}")
+        abort(502)
+    except Exception as e:
+        logging.error(f"[PROXY] Unexpected error for {file_url}: {e}")
+        abort(502)
+
+
+@app.route('/api/view-doc/<doc_id>')
+@app.route('/api/view-doc/<doc_id>/<filename>')
+def view_doc(doc_id, filename=None):
+    """Clean proxy endpoint for viewing docs — no URL encoding needed in PDF.js file= param."""
+    from methods.supabase_helper import get_document_by_id_rich
+    doc_res = get_document_by_id_rich(doc_id)
+    if not doc_res.get('success'):
+        abort(404)
+    document = doc_res.get('data', {})
+    file_url = document.get('file_url', '')
+    if not file_url:
+        abort(404)
+
+    # Resolve Firebase storage paths to signed URLs
+    if not file_url.startswith('http'):
+        try:
+            bucket = storage.bucket()
+            blob = bucket.blob(file_url)
+            file_url = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
+        except Exception as e:
+            logging.error(f"[VIEW-DOC] Signed URL error for {doc_id}: {e}")
+            abort(500)
+
+    from urllib.parse import urlparse
+    parsed = urlparse(file_url)
+    if parsed.hostname not in _ALLOWED_PROXY_HOSTS:
+        abort(403)
+
+    try:
+        upstream = requests.get(file_url, stream=True, timeout=30, verify=True, headers={'User-Agent': 'AbhiHub-Proxy/1.0'})
+        if not upstream.ok:
+            abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
+            
+        content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
+        if document.get('file_type') == 'pdf' or '.pdf' in file_url.lower():
+            content_type = 'application/pdf'
+            
+        def generate():
+            try:
+                for chunk in upstream.iter_content(chunk_size=65536):
+                    if chunk:
+                        yield chunk
+            except Exception as e:
+                logging.error(f"[VIEW-DOC] Stream interrupted for {doc_id}: {e}")
+                
+        return Response(generate(),
+                        status=upstream.status_code,
+                        content_type=content_type,
+                        headers={
+                            'Cache-Control': 'private, max-age=86400',
+                            'Content-Disposition': 'inline',
+                            'Access-Control-Allow-Origin': '*'
+                        })
+    except Exception as e:
+        logging.error(f"[VIEW-DOC] Proxy error for {doc_id}: {e}")
+        abort(502)
+
 
 
 def get_all_files_unified():
@@ -1287,8 +2036,8 @@ def dashboard():
     # Extract SEO data
     all_subjects = list(set([f.get('subject', '') for f in files if f.get('subject', '').strip()]))
     top_subjects = sorted(all_subjects)[:8]
-    paper_count = len([f for f in files if f.get('type', '').lower() == 'pyq'])
-    notes_count = len([f for f in files if f.get('type', '').lower() == 'notes'])
+    paper_count = len([f for f in files if f.get('type', '').lower() in ('papers', 'paper', 'pyq')])
+    notes_count = len([f for f in files if f.get('type', '').lower() in ('notes', 'imp questions', 'imp_questions')])
     
     seo_keywords = "AbhiHub, GHRCE papers, engineering papers, " + ", ".join(top_subjects) + ", exam resources, study materials"
     
@@ -1318,10 +2067,19 @@ def dashboard():
         if history_result.get('success'):
             file_history = history_result.get('data', [])
             
-        # Get user profile basics from about_supabase schema
-        from methods.supabase_helper import get_user_profile, calculate_user_ranks
-        profile_res = get_user_profile(user_id)
+        # Get user profile + college data
+        from methods.supabase_helper import get_student_profile, calculate_user_ranks
+        profile_res = get_student_profile(user_id)
         profile_data = profile_res.get('data', {}) if profile_res.get('success') else {}
+        student_res = profile_res  # same call reuse result
+        student_data = profile_data  # already fetched above
+        
+        # Enforce profile completion
+        if not student_data or not student_data.get('college_id'):
+            flash("Welcome to AbhiHub! Please complete your profile to access all personalized features.", "warning")
+            return redirect(url_for('account'))
+            
+        college_name = student_data.get('college_name') or ''
         
         # Calculate global rank and live score
         # Match by uploader_id (UUID) — avoids fragile full_name string comparison
@@ -1333,6 +2091,12 @@ def dashboard():
                 global_rank = str(i + 1)
                 computed_score = entry.get('points', 0)
                 break
+        
+        # Get detailed reputation stats (students helped, badges)
+        from methods.supabase_helper import get_reputation_stats
+        rep_stats = get_reputation_stats(user_id)
+        students_helped = rep_stats.get('students_helped', 0) if rep_stats.get('success') else 0
+        badges = rep_stats.get('badges', []) if rep_stats.get('success') else []
         
         user_data = {
             'name': user_name,
@@ -1348,10 +2112,38 @@ def dashboard():
             'rank_title': profile_data.get('rank_title', 'Beginner'),
             'is_verified': profile_data.get('is_verified', False),
             'subscription_tier': profile_data.get('subscription_tier', 'free'),
-            'global_rank': global_rank
+            'global_rank': global_rank,
+            'students_helped': students_helped,
+            'badges': badges,
+            'paper_quota_remaining': _get_quota().get('credits', 19),
+            'college_name': college_name
         }
     
-    return render_template('p_index.html', 
+    promo_context = {
+        'remaining_views': user_data.get('paper_quota_remaining', 19) if user_data else 19,
+        'students_helped': user_data.get('students_helped', 0) if user_data else 0,
+        'reputation_score': user_data.get('reputation_score', 0) if user_data else 0,
+        'upload_goal_month': 'May'
+    }
+
+    # ── Personalized & trending papers ──────────────────────────────────────
+    all_papers = [f for f in files if f.get('type', '').lower() in ('papers', 'paper', 'pyq')]
+    all_papers_by_views = sorted(all_papers, key=lambda f: f.get('view_count', 0), reverse=True)
+
+    # Personalized: same college, sorted by views
+    user_college = user_data.get('college_name', '') if user_data else ''
+    if user_college:
+        relevant_papers = [f for f in all_papers_by_views if f.get('college', '') == user_college][:8]
+    else:
+        relevant_papers = all_papers_by_views[:8]
+
+    # Trending: top viewed overall (may overlap with relevant but that's fine)
+    trending_papers = all_papers_by_views[:8]
+
+    # Recent papers: newest first
+    recent_papers = sorted(all_papers, key=lambda f: f.get('date', ''), reverse=True)[:8]
+
+    return render_template('p_index.html',
                          data=files,
                          seo_keywords=seo_keywords,
                          top_subjects=top_subjects,
@@ -1359,7 +2151,11 @@ def dashboard():
                          notes_count=notes_count,
                          user_data=user_data,
                          file_history=file_history,
-                         now=datetime.now())
+                         now=datetime.now(),
+                         promo_context=promo_context,
+                         relevant_papers=relevant_papers,
+                         trending_papers=trending_papers,
+                         recent_papers=recent_papers)
 
 
 @app.route('/profile')
@@ -1371,9 +2167,6 @@ def profile():
     user_id = user_info.get('uid')
     user_email = user_info.get('email', '')
     
-    # Get all files for the "Shared" sections
-    files = get_all_files_unified()
-    
     # Get student profile info
     profile_result = get_student_profile(user_id)
     profile = profile_result.get('data') if profile_result.get('success') else None
@@ -1384,25 +2177,46 @@ def profile():
     
     # Map uploaded files to our unified format if necessary (though get_user_uploaded_files should return raw docs)
     # Actually, p_profile.html expects the unified format for the file cards
-    from methods.supabase_helper import _doc_to_json
+    from methods.supabase_helper import _doc_to_json, get_contribution_timeline
+    
+    # Phase 18: Contribution Timeline
+    timeline_result = get_contribution_timeline(user_id)
+    timeline = timeline_result.get('timeline', []) if timeline_result.get('success') else []
     formatted_uploads = [_doc_to_json(f, user_id) for f in uploaded_files]
     
     # Get Papo Meter data
     papo_meter = get_papo_meter_data(user_id)
     
     return render_template('p_profile.html', data={
-        'user': user_info, 
-        'data': files, 
+        'user': user_info,
         'uploaded_files': formatted_uploads,
         'profile': profile,
-        'papo_meter': papo_meter
+        'papo_meter': papo_meter,
+        'timeline': timeline
     })
 
-@app.route('/premium/profile')
+@app.route('/dashboard/profile')
 @auth_required
 def p_profile_redirect():
-    """Unify profile routes by redirecting to the main profile page"""
     return redirect(url_for('profile'))
+
+@app.route('/leaderboard', methods=['GET'])
+def leaderboard():
+    """Phase 19: Global Gamification Leaderboard"""
+    from methods.supabase_helper import get_leaderboard_data
+    
+    # Optional filter by college if requested
+    college_id = request.args.get('college_id')
+    
+    lb_result = get_leaderboard_data(college_id=college_id, limit=50)
+    leaderboard_data = lb_result.get('data', []) if lb_result.get('success') else []
+    
+    # Get current user for personalization in the template
+    user_info = session.get('user')
+    
+    return render_template('leaderboard.html', 
+                           leaderboard=leaderboard_data,
+                           current_user=user_info)
 
 
 @app.route('/account', methods=['GET'])
@@ -1455,49 +2269,28 @@ def update_account():
         'registration_number': request.form.get('registration_number')
     }
     
+    # Fetch static form data ONCE (colleges/branches are now cached)
+    from methods.supabase_helper import get_student_profile, get_all_colleges, get_all_branches
+    colleges = get_all_colleges().get('data', [])
+    branches = get_all_branches().get('data', [])
+
     # Save profile
     result = create_or_update_student_profile(user_id, profile_data)
+
+    # Re-fetch profile after save to reflect updated data
+    profile_result = get_student_profile(user_id)
+    profile = profile_result.get('data') if profile_result.get('success') else None
     
-    if result.get('success'):
-        # Redirect back to account page with success message
-        from methods.supabase_helper import get_student_profile, get_all_colleges, get_all_branches
-        
-        profile_result = get_student_profile(user_id)
-        profile = profile_result.get('data') if profile_result.get('success') else None
-        
-        colleges_result = get_all_colleges()
-        branches_result = get_all_branches()
-        
-        colleges = colleges_result.get('data', []) if colleges_result.get('success') else []
-        branches = branches_result.get('data', []) if branches_result.get('success') else []
-        
-        return render_template('p_account.html', 
-                             user=user_info, 
-                             profile=profile,
-                             colleges=colleges,
-                             branches=branches,
-                             message=result.get('message'),
-                             message_type='success')
-    else:
-        # Show error message
-        from methods.supabase_helper import get_student_profile, get_all_colleges, get_all_branches
-        
-        profile_result = get_student_profile(user_id)
-        profile = profile_result.get('data') if profile_result.get('success') else None
-        
-        colleges_result = get_all_colleges()
-        branches_result = get_all_branches()
-        
-        colleges = colleges_result.get('data', []) if colleges_result.get('success') else []
-        branches = branches_result.get('data', []) if branches_result.get('success') else []
-        
-        return render_template('p_account.html', 
-                             user=user_info, 
-                             profile=profile,
-                             colleges=colleges,
-                             branches=branches,
-                             message=result.get('message', 'Failed to update profile'),
-                             message_type='error')
+    msg_type = 'success' if result.get('success') else 'error'
+    msg = result.get('message') or ('Profile updated!' if result.get('success') else 'Failed to update profile')
+
+    return render_template('p_account.html',
+                         user=user_info,
+                         profile=profile,
+                         colleges=colleges,
+                         branches=branches,
+                         message=msg,
+                         message_type=msg_type)
 
 
 @app.route('/api/check-profile', methods=['GET'])
@@ -1524,6 +2317,12 @@ def api_check_profile():
 def settings():
     return render_template('settings.html')
 
+
+@app.route('/support')
+@auth_required
+def support():
+    return render_template('p_support.html')
+
 # Public pages
 @app.route('/about')
 def about():
@@ -1542,6 +2341,282 @@ def features():
     # Otherwise show the features page
     return render_template('p_landing.html')
 
+@app.route('/features-tour')
+def features_tour():
+    return render_template('features.html')
+@app.route('/pyq')
+def pyq_landing():
+    """SEO landing page targeting 'PYQ' and '[college] PYQ' searches"""
+    from methods.supabase_helper import get_all_colleges, init_supabase
+    import re
+    colleges_res = get_all_colleges()
+    colleges = colleges_res.get('data', [])
+    # Attach doc count to each college
+    try:
+        client = init_supabase()
+        if client:
+            counts = client.table('documents').select('college_id', count='exact').execute()
+            # Build per-college count via grouped query
+            raw = client.table('documents').select('college_id').execute()
+            count_map = {}
+            for row in (raw.data or []):
+                cid = row.get('college_id')
+                if cid:
+                    count_map[cid] = count_map.get(cid, 0) + 1
+            for c in colleges:
+                c['doc_count'] = count_map.get(c.get('id'), 0)
+    except Exception:
+        pass
+    return render_template('pyq_landing.html', colleges=colleges)
+
+
+@app.route('/college/<college_slug>')
+def college_landing(college_slug):
+    """Dynamic SEO-optimized college landing page.
+    Priority: brand group page > individual college page > 404
+    """
+    import re
+    from methods.supabase_helper import (
+        get_colleges_by_brand, get_college_by_slug,
+        get_college_stats, get_recent_college_files, get_all_branches
+    )
+
+    def slugify(text):
+        return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
+
+    # 1. Check if slug matches a brand group (popular_name shared by 2+ colleges)
+    brand_res = get_colleges_by_brand(college_slug)
+    if brand_res.get('success'):
+        brand_colleges = brand_res.get('data', [])
+        brand_name = brand_res.get('brand_name', college_slug.capitalize())
+        if len(brand_colleges) > 1:
+            return render_template('brand.html', colleges=brand_colleges, brand_name=brand_name)
+        elif len(brand_colleges) == 1:
+            c = brand_colleges[0]
+            canonical_slug = slugify(c.get('abbreviation') or c.get('name'))
+            if college_slug != canonical_slug:
+                return redirect(f"/college/{canonical_slug}", code=301)
+            # Else fall through to normal college resolution
+
+    # 2. Resolve as individual college slug
+    college_res = get_college_by_slug(college_slug)
+    if not college_res.get('success'):
+        abort(404)
+
+    college = college_res.get('data')
+    college_id = college.get('id')
+
+    # 3. If accessed via alias (not canonical abbr), 301-redirect
+    canonical_slug = slugify(college.get('abbreviation') or college.get('name'))
+    if college_slug != canonical_slug:
+        return redirect(f"/college/{canonical_slug}", code=301)
+
+    # 4. Check doc count — show coming soon if empty
+    COMING_SOON_THRESHOLD = 1  
+    stats = get_college_stats(college_id).get('data', {})
+    total_docs = stats.get('total_documents', 0)
+
+    if total_docs < COMING_SOON_THRESHOLD:
+        from methods.supabase_helper import get_waitlist_count
+        waitlist_count = get_waitlist_count(college_id)
+        return render_template('college_coming_soon.html',
+                               college=college,
+                               waitlist_count=waitlist_count)
+
+    # 5. Enough material — render full college page
+    recent_files = get_recent_college_files(college_id, limit=6).get('data', [])
+    departments = get_all_branches().get('data', [])
+
+    return render_template('college.html',
+                           college=college,
+                           stats=stats,
+                           recent_files=recent_files,
+                           departments=departments)
+
+@app.route('/college/<college_slug>/<department_slug>')
+def department_landing(college_slug, department_slug):
+    """Dynamic SEO-optimized department landing page"""
+    from methods.supabase_helper import get_college_by_slug, get_department_by_slug, get_department_stats, get_recent_department_files
+    
+    # 1. Resolve college
+    college_res = get_college_by_slug(college_slug)
+    if not college_res.get('success'):
+        abort(404)
+    college = college_res.get('data')
+    college_id = college.get('id')
+    
+    # 2. Resolve department
+    dept_res = get_department_by_slug(department_slug)
+    if not dept_res.get('success'):
+        abort(404)
+    department = dept_res.get('data')
+    dept_id = department.get('id')
+    
+    # 3. Fetch stats and recent files
+    stats = get_department_stats(college_id, dept_id).get('data', {})
+    recent_files = get_recent_department_files(college_id, dept_id, limit=6).get('data', [])
+    
+    return render_template('department.html', 
+                           college=college,
+                           department=department,
+                           stats=stats, 
+                           recent_files=recent_files)
+
+@app.route('/subject/<subject_slug>')
+def subject_landing(subject_slug):
+    """Dynamic SEO-optimized subject landing page (aggregated across colleges)"""
+    from methods.supabase_helper import get_subjects_by_slug, get_subject_stats, get_recent_subject_files
+    
+    # 1. Resolve subject slug to a list of DB IDs
+    subject_res = get_subjects_by_slug(subject_slug)
+    if not subject_res.get('success'):
+        abort(404)
+        
+    subject_data = subject_res.get('data')
+    subject_ids = subject_data.get('ids')
+    subject_name = subject_data.get('name')
+    
+    # 2. Fetch aggregate stats and recent files
+    stats = get_subject_stats(subject_ids).get('data', {})
+    recent_files = get_recent_subject_files(subject_ids, limit=12).get('data', [])
+    
+    return render_template('subject.html', 
+                           subject_name=subject_name,
+                           stats=stats, 
+                           recent_files=recent_files)
+
+@app.route('/resource/<path:slug>')
+def resource_landing(slug):
+    """Dynamic SEO-optimized resource landing page"""
+    from methods.supabase_helper import get_document_by_id_rich
+    import re
+    
+    # Extract UUID from the end of the slug
+    # A standard UUID is 36 chars long (e.g. 847afaa6-cec4-48db-9016-2218c169bb87)
+    # The slug format is something like ghrce-ai-dbms-pyq-<uuid>
+    uuid_pattern = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
+    match = re.search(uuid_pattern, slug.lower())
+    if not match:
+        abort(404)
+        
+    doc_id = match.group(0)
+    
+    # Fetch rich document data
+    doc_res = get_document_by_id_rich(doc_id)
+    if not doc_res.get('success'):
+        abort(404)
+        
+    document = doc_res.get('data')
+    
+    # Rewrite file URL through same-origin proxy to avoid CORS issues
+    file_url = document.get('file_url', '')
+    if file_url:
+        ext = ''
+        if document.get('file_type') == 'pdf':
+            ext = '.pdf'
+        elif '.' in file_url.split('/')[-1]:
+            ext = '.' + file_url.split('/')[-1].split('.')[-1].split('?')[0]
+        
+        # Use clean path-based route for proxying
+        document['file_url'] = f'/api/view-doc/{doc_id}/file{ext}'
+
+    
+
+    # Construct canonical slug
+    college_data = document.get('college') or {}
+    dept_data = document.get('department') or {}
+    subj_data = document.get('subject') or {}
+    
+    college_abbr = (college_data.get('abbreviation') or college_data.get('name') or 'college').lower()
+    dept_abbr = (dept_data.get('abbreviation') or dept_data.get('name') or 'dept').lower()
+    subj_name = (subj_data.get('name') or 'subject').lower()
+    title = (document.get('title') or 'file').lower()
+    
+    raw_slug = f"{college_abbr}-{dept_abbr}-{subj_name}-{title}"
+    canonical_prefix = re.sub(r'[^a-z0-9]+', '-', raw_slug).strip('-')
+    canonical_slug = f"{canonical_prefix}-{doc_id}"
+    
+    # 301 Redirect to canonical if mismatch
+    if slug.lower() != canonical_slug:
+        return redirect(url_for('resource_landing', slug=canonical_slug), code=301)
+        
+    document['is_liked'] = False
+    document['is_bookmarked'] = False
+    
+    current_user_id = session.get('user', {}).get('uid')
+    if current_user_id:
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        if client:
+            like_check = client.table('document_votes').select('*').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
+            document['is_liked'] = bool(like_check.data)
+            
+            bm_check = client.table('bookmarks').select('*').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
+            document['is_bookmarked'] = bool(bm_check.data)
+            
+    # Track view
+    from methods.supabase_helper import save_file_access
+    user_email = session.get('user', {}).get('email')
+    save_file_access(
+        user_email=user_email,
+        file_name=title,
+        file_type=document.get('file_type'),
+        file_path=document.get('file_url'),
+        file_url=document.get('file_url'),
+        record_id=doc_id
+    )
+        
+    # Fetch Suggested Documents
+    suggested_docs = []
+    store_room_docs = []
+    try:
+        subj_id = document.get('subject_id')
+        subj_name = document.get('subject', {}).get('name', '') if document.get('subject') else ''
+        
+        # 1. Exact subject_id
+        if subj_id:
+            sug_res = client.table('documents').select('id, title, file_type, view_count, uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)').eq('subject_id', subj_id).neq('id', doc_id).limit(4).execute()
+            suggested_docs = sug_res.data or []
+            
+        # 2. Exact same subject name (if not enough)
+        similar_subj_ids = []
+        if len(suggested_docs) < 4 and subj_name:
+            name_res = client.table('subjects').select('id').ilike('name', subj_name.strip()).execute()
+            similar_subj_ids = [s['id'] for s in name_res.data if s['id'] != subj_id] if name_res.data else []
+            if similar_subj_ids:
+                sug_res2 = client.table('documents').select('id, title, file_type, view_count, uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)').in_('subject_id', similar_subj_ids).neq('id', doc_id).limit(4 - len(suggested_docs)).execute()
+                if sug_res2.data:
+                    suggested_docs.extend(sug_res2.data)
+        
+        # 3. Fuzzy matching subject name
+        if len(suggested_docs) < 4 and subj_name:
+            subj_kws = [w for w in subj_name.lower().split() if len(w) > 3]
+            if subj_kws:
+                or_cond = ','.join([f'name.ilike.*{kw}*' for kw in subj_kws[:2]])
+                fuzzy_name_res = client.table('subjects').select('id').or_(or_cond).execute()
+                fuzzy_subj_ids = [s['id'] for s in fuzzy_name_res.data if s['id'] != subj_id and s['id'] not in similar_subj_ids] if fuzzy_name_res.data else []
+                if fuzzy_subj_ids:
+                    sug_res3 = client.table('documents').select('id, title, file_type, view_count, uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)').in_('subject_id', fuzzy_subj_ids).neq('id', doc_id).limit(4 - len(suggested_docs)).execute()
+                    if sug_res3.data:
+                        suggested_docs.extend(sug_res3.data)
+            
+        if title:
+            # Simple keyword extraction (words > 3 chars) to find store room matches
+            keywords = [w for w in title.split() if len(w) > 3]
+            if keywords:
+                or_cond = ",".join([f"filename.ilike.*{kw}*" for kw in keywords[:2]])
+                sr_res = client.table('storage_assets').select('id, provider_public_id, filename').eq('status', 'PENDING').or_(or_cond).limit(4).execute()
+                store_room_docs = sr_res.data or []
+    except Exception as e:
+        print(f"[Supabase] Error fetching suggestions: {e}")
+
+    return render_template('resource.html', document=document, ai_models=AI_MODELS, best_model=get_best_ai_model(), suggested_docs=suggested_docs, store_room_docs=store_room_docs)
+
+@app.route('/join')
+def join_team():
+    """Collaborator recruitment landing page"""
+    return render_template('join.html')
+
 @app.route('/team')
 def team():
     """Team page"""
@@ -1552,13 +2627,55 @@ def contact():
     """Contact page"""
     return render_template('contact.html')
 
+import json
+import os
+CONTACT_FILE = os.path.join('data', 'contact_messages.json')
+
+@app.route('/api/contact', methods=['POST'])
+def api_contact():
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'No data'})
+    
+    msg = {
+        'name': data.get('name'),
+        'email': data.get('email'),
+        'subject': data.get('subject'),
+        'message': data.get('message'),
+        'timestamp': datetime.now().isoformat()
+    }
+    
+    os.makedirs('data', exist_ok=True)
+    messages = []
+    if os.path.exists(CONTACT_FILE):
+        try:
+            with open(CONTACT_FILE, 'r') as f:
+                messages = json.load(f)
+        except Exception:
+            pass
+    
+    messages.insert(0, msg)
+    
+    try:
+        with open(CONTACT_FILE, 'w') as f:
+            json.dump(messages, f)
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+        
+    return jsonify({'success': True})
+
+@app.route('/delete-account')
+def delete_account():
+    """Account deletion request page"""
+    return render_template('delete_account.html')
+
 @app.route('/register')
 def register():
     """Register page (alias for signup)"""
     return redirect(url_for('signup'))
 
 # Premium features
-@app.route('/premium')
+@app.route('/dashboard')
 @auth_required
 def premium():
     # Use unified documents from database
@@ -1601,9 +2718,28 @@ def premium():
             'papers_count': user_papers_count,
             'practicals_count': user_practicals_count,
             'subjects_contributed': len(user_subjects),
-            'user_files': user_files[:10],  # Latest 10 user files for "Your Files" section
+            'user_files': user_files[:10],
+            'role': 'student'
         }
+        
+    if user_data is None:
+        user_data = {}
+        
+    user_data.setdefault('paper_quota_remaining', _get_quota().get('credits', 19))
+    user_data.setdefault('students_helped', 0)
+    user_data.setdefault('reputation_score', 0)
+    user_data.setdefault('badges', [])
+    user_data.setdefault('global_rank', '-')
+    user_data.setdefault('rank_title', 'Beginner')
+    user_data.setdefault('is_verified', False)
     
+    promo_context = {
+        'remaining_views': user_data.get('paper_quota_remaining', 19) if user_data else 19,
+        'students_helped': user_data.get('students_helped', 0) if user_data else 0,
+        'reputation_score': user_data.get('reputation_score', 0) if user_data else 0,
+        'upload_goal_month': 'May'
+    }
+
     return render_template('p_index.html', 
                          data=files,
                          seo_keywords=seo_keywords,
@@ -1611,7 +2747,8 @@ def premium():
                          paper_count=paper_count,
                          notes_count=notes_count,
                          user_data=user_data,
-                         now=datetime.now())
+                         now=datetime.now(),
+                         promo_context=promo_context)
 
 def cors_headers(f):
     @wraps(f)
@@ -1670,11 +2807,16 @@ def view_pdf():
         abort(400, description="PDF name is required")
 
     try:
+        record_id = request.args.get('record_id')
+        if record_id:
+            # 301 redirect to the new SEO URL structure
+            return redirect(url_for('resource_landing', slug=f"legacy-redirect-{record_id}"), code=301)
+
+
         # Log file access
         if 'user' in session:
             user_email = session['user'].get('email', '')
             file_basename = os.path.basename(pdf_name)
-            record_id = request.args.get('record_id')
             save_file_access(
                 user_email=user_email,
                 file_name=file_basename,
@@ -1689,13 +2831,32 @@ def view_pdf():
             proxy_url = pdf_name
         else:
             proxy_url = url_for('pdf_proxy', pdf_name=pdf_name, _external=True)
-        
-        # Pass the proxy URL to the PDF viewer template
-        return render_template('p_pdf_reader.html', pdf_name=pdf_name, pdf_url=proxy_url)
-    
+
+        # Fetch document metadata for info panel
+        file_meta = {}
+        if record_id:
+            try:
+                from methods.supabase_helper import init_supabase, _doc_to_json, validate_uuid
+                if validate_uuid(record_id):
+                    client = init_supabase()
+                    if client:
+                        res = client.table('documents') \
+                            .select('*, profiles!documents_uploader_id_fkey(full_name, email), subjects(name, subject_code)') \
+                            .eq('id', record_id).limit(1).execute()
+                        if res.data:
+                            file_meta = _doc_to_json(res.data[0])
+            except Exception as meta_err:
+                logging.warning(f"Could not fetch metadata for {record_id}: {meta_err}")
+
+        return render_template('p_pdf_reader.html',
+                               pdf_name=pdf_name,
+                               pdf_url=proxy_url,
+                               file_meta=file_meta)
+
     except Exception as e:
         logging.error(f"Error generating proxy URL for {pdf_name}: {e}")
         abort(404, description="PDF not found or error generating access URL")
+
 
 @app.route('/pdf-proxy/<path:pdf_name>')
 @auth_required
@@ -1782,20 +2943,37 @@ def pdf_proxy(pdf_name):
 #         download_name=pdf_name
 #     )
 
+INDEXNOW_KEY = '358beb4ba88947458503f632b81ca8cf'
+BASE_DOMAIN = 'app.abhihub.run.place'
+
+def _trigger_indexnow(urls: list):
+    """Submit a list of URLs to IndexNow for fast Google indexing. Fire-and-forget."""
+    try:
+        import requests as _req
+        payload = {
+            "host": BASE_DOMAIN,
+            "key": INDEXNOW_KEY,
+            "keyLocation": f"https://{BASE_DOMAIN}/{INDEXNOW_KEY}.txt",
+            "urlList": [u for u in urls if u.startswith('https://')]
+        }
+        _req.post("https://api.indexnow.org/indexnow", json=payload, timeout=5)
+    except Exception:
+        pass  # non-critical
+
 @app.route('/indexnow', methods=['POST'])
 def indexnow():
     urls = [
-        "https://abhi-hub-06bba7f4101d.herokuapp.com/",
-        "https://abhi-hub-06bba7f4101d.herokuapp.com/dashboard",
+        f"https://{BASE_DOMAIN}/",
+        f"https://{BASE_DOMAIN}/pyq",
         # Add more URLs as needed
     ]
     
     indexnow_url = "https://api.indexnow.org/indexnow"
     
     payload = {
-        "host": "abhi-hub-06bba7f4101d.herokuapp.com",
-        "key": '358beb4ba88947458503f632b81ca8cf',
-        "keyLocation": f"https://abhi-hub-06bba7f4101d.herokuapp.com/358beb4ba88947458503f632b81ca8cf.txt",
+        "host": BASE_DOMAIN,
+        "key": INDEXNOW_KEY,
+        "keyLocation": f"https://{BASE_DOMAIN}/{INDEXNOW_KEY}.txt",
         "urlList": urls
     }
     
@@ -1859,7 +3037,7 @@ def load_data(search_query=search_query[-1]):
     scored.sort(key=lambda x: (x[0], bool(x[1].get("verified")), x[1].get("file-name", "")), reverse=True)
     return [item for _, item in scored]
 
-@app.route('/premium/suggest')
+@app.route('/dashboard/suggest')
 @auth_required
 def suggest():
     q = request.args.get('q', '').strip().lower()
@@ -1888,7 +3066,7 @@ def suggest():
 
     return jsonify({"subjects": top_subjects, "types": top_types, "authors": top_authors})
 
-@app.route('/premium/')
+@app.route('/dashboard/')
 @auth_required
 def index():
     search_query = request.args.get('search_query')
@@ -1898,9 +3076,9 @@ def index():
     paper_count = sum(1 for item in data if item.get('type') == 'Papers')
     notes_count = sum(1 for item in data if item.get('type') == 'Notes')
     
-    return render_template('p_index.html', data=data, paper_count=paper_count, notes_count=notes_count)
+    return render_template('p_index.html', data=data, paper_count=paper_count, notes_count=notes_count, user_data=None)
 
-@app.route('/premium/search', methods=['POST', 'GET'])
+@app.route('/dashboard/search', methods=['POST', 'GET'])
 @auth_required
 def search():
     search_query = request.form.get('search')
@@ -1912,9 +3090,9 @@ def search():
     paper_count = sum(1 for item in data if item.get('type') == 'Papers')
     notes_count = sum(1 for item in data if item.get('type') == 'Notes')
     
-    return render_template('p_index.html', data=data, paper_count=paper_count, notes_count=notes_count)
+    return render_template('p_index.html', data=data, paper_count=paper_count, notes_count=notes_count, user_data=None)
 
-@app.route('/premium/view', methods=['POST', 'GET'])
+@app.route('/dashboard/view', methods=['POST', 'GET'])
 @auth_required
 def view():
     """Handle file viewing - supports both form POST and file handler GET"""
@@ -1938,7 +3116,7 @@ def view():
     }
     return render_template('p_view.html', file=file_data)
 
-@app.route('/premium/share-receiver', methods=['POST', 'GET'])
+@app.route('/dashboard/share-receiver', methods=['POST', 'GET'])
 @auth_required
 def share_receiver():
     """
@@ -1994,21 +3172,21 @@ def share_receiver():
                           url=url,
                           message=f"Received {len(received_files)} file(s)")
 
-@app.route('/premium/about')
+@app.route('/dashboard/about')
 @auth_required
 def premium_about():
     return render_template('p_about.html')
 
-@app.route('/premium/profile/old')
+@app.route('/dashboard/profile/old')
 @auth_required
 def p_profile_deprecated():
     return redirect(url_for('profile'))
-@app.route('/premium/setting')
+@app.route('/dashboard/setting')
 def p_setting():
     return render_template('settings.html')
 
 
-@app.route('/premium/static/search.json')
+@app.route('/dashboard/static/search.json')
 @auth_required
 def search_in():
     search_file = os.path.join(app.root_path, 'premium/static/search.json')
@@ -2019,7 +3197,7 @@ def search_in():
     except Exception as e:
         return jsonify({'status': 'error'}), 500
 
-@app.route('/premium/save_search', methods=['POST'])
+@app.route('/dashboard/save_search', methods=['POST'])
 @auth_required
 def save_search():
     search_data = request.get_json()
@@ -2113,6 +3291,19 @@ def service_worker():
 def admin_control_panel():
     """Admin notification control panel - restricted to admin email only"""
     return render_template('admin_notification_panel.html')
+
+@app.route('/api/admin/contact-messages', methods=['GET'])
+@auth_required
+@admin_required
+def get_contact_messages():
+    messages = []
+    if os.path.exists(CONTACT_FILE):
+        try:
+            with open(CONTACT_FILE, 'r') as f:
+                messages = json.load(f)
+        except Exception:
+            pass
+    return jsonify({'success': True, 'messages': messages})
 
 @app.route('/api/admin/subscribers', methods=['GET'])
 @auth_required
@@ -2211,6 +3402,51 @@ def get_admin_notification_history():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/admin/users', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_users():
+    """Get list of users for admin dashboard"""
+    try:
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        res = client.table('profiles').select('id, full_name, email, created_at, role, reputation_score').order('created_at', desc=True).limit(500).execute()
+        return jsonify({'success': True, 'users': res.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/users/<user_id>/stats', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_user_stats(user_id):
+    """Get detailed stats for a specific user"""
+    try:
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        
+        # Last visit (from user_sessions)
+        session_res = client.table('user_sessions').select('login_time').eq('user_id', user_id).order('login_time', desc=True).limit(1).execute()
+        last_visit = session_res.data[0].get('login_time') if session_res.data else "Never"
+        
+        # Files uploaded
+        docs_res = client.table('documents').select('id, title, created_at, view_count, like_count').eq('uploader_id', user_id).order('created_at', desc=True).execute()
+        uploaded_files = docs_res.data or []
+        
+        # Files viewed
+        views_res = client.table('document_views').select('accessed_at, documents(title)').eq('user_id', user_id).order('accessed_at', desc=True).limit(20).execute()
+        viewed_files = views_res.data or []
+        
+        return jsonify({
+            'success': True,
+            'stats': {
+                'last_visit': last_visit,
+                'uploaded_files': uploaded_files,
+                'viewed_files': viewed_files
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/prepair/<subject>')
 def exam_prep(subject="HE"):
     with open('static/premium/data.json', 'r') as f:
@@ -2237,14 +3473,8 @@ def calculate_rank():
 
 @app.route('/show_rank')
 def show_rank():
-    try:
-        from methods.supabase_helper import calculate_user_ranks
-        rank_list = calculate_user_ranks()
-    except Exception as e:
-        rank_list = []
-        
-    current_user_id = session.get('user', {}).get('uid') if 'user' in session else None
-    return render_template('p_ranking.html', rank=rank_list, current_user_id=current_user_id)
+    """Legacy route: redirect to new leaderboard"""
+    return redirect(url_for('leaderboard'))
 
 @app.route('/verify-file', methods=['POST'])
 def verify_file():
@@ -2356,9 +3586,10 @@ def get_file_url():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/update-file-metadata', methods=['POST'])
+@admin_required
 def update_file_metadata():
     """
-    Update file metadata in Supabase
+    Update file metadata in Supabase (Admin Only)
     """
     try:
         from methods.supabase_helper import update_document_metadata
@@ -2389,6 +3620,49 @@ from methods.supabase_helper import (
     save_labeled_paper, get_labeled_papers, check_if_labeled,
     save_file_access, get_user_file_history
 )
+import time
+
+_unlabeled_cache = {
+    'data': None,
+    'labeled_count': 0,
+    'timestamp': 0,
+    'ttl': 60  # Cache for 60 seconds
+}
+
+def get_cached_unlabeled_files():
+    now = time.time()
+    if _unlabeled_cache['data'] is not None and (now - _unlabeled_cache['timestamp'] < _unlabeled_cache['ttl']):
+        return _unlabeled_cache['data'], _unlabeled_cache['labeled_count']
+        
+    from methods.supabase_helper import get_pending_storage_assets
+    pending_assets = get_pending_storage_assets()
+    
+    unlabeled_files = []
+    for f in pending_assets:
+        # Standardize format for frontend
+        unlabeled_files.append({
+            'storage_provider': f.get('provider'),
+            'storage_id': f.get('provider_public_id'),
+            'filename': f.get('filename'),
+            'url': f.get('public_url'),
+            'path': f.get('public_url'),
+            'created_at': f.get('uploaded_at'),
+            'size': 'Unknown',  # Consider adding size to storage_assets if needed
+            'format': (f.get('mime') or 'unknown').split('/')[-1],
+            'record_id': None,
+            'verified': False,
+            'verification_status': None,
+            'like_count': 0,
+            'bookmark_count': 0,
+            'comment_count': 0,
+            'view_count': 0
+        })
+        
+    _unlabeled_cache['data'] = unlabeled_files
+    _unlabeled_cache['labeled_count'] = 0 # Can be fetched separately if needed
+    _unlabeled_cache['timestamp'] = now
+    
+    return unlabeled_files, 0
 
 @app.route('/store-room')
 @auth_required
@@ -2398,17 +3672,13 @@ def store_room():
     Only loads initial batch for performance
     """
     try:
-        # Fetch all files from Cloudinary to get counts and metadata
-        all_files = fetch_all_files(resource_type="image")
-        
-        # Get labeled papers count from Supabase
-        labeled_result = get_labeled_papers()
-        labeled_count = len(labeled_result.get('data', [])) if labeled_result.get('success') else 0
-        
+        # Get cached files (O(1) instead of O(N+M) on every request)
+        unlabeled_files, sorted_papers = get_cached_unlabeled_files()
+        all_files = unlabeled_files
+
         # Calculate statistics
-        total_papers = len(all_files)
-        sorted_papers = labeled_count
-        remaining_papers = total_papers - sorted_papers
+        total_papers = len(unlabeled_files) + sorted_papers
+        remaining_papers = len(unlabeled_files)
         
         # Get unique formats and folders for filters
         formats = get_unique_formats(all_files)
@@ -2431,12 +3701,34 @@ def store_room():
         logging.error(f"Error loading store room: {e}")
         return render_template('p_error.html', error=str(e)), 500
 
-
-@app.route('/store-room/api/files', methods=['GET'])
+@app.route('/store-room/api/sync', methods=['POST'])
 @auth_required
-def store_room_api_files():
+def store_room_api_sync():
     """
-    API endpoint for fetching files with filters
+    Triggers a manual synchronization from physical storage to the storage_assets table.
+    """
+    try:
+        from methods.storage_providers import CloudinaryProvider
+        provider = CloudinaryProvider()
+        result = provider.sync()
+        
+        if result.get('success'):
+            # Invalidate cache
+            global _unlabeled_cache
+            _unlabeled_cache['data'] = None
+            return jsonify({'success': True, 'message': f"Synced {result.get('upserted', 0)} assets successfully."}), 200
+        else:
+            return jsonify({'success': False, 'message': result.get('message', 'Sync failed')}), 500
+    except Exception as e:
+        logging.error(f"Error syncing storage: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/store-room/api/unlabeled', methods=['GET'])
+@auth_required
+def store_room_api_unlabeled():
+    """
+    API endpoint for fetching unlabeled queue files
     Query params: search, sort_by, order, format, folder, offset, limit
     """
     try:
@@ -2451,8 +3743,9 @@ def store_room_api_files():
         offset = int(request.args.get('offset', 0))
         limit = int(request.args.get('limit', 20))
         
-        # Fetch all files
-        all_files = fetch_all_files(resource_type="image")
+        # Get cached unlabeled files
+        unlabeled_files, sorted_papers = get_cached_unlabeled_files()
+        all_files = unlabeled_files
         
         # Apply search
         if search_query:
@@ -2465,41 +3758,9 @@ def store_room_api_files():
         # Apply sorting
         all_files = sort_files(all_files, sort_by, order)
         
-        # Get labeled papers and cross-reference
-        labeled_result = get_labeled_papers()
-        labeled_papers = labeled_result.get('data', []) if labeled_result.get('success') else []
-        
-        # Create lookup map for quick access (using provider_public_id)
-        labeled_map = {p.get('provider_public_id'): p for p in labeled_papers if p.get('provider_public_id')}
-        
-        # Mark each file with its status and engagement data
-        for f in all_files:
-            doc = labeled_map.get(f.get('public_id'))
-            if doc:
-                f['record_id'] = doc.get('id')
-                f['verified'] = (doc.get('status') == 'approved')
-                f['verification_status'] = doc.get('status')
-                # Include engagement stats
-                f['like_count'] = doc.get('like_count', 0)
-                f['bookmark_count'] = doc.get('bookmark_count', 0)
-                f['comment_count'] = doc.get('comment_count', 0)
-                f['view_count'] = doc.get('view_count', 0)
-                # Check if liked/bookmarked (placeholders for now, or fetch from DB if needed)
-                f['is_liked'] = False 
-                f['is_bookmarked'] = False
-            else:
-                f['record_id'] = None
-                f['verified'] = False
-                f['verification_status'] = None
-                f['like_count'] = 0
-                f['bookmark_count'] = 0
-                f['comment_count'] = 0
-                f['view_count'] = 0
-        
         # Calculate statistics
-        total_papers = len(all_files)
-        sorted_papers = len([f for f in all_files if f.get('record_id')])
-        remaining_papers = total_papers - sorted_papers
+        total_papers = len(unlabeled_files) + sorted_papers
+        remaining_papers = len(unlabeled_files)
         
         # Apply pagination
         paginated_files = all_files[offset:offset + limit]
@@ -2525,83 +3786,6 @@ def store_room_api_files():
         logging.error(f"Error fetching files: {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
-
-@app.route('/store-room/api/label', methods=['POST'])
-@auth_required
-def store_room_api_label():
-    """
-    API endpoint for saving labeled papers to Supabase
-    """
-    try:
-        # Get form data
-        data = request.get_json()
-        
-        # Validate required fields
-        required_fields = ['filename', 'url', 'college_name', 'subject_name', 'exam_name', 
-                          'exam_type', 'year', 'branch', 'semesters']
-        
-        for field in required_fields:
-            if field not in data or not data[field]:
-                return jsonify({
-                    'success': False,
-                    'message': f'Missing required field: {field}'
-                }), 400
-        
-        # Get user email from session
-        user_email = session.get('user', {}).get('email', '')
-        
-        if not user_email:
-            return jsonify({
-                'success': False,
-                'message': 'User email not found in session'
-            }), 401
-        
-        # Add user email to data
-        data['user_email'] = user_email
-        
-        # Save to Supabase
-        result = save_labeled_paper(data)
-        
-        if result.get('success'):
-            return jsonify({
-                'success': True,
-                'message': 'Paper labeled successfully',
-                'data': result.get('data')
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'message': result.get('message', 'Failed to save labeled paper')
-            }), 500
-    
-    except Exception as e:
-        logging.error(f"Error saving labeled paper: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-
-@app.route('/store-room/api/check-labeled', methods=['POST'])
-@auth_required
-def store_room_api_check_labeled():
-    """
-    API endpoint to check if a file has been labeled
-    """
-    try:
-        data = request.get_json()
-        filename = data.get('filename', '')
-        
-        if not filename:
-            return jsonify({'success': False, 'message': 'Filename required'}), 400
-        
-        is_labeled = check_if_labeled(filename)
-        
-        return jsonify({
-            'success': True,
-            'is_labeled': is_labeled
-        })
-    
-    except Exception as e:
-        logging.error(f"Error checking labeled status: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
 
 
 @app.route('/store-room/api/rename-file', methods=['POST'])
@@ -2772,6 +3956,181 @@ def internal_server_error(e):
 def offline_page():
     return render_template('offline.html')
 
+# ─── AI Paper Q&A ───────────────────────────────────────────────────────────
+@app.route('/api/ask-paper', methods=['POST'])
+@auth_required
+def api_ask_paper():
+    """Ask a question about a paper image using NVIDIA Gemma vision model."""
+    try:
+        data = request.get_json(silent=True) or {}
+        doc_id = (data.get('doc_id') or data.get('document_id') or '').strip()
+        question = (data.get('question') or '').strip()
+        selected_model = data.get('model')
+        if not selected_model:
+            selected_model = get_best_ai_model()
+        logging.info(f"[AI] ask-paper using model: {selected_model}")
+
+        if not doc_id or not question:
+            return jsonify({'success': False, 'message': 'doc_id/document_id and question required'}), 400
+
+        from methods.supabase_helper import get_document_by_id_rich
+        doc_res = get_document_by_id_rich(doc_id)
+        if not doc_res.get('success'):
+            return jsonify({'success': False, 'message': 'Document not found'}), 404
+
+        document = doc_res.get('data', {})
+        file_url = document.get('file_url', '')
+
+        # Resolve proxy URL to actual image URL for the AI
+        if file_url.startswith('/api/view-doc/'):
+            # Fetch the actual upstream URL
+            from methods.supabase_helper import init_supabase
+            client = init_supabase()
+            raw = client.table('documents').select('file_url').eq('id', doc_id).single().execute()
+            file_url = raw.data.get('file_url', '') if raw.data else ''
+
+        if not file_url or not file_url.startswith('http'):
+            return jsonify({'success': False, 'message': 'Image URL not available'}), 400
+
+        # Encode image as base64
+        import base64
+        img_resp = requests.get(file_url, timeout=15)
+        if not img_resp.ok:
+            return jsonify({'success': False, 'message': 'Could not fetch image'}), 502
+
+        b64_image = base64.b64encode(img_resp.content).decode('utf-8')
+        content_type = img_resp.headers.get('Content-Type', 'image/jpeg').split(';')[0]
+
+        openrouter_key = os.getenv('OPENROUTER_API_KEY', '').strip()
+        if not openrouter_key:
+            return jsonify({'success': False, 'message': 'API key not configured'}), 500
+            
+        # Extract document info for the AI
+        title = document.get('title', 'Unknown Title')
+        doc_type = document.get('type', 'Unknown Type')
+        subject_data = document.get('subject') or {}
+        subject_name = subject_data.get('name', 'Unknown Subject')
+        paper_info = f"Document Title: {title}\nSubject: {subject_name}\nType: {doc_type}"
+
+        headers = {
+            'Authorization': f'Bearer {openrouter_key}',
+            'Content-Type': 'application/json'
+        }
+        
+        system_prompt = (
+            f"You are a helpful AI assistant for AbhiHub. Answer questions based only on the provided authentic source image.\n\n"
+            f"Context Information about this paper:\n{paper_info}\n\n"
+            f"Provide clear, accurate, and properly formatted answers."
+        )
+
+        payload = {
+            'model': selected_model,
+            'messages': [
+                {
+                    'role': 'system',
+                    'content': system_prompt
+                },
+                {
+                    'role': 'user',
+                    'content': [
+                        {'type': 'text', 'text': question},
+                        {'type': 'image_url', 'image_url': {'url': f'data:{content_type};base64,{b64_image}'}}
+                    ]
+                }
+            ],
+            'max_tokens': 512,
+            'temperature': 0.20,
+            'top_p': 0.70,
+            'stream': False
+        }
+
+        ai_resp = requests.post(
+            'https://openrouter.ai/api/v1/chat/completions',
+            headers=headers, json=payload, timeout=90
+        )
+
+        if not ai_resp.ok:
+            ai_model_errors[selected_model] = ai_model_errors.get(selected_model, 0) + 1
+            logging.error(f"[AI] OpenRouter API error: {ai_resp.status_code} {ai_resp.text}")
+            return jsonify({'success': False, 'message': 'We are experiencing high demand. Please try after some time.'}), 502
+
+        answer = ai_resp.json()['choices'][0]['message']['content']
+        return jsonify({'success': True, 'answer': answer}), 200
+
+    except Exception as e:
+        logging.error(f"[AI] ask-paper error: {e}")
+        return jsonify({'success': False, 'message': 'We are experiencing high demand. Please try after some time.'}), 500
+
+@app.route('/api/extract-ocr', methods=['POST'])
+@auth_required
+def api_extract_ocr():
+    """Extract OCR text from a paper image using the vision model."""
+    try:
+        data = request.get_json(silent=True) or {}
+        doc_id = (data.get('doc_id') or '').strip()
+        selected_model = data.get('model')
+        if not selected_model:
+            selected_model = get_best_ai_model()
+        logging.info(f"[AI] extract-ocr using model: {selected_model}")
+        if not doc_id:
+            return jsonify({'success': False, 'message': 'doc_id required'}), 400
+
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        raw = client.table('documents').select('file_url').eq('id', doc_id).single().execute()
+        file_url = raw.data.get('file_url', '') if raw.data else ''
+
+        if not file_url or not file_url.startswith('http'):
+            return jsonify({'success': False, 'message': 'Image URL not available'}), 400
+
+        import base64
+        img_resp = requests.get(file_url, timeout=15)
+        if not img_resp.ok:
+            return jsonify({'success': False, 'message': 'Could not fetch image'}), 502
+
+        b64_image = base64.b64encode(img_resp.content).decode('utf-8')
+        content_type = img_resp.headers.get('Content-Type', 'image/jpeg').split(';')[0]
+
+        openrouter_key = os.getenv('OPENROUTER_API_KEY', '').strip()
+        if not openrouter_key:
+            return jsonify({'success': False, 'message': 'API key not configured'}), 500
+
+        headers = {
+            'Authorization': f'Bearer {openrouter_key}',
+            'Content-Type': 'application/json'
+        }
+        
+        payload = {
+            'model': selected_model,
+            'messages': [
+                {
+                    'role': 'user',
+                    'content': [
+                        {'type': 'text', 'text': 'Extract all text, math equations, and tables from this image perfectly. Return ONLY the raw transcript without any conversational filler or formatting outside of what is in the image.'},
+                        {'type': 'image_url', 'image_url': {'url': f'data:{content_type};base64,{b64_image}'}}
+                    ]
+                }
+            ],
+            'max_tokens': 1024,
+            'temperature': 0.10,
+            'top_p': 0.70,
+            'stream': False
+        }
+
+        ai_resp = requests.post('https://openrouter.ai/api/v1/chat/completions', headers=headers, json=payload, timeout=90)
+        if not ai_resp.ok:
+            ai_model_errors[selected_model] = ai_model_errors.get(selected_model, 0) + 1
+            return jsonify({'success': False, 'message': 'We are experiencing high demand. Please try after some time.'}), 502
+
+        ocr_text = ai_resp.json()['choices'][0]['message']['content']
+        return jsonify({'success': True, 'ocr_text': ocr_text}), 200
+
+    except Exception as e:
+        logging.error(f"[AI] extract-ocr error: {e}")
+        return jsonify({'success': False, 'message': 'We are experiencing high demand. Please try after some time.'}), 500
+# ─────────────────────────────────────────────────────────────────────────────
+
+
 # ─── Social Interactions: Like, Bookmark, Comment ─────────────────────────
 @app.route('/api/like', methods=['POST'])
 @auth_required
@@ -2843,5 +4202,286 @@ def get_comments_route(document_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 # ────────────────────────────────────────────────────────────────────────────
 
+
+# ─── MemoryWall (know_me) ─────────────────────────────────────────────────────
+
+@app.route('/memorywall')
+@auth_required
+def memorywall_dashboard():
+    """Creator dashboard — shows wall status, share link, stats, and recent activity."""
+    from methods.know_me import get_wall_by_user, get_recent_responses, get_dashboard_metrics
+    user = session.get('user', {})
+    user_id = user.get('uid')
+    wall_result = get_wall_by_user(user_id)
+    wall = wall_result.get('data') if wall_result.get('success') else None
+
+    dashboard_data = None
+    recent_responses = []
+    if wall:
+        dashboard_data = get_dashboard_metrics(wall['id'])
+        recent_responses = get_recent_responses(wall['id'], limit=5)
+
+    return render_template(
+        'know_me/dashboard.html',
+        wall=wall,
+        user=user,
+        dashboard_data=dashboard_data,
+        recent_responses=recent_responses
+    )
+
+
+
+@app.route('/memorywall/create', methods=['GET', 'POST'])
+@auth_required
+def memorywall_create():
+    """Create a new MemoryWall."""
+    from methods.know_me import get_wall_by_user, create_wall
+    user = session.get('user', {})
+    user_id = user.get('uid')
+
+    # Already has a wall — redirect to dashboard
+    existing = get_wall_by_user(user_id)
+    if existing.get('success') and existing.get('data'):
+        return redirect(url_for('memorywall_dashboard'))
+
+    if request.method == 'POST':
+        title = (request.form.get('title') or '').strip()[:80]
+        college = (request.form.get('college') or '').strip()[:100]
+        branch = (request.form.get('branch') or '').strip()[:100]
+        try:
+            grad_year = int(request.form.get('graduation_year') or 0) or None
+        except ValueError:
+            grad_year = None
+
+        if not title:
+            return render_template('know_me/create.html', error='Please enter a title.', user=user)
+
+        result = create_wall(user_id, title, college, branch, grad_year)
+        if result.get('success'):
+            logging.info(f"[MemoryWall] Wall created for {user.get('email')}")
+            return redirect(url_for('memorywall_dashboard'))
+        elif result.get('message') == 'already_exists':
+            return redirect(url_for('memorywall_dashboard'))
+        else:
+            return render_template('know_me/create.html',
+                                   error='Something went wrong. Please try again.', user=user)
+
+    return render_template('know_me/create.html', user=user)
+
+
+@app.route('/m/<slug>')
+def memorywall_public(slug):
+    """Public submission page — no auth required."""
+    from methods.know_me import get_wall_by_slug
+    result = get_wall_by_slug(slug)
+    if not result.get('success') or not result.get('data'):
+        abort(404)
+    wall = result['data']
+    if wall.get('status') == 'closed':
+        return render_template('know_me/closed.html', wall=wall), 410
+    return render_template('know_me/public_wall.html', wall=wall)
+
+
+@app.route('/memorywall/reveal/<wall_id>')
+@auth_required
+def memorywall_reveal(wall_id):
+    """Reveal page — authenticated wall owner only."""
+    from methods.know_me import reveal_wall, get_wall_by_user, get_dashboard_metrics, generate_personality_summary
+    from methods.know_me_generator import generate_wordcloud, generate_signature_wall, upload_to_firebase
+
+    user = session.get('user', {})
+    user_id = user.get('uid')
+
+    # Verify ownership
+    owner_check = get_wall_by_user(user_id)
+    if not owner_check.get('success') or not owner_check.get('data'):
+        abort(403)
+    if owner_check['data']['id'] != wall_id:
+        abort(403)
+
+    data = reveal_wall(wall_id)
+    responses = data.get('responses', [])
+    word_list = data.get('word_list', [])
+    words = data.get('words', [])
+
+    # Track reveal view
+    try:
+        from methods.know_me import increment_view_count
+        increment_view_count(wall_id)
+    except Exception:
+        pass
+
+    # Dashboard metrics (top_traits, most_loved_trait)
+    metrics = get_dashboard_metrics(wall_id)
+
+    # Template-based AI personality summary
+    personality_summary = generate_personality_summary(metrics)
+
+    # Generate assets
+    wc_path = generate_wordcloud(word_list, wall_id)
+    sig_urls = [
+        r['signature'][0]['signature_url']
+        for r in responses
+        if r.get('signature') and r['signature'][0].get('signature_url')
+    ]
+    sw_path = generate_signature_wall(sig_urls, wall_id)
+
+    # Upload to Firebase (non-blocking best-effort)
+    wc_firebase = ""
+    sw_firebase = ""
+    try:
+        if wc_path:
+            wc_firebase = upload_to_firebase(wc_path, f"know_me/{wall_id}/wordcloud.png")
+        if sw_path:
+            sw_firebase = upload_to_firebase(sw_path, f"know_me/{wall_id}/signature_wall.png")
+    except Exception as e:
+        logging.warning(f"[MemoryWall] Firebase upload skipped: {e}")
+
+    wall = owner_check['data']
+    return render_template('know_me/reveal.html',
+                           wall=wall, user=user,
+                           responses=responses,
+                           words=words,
+                           wc_path=wc_path,
+                           sw_path=sw_path,
+                           wc_firebase=wc_firebase,
+                           sw_firebase=sw_firebase,
+                           metrics=metrics,
+                           personality_summary=personality_summary)
+
+
+# ── MemoryWall API Endpoints ──────────────────────────────────────────────────
+
+@app.route('/api/memorywall/submit', methods=['POST'])
+def api_memorywall_submit():
+    """Public response submission — no auth, rate-limited by IP hash."""
+    from methods.know_me import submit_response, get_wall_by_slug
+
+    # Honeypot check
+    data = request.get_json(silent=True) or {}
+    if data.get('_honey'):
+        return jsonify({'success': False, 'message': 'rejected'}), 400
+
+    wall_id = (data.get('wall_id') or '').strip()
+    friend_name = (data.get('friend_name') or '').strip()
+    word_1 = (data.get('word_1') or '').strip()
+    word_2 = (data.get('word_2') or '').strip()
+    word_3 = (data.get('word_3') or '').strip()
+    message = (data.get('memory_message') or '').strip() or None
+    emoji = (data.get('emoji') or '').strip() or None
+    anonymous = False
+    signature_url = (data.get('signature_url') or '').strip() or None
+
+    if not all([wall_id, friend_name, word_1, word_2, word_3]):
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+
+    if friend_name.lower() == 'anonymous':
+        return jsonify({'success': False, 'message': 'Anonymous submissions are not allowed. Please enter your name.'}), 400
+
+
+    raw_ip = request.headers.get('X-Forwarded-For', request.remote_addr)
+    if raw_ip and ',' in raw_ip:
+        raw_ip = raw_ip.split(',')[0].strip()
+
+    result = submit_response(
+        wall_id=wall_id,
+        friend_name=friend_name,
+        word_1=word_1, word_2=word_2, word_3=word_3,
+        message=message, emoji=emoji,
+        anonymous=anonymous,
+        raw_ip=raw_ip,
+        signature_url=signature_url,
+    )
+
+    if result.get('message') == 'rate_limited':
+        return jsonify({'success': False, 'message': 'Too many submissions. Try again later.'}), 429
+
+    return jsonify(result), 200 if result.get('success') else 500
+
+
+@app.route('/api/memorywall/upload-signature', methods=['POST'])
+def api_memorywall_upload_signature():
+    """Upload a signature PNG to Firebase Storage. Returns public URL."""
+    try:
+        if 'signature' not in request.files:
+            return jsonify({'success': False, 'message': 'No file'}), 400
+
+        f = request.files['signature']
+        if not f or f.content_type not in ('image/png', 'image/jpeg'):
+            return jsonify({'success': False, 'message': 'Invalid file type'}), 400
+
+        f.seek(0, 2)
+        size = f.tell()
+        f.seek(0)
+        if size > 512 * 1024:  # 512 KB limit
+            return jsonify({'success': False, 'message': 'File too large'}), 400
+
+        # Validate it's a real image
+        from PIL import Image as PILImage
+        try:
+            img = PILImage.open(f)
+            img.verify()
+            f.seek(0)
+        except Exception:
+            return jsonify({'success': False, 'message': 'Invalid image'}), 400
+
+        import uuid
+        from firebase_admin import storage as fb_storage
+        blob_name = f"know_me/signatures/{uuid.uuid4().hex}.png"
+        bucket = fb_storage.bucket()
+        blob = bucket.blob(blob_name)
+        blob.upload_from_file(f, content_type='image/png')
+        blob.make_public()
+        return jsonify({'success': True, 'url': blob.public_url}), 200
+
+    except Exception as e:
+        logging.error(f"[MemoryWall] Signature upload error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/memorywall/stats/<wall_id>', methods=['GET'])
+@auth_required
+def api_memorywall_stats(wall_id):
+    """Wall stats — auth required, owner only."""
+    from methods.know_me import get_response_count, get_top_words, get_wall_by_user
+    user = session.get('user', {})
+    owner_check = get_wall_by_user(user.get('uid'))
+    if not owner_check.get('success') or owner_check.get('data', {}).get('id') != wall_id:
+        return jsonify({'success': False, 'message': 'Forbidden'}), 403
+
+    count = get_response_count(wall_id)
+    words = get_top_words(wall_id)
+    return jsonify({'success': True, 'response_count': count, 'top_words': words[:10]}), 200
+
+# ─── Search API V2 (Phase 3 Migration) ────────────────────────────────────
+from methods.search_api import search_v2_endpoint, search_analytics_endpoint
+app.add_url_rule('/api/v2/search', view_func=search_v2_endpoint, methods=['GET'])
+app.add_url_rule('/api/v2/search/analytics', view_func=search_analytics_endpoint, methods=['POST'])
+
+@app.route('/api/admin/entity/add', methods=['POST'])
+@auth_required
+def api_add_entity():
+    data = request.json
+    entity_type = data.get('entity')
+    name = data.get('name')
+    short_name = data.get('short_name', '')
+    code = data.get('code', '')
+    semester = data.get('semester')
+    parent_id = data.get('parent_id')
+    
+    if not entity_type or not name:
+        return jsonify({'success': False, 'message': 'Missing required fields'}), 400
+        
+    try:
+        if semester:
+            semester = int(semester)
+    except ValueError:
+        semester = None
+        
+    from methods.supabase_helper import add_new_entity
+    result = add_new_entity(entity_type, name, short_name, code, semester, parent_id)
+    return jsonify(result), 200 if result.get('success') else 500
+
 if __name__ == '__main__':
-    app.run(debug=True)
+    debug_mode = os.getenv('FLASK_ENV') != 'production'
+    app.run(debug=debug_mode)

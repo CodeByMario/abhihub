@@ -5,12 +5,16 @@ Provides functions to interact with Supabase for storing labeled papers and docu
 
 import os
 import json
+import logging
+import traceback
 from datetime import datetime
 from typing import Dict, Optional, List, Any
 from dotenv import load_dotenv
 
 # Load environment variables
 load_dotenv()
+
+log = logging.getLogger(__name__)
 
 # Try to import supabase
 try:
@@ -48,7 +52,6 @@ def init_supabase():
             )
             print("Success: Supabase client initialized with abhihub schema")
         except Exception as e:
-            import traceback
             traceback.print_exc()
             print(f"Error initializing Supabase client: {e}")
             return None
@@ -69,21 +72,316 @@ def validate_uuid(val):
     try:
         uuid.UUID(str(val))
         return True
-    except:
+    except Exception:
         return False
 
 def get_all_colleges() -> Dict:
+    cached = _cache_get('all_colleges')
+    if cached is not None:
+        return {"success": True, "data": cached}
     client = init_supabase()
     if not client: return {"success": False, "data": []}
     try:
         response = client.table("colleges").select("*").order("name").execute()
         for c in response.data:
             c['short_name'] = c.get('abbreviation')
+        _cache_set('all_colleges', response.data)
         return {"success": True, "data": response.data}
     except Exception as e:
         return {"success": False, "data": []}
 
+def get_college_by_slug(slug: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        response = client.table("colleges").select("*").execute()
+        import re
+        def _slug(text):
+            return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
+        
+        for c in response.data:
+            # Match abbreviation slug (canonical)
+            abbr = (c.get('abbreviation') or '').lower()
+            if abbr and abbr == slug:
+                return {"success": True, "data": c}
+            # Match full name slug
+            name_slug = _slug(c.get('name') or '')
+            if name_slug == slug:
+                return {"success": True, "data": c}
+            # Match popular_name (e.g. "raisoni" for GHRCE)
+            popular = (c.get('popular_name') or '')
+            if popular and _slug(popular) == slug:
+                return {"success": True, "data": c}
+            # Match aliases array (e.g. ["raisoni", "gh raisoni"])
+            for alias in (c.get('aliases') or []):
+                if alias and _slug(alias) == slug:
+                    return {"success": True, "data": c}
+        return {"success": False, "message": "College not found"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_colleges_by_brand(brand_slug: str) -> Dict:
+    """Return all colleges that share the same popular_name (brand group).
+    E.g. brand_slug='raisoni' → [GHRCEN, GHRCEM, GHRCEMNG, ...]
+    """
+    client = init_supabase()
+    if not client: return {"success": False, "data": []}
+    try:
+        import re
+        def _slug(text):
+            return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
+        
+        response = client.table("colleges").select("*").execute()
+        matches = []
+        brand_display = None
+        for c in response.data:
+            popular = (c.get('popular_name') or '')
+            if popular and _slug(popular) == brand_slug:
+                matches.append(c)
+                if not brand_display:
+                    brand_display = popular
+            else:
+                # Also check aliases
+                for alias in (c.get('aliases') or []):
+                    if alias and _slug(alias) == brand_slug:
+                        matches.append(c)
+                        break
+        
+        if not matches:
+            return {"success": False, "message": "Brand not found"}
+        return {"success": True, "data": matches, "brand_name": brand_display or brand_slug.capitalize()}
+    except Exception as e:
+        return {"success": False, "data": [], "message": str(e)}
+
+def get_waitlist_count(college_id: str) -> int:
+    """Return how many students have joined the waitlist for a college."""
+    client = init_supabase()
+    if not client: return 0
+    try:
+        res = client.table('college_waitlist').select('id', count='exact').eq('college_id', college_id).execute()
+        return res.count or 0
+    except Exception:
+        return 0
+
+def join_college_waitlist(college_id: str, email: str, name: str = '') -> Dict:
+    """Add a student to the college waitlist. Returns count after insert."""
+    client = init_supabase()
+    if not client: return {'success': False, 'message': 'Service unavailable'}
+    try:
+        client.table('college_waitlist').insert({
+            'college_id': college_id,
+            'email': email.lower().strip(),
+            'name': name.strip() or None
+        }).execute()
+        count = get_waitlist_count(college_id)
+        return {'success': True, 'count': count}
+    except Exception as e:
+        if 'unique' in str(e).lower() or '23505' in str(e):
+            count = get_waitlist_count(college_id)
+            return {'success': True, 'already_joined': True, 'count': count}
+        return {'success': False, 'message': str(e)}
+
+def get_college_stats(college_id: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        doc_resp = client.table('documents').select('id', count='exact').eq('college_id', college_id).execute()
+        total_docs = doc_resp.count or 0
+        
+        total_subs = 0
+        try:
+            # Subjects are linked to departments, not colleges directly.
+            # To get an exact count we'd need to join or fetch departments first.
+            # For now, we fetch departments and then sum their subjects.
+            depts_resp = client.table('college_departments').select('department_id').eq('college_id', college_id).execute()
+            dept_ids = [d['department_id'] for d in (depts_resp.data or [])]
+            if dept_ids:
+                sub_resp = client.table('subjects').select('id', count='exact').in_('department_id', dept_ids).execute()
+                total_subs = sub_resp.count or 0
+        except Exception:
+            pass
+
+        return {
+            "success": True, 
+            "data": {
+                "total_documents": total_docs,
+                "total_subjects": total_subs
+            }
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_recent_college_files(college_id: str, limit: int = 5) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        response = client.table('documents')\
+            .select('*, subject:subjects(name), uploader:profiles!documents_uploader_id_fkey(full_name)')\
+            .eq('college_id', college_id)\
+            .order('created_at', desc=True)\
+            .limit(limit)\
+            .execute()
+        return {"success": True, "data": response.data}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_department_by_slug(slug: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        response = client.table("departments").select("*").execute()
+        import re
+        for c in response.data:
+            abbr = (c.get('abbreviation') or '').lower()
+            if abbr and abbr == slug:
+                return {"success": True, "data": c}
+            name_slug = re.sub(r'[^a-z0-9]+', '-', (c.get('name') or '').lower()).strip('-')
+            if name_slug == slug:
+                return {"success": True, "data": c}
+        return {"success": False, "message": "Department not found"}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_department_stats(college_id: str, dept_id: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        doc_resp = client.table('documents').select('id', count='exact').eq('college_id', college_id).eq('department_id', dept_id).execute()
+        sub_resp = client.table('subjects').select('id', count='exact').eq('department_id', dept_id).execute()
+        total_docs = doc_resp.count or 0
+        total_subs = sub_resp.count or 0
+        target = total_subs * 5
+        completion = 0
+        if target > 0:
+            completion = min(100, int((total_docs / target) * 100))
+            
+        return {
+            "success": True, 
+            "data": {
+                "total_documents": total_docs,
+                "total_subjects": total_subs,
+                "archive_completion": completion
+            }
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_recent_department_files(college_id: str, dept_id: str, limit: int = 6) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        response = client.table('documents')\
+            .select('*, subject:subjects(name), uploader:profiles!documents_uploader_id_fkey(full_name)')\
+            .eq('college_id', college_id)\
+            .eq('department_id', dept_id)\
+            .order('created_at', desc=True)\
+            .limit(limit)\
+            .execute()
+        return {"success": True, "data": response.data}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_subjects_by_slug(slug: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        response = client.table("subjects").select("*").execute()
+        import re
+        matching_ids = []
+        canonical_name = None
+        for s in response.data:
+            name_slug = re.sub(r'[^a-z0-9]+', '-', (s.get('name') or '').lower()).strip('-')
+            if name_slug == slug:
+                matching_ids.append(s.get('id'))
+                if not canonical_name:
+                    canonical_name = s.get('name')
+        if not matching_ids:
+            return {"success": False, "message": "Subject not found"}
+        return {"success": True, "data": {"ids": matching_ids, "name": canonical_name}}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_subject_stats(subject_ids: list) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        # Aggregating across multiple IDs using 'in'
+        doc_resp = client.table('documents').select('id', count='exact').in_('subject_id', subject_ids).execute()
+        return {
+            "success": True, 
+            "data": {
+                "total_documents": doc_resp.count or 0
+            }
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_recent_subject_files(subject_ids: list, limit: int = 10) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        response = client.table('documents')\
+            .select('*, college:colleges(name, abbreviation), uploader:profiles!documents_uploader_id_fkey(full_name)')\
+            .in_('subject_id', subject_ids)\
+            .order('created_at', desc=True)\
+            .limit(limit)\
+            .execute()
+        return {"success": True, "data": response.data}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_document_by_id_rich(doc_id: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        response = client.table('documents')\
+            .select('*, college:colleges(name, abbreviation), department:departments(name, abbreviation), subject:subjects(name), uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)')\
+            .eq('id', doc_id)\
+            .single()\
+            .execute()
+        return {"success": True, "data": response.data}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+def get_sitemap_urls() -> Dict:
+    """Fetches lightweight data across the entire database to generate SEO slugs for the XML sitemap."""
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        # 1. Colleges
+        colleges = client.table('colleges').select('name, abbreviation, popular_name, created_at').execute().data
+        
+        # 2. Departments
+        # Since department pages are nested under colleges in the UI, we just need unique departments 
+        # (Though technically a department page route requires both. Let's just fetch all colleges and departments)
+        depts = client.table('departments').select('name, abbreviation, created_at').execute().data
+        
+        # 3. Subjects
+        subjects = client.table('subjects').select('name, created_at').execute().data
+        
+        # 4. Resources
+        # We need the relations to generate the canonical slug
+        docs = client.table('documents')\
+            .select('id, title, updated_at, created_at, college:colleges(name, abbreviation), department:departments(name, abbreviation), subject:subjects(name)')\
+            .in_('status', ['approved', 'pending'])\
+            .execute().data
+            
+        return {
+            "success": True, 
+            "data": {
+                "colleges": colleges,
+                "departments": depts,
+                "subjects": subjects,
+                "documents": docs
+            }
+        }
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
 def get_all_branches() -> Dict:
+    cached = _cache_get('all_branches')
+    if cached is not None:
+        return {"success": True, "data": cached}
     client = init_supabase()
     if not client: return {"success": False, "data": []}
     try:
@@ -92,16 +390,153 @@ def get_all_branches() -> Dict:
             b['short_name'] = b.get('abbreviation')
             b['branch_id'] = b.get('id')
             b['branch_name'] = b.get('name')
+        _cache_set('all_branches', response.data)
         return {"success": True, "data": response.data}
     except Exception as e:
         return {"success": False, "data": []}
+
+
+# ── T8: In-memory cache (colleges / departments / subjects) ──────────────────
+import time as _time
+_cache: Dict[str, Any] = {}
+_CACHE_TTL = 300  # 5 minutes
+
+def _cache_get(key: str):
+    entry = _cache.get(key)
+    if entry and (_time.time() - entry['ts']) < _CACHE_TTL:
+        return entry['val']
+    return None
+
+def _cache_set(key: str, val):
+    _cache[key] = {'val': val, 'ts': _time.time()}
+
+
+def get_departments_by_college(college_id: str) -> Dict:
+    """Return departments mapped to a college via college_departments table."""
+    cache_key = f"depts:{college_id}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return {"success": True, "data": cached}
+
+    client = init_supabase()
+    if not client: return {"success": False, "data": []}
+    try:
+        res = client.table("college_departments") \
+            .select("department_id, departments(id, name, abbreviation)") \
+            .eq("college_id", college_id) \
+            .execute()
+        data = []
+        for row in (res.data or []):
+            dept = row.get("departments") or {}
+            if dept:
+                data.append({
+                    "id": dept.get("id"),
+                    "name": dept.get("name"),
+                    "abbreviation": dept.get("abbreviation"),
+                })
+        _cache_set(cache_key, data)
+        return {"success": True, "data": data}
+    except Exception as e:
+        return {"success": False, "data": [], "message": str(e)}
+
+
+def get_subjects_by_department(department_id: str, semester: int = None) -> Dict:
+    """Return subjects for a department. Optionally filter by semester."""
+    cache_key = f"subjs:{department_id}:{semester}"
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return {"success": True, "data": cached}
+
+    client = init_supabase()
+    if not client: return {"success": False, "data": []}
+    try:
+        q = client.table("subjects") \
+            .select("id, name, subject_code, semester") \
+            .eq("department_id", department_id)
+        if semester:
+            # Include exact semester match AND subjects with NULL semester (spans all semesters)
+            res = q.or_(f"semester.eq.{semester},semester.is.null").order("name").execute()
+        else:
+            res = q.order("name").execute()
+        data = res.data or []
+        _cache_set(cache_key, data)
+        return {"success": True, "data": data}
+    except Exception as e:
+        return {"success": False, "data": [], "message": str(e)}
+
+
+def create_subject_request(user_id: str, college_id: str, department_id: str,
+                           subject_name: str, subject_code: str = '',
+                           semester: int = None) -> Dict:
+    """Insert a pending_subject_requests row. Duplicate protection via DB index."""
+    client = init_supabase()
+    if not client: return {"success": False, "message": "No client"}
+    try:
+        res = client.table("pending_subject_requests").insert({
+            "user_id": user_id,
+            "college_id": college_id or None,
+            "department_id": department_id or None,
+            "subject_name": subject_name,
+            "subject_code": subject_code or None,
+            "semester": semester or None,
+            "status": "pending"
+        }).execute()
+        if res.data:
+            return {"success": True, "data": res.data[0]}
+        return {"success": False, "message": "Insert returned no data"}
+    except Exception as e:
+        # Unique constraint violation = duplicate pending request
+        if 'unique' in str(e).lower() or '23505' in str(e):
+            return {"success": False, "message": "A pending request for this subject already exists", "duplicate": True}
+        return {"success": False, "message": str(e)}
+
+
+def get_onboarding_status(user_id: str) -> Dict:
+    """Read welcome_seen from profiles table (lightweight, no extra table)."""
+    client = init_supabase()
+    if not client: return {"success": False, "data": None}
+    try:
+        res = client.table("profiles").select("welcome_seen, last_donation_popup_at").eq("id", user_id).execute()
+        if res.data:
+            return {"success": True, "data": res.data[0]}
+        return {"success": True, "data": {"welcome_seen": False}}
+    except Exception as e:
+        return {"success": False, "data": None, "message": str(e)}
+
+
+def mark_welcome_seen(user_id: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False}
+    try:
+        client.table("profiles").update({"welcome_seen": True}).eq("id", user_id).execute()
+        return {"success": True}
+    except Exception as e:
+        return {"success": False, "message": str(e)}
+
+
+def track_user_event(user_id: str, event_type: str, metadata: dict = None) -> None:
+    """Fire-and-forget. Only tracks UPLOAD, DOWNLOAD, SUBJECT_REQUEST."""
+    _ALLOWED = {'UPLOAD', 'DOWNLOAD', 'SUBJECT_REQUEST'}
+    if event_type not in _ALLOWED:
+        return  # silently ignore non-tracked types
+    try:
+        client = init_supabase()
+        if not client: return
+        client.table("user_events").insert({
+            "user_id": user_id or None,
+            "event_type": event_type,
+            "metadata": metadata or {}
+        }).execute()
+    except Exception:
+        pass  # Non-blocking; never raise
 
 def save_file_record(
     user_id: str, user_email: str, file_name: str, file_url: str,
     file_type: str, file_size: int, cloudinary_public_id: str,
     subject_name: str, document_type: str, year: str = '',
     college_id=None, branch_id=None, subject_code: str = '',
-    semesters: list = None, title: str = '', description: str = ''
+    semesters: list = None, title: str = '', description: str = '',
+    subject_id: str = None, semester: int = None, exam_type: str = '', file_hash: str = None
 ) -> Dict:
     client = init_supabase()
     if not client: return {'success': False, 'message': 'No client'}
@@ -136,12 +571,14 @@ def save_file_record(
                 except Exception as p_err:
                     print(f"[Supabase] Failed to create base profile: {p_err}")
 
-        # Resolve subject
-        sub_id = None
-        if subject_code:
+        # Resolve subject_id — prefer direct UUID from cascade dropdown
+        sub_id = subject_id if validate_uuid(subject_id) else None
+
+        # Fallback: fuzzy lookup by code or name (legacy / per-image modal path)
+        if not sub_id and subject_code:
             sub_res = client.table("subjects").select("id").eq("subject_code", subject_code).limit(1).execute()
             if sub_res.data: sub_id = sub_res.data[0]['id']
-        
+
         if not sub_id and subject_name:
             sub_res = client.table("subjects").select("id").ilike("name", f"%{subject_name}%").limit(1).execute()
             if sub_res.data: sub_id = sub_res.data[0]['id']
@@ -152,10 +589,20 @@ def save_file_record(
                 "subject": subject_name,
                 "year": year,
                 "subject_code": subject_code,
-                "semesters": semesters or []
+                "semesters": semesters or [],
+                "semester": semester  # new: integer semester from cascade
             }
             description = json.dumps(desc_data)
         
+        storage_provider = 'cloudinary' if cloudinary_public_id else 'firebase'
+        
+        # Duplicate Protection
+        if cloudinary_public_id:
+            dup_check = client.table('documents').select('id').eq('storage_provider', storage_provider).eq('provider_public_id', cloudinary_public_id).execute()
+            if dup_check.data:
+                print(f"[Supabase] Duplicate registration prevented for {storage_provider} ID: {cloudinary_public_id}")
+                return {'success': False, 'message': 'File is already labeled and registered in the system.', 'conflict': True}
+
         data = {
             'uploader_id': u_id,
             'college_id': c_id,
@@ -165,41 +612,157 @@ def save_file_record(
             'document_category': document_type or 'notes',
             'description': description,
             'file_url': file_url,
-            'storage_provider': 'cloudinary' if cloudinary_public_id else 'firebase',
+            'storage_provider': storage_provider,
             'provider_public_id': cloudinary_public_id,
             'file_type': file_type,
             'file_size_bytes': file_size,
-            'status': 'pending'  # All new uploads start as pending
+            'status': 'pending',  # All new uploads start as pending
+            'exam_type': exam_type or None,
+            'file_hash': file_hash
         }
         
         print(f"[Supabase] Inserting document: {data.get('title')}")
         res = client.table('documents').insert(data).execute()
         
         if res.data:
-            print(f"[Supabase] Successfully saved document record: {res.data[0].get('id')}")
-            return {'success': True, 'message': 'Saved successfully', 'data': res.data[0]}
+            doc_id = res.data[0].get('id')
+            print(f"[Supabase] Successfully saved document record: {doc_id}")
+            
+            # --- Push to new Background Search Queue (Phase 2 Migration) ---
+            try:
+                client.table('search_documents').insert({
+                    'file_id': doc_id,
+                    'source': 'uploads',
+                    'subject_id': sub_id,
+                    'college_id': c_id,
+                    'department_id': d_id,
+                    'semester': semester,
+                    'normalized_title': _normalize(title or file_name) if '_normalize' in globals() else (title or file_name).lower(),
+                    'status': 'pending'
+                }).execute()
+                print(f"[Supabase] Queued {doc_id} for background search indexing.")
+            except Exception as search_q_err:
+                print(f"[Supabase] Warning: Could not queue for indexing: {search_q_err}")
+            # -------------------------------------------------------------
+            
+            # Phase 15: Gamification / Dopamine Loop
+            xp_data = {}
+            if u_id:
+                desc = f"Uploaded {document_type} for {subject_name or 'subject'}"
+                xp_result = award_contribution_xp(u_id, 'upload_document', doc_id, 'document', desc, base_xp=25)
+                if xp_result.get('success'):
+                    xp_data = {
+                        'xp_gained': xp_result['xp_gained'],
+                        'new_score': xp_result['new_score'],
+                        'new_rank': xp_result['new_rank']
+                    }
+            
+            res_data = res.data[0]
+            res_data.update(xp_data)
+            
+            return {'success': True, 'message': 'Saved successfully', 'data': res_data}
         
         print(f"[Supabase] Failed to save document record. Response empty.")
         return {'success': False, 'message': 'Failed to save record to database'}
         
     except Exception as e:
-        import traceback
         traceback.print_exc()
         print(f"[Supabase] Error saving file record: {e}")
         return {'success': False, 'message': str(e)}
+
+def verify_hierarchy(college_id: str, branch_id: str, subject_id: str) -> bool:
+    """Verifies that the provided academic hierarchy is valid."""
+    client = init_supabase()
+    if not client: return False
+    try:
+        # 1. Verify subject belongs to department (branch)
+        if subject_id and branch_id:
+            sub_res = client.table('subjects').select('id, department_id').eq('id', subject_id).execute()
+            if not sub_res.data or str(sub_res.data[0].get('department_id')) != str(branch_id):
+                return False
+                
+        # 2. Verify department belongs to college
+        if branch_id and college_id:
+            cd_res = client.table('college_departments').select('*').eq('college_id', college_id).eq('department_id', branch_id).execute()
+            if not cd_res.data:
+                return False
+
+        return True
+    except Exception as e:
+        print(f"[Supabase] Error in verify_hierarchy: {e}")
+        return False
+
+def get_registered_storage_ids() -> set:
+    """Returns a set of strings in format 'storage_provider_id' for all registered files."""
+    client = init_supabase()
+    if not client: return set()
+    try:
+        res = client.table('documents').select('storage_provider, provider_public_id').execute()
+        registered = set()
+        for doc in res.data:
+            prov = doc.get('storage_provider')
+            sid = doc.get('provider_public_id')
+            if prov and sid:
+                registered.add(f"{prov}_{sid}")
+        return registered
+    except Exception as e:
+        print(f"[Supabase] Error getting registered storage ids: {e}")
+        return set()
+
+def get_pending_storage_assets() -> list:
+    """Fetch all pending files directly from the storage_assets index table."""
+    client = init_supabase()
+    if not client: return []
+    try:
+        res = client.table('storage_assets').select('*').eq('status', 'PENDING').execute()
+        return res.data or []
+    except Exception as e:
+        print(f"[Supabase] Error fetching pending assets: {e}")
+        return []
+
+def mark_storage_asset_labeled(provider: str, provider_public_id: str) -> bool:
+    """Mark an asset as LABELED in the storage_assets table."""
+    client = init_supabase()
+    if not client: return False
+    try:
+        client.table('storage_assets').update({'status': 'LABELED'}).eq('provider', provider).eq('provider_public_id', provider_public_id).execute()
+        return True
+    except Exception as e:
+        print(f"[Supabase] Error updating asset status: {e}")
+        return False
+
+def log_label_audit(user_id: str, document_id: str, action: str, details: dict) -> bool:
+    """Log an audit entry for labeling actions."""
+    client = init_supabase()
+    if not client: return False
+    try:
+        client.table('label_audit_logs').insert({
+            'user_id': user_id,
+            'document_id': document_id,
+            'action': action,
+            'details': json.dumps(details)
+        }).execute()
+        return True
+    except Exception as e:
+        print(f"[Supabase] Error logging audit: {e}")
+        return False
 
 def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
     title = doc.get('title', 'Untitled')
     url = doc.get('file_url', '')
     doc_type = str(doc.get('document_category', 'Other')).capitalize()
     
-    prof = doc.get('profiles') or {}
-    author = prof.get('full_name', 'Unknown')
-    author_email = prof.get('email', '')
+    prof = doc.get('profiles') or doc.get('profiles!documents_uploader_id_fkey') or {}
+    author = prof.get('full_name') or (prof.get('email') and prof.get('email').split('@')[0]) or 'Unknown'
+    author_email = prof.get('email') or ''
     
-    subj_data = doc.get('subjects') or {}
-    subject = subj_data.get('name', 'General')
-    subject_code = subj_data.get('subject_code', '')
+    subj_data = doc.get('subjects') or doc.get('subjects!documents_subject_id_fkey') or {}
+    subject = subj_data.get('name') or 'General'
+    subject_code = subj_data.get('subject_code') or ''
+    
+    coll_data = doc.get('colleges') or doc.get('colleges!documents_college_id_fkey') or {}
+    college_name = coll_data.get('name') or coll_data.get('abbreviation') or ''
+    
     year = ''
     
     desc_str = doc.get('description') or '{}'
@@ -211,8 +774,8 @@ def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
         else:
             if 'Year:' in desc_str:
                 year = desc_str.split('Year:')[1].split('|')[0].strip()
-    except:
-        pass
+    except Exception as e:
+        log.debug(f'_doc_to_json: failed to parse description: {e}')
 
     file_path = url if url else f"Documents/{author}/{doc_type}/{year}/{subject}/{title}"
     
@@ -247,26 +810,65 @@ def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
         'comment_count': len(doc.get('document_comments') or []) if 'document_comments' in doc else doc.get('comment_count', 0),
         'bookmark_count': doc.get('bookmark_count', 0),
         'is_liked': is_liked,
-        'is_bookmarked': is_bookmarked
+        'is_bookmarked': is_bookmarked,
+        'college': college_name or 'Other'
     }
 
 def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dict:
+    # Cache key: anon gets shared cache; authed users get personal cache (for like/bookmark state)
+    _FILES_CACHE_TTL = 120  # 2 minutes
+    cache_key = f'all_files:{current_user_id or "anon"}'
+    cached = _cache_get(cache_key)
+    if cached is not None:
+        return {'success': True, 'data': cached, 'count': len(cached)}
     client = init_supabase()
     if not client: return {'success': False, 'data': [], 'count': 0}
     try:
         res = client.table('documents') \
-            .select('*, profiles!documents_uploader_id_fkey(full_name, email), subjects(name, subject_code), document_votes(user_id), bookmarks(user_id), document_comments(id)') \
+            .select('*, profiles!documents_uploader_id_fkey(full_name, email), subjects(name, subject_code), colleges(name, abbreviation), document_votes(user_id), bookmarks(user_id), document_comments(id)') \
             .in_('status', ['approved', 'pending']) \
             .order('created_at', desc=True) \
             .execute()
-        
         files = [_doc_to_json(d, current_user_id) for d in res.data] if res.data else []
+        _cache[cache_key] = {'val': files, 'ts': _time.time() - (_CACHE_TTL - _FILES_CACHE_TTL)}
         return {'success': True, 'data': files, 'count': len(files)}
     except Exception as e:
         return {'success': False, 'data': [], 'count': 0, 'message': str(e)}
 
 def get_all_file_records_formatted(current_user_id=None) -> List[Dict]:
     return get_all_files_merged(current_user_id=current_user_id).get('data', [])
+
+def invalidate_files_cache():
+    """Call after any document insert/update to clear the files cache."""
+    keys_to_del = [k for k in _cache if k.startswith('all_files:')]
+    for k in keys_to_del:
+        del _cache[k]
+    log.debug(f'Invalidated {len(keys_to_del)} file cache entries')
+
+def get_related_documents(college_id: str = None, subject_id: str = None,
+                           exclude_id: str = None, limit: int = 6) -> List[Dict]:
+    """Fetch only related documents — avoids loading all 1000+ docs for sidebar."""
+    client = init_supabase()
+    if not client: return []
+    try:
+        q = client.table('documents') \
+            .select('id, title, document_category, file_type, college_id, subject_id, created_at, view_count, provider_public_id, file_url, storage_provider') \
+            .in_('status', ['approved', 'pending']) \
+            .order('view_count', desc=True) \
+            .limit(limit + 1)  # fetch one extra to exclude current doc
+        if college_id and validate_uuid(college_id):
+            q = q.eq('college_id', college_id)
+        elif subject_id and validate_uuid(subject_id):
+            q = q.eq('subject_id', subject_id)
+        res = q.execute()
+        docs = res.data or []
+        # Exclude the current document
+        if exclude_id:
+            docs = [d for d in docs if d.get('id') != exclude_id]
+        return docs[:limit]
+    except Exception as e:
+        log.error(f'get_related_documents error: {e}')
+        return []
 
 def search_file_records(search_query='', document_type=None, college_id=None, branch_id=None, year=None, limit=50) -> List[Dict]:
     client = init_supabase()
@@ -280,7 +882,8 @@ def search_file_records(search_query='', document_type=None, college_id=None, br
             q = q.or_(f"title.ilike.%{search_query}%,description.ilike.%{search_query}%")
         res = q.order('created_at', desc=True).limit(limit).execute()
         return res.data if res.data else []
-    except:
+    except Exception as e:
+        log.error(f'search_file_records error: {e}')
         return []
 
 def get_user_uploaded_files(user_email: str, limit: int = 20) -> Dict:
@@ -311,7 +914,8 @@ def delete_file_record(record_id: str, user_email: str) -> Dict:
         
         res = client.table('documents').delete().eq('id', record_id).eq('uploader_id', u_id).execute()
         return {'success': True} if res.data else {'success': False}
-    except:
+    except Exception as e:
+        log.error(f'delete_file_record error: {e}')
         return {'success': False}
 
 def toggle_like(user_email: str, document_id: str) -> Dict:
@@ -555,7 +1159,8 @@ def check_profile_completed(user_id: str) -> bool:
         res = client.table('students').select('profile_completed').eq('profile_id', user_id).execute()
         if res.data: return res.data[0].get('profile_completed', False)
         return False
-    except:
+    except Exception as e:
+        log.error(f'check_profile_completed error: {e}')
         return False
         
 def get_all_file_records(limit=100, offset=0):
@@ -809,10 +1414,15 @@ def recalculate_and_persist_user_rank(user_id: str) -> Dict:
                 pts *= 0.5
             total_points += pts
 
-        score = int(total_points)  # store as integer in the DB column
+        from decimal import Decimal, ROUND_HALF_UP
+        precise = Decimal(str(total_points)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
+        # profiles.reputation_score is INTEGER in DB — store rounded int
+        # Run: ALTER COLUMN reputation_score TYPE numeric(10,2) to unlock decimals
+        score_int = int(precise.to_integral_value(rounding=ROUND_HALF_UP))
+        score = float(precise)  # returned in API response for XP display
 
         client.table('profiles').update(
-            {'reputation_score': score}
+            {'reputation_score': score_int}
         ).eq('id', user_id).execute()
 
         print(f"[Ranking] Persisted reputation_score={score} for user {user_id}")
@@ -821,6 +1431,91 @@ def recalculate_and_persist_user_rank(user_id: str) -> Dict:
     except Exception as e:
         print(f"[Ranking] Error persisting rank for {user_id}: {e}")
         return {'success': False, 'message': str(e)}
+
+def get_reputation_stats(user_id: str) -> Dict:
+    """
+    Dynamically calculate the 'students helped' metric and badges based on the user's approved documents.
+    """
+    client = init_supabase()
+    if not client:
+        return {'success': False, 'message': 'No client'}
+    try:
+        res = (
+            client.table('documents')
+            .select('status, view_count')
+            .eq('uploader_id', user_id)
+            .in_('status', ['approved', 'pending'])
+            .execute()
+        )
+        
+        approved_count = 0
+        total_views = 0
+        
+        for doc in (res.data or []):
+            if doc.get('status') == 'approved':
+                approved_count += 1
+            total_views += doc.get('view_count') or 0
+            
+        badges = []
+        if approved_count >= 1:
+            badges.append("Junior Helper")
+        if approved_count >= 5:
+            badges.append("Community Contributor")
+        if total_views >= 500:
+            badges.append("Senior Lifesaver")
+            
+        return {
+            'success': True,
+            'approved_uploads': approved_count,
+            'students_helped': total_views,
+            'badges': badges
+        }
+    except Exception as e:
+        print(f"[Ranking] Error calculating reputation stats for {user_id}: {e}")
+        return {'success': False, 'message': str(e)}
+
+def get_contribution_timeline(user_id: str) -> Dict:
+    """Fetch user's contribution logs ordered by latest first."""
+    client = init_supabase()
+    if not client or not user_id: return {'success': False, 'timeline': []}
+    try:
+        res = client.table('contribution_logs').select('*').eq('user_id', user_id).order('created_at', desc=True).limit(20).execute()
+        return {'success': True, 'timeline': res.data or []}
+    except Exception as e:
+        print(f"Error fetching timeline: {e}")
+        return {'success': False, 'timeline': []}
+
+def get_leaderboard_data(college_id: str = None, limit: int = 50) -> Dict:
+    """Fetch leaderboard data from the leaderboard_view."""
+    client = init_supabase()
+    if not client: return {'success': False, 'data': []}
+    try:
+        query = client.table('leaderboard_view').select('*').gt('total_xp', 0)
+        if college_id:
+            query = query.eq('college_id', college_id)
+        res = query.order('total_xp', desc=True).limit(limit).execute()
+        
+        # Format the response
+        leaderboard = []
+        for i, row in enumerate(res.data or []):
+            badges = []
+            if row.get('total_xp') >= 1000: badges.append('Champion')
+            elif row.get('total_xp') >= 500: badges.append('Hero')
+            elif row.get('total_xp') >= 100: badges.append('Contributor')
+                
+            leaderboard.append({
+                'rank': i + 1,
+                'user_id': row.get('user_id'),
+                'name': row.get('full_name') or 'Anonymous Student',
+                'email': row.get('email', ''),
+                'total_xp': row.get('total_xp', 0),
+                'students_helped': row.get('students_helped', 0),
+                'badges': badges
+            })
+        return {'success': True, 'data': leaderboard}
+    except Exception as e:
+        print(f"Error fetching leaderboard: {e}")
+        return {'success': False, 'data': []}
 
 def update_document_metadata(file_path: str, update_data: dict) -> Dict:
     client = init_supabase()
@@ -835,7 +1530,8 @@ def update_document_metadata(file_path: str, update_data: dict) -> Dict:
         current_desc_str = res.data[0].get('description') or '{}'
         try:
             desc = json.loads(current_desc_str)
-        except:
+        except Exception as e:
+            log.debug(f'update_file_record: invalid JSON in description: {e}')
             desc = {}
             
         updates = {}
@@ -860,6 +1556,103 @@ def get_all_uploaded_files(*a, **kw): return []
 def save_uploaded_file_record(*a, **kw): pass
 def validate_mobile_number(*a): return True
 def validate_year_of_joining(*a): return True
+
+
+def _notify_uploader_of_view(doc_id: str, viewer_id: str, viewer_email: str):
+    """
+    Notify the uploader when someone views their file.
+    Throttled: skips if a 'file_view' notification was already sent for
+    this uploader within the last 10 minutes (prevents spam).
+    Runs in a daemon thread — non-blocking.
+    """
+    try:
+        client = init_supabase()
+        if not client:
+            return
+
+        # Fetch uploader_id, doc title, uploader profile name
+        doc_res = client.table('documents') \
+            .select('uploader_id, title, profiles!documents_uploader_id_fkey(full_name)') \
+            .eq('id', doc_id).limit(1).execute()
+        if not doc_res.data:
+            return
+
+        row = doc_res.data[0]
+        uploader_id = row.get('uploader_id')
+        doc_title = (row.get('title') or 'your file')[:50]
+
+        # Skip self-view
+        if not uploader_id or uploader_id == viewer_id:
+            return
+
+        # Throttle: if uploader already got a file_view notification in last 10 min, skip
+        from datetime import datetime, timedelta, timezone
+        cutoff = (datetime.now(timezone.utc) - timedelta(minutes=10)).isoformat()
+        recent = client.table('notifications') \
+            .select('id') \
+            .eq('user_id', uploader_id) \
+            .eq('type', 'file_view') \
+            .gte('created_at', cutoff) \
+            .limit(1).execute()
+        if recent.data:
+            return  # Throttled
+
+        # Resolve viewer display name from profile
+        viewer_name = 'Someone'
+        try:
+            vr = client.table('profiles').select('full_name').eq('id', viewer_id).limit(1).execute()
+            if vr.data:
+                viewer_name = vr.data[0].get('full_name') or viewer_email.split('@')[0]
+        except Exception:
+            viewer_name = viewer_email.split('@')[0] if viewer_email else 'Someone'
+
+        client.table('notifications').insert({
+            'user_id': uploader_id,
+            'type': 'file_view',
+            'title': '\U0001f441\ufe0f Your file was viewed!',
+            'message': f'{viewer_name} just viewed \u201c{doc_title}\u201d',
+            'action_url': None,
+            'is_read': False
+        }).execute()
+        print(f'[NOTIFY] Sent file_view notification to uploader {uploader_id[:8]} from {viewer_name}')
+
+    except Exception as e:
+        print(f'[NOTIFY] Non-critical notify error: {e}')
+
+
+def get_user_notifications(user_id: str, limit: int = 20, offset: int = 0) -> List[Dict]:
+    """Fetch paginated notifications for a user, newest first."""
+    client = init_supabase()
+    if not client:
+        return []
+    try:
+        res = client.table('notifications') \
+            .select('id, type, title, message, action_url, is_read, created_at') \
+            .eq('user_id', user_id) \
+            .order('created_at', desc=True) \
+            .range(offset, offset + limit - 1) \
+            .execute()
+        return res.data if res.data else []
+    except Exception as e:
+        print(f'[NOTIFY] get_user_notifications error: {e}')
+        return []
+
+
+def mark_notifications_read(user_id: str) -> Dict:
+    """Mark all unread notifications as read for a user."""
+    client = init_supabase()
+    if not client:
+        return {'success': False}
+    try:
+        client.table('notifications') \
+            .update({'is_read': True}) \
+            .eq('user_id', user_id) \
+            .eq('is_read', False) \
+            .execute()
+        return {'success': True}
+    except Exception as e:
+        print(f'[NOTIFY] mark_notifications_read error: {e}')
+        return {'success': False, 'message': str(e)}
 def save_file_access(user_email: str, file_name: str, file_type: str = 'pdf', file_path: str = '', file_url: str = '', record_id: str = None) -> Dict:
     """
     Log a file access event and increment the view count for the document.
@@ -904,6 +1697,14 @@ def save_file_access(user_email: str, file_name: str, file_type: str = 'pdf', fi
                     client.table('documents').update({'view_count': current_views + 1}).eq('id', doc_id).execute()
             except Exception as view_err:
                 print(f"Warning: Could not increment view count: {view_err}")
+
+            # Fire-and-forget: notify uploader (non-blocking)
+            import threading
+            threading.Thread(
+                target=_notify_uploader_of_view,
+                args=(doc_id, user_id, user_email),
+                daemon=True
+            ).start()
 
         # 4. Log in document_views table
         if doc_id and user_id:
@@ -1020,13 +1821,57 @@ def get_papo_meter_data(user_id: str) -> Dict:
     
     return {'pap_count': pap_count, 'punya_count': punya_count}
 
+def award_contribution_xp(user_id: str, action_type: str, entity_id: str, entity_type: str, description: str, base_xp: int = 10) -> Dict:
+    client = init_supabase()
+    if not client or not user_id: return {'success': False}
+    try:
+        # 1. Log the contribution
+        client.table('contribution_logs').insert({
+            'user_id': user_id, 'action_type': action_type, 'entity_id': entity_id,
+            'entity_type': entity_type, 'xp_awarded': base_xp, 'description': description
+        }).execute()
+        
+        # 2. Update the profile XP
+        p_res = client.table('profiles').select('reputation_score').eq('id', user_id).execute()
+        if p_res.data:
+            current_xp = p_res.data[0].get('reputation_score') or 0
+            new_xp = current_xp + base_xp
+            
+            # Simple rank calculation based on new_xp
+            rank = "Beginner"
+            if new_xp >= 50: rank = "First Contribution"
+            if new_xp >= 200: rank = "Contributor"
+            if new_xp >= 500: rank = "Scholar"
+            if new_xp >= 1000: rank = "Note Master"
+            if new_xp >= 2500: rank = "Campus Legend"
+            
+            client.table('profiles').update({
+                'reputation_score': new_xp,
+                'rank_title': rank
+            }).eq('id', user_id).execute()
+            
+            # 3. Badge Logic (Phase 15/17)
+            if rank != "Beginner":
+                try:
+                    client.table('user_achievements').insert({
+                        'user_id': user_id, 'badge_name': rank, 'badge_icon': '🏆'
+                    }).execute()
+                except Exception:
+                    pass  # unique constraint handles duplicates
+                    
+            return {'success': True, 'xp_gained': base_xp, 'new_score': new_xp, 'new_rank': rank}
+    except Exception as e:
+        print(f"Error awarding XP: {e}")
+    return {'success': False}
+
 def check_if_labeled(filename: str) -> bool:
     client = init_supabase()
     if not client: return False
     try:
         res = client.table('documents').select('id').eq('title', filename).limit(1).execute()
         return len(res.data) > 0
-    except:
+    except Exception as e:
+        log.error(f'check_if_labeled error: {e}')
         return False
 def save_labeled_paper(*a): return {'success': True}
 def get_labeled_papers():
@@ -1040,3 +1885,64 @@ def get_labeled_papers():
 def add_paper_verification(*a): return {'success': True}
 def get_pending_verification_papers(*a): return {'success': True, 'data': []}
 def create_labeled_papers_table(*a): return True
+
+def add_new_entity(entity_type: str, name: str, short_name: str = '', code: str = '', semester: int = None, parent_id: str = None) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False, "message": "Database not initialized"}
+    
+    if parent_id == '0':
+        parent_id = None
+        
+    try:
+        if entity_type == 'college':
+            res = client.table('colleges').insert({
+                'name': name,
+                'abbreviation': short_name,
+                'popular_name': name
+            }).execute()
+            # Clear any specific caches if you have them, else just return
+            return {"success": True, "id": res.data[0]['id'], "name": name}
+            
+        elif entity_type == 'department' or entity_type == 'branch':
+            existing = client.table('departments').select('id, name').ilike('name', name).execute()
+            if existing.data:
+                dept_id = existing.data[0]['id']
+            else:
+                res = client.table('departments').insert({
+                    'name': name,
+                    'abbreviation': short_name
+                }).execute()
+                dept_id = res.data[0]['id']
+                
+            if parent_id:
+                try:
+                    client.table('college_departments').insert({
+                        'college_id': parent_id,
+                        'department_id': dept_id
+                    }).execute()
+                except Exception:
+                    pass
+            
+            _cache_set(f"depts:{parent_id}", None)
+            return {"success": True, "id": dept_id, "name": name}
+            
+        elif entity_type == 'subject':
+            if not parent_id:
+                return {"success": False, "message": "Department ID is required to add a subject"}
+            res = client.table('subjects').insert({
+                'name': name,
+                'subject_code': code,
+                'semester': semester if semester else None,
+                'department_id': parent_id
+            }).execute()
+            
+            _cache_set(f"subjs:{parent_id}:{semester}", None)
+            _cache_set(f"subjs:{parent_id}:None", None)
+            return {"success": True, "id": res.data[0]['id'], "name": name}
+            
+        else:
+            return {"success": False, "message": "Unknown entity type"}
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return {"success": False, "message": str(e)}

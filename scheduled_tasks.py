@@ -58,6 +58,8 @@ def setup_jobs(scheduler):
     """
     # Import here to avoid circular imports
     from methods.upload_notifier import process_upload_notifications
+    from methods.indexer import process_pending_documents
+    from methods.analytics_analyzer import analyze_search_metrics
     
     # Job 1: Check for upload notifications every 10 minutes
     scheduler.add_job(
@@ -68,6 +70,26 @@ def setup_jobs(scheduler):
         replace_existing=True
     )
     logging.info("📅 Scheduled job: Upload notifications (every 10 minutes)")
+
+    # Job 2: Process pending search index documents every 2 minutes
+    scheduler.add_job(
+        func=process_pending_documents,
+        trigger=IntervalTrigger(minutes=2),
+        id='search_indexer',
+        name='Process search index queue',
+        replace_existing=True
+    )
+    logging.info("📅 Scheduled job: Search Indexer (every 2 minutes)")
+
+    # Job 3: Analytics Analyzer every 24 hours
+    scheduler.add_job(
+        func=analyze_search_metrics,
+        trigger=IntervalTrigger(hours=24),
+        id='analytics_analyzer',
+        name='Search Analytics Analyzer',
+        replace_existing=True
+    )
+    logging.info("📅 Scheduled job: Analytics Analyzer (every 24 hours)")
 
 
 def shutdown_scheduler():

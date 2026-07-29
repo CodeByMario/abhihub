@@ -8,5 +8,8 @@
     },
     "devDependencies": {
         "tailwindcss": "^3.4.1"
+    },
+    "dependencies": {
+        "jsdom": "^29.1.1"
     }
 }

@@ -5,8 +5,7 @@ static/Documents/*
 static/premium/test.ipynb
 
 # Firebase credentials
-firebase-auth.json
-firebase-*.json
+
 
 # Other credential files
 *.pem

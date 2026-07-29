@@ -1,0 +1,431 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ wall.title }}'s MemoryWall Reveal</title>
+  <meta name="robots" content="noindex">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='premium/css/style.css', v='2.0.1') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/know-me.css', v='2.1.0') }}">
+  {% include 'google_tag.html' %}
+</head>
+
+<body>
+
+  <!-- ── First Reveal Celebration Modal ──────────────────────────── -->
+  <div id="km-celebrate-modal" class="km-celebrate-overlay" style="display:none;" role="dialog" aria-modal="true">
+    <div class="km-celebrate-box">
+      <div class="km-celebrate-emoji">🎉</div>
+      <h2 class="km-celebrate-title">Your MemoryWall is Ready</h2>
+      <p class="km-celebrate-sub">
+        <strong>{{ responses|length }} {{ 'person' if responses|length == 1 else 'people' }}</strong> shared memories
+        with you ❤️
+      </p>
+      <div class="km-celebrate-bar">
+        <div class="km-celebrate-progress"></div>
+      </div>
+      <button id="km-celebrate-close" class="km-btn km-btn--primary" style="margin-top:1rem;">
+        See My Results ✨
+      </button>
+    </div>
+  </div>
+
+  <!-- ── Signature Modal ─────────────────────────────────────────── -->
+  <div id="km-sig-modal" class="km-celebrate-overlay" style="display:none;" role="dialog" aria-modal="true">
+    <div class="km-sig-modal-box">
+      <button id="km-sig-modal-close" class="km-sig-modal-close" aria-label="Close">&times;</button>
+      <div class="km-sig-modal-img-wrap km-sig-paper">
+        <img id="km-sig-modal-img" src="" alt="Signature" class="km-sig-modal-img">
+      </div>
+      <div class="km-sig-modal-foot">
+        <div class="km-sigcard-avatar" id="km-sig-modal-avatar" style="width:36px;height:36px;font-size:1rem;"></div>
+        <div>
+          <div class="km-sigcard-name" id="km-sig-modal-name" style="font-size:1rem;"></div>
+          <div class="km-sigcard-time" id="km-sig-modal-time" style="font-size:0.8rem;"></div>
+        </div>
+      </div>
+      <div class="km-sig-modal-reactions">
+        <button class="km-reaction-btn" data-emoji="❤️">❤️</button>
+        <button class="km-reaction-btn" data-emoji="🔥">🔥</button>
+        <button class="km-reaction-btn" data-emoji="👏">👏</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Section 1: Premium Immersive Hero ───────────────────────── -->
+  <div class="km-hero--reveal">
+    <div class="km-hero-avatar">{{ wall.title[0] if wall.title else 'U' }}</div>
+    <h1 class="km-hero-headline">{{ wall.title }}, this is you.</h1>
+    {% if wall.branch or wall.college or wall.graduation_year %}
+    <div class="km-hero-meta">
+      {% set parts = [] %}
+      {% if wall.branch %}{% set _ = parts.append(wall.branch) %}{% endif %}
+      {% if wall.college %}{% set _ = parts.append(wall.college) %}{% endif %}
+      {% if wall.graduation_year %}{% set _ = parts.append("Class of " ~ wall.graduation_year) %}{% endif %}
+      {{ parts | join(' · ') }}
+    </div>
+    {% endif %}
+    <p class="km-hero-sub">
+      {% if responses|length == 1 %}
+      1 person took time to leave something behind for you ❤️
+      {% else %}
+      {{ responses|length }} people took time to leave something behind for you ❤️
+      {% endif %}
+    </p>
+    <div class="km-hero-stats">
+      <div class="km-hero-stat">
+        <div class="km-hero-stat-num" id="km-count-memories" data-target="{{ responses|length }}">{{ responses|length }}
+        </div>
+        <div class="km-hero-stat-label">❤️ Memories</div>
+      </div>
+      {% set sig_count = responses | selectattr('signature') | list | length %}
+      <div class="km-hero-stat">
+        <div class="km-hero-stat-num" id="km-count-sigs" data-target="{{ sig_count }}">{{ sig_count }}</div>
+        <div class="km-hero-stat-label">✍️ Signatures</div>
+      </div>
+      {% if metrics and metrics.view_count > 0 %}
+      <div class="km-hero-stat">
+        <div class="km-hero-stat-num" id="km-count-views" data-target="{{ metrics.view_count }}">{{ metrics.view_count
+          }}</div>
+        <div class="km-hero-stat-label">👀 Views</div>
+      </div>
+      {% endif %}
+      {% if metrics and metrics.word_count > 0 %}
+      <div class="km-hero-stat">
+        <div class="km-hero-stat-num" id="km-count-words" data-target="{{ metrics.word_count }}">{{ metrics.word_count
+          }}</div>
+        <div class="km-hero-stat-label">🏷️ Words</div>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <div class="km-container" style="margin-top:-0.75rem;">
+
+    <!-- ── Section 2: Most Loved Trait ──────────────────────────── -->
+    {% if metrics and metrics.most_loved_trait %}
+    <div class="km-card km-trait-card km-sr km-stagger-1">
+      <div class="km-trait-label">The trait people noticed most about you</div>
+      <div class="km-trait-word">{{ metrics.most_loved_trait }} 💚</div>
+      <div class="km-trait-confidence">
+        ✅ {{ metrics.most_loved_trait_count }} people independently chose this word
+      </div>
+      <div class="km-trait-desc">
+        The word people independently wrote when thinking about you — without seeing each other's answers.
+      </div>
+      <button class="km-btn km-btn--ghost" id="km-share-trait"
+        data-text="💚 My most loved trait is '{{ metrics.most_loved_trait }}' — chosen independently by {{ metrics.most_loved_trait_count }} people on my MemoryWall. What would you say about me?"
+        data-url="{{ request.host_url }}m/{{ wall.slug }}" style="font-size:0.85rem; padding:0.5rem 1.25rem;">
+        💬 Share This
+      </button>
+    </div>
+    {% endif %}
+
+    <div class="km-divider"></div>
+
+    <!-- ── AI Personality Summary ──────────────────────────────── -->
+    {% if personality_summary and personality_summary.summary %}
+    <div class="km-card km-ps-card km-sr km-stagger-2">
+      <div class="km-ps-headline">✨ {{ personality_summary.headline }}</div>
+      <div class="km-ps-sentences">
+        {% for sentence in personality_summary.sentences %}
+        <p class="km-ps-line" style="animation-delay:{{ loop.index0 * 0.18 }}s;">
+          {{ sentence }}
+        </p>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <div class="km-divider"></div>
+
+    <!-- ── Section 3: Top Traits Ranked ─────────────────────────── -->
+    {% if metrics and metrics.top_traits %}
+    <div class="km-card km-sr km-stagger-2">
+      <div class="km-section-title">🏆 How People Describe You</div>
+      {% set rank_classes = ['gold','silver','bronze','bronze','bronze'] %}
+      {% set medals = ['🥇','🥈','🥉','🏅','🏅'] %}
+      {% for trait, count in metrics.top_traits %}
+      <div class="km-rank-item km-rank-item--{{ rank_classes[loop.index0] }}">
+        <span class="km-rank-medal">{{ medals[loop.index0] }}</span>
+        <div class="km-rank-word">{{ trait }}</div>
+        <div class="km-rank-bar">
+          <div class="km-rank-bar-fill km-rank-bar-fill--{{ rank_classes[loop.index0] }}"
+            data-width="{{ (count / metrics.top_traits[0][1] * 100)|int }}"></div>
+        </div>
+        <span class="km-rank-count">{{ count }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- ── Section 4: Word Cloud ─────────────────────────────────── -->
+    {% if wc_path %}
+    <div class="km-card km-sr km-stagger-3">
+      <div class="km-section-title">☁️ Your Word Cloud</div>
+      <img src="{{ url_for('static', filename=wc_path) }}" alt="Word Cloud" class="km-wc-img" loading="lazy">
+      {% if words %}
+      <div style="margin-top:1rem; display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center;">
+        {% for entry in words[:8] %}
+        <span class="km-word-tag km-word-tag--animated"
+          style="animation-delay:{{ loop.index0 * 0.07 }}s; font-weight:700;">
+          {{ entry.word | capitalize }} ×{{ entry.count }}
+        </span>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+    {% elif words %}
+    <div class="km-card km-sr km-stagger-3">
+      <div class="km-section-title">🔤 Your Words</div>
+      <div style="display:flex; gap:0.5rem; flex-wrap:wrap; justify-content:center; padding:0.75rem 0;">
+        {% for entry in words %}
+        <span class="km-word-tag km-word-tag--animated"
+          style="font-size:{{ [0.8 + entry.count * 0.12, 1.5]|min }}rem; font-weight:700; padding:0.3rem 0.9rem; animation-delay:{{ loop.index0 * 0.06 }}s;">
+          {{ entry.word | capitalize }}
+        </span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- ── Section 5: Memory Messages ───────────────────────────── -->
+    <div class="km-card km-sr km-stagger-3" style="padding:1rem;">
+      <div class="km-section-title" style="margin-bottom:0.6rem;">💭 People Who Took Time For You</div>
+      {% if responses %}
+      {% for r in responses %}
+      <div
+        class="km-mem-card {{ 'km-mem-card--emotional' if r.memory_message and r.memory_message|length > 80 else '' }}">
+        <div class="km-mem-header">
+          <div class="km-response-avatar" style="width:42px; height:42px; font-size:1.1rem; flex-shrink:0;">
+            {% if r.anonymous %}🎭{% else %}{{ (r.friend_name or '?')[0].upper() }}{% endif %}
+          </div>
+          <div style="flex:1; min-width:0;">
+            <div style="font-weight:800; font-size:0.98rem; color:var(--km-text);">
+              {% if r.anonymous %}Anonymous Friend{% else %}{{ r.friend_name }}{% endif %}
+              {% if r.emoji %}<span style="margin-left:0.25rem;">{{ r.emoji }}</span>{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="km-response-words">
+          <span class="km-word-tag" style="background:rgba(98,238,168,0.15); border-color:#62EEA8; font-weight:700;">{{
+            r.word_1 }}</span>
+          <span class="km-word-tag" style="background:rgba(255,231,105,0.15); border-color:#FFE769; font-weight:700;">{{
+            r.word_2 }}</span>
+          <span class="km-word-tag" style="background:rgba(255,228,186,0.2); border-color:#FFE4BA; font-weight:700;">{{
+            r.word_3 }}</span>
+        </div>
+        {% if r.memory_message %}
+        <div class="km-mem-quote">{{ r.memory_message }}</div>
+        {% endif %}
+        {% if r.signature %}
+        <div style="margin-top:0.6rem;">
+          <img src="{{ r.signature[0].signature_url }}" alt="Signature"
+            style="max-height:44px; border-radius:6px; border:1px solid var(--km-border);" loading="lazy">
+        </div>
+        {% endif %}
+      </div>
+      {% endfor %}
+      {% else %}
+      <div style="text-align:center; padding:1.5rem 1rem;">
+        <div style="font-size:2rem; margin-bottom:0.35rem;">✍️</div>
+        <p style="font-weight:800; font-size:1rem; margin-bottom:0.2rem;">No memories yet</p>
+        <p style="color:var(--km-muted); font-size:0.82rem; margin:0;">Share your link to collect thoughts!</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- ── Section 6: Signature Wall ─────────────────────────────── -->
+    {% set sig_list = responses | selectattr('signature') | list %}
+    {% if sig_list %}
+    <div class="km-card km-sigwall-card km-sr km-stagger-4" id="km-sigwall">
+      <div class="km-wall-banner">
+        ❤️ <strong>{{ sig_list|length }} {{ 'student has' if sig_list|length == 1 else 'students have' }} already
+          signed.</strong> These are their marks.
+      </div>
+      <div class="km-sigwall-title">✍️ Signature Wall</div>
+      <div class="km-sigwall-header">
+        <div class="km-sigwall-pills">
+          <span class="km-sigwall-pill">
+            ❤️ <span id="km-sig-count" data-target="{{ sig_list|length }}">{{ sig_list|length }}</span>
+            {{ 'Student' if sig_list|length == 1 else 'Students' }} Signed
+          </span>
+          {% if sig_list|length >= 3 %}
+          <span class="km-sigwall-pill km-sigwall-pill--hot">🔥 Trending</span>
+          {% endif %}
+        </div>
+        <div class="km-sigwall-sort">
+          <button class="km-sort-btn km-sort-btn--active" data-sort="newest">Newest</button>
+          <button class="km-sort-btn" data-sort="oldest">Oldest</button>
+        </div>
+      </div>
+      <div class="km-sigwall-bg">
+        <div class="km-sigwall-grid" id="km-sigwall-grid">
+          {% for r in sig_list %}
+          {% if loop.first %}
+          {% set badge_label = "⭐ Latest" %}
+          {% set is_featured = true %}
+          {% elif loop.index <= 3 %} {% set badge_label="🔥 Top" %} {% set is_featured=false %} {% elif loop.index <=10
+            %} {% set badge_label="🎓 Early" %} {% set is_featured=false %} {% else %} {% set badge_label="" %} {% set
+            is_featured=false %} {% endif %} <div
+            class="km-sigcard km-sr {{ 'km-sigcard--featured' if is_featured else ('km-sigcard--top' if loop.index <= 3 else '') }}"
+            data-name="{{ r.friend_name or 'Anonymous' }}" data-date="{{ r.created_at or '' }}">
+            {% if badge_label %}
+            <div class="km-sigcard-badge {{ 'km-sigcard-badge--featured' if is_featured else '' }}">
+              {{ badge_label }}
+            </div>
+            {% endif %}
+            <div class="km-sigcard-img-wrap km-sig-paper">
+              <img src="{{ r.signature[0].signature_url }}" alt="{{ r.friend_name or 'Anonymous' }}'s signature"
+                loading="lazy" class="km-sigcard-img" style="max-height:80px;">
+            </div>
+            <div class="km-sigcard-foot">
+              <div class="km-sigcard-avatar">{{ (r.friend_name or 'A')[0].upper() }}</div>
+              <div class="km-sigcard-info">
+                <div class="km-sigcard-name">
+                  {{ r.friend_name or 'Anonymous' }}
+                  {% if r.emoji %}<span>{{ r.emoji }}</span>{% endif %}
+                </div>
+                <div class="km-sigcard-time" data-iso="{{ r.created_at or '' }}">
+                  🕒 {{ r.created_at.split('T')[0] if r.created_at and 'T' in r.created_at else '—' }}
+                </div>
+              </div>
+            </div>
+            <div class="km-sigcard-reactions">
+              <button class="km-reaction-btn" data-emoji="❤️">❤️</button>
+              <button class="km-reaction-btn" data-emoji="🔥">🔥</button>
+              <button class="km-reaction-btn" data-emoji="👏">👏</button>
+            </div>
+            <div class="km-sigcard-border"></div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+
+  {% elif sw_path %}
+  <div class="km-card km-sr km-stagger-4">
+    <div class="km-section-title">✍️ Signature Wall</div>
+    <div
+      style="background:#fff; border-radius:var(--radius-lg); overflow:hidden; border:1px solid var(--km-border); padding:0.5rem;">
+      <img src="{{ url_for('static', filename=sw_path) }}" alt="Signature Wall" class="km-sw-img" style="border:none;">
+    </div>
+  </div>
+  {% else %}
+  <div class="km-card km-sr km-stagger-4" style="text-align:center; padding:3rem 1.5rem;">
+    <div style="font-size:3rem; margin-bottom:0.75rem;">🖊️</div>
+    <p style="font-weight:800; font-size:1.1rem; margin-bottom:0.25rem; color:var(--km-text);">No signatures yet</p>
+    <p style="font-size:0.9rem; color:var(--km-muted); margin:0 0 1.25rem;">Be among the first to leave your mark.</p>
+    <a href="{{ request.host_url }}m/{{ wall.slug }}" class="km-btn km-btn--primary" style="display:inline-flex;">
+      ✍️ Sign the Wall
+    </a>
+  </div>
+  {% endif %}
+
+  <!-- ── Did You Know Card ──────────────────────────────────────── -->
+  {% if responses|length >= 1 %}
+  <div class="km-card km-sr km-stagger-5"
+    style="background:linear-gradient(135deg,rgba(255,231,105,0.07),rgba(98,238,168,0.07)); text-align:center; padding:2rem 1.5rem;">
+    <div style="font-size:1.8rem; margin-bottom:0.6rem;">✨</div>
+    <h3 style="font-weight:800; font-size:1.1rem; margin-bottom:0.75rem;">Did You Know?</h3>
+    <div style="display:flex; flex-direction:column; gap:0.6rem;">
+      <div
+        style="background:rgba(255,255,255,0.65); border-radius:var(--radius-md); padding:0.75rem 1rem; font-size:0.93rem; font-weight:700; color:var(--km-text);">
+        {{ responses|length }} {{ 'person' if responses|length == 1 else 'people' }} took time out of their day to leave
+        something behind for you ❤️
+      </div>
+      {% if metrics and metrics.view_count > 0 %}
+      <div
+        style="background:rgba(255,255,255,0.65); border-radius:var(--radius-md); padding:0.75rem 1rem; font-size:0.93rem; font-weight:700; color:var(--km-text);">
+        Your wall has been visited 👀 {{ metrics.view_count }} times.
+      </div>
+      {% endif %}
+      {% if metrics and metrics.word_count > 0 %}
+      <div
+        style="background:rgba(255,255,255,0.65); border-radius:var(--radius-md); padding:0.75rem 1rem; font-size:0.93rem; font-weight:700; color:var(--km-text);">
+        People used 🏷️ {{ metrics.word_count }} unique words to describe you.
+      </div>
+      {% endif %}
+      {% if metrics and metrics.most_loved_trait %}
+      <div
+        style="background:rgba(255,255,255,0.65); border-radius:var(--radius-md); padding:0.75rem 1rem; font-size:0.93rem; font-weight:700; color:var(--km-text);">
+        "💚 {{ metrics.most_loved_trait }}" appeared {{ metrics.most_loved_trait_count }} times independently.
+      </div>
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Share Results ──────────────────────────────────────────── -->
+  <div class="km-card km-sr km-stagger-5" style="text-align:center; padding:1.25rem 1rem;">
+    <h3 style="font-weight:800; font-size:1rem; margin-bottom:0.3rem;">🚀 Share Your Results</h3>
+    <p style="font-size:0.82rem; color:var(--km-muted); margin-bottom:1rem;">
+      Let your friends see what {{ responses|length }} people think about you.
+    </p>
+    <div class="km-btn-row" style="margin-bottom:0.65rem;">
+      <button id="km-copy-link" class="km-btn km-btn--ghost" data-url="{{ request.host_url }}m/{{ wall.slug }}"
+        style="font-size:0.85rem;">
+        📋 Copy Link
+      </button>
+      <button id="km-wa-share" class="km-btn km-btn--green" data-url="{{ request.host_url }}m/{{ wall.slug }}"
+        data-text="✨ {{ responses|length }} friends left memories on my MemoryWall! See what they said:"
+        style="font-size:0.85rem;">
+        💬 WhatsApp
+      </button>
+    </div>
+    <button id="km-download-card" class="km-btn km-btn--primary" data-name="{{ wall.title }}"
+      data-count="{{ responses|length }}" data-sigcount="{{ sig_list|length if sig_list is defined else 0 }}"
+      data-trait="{{ metrics.most_loved_trait if metrics else '' }}"
+      data-traitcount="{{ metrics.most_loved_trait_count if metrics else 0 }}"
+      data-w1="{{ words[0].word if words|length > 0 else 'Ambitious' }}"
+      data-w2="{{ words[1].word if words|length > 1 else 'Creative' }}"
+      data-w3="{{ words[2].word if words|length > 2 else 'Kind' }}" data-url="{{ request.host_url }}m/{{ wall.slug }}"
+      style="width:100%; font-size:0.9rem;">
+      📸 Download Story Card
+    </button>
+  </div>
+
+  <a href="{{ url_for('memorywall_dashboard') }}" class="km-btn km-btn--ghost"
+    style="display:block; text-align:center; margin-bottom:1rem; font-size:0.88rem;">
+    ← Dashboard
+  </a>
+
+  </div>
+
+  <script src="{{ url_for('static', filename='js/know-me.js') }}" defer></script>
+  <script>
+    // Animate rank bars on scroll-into-view
+    if ('IntersectionObserver' in window) {
+      const barObs = new IntersectionObserver(entries => {
+        entries.forEach(e => {
+          if (e.isIntersecting) {
+            e.target.querySelectorAll('.km-rank-bar-fill').forEach(fill => {
+              fill.style.width = fill.dataset.width + '%';
+            });
+            barObs.unobserve(e.target);
+          }
+        });
+      }, { threshold: 0.3 });
+      document.querySelectorAll('.km-rank-item').forEach(el => barObs.observe(el.closest('.km-card')));
+    } else {
+      document.querySelectorAll('.km-rank-bar-fill').forEach(fill => { fill.style.width = fill.dataset.width + '%'; });
+    }
+    // Count-up for hero stats
+    document.querySelectorAll('[data-target]').forEach(el => {
+      const target = parseInt(el.dataset.target || '0', 10);
+      if (target <= 0) return;
+      let n = 0;
+      const step = Math.max(1, Math.ceil(target / 40));
+      const timer = setInterval(() => {
+        n = Math.min(n + step, target);
+        el.textContent = n;
+        if (n >= target) clearInterval(timer);
+      }, 30);
+    });
+  </script>
+</body>
+
+</html>

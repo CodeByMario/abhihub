@@ -204,6 +204,8 @@ def search_files(files: List[Dict], query: str) -> List[Dict]:
         folder_norm = normalize_text(file.get("folder", ""))
         format_norm = normalize_text(file.get("format", ""))
         path_norm = normalize_text(file.get("path", ""))
+        storage_id_norm = normalize_text(file.get("storage_id", ""))
+        provider_id_norm = normalize_text(file.get("provider_public_id", ""))
         
         # Check if all query tokens are present in any of the fields
         match_found = False
@@ -212,11 +214,13 @@ def search_files(files: List[Dict], query: str) -> List[Dict]:
         if (normalized_query in filename_norm or
             normalized_query in folder_norm or
             normalized_query in format_norm or
-            normalized_query in path_norm):
+            normalized_query in path_norm or
+            normalized_query in storage_id_norm or
+            normalized_query in provider_id_norm):
             match_found = True
         else:
             # Try token-based matching (all tokens must be present)
-            combined_text = f"{filename_norm} {folder_norm} {format_norm} {path_norm}"
+            combined_text = f"{filename_norm} {folder_norm} {format_norm} {path_norm} {storage_id_norm} {provider_id_norm}"
             if all(token in combined_text for token in query_tokens):
                 match_found = True
         

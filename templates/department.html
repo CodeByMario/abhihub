@@ -1,0 +1,268 @@
+{% set seo_title = department.name ~ ' PYQ & Notes | ' ~ college.name ~ ' Previous Year Papers | AbhiHub' %}
+{% set seo_description = 'Download PYQ (previous year question papers), notes, practicals and study resources for the ' ~ department.name ~ ' department of ' ~ college.name ~ '. Free academic resources.' %}
+{% set seo_keywords = department.name ~ ' PYQ, PYQ ' ~ department.name ~ ', ' ~ department.name ~ ' Notes, ' ~ department.name ~ ' Previous Year Papers, ' ~ college.name ~ ' ' ~ department.name ~ ' PYQ, ' ~ department.name ~ ' Engineering, AbhiHub' %}
+{% set og_title = seo_title %}
+{% set og_description = seo_description %}
+{% set og_type = 'website' %}
+
+{% extends 'p_struct.html' %}
+{% block page_head %}
+<!-- Dynamic Educational Organization Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "EducationalOrganization",
+  "name": "{{ department.name }} - {{ college.name }}",
+  "url": "{{ request.base_url }}",
+  "description": "Academic resources, PYQs, and notes for the {{ department.name }} department at {{ college.name }}.",
+  "parentOrganization": {
+    "@type": "CollegeOrUniversity",
+    "name": "{{ college.name }}"
+  }
+}
+</script>
+
+<style>
+:root {
+  --d-primary: #7c3aed;
+  --d-bg: #f8fafc;
+  --d-card: #ffffff;
+  --d-text: #0f172a;
+  --d-muted: #64748b;
+  --d-border: #e2e8f0;
+}
+
+body { background-color: var(--d-bg); }
+
+.dept-hero {
+  padding: 6rem 1.5rem 4rem;
+  background: linear-gradient(135deg, #0f172a 0%, var(--d-primary) 100%);
+  color: white;
+  text-align: center;
+  border-bottom-left-radius: 40px;
+  border-bottom-right-radius: 40px;
+  box-shadow: 0 20px 40px rgba(124, 58, 237, 0.15);
+  margin-bottom: -3rem; /* overlap stats */
+}
+
+.dept-hero h1 {
+  font-size: clamp(2rem, 4vw, 3.2rem);
+  font-weight: 900;
+  margin-bottom: 0.5rem;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.dept-college-name {
+  font-size: 1.2rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.8);
+  margin-bottom: 1.5rem;
+  display: block;
+}
+
+.dept-hero p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  max-width: 700px;
+  margin: 0 auto;
+}
+
+.breadcrumb-nav {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  padding: 0.5rem 1.2rem;
+  border-radius: 99px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.breadcrumb-nav a { color: white; text-decoration: none; }
+.breadcrumb-nav a:hover { text-decoration: underline; }
+
+.dept-stats-container {
+  max-width: 900px;
+  margin: 0 auto 4rem;
+  position: relative;
+  z-index: 10;
+  padding: 0 1.5rem;
+}
+
+.dept-stats-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+  background: var(--d-card);
+  padding: 2rem;
+  border-radius: 24px;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.06);
+  border: 1px solid var(--d-border);
+}
+
+.stat-card { text-align: center; padding: 1rem; }
+.stat-value {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--d-primary);
+  line-height: 1;
+  margin-bottom: 0.5rem;
+}
+.stat-label {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--d-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.dept-section {
+  max-width: 1100px;
+  margin: 0 auto 5rem;
+  padding: 0 1.5rem;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 2rem;
+}
+
+.section-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--d-text);
+}
+
+.file-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.pcard {
+  background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 1.1rem;
+  text-decoration: none; color: inherit; display: flex; flex-direction: column; gap: 0.6rem;
+  transition: transform 0.25s, box-shadow 0.25s; position: relative; overflow: hidden;
+}
+.pcard::before {
+  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+  background: linear-gradient(90deg, #f59e0b, #ef4444);
+}
+.pcard.notes-card::before { background: linear-gradient(90deg, #10b981, #3b82f6); }
+.pcard.practical-card::before { background: linear-gradient(90deg, #8b5cf6, #ec4899); }
+.pcard:hover { transform: translateY(-4px); box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1); }
+.pcard-badge {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 0.65rem; font-weight: 700;
+  letter-spacing: 0.5px; text-transform: uppercase; padding: 3px 8px; border-radius: 6px;
+  background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; width: fit-content;
+}
+.pcard-badge.notes { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+.pcard-badge.practical { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
+.pcard-subject {
+  font-size: 1rem; font-weight: 700; color: #0f172a; line-height: 1.3;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pcard-name {
+  font-size: 0.78rem; color: #64748b;
+  display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
+}
+.pcard-footer {
+  display: flex; justify-content: space-between; align-items: center;
+  margin-top: auto; padding-top: 0.6rem; border-top: 1px solid #f1f5f9;
+}
+.pcard-meta { font-size: 0.75rem; color: #94a3b8; display: flex; align-items: center; gap: 0.35rem; }
+.pcard-views { font-size: 0.75rem; color: #3b82f6; font-weight: 600; display: flex; align-items: center; gap: 3px; }
+
+@media(max-width: 768px) {
+  .dept-stats-grid { grid-template-columns: 1fr; gap: 1rem; }
+  .stat-card { padding: 0.5rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dept-hero">
+  <div class="breadcrumb-nav">
+    <!-- Re-slugify on the frontend or link to base route -->
+    <a href="/">Home</a> <span>›</span>
+    <span>{{ college.abbreviation or college.name }}</span>
+  </div>
+  <h1>{{ department.name }} PYQ & Notes</h1>
+  <span class="dept-college-name">{{ college.name }}</span>
+  <p>The best study materials, lecture notes, and previous year question papers curated specifically for the {{ department.name }} curriculum.</p>
+</div>
+
+<div class="dept-stats-container">
+  <div class="dept-stats-grid">
+    <div class="stat-card">
+      <div class="stat-value">{{ stats.total_documents }}</div>
+      <div class="stat-label">Total Resources</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value">{{ stats.total_subjects }}</div>
+      <div class="stat-label">Subjects</div>
+    </div>
+    <div class="stat-card" style="text-align: left; padding: 1.5rem;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 0.5rem;">
+        <span class="stat-label">Archive Completion</span>
+        <span style="font-weight: 800; color: var(--d-primary); font-size: 1.2rem;">{{ stats.archive_completion }}%</span>
+      </div>
+      <div style="width: 100%; height: 8px; background: var(--d-border); border-radius: 99px; overflow: hidden;">
+        <div style="width: {{ stats.archive_completion }}%; height: 100%; background: linear-gradient(90deg, #8b5cf6, #3b82f6); border-radius: 99px; transition: width 1s ease-out;"></div>
+      </div>
+      <div style="font-size: 0.75rem; color: var(--d-muted); margin-top: 0.75rem;">
+        Help us reach 100% by uploading notes!
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="dept-section">
+  <div class="section-header">
+    <h2 class="section-title">Latest Uploads for {{ department.abbreviation or department.name }}</h2>
+    <a href="{{ url_for('dashboard') }}" class="btn btn-outline" style="font-weight:700; color:var(--d-primary);">View Library →</a>
+  </div>
+  
+  <div class="file-grid">
+    {% for file in recent_files %}
+      {% set cat = (file.get('document_category', '')|string|lower) %}
+      {% set is_pyq = cat in ['pyq', 'papers', 'paper'] %}
+      {% set is_practical = cat in ['practical', 'practicals'] %}
+      <a href="{{ url_for('resource_landing', slug='legacy-redirect-' ~ file.get('id', '')) }}" class="pcard {% if is_practical %}practical-card{% elif not is_pyq %}notes-card{% endif %}">
+        {% if is_pyq %}
+          <span class="pcard-badge">📄 PYQ</span>
+        {% elif is_practical %}
+          <span class="pcard-badge practical">🧪 Practical</span>
+        {% else %}
+          <span class="pcard-badge notes">📝 Notes</span>
+        {% endif %}
+        
+        <div class="pcard-subject">{{ file.get('subject', {}).get('name', 'Uncategorized') if file.get('subject') else 'Uncategorized' }}</div>
+        <div class="pcard-name">{{ file.get('title', 'File') }}</div>
+        
+        <div class="pcard-footer">
+          <span class="pcard-meta">👤 {{ file.get('uploader', {}).get('full_name', 'Anonymous') if file.get('uploader') else 'Anonymous' }}</span>
+          <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
+        </div>
+      </a>
+    {% else %}
+      <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: var(--d-card); border-radius: 20px; border: 1px dashed var(--d-border); color: var(--d-muted);">
+        No resources uploaded for this department yet. Be the first!
+      </div>
+    {% endfor %}
+  </div>
+</div>
+
+<!-- CTA -->
+<div style="background: linear-gradient(135deg, #f8fafc 0%, #faf5ff 100%); padding: 5rem 1.5rem; text-align: center; margin-top: 4rem;">
+  <h2 style="font-size: 2rem; font-weight: 800; margin-bottom: 1rem;">Are you a student in this department?</h2>
+  <p style="color: #64748b; font-size: 1.1rem; max-width: 600px; margin: 0 auto 2rem;">Upload your notes and lab manuals to help your classmates. You'll earn reputation points and get recognized in your college.</p>
+  <a href="{{ url_for('upload') }}" style="display:inline-block; padding: 1rem 2rem; background: var(--d-primary); color: white; border-radius: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 20px rgba(124,58,237,0.2);">📤 Upload Department Notes</a>
+</div>
+
+{% endblock %}

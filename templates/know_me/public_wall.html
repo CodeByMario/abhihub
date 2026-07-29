@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{{ wall.title }} — MemoryWall</title>
+  <meta name="description" content="Tell {{ wall.title }} 3 words that describe them and sign their MemoryWall.">
+  <meta property="og:title" content="{{ wall.title }}'s MemoryWall">
+  <meta property="og:description" content="Describe {{ wall.title }} in 3 words and leave a memory!">
+  <meta property="og:type" content="website">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='premium/css/style.css', v='2.0.1') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/know-me.css', v='2.1.0') }}">
+  {% include 'google_tag.html' %}
+</head>
+
+<body>
+
+  <!-- Hero with Gradient Header and Profile Photo -->
+  <div class="km-hero" style="padding: 1.75rem 1rem 1.25rem;">
+    <div class="km-profile-photo" style="width:88px; height:88px; font-size:2.5rem; margin-bottom:0.65rem;">
+      {{ wall.title[0] if wall.title else 'U' }}
+    </div>
+    <h1 style="font-size:1.5rem;">{{ wall.title }}</h1>
+    <p style="font-weight: 500; font-size:0.9rem; margin-top:0.25rem;">
+      {% set parts = [] %}
+      {% if wall.branch %}{% set _ = parts.append(wall.branch) %}{% endif %}
+      {% if wall.college %}{% set _ = parts.append(wall.college) %}{% endif %}
+      {% if wall.graduation_year %}{% set _ = parts.append("Class of " ~ wall.graduation_year) %}{% endif %}
+      {{ parts | join(' · ') }}
+    </p>
+  </div>
+
+  <div class="km-container" style="margin-top:-0.75rem;">
+
+    <!-- Success card (hidden until submitted) -->
+    <div class="km-card" id="km-success-card" style="display:none;text-align:center;padding:2.5rem 1.5rem;">
+      <div class="km-success-tick">✓</div>
+      <h2 style="font-weight:800;font-size:1.4rem;margin-bottom:0.5rem;color:var(--km-text);">Memory Sent! 🎉</h2>
+      <p style="color:var(--km-muted);font-size:0.95rem;margin:0 0 1.5rem;">
+        Your words and memory have been successfully added to {{ wall.title }}'s MemoryWall.
+      </p>
+      <a href="https://app.abhihub.run.place" class="km-btn km-btn--ghost" style="width:100%;">
+        Visit AbhiHub
+      </a>
+    </div>
+
+    <!-- Submission Card with Glassmorphism -->
+    <div class="km-card km-glass-card" id="km-form-card">
+      <h2 style="font-weight:800; font-size:1.15rem; margin-bottom:0.35rem; color:var(--km-text); text-align:center;">
+        Sign {{ wall.title }}'s Wall
+      </h2>
+      <p style="text-align:center; font-size:0.83rem; color:var(--km-text-secondary); margin-bottom:1.25rem;">
+        3 words · signature · optional memory
+      </p>
+
+      <form id="km-submit-form" data-wall-id="{{ wall.id }}" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+        <!-- Honeypot -->
+        <div class="km-hp" aria-hidden="true">
+          <input type="text" id="km-honey" name="_honey" tabindex="-1" autocomplete="off">
+        </div>
+
+        <!-- Error alert -->
+        <div class="km-alert km-alert--error" id="km-form-error" style="display:none;"></div>
+
+        <!-- 3 Words: Large, Friendly, Mobile-Optimized Inputs -->
+        <div class="km-form-row">
+          <label class="km-label">Describe them in 3 words *</label>
+          <div class="km-word-row">
+            <input class="km-input" type="text" id="km-word1" placeholder="Word 1" maxlength="30" required
+              autocomplete="off" style="font-weight:700;">
+            <input class="km-input" type="text" id="km-word2" placeholder="Word 2" maxlength="30" required
+              autocomplete="off" style="font-weight:700;">
+            <input class="km-input" type="text" id="km-word3" placeholder="Word 3" maxlength="30" required
+              autocomplete="off" style="font-weight:700;">
+          </div>
+        </div>
+
+        <!-- Name -->
+        <div class="km-form-row">
+          <label class="km-label" for="km-name">Your Name *</label>
+          <input class="km-input" type="text" id="km-name" placeholder="Enter your name by which i know you."
+            maxlength="50" required style="font-weight:600;">
+        </div>
+
+
+        <!-- Emoji -->
+        <div class="km-form-row">
+          <label class="km-label">Pick an Emoji (optional)</label>
+          <div class="km-emoji-strip">
+            {% for e in ['❤️','😂','🔥','🎯','🌟','💪','🤝','🫶','😎','🥹','🎓','🏆'] %}
+            <button type="button" class="km-emoji-btn" data-emoji="{{ e }}">{{ e }}</button>
+            {% endfor %}
+          </div>
+        </div>
+
+        <!-- Memory message -->
+        <div class="km-form-row">
+          <label class="km-label" for="km-memory">A Memory (optional)</label>
+          <textarea class="km-textarea" id="km-memory" placeholder="Recall a funny incident or leave a warm note..."
+            maxlength="500"></textarea>
+        </div>
+
+        <!-- Signature: Canvas, Rounded border, Light Background, Clear Button -->
+        <div class="km-form-row">
+          <label class="km-label">Draw your signature (optional)</label>
+          <div class="km-sig-wrap"
+            style="background:#f8fafc; border-radius:var(--radius-lg); border:2px dashed var(--km-border);">
+            <canvas id="km-sig-canvas" style="background:#ffffff;"></canvas>
+            <div class="km-sig-hint">✍️ Draw your signature here</div>
+          </div>
+          <div class="km-sig-actions">
+            <button type="button" id="km-sig-clear" class="km-btn km-btn--ghost"
+              style="padding:0.5rem; min-height:40px; font-size:0.85rem;">
+              🗑 Clear Signature
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="km-btn km-btn--primary" id="km-submit-btn" style="margin-top:1rem;">
+          Send to MemoryWall ✨
+        </button>
+
+      </form>
+    </div>
+
+  </div>
+
+  <!-- Floating mobile CTA -->
+  <div id="km-float-cta" class="km-float-cta" aria-hidden="true">
+    <a href="#km-submit-btn" id="km-float-btn" class="km-float-btn">
+      ✍️ Leave a Memory
+    </a>
+  </div>
+
+  <script src="{{ url_for('static', filename='js/know-me.js') }}" defer></script>
+  <style>
+    .km-float-cta {
+      position: fixed;
+      bottom: 1.25rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 500;
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 0.3s ease, transform 0.3s ease;
+    }
+
+    .km-float-cta.km-float--visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .km-float-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      background: linear-gradient(135deg, #FFE769, #62EEA8);
+      color: #1a202c;
+      font-weight: 800;
+      font-size: 0.95rem;
+      font-family: 'Kanit', sans-serif;
+      padding: 0.75rem 1.75rem;
+      border-radius: 99px;
+      box-shadow: 0 8px 24px rgba(0, 0, 0, .15);
+      text-decoration: none;
+      white-space: nowrap;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+
+    .km-float-btn:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 12px 32px rgba(0, 0, 0, .18);
+    }
+
+    /* Desktop: hide it — form is visible immediately */
+    @media (min-width: 640px) {
+      .km-float-cta {
+        display: none;
+      }
+    }
+  </style>
+  <script>
+    (function () {
+      const floatCta = document.getElementById('km-float-cta');
+      const submitBtn = document.getElementById('km-submit-btn');
+      const successCard = document.getElementById('km-success-card');
+      if (!floatCta || !submitBtn) return;
+
+      // Smooth scroll to form on click
+      document.getElementById('km-float-btn').addEventListener('click', function (e) {
+        e.preventDefault();
+        submitBtn.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        setTimeout(() => submitBtn.focus(), 400);
+      });
+
+      // Show after scrolling 120px
+      let shown = false;
+      window.addEventListener('scroll', function () {
+        if (window.scrollY > 120 && !shown) {
+          floatCta.classList.add('km-float--visible');
+          floatCta.removeAttribute('aria-hidden');
+          shown = true;
+        }
+      }, { passive: true });
+
+      // Hide when submit button is in view (user found the form)
+      if ('IntersectionObserver' in window) {
+        const obs = new IntersectionObserver((entries) => {
+          entries.forEach(entry => {
+            if (entry.isIntersecting) {
+              floatCta.classList.remove('km-float--visible');
+            } else if (shown) {
+              floatCta.classList.add('km-float--visible');
+            }
+          });
+        }, { threshold: 0.5 });
+        obs.observe(submitBtn);
+      }
+
+      // Hide permanently after successful submission
+      const successObs = new MutationObserver(() => {
+        if (successCard && successCard.style.display !== 'none') {
+          floatCta.style.display = 'none';
+        }
+      });
+      if (successCard) {
+        successObs.observe(successCard, { attributes: true, attributeFilter: ['style'] });
+      }
+    })();
+  </script>
+</body>
+
+</html>

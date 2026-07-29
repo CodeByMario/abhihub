@@ -1,3 +1,4 @@
+{% set seo_description = "Upload your college study materials, notes, and previous year question papers to AbhiHub. Earn reputation points, unlock badges, and help thousands of students succeed." %}
 {% extends 'p_struct.html' %}
 {% block content %}
 <style>
@@ -564,6 +565,7 @@
     <!-- Upload Form -->
     <form class="upload-form" action="/upload" method="post" enctype="multipart/form-data"
       onsubmit="showProgressBar(event)">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <!-- File Upload -->
       <div class="form-group">
         <label for="upload_document" class="kanit-semibold">Choose File</label>

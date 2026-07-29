@@ -1,4 +1,5 @@
 {% extends 'p_struct.html' %}
+{% set disable_ads = true %}
 {% block content %}
 
 <style>
@@ -145,7 +146,11 @@
 
   function showCachedContent() {
     // Navigate to the last cached page or home
-    window.history.back() || window.location.href = '/premium/';
+    if (window.history.length > 2) {
+      window.history.back();
+    } else {
+      window.location.href = '/dashboard';
+    }
   }
 
   // Check connection status

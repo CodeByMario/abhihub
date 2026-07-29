@@ -1,0 +1,166 @@
+/* extracted page styles from p_account.html */
+
+/* ── Conflict guard: global * { border:0 } override ── */
+.ac-card, .ac-input, .ac-select, .ac-btn,
+.ac-role-card, .ac-alert { border: 1px solid var(--border-light); box-sizing: border-box; }
+
+.ac-page { padding: 1.5rem 1rem 6rem; max-width: 780px; margin: 0 auto; }
+
+/* Hero */
+.ac-hero {
+  background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-500) 55%, #6366f1 100%);
+  border-radius: 20px; padding: 1.75rem 2rem; margin-bottom: 1.5rem;
+  display: flex; align-items: center; gap: 1.2rem; position: relative; overflow: hidden;
+}
+.ac-hero::after {
+  content:''; position:absolute; right:-50px; top:-50px;
+  width:180px; height:180px; border-radius:50%; background:rgba(255,255,255,0.07);
+}
+.ac-hero-icon { font-size:2.2rem; flex-shrink:0; }
+.ac-hero h1 { font-size:1.3rem; font-weight:700; color:#fff; margin:0 0 .15rem; }
+.ac-hero p  { font-size:.82rem; color:rgba(255,255,255,.75); margin:0; }
+
+/* Progress ring */
+.ac-ring-wrap { position:relative; width:72px; height:72px; flex-shrink:0; margin-left:auto; }
+.ac-ring-wrap svg { transform:rotate(-90deg); }
+.ac-ring-bg  { fill:none; stroke:rgba(255,255,255,.2); stroke-width:7; }
+.ac-ring-fg  { fill:none; stroke:#fff; stroke-width:7; stroke-linecap:round;
+               stroke-dasharray:201; transition:stroke-dashoffset 1s ease; }
+.ac-ring-text { position:absolute; inset:0; display:flex; flex-direction:column;
+                align-items:center; justify-content:center; }
+.ac-ring-pct  { font-size:.9rem; font-weight:700; color:#fff; line-height:1; }
+.ac-ring-lbl  { font-size:.55rem; color:rgba(255,255,255,.7); text-transform:uppercase; letter-spacing:.05em; }
+
+/* Alert */
+.ac-alert {
+  display:flex; align-items:flex-start; gap:.85rem; padding:1rem 1.15rem;
+  border-radius:12px; margin-bottom:1.25rem;
+  border-left-width: 4px !important;
+}
+.ac-alert.success { background:#f0fdf4; border-color:#22c55e !important; }
+.ac-alert.error   { background:#fef2f2; border-color:#ef4444 !important; }
+.ac-alert-icon { font-size:1.3rem; flex-shrink:0; margin-top:.05rem; }
+.ac-alert-title { font-size:.8rem; font-weight:700; text-transform:uppercase;
+                  letter-spacing:.05em; margin-bottom:.15rem; }
+.ac-alert.success .ac-alert-title { color:#15803d; }
+.ac-alert.error   .ac-alert-title { color:#b91c1c; }
+.ac-alert-msg { font-size:.85rem; color:var(--text-secondary); margin:0; }
+
+/* Card */
+.ac-card {
+  background:#fff; border-radius:16px; margin-bottom:1.25rem;
+  overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.04);
+}
+.ac-card-head {
+  display:flex; align-items:center; gap:.75rem; padding:.9rem 1.3rem;
+  background:var(--background-secondary); border-bottom:1px solid var(--border-light);
+}
+.ac-head-icon {
+  width:36px; height:36px; border-radius:9px; display:flex;
+  align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;
+}
+.ac-head-icon.blue   { background:#dbeafe; }
+.ac-head-icon.purple { background:#ede9fe; }
+.ac-head-icon.green  { background:#d1fae5; }
+.ac-head-title { font-size:.95rem; font-weight:700; color:var(--text-primary); margin:0; }
+.ac-head-sub   { font-size:.72rem; color:var(--text-tertiary); }
+.ac-card-body  { padding:1.25rem 1.3rem; }
+
+/* Form */
+.ac-grid { display:grid; grid-template-columns:1fr; gap:1rem; }
+@media(min-width:600px){ .ac-grid { grid-template-columns:1fr 1fr; } }
+.ac-span2 { grid-column:1/-1; }
+
+.ac-field { display:flex; flex-direction:column; gap:.35rem; }
+.ac-label { font-size:.8rem; font-weight:600; color:var(--text-secondary); }
+.ac-req   { color:#ef4444; }
+
+.ac-input-wrap { position:relative; }
+.ac-input-icon {
+  position:absolute; left:.85rem; top:50%; transform:translateY(-50%);
+  color:var(--text-tertiary); pointer-events:none; display:flex;
+}
+.ac-input, .ac-select {
+  width:100%; padding:.7rem .85rem .7rem 2.6rem;
+  border-radius:10px; font-size:.88rem; color:var(--text-primary);
+  background:#fff; outline:none; transition:border-color .2s, box-shadow .2s;
+  border: 1px solid var(--border-medium) !important;
+  appearance: auto;
+}
+.ac-input:focus, .ac-select:focus {
+  border-color:var(--primary-500) !important;
+  box-shadow:0 0 0 3px rgba(59,130,246,.12);
+}
+.ac-input:disabled { background:var(--background-secondary); color:var(--text-tertiary); cursor:not-allowed; }
+
+.ac-select {
+  background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+  background-position:right .6rem center; background-repeat:no-repeat;
+  background-size:1.4em; padding-right:2.2rem;
+  -webkit-appearance:none; -moz-appearance:none; appearance:none;
+}
+
+/* Role Cards */
+.ac-role-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; max-width:380px; margin:0 auto; }
+.ac-role-input { display:none; }
+.ac-role-label { cursor:pointer; display:block; }
+.ac-role-card {
+  display:flex; flex-direction:column; align-items:center; justify-content:center;
+  padding:1.4rem 1rem; border-radius:14px; text-align:center; position:relative;
+  transition:all .25s; border: 2px solid var(--border-light) !important;
+  background:#fff;
+}
+.ac-role-card:hover { border-color:var(--primary-300) !important; background:var(--primary-50); }
+.ac-role-emoji { font-size:2rem; margin-bottom:.5rem; transition:transform .25s; }
+.ac-role-name  { font-size:.88rem; font-weight:700; color:var(--text-secondary); }
+.ac-role-tick  {
+  position:absolute; top:.6rem; right:.6rem; width:20px; height:20px;
+  background:var(--primary-600); color:#fff; border-radius:50%;
+  display:flex; align-items:center; justify-content:center; font-size:.65rem;
+  opacity:0; transform:scale(.4); transition:all .25s cubic-bezier(.34,1.56,.64,1);
+}
+.ac-role-input[value="student"]:checked + .ac-role-label .ac-role-card {
+  border-color:var(--primary-500) !important;
+  background:linear-gradient(135deg,#eff6ff,#fff);
+  box-shadow:0 6px 20px rgba(37,99,235,.12);
+}
+.ac-role-input[value="student"]:checked + .ac-role-label .ac-role-name { color:var(--primary-700); }
+.ac-role-input[value="student"]:checked + .ac-role-label .ac-role-emoji { transform:scale(1.15) rotate(-5deg); }
+.ac-role-input[value="student"]:checked + .ac-role-label .ac-role-tick  { opacity:1; transform:scale(1); }
+.ac-role-input[value="teacher"]:checked + .ac-role-label .ac-role-card {
+  border-color:#8b5cf6 !important;
+  background:linear-gradient(135deg,#f3e8ff,#fff);
+  box-shadow:0 6px 20px rgba(139,92,246,.12);
+}
+.ac-role-input[value="teacher"]:checked + .ac-role-label .ac-role-name { color:#7c3aed; }
+.ac-role-input[value="teacher"]:checked + .ac-role-label .ac-role-emoji { transform:scale(1.15) rotate(5deg); }
+.ac-role-input[value="teacher"]:checked + .ac-role-label .ac-role-tick  { opacity:1; transform:scale(1); background:#8b5cf6; }
+
+/* Action bar */
+.ac-action-bar {
+  position:fixed; bottom:0; left:0; width:100%;
+  background:rgba(255,255,255,.96); backdrop-filter:blur(12px);
+  border-top:1px solid var(--border-light) !important;
+  padding:1rem; display:flex; justify-content:center; z-index:200;
+  padding-bottom:calc(1rem + env(safe-area-inset-bottom));
+}
+.ac-action-inner { display:flex; gap:.75rem; width:100%; max-width:780px; justify-content:flex-end; }
+
+.ac-btn {
+  padding:.7rem 1.6rem; border-radius:10px; font-size:.88rem;
+  font-weight:600; cursor:pointer; transition:all .2s; text-decoration:none;
+  display:inline-flex; align-items:center; gap:.4rem;
+}
+.ac-btn.primary {
+  background:linear-gradient(135deg,var(--primary-600),var(--primary-700));
+  color:#fff; border:0 !important;
+  box-shadow:0 4px 12px rgba(37,99,235,.25);
+}
+.ac-btn.primary:hover { opacity:.9; transform:translateY(-1px); color:#fff; }
+.ac-btn.secondary {
+  background:var(--background-secondary); color:var(--text-secondary);
+  border:1px solid var(--border-medium) !important;
+}
+.ac-btn.secondary:hover { background:var(--background-tertiary); color:var(--text-primary); }
+.ac-role-item { position: relative; }
+.ac-footer-spacer { height: 5rem; }

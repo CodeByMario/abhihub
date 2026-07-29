@@ -1,0 +1,37 @@
+/**
+ * AbhiHub — pipeline.css
+ * ──────────────────────────────────────────────────────
+ * MASTER ENTRY POINT — link this ONE file in p_struct.html.
+ * Replaces ALL individual CSS links and ALL inline <style> blocks.
+ *
+ * Usage in p_struct.html <head>:
+ *   <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/pipeline.css') }}">
+ *
+ * Then add ONE page CSS after it:
+ *   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
+ *
+ * Load order:
+ *   1. tokens            → design variables only
+ *   2. base              → reset, body, typography, animations
+ *   3. app-shell         → header, main-nav, logo, main, popup
+ *   4. components        → buttons, cards, forms, badges, modals
+ *   5. layout            → navbar, containers, search overlay, footer
+ *   6. utilities         → atomic helpers
+ *   7. feature-tour      → tour overlay & tooltip
+ *   8. pwa-install       → PWA install popup
+ *   9. promo             → announcement strip + promo card modal
+ *  10. profile-nudge     → profile completion nudge overlay
+ *  11. notification-bell → header bell + dropdown panel
+ */
+
+@import url('./01_tokens.css');
+@import url('./02_base.css');
+@import url('./app-shell.css');
+@import url('./03_components.css');
+@import url('./04_layout.css');
+@import url('./05_utilities.css');
+@import url('./feature-tour.css');
+@import url('./pwa-install.css');
+@import url('./promo.css');
+@import url('./profile-nudge.css');
+@import url('./notification-bell.css');

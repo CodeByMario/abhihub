@@ -86,7 +86,7 @@ def send():
         data = request.get_json()
         title = data.get('title', 'AbhiHub')
         body = data.get('body', '')
-        url = data.get('url', '/premium')
+        url = data.get('url', '/dashboard')
         
         result = send_notification_to_all(title, body, url)
         return jsonify(result)

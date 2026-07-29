@@ -1,213 +1,14 @@
 {% extends 'p_struct.html' %}
 {% block content %}
 
-<style>
-  .gate-page {
-    min-height: calc(100vh - 70px);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 2rem 1rem;
-    background: linear-gradient(135deg, #0f0c29, #1a1a4e, #24243e);
-    position: relative;
-    overflow: hidden;
-  }
-
-  /* Animated background orbs */
-  .gate-page::before, .gate-page::after {
-    content: '';
-    position: absolute;
-    border-radius: 50%;
-    filter: blur(80px);
-    opacity: 0.35;
-    animation: orbFloat 8s ease-in-out infinite alternate;
-    pointer-events: none;
-  }
-  .gate-page::before {
-    width: 420px; height: 420px;
-    background: radial-gradient(circle, #7c3aed, transparent 70%);
-    top: -100px; left: -100px;
-  }
-  .gate-page::after {
-    width: 380px; height: 380px;
-    background: radial-gradient(circle, #2563eb, transparent 70%);
-    bottom: -100px; right: -80px;
-    animation-delay: 2s;
-  }
-  @keyframes orbFloat {
-    from { transform: translate(0, 0) scale(1); }
-    to   { transform: translate(30px, 20px) scale(1.08); }
-  }
-
-  .gate-card {
-    background: rgba(255,255,255,0.06);
-    backdrop-filter: blur(20px);
-    -webkit-backdrop-filter: blur(20px);
-    border: 1px solid rgba(255,255,255,0.13);
-    border-radius: 28px;
-    max-width: 480px;
-    width: 100%;
-    padding: 2.8rem 2.2rem 2.4rem;
-    text-align: center;
-    position: relative;
-    z-index: 1;
-    box-shadow: 0 30px 80px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.06) inset;
-    animation: cardIn 0.5s cubic-bezier(.4,0,.2,1);
-  }
-  @keyframes cardIn {
-    from { opacity: 0; transform: translateY(32px) scale(0.97); }
-    to   { opacity: 1; transform: translateY(0) scale(1); }
-  }
-
-  .gate-lock {
-    font-size: 3.8rem;
-    display: block;
-    margin-bottom: 1.2rem;
-    animation: lockPulse 2.2s ease-in-out infinite;
-    filter: drop-shadow(0 4px 16px rgba(239,68,68,0.5));
-  }
-  @keyframes lockPulse {
-    0%,100% { transform: scale(1); }
-    50%      { transform: scale(1.1); }
-  }
-
-  .gate-title {
-    font-size: 1.7rem;
-    font-weight: 800;
-    color: #fff;
-    margin: 0 0 0.6rem;
-    letter-spacing: -0.3px;
-  }
-
-  .gate-subtitle {
-    font-size: 1rem;
-    color: rgba(255,255,255,0.65);
-    margin: 0 0 2rem;
-    line-height: 1.6;
-  }
-
-  /* Credit meter */
-  .credit-meter {
-    background: rgba(255,255,255,0.07);
-    border-radius: 14px;
-    padding: 1.1rem 1.4rem;
-    margin-bottom: 1.8rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    border: 1px solid rgba(255,255,255,0.1);
-  }
-  .credit-label {
-    font-size: 0.88rem;
-    color: rgba(255,255,255,0.55);
-    text-align: left;
-  }
-  .credit-label strong {
-    display: block;
-    font-size: 1.1rem;
-    color: #fff;
-    margin-bottom: 0.2rem;
-  }
-  .credit-dots {
-    display: flex;
-    gap: 0.45rem;
-  }
-  .credit-dot {
-    width: 18px; height: 18px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.12);
-    border: 2px solid rgba(255,255,255,0.18);
-  }
-  .credit-dot.used {
-    background: #ef4444;
-    border-color: #ef4444;
-    box-shadow: 0 0 8px rgba(239,68,68,0.6);
-  }
-
-  /* How it works strip */
-  .how-strip {
-    display: flex;
-    gap: 0.5rem;
-    justify-content: center;
-    margin-bottom: 1.8rem;
-    flex-wrap: wrap;
-  }
-  .how-step {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    background: rgba(255,255,255,0.07);
-    border-radius: 30px;
-    padding: 0.35rem 0.85rem;
-    font-size: 0.82rem;
-    color: rgba(255,255,255,0.75);
-    border: 1px solid rgba(255,255,255,0.1);
-    white-space: nowrap;
-  }
-  .how-step .step-icon { font-size: 1rem; }
-  .how-arrow { color: rgba(255,255,255,0.3); font-size: 1rem; align-self: center; }
-
-  /* CTA button */
-  .gate-upload-btn {
-    display: block;
-    width: 100%;
-    padding: 1rem;
-    border: none;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #7c3aed, #2563eb);
-    color: #fff;
-    font-size: 1.1rem;
-    font-weight: 700;
-    text-decoration: none;
-    cursor: pointer;
-    box-shadow: 0 8px 28px rgba(124,58,237,0.45);
-    transition: transform 0.15s, box-shadow 0.15s;
-    margin-bottom: 0.9rem;
-    letter-spacing: 0.01em;
-  }
-  .gate-upload-btn:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 14px 36px rgba(124,58,237,0.55);
-    color: #fff;
-  }
-
-  .gate-back-link {
-    display: block;
-    font-size: 0.88rem;
-    color: rgba(255,255,255,0.4);
-    text-decoration: none;
-    transition: color 0.15s;
-  }
-  .gate-back-link:hover { color: rgba(255,255,255,0.7); }
-
-  .gate-perks {
-    margin: 1.6rem 0 0;
-    padding-top: 1.4rem;
-    border-top: 1px solid rgba(255,255,255,0.08);
-    display: flex;
-    gap: 1rem;
-    justify-content: center;
-    flex-wrap: wrap;
-  }
-  .gate-perk {
-    font-size: 0.82rem;
-    color: rgba(255,255,255,0.5);
-    display: flex;
-    align-items: center;
-    gap: 0.3rem;
-  }
-</style>
-
 <div class="gate-page" id="uploadGatePage">
   <div class="gate-card">
 
-    <span class="gate-lock">🔒</span>
+    <span class="gate-lock">🤝</span>
 
-    <h1 class="gate-title">You've used all 3 paper views</h1>
+    <h1 class="gate-title">Keep your study flow going 📚</h1>
     <p class="gate-subtitle">
-      AbhiHub runs on sharing. Upload a paper to unlock
-      <strong>{{ quota_per_upload }} more paper opens</strong> — instantly.
+      Looks like you've been studying hard today. If you have an old paper or note, sharing it helps other students too — and unlocks more paper views for you instantly.
     </p>
 
     <!-- Credit dots visual -->
@@ -235,11 +36,12 @@
     <a href="{{ url_for('upload') }}?next={{ next_url | urlencode }}"
        class="gate-upload-btn"
        id="gateUploadBtn"
-       onclick="handleGateUpload()">
-      📤 Upload a Paper &amp; Unlock Access
+       onclick="window.gateActionTaken = true; handleGateUpload(); window.AbhiHubTracking && window.AbhiHubTracking.trackStudyPassUploadClick();">
+      Share a Paper &amp; Continue
     </a>
 
-    <a href="{{ url_for('dashboard') }}" class="gate-back-link">← Back to dashboard</a>
+    <a href="/store-room" class="gate-back-link" onclick="window.gateActionTaken = true; window.AbhiHubTracking && window.AbhiHubTracking.trackStudyPassStoreRoomClick();">Open My Store Room</a>
+    <p style="font-size: 0.8rem; color: #6b7280; margin-top: 1rem;">Papers already saved in your Store Room are always available anytime 💙</p>
 
     <div class="gate-perks">
       <span class="gate-perk">⚡ Instant unlock</span>
@@ -255,10 +57,22 @@
   // After a successful upload on the upload page, this gate will automatically
   // grant new credits (via _grant_upload_credits on the server), so returning
   // to next_url will work.
+  window.gateActionTaken = false;
+
   function handleGateUpload() {
-    // Store the intended destination so the upload page can redirect back
-    sessionStorage.setItem('upload_gate_next', '{{ next_url | e }}');
+    const btn = document.getElementById('gateUploadBtn');
+    if (btn) {
+      btn.innerHTML = 'Redirecting...';
+      btn.style.opacity = '0.7';
+    }
   }
+
+  // Track ignored/bounced users
+  window.addEventListener('beforeunload', function() {
+    if (!window.gateActionTaken && window.AbhiHubTracking) {
+      window.AbhiHubTracking.trackStudyPassIgnored();
+    }
+  });
 
   // If user already has credits (e.g. opened gate via direct URL), redirect
   fetch('/api/quota')
@@ -268,6 +82,10 @@
         const next = '{{ next_url | e }}';
         if (next && next !== window.location.href) {
           window.location.href = next;
+        }
+      } else {
+        if (window.AbhiHubTracking) {
+          window.AbhiHubTracking.trackStudyPassPopup();
         }
       }
     })

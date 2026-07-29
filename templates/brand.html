@@ -1,0 +1,268 @@
+{% set _brand = brand_name %}
+{% set seo_title = _brand ~ ' PYQ, Papers & Notes | ' ~ _brand ~ ' Group of Colleges Previous Year Question Papers | AbhiHub' %}
+{% set seo_description = 'Find all ' ~ _brand ~ ' colleges on AbhiHub. Browse campus-wise PYQs (previous year question papers), notes and practicals for ' ~ colleges | map(attribute='name') | list | join(', ') ~ '.' %}
+{% set seo_keywords = 'PYQ ' ~ _brand ~ ', ' ~ _brand ~ ' PYQ, ' ~ _brand ~ ' papers, ' ~ _brand ~ ' papers abhihub, ' ~ _brand ~ ' notes, ' ~ _brand ~ ' colleges, ' ~ (colleges | map(attribute='abbreviation') | select | list | join(' PYQ, ')) ~ ' PYQ, AbhiHub' %}
+{% set og_title = seo_title %}
+{% set og_description = seo_description %}
+{% set og_type = 'website' %}
+
+{% extends 'p_struct.html' %}
+{% block page_head %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://app.abhihub.run.place/" },
+        { "@type": "ListItem", "position": 2, "name": "{{ _brand }}", "item": "{{ request.base_url }}" }
+      ]
+    },
+    {
+      "@type": "ItemList",
+      "name": "{{ _brand }} College Campuses",
+      "description": "All {{ _brand }} college campuses with free PYQs and notes on AbhiHub.",
+      "itemListElement": [
+        {% for c in colleges %}
+        {
+          "@type": "ListItem",
+          "position": {{ loop.index }},
+          "name": "{{ c.name }}",
+          "url": "https://app.abhihub.run.place/college/{{ (c.abbreviation or c.name) | lower | replace(' ', '-') }}"
+        }{% if not loop.last %},{% endif %}
+        {% endfor %}
+      ]
+    },
+    {
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Which {{ _brand }} campuses are on AbhiHub?",
+          "acceptedAnswer": { "@type": "Answer", "text": "AbhiHub has PYQs and notes for {% for c in colleges %}{{ c.name }} ({{ c.abbreviation }}){% if not loop.last %}, {% endif %}{% endfor %}." }
+        },
+        {
+          "@type": "Question",
+          "name": "Where can I find {{ _brand }} PYQ?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Select your campus below to find free previous year question papers, notes and practicals for your {{ _brand }} college on AbhiHub." }
+        }
+      ]
+    }
+  ]
+}
+</script>
+
+<style>
+:root {
+  --br-primary: #0f766e;
+  --br-accent: #14b8a6;
+  --br-bg: #f0fdfa;
+  --br-card: #ffffff;
+  --br-text: #0f172a;
+  --br-muted: #64748b;
+  --br-border: #ccfbf1;
+}
+
+body { background-color: var(--br-bg); }
+
+.brand-hero {
+  padding: 6rem 1.5rem 5rem;
+  background: linear-gradient(135deg, #042f2e 0%, var(--br-primary) 60%, var(--br-accent) 100%);
+  color: white;
+  text-align: center;
+  border-bottom-left-radius: 48px;
+  border-bottom-right-radius: 48px;
+  box-shadow: 0 24px 48px rgba(15,118,110,0.25);
+  margin-bottom: -3rem;
+}
+
+.brand-hero-badge {
+  display: inline-block;
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.3);
+  backdrop-filter: blur(8px);
+  padding: 0.4rem 1.2rem;
+  border-radius: 99px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 1.5rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.brand-hero h1 {
+  font-size: clamp(2.5rem, 7vw, 4.5rem);
+  font-weight: 900;
+  letter-spacing: -0.03em;
+  margin-bottom: 0.8rem;
+  text-shadow: 0 4px 24px rgba(0,0,0,0.2);
+}
+
+.brand-hero p {
+  font-size: 1.1rem;
+  opacity: 0.9;
+  max-width: 580px;
+  margin: 0 auto;
+  line-height: 1.6;
+}
+
+.brand-section {
+  max-width: 1100px;
+  margin: 0 auto 5rem;
+  padding: 0 1.5rem;
+}
+
+.brand-section-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--br-text);
+  margin-top: 5rem;
+  margin-bottom: 0.4rem;
+}
+
+.brand-section-sub {
+  color: var(--br-muted);
+  margin-bottom: 2rem;
+  font-size: 0.95rem;
+}
+
+.campus-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.campus-card {
+  background: var(--br-card);
+  border: 1.5px solid var(--br-border);
+  border-radius: 24px;
+  padding: 2rem;
+  text-decoration: none;
+  color: var(--br-text);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
+  position: relative;
+  overflow: hidden;
+}
+
+.campus-card::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--br-primary), var(--br-accent));
+  opacity: 0;
+  transition: opacity 0.22s;
+}
+
+.campus-card:hover {
+  transform: translateY(-6px);
+  border-color: var(--br-primary);
+  box-shadow: 0 20px 40px rgba(15,118,110,0.12);
+}
+
+.campus-card:hover::after { opacity: 1; }
+
+.campus-abbr {
+  font-size: 2rem;
+  font-weight: 900;
+  color: var(--br-primary);
+  line-height: 1;
+}
+
+.campus-name {
+  font-size: 1rem;
+  color: var(--br-muted);
+  line-height: 1.4;
+  font-weight: 500;
+}
+
+.campus-city {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--br-text);
+  background: var(--br-bg);
+  padding: 0.25rem 0.75rem;
+  border-radius: 8px;
+  border: 1px solid var(--br-border);
+  width: fit-content;
+}
+
+.campus-stat {
+  font-size: 0.85rem;
+  color: var(--br-muted);
+  font-weight: 600;
+}
+
+.campus-cta {
+  margin-top: auto;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: var(--br-primary);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.campus-cta::after {
+  content: '→';
+  transition: transform 0.2s;
+}
+
+.campus-card:hover .campus-cta::after {
+  transform: translateX(4px);
+}
+
+@media(max-width: 640px) {
+  .campus-grid { grid-template-columns: 1fr; }
+  .brand-hero { padding: 4rem 1.5rem 4rem; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="brand-hero">
+  <div class="brand-hero-badge">🎓 College Group</div>
+  <h1>{{ _brand }} PYQ & Notes</h1>
+  <p>All {{ _brand }} campuses in one place — browse your college to access free PYQs, notes and practicals.</p>
+</div>
+
+<div class="brand-section">
+  <h2 class="brand-section-title">Choose Your Campus</h2>
+  <p class="brand-section-sub">{{ colleges | length }} campus{{ 'es' if colleges | length != 1 else '' }} found under the {{ _brand }} group.</p>
+
+  <div class="campus-grid">
+    {% for college in colleges %}
+    {% set c_slug = (college.abbreviation or college.name) | lower | replace(' ', '-') %}
+    <a href="/college/{{ c_slug }}" class="campus-card">
+      <div class="campus-abbr">{{ college.abbreviation or college.name[:6] }}</div>
+      <div class="campus-name">{{ college.name }}</div>
+      {% if college.city %}
+      <div class="campus-city">📍 {{ college.city }}</div>
+      {% endif %}
+      <div class="campus-stat">📄 PYQs, Notes & Practicals available</div>
+      <div class="campus-cta">Browse Campus Resources</div>
+    </a>
+    {% else %}
+    <div style="grid-column:1/-1; text-align:center; padding:3rem; color:var(--br-muted);">
+      No campuses found for this group yet.
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+
+
+<!-- CTA -->
+<div style="background:linear-gradient(135deg,#042f2e 0%,var(--br-primary) 100%); padding:5rem 1.5rem; text-align:center; margin-top:2rem;">
+  <h2 style="font-size:2rem; font-weight:900; color:white; margin-bottom:1rem;">Study at a {{ _brand }} campus?</h2>
+  <p style="color:rgba(255,255,255,0.85); font-size:1.1rem; max-width:560px; margin:0 auto 2rem;">Upload your old question papers and notes to help your juniors. Earn points on the leaderboard!</p>
+  <a href="/upload" style="display:inline-block; padding:1rem 2.5rem; background:white; color:var(--br-primary); border-radius:16px; font-weight:900; text-decoration:none; font-size:1.05rem; box-shadow:0 12px 24px rgba(0,0,0,0.2);">📤 Upload a PYQ</a>
+</div>
+{% endblock %}

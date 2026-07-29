@@ -1,0 +1,678 @@
+{% set file_type = 'PYQ' if 'pyq' in (document.document_category|lower) else ('Practical' if 'practical' in (document.document_category|lower) else 'Notes') %}
+{% set subj_name = document.subject.name if document.subject else 'Uncategorized' %}
+{% set coll_name = document.college.name if document.college else 'AbhiHub' %}
+{% set dept_name = document.department.name if document.department else '' %}
+{% set uploader_name = document.uploader.full_name if document.uploader else 'Anonymous' %}
+
+{% set seo_title = subj_name ~ ' ' ~ file_type ~ ' Download | ' ~ coll_name ~ ' Exam Resources | AbhiHub' %}
+{% set seo_description = 'Download ' ~ document.title ~ ', a verified ' ~ file_type ~ ' for ' ~ subj_name ~ ' from ' ~ coll_name ~ ' uploaded by ' ~ uploader_name ~ '. Free academic resources.' %}
+{% set seo_keywords = subj_name ~ ' ' ~ file_type ~ ', ' ~ coll_name ~ ' ' ~ subj_name ~ ', ' ~ document.title ~ ', ' ~ uploader_name %}
+{% set og_title = seo_title %}
+{% set og_description = seo_description %}
+{% set og_type = 'article' %}
+
+{% extends 'p_struct.html' %}
+{% block page_head %}
+<!-- Dynamic Learning Resource Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "LearningResource",
+  "name": "{{ document.title }}",
+  "description": "{{ seo_description }}",
+  "learningResourceType": "{{ file_type }}",
+  "url": "{{ request.base_url }}",
+  "datePublished": "{{ document.created_at }}",
+  "dateModified": "{{ document.updated_at or document.created_at }}",
+  "author": {
+    "@type": "Person",
+    "name": "{{ uploader_name }}"
+  },
+  "provider": {
+    "@type": "CollegeOrUniversity",
+    "name": "{{ coll_name }}"
+  },
+  "about": {
+    "@type": "Thing",
+    "name": "{{ subj_name }}"
+  }
+}
+</script>
+
+<style>
+:root {
+  --r-primary: #f59e0b; /* Amber */
+  --r-bg: #fffbeb;
+  --r-card: #ffffff;
+  --r-text: #0f172a;
+  --r-muted: #64748b;
+  --r-border: #fef3c7;
+}
+
+body { background-color: var(--r-bg); overflow-x: hidden; }
+
+.resource-hero {
+  padding: 4rem 1.5rem 3rem;
+  background: linear-gradient(135deg, #1e293b 0%, #b45309 100%);
+  color: white;
+  text-align: center;
+  border-bottom-left-radius: 40px;
+  border-bottom-right-radius: 40px;
+  box-shadow: 0 20px 40px rgba(245, 158, 11, 0.15);
+  margin-bottom: -2rem;
+}
+
+.resource-hero h1 {
+  font-size: clamp(1.8rem, 4vw, 3rem);
+  font-weight: 900;
+  margin-bottom: 1rem;
+  text-shadow: 0 4px 20px rgba(0,0,0,0.2);
+}
+
+.breadcrumb-nav {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  background: rgba(255,255,255,0.15);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 0.5rem 1.2rem;
+  border-radius: 99px;
+  font-weight: 600;
+  font-size: 0.85rem;
+  margin-bottom: 1.5rem;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.breadcrumb-nav a { color: white; text-decoration: none; }
+.breadcrumb-nav a:hover { text-decoration: underline; }
+
+.meta-bar {
+  max-width: 1000px;
+  margin: 0 auto 3rem;
+  position: relative;
+  z-index: 10;
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.meta-pill {
+  background: var(--r-card);
+  padding: 0.8rem 1.5rem;
+  border-radius: 99px;
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: var(--r-text);
+  box-shadow: 0 10px 20px rgba(0,0,0,0.05);
+  border: 1px solid var(--r-border);
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.meta-pill.like-btn.liked {
+  background-color: #fee2e2;
+  border-color: #fca5a5;
+  color: #b91c1c;
+}
+.meta-pill.bookmark-btn.bookmarked {
+  background-color: #e0e7ff;
+  border-color: #a5b4fc;
+  color: #4338ca;
+}
+.preview-container {
+  max-width: 1100px;
+  margin: 0 auto 5rem;
+  padding: 0 1.5rem;
+}
+
+.preview-card {
+  background: var(--r-card);
+  border-radius: 24px;
+  border: 1px solid var(--r-border);
+  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.preview-header {
+  padding: 1.5rem 2rem;
+  border-bottom: 1px solid var(--r-border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #fdfaf4;
+}
+
+.preview-iframe {
+  width: 100%;
+  height: 700px;
+  border: none;
+  background: #f1f5f9;
+}
+
+
+
+
+.main-layout-container {
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto 5rem;
+  padding: 0 1.5rem;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 2rem;
+}
+
+@media(min-width: 1024px) {
+  .main-layout-container {
+    grid-template-columns: 2fr 1fr; /* 66% and 33% */
+    align-items: start;
+  }
+}
+
+.document-column {
+  min-width: 0;
+}
+
+.sidebar-column {
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  min-width: 0;
+}
+
+.info-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 0;
+}
+
+
+.info-grid.old {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  padding: 2rem;
+}
+
+.info-box {
+  background: #fafaf9;
+  border-radius: 16px;
+  padding: 1.5rem;
+  border: 1px solid #e7e5e4;
+}
+
+.info-box h3 {
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: var(--r-text);
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.info-box p {
+  color: var(--r-muted);
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+}
+
+.info-box a {
+  color: var(--r-primary);
+  text-decoration: none;
+  font-weight: 700;
+}
+
+.info-box a:hover { text-decoration: underline; }
+
+@media(max-width: 768px) {
+  .info-grid.old { grid-template-columns: 1fr; }
+  .preview-iframe { height: 500px; }
+  .meta-bar { padding: 0 1.5rem; justify-content: flex-start; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="resource-hero">
+  <div class="breadcrumb-nav">
+    <a href="/">Home</a> <span>›</span>
+    {% if document.college %}
+      <a href="/college/{{ (document.college.abbreviation or document.college.name) | lower | replace(' ', '-') }}">{{ document.college.abbreviation or document.college.name }}</a> <span>›</span>
+    {% endif %}
+    {% if document.subject %}
+      <a href="/subject/{{ document.subject.name | lower | replace(' ', '-') | replace('&', 'and') }}">{{ document.subject.name }}</a> <span>›</span>
+    {% endif %}
+    <span>File</span>
+  </div>
+  
+  <h1>{{ document.title }}</h1>
+  <p>Verified {{ file_type }} uploaded by {{ uploader_name }} {% if document.uploader and document.uploader.is_verified %}✅{% endif %}</p>
+</div>
+
+<div class="meta-bar">
+  <div class="meta-pill">👁️ {{ document.view_count or 0 }} Views</div>
+  <button class="meta-pill like-btn {{ 'liked' if document.is_liked else '' }}" style="cursor: pointer; border: none; transition: background-color 0.2s;" onclick="window.toggleLike(event, '{{ document.id }}')" data-feature="Resource Like" data-experience-rating="5">
+    ❤️ <span class="like-count">{{ document.like_count or 0 }}</span> Likes
+  </button>
+  <button class="meta-pill bookmark-btn {{ 'bookmarked' if document.is_bookmarked else '' }}" style="cursor: pointer; border: none; transition: background-color 0.2s;" onclick="window.toggleBookmark(event, '{{ document.id }}')" data-feature="Resource Save" data-experience-rating="5">
+    🔖 <span class="bookmark-count">{{ document.bookmark_count or 0 }}</span> Save
+  </button>
+  <div class="meta-pill">📅 {{ document.created_at[:10] }}</div>
+  <div class="meta-pill">📦 {{ (document.file_size_bytes|int / 1024 / 1024)|round(2) if document.file_size_bytes else 'Unknown' }} MB</div>
+</div>
+
+<div class="main-layout-container">
+  <div class="document-column">
+    <div class="preview-card">
+    <div class="preview-header">
+      <div style="font-weight: 700; color: var(--r-text); display:flex; align-items:center; gap:0.5rem;">
+        <span>📄</span> Document Preview
+      </div>
+
+    </div>
+    
+    <!-- PDF / Image Previewer -->
+    {% if document.file_type == 'pdf' or '.pdf' in (document.file_url|lower) %}
+      <iframe class="preview-iframe" src="{{ url_for('static', filename='pdfjs-6.1.200-dist/web/viewer.html') }}?file=/api/view-doc/{{ document.id }}/document.pdf" title="{{ document.title }}" data-feature="PDF Viewer"></iframe>
+    {% elif document.file_type == 'image' or '.jpg' in (document.file_url|lower) or '.png' in (document.file_url|lower) or '.jpeg' in (document.file_url|lower) or '.webp' in (document.file_url|lower) %}
+      <div style="text-align:center; padding: 2rem; background: #f1f5f9; position: relative; min-height: 300px; display: flex; align-items: center; justify-content: center; border-radius: 12px; overflow: hidden;" data-feature="Image Viewer">
+        <!-- Skeleton Loader -->
+        <div id="imageSkeleton" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: #e2e8f0; display: flex; align-items: center; justify-content: center; animation: pulse 2s infinite; z-index: 1;">
+          <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+            <circle cx="8.5" cy="8.5" r="1.5"></circle>
+            <polyline points="21 15 16 10 5 21"></polyline>
+          </svg>
+        </div>
+        <!-- Actual Image -->
+        <img src="/api/view-doc/{{ document.id }}" alt="{{ document.title }} - {{ subj_name }} {{ file_type }} for {{ coll_name }}" onload="this.style.opacity=1; document.getElementById('imageSkeleton').style.display='none';" style="max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); position: relative; z-index: 2; opacity: 0; transition: opacity 0.3s ease;">
+      </div>
+    {% else %}
+      <div style="text-align:center; padding: 5rem 2rem; background: #f1f5f9;">
+        <h3 style="font-weight: 800; font-size: 1.5rem; margin-bottom:1rem;">Preview not available</h3>
+        <p style="color: var(--r-muted); margin-bottom: 2rem;">This file type cannot be previewed in the browser.</p>
+      </div>
+    {% endif %}
+
+    </div>
+  </div> <!-- End document-column -->
+  
+  <div class="sidebar-column">
+    <div class="preview-card" style="padding: 1.5rem;">
+    <div class="info-grid" style="padding:0;">
+      <div class="info-box">
+        <h3>About This Resource</h3>
+        <p><strong>Title:</strong> {{ document.title }}</p>
+        <p><strong>Category:</strong> {{ file_type }}</p>
+        <p><strong>Subject:</strong> 
+          {% if document.subject %}
+            <a href="/subject/{{ document.subject.name | lower | replace(' ', '-') | replace('&', 'and') }}">{{ document.subject.name }}</a>
+          {% else %}
+            Uncategorized
+          {% endif %}
+        </p>
+        <p><strong>Institution:</strong> 
+          {% if document.college %}
+            <a href="/college/{{ (document.college.abbreviation or document.college.name) | lower | replace(' ', '-') }}">{{ document.college.name }}</a>
+          {% else %}
+            Not specified
+          {% endif %}
+        </p>
+      </div>
+      
+      <div class="info-box">
+        <h3>Contributor Info</h3>
+        <p><strong>Uploaded By:</strong> {{ uploader_name }} {% if document.uploader and document.uploader.is_verified %}<span style="color:green;" title="Verified Contributor">✔</span>{% endif %}</p>
+        <p style="font-size: 0.9rem; margin-top: 1rem;">Contributors earn reputation points for every helpful resource they upload. By viewing this file, you are directly supporting their rank on the AbhiHub leaderboard!</p>
+      </div>
+
+    </div>
+    
+<!-- AI Chat Panel (image documents only) -->
+{% if document.file_type == 'image' or '.jpg' in (document.file_url|lower) or '.png' in (document.file_url|lower) or '.jpeg' in (document.file_url|lower) or '.webp' in (document.file_url|lower) %}
+<div class="preview-card" id="aiChatPanel">
+    <div class="preview-header" style="flex-wrap: wrap; gap: 0.5rem;">
+      <div style="font-weight:700;color:var(--r-text);display:flex;align-items:center;gap:.5rem;">
+        <span>🤖</span> Ask AI about this paper
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <span style="font-size:.8rem;color:var(--r-muted);">Powered by Gemma 3n</span>
+        <button onclick="shareChatWhatsApp()" style="padding: 0.3rem 0.6rem; border: none; background: #25D366; color: white; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">Share WA</button>
+        <button onclick="exportChatPDF()" style="padding: 0.3rem 0.6rem; border: none; background: #ef4444; color: white; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">Export PDF</button>
+      </div>
+    </div>
+
+    <div id="aiMessages" style="padding:1rem 1.5rem;min-height:80px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:.75rem;"></div>
+
+    <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <button onclick="sendPersonaPrompt('ChatGPT', this)" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--r-border); background: #f8fafc; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #10b981; transition: background 0.2s;">ChatGPT</button>
+      <button onclick="sendPersonaPrompt('Gemini', this)" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--r-border); background: #f8fafc; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #3b82f6; transition: background 0.2s;">Gemini</button>
+      <button onclick="sendPersonaPrompt('Claude', this)" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--r-border); background: #f8fafc; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #d97757; transition: background 0.2s;">Claude</button>
+    </div>
+
+    <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <span style="font-size: 0.8rem; color: var(--r-muted); align-self: center;">Suggestions:</span>
+      <button onclick="suggestQ('Solve question 1 step-by-step')" style="padding: 0.3rem 0.7rem; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.75rem; color: #475569; transition: background 0.2s;">Solve Q1</button>
+      <button onclick="suggestQ('Explain the core concepts in question 2')" style="padding: 0.3rem 0.7rem; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.75rem; color: #475569; transition: background 0.2s;">Explain Q2</button>
+      <button onclick="suggestQ('What are the most important topics in this paper?')" style="padding: 0.3rem 0.7rem; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.75rem; color: #475569; transition: background 0.2s;">Important Topics</button>
+      <button onclick="suggestQ('Summarize the entire paper')" style="padding: 0.3rem 0.7rem; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.75rem; color: #475569; transition: background 0.2s;">Summarize</button>
+    </div>
+
+    <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; align-items: center;">
+      <span style="font-size: 0.8rem; color: var(--r-muted);">AI Model:</span>
+      <select id="aiModelSelect" style="padding: 0.3rem; border-radius: 6px; border: 1px solid var(--r-border); font-size: 0.8rem; background: #f8fafc; color: #475569;">
+        {% for model in ai_models %}
+          <option value="{{ model }}" {% if model == best_model %}selected{% endif %}>{{ model.split('/')[-1] }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div style="padding:1rem 1.5rem;border-top:1px solid var(--r-border);display:flex;gap:.75rem;">
+      <input id="aiQuestion" type="text" placeholder="e.g. What topics are covered in this paper?" maxlength="300"
+        style="flex:1;padding:.65rem 1rem;border:1px solid var(--r-border);border-radius:12px;font-size:.9rem;outline:none;"
+        onkeydown="if(event.key==='Enter')askAI()">
+      <button onclick="askAI()" id="aiSendBtn"
+        style="padding:.65rem 1.25rem;background:#f59e0b;color:#fff;border:none;border-radius:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
+        Ask
+      </button>
+    </div>
+  </div>
+
+  </div> <!-- End sidebar-column -->
+</div> <!-- End main-layout-container -->
+
+<!-- Suggested Resources Section -->
+{% if suggested_docs or store_room_docs %}
+<div style="max-width: 1400px; margin: 0 auto 5rem; padding: 0 1.5rem; box-sizing: border-box;">
+  <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--r-text); margin-bottom: 1.5rem; text-align: center;">Related Resources</h2>
+  
+  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
+    
+    {% if suggested_docs %}
+    <div>
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--r-primary); margin-bottom: 1rem;">From the Library</h3>
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for s_doc in suggested_docs %}
+        <a href="/resource/{{ s_doc.id }}" style="text-decoration: none;">
+          <div class="info-box" style="padding: 1rem; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer;" onmouseover="this.style.transform='translateY(-2px)'; this.style.boxShadow='0 10px 15px -3px rgba(0,0,0,0.1)'" onmouseout="this.style.transform='none'; this.style.boxShadow='none'">
+            <h4 style="font-size: 1rem; font-weight: 700; color: var(--r-text); margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ s_doc.title }}</h4>
+            <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--r-muted);">
+              <span>{{ s_doc.file_type | upper }}</span>
+              <span>👁️ {{ s_doc.view_count or 0 }} views</span>
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if store_room_docs %}
+    <div>
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--r-muted); margin-bottom: 1rem;">From the Store Room (Unverified)</h3>
+      <div style="display: flex; flex-direction: column; gap: 1rem;">
+        {% for sr_doc in store_room_docs %}
+        <div class="info-box" style="padding: 1rem; background: #fef2f2; border-color: #fee2e2;">
+          <h4 style="font-size: 1rem; font-weight: 700; color: var(--r-text); margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ sr_doc.filename }}">{{ sr_doc.filename }}</h4>
+          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--r-muted);">
+            <span style="color: #ef4444; font-weight: 600;">Pending Verification</span>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>
+{% endif %}
+
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<script>
+(function(){
+  const DOC_ID = '{{ document.id }}';
+  const msgs = document.getElementById('aiMessages');
+
+  function addMsg(text, role) {
+    const d = document.createElement('div');
+    d.style.cssText = `max-width:85%;padding:.6rem .9rem;border-radius:14px;font-size:.88rem;line-height:1.5;word-break:break-word;${
+      role==='user'
+        ? 'align-self:flex-end;background:#f59e0b;color:#fff;'
+        : 'align-self:flex-start;background:#f1f5f9;color:#1e293b;'
+    }`;
+    if (role === 'ai' && typeof marked !== 'undefined') {
+      d.innerHTML = marked.parse(text);
+      d.querySelectorAll('pre').forEach(p => p.style.cssText = "background:#1e293b;color:#f8fafc;padding:0.5rem;border-radius:8px;overflow-x:auto;margin:0.5rem 0;");
+      d.querySelectorAll('code').forEach(c => c.style.cssText = "font-family:monospace;background:rgba(0,0,0,0.05);padding:0.1rem 0.3rem;border-radius:4px;");
+    } else {
+      d.textContent = text;
+    }
+    msgs.appendChild(d);
+    msgs.scrollTop = msgs.scrollHeight;
+  }
+  
+  window.shareChatWhatsApp = function() {
+    const chatElements = Array.from(document.getElementById('aiMessages').children);
+    if (chatElements.length === 0) return alert('No chat to share.');
+    let chatText = "*AbhiHub AI Reference Chat*\n\n";
+    chatElements.forEach(el => {
+      const isUser = el.style.alignSelf.includes('flex-end');
+      chatText += (isUser ? "*You*: " : "*AI*: ") + el.innerText + "\n\n";
+    });
+    chatText += `Study smarter with AbhiHub: ${window.location.href}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(chatText)}`, '_blank');
+  };
+
+  window.exportChatPDF = function() {
+    const originalMessages = document.getElementById('aiMessages');
+    if (originalMessages.children.length === 0) return alert('No chat to export.');
+
+    const userName = `{{ session.user.name if 'user' in session else 'Student' | replace('`', '\\`') | replace('$', '\\$') }}`;
+    const userEmail = `{{ session.user.email if 'user' in session else 'Not Provided' | replace('`', '\\`') | replace('$', '\\$') }}`;
+    const subjectName = `{{ subj_name | replace('`', '\\`') | replace('$', '\\$') }}`;
+    const collegeName = `{{ coll_name | replace('`', '\\`') | replace('$', '\\$') }}`;
+    const docTitle = `{{ document.title | replace('`', '\\`') | replace('$', '\\$') }}`;
+
+    const wrapper = document.createElement('div');
+    wrapper.style.cssText = 'padding: 3rem; background: #fff; color: #000; width: 800px; position: absolute; left: -9999px; top: 0;';
+    
+    const cover = document.createElement('div');
+    cover.style.cssText = 'height: 950px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; page-break-after: always;';
+    cover.innerHTML = `
+      <h1 style="font-size: 4.5rem; color: #f59e0b; margin-bottom: 0.5rem; font-weight: 900; letter-spacing: -1px;">AbhiHub</h1>
+      <h2 style="font-size: 1.8rem; margin-bottom: 4rem; color: #475569; font-weight: 600;">AI Reference Transcript</h2>
+      <div style="font-size: 1.2rem; line-height: 2.2; text-align: left; background: #f8fafc; padding: 3rem; border-radius: 16px; width: 85%; border: 1px solid #e2e8f0; color: #334155; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
+        <div style="margin-bottom: 1rem;"><strong style="color: #0f172a; width: 140px; display: inline-block;">Subject:</strong> ${subjectName}</div>
+        <div style="margin-bottom: 1rem;"><strong style="color: #0f172a; width: 140px; display: inline-block;">College:</strong> ${collegeName}</div>
+        <div style="margin-bottom: 1rem;"><strong style="color: #0f172a; width: 140px; display: inline-block;">Reference:</strong> <a href="${window.location.href}" style="color: #f59e0b; text-decoration: none;">${docTitle}</a></div>
+        <hr style="margin: 2rem 0; border: none; border-top: 1px solid #cbd5e1;">
+        <div style="margin-bottom: 1rem;"><strong style="color: #0f172a; width: 140px; display: inline-block;">Generated By:</strong> ${userName}</div>
+        <div style="margin-bottom: 1rem;"><strong style="color: #0f172a; width: 140px; display: inline-block;">Email:</strong> ${userEmail}</div>
+        <div style="margin-bottom: 1rem;"><strong style="color: #0f172a; width: 140px; display: inline-block;">Date:</strong> ${new Date().toLocaleString()}</div>
+      </div>
+    `;
+    
+    const chatClone = document.createElement('div');
+    chatClone.innerHTML = '<h3 style="font-size:2rem; margin-bottom:2rem; color:#0f172a; border-bottom:3px solid #f59e0b; padding-bottom:1rem;">Conversation</h3>';
+    
+    const messagesClone = originalMessages.cloneNode(true);
+    messagesClone.style.cssText = 'max-height: none; overflow-y: visible; padding: 0; display: flex; flex-direction: column; gap: 1.5rem;';
+    
+    chatClone.appendChild(messagesClone);
+    wrapper.appendChild(cover);
+    wrapper.appendChild(chatClone);
+    document.body.appendChild(wrapper);
+    
+    const opt = {
+      margin:       [0.5, 0, 0.5, 0], // Top, Left, Bottom, Right margin
+      filename:     'AbhiHub_Chat_Transcript.pdf',
+      image:        { type: 'jpeg', quality: 0.98 },
+      html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 },
+      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
+    };
+    
+    html2pdf().set(opt).from(wrapper).toPdf().get('pdf').then(function(pdf) {
+      const totalPages = pdf.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        pdf.setPage(i);
+        
+        // Header
+        pdf.setFontSize(11);
+        pdf.setTextColor(245, 158, 11); // AbhiHub Orange (#f59e0b)
+        pdf.textWithLink('AbhiHub.com', 0.5, 0.3, { url: window.location.origin });
+        
+        // Footer
+        pdf.setFontSize(9);
+        pdf.setTextColor(100, 116, 139); // Slate 500
+        pdf.textWithLink('Study smarter with AbhiHub - Click here', 0.5, 10.7, { url: window.location.origin });
+        pdf.text(`Page ${i} of ${totalPages}`, 7.5, 10.7);
+      }
+    }).save().then(() => {
+      document.body.removeChild(wrapper);
+    });
+  };
+  
+  window.suggestQ = function(text) {
+    const inp = document.getElementById('aiQuestion');
+    inp.value = text;
+    window.askAI();
+  };
+  
+  window.sendPersonaPrompt = async function(persona, btnElement) {
+    const originalText = btnElement.innerText;
+    btnElement.innerText = 'Extracting OCR...';
+    btnElement.disabled = true;
+
+    let selectedModelElement = document.getElementById('aiModelSelect');
+    let selectedModel = selectedModelElement ? selectedModelElement.value : undefined;
+
+    let ocrText = 'OCR extraction failed or is unavailable. Please rely on the image.';
+    try {
+      const res = await fetch('/api/extract-ocr', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ doc_id: DOC_ID, model: selectedModel })
+      });
+      const data = await res.json();
+      if (data.success && data.ocr_text) {
+        ocrText = data.ocr_text.trim();
+      }
+    } catch(e) {
+      console.error('OCR fetch error:', e);
+    }
+    
+    btnElement.innerText = originalText;
+    btnElement.disabled = false;
+
+    const subjectName = `{{ subj_name | replace('`', '\\`') }}`;
+    const collegeName = `{{ coll_name | replace('`', '\\`') }}`;
+    const deptName = `{{ dept_name | replace('`', '\\`') }}`;
+    const docTitle = `{{ document.title | replace('`', '\\`') }}`;
+
+    const prompt = `Act as an expert University Professor (${persona}). Your goal is to provide a "Model Answer" for the provided question paper that maximizes student understanding and exam scores.
+
+Psychological Formatting Rules (Crucial for Student Learning):
+1. Bottom-Line Up Front: Give the final answer/solution immediately before the detailed steps to reduce cognitive load.
+2. Chunking: Break complex derivations, theories, or processes into small, numbered steps. Avoid long paragraphs.
+3. The Isolation Effect: **Bold** all critical keywords, formulas, and technical terms so they stand out for quick memorization.
+4. Cognitive Ease: Use simple, plain English for explanations. If explaining math/code, write a brief "Why we do this" before the step to provide context.
+5. Visual Structure: Use Markdown tables for comparisons and clear headings (###) for sub-parts.
+
+Document Context:
+- Title: ${docTitle}
+- Subject: ${subjectName}
+- College/Board: ${collegeName}
+- Department: ${deptName}
+
+OCR Transcript of Question Paper:
+"""
+${ocrText}
+"""
+Note: The OCR text might contain scanning errors. Please intelligently correct any obvious typos or math OCR mistakes based on the context of the subject while answering.
+
+Task:
+Identify the main questions from the transcript above and solve them following the exact structure rules.`;
+    
+    // Copy prompt to clipboard
+    navigator.clipboard.writeText(prompt).then(() => {
+      alert(`Prompt & OCR copied! Please paste it in ${persona}.`);
+      
+      let targetUrl = '';
+      if (persona === 'ChatGPT') targetUrl = `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`;
+      else if (persona === 'Gemini') targetUrl = 'https://gemini.google.com/app';
+      else if (persona === 'Claude') targetUrl = 'https://claude.ai/new';
+      
+      if (targetUrl) window.open(targetUrl, '_blank');
+    }).catch(err => {
+      alert("Failed to copy prompt to clipboard. Please try again.");
+    });
+  };
+
+  window.askAI = async function() {
+    const inp = document.getElementById('aiQuestion');
+    const btn = document.getElementById('aiSendBtn');
+    const q = inp.value.trim();
+
+    if (!DOC_ID) {
+      addMsg('Document id missing (doc_id). Please refresh the page.', 'ai');
+      return;
+    }
+    if (!q) return;
+
+    inp.value = '';
+    btn.disabled = true;
+    btn.textContent = '...';
+    addMsg(q, 'user');
+    
+    let selectedModelElement = document.getElementById('aiModelSelect');
+    let selectedModel = selectedModelElement ? selectedModelElement.value : undefined;
+
+    try {
+      const res = await fetch('/api/ask-paper', {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({doc_id: DOC_ID, question: q, model: selectedModel})
+      });
+
+      // Try to read the response message even if it isn't JSON
+      let data = null;
+      try {
+        data = await res.json();
+      } catch (e) {
+        // ignore
+      }
+
+      if (!res.ok) {
+        const msg = data?.message || (data && typeof data === 'string' ? data : null) || `Request failed with ${res.status}`;
+        addMsg(msg, 'ai');
+        return;
+      }
+
+      addMsg(data?.success ? data.answer : (data?.message || 'Error. Try again.'), 'ai');
+    } catch(e) {
+      addMsg('Network error. Please try again.', 'ai');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Ask';
+    }
+  };
+})();
+</script>
+{% endif %}
+
+<!-- CTA -->
+<div style="background: linear-gradient(135deg, #f8fafc 0%, var(--r-bg) 100%); padding: 5rem 1.5rem; text-align: center; margin-top: 4rem;">
+  <h2 style="font-size: 2rem; font-weight: 800; margin-bottom: 1rem;">Was this file helpful?</h2>
+  <p style="color: #64748b; font-size: 1.1rem; max-width: 600px; margin: 0 auto 2rem;">Pay it forward! Upload your own notes, assignments, or practical files to help the next batch of students.</p>
+  <a href="{{ url_for('upload') }}" style="display:inline-block; padding: 1rem 2rem; background: var(--r-primary); color: white; border-radius: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 20px rgba(245,158,11,0.2);" data-feature="Resource Upload CTA">📤 Upload a File</a>
+</div>
+
+{% endblock %}

@@ -1,3 +1,4 @@
+{% set seo_description = "Get in touch with the AbhiHub team. Contact us for support, feedback, feature requests, or business inquiries regarding our college study resources platform." %}
 {% extends 'p_struct.html' %}
 {% block content %}
 
@@ -171,6 +172,7 @@
         <div class="contact-card animate-fade-up delay-1">
             <h2 class="text-2xl font-bold text-slate-900 mb-8 text-center">Send us a Message</h2>
             <form id="contactForm" class="space-y-6">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label for="name" class="form-label">Full Name</label>
@@ -284,12 +286,38 @@
 </div>
 
 <script>
-    document.getElementById('contactForm').addEventListener('submit', function (e) {
+    document.getElementById('contactForm').addEventListener('submit', async function (e) {
         e.preventDefault();
         const name = document.getElementById('name').value;
-        if (name) {
-            alert('Thank you, ' + name + '! Your message has been sent successfully.');
-            this.reset();
+        const email = document.getElementById('email').value;
+        const subject = document.getElementById('subject').value;
+        const message = document.getElementById('message').value;
+        
+        const btn = this.querySelector('button[type="submit"]');
+        const origText = btn.innerHTML;
+        btn.innerHTML = "Sending...";
+        btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/contact', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, subject, message })
+            });
+            const data = await res.json();
+            
+            if (data.success) {
+                alert('Thank you, ' + name + '! Your message has been sent successfully.');
+                this.reset();
+            } else {
+                alert('Failed to send message: ' + (data.error || 'Unknown error'));
+            }
+        } catch (error) {
+            console.error(error);
+            alert('A network error occurred. Please try again.');
+        } finally {
+            btn.innerHTML = origText;
+            btn.disabled = false;
         }
     });
 </script>
