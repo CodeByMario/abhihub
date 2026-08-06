@@ -172,7 +172,7 @@ async function viewPeerDetail(userId) {
       upEl.innerHTML = data.uploads.map(item => `
         <div class="peer-item-card">
           <div><strong>📄 ${item['file-name']}</strong> <br><small style="color:#64748b;">${item.subject} • ${item.type}</small></div>
-          <a href="/pdf/${encodeURIComponent(item['file-path'])}?id=${item.record_id}" target="_blank" style="color:#4f46e5; font-weight:700; text-decoration:none;">View 👁</a>
+          <a href="/pdf-proxy/${encodeURIComponent(item['file-path'])}?id=${item.record_id}" target="_blank" style="color:#4f46e5; font-weight:700; text-decoration:none;">View 👁</a>
         </div>
       `).join('');
     }
@@ -186,7 +186,7 @@ async function viewPeerDetail(userId) {
       refEl.innerHTML = data.referred.map(item => `
         <div class="peer-item-card">
           <div><strong>📖 ${item['file-name']}</strong> <br><small style="color:#64748b;">${item.subject} • ${item.type}</small></div>
-          <a href="/pdf/${encodeURIComponent(item['file-path'])}?id=${item.record_id}" target="_blank" style="color:#4f46e5; font-weight:700; text-decoration:none;">View 👁</a>
+          <a href="/pdf-proxy/${encodeURIComponent(item['file-path'])}?id=${item.record_id}" target="_blank" style="color:#4f46e5; font-weight:700; text-decoration:none;">View 👁</a>
         </div>
       `).join('');
     }

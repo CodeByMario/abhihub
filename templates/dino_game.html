@@ -1,69 +1,146 @@
 <style>
-    /* Game Container */
     .dino-game-container {
-        font-family: 'Courier New', Courier, monospace;
-        text-align: center;
+        font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
         margin: 20px auto;
         width: 100%;
-        max-width: 600px;
+        max-width: 640px;
         position: relative;
         overflow: hidden;
-        background-color: #87CEEB;
-        /* Sky Blue */
-        border-radius: 8px;
-        padding: 10px;
-        box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.1);
+        background: linear-gradient(180deg, #8ed8ff 0%, #dff7ff 100%);
+        border-radius: 20px;
+        padding: 16px;
+        box-shadow: 0 16px 40px rgba(0, 0, 0, 0.18);
         border: 4px solid #4a3b2a;
     }
 
+    .game-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 12px;
+        margin-bottom: 12px;
+        flex-wrap: wrap;
+    }
+
+    .game-title {
+        font-size: 24px;
+        font-weight: 800;
+        color: #ffffff;
+        text-transform: uppercase;
+        letter-spacing: 1px;
+        text-shadow: 2px 2px 0 #1f3f6b;
+    }
+
+    .game-subtitle {
+        color: #17406c;
+        font-size: 13px;
+        margin-top: 4px;
+        font-weight: 600;
+    }
+
+    .hud {
+        display: flex;
+        gap: 8px;
+        flex-wrap: wrap;
+    }
+
+    .hud-pill {
+        background: rgba(255, 255, 255, 0.95);
+        color: #153b5e;
+        padding: 8px 12px;
+        border-radius: 999px;
+        font-size: 13px;
+        font-weight: 700;
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.08);
+    }
+
+    .game-canvas-shell {
+        position: relative;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 3px solid rgba(255, 255, 255, 0.6);
+        box-shadow: inset 0 0 0 2px rgba(0, 0, 0, 0.06);
+    }
+
     #gameCanvas {
-        background-color: transparent;
         display: block;
         margin: 0 auto;
+        width: 100%;
+        height: auto;
+        background: transparent;
+        touch-action: manipulation;
     }
 
     .game-message {
         position: absolute;
-        top: 50%;
-        left: 50%;
-        transform: translate(-50%, -50%);
-        font-size: 24px;
-        color: #fff;
+        inset: 0;
         display: none;
-        background: rgba(0, 0, 0, 0.8);
-        padding: 20px 30px;
-        border-radius: 12px;
-        box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
-        text-shadow: 2px 2px 0 #000;
-        border: 2px solid #fff;
+        align-items: center;
+        justify-content: center;
+        background: rgba(8, 20, 35, 0.62);
+        backdrop-filter: blur(6px);
         z-index: 10;
-        width: 80%;
+        padding: 16px;
     }
 
-    .score-display {
-        position: absolute;
-        top: 15px;
-        right: 20px;
-        font-size: 20px;
-        color: #fff;
-        font-weight: bold;
-        text-shadow: 2px 2px 0 #000;
-        font-family: 'Impact', 'Arial Black', sans-serif;
+    .message-card {
+        background: linear-gradient(135deg, #ffffff 0%, #f7fbff 100%);
+        color: #153b5e;
+        border-radius: 18px;
+        padding: 20px 24px;
+        width: min(90%, 320px);
+        text-align: center;
+        box-shadow: 0 12px 30px rgba(0, 0, 0, 0.24);
+        border: 2px solid rgba(255, 255, 255, 0.75);
+    }
+
+    .message-title {
+        font-size: 24px;
+        font-weight: 800;
+        margin: 0 0 8px;
+        color: #ef4444;
+        text-transform: uppercase;
         letter-spacing: 1px;
     }
 
-    .controls-hint {
-        color: #fff;
+    .message-subtitle {
         font-size: 14px;
-        margin-top: 10px;
-        text-shadow: 1px 1px 0 #000;
-        font-weight: bold;
+        line-height: 1.5;
+        margin: 0 0 14px;
+        color: #33516f;
     }
 
-    /* Mobile controls */
+    .game-button {
+        background: linear-gradient(135deg, #ff5b5b 0%, #ff2d2d 100%);
+        color: white;
+        border: none;
+        padding: 10px 18px;
+        border-radius: 999px;
+        font-size: 14px;
+        font-weight: 700;
+        cursor: pointer;
+        box-shadow: 0 8px 16px rgba(255, 45, 45, 0.25);
+    }
+
+    .game-footer {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        gap: 10px;
+        margin-top: 10px;
+        flex-wrap: wrap;
+    }
+
+    .controls-hint {
+        color: #17406c;
+        font-size: 13px;
+        text-shadow: none;
+        font-weight: 700;
+    }
+
     .mobile-controls {
         display: none;
-        margin-top: 15px;
+        margin-left: auto;
     }
 
     @media (pointer: coarse) {
@@ -77,31 +154,47 @@
     }
 
     .jump-btn {
-        background: #ff3333;
+        background: linear-gradient(135deg, #ff5b5b 0%, #ff2d2d 100%);
         color: white;
-        border: 2px solid #fff;
-        padding: 12px 30px;
-        border-radius: 25px;
-        font-size: 18px;
-        font-weight: bold;
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+        border: none;
+        padding: 10px 20px;
+        border-radius: 999px;
+        font-size: 15px;
+        font-weight: 800;
+        box-shadow: 0 8px 16px rgba(255, 45, 45, 0.25);
         text-transform: uppercase;
-        font-family: 'Impact', sans-serif;
-        letter-spacing: 1px;
+        letter-spacing: 0.5px;
     }
 </style>
 
 <div class="dino-game-container">
-    <canvas id="gameCanvas" width="600" height="200"></canvas>
-    <div class="score-display">MARIO SCORE: <span id="score">0</span></div>
-    <div class="game-message" id="gameMessage">
-        <p style="font-size: 32px; margin-bottom: 10px; color: #ff3333; font-family: Impact;">nana chi tang</p>
-        <p style="font-size: 16px;">Press Space / Tap to Restart</p>
+    <div class="game-header">
+        <div>
+            <div class="game-title">AbhiHub Jump</div>
+            <div class="game-subtitle">Dodge the obstacles and chase a fresh high score.</div>
+        </div>
+        <div class="hud">
+            <div class="hud-pill">Score <span id="score">0</span></div>
+            <div class="hud-pill">Best <span id="bestScore">0</span></div>
+        </div>
     </div>
-    <div class="controls-hint">Press Space to Jump</div>
 
-    <div class="mobile-controls">
-        <button class="jump-btn" id="mobileJumpBtn">JUMP!</button>
+    <div class="game-canvas-shell">
+        <canvas id="gameCanvas" width="600" height="200"></canvas>
+        <div class="game-message" id="gameMessage">
+            <div class="message-card">
+                <p class="message-title" id="messageTitle">Ready to Jump?</p>
+                <p class="message-subtitle" id="messageText">Press Space or tap to start your run.</p>
+                <button class="game-button" id="restartBtn">Start Game</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="game-footer">
+        <div class="controls-hint">Press Space / ↑ to Jump</div>
+        <div class="mobile-controls">
+            <button class="jump-btn" id="mobileJumpBtn">JUMP</button>
+        </div>
     </div>
 </div>
 
@@ -110,25 +203,23 @@
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const scoreElement = document.getElementById('score');
+        const bestScoreElement = document.getElementById('bestScore');
         const messageElement = document.getElementById('gameMessage');
+        const messageTitle = document.getElementById('messageTitle');
+        const messageText = document.getElementById('messageText');
+        const restartBtn = document.getElementById('restartBtn');
         const mobileJumpBtn = document.getElementById('mobileJumpBtn');
 
-        // Game Constants
         const GRAVITY = 0.6;
         const JUMP_FORCE = -11;
-        const GROUND_Y = 140; // Raised to make ground visible
+        const GROUND_Y = 140;
         const MARIO_WIDTH = 30;
         const MARIO_HEIGHT = 40;
 
-        // Colors
-        const C_SKY = '#87CEEB';
-        const C_GROUND = '#5C94FC'; // Classic Mario Ground Blue-ish or plain brick color
-        const C_BRICK = '#B85C38';
-
-        // Game State
         let gameRunning = false;
         let gameSpeed = 5;
         let score = 0;
+        let bestScore = Number(localStorage.getItem('abhihubDinoBestScore') || 0);
         let frames = 0;
         let obstacles = [];
         let animationId;
@@ -136,7 +227,6 @@
         let jumpTextTimer = 0;
         let nextSpawnFrame = 0;
 
-        // Mario Object
         const mario = {
             x: 50,
             y: GROUND_Y,
@@ -146,87 +236,68 @@
             grounded: true,
 
             draw: function () {
-                // Pixel Art Style Mario (Simplified)
                 const x = this.x;
                 const y = this.y;
 
-                // Color Palette
                 const red = '#FF0000';
                 const blue = '#0000FF';
                 const skin = '#FFCC99';
                 const brown = '#663300';
 
-                // Hat
                 ctx.fillStyle = red;
                 ctx.fillRect(x, y, 30, 8);
-                ctx.fillRect(x + 10, y + 8, 20, 2); // Brim
+                ctx.fillRect(x + 10, y + 8, 20, 2);
 
-                // Face
                 ctx.fillStyle = skin;
                 ctx.fillRect(x + 5, y + 8, 20, 10);
 
-                // Mustache
                 ctx.fillStyle = '#000';
                 ctx.fillRect(x + 18, y + 14, 8, 2);
-                ctx.fillRect(x + 16, y + 16, 4, 2); // Nose/Mustache
+                ctx.fillRect(x + 16, y + 16, 4, 2);
 
-                // Shirt/Body
                 ctx.fillStyle = red;
                 ctx.fillRect(x + 5, y + 18, 20, 12);
 
-                // Overalls
                 ctx.fillStyle = blue;
                 ctx.fillRect(x + 5, y + 25, 20, 10);
-                // Straps
                 ctx.fillRect(x + 5, y + 18, 4, 8);
                 ctx.fillRect(x + 21, y + 18, 4, 8);
 
-                // Arms (moving)
                 ctx.fillStyle = red;
                 if (this.grounded) {
-                    // Swing arms
                     if (Math.floor(frames / 10) % 2 === 0) {
-                        ctx.fillRect(x - 4, y + 20, 8, 8); // Left back
-                        ctx.fillRect(x + 22, y + 20, 8, 8); // Right fwd
+                        ctx.fillRect(x - 4, y + 20, 8, 8);
+                        ctx.fillRect(x + 22, y + 20, 8, 8);
                     } else {
-                        ctx.fillRect(x, y + 20, 8, 8); // Left fwd
-                        ctx.fillRect(x + 25, y + 20, 8, 8); // Right back
+                        ctx.fillRect(x, y + 20, 8, 8);
+                        ctx.fillRect(x + 25, y + 20, 8, 8);
                     }
                 } else {
-                    // Jump pose
-                    ctx.fillRect(x - 2, y + 15, 8, 8); // Arm up
+                    ctx.fillRect(x - 2, y + 15, 8, 8);
                 }
 
-                // Boots
                 ctx.fillStyle = brown;
-                // Simple run animation
                 if (this.grounded) {
                     if (Math.floor(frames / 8) % 2 === 0) {
-                        ctx.fillRect(x + 2, y + 35, 10, 5); // Left
-                        ctx.fillRect(x + 18, y + 35, 10, 5); // Right
+                        ctx.fillRect(x + 2, y + 35, 10, 5);
+                        ctx.fillRect(x + 18, y + 35, 10, 5);
                     } else {
-                        ctx.fillRect(x - 2, y + 32, 10, 5); // Left up
-                        ctx.fillRect(x + 22, y + 32, 10, 5); // Right up
+                        ctx.fillRect(x - 2, y + 32, 10, 5);
+                        ctx.fillRect(x + 22, y + 32, 10, 5);
                     }
                 } else {
-                    // Jump pose
                     ctx.fillRect(x + 5, y + 32, 10, 6);
                     ctx.fillRect(x + 20, y + 35, 8, 5);
                 }
 
-                // Draw Jump Text "AbhiHub"
                 if (jumpTextTimer > 0) {
-                    ctx.fillStyle = '#FFDD00'; // Gold
+                    ctx.fillStyle = '#FFDD00';
                     ctx.font = 'bold 16px Impact';
                     ctx.strokeStyle = '#000';
                     ctx.lineWidth = 1;
-                    ctx.shadowColor = '#000';
-                    ctx.shadowBlur = 0;
-
-                    const textY = this.y - 15 - (30 - jumpTextTimer); // Move up slightly
-                    ctx.fillText("AbhiHub", this.x - 10, textY);
-                    ctx.strokeText("AbhiHub", this.x - 10, textY);
-
+                    const textY = this.y - 15 - (30 - jumpTextTimer);
+                    ctx.fillText('AbhiHub', this.x - 10, textY);
+                    ctx.strokeText('AbhiHub', this.x - 10, textY);
                     jumpTextTimer--;
                 }
             },
@@ -235,16 +306,14 @@
                 if (this.grounded) {
                     this.dy = JUMP_FORCE;
                     this.grounded = false;
-                    jumpTextTimer = 30; // Show text for ~30 frames
+                    jumpTextTimer = 30;
                 }
             },
 
             update: function () {
-                // Apply Gravity
                 this.dy += GRAVITY;
                 this.y += this.dy;
 
-                // Ground Collision
                 if (this.y > GROUND_Y) {
                     this.y = GROUND_Y;
                     this.dy = 0;
@@ -255,10 +324,8 @@
             }
         };
 
-        // Obstacle Class
         class Obstacle {
             constructor() {
-                // 50% Chance of Tortoise ("Koopa") or Plant ("Piranha")
                 this.type = Math.random() > 0.5 ? 'plant' : 'tortoise';
 
                 if (this.type === 'plant') {
@@ -266,14 +333,12 @@
                     this.height = 45;
                 } else {
                     this.width = 35;
-                    this.height = 30; // Shorter
+                    this.height = 30;
                 }
 
                 this.x = canvas.width;
                 this.y = GROUND_Y + MARIO_HEIGHT - this.height;
                 this.passed = false;
-
-                // Animation offset
                 this.frameOffset = Math.floor(Math.random() * 10);
             }
 
@@ -282,68 +347,52 @@
                 const y = this.y;
 
                 if (this.type === 'plant') {
-                    // Piranha Plant
-
-                    // Pipe
-                    ctx.fillStyle = '#00aa00'; // Dark Green Pipe
-                    ctx.fillRect(x, y + 25, 30, 20); // Pipe Body
-                    ctx.fillStyle = '#00dd00'; // Light Green Highlight
+                    ctx.fillStyle = '#00aa00';
+                    ctx.fillRect(x, y + 25, 30, 20);
+                    ctx.fillStyle = '#00dd00';
                     ctx.fillRect(x + 2, y + 25, 4, 20);
-                    ctx.fillStyle = '#008800'; // Pipe Rim
+                    ctx.fillStyle = '#008800';
                     ctx.fillRect(x - 2, y + 20, 34, 10);
 
-                    // Head
-                    ctx.fillStyle = '#FF0000'; // Red
-                    // Open/Close mouth animation
-                    let bite = (Math.floor((frames + this.frameOffset) / 15) % 2 === 0);
+                    ctx.fillStyle = '#FF0000';
+                    const bite = Math.floor((frames + this.frameOffset) / 15) % 2 === 0;
 
                     if (bite) {
-                        // Closed
                         ctx.beginPath();
                         ctx.arc(x + 15, y + 10, 15, 0, Math.PI * 2);
                         ctx.fill();
                     } else {
-                        // Open
                         ctx.beginPath();
                         ctx.arc(x + 15, y + 10, 15, 0.2, Math.PI * 1.8);
                         ctx.lineTo(x + 15, y + 10);
                         ctx.fill();
                     }
 
-                    // Spots
                     ctx.fillStyle = '#FFF';
                     ctx.beginPath();
                     ctx.arc(x + 10, y + 5, 3, 0, Math.PI * 2);
                     ctx.fill();
-
-
                 } else {
-                    // Tortoise (Koopa Troopa)
-
-                    // Shell
-                    ctx.fillStyle = '#00AA00'; // Green Shell
+                    ctx.fillStyle = '#00AA00';
                     ctx.beginPath();
                     ctx.ellipse(x + 17, y + 15, 12, 10, 0, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // Head
-                    ctx.fillStyle = '#FFCC00'; // Yellow Skin
+                    ctx.fillStyle = '#FFCC00';
                     ctx.beginPath();
                     ctx.arc(x + 8, y + 10, 8, 0, Math.PI * 2);
                     ctx.fill();
 
-                    // Eye
                     ctx.fillStyle = '#000';
                     ctx.fillRect(x + 4, y + 8, 2, 2);
 
-                    // Legs - walking animation
                     ctx.fillStyle = '#FFCC00';
                     if (Math.floor((frames + this.frameOffset) / 10) % 2 === 0) {
-                        ctx.fillRect(x + 10, y + 22, 6, 8); // Front leg
-                        ctx.fillRect(x + 22, y + 22, 6, 8); // Back leg
+                        ctx.fillRect(x + 10, y + 22, 6, 8);
+                        ctx.fillRect(x + 22, y + 22, 6, 8);
                     } else {
-                        ctx.fillRect(x + 6, y + 22, 6, 8); // Front leg move
-                        ctx.fillRect(x + 26, y + 22, 6, 8); // Back leg move
+                        ctx.fillRect(x + 6, y + 22, 6, 8);
+                        ctx.fillRect(x + 26, y + 22, 6, 8);
                     }
                 }
             }
@@ -354,36 +403,52 @@
             }
         }
 
+        function drawBackground() {
+            const skyGradient = ctx.createLinearGradient(0, 0, 0, canvas.height);
+            skyGradient.addColorStop(0, '#8ed8ff');
+            skyGradient.addColorStop(1, '#f7fbff');
+            ctx.fillStyle = skyGradient;
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = '#ffd166';
+            ctx.beginPath();
+            ctx.arc(480, 50, 28, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.fillStyle = '#79c77a';
+            ctx.beginPath();
+            ctx.moveTo(0, 150);
+            ctx.quadraticCurveTo(120, 90, 220, 150);
+            ctx.quadraticCurveTo(320, 210, 440, 150);
+            ctx.quadraticCurveTo(520, 110, 600, 150);
+            ctx.lineTo(600, 200);
+            ctx.lineTo(0, 200);
+            ctx.closePath();
+            ctx.fill();
+        }
+
         function drawGround() {
-            // Ground starts at Mario's feet
             const groundY = GROUND_Y + MARIO_HEIGHT;
 
-            // Draw Grass Top Layer
-            ctx.fillStyle = '#32CD32'; // Lime Green
+            ctx.fillStyle = '#32CD32';
             ctx.fillRect(0, groundY, canvas.width, 20);
 
-            // Draw Dirt Bottom Layer
-            ctx.fillStyle = '#8B4513'; // Saddle Brown
+            ctx.fillStyle = '#8B4513';
             ctx.fillRect(0, groundY + 12, canvas.width, canvas.height - (groundY + 12));
 
-            // Moving ground effect
             groundOffset = (groundOffset - gameSpeed) % 40;
 
-            // Draw details
             for (let i = groundOffset - 40; i < canvas.width; i += 40) {
-                // Grass pattern / highlights
-                ctx.fillStyle = '#228B22'; // Forest Green
+                ctx.fillStyle = '#228B22';
                 ctx.fillRect(i + 5, groundY, 4, 10);
                 ctx.fillRect(i + 20, groundY + 2, 4, 8);
 
-                // Dirt specs
-                ctx.fillStyle = '#A0522D'; // Sienna
+                ctx.fillStyle = '#A0522D';
                 ctx.fillRect(i + 10, groundY + 16, 6, 4);
                 ctx.fillRect(i + 30, groundY + 18, 4, 2);
             }
 
-            // Top border line
-            ctx.fillStyle = '#006400'; // DarkGreen
+            ctx.fillStyle = '#006400';
             ctx.fillRect(0, groundY, canvas.width, 2);
         }
 
@@ -407,6 +472,22 @@
             ctx.fill();
         }
 
+        function updateHud() {
+            scoreElement.textContent = score;
+            bestScoreElement.textContent = bestScore;
+        }
+
+        function showMessage(title, text, buttonText) {
+            messageTitle.textContent = title;
+            messageText.textContent = text;
+            restartBtn.textContent = buttonText;
+            messageElement.style.display = 'flex';
+        }
+
+        function hideMessage() {
+            messageElement.style.display = 'none';
+        }
+
         function initGame() {
             gameRunning = true;
             score = 0;
@@ -417,28 +498,22 @@
             mario.dy = 0;
             mario.grounded = true;
             jumpTextTimer = 0;
-            messageElement.style.display = 'none';
-            scoreElement.textContent = score;
-            nextSpawnFrame = 50; // Initial spawn delay
+            nextSpawnFrame = 50;
+            hideMessage();
+            updateHud();
             loop();
         }
 
         function spawnObstacles() {
-            // Improved Spawning Logic
             if (frames >= nextSpawnFrame) {
                 obstacles.push(new Obstacle());
 
-                // Calculate next spawn time
-                // Random interval between 60 and 150 frames (approx 1-2.5 seconds)
-                // Decreases as game speed increases to keep difficulty balanced but engaging
                 const minDelay = 60;
                 const maxDelay = 150 - (gameSpeed * 2);
                 const delay = Math.floor(Math.random() * (maxDelay - minDelay + 1)) + minDelay;
-
                 nextSpawnFrame = frames + delay;
             }
 
-            // Basic difficulty increase
             if (frames % 500 === 0 && gameSpeed < 12) {
                 gameSpeed += 0.5;
             }
@@ -469,16 +544,22 @@
         }
 
         function gameOver() {
+            if (!gameRunning) return;
             gameRunning = false;
             cancelAnimationFrame(animationId);
-            messageElement.style.display = 'block';
+            if (score > bestScore) {
+                bestScore = score;
+                localStorage.setItem('abhihubDinoBestScore', String(bestScore));
+            }
+            updateHud();
+            showMessage('Game Over', 'Nice run! Press space or tap to jump back in.', 'Play Again');
         }
 
         function loop() {
             if (!gameRunning) return;
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-
+            drawBackground();
             drawClouds();
             drawGround();
 
@@ -492,7 +573,6 @@
             }
 
             mario.update();
-
             checkCollision();
             updateScore();
 
@@ -502,43 +582,44 @@
         }
 
         function handleInput(e) {
-            if ((e.code === 'Space' || e.code === 'ArrowUp') && gameRunning) {
-                e.preventDefault();
-                mario.jump();
-            }
-            if ((e.code === 'Space' || e.code === 'ArrowUp') && !gameRunning) {
-                e.preventDefault();
+            const isJumpKey = e.code === 'Space' || e.code === 'ArrowUp' || e.code === 'KeyW';
+            if (!isJumpKey) return;
+            e.preventDefault();
+            if (!gameRunning) {
                 initGame();
+            } else {
+                mario.jump();
             }
         }
 
         function handleTouch(e) {
-            if (e.target.closest('.jump-btn') || e.target.closest('canvas')) {
-                e.preventDefault();
-                if (gameRunning) {
-                    mario.jump();
-                } else {
-                    initGame();
-                }
+            e.preventDefault();
+            if (!gameRunning) {
+                initGame();
+            } else {
+                mario.jump();
             }
         }
 
         document.addEventListener('keydown', handleInput);
-        mobileJumpBtn.addEventListener('touchstart', handleTouch);
+        mobileJumpBtn.addEventListener('touchstart', handleTouch, { passive: false });
         mobileJumpBtn.addEventListener('click', handleTouch);
-        canvas.addEventListener('touchstart', handleTouch);
+        canvas.addEventListener('touchstart', handleTouch, { passive: false });
+        canvas.addEventListener('click', handleTouch);
+        restartBtn.addEventListener('click', initGame);
 
-        // Initial Draw
+        updateHud();
+        drawBackground();
         drawClouds();
         drawGround();
         mario.draw();
 
-        ctx.fillStyle = '#fff';
-        ctx.font = 'bold 20px Courier New';
-        ctx.strokeStyle = 'black';
+        ctx.fillStyle = '#ffffff';
+        ctx.font = 'bold 20px Trebuchet MS';
+        ctx.strokeStyle = '#16324f';
         ctx.lineWidth = 3;
-        ctx.strokeText("PRESS SPACE TO START", 180, 100);
-        ctx.fillText("PRESS SPACE TO START", 180, 100);
-
+        ctx.strokeText('PRESS SPACE TO START', 180, 100);
+        ctx.fillText('PRESS SPACE TO START', 180, 100);
+        showMessage('Ready to Jump?', 'Press Space or tap to begin your first run.', 'Start Game');
     })();
 </script>

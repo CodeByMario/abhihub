@@ -1,13 +1,7 @@
+{% set seo_title = 'AbhiHub - Engineering Exam Papers, PYQs & Study Resources' %}
+{% set seo_description = 'Find free engineering previous-year question papers, notes, practicals, and exam resources for colleges across India on AbhiHub.' %}
 {% extends 'p_struct.html' %}
-{% block content %}
-
-<head>
-  <meta name="description"
-    content="AbhiHub - The complete platform for organizing exam resources. Access {{ paper_count }} engineering papers, {{ notes_count }} study notes, and practicals. GHRCE PYQ, exam preparation materials, and more - all in one place.">
-  <meta name="keywords" content="{{ seo_keywords }}">
-  <link rel="canonical" href="https://abhihub.in/dashboard">
-  <meta name="theme-color" content="#ffffff">
-  <link rel="apple-touch-icon" href="{{ url_for('static', filename='premium/icons/icon-192x192.png') }}">
+{% block page_styles %}
   <style>
     :root {
       --glass-bg: rgba(255, 255, 255, 0.7);
@@ -350,7 +344,9 @@
 
     /* ... (Rest of popup styles integrated via p_profile or similar, kept minimal here for structure) ... */
   </style>
-</head>
+{% endblock %}
+
+{% block content %}
 
 <div class="hero-section">
   <div class="hero-bg-blob"></div>

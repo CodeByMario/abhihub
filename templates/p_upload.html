@@ -183,6 +183,15 @@
   </div>
 </div>
 
+          <!-- ── Material Requests Panel (for recipients) ── -->
+          <div id="materialRequestsPanel" class="requests-panel" style="position:fixed; right:20px; bottom:20px; width:360px; max-height:60vh; overflow:auto; background:#fff; border:1px solid #e6edf3; border-radius:12px; box-shadow:0 8px 30px rgba(2,6,23,0.08); display:none; z-index:99999;">
+            <div style="padding:12px; border-bottom:1px solid #f1f5f9; font-weight:700;">Incoming Requests</div>
+            <div id="requestsList" style="padding:10px;"></div>
+            <div style="padding:10px; text-align:center; border-top:1px solid #f1f5f9;"><button onclick="hideRequestsPanel()" class="xp-action-btn">Close</button></div>
+          </div>
+
+          <button id="showRequestsBtn" style="position:fixed; right:20px; bottom:100px; z-index:99999; background:#4f46e5; color:white; border:none; padding:10px 14px; border-radius:999px; box-shadow:0 6px 18px rgba(79,70,229,0.2);" title="Show material requests" onclick="toggleRequestsPanel()">Requests</button>
+
 <!-- ── Toast container ── -->
 <div id="toastContainer"></div>
 
@@ -317,6 +326,65 @@
       document.getElementById('uploadForm')?.reset();
       if (typeof selectedFiles !== 'undefined') { selectedFiles.length = 0; }
     }, 250);
+  }
+</script>
+<script>
+  async function fetchMaterialRequests() {
+    try {
+      const res = await fetch('/api/material-requests');
+      const data = await res.json();
+      if (!data.success) return;
+      const list = document.getElementById('requestsList');
+      if (!data.requests || data.requests.length === 0) {
+        list.innerHTML = '<div style="padding:8px; color:#64748b;">No pending requests</div>';
+        return;
+      }
+      list.innerHTML = data.requests.map(r => `
+        <div style="padding:8px; border-bottom:1px solid #f1f5f9;">
+          <div style="font-weight:700;">${r.requester_name || r.requester_email}</div>
+          <div style="font-size:0.9rem; color:#64748b;">Subject: ${r.subject}</div>
+          <div style="margin-top:6px; font-size:0.9rem;">${r.details || ''}</div>
+          <div style="margin-top:8px; display:flex; gap:8px;">
+            <button onclick="respondRequest('${r.id}', 'accept')" style="background:#10b981; color:white; border:none; padding:6px 8px; border-radius:8px;">Accept & Upload</button>
+            <button onclick="respondRequest('${r.id}', 'reject')" style="background:#ef4444; color:white; border:none; padding:6px 8px; border-radius:8px;">Reject</button>
+            <button onclick="prefillUploadForRequest('${r.id}', '${(r.subject||'').replace(/'/g,"\\'") }')" style="background:#6366f1; color:white; border:none; padding:6px 8px; border-radius:8px;">Upload File</button>
+          </div>
+        </div>
+      `).join('');
+    } catch(e) {
+      console.warn('Could not fetch requests', e);
+    }
+  }
+
+  function toggleRequestsPanel(){
+    const p = document.getElementById('materialRequestsPanel');
+    if(p.style.display==='none'){ p.style.display='block'; fetchMaterialRequests(); }
+    else p.style.display='none';
+  }
+  function hideRequestsPanel(){ document.getElementById('materialRequestsPanel').style.display='none'; }
+
+  async function respondRequest(id, action){
+    const msg = action === 'reject' ? prompt('Optional rejection message:','') : '';
+    try{
+      const res = await fetch('/api/material-request/respond', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id, action, message: msg})});
+      const d = await res.json();
+      alert(d.message || 'Done');
+      fetchMaterialRequests();
+    }catch(e){ alert('Failed to respond'); }
+  }
+
+  function prefillUploadForRequest(reqId, subject){
+    // Open upload form and store material_request_id so uploader can include it
+    toggleRequestsPanel();
+    document.getElementById('dropArea').scrollIntoView({behavior:'smooth'});
+    // Store request id in a hidden input; create if missing
+    let hid = document.getElementById('material_request_id_input');
+    if(!hid){ hid = document.createElement('input'); hid.type='hidden'; hid.name='material_request_id'; hid.id='material_request_id_input'; document.getElementById('uploadForm').appendChild(hid); }
+    hid.value = reqId;
+    // Optionally prefill subject field in first meta form if present
+    const subjSelect = document.querySelector('.meta-year') || null;
+    // Show a toast to notify
+    alert('Upload form prefilled for request: '+subject);
   }
 </script>
 

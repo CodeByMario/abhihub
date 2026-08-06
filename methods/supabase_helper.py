@@ -595,13 +595,6 @@ def save_file_record(
             description = json.dumps(desc_data)
         
         storage_provider = 'cloudinary' if cloudinary_public_id else 'firebase'
-        
-        # Duplicate Protection
-        if cloudinary_public_id:
-            dup_check = client.table('documents').select('id').eq('storage_provider', storage_provider).eq('provider_public_id', cloudinary_public_id).execute()
-            if dup_check.data:
-                print(f"[Supabase] Duplicate registration prevented for {storage_provider} ID: {cloudinary_public_id}")
-                return {'success': False, 'message': 'File is already labeled and registered in the system.', 'conflict': True}
 
         data = {
             'uploader_id': u_id,
@@ -620,6 +613,42 @@ def save_file_record(
             'exam_type': exam_type or None,
             'file_hash': file_hash
         }
+
+        # A legacy/bulk upload can already have a document row for this URL
+        # without the academic metadata.  Complete that row instead of trying
+        # to insert a duplicate URL.  A complete row is already in the
+        # verification/published workflow and must not be relabeled.
+        existing_by_url = client.table('documents') \
+            .select('id, college_id, department_id, subject_id, title, document_category') \
+            .eq('file_url', file_url) \
+            .limit(1) \
+            .execute()
+        if existing_by_url.data:
+            existing = existing_by_url.data[0]
+            is_labeled = all(existing.get(field) for field in (
+                'college_id', 'department_id', 'subject_id', 'title', 'document_category'
+            ))
+            if is_labeled:
+                print(f"[Supabase] Duplicate registration prevented for URL: {file_url}")
+                return {
+                    'success': False,
+                    'message': 'File is already labeled and registered in the system.',
+                    'conflict': True,
+                    'data': existing
+                }
+
+            update_res = client.table('documents').update(data).eq('id', existing['id']).execute()
+            if update_res.data:
+                print(f"[Supabase] Completed metadata for existing document: {existing['id']}")
+                return {'success': True, 'message': 'Existing file metadata updated', 'data': update_res.data[0]}
+            return {'success': False, 'message': 'Failed to update existing file record'}
+        # Duplicate protection for the same physical provider asset, even if
+        # its URL changed after a Cloudinary transformation or delivery update.
+        if cloudinary_public_id:
+            dup_check = client.table('documents').select('id').eq('storage_provider', storage_provider).eq('provider_public_id', cloudinary_public_id).execute()
+            if dup_check.data:
+                print(f"[Supabase] Duplicate registration prevented for {storage_provider} ID: {cloudinary_public_id}")
+                return {'success': False, 'message': 'File is already labeled and registered in the system.', 'conflict': True, 'data': dup_check.data[0]}
         
         print(f"[Supabase] Inserting document: {data.get('title')}")
         res = client.table('documents').insert(data).execute()
@@ -710,7 +739,7 @@ def get_registered_storage_ids() -> set:
         return set()
 
 def get_pending_storage_assets() -> list:
-    """Fetch all pending files directly from the storage_assets index table."""
+    """Fetch files that still need labeling from the storage index."""
     client = init_supabase()
     if not client: return []
     try:
@@ -2069,22 +2098,28 @@ def get_user_peer_materials_db(target_user_id: str) -> dict:
             })
 
         # 3. Fetch user's referred materials (recently accessed file history)
-        history_res = client.table('user_file_views').select('file_id, created_at, documents(id, title, file_url, document_category, subjects(name))').eq('user_id', target_user_id).order('created_at', desc=True).limit(15).execute()
         referred = []
-        seen_ids = set()
-        for h in (history_res.data or []):
-            doc = h.get('documents') or {}
-            doc_id = doc.get('id')
-            if not doc_id or doc_id in seen_ids: continue
-            seen_ids.add(doc_id)
-            subj = doc.get('subjects') or {}
-            referred.append({
-                'record_id': doc_id,
-                'file-name': doc.get('title'),
-                'file-path': doc.get('file_url'),
-                'type': doc.get('document_category') or 'Notes',
-                'subject': subj.get('name', 'General')
-            })
+        try:
+            history_res = client.table('user_file_views')\
+                .select('file_id, created_at, documents(id, title, file_url, document_category, subjects(name))')\
+                .eq('user_id', target_user_id).order('created_at', desc=True).limit(15).execute()
+            seen_ids = set()
+            for h in (history_res.data or []):
+                doc = h.get('documents') or {}
+                doc_id = doc.get('id')
+                if not doc_id or doc_id in seen_ids: continue
+                seen_ids.add(doc_id)
+                subj = doc.get('subjects') or {}
+                referred.append({
+                    'record_id': doc_id,
+                    'file-name': doc.get('title'),
+                    'file-path': doc.get('file_url'),
+                    'type': doc.get('document_category') or 'Notes',
+                    'subject': subj.get('name', 'General')
+                })
+        except Exception as e:
+            # Table may not exist in some deployments; log and continue with empty referred list
+            print(f"[PeerMaterialsDB] History query skipped: {e}")
 
         return {
             'success': True,

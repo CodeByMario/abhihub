@@ -1174,6 +1174,7 @@ def label_store_room_paper():
     Label a paper from store room and save to file_records table.
     Expects JSON with: filename, url, college_name, subject_name, branch, year, exam_type, etc.
     """
+    global _unlabeled_cache
     try:
         # Get user info from session
         user_info = session.get('user', {})
@@ -1244,15 +1245,21 @@ def label_store_room_paper():
         print(f"[STORE_ROOM_LABEL] User: {user_email}, File: {filename}")
         print(f"[STORE_ROOM_LABEL] College:{college_id} Branch:{branch_id} Subject:{subject_id} Sem:{semester}")
 
-        # Extract cloudinary_public_id from URL
-        cloudinary_public_id = filename
-        if 'cloudinary.com' in file_url:
+        # Use the storage index identifier when supplied by the Store Room.
+        # Parsing a Cloudinary URL can include a version segment and leave the
+        # asset status as PENDING even though its document was saved.
+        storage_provider = (data.get('storage_provider') or '').strip().lower()
+        cloudinary_public_id = (data.get('provider_public_id') or '').strip()
+        if not cloudinary_public_id and 'cloudinary.com' in file_url:
             parts = file_url.split('/')
             if 'upload' in parts:
                 idx = parts.index('upload')
                 if idx + 1 < len(parts):
                     p_id_ext = '/'.join(parts[idx + 1:])
+                    p_id_ext = re.sub(r'^v\d+/', '', p_id_ext)
                     cloudinary_public_id = p_id_ext.rsplit('.', 1)[0]
+        if not cloudinary_public_id:
+            cloudinary_public_id = filename
 
         file_ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'jpg'
         file_type = 'pdf' if file_ext == 'pdf' else 'image'
@@ -1285,7 +1292,7 @@ def label_store_room_paper():
             
             # 1. Update storage_assets status to LABELED
             from methods.supabase_helper import mark_storage_asset_labeled, log_label_audit
-            storage_provider = 'cloudinary' if cloudinary_public_id else 'firebase'
+            storage_provider = storage_provider or ('cloudinary' if cloudinary_public_id else 'firebase')
             if cloudinary_public_id:
                 mark_storage_asset_labeled(storage_provider, cloudinary_public_id)
             
@@ -1300,7 +1307,6 @@ def label_store_room_paper():
                 )
             
             # Invalidate the unlabeled files cache
-            global _unlabeled_cache
             _unlabeled_cache['data'] = None
             
             return jsonify({
@@ -1310,6 +1316,20 @@ def label_store_room_paper():
             }), 200
         else:
             print(f"[STORE_ROOM_LABEL] ERROR: {result.get('message')}")
+            # A pre-existing, fully labeled document can still have an old
+            # PENDING storage row.  Clear that stale queue row so it is not
+            # presented for labeling again.
+            if result.get('conflict'):
+                from methods.supabase_helper import mark_storage_asset_labeled
+                storage_provider = storage_provider or ('cloudinary' if cloudinary_public_id else 'firebase')
+                if cloudinary_public_id:
+                    mark_storage_asset_labeled(storage_provider, cloudinary_public_id)
+                _unlabeled_cache['data'] = None
+                return jsonify({
+                    'success': True,
+                    'message': 'File was already labeled and has been removed from the Store Room queue.',
+                    'data': result.get('data', {})
+                }), 200
             status_code = 409 if result.get('conflict') else 500
             return jsonify({
                 'success': False,
@@ -1769,6 +1789,24 @@ def upload():
                 })
             except Exception:
                 pass
+
+            # If this upload was in response to a material request, mark the request accepted
+            try:
+                material_request_id = request.form.get('material_request_id')
+                if material_request_id:
+                    from methods.supabase_helper import init_supabase
+                    client = init_supabase()
+                    if client:
+                        client.table('material_requests').update({
+                            'status': 'accepted',
+                            'responder_id': user_id,
+                            'responder_email': user_email,
+                            'response_message': f"Uploaded file {file_record_result.get('data', {}).get('id')}",
+                            'response_document_id': file_record_result.get('data', {}).get('id'),
+                            'responded_at': 'now()'
+                        }).eq('id', material_request_id).execute()
+            except Exception as _e:
+                print(f"[UPLOAD] Warning: could not mark material_request accepted: {_e}")
 
             _grant_upload_credits()
 
@@ -4759,9 +4797,100 @@ def api_request_material():
         print(f"[RequestMaterial] DB insert error (non-fatal): {e}")
 
     return jsonify({
-        'success': True, 
-        'message': f"Request sent to student! They will be notified via email."
-    })
+        'success': True,
+        'message': 'Request sent to the student'
+    }), 200
+
+
+@app.route('/api/material-requests', methods=['GET'])
+@auth_required
+def api_get_material_requests():
+    """Return pending material requests for the logged-in user."""
+    user = session.get('user', {})
+    uid = user.get('uid')
+    if not uid:
+        return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+
+    try:
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'message': 'DB unavailable'}), 500
+
+        # Try to select requester profile inline; fallback to simple select if it fails
+        try:
+            res = client.table('material_requests')\
+                .select('id, requester_id, target_user_id, subject, details, status, created_at, profiles!material_requests_requester_id_fkey(full_name,email)')\
+                .eq('target_user_id', uid).order('created_at', desc=True).execute()
+        except Exception:
+            res = client.table('material_requests')\
+                .select('id, requester_id, target_user_id, subject, details, status, created_at')\
+                .eq('target_user_id', uid).order('created_at', desc=True).execute()
+
+        items = []
+        for r in (res.data or []):
+            requester = r.get('profiles') or {}
+            items.append({
+                'id': r.get('id'),
+                'requester_id': r.get('requester_id'),
+                'requester_name': requester.get('full_name') or requester.get('name') or '',
+                'requester_email': requester.get('email') or '',
+                'subject': r.get('subject'),
+                'details': r.get('details'),
+                'status': r.get('status'),
+                'created_at': str(r.get('created_at') or '')
+            })
+
+        return jsonify({'success': True, 'requests': items}), 200
+    except Exception as e:
+        print(f"[MaterialRequests] Error: {e}")
+        return jsonify({'success': False, 'message': 'Server error'}), 500
+
+
+@app.route('/api/material-request/respond', methods=['POST'])
+@auth_required
+def api_respond_material_request():
+    data = request.get_json() or {}
+    req_id = data.get('id')
+    action = data.get('action')  # 'accept' or 'reject'
+    message = data.get('message', '').strip()
+
+    user = session.get('user', {})
+    uid = user.get('uid')
+    user_email = user.get('email', '')
+
+    if not req_id or action not in ('accept', 'reject'):
+        return jsonify({'success': False, 'message': 'Invalid parameters'}), 400
+
+    try:
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'message': 'DB unavailable'}), 500
+
+        if action == 'accept':
+            # Mark accepted; uploader should attach material_request_id when uploading file
+            upd = {
+                'status': 'accepted',
+                'responder_id': uid,
+                'responder_email': user_email,
+                'response_message': message,
+                'responded_at': 'now()'
+            }
+        else:
+            upd = {
+                'status': 'rejected',
+                'responder_id': uid,
+                'responder_email': user_email,
+                'response_message': message,
+                'responded_at': 'now()'
+            }
+
+        client.table('material_requests').update(upd).eq('id', req_id).execute()
+        return jsonify({'success': True, 'message': f'Request {action}ed'}), 200
+    except Exception as e:
+        print(f"[MaterialRequests] Respond error: {e}")
+        return jsonify({'success': False, 'message': 'Server error'}), 500
 
 if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV') != 'production'

@@ -531,6 +531,8 @@ class StoreRoomUI {
                 }
                 payload.filename = this.state.activeFile.filename || this.state.activeFile.name || 'Unknown File';
                 payload.url = this.state.activeFile.url || this.state.activeFile.path || '';
+                payload.storage_provider = this.state.activeFile.storage_provider || '';
+                payload.provider_public_id = this.state.activeFile.storage_id || '';
             }
             
             const data = await StoreRoomAPI.submitLabel(payload);
