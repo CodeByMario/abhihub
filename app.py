@@ -15,6 +15,10 @@ from supabase import create_client, ClientOptions
 # Load environment variables
 load_dotenv()
 
+# IndexNow must use one environment-managed key for both submission and ownership verification.
+BASE_DOMAIN = os.getenv('BASE_DOMAIN', 'app.abhihub.run.place').strip().lower()
+INDEXNOW_KEY = os.getenv('INDEX_NOW_BING_API_KEY', '').strip()
+
 # Initialize Supabase client for authentication
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
@@ -575,11 +579,17 @@ def terms():
 def ads_txt():
     return "google.com, pub-8274846157272362, DIRECT, f08c47fec0942fa0", 200, {'Content-Type': 'text/plain'}
 
+@app.route('/robots.txt')
+def robots_txt():
+    """Expose the crawler directives at the host root."""
+    response = make_response(send_from_directory(app.root_path, 'robots.txt'))
+    response.headers['Content-Type'] = 'text/plain; charset=utf-8'
+    return response
+
 @app.route('/<key>.txt')
 def index_now_key(key):
-    expected_key = os.getenv('INDEX_NOW_BING_API_KEY', '31d61c30c86d4fc7a7bb3584a4d225c9').strip()
-    if key == expected_key:
-        return expected_key, 200, {'Content-Type': 'text/plain'}
+    if INDEXNOW_KEY and key == INDEXNOW_KEY:
+        return INDEXNOW_KEY, 200, {'Content-Type': 'text/plain; charset=utf-8'}
     return abort(404)
 
 @app.route('/sitemap.xml')
@@ -3032,11 +3042,11 @@ def pdf_proxy(pdf_name):
 #         download_name=pdf_name
 #     )
 
-INDEXNOW_KEY = '358beb4ba88947458503f632b81ca8cf'
-BASE_DOMAIN = 'app.abhihub.run.place'
-
 def _trigger_indexnow(urls: list):
-    """Submit a list of URLs to IndexNow for fast Google indexing. Fire-and-forget."""
+    """Submit changed public URLs to IndexNow for faster discovery."""
+    if not INDEXNOW_KEY:
+        logging.error("IndexNow is not configured: INDEX_NOW_BING_API_KEY is missing.")
+        return False
     try:
         import requests as _req
         payload = {
@@ -3045,12 +3055,31 @@ def _trigger_indexnow(urls: list):
             "keyLocation": f"https://{BASE_DOMAIN}/{INDEXNOW_KEY}.txt",
             "urlList": [u for u in urls if u.startswith('https://')]
         }
-        _req.post("https://api.indexnow.org/indexnow", json=payload, timeout=5)
-    except Exception:
-        pass  # non-critical
+        if not payload["urlList"]:
+            return False
+        submission = _req.post(
+            "https://api.indexnow.org/indexnow",
+            json=payload,
+            headers={"Content-Type": "application/json; charset=utf-8"},
+            timeout=10,
+        )
+        if submission.status_code in (200, 202):
+            logging.info("IndexNow accepted %s URL(s).", len(payload["urlList"]))
+            return True
+        logging.warning(
+            "IndexNow rejected submission (%s): %s",
+            submission.status_code,
+            submission.text[:500],
+        )
+    except requests.RequestException as exc:
+        logging.warning("IndexNow submission request failed: %s", exc)
+    return False
 
 @app.route('/indexnow', methods=['POST'])
 def indexnow():
+    if not INDEXNOW_KEY:
+        return jsonify({"message": "IndexNow is not configured"}), 503
+
     urls = [
         f"https://{BASE_DOMAIN}/",
         f"https://{BASE_DOMAIN}/pyq",
@@ -3066,11 +3095,21 @@ def indexnow():
         "urlList": urls
     }
     
-    response = requests.post(indexnow_url, json=payload)
+    try:
+        response = requests.post(
+            indexnow_url,
+            json=payload,
+            headers={"Content-Type": "application/json; charset=utf-8"},
+            timeout=10,
+        )
+    except requests.RequestException as exc:
+        logging.warning("Manual IndexNow submission failed: %s", exc)
+        return jsonify({"message": "IndexNow request could not be sent"}), 502
     
-    if response.status_code == 200:
+    if response.status_code in (200, 202):
         return jsonify({"message": "URLs submitted successfully"}), 200
     else:
+        logging.warning("Manual IndexNow submission rejected (%s): %s", response.status_code, response.text[:500])
         return jsonify({"message": "Failed to submit URLs"}), response.status_code
 
 

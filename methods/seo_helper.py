@@ -6,8 +6,11 @@ def submit_to_indexnow(url_list):
     """
     Submits a list of URLs to Bing IndexNow for faster indexing.
     """
-    key = os.getenv('INDEX_NOW_BING_API_KEY', '31d61c30c86d4fc7a7bb3584a4d225c9').strip()
-    host = "app.abhihub.run.place" 
+    key = os.getenv('INDEX_NOW_BING_API_KEY', '').strip()
+    host = os.getenv('BASE_DOMAIN', 'app.abhihub.run.place').strip().lower()
+    if not key:
+        logging.error("IndexNow is not configured: INDEX_NOW_BING_API_KEY is missing.")
+        return False
     
     payload = {
         "host": host,
@@ -20,13 +23,14 @@ def submit_to_indexnow(url_list):
         response = requests.post(
             "https://api.indexnow.org/indexnow",
             json=payload,
-            headers={"Content-Type": "application/json; charset=utf-8"}
+            headers={"Content-Type": "application/json; charset=utf-8"},
+            timeout=10,
         )
-        if response.status_code == 200:
+        if response.status_code in (200, 202):
             logging.info(f"Successfully submitted {len(url_list)} URLs to IndexNow.")
         else:
             logging.warning(f"IndexNow submission failed: {response.status_code} - {response.text}")
-        return response.status_code == 200
-    except Exception as e:
+        return response.status_code in (200, 202)
+    except requests.RequestException as e:
         logging.error(f"Error submitting to IndexNow: {e}")
         return False
