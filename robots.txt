@@ -1,17 +1,22 @@
 User-agent: *
 Disallow: /admin/
 Disallow: /api/
-Disallow: /dashboard
 Disallow: /account
 Disallow: /settings
 Disallow: /login
 Disallow: /signup
-Disallow: /store-room
 Disallow: /profile
 Disallow: /ranking
-Disallow: /upload-gate
 Disallow: /delete-account
 Disallow: /pdf-reader
-Allow: /
+
+Allow: /college/
+Allow: /dashboard
+Allow: /store-room
+Allow: /pyq
+Allow: /features-tour
+Allow: /upload
+Allow: /leaderboard
+Allow: /resource/
 
 Sitemap: https://app.abhihub.run.place/sitemap.xml
