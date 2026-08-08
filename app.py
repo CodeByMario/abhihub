@@ -184,7 +184,7 @@ from flask_compress import Compress
 # Initialize Flask app
 app = Flask(__name__)
 Compress(app)
-socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading", logger=False, engineio_logger=False)
+socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger=False)
 
 import mimetypes
 mimetypes.add_type('application/javascript', '.mjs')
@@ -5094,7 +5094,7 @@ def _pair_room(uid_a, uid_b):
 
 def _get_uid():
     user = session.get('user', {})
-    return user.get('id') or user.get('user_id')
+    return user.get('uid') or user.get('id') or user.get('user_id')
 
 @socketio.on('connect')
 def chat_connect():
@@ -5102,7 +5102,7 @@ def chat_connect():
     if not uid:
         return
     user = session.get('user', {})
-    name = (user.get('user_metadata') or {}).get('full_name') or user.get('email', 'Student')
+    name = user.get('name') or (user.get('user_metadata') or {}).get('full_name') or user.get('email', 'Student')
     _chat_online[uid] = {'sid': request.sid, 'name': name}
     join_room(uid)  # personal inbox room
     # Broadcast updated online list to everyone
@@ -5184,7 +5184,7 @@ def chat_online_users():
     uid = _get_uid()
     if uid:
         user = session.get('user', {})
-        name = (user.get('user_metadata') or {}).get('full_name') or user.get('email', 'Student')
+        name = user.get('name') or (user.get('user_metadata') or {}).get('full_name') or user.get('email', 'Student')
         # Record HTTP heartbeat
         _chat_online_http[uid] = {'time': time.time(), 'name': name}
         # Notify active chat pages that list changed
@@ -5227,29 +5227,22 @@ def peer_profile(user_id):
 def chat_user_info(user_id):
     """Returns profile context shown in chat message badges."""
     try:
-        from methods.supabase_helper import init_supabase
-        client = init_supabase()
-        if not client:
-            return jsonify({'success': False}), 500
-        res = client.table('profiles')\
-            .select('id, full_name, email, rank_title, reputation_score, year_of_joining, departments(name), colleges(name)')\
-            .eq('id', user_id).limit(1).execute()
-        if not res.data:
+        from methods.supabase_helper import get_student_profile
+        prof = get_student_profile(user_id)
+        # Check if we got a valid student name from the profile helper
+        if not prof or not prof.get('student_name'):
             return jsonify({'success': False, 'error': 'User not found'}), 404
-        row = res.data[0]
-        dept = row.get('departments') or {}
-        college = row.get('colleges') or {}
         return jsonify({
             'success': True,
             'user': {
-                'id': row.get('id'),
-                'name': row.get('full_name') or 'Student',
-                'email': row.get('email', ''),
-                'rank_title': row.get('rank_title') or 'Student',
-                'reputation_score': row.get('reputation_score') or 0,
-                'year_of_joining': row.get('year_of_joining'),
-                'branch': dept.get('name') or '',
-                'college': college.get('name') or '',
+                'id': prof.get('student_id'),
+                'name': prof.get('student_name'),
+                'email': prof.get('student_email'),
+                'rank_title': prof.get('rank_title') or 'Student',
+                'reputation_score': prof.get('reputation_score') or 0,
+                'year_of_joining': prof.get('year_of_joining'),
+                'branch': prof.get('branch_name') or '',
+                'college': prof.get('college_name') or '',
             }
         })
     except Exception as e:

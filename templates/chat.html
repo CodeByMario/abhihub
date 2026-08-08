@@ -71,12 +71,108 @@
 .search-result-item{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;cursor:pointer;transition:.15s;}
 .search-result-item:hover{background:#f5f3ff;}
 .sidebar-head{position:relative;}
-@media(max-width:700px){.chat-wrap{grid-template-columns:1fr;}.chat-sidebar{display:none;}.chat-sidebar.visible{display:flex;position:absolute;inset:0;z-index:50;width:300px;}}
+@media(max-width:768px){
+  .chat-page-container {
+    padding: 0 !important;
+  }
+  .chat-wrap {
+    grid-template-columns: 1fr;
+    height: calc(100vh - 60px);
+    border-radius: 0;
+    border: none;
+    box-shadow: none;
+  }
+  .chat-sidebar {
+    display: flex !important;
+    width: 100% !important;
+  }
+  .chat-main {
+    display: none !important;
+    width: 100% !important;
+  }
+  .peer-active .chat-sidebar {
+    display: none !important;
+  }
+  .peer-active .chat-main {
+    display: flex !important;
+  }
+  .btn-back {
+    display: inline-flex !important;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    color: var(--c-text);
+    cursor: pointer;
+    margin-right: 0.5rem;
+    padding: 0.5rem;
+  }
+  .search-results {
+    width: calc(100% - 20px);
+    left: 10px;
+    top: 130px;
+  }
+}
+.btn-back {
+  display: none;
+}
+.chat-welcome-hint {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  color: var(--c-muted);
+  text-align: center;
+  gap: 1rem;
+  margin: auto;
+}
+.btn-history-inline {
+  padding: .6rem 1.2rem;
+  border-radius: 10px;
+  border: 1px solid var(--c-border);
+  background: #fff;
+  font-size: .85rem;
+  font-weight: 700;
+  cursor: pointer;
+  color: var(--c-indigo);
+  transition: .2s;
+  box-shadow: 0 2px 8px rgba(0,0,0,.04);
+}
+.btn-history-inline:hover {
+  background: var(--c-surface);
+  border-color: var(--c-indigo);
+}
+.chat-history-inline-hint {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  font-size: .8rem;
+  color: var(--c-muted);
+  padding: .5rem 1rem;
+  background: var(--c-surface);
+  border-radius: 8px;
+  margin-bottom: 1rem;
+  border: 1px solid var(--c-border);
+  width: fit-content;
+  align-self: center;
+}
+.btn-history-link {
+  background: none;
+  border: none;
+  color: var(--c-indigo);
+  font-weight: 700;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+}
 </style>
 
 {% set me = session.get('user', {}) %}
-{% set my_id = me.get('id') or me.get('user_id', '') %}
-{% set my_name = me.get('user_metadata', {}).get('full_name') or me.get('email', 'You') %}
+{% set my_id = me.get('uid') or me.get('id') or me.get('user_id', '') %}
+{% set my_name = me.get('name') or me.get('user_metadata', {}).get('full_name') or me.get('email', 'You') %}
 
 <div style="padding:1.5rem 1rem;">
 <div class="chat-wrap" id="chatWrap">
@@ -106,6 +202,9 @@
     <!-- Active chat (hidden until peer selected) -->
     <div id="activeChatPanel" style="display:none;flex-direction:column;height:100%;">
       <div class="chat-header">
+        <button class="btn-back" onclick="goBackToList()" title="Back to list">
+          <i class="fas fa-arrow-left"></i>
+        </button>
         <a id="hdrProfileLink" href="#" title="View profile" style="text-decoration:none;display:flex;align-items:center;gap:.75rem;flex:1;">
           <div class="avatar" id="hdrAvatar" style="cursor:pointer;">?</div>
           <div>
@@ -113,9 +212,6 @@
             <div class="peer-sub" id="hdrSub">—</div>
           </div>
         </a>
-        <button class="btn-history" id="btnRequestHistory" onclick="requestHistory()">
-          <i class="fas fa-clock-rotate-left"></i> Request history
-        </button>
       </div>
 
       <div id="historyBannerArea"></div>
@@ -328,6 +424,24 @@ function renderMessage(msg, prepend = false) {
 function renderAllMessages() {
   const area = document.getElementById('messagesArea');
   area.innerHTML = '';
+  if (!msgs.length) {
+    area.innerHTML = `
+      <div class="chat-welcome-hint">
+        <i class="fas fa-comments" style="font-size:2rem;color:var(--c-indigo);opacity:.5;"></i>
+        <div>
+          <p style="margin:0 0 .5rem;font-weight:700;color:var(--c-text);">No messages yet</p>
+          <p style="margin:0;font-size:.85rem;color:var(--c-muted);">Start a fresh conversation, or recover history from this peer.</p>
+        </div>
+        <button class="btn-history-inline" onclick="requestHistory()">
+          <i class="fas fa-clock-rotate-left"></i> Request history
+        </button>
+      </div>`;
+    return;
+  }
+  const hintDiv = document.createElement('div');
+  hintDiv.className = 'chat-history-inline-hint';
+  hintDiv.innerHTML = `<i class="fas fa-info-circle"></i> Missing older messages? <button class="btn-history-link" onclick="requestHistory()">Request history</button>`;
+  area.appendChild(hintDiv);
   msgs.forEach(m => renderMessage(m, false));
 }
 
@@ -365,6 +479,15 @@ async function renderSidebar() {
   }).join('');
 }
 
+// ── Navigation ─────────────────────────────────────────────────────────────
+function goBackToList() {
+  document.getElementById('chatWrap').classList.remove('peer-active');
+  activePeerId = null;
+  document.getElementById('noPeerPanel').style.display = 'flex';
+  document.getElementById('activeChatPanel').style.display = 'none';
+  renderSidebar();
+}
+
 // ── Select peer / open conversation ───────────────────────────────────────
 async function selectPeer(peerId) {
   activePeerId = peerId;
@@ -385,6 +508,9 @@ async function selectPeer(peerId) {
   document.getElementById('noPeerPanel').style.display = 'none';
   const panel = document.getElementById('activeChatPanel');
   panel.style.display = 'flex';
+
+  // Toggle active class on wrapper for mobile layout
+  document.getElementById('chatWrap').classList.add('peer-active');
 
   renderAllMessages();
   scrollBottom();

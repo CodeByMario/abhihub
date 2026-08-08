@@ -15,3 +15,5 @@ Flask-Compress==1.23
 wordcloud
 rapidfuzz>=3.0.0
 pypdf>=3.0.0
+gevent
+gevent-websocket
