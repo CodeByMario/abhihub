@@ -337,6 +337,48 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
     
 <!-- AI Chat & OCR Panel (images & PDF documents) -->
 {% if document.file_type in ['image', 'pdf'] or '.pdf' in (document.file_url|lower) or '.jpg' in (document.file_url|lower) or '.png' in (document.file_url|lower) or '.jpeg' in (document.file_url|lower) or '.webp' in (document.file_url|lower) %}
+<style>
+#aiChatPanel.fullscreen-chat {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 9999 !important;
+  border-radius: 0 !important;
+  display: flex;
+  flex-direction: column;
+  max-width: none !important;
+  margin: 0 !important;
+}
+#aiChatPanel.fullscreen-chat #aiMessages {
+  flex: 1;
+  max-height: none !important;
+}
+.ai-thinking {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  align-self: flex-start;
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 0.6rem 0.9rem;
+  border-radius: 14px;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+.ai-thinking-dots span {
+  display: inline-block;
+  width: 6px; height: 6px;
+  background: #94a3b8;
+  border-radius: 50%;
+  margin: 0 1px;
+  animation: thinkBounce 1.2s infinite;
+}
+.ai-thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
+.ai-thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes thinkBounce {
+  0%,80%,100% { transform: translateY(0); }
+  40% { transform: translateY(-6px); }
+}
+</style>
 <div class="preview-card" id="aiChatPanel">
     <div class="preview-header" style="flex-wrap: wrap; gap: 0.5rem;">
       <div style="font-weight:700;color:var(--r-text);display:flex;align-items:center;gap:.5rem;">
@@ -346,6 +388,7 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
         <span style="font-size:.8rem;color:var(--r-muted);">Powered by Free Vision & OCR AI</span>
         <button onclick="shareChatWhatsApp()" style="padding: 0.3rem 0.6rem; border: none; background: #25D366; color: white; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">Share WA</button>
         <button onclick="exportChatPDF()" style="padding: 0.3rem 0.6rem; border: none; background: #ef4444; color: white; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">Export PDF</button>
+        <button onclick="toggleChatFullscreen()" id="chatFsBtn" title="Fullscreen" style="padding: 0.3rem 0.6rem; border: none; background: #334155; color: white; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">⛶ Full</button>
       </div>
     </div>
 
@@ -368,7 +411,7 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
     <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
       <span style="font-size: 0.8rem; color: var(--r-muted); font-weight: 600;">🤖 AI OCR Model:</span>
       <select id="aiModelSelect" style="padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid var(--r-border); font-size: 0.8rem; background: #f8fafc; color: #334155; font-weight: 600; cursor: pointer;">
-        <option value="auto">✨ Auto (NVIDIA Llama 3.1 70B & Vision)</option>
+        <option value="auto">✨ Auto (Best Available)</option>
         {% for model in ai_models %}
           <option value="{{ model }}" {% if model == best_model %}selected{% endif %}>{{ model.split('/')[-1].replace(':free', '').replace('-instruct', '') | upper }}</option>
         {% endfor %}
@@ -439,8 +482,17 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <script>
 (function(){
-  const DOC_ID = '{{ document.id }}';
+  const DOC_ID = '{{ document.id }}' || '';
+  // Guard: Jinja2 renders None as the string 'None'
+  const VALID_DOC_ID = (DOC_ID && DOC_ID !== 'None' && DOC_ID !== 'undefined') ? DOC_ID : '';
   const msgs = document.getElementById('aiMessages');
+
+  if (!VALID_DOC_ID) {
+    const warn = document.createElement('div');
+    warn.style.cssText = 'padding:.6rem .9rem;background:#fef3c7;color:#92400e;border-radius:10px;font-size:.85rem;';
+    warn.textContent = 'AI chat unavailable — document ID missing. Please refresh.';
+    msgs.appendChild(warn);
+  }
 
   function addMsg(text, role) {
     const d = document.createElement('div');
@@ -552,15 +604,13 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
     btnElement.innerText = 'Extracting OCR...';
     btnElement.disabled = true;
 
-    let selectedModelElement = document.getElementById('aiModelSelect');
-    let selectedModel = selectedModelElement ? selectedModelElement.value : undefined;
-
+    // OCR always needs a vision model — always use 'auto' so backend picks best vision model
     let ocrText = 'OCR extraction failed or is unavailable. Please rely on the image.';
     try {
       const res = await fetch('/api/extract-ocr', {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ doc_id: DOC_ID, model: selectedModel })
+        body: JSON.stringify({ doc_id: VALID_DOC_ID, model: 'auto' })
       });
       const data = await res.json();
       if (data.success && data.ocr_text) {
@@ -617,13 +667,32 @@ Identify the main questions from the transcript above and solve them following t
     });
   };
 
+  window.toggleChatFullscreen = function() {
+    const panel = document.getElementById('aiChatPanel');
+    const btn = document.getElementById('chatFsBtn');
+    const isFs = panel.classList.toggle('fullscreen-chat');
+    btn.textContent = isFs ? '✕ Exit' : '⛶ Full';
+    if (isFs) document.body.style.overflow = 'hidden';
+    else document.body.style.overflow = '';
+  };
+
+  function addThinking() {
+    const d = document.createElement('div');
+    d.className = 'ai-thinking';
+    d.id = 'aiThinking';
+    d.innerHTML = '<span>AI is thinking</span><span class="ai-thinking-dots"><span></span><span></span><span></span></span>';
+    msgs.appendChild(d);
+    msgs.scrollTop = msgs.scrollHeight;
+    return d;
+  }
+
   window.askAI = async function() {
     const inp = document.getElementById('aiQuestion');
     const btn = document.getElementById('aiSendBtn');
     const q = inp.value.trim();
 
-    if (!DOC_ID) {
-      addMsg('Document id missing (doc_id). Please refresh the page.', 'ai');
+    if (!VALID_DOC_ID) {
+      addMsg('Document ID missing — please refresh the page.', 'ai');
       return;
     }
     if (!q) return;
@@ -632,34 +701,45 @@ Identify the main questions from the transcript above and solve them following t
     btn.disabled = true;
     btn.textContent = '...';
     addMsg(q, 'user');
-    
-    let selectedModelElement = document.getElementById('aiModelSelect');
-    let selectedModel = selectedModelElement ? selectedModelElement.value : undefined;
+    const thinking = addThinking();
+
+    const selectedModel = document.getElementById('aiModelSelect')?.value || 'auto';
 
     try {
       const res = await fetch('/api/ask-paper', {
         method: 'POST',
         headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({doc_id: DOC_ID, question: q, model: selectedModel})
+        body: JSON.stringify({doc_id: VALID_DOC_ID, question: q, model: selectedModel})
       });
 
-      // Try to read the response message even if it isn't JSON
-      let data = null;
-      try {
-        data = await res.json();
-      } catch (e) {
-        // ignore
-      }
-
-      if (!res.ok) {
-        const msg = data?.message || (data && typeof data === 'string' ? data : null) || `Request failed with ${res.status}`;
-        addMsg(msg, 'ai');
+      // Handle auth redirect (302 → login HTML)
+      if (res.redirected || res.url.includes('/login')) {
+        thinking.remove();
+        addMsg('Session expired — please log in again.', 'ai');
+        setTimeout(() => window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname), 1500);
         return;
       }
 
+      let data = null;
+      try { data = await res.json(); } catch (e) {
+        thinking.remove();
+        addMsg('Server returned an unexpected response. Please try again.', 'ai');
+        return;
+      }
+
+      thinking.remove();
+      if (res.status === 401) {
+        addMsg('Please log in to use the AI assistant.', 'ai');
+        return;
+      }
+      if (!res.ok) {
+        addMsg(data?.message || `Error ${res.status} — please try again.`, 'ai');
+        return;
+      }
       addMsg(data?.success ? data.answer : (data?.message || 'Error. Try again.'), 'ai');
     } catch(e) {
-      addMsg('Network error. Please try again.', 'ai');
+      thinking.remove();
+      addMsg('Network error. Please check your connection.', 'ai');
     } finally {
       btn.disabled = false;
       btn.textContent = 'Ask';

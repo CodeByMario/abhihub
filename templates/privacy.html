@@ -3,6 +3,10 @@
   <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Privacy Policy | AbhiHub - Engineering Study Resources</title>
+  <meta name="description" content="AbhiHub Privacy Policy - Learn how we collect, use, and protect your personal data. Understand your privacy rights and account deletion options.">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="https://app.abhihub.run.place/privacy">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -10,8 +14,6 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 
   {% include 'favicon.html' %}
-  <title>AbhiHub</title>
-
 
   {% include 'google_tag.html' %}
 </head>
@@ -26,12 +28,14 @@
 
       <h1>Privacy Policy</h1>
 
-      <p><strong>Information Collection:</strong> We collect personal data (<i>this include : Email and user name</i>) and usage data to provide and improve our services.</p>
-      <p><strong>Use of Information:</strong> The information collected is used to enhance user experience and communicate with users.</p>
-      <p><strong>Data Sharing:</strong> We do not share personal information with third parties without user consent, except as required by law.</p>
-      <p><strong>Data Security:</strong> We implement appropriate security measures to protect user data from unauthorized access.</p>
-      <p><strong>User Rights:</strong> Users have the right to access, correct, or delete their personal data at any time.</p>
-      <p><strong>Changes to the Privacy Policy:</strong> We will notify users of any changes to this policy through our website.</p>
+      <p><strong>Information Collection:</strong> We collect personal information such as your email address, username, and usage data to provide and improve our services.</p>
+      <p><strong>Use of Information:</strong> We use this information to operate the platform, improve features, support account access, and communicate important service updates.</p>
+      <p><strong>Analytics and Cookies:</strong> We may use analytics tools to understand site usage. These tools only run after you accept analytics in the consent banner, and you can change your choice at any time.</p>
+      <p><strong>Data Sharing:</strong> We do not sell personal information. We may share limited data with service providers who help operate the platform, as required by law, or with your consent.</p>
+      <p><strong>Data Security:</strong> We implement reasonable technical and organizational measures to protect user data from unauthorized access.</p>
+      <p><strong>User Rights:</strong> You may request access to, correction of, or deletion of your personal data by contacting us through the contact page.</p>
+      <p><strong>Account Deletion:</strong> If you want to permanently remove your account and associated data, use the <a href="{{ url_for('delete_account') }}">Delete Account</a> link in the footer or visit the dedicated deletion page.</p>
+      <p><strong>Changes to the Privacy Policy:</strong> We may update this policy from time to time and will post the revised version on this page.</p>
 
         </div>
       </div>

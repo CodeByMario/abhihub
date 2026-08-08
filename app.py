@@ -180,21 +180,72 @@ Compress(app)
 import mimetypes
 mimetypes.add_type('application/javascript', '.mjs')
 
+# All free models on OpenRouter (prompt=0, completion=0) — verified 2026-08
 AI_MODELS = [
-    "google/gemini-2.0-flash-lite-preview-02-05:free",
-    "google/gemini-2.0-flash-exp:free",
-    "google/gemini-2.0-flash-thinking-exp:free",
-    "qwen/qwen-2.5-vl-72b-instruct:free",
-    "meta-llama/llama-3.2-11b-vision-instruct:free",
-    "mistralai/pixtral-12b:free",
-    "qwen/qwen-2-vl-7b-instruct:free",
-    "google/gemma-2-9b-it:free",
-    "deepseek/deepseek-r1:free"
+    # Vision-capable (best for OCR + Q&A)
+    "google/gemma-4-31b-it:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "nvidia/nemotron-nano-12b-v2-vl:free",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    "openrouter/free",
+    # Text-only (Q&A after OCR extraction)
+    "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "nvidia/nemotron-3-super-120b-a12b:free",
+    "openai/gpt-oss-20b:free",
+    "nvidia/nemotron-nano-9b-v2:free",
+    "poolside/laguna-s-2.1:free",
+    "inclusionai/ling-3.0-tiny:free",
 ]
+# Vision-capable free models (support image_url in messages)
+AI_VISION_MODELS = {
+    "google/gemma-4-31b-it:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "nvidia/nemotron-nano-12b-v2-vl:free",
+    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
+    "openrouter/free",
+}
 ai_model_errors = {m: 0 for m in AI_MODELS}
+# Per-model cooldown: stores epoch time until which the model is rate-limited
+_model_cooldown = {}  # model_id -> float (time.time() until available)
+
+def _is_model_available(model_id):
+    import time
+    return time.time() >= _model_cooldown.get(model_id, 0)
+
+def _set_model_cooldown(model_id, seconds=60):
+    import time
+    _model_cooldown[model_id] = time.time() + seconds
+    logging.info(f"[AI] {model_id} rate-limited, cooling down {seconds}s")
 
 def get_best_ai_model():
-    return min(ai_model_errors, key=ai_model_errors.get)
+    available = [m for m in AI_MODELS if _is_model_available(m)]
+    if not available:
+        available = AI_MODELS  # all cooling down, try anyway
+    return min(available, key=lambda m: ai_model_errors.get(m, 0))
+
+def _resolve_model(selected_model):
+    """Normalize model selection: 'auto' or unknown → best available model."""
+    if not selected_model or selected_model == 'auto' or selected_model not in ai_model_errors:
+        return get_best_ai_model()
+    return selected_model
+
+def _build_model_list(preferred, pool):
+    """Return pool ordered: preferred first (if available), then rest sorted by errors, skipping cooled-down."""
+    import random
+    available = [m for m in pool if _is_model_available(m)]
+    cooling = [m for m in pool if not _is_model_available(m)]
+    # Sort available by error count, shuffle ties
+    available.sort(key=lambda m: ai_model_errors.get(m, 0))
+    # Put preferred first if it's available
+    if preferred in available:
+        available.remove(preferred)
+        available.insert(0, preferred)
+    # Append cooling-down models at the end as last resort
+    return available + cooling
+
+# Log API key presence at startup (no values, just presence)
+logging.info(f"[AI] OPENROUTER_API_KEY present: {bool(os.getenv('OPENROUTER_API_KEY'))}")
+logging.info(f"[AI] NVIDIA_API_KEY present: {bool(os.getenv('NVIDIA_API_KEY'))}")
 
 def extract_pdf_info(pdf_bytes):
     """Extract text from PDF or convert page 1 / extract embedded image to bytes."""
@@ -267,7 +318,7 @@ def check_csrf():
 # Redirect old Heroku domain to new custom domain (301 permanent redirect)
 @app.before_request
 def redirect_to_custom_domain():
-    """Redirect traffic from old Heroku domain to new custom domain for SEO"""
+    """Redirect traffic from old Heroku domain to primary domain for SEO"""
     if request.host == "abhi-hub-06bba7f4101d.herokuapp.com":
         return redirect("https://app.abhihub.run.place" + request.full_path, code=301)
 
@@ -1926,56 +1977,6 @@ def preview():
         return render_template('preview.html', file=file_url)
 
 
-@app.route('/pdf-viewer')
-@auth_required
-def pdf_viewer():
-    file_url = request.args.get('file')
-    if not file_url:
-        abort(404, description="File URL is required")
-
-    # ── Quota gate ────────────────────────────────────────────────────────
-    if not _consume_credit():
-        q = _get_quota()
-        return redirect(url_for('upload_gate',
-                                next=request.url,
-                                credits=q.get('credits', 0)))
-    # ─────────────────────────────────────────────────────────────────────
-
-    # Log file access
-    if 'user' in session:
-        user_email = session['user'].get('email', '')
-        file_basename = os.path.basename(file_url)
-        record_id = request.args.get('record_id')
-        save_file_access(
-            user_email=user_email,
-            file_name=file_basename,
-            file_type='pdf',
-            file_path=file_url,
-            file_url=request.url,
-            record_id=record_id
-        )
-    
-    import urllib.parse
-    safe_file_url = urllib.parse.unquote(file_url).replace('\\', '/')
-    
-    if '..' in safe_file_url or safe_file_url.startswith('/'):
-        abort(400, description="Invalid file path")
-        
-    base_dir = os.path.abspath('data')
-    local_path = os.path.abspath(os.path.join(base_dir, safe_file_url))
-    
-    if not local_path.startswith(base_dir + os.sep):
-        abort(400, description="Invalid file path")
-        
-    if not os.path.exists(local_path):
-        os.makedirs(os.path.dirname(local_path), exist_ok=True)
-        bucket = storage.bucket()
-        blob = bucket.blob(safe_file_url)
-        blob.download_to_filename(local_path)
-    
-    return send_file(local_path, mimetype='application/pdf')
-
-
 @app.route('/upload-gate')
 @auth_required
 def upload_gate():
@@ -2645,11 +2646,16 @@ def resource_landing(slug):
         from methods.supabase_helper import init_supabase
         client = init_supabase()
         if client:
-            like_check = client.table('document_votes').select('*').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
-            document['is_liked'] = bool(like_check.data)
-            
-            bm_check = client.table('bookmarks').select('*').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
-            document['is_bookmarked'] = bool(bm_check.data)
+            try:
+                like_check = client.table('document_votes').select('id').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
+                document['is_liked'] = bool(like_check.data)
+            except Exception:
+                pass
+            try:
+                bm_check = client.table('bookmarks').select('id').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
+                document['is_bookmarked'] = bool(bm_check.data)
+            except Exception:
+                pass
             
     # Track view
     from methods.supabase_helper import save_file_access
@@ -4115,84 +4121,118 @@ def offline_page():
 @app.route('/api/ask-paper', methods=['POST'])
 @auth_required
 def api_ask_paper():
-    """Ask a question about a paper image or PDF using AI vision/text models."""
+    """Ask a question about a paper. Extracts text via pypdf/fitz or vision OCR first, then queries any LLM."""
     try:
         data = request.get_json(silent=True) or {}
         doc_id = (data.get('doc_id') or data.get('document_id') or '').strip()
         question = (data.get('question') or '').strip()
-        selected_model = data.get('model') or get_best_ai_model()
-        logging.info(f"[AI] ask-paper using model: {selected_model}")
+        selected_model = _resolve_model(data.get('model'))
+        logging.info(f"[AI] ask-paper doc_id={doc_id!r} question_len={len(question)} model={selected_model}")
 
         if not doc_id or not question:
-            return jsonify({'success': False, 'message': 'doc_id/document_id and question required'}), 400
+            logging.warning(f"[AI] ask-paper 400: doc_id={doc_id!r} question={question!r} raw_body={request.data[:200]}")
+            return jsonify({'success': False, 'message': 'doc_id and question are required'}), 400
 
-        from methods.supabase_helper import get_document_by_id_rich
-        doc_res = get_document_by_id_rich(doc_id)
-        if not doc_res.get('success'):
+        # Always fetch raw file_url from DB
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        raw = client.table('documents').select('file_url, title, document_category').eq('id', doc_id).single().execute()
+        if not raw.data:
             return jsonify({'success': False, 'message': 'Document not found'}), 404
 
-        document = doc_res.get('data', {})
-        file_url = document.get('file_url', '')
+        file_url = raw.data.get('file_url', '')
+        doc_title = raw.data.get('title', 'Unknown')
+        doc_category = raw.data.get('document_category', '')
 
-        if file_url.startswith('/api/view-doc/'):
-            from methods.supabase_helper import init_supabase
-            client = init_supabase()
-            raw = client.table('documents').select('file_url').eq('id', doc_id).single().execute()
-            file_url = raw.data.get('file_url', '') if raw.data else ''
+        # Resolve Firebase storage paths to real HTTP URLs
+        if file_url and not file_url.startswith('http'):
+            try:
+                bucket = storage.bucket()
+                blob = bucket.blob(file_url)
+                file_url = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
+            except Exception as e:
+                logging.warning(f"[AI] Firebase signed URL failed: {e}")
+                return jsonify({'success': False, 'message': 'Could not resolve file URL'}), 400
 
-        if not file_url or not file_url.startswith('http'):
+        if not file_url:
             return jsonify({'success': False, 'message': 'File URL not available'}), 400
 
+        # --- Step 1: Get document text (free, unlimited) ---
         import base64
-        file_resp = requests.get(file_url, timeout=15)
+        try:
+            file_resp = requests.get(file_url, timeout=30, headers={'User-Agent': 'AbhiHub-AI/1.0'})
+        except Exception as e:
+            logging.warning(f"[AI] File fetch failed: {e}")
+            return jsonify({'success': False, 'message': 'Could not fetch document file'}), 502
         if not file_resp.ok:
-            return jsonify({'success': False, 'message': 'Could not fetch document'}), 502
+            logging.warning(f"[AI] File fetch HTTP {file_resp.status_code} for {file_url[:80]}")
+            return jsonify({'success': False, 'message': f'Document fetch failed ({file_resp.status_code})'}), 502
 
         content_bytes = file_resp.content
         content_type = file_resp.headers.get('Content-Type', '').split(';')[0].lower()
         is_pdf = 'pdf' in content_type or file_url.lower().endswith('.pdf') or content_bytes.startswith(b'%PDF')
 
-        pdf_text, pdf_img_bytes, pdf_img_mime = "", None, None
-        if is_pdf:
-            pdf_text, pdf_img_bytes, pdf_img_mime = extract_pdf_info(content_bytes)
+        doc_text = ''
+        img_bytes = None
+        img_mime = None
 
-        if is_pdf and pdf_img_bytes:
-            b64_image = base64.b64encode(pdf_img_bytes).decode('utf-8')
-            content_type = pdf_img_mime or 'image/png'
-        else:
-            b64_image = base64.b64encode(content_bytes).decode('utf-8')
-            if not content_type or 'octet-stream' in content_type:
-                content_type = 'image/jpeg'
+        if is_pdf:
+            doc_text, img_bytes, img_mime = extract_pdf_info(content_bytes)
+        
+        # If no native text, use vision OCR to get text first
+        if not doc_text or len(doc_text.strip()) < 30:
+            if is_pdf and img_bytes:
+                ocr_source = img_bytes
+                ocr_mime = img_mime or 'image/png'
+            else:
+                ocr_source = content_bytes
+                ocr_mime = content_type if content_type and 'octet-stream' not in content_type else 'image/jpeg'
+
+            b64 = base64.b64encode(ocr_source).decode('utf-8')
+            openrouter_key = os.getenv('OPENROUTER_API_KEY', '').strip().strip("'\"")
+            if openrouter_key:
+                ocr_payload = [
+                    {'type': 'text', 'text': 'Extract ALL text from this document image exactly as written. Return only the raw text.'},
+                    {'type': 'image_url', 'image_url': {'url': f'data:{ocr_mime};base64,{b64}'}}
+                ]
+                vision_models = [m for m in AI_MODELS if m in AI_VISION_MODELS]
+                for vm in vision_models:
+                    try:
+                        r = requests.post(
+                            'https://openrouter.ai/api/v1/chat/completions',
+                            headers={'Authorization': f'Bearer {openrouter_key}', 'Content-Type': 'application/json', 'HTTP-Referer': 'https://abhihub.com', 'X-Title': 'AbhiHub'},
+                            json={'model': vm, 'messages': [{'role': 'user', 'content': ocr_payload}], 'max_tokens': 2048, 'temperature': 0.05},
+                            timeout=30
+                        )
+                        if r.ok:
+                            choices = r.json().get('choices', [])
+                            if choices:
+                                extracted = choices[0]['message']['content'].strip()
+                                if extracted:
+                                    doc_text = extracted
+                                    logging.info(f"[AI] OCR via {vm}: {len(doc_text)} chars")
+                                    break
+                        ai_model_errors[vm] = ai_model_errors.get(vm, 0) + 1
+                    except Exception as ex:
+                        logging.warning(f"[AI] OCR model {vm} failed: {ex}")
+                        ai_model_errors[vm] = ai_model_errors.get(vm, 0) + 1
+
+        if not doc_text or len(doc_text.strip()) < 5:
+            doc_text = f'[Document: {doc_title} — text could not be extracted]'
+
+        # --- Step 2: Answer question using extracted text (any model works) ---
+        system_prompt = (
+            f"You are a helpful AI study assistant for AbhiHub students.\n"
+            f"Answer questions based on the document content provided below.\n\n"
+            f"Document: {doc_title} ({doc_category})\n"
+            f"--- DOCUMENT CONTENT ---\n{doc_text[:4000]}\n--- END ---\n\n"
+            f"Give clear, accurate, well-formatted answers using Markdown."
+        )
 
         openrouter_key = os.getenv('OPENROUTER_API_KEY', '').strip().strip("'\"")
         nvidia_key = os.getenv('NVIDIA_API_KEY', '').strip().strip("'\"")
-
-        title = document.get('title', 'Unknown Title')
-        doc_type = document.get('type', 'Unknown Type')
-        subject_data = document.get('subject') or {}
-        subject_name = subject_data.get('name', 'Unknown Subject')
-        paper_info = f"Document Title: {title}\nSubject: {subject_name}\nType: {doc_type}"
-        if pdf_text:
-            paper_info += f"\nExtracted Document Content:\n{pdf_text[:3000]}"
-
-        system_prompt = (
-            f"You are a helpful AI assistant for AbhiHub. Answer questions accurately based on the source document.\n\n"
-            f"Context Information:\n{paper_info}\n\n"
-            f"Provide clear, accurate, and properly formatted answers."
-        )
-
-        # Build text payload and vision payload
-        text_content = question
-        has_image = bool(b64_image and (not is_pdf or (is_pdf and not pdf_text and pdf_img_bytes)))
-        vision_content = [{'type': 'text', 'text': question}]
-        if has_image:
-            img_type = pdf_img_mime or content_type or 'image/jpeg'
-            vision_content.append({'type': 'image_url', 'image_url': {'url': f'data:{img_type};base64,{b64_image}'}})
-
-        payload_content = vision_content if has_image else text_content
         answer = None
 
-        # 1. Try OpenRouter Models
         if openrouter_key:
             headers = {
                 'Authorization': f'Bearer {openrouter_key}',
@@ -4200,80 +4240,73 @@ def api_ask_paper():
                 'HTTP-Referer': 'https://abhihub.com',
                 'X-Title': 'AbhiHub'
             }
+            # Try selected model first, then all others — text-only, works with every model
             models_to_try = [selected_model] + [m for m in AI_MODELS if m != selected_model]
-
             for model_name in models_to_try:
-                payload = {
-                    'model': model_name,
-                    'messages': [
-                        {'role': 'system', 'content': system_prompt},
-                        {'role': 'user', 'content': payload_content}
-                    ],
-                    'max_tokens': 512,
-                    'temperature': 0.20,
-                    'top_p': 0.70,
-                    'stream': False
-                }
-
                 try:
-                    ai_resp = requests.post('https://openrouter.ai/api/v1/chat/completions', headers=headers, json=payload, timeout=20)
-                    if ai_resp.ok:
-                        res_json = ai_resp.json()
-                        if 'choices' in res_json and len(res_json['choices']) > 0:
-                            answer = res_json['choices'][0]['message']['content']
-                            if answer and len(answer.strip()) > 0:
+                    resp = requests.post(
+                        'https://openrouter.ai/api/v1/chat/completions',
+                        headers=headers,
+                        json={
+                            'model': model_name,
+                            'messages': [
+                                {'role': 'system', 'content': system_prompt},
+                                {'role': 'user', 'content': question}
+                            ],
+                            'max_tokens': 1024,
+                            'temperature': 0.25,
+                            'top_p': 0.80,
+                            'stream': False
+                        },
+                        timeout=30
+                    )
+                    if resp.ok:
+                        choices = resp.json().get('choices', [])
+                        if choices:
+                            answer = choices[0]['message']['content']
+                            if answer and answer.strip():
+                                logging.info(f"[AI] answered via {model_name}")
                                 break
-                    elif has_image:
-                        payload['messages'][1]['content'] = text_content
-                        ai_resp2 = requests.post('https://openrouter.ai/api/v1/chat/completions', headers=headers, json=payload, timeout=20)
-                        if ai_resp2.ok:
-                            res_json2 = ai_resp2.json()
-                            if 'choices' in res_json2 and len(res_json2['choices']) > 0:
-                                answer = res_json2['choices'][0]['message']['content']
-                                if answer and len(answer.strip()) > 0:
-                                    break
+                    else:
+                        logging.warning(f"[AI] {model_name} returned {resp.status_code}: {resp.text[:200]}")
                     ai_model_errors[model_name] = ai_model_errors.get(model_name, 0) + 1
                 except Exception as ex:
-                    logging.warning(f"[AI] OpenRouter model {model_name} failed: {ex}")
+                    logging.warning(f"[AI] model {model_name} failed: {ex}")
                     ai_model_errors[model_name] = ai_model_errors.get(model_name, 0) + 1
 
-        # 2. NVIDIA Backup Provider Fallback
         if not answer and nvidia_key:
-            logging.info("[AI] Falling back to NVIDIA API Provider")
-            nv_headers = {
-                'Authorization': f'Bearer {nvidia_key}',
-                'Content-Type': 'application/json'
-            }
-            nv_models = ['meta/llama-3.2-11b-vision-instruct', 'meta/llama-3.1-70b-instruct']
-            for nv_m in nv_models:
-                nv_payload = {
-                    'model': nv_m,
-                    'messages': [
-                        {'role': 'system', 'content': system_prompt},
-                        {'role': 'user', 'content': text_content}
-                    ],
-                    'max_tokens': 512,
-                    'temperature': 0.20
-                }
-                try:
-                    nv_resp = requests.post('https://integrate.api.nvidia.com/v1/chat/completions', headers=nv_headers, json=nv_payload, timeout=20)
-                    if nv_resp.ok:
-                        res_json = nv_resp.json()
-                        if 'choices' in res_json and len(res_json['choices']) > 0:
-                            answer = res_json['choices'][0]['message']['content']
-                            if answer and len(answer.strip()) > 0:
-                                break
-                except Exception as ex:
-                    logging.warning(f"[AI] NVIDIA model {nv_m} failed: {ex}")
+            logging.info("[AI] Falling back to NVIDIA")
+            try:
+                nv_resp = requests.post(
+                    'https://integrate.api.nvidia.com/v1/chat/completions',
+                    headers={'Authorization': f'Bearer {nvidia_key}', 'Content-Type': 'application/json'},
+                    json={
+                        'model': 'meta/llama-3.1-70b-instruct',
+                        'messages': [
+                            {'role': 'system', 'content': system_prompt},
+                            {'role': 'user', 'content': question}
+                        ],
+                        'max_tokens': 1024,
+                        'temperature': 0.25
+                    },
+                    timeout=30
+                )
+                if nv_resp.ok:
+                    choices = nv_resp.json().get('choices', [])
+                    if choices:
+                        answer = choices[0]['message']['content']
+            except Exception as ex:
+                logging.warning(f"[AI] NVIDIA fallback failed: {ex}")
 
         if answer:
-            return jsonify({'success': True, 'answer': answer}), 200
+            return jsonify({'success': True, 'answer': answer.strip()}), 200
 
-        return jsonify({'success': False, 'message': 'AI model is currently busy. Please try again shortly.'}), 502
+        return jsonify({'success': False, 'message': 'All AI models are currently busy. Please try again in a moment.'}), 502
 
     except Exception as e:
         logging.error(f"[AI] ask-paper error: {e}")
-        return jsonify({'success': False, 'message': f'Error: {str(e)}'}), 500
+        import traceback; traceback.print_exc()
+        return jsonify({'success': False, 'message': f'Server error: {str(e)}'}), 500
 
 
 @app.route('/api/extract-ocr', methods=['POST'])
@@ -4283,7 +4316,7 @@ def api_extract_ocr():
     try:
         data = request.get_json(silent=True) or {}
         doc_id = (data.get('doc_id') or '').strip()
-        selected_model = data.get('model') or get_best_ai_model()
+        selected_model = _resolve_model(data.get('model'))
         logging.info(f"[AI] extract-ocr using model: {selected_model}")
         if not doc_id:
             return jsonify({'success': False, 'message': 'doc_id required'}), 400
@@ -4293,11 +4326,25 @@ def api_extract_ocr():
         raw = client.table('documents').select('file_url').eq('id', doc_id).single().execute()
         file_url = raw.data.get('file_url', '') if raw.data else ''
 
-        if not file_url or not file_url.startswith('http'):
+        # Resolve Firebase storage paths to real HTTP URLs
+        if file_url and not file_url.startswith('http'):
+            try:
+                bucket = storage.bucket()
+                blob = bucket.blob(file_url)
+                file_url = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
+            except Exception as e:
+                logging.warning(f"[AI] OCR Firebase signed URL failed: {e}")
+                return jsonify({'success': False, 'message': 'Could not resolve file URL'}), 400
+
+        if not file_url:
             return jsonify({'success': False, 'message': 'File URL not available'}), 400
 
         import base64
-        file_resp = requests.get(file_url, timeout=15)
+        try:
+            file_resp = requests.get(file_url, timeout=30, headers={'User-Agent': 'AbhiHub-AI/1.0'})
+        except Exception as e:
+            logging.warning(f"[AI] OCR file fetch failed: {e}")
+            return jsonify({'success': False, 'message': 'Could not fetch file'}), 502
         if not file_resp.ok:
             return jsonify({'success': False, 'message': 'Could not fetch file'}), 502
 
@@ -4337,7 +4384,13 @@ def api_extract_ocr():
                 'HTTP-Referer': 'https://abhihub.com',
                 'X-Title': 'AbhiHub'
             }
-            models_to_try = [selected_model] + [m for m in AI_MODELS if m != selected_model]
+            # OCR always needs vision models — ignore selected_model if it's not vision-capable
+            vision_models_list = [m for m in AI_MODELS if m in AI_VISION_MODELS]
+            if selected_model in AI_VISION_MODELS:
+                vision_ordered = [selected_model] + [m for m in vision_models_list if m != selected_model]
+            else:
+                vision_ordered = vision_models_list
+            models_to_try = list(dict.fromkeys(vision_ordered))
 
             for model_name in models_to_try:
                 payload = {
@@ -4350,14 +4403,16 @@ def api_extract_ocr():
                 }
 
                 try:
-                    ai_resp = requests.post('https://openrouter.ai/api/v1/chat/completions', headers=headers, json=payload, timeout=20)
+                    ai_resp = requests.post('https://openrouter.ai/api/v1/chat/completions', headers=headers, json=payload, timeout=25)
                     if ai_resp.ok:
                         res_json = ai_resp.json()
-                        if 'choices' in res_json and len(res_json['choices']) > 0:
-                            ocr_text = res_json['choices'][0]['message']['content']
-                            if ocr_text and len(ocr_text.strip()) > 0:
+                        choices = res_json.get('choices', [])
+                        if choices:
+                            ocr_text = choices[0]['message']['content']
+                            if ocr_text and ocr_text.strip():
                                 break
                     ai_model_errors[model_name] = ai_model_errors.get(model_name, 0) + 1
+                    logging.warning(f"[AI] extract-ocr model {model_name} returned {ai_resp.status_code}")
                 except Exception as ex:
                     logging.warning(f"[AI] extract-ocr model {model_name} failed: {ex}")
                     ai_model_errors[model_name] = ai_model_errors.get(model_name, 0) + 1

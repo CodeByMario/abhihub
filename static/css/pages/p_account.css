@@ -136,31 +136,4 @@
 .ac-role-input[value="teacher"]:checked + .ac-role-label .ac-role-emoji { transform:scale(1.15) rotate(5deg); }
 .ac-role-input[value="teacher"]:checked + .ac-role-label .ac-role-tick  { opacity:1; transform:scale(1); background:#8b5cf6; }
 
-/* Action bar */
-.ac-action-bar {
-  position:fixed; bottom:0; left:0; width:100%;
-  background:rgba(255,255,255,.96); backdrop-filter:blur(12px);
-  border-top:1px solid var(--border-light) !important;
-  padding:1rem; display:flex; justify-content:center; z-index:200;
-  padding-bottom:calc(1rem + env(safe-area-inset-bottom));
-}
-.ac-action-inner { display:flex; gap:.75rem; width:100%; max-width:780px; justify-content:flex-end; }
-
-.ac-btn {
-  padding:.7rem 1.6rem; border-radius:10px; font-size:.88rem;
-  font-weight:600; cursor:pointer; transition:all .2s; text-decoration:none;
-  display:inline-flex; align-items:center; gap:.4rem;
-}
-.ac-btn.primary {
-  background:linear-gradient(135deg,var(--primary-600),var(--primary-700));
-  color:#fff; border:0 !important;
-  box-shadow:0 4px 12px rgba(37,99,235,.25);
-}
-.ac-btn.primary:hover { opacity:.9; transform:translateY(-1px); color:#fff; }
-.ac-btn.secondary {
-  background:var(--background-secondary); color:var(--text-secondary);
-  border:1px solid var(--border-medium) !important;
-}
-.ac-btn.secondary:hover { background:var(--background-tertiary); color:var(--text-primary); }
-.ac-role-item { position: relative; }
-.ac-footer-spacer { height: 5rem; }
+/* Removed fixed action bar - now inline with form */

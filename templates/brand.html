@@ -15,7 +15,7 @@
     {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://app.abhihub.run.place/" },
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "https://abhihub.in/" },
         { "@type": "ListItem", "position": 2, "name": "{{ _brand }}", "item": "{{ request.base_url }}" }
       ]
     },
@@ -29,7 +29,7 @@
           "@type": "ListItem",
           "position": {{ loop.index }},
           "name": "{{ c.name }}",
-          "url": "https://app.abhihub.run.place/college/{{ (c.abbreviation or c.name) | lower | replace(' ', '-') }}"
+          "url": "https://abhihub.in/college/{{ (c.abbreviation or c.name) | lower | replace(' ', '-') }}"
         }{% if not loop.last %},{% endif %}
         {% endfor %}
       ]
