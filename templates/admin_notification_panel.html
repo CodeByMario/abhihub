@@ -1,865 +1,1206 @@
 {% extends "p_struct.html" %}
 
+{% block page_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}
+
 {% block content %}
 <style>
-    /* Scoped styles for Admin Panel - Light Mode */
+    /* Premium Modern Glassmorphism Admin Theme */
     :root {
+        --admin-bg-light: #f8fafc;
         --glass-surface: rgba(255, 255, 255, 0.85);
-        /* Light glass */
-        --glass-border: 1px solid rgba(0, 0, 0, 0.1);
+        --glass-border: 1px solid rgba(0, 0, 0, 0.08);
         --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
-        --text-primary: #1e293b;
-        --text-secondary: #64748b;
-        --bg-hover: rgba(0, 0, 0, 0.03);
+        --success-gradient: linear-gradient(135deg, #10b981 0%, #059669 100%);
+        --danger-gradient: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+        --warning-gradient: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+        --text-primary: #0f172a;
+        --text-secondary: #475569;
+        --text-muted: #94a3b8;
+        --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+        --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     }
 
     .admin-container {
-        max-width: 1200px;
+        max-width: 1250px;
         margin: 2rem auto;
         padding: 0 1.5rem;
+        font-family: 'Outfit', sans-serif;
+    }
+
+    /* Page Header */
+    .admin-header {
+        margin-bottom: 2.5rem;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 1rem;
+    }
+
+    .header-title-wrap h1 {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        letter-spacing: -0.5px;
+        margin-bottom: 0.25rem;
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .header-title-wrap p {
+        color: var(--text-secondary);
+        font-size: 1rem;
     }
 
     /* Glass Panels */
     .glass-panel {
         background: var(--glass-surface);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        backdrop-filter: blur(16px);
+        -webkit-backdrop-filter: blur(16px);
         border: var(--glass-border);
-        border-radius: 16px;
-        box-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.1);
-        /* Softer shadow */
+        border-radius: 20px;
+        box-shadow: var(--card-shadow);
         padding: 2rem;
         margin-bottom: 2rem;
+        transition: var(--transition-smooth);
     }
 
-    /* Page Header */
-    .page-header {
-        margin-bottom: 2rem;
+    /* Tabs Bar styling */
+    .tabs-bar {
+        display: flex;
+        gap: 0.5rem;
+        padding: 0.35rem;
+        background: #f1f5f9;
+        border-radius: 14px;
+        margin-bottom: 2.5rem;
+        width: fit-content;
+        box-shadow: inset 0 2px 4px rgba(0,0,0,0.04);
+        flex-wrap: wrap;
     }
 
-    .page-title {
-        font-size: 2.25rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        margin-bottom: 0.5rem;
+    .tab-btn {
+        padding: 0.75rem 1.4rem;
+        font-weight: 600;
+        font-size: 0.95rem;
+        color: var(--text-secondary);
+        border: none;
+        background: transparent;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: var(--transition-smooth);
         display: flex;
         align-items: center;
-        gap: 1rem;
+        gap: 0.5rem;
     }
 
-    .page-subtitle {
-        color: var(--text-secondary);
-        font-size: 1.1rem;
+    .tab-btn:hover {
+        color: var(--text-primary);
+        background: rgba(255,255,255,0.5);
     }
 
-    /* Stats Grid */
-    .stats-grid {
+    .tab-btn.active {
+        color: white;
+        background: #4f46e5;
+        box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+    }
+
+    /* Overview KPIs Cards */
+    .kpi-grid {
         display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
         gap: 1.5rem;
-        margin-bottom: 2rem;
+        margin-bottom: 2.5rem;
     }
 
-    .stat-card {
+    .kpi-card {
         background: white;
         border: var(--glass-border);
-        border-radius: 12px;
+        border-radius: 16px;
         padding: 1.5rem;
         display: flex;
         align-items: center;
-        gap: 1rem;
-        transition: transform 0.2s;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        justify-content: space-between;
+        box-shadow: var(--card-shadow);
+        transition: var(--transition-smooth);
+        position: relative;
+        overflow: hidden;
     }
 
-    .stat-card:hover {
+    .kpi-card::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 4px;
+        background: transparent;
+        transition: var(--transition-smooth);
+    }
+
+    .kpi-card:hover {
         transform: translateY(-5px);
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
     }
 
-    .stat-icon {
-        width: 48px;
-        height: 48px;
-        border-radius: 10px;
+    .kpi-card.indigo:hover::after { background: #4f46e5; }
+    .kpi-card.emerald:hover::after { background: #10b981; }
+    .kpi-card.amber:hover::after { background: #f59e0b; }
+    .kpi-card.rose:hover::after { background: #f43f5e; }
+    .kpi-card.sky:hover::after { background: #0ea5e9; }
+
+    .kpi-val {
+        font-size: 2.2rem;
+        font-weight: 800;
+        color: var(--text-primary);
+        line-height: 1;
+        margin-bottom: 0.25rem;
+    }
+
+    .kpi-label {
+        font-size: 0.88rem;
+        font-weight: 600;
+        color: var(--text-secondary);
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .kpi-icon-wrap {
+        width: 52px;
+        height: 52px;
+        border-radius: 12px;
         display: flex;
         align-items: center;
         justify-content: center;
-        font-size: 1.25rem;
+        font-size: 1.5rem;
+        transition: var(--transition-smooth);
     }
 
-    .stat-value {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: var(--text-primary);
-        line-height: 1;
-    }
+    .indigo .kpi-icon-wrap { background: rgba(79, 70, 229, 0.1); color: #4f46e5; }
+    .emerald .kpi-icon-wrap { background: rgba(16, 185, 129, 0.1); color: #10b981; }
+    .amber .kpi-icon-wrap { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
+    .rose .kpi-icon-wrap { background: rgba(244, 63, 94, 0.1); color: #f43f5e; }
+    .sky .kpi-icon-wrap { background: rgba(14, 165, 233, 0.1); color: #0ea5e9; }
 
-    .stat-label {
-        color: var(--text-secondary);
-        font-size: 0.875rem;
-        margin-top: 0.25rem;
-    }
-
-    /* Layout */
-    .content-grid {
+    /* Layout Grids */
+    .admin-grid-2 {
         display: grid;
         grid-template-columns: 1fr 1fr;
         gap: 2rem;
     }
 
     @media (max-width: 992px) {
-        .content-grid {
+        .admin-grid-2 {
             grid-template-columns: 1fr;
         }
     }
 
-    /* Forms */
+    /* Forms control */
     .form-group {
-        margin-bottom: 1.5rem;
+        margin-bottom: 1.25rem;
     }
 
     .form-label {
         display: block;
+        font-weight: 700;
+        font-size: 0.9rem;
+        color: var(--text-primary);
         margin-bottom: 0.5rem;
-        color: var(--text-primary);
-        font-weight: 600;
     }
 
-    .form-control {
+    .form-input {
         width: 100%;
-        padding: 0.75rem 1rem;
+        padding: 0.85rem 1.1rem;
         background: #f8fafc;
-        border: 1px solid #cbd5e1;
-        border-radius: 8px;
-        color: var(--text-primary);
-        transition: all 0.2s;
-    }
-
-    .form-control:focus {
-        outline: none;
-        border-color: #6366f1;
-        box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
-        background: white;
-    }
-
-    .char-counter {
-        text-align: right;
-        font-size: 0.8rem;
-        color: var(--text-secondary);
-        margin-top: 0.25rem;
-    }
-
-    .char-counter.warning {
-        color: #f59e0b;
-    }
-
-    .char-counter.danger {
-        color: #ef4444;
-    }
-
-    /* Custom Checkbox */
-    .custom-checkbox {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        cursor: pointer;
-        padding: 0.75rem;
-        background: #f1f5f9;
-        border-radius: 8px;
-        transition: background 0.2s;
-        border: 1px solid transparent;
-    }
-
-    .custom-checkbox:hover {
-        background: #e2e8f0;
-    }
-
-    .custom-checkbox input {
-        width: 18px;
-        height: 18px;
-        accent-color: #6366f1;
-    }
-
-    .checkbox-label {
-        color: var(--text-primary);
-        font-weight: 500;
-    }
-
-    /* User List */
-    .user-list {
-        background: white;
-        border: 1px solid #e2e8f0;
-        border-radius: 8px;
-        max-height: 250px;
-        overflow-y: auto;
-        padding: 0.5rem;
-    }
-
-    .user-item {
-        padding: 0.5rem;
-        border-radius: 6px;
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        color: var(--text-primary);
-    }
-
-    .user-item:hover {
-        background: #f1f5f9;
-    }
-
-    /* History Items */
-    .history-item {
-        background: white;
         border: 1px solid #e2e8f0;
         border-radius: 10px;
-        padding: 1rem;
-        margin-bottom: 1rem;
-        transition: transform 0.2s;
-        position: relative;
-        overflow: hidden;
-        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
-    }
-
-    .history-item::before {
-        content: '';
-        position: absolute;
-        left: 0;
-        top: 0;
-        bottom: 0;
-        width: 4px;
-        background: #6366f1;
-    }
-
-    .history-item:hover {
-        transform: translateX(4px);
-        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.05);
-    }
-
-    .history-title {
         color: var(--text-primary);
-        font-weight: 600;
-        margin-bottom: 0.25rem;
+        font-size: 0.95rem;
+        transition: var(--transition-smooth);
     }
 
-    .history-body {
-        color: var(--text-secondary);
-        font-size: 0.9rem;
-        margin-bottom: 0.75rem;
-        display: -webkit-box;
-        -webkit-line-clamp: 2;
-        -webkit-box-orient: vertical;
-        overflow: hidden;
+    .form-input:focus {
+        outline: none;
+        border-color: #6366f1;
+        box-shadow: 0 0 0 4px rgba(99, 102, 241, 0.12);
+        background: white;
     }
 
-    .history-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.5rem;
-        font-size: 0.8rem;
-    }
-
-    .badge {
-        padding: 0.2rem 0.6rem;
-        border-radius: 20px;
-        font-weight: 600;
-    }
-
-    .badge-success {
-        background: #dcfce7;
-        color: #166534;
-    }
-
-    .badge-fail {
-        background: #fee2e2;
-        color: #991b1b;
-    }
-
-    .badge-warn {
-        background: #fef3c7;
-        color: #92400e;
+    .char-limit {
+        text-align: right;
+        font-size: 0.78rem;
+        color: var(--text-muted);
+        margin-top: 0.25rem;
     }
 
     /* Buttons */
     .btn-action {
-        width: 100%;
-        padding: 0.875rem;
-        border-radius: 8px;
-        font-weight: 600;
+        padding: 0.85rem 1.25rem;
+        font-size: 0.95rem;
+        font-weight: 700;
+        border-radius: 10px;
         border: none;
         cursor: pointer;
-        transition: transform 0.2s;
-        display: flex;
+        display: inline-flex;
         align-items: center;
         justify-content: center;
         gap: 0.5rem;
+        transition: var(--transition-smooth);
     }
 
-    .btn-primary {
+    .btn-indigo {
         background: var(--primary-gradient);
         color: white;
-        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+        box-shadow: 0 4px 14px rgba(79, 70, 229, 0.3);
     }
 
-    .btn-primary:hover {
+    .btn-indigo:hover {
         transform: translateY(-2px);
-        box-shadow: 0 6px 16px rgba(99, 102, 241, 0.3);
+        box-shadow: 0 6px 20px rgba(79, 70, 229, 0.4);
     }
 
-    .btn-secondary {
+    .btn-emerald {
+        background: var(--success-gradient);
+        color: white;
+        box-shadow: 0 4px 14px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-emerald:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
+    }
+
+    .btn-rose {
+        background: var(--danger-gradient);
+        color: white;
+        box-shadow: 0 4px 14px rgba(239, 68, 68, 0.3);
+    }
+
+    .btn-rose:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(239, 68, 68, 0.4);
+    }
+
+    .btn-muted {
         background: #f1f5f9;
-        color: #475569;
+        color: var(--text-secondary);
         border: 1px solid #cbd5e1;
     }
 
-    .btn-secondary:hover {
+    .btn-muted:hover {
         background: #e2e8f0;
-        color: #1e293b;
+        color: var(--text-primary);
     }
 
-    /* Alert */
-    .alert {
-        padding: 1rem;
+    /* Document Moderation Queue Cards */
+    .mod-card {
+        background: white;
+        border: var(--glass-border);
+        border-radius: 16px;
+        padding: 1.5rem;
+        margin-bottom: 1.25rem;
+        box-shadow: var(--card-shadow);
+        transition: var(--transition-smooth);
+        display: flex;
+        flex-direction: column;
+        gap: 1rem;
+        position: relative;
+    }
+
+    .mod-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 12px 28px -5px rgba(0, 0, 0, 0.08);
+    }
+
+    .mod-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .mod-title {
+        font-size: 1.15rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        margin-bottom: 0.25rem;
+        word-break: break-all;
+    }
+
+    .mod-badge {
+        padding: 0.25rem 0.65rem;
+        border-radius: 8px;
+        font-size: 0.75rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+    }
+
+    .badge-notes { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
+    .badge-pyq { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
+    .badge-practical { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
+    .badge-other { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+
+    .mod-meta {
+        font-size: 0.85rem;
+        color: var(--text-secondary);
+        display: flex;
+        flex-wrap: wrap;
+        gap: 1rem;
+        align-items: center;
+    }
+
+    .mod-meta span {
+        display: flex;
+        align-items: center;
+        gap: 0.35rem;
+    }
+
+    .mod-actions {
+        display: flex;
+        gap: 0.75rem;
+        margin-top: 0.5rem;
+    }
+
+    .mod-preview-btn {
+        background: #f0fdf4;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+    }
+
+    .mod-preview-btn:hover {
+        background: #dcfce7;
+    }
+
+    /* Users Dashboard and Search */
+    .user-list-grid {
+        display: grid;
+        grid-template-columns: 1.2fr 1.8fr;
+        gap: 2rem;
+    }
+
+    @media (max-width: 850px) {
+        .user-list-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
+    .users-sidebar {
+        border-right: 1px solid #e2e8f0;
+        padding-right: 1rem;
+        max-height: 700px;
+        overflow-y: auto;
+    }
+
+    @media (max-width: 850px) {
+        .users-sidebar {
+            border-right: none;
+            padding-right: 0;
+        }
+    }
+
+    .admin-user-card {
+        background: white;
+        border: 1px solid #e2e8f0;
         border-radius: 12px;
+        padding: 1rem;
+        margin-bottom: 0.75rem;
+        cursor: pointer;
+        transition: var(--transition-smooth);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+    }
+
+    .admin-user-card:hover, .admin-user-card.selected {
+        border-color: #6366f1;
+        background: #f5f3ff;
+        transform: translateX(4px);
+    }
+
+    /* Alerts */
+    .admin-alert {
+        padding: 1rem 1.25rem;
+        border-radius: 12px;
+        font-weight: 600;
         margin-bottom: 1.5rem;
         display: flex;
         align-items: center;
         gap: 0.75rem;
-        animation: slideDown 0.3s ease;
+        animation: slideInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
-    @keyframes slideDown {
-        from {
-            opacity: 0;
-            transform: translateY(-10px);
-        }
+    .alert-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+    .alert-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
 
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .alert-success {
-        background: #dcfce7;
-        border: 1px solid #bbf7d0;
-        color: #166534;
-    }
-
-    .alert-error {
-        background: #fee2e2;
-        border: 1px solid #fecaca;
-        color: #991b1b;
-    }
-
-    /* Scrollbar */
-    ::-webkit-scrollbar {
-        width: 8px;
-    }
-
-    ::-webkit-scrollbar-track {
-        background: #f1f5f9;
-    }
-
-    ::-webkit-scrollbar-thumb {
-        background: #cbd5e1;
-        border-radius: 10px;
-    }
-
-    ::-webkit-scrollbar-thumb:hover {
-        background: #94a3b8;
+    @keyframes slideInDown {
+        from { transform: translateY(-12px); opacity: 0; }
+        to { transform: translateY(0); opacity: 1; }
     }
 </style>
 
 <div class="admin-container">
     <!-- Header -->
-    <div class="page-header">
-        <h1 class="page-title">
-            <i class="fas fa-paper-plane text-indigo-400"></i>
-            Admin Control Panel
-        </h1>
-        <p class="page-subtitle">Manage push notifications and view user activity</p>
-    </div>
-
-    <!-- Tabs -->
-    <div class="tabs-container" style="margin-bottom: 2rem; display: flex; gap: 1rem; border-bottom: 1px solid #e2e8f0;">
-        <button class="tab-btn active" onclick="switchTab('notifications')" id="tab-notifications" style="padding: 0.75rem 1.5rem; font-weight: 600; border-bottom: 3px solid #4f46e5; color: #4f46e5; background: none; border-top: none; border-left: none; border-right: none; cursor: pointer; font-size: 1.1rem;"><i class="fas fa-bell mr-2"></i>Notifications</button>
-        <button class="tab-btn" onclick="switchTab('users')" id="tab-users" style="padding: 0.75rem 1.5rem; font-weight: 600; border-bottom: 3px solid transparent; color: #64748b; background: none; border-top: none; border-left: none; border-right: none; cursor: pointer; font-size: 1.1rem;"><i class="fas fa-users mr-2"></i>Users Dashboard</button>
-        <button class="tab-btn" onclick="switchTab('contact')" id="tab-contact" style="padding: 0.75rem 1.5rem; font-weight: 600; border-bottom: 3px solid transparent; color: #64748b; background: none; border-top: none; border-left: none; border-right: none; cursor: pointer; font-size: 1.1rem;"><i class="fas fa-envelope mr-2"></i>Contact Messages</button>
-    </div>
-
-    <!-- NOTIFICATIONS VIEW -->
-    <div id="view-notifications">
-    <!-- Stats -->
-    <div class="stats-grid">
-        <div class="stat-card">
-            <div class="stat-icon" style="background: rgba(99, 102, 241, 0.1); color: #818cf8;">
-                <i class="fas fa-users"></i>
-            </div>
-            <div>
-                <div class="stat-value" id="subscriberCount">0</div>
-                <div class="stat-label">Total Subscribers</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background: rgba(236, 72, 153, 0.1); color: #f472b6;">
-                <i class="fas fa-check-circle"></i>
-            </div>
-            <div>
-                <div class="stat-value" id="selectedCount">0</div>
-                <div class="stat-label">Selected Users</div>
-            </div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-icon" style="background: rgba(16, 185, 129, 0.1); color: #34d399;">
-                <i class="fas fa-history"></i>
-            </div>
-            <div>
-                <div class="stat-value" id="lastSentCount">-</div>
-                <div class="stat-label">Last Sent</div>
-            </div>
+    <div class="admin-header">
+        <div class="header-title-wrap">
+            <h1><i class="fas fa-shield-halved text-indigo-600"></i> Control Panel</h1>
+            <p>Monitor platform health, verify uploaded resources, and broadcast notifications.</p>
         </div>
     </div>
 
-    <!-- Alert Area -->
-    <div id="alertContainer"></div>
+    <!-- Navigation Tabs -->
+    <div class="tabs-bar">
+        <button class="tab-btn active" onclick="switchAdminTab('overview')" id="tab-overview">
+            <i class="fas fa-chart-line"></i> Overview
+        </button>
+        <button class="tab-btn" onclick="switchAdminTab('moderation')" id="tab-moderation">
+            <i class="fas fa-circle-check"></i> Moderation Queue
+        </button>
+        <button class="tab-btn" onclick="switchAdminTab('users')" id="tab-users">
+            <i class="fas fa-users"></i> Users
+        </button>
+        <button class="tab-btn" onclick="switchAdminTab('notifications')" id="tab-notifications">
+            <i class="fas fa-paper-plane"></i> Broadcast
+        </button>
+        <button class="tab-btn" onclick="switchAdminTab('contact')" id="tab-contact">
+            <i class="fas fa-envelope"></i> Feedback
+        </button>
+    </div>
 
-    <div class="content-grid">
-        <!-- Composition Panel -->
-        <div class="glass-panel">
-            <h2 class="text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text-primary);">
-                <i class="fas fa-pen-to-square text-pink-500"></i> Compose
-            </h2>
+    <!-- Global Alert Area -->
+    <div id="adminAlertArea"></div>
 
-            <form id="notificationForm">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <div class="form-group">
-                    <label class="form-label">Title <span class="text-red-500">*</span></label>
-                    <input type="text" id="title" class="form-control" required maxlength="100"
-                        placeholder="Notification Title">
-                    <div class="char-counter" id="titleCounter">0 / 100</div>
+    <!-- 1. OVERVIEW VIEW -->
+    <div id="view-overview" class="admin-view">
+        <div class="kpi-grid">
+            <div class="kpi-card indigo">
+                <div>
+                    <div class="kpi-val" id="kpi-users">0</div>
+                    <div class="kpi-label">Total Users</div>
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label">Message <span class="text-red-500">*</span></label>
-                    <textarea id="body" class="form-control" rows="4" required maxlength="500"
-                        placeholder="Notification Body"></textarea>
-                    <div class="char-counter" id="bodyCounter">0 / 500</div>
+                <div class="kpi-icon-wrap"><i class="fas fa-user-graduate"></i></div>
+            </div>
+            <div class="kpi-card emerald">
+                <div>
+                    <div class="kpi-val" id="kpi-docs-approved">0</div>
+                    <div class="kpi-label">Approved Docs</div>
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label">Action URL</label>
-                    <input type="url" id="url" class="form-control" value="/dashboard" placeholder="https://...">
+                <div class="kpi-icon-wrap"><i class="fas fa-file-circle-check"></i></div>
+            </div>
+            <div class="kpi-card amber">
+                <div>
+                    <div class="kpi-val" id="kpi-docs-pending">0</div>
+                    <div class="kpi-label">Pending Review</div>
                 </div>
-
-                <div class="form-group">
-                    <label class="form-label">Icon URL</label>
-                    <input type="url" id="icon" class="form-control" value="/static/images/android-chrome-192x192.png"
-                        placeholder="https://...">
+                <div class="kpi-icon-wrap"><i class="fas fa-file-signature"></i></div>
+            </div>
+            <div class="kpi-card sky">
+                <div>
+                    <div class="kpi-val" id="kpi-subs">0</div>
+                    <div class="kpi-label">Push Subscribers</div>
                 </div>
-
-                <input type="hidden" id="tag" value="admin-notification">
-
-                <label class="custom-checkbox mb-4">
-                    <input type="checkbox" id="sendToAll" checked>
-                    <span class="checkbox-label">Broadcast to all subscribers</span>
-                </label>
-
-                <div id="userSelectionGroup" class="form-group" style="display: none;">
-                    <label class="form-label">Select Recipients</label>
-                    <div class="user-list" id="userList">
-                        <div class="text-center p-4 text-gray-500">
-                            <i class="fas fa-spinner fa-spin"></i> Loading...
-                        </div>
-                    </div>
+                <div class="kpi-icon-wrap"><i class="fas fa-bell"></i></div>
+            </div>
+            <div class="kpi-card rose">
+                <div>
+                    <div class="kpi-val" id="kpi-messages">0</div>
+                    <div class="kpi-label">Support Tickets</div>
                 </div>
+                <div class="kpi-icon-wrap"><i class="fas fa-envelope-open-text"></i></div>
+            </div>
+        </div>
 
-                <div class="grid grid-cols-2 gap-4 mt-6">
-                    <button type="submit" class="btn-action btn-primary" id="sendBtn">
-                        <i class="fas fa-paper-plane"></i> Send
+        <div class="admin-grid-2">
+            <div class="glass-panel">
+                <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.25rem; color: var(--text-primary);">
+                    <i class="fas fa-bolt text-amber-500"></i> Quick Actions
+                </h3>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <button onclick="switchAdminTab('moderation')" class="btn-action btn-indigo" style="padding: 1.2rem;">
+                        <i class="fas fa-clipboard-check"></i> Moderate Uploads
                     </button>
-                    <button type="button" class="btn-action btn-secondary" id="clearBtn">
-                        <i class="fas fa-eraser"></i> Clear
+                    <button onclick="switchAdminTab('notifications')" class="btn-action btn-emerald" style="padding: 1.2rem;">
+                        <i class="fas fa-paper-plane"></i> Send Push Msg
                     </button>
                 </div>
-            </form>
-        </div>
-
-        <!-- History Panel -->
-        <div class="glass-panel">
-            <h2 class="text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text-primary);">
-                <i class="fas fa-clock-rotate-left text-blue-500"></i> Recent History
-            </h2>
-            <div id="historyContainer" style="max-height: 600px; overflow-y: auto;">
-                <div class="text-center p-8 text-gray-500">
-                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                    <p>Loading history...</p>
-                </div>
-            </div>
-        </div>
-    </div> <!-- END content-grid -->
-</div> <!-- END NOTIFICATIONS VIEW -->
-
-    <!-- USERS DASHBOARD VIEW -->
-    <div id="view-users" style="display: none;">
-        <div class="content-grid">
-            <!-- Users List Sidebar -->
-            <div class="glass-panel" style="max-height: 800px; display: flex; flex-direction: column;">
-                <h2 class="text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text-primary);">
-                    <i class="fas fa-users text-indigo-500"></i> All Users
-                </h2>
-                <div class="form-group">
-                    <input type="text" id="userSearch" class="form-control" placeholder="Search users by name or email..." onkeyup="filterAdminUsers()">
-                </div>
-                <div id="adminUsersList" style="flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 0.5rem; max-height: 500px;">
-                    <div class="text-center p-8 text-gray-500">
-                        <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                        <p>Loading users...</p>
-                    </div>
-                </div>
             </div>
 
-            <!-- User Details Panel -->
-            <div class="glass-panel" id="userDetailsPanel">
-                <h2 class="text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text-primary);">
-                    <i class="fas fa-user-circle text-pink-500"></i> User Details
-                </h2>
-                <div class="text-center p-8 text-gray-500" id="userDetailsEmpty">
-                    <p>Select a user to view their detailed statistics.</p>
-                </div>
-                <div id="userDetailsContent" style="display: none;">
-                    <div class="mb-4">
-                        <h3 class="text-lg font-bold" id="detailName"></h3>
-                        <p class="text-gray-500" id="detailEmail"></p>
+            <div class="glass-panel">
+                <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.25rem; color: var(--text-primary);">
+                    <i class="fas fa-server text-indigo-500"></i> System Status
+                </h3>
+                <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+                        <span style="color: var(--text-secondary); font-weight: 600;">Database Engine</span>
+                        <span style="color: #10b981; font-weight: 700;"><i class="fas fa-circle-check"></i> Supabase</span>
                     </div>
-                    <div class="stats-grid" style="margin-bottom: 1.5rem;">
-                        <div class="stat-card" style="padding: 1rem;">
-                            <div class="stat-value" id="detailRep" style="font-size: 1.5rem;">0</div>
-                            <div class="stat-label">Reputation</div>
-                        </div>
-                        <div class="stat-card" style="padding: 1rem;">
-                            <div class="stat-value" id="detailLastVisit" style="font-size: 1.2rem;">-</div>
-                            <div class="stat-label">Last Visit</div>
-                        </div>
+                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+                        <span style="color: var(--text-secondary); font-weight: 600;">Storage Service</span>
+                        <span style="color: #10b981; font-weight: 700;"><i class="fas fa-circle-check"></i> Firebase / Cloudinary</span>
                     </div>
-                    <div class="history-item">
-                        <div class="history-title"><i class="fas fa-upload text-blue-500 mr-2"></i>Files Uploaded (<span id="detailUploadCount">0</span>)</div>
-                        <div id="detailUploads" style="margin-top: 0.5rem; max-height: 200px; overflow-y: auto; font-size: 0.9rem; color: var(--text-secondary);"></div>
-                    </div>
-                    <div class="history-item">
-                        <div class="history-title"><i class="fas fa-eye text-green-500 mr-2"></i>Files Viewed (<span id="detailViewCount">0</span>)</div>
-                        <div id="detailViews" style="margin-top: 0.5rem; max-height: 200px; overflow-y: auto; font-size: 0.9rem; color: var(--text-secondary);"></div>
+                    <div style="display: flex; justify-content: space-between;">
+                        <span style="color: var(--text-secondary); font-weight: 600;">Rate Limiter Shield</span>
+                        <span style="color: #10b981; font-weight: 700;"><i class="fas fa-shield-halved"></i> Active</span>
                     </div>
                 </div>
             </div>
         </div>
     </div>
-    <!-- END USERS DASHBOARD VIEW -->
-    
-    <!-- CONTACT MESSAGES VIEW -->
-    <div id="view-contact" style="display: none;">
+
+    <!-- 2. DOCUMENT MODERATION VIEW -->
+    <div id="view-moderation" class="admin-view" style="display: none;">
         <div class="glass-panel">
-            <h2 class="text-xl font-bold mb-4 flex items-center gap-2" style="color: var(--text-primary);">
-                <i class="fas fa-envelope text-blue-500"></i> Contact Messages
+            <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-file-circle-check text-indigo-600"></i> Material Moderation Queue
             </h2>
-            <div id="contactMessagesList" style="max-height: 600px; overflow-y: auto;">
-                <div class="text-center p-8 text-gray-500">
-                    <i class="fas fa-spinner fa-spin text-2xl mb-2"></i>
-                    <p>Loading messages...</p>
+            <div id="pendingDocsList">
+                <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                    <i class="fas fa-spinner fa-spin fa-2x" style="margin-bottom: 1rem;"></i>
+                    <p>Loading pending verification requests...</p>
                 </div>
             </div>
         </div>
     </div>
-    <!-- END CONTACT MESSAGES VIEW -->
+
+    <!-- 3. USERS DASHBOARD VIEW -->
+    <div id="view-users" class="admin-view" style="display: none;">
+        <div class="glass-panel">
+            <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary);">
+                <i class="fas fa-users-viewfinder text-indigo-600"></i> Registered Student Accounts
+            </h2>
+            
+            <div class="user-list-grid">
+                <div class="users-sidebar">
+                    <div class="form-group" style="margin-bottom: 1rem;">
+                        <input type="text" id="adminUserSearchInput" class="form-input" placeholder="Search by name or email..." onkeyup="searchAdminUsersLocal()">
+                    </div>
+                    <div id="adminUserCardsList">
+                        <!-- Loaded dynamically -->
+                    </div>
+                </div>
+
+                <div>
+                    <div class="glass-panel" id="userStatsPanel" style="box-shadow: none; border: 1px dashed #cbd5e1; margin-bottom: 0;">
+                        <div id="userStatsPlaceholder" style="text-align: center; padding: 4rem; color: var(--text-secondary);">
+                            <i class="far fa-id-badge fa-3x" style="margin-bottom: 1rem; opacity: 0.5;"></i>
+                            <p>Select a student profile from the sidebar to audit their contribution history and metadata.</p>
+                        </div>
+                        
+                        <div id="userStatsContent" style="display: none;">
+                            <div style="display: flex; align-items: center; gap: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1.2rem; margin-bottom: 1.5rem;">
+                                <div style="width: 60px; height: 60px; border-radius: 50%; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 800;" id="userStatInitials">A</div>
+                                <div>
+                                    <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--text-primary); margin: 0;" id="userStatName">-</h3>
+                                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;" id="userStatEmail">-</p>
+                                </div>
+                            </div>
+
+                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div style="background: #f8fafc; border-radius: 12px; padding: 1rem; text-align: center;">
+                                    <div style="font-size: 1.5rem; font-weight: 800; color: #4f46e5;" id="userStatRep">0</div>
+                                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Reputation XP</div>
+                                </div>
+                                <div style="background: #f8fafc; border-radius: 12px; padding: 1rem; text-align: center;">
+                                    <div style="font-size: 1.2rem; font-weight: 800; color: #0f172a;" id="userStatLastVisit">-</div>
+                                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Last Active</div>
+                                </div>
+                            </div>
+
+                            <div style="margin-bottom: 1.5rem;">
+                                <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem;"><i class="fas fa-file-arrow-up text-indigo-500"></i> Uploaded Documents (<span id="userStatUploadCount">0</span>)</h4>
+                                <div id="userStatUploadsList" style="max-height: 180px; overflow-y: auto; background: #f8fafc; border-radius: 10px; padding: 0.5rem; font-size: 0.88rem;"></div>
+                            </div>
+
+                            <div>
+                                <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem;"><i class="fas fa-eye text-emerald-500"></i> Recently Accessed Materials (<span id="userStatViewCount">0</span>)</h4>
+                                <div id="userStatViewsList" style="max-height: 180px; overflow-y: auto; background: #f8fafc; border-radius: 10px; padding: 0.5rem; font-size: 0.88rem;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. BROADCAST NOTIFICATIONS VIEW -->
+    <div id="view-notifications" class="admin-view" style="display: none;">
+        <div class="admin-grid-2">
+            <!-- Composition Panel -->
+            <div class="glass-panel">
+                <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-envelope-circle-check text-indigo-600"></i> Dispatch Push Alert
+                </h2>
+
+                <form id="pushNotificationForm" onsubmit="dispatchNotification(event)">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <div class="form-group">
+                        <label class="form-label">Alert Title <span style="color: #ef4444;">*</span></label>
+                        <input type="text" id="pushTitle" class="form-input" required maxlength="100" placeholder="e.g. RTMNU Re-evaluation forms are out!">
+                        <div class="char-limit" id="pushTitleCounter">0 / 100</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Alert Message Content <span style="color: #ef4444;">*</span></label>
+                        <textarea id="pushBody" class="form-input" rows="4" required maxlength="500" placeholder="Keep it clear and informative..."></textarea>
+                        <div class="char-limit" id="pushBodyCounter">0 / 500</div>
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Action Target Link</label>
+                        <input type="text" id="pushUrl" class="form-input" value="/dashboard" placeholder="e.g. /dashboard or /store-room">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Notification Icon Image URL</label>
+                        <input type="url" id="pushIcon" class="form-input" value="/static/images/android-chrome-192x192.png">
+                    </div>
+
+                    <div class="form-group">
+                        <label class="form-label">Recipients Audience</label>
+                        <select id="pushTargetType" class="form-input" onchange="toggleRecipientList()">
+                            <option value="all">Broadcast to All Subscribers</option>
+                            <option value="selective">Selective Recipients</option>
+                        </select>
+                    </div>
+
+                    <div id="recipientSelectorWrap" class="form-group" style="display: none;">
+                        <label class="form-label">Select Subscriber Emails</label>
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; max-height: 200px; overflow-y: auto; padding: 0.5rem;" id="subscriberCheckboxList">
+                            <!-- Populated dynamically -->
+                        </div>
+                    </div>
+
+                    <div style="display: flex; gap: 1rem; margin-top: 1.5rem;">
+                        <button type="submit" class="btn-action btn-indigo" style="flex: 1;" id="btnPushSend">
+                            <i class="fas fa-paper-plane"></i> Send Notification
+                        </button>
+                        <button type="button" class="btn-action btn-muted" onclick="clearPushForm()">
+                            <i class="fas fa-arrow-rotate-left"></i> Reset
+                        </button>
+                    </div>
+                </form>
+            </div>
+
+            <!-- Sent Notification History -->
+            <div class="glass-panel">
+                <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary);">
+                    <i class="fas fa-clock-rotate-left text-indigo-600"></i> Dispatch History Log
+                </h2>
+                <div id="pushHistoryContainer" style="max-height: 520px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem;">
+                    <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
+                        <i class="fas fa-circle-notch fa-spin"></i> Loading log...
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. FEEDBACK VIEW -->
+    <div id="view-contact" class="admin-view" style="display: none;">
+        <div class="glass-panel">
+            <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                <i class="fas fa-comment-dots text-indigo-600"></i> Feedback & Contact Messages
+            </h2>
+            <div id="contactMsgContainer" style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                    <i class="fas fa-spinner fa-spin fa-2x"></i>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
-    let subscribers = [];
-    let allAdminUsers = [];
+    // System stats and lists cache
+    let adminSubscribers = [];
+    let adminUsersList = [];
 
-    function switchTab(tabId) {
-        document.getElementById('view-notifications').style.display = tabId === 'notifications' ? 'block' : 'none';
-        document.getElementById('view-users').style.display = tabId === 'users' ? 'block' : 'none';
-        document.getElementById('view-contact').style.display = tabId === 'contact' ? 'block' : 'none';
-        
-        document.getElementById('tab-notifications').classList.toggle('active', tabId === 'notifications');
-        document.getElementById('tab-users').classList.toggle('active', tabId === 'users');
-        document.getElementById('tab-contact').classList.toggle('active', tabId === 'contact');
-        
-        document.getElementById('tab-notifications').style.borderBottomColor = tabId === 'notifications' ? '#4f46e5' : 'transparent';
-        document.getElementById('tab-notifications').style.color = tabId === 'notifications' ? '#4f46e5' : '#64748b';
-        
-        document.getElementById('tab-users').style.borderBottomColor = tabId === 'users' ? '#4f46e5' : 'transparent';
-        document.getElementById('tab-users').style.color = tabId === 'users' ? '#4f46e5' : '#64748b';
+    // Trigger on document load
+    document.addEventListener("DOMContentLoaded", () => {
+        loadDashboardStats();
+        setupInputCharacterCounters();
+    });
 
-        document.getElementById('tab-contact').style.borderBottomColor = tabId === 'contact' ? '#4f46e5' : 'transparent';
-        document.getElementById('tab-contact').style.color = tabId === 'contact' ? '#4f46e5' : '#64748b';
+    // Alert helper
+    function showAdminAlert(message, type = "success") {
+        const area = document.getElementById("adminAlertArea");
+        area.innerHTML = `
+            <div class="admin-alert alert-${type}">
+                <i class="fas ${type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'}"></i>
+                <span>${message}</span>
+            </div>
+        `;
+        setTimeout(() => {
+            area.innerHTML = "";
+        }, 5000);
+    }
 
-        if(tabId === 'users' && allAdminUsers.length === 0) {
+    // Switch Tabs handler
+    function switchAdminTab(tabId) {
+        document.querySelectorAll(".admin-view").forEach(v => v.style.display = "none");
+        document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
+        
+        const view = document.getElementById(`view-${tabId}`);
+        const btn = document.getElementById(`tab-${tabId}`);
+        if(view) view.style.display = "block";
+        if(btn) btn.classList.add("active");
+
+        if(tabId === 'overview') {
+            loadDashboardStats();
+        } else if(tabId === 'moderation') {
+            loadPendingDocuments();
+        } else if(tabId === 'users') {
             loadAdminUsers();
-        }
-        if(tabId === 'contact') {
-            loadContactMessages();
+        } else if(tabId === 'notifications') {
+            loadSubscriberCheckboxList();
+            loadPushHistory();
+        } else if(tabId === 'contact') {
+            loadContactFeedbackMessages();
         }
     }
 
-    async function loadContactMessages() {
+    // Load Stats Dashboard
+    async function loadDashboardStats() {
         try {
-            const res = await fetch('/api/admin/contact-messages');
+            const res = await fetch('/api/admin/stats');
             const data = await res.json();
-            const container = document.getElementById('contactMessagesList');
-            if (data.success && data.messages.length > 0) {
-                container.innerHTML = data.messages.map(m => `
-                    <div class="history-item">
-                        <div class="history-title">${m.name || 'Anonymous'} (<a href="mailto:${m.email}" class="text-blue-500">${m.email}</a>)</div>
-                        <div class="text-sm font-bold text-gray-700 mb-2">Subject: ${m.subject || 'None'}</div>
-                        <div class="history-body" style="-webkit-line-clamp: unset; white-space: pre-wrap;">${m.message || ''}</div>
-                        <div class="history-meta mt-2">
-                            <span class="text-gray-400 ml-auto"><i class="fas fa-clock mr-1"></i>${new Date(m.timestamp).toLocaleString()}</span>
-                        </div>
-                    </div>
-                `).join('');
-            } else {
-                container.innerHTML = '<div class="text-center p-4 text-gray-500">No contact messages yet</div>';
+            if(data.success) {
+                const s = data.stats;
+                document.getElementById("kpi-users").textContent = s.total_users;
+                document.getElementById("kpi-docs-approved").textContent = s.approved_documents;
+                document.getElementById("kpi-docs-pending").textContent = s.pending_documents;
+                document.getElementById("kpi-subs").textContent = s.total_subscribers;
+                document.getElementById("kpi-messages").textContent = s.total_messages;
             }
         } catch (e) {
-            console.error('Failed to load contact messages', e);
-            document.getElementById('contactMessagesList').innerHTML = '<div class="text-center p-4 text-red-500">Failed to load messages</div>';
+            console.error("Error loading admin stats", e);
         }
     }
 
+    // Load Pending Document Moderation Queue
+    async function loadPendingDocuments() {
+        const container = document.getElementById("pendingDocsList");
+        try {
+            const res = await fetch('/api/admin/pending-documents');
+            const data = await res.json();
+            if(data.success && data.documents && data.documents.length > 0) {
+                container.innerHTML = data.documents.map(d => {
+                    const profile = d.profiles || {};
+                    const uploaderName = profile.full_name || "Unknown User";
+                    const uploaderEmail = profile.email || "No Email";
+                    const catClass = (d.document_category || '').toLowerCase();
+                    const badgeClass = catClass === 'notes' ? 'badge-notes' : catClass === 'pyq' ? 'badge-pyq' : catClass === 'practical' ? 'badge-practical' : 'badge-other';
+                    
+                    return `
+                        <div class="mod-card" id="doc-card-${d.id}">
+                            <div class="mod-header">
+                                <div>
+                                    <div style="display: flex; align-items: center; gap: 0.5rem; margin-bottom: 0.25rem;">
+                                        <span class="mod-badge ${badgeClass}">${d.document_category || 'Other'}</span>
+                                        <span style="font-size: 0.8rem; font-weight: 700; color: #64748b; background: #f1f5f9; padding: 0.15rem 0.4rem; border-radius: 4px;">${(d.file_type || 'PDF').toUpperCase()}</span>
+                                    </div>
+                                    <div class="mod-title">${d.title}</div>
+                                </div>
+                            </div>
+
+                            <div class="mod-meta">
+                                <span><i class="far fa-user"></i> ${uploaderName} (${uploaderEmail})</span>
+                                <span><i class="far fa-calendar-alt"></i> Uploaded: ${new Date(d.created_at).toLocaleString()}</span>
+                            </div>
+
+                            <div class="mod-actions">
+                                <a href="${d.file_url}" target="_blank" class="btn-action mod-preview-btn" style="padding: 0.5rem 1rem; font-size: 0.85rem;">
+                                    <i class="fas fa-eye"></i> Preview Material
+                                </a>
+                                <button onclick="moderateApproveDocument('${d.id}')" class="btn-action btn-emerald" style="padding: 0.5rem 1rem; font-size: 0.85rem;" id="btn-approve-${d.id}">
+                                    <i class="fas fa-check"></i> Approve
+                                </button>
+                                <button onclick="moderateRejectDocument('${d.id}')" class="btn-action btn-rose" style="padding: 0.5rem 1rem; font-size: 0.85rem;" id="btn-reject-${d.id}">
+                                    <i class="fas fa-trash-can"></i> Reject
+                                </button>
+                            </div>
+                        </div>
+                    `;
+                }).join('');
+            } else {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 4rem; color: var(--text-secondary);">
+                        <i class="far fa-folder-open fa-3x" style="margin-bottom: 1rem; color: var(--text-muted);"></i>
+                        <p style="font-weight: 600;">Hooray! The moderation queue is empty.</p>
+                        <p style="font-size: 0.9rem; color: var(--text-muted);">All uploaded materials have been reviewed and approved.</p>
+                    </div>
+                `;
+            }
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = `<div style="color: #ef4444; text-align: center; padding: 2rem;"><i class="fas fa-circle-exclamation"></i> Error loading queue</div>`;
+        }
+    }
+
+    // Moderate: Approve document
+    async function moderateApproveDocument(docId) {
+        const btn = document.getElementById(`btn-approve-${docId}`);
+        if(btn) btn.disabled = true;
+        
+        try {
+            const res = await fetch('/api/admin/approve-document', {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ document_id: docId })
+            });
+            const data = await res.json();
+            if(data.success) {
+                showAdminAlert("Document approved and published successfully!");
+                const card = document.getElementById(`doc-card-${docId}`);
+                if(card) {
+                    card.style.transition = "all 0.4s ease";
+                    card.style.opacity = 0;
+                    card.style.transform = "scale(0.9)";
+                    setTimeout(() => {
+                        card.remove();
+                        loadPendingDocuments();
+                    }, 400);
+                }
+            } else {
+                showAdminAlert(data.error || "Approval failed", "error");
+                if(btn) btn.disabled = false;
+            }
+        } catch (e) {
+            console.error(e);
+            showAdminAlert("Request error occurred", "error");
+            if(btn) btn.disabled = false;
+        }
+    }
+
+    // Moderate: Reject/delete document
+    async function moderateRejectDocument(docId) {
+        if(!confirm("Are you sure you want to REJECT and permanently DELETE this uploaded file? This action is irreversible.")) {
+            return;
+        }
+        
+        const btn = document.getElementById(`btn-reject-${docId}`);
+        if(btn) btn.disabled = true;
+
+        try {
+            const res = await fetch('/api/admin/reject-document', {
+                method: "POST",
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ document_id: docId })
+            });
+            const data = await res.json();
+            if(data.success) {
+                showAdminAlert("Document rejected and file deleted.", "error");
+                const card = document.getElementById(`doc-card-${docId}`);
+                if(card) {
+                    card.style.transition = "all 0.4s ease";
+                    card.style.opacity = 0;
+                    card.style.transform = "scale(0.9)";
+                    setTimeout(() => {
+                        card.remove();
+                        loadPendingDocuments();
+                    }, 400);
+                }
+            } else {
+                showAdminAlert(data.error || "Rejection failed", "error");
+                if(btn) btn.disabled = false;
+            }
+        } catch (e) {
+            console.error(e);
+            showAdminAlert("Request error occurred", "error");
+            if(btn) btn.disabled = false;
+        }
+    }
+
+    // Load Admin Users List
     async function loadAdminUsers() {
+        const container = document.getElementById("adminUserCardsList");
+        container.innerHTML = `<div style="text-align:center; padding:2rem;"><i class="fas fa-spinner fa-spin"></i></div>`;
         try {
             const res = await fetch('/api/admin/users');
             const data = await res.json();
             if(data.success) {
-                allAdminUsers = data.users;
-                renderAdminUsers(allAdminUsers);
+                adminUsersList = data.users || [];
+                renderUserSidebarList(adminUsersList);
             }
-        } catch(e) { console.error('Failed to load users', e); }
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = `<div style="color:#ef4444; padding:1rem;">Failed to load users</div>`;
+        }
     }
 
-    function renderAdminUsers(users) {
-        const container = document.getElementById('adminUsersList');
-        if(!users.length) {
-            container.innerHTML = '<div class="text-center p-4 text-gray-500">No users found</div>';
+    // Render User sidebar cards
+    function renderUserSidebarList(users) {
+        const container = document.getElementById("adminUserCardsList");
+        if(!users || users.length === 0) {
+            container.innerHTML = `<div style="color:var(--text-muted); text-align:center; padding:1rem;">No users found</div>`;
             return;
         }
-        container.innerHTML = users.map(u => `
-            <div class="user-item" style="cursor:pointer; border: 1px solid #e2e8f0; background: #fff;" onclick="loadUserDetails('${u.id}', '${u.full_name ? u.full_name.replace(/'/g, "\\'") : ''}', '${u.email || ''}', ${u.reputation_score || 0})">
-                <i class="fas fa-user-circle text-gray-400 text-2xl"></i>
-                <div style="flex:1; min-width:0;">
-                    <div class="font-bold text-gray-800 truncate">${u.full_name || 'No Name'}</div>
-                    <div class="text-xs text-gray-500 truncate">${u.email || 'No Email'}</div>
+        container.innerHTML = users.map(u => {
+            const initial = (u.full_name || 'U').charAt(0).toUpperCase();
+            return `
+                <div class="admin-user-card" id="user-card-${u.id}" onclick="selectAdminUser('${u.id}', '${u.full_name ? u.full_name.replace(/'/g, "\\'") : ''}', '${u.email || ''}', ${u.reputation_score || 0})">
+                    <div style="width: 38px; height: 38px; border-radius: 50%; background: #e0e7ff; color:#4f46e5; display:flex; align-items:center; justify-content:center; font-weight:700;">${initial}</div>
+                    <div style="flex: 1; min-width: 0;">
+                        <div style="font-weight: 700; font-size: 0.9rem; color: var(--text-primary);" class="truncate">${u.full_name || 'Anonymous Student'}</div>
+                        <div style="font-size: 0.78rem; color: var(--text-secondary);" class="truncate">${u.email || 'No Email'}</div>
+                    </div>
                 </div>
-            </div>
-        `).join('');
+            `;
+        }).join('');
     }
 
-    function filterAdminUsers() {
-        const term = document.getElementById('userSearch').value.toLowerCase();
-        const filtered = allAdminUsers.filter(u => 
-            (u.full_name && u.full_name.toLowerCase().includes(term)) || 
-            (u.email && u.email.toLowerCase().includes(term))
+    // Filter users list locally
+    function searchAdminUsersLocal() {
+        const q = document.getElementById("adminUserSearchInput").value.toLowerCase().trim();
+        const filtered = adminUsersList.filter(u => 
+            (u.full_name && u.full_name.toLowerCase().includes(q)) || 
+            (u.email && u.email.toLowerCase().includes(q))
         );
-        renderAdminUsers(filtered);
+        renderUserSidebarList(filtered);
     }
 
-    async function loadUserDetails(userId, name, email, rep) {
-        document.getElementById('userDetailsEmpty').style.display = 'none';
-        const content = document.getElementById('userDetailsContent');
-        content.style.display = 'block';
+    // Select admin user stats
+    async function selectAdminUser(userId, name, email, repScore) {
+        document.querySelectorAll(".admin-user-card").forEach(c => c.classList.remove("selected"));
+        const selectedCard = document.getElementById(`user-card-${userId}`);
+        if(selectedCard) selectedCard.classList.add("selected");
+
+        document.getElementById("userStatsPlaceholder").style.display = "none";
+        const content = document.getElementById("userStatsContent");
+        content.style.display = "block";
+
+        document.getElementById("userStatInitials").textContent = (name || 'U').charAt(0).toUpperCase();
+        document.getElementById("userStatName").textContent = name || "Anonymous Student";
+        document.getElementById("userStatEmail").textContent = email || "No Email Address";
+        document.getElementById("userStatRep").textContent = repScore || 0;
+        document.getElementById("userStatLastVisit").innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
         
-        document.getElementById('detailName').textContent = name || 'No Name';
-        document.getElementById('detailEmail').textContent = email || 'No Email';
-        document.getElementById('detailRep').textContent = rep || 0;
-        
-        document.getElementById('detailLastVisit').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
-        document.getElementById('detailUploads').innerHTML = 'Loading...';
-        document.getElementById('detailViews').innerHTML = 'Loading...';
-        
+        const uploadsBox = document.getElementById("userStatUploadsList");
+        const viewsBox = document.getElementById("userStatViewsList");
+        uploadsBox.innerHTML = "Loading uploads...";
+        viewsBox.innerHTML = "Loading activity...";
+
         try {
             const res = await fetch(`/api/admin/users/${userId}/stats`);
             const data = await res.json();
             if(data.success) {
-                const stats = data.stats;
+                const s = data.stats;
                 
                 // Last Visit
-                if(stats.last_visit && stats.last_visit !== 'Never') {
-                    document.getElementById('detailLastVisit').textContent = new Date(stats.last_visit).toLocaleDateString();
+                if (s.last_visit && s.last_visit !== "Never") {
+                    document.getElementById("userStatLastVisit").textContent = new Date(s.last_visit).toLocaleDateString();
                 } else {
-                    document.getElementById('detailLastVisit').textContent = 'Never';
+                    document.getElementById("userStatLastVisit").textContent = "Never";
                 }
-                
-                // Uploads
-                document.getElementById('detailUploadCount').textContent = stats.uploaded_files.length;
-                document.getElementById('detailUploads').innerHTML = stats.uploaded_files.length ? 
-                    stats.uploaded_files.map(f => `<div class="truncate py-1 border-b border-gray-100 last:border-0">${f.title} <span class="text-xs text-gray-400">(${f.view_count || 0} views)</span></div>`).join('') :
-                    'No files uploaded.';
-                    
-                // Views
-                document.getElementById('detailViewCount').textContent = stats.viewed_files.length;
-                document.getElementById('detailViews').innerHTML = stats.viewed_files.length ? 
-                    stats.viewed_files.map(v => `<div class="truncate py-1 border-b border-gray-100 last:border-0">${v.documents ? v.documents.title : 'Unknown'} <span class="text-xs text-gray-400">(${new Date(v.accessed_at).toLocaleDateString()})</span></div>`).join('') :
-                    'No files viewed recently.';
+
+                // Render Uploads
+                document.getElementById("userStatUploadCount").textContent = s.uploaded_files.length;
+                if(s.uploaded_files && s.uploaded_files.length > 0) {
+                    uploadsBox.innerHTML = s.uploaded_files.map(f => `
+                        <div style="padding: 0.4rem; border-bottom: 1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
+                            <span class="truncate" style="font-weight:600; color:var(--text-primary); max-width: 75%;">${f.title}</span>
+                            <span style="font-size:0.75rem; color:#4f46e5; font-weight:700;"><i class="far fa-eye"></i> ${f.view_count || 0}</span>
+                        </div>
+                    `).join('');
+                } else {
+                    uploadsBox.innerHTML = `<p style="padding:0.5rem; color:var(--text-muted); margin:0;">No uploads registered yet.</p>`;
+                }
+
+                // Render Views
+                document.getElementById("userStatViewCount").textContent = s.viewed_files.length;
+                if(s.viewed_files && s.viewed_files.length > 0) {
+                    viewsBox.innerHTML = s.viewed_files.map(v => {
+                        const title = v.documents ? v.documents.title : "Unknown Resource";
+                        return `
+                            <div style="padding: 0.4rem; border-bottom: 1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
+                                <span class="truncate" style="color:var(--text-secondary); max-width: 70%;">${title}</span>
+                                <span style="font-size:0.7rem; color:var(--text-muted);">${new Date(v.accessed_at).toLocaleDateString()}</span>
+                            </div>
+                        `;
+                    }).join('');
+                } else {
+                    viewsBox.innerHTML = `<p style="padding:0.5rem; color:var(--text-muted); margin:0;">No view activity recorded recently.</p>`;
+                }
             }
-        } catch(e) {
+        } catch (e) {
             console.error(e);
-            document.getElementById('detailLastVisit').textContent = 'Error';
+            document.getElementById("userStatLastVisit").textContent = "Error";
+            uploadsBox.innerHTML = "Error loading files";
+            viewsBox.innerHTML = "Error loading history";
         }
     }
 
-    document.addEventListener('DOMContentLoaded', function () {
-        loadSubscribers();
-        loadHistory();
-        setupEventListeners();
-    });
-
-    function setupEventListeners() {
-        document.getElementById('title').addEventListener('input', () => updateCharCounter('title', 'titleCounter', 100));
-        document.getElementById('body').addEventListener('input', () => updateCharCounter('body', 'bodyCounter', 500));
-
-        document.getElementById('sendToAll').addEventListener('change', function () {
-            document.getElementById('userSelectionGroup').style.display = this.checked ? 'none' : 'block';
-            updateSelectedCount();
-        });
-
-        document.getElementById('notificationForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            sendNotification();
-        });
-
-        document.getElementById('clearBtn').addEventListener('click', () => {
-            document.getElementById('notificationForm').reset();
-            updateCharCounter('title', 'titleCounter', 100);
-            updateCharCounter('body', 'bodyCounter', 500);
-        });
+    // Toggle broadcast selection
+    function toggleRecipientList() {
+        const val = document.getElementById("pushTargetType").value;
+        document.getElementById("recipientSelectorWrap").style.display = val === 'selective' ? 'block' : 'none';
     }
 
-    function updateCharCounter(inputId, counterId, max) {
-        const len = document.getElementById(inputId).value.length;
-        const counter = document.getElementById(counterId);
-        counter.textContent = `${len} / ${max}`;
-        counter.className = 'char-counter ' + (len > max * 0.9 ? 'danger' : len > max * 0.7 ? 'warning' : '');
-    }
-
-    async function loadSubscribers() {
+    // Load subscribers to broadcast view checkbox
+    async function loadSubscriberCheckboxList() {
+        const container = document.getElementById("subscriberCheckboxList");
         try {
             const res = await fetch('/api/admin/subscribers');
             const data = await res.json();
-            if (data.success) {
-                subscribers = data.subscribers || [];
-                document.getElementById('subscriberCount').textContent = data.count;
-                renderUserList();
+            if(data.success && data.subscribers) {
+                adminSubscribers = data.subscribers;
+                if(adminSubscribers.length === 0) {
+                    container.innerHTML = `<p style="color:var(--text-muted); padding:0.5rem; font-size:0.85rem; margin:0;">No notification subscribers yet.</p>`;
+                    return;
+                }
+                container.innerHTML = adminSubscribers.map(sub => `
+                    <div style="display:flex; align-items:center; gap:0.5rem; padding: 0.25rem 0;">
+                        <input type="checkbox" class="subscriber-cb" value="${sub.user_id}" id="sub-cb-${sub.user_id}">
+                        <label for="sub-cb-${sub.user_id}" style="font-size: 0.88rem; color:var(--text-primary); cursor:pointer;">${sub.email || sub.user_id}</label>
+                    </div>
+                `).join('');
             }
         } catch (e) {
-            console.error('Failed to load subscribers', e);
+            console.error(e);
         }
     }
 
-    function renderUserList() {
-        const list = document.getElementById('userList');
-        if (!subscribers.length) {
-            list.innerHTML = '<div class="text-center p-4 text-gray-500">No subscribers yet</div>';
-            return;
+    // Load push broadcast history
+    async function loadPushHistory() {
+        const container = document.getElementById("pushHistoryContainer");
+        try {
+            const res = await fetch('/api/admin/notification-history');
+            const data = await res.json();
+            if(data.success && data.history && data.history.length > 0) {
+                container.innerHTML = data.history.map(h => `
+                    <div class="history-item" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:1rem; position:relative; overflow:hidden;">
+                        <div style="font-weight:700; color:var(--text-primary); font-size:0.95rem; margin-bottom:0.25rem;">${h.title}</div>
+                        <div style="font-size:0.85rem; color:var(--text-secondary); margin-bottom:0.5rem; line-height:1.4;">${h.message || h.body || ''}</div>
+                        <div style="display:flex; justify-content:space-between; font-size:0.75rem; color:var(--text-muted);">
+                            <span><i class="fas fa-check-double text-emerald-500"></i> ${h.type || 'Broadcast'}</span>
+                            <span>${new Date(h.created_at || h.timestamp).toLocaleString()}</span>
+                        </div>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = `<div style="text-align:center; padding:1.5rem; color:var(--text-muted);">No broadcast alerts dispatched yet.</div>`;
+            }
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = `<div style="color:#ef4444; font-size:0.85rem; padding:1rem;">Failed to load history</div>`;
         }
-        list.innerHTML = subscribers.map(sub => `
-            <div class="user-item">
-                <input type="checkbox" class="user-checkbox accent-indigo-500 w-4 h-4" value="${sub.user_id}" onchange="updateSelectedCount()">
-                <span>${sub.email || sub.user_id}</span>
-            </div>
-        `).join('');
     }
 
-    function updateSelectedCount() {
-        if (document.getElementById('sendToAll').checked) {
-            document.getElementById('selectedCount').textContent = subscribers.length;
-        } else {
-            document.getElementById('selectedCount').textContent = document.querySelectorAll('.user-checkbox:checked').length;
-        }
-    }
-
-    async function sendNotification() {
-        const btn = document.getElementById('sendBtn');
+    // Dispatch broadcast notifications
+    async function dispatchNotification(event) {
+        event.preventDefault();
+        const btn = document.getElementById("btnPushSend");
         const originalText = btn.innerHTML;
         btn.disabled = true;
-        btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Sending...';
+        btn.innerHTML = `<i class="fas fa-circle-notch fa-spin"></i> Dispatching...`;
 
         try {
-            const payload = {
-                title: document.getElementById('title').value.trim(),
-                body: document.getElementById('body').value.trim(),
-                url: document.getElementById('url').value.trim() || '/dashboard',
-                icon: document.getElementById('icon').value.trim(),
-                tag: document.getElementById('tag').value,
-                user_ids: document.getElementById('sendToAll').checked ? null :
-                    Array.from(document.querySelectorAll('.user-checkbox:checked')).map(cb => cb.value)
-            };
-
-            if (!payload.user_ids && !document.getElementById('sendToAll').checked) {
-                throw new Error("Please select at least one user");
+            const targetType = document.getElementById("pushTargetType").value;
+            let userIds = null;
+            if(targetType === 'selective') {
+                userIds = Array.from(document.querySelectorAll(".subscriber-cb:checked")).map(cb => cb.value);
+                if(userIds.length === 0) {
+                    showAdminAlert("Please check at least one subscriber to target.", "error");
+                    btn.disabled = false;
+                    btn.innerHTML = originalText;
+                    return;
+                }
             }
 
+            const payload = {
+                title: document.getElementById("pushTitle").value.trim(),
+                body: document.getElementById("pushBody").value.trim(),
+                url: document.getElementById("pushUrl").value.trim() || "/dashboard",
+                icon: document.getElementById("pushIcon").value.trim(),
+                tag: "admin-notification",
+                user_ids: userIds
+            };
+
             const res = await fetch('/api/admin/send-notification', {
-                method: 'POST',
+                method: "POST",
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)
             });
 
-            const result = await res.json();
-            if (result.success) {
-                showAlert(`Sent successfully! (Sent: ${result.sent})`, 'success');
-                document.getElementById('lastSentCount').textContent = result.sent;
-                loadHistory();
-                document.getElementById('notificationForm').reset();
+            const data = await res.json();
+            if(data.success) {
+                showAdminAlert(`Notification successfully broadcasted to ${data.sent} device(s)!`);
+                clearPushForm();
+                loadPushHistory();
             } else {
-                throw new Error(result.error);
+                showAdminAlert(data.error || "Dispatch failed", "error");
             }
         } catch (e) {
-            showAlert(e.message, 'error');
+            console.error(e);
+            showAdminAlert("Failed to complete push request.", "error");
         } finally {
             btn.disabled = false;
             btn.innerHTML = originalText;
         }
     }
 
-    async function loadHistory() {
-        try {
-            const res = await fetch('/api/admin/notification-history');
-            const data = await res.json();
-            if (data.success) {
-                renderHistory(data.history);
-            }
-        } catch (e) { console.error(e); }
+    // Clear broadcast form
+    function clearPushForm() {
+        document.getElementById("pushNotificationForm").reset();
+        document.getElementById("pushTitleCounter").textContent = "0 / 100";
+        document.getElementById("pushBodyCounter").textContent = "0 / 500";
+        document.getElementById("recipientSelectorWrap").style.display = "none";
+        document.querySelectorAll(".subscriber-cb").forEach(cb => cb.checked = false);
     }
 
-    function renderHistory(history) {
-        const container = document.getElementById('historyContainer');
-        if (!history || !history.length) {
-            container.innerHTML = '<div class="text-center p-4 text-gray-500">No history yet</div>';
-            return;
+    // Setup form inputs counters
+    function setupInputCharacterCounters() {
+        const titleInput = document.getElementById("pushTitle");
+        const bodyInput = document.getElementById("pushBody");
+        
+        if (titleInput) {
+            titleInput.addEventListener("input", () => {
+                const len = titleInput.value.length;
+                document.getElementById("pushTitleCounter").textContent = `${len} / 100`;
+            });
         }
-        container.innerHTML = history.map(h => `
-            <div class="history-item">
-                <div class="history-title">${h.title || '(no title)'}</div>
-                <div class="history-body">${h.message || h.body || ''}</div>
-                <div class="history-meta">
-                    <span class="badge badge-success"><i class="fas fa-check"></i> sent</span>
-                    <span class="badge badge-warn">${h.type || 'system'}</span>
-                    <span class="text-gray-400 ml-auto">${new Date(h.created_at || h.timestamp).toLocaleString()}</span>
-                </div>
-            </div>
-        `).join('');
+
+        if (bodyInput) {
+            bodyInput.addEventListener("input", () => {
+                const len = bodyInput.value.length;
+                document.getElementById("pushBodyCounter").textContent = `${len} / 500`;
+            });
+        }
     }
 
-    function showAlert(msg, type) {
-        const div = document.createElement('div');
-        div.className = `alert alert-${type}`;
-        div.innerHTML = `<i class="fas fa-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i> ${msg}`;
-        const container = document.getElementById('alertContainer');
-        container.innerHTML = '';
-        container.appendChild(div);
-        setTimeout(() => div.remove(), 5000);
+    // Load Feedback Messages
+    async function loadContactFeedbackMessages() {
+        const container = document.getElementById("contactMsgContainer");
+        try {
+            const res = await fetch('/api/admin/contact-messages');
+            const data = await res.json();
+            if(data.success && data.messages && data.messages.length > 0) {
+                container.innerHTML = data.messages.map(m => `
+                    <div style="background: white; border: var(--glass-border); border-radius:16px; padding:1.25rem; box-shadow: var(--card-shadow);">
+                        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.5rem;">
+                            <div>
+                                <strong style="color:var(--text-primary); font-size:1.05rem;">${m.name || 'Anonymous Student'}</strong>
+                                <div style="font-size:0.85rem;"><a href="mailto:${m.email}" style="color:#4f46e5; text-decoration:none;"><i class="far fa-envelope"></i> ${m.email}</a></div>
+                            </div>
+                            <span style="font-size:0.75rem; color:var(--text-muted);"><i class="far fa-clock"></i> ${new Date(m.timestamp).toLocaleString()}</span>
+                        </div>
+                        <div style="font-size:0.85rem; font-weight:700; color:var(--text-primary); margin-bottom:0.25rem;">Subject: ${m.subject || 'No Subject'}</div>
+                        <p style="font-size:0.9rem; color:var(--text-secondary); margin:0; white-space:pre-line; line-height:1.5;">${m.message}</p>
+                    </div>
+                `).join('');
+            } else {
+                container.innerHTML = `
+                    <div style="text-align: center; padding: 3rem; color: var(--text-secondary);">
+                        <i class="far fa-envelope-open fa-3x" style="margin-bottom: 1rem; color: var(--text-muted);"></i>
+                        <p style="font-weight: 600;">No feedback messages received yet.</p>
+                    </div>
+                `;
+            }
+        } catch (e) {
+            console.error(e);
+            container.innerHTML = `<div style="color:#ef4444; padding:1rem;">Failed to load messages</div>`;
+        }
     }
 </script>
 {% endblock %}

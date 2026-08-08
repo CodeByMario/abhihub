@@ -1,4 +1,5 @@
 from flask import Flask, redirect, render_template, request, make_response, session, abort, jsonify, url_for, send_file, send_from_directory, flash, Response
+from flask_socketio import SocketIO, emit, join_room, leave_room
 import secrets
 from functools import wraps
 from push_api import init_push_api
@@ -176,76 +177,53 @@ from flask_compress import Compress
 # Initialize Flask app
 app = Flask(__name__)
 Compress(app)
+socketio = SocketIO(app, cors_allowed_origins="*", async_mode="threading", logger=False, engineio_logger=False)
 
 import mimetypes
 mimetypes.add_type('application/javascript', '.mjs')
 
-# All free models on OpenRouter (prompt=0, completion=0) — verified 2026-08
+# Free models on OpenRouter (prompt=0, completion=0) — verified 2026-08
+# Kept small: fewer models = fewer dead-end retries, faster response.
+# OpenRouter handles provider-level load balancing and fallback internally.
 AI_MODELS = [
-    # Vision-capable (best for OCR + Q&A)
-    "google/gemma-4-31b-it:free",
-    "google/gemma-4-26b-a4b-it:free",
-    "nvidia/nemotron-nano-12b-v2-vl:free",
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-    "openrouter/free",
-    # Text-only (Q&A after OCR extraction)
-    "nvidia/nemotron-3-ultra-550b-a55b:free",
-    "nvidia/nemotron-3-super-120b-a12b:free",
-    "openai/gpt-oss-20b:free",
-    "nvidia/nemotron-nano-9b-v2:free",
-    "poolside/laguna-s-2.1:free",
-    "inclusionai/ling-3.0-tiny:free",
+    "google/gemma-4-31b-it:free",       # vision + text, best free model
+    "google/gemma-4-26b-a4b-it:free",   # vision + text, MoE variant
+    "nvidia/nemotron-nano-12b-v2-vl:free", # vision
+    "openai/gpt-oss-20b:free",           # text fallback
+    "meta-llama/llama-3.1-8b-instruct:free", # reliable text fallback
 ]
 # Vision-capable free models (support image_url in messages)
 AI_VISION_MODELS = {
     "google/gemma-4-31b-it:free",
     "google/gemma-4-26b-a4b-it:free",
     "nvidia/nemotron-nano-12b-v2-vl:free",
-    "nvidia/nemotron-3-nano-omni-30b-a3b-reasoning:free",
-    "openrouter/free",
 }
-ai_model_errors = {m: 0 for m in AI_MODELS}
-# Per-model cooldown: stores epoch time until which the model is rate-limited
-_model_cooldown = {}  # model_id -> float (time.time() until available)
 
-def _is_model_available(model_id):
-    import time
-    return time.time() >= _model_cooldown.get(model_id, 0)
-
-def _set_model_cooldown(model_id, seconds=60):
-    import time
-    _model_cooldown[model_id] = time.time() + seconds
-    logging.info(f"[AI] {model_id} rate-limited, cooling down {seconds}s")
+# Stateless helpers — no in-process cooldown (breaks under multi-worker gunicorn).
+# OpenRouter's own provider routing handles rate limits and fallback.
 
 def get_best_ai_model():
-    available = [m for m in AI_MODELS if _is_model_available(m)]
-    if not available:
-        available = AI_MODELS  # all cooling down, try anyway
-    return min(available, key=lambda m: ai_model_errors.get(m, 0))
+    """Return the primary text model; OpenRouter will fallback automatically."""
+    return AI_MODELS[0]
 
 def _resolve_model(selected_model):
-    """Normalize model selection: 'auto' or unknown → best available model."""
-    if not selected_model or selected_model == 'auto' or selected_model not in ai_model_errors:
+    """Normalize model selection: 'auto' or unknown → primary model."""
+    if not selected_model or selected_model == 'auto' or selected_model not in AI_MODELS:
         return get_best_ai_model()
     return selected_model
 
 def _build_model_list(preferred, pool):
-    """Return pool ordered: preferred first (if available), then rest sorted by errors, skipping cooled-down."""
-    import random
-    available = [m for m in pool if _is_model_available(m)]
-    cooling = [m for m in pool if not _is_model_available(m)]
-    # Sort available by error count, shuffle ties
-    available.sort(key=lambda m: ai_model_errors.get(m, 0))
-    # Put preferred first if it's available
-    if preferred in available:
-        available.remove(preferred)
-        available.insert(0, preferred)
-    # Append cooling-down models at the end as last resort
-    return available + cooling
+    """Return pool with preferred first."""
+    ordered = [preferred] if preferred in pool else []
+    ordered += [m for m in pool if m != preferred]
+    return ordered
 
 # Log API key presence at startup (no values, just presence)
 logging.info(f"[AI] OPENROUTER_API_KEY present: {bool(os.getenv('OPENROUTER_API_KEY'))}")
 logging.info(f"[AI] NVIDIA_API_KEY present: {bool(os.getenv('NVIDIA_API_KEY'))}")
+
+# Global in-memory chat history for rate limiting (user_id -> list of float timestamps)
+_chat_history = {}
 
 def extract_pdf_info(pdf_bytes):
     """Extract text from PDF or convert page 1 / extract embedded image to bytes."""
@@ -730,8 +708,8 @@ def logout():
         session.pop('session_id', None)
         
     session.pop('user', None)  # Remove the user from session
-    response = make_response(redirect(url_for('login')))
-    response.set_cookie('session', '', expires=0)  # Optionally clear the session cookie
+    response = make_response(render_template('logout_clear.html'))
+    response.set_cookie('session', '', expires=0)  # Clear the session cookie
     return response
 
 @app.route('/api/profile-status')
@@ -2739,7 +2717,34 @@ def api_contact():
     data = request.get_json()
     if not data:
         return jsonify({'success': False, 'error': 'No data'})
-    
+
+    # --- Turnstile siteverify ---
+    turnstile_token = data.get('turnstile_token', '')
+    turnstile_secret = os.environ.get('TURNSTILE_SECRET', '')
+    if not turnstile_secret:
+        logging.warning('[Turnstile] TURNSTILE_SECRET not set; rejecting contact submission')
+        return jsonify({'success': False, 'error': 'Server misconfiguration'}), 500
+    try:
+        client_ip = request.headers.get('X-Forwarded-For', request.remote_addr) or ''
+        ts_resp = requests.post(
+            'https://challenges.cloudflare.com/turnstile/v0/siteverify',
+            data={
+                'secret': turnstile_secret,
+                'response': turnstile_token,
+                'remoteip': client_ip,
+            },
+            timeout=5
+        )
+        ts_resp.raise_for_status()
+        ts_result = ts_resp.json()
+    except Exception as e:
+        logging.warning(f'[Turnstile] siteverify error: {e}')
+        return jsonify({'success': False, 'error': 'Security check failed'}), 403
+    if not ts_result.get('success'):
+        logging.warning(f'[Turnstile] verification failed: {ts_result.get("error-codes")}')
+        return jsonify({'success': False, 'error': 'Security check failed'}), 403
+    # --- end Turnstile ---
+
     msg = {
         'name': data.get('name'),
         'email': data.get('email'),
@@ -3563,6 +3568,24 @@ def get_admin_notification_history():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+@app.route('/api/chat/search-peers', methods=['GET'])
+@auth_required
+def chat_search_peers():
+    """Peer search for chat — available to all authenticated users."""
+    q = request.args.get('q', '').strip()
+    if len(q) < 2:
+        return jsonify({'success': True, 'users': []})
+    try:
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        res = client.table('profiles')\
+            .select('id, full_name, email, rank_title, reputation_score')\
+            .or_(f'full_name.ilike.%{q}%,email.ilike.%{q}%')\
+            .limit(10).execute()
+        return jsonify({'success': True, 'users': res.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
 @app.route('/api/admin/users', methods=['GET'])
 @auth_required
 @admin_required
@@ -3605,6 +3628,135 @@ def admin_get_user_stats(user_id):
                 'viewed_files': viewed_files
             }
         })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/stats', methods=['GET'])
+@auth_required
+@admin_required
+def get_admin_stats():
+    try:
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
+        
+        users_res = client.table('profiles').select('id', count='exact').execute()
+        total_users = users_res.count if hasattr(users_res, 'count') else len(users_res.data or [])
+        
+        approved_res = client.table('documents').select('id', count='exact').eq('status', 'approved').execute()
+        approved_docs = approved_res.count if hasattr(approved_res, 'count') else len(approved_res.data or [])
+        
+        pending_res = client.table('documents').select('id', count='exact').eq('status', 'pending').execute()
+        pending_docs = pending_res.count if hasattr(pending_res, 'count') else len(pending_res.data or [])
+        
+        from push_notifications import load_subscriptions
+        try:
+            subscriptions = load_subscriptions()
+            total_subs = len(subscriptions)
+        except Exception:
+            total_subs = 0
+            
+        messages_count = 0
+        if os.path.exists(CONTACT_FILE):
+            try:
+                with open(CONTACT_FILE, 'r') as f:
+                    messages = json.load(f)
+                    messages_count = len(messages)
+            except Exception:
+                pass
+                
+        return jsonify({
+            'success': True,
+            'stats': {
+                'total_users': total_users,
+                'approved_documents': approved_docs,
+                'pending_documents': pending_docs,
+                'total_subscribers': total_subs,
+                'total_messages': messages_count
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/pending-documents', methods=['GET'])
+@auth_required
+@admin_required
+def get_pending_documents():
+    try:
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
+            
+        res = client.table('documents')\
+            .select('id, title, document_category, file_type, file_url, created_at, uploader_id, profiles(full_name, email)')\
+            .eq('status', 'pending')\
+            .order('created_at', desc=True)\
+            .execute()
+            
+        return jsonify({'success': True, 'documents': res.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/approve-document', methods=['POST'])
+@auth_required
+@admin_required
+def approve_document():
+    try:
+        data = request.get_json()
+        doc_id = data.get('document_id')
+        if not doc_id:
+            return jsonify({'success': False, 'error': 'Document ID is required'}), 400
+            
+        from methods.supabase_helper import init_supabase, recalculate_and_persist_user_rank
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
+            
+        doc_res = client.table('documents').select('uploader_id').eq('id', doc_id).limit(1).execute()
+        if not doc_res.data:
+            return jsonify({'success': False, 'error': 'Document not found'}), 404
+            
+        uploader_id = doc_res.data[0].get('uploader_id')
+        client.table('documents').update({'status': 'approved'}).eq('id', doc_id).execute()
+        
+        if uploader_id:
+            recalculate_and_persist_user_rank(uploader_id)
+            
+        return jsonify({'success': True, 'message': 'Document approved successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/admin/reject-document', methods=['POST'])
+@auth_required
+@admin_required
+def reject_document():
+    try:
+        data = request.get_json()
+        doc_id = data.get('document_id')
+        if not doc_id:
+            return jsonify({'success': False, 'error': 'Document ID is required'}), 400
+            
+        from methods.supabase_helper import init_supabase, recalculate_and_persist_user_rank
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
+            
+        doc_res = client.table('documents').select('uploader_id').eq('id', doc_id).limit(1).execute()
+        uploader_id = doc_res.data[0].get('uploader_id') if doc_res.data else None
+        
+        try:
+            client.table('search_documents').delete().eq('file_id', doc_id).execute()
+        except Exception:
+            pass
+            
+        client.table('documents').delete().eq('id', doc_id).execute()
+        
+        if uploader_id:
+            recalculate_and_persist_user_rank(uploader_id)
+            
+        return jsonify({'success': True, 'message': 'Document rejected and deleted successfully'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -4123,11 +4275,29 @@ def offline_page():
 def api_ask_paper():
     """Ask a question about a paper. Extracts text via pypdf/fitz or vision OCR first, then queries any LLM."""
     try:
+        # --- Hour-based Rate Limiter (5 requests per hour) ---
+        user = session.get('user', {})
+        user_id = user.get('uid') or user.get('email')
+        if user_id:
+            import time
+            now = time.time()
+            one_hour_ago = now - 3600
+            # Clean up old timestamps and retrieve current user history
+            timestamps = [t for t in _chat_history.get(user_id, []) if t > one_hour_ago]
+            _chat_history[user_id] = timestamps
+            if len(timestamps) >= 5:
+                return jsonify({
+                    'success': False,
+                    'message': 'You have reached the limit of 5 chats per hour. Please try again later.'
+                }), 429
+            # Record this chat request
+            _chat_history[user_id].append(now)
+
         data = request.get_json(silent=True) or {}
         doc_id = (data.get('doc_id') or data.get('document_id') or '').strip()
         question = (data.get('question') or '').strip()
         selected_model = _resolve_model(data.get('model'))
-        logging.info(f"[AI] ask-paper doc_id={doc_id!r} question_len={len(question)} model={selected_model}")
+        logging.info(f"[AI] ask-paper doc_id={doc_id!r} question_len={len(question)} model={selected_model} user_id={user_id}")
 
         if not doc_id or not question:
             logging.warning(f"[AI] ask-paper 400: doc_id={doc_id!r} question={question!r} raw_body={request.data[:200]}")
@@ -4195,27 +4365,39 @@ def api_ask_paper():
                     {'type': 'text', 'text': 'Extract ALL text from this document image exactly as written. Return only the raw text.'},
                     {'type': 'image_url', 'image_url': {'url': f'data:{ocr_mime};base64,{b64}'}}
                 ]
-                vision_models = [m for m in AI_MODELS if m in AI_VISION_MODELS]
-                for vm in vision_models:
-                    try:
-                        r = requests.post(
-                            'https://openrouter.ai/api/v1/chat/completions',
-                            headers={'Authorization': f'Bearer {openrouter_key}', 'Content-Type': 'application/json', 'HTTP-Referer': 'https://abhihub.com', 'X-Title': 'AbhiHub'},
-                            json={'model': vm, 'messages': [{'role': 'user', 'content': ocr_payload}], 'max_tokens': 2048, 'temperature': 0.05},
-                            timeout=30
-                        )
-                        if r.ok:
-                            choices = r.json().get('choices', [])
-                            if choices:
-                                extracted = choices[0]['message']['content'].strip()
-                                if extracted:
-                                    doc_text = extracted
-                                    logging.info(f"[AI] OCR via {vm}: {len(doc_text)} chars")
-                                    break
-                        ai_model_errors[vm] = ai_model_errors.get(vm, 0) + 1
-                    except Exception as ex:
-                        logging.warning(f"[AI] OCR model {vm} failed: {ex}")
-                        ai_model_errors[vm] = ai_model_errors.get(vm, 0) + 1
+                ocr_model = selected_model if selected_model in AI_VISION_MODELS else next(iter(AI_VISION_MODELS))
+                try:
+                    r = requests.post(
+                        'https://openrouter.ai/api/v1/chat/completions',
+                        headers={
+                            'Authorization': f'Bearer {openrouter_key}',
+                            'Content-Type': 'application/json',
+                            'HTTP-Referer': 'https://abhihub.com',
+                            'X-Title': 'AbhiHub'
+                        },
+                        json={
+                            'model': ocr_model,
+                            'messages': [{'role': 'user', 'content': ocr_payload}],
+                            'max_tokens': 1024,
+                            'temperature': 0.05,
+                            'provider': {
+                                'allow_fallbacks': True,
+                                'sort': 'throughput'
+                            }
+                        },
+                        timeout=35
+                    )
+                    if r.ok:
+                        choices = r.json().get('choices', [])
+                        if choices:
+                            extracted = choices[0]['message']['content'].strip()
+                            if extracted:
+                                doc_text = extracted
+                                logging.info(f"[AI] OCR via {r.json().get('model', ocr_model)}: {len(doc_text)} chars")
+                    else:
+                        logging.warning(f"[AI] Inline OCR OpenRouter {r.status_code}: {r.text[:200]}")
+                except Exception as ex:
+                    logging.warning(f"[AI] Inline OCR request failed: {ex}")
 
         if not doc_text or len(doc_text.strip()) < 5:
             doc_text = f'[Document: {doc_title} — text could not be extracted]'
@@ -4223,80 +4405,54 @@ def api_ask_paper():
         # --- Step 2: Answer question using extracted text (any model works) ---
         system_prompt = (
             f"You are a helpful AI study assistant for AbhiHub students.\n"
-            f"Answer questions based on the document content provided below.\n\n"
+            f"CRITICAL RULE: Only answer questions directly related to AbhiHub, academic courses, or the provided document content (such as engineering question papers, notes, or study materials on AbhiHub).\n"
+            f"If the user asks about topics or context unrelated to AbhiHub or the provided document, politely tell them they are moving out of the topic, and if required, they can search the website for information.\n\n"
             f"Document: {doc_title} ({doc_category})\n"
             f"--- DOCUMENT CONTENT ---\n{doc_text[:4000]}\n--- END ---\n\n"
             f"Give clear, accurate, well-formatted answers using Markdown."
         )
 
         openrouter_key = os.getenv('OPENROUTER_API_KEY', '').strip().strip("'\"")
-        nvidia_key = os.getenv('NVIDIA_API_KEY', '').strip().strip("'\"")
         answer = None
 
         if openrouter_key:
-            headers = {
-                'Authorization': f'Bearer {openrouter_key}',
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://abhihub.com',
-                'X-Title': 'AbhiHub'
-            }
-            # Try selected model first, then all others — text-only, works with every model
-            models_to_try = [selected_model] + [m for m in AI_MODELS if m != selected_model]
-            for model_name in models_to_try:
-                try:
-                    resp = requests.post(
-                        'https://openrouter.ai/api/v1/chat/completions',
-                        headers=headers,
-                        json={
-                            'model': model_name,
-                            'messages': [
-                                {'role': 'system', 'content': system_prompt},
-                                {'role': 'user', 'content': question}
-                            ],
-                            'max_tokens': 1024,
-                            'temperature': 0.25,
-                            'top_p': 0.80,
-                            'stream': False
-                        },
-                        timeout=30
-                    )
-                    if resp.ok:
-                        choices = resp.json().get('choices', [])
-                        if choices:
-                            answer = choices[0]['message']['content']
-                            if answer and answer.strip():
-                                logging.info(f"[AI] answered via {model_name}")
-                                break
-                    else:
-                        logging.warning(f"[AI] {model_name} returned {resp.status_code}: {resp.text[:200]}")
-                    ai_model_errors[model_name] = ai_model_errors.get(model_name, 0) + 1
-                except Exception as ex:
-                    logging.warning(f"[AI] model {model_name} failed: {ex}")
-                    ai_model_errors[model_name] = ai_model_errors.get(model_name, 0) + 1
-
-        if not answer and nvidia_key:
-            logging.info("[AI] Falling back to NVIDIA")
+            # Single call — let OpenRouter's provider routing handle fallback.
+            # `allow_fallbacks: true` + `sort: throughput` = fastest available free provider.
+            # This works correctly under multi-worker gunicorn (no shared state needed).
             try:
-                nv_resp = requests.post(
-                    'https://integrate.api.nvidia.com/v1/chat/completions',
-                    headers={'Authorization': f'Bearer {nvidia_key}', 'Content-Type': 'application/json'},
+                resp = requests.post(
+                    'https://openrouter.ai/api/v1/chat/completions',
+                    headers={
+                        'Authorization': f'Bearer {openrouter_key}',
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': 'https://abhihub.com',
+                        'X-Title': 'AbhiHub'
+                    },
                     json={
-                        'model': 'meta/llama-3.1-70b-instruct',
+                        'model': selected_model,
                         'messages': [
                             {'role': 'system', 'content': system_prompt},
                             {'role': 'user', 'content': question}
                         ],
-                        'max_tokens': 1024,
-                        'temperature': 0.25
+                        'max_tokens': 800,
+                        'temperature': 0.2,
+                        'provider': {
+                            'allow_fallbacks': True,
+                            'sort': 'throughput'
+                        }
                     },
-                    timeout=30
+                    timeout=35
                 )
-                if nv_resp.ok:
-                    choices = nv_resp.json().get('choices', [])
+                if resp.ok:
+                    choices = resp.json().get('choices', [])
                     if choices:
                         answer = choices[0]['message']['content']
+                        logging.info(f"[AI] Q&A answered via {resp.json().get('model', selected_model)}")
+                else:
+                    logging.warning(f"[AI] Q&A OpenRouter {resp.status_code}: {resp.text[:200]}")
             except Exception as ex:
-                logging.warning(f"[AI] NVIDIA fallback failed: {ex}")
+                logging.warning(f"[AI] Q&A request failed: {ex}")
+
 
         if answer:
             return jsonify({'success': True, 'answer': answer.strip()}), 200
@@ -4367,7 +4523,6 @@ def api_extract_ocr():
             content_type = 'image/jpeg'
 
         openrouter_key = os.getenv('OPENROUTER_API_KEY', '').strip().strip("'\"")
-        nvidia_key = os.getenv('NVIDIA_API_KEY', '').strip().strip("'\"")
 
         user_content = [
             {'type': 'text', 'text': 'Extract all text, math equations, and tables from this document image perfectly. Return ONLY raw transcript without filler.'},
@@ -4376,67 +4531,39 @@ def api_extract_ocr():
 
         ocr_text = None
 
-        # 1. OpenRouter Provider
+        # Single call — OpenRouter routes to fastest available vision provider.
         if openrouter_key:
-            headers = {
-                'Authorization': f'Bearer {openrouter_key}',
-                'Content-Type': 'application/json',
-                'HTTP-Referer': 'https://abhihub.com',
-                'X-Title': 'AbhiHub'
-            }
-            # OCR always needs vision models — ignore selected_model if it's not vision-capable
-            vision_models_list = [m for m in AI_MODELS if m in AI_VISION_MODELS]
-            if selected_model in AI_VISION_MODELS:
-                vision_ordered = [selected_model] + [m for m in vision_models_list if m != selected_model]
-            else:
-                vision_ordered = vision_models_list
-            models_to_try = list(dict.fromkeys(vision_ordered))
-
-            for model_name in models_to_try:
-                payload = {
-                    'model': model_name,
-                    'messages': [{'role': 'user', 'content': user_content}],
-                    'max_tokens': 1024,
-                    'temperature': 0.10,
-                    'top_p': 0.70,
-                    'stream': False
-                }
-
-                try:
-                    ai_resp = requests.post('https://openrouter.ai/api/v1/chat/completions', headers=headers, json=payload, timeout=25)
-                    if ai_resp.ok:
-                        res_json = ai_resp.json()
-                        choices = res_json.get('choices', [])
-                        if choices:
-                            ocr_text = choices[0]['message']['content']
-                            if ocr_text and ocr_text.strip():
-                                break
-                    ai_model_errors[model_name] = ai_model_errors.get(model_name, 0) + 1
-                    logging.warning(f"[AI] extract-ocr model {model_name} returned {ai_resp.status_code}")
-                except Exception as ex:
-                    logging.warning(f"[AI] extract-ocr model {model_name} failed: {ex}")
-                    ai_model_errors[model_name] = ai_model_errors.get(model_name, 0) + 1
-
-        # 2. NVIDIA Backup Provider
-        if not ocr_text and nvidia_key:
-            logging.info("[AI] Falling back to NVIDIA Vision for OCR")
-            nv_headers = {
-                'Authorization': f'Bearer {nvidia_key}',
-                'Content-Type': 'application/json'
-            }
-            nv_payload = {
-                'model': 'meta/llama-3.2-11b-vision-instruct',
-                'messages': [{'role': 'user', 'content': 'Extract all text, math equations, and tables from this document image perfectly. Return ONLY raw transcript without filler.'}],
-                'max_tokens': 1024
-            }
+            ocr_model = selected_model if selected_model in AI_VISION_MODELS else next(iter(AI_VISION_MODELS))
             try:
-                nv_resp = requests.post('https://integrate.api.nvidia.com/v1/chat/completions', headers=nv_headers, json=nv_payload, timeout=25)
-                if nv_resp.ok:
-                    res_json = nv_resp.json()
-                    if 'choices' in res_json and len(res_json['choices']) > 0:
-                        ocr_text = res_json['choices'][0]['message']['content']
+                ai_resp = requests.post(
+                    'https://openrouter.ai/api/v1/chat/completions',
+                    headers={
+                        'Authorization': f'Bearer {openrouter_key}',
+                        'Content-Type': 'application/json',
+                        'HTTP-Referer': 'https://abhihub.com',
+                        'X-Title': 'AbhiHub'
+                    },
+                    json={
+                        'model': ocr_model,
+                        'messages': [{'role': 'user', 'content': user_content}],
+                        'max_tokens': 1024,
+                        'temperature': 0.05,
+                        'provider': {
+                            'allow_fallbacks': True,
+                            'sort': 'throughput'
+                        }
+                    },
+                    timeout=35
+                )
+                if ai_resp.ok:
+                    choices = ai_resp.json().get('choices', [])
+                    if choices:
+                        ocr_text = choices[0]['message']['content']
+                        logging.info(f"[AI] OCR via {ai_resp.json().get('model', ocr_model)}: {len(ocr_text or '')} chars")
+                else:
+                    logging.warning(f"[AI] OCR OpenRouter {ai_resp.status_code}: {ai_resp.text[:200]}")
             except Exception as ex:
-                logging.warning(f"[AI] NVIDIA OCR fallback failed: {ex}")
+                logging.warning(f"[AI] OCR request failed: {ex}")
 
         if ocr_text:
             return jsonify({'success': True, 'ocr_text': ocr_text, 'source': 'vision_ai'}), 200
@@ -4947,6 +5074,106 @@ def api_respond_material_request():
         print(f"[MaterialRequests] Respond error: {e}")
         return jsonify({'success': False, 'message': 'Server error'}), 500
 
+# ── Peer Chat SocketIO relay (server never persists messages) ────────────────
+
+# Map user_id -> socket session id for targeted delivery
+_chat_online = {}  # {user_id: sid}
+
+@socketio.on('connect')
+def chat_connect():
+    user = session.get('user', {})
+    uid = user.get('id') or user.get('user_id')
+    if uid:
+        _chat_online[uid] = request.sid
+        join_room(uid)
+        emit('chat_status', {'online': list(_chat_online.keys())})
+
+@socketio.on('disconnect')
+def chat_disconnect():
+    user = session.get('user', {})
+    uid = user.get('id') or user.get('user_id')
+    if uid and _chat_online.get(uid) == request.sid:
+        del _chat_online[uid]
+
+@socketio.on('chat_send')
+def chat_send(data):
+    """Relay message to target user. Server NEVER stores the content."""
+    user = session.get('user', {})
+    from_id = user.get('id') or user.get('user_id')
+    to_id = data.get('to')
+    if not from_id or not to_id:
+        return
+    payload = {
+        'from': from_id,
+        'text': str(data.get('text', ''))[:2000],  # text-only, length-capped
+        'ts': data.get('ts'),
+        'sender_meta': data.get('sender_meta', {})
+    }
+    emit('chat_receive', payload, to=to_id)
+
+@socketio.on('chat_request_history')
+def chat_request_history(data):
+    """Ask the other device to resend its local IndexedDB history."""
+    user = session.get('user', {})
+    from_id = user.get('id') or user.get('user_id')
+    to_id = data.get('to')
+    if from_id and to_id:
+        emit('chat_history_request', {'from': from_id}, to=to_id)
+
+@socketio.on('chat_history_resend')
+def chat_history_resend(data):
+    """Relay bulk history from one device to the requesting device."""
+    user = session.get('user', {})
+    from_id = user.get('id') or user.get('user_id')
+    to_id = data.get('to')
+    if from_id and to_id:
+        emit('chat_history_receive', {'messages': data.get('messages', []), 'from': from_id}, to=to_id)
+
+
+@app.route('/chat')
+@auth_required
+def chat_page():
+    return render_template('chat.html')
+
+@app.route('/chat/<peer_id>')
+@auth_required
+def chat_with_peer(peer_id):
+    return render_template('chat.html', preload_peer=peer_id)
+
+@app.route('/api/chat/user-info/<user_id>')
+@auth_required
+def chat_user_info(user_id):
+    """Returns profile context shown in chat message badges."""
+    try:
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False}), 500
+        res = client.table('profiles')\
+            .select('id, full_name, email, rank_title, reputation_score, year_of_joining, departments(name), colleges(name)')\
+            .eq('id', user_id).limit(1).execute()
+        if not res.data:
+            return jsonify({'success': False, 'error': 'User not found'}), 404
+        row = res.data[0]
+        dept = row.get('departments') or {}
+        college = row.get('colleges') or {}
+        return jsonify({
+            'success': True,
+            'user': {
+                'id': row.get('id'),
+                'name': row.get('full_name') or 'Student',
+                'email': row.get('email', ''),
+                'rank_title': row.get('rank_title') or 'Student',
+                'reputation_score': row.get('reputation_score') or 0,
+                'year_of_joining': row.get('year_of_joining'),
+                'branch': dept.get('name') or '',
+                'college': college.get('name') or '',
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV') != 'production'
-    app.run(debug=debug_mode)
+    socketio.run(app, debug=debug_mode)

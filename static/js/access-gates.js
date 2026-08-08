@@ -19,22 +19,7 @@
   // ── Profile Completion Gate ───────────────────────────────────────────────
 
   function checkProfileGate() {
-    if (localStorage.getItem(PROFILE_DONE_KEY) === '1') return;
-
-    // Delegate to existing server-side profile check if available
-    fetch('/api/profile-status', { credentials: 'same-origin' })
-      .then(r => r.ok ? r.json() : null)
-      .then(data => {
-        if (!data) return;
-        if (data.profile_completed) {
-          localStorage.setItem(PROFILE_DONE_KEY, '1');
-          return;
-        }
-        _requestProfileGate();
-      })
-      .catch(() => {
-        // Silently ignore — don't block the user if endpoint is unavailable
-      });
+    return; // Completely disabled per user request
   }
 
   function _requestProfileGate() {
@@ -112,29 +97,7 @@
   // ── Notification Engagement Gate ──────────────────────────────────────────
 
   function checkNotificationGate() {
-    if (localStorage.getItem(NOTIF_DONE_KEY)    === '1') return;
-    if (localStorage.getItem(NOTIF_BLOCKED_KEY) === '1') return;
-
-    // Don't push if browser doesn't support
-    if (!('Notification' in window)) {
-      localStorage.setItem(NOTIF_DONE_KEY, '1');
-      return;
-    }
-
-    if (Notification.permission === 'granted') {
-      localStorage.setItem(NOTIF_DONE_KEY, '1');
-      return;
-    }
-
-    if (!window.OverlayManager) return;
-
-    window.OverlayManager.request({
-      id: 'notification-gate',
-      priority: 80,
-      cooldownMs: NOTIF_COOLDOWN_MS,
-      maxDismiss: NOTIF_MAX_DISMISS,
-      show: _showNotifModal
-    });
+    return; // Completely disabled per user request
   }
 
   function _showNotifModal() {

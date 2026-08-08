@@ -311,6 +311,7 @@ notes, practicals, and exam resources for top colleges across India." %}
     try { localStorage.setItem('mw_awareness_seen', '1'); } catch (e) { }
   }
   (function () {
+    return; // Disabled per user request
     try {
       if (localStorage.getItem('mw_awareness_seen')) return;
     } catch (e) { return; }
@@ -373,6 +374,7 @@ notes, practicals, and exam resources for top colleges across India." %}
     try { await fetch('/api/onboarding/welcome-seen', { method: 'POST' }); } catch { }
   }
   (async function () {
+    return; // Disabled per user request
     try {
       const r = await fetch('/api/onboarding/status').then(r => r.json());
       if (r.success && r.data && !r.data.welcome_seen) {

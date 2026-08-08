@@ -202,6 +202,9 @@
                     <textarea id="message" rows="5" class="form-control w-full" placeholder="How can we help you?"
                         required></textarea>
                 </div>
+                <div class="flex justify-center my-2">
+                    <div class="cf-turnstile" data-sitekey="0x4AAAAAAEKPpLMi4eWOTMtC" data-action="turnstile-spin-v2"></div>
+                </div>
                 <div class="text-center">
                     <button type="submit"
                         class="px-10 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
@@ -287,6 +290,7 @@
     </section>
 </div>
 
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script>
     document.getElementById('contactForm').addEventListener('submit', async function (e) {
         e.preventDefault();
@@ -294,6 +298,12 @@
         const email = document.getElementById('email').value;
         const subject = document.getElementById('subject').value;
         const message = document.getElementById('message').value;
+        const token = document.querySelector('[name="cf-turnstile-response"]')?.value || '';
+
+        if (!token) {
+            alert('Please complete the security check.');
+            return;
+        }
         
         const btn = this.querySelector('button[type="submit"]');
         const origText = btn.innerHTML;
@@ -304,18 +314,21 @@
             const res = await fetch('/api/contact', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, subject, message })
+                body: JSON.stringify({ name, email, subject, message, turnstile_token: token })
             });
             const data = await res.json();
             
             if (data.success) {
                 alert('Thank you, ' + name + '! Your message has been sent successfully.');
                 this.reset();
+                window.turnstile?.reset();
             } else {
+                window.turnstile?.reset();
                 alert('Failed to send message: ' + (data.error || 'Unknown error'));
             }
         } catch (error) {
             console.error(error);
+            window.turnstile?.reset();
             alert('A network error occurred. Please try again.');
         } finally {
             btn.innerHTML = origText;

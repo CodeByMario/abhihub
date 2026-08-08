@@ -801,22 +801,6 @@
         window.addEventListener('beforeinstallprompt', (e) => {
             e.preventDefault();
             deferredPrompt = e;
-
-            // Check if user dismissed recently
-            const dismissed = localStorage.getItem(INSTALL_DISMISSED_KEY);
-            if (dismissed && Date.now() - parseInt(dismissed) < INSTALL_DISMISS_DURATION) {
-                return;
-            }
-
-            // Check if already installed
-            if (window.matchMedia('(display-mode: standalone)').matches) {
-                return;
-            }
-
-            // Show install popup after a delay
-            setTimeout(() => {
-                showInstallPopup();
-            }, 3000);
         });
 
         function showInstallPopup() {

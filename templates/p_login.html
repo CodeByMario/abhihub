@@ -86,6 +86,9 @@
   <input type="email" id="email-input" class="p-input-field" placeholder="Email" required>
   <input type="password" id="password-input" class="p-input-field" placeholder="Password" required>
 
+  <div class="flex justify-center mb-1">
+    <div class="cf-turnstile" data-sitekey="0x4AAAAAAEKPpLMi4eWOTMtC" data-action="turnstile-spin-v2"></div>
+  </div>
   <button id="sign-in-btn" class="p-signin-btn">Sign In</button>
 
   <div class="p-divider">OR</div>
@@ -145,6 +148,7 @@
   });
 </script>
 
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script src="{{ url_for('static', filename='login-auth.js') }}" type="module"></script>
 <script src="{{ url_for('static', filename='scripts.js') }}" type="module"></script>
 

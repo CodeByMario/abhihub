@@ -1,0 +1,489 @@
+{% extends "p_struct.html" %}
+{% block page_head %}
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.7.2/socket.io.min.js"></script>
+{% endblock %}
+{% block content %}
+<style>
+:root{--c-indigo:#4f46e5;--c-surface:#f8fafc;--c-border:#e2e8f0;--c-text:#0f172a;--c-muted:#64748b;--c-online:#10b981;}
+*{box-sizing:border-box;}
+.chat-wrap{display:grid;grid-template-columns:300px 1fr;height:calc(100vh - 70px);max-width:1200px;margin:0 auto;background:#fff;border-radius:20px;overflow:hidden;box-shadow:0 20px 60px rgba(0,0,0,.08);border:1px solid var(--c-border);}
+/* Sidebar */
+.chat-sidebar{border-right:1px solid var(--c-border);display:flex;flex-direction:column;background:var(--c-surface);}
+.sidebar-head{padding:1.2rem 1rem;border-bottom:1px solid var(--c-border);}
+.sidebar-head h2{font-size:1.1rem;font-weight:800;color:var(--c-text);margin:0 0 .6rem;}
+.peer-search-input{width:100%;padding:.65rem .9rem;border:1px solid var(--c-border);border-radius:10px;font-size:.9rem;background:#fff;transition:.2s;}
+.peer-search-input:focus{outline:none;border-color:var(--c-indigo);box-shadow:0 0 0 3px rgba(79,70,229,.1);}
+.convo-list{flex:1;overflow-y:auto;padding:.5rem;}
+.convo-item{display:flex;align-items:center;gap:.75rem;padding:.85rem .9rem;border-radius:12px;cursor:pointer;transition:.2s;margin-bottom:.25rem;}
+.convo-item:hover,.convo-item.active{background:#ede9fe;}
+.avatar{width:42px;height:42px;border-radius:50%;background:linear-gradient(135deg,#6366f1,#4f46e5);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;flex-shrink:0;position:relative;}
+.avatar .dot{position:absolute;bottom:1px;right:1px;width:10px;height:10px;border-radius:50%;background:#94a3b8;border:2px solid #fff;}
+.avatar .dot.online{background:var(--c-online);}
+.convo-meta{flex:1;min-width:0;}
+.convo-name{font-weight:700;font-size:.9rem;color:var(--c-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.convo-preview{font-size:.78rem;color:var(--c-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+/* Main chat panel */
+.chat-main{display:flex;flex-direction:column;height:100%;}
+.chat-header{padding:1rem 1.5rem;border-bottom:1px solid var(--c-border);display:flex;align-items:center;gap:1rem;background:#fff;}
+.chat-header .peer-name{font-weight:800;font-size:1.1rem;color:var(--c-text);}
+.chat-header .peer-sub{font-size:.82rem;color:var(--c-muted);}
+.chat-header .btn-history{margin-left:auto;padding:.5rem 1rem;border-radius:8px;border:1px solid var(--c-border);background:#fff;font-size:.82rem;font-weight:700;cursor:pointer;color:var(--c-muted);transition:.2s;}
+.chat-header .btn-history:hover{border-color:var(--c-indigo);color:var(--c-indigo);}
+.messages-area{flex:1;overflow-y:auto;padding:1.5rem;display:flex;flex-direction:column;gap:.75rem;background:#fafafa;}
+/* Bubbles */
+.msg-row{display:flex;flex-direction:column;max-width:72%;}
+.msg-row.me{align-self:flex-end;align-items:flex-end;}
+.msg-row.them{align-self:flex-start;align-items:flex-start;}
+.msg-meta{font-size:.72rem;color:var(--c-muted);margin-bottom:.25rem;display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;}
+.badge-senior{background:#fef3c7;color:#92400e;padding:.1rem .4rem;border-radius:5px;font-weight:700;font-size:.68rem;}
+.badge-junior{background:#ede9fe;color:#4c1d95;padding:.1rem .4rem;border-radius:5px;font-weight:700;font-size:.68rem;}
+.badge-rank{background:#ecfdf5;color:#065f46;padding:.1rem .4rem;border-radius:5px;font-weight:700;font-size:.68rem;}
+.bubble{padding:.75rem 1rem;border-radius:16px;font-size:.95rem;line-height:1.5;word-break:break-word;max-width:100%;}
+.msg-row.me .bubble{background:var(--c-indigo);color:#fff;border-bottom-right-radius:4px;}
+.msg-row.them .bubble{background:#fff;color:var(--c-text);border:1px solid var(--c-border);border-bottom-left-radius:4px;}
+.msg-time{font-size:.7rem;color:var(--c-muted);margin-top:.2rem;}
+/* AbhiHub link card */
+.abhihub-link-card{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;background:linear-gradient(135deg,#ede9fe,#ddd6fe);border:1px solid #c4b5fd;border-radius:12px;text-decoration:none;color:var(--c-text);transition:.2s;margin-top:.4rem;}
+.abhihub-link-card:hover{transform:translateY(-2px);box-shadow:0 6px 20px rgba(79,70,229,.2);}
+.abhihub-link-card .link-icon{width:36px;height:36px;border-radius:8px;background:var(--c-indigo);color:#fff;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;}
+.abhihub-link-card .link-body .link-title{font-weight:700;font-size:.85rem;color:var(--c-indigo);}
+.abhihub-link-card .link-body .link-path{font-size:.75rem;color:var(--c-muted);}
+/* Input bar */
+.chat-input-bar{padding:1rem 1.5rem;border-top:1px solid var(--c-border);display:flex;gap:.75rem;align-items:flex-end;background:#fff;}
+.msg-input{flex:1;padding:.85rem 1rem;border:1px solid var(--c-border);border-radius:14px;font-size:.95rem;resize:none;max-height:120px;transition:.2s;font-family:inherit;}
+.msg-input:focus{outline:none;border-color:var(--c-indigo);box-shadow:0 0 0 3px rgba(79,70,229,.1);}
+.btn-send{width:46px;height:46px;border-radius:12px;background:var(--c-indigo);color:#fff;border:none;cursor:pointer;font-size:1.1rem;transition:.2s;display:flex;align-items:center;justify-content:center;}
+.btn-send:hover{background:#4338ca;transform:scale(1.05);}
+.btn-send:disabled{opacity:.5;cursor:default;transform:none;}
+/* Empty / no peer selected */
+.no-peer{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:.75rem;color:var(--c-muted);}
+.no-peer i{font-size:3rem;opacity:.3;}
+.no-peer p{font-size:1rem;font-weight:600;}
+/* History request banner */
+.history-banner{background:#fef9c3;border:1px solid #fde68a;border-radius:12px;padding:.85rem 1.2rem;margin:.5rem 1.5rem;display:flex;justify-content:space-between;align-items:center;gap:1rem;font-size:.88rem;font-weight:600;color:#92400e;}
+.history-banner .hb-btns{display:flex;gap:.5rem;}
+.hb-btn{padding:.4rem .8rem;border-radius:8px;border:none;cursor:pointer;font-size:.82rem;font-weight:700;}
+.hb-btn.yes{background:#10b981;color:#fff;}
+.hb-btn.no{background:#f1f5f9;color:var(--c-muted);}
+/* Search results dropdown */
+.search-results{background:#fff;border:1px solid var(--c-border);border-radius:12px;box-shadow:0 8px 24px rgba(0,0,0,.1);position:absolute;width:260px;z-index:100;max-height:240px;overflow-y:auto;left:10px;top:130px;}
+.search-result-item{display:flex;align-items:center;gap:.75rem;padding:.75rem 1rem;cursor:pointer;transition:.15s;}
+.search-result-item:hover{background:#f5f3ff;}
+.sidebar-head{position:relative;}
+@media(max-width:700px){.chat-wrap{grid-template-columns:1fr;}.chat-sidebar{display:none;}.chat-sidebar.visible{display:flex;position:absolute;inset:0;z-index:50;width:300px;}}
+</style>
+
+{% set me = session.get('user', {}) %}
+{% set my_id = me.get('id') or me.get('user_id', '') %}
+{% set my_name = me.get('user_metadata', {}).get('full_name') or me.get('email', 'You') %}
+
+<div style="padding:1.5rem 1rem;">
+<div class="chat-wrap" id="chatWrap">
+
+  <!-- Sidebar -->
+  <aside class="chat-sidebar" id="chatSidebar">
+    <div class="sidebar-head">
+      <h2><i class="fas fa-comments" style="color:var(--c-indigo)"></i> Peer Chat</h2>
+      <input type="text" class="peer-search-input" id="peerSearchInput" placeholder="Search students…" autocomplete="off">
+      <div id="searchResults" class="search-results" style="display:none;"></div>
+    </div>
+    <div class="convo-list" id="convoList">
+      <div style="text-align:center;padding:2rem;color:var(--c-muted);font-size:.88rem;">
+        Search for a student above to start chatting.
+      </div>
+    </div>
+  </aside>
+
+  <!-- Main panel -->
+  <main class="chat-main" id="chatMain">
+    <div class="no-peer" id="noPeerPanel">
+      <i class="fas fa-message"></i>
+      <p>Select a conversation to start</p>
+      <span style="font-size:.85rem;">Chats are stored only on your device</span>
+    </div>
+
+    <!-- Active chat (hidden until peer selected) -->
+    <div id="activeChatPanel" style="display:none;flex-direction:column;height:100%;">
+      <div class="chat-header">
+        <div class="avatar" id="hdrAvatar">?</div>
+        <div>
+          <div class="peer-name" id="hdrName">—</div>
+          <div class="peer-sub" id="hdrSub">—</div>
+        </div>
+        <button class="btn-history" id="btnRequestHistory" onclick="requestHistory()">
+          <i class="fas fa-clock-rotate-left"></i> Request history
+        </button>
+      </div>
+
+      <div id="historyBannerArea"></div>
+
+      <div class="messages-area" id="messagesArea"></div>
+
+      <div class="chat-input-bar">
+        <textarea class="msg-input" id="msgInput" rows="1" placeholder="Type a message…" maxlength="2000"></textarea>
+        <button class="btn-send" id="btnSend" onclick="sendMessage()">
+          <i class="fas fa-paper-plane"></i>
+        </button>
+      </div>
+    </div>
+  </main>
+
+</div>
+</div>
+
+<script>
+const MY_ID = {{ my_id | tojson }};
+const MY_NAME = {{ my_name | tojson }};
+const PRELOAD_PEER = {{ (preload_peer | default('')) | tojson }};
+const ABHIHUB_HOSTS = ['app.abhihub.run.place', window.location.hostname];
+
+// ── IndexedDB helpers ──────────────────────────────────────────────────────
+const DB_NAME = 'abhihub_chat', DB_VER = 1, STORE = 'messages';
+let _db = null;
+
+function openDB() {
+  if (_db) return Promise.resolve(_db);
+  return new Promise((res, rej) => {
+    const r = indexedDB.open(DB_NAME, DB_VER);
+    r.onupgradeneeded = e => e.target.result.createObjectStore(STORE, {keyPath: 'key'});
+    r.onsuccess = e => { _db = e.target.result; res(_db); };
+    r.onerror = e => rej(e);
+  });
+}
+
+function chatKey(a, b) { return [a, b].sort().join('_'); }
+
+async function loadMessages(peerId) {
+  const db = await openDB();
+  return new Promise(res => {
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).get(chatKey(MY_ID, peerId));
+    req.onsuccess = e => res(e.target.result ? e.target.result.msgs : []);
+    req.onerror = () => res([]);
+  });
+}
+
+async function saveMessages(peerId, msgs) {
+  const db = await openDB();
+  return new Promise(res => {
+    const tx = db.transaction(STORE, 'readwrite');
+    tx.objectStore(STORE).put({key: chatKey(MY_ID, peerId), msgs});
+    tx.oncomplete = res;
+  });
+}
+
+async function getAllConvoKeys() {
+  const db = await openDB();
+  return new Promise(res => {
+    const tx = db.transaction(STORE, 'readonly');
+    const req = tx.objectStore(STORE).getAll();
+    req.onsuccess = e => res(e.target.result || []);
+    req.onerror = () => res([]);
+  });
+}
+
+// ── State ──────────────────────────────────────────────────────────────────
+let activePeerId = null;
+let activePeerMeta = {};
+let onlineUsers = new Set();
+let peerMetaCache = {};
+let msgs = [];   // current conversation messages (in-memory mirror of IDB)
+
+// ── SocketIO ───────────────────────────────────────────────────────────────
+const socket = io({ transports: ['websocket', 'polling'] });
+
+socket.on('connect', () => console.log('[Chat] connected', socket.id));
+
+socket.on('chat_status', d => {
+  onlineUsers = new Set(d.online || []);
+  renderSidebar();
+});
+
+socket.on('chat_receive', async payload => {
+  const from = payload.from;
+  const msg = { id: Date.now() + Math.random(), from, text: payload.text, ts: payload.ts || Date.now(), meta: payload.sender_meta };
+
+  // Persist to IDB
+  const stored = await loadMessages(from);
+  stored.push(msg);
+  await saveMessages(from, stored);
+
+  // If this is the active convo, render live
+  if (from === activePeerId) {
+    msgs.push(msg);
+    renderMessage(msg, false);
+    scrollBottom();
+  } else {
+    // Update sidebar preview
+    renderSidebar();
+  }
+});
+
+socket.on('chat_history_request', async d => {
+  const requesterId = d.from;
+  const area = document.getElementById('historyBannerArea');
+  area.innerHTML = `
+    <div class="history-banner">
+      <span><i class="fas fa-archive"></i> A student is requesting your chat history</span>
+      <div class="hb-btns">
+        <button class="hb-btn yes" onclick="shareHistory('${requesterId}')">Share</button>
+        <button class="hb-btn no" onclick="this.closest('.history-banner').remove()">Decline</button>
+      </div>
+    </div>`;
+});
+
+socket.on('chat_history_receive', async d => {
+  const incoming = d.messages || [];
+  if (!incoming.length) return;
+  // Merge: avoid duplicates by id
+  const existingIds = new Set(msgs.map(m => m.id));
+  const newOnes = incoming.filter(m => !existingIds.has(m.id));
+  msgs = [...msgs, ...newOnes].sort((a, b) => a.ts - b.ts);
+  await saveMessages(activePeerId, msgs);
+  renderAllMessages();
+  scrollBottom();
+  alert(`Received ${newOnes.length} messages from peer.`);
+});
+
+// ── AbhiHub link detection ─────────────────────────────────────────────────
+function isAbhiHubLink(text) {
+  return ABHIHUB_HOSTS.some(h => text.includes(h)) || text.startsWith('/') && text.length > 1;
+}
+
+function extractLinks(text) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.match(urlRegex) || [];
+}
+
+function renderTextWithLinks(text) {
+  const parts = text.split(/(https?:\/\/[^\s]+)/g);
+  return parts.map(part => {
+    if (/(https?:\/\/[^\s]+)/.test(part)) {
+      if (ABHIHUB_HOSTS.some(h => part.includes(h))) {
+        try {
+          const url = new URL(part);
+          const path = url.pathname;
+          return `<a href="${part}" target="_blank" class="abhihub-link-card">
+            <div class="link-icon"><i class="fas fa-graduation-cap"></i></div>
+            <div class="link-body">
+              <div class="link-title">📚 AbhiHub Resource</div>
+              <div class="link-path">${path}</div>
+            </div>
+          </a>`;
+        } catch {}
+      }
+      return `<a href="${part}" target="_blank" style="color:inherit;text-decoration:underline;opacity:.85;">${part}</a>`;
+    }
+    return part.replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }).join('');
+}
+
+// ── Peer metadata ──────────────────────────────────────────────────────────
+async function fetchPeerMeta(uid) {
+  if (peerMetaCache[uid]) return peerMetaCache[uid];
+  try {
+    const r = await fetch(`/api/chat/user-info/${uid}`).then(r => r.json());
+    if (r.success) { peerMetaCache[uid] = r.user; return r.user; }
+  } catch {}
+  return { name: 'Student', rank_title: '', branch: '', year_of_joining: null, reputation_score: 0 };
+}
+
+function seniorLabel(meta) {
+  if (!meta.year_of_joining) return '';
+  const year = parseInt(meta.year_of_joining);
+  const myYear = new Date().getFullYear();
+  return year <= myYear - 1 ? 'Senior' : 'Junior';
+}
+
+// ── Render ─────────────────────────────────────────────────────────────────
+function renderMessage(msg, prepend = false) {
+  const area = document.getElementById('messagesArea');
+  const isMe = msg.from === MY_ID;
+  const meta = msg.meta || {};
+  const sl = seniorLabel(meta);
+  const time = new Date(msg.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+
+  const div = document.createElement('div');
+  div.className = `msg-row ${isMe ? 'me' : 'them'}`;
+  div.innerHTML = `
+    <div class="msg-meta">
+      ${!isMe ? `<strong>${meta.name || 'Student'}</strong>` : ''}
+      ${sl ? `<span class="badge-${sl.toLowerCase()}">${sl}</span>` : ''}
+      ${meta.rank_title ? `<span class="badge-rank">${meta.rank_title}</span>` : ''}
+      ${meta.branch ? `<span style="font-size:.7rem;color:var(--c-muted);">${meta.branch}</span>` : ''}
+    </div>
+    <div class="bubble">${renderTextWithLinks(msg.text)}</div>
+    <div class="msg-time">${time}</div>`;
+
+  if (prepend) area.prepend(div); else area.appendChild(div);
+}
+
+function renderAllMessages() {
+  const area = document.getElementById('messagesArea');
+  area.innerHTML = '';
+  msgs.forEach(m => renderMessage(m, false));
+}
+
+function scrollBottom() {
+  const a = document.getElementById('messagesArea');
+  a.scrollTop = a.scrollHeight;
+}
+
+// ── Sidebar ────────────────────────────────────────────────────────────────
+async function renderSidebar() {
+  const list = document.getElementById('convoList');
+  const rows = await getAllConvoKeys();
+  if (!rows.length) return;
+
+  // Build convo items from IDB
+  const items = await Promise.all(rows.map(async row => {
+    const parts = row.key.split('_');
+    const peerId = parts.find(p => p !== MY_ID) || parts[0];
+    const peerMeta = await fetchPeerMeta(peerId);
+    const last = row.msgs && row.msgs.length ? row.msgs[row.msgs.length - 1] : null;
+    return { peerId, peerMeta, last };
+  }));
+
+  list.innerHTML = items.map(({ peerId, peerMeta, last }) => {
+    const init = (peerMeta.name || 'S').charAt(0).toUpperCase();
+    const isOnline = onlineUsers.has(peerId);
+    const preview = last ? last.text.slice(0, 35) + (last.text.length > 35 ? '…' : '') : 'Start chatting';
+    return `<div class="convo-item ${peerId === activePeerId ? 'active' : ''}" onclick="selectPeer('${peerId}')">
+      <div class="avatar">${init}<span class="dot ${isOnline ? 'online' : ''}"></span></div>
+      <div class="convo-meta">
+        <div class="convo-name">${peerMeta.name || 'Student'}</div>
+        <div class="convo-preview">${preview}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Select peer / open conversation ───────────────────────────────────────
+async function selectPeer(peerId) {
+  activePeerId = peerId;
+  activePeerMeta = await fetchPeerMeta(peerId);
+  msgs = await loadMessages(peerId);
+
+  // Header
+  document.getElementById('hdrAvatar').textContent = (activePeerMeta.name || 'S').charAt(0).toUpperCase();
+  document.getElementById('hdrName').textContent = activePeerMeta.name || 'Student';
+  const sl = seniorLabel(activePeerMeta);
+  document.getElementById('hdrSub').textContent =
+    [sl, activePeerMeta.branch, activePeerMeta.college].filter(Boolean).join(' · ') || 'AbhiHub Student';
+
+  document.getElementById('noPeerPanel').style.display = 'none';
+  const panel = document.getElementById('activeChatPanel');
+  panel.style.display = 'flex';
+
+  renderAllMessages();
+  scrollBottom();
+  renderSidebar();
+  document.getElementById('msgInput').focus();
+}
+
+// ── Send ───────────────────────────────────────────────────────────────────
+async function sendMessage() {
+  if (!activePeerId) return;
+  const input = document.getElementById('msgInput');
+  const text = input.value.trim().replace(/<[^>]*>/g, '');  // strip HTML, text-only
+  if (!text) return;
+
+  const myMeta = await fetchPeerMeta(MY_ID);
+  const msg = {
+    id: Date.now() + Math.random(),
+    from: MY_ID,
+    text,
+    ts: Date.now(),
+    meta: myMeta
+  };
+
+  // Store locally
+  msgs.push(msg);
+  await saveMessages(activePeerId, msgs);
+
+  // Relay via socket
+  socket.emit('chat_send', {
+    to: activePeerId,
+    text,
+    ts: msg.ts,
+    sender_meta: myMeta
+  });
+
+  renderMessage(msg, false);
+  scrollBottom();
+  input.value = '';
+  input.style.height = 'auto';
+  renderSidebar();
+}
+
+// ── History recovery ───────────────────────────────────────────────────────
+function requestHistory() {
+  if (!activePeerId) return;
+  socket.emit('chat_request_history', { to: activePeerId });
+  alert('History request sent. The other student will see a prompt to share their local chat history.');
+}
+
+async function shareHistory(requesterId) {
+  const history = await loadMessages(requesterId);
+  socket.emit('chat_history_resend', { to: requesterId, messages: history });
+  document.getElementById('historyBannerArea').innerHTML = '';
+}
+
+// ── Peer search ────────────────────────────────────────────────────────────
+let searchTimer = null;
+document.getElementById('peerSearchInput').addEventListener('input', e => {
+  clearTimeout(searchTimer);
+  const q = e.target.value.trim();
+  if (q.length < 2) { document.getElementById('searchResults').style.display = 'none'; return; }
+  searchTimer = setTimeout(() => searchPeers(q), 350);
+});
+
+async function searchPeers(q) {
+  try {
+    const r = await fetch(`/api/chat/search-peers?q=${encodeURIComponent(q)}`).then(r => r.json());
+    const users = r.users || [];
+    const resultsEl = document.getElementById('searchResults');
+    if (!users.length) { resultsEl.style.display = 'none'; return; }
+    resultsEl.style.display = 'block';
+    resultsEl.innerHTML = users.filter(u => u.id !== MY_ID).slice(0, 8).map(u =>
+      `<div class="search-result-item" onclick="startChatWith('${u.id}')">
+        <div class="avatar" style="width:34px;height:34px;font-size:.85rem;">${(u.full_name||'S').charAt(0).toUpperCase()}</div>
+        <div>
+          <div style="font-weight:700;font-size:.88rem;">${u.full_name || 'Student'}</div>
+          <div style="font-size:.75rem;color:var(--c-muted);">${u.email || ''}</div>
+        </div>
+      </div>`
+    ).join('');
+  } catch {}
+}
+
+async function startChatWith(peerId) {
+  document.getElementById('searchResults').style.display = 'none';
+  document.getElementById('peerSearchInput').value = '';
+  await selectPeer(peerId);
+}
+
+// ── Input auto-resize + Enter to send ─────────────────────────────────────
+document.getElementById('msgInput').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+document.getElementById('msgInput').addEventListener('input', function() {
+  this.style.height = 'auto';
+  this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+});
+
+// ── Close search on outside click ─────────────────────────────────────────
+document.addEventListener('click', e => {
+  if (!e.target.closest('#chatSidebar')) {
+    document.getElementById('searchResults').style.display = 'none';
+  }
+});
+
+// ── Bootstrap ─────────────────────────────────────────────────────────────
+(async () => {
+  await renderSidebar();
+  if (PRELOAD_PEER) await selectPeer(PRELOAD_PEER);
+})();
+</script>
+{% endblock %}
