@@ -106,11 +106,13 @@
     <!-- Active chat (hidden until peer selected) -->
     <div id="activeChatPanel" style="display:none;flex-direction:column;height:100%;">
       <div class="chat-header">
-        <div class="avatar" id="hdrAvatar">?</div>
-        <div>
-          <div class="peer-name" id="hdrName">—</div>
-          <div class="peer-sub" id="hdrSub">—</div>
-        </div>
+        <a id="hdrProfileLink" href="#" title="View profile" style="text-decoration:none;display:flex;align-items:center;gap:.75rem;flex:1;">
+          <div class="avatar" id="hdrAvatar" style="cursor:pointer;">?</div>
+          <div>
+            <div class="peer-name" id="hdrName">—</div>
+            <div class="peer-sub" id="hdrSub">—</div>
+          </div>
+        </a>
         <button class="btn-history" id="btnRequestHistory" onclick="requestHistory()">
           <i class="fas fa-clock-rotate-left"></i> Request history
         </button>
@@ -193,10 +195,14 @@ let msgs = [];   // current conversation messages (in-memory mirror of IDB)
 // ── SocketIO ───────────────────────────────────────────────────────────────
 const socket = io({ transports: ['websocket', 'polling'] });
 
-socket.on('connect', () => console.log('[Chat] connected', socket.id));
+socket.on('connect', () => {
+  console.log('[Chat] connected', socket.id);
+  // Re-join active conversation room after reconnect
+  if (activePeerId) socket.emit('chat_join', { peer: activePeerId });
+});
 
-socket.on('chat_status', d => {
-  onlineUsers = new Set(d.online || []);
+socket.on('chat_online_update', d => {
+  onlineUsers = new Set((d.online || []).map(u => u.id));
   renderSidebar();
 });
 
@@ -365,12 +371,16 @@ async function selectPeer(peerId) {
   activePeerMeta = await fetchPeerMeta(peerId);
   msgs = await loadMessages(peerId);
 
-  // Header
+  // Join the private 2-person room on the server
+  socket.emit('chat_join', { peer: peerId });
+
+  // Header — avatar+name links to peer's public profile
   document.getElementById('hdrAvatar').textContent = (activePeerMeta.name || 'S').charAt(0).toUpperCase();
   document.getElementById('hdrName').textContent = activePeerMeta.name || 'Student';
+  document.getElementById('hdrProfileLink').href = `/profile/${peerId}`;
   const sl = seniorLabel(activePeerMeta);
   document.getElementById('hdrSub').textContent =
-    [sl, activePeerMeta.branch, activePeerMeta.college].filter(Boolean).join(' · ') || 'AbhiHub Student';
+    [sl, activePeerMeta.rank_title, activePeerMeta.branch, activePeerMeta.college].filter(Boolean).join(' · ') || 'AbhiHub Student';
 
   document.getElementById('noPeerPanel').style.display = 'none';
   const panel = document.getElementById('activeChatPanel');

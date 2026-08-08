@@ -1,3 +1,10 @@
+# Gevent monkey patch must be executed at the very beginning
+try:
+    from gevent import monkey
+    monkey.patch_all()
+except ImportError:
+    pass
+
 from flask import Flask, redirect, render_template, request, make_response, session, abort, jsonify, url_for, send_file, send_from_directory, flash, Response
 from flask_socketio import SocketIO, emit, join_room, leave_room
 import secrets
@@ -5074,60 +5081,119 @@ def api_respond_material_request():
         print(f"[MaterialRequests] Respond error: {e}")
         return jsonify({'success': False, 'message': 'Server error'}), 500
 
-# ── Peer Chat SocketIO relay (server never persists messages) ────────────────
+# ── Peer Chat SocketIO relay — strict 2-person rooms ─────────────────────────
+# Server NEVER persists message content. Room IDs are deterministic pairs so
+# only the two participants can ever be in the same room.
 
-# Map user_id -> socket session id for targeted delivery
-_chat_online = {}  # {user_id: sid}
+_chat_online = {}        # {user_id: {sid, name}}
+_chat_online_http = {}   # {user_id: {time, name}}
+
+def _pair_room(uid_a, uid_b):
+    """Deterministic private room for exactly two users."""
+    return 'cr_' + '_'.join(sorted([uid_a, uid_b]))
+
+def _get_uid():
+    user = session.get('user', {})
+    return user.get('id') or user.get('user_id')
 
 @socketio.on('connect')
 def chat_connect():
+    uid = _get_uid()
+    if not uid:
+        return
     user = session.get('user', {})
-    uid = user.get('id') or user.get('user_id')
-    if uid:
-        _chat_online[uid] = request.sid
-        join_room(uid)
-        emit('chat_status', {'online': list(_chat_online.keys())})
+    name = (user.get('user_metadata') or {}).get('full_name') or user.get('email', 'Student')
+    _chat_online[uid] = {'sid': request.sid, 'name': name}
+    join_room(uid)  # personal inbox room
+    # Broadcast updated online list to everyone
+    socketio.emit('chat_online_update', {'online': _safe_online_list()})
 
 @socketio.on('disconnect')
 def chat_disconnect():
-    user = session.get('user', {})
-    uid = user.get('id') or user.get('user_id')
-    if uid and _chat_online.get(uid) == request.sid:
+    uid = _get_uid()
+    if uid and _chat_online.get(uid, {}).get('sid') == request.sid:
         del _chat_online[uid]
+        socketio.emit('chat_online_update', {'online': _safe_online_list()})
+
+def _get_merged_online_users():
+    import time
+    now_t = time.time()
+    # Prune old HTTP users
+    to_delete = [k for k, v in _chat_online_http.items() if now_t - v['time'] > 45]
+    for k in to_delete:
+        del _chat_online_http[k]
+    # Merge socket & HTTP
+    merged = {}
+    for k, v in _chat_online.items():
+        merged[k] = v['name']
+    for k, v in _chat_online_http.items():
+        merged[k] = v['name']
+    return [{'id': k, 'name': name} for k, name in merged.items()]
+
+def _safe_online_list():
+    return _get_merged_online_users()
+
+@socketio.on('chat_join')
+def chat_join(data):
+    """Client joins the private 2-person room for a specific conversation."""
+    uid = _get_uid()
+    peer_id = data.get('peer')
+    if not uid or not peer_id or uid == peer_id:
+        return
+    room = _pair_room(uid, peer_id)
+    join_room(room)
+    emit('chat_joined', {'room': room})
 
 @socketio.on('chat_send')
 def chat_send(data):
-    """Relay message to target user. Server NEVER stores the content."""
-    user = session.get('user', {})
-    from_id = user.get('id') or user.get('user_id')
-    to_id = data.get('to')
-    if not from_id or not to_id:
+    """Relay to the private pair room. Server NEVER stores the content."""
+    uid = _get_uid()
+    peer_id = data.get('to')
+    if not uid or not peer_id or uid == peer_id:
         return
+    room = _pair_room(uid, peer_id)
     payload = {
-        'from': from_id,
-        'text': str(data.get('text', ''))[:2000],  # text-only, length-capped
+        'from': uid,
+        'text': str(data.get('text', ''))[:2000],
         'ts': data.get('ts'),
         'sender_meta': data.get('sender_meta', {})
     }
-    emit('chat_receive', payload, to=to_id)
+    # Emit to the private room — only the two joined participants receive it
+    emit('chat_receive', payload, to=room)
 
 @socketio.on('chat_request_history')
 def chat_request_history(data):
-    """Ask the other device to resend its local IndexedDB history."""
-    user = session.get('user', {})
-    from_id = user.get('id') or user.get('user_id')
-    to_id = data.get('to')
-    if from_id and to_id:
-        emit('chat_history_request', {'from': from_id}, to=to_id)
+    uid = _get_uid()
+    peer_id = data.get('to')
+    if uid and peer_id:
+        emit('chat_history_request', {'from': uid}, to=peer_id)
 
 @socketio.on('chat_history_resend')
 def chat_history_resend(data):
-    """Relay bulk history from one device to the requesting device."""
-    user = session.get('user', {})
-    from_id = user.get('id') or user.get('user_id')
-    to_id = data.get('to')
-    if from_id and to_id:
-        emit('chat_history_receive', {'messages': data.get('messages', []), 'from': from_id}, to=to_id)
+    uid = _get_uid()
+    peer_id = data.get('to')
+    if uid and peer_id:
+        emit('chat_history_receive', {'messages': data.get('messages', []), 'from': uid}, to=peer_id)
+
+
+@app.route('/api/chat/online')
+@auth_required
+def chat_online_users():
+    """Returns currently online users for the dashboard widget, registering the caller's online heartbeat."""
+    import time
+    uid = _get_uid()
+    if uid:
+        user = session.get('user', {})
+        name = (user.get('user_metadata') or {}).get('full_name') or user.get('email', 'Student')
+        # Record HTTP heartbeat
+        _chat_online_http[uid] = {'time': time.time(), 'name': name}
+        # Notify active chat pages that list changed
+        socketio.emit('chat_online_update', {'online': _safe_online_list()})
+
+    # Get all online users, excluding self
+    all_users = _get_merged_online_users()
+    users = [u for u in all_users if u['id'] != uid]
+    return jsonify({'success': True, 'online': users})
 
 
 @app.route('/chat')
@@ -5139,6 +5205,22 @@ def chat_page():
 @auth_required
 def chat_with_peer(peer_id):
     return render_template('chat.html', preload_peer=peer_id)
+
+
+@app.route('/profile/<user_id>')
+@auth_required
+def peer_profile(user_id):
+    """Public peer profile — shows uploaded files and referred materials."""
+    try:
+        from methods.supabase_helper import init_supabase, get_user_peer_materials_db
+        result = get_user_peer_materials_db(user_id)
+        return render_template('peer_profile.html', peer=result.get('user', {}),
+                               uploads=result.get('uploads', []),
+                               referred=result.get('referred', []))
+    except Exception as e:
+        logging.error(f"[peer_profile] {e}")
+        return redirect(url_for('dashboard'))
+
 
 @app.route('/api/chat/user-info/<user_id>')
 @auth_required

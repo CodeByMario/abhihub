@@ -79,6 +79,39 @@ notes, practicals, and exam resources for top colleges across India." %}
 
 {% include 'includes/_peer_search_modal.html' %}
 
+{% if user_data %}
+<!-- ── Online Now Widget ───────────────────────────────────────────────── -->
+<div id="onlineWidget" style="margin:.75rem 0;">
+  <div id="onlineInner" style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;min-height:36px;">
+    <span style="font-size:.78rem;font-weight:700;color:#64748b;letter-spacing:.04em;">🟢 ONLINE NOW</span>
+    <span id="onlineList" style="display:flex;gap:.4rem;flex-wrap:wrap;"></span>
+  </div>
+</div>
+<style>
+.online-chip{display:inline-flex;align-items:center;gap:.35rem;padding:.3rem .65rem;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:20px;font-size:.78rem;font-weight:700;color:#065f46;cursor:pointer;text-decoration:none;transition:.2s;}
+.online-chip:hover{background:#d1fae5;transform:translateY(-1px);box-shadow:0 4px 12px rgba(16,185,129,.15);}
+.online-chip .oc-dot{width:7px;height:7px;border-radius:50%;background:#10b981;flex-shrink:0;animation:pulse 2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+</style>
+<script>
+(async function pollOnline() {
+  try {
+    const r = await fetch('/api/chat/online').then(r => r.json());
+    const list = document.getElementById('onlineList');
+    if (!list) return;
+    const users = r.online || [];
+    if (!users.length) { list.innerHTML = '<span style="font-size:.75rem;color:#94a3b8;">No one online right now</span>'; return; }
+    list.innerHTML = users.slice(0, 10).map(u =>
+      `<a class="online-chip" href="/chat/${u.id}" title="Chat with ${u.name}">
+        <span class="oc-dot"></span>${u.name.split(' ')[0]}
+      </a>`
+    ).join('');
+  } catch {}
+  setTimeout(pollOnline, 30000);
+})();
+</script>
+{% endif %}
+
 <style>
 .welcome-mini-banner {
   background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);

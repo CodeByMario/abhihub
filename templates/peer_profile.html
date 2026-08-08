@@ -1,0 +1,369 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+<style>
+  /* ── Reset conflicts ── */
+  .pf-card,
+  .pf-btn,
+  .pf-file-card,
+  .pf-show-more,
+  .pf-chat-btn,
+  .pf-stat-box {
+    border: 1px solid var(--border-light);
+    box-sizing: border-box;
+  }
+
+  /* ── Layout ── */
+  .pf-page {
+    padding: 1.5rem 1rem 5rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .pf-hero {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 60%, #4338ca 100%);
+    border-radius: 24px;
+    padding: 2.2rem;
+    display: flex;
+    align-items: center;
+    gap: 1.8rem;
+    margin-bottom: 2rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 12px 30px rgba(49, 46, 129, 0.15);
+  }
+
+  .pf-hero::after {
+    content: '';
+    position: absolute;
+    right: -40px;
+    top: -40px;
+    width: 220px;
+    height: 220px;
+    background: rgba(255, 255, 255, 0.04);
+    border-radius: 50%;
+  }
+
+  .pf-avatar-wrap {
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  .pf-avatar {
+    width: 90px;
+    height: 90px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #6366f1, #4f46e5);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    font-weight: 800;
+    border: 3px solid rgba(255, 255, 255, 0.3);
+  }
+
+  .pf-hero-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .pf-hero-name {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #fff;
+    margin: 0 0 0.3rem;
+  }
+
+  .pf-hero-college {
+    font-size: 0.9rem;
+    color: rgba(255, 255, 255, 0.8);
+    margin: 0 0 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .pf-hero-stats {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .pf-stat-box {
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15) !important;
+    border-radius: 12px;
+    padding: 0.45rem 1rem;
+    text-align: center;
+    backdrop-filter: blur(4px);
+  }
+
+  .pf-stat-num {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #fff;
+    display: block;
+  }
+
+  .pf-stat-label {
+    font-size: 0.65rem;
+    color: rgba(255, 255, 255, 0.65);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  /* ── Chat Button ── */
+  .pf-chat-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1.4rem;
+    background: #fff;
+    color: #4f46e5;
+    border: 1px solid rgba(255,255,255,0.2) !important;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 0.92rem;
+    text-decoration: none;
+    transition: all 0.2s;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  .pf-chat-btn:hover {
+    background: #4f46e5;
+    color: #fff;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(79, 70, 229, 0.3);
+  }
+
+  /* ── Sections ── */
+  .pf-sections-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  @media (min-width: 768px) {
+    .pf-sections-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .pf-section {
+    background: #fff;
+    border-radius: 18px;
+    padding: 1.5rem;
+    border: 1px solid var(--border-light);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.02);
+  }
+
+  .pf-section-head {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--border-light);
+  }
+
+  .pf-section-title {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    margin: 0;
+  }
+
+  .pf-badge {
+    padding: 0.2rem 0.65rem;
+    background: #ede9fe;
+    color: #4f46e5;
+    border-radius: 20px;
+    font-size: 0.72rem;
+    font-weight: 800;
+  }
+
+  /* ── File Cards ── */
+  .pf-file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .pf-file-card {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    background: var(--background-secondary);
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.2s;
+    border: 1px solid var(--border-light) !important;
+  }
+
+  .pf-file-card:hover {
+    border-color: #4f46e5 !important;
+    background: #fff;
+    transform: translateX(4px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+  }
+
+  .pf-file-icon {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+    flex-shrink: 0;
+  }
+
+  .pf-file-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .pf-file-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.15rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .pf-file-meta {
+    font-size: 0.72rem;
+    color: var(--text-tertiary);
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .pf-empty {
+    text-align: center;
+    padding: 2.5rem 1rem;
+    color: var(--text-tertiary);
+  }
+
+  .pf-empty-icon {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+    opacity: 0.5;
+  }
+</style>
+
+<div class="pf-page">
+  <!-- Hero Banner -->
+  <div class="pf-hero">
+    <div class="pf-avatar-wrap">
+      <div class="pf-avatar">
+        {{ (peer.get('name') or 'S').charAt(0).toUpperCase() }}
+      </div>
+    </div>
+    <div class="pf-hero-info">
+      <h1 class="pf-hero-name">{{ peer.get('name') or 'Student' }}</h1>
+      <div class="pf-hero-college">
+        <i class="fas fa-university"></i>
+        <span>{{ peer.get('college_name') or 'AbhiHub Student' }}</span>
+      </div>
+      <div class="pf-hero-stats">
+        <div class="pf-stat-box">
+          <span class="pf-stat-num">{{ peer.get('reputation_score', 0) }}</span>
+          <span class="pf-stat-label">Reputation</span>
+        </div>
+        <div class="pf-stat-box">
+          <span class="pf-stat-num">{{ uploads|length }}</span>
+          <span class="pf-stat-label">Shared</span>
+        </div>
+        <div class="pf-stat-box">
+          <span class="pf-stat-num">{{ peer.get('rank_title', 'Student') }}</span>
+          <span class="pf-stat-label">Rank</span>
+        </div>
+      </div>
+    </div>
+    <div>
+      <a href="/chat/{{ peer.get('id') }}" class="pf-chat-btn">
+        <i class="fas fa-comments"></i> Chat Now
+      </a>
+    </div>
+  </div>
+
+  <!-- Content Grid -->
+  <div class="pf-sections-grid">
+    <!-- Shared Materials (Uploads) -->
+    <div class="pf-section">
+      <div class="pf-section-head">
+        <i class="fas fa-share-nodes" style="color:#4f46e5;font-size:1.1rem;"></i>
+        <h2 class="pf-section-title">Shared Materials</h2>
+        <span class="pf-badge">{{ uploads|length }}</span>
+      </div>
+
+      {% if uploads %}
+      <div class="pf-file-list">
+        {% for file in uploads %}
+        {% set file_type = file.get('type','Papers').lower() %}
+        {% if 'notes' in file_type %}
+          {% set preview_url = url_for('view_pdf', pdf_name=file['file-path'], record_id=file['record_id']) %}
+        {% else %}
+          {% set preview_url = url_for('preview', file_path=file['file-path'], record_id=file['record_id']) %}
+        {% endif %}
+        <a href="{{ preview_url }}" class="pf-file-card">
+          <img src="/static/premium/icon/{% if 'notes' in file_type %}notes.gif{% elif 'practical' in file_type %}practicals.gif{% else %}papers.gif{% endif %}" class="pf-file-icon" alt="" aria-hidden="true">
+          <div class="pf-file-info">
+            <div class="pf-file-name" title="{{ file['file-name'] }}">{{ file['file-name'] }}</div>
+            <div class="pf-file-meta">
+              <span>{{ file['subject'] }}</span>
+              <span>•</span>
+              <span>👁 {{ file['views'] }}</span>
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="pf-empty">
+        <div class="pf-empty-icon"><i class="fas fa-folder-open"></i></div>
+        <p>No shared materials yet.</p>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Referred Materials (Views) -->
+    <div class="pf-section">
+      <div class="pf-section-head">
+        <i class="fas fa-book-open" style="color:#10b981;font-size:1.1rem;"></i>
+        <h2 class="pf-section-title">Referred Materials</h2>
+        <span class="pf-badge">{{ referred|length }}</span>
+      </div>
+
+      {% if referred %}
+      <div class="pf-file-list">
+        {% for file in referred %}
+        {% set file_type = file.get('type','Notes').lower() %}
+        {% if 'notes' in file_type %}
+          {% set preview_url = url_for('view_pdf', pdf_name=file['file-path'], record_id=file['record_id']) %}
+        {% else %}
+          {% set preview_url = url_for('preview', file_path=file['file-path'], record_id=file['record_id']) %}
+        {% endif %}
+        <a href="{{ preview_url }}" class="pf-file-card">
+          <img src="/static/premium/icon/{% if 'notes' in file_type %}notes.gif{% elif 'practical' in file_type %}practicals.gif{% else %}papers.gif{% endif %}" class="pf-file-icon" alt="" aria-hidden="true">
+          <div class="pf-file-info">
+            <div class="pf-file-name" title="{{ file['file-name'] }}">{{ file['file-name'] }}</div>
+            <div class="pf-file-meta">
+              <span>{{ file['subject'] }}</span>
+            </div>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div class="pf-empty">
+        <div class="pf-empty-icon"><i class="fas fa-history"></i></div>
+        <p>No referred materials yet.</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+{% endblock %}
