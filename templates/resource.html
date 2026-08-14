@@ -293,6 +293,8 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
         </div>
         <!-- Actual Image -->
         <img src="/api/view-doc/{{ document.id }}" alt="{{ document.title }} - {{ subj_name }} {{ file_type }} for {{ coll_name }}" onload="this.style.opacity=1; document.getElementById('imageSkeleton').style.display='none';" style="max-width: 100%; height: auto; border-radius: 12px; box-shadow: 0 10px 20px rgba(0,0,0,0.1); position: relative; z-index: 2; opacity: 0; transition: opacity 0.3s ease;">
+        <!-- Watermark Overlay -->
+        <div style="position: absolute; inset: 0; pointer-events: none; z-index: 5; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg transform='rotate(-30 120 120)'%3E%3Ctext x='120' y='120' fill='rgba(0,0,0,0.18)' font-size='18' font-family='sans-serif' font-weight='900' text-anchor='middle'%3EAbhiHub.com%3C/text%3E%3C/g%3E%3C/svg%3E&quot;); background-repeat: repeat;"></div>
       </div>
     {% else %}
       <div style="text-align:center; padding: 5rem 2rem; background: #f1f5f9;">
