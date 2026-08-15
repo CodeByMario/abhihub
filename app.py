@@ -31,9 +31,27 @@ BASE_DOMAIN = os.getenv('BASE_DOMAIN', 'app.abhihub.run.place').strip().lower()
 INDEXNOW_KEY = os.getenv('INDEX_NOW_BING_API_KEY', '').strip()
 
 # Initialize Supabase client for authentication
+# DEFERRED: create_client crashes if SUPABASE_URL/KEY are None (causes H10 on Heroku startup).
+# We use a lazy proxy so the client is only created when first accessed.
 SUPABASE_URL = os.getenv('SUPABASE_URL')
 SUPABASE_KEY = os.getenv('SUPABASE_KEY')
-supabase = create_client(SUPABASE_URL, SUPABASE_KEY, options=ClientOptions(schema="abhihub"))
+
+_supabase_client = None  # Lazily initialized
+
+class _SupabaseProxy:
+    """Defer client creation until first attribute access so missing env vars
+    don't crash the app at import time (fixes Heroku H10 startup crash)."""
+    def _ensure(self):
+        global _supabase_client
+        if _supabase_client is None:
+            if not SUPABASE_URL or not SUPABASE_KEY:
+                raise RuntimeError("SUPABASE_URL and SUPABASE_KEY environment variables are required")
+            _supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY, options=ClientOptions(schema="abhihub"))
+        return _supabase_client
+    def __getattr__(self, name):
+        return getattr(self._ensure(), name)
+
+supabase = _SupabaseProxy()
 
 # Initialize Firebase Admin SDK for storage only
 import firebase_admin
@@ -42,17 +60,30 @@ from firebase_admin import credentials, storage
 # Try to load Firebase credentials from environment variable first, fallback to file
 firebase_service_account = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
 if firebase_service_account:
-    # Load from environment variable (recommended for production)
-    cred_dict = json.loads(firebase_service_account)
-    cred = credentials.Certificate(cred_dict)
+    # Load from environment variable (recommended for production on Heroku)
+    try:
+        cred_dict = json.loads(firebase_service_account)
+        cred = credentials.Certificate(cred_dict)
+    except (json.JSONDecodeError, Exception) as e:
+        logging.warning(f"Firebase: Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: {e}")
+        cred = None
 else:
     # Fallback to file (for local development only)
-    # IMPORTANT: This file should NOT be committed to Git!
-    cred = credentials.Certificate("firebase-auth.json")
+    _firebase_file = "firebase-auth.json"
+    _firebase_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), _firebase_file)
+    if os.path.exists(_firebase_path):
+        cred = credentials.Certificate(_firebase_path)
+    else:
+        logging.warning(f"Firebase: No credentials found (FIREBASE_SERVICE_ACCOUNT_JSON not set, {_firebase_file} not found). Firebase storage will be unavailable.")
+        cred = None
 
-firebase_admin.initialize_app(cred, {
-    'storageBucket': 'abhi-hub.appspot.com'
-})
+if cred:
+    firebase_admin.initialize_app(cred, {
+        'storageBucket': 'abhi-hub.appspot.com'
+    })
+else:
+    # Initialize with no cred — Firebase features will gracefully degrade
+    firebase_admin.initialize_app(None)
 
 # --- Advanced Search helpers (add after imports) ---
 import re
@@ -322,6 +353,9 @@ try:
     from scheduled_tasks import init_scheduler
     init_scheduler(app)
     logging.info("✅ Background task scheduler initialized")
+except ImportError as e:
+    logging.warning(f"⚠️ Background scheduler not available (missing dependency): {e}")
+    logging.info("Upload notifications will not be sent automatically")
 except Exception as e:
     logging.error(f"⚠️ Failed to initialize background scheduler: {e}")
     logging.error("Upload notifications will not be sent automatically")
