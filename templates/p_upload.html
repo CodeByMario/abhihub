@@ -27,29 +27,29 @@
           <span class="mobile-subtitle">Share resources with friends</span>
         </div>
 
-        <form id="uploadForm" onsubmit="startBulkUpload(event)">
+        <form id="uploadForm" data-event-submit="startBulkUpload">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
           <!-- Drop zone -->
-          <div class="drop-zone" id="dropArea" onclick="document.getElementById('fileInput').click()">
+          <div class="drop-zone" id="dropArea" data-action="openFileInput">
             <span class="drop-icon">📂</span>
             <span class="drop-label">Select Files / Drag &amp; Drop</span>
             <span class="drop-hint" id="fileHint">Images accepted • Max 50 MB each</span>
             <input type="file" id="fileInput" name="upload_document" hidden multiple accept="image/*,application/pdf"
-                   onchange="if(window.gtag){gtag('event', 'upload_funnel', {'funnel_step': '1_files_selected'});} handleFilesSelected(this.files)">
+                   data-event-change="handleFilesSelectedEvent">
           </div>
 
           <!-- Scan / camera row -->
           <div class="scan-row">
-            <button type="button" class="scan-btn" onclick="document.getElementById('cameraInput').click()">
+            <button type="button" class="scan-btn" data-action="openCameraInput">
               📷 Scan / Camera
             </button>
-            <button type="button" class="scan-btn" onclick="document.getElementById('fileInput').click()">
+            <button type="button" class="scan-btn" data-action="openFileInput">
               🗂 Browse Files
             </button>
           </div>
           <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden
-                 onchange="if(window.gtag){gtag('event', 'upload_funnel', {'funnel_step': '1_camera_used'});} handleFilesSelected(this.files)">
+                 data-event-change="handleFilesSelectedEvent">
 
 
           <!-- Upload Carousel (Hidden by default) -->
@@ -61,12 +61,12 @@
               </div>
               <div class="carousel-canvas">
                 <img id="carouselImg" src="" alt="preview">
-                <button type="button" class="remove-img-btn" onclick="removeCarouselImage()" title="Remove this image">✕</button>
+                <button type="button" class="remove-img-btn" data-action="removeCarouselImage" title="Remove this image" aria-label="Remove image">✕</button>
               </div>
               <div class="carousel-controls">
-                <button type="button" class="img-ctrl-btn" onclick="rotateCarousel(-90)" title="Rotate Left">↺</button>
-                <button type="button" class="img-ctrl-btn" onclick="rotateCarousel(90)" title="Rotate Right">↻</button>
-                <button type="button" class="img-ctrl-btn" onclick="toggleCarouselCrop()" id="cropToggleBtn" title="Crop">✂️</button>
+                <button type="button" class="img-ctrl-btn" data-action="rotateCarousel" data-direction="-90" title="Rotate Left" aria-label="Rotate Left">↺</button>
+                <button type="button" class="img-ctrl-btn" data-action="rotateCarousel" data-direction="90" title="Rotate Right" aria-label="Rotate Right">↻</button>
+                <button type="button" class="img-ctrl-btn" data-action="toggleCarouselCrop" id="cropToggleBtn" title="Crop" aria-label="Crop">✂️</button>
               </div>
             </div>
 
@@ -130,9 +130,9 @@
               </template>
               
               <div class="carousel-nav-row">
-                <button type="button" class="nav-btn" id="cPrevBtn" onclick="navigateCarousel(-1)" disabled>❮</button>
+                <button type="button" class="nav-btn" id="cPrevBtn" data-action="navigateCarousel" data-direction="-1" disabled aria-label="Previous image">❮</button>
                 <span class="nav-counter" id="cCounter">1 / 1</span>
-                <button type="button" class="nav-btn" id="cNextBtn" onclick="navigateCarousel(1)" disabled>❯</button>
+                <button type="button" class="nav-btn" id="cNextBtn" data-action="navigateCarousel" data-direction="1" disabled aria-label="Next image">❯</button>
               </div>
             </div>
           </div>
@@ -140,7 +140,7 @@
           <!-- Global fields section removed, all fields are now per-image -->
 
           <!-- Submit -->
-          <button type="submit" class="upload-btn" id="submitBtn" onclick="if(window.gtag){gtag('event', 'upload_funnel', {'funnel_step': '3_upload_started'});}">Upload Files</button>
+          <button type="submit" class="upload-btn" id="submitBtn" data-action="trackUploadStart">Upload Files</button>
 
         </form>
       </div>
@@ -150,7 +150,7 @@
 </div>
 
 <!-- ── Shared Popup Modal ── -->
-<div id="popupModal" class="popup-overlay" style="display:none;" onclick="if(event.target===this) closeXpModal()">
+<div id="popupModal" class="popup-overlay" style="display:none;" data-action="dismissIfClicked">
   <div class="popup-card">
 
     <section id="popupXp" class="popup-section">
@@ -175,22 +175,22 @@
 
           <div class="xp-actions" style="margin-top: 15px;">
             <a href="/dashboard" class="xp-action-link" style="margin-right:15px; color: var(--text-secondary);">Go to Dashboard</a>
-            <button type="button" class="xp-action-btn" onclick="closeXpModal()">Upload More</button>
+            <button type="button" class="xp-action-btn" data-action="closeXpModal">Upload More</button>
           </div>
         </div>
       </div>
     </section>
-  </div>
+   </div>
 </div>
 
           <!-- ── Material Requests Panel (for recipients) ── -->
-          <div id="materialRequestsPanel" class="requests-panel" style="position:fixed; right:20px; bottom:20px; width:360px; max-height:60vh; overflow:auto; background:#fff; border:1px solid #e6edf3; border-radius:12px; box-shadow:0 8px 30px rgba(2,6,23,0.08); display:none; z-index:99999;">
-            <div style="padding:12px; border-bottom:1px solid #f1f5f9; font-weight:700;">Incoming Requests</div>
-            <div id="requestsList" style="padding:10px;"></div>
-            <div style="padding:10px; text-align:center; border-top:1px solid #f1f5f9;"><button onclick="hideRequestsPanel()" class="xp-action-btn">Close</button></div>
+          <div id="materialRequestsPanel" class="requests-panel" style="display:none;">
+            <div class="requests-panel-header">Incoming Requests</div>
+            <div id="requestsList" class="requests-list"></div>
+            <div class="requests-panel-footer"><button type="button" data-action="hideRequestsPanel" class="xp-action-btn">Close</button></div>
           </div>
 
-          <button id="showRequestsBtn" style="position:fixed; right:20px; bottom:100px; z-index:99999; background:#4f46e5; color:white; border:none; padding:10px 14px; border-radius:999px; box-shadow:0 6px 18px rgba(79,70,229,0.2);" title="Show material requests" onclick="toggleRequestsPanel()">Requests</button>
+          <button id="showRequestsBtn" class="show-requests-btn" title="Show material requests" data-action="toggleRequestsPanel">Requests</button>
 
 <!-- ── Toast container ── -->
 <div id="toastContainer"></div>

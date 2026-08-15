@@ -236,6 +236,23 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
   .preview-iframe { height: 500px; }
   .meta-bar { padding: 0 1.5rem; justify-content: flex-start; }
 }
+
+/* AI Chat toolbar & suggestion styles */
+.ai-toolbar-btn { padding: 0.3rem 0.6rem; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; }
+.ai-whatsapp { background: #25D366; color: #fff; }
+.ai-export { background: #ef4444; color: #fff; }
+.ai-fullscreen { background: #334155; color: #fff; }
+
+.ai-persona-btn { padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--r-border); background: #f8fafc; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: background 0.2s; }
+.ai-persona-btn:hover { background: #f1f5f9; }
+.ai-chatgpt { color: #10b981; }
+.ai-gemini { color: #3b82f6; }
+.ai-claude { color: #d97757; }
+
+.ai-suggestion-btn { padding: 0.3rem 0.7rem; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.75rem; color: #475569; transition: background 0.2s; }
+.ai-suggestion-btn:hover { background: #f1f5f9; }
+
+.ai-send-btn { padding: 0.65rem 1.25rem; background: #f59e0b; color: #fff; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
 </style>
 {% endblock %}
 
@@ -258,10 +275,10 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
 
 <div class="meta-bar">
   <div class="meta-pill">👁️ {{ document.view_count or 0 }} Views</div>
-  <button class="meta-pill like-btn {{ 'liked' if document.is_liked else '' }}" style="cursor: pointer; border: none; transition: background-color 0.2s;" onclick="window.toggleLike(event, '{{ document.id }}')" data-feature="Resource Like" data-experience-rating="5">
+  <button class="meta-pill like-btn {{ 'liked' if document.is_liked else '' }}" type="button" data-action="toggleLike" data-doc-id="{{ document.id }}" aria-label="Like this resource">
     ❤️ <span class="like-count">{{ document.like_count or 0 }}</span> Likes
   </button>
-  <button class="meta-pill bookmark-btn {{ 'bookmarked' if document.is_bookmarked else '' }}" style="cursor: pointer; border: none; transition: background-color 0.2s;" onclick="window.toggleBookmark(event, '{{ document.id }}')" data-feature="Resource Save" data-experience-rating="5">
+  <button class="meta-pill bookmark-btn {{ 'bookmarked' if document.is_bookmarked else '' }}" type="button" data-action="toggleBookmark" data-doc-id="{{ document.id }}" aria-label="Bookmark this resource">
     🔖 <span class="bookmark-count">{{ document.bookmark_count or 0 }}</span> Save
   </button>
   <div class="meta-pill">📅 {{ document.created_at[:10] }}</div>
@@ -388,26 +405,26 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
       </div>
       <div style="display: flex; gap: 0.5rem; align-items: center;">
         <span style="font-size:.8rem;color:var(--r-muted);">Powered by Free Vision & OCR AI</span>
-        <button onclick="shareChatWhatsApp()" style="padding: 0.3rem 0.6rem; border: none; background: #25D366; color: white; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">Share WA</button>
-        <button onclick="exportChatPDF()" style="padding: 0.3rem 0.6rem; border: none; background: #ef4444; color: white; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">Export PDF</button>
-        <button onclick="toggleChatFullscreen()" id="chatFsBtn" title="Fullscreen" style="padding: 0.3rem 0.6rem; border: none; background: #334155; color: white; border-radius: 6px; font-size: 0.8rem; cursor: pointer; font-weight: 600;">⛶ Full</button>
+        <button type="button" data-action="shareChatWhatsApp" class="ai-toolbar-btn ai-whatsapp" aria-label="Share on WhatsApp">Share WA</button>
+        <button type="button" data-action="exportChatPDF" class="ai-toolbar-btn ai-export" aria-label="Export chat as PDF">Export PDF</button>
+        <button type="button" data-action="toggleChatFullscreen" id="chatFsBtn" class="ai-toolbar-btn ai-fullscreen" title="Fullscreen" aria-label="Toggle fullscreen">⛶ Full</button>
       </div>
     </div>
 
     <div id="aiMessages" style="padding:1rem 1.5rem;min-height:80px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:.75rem;"></div>
 
     <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-      <button onclick="sendPersonaPrompt('ChatGPT', this)" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--r-border); background: #f8fafc; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #10b981; transition: background 0.2s;">ChatGPT</button>
-      <button onclick="sendPersonaPrompt('Gemini', this)" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--r-border); background: #f8fafc; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #3b82f6; transition: background 0.2s;">Gemini</button>
-      <button onclick="sendPersonaPrompt('Claude', this)" style="padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--r-border); background: #f8fafc; cursor: pointer; font-size: 0.85rem; font-weight: 600; color: #d97757; transition: background 0.2s;">Claude</button>
+      <button type="button" data-action="sendPersonaPrompt" data-model="ChatGPT" class="ai-persona-btn ai-chatgpt" aria-label="Chat with ChatGPT">ChatGPT</button>
+      <button type="button" data-action="sendPersonaPrompt" data-model="Gemini" class="ai-persona-btn ai-gemini" aria-label="Chat with Gemini">Gemini</button>
+      <button type="button" data-action="sendPersonaPrompt" data-model="Claude" class="ai-persona-btn ai-claude" aria-label="Chat with Claude">Claude</button>
     </div>
 
     <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
       <span style="font-size: 0.8rem; color: var(--r-muted); align-self: center;">Suggestions:</span>
-      <button onclick="suggestQ('Solve question 1 step-by-step')" style="padding: 0.3rem 0.7rem; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.75rem; color: #475569; transition: background 0.2s;">Solve Q1</button>
-      <button onclick="suggestQ('Explain the core concepts in question 2')" style="padding: 0.3rem 0.7rem; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.75rem; color: #475569; transition: background 0.2s;">Explain Q2</button>
-      <button onclick="suggestQ('What are the most important topics in this paper?')" style="padding: 0.3rem 0.7rem; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.75rem; color: #475569; transition: background 0.2s;">Important Topics</button>
-      <button onclick="suggestQ('Summarize the entire paper')" style="padding: 0.3rem 0.7rem; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.75rem; color: #475569; transition: background 0.2s;">Summarize</button>
+      <button type="button" data-action="suggestQ" data-question="Solve question 1 step-by-step" class="ai-suggestion-btn" aria-label="Solve question 1 step-by-step">Solve Q1</button>
+      <button type="button" data-action="suggestQ" data-question="Explain the core concepts in question 2" class="ai-suggestion-btn" aria-label="Explain the core concepts in question 2">Explain Q2</button>
+      <button type="button" data-action="suggestQ" data-question="What are the most important topics in this paper?" class="ai-suggestion-btn" aria-label="What are the most important topics in this paper?">Important Topics</button>
+      <button type="button" data-action="suggestQ" data-question="Summarize the entire paper" class="ai-suggestion-btn" aria-label="Summarize the entire paper">Summarize</button>
     </div>
 
     <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
@@ -423,9 +440,8 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
     <div style="padding:1rem 1.5rem;border-top:1px solid var(--r-border);display:flex;gap:.75rem;">
       <input id="aiQuestion" type="text" placeholder="e.g. What topics are covered in this paper?" maxlength="300"
         style="flex:1;padding:.65rem 1rem;border:1px solid var(--r-border);border-radius:12px;font-size:.9rem;outline:none;"
-        onkeydown="if(event.key==='Enter')askAI()">
-      <button onclick="askAI()" id="aiSendBtn"
-        style="padding:.65rem 1.25rem;background:#f59e0b;color:#fff;border:none;border-radius:12px;font-weight:700;cursor:pointer;white-space:nowrap;">
+        data-event-keyup="askAIOnEnter">
+      <button type="button" data-action="askAI" id="aiSendBtn" class="ai-send-btn">
         Ask
       </button>
     </div>

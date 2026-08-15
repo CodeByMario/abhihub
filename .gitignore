@@ -1,17 +1,18 @@
-
+# Python
 .env
+.env.*
 .venv
 static/Documents/*
 static/premium/test.ipynb
 
 # Firebase credentials
-
+firebase-auth.json
+serviceAccountKey.json
 
 # Other credential files
 *.pem
 *.key
 *.p12
-serviceAccountKey.json
 
 # Python cache
 __pycache__/
@@ -30,4 +31,19 @@ __pycache__/
 .DS_Store
 Thumbs.db
 
+# Codegraph
 .codegraph
+
+# Sensitive data files
+data/admin_users.json
+data/push_subscriptions.json
+data/suspects.json
+data/notification_history.json
+cors.json
+icons.json
+
+# Test/trash artifacts
+trash/
+
+# Audit reports (generated)
+.ai/history/reports/

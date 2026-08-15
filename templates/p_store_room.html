@@ -11,7 +11,7 @@
             <h1 class="page-title">📦 Labeling Queue</h1>
             <p class="page-subtitle">Assign metadata to unprocessed storage files.</p>
         </div>
-        <button id="syncStorageBtn" class="primary-btn" onclick="syncStorage()">
+        <button id="syncStorageBtn" class="primary-btn" type="button" data-action="syncStorage" aria-label="Sync Storage">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px;">
                 <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.23-9.57l5.71 5.71"></path>
             </svg>
@@ -85,7 +85,7 @@
 
     <!-- Load More -->
     <div class="view-more-container" id="viewMoreContainer">
-        <button class="view-more-btn" id="viewMoreBtn" onclick="loadMoreFiles()">
+        <button class="view-more-btn" id="viewMoreBtn" type="button" data-action="loadMoreFiles" aria-label="Load more files">
             Load More Files
         </button>
     </div>
@@ -104,7 +104,7 @@
             <div class="ai-chat-panel" role="region" aria-label="AI Paper Q&A">
                 <div class="ai-chat-header">
                     <div class="ai-chat-title">AI Paper Q&A</div>
-<button type="button" class="ai-chat-close" aria-label="Close AI Chat" onclick="var p=document.getElementById('aiChatPanel'); if(p){p.setAttribute('data-open','false');}">✕</button>
+<button type="button" class="ai-chat-close" data-action="closeAiChatPanel" aria-label="Close AI Chat">✕</button>
                 </div>
 
                 <div class="ai-chat-messages" id="aiChatMessages"></div>
@@ -123,7 +123,7 @@
 
 
         <div class="image-panel-header">
-            <button class="close-btn" onclick="closeLabelingView()" aria-label="Close">
+            <button class="close-btn" type="button" data-action="closeLabelingView" aria-label="Close">
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -136,33 +136,33 @@
             <img id="previewImg" class="preview-img" src="" alt="Document preview" />
             <iframe id="previewFrame" class="preview-frame" frameborder="0"></iframe>
             <div class="image-controls">
-            <button class="img-ctrl-btn" onclick="resetView()" title="Reset View">
+            <button class="img-ctrl-btn" type="button" data-action="resetView" title="Reset View" aria-label="Reset view">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"></path>
                     <path d="M3 3v5h5"></path>
                 </svg>
             </button>
             <div class="divider"></div>
-            <button class="img-ctrl-btn" onclick="zoomOut()" title="Zoom Out">
+            <button class="img-ctrl-btn" type="button" data-action="zoomOut" title="Zoom Out" aria-label="Zoom out">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="8" y1="11" x2="14" y2="11"></line>
                 </svg>
             </button>
-            <button class="img-ctrl-btn" onclick="zoomIn()" title="Zoom In">
+            <button class="img-ctrl-btn" type="button" data-action="zoomIn" title="Zoom In" aria-label="Zoom in">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <circle cx="11" cy="11" r="8"></circle>
                     <line x1="11" y1="8" x2="11" y2="14"></line>
                     <line x1="8" y1="11" x2="14" y2="11"></line>
                 </svg>
             </button>
-            <button class="img-ctrl-btn" onclick="rotateImage()" title="Rotate">
+            <button class="img-ctrl-btn" type="button" data-action="rotateImage" title="Rotate" aria-label="Rotate image">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path>
                 </svg>
             </button>
             <div class="divider"></div>
-            <button class="img-ctrl-btn" onclick="toggleFullscreen()" title="Fullscreen" id="fullscreenBtn">
+            <button class="img-ctrl-btn" type="button" data-action="toggleFullscreen" title="Fullscreen" id="fullscreenBtn" aria-label="Toggle fullscreen">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                     <path
                         d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3">
@@ -182,13 +182,13 @@
                 <p class="form-subtitle">Fill details to organize this file</p>
             </div>
             <div class="nav-buttons-container">
-                <button class="nav-btn" id="prevBtn" onclick="navigateFile(-1)" aria-label="Previous file">
+                <button class="nav-btn" id="prevBtn" type="button" data-action="navigateFile" data-direction="-1" aria-label="Previous file">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="15 18 9 12 15 6"></polyline>
                     </svg>
                 </button>
                 <span class="nav-counter" id="navCounter">1 / 10</span>
-                <button class="nav-btn" id="nextBtn" onclick="navigateFile(1)" aria-label="Next file">
+                <button class="nav-btn" id="nextBtn" type="button" data-action="navigateFile" data-direction="1" aria-label="Next file">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                         <polyline points="9 18 15 12 9 6"></polyline>
                     </svg>
@@ -282,7 +282,7 @@
                 <div class="toggle-switch" id="rememberToggle" role="switch" aria-checked="false" tabindex="0" aria-label="Remember labels"></div>
                 <span class="toggle-label">Remember</span>
             </div>
-            <button type="button" class="save-btn idle" id="saveBtn" onclick="handleSave()" aria-live="polite" aria-label="Save and organize">
+            <button type="button" class="save-btn idle" id="saveBtn" data-action="saveChanges" aria-live="polite" aria-label="Save and organize">
                 <span class="btn-text">Save Label</span>
             </button>
         </div>

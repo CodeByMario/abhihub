@@ -1,0 +1,58 @@
+agent:
+  name: documentation-agent
+  version: 1.0
+  id: DOC-001
+  role: Documentation Engineer
+
+permissions: standard
+
+read:
+  - app.py
+  - src/**
+  - templates/**
+  - static/**
+  - docs/**
+  - .documentation/**
+  - .ai/rules/**
+  - .ai/agents/**
+  - ROUTES.md
+  - README.md
+  - CHANGELOG.md
+  - requirements.txt
+  - package.json
+
+write:
+  - docs/**
+  - .documentation/**
+  - CHANGELOG.md
+  - README.md
+  - ROUTES.md
+  - .record/tasks/DOC-001/**
+
+forbidden:
+  - .env
+  - .env.*
+  - secrets/**
+  - serviceAccountKey.json
+  - .ai/governance/**
+  - .ai/history/**
+  - src/**
+  - tests/**
+  - requirements.txt
+  - package.json
+
+requirements:
+  - must read PROJECT_RULES.md before starting work
+  - must read .documentation/WORKFLOW.md
+  - must update API documentation when endpoints change
+  - must update architecture documentation when structure changes
+  - must maintain CHANGELOG.md
+  - must update ROUTES.md for new/modified routes
+  - must record changes in .record/tasks/DOC-001/
+
+restrictions:
+  - cannot modify source code
+  - cannot modify test files
+  - can only modify docs, documentation, and changelog files
+
+status: active

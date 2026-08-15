@@ -38,7 +38,7 @@
                     <p style="margin:0;font-size:1rem;font-weight:700;color:#1f2937;word-break:break-all;">abhijeetshende@pingpay</p>
                     <p style="margin:0.2rem 0 0;font-size:0.78rem;color:#6b7280;">Abhijeet Ashok Shende</p>
                 </div>
-                <button id="copyBtn" onclick="copyUPI()" style="display:inline-flex;align-items:center;gap:0.4rem;padding:0.55rem 1rem;background:#fff;border:1.5px solid #d1d5db;border-radius:10px;font-size:0.82rem;font-weight:600;color:#374151;cursor:pointer;white-space:nowrap;transition:all 0.2s;box-shadow:0 1px 4px rgba(0,0,0,0.04);">
+                <button id="copyBtn" type="button" data-action="copyUPI" class="support-copy-btn" aria-label="Copy UPI ID">📋 Copy UPI</button>
                     <span id="copyIcon">📋</span>
                     <span id="copyText">Copy</span>
                 </button>
@@ -52,27 +52,25 @@
 
             <!-- Amount Buttons Grid -->
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin-bottom:0.75rem;">
-                <button onclick="pay(29)" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem 0.5rem;background:#fff;border:1.5px solid #e5e7eb;border-radius:16px;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.04);" onmouseover="this.style.borderColor='#93c5fd';this.style.background='#eff6ff';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fff';this.style.transform='none'">
-                    <span style="font-size:1.6rem;margin-bottom:0.35rem;">💾</span>
-                    <span style="font-size:1.2rem;font-weight:800;color:#1f2937;">₹29</span>
-                    <span style="font-size:0.7rem;color:#6b7280;font-weight:500;margin-top:0.2rem;">Storage</span>
+                <button type="button" data-action="pay" data-amount="29" class="support-amount-btn" aria-label="Pay ₹29 for Storage">
+                    <span class="amount-icon">💾</span>
+                    <span class="amount-value">₹29</span>
+                    <span class="amount-label">Storage</span>
                 </button>
-                <button onclick="pay(49)" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem 0.5rem;background:#fff;border:1.5px solid #e5e7eb;border-radius:16px;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.04);" onmouseover="this.style.borderColor='#93c5fd';this.style.background='#eff6ff';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fff';this.style.transform='none'">
-                    <span style="font-size:1.6rem;margin-bottom:0.35rem;">☁️</span>
-                    <span style="font-size:1.2rem;font-weight:800;color:#1f2937;">₹49</span>
-                    <span style="font-size:0.7rem;color:#6b7280;font-weight:500;margin-top:0.2rem;">Hosting</span>
+                <button type="button" data-action="pay" data-amount="49" class="support-amount-btn" aria-label="Pay ₹49 for Hosting">
+                    <span class="amount-icon">☁️</span>
+                    <span class="amount-value">₹49</span>
+                    <span class="amount-label">Hosting</span>
                 </button>
-                <button onclick="pay(99)" style="display:flex;flex-direction:column;align-items:center;justify-content:center;padding:1rem 0.5rem;background:#fff;border:1.5px solid #e5e7eb;border-radius:16px;cursor:pointer;transition:all 0.2s;box-shadow:0 2px 8px rgba(0,0,0,0.04);" onmouseover="this.style.borderColor='#93c5fd';this.style.background='#eff6ff';this.style.transform='translateY(-2px)'" onmouseout="this.style.borderColor='#e5e7eb';this.style.background='#fff';this.style.transform='none'">
-                    <span style="font-size:1.6rem;margin-bottom:0.35rem;">🚀</span>
-                    <span style="font-size:1.2rem;font-weight:800;color:#1f2937;">₹99</span>
-                    <span style="font-size:0.7rem;color:#6b7280;font-weight:500;margin-top:0.2rem;">Development</span>
+                <button type="button" data-action="pay" data-amount="99" class="support-amount-btn" aria-label="Pay ₹99 for Development">
+                    <span class="amount-icon">🚀</span>
+                    <span class="amount-value">₹99</span>
+                    <span class="amount-label">Development</span>
                 </button>
             </div>
 
             <!-- Custom Amount -->
-            <button onclick="customPay()" style="width:100%;padding:0.85rem;background:linear-gradient(135deg,#1e293b,#334155);color:#fff;font-size:0.95rem;font-weight:700;border:none;border-radius:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.5rem;box-shadow:0 4px 16px rgba(0,0,0,0.12);transition:transform 0.15s,box-shadow 0.15s;margin-bottom:1.2rem;" onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 6px 24px rgba(0,0,0,0.18)'" onmouseout="this.style.transform='none';this.style.boxShadow='0 4px 16px rgba(0,0,0,0.12)'">
-                ✏️ Custom Amount
-            </button>
+            <button type="button" data-action="customPay" class="support-custom-btn" aria-label="Pay custom amount">✏️ Custom Amount</button>
 
             <!-- Footer -->
             <p style="text-align:center;font-size:0.72rem;color:#9ca3af;margin:0;padding-top:0.75rem;border-top:1px solid #f3f4f6;">🔒 Secure payment routing via UPI standard protocol</p>
@@ -110,7 +108,7 @@
         }, 4000);
     }
 
-    function pay(amount) {
+    function pay(amount, el) {
         if (!isMobile) {
             showDesktopToast();
             return;

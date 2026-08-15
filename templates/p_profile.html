@@ -599,7 +599,7 @@
         </a>
 
         <!-- Notification toggle -->
-        <button id="notificationToggle" class="pf-toggle-wrap" onclick="handleNotificationToggle()" role="switch"
+        <button id="notificationToggle" class="pf-toggle-wrap" type="button" data-action="handleNotificationToggle" role="switch"
           aria-checked="false">
           <div class="pf-setting-icon pf-icon-amber">🔔</div>
           <div class="pf-setting-text">
@@ -643,7 +643,7 @@
           <span class="pf-setting-arrow">›</span>
         </a>
 
-        <a href="#" class="pf-setting-item" onclick="window.print(); return false;">
+        <a href="#" class="pf-setting-item" data-action="printPage" aria-label="Print this page">
           <div class="pf-setting-icon pf-icon-blue">🖨️</div>
           <div class="pf-setting-text">
             <span class="pf-setting-label">Print / Save PDF</span>
@@ -699,7 +699,7 @@
           {% endfor %}
         </div>
         {% if data['uploaded_files']|length > 5 %}
-        <button id="uploaded-show-more" class="pf-show-more" onclick="showMore('uploaded')">
+        <button id="uploaded-show-more" class="pf-show-more" type="button" data-action="showMore" data-category="uploaded">
           ↓ Show more ({{ data['uploaded_files']|length - 5 }} more)
         </button>
         {% endif %}
@@ -763,7 +763,7 @@
           {% endfor %}
         </div>
         {% if notes_files|length > 5 %}
-        <button id="notes-show-more" class="pf-show-more" onclick="showMore('notes')">
+        <button id="notes-show-more" class="pf-show-more" type="button" data-action="showMore" data-category="notes">
           ↓ Show more ({{ notes_files|length - 5 }} more)
         </button>
         {% endif %}
@@ -794,7 +794,7 @@
           {% endfor %}
         </div>
         {% if papers_files|length > 5 %}
-        <button id="papers-show-more" class="pf-show-more" onclick="showMore('papers')">
+        <button id="papers-show-more" class="pf-show-more" type="button" data-action="showMore" data-category="papers">
           ↓ Show more ({{ papers_files|length - 5 }} more)
         </button>
         {% endif %}
@@ -825,7 +825,7 @@
           {% endfor %}
         </div>
         {% if practicals_files|length > 5 %}
-        <button id="practicals-show-more" class="pf-show-more" onclick="showMore('practicals')">
+        <button id="practicals-show-more" class="pf-show-more" type="button" data-action="showMore" data-category="practicals">
           ↓ Show more ({{ practicals_files|length - 5 }} more)
         </button>
         {% endif %}

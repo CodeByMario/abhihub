@@ -1,15 +1,16 @@
 <!-- Peer Search & Material Sharing Modal -->
 <div id="peerSearchModal" class="peer-modal-overlay" style="display:none;">
   <div class="peer-modal-card">
-    <button class="peer-modal-close" onclick="closePeerSearchModal()">&times;</button>
+    <button class="peer-modal-close" type="button" data-action="closePeerSearchModal" aria-label="Close">&times;</button>
     
     <div class="peer-modal-header">
       <h3>🔍 Search Students & Peer Study Stuffs</h3>
       <p>Find classmates, see what resources they refer to, or request study notes!</p>
       
       <div class="peer-search-input-wrap">
-        <input type="text" id="peerSearchQuery" placeholder="Search student by name or email…" oninput="debouncePeerSearch()">
-        <button class="peer-search-btn" onclick="executePeerSearch()">Search</button>
+        <label for="peerSearchQuery" class="sr-only">Search students</label>
+        <input type="text" id="peerSearchQuery" placeholder="Search student by name or email…" data-event-input="debouncePeerSearch">
+        <button class="peer-search-btn" type="button" data-action="executePeerSearch">Search</button>
       </div>
     </div>
 
@@ -19,13 +20,13 @@
 
       <!-- Selected Peer Drawer -->
       <div id="peerDetailView" style="display:none;" class="peer-detail-panel">
-        <button class="peer-back-btn" onclick="backToPeerResults()">← Back to Search</button>
+        <button class="peer-back-btn" type="button" data-action="backToPeerResults">← Back to Search</button>
         <div id="peerProfileHeader" class="peer-profile-header"></div>
         
         <div class="peer-tabs">
-          <button class="peer-tab-btn active" onclick="switchPeerTab('uploads')">Uploaded Stuffs (<span id="peerUploadsCount">0</span>)</button>
-          <button class="peer-tab-btn" onclick="switchPeerTab('referred')">Referred / Studied (<span id="peerReferredCount">0</span>)</button>
-          <button class="peer-tab-btn request" onclick="switchPeerTab('request')">✉️ Ask for Notes</button>
+          <button class="peer-tab-btn active" type="button" data-action="switchPeerTab" data-tab="uploads">Uploaded Stuffs (<span id="peerUploadsCount">0</span>)</button>
+          <button class="peer-tab-btn" type="button" data-action="switchPeerTab" data-tab="referred">Referred / Studied (<span id="peerReferredCount">0</span>)</button>
+          <button class="peer-tab-btn request" type="button" data-action="switchPeerTab" data-tab="request">✉️ Ask for Notes</button>
         </div>
 
         <div id="peerTabUploads" class="peer-tab-content active"></div>
@@ -33,10 +34,12 @@
         <div id="peerTabRequest" class="peer-tab-content" style="display:none;">
           <div class="peer-request-form">
             <h4>Ask <span id="peerRequestTargetName">Student</span> for Study Notes / Papers</h4>
+            <label for="peerReqSubject" class="sr-only">Subject Name</label>
             <input type="text" id="peerReqSubject" placeholder="Subject Name (e.g. Data Structures)" />
+            <label for="peerReqDetails" class="sr-only">Details</label>
             <textarea id="peerReqDetails" rows="3" placeholder="What specific unit, PYQ year, or notes do you need?"></textarea>
-            <button onclick="submitMaterialRequest()" class="peer-submit-req-btn">Send Request 🚀</button>
-            <div id="peerReqStatus" style="margin-top:0.5rem; font-weight:600;"></div>
+            <button type="button" data-action="submitMaterialRequest" class="peer-submit-req-btn">Send Request 🚀</button>
+            <div id="peerReqStatus" class="peer-req-status"></div>
           </div>
         </div>
       </div>
@@ -51,47 +54,49 @@
   align-items: center; justify-content: center; padding: 1rem;
 }
 .peer-modal-card {
-  background: #ffffff; width: min(100%, 680px); max-height: 85vh;
+  background: var(--surface);
+  width: min(100%, 680px); max-height: 85vh;
   border-radius: 24px; padding: 1.5rem; position: relative;
   display: flex; flex-direction: column; overflow: hidden;
   box-shadow: 0 25px 60px rgba(0,0,0,0.3);
 }
 .peer-modal-close {
   position: absolute; top: 1rem; right: 1.2rem; background: none; border: none;
-  font-size: 1.8rem; cursor: pointer; color: #64748b;
+  font-size: 1.8rem; cursor: pointer; color: var(--text-tertiary);
 }
-.peer-modal-header h3 { margin: 0 0 0.25rem; font-size: 1.3rem; color: #0f172a; }
-.peer-modal-header p { margin: 0 0 1rem; font-size: 0.88rem; color: #64748b; }
+.peer-modal-header h3 { margin: 0 0 0.25rem; font-size: 1.3rem; color: var(--gray-800); }
+.peer-modal-header p { margin: 0 0 1rem; font-size: 0.88rem; color: var(--text-tertiary); }
 .peer-search-input-wrap { display: flex; gap: 0.5rem; margin-bottom: 1rem; }
 .peer-search-input-wrap input {
-  flex: 1; padding: 0.65rem 1rem; border-radius: 12px; border: 1.5px solid #cbd5e1; font-size: 0.95rem;
+  flex: 1; padding: 0.65rem 1rem; border-radius: 12px; border: 1.5px solid var(--border-medium); font-size: 0.95rem;
 }
 .peer-search-btn {
-  background: #4f46e5; color: white; border: none; padding: 0.65rem 1.2rem;
+  background: var(--primary-600); color: white; border: none; padding: 0.65rem 1.2rem;
   border-radius: 12px; font-weight: 700; cursor: pointer;
 }
 .peer-modal-body { overflow-y: auto; flex: 1; padding-right: 0.2rem; }
 .peer-results-grid { display: flex; flex-direction: column; gap: 0.6rem; }
 .peer-user-card {
   display: flex; align-items: center; justify-content: space-between;
-  padding: 0.85rem 1rem; background: #f8fafc; border: 1px solid #e2e8f0;
+  padding: 0.85rem 1rem; background: var(--gray-100); border: 1px solid var(--border-light);
   border-radius: 14px; cursor: pointer; transition: all 0.2s;
 }
-.peer-user-card:hover { border-color: #6366f1; background: #eef2ff; }
-.peer-user-info h5 { margin: 0 0 0.2rem; font-size: 0.98rem; color: #1e1b4b; }
-.peer-user-info p { margin: 0; font-size: 0.8rem; color: #64748b; }
-.peer-view-btn { background: #6366f1; color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; }
+.peer-user-card:hover { border-color: var(--primary-600); background: var(--primary-100); }
+.peer-user-info h5 { margin: 0 0 0.2rem; font-size: 0.98rem; color: var(--gray-800); }
+.peer-user-info p { margin: 0; font-size: 0.8rem; color: var(--text-tertiary); }
+.peer-view-btn { background: var(--primary-600); color: white; border: none; padding: 0.4rem 0.8rem; border-radius: 8px; font-size: 0.8rem; font-weight: 700; }
 
 /* Detail Panel */
-.peer-back-btn { background: none; border: none; color: #4f46e5; font-weight: 700; cursor: pointer; margin-bottom: 0.5rem; }
-.peer-profile-header { background: linear-gradient(135deg, #4f46e5, #7c3aed); color: white; padding: 1rem; border-radius: 14px; margin-bottom: 1rem; }
-.peer-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.4rem; }
-.peer-tab-btn { background: none; border: none; padding: 0.4rem 0.8rem; font-weight: 700; color: #64748b; cursor: pointer; border-radius: 8px; }
-.peer-tab-btn.active { background: #e0e7ff; color: #4338ca; }
-.peer-tab-btn.request { color: #db2777; }
-.peer-item-card { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; border: 1px solid #e2e8f0; border-radius: 10px; margin-bottom: 0.4rem; font-size: 0.88rem; }
-.peer-request-form input, .peer-request-form textarea { width: 100%; padding: 0.6rem; margin-bottom: 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; box-sizing: border-box; }
-.peer-submit-req-btn { background: #db2777; color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 10px; font-weight: 700; width: 100%; cursor: pointer; }
+.peer-back-btn { background: none; border: none; color: var(--primary-600); font-weight: 700; cursor: pointer; margin-bottom: 0.5rem; }
+.peer-profile-header { background: var(--gradient-primary); color: white; padding: 1rem; border-radius: 14px; margin-bottom: 1rem; }
+.peer-tabs { display: flex; gap: 0.5rem; margin-bottom: 1rem; border-bottom: 2px solid var(--border-light); padding-bottom: 0.4rem; }
+.peer-tab-btn { background: none; border: none; padding: 0.4rem 0.8rem; font-weight: 700; color: var(--text-tertiary); cursor: pointer; border-radius: 8px; }
+.peer-tab-btn.active { background: var(--primary-100); color: var(--primary-800); }
+.peer-tab-btn.request { color: var(--accent-pink); }
+.peer-item-card { display: flex; align-items: center; justify-content: space-between; padding: 0.6rem 0.8rem; border: 1px solid var(--border-light); border-radius: 10px; margin-bottom: 0.4rem; font-size: 0.88rem; }
+.peer-request-form input, .peer-request-form textarea { width: 100%; padding: 0.6rem; margin-bottom: 0.6rem; border-radius: 8px; border: 1px solid var(--border-medium); box-sizing: border-box; }
+.peer-submit-req-btn { background: var(--accent-pink); color: white; border: none; padding: 0.6rem 1.2rem; border-radius: 10px; font-weight: 700; width: 100%; cursor: pointer; }
+.peer-req-status { margin-top: 0.5rem; font-weight: 600; color: var(--text-secondary); }
 </style>
 
 <script>
@@ -107,6 +112,22 @@ function closePeerSearchModal() {
   document.getElementById('peerSearchModal').style.display = 'none';
 }
 
+// Open peer modal to their detail view (materials) — called from suggested peers
+function viewPeerMaterialsModal(el) {
+  const peerId = (el && el.getAttribute) ? el.getAttribute('data-peer-id') : el;
+  if (!peerId) return;
+  // If the full peer search modal exists on the page, open it in detail view
+  if (document.getElementById('peerSearchModal')) {
+    document.getElementById('peerSearchModal').style.display = 'flex';
+    document.getElementById('peerSearchResults').style.display = 'none';
+    document.getElementById('peerDetailView').style.display = 'block';
+    if (typeof viewPeerDetail === 'function') viewPeerDetail(peerId);
+  } else {
+    // Fallback: just start a chat with this peer (materials button acts as quick chat)
+    if (typeof startChatWith === 'function') startChatWith(peerId);
+  }
+}
+
 function debouncePeerSearch() {
   clearTimeout(peerSearchTimer);
   peerSearchTimer = setTimeout(executePeerSearch, 300);
@@ -116,21 +137,21 @@ async function executePeerSearch() {
   const q = document.getElementById('peerSearchQuery').value.trim();
   const container = document.getElementById('peerSearchResults');
   if (!q) {
-    container.innerHTML = '<p style="text-align:center; color:#94a3b8;">Type a student name to search...</p>';
+    container.innerHTML = '<p class="peer-no-results">Type a student name to search...</p>';
     return;
   }
   
-  container.innerHTML = '<p style="text-align:center; color:#94a3b8;">Searching students...</p>';
+  container.innerHTML = '<p class="peer-no-results">Searching students...</p>';
   try {
     const res = await fetch(`/api/users/search?q=${encodeURIComponent(q)}`);
     const data = await res.json();
     if (!data.success || !data.users || data.users.length === 0) {
-      container.innerHTML = '<p style="text-align:center; color:#94a3b8;">No students found.</p>';
+      container.innerHTML = '<p class="peer-no-results">No students found.</p>';
       return;
     }
     
     container.innerHTML = data.users.map(u => `
-      <div class="peer-user-card" onclick="viewPeerDetail('${u.id}')">
+      <div class="peer-user-card" data-action="viewPeerDetail" data-user-id="${u.id}">
         <div class="peer-user-info">
           <h5>${u.name} ${u.is_verified ? '✔️' : ''}</h5>
           <p>🏫 ${u.college_name || 'Student'} • ⚡ ${u.reputation_score} pts • 📤 ${u.uploads_count} uploads</p>
@@ -138,8 +159,10 @@ async function executePeerSearch() {
         <button class="peer-view-btn">View Stuffs →</button>
       </div>
     `).join('');
+    // Re-attach listeners to dynamically created cards
+    setTimeout(attachAll, 0);
   } catch(e) {
-    container.innerHTML = '<p style="text-align:center; color:#ef4444;">Search error. Try again.</p>';
+    container.innerHTML = '<p class="peer-error">Search error. Try again.</p>';
   }
 }
 
@@ -149,7 +172,7 @@ async function viewPeerDetail(userId) {
   document.getElementById('peerDetailView').style.display = 'block';
   
   const header = document.getElementById('peerProfileHeader');
-  header.innerHTML = '<p style="margin:0;">Loading profile & materials...</p>';
+  header.innerHTML = '<p class="peer-loading">Loading profile & materials...</p>';
   
   try {
     const res = await fetch(`/api/user/${userId}/materials`);
@@ -158,8 +181,8 @@ async function viewPeerDetail(userId) {
     
     const u = data.user;
     header.innerHTML = `
-      <h4 style="margin:0 0 0.2rem; font-size:1.1rem;">${u.name}</h4>
-      <p style="margin:0; font-size:0.85rem; opacity:0.9;">🏫 ${u.college_name || 'Student'} • Rank: ${u.rank_title} • ⚡ ${u.reputation_score} Pts</p>
+      <h4 class="peer-name">${u.name}</h4>
+      <p class="peer-meta">🏫 ${u.college_name || 'Student'} • Rank: ${u.rank_title} • ⚡ ${u.reputation_score} Pts</p>
     `;
     document.getElementById('peerRequestTargetName').innerText = u.name;
     
@@ -167,12 +190,12 @@ async function viewPeerDetail(userId) {
     document.getElementById('peerUploadsCount').innerText = data.uploads.length;
     const upEl = document.getElementById('peerTabUploads');
     if (data.uploads.length === 0) {
-      upEl.innerHTML = '<p style="color:#94a3b8;">No public uploads yet.</p>';
+      upEl.innerHTML = '<p class="peer-no-results">No public uploads yet.</p>';
     } else {
       upEl.innerHTML = data.uploads.map(item => `
         <div class="peer-item-card">
-          <div><strong>📄 ${item['file-name']}</strong> <br><small style="color:#64748b;">${item.subject} • ${item.type}</small></div>
-          <a href="/pdf-proxy/${encodeURIComponent(item['file-path'])}?id=${item.record_id}" target="_blank" style="color:#4f46e5; font-weight:700; text-decoration:none;">View 👁</a>
+          <div><strong>📄 ${item['file-name']}</strong> <br><small class="peer-item-sub">${item.subject} • ${item.type}</small></div>
+          <a href="/view_pdf?pdf_name=${encodeURIComponent(item['file-path'])}" target="_blank" class="peer-view-link">View 👁</a>
         </div>
       `).join('');
     }
@@ -181,17 +204,17 @@ async function viewPeerDetail(userId) {
     document.getElementById('peerReferredCount').innerText = data.referred.length;
     const refEl = document.getElementById('peerTabReferred');
     if (data.referred.length === 0) {
-      refEl.innerHTML = '<p style="color:#94a3b8;">No recent referred items recorded.</p>';
+      refEl.innerHTML = '<p class="peer-no-results">No recent referred items recorded.</p>';
     } else {
       refEl.innerHTML = data.referred.map(item => `
         <div class="peer-item-card">
-          <div><strong>📖 ${item['file-name']}</strong> <br><small style="color:#64748b;">${item.subject} • ${item.type}</small></div>
-          <a href="/pdf-proxy/${encodeURIComponent(item['file-path'])}?id=${item.record_id}" target="_blank" style="color:#4f46e5; font-weight:700; text-decoration:none;">View 👁</a>
+          <div><strong>📖 ${item['file-name']}</strong> <br><small class="peer-item-sub">${item.subject} • ${item.type}</small></div>
+          <a href="/view_pdf?pdf_name=${encodeURIComponent(item['file-path'])}" target="_blank" class="peer-view-link">View 👁</a>
         </div>
       `).join('');
     }
   } catch(e) {
-    header.innerHTML = '<p style="color:#ef4444;">Failed to load peer materials.</p>';
+    header.innerHTML = '<p class="peer-error">Failed to load peer materials.</p>';
   }
 }
 
@@ -222,11 +245,11 @@ async function submitMaterialRequest() {
   const statusEl = document.getElementById('peerReqStatus');
   
   if (!subj) {
-    statusEl.innerHTML = '<span style="color:#ef4444;">Please specify a subject name.</span>';
+    statusEl.innerHTML = '<span class="peer-error">Please specify a subject name.</span>';
     return;
   }
   
-  statusEl.innerHTML = '<span style="color:#64748b;">Sending request...</span>';
+  statusEl.innerHTML = '<span class="peer-loading">Sending request...</span>';
   try {
     const res = await fetch('/api/request-material', {
       method: 'POST',
@@ -239,14 +262,14 @@ async function submitMaterialRequest() {
     });
     const data = await res.json();
     if (data.success) {
-      statusEl.innerHTML = `<span style="color:#10b981;">✅ ${data.message}</span>`;
+      statusEl.innerHTML = `<span class="peer-success">✅ ${data.message}</span>`;
       document.getElementById('peerReqSubject').value = '';
       document.getElementById('peerReqDetails').value = '';
     } else {
-      statusEl.innerHTML = `<span style="color:#ef4444;">❌ ${data.message}</span>`;
+      statusEl.innerHTML = `<span class="peer-error">❌ ${data.message}</span>`;
     }
   } catch(e) {
-    statusEl.innerHTML = '<span style="color:#ef4444;">Failed to submit request.</span>';
+    statusEl.innerHTML = '<span class="peer-error">Failed to submit request.</span>';
   }
 }
 </script>

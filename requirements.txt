@@ -17,3 +17,5 @@ rapidfuzz>=3.0.0
 pypdf>=3.0.0
 gevent
 gevent-websocket
+pytest
+pytest-timeout

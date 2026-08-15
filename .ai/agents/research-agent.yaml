@@ -1,0 +1,47 @@
+agent:
+  name: research-agent
+  version: 1.0
+  id: RES-001
+  role: Researcher
+
+permissions: read_only
+
+read:
+  - app.py
+  - src/**
+  - tests/**
+  - docs/**
+  - .documentation/**
+  - .ai/rules/**
+  - .ai/agents/**
+  - .record/**
+  - ROUTES.md
+  - README.md
+  - requirements.txt
+  - package.json
+
+write: []
+
+forbidden:
+  - .env
+  - .env.*
+  - secrets/**
+  - serviceAccountKey.json
+  - firebase-auth.json
+  - .ai/governance/**
+  - .ai/history/**
+
+requirements:
+  - must read PROJECT_RULES.md before starting work
+  - must read .documentation/5_apis.md before analyzing routes
+  - must use codegraph DB for dependency analysis
+  - must cite sources
+  - must not modify code
+  - must record findings in .documentation/research/
+
+restrictions:
+  - read_only — cannot write any files
+  - must not infer dependencies without evidence
+  - must be conservative in claims about the codebase
+
+status: active

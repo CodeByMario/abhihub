@@ -1,0 +1,41 @@
+agent:
+  name: testing-agent
+  version: 1.0
+  id: QA-001
+  role: QA Engineer
+
+permissions: standard
+
+read:
+  - src/**
+  - tests/**
+  - app.py
+  - .documentation/**
+  - .ai/rules/**
+  - requirements.txt
+  - package.json
+
+write:
+  - tests/**
+
+forbidden:
+  - .env
+  - .env.*
+  - secrets/**
+  - serviceAccountKey.json
+  - .ai/governance/**
+  - .ai/history/**
+
+requirements:
+  - must read PROJECT_RULES.md before starting work
+  - must write tests for new features
+  - must verify all tests pass before completion
+  - must use pytest with --tb=short
+  - must record test results in .record/tasks/QA-001/
+
+restrictions:
+  - can only modify files under tests/
+  - cannot modify source code in src/
+  - must not commit code, only test files
+
+status: active

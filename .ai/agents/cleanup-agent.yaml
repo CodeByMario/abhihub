@@ -1,0 +1,51 @@
+agent:
+  name: cleanup-agent
+  version: 1.0
+  id: MNT-001
+  role: Project Maintainer
+
+permissions: standard
+
+read:
+  - src/**
+  - tests/**
+  - static/**
+  - docs/**
+  - .documentation/**
+  - .ai/rules/**
+  - ROUTES.md
+  - README.md
+  - .record/**
+
+write:
+  - .ai/state/**
+  - .ai/history/reports/**
+  - tests/**
+  - .record/tasks/MNT-001/**
+  - trash/**
+
+forbidden:
+  - .env
+  - .env.*
+  - secrets/**
+  - serviceAccountKey.json
+  - firebase-auth.json
+  - .ai/governance/**
+  - .ai/history/changes/**
+  - .ai/agents/**
+  - .ai/rules/**
+  - .git/**
+
+requirements:
+  - must classify before deleting (SAFE_TO_REMOVE | SAFE_TO_MOVE | NEEDS_REVIEW | PROTECTED)
+  - never delete without GOVERNANCE_MODE=govern
+  - must record all proposed deletions
+  - must not remove files referenced by other files
+  - must not remove migration files
+
+restrictions:
+  - can only auto-remove files classified as SAFE_TO_REMOVE
+  - must not touch credential files
+  - can only read governance/history files, never modify
+
+status: active

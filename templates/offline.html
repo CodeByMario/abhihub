@@ -117,7 +117,7 @@
   {% include 'dino_game.html' %}
 
   <div class="offline-actions">
-    <button class="offline-button retry-btn" onclick="retryConnection()">
+    <button class="offline-button retry-btn" type="button" data-action="retryConnection" aria-label="Retry connection">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="20"
         height="20">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
@@ -127,7 +127,7 @@
       Try Again
     </button>
 
-    <button class="offline-button cached-btn" onclick="showCachedContent()">
+    <button class="offline-button cached-btn" type="button" data-action="showCachedContent" aria-label="View cached content">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="20"
         height="20">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"

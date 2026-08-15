@@ -36,11 +36,12 @@
     <a href="{{ url_for('upload') }}?next={{ next_url | urlencode }}"
        class="gate-upload-btn"
        id="gateUploadBtn"
-       onclick="window.gateActionTaken = true; handleGateUpload(); window.AbhiHubTracking && window.AbhiHubTracking.trackStudyPassUploadClick();">
+       data-action="handleGateUpload"
+       data-track-upload="true">
       Share a Paper &amp; Continue
     </a>
 
-    <a href="/store-room" class="gate-back-link" onclick="window.gateActionTaken = true; window.AbhiHubTracking && window.AbhiHubTracking.trackStudyPassStoreRoomClick();">Open My Store Room</a>
+    <a href="/store-room" class="gate-back-link" data-action="trackStoreRoomClick" data-prevent-close="true">Open My Store Room</a>
     <p style="font-size: 0.8rem; color: #6b7280; margin-top: 1rem;">Papers already saved in your Store Room are always available anytime 💙</p>
 
     <div class="gate-perks">

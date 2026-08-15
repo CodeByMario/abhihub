@@ -3,14 +3,14 @@
         <span class="promo-tag">📤 {{ promo_context.get('upload_goal_month', 'May') if promo_context else 'May' }} Drive</span>
         <span id="promoStripText">Help your juniors — upload a paper this month &amp; boost your rank!</span>
         <a href="/upload" id="promoStripLink">Upload now →</a>
-        <button id="promoStripClose" onclick="dismissPromoStrip()" aria-label="Close announcement">✕</button>
+        <button id="promoStripClose" type="button" data-action="dismissPromoStrip" aria-label="Close announcement">✕</button>
     </div>
 
     <!-- ===== PROMO CARD MODAL ===== -->
     <div id="promoCardOverlay" role="dialog" aria-modal="true" aria-labelledby="promoCardTitle">
         <div id="promoCard">
             <div class="promo-card-header">
-                <button class="promo-close-btn" onclick="closePromoCard()" aria-label="Close">✕</button>
+                <button type="button" class="promo-close-btn" data-action="closePromoCard" aria-label="Close">✕</button>
                 <span class="promo-emoji">📤</span>
                 <h2 id="promoCardTitle">Share your knowledge!</h2>
                 <p id="promoCardDesc">Upload one paper this {{ promo_context.get('upload_goal_month', 'May') if promo_context else 'May' }} &amp; make a difference for your peers</p>
@@ -34,9 +34,8 @@
                         <span><strong>Free Views</strong> — you have {{ promo_context.get('remaining_views', 19) if promo_context else 19 }} views left</span>
                     </li>
                 </ul>
-                <a href="/upload" class="promo-cta-btn" id="promoUploadBtn" onclick="markUploadClicked()">Upload a Paper
-                    Now 🚀</a>
-                <span class="promo-dismiss-link" onclick="snoozePromoCard()">Remind me tomorrow</span>
+                <a href="/upload" class="promo-cta-btn" id="promoUploadBtn" data-action="markUploadClicked">Upload a Paper Now 🚀</a>
+                <span class="promo-dismiss-link" data-action="snoozePromoCard">Remind me tomorrow</span>
             </div>
         </div>
     </div>

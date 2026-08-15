@@ -51,7 +51,14 @@ function showToast(msg, type) {
 }
 
 /* ── File selection ── */
-function handleFilesSelected(files) {
+function handleFilesSelected(filesOrEvent) {
+  // Support being called from data-event-change compat handler (receives event + el)
+  if (filesOrEvent && filesOrEvent.type && filesOrEvent.type.startsWith('change') && filesOrEvent.target) {
+    files = filesOrEvent.target.files;
+  }
+  const files = (filesOrEvent && filesOrEvent.type && filesOrEvent.type.startsWith('change') && filesOrEvent.target)
+    ? filesOrEvent.target.files
+    : filesOrEvent;
   const imgOnly = ['papers','practical'].includes(gv('type').toLowerCase());
   // Detect camera captures (no lastModified or name starts with 'image')
   const fromCamera = Array.from(files).some(f =>
@@ -502,7 +509,7 @@ async function startBulkUpload(event) {
     document.body.appendChild(overlay);
   }
   overlay.innerHTML = `
-    <button onclick="minimizeUploadOverlay()" style="position:absolute;top:20px;right:20px;background:none;border:none;color:white;font-size:24px;cursor:pointer;">&minus;</button>
+    <button id="minimizeUploadBtn" data-action="minimizeUploadOverlay" class="upload-overlay-minimize-btn" aria-label="Minimize upload progress">&minus;</button>
     <h2 id="uploadProgressText" style="margin-bottom:10px; font-weight:700;">Uploading 0 / ${uploadBatch.length}</h2>
     <div style="width:300px;background:#334155;height:24px;border-radius:12px;overflow:hidden;margin-bottom:30px;box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);">
         <div id="uploadProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg, #ef4444, #f59e0b);transition:width 0.3s ease;"></div>

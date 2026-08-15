@@ -70,7 +70,7 @@ notes, practicals, and exam resources for top colleges across India." %}
     </div>
 
     <div class="welcome-mini-actions">
-      <button onclick="openPeerSearchModal()" class="welcome-action-btn peer" title="Search Students & Peer Notes">🔍 Find Peers</button>
+      <button type="button" data-action="openPeerSearchModal" class="welcome-action-btn peer" aria-label="Search Students & Peer Notes">🔍 Find Peers</button>
       <a href="/upload" class="welcome-action-btn primary">📤 Upload</a>
       <a href="{{ url_for('support') }}" class="welcome-action-btn support" title="Support Us">💝</a>
     </div>
@@ -81,33 +81,90 @@ notes, practicals, and exam resources for top colleges across India." %}
 
 {% if user_data %}
 <!-- ── Online Now Widget ───────────────────────────────────────────────── -->
-<div id="onlineWidget" style="margin:.75rem 0;">
-  <div id="onlineInner" style="display:flex;align-items:center;gap:.6rem;flex-wrap:wrap;min-height:36px;">
-    <span style="font-size:.78rem;font-weight:700;color:#64748b;letter-spacing:.04em;">🟢 ONLINE NOW</span>
-    <span id="onlineList" style="display:flex;gap:.4rem;flex-wrap:wrap;"></span>
+<div id="onlineWidget" class="online-widget">
+  <div id="onlineInner" class="online-inner">
+    <span class="online-label">
+      <span class="online-dot"></span> ONLINE NOW
+    </span>
+    <span id="onlineCount" class="online-count-badge">—</span>
+    <span id="onlineList" class="online-list"></span>
   </div>
 </div>
 <style>
-.online-chip{display:inline-flex;align-items:center;gap:.35rem;padding:.3rem .65rem;background:#ecfdf5;border:1px solid #6ee7b7;border-radius:20px;font-size:.78rem;font-weight:700;color:#065f46;cursor:pointer;text-decoration:none;transition:.2s;}
-.online-chip:hover{background:#d1fae5;transform:translateY(-1px);box-shadow:0 4px 12px rgba(16,185,129,.15);}
-.online-chip .oc-dot{width:7px;height:7px;border-radius:50%;background:#10b981;flex-shrink:0;animation:pulse 2s infinite;}
-@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+.online-widget { margin: 0.75rem 0; }
+.online-inner { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; min-height: 36px; }
+.online-label { font-size: 0.78rem; font-weight: 700; color: #059669; letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 0.3rem; }
+.online-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulse 2s infinite; }
+.online-count-badge {
+  background: #d1fae5; color: #065f46; font-size: 0.72rem; font-weight: 800;
+  padding: 0.15rem 0.55rem; border-radius: 999px; min-width: 24px; text-align: center;
+  line-height: 1.4;
+}
+.online-list { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.online-chip {
+  display: inline-flex; align-items: center; gap: 0.35rem;
+  padding: 0.3rem 0.65rem; background: #ecfdf5; border: 1px solid #6ee7b7;
+  border-radius: 20px; font-size: 0.78rem; font-weight: 700; color: #065f46;
+  cursor: pointer; text-decoration: none; transition: 0.2s;
+}
+.online-chip:hover { background: #d1fae5; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.15); }
+.online-chip .oc-dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; flex-shrink: 0; animation: pulse 2s infinite; }
+.online-chip.me { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
+.online-chip.me .oc-dot { background: #3b82f6; }
+.online-more { font-size: 0.72rem; color: #94a3b8; font-weight: 600; align-self: center; }
+@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
 </style>
 <script>
 (async function pollOnline() {
+  const selfName = '{{ (session.user.name if session.user else "") | e }}' || '';
+  const selfUid  = '{{ session.user.uid if session.user else "" }}';
   try {
-    const r = await fetch('/api/chat/online').then(r => r.json());
-    const list = document.getElementById('onlineList');
-    if (!list) return;
-    const users = r.online || [];
-    if (!users.length) { list.innerHTML = '<span style="font-size:.75rem;color:#94a3b8;">No one online right now</span>'; return; }
-    list.innerHTML = users.slice(0, 10).map(u =>
-      `<a class="online-chip" href="/chat/${u.id}" title="Chat with ${u.name}">
-        <span class="oc-dot"></span>${u.name.split(' ')[0]}
-      </a>`
-    ).join('');
-  } catch {}
-  setTimeout(pollOnline, 30000);
+    const r = await fetch('/api/chat/online', { signal: AbortSignal.timeout(8000) });
+    const data = await r.json();
+    const listEl = document.getElementById('onlineList');
+    const countEl = document.getElementById('onlineCount');
+    if (!listEl || !countEl) return;
+
+    const users = (data.online || []).sort((a, b) => {
+      // Show self first
+      if (a.id === selfUid) return -1;
+      if (b.id === selfUid) return 1;
+      return 0;
+    });
+
+    const total = users.length;
+    countEl.textContent = total;
+
+    if (!users.length) {
+      listEl.innerHTML = '<span style="font-size:.75rem;color:#94a3b8;">No one online right now</span>';
+      return;
+    }
+
+    // Show self first, then others, cap at 10
+    const display = users.slice(0, 10);
+    const extra = total - display.length;
+
+    listEl.innerHTML = display.map(u => {
+      const isSelf = u.id === selfUid;
+      const cls = isSelf ? 'online-chip me' : 'online-chip';
+      const label = isSelf ? (u.name.split(' ')[0] + ' (You)') : u.name.split(' ')[0];
+      return `<a class="${cls}" href="${isSelf ? '#' : '/chat/' + u.id}" title="${isSelf ? 'You are online' : 'Chat with ' + u.name}">
+        <span class="oc-dot"></span>${label}
+      </a>`;
+    }).join('');
+
+    if (extra > 0) {
+      listEl.innerHTML += `<span class="online-more">+${extra} more</span>`;
+    }
+  } catch (err) {
+    const listEl = document.getElementById('onlineList');
+    const countEl = document.getElementById('onlineCount');
+    if (countEl) countEl.textContent = '!';
+    if (listEl) listEl.innerHTML = '<span style="font-size:.75rem;color:#f59e0b;">Unable to load</span>';
+  }
+
+  // Poll every 60s for mobile-friendly battery life
+  setTimeout(pollOnline, 60000);
 })();
 </script>
 {% endif %}
@@ -276,12 +333,207 @@ notes, practicals, and exam resources for top colleges across India." %}
 </script>
 {% endif %}
 
+<!-- ── Suggested Peers & Classmates Section (logged-in users only) ── -->
+{% if user_data and user_data.get('college_name') %}
+<div class="suggested-peers-section">
+  <div class="suggested-peers-header">
+    <h3>🎓 People from your college</h3>
+    <a href="/chat" class="suggested-peers-view-all">View all in chat →</a>
+  </div>
+  <div id="suggestedPeersGrid" class="suggested-peers-grid">
+    <div class="suggested-peers-loading">Finding classmates…</div>
+  </div>
+</div>
+
+<style>
+.suggested-peers-section {
+  background: var(--surface, #fff);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 18px;
+  padding: 1.25rem;
+  margin: 1rem 0;
+}
+.suggested-peers-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+.suggested-peers-header h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+  margin: 0;
+}
+.suggested-peers-view-all {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--primary-600, #4f46e5);
+  text-decoration: none;
+  transition: all 0.15s;
+}
+.suggested-peers-view-all:hover {
+  color: var(--primary-700, #2563eb);
+  text-decoration: underline;
+}
+.suggested-peers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 0.75rem;
+}
+.suggested-peers-grid.empty {
+  grid-template-columns: 1fr;
+}
+.suggested-peer-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.9rem;
+  background: var(--gray-50, #f8fafc);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 14px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.18s;
+  text-align: center;
+}
+.suggested-peer-card:hover {
+  background: var(--primary-50, #eef2ff);
+  border-color: var(--primary-300, #c4b5fd);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+}
+.suggested-peer-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--primary-600, #4f46e5), var(--accent-pink, #f4725F));
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  font-weight: 800;
+  flex-shrink: 0;
+}
+.suggested-peer-name {
+  font-size: 0.9rem;
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.suggested-peer-name .verified {
+  color: var(--primary-600, #4f46e5);
+  margin-left: 2px;
+}
+.suggested-peer-meta {
+  font-size: 0.72rem;
+  color: var(--text-tertiary, #94a3b8);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.suggested-peer-actions {
+  display: flex;
+  gap: 0.4rem;
+  margin-top: 0.3rem;
+}
+.suggested-peer-chat {
+  flex: 1;
+  padding: 0.35rem 0.6rem;
+  background: var(--primary-600, #4f46e5);
+  color: #fff;
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: none;
+  text-align: center;
+  transition: all 0.15s;
+}
+.suggested-peer-chat:hover {
+  background: var(--primary-700, #2563eb);
+  transform: translateY(-1px);
+}
+.suggested-peer-profile {
+  flex: 1;
+  padding: 0.35rem 0.6rem;
+  background: var(--gray-100, #f1f5f9);
+  color: var(--text-secondary, #475569);
+  border-radius: 8px;
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-decoration: none;
+  text-align: center;
+  transition: all 0.15s;
+}
+.suggested-peer-profile:hover {
+  background: var(--gray-200, #e2e8f0);
+}
+.suggested-peers-loading {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-tertiary, #94a3b8);
+  font-size: 0.88rem;
+}
+@media (max-width: 768px) {
+  .suggested-peers-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+</style>
+
+<script>
+(function () {
+  function loadSuggestedPeers() {
+    const grid = document.getElementById('suggestedPeersGrid');
+    if (!grid) return;
+    fetch('/api/chat/search-peers?q=__suggested__', { signal: AbortSignal.timeout(8000) })
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && (d.suggested || []).length) {
+          grid.className = 'suggested-peers-grid';
+          grid.innerHTML = d.suggested.map(u => {
+            const init = (u.full_name || 'S').charAt(0).toUpperCase();
+            const verified = u.is_verified ? '<span class="verified">✔️</span>' : '';
+            return `<div class="suggested-peer-card" title="View ${u.full_name || 'Student'}'s profile">
+              <div class="suggested-peer-avatar">${init}</div>
+              <div class="suggested-peer-name">${u.full_name || 'Student'} ${verified}</div>
+              <div class="suggested-peer-meta">${u.college_name || 'AbhiHub'} • ⚡ ${u.reputation_score || 0} • 📤 ${u.uploads_count || 0}</div>
+              <div class="suggested-peer-actions">
+                <a href="/chat/${u.id}" class="suggested-peer-chat" title="Chat">💬 Chat</a>
+                <a href="/u/${u.id}" class="suggested-peer-profile" title="Profile">Profile</a>
+              </div>
+            </div>`;
+          }).join('');
+        } else {
+          grid.className = 'suggested-peers-grid empty';
+          grid.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-tertiary);font-size:0.88rem;">No classmates found on AbhiHub yet.<br>Be the first to invite your college friends!</div>';
+        }
+      })
+      .catch(err => {
+        grid.className = 'suggested-peers-grid empty';
+        grid.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-tertiary);font-size:0.88rem;">Unable to load suggestions right now.</div>';
+      });
+  }
+  // Load after DOM ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', loadSuggestedPeers);
+  } else {
+    loadSuggestedPeers();
+  }
+})();
+</script>
+{% endif %}
+
 <!-- ── MemoryWall Awareness Popup (shows once) ─────────────────────── -->
 {% if user_data %}
-<div id="mw-awareness" class="popup-overlay mw-awareness-overlay" onclick="if(event.target===this)mwDismiss()">
+<div id="mw-awareness" class="popup-overlay mw-awareness-overlay" data-action="dismissIfClicked">
   <div class="mw-aw-box">
     <!-- Close -->
-    <button onclick="mwDismiss()" aria-label="Close" class="mw-aw-close">✕</button>
+    <button type="button" data-action="mwDismiss" aria-label="Close" class="mw-aw-close">✕</button>
 
     <!-- Gradient header -->
     <div class="mw-aw-header">
@@ -326,10 +578,10 @@ notes, practicals, and exam resources for top colleges across India." %}
 
     <!-- CTA -->
     <div class="mw-aw-actions">
-      <a href="{{ url_for('memorywall_dashboard') }}" class="dashboard-cta-link" onclick="mwDismiss()">
+      <a href="{{ url_for('memorywall_dashboard') }}" class="dashboard-cta-link" data-action="mwDismiss">
         ✨ Try MemoryWall Now
       </a>
-      <button class="dashboard-cta-secondary" onclick="mwDismiss()">
+      <button type="button" data-action="mwDismiss" class="dashboard-cta-secondary">
         I'll check it out later
       </button>
     </div>
@@ -395,7 +647,7 @@ notes, practicals, and exam resources for top colleges across India." %}
       </div>
     </div>
     <div class="dashboard-welcome-actions">
-      <button id="welcomeStartBtn" onclick="dismissWelcomeModal()" class="dashboard-welcome-button">
+      <button type="button" id="welcomeStartBtn" data-action="dismissWelcomeModal" class="dashboard-welcome-button">
         🚀 Start Exploring
       </button>
     </div>
@@ -422,14 +674,14 @@ notes, practicals, and exam resources for top colleges across India." %}
 
 <!-- ── T6: Floating ☕ Support Button (logged-in users, Dashboard only) ── -->
 {% if user_data %}
-<button id="floatSupportBtn" onclick="openSupportModal()" aria-label="Support AbhiHub"
+<button id="floatSupportBtn" type="button" data-action="openSupportModal" aria-label="Support AbhiHub"
   class="dashboard-float-support-btn">
   ☕ Support AbhiHub
 </button>
 
-<div id="supportModal" class="popup-overlay dashboard-modal-body" onclick="if(event.target===this)closeSupportModal()">
+<div id="supportModal" class="popup-overlay dashboard-modal-body" data-action="dismissIfClicked">
   <div class="popup-card dashboard-modal-card">
-    <button onclick="closeSupportModal()" aria-label="Close" class="dashboard-modal-close">✕</button>
+    <button type="button" data-action="closeSupportModal" aria-label="Close" class="dashboard-modal-close">✕</button>
     <div class="dashboard-modal-primary">
       <div class="dashboard-modal-banner"></div>
       <div class="modal-icon">💝</div>
@@ -452,23 +704,23 @@ notes, practicals, and exam resources for top colleges across India." %}
         </div>
       </div>
       <div class="modal-row">
-        <a href="{{ url_for('support') }}" onclick="closeSupportModal()" class="modal-card">
+        <a href="{{ url_for('support') }}" data-action="closeSupportModal" class="modal-card">
           <strong>₹29</strong>
           <small>Storage</small>
         </a>
-        <a href="{{ url_for('support') }}" onclick="closeSupportModal()" class="modal-card secondary">
+        <a href="{{ url_for('support') }}" data-action="closeSupportModal" class="modal-card secondary">
           <strong>₹49</strong>
           <small>Hosting</small>
         </a>
-        <a href="{{ url_for('support') }}" onclick="closeSupportModal()" class="modal-card accent">
+        <a href="{{ url_for('support') }}" data-action="closeSupportModal" class="modal-card accent">
           <strong>₹99</strong>
           <small>Dev</small>
         </a>
       </div>
-      <a href="{{ url_for('support') }}" onclick="closeSupportModal()" class="dashboard-modal-link">
+      <a href="{{ url_for('support') }}" data-action="closeSupportModal" class="dashboard-modal-link">
         💝 Support AbhiHub
       </a>
-      <button onclick="closeSupportModal()" class="dashboard-modal-secondary-button">Maybe Later</button>
+      <button data-action="closeSupportModal" type="button" class="dashboard-modal-secondary-button">Maybe Later</button>
       <p class="dashboard-modal-note">AbhiHub is free. Contributions are optional.</p>
     </div>
   </div>
@@ -970,8 +1222,8 @@ notes, practicals, and exam resources for top colleges across India." %}
     <a href="/store-room?type=pyq" class="home-see-all">Full library →</a>
   </div>
   <div class="tab-bar">
-    <button class="tab-btn active" onclick="switchTab(this,'tab-trending')">🔥 Trending</button>
-    <button class="tab-btn" onclick="switchTab(this,'tab-recent')">🆕 Recent</button>
+    <button class="tab-btn active" type="button" data-action="switchTab" data-tab="tab-trending">🔥 Trending</button>
+    <button class="tab-btn" type="button" data-action="switchTab" data-tab="tab-recent">🆕 Recent</button>
   </div>
 
   <div id="tab-trending" class="tab-panel active">
@@ -1039,18 +1291,50 @@ notes, practicals, and exam resources for top colleges across India." %}
   </div>
 </div>
 
-<!-- ── Notes ────────────────────────────────────────────────── -->
-{% set notes_files = data | selectattr('type', 'equalto', 'Notes') | list %}
-{% if notes_files %}
-<div class="home-section" style="padding-top:0;">
+<!-- ── Personalized Notes ────────────────────────────────────────── -->
+{% if relevant_notes %}
+<div class="home-section">
   <div class="home-section-header">
-    <div class="home-section-title">📝 Study Notes</div>
-    {% if notes_files|length > 6 %}
-    <a href="/store-room?type=notes" class="home-see-all">See all {{ notes_files|length }} →</a>
-    {% endif %}
+    <div>
+      <div class="home-section-title">
+        {% if user_data and user_data.college_name %}
+        📚 Notes for {{ user_data.college_name }}
+        {% else %}
+        🔥 Top Notes
+        {% endif %}
+      </div>
+      <div class="home-section-subtitle">Sorted by most viewed · click to read</div>
+    </div>
+    <a href="/store-room?type=notes" class="home-see-all">See all →</a>
   </div>
   <div class="hscroll-row">
-    {% for file in notes_files[:8] %}
+    {% for file in relevant_notes %}
+    <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) }}" class="pcard notes-card">
+      <span class="pcard-badge notes">📝 Notes</span>
+      <div class="pcard-subject">{{ file['subject'] }}</div>
+      <div class="pcard-name">{{ file['file-name'] }}</div>
+      <div class="pcard-footer">
+        <span class="pcard-meta">📅 {{ file.get('year','') or file.get('date','')[:4] }}</span>
+        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Notes ────────────────────────────────────────────────── -->
+{% if recent_notes %}
+<div class="home-section" style="padding-top:0;">
+  <div class="home-section-header">
+    <div>
+      <div class="home-section-title">🔥 Trending Notes</div>
+      <div class="home-section-subtitle">Most viewed study notes across colleges</div>
+    </div>
+    <a href="/store-room?type=notes" class="home-see-all">See all →</a>
+  </div>
+  <div class="hscroll-row">
+    {% for file in trending_notes %}
     <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) }}"
       class="pcard notes-card">
       <span class="pcard-badge notes">📝 Notes</span>
@@ -1061,6 +1345,8 @@ notes, practicals, and exam resources for top colleges across India." %}
         <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
       </div>
     </a>
+    {% else %}
+    <div style="color:#94a3b8;padding:2rem;">No notes yet.</div>
     {% endfor %}
   </div>
 </div>
@@ -1110,7 +1396,7 @@ notes, practicals, and exam resources for top colleges across India." %}
 <div id="pwaInstallPopup" class="pwa-install-popup">
   <div class="pwa-popup-content">
     <div class="pwa-popup-header">
-      <button class="pwa-popup-close" onclick="PWAManager.closePWAPopup()">×</button>
+      <button class="pwa-popup-close" type="button" data-action="PWAManager.closePWAPopup" aria-label="Close">×</button>
       <h2 class="pwa-popup-heading">📱 Install AbhiHub App</h2>
       <p class="pwa-popup-copy">Get the app for better experience</p>
     </div>

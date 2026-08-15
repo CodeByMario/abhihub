@@ -162,6 +162,21 @@
     color: var(--text-tertiary);
 }
 
+.notif-view-all {
+    font-size: var(--text-xs);
+    color: var(--primary-600);
+    font-weight: 600;
+    text-decoration: none;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.notif-view-all:hover {
+    background: var(--primary-50);
+    color: var(--primary-700);
+}
+
 @keyframes notifSlideIn {
     from { opacity: 0; transform: translateY(-8px); }
     to   { opacity: 1; transform: translateY(0); }

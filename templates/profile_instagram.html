@@ -1,0 +1,325 @@
+{% extends 'p_struct.html' %}
+{% block page_head %}
+<meta name="robots" content="noindex, follow">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<!-- OG tags for Instagram/Facebook rich preview -->
+<meta property="og:title" content="{{ og_title | e }}">
+<meta property="og:description" content="{{ og_description | e }}">
+<meta property="og:image" content="{{ og_image or url_for('static', filename='images/android-chrome-512x512.png', _external=True) }}">
+<meta property="og:url" content="{{ canonical_domain }}{{ request.path }}">
+<meta property="og:type" content="profile">
+<meta property="profile:first_name" content="{{ (peer.get('name', 'Student').split(' ')[0] if peer and peer.get('name') else 'Student') | e }}">
+<meta property="profile:last_name" content="{{ (peer.get('name', 'Student').split(' ')[1] if peer and peer.get('name','').split(' ')|length > 1 else 'Hub') | e }}">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="{{ og_title | e }}">
+<meta name="twitter:description" content="{{ og_description | e }}">
+<meta name="twitter:image" content="{{ og_image or url_for('static', filename='images/android-chrome-512x512.png', _external=True) }}">
+<link rel="canonical" href="{{ canonical_domain }}{{ request.path }}">
+{% endblock %}
+{% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
+{% endblock %}
+{% block content %}
+
+<style>
+/* ── Instagram-style Profile Page ── */
+.ig-profile {
+  max-width: 420px;
+  margin: 0 auto;
+  padding: 1.5rem 1rem 5rem;
+  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+/* Hero Section */
+.ig-hero {
+  text-align: center;
+  margin-bottom: 1.5rem;
+}
+.ig-avatar {
+  width: 88px;
+  height: 88px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #6366f1, #4f46e5);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.4rem;
+  font-weight: 800;
+  margin: 0 auto 0.75rem;
+  border: 3px solid rgba(99, 102, 245, 0.2);
+  box-sizing: border-box;
+}
+.ig-name {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--text-primary, #1e293b);
+  margin-bottom: 0.2rem;
+}
+.ig-college {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin-bottom: 0.75rem;
+}
+.ig-rank {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: linear-gradient(135deg, #0d9488, #10b981);
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 0.25rem 0.7rem;
+  border-radius: 999px;
+}
+
+/* Stats Row */
+.ig-stats {
+  display: flex;
+  justify-content: center;
+  gap: 2.5rem;
+  margin-bottom: 1.5rem;
+  padding: 0.75rem 0;
+  border-top: 1px solid var(--border-light, #e2e8f0);
+  border-bottom: 1px solid var(--border-light, #e2e8f0);
+}
+.ig-stat-num {
+  font-size: 1.6rem;
+  font-weight: 800;
+  color: var(--text-primary, #1e293b);
+}
+.ig-stat-label {
+  font-size: 0.7rem;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+/* CTA Buttons */
+.ig-ctas {
+  display: flex;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+}
+.ig-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.1rem;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  text-decoration: none;
+  transition: all 0.2s;
+  border: none;
+  cursor: pointer;
+}
+.ig-btn-primary {
+  background: linear-gradient(135deg, #0d9488, #10b981);
+  color: #fff;
+  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
+}
+.ig-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
+}
+.ig-btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+  border: 1px solid var(--border-light, #e2e8f0);
+}
+.ig-btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+/* Section Headers */
+.ig-section-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: var(--text-primary, #1e293b);
+  margin-bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+.ig-section-title i { color: #0d9488; font-size: 1.1rem; }
+
+/* Grid Layout for Materials */
+.ig-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+/* File Card */
+.ig-file-card {
+  background: #fff;
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 14px;
+  padding: 0.85rem;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.2s;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
+}
+.ig-file-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+  border-color: #0d9488;
+}
+.ig-file-icon {
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  object-fit: contain;
+}
+.ig-file-name {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--text-primary, #1e293b);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin: 0;
+}
+.ig-file-meta {
+  font-size: 0.68rem;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+}
+.ig-file-views {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+/* Empty State */
+.ig-empty {
+  text-align: center;
+  padding: 2rem 1rem;
+  color: #94a3b8;
+}
+.ig-empty i { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5; }
+
+/* Badge */
+.ig-badge {
+  background: #ede9fe;
+  color: #4f46e5;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 0.15rem 0.55rem;
+  border-radius: 20px;
+  white-space: nowrap;
+}
+
+/* Mobile responsive */
+@media (max-width: 480px) {
+  .ig-stats { gap: 1.75rem; }
+  .ig-grid { grid-template-columns: 1fr; }
+  .ig-ctas { flex-direction: column; }
+  .ig-btn { width: 100%; justify-content: center; }
+}
+</style>
+
+<div class="ig-profile">
+  <!-- Hero -->
+  <div class="ig-hero">
+    <div class="ig-avatar">
+      {{ (peer.get('name') or 'S').split()[0][0].upper() if peer.get('name') else 'S' }}
+    </div>
+    <h1 class="ig-name">{{ peer.get('name') or 'Student' }}</h1>
+    <div class="ig-college">
+      {% if peer.get('college_name') %}🏫 {{ peer.get('college_name') }}{% else %}📚 AbhiHub Student{% endif %}
+    </div>
+    {% if peer.get('rank_title') %}
+    <div class="ig-rank">🏆 {{ peer.get('rank_title') }}</div>
+    {% endif %}
+  </div>
+
+  <!-- Stats -->
+  <div class="ig-stats">
+    <div style="text-align: center;">
+      <div class="ig-stat-num">{{ uploads|length }}</div>
+      <div class="ig-stat-label">Shared</div>
+    </div>
+    <div style="text-align: center;">
+      <div class="ig-stat-num">{{ peer.get('reputation_score', 0) }}</div>
+      <div class="ig-stat-label">Reputation</div>
+    </div>
+    <div style="text-align: center;">
+      <div class="ig-stat-num">{{ referred|length }}</div>
+      <div class="ig-stat-label">Viewed</div>
+    </div>
+  </div>
+
+  <!-- CTAs -->
+  <div class="ig-ctas">
+    <a href="/chat/{{ peer.get('id') }}" class="ig-btn ig-btn-primary">
+      <i class="fas fa-comments"></i> Chat Now
+    </a>
+    <a href="/upload" class="ig-btn ig-btn-secondary">
+      <i class="fas fa-upload"></i> Share Yours
+    </a>
+  </div>
+
+  <!-- Shared Materials -->
+  <div>
+    <div class="ig-section-title">
+      <i class="fas fa-share-nodes"></i> Shared Materials ({{ uploads|length }})
+    </div>
+
+    {% if uploads %}
+    <div class="ig-grid">
+      {% for file in uploads %}
+      {% set ft = file.get('type', 'Papers').lower() %}
+      <a href="/preview/{{ file['record_id'] }}" class="ig-file-card">
+        <img src="/static/premium/icon/{% if 'notes' in ft %}notes.gif{% elif 'practical' in ft %}practicals.gif{% else %}papers.gif{% endif %}"
+             class="ig-file-icon" alt="{{ file.get('type', 'Paper') }}">
+        <p class="ig-file-name" title="{{ file.get('file-name', 'Untitled') }}">{{ file.get('file-name', 'Untitled') }}</p>
+        <div class="ig-file-meta">
+          <span><i class="fas fa-book"></i> {{ file.get('subject', 'General') }}</span>
+          <span class="ig-file-views"><i class="fas fa-eye"></i> {{ file.get('views', 0) }}</span>
+        </div>
+        <span class="ig-badge">{{ file.get('type', 'Paper') }}</span>
+      </a>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="ig-empty">
+      <i class="fas fa-folder-open"></i>
+      <p>No shared materials yet.</p>
+    </div>
+    {% endif %}
+  </div>
+
+  <!-- Recently Viewed -->
+  {% if referred %}
+  <div style="margin-top: 1.75rem;">
+    <div class="ig-section-title">
+      <i class="fas fa-clock"></i> Recently Viewed ({{ referred|length }})
+    </div>
+    <div class="ig-grid">
+      {% for file in referred %}
+      {% set ft = file.get('type', 'Notes').lower() %}
+      <a href="/preview/{{ file['record_id'] }}" class="ig-file-card">
+        <img src="/static/premium/icon/{% if 'notes' in ft %}notes.gif{% elif 'practical' in ft %}practicals.gif{% else %}papers.gif{% endif %}"
+             class="ig-file-icon" alt="{{ file.get('type', 'Notes') }}">
+        <p class="ig-file-name" title="{{ file.get('file-name', 'Untitled') }}">{{ file.get('file-name', 'Untitled') }}</p>
+        <div class="ig-file-meta">
+          <span><i class="fas fa-book"></i> {{ file.get('subject', 'General') }}</span>
+        </div>
+        <span class="ig-badge">{{ file.get('type', 'Notes') }}</span>
+      </a>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

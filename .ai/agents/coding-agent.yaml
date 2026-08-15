@@ -1,0 +1,81 @@
+agent:
+  name: coding-agent
+  version: 1.4
+  id: BE-001
+  role: Backend Developer
+
+permissions: standard
+
+read:
+  - src/**
+  - tests/**
+  - templates/**
+  - static/**
+  - docs/**
+  - .documentation/**
+  - .ai/rules/**
+  - .ai/agents/**
+  - .record/**
+  - requirements.txt
+  - requirements-min.txt
+  - .gitignore
+  - package.json
+  - package-lock.json
+  - ROUTES.md
+  - README.md
+  - CHANGELOG.md
+  - app.py
+  - migrations/**
+  - .env.example
+  - .codegraph/**
+
+write:
+  - src/**
+  - tests/**
+  - templates/**
+  - static/css/**
+  - static/js/**
+  - docs/**
+  - .documentation/**
+  - migrations/**
+  - ROUTES.md
+  - CHANGELOG.md
+  - .gitignore
+  - requirements.txt
+  - requirements-min.txt
+  - package.json
+  - package-lock.json
+  - Procfile
+  - runtime.txt
+  - .python-version
+  - .record/tasks/BE-001/**
+
+forbidden:
+  - .env
+  - .env.*
+  - secrets/**
+  - serviceAccountKey.json
+  - firebase-auth.json
+  - .ai/governance/**
+  - .ai/history/**
+  - .ai/state/.mode
+  - node_modules/**
+  - __pycache__/**
+  - .venv/**
+
+requirements:
+  - must read PROJECT_RULES.md before starting work
+  - must read ARCHITECTURE.md before starting work
+  - must update documentation for public APIs
+  - must run tests before completion
+  - must record every file modification in .record/tasks/BE-001/
+  - must not change database schema without explicit approval
+  - must not change public API endpoints without documentation update
+
+restrictions:
+  - do not modify files in .ai/governance/
+  - do not delete migration files
+  - do not expose secrets in code
+  - do not hardcode credentials
+
+status: active

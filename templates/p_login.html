@@ -79,21 +79,23 @@
 <div class="p-login-container">
   <h2 class="p-login-title">Login</h2>
 
-  <div id="email-error-message" class="error-msg"></div>
-  <div id="password-error-message" class="error-msg"></div>
-  <div id="google-signin-error-message" class="error-msg"></div>
+  <div id="email-error-message" class="error-msg" role="alert" aria-live="assertive"></div>
+  <div id="password-error-message" class="error-msg" role="alert" aria-live="assertive"></div>
+  <div id="google-signin-error-message" class="error-msg" role="alert" aria-live="assertive"></div>
 
-  <input type="email" id="email-input" class="p-input-field" placeholder="Email" required>
-  <input type="password" id="password-input" class="p-input-field" placeholder="Password" required>
+  <label for="email-input" class="sr-only">Email</label>
+  <input type="email" id="email-input" class="p-input-field" placeholder="Email" required autocomplete="email">
+  <label for="password-input" class="sr-only">Password</label>
+  <input type="password" id="password-input" class="p-input-field" placeholder="Password" required autocomplete="current-password">
 
   <div class="flex justify-center mb-1">
     <div class="cf-turnstile" data-sitekey="0x4AAAAAAEKPpLMi4eWOTMtC" data-action="turnstile-spin-v2"></div>
   </div>
-  <button id="sign-in-btn" class="p-signin-btn">Sign In</button>
+  <button type="button" id="sign-in-btn" class="p-signin-btn">Sign In</button>
 
   <div class="p-divider">OR</div>
 
-  <button id="sign-in-with-google-btn" class="p-google-btn">
+  <button type="button" id="sign-in-with-google-btn" class="p-google-btn">
     <img src="{{ url_for('static', filename='images/google-icon.png') }}" alt="Google logo">
     Sign in with Google
   </button>

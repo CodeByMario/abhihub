@@ -302,13 +302,13 @@
 <div id="searchHistory" class="search-history" aria-live="polite"></div>
 <div id="searchResultsHeader" class="search-results-header" style="display:none;">
     <span id="searchResultCount" class="result-count-badge">0 results</span>
-    <button id="searchResetBtn" style="background:none;border:none;cursor:pointer;color:#2563eb;font-size:0.8rem;font-weight:600;" onclick="SearchManager.resetFilters()">Reset filters</button>
+    <button id="searchResetBtn" class="cs-reset-btn" type="button" data-action="resetFilters" aria-label="Reset search filters">Reset filters</button>
 </div>
 <div id="loader" class="loader" role="status" aria-label="Loading"></div>
 <div id="error" class="error-message" role="alert"></div>
 <div id="searchResults" class="search-file-list" aria-live="polite"></div>
 <div class="load-more-container" id="loadMoreContainer">
-    <button id="loadMoreBtn" class="load-more-btn" onclick="SearchManager.loadMore()">Load More Results</button>
+    <button id="loadMoreBtn" class="load-more-btn" type="button" data-action="loadMore" aria-label="Load more search results">Load More Results</button>
 </div>
 <div id="noResults" class="empty-list" style="display:none;" role="status">
     <div style="font-size:2rem;margin-bottom:0.5rem;">🔍</div>

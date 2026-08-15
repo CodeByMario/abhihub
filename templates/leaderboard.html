@@ -140,23 +140,49 @@
     .podium-item.rank-1 .podium-avatar { width: 80px; height: 80px; margin-bottom: -40px; }
     .podium-avatar { width: 60px; height: 60px; margin-bottom: -30px; }
   }
+
+  /* Leaderboard find button */
+  .lb-find-btn {
+    background: var(--lb-primary);
+    color: #fff;
+    border: none;
+    padding: 0.65rem 1.4rem;
+    border-radius: 99px;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
+  }
+
+  /* "You" badge */
+  .lb-you-badge {
+    font-size: 0.75rem;
+    background: var(--lb-primary);
+    color: #fff;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 5px;
+  }
+
+  .lb-empty-state {
+    padding: 3rem;
+    text-align: center;
+    color: var(--lb-muted);
+  }
 </style>
 
 <div class="lb-header">
   <h1>🏆 AbhiHub Leaderboard</h1>
   <p>Top student contributors helping peers ace their exams with notes, PYQs, and study resources.</p>
   <div style="margin-top: 1.2rem;">
-    <button onclick="openPeerSearchModal()" style="background: #7c3aed; color: #fff; border: none; padding: 0.65rem 1.4rem; border-radius: 99px; font-weight: 700; cursor: pointer; box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);">
-      🔍 Find Students & Notes
-    </button>
+    <button type="button" data-action="openPeerSearchModal" class="lb-find-btn">🔍 Find Students & Notes</button>
   </div>
 </div>
 
 <div class="lb-container">
   {% if leaderboard|length >= 3 %}
   <div class="podium">
-    <!-- Rank 2 -->
-    <div class="podium-item rank-2" onclick="openPeerSearchModal(); viewPeerDetail('{{ leaderboard[1].user_id }}');" style="cursor:pointer;">
+  <!-- Rank 2 -->
+    <div class="podium-item rank-2" data-action="viewPeerDetail" data-user-id="{{ leaderboard[1].user_id }}" title="View {{ leaderboard[1].name }}'s materials">
       {% set u2 = leaderboard[1] %}
       <img src="{{ u2.avatar_url or 'https://ui-avatars.com/api/?name=' ~ u2.name|urlencode ~ '&background=cbd5e1&color=fff' }}" class="podium-avatar" alt="{{ u2.name }}">
       <div class="podium-base">
@@ -166,7 +192,7 @@
     </div>
     
     <!-- Rank 1 -->
-    <div class="podium-item rank-1" onclick="openPeerSearchModal(); viewPeerDetail('{{ leaderboard[0].user_id }}');" style="cursor:pointer;">
+    <div class="podium-item rank-1" data-action="viewPeerDetail" data-user-id="{{ leaderboard[0].user_id }}" title="View {{ leaderboard[0].name }}'s materials">
       {% set u1 = leaderboard[0] %}
       <img src="{{ u1.avatar_url or 'https://ui-avatars.com/api/?name=' ~ u1.name|urlencode ~ '&background=fbbf24&color=fff' }}" class="podium-avatar" alt="{{ u1.name }}">
       <div class="podium-base">
@@ -177,7 +203,7 @@
     </div>
     
     <!-- Rank 3 -->
-    <div class="podium-item rank-3" onclick="openPeerSearchModal(); viewPeerDetail('{{ leaderboard[2].user_id }}');" style="cursor:pointer;">
+    <div class="podium-item rank-3" data-action="viewPeerDetail" data-user-id="{{ leaderboard[2].user_id }}" title="View {{ leaderboard[2].name }}'s materials">
       {% set u3 = leaderboard[2] %}
       <img src="{{ u3.avatar_url or 'https://ui-avatars.com/api/?name=' ~ u3.name|urlencode ~ '&background=b45309&color=fff' }}" class="podium-avatar" alt="{{ u3.name }}">
       <div class="podium-base">
@@ -191,11 +217,11 @@
   <div class="lb-list">
     {% for user in leaderboard %}
       {% if loop.index > 3 or leaderboard|length < 3 %}
-        <div class="lb-row" onclick="openPeerSearchModal(); viewPeerDetail('{{ user.user_id }}');" style="cursor:pointer;" title="Click to view {{ user.name }}'s materials">
+        <div class="lb-row" data-action="viewPeerDetail" data-user-id="{{ user.user_id }}" title="Click to view {{ user.name }}'s materials">
           <div class="lb-rank">#{{ user.rank }}</div>
           <img src="{{ user.avatar_url or 'https://ui-avatars.com/api/?name=' ~ user.name|urlencode ~ '&background=e2e8f0&color=64748b' }}" class="lb-row-avatar" alt="{{ user.name }}">
           <div class="lb-row-info">
-            <div class="lb-row-name">{{ user.name }} {% if current_user and current_user.uid == user.user_id %} <span style="font-size:0.75rem; background:var(--lb-primary); color:#fff; padding:2px 6px; border-radius:4px; margin-left:5px;">You</span> {% endif %}</div>
+            <div class="lb-row-name">{{ user.name }} {% if current_user and current_user.uid == user.user_id %} <span class="lb-you-badge">You</span> {% endif %}</div>
             <div class="lb-row-badges">
               {% if user.students_helped > 0 %} Helped {{ user.students_helped }} students {% endif %}
               {% for badge in user.badges %}
@@ -207,7 +233,7 @@
         </div>
       {% endif %}
     {% else %}
-      <div style="padding: 3rem; text-align: center; color: var(--lb-muted);">
+      <div class="lb-empty-state">
         No data available yet. Be the first to earn XP by uploading study materials!
       </div>
     {% endfor %}

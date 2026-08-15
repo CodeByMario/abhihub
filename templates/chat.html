@@ -189,6 +189,14 @@
         Search for a student above to start chatting.
       </div>
     </div>
+
+    <!-- Suggested Peers from Same College -->
+    <div id="suggestedPeersSection" style="padding:1rem;">
+      <div style="font-size:.75rem;font-weight:700;color:var(--c-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:.5rem;">
+        Suggested from your college
+      </div>
+      <div id="suggestedPeersList" style="display:flex;flex-direction:column;gap:.4rem;"></div>
+    </div>
   </aside>
 
   <!-- Main panel -->
@@ -202,7 +210,7 @@
     <!-- Active chat (hidden until peer selected) -->
     <div id="activeChatPanel" style="display:none;flex-direction:column;height:100%;">
       <div class="chat-header">
-        <button class="btn-back" onclick="goBackToList()" title="Back to list">
+        <button class="btn-back" type="button" data-action="goBackToList" title="Back to list" aria-label="Back to list">
           <i class="fas fa-arrow-left"></i>
         </button>
         <a id="hdrProfileLink" href="#" title="View profile" style="text-decoration:none;display:flex;align-items:center;gap:.75rem;flex:1;">
@@ -212,6 +220,21 @@
             <div class="peer-sub" id="hdrSub">—</div>
           </div>
         </a>
+        <!-- Peer Materials Summary Button -->
+        <button id="hdrMaterialsBtn" type="button" data-action="togglePeerMaterials"
+                title="View peer's materials"
+                style="background:none;border:none;color:var(--c-muted);font-size:1.1rem;cursor:pointer;padding:.5rem;transition:.2s;border-radius:8px;"
+                aria-label="View peer materials">
+          <i class="fas fa-book-open"></i>
+        </button>
+      </div>
+
+      <!-- Peer Materials Panel (shows uploads + recently viewed) -->
+      <div id="hdrMaterialsPanel"
+           style="display:none;background:var(--c-surface);border-bottom:1px solid var(--c-border);max-height:220px;overflow-y:auto;">
+        <div id="hdrMaterialsContent" style="padding:.75rem 1rem;min-height:60px;">
+          <div style="font-size:.72rem;color:var(--c-muted);text-align:center;padding:1rem;">Loading materials…</div>
+        </div>
       </div>
 
       <div id="historyBannerArea"></div>
@@ -220,7 +243,7 @@
 
       <div class="chat-input-bar">
         <textarea class="msg-input" id="msgInput" rows="1" placeholder="Type a message…" maxlength="2000"></textarea>
-        <button class="btn-send" id="btnSend" onclick="sendMessage()">
+        <button class="btn-send" type="button" id="btnSend" data-action="sendMessage" aria-label="Send message">
           <i class="fas fa-paper-plane"></i>
         </button>
       </div>
@@ -329,8 +352,8 @@ socket.on('chat_history_request', async d => {
     <div class="history-banner">
       <span><i class="fas fa-archive"></i> A student is requesting your chat history</span>
       <div class="hb-btns">
-        <button class="hb-btn yes" onclick="shareHistory('${requesterId}')">Share</button>
-        <button class="hb-btn no" onclick="this.closest('.history-banner').remove()">Decline</button>
+        <button class="hb-btn yes" data-action="shareHistory" data-requester-id="${requesterId}">Share</button>
+        <button class="hb-btn no" data-action="removeParentElement">Decline</button>
       </div>
     </div>`;
 });
@@ -432,7 +455,7 @@ function renderAllMessages() {
           <p style="margin:0 0 .5rem;font-weight:700;color:var(--c-text);">No messages yet</p>
           <p style="margin:0;font-size:.85rem;color:var(--c-muted);">Start a fresh conversation, or recover history from this peer.</p>
         </div>
-        <button class="btn-history-inline" onclick="requestHistory()">
+        <button class="btn-history-inline" type="button" data-action="requestHistory" aria-label="Request chat history">
           <i class="fas fa-clock-rotate-left"></i> Request history
         </button>
       </div>`;
@@ -440,7 +463,7 @@ function renderAllMessages() {
   }
   const hintDiv = document.createElement('div');
   hintDiv.className = 'chat-history-inline-hint';
-  hintDiv.innerHTML = `<i class="fas fa-info-circle"></i> Missing older messages? <button class="btn-history-link" onclick="requestHistory()">Request history</button>`;
+  hintDiv.innerHTML = `<i class="fas fa-info-circle"></i> Missing older messages? <button class="btn-history-link" type="button" data-action="requestHistory" aria-label="Request chat history">Request history</button>`;
   area.appendChild(hintDiv);
   msgs.forEach(m => renderMessage(m, false));
 }
@@ -469,7 +492,7 @@ async function renderSidebar() {
     const init = (peerMeta.name || 'S').charAt(0).toUpperCase();
     const isOnline = onlineUsers.has(peerId);
     const preview = last ? last.text.slice(0, 35) + (last.text.length > 35 ? '…' : '') : 'Start chatting';
-    return `<div class="convo-item ${peerId === activePeerId ? 'active' : ''}" onclick="selectPeer('${peerId}')">
+    return `<div class="convo-item ${peerId === activePeerId ? 'active' : ''}" data-action="selectPeer" data-peer-id="${peerId}">`
       <div class="avatar">${init}<span class="dot ${isOnline ? 'online' : ''}"></span></div>
       <div class="convo-meta">
         <div class="convo-name">${peerMeta.name || 'Student'}</div>
@@ -489,7 +512,12 @@ function goBackToList() {
 }
 
 // ── Select peer / open conversation ───────────────────────────────────────
-async function selectPeer(peerId) {
+async function selectPeer(peerId, el) {
+  // Support being called from data-action compat handler (e, el)
+  if (peerId && typeof peerId === 'object' && peerId.type) {
+    el = peerId.target;
+    peerId = el.getAttribute('data-peer-id');
+  }
   activePeerId = peerId;
   activePeerMeta = await fetchPeerMeta(peerId);
   msgs = await loadMessages(peerId);
@@ -500,10 +528,13 @@ async function selectPeer(peerId) {
   // Header — avatar+name links to peer's public profile
   document.getElementById('hdrAvatar').textContent = (activePeerMeta.name || 'S').charAt(0).toUpperCase();
   document.getElementById('hdrName').textContent = activePeerMeta.name || 'Student';
-  document.getElementById('hdrProfileLink').href = `/profile/${peerId}`;
+  document.getElementById('hdrProfileLink').href = `/u/${peerId}`;
   const sl = seniorLabel(activePeerMeta);
   document.getElementById('hdrSub').textContent =
     [sl, activePeerMeta.rank_title, activePeerMeta.branch, activePeerMeta.college].filter(Boolean).join(' · ') || 'AbhiHub Student';
+
+  // Fetch peer's material summary (uploads count + recently viewed)
+  _fetchPeerMaterials(peerId);
 
   document.getElementById('noPeerPanel').style.display = 'none';
   const panel = document.getElementById('activeChatPanel');
@@ -583,18 +614,24 @@ async function searchPeers(q) {
     if (!users.length) { resultsEl.style.display = 'none'; return; }
     resultsEl.style.display = 'block';
     resultsEl.innerHTML = users.filter(u => u.id !== MY_ID).slice(0, 8).map(u =>
-      `<div class="search-result-item" onclick="startChatWith('${u.id}')">
+      `<div class="search-result-item" data-action="startChatWith" data-peer-id="${u.id}">
         <div class="avatar" style="width:34px;height:34px;font-size:.85rem;">${(u.full_name||'S').charAt(0).toUpperCase()}</div>
         <div>
-          <div style="font-weight:700;font-size:.88rem;">${u.full_name || 'Student'}</div>
-          <div style="font-size:.75rem;color:var(--c-muted);">${u.email || ''}</div>
+          <div style="font-weight:700;font-size:.88rem;">${u.full_name || 'Student'} ${u.is_verified ? '✔️' : ''}</div>
+          <div style="font-size:.75rem;color:var(--c-muted);">${u.college_name || ''} • ⚡ ${u.reputation_score || 0} • 📤 ${u.uploads_count || 0}</div>
         </div>
       </div>`
     ).join('');
-  } catch {}
+    setTimeout(attachAll, 0);
+  } catch(e) {}
 }
 
-async function startChatWith(peerId) {
+async function startChatWith(peerId, el) {
+  // Support being called from data-action compat handler
+  if (peerId && typeof peerId === 'object' && peerId.type) {
+    el = peerId.target;
+    peerId = el.getAttribute('data-peer-id');
+  }
   document.getElementById('searchResults').style.display = 'none';
   document.getElementById('peerSearchInput').value = '';
   await selectPeer(peerId);
@@ -616,10 +653,126 @@ document.addEventListener('click', e => {
   }
 });
 
+// ── Peer Materials Summary ────────────────────────────────────────────────
+let _peerMaterialsCache = {};
+
+async function _fetchPeerMaterials(peerId) {
+  if (_peerMaterialsCache[peerId]) {
+    _renderPeerMaterials(_peerMaterialsCache[peerId]);
+    return;
+  }
+  try {
+    const r = await fetch(`/api/chat/peer/${peerId}/materials-summary`, {
+      signal: AbortSignal.timeout(8000)
+    });
+    const d = await r.json();
+    if (d.success) {
+      _peerMaterialsCache[peerId] = d;
+      _renderPeerMaterials(d);
+    }
+  } catch(e) { /* non-critical */ }
+}
+
+function _renderPeerMaterials(data) {
+  const panel = document.getElementById('hdrMaterialsPanel');
+  const content = document.getElementById('hdrMaterialsContent');
+  if (!panel || !content) return;
+
+  const user = data.user || {};
+  const uploadsCount = data.uploads_count || 0;
+  const views = data.recent_views || [];
+
+  const viewLinks = views.map(v => {
+    const path = v['file-path'] || '#';
+    const title = v['file-name'] || 'Untitled';
+    const subj = v['subject'] || '';
+    return `<a href="/view_pdf?pdf_name=${encodeURIComponent(path)}" target="_blank"
+            style="display:block;font-size:.75rem;padding:.3rem 0;color:var(--c-indigo);text-decoration:none;">
+            📄 ${title}${subj ? ' • ' + subj : ''}
+          </a>`;
+  }).join('') || '<span style="font-size:.72rem;color:var(--c-muted);">No recent views</span>';
+
+  content.innerHTML = `
+    <div style="font-size:.72rem;font-weight:700;color:var(--c-text);margin-bottom:.4rem;">
+      📤 ${uploadsCount} uploads
+    </div>
+    <div style="font-size:.68rem;color:var(--c-muted);margin-bottom:.3rem;">
+      👁 Recently viewed
+    </div>
+    ${viewLinks}
+  `;
+}
+
+// Toggle materials panel
+window.togglePeerMaterials = function() {
+  const panel = document.getElementById('hdrMaterialsPanel');
+  const btn = document.getElementById('hdrMaterialsBtn');
+  if (!panel) return;
+  const isVisible = panel.style.display !== 'none';
+  panel.style.display = isVisible ? 'none' : 'block';
+  if (btn) {
+    btn.style.color = isVisible ? 'var(--c-muted)' : 'var(--c-indigo)';
+  }
+};
+
+// Open materials view for a suggested peer — opens peer modal if available,
+// otherwise starts a chat with that peer
+window.viewPeerMaterialsModal = function(el) {
+  const peerId = (el && el.getAttribute) ? el.getAttribute('data-peer-id') : el;
+  if (!peerId) return;
+  if (document.getElementById('peerSearchModal')) {
+    document.getElementById('peerSearchModal').style.display = 'flex';
+    document.getElementById('peerSearchResults').style.display = 'none';
+    document.getElementById('peerDetailView').style.display = 'block';
+    if (typeof window.viewPeerDetail === 'function') window.viewPeerDetail(peerId);
+  } else {
+    // Fallback: start a chat with this peer
+    if (typeof window.startChatWith === 'function') window.startChatWith(peerId);
+  }
+};
+
 // ── Bootstrap ─────────────────────────────────────────────────────────────
 (async () => {
   await renderSidebar();
+  await fetchSuggestedPeers();
   if (PRELOAD_PEER) await selectPeer(PRELOAD_PEER);
 })();
+
+// ── Fetch & render suggested peers from same college ─────────────────────
+async function fetchSuggestedPeers() {
+  try {
+    const r = await fetch('/api/chat/search-peers?q=__suggested__', {
+      signal: AbortSignal.timeout(8000)
+    });
+    const d = await r.json();
+    if (d.success && (d.suggested || []).length) {
+      renderSuggestedPeers(d.suggested);
+    }
+  } catch(e) { /* non-critical */ }
+}
+
+function renderSuggestedPeers(peers) {
+  const container = document.getElementById('suggestedPeersList');
+  if (!container) return;
+  container.innerHTML = peers.map(u => `
+    <div class="search-result-item" data-action="startChatWith" data-peer-id="${u.id}" style="justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:.6rem;flex:1;min-width:0;">
+        <div class="avatar" style="width:30px;height:30px;font-size:.7rem;">${(u.full_name||'S').charAt(0).toUpperCase()}</div>
+        <div style="flex:1;min-width:0;">
+          <div style="font-weight:700;font-size:.82rem;color:var(--c-text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${u.full_name || 'Student'} ${u.is_verified ? '✔️' : ''}
+          </div>
+          <div style="font-size:.7rem;color:var(--c-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+            ${u.college_name || 'AbhiHub'} • ⚡ ${u.reputation_score || 0} • 📤 ${u.uploads_count || 0}
+          </div>
+        </div>
+      </div>
+      <button type="button" data-action="viewPeerMaterialsModal" data-peer-id="${u.id}"
+              style="background:none;border:none;font-size:1rem;cursor:pointer;color:var(--c-muted);padding:.3rem;"
+              title="View materials" aria-label="View materials">📚</button>
+    </div>
+  `).join('');
+  document.getElementById('suggestedPeersSection').style.display = 'block';
+}
 </script>
 {% endblock %}

@@ -146,6 +146,83 @@
         .toast.show {
             opacity: 1;
         }
+
+        /* Study pass chips */
+        .study-pass-chip-full {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            color: #1f2937;
+            padding: 10px 16px;
+            border-radius: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 9000;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-size: 0.85rem;
+            border: 1px solid rgba(229, 231, 235, 0.8);
+            transition: all 0.3s ease;
+            transform-origin: bottom right;
+        }
+        .study-pass-chip-mini {
+            position: fixed;
+            bottom: 80px;
+            right: 20px;
+            background: rgba(255, 255, 255, 0.9);
+            backdrop-filter: blur(10px);
+            color: #2563eb;
+            padding: 8px 12px;
+            border-radius: 24px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            z-index: 8999;
+            font-size: 0.8rem;
+            font-weight: 700;
+            border: 1px solid rgba(229, 231, 235, 0.8);
+            cursor: pointer;
+            display: none;
+            transition: all 0.3s ease;
+        }
+
+        /* Chip close button */
+        .chip-close {
+            background: none;
+            border: none;
+            color: #9ca3af;
+            cursor: pointer;
+            padding: 0;
+            font-size: 1.1rem;
+            line-height: 1;
+        }
+
+        .chip-close:hover {
+            color: #6b7280;
+        }
+
+        /* Credits indicator */
+        .credits-indicator {
+            position: absolute;
+            bottom: 35px;
+            right: 80px;
+            font-size: 0.75rem;
+            color: #9ca3af;
+            pointer-events: none;
+            background: rgba(255, 255, 255, 0.7);
+            padding: 2px 8px;
+            border-radius: 12px;
+            backdrop-filter: blur(4px);
+        }
+
+        /* Watermark overlay */
+        .watermark-overlay {
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            z-index: 10;
+            background-repeat: repeat;
+        }
     </style>
     
     <div class="preview-container" id="previewContainer">
@@ -163,7 +240,7 @@
                 fetchpriority="high">
         </picture>
         <!-- Watermark Overlay -->
-        <div class="watermark-overlay" style="position: absolute; inset: 0; pointer-events: none; z-index: 10; background-image: url(&quot;data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg transform='rotate(-30 120 120)'%3E%3Ctext x='120' y='120' fill='rgba(0,0,0,0.18)' font-size='18' font-family='sans-serif' font-weight='900' text-anchor='middle'%3EAbhiHub.com%3C/text%3E%3C/g%3E%3C/svg%3E&quot;); background-repeat: repeat;"></div>
+        <div class="watermark-overlay"></div>
         <button class="share-button" id="shareButton" aria-label="Share">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="18" cy="5" r="3"></circle>
@@ -175,7 +252,7 @@
         </button>
         {% set user_credits = session.get('paper_quota', {}).get('credits', -1) %}
         {% if user_credits > 0 %}
-        <div style="position:absolute;bottom:35px;right:80px;font-size:0.75rem;color:#9ca3af;pointer-events:none;background:rgba(255,255,255,0.7);padding:2px 8px;border-radius:12px;backdrop-filter:blur(4px);">
+        <div class="credits-indicator">
             {{ user_credits }} study views left
         </div>
         {% endif %}
@@ -186,12 +263,12 @@
 
     {% set user_credits = session.get('paper_quota', {}).get('credits', -1) %}
     {% if user_credits == 0 %}
-    <div id="studyPassChipFull" style="position:fixed;bottom:80px;right:20px;background:rgba(255,255,255,0.9);backdrop-filter:blur(10px);color:#1f2937;padding:10px 16px;border-radius:24px;box-shadow:0 4px 20px rgba(0,0,0,0.1);z-index:9000;display:flex;align-items:center;gap:12px;font-size:0.85rem;border:1px solid rgba(229,231,235,0.8);transition:all 0.3s ease;transform-origin:bottom right;">
+    <div id="studyPassChipFull" class="study-pass-chip-full">
         <span>Help someone pass their exam 💙</span>
         <a href="{{ url_for('upload') }}" style="color:#2563eb;font-weight:600;text-decoration:none;">Upload</a>
-        <button onclick="hideStudyPassChip()" style="background:none;border:none;color:#9ca3af;cursor:pointer;padding:0;font-size:1.1rem;line-height:1;">&times;</button>
+        <button type="button" data-action="dismissStudyPass" class="chip-close" aria-label="Hide study pass chip">✕</button>
     </div>
-    <div id="studyPassChipMini" onclick="showStudyPassChip()" style="position:fixed;bottom:80px;right:20px;background:rgba(255,255,255,0.9);backdrop-filter:blur(10px);color:#2563eb;padding:8px 12px;border-radius:24px;box-shadow:0 4px 20px rgba(0,0,0,0.1);z-index:8999;font-size:0.8rem;font-weight:700;border:1px solid rgba(229,231,235,0.8);cursor:pointer;display:none;transition:all 0.3s ease;">
+    <div id="studyPassChipMini" data-action="showStudyPassChip" class="study-pass-chip-mini" aria-label="Show study pass chip">
         +3 Views
     </div>
     <script>

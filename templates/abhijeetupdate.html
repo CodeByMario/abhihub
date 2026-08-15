@@ -297,11 +297,6 @@
             padding: 5px;
             border-radius: 4px;
             flex: 1;
-        }
-
-        .editable-title:focus {
-            border-color: #667eea;
-            background: white;
             outline: none;
         }
 
@@ -476,7 +471,7 @@
                         <input type="text" id="searchInput" placeholder="Search files..." onkeyup="applyFilters()">
                     </div>
                     <div class="filter-group">
-                        <button class="btn btn-secondary" onclick="clearFilters()">Clear Filters</button>
+                        <button class="btn btn-secondary" type="button" data-action="clearFilters" aria-label="Clear all filters">Clear Filters</button>
                     </div>
                 </div>
             </div>
@@ -497,8 +492,8 @@
                     <div class="file-info">
                         <div class="file-title-container">
                             <input type="text" class="editable-title" value="{{ item['file-name'] or 'Unknown File' }}" 
-                                   data-field="file-name" onchange="markAsModified(this)">
-                            <button class="edit-toggle-btn" onclick="toggleEditMode(this)">✏️</button>
+                                     data-field="file-name" onchange="markAsModified(this)">
+                            <button class="edit-toggle-btn" type="button" data-action="toggleEditMode">✏️</button>
                         </div>
                         
                         <div class="info-row">
@@ -582,10 +577,10 @@
                         </div>
 
                         <div class="action-buttons">
-                            <button class="btn btn-primary" onclick="viewFile('{{ item['file-path'] }}')">📖 View File</button>
-                            <button class="btn btn-secondary" onclick="verifyFile('{{ item['file-path'] }}')">✅ Verify</button>
-                            <button class="btn btn-success save-btn" onclick="saveChanges(this)" style="display: none;">💾 Save Changes</button>
-                            <button class="btn btn-warning cancel-btn" onclick="cancelChanges(this)" style="display: none;">❌ Cancel</button>
+                            <button class="btn btn-primary" type="button" data-action="viewFile" data-file="{{ item['file-path'] }}" aria-label="View {{ item['file-name'] }}">📖 View File</button>
+                            <button class="btn btn-secondary" type="button" data-action="verifyFile" data-file="{{ item['file-path'] }}" aria-label="Verify {{ item['file-name'] }}">✅ Verify</button>
+                            <button class="btn btn-success save-btn" type="button" data-action="saveChanges" data-el="this" style="display: none;" aria-label="Save changes">💾 Save Changes</button>
+                            <button class="btn btn-warning cancel-btn" type="button" data-action="cancelChanges" style="display: none;" aria-label="Cancel changes">❌ Cancel</button>
                         </div>
                     </div>
                 </div>
@@ -678,7 +673,7 @@
             notification.className = `notification notification-${type}`;
             notification.innerHTML = `
                 <span>${message}</span>
-                <button onclick="this.parentElement.remove()">×</button>
+                <button type="button" class="notification-close" aria-label="Close notification">×</button>
             `;
             
             // Add notification styles
@@ -706,7 +701,7 @@
                 background: none;
                 border: none;
                 color: white;
-                font-size: 18px;
+                font-size: 1.125rem;
                 cursor: pointer;
                 padding: 0;
                 margin: 0;

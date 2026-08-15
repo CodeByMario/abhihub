@@ -446,7 +446,7 @@
 {% if show_notification %}
 <div class="notification-popup show" id="notificationPopup">
   <div class="notification-content">
-    <button class="notification-close" onclick="closeNotification()">×</button>
+    <button class="notification-close" type="button" data-action="closeNotification" aria-label="Close notification">×</button>
     <div class="notification-header">
       <span class="notification-icon">🎉</span>
       <h2 class="notification-title">{{ notification_title }}</h2>
@@ -455,14 +455,14 @@
     <div class="notification-body">
       <p class="notification-message">{{ notification_message }}</p>
       <div class="notification-actions">
-        <button class="notification-btn primary" onclick="closeNotification()">Got it!</button>
-        <div style="position: relative;">
-          <button class="notification-btn share" onclick="toggleShareOptions()">Share App</button>
+        <button class="notification-btn primary" type="button" data-action="closeNotification">Got it!</button>
+        <div class="share-wrapper">
+          <button class="notification-btn share" type="button" data-action="toggleShareOptions">Share App</button>
           <div class="share-options" id="shareOptions">
             <div class="share-buttons">
-              <button class="share-btn whatsapp" onclick="shareApp('whatsapp')">WhatsApp</button>
-              <button class="share-btn twitter" onclick="shareApp('twitter')">Twitter</button>
-              <button class="share-btn copy" onclick="copyLink()">Copy Link</button>
+              <button class="share-btn whatsapp" type="button" data-action="shareApp" data-platform="whatsapp">WhatsApp</button>
+              <button class="share-btn twitter" type="button" data-action="shareApp" data-platform="twitter">Twitter</button>
+              <button class="share-btn copy" type="button" data-action="copyLink">Copy Link</button>
             </div>
           </div>
         </div>

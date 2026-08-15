@@ -14,7 +14,7 @@
     </div>
 </div>
 
-<button class="uhv-btn" onclick="location.href='/prepair/UHV'">UHV Paper</button>
+<button class="uhv-btn" type="button" data-action="goToPage" data-page="/prepair/UHV">UHV Paper</button>
 <div class="footer-info">
     <p>Page created by: Abhijeet Shende</p>
     <p>Date: April 25, 2025</p>
@@ -100,15 +100,14 @@
     box-shadow: 0 2px 8px rgba(0,123,255,0.08);
     transition: background 0.2s, transform 0.1s;
 }
-.uhv-btn:hover, .uhv-btn:focus {
+.uhv-btn:hover, .uhv-btn:focus-visible {
     background: linear-gradient(90deg, #0056b3 60%, #007BFF 100%);
-    outline: none;
     transform: translateY(-2px) scale(1.03);
 }
 
 .footer-info {
     margin-top: 28px;
-    font-size: 15px;
+    font-size: 0.95rem;
     color: #666;
     text-align: center;
     letter-spacing: 0.02em;
@@ -137,7 +136,7 @@
         padding: 10px 0;
     }
     .footer-info {
-        font-size: 13px;
+        font-size: 0.8125rem;
     }
 }
 </style>

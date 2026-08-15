@@ -36,7 +36,7 @@
         <p style="font-size: 0.9rem; margin-top: 0.5rem;">Supports images and PDFs</p>
         <input type="file" id="{{ input_id or 'fileInput' }}" class="file-input" accept="{{ accepted_types or 'image/*,.pdf' }}" {% if not max_files %}multiple{% endif %}>
         {% if show_browse_button %}
-        <button class="browse-btn" onclick="document.getElementById('{{ input_id or 'fileInput' }}').click()">Browse Files</button>
+        <button class="browse-btn" type="button" data-action="openFileInput" aria-label="Browse files">Browse Files</button>
         {% endif %}
     </div>
 

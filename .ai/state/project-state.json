@@ -1,0 +1,96 @@
+{
+  "project": {
+    "name": "AbhiHub",
+    "version": "4729c18",
+    "status": "active",
+    "branch": "Memory-wall",
+    "dirty": true,
+    "untracked_files": [
+      ".agents/",
+      ".ai/",
+      ".record/tasks/GOV-001/",
+      "CHANGELOG.md",
+      "IDEA.md",
+      "ROUTES.md",
+      "data/cache/cloudinary_files_cache.json",
+      "tests/"
+    ]
+  },
+  "architecture": {
+    "style": "modular_flask",
+    "entrypoint": "app.py",
+    "language": "python",
+    "framework": "flask",
+    "database": "supabase_postgresql",
+    "key_directories": {
+      "source": "app.py",
+      "routes": "ROUTES.md",
+      "templates": "templates",
+      "static": "static",
+      "tests": "tests",
+      "migrations": "migrations",
+      "methods": "methods",
+      "data": "data",
+      "docs": ".documentation",
+      "governance": ".ai",
+      "record": ".record"
+    },
+    "file_count": 785,
+    "node_count": 3887,
+    "edge_count": 11999,
+    "unresolved_refs": 12510
+  },
+  "agents": {
+    "coding-agent": {
+      "status": "active",
+      "permissions": "standard",
+      "last_seen": "2026-08-15T11:13:19.996121+00:00"
+    },
+    "research-agent": {
+      "status": "active",
+      "permissions": "read_only",
+      "last_seen": "2026-08-15T11:13:19.996121+00:00"
+    },
+    "testing-agent": {
+      "status": "active",
+      "permissions": "standard",
+      "last_seen": "2026-08-15T11:13:19.996121+00:00"
+    },
+    "documentation-agent": {
+      "status": "active",
+      "permissions": "standard",
+      "last_seen": "2026-08-15T11:13:19.996121+00:00"
+    },
+    "cleanup-agent": {
+      "status": "active",
+      "permissions": "standard",
+      "last_seen": "2026-08-15T11:13:19.996121+00:00"
+    }
+  },
+  "documentation": {
+    "architecture": "current",
+    "api": "current",
+    "changelog": "current",
+    "coverage": 100,
+    "files": [
+      ".documentation/1_database.md",
+      ".documentation/5_apis.md",
+      "CHANGELOG.md",
+      "README.md",
+      "ROUTES.md"
+    ]
+  },
+  "health": {
+    "tests": "passing",
+    "test_count": 6,
+    "documentation": 100,
+    "organization": 0,
+    "unresolved_changes": 8,
+    "last_updated": "2026-08-15T11:13:19.996121+00:00"
+  },
+  "metadata": {
+    "scanner_version": "1.0.0",
+    "scan_duration_ms": 0,
+    "files_scanned": 785
+  }
+}

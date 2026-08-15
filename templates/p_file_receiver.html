@@ -29,7 +29,7 @@
         <p>Drag and drop files here</p>
         <p style="font-size: 0.9rem; margin-top: 0.5rem;">Supports images and PDFs</p>
         <input type="file" id="fileInput" class="file-input" accept="image/*,.pdf" multiple>
-        <button class="browse-btn" onclick="document.getElementById('fileInput').click()">Browse Files</button>
+        <button class="browse-btn" type="button" data-action="openFileInput" aria-label="Browse files">Browse Files</button>
     </div>
 
     <div class="file-list" id="fileList"></div>

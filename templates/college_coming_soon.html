@@ -365,16 +365,16 @@ body { background-color: var(--cs-bg); overflow-x: hidden; }
     </div>
 
     <!-- Form -->
-    <form class="cs-form" id="waitlistForm" onsubmit="submitWaitlist(event)">
+    <form class="cs-form" id="waitlistForm" data-event-submit="submitWaitlist">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
       <div class="cs-input-row">
-        <input class="cs-input" type="text" id="wlName" name="name" placeholder="Your name" autocomplete="name">
+        <input class="cs-input" type="text" id="wlName" name="name" placeholder="Your name" autocomplete="name" required>
         <input class="cs-input" type="email" id="wlEmail" name="email" placeholder="College email ID *" required autocomplete="email">
       </div>
       <button class="cs-submit-btn" type="submit" id="wlBtn">
         🔔 Join the Waitlist — It's Free
       </button>
-      <div class="cs-error" id="wlError"></div>
+      <div class="cs-error" id="wlError" role="alert" aria-live="assertive"></div>
     </form>
 
     <!-- Success state -->
@@ -391,7 +391,7 @@ body { background-color: var(--cs-bg); overflow-x: hidden; }
         <a class="cs-share-btn whatsapp" id="waShareBtn" href="#" target="_blank" rel="noopener">
           📲 Share on WhatsApp
         </a>
-        <button class="cs-share-btn copy" id="copyBtn" onclick="copyLink()">
+        <button class="cs-share-btn copy" id="copyBtn" type="button" data-action="copyLink" aria-label="Copy link to clipboard">
           🔗 Copy Link
         </button>
       </div>

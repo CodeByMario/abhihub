@@ -13,6 +13,9 @@ from push_api import init_push_api
 
 import os
 import io
+import time
+import hashlib
+import hmac
 import requests
 import json
 from datetime import timedelta, datetime
@@ -184,6 +187,11 @@ from flask_compress import Compress
 # Initialize Flask app
 app = Flask(__name__)
 Compress(app)
+
+# Initialize the Level-wise Cache Management System
+from cache_manager import init_cache, get_cache
+cache = init_cache(app)
+
 socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger=False)
 
 import mimetypes
@@ -373,7 +381,6 @@ def auth_required(f):
     return decorated_function
 
 # Admin emails from environment variable (comma-separated)
-ADMIN_EMAIL = os.getenv('ADMIN_EMAIL', 'abhijeetshende4053@gmail.com')
 ADMIN_EMAILS = [e.strip().lower() for e in os.getenv('ADMIN_EMAILS', 'abhijeetshende4053@gmail.com,codebymario@gmail.com').split(',') if e.strip()]
 
 # Decorator for admin-only routes
@@ -393,18 +400,68 @@ def admin_required(f):
         return f(*args, **kwargs)
     return decorated_function
 
-# ─── Paper Access Quota ──────────────────────────────────────────────────────
+# ─── PDF Access Token Security (prevents download managers from catching raw URLs) ──
+
+def _generate_pdf_token(doc_id, user_id=None, max_age=3600):
+    """Generate a session-bound access token for PDF viewing.
+
+    The token is an HMAC-SHA256 of (doc_id + user_id + expiry_timestamp)
+    signed with the app secret key. Download managers cannot forge this
+    because they don't have the user's session cookie.
+    """
+    expiry = int(time.time()) + max_age
+    msg = f"{doc_id}:{user_id}:{expiry}".encode()
+    sig = hmac.new(app.secret_key.encode(), msg, hashlib.sha256).hexdigest()
+    return f"{expiry}:{sig}"
+
+def _verify_pdf_token(doc_id, token, max_age=3600):
+    """Verify a session-bound PDF access token.
+
+    Returns True if the token is valid and not expired.
+    Requires an active user session (the token is bound to user_id).
+    """
+    if not token or ':' not in token:
+        return False
+    parts = token.split(':', 1)
+    if len(parts) != 2:
+        return False
+    try:
+        expiry = int(parts[0])
+    except ValueError:
+        return False
+    provided_sig = parts[1]
+
+    # Check expiry
+    if time.time() > expiry:
+        return False
+
+    # Reconstruct the expected signature using the session user
+    user = session.get('user', {})
+    user_id = user.get('uid', '')
+    msg = f"{doc_id}:{user_id}:{expiry}".encode()
+    expected_sig = hmac.new(app.secret_key.encode(), msg, hashlib.sha256).hexdigest()
+
+    # Constant-time comparison to prevent timing attacks
+    return hmac.compare_digest(provided_sig, expected_sig)
+
+
 # Each upload grants QUOTA_PER_UPLOAD paper opens.
 # Admins and unauthenticated users are not affected (unauthenticated is blocked
 # by @auth_required anyway).
 QUOTA_PER_UPLOAD = 19
 
 def _get_quota():
-    """Return the current quota dict from session, synced with backend, processing monthly resets."""
+    """Return the current quota dict from session, synced with backend, processing monthly resets.
+    Caches the Supabase response at L1 for 60s to reduce DB load."""
     user = session.get('user', {})
     user_id = user.get('uid')
     if not user_id:
         return {'credits': 19, 'total_views': 0}
+
+    # Check L1 cache for quota (short TTL since it changes on every paper open)
+    cached_quota = cache.l1.get(f"user:quota:{user_id}")
+    if cached_quota[0] is not None:
+        return cached_quota[0]
 
     # Fetch from Supabase
     res = supabase.table('profiles').select('paper_quota_remaining, last_quota_reset').eq('id', user_id).execute()
@@ -472,23 +529,37 @@ def _consume_credit():
     # Update backend
     if user_id:
         supabase.table('profiles').update({'paper_quota_remaining': new_credits}).eq('id', user_id).execute()
-        
+
+    # Invalidate quota cache — it changed
+    cache.l1.delete(f"user:quota:{user_id}")
+
     return True
 
 @app.route('/api/quota', methods=['GET'])
 @auth_required
 def api_get_quota():
-    """Return the current quota for the logged-in user."""
+    """Return the current quota for the logged-in user — cached at L1 for 60s."""
     q = _get_quota()
-    return jsonify({
+    response = jsonify({
         'credits': q.get('credits', 0),
         'total_views': q.get('total_views', 0),
         'quota_per_upload': QUOTA_PER_UPLOAD
     }), 200
+    cache.set_cache_headers(response[0], max_age=cache.SHORT, stale_while_revalidate=True)
+    return response
+
+
+@app.route('/api/cache-health', methods=['GET'])
+def api_cache_health():
+    """Cache system health check — returns stats for all cache layers."""
+    return jsonify({
+        'status': 'ok',
+        'cache': cache.stats(),
+        'timestamp': datetime.utcnow().isoformat() + 'Z'
+    }), 200
 # ─────────────────────────────────────────────────────────────────────────────
 
 from PIL import Image
-import jwt
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
@@ -881,40 +952,40 @@ def report_suspect():
 # File Records System API Endpoints
 @app.route('/api/colleges', methods=['GET'])
 def api_get_colleges():
-    """Get all colleges for dropdown"""
-    from methods.supabase_helper import get_all_colleges
-    
-    result = get_all_colleges()
-    if result.get('success'):
-        return jsonify({
-            'success': True,
-            'colleges': result.get('data', [])
-        }), 200
-    else:
-        return jsonify({
-            'success': False,
-            'message': result.get('message', 'Failed to fetch colleges'),
-            'colleges': []
-        }), 500
+    """Get all colleges for dropdown — cached at L1 for 1 hour (L3: browser/CDN 1hr)."""
+    def fetch_all_colleges():
+        from methods.supabase_helper import get_all_colleges
+        result = get_all_colleges()
+        if result.get('success'):
+            return result.get('data', [])
+        return []
+
+    colleges = cache.get_cached('dropdowns:colleges', level=cache.L1, ttl=cache.LONG, fetcher=fetch_all_colleges)
+    response = jsonify({
+        'success': True,
+        'colleges': colleges
+    }), 200
+    cache.set_cache_headers(response[0], max_age=cache.LONG, stale_while_revalidate=True, stale_if_error=86400)
+    return response
 
 
 @app.route('/api/branches', methods=['GET'])
 def api_get_branches():
-    """Get all branches for dropdown"""
-    from methods.supabase_helper import get_all_branches
-    
-    result = get_all_branches()
-    if result.get('success'):
-        return jsonify({
-            'success': True,
-            'branches': result.get('data', [])
-        }), 200
-    else:
-        return jsonify({
-            'success': False,
-            'message': result.get('message', 'Failed to fetch branches'),
-            'branches': []
-        }), 500
+    """Get all branches for dropdown — cached at L1 for 1 hour (L3: browser/CDN 1hr)."""
+    def fetch_all_branches():
+        from methods.supabase_helper import get_all_branches
+        result = get_all_branches()
+        if result.get('success'):
+            return result.get('data', [])
+        return []
+
+    branches = cache.get_cached('dropdowns:branches', level=cache.L1, ttl=cache.LONG, fetcher=fetch_all_branches)
+    response = jsonify({
+        'success': True,
+        'branches': branches
+    }), 200
+    cache.set_cache_headers(response[0], max_age=cache.LONG, stale_while_revalidate=True, stale_if_error=86400)
+    return response
 
 
 # T1 — Cascading dropdowns
@@ -943,14 +1014,25 @@ def api_get_semesters():
 
 @app.route('/api/subjects', methods=['GET'])
 def api_get_subjects():
-    """Return subjects for a department, optionally filtered by semester."""
+    """Return subjects for a department, optionally filtered by semester — cached at L1 for 30min."""
     department_id = request.args.get('department_id', '').strip()
     semester = request.args.get('semester', type=int)  # optional
     if not department_id:
         return jsonify({'success': False, 'subjects': [], 'message': 'department_id required'}), 400
-    from methods.supabase_helper import get_subjects_by_department
-    result = get_subjects_by_department(department_id, semester=semester)
-    return jsonify({'success': result.get('success', False), 'subjects': result.get('data', [])}), 200
+
+    cache_key = f"subjects:{department_id}:{semester or 0}"
+    def fetch_subjects():
+        from methods.supabase_helper import get_subjects_by_department
+        result = get_subjects_by_department(department_id, semester=semester)
+        return result.get('data', []) if result.get('success') else []
+
+    subjects = cache.get_cached(cache_key, level=cache.L1, ttl=cache.LONG, fetcher=fetch_subjects)
+    response = jsonify({
+        'success': True,
+        'subjects': subjects
+    }), 200
+    cache.set_cache_headers(response[0], max_age=cache.LONG, stale_while_revalidate=True, stale_if_error=86400)
+    return response
 
 
 # Direct-insert: new subject
@@ -1625,6 +1707,50 @@ def api_mark_notifications_read():
     return jsonify(res), 200 if res.get('success') else 500
 
 
+@app.route('/api/notifications/<notif_id>/read', methods=['POST'])
+@auth_required
+def api_mark_single_notification_read(notif_id):
+    """Mark a single notification as read by its ID."""
+    user_id = session.get('user', {}).get('uid')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    try:
+        client = None
+        from methods.supabase_helper import init_supabase, validate_uuid
+        client = init_supabase()
+        if not client or not validate_uuid(notif_id):
+            return jsonify({'success': False, 'message': 'Invalid request'}), 400
+        res = client.table('notifications') \
+            .update({'is_read': True}) \
+            .eq('id', notif_id) \
+            .eq('user_id', user_id) \
+            .eq('is_read', False) \
+            .execute()
+        if res.data:
+            return jsonify({'success': True}), 200
+        return jsonify({'success': False, 'message': 'Notification not found'}), 404
+    except Exception as e:
+        logging.error(f"[api_mark_single_notification_read] {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/notifications')
+@auth_required
+def notifications_page():
+    """Full notification center page with all notifications (paginated)."""
+    user_id = session.get('user', {}).get('uid')
+    if not user_id:
+        return redirect(url_for('login'))
+    limit = min(request.args.get('limit', 50, type=int), 100)
+    offset = request.args.get('offset', 0, type=int)
+    from methods.supabase_helper import get_user_notifications
+    items = get_user_notifications(user_id, limit=limit, offset=offset)
+    unread = sum(1 for n in items if not n.get('is_read'))
+    has_more = len(items) == limit
+    return render_template('notifications.html', notifications=items, unread=unread,
+                           offset=offset, limit=limit, has_more=has_more)
+
+
 @app.route('/api/files/all', methods=['GET'])
 def get_all_files():
     """
@@ -1870,6 +1996,12 @@ def upload():
             except Exception as rank_err:
                 logging.warning(f"[UPLOAD] Rank recalc failed (non-critical): {rank_err}")
 
+            # ── Invalidate cache layers on successful upload ────────
+            # File list, search results, and dropdowns are now stale
+            cache.invalidate_files()
+            cache.invalidate_dropdowns()
+            cache.bump_version()
+
             return jsonify(
                 success=True,
                 message="File uploaded and recorded successfully! 🎉",
@@ -2014,10 +2146,12 @@ def proxy_file():
         content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
         resp = make_response(upstream.content)
         resp.headers['Content-Type'] = content_type
-        resp.headers['Cache-Control'] = 'private, max-age=86400'
+        resp.headers['Cache-Control'] = 'private, no-store, must-revalidate'
         resp.headers['X-Content-Type-Options'] = 'nosniff'
         resp.headers['Content-Disposition'] = 'inline'
         resp.headers['Access-Control-Allow-Origin'] = '*'
+        resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        resp.headers['Referrer-Policy'] = 'no-referrer'
         return resp
     except requests.exceptions.RequestException as e:
         logging.error(f"[PROXY] Request failed for {file_url}: {e}")
@@ -2029,9 +2163,27 @@ def proxy_file():
 
 @app.route('/api/view-doc/<doc_id>')
 @app.route('/api/view-doc/<doc_id>/<filename>')
+@auth_required
 def view_doc(doc_id, filename=None):
-    """Clean proxy endpoint for viewing docs — no URL encoding needed in PDF.js file= param."""
+    """Clean proxy endpoint for viewing docs — no URL encoding needed in PDF.js file= param.
+    Security: Requires authentication (@auth_required). The Referer header
+    must match the AbhiHub domain to prevent download managers from catching
+    raw PDF URLs by stripping session context. The token parameter is also
+    accepted as a fallback for direct API calls.
+    """
     from methods.supabase_helper import get_document_by_id_rich
+
+    # Security: Check Referer to prevent download managers from catching the PDF URL
+    referer = request.headers.get('Referer', '')
+    if referer and BASE_DOMAIN not in referer and 'localhost' not in referer:
+        logging.warning(f"[VIEW-DOC] Blocked cross-origin PDF access from {referer} for {doc_id}")
+        abort(403, description="Access denied")
+
+    # Optional: token-based access for programmatic clients
+    token = request.args.get('token', '')
+    if token and not _verify_pdf_token(doc_id, token):
+        abort(403, description="Invalid or expired access token")
+
     doc_res = get_document_by_id_rich(doc_id)
     if not doc_res.get('success'):
         abort(404)
@@ -2059,9 +2211,12 @@ def view_doc(doc_id, filename=None):
     try:
         if upstream.status_code == 204:
             return Response(b'', status=200, content_type='application/pdf', headers={
-                'Cache-Control': 'private, max-age=86400',
+                'Cache-Control': 'private, no-store, must-revalidate',
                 'Content-Disposition': 'inline',
-                'Access-Control-Allow-Origin': '*'
+                'Access-Control-Allow-Origin': '*',
+                'X-Content-Type-Options': 'nosniff',
+                'X-Frame-Options': 'SAMEORIGIN',
+                'Referrer-Policy': 'no-referrer'
             })
         if not upstream.ok:
             abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
@@ -2082,9 +2237,12 @@ def view_doc(doc_id, filename=None):
                         status=upstream.status_code,
                         content_type=content_type,
                         headers={
-                            'Cache-Control': 'private, max-age=86400',
+                            'Cache-Control': 'private, no-store, must-revalidate',
                             'Content-Disposition': 'inline',
-                            'Access-Control-Allow-Origin': '*'
+                            'Access-Control-Allow-Origin': '*',
+                            'X-Content-Type-Options': 'nosniff',
+                            'X-Frame-Options': 'SAMEORIGIN',
+                            'Referrer-Policy': 'no-referrer'
                         })
     except Exception as e:
         logging.error(f"[VIEW-DOC] Proxy error for {doc_id}: {e}")
@@ -2109,136 +2267,6 @@ def get_all_files_unified():
     logging.info(f"Fetched {len(files)} files directly from Supabase documents.")
     
     return files
-
-
-@app.route('/dashboard')
-def dashboard():
-    # Get all files from both sources
-    files = get_all_files_unified()
-    
-    # Extract SEO data
-    all_subjects = list(set([f.get('subject', '') for f in files if f.get('subject', '').strip()]))
-    top_subjects = sorted(all_subjects)[:8]
-    paper_count = len([f for f in files if f.get('type', '').lower() in ('papers', 'paper', 'pyq')])
-    notes_count = len([f for f in files if f.get('type', '').lower() in ('notes', 'imp questions', 'imp_questions')])
-    
-    seo_keywords = "AbhiHub, GHRCE papers, engineering papers, " + ", ".join(top_subjects) + ", exam resources, study materials"
-    
-    # User-specific personalization data
-    user_data = None
-    file_history = []
-    if 'user' in session:
-        user_info = session['user']
-        user_name = user_info.get('name', '')
-        user_email = user_info.get('email', '')
-        user_id = user_info.get('uid', '')
-        
-        # Get user's uploaded files (from both sources)
-        user_files = [f for f in files if f.get('author', '') == user_name or f.get('author_email', '') == user_email]
-        
-        # Calculate user statistics
-        user_uploads_count = len(user_files)
-        user_notes_count = len([f for f in user_files if f.get('type', '').lower() == 'notes'])
-        user_papers_count = len([f for f in user_files if f.get('type', '').lower() in ['pyq', 'papers']])
-        user_practicals_count = len([f for f in user_files if f.get('type', '').lower() == 'practical'])
-        
-        # Get unique subjects user has contributed to
-        user_subjects = list(set([f.get('subject', '') for f in user_files if f.get('subject', '').strip()]))
-        
-        # Get file access history
-        history_result = get_user_file_history(user_email, limit=10)
-        if history_result.get('success'):
-            file_history = history_result.get('data', [])
-            
-        # Get user profile + college data
-        from methods.supabase_helper import get_student_profile, calculate_user_ranks
-        profile_res = get_student_profile(user_id)
-        profile_data = profile_res.get('data', {}) if profile_res.get('success') else {}
-        student_res = profile_res  # same call reuse result
-        student_data = profile_data  # already fetched above
-        
-        # Enforce profile completion
-        if not student_data or not student_data.get('college_id'):
-            flash("Welcome to AbhiHub! Please complete your profile to access all personalized features.", "warning")
-            return redirect(url_for('account'))
-            
-        college_name = student_data.get('college_name') or ''
-        
-        # Calculate global rank and live score
-        # Match by uploader_id (UUID) — avoids fragile full_name string comparison
-        rank_list = calculate_user_ranks()
-        global_rank = '-'
-        computed_score = 0
-        for i, entry in enumerate(rank_list):
-            if entry.get('uploader_id') == user_id:
-                global_rank = str(i + 1)
-                computed_score = entry.get('points', 0)
-                break
-        
-        # Get detailed reputation stats (students helped, badges)
-        from methods.supabase_helper import get_reputation_stats
-        rep_stats = get_reputation_stats(user_id)
-        students_helped = rep_stats.get('students_helped', 0) if rep_stats.get('success') else 0
-        badges = rep_stats.get('badges', []) if rep_stats.get('success') else []
-        
-        user_data = {
-            'name': user_name,
-            'email': user_info.get('email', ''),
-            'uploads_count': user_uploads_count,
-            'notes_count': user_notes_count,
-            'papers_count': user_papers_count,
-            'practicals_count': user_practicals_count,
-            'subjects_contributed': len(user_subjects),
-            'user_files': user_files[:10],  # Latest 10 user files for "Your Files" section
-            'role': profile_data.get('role', 'student'),
-            'reputation_score': max(computed_score, profile_data.get('reputation_score', 0)),
-            'rank_title': profile_data.get('rank_title', 'Beginner'),
-            'is_verified': profile_data.get('is_verified', False),
-            'subscription_tier': profile_data.get('subscription_tier', 'free'),
-            'global_rank': global_rank,
-            'students_helped': students_helped,
-            'badges': badges,
-            'paper_quota_remaining': _get_quota().get('credits', 19),
-            'college_name': college_name
-        }
-    
-    promo_context = {
-        'remaining_views': user_data.get('paper_quota_remaining', 19) if user_data else 19,
-        'students_helped': user_data.get('students_helped', 0) if user_data else 0,
-        'reputation_score': user_data.get('reputation_score', 0) if user_data else 0,
-        'upload_goal_month': 'May'
-    }
-
-    # ── Personalized & trending papers ──────────────────────────────────────
-    all_papers = [f for f in files if f.get('type', '').lower() in ('papers', 'paper', 'pyq')]
-    all_papers_by_views = sorted(all_papers, key=lambda f: f.get('view_count', 0), reverse=True)
-
-    # Personalized: same college, sorted by views
-    user_college = user_data.get('college_name', '') if user_data else ''
-    if user_college:
-        relevant_papers = [f for f in all_papers_by_views if f.get('college', '') == user_college][:8]
-    else:
-        relevant_papers = all_papers_by_views[:8]
-
-    # Trending: top viewed overall (may overlap with relevant but that's fine)
-    trending_papers = all_papers_by_views[:8]
-
-    # Recent papers: newest first
-    recent_papers = sorted(all_papers, key=lambda f: f.get('date', ''), reverse=True)[:8]
-
-    return render_template('p_index.html',
-                         data=files,
-                         seo_keywords=seo_keywords,
-                         top_subjects=top_subjects,
-                         paper_count=paper_count,
-                         notes_count=notes_count,
-                         user_data=user_data,
-                         file_history=file_history,
-                         now=datetime.now(),
-                         promo_context=promo_context,
-                         relevant_papers=relevant_papers,
-                         trending_papers=trending_papers,
-                         recent_papers=recent_papers)
 
 
 @app.route('/profile')
@@ -2285,21 +2313,25 @@ def p_profile_redirect():
 
 @app.route('/leaderboard', methods=['GET'])
 def leaderboard():
-    """Phase 19: Global Gamification Leaderboard"""
+    """Phase 19: Global Gamification Leaderboard — cached at L1 for 10min."""
     from methods.supabase_helper import get_leaderboard_data
-    
+
     # Optional filter by college if requested
     college_id = request.args.get('college_id')
-    
-    lb_result = get_leaderboard_data(college_id=college_id, limit=50)
-    leaderboard_data = lb_result.get('data', []) if lb_result.get('success') else []
-    
+
+    cache_key = f"leaderboard:{college_id or 'all'}"
+    def fetch_lb():
+        result = get_leaderboard_data(college_id=college_id, limit=50)
+        return result.get('data', []) if result.get('success') else []
+
+    leaderboard_data = cache.get_cached(cache_key, level=cache.L2, ttl=cache.LONG, fetcher=fetch_lb)
     # Get current user for personalization in the template
     user_info = session.get('user')
-    
-    return render_template('leaderboard.html', 
+    response = make_response(render_template('leaderboard.html',
                            leaderboard=leaderboard_data,
-                           current_user=user_info)
+                           current_user=user_info))
+    cache.set_cache_headers(response, max_age=cache.LONG, stale_while_revalidate=True)
+    return response
 
 
 @app.route('/account', methods=['GET'])
@@ -2789,10 +2821,16 @@ def register():
     """Register page (alias for signup)"""
     return redirect(url_for('signup'))
 
-# Premium features
 @app.route('/dashboard')
 @auth_required
-def premium():
+def dashboard():
+    """Dashboard for authenticated users.
+
+    This handler was previously named 'premium'. It is the sole
+    registered handler for /dashboard, fixing a security issue where
+    a duplicate unauthenticated dashboard() route shadowed this handler
+    via Flask first-rule-wins routing.
+    """
     # Use unified documents from database
     from methods.supabase_helper import get_all_file_records_formatted
     user_info = session.get('user', {})
@@ -2802,8 +2840,8 @@ def premium():
     # Extract SEO data
     all_subjects = list(set([f.get('subject', '') for f in files if f.get('subject', '').strip()]))
     top_subjects = sorted(all_subjects)[:8]
-    paper_count = len([f for f in files if f.get('type', '').lower() == 'pyq'])
-    notes_count = len([f for f in files if f.get('type', '').lower() == 'notes'])
+    paper_count = len([f for f in files if f.get('type', '').lower() in ('papers', 'paper', 'pyq')])
+    notes_count = len([f for f in files if f.get('type', '').lower() in ('notes', 'note', 'imp questions', 'imp_questions')])
     
     seo_keywords = "AbhiHub, GHRCE papers, engineering papers, " + ", ".join(top_subjects) + ", exam resources, study materials"
     
@@ -2816,7 +2854,7 @@ def premium():
         user_id = user_info.get('uid', '')
         
         # Get user's uploaded files
-        user_files = [f for f in files if f.get('author', '') == user_name]
+        user_files = [f for f in files if f.get('author', '') == user_name or f.get('author_email', '') == user_email]
         
         # Calculate user statistics
         user_uploads_count = len(user_files)
@@ -2826,7 +2864,14 @@ def premium():
         
         # Get unique subjects user has contributed to
         user_subjects = list(set([f.get('subject', '') for f in user_files if f.get('subject', '').strip()]))
-
+        
+        # Get file access history of the user (recently viewed files)
+        from methods.supabase_helper import get_user_file_history
+        history_result = get_user_file_history(user_email, limit=10)
+        file_history = []
+        if history_result.get('success'):
+            file_history = history_result.get('data', [])
+        
         # Get college name from profile
         college_name = ''
         try:
@@ -2834,6 +2879,11 @@ def premium():
             profile_res = get_student_profile(user_id)
             profile_data = profile_res.get('data', {}) if profile_res.get('success') else {}
             college_name = profile_data.get('college_name') or ''
+
+            # Enforce profile completion — redirect if college not set
+            if not profile_data or not profile_data.get('college_id'):
+                flash("Welcome to AbhiHub! Please complete your profile to access all personalized features.", "warning")
+                return redirect(url_for('account'))
 
             # Calculate global rank
             rank_list = calculate_user_ranks()
@@ -2850,7 +2900,7 @@ def premium():
             students_helped = rep_stats.get('students_helped', 0) if rep_stats.get('success') else 0
             badges = rep_stats.get('badges', []) if rep_stats.get('success') else []
         except Exception as e:
-            print(f"[Dashboard] Error fetching profile/rank data: {e}")
+            logging.error(f"[Dashboard] Error fetching profile/rank data: {e}")
             profile_data = {}
             global_rank = '-'
             computed_score = 0
@@ -2865,16 +2915,19 @@ def premium():
             'papers_count': user_papers_count,
             'practicals_count': user_practicals_count,
             'subjects_contributed': len(user_subjects),
-            'user_files': user_files[:10],
+            'user_files': user_files[:10],  # Latest 10 user files for "Your Files" section
             'role': profile_data.get('role', 'student') if profile_data else 'student',
             'reputation_score': max(computed_score, profile_data.get('reputation_score', 0)) if profile_data else computed_score,
             'rank_title': profile_data.get('rank_title', 'Beginner') if profile_data else 'Beginner',
             'is_verified': profile_data.get('is_verified', False) if profile_data else False,
+            'subscription_tier': profile_data.get('subscription_tier', 'free') if profile_data else 'free',
             'global_rank': global_rank,
             'students_helped': students_helped,
             'badges': badges,
             'college_name': college_name
         }
+    else:
+        file_history = []
         
     if user_data is None:
         user_data = {}
@@ -2887,6 +2940,7 @@ def premium():
     user_data.setdefault('rank_title', 'Beginner')
     user_data.setdefault('is_verified', False)
     user_data.setdefault('college_name', '')
+    user_data.setdefault('subscription_tier', 'free')
     
     promo_context = {
         'remaining_views': user_data.get('paper_quota_remaining', 19) if user_data else 19,
@@ -2895,15 +2949,56 @@ def premium():
         'upload_goal_month': 'May'
     }
 
-    return render_template('p_index.html', 
+    # Personalized & trending papers
+    all_papers = [f for f in files if f.get('type', '').lower() in ('papers', 'paper', 'pyq')]
+    all_papers_by_views = sorted(all_papers, key=lambda f: f.get('view_count', 0), reverse=True)
+
+    # Personalized: same college, sorted by views
+    user_college = user_data.get('college_name', '') if user_data else ''
+    if user_college:
+        relevant_papers = [f for f in all_papers_by_views if f.get('college', '') == user_college][:8]
+    else:
+        relevant_papers = all_papers_by_views[:8]
+
+    # Trending: top viewed overall (may overlap with relevant but that's fine)
+    trending_papers = all_papers_by_views[:8]
+
+    # Recent papers: newest first
+    recent_papers = sorted(all_papers, key=lambda f: f.get('date', ''), reverse=True)[:8]
+
+    # ── Notes: personalized & trending & recent ──────────────────────────
+    notes_type_values = ('notes', 'note', 'imp questions', 'imp_questions')
+    all_notes = [f for f in files if f.get('type', '').lower() in notes_type_values]
+    all_notes_by_views = sorted(all_notes, key=lambda f: f.get('view_count', 0), reverse=True)
+
+    # Personalized notes: same college, sorted by views
+    if user_college:
+        relevant_notes = [f for f in all_notes_by_views if f.get('college', '') == user_college][:8]
+    else:
+        relevant_notes = all_notes_by_views[:8]
+
+    # Trending notes: top viewed overall
+    trending_notes = all_notes_by_views[:8]
+
+    # Recent notes: newest first
+    recent_notes = sorted(all_notes, key=lambda f: f.get('date', ''), reverse=True)[:8]
+
+    return render_template('p_index.html',
                          data=files,
                          seo_keywords=seo_keywords,
                          top_subjects=top_subjects,
                          paper_count=paper_count,
                          notes_count=notes_count,
                          user_data=user_data,
+                         file_history=file_history,
                          now=datetime.now(),
-                         promo_context=promo_context)
+                         promo_context=promo_context,
+                         relevant_papers=relevant_papers,
+                         trending_papers=trending_papers,
+                         recent_papers=recent_papers,
+                         relevant_notes=relevant_notes,
+                         trending_notes=trending_notes,
+                         recent_notes=recent_notes)
 
 def cors_headers(f):
     @wraps(f)
@@ -2981,7 +3076,7 @@ def view_pdf():
                 record_id=record_id
             )
         
-        # Use proxy URL to avoid CORS issues with Adobe PDF viewer
+        # Use proxy URL — security is handled by @auth_required + Referer check
         if pdf_name.startswith('http'):
             proxy_url = pdf_name
         else:
@@ -3017,6 +3112,14 @@ def view_pdf():
 @auth_required
 def pdf_proxy(pdf_name):
     """Proxy PDF from Firebase Storage or redirect if absolute URL"""
+    # Security: Verify the request comes from an authenticated session
+    # The @auth_required decorator already ensures a valid user session.
+    # Additionally, check that the Referer matches our domain to prevent
+    # hotlinking by download managers that strip session cookies.
+    referer = request.headers.get('Referer', '')
+    if referer and BASE_DOMAIN not in referer:
+        logging.warning(f"[PDF-PROXY] Blocked cross-origin PDF access from {referer} for {pdf_name}")
+        abort(403, description="Access denied")
     try:
         if pdf_name.startswith('http'):
             return redirect(pdf_name)
@@ -3062,13 +3165,17 @@ def pdf_proxy(pdf_name):
             response.headers['Content-Length'] = str(file_size)
         
         # Common headers for both full and partial responses
+        # PDF security: force inline display, prevent download managers, no caching
         response.headers['Access-Control-Allow-Origin'] = '*'
         response.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
         response.headers['Access-Control-Allow-Headers'] = 'Range, Content-Type, Content-Range'
         response.headers['Access-Control-Expose-Headers'] = 'Content-Range, Content-Length, Accept-Ranges'
         response.headers['Content-Disposition'] = f'inline; filename="{os.path.basename(pdf_name)}"'
         response.headers['Accept-Ranges'] = 'bytes'
-        response.headers['Cache-Control'] = 'public, max-age=3600'
+        response.headers['Cache-Control'] = 'private, no-store, must-revalidate'
+        response.headers['X-Content-Type-Options'] = 'nosniff'
+        response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+        response.headers['Referrer-Policy'] = 'no-referrer'
         
         return response
         
@@ -3180,18 +3287,20 @@ search_query = [None,]
 def load_data(search_query=search_query[-1]):
     """
     Loads all files from unified sources (data.json + uploaded_files + file_records),
-    then performs advanced search using fuzzy matching, field filters, and ranking.
+    cached at L2 for 5 minutes to reduce Supabase load.
+    Invalidates automatically after uploads/deletes.
     """
     global data_cache
 
-    # load once - now using unified file list
+    # load once - now using unified file list with L2 cache
     if not data_cache:
-        try:
-            # Use get_all_files_unified() to include all file sources
-            data_cache = get_all_files_unified()
-            logging.info(f"Loaded {len(data_cache)} files from unified sources for search cache")
-        except Exception as e:
-            logging.error(f"Error loading unified files for search: {e}")
+        data_cache = cache.get_cached(
+            "files:list:unified",
+            level=cache.L2,
+            ttl=cache.MEDIUM,
+            fetcher=lambda: (lambda r: (logging.info(f"Loaded {len(r)} files from unified sources for search cache") or r))(get_all_files_unified())
+        )
+        if data_cache is None:
             data_cache = []
 
     # no query -> return all (unchanged behavior)
@@ -3254,16 +3363,16 @@ def suggest():
 @auth_required
 def index():
     # Redirect trailing-slash to canonical /dashboard which has full user_data
-    return redirect(url_for('premium'), code=301)
+    return redirect(url_for('dashboard'), code=301)
 
 @app.route('/dashboard/search', methods=['POST', 'GET'])
 @auth_required
 def search():
     search_query = request.form.get('search') or request.args.get('search', '')
     if not search_query:
-        return redirect(url_for('premium'))
+        return redirect(url_for('dashboard'))
     # Redirect to dashboard with search_query so the main route renders with full user_data
-    return redirect(url_for('premium', search_query=search_query))
+    return redirect(url_for('dashboard', search_query=search_query))
 
 @app.route('/dashboard/view', methods=['POST', 'GET'])
 @auth_required
@@ -3575,23 +3684,100 @@ def get_admin_notification_history():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
+def _getSuggestedPeers(client, uid):
+    """Fetch up to 8 suggested peers from the same college as the user."""
+    suggested = []
+    try:
+        my_prof = client.table('profiles') \
+            .select('college_id') \
+            .eq('id', uid).limit(1).execute()
+        if not my_prof.data:
+            return suggested
+        my_college_id = my_prof.data[0].get('college_id')
+        if my_college_id:
+            sg = client.table('profiles') \
+                .select('id, full_name, email, rank_title, reputation_score, is_verified, colleges(name)') \
+                .eq('college_id', my_college_id) \
+                .neq('id', uid) \
+                .order('reputation_score', desc=True) \
+                .limit(8).execute()
+            for s in (sg.data or []):
+                col = s.get('colleges') or {}
+                suggested.append({
+                    'id': s.get('id'),
+                    'full_name': s.get('full_name') or 'Student',
+                    'email': s.get('email', ''),
+                    'rank_title': s.get('rank_title', 'Student'),
+                    'reputation_score': s.get('reputation_score', 0),
+                    'college_name': col.get('name') or '',
+                    'is_verified': s.get('is_verified', False)
+                })
+    except Exception as e:
+        print(f"[_getSuggestedPeers] {e}")
+    return suggested
+
+
 @app.route('/api/chat/search-peers', methods=['GET'])
 @auth_required
 def chat_search_peers():
-    """Peer search for chat — available to all authenticated users."""
+    """Peer search for chat — available to all authenticated users.
+
+    Returns: id, full_name, email, rank_title, reputation_score,
+    college_name, is_verified, uploads_count, viewed_count
+    """
     q = request.args.get('q', '').strip()
+    uid = _get_uid()
     if len(q) < 2:
-        return jsonify({'success': True, 'users': []})
+        return jsonify({'success': True, 'users': [], 'suggested': []})
+
     try:
         from methods.supabase_helper import init_supabase
         client = init_supabase()
-        res = client.table('profiles')\
-            .select('id, full_name, email, rank_title, reputation_score')\
-            .or_(f'full_name.ilike.%{q}%,email.ilike.%{q}%')\
+        if not client:
+            return jsonify({'success': False, 'users': [], 'suggested': [], 'error': 'DB error'}), 500
+
+        # Special internal flag: return only suggested peers (no text search)
+        if q == '__suggested__':
+            return jsonify({'success': True, 'users': [], 'suggested': _getSuggestedPeers(client, uid)})
+
+        # Basic profile search — include college via join
+        res = client.table('profiles') \
+            .select('id, full_name, email, rank_title, reputation_score, is_verified, college_id, colleges(name)') \
+            .or_(f'full_name.ilike.%{q}%,email.ilike.%{q}%') \
             .limit(10).execute()
-        return jsonify({'success': True, 'users': res.data or []})
+        users = []
+        for u in (res.data or []):
+            col = u.get('colleges') or {}
+            # Count uploads and viewed for each user
+            upload_count = 0
+            viewed_count = 0
+            try:
+                docs = client.table('documents').select('id', count='exact') \
+                    .eq('uploader_id', u['id']).execute()
+                upload_count = docs.count or 0
+            except Exception:
+                pass
+            try:
+                views = client.table('user_file_views').select('id', count='exact') \
+                    .eq('user_id', u['id']).execute()
+                viewed_count = views.count or 0
+            except Exception:
+                pass
+            users.append({
+                'id': u.get('id'),
+                'full_name': u.get('full_name') or 'Student',
+                'email': u.get('email', ''),
+                'rank_title': u.get('rank_title', 'Student'),
+                'reputation_score': u.get('reputation_score', 0),
+                'college_name': col.get('name') or '',
+                'is_verified': u.get('is_verified', False),
+                'uploads_count': upload_count,
+                'viewed_count': viewed_count
+            })
+
+        return jsonify({'success': True, 'users': users, 'suggested': _getSuggestedPeers(client, uid)})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'users': [], 'suggested': [], 'error': str(e)}), 500
 
 @app.route('/api/admin/users', methods=['GET'])
 @auth_required
@@ -3940,7 +4126,6 @@ from methods.supabase_helper import (
     save_labeled_paper, get_labeled_papers, check_if_labeled,
     save_file_access, get_user_file_history
 )
-import time
 
 _unlabeled_cache = {
     'data': None,
@@ -3954,7 +4139,7 @@ def get_cached_unlabeled_files():
     if _unlabeled_cache['data'] is not None and (now - _unlabeled_cache['timestamp'] < _unlabeled_cache['ttl']):
         return _unlabeled_cache['data'], _unlabeled_cache['labeled_count']
         
-    from methods.supabase_helper import get_pending_storage_assets
+    from methods.supabase_helper import get_pending_storage_assets, init_supabase
     pending_assets = get_pending_storage_assets()
     
     unlabeled_files = []
@@ -3967,7 +4152,7 @@ def get_cached_unlabeled_files():
             'url': f.get('public_url'),
             'path': f.get('public_url'),
             'created_at': f.get('uploaded_at'),
-            'size': 'Unknown',  # Consider adding size to storage_assets if needed
+            'size': 'Unknown',
             'format': (f.get('mime') or 'unknown').split('/')[-1],
             'record_id': None,
             'verified': False,
@@ -3978,11 +4163,21 @@ def get_cached_unlabeled_files():
             'view_count': 0
         })
         
+    # Fetch labeled count (storage_assets with status 'LABELED')
+    labeled_count = 0
+    try:
+        client = init_supabase()
+        if client:
+            res = client.table('storage_assets').select('id', count='exact').eq('status', 'LABELED').execute()
+            labeled_count = res.count or 0
+    except Exception as e:
+        logging.warning(f"[STORE-ROOM] Error fetching labeled count: {e}")
+        
     _unlabeled_cache['data'] = unlabeled_files
-    _unlabeled_cache['labeled_count'] = 0 # Can be fetched separately if needed
+    _unlabeled_cache['labeled_count'] = labeled_count
     _unlabeled_cache['timestamp'] = now
     
-    return unlabeled_files, 0
+    return unlabeled_files, labeled_count
 
 @app.route('/store-room')
 @auth_required
@@ -4954,6 +5149,26 @@ def api_get_peer_materials(target_user_id):
     res = get_user_peer_materials_db(target_user_id)
     return jsonify(res)
 
+
+@app.route('/api/chat/peer/<target_user_id>/materials-summary', methods=['GET'])
+@auth_required
+def api_chat_peer_materials_summary(target_user_id):
+    """Quick material summary for chat — uploads count + recent 5 viewed files.
+
+    Returns {success: true, user: {...}, uploads_count, recent_views: [...]}
+    """
+    from methods.supabase_helper import get_user_peer_materials_db
+    res = get_user_peer_materials_db(target_user_id)
+    if not res.get('success'):
+        return jsonify({'success': False, 'message': 'User not found'}), 404
+    return jsonify({
+        'success': True,
+        'user': res.get('user', {}),
+        'uploads_count': len(res.get('uploads', [])),
+        'recent_views': res.get('referred', [])[:5]
+    })
+
+
 @app.route('/api/request-material', methods=['POST'])
 @auth_required
 def api_request_material():
@@ -5105,7 +5320,8 @@ def chat_connect():
     name = user.get('name') or (user.get('user_metadata') or {}).get('full_name') or user.get('email', 'Student')
     _chat_online[uid] = {'sid': request.sid, 'name': name}
     join_room(uid)  # personal inbox room
-    # Broadcast updated online list to everyone
+    join_room('online-counter-room')  # for targeted online list broadcasts
+    # Notify all connected clients of updated list
     socketio.emit('chat_online_update', {'online': _safe_online_list()})
 
 @socketio.on('disconnect')
@@ -5118,8 +5334,8 @@ def chat_disconnect():
 def _get_merged_online_users():
     import time
     now_t = time.time()
-    # Prune old HTTP users
-    to_delete = [k for k, v in _chat_online_http.items() if now_t - v['time'] > 45]
+    # Prune old HTTP users — 70s timeout gives buffer above 60s polling interval
+    to_delete = [k for k, v in _chat_online_http.items() if now_t - v['time'] > 70]
     for k in to_delete:
         del _chat_online_http[k]
     # Merge socket & HTTP
@@ -5185,12 +5401,11 @@ def chat_online_users():
     if uid:
         user = session.get('user', {})
         name = user.get('name') or (user.get('user_metadata') or {}).get('full_name') or user.get('email', 'Student')
-        # Record HTTP heartbeat
         _chat_online_http[uid] = {'time': time.time(), 'name': name}
-        # Notify active chat pages that list changed
-        socketio.emit('chat_online_update', {'online': _safe_online_list()})
+        # Notify only clients in the 'online-counter' room (dashboard widgets only)
+        # Avoids broadcasting to chat pages that don't need frequent updates
+        socketio.emit('chat_online_update', {'online': _safe_online_list()}, to='online-counter-room')
 
-    # Get all online users, excluding self
     all_users = _get_merged_online_users()
     users = [u for u in all_users if u['id'] != uid]
     return jsonify({'success': True, 'online': users})
@@ -5220,6 +5435,54 @@ def peer_profile(user_id):
     except Exception as e:
         logging.error(f"[peer_profile] {e}")
         return redirect(url_for('dashboard'))
+
+
+@app.route('/u/<user_id>')
+def instagram_profile(user_id):
+    """Public, Instagram-friendly profile page with OG meta tags for sharing.
+
+    URL: /u/<user_id>  — short, clean, perfect for Instagram bio links.
+    No login required — anyone with the link can view the contributor's
+    public profile and their shared materials.
+    """
+    try:
+        from methods.supabase_helper import get_user_peer_materials_db
+
+        result = get_user_peer_materials_db(user_id)
+        if not result.get('success'):
+            abort(404)
+
+        peer = result.get('user', {})
+        uploads = result.get('uploads', [])
+        referred = result.get('referred', [])
+
+        # Build OG meta tags for rich Instagram/Facebook previews
+        og_title = (peer.get('name') or 'Student') + ' — AbhiHub'
+        og_description = f"{peer.get('name', 'A student')} from {peer.get('college_name', 'AbhiHub')} shared {len(uploads)} resource" \
+                        f"{'s' if len(uploads) != 1 else ''} on AbhiHub."
+        og_image = None
+
+        # Try to get a preview image from the first upload (if it's an image-based doc)
+        if uploads and uploads[0].get('file-path'):
+            file_path = uploads[0]['file-path']
+            if file_path.startswith('http'):
+                og_image = file_path
+            else:
+                og_image = url_for('static', filename='images/android-chrome-512x512.png', _external=True)
+
+        return render_template(
+            'profile_instagram.html',
+            peer=peer,
+            uploads=uploads,
+            referred=referred,
+            og_title=og_title,
+            og_description=og_description,
+            og_image=og_image,
+            canonical_domain=request.host_url.rstrip('/'),
+        )
+    except Exception as e:
+        logging.error(f"[instagram_profile] {e}")
+        abort(404)
 
 
 @app.route('/api/chat/user-info/<user_id>')

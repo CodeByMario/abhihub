@@ -5,7 +5,7 @@
      - clickable: Whether card is clickable (default: true)
 -->
 
-<div class="file-card fade-in" data-file='{{ file|tojson|safe }}' {% if clickable %}onclick="openFile('{{ file.filename }}')"{% endif %}>
+<div class="file-card fade-in" data-file='{{ file|tojson|safe }}' {% if clickable %}data-action="openFile" data-filename="{{ file.filename }}"{% endif %}>
     {% if file.get('verified') %}
     <div class="label-badge">Verified</div>
     {% endif %}
@@ -24,34 +24,30 @@
         <span>•</span>
         <span>{{ file.size }}</span>
     </div>
-    <div class="file-meta" style="margin-top: 4px; font-size: 0.7rem;">
+    <div class="file-meta file-meta--date">
         {{ file.created_at[:10] if file.created_at else 'Recent' }}
     </div>
 
     {% if show_actions and file.get('record_id') %}
-    <div class="file-card-footer"
-        style="display: flex; justify-content: space-around; padding-top: 10px; margin-top: 10px; border-top: 1px solid #eee;"
-        onclick="event.stopPropagation();">
+    <div class="file-card-footer" data-action="stopPropagation">
         <!-- Like button -->
         <button class="action-btn like-btn {{ 'liked' if file.get('is_liked') else '' }}"
-            style="background:none; border:none; cursor:pointer;"
-            onclick="toggleLike(event, '{{ file.record_id }}')">
-            <i class="fas fa-heart" style="color: {{ '#ef4444' if file.get('is_liked') else '#94a3b8' }};"></i>
-            <span class="like-count" style="font-size: 0.8rem; margin-left: 4px;">{{ file.get('like_count') if file.get('like_count', 0) > 0 else '' }}</span>
+            data-action="toggleLikeCard" data-record-id="{{ file.record_id }}">
+            <i class="fas fa-heart file-action-icon {{ 'liked' if file.get('is_liked') else '' }}"></i>
+            <span class="like-count">{{ file.get('like_count') if file.get('like_count', 0) > 0 else '' }}</span>
         </button>
 
         <!-- Comment button -->
-        <button class="action-btn comment-btn" style="background:none; border:none; cursor:pointer;"
-            onclick="openComments(event, '{{ file.record_id }}')">
-            <i class="fas fa-comment" style="color: #94a3b8;"></i>
-            <span class="comment-count" style="font-size: 0.8rem; margin-left: 4px;">{{ file.get('comment_count') if file.get('comment_count', 0) > 0 else '' }}</span>
+        <button class="action-btn comment-btn"
+            data-action="openCommentsCard" data-record-id="{{ file.record_id }}">
+            <i class="fas fa-comment file-action-icon"></i>
+            <span class="comment-count">{{ file.get('comment_count') if file.get('comment_count', 0) > 0 else '' }}</span>
         </button>
 
         <!-- Bookmark button -->
         <button class="action-btn bookmark-btn {{ 'bookmarked' if file.get('is_bookmarked') else '' }}"
-            style="background:none; border:none; cursor:pointer;"
-            onclick="toggleBookmark(event, '{{ file.record_id }}')">
-            <i class="fas fa-bookmark" style="color: {{ '#3b82f6' if file.get('is_bookmarked') else '#94a3b8' }};"></i>
+            data-action="toggleBookmarkCard" data-record-id="{{ file.record_id }}">
+            <i class="fas fa-bookmark file-action-icon {{ 'bookmarked' if file.get('is_bookmarked') else '' }}"></i>
         </button>
     </div>
     {% endif %}

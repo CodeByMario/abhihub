@@ -293,6 +293,19 @@
         color: var(--text-primary);
     }
 
+    .quick-actions-grid {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        gap: 1rem;
+    }
+
+    /* Responsive fix for quick actions */
+    @media (max-width: 640px) {
+        .quick-actions-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+
     /* Document Moderation Queue Cards */
     .mod-card {
         background: white;
@@ -451,19 +464,19 @@
 
     <!-- Navigation Tabs -->
     <div class="tabs-bar">
-        <button class="tab-btn active" onclick="switchAdminTab('overview')" id="tab-overview">
+        <button class="tab-btn active" type="button" data-action="switchAdminTab" data-tab="overview" id="tab-overview">
             <i class="fas fa-chart-line"></i> Overview
         </button>
-        <button class="tab-btn" onclick="switchAdminTab('moderation')" id="tab-moderation">
+        <button class="tab-btn" type="button" data-action="switchAdminTab" data-tab="moderation" id="tab-moderation">
             <i class="fas fa-circle-check"></i> Moderation Queue
         </button>
-        <button class="tab-btn" onclick="switchAdminTab('users')" id="tab-users">
+        <button class="tab-btn" type="button" data-action="switchAdminTab" data-tab="users" id="tab-users">
             <i class="fas fa-users"></i> Users
         </button>
-        <button class="tab-btn" onclick="switchAdminTab('notifications')" id="tab-notifications">
+        <button class="tab-btn" type="button" data-action="switchAdminTab" data-tab="notifications" id="tab-notifications">
             <i class="fas fa-paper-plane"></i> Broadcast
         </button>
-        <button class="tab-btn" onclick="switchAdminTab('contact')" id="tab-contact">
+        <button class="tab-btn" type="button" data-action="switchAdminTab" data-tab="contact" id="tab-contact">
             <i class="fas fa-envelope"></i> Feedback
         </button>
     </div>
@@ -516,11 +529,11 @@
                 <h3 style="font-size: 1.25rem; font-weight: 700; margin-bottom: 1.25rem; color: var(--text-primary);">
                     <i class="fas fa-bolt text-amber-500"></i> Quick Actions
                 </h3>
-                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
-                    <button onclick="switchAdminTab('moderation')" class="btn-action btn-indigo" style="padding: 1.2rem;">
+                <div class="quick-actions-grid">
+                    <button type="button" class="btn-action btn-indigo" data-action="switchAdminTab" data-tab="moderation" aria-label="Go to Moderation Queue">Review Submissions</button>
                         <i class="fas fa-clipboard-check"></i> Moderate Uploads
                     </button>
-                    <button onclick="switchAdminTab('notifications')" class="btn-action btn-emerald" style="padding: 1.2rem;">
+                    <button type="button" class="btn-action btn-emerald" data-action="switchAdminTab" data-tab="notifications" aria-label="Go to Broadcast">Send Announcement</button>
                         <i class="fas fa-paper-plane"></i> Send Push Msg
                     </button>
                 </div>
