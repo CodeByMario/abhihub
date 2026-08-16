@@ -308,7 +308,15 @@
             const shareButton = document.getElementById('shareButton');
             const toast = document.getElementById('toast');
             const loadingContainer = document.getElementById('loadingContainer');
-            
+
+            // Set watermark with actual domain
+            var watermarkDiv = document.querySelector('.watermark-overlay');
+            if (watermarkDiv) {
+                var wmText = window.location.hostname || 'AbhiHub';
+                var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="240" height="240" viewBox="0 0 240 240"><g transform="rotate(-30 120 120)"><text x="120" y="120" fill="rgba(0,0,0,0.18)" font-size="18" font-family="sans-serif" font-weight="900" text-anchor="middle">' + wmText + '</text></g></svg>';
+                watermarkDiv.style.backgroundImage = 'url("data:image/svg+xml,' + encodeURIComponent(svg) + '")';
+            }
+
             // Hide loading container when image loads
             image.addEventListener('load', function() {
                 if (loadingContainer) {

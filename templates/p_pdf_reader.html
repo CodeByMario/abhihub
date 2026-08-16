@@ -618,37 +618,53 @@
   /* ── PDF Renderer ────────────────────────────────────────── */
   (function initPdfViewer() {
     const overlay  = document.getElementById('loadingOverlay');
-    const pdfUrl   = "{{ pdf_url | safe }}";
+    const viewport = document.getElementById('adobe-dc-view');
+    const pdfUrl   = "/api/view-doc/{{ file_meta.get('id', '') }}/document.pdf";
     const pdfName  = "{{ file_meta.get('file-name', pdf_name) }}";
     const isMobile = window.innerWidth < 768;
 
-    /* ── Mobile: native browser PDF (no Adobe chrome/fullscreen) */
-    if (isMobile) {
-      const container = document.getElementById('adobe-dc-view');
-      container.innerHTML =
-        `<iframe
-           src="${pdfUrl}"
-           width="100%" height="100%"
-           style="border:none;display:block;background:#525659;"
-           title="${pdfName}"
-           allow="fullscreen"
-         ></iframe>`;
+    function showError(msg) {
       overlay.classList.add('hidden');
+      viewport.innerHTML =
+        '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:2rem;text-align:center;background:#f8fafc;">' +
+          '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:1rem;">' +
+            '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' +
+          '</svg>' +
+          '<p style="color:#ef4444;font-weight:700;margin-bottom:0.5rem;">Document unavailable</p>' +
+          '<p style="color:#64748b;font-size:0.9rem;margin-bottom:1.5rem;max-width:300px;">' + msg + '</p>' +
+          '<a href="/api/view-doc/{{ file_meta.get(\'id\', \'\') }}" download class="rdr-btn rdr-btn-info" style="display:inline-flex;">' +
+            '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>' +
+            '<span>Download PDF</span>' +
+          '</a>' +
+        '</div>';
+    }
+
+    /* ── Mobile: proxy through same-origin iframe ─────────── */
+    if (isMobile) {
+      viewport.innerHTML =
+        '<iframe src="' + pdfUrl + '" width="100%" height="100%" ' +
+          'style="border:none;display:block;background:#525659;" ' +
+          'title="' + pdfName + '" ' +
+          'onload="document.getElementById(\'loadingOverlay\').classList.add(\'hidden\');" ' +
+          'onerror="document.getElementById(\'loadingOverlay\').classList.add(\'hidden\'); ' +
+          'document.getElementById(\'adobe-dc-view\').innerHTML = ' +
+          '\'<p style="padding:2rem;color:#ef4444;text-align:center;">PDF failed to load. Try downloading it.</p>\';">' +
+        '</iframe>';
+      // Timeout fallback — if iframe hasn't loaded in 15s, show error
+      setTimeout(function() {
+        if (!viewport.querySelector('iframe')?.contentDocument) {
+          showError('The PDF is taking too long to load. Check your connection or download it directly.');
+        }
+      }, 15000);
       return;
     }
 
     /* ── Desktop: Adobe Embed API ─────────────────────────── */
     function showFallback(url, name) {
       overlay.classList.add('hidden');
-      document.getElementById('adobe-dc-view').innerHTML =
-        `<iframe src="${url}" width="100%" height="100%"
-                 style="border:none;background:#f1f5f9;"
-                 title="${name}">
-           <p style="text-align:center;padding:2rem;">
-             Unable to display.
-             <a href="${url}" target="_blank" style="color:#2563eb;text-decoration:underline;">Open PDF</a>
-           </p>
-         </iframe>`;
+      viewport.innerHTML =
+        '<iframe src="' + url + '" width="100%" height="100%" ' +
+          'style="border:none;background:#f1f5f9;" title="' + name + '"></iframe>';
     }
 
     document.addEventListener('adobe_dc_view_sdk.ready', function () {
@@ -667,9 +683,9 @@
             dockPageControls: false,
             defaultViewMode: 'FIT_WIDTH',
           }
-        ).then(() => {
+        ).then(function() {
           overlay.classList.add('hidden');
-        }).catch((err) => {
+        }).catch(function(err) {
           console.error('Adobe load error:', err);
           showFallback(pdfUrl, pdfName);
         });
@@ -678,6 +694,13 @@
         showFallback(pdfUrl, pdfName);
       }
     });
+
+    // Timeout: if Adobe SDK hasn't loaded in 8s, fall back to iframe
+    setTimeout(function() {
+      if (!window.AdobeDC) {
+        showFallback(pdfUrl, pdfName);
+      }
+    }, 8000);
   })();
 
   /* ── AdBlock detection (desktop only) ───────────────────── */

@@ -483,6 +483,144 @@ notes, practicals, and exam resources for top colleges across India." %}
     grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
   }
 }
+
+
+/* File Info Icon & Modal */
+.file-info-icon {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.9);
+  border: 1px solid var(--border-light, #e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: var(--text-tertiary, #94a3b8);
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.18s, background-color 0.18s, color 0.18s;
+  z-index: 2;
+  pointer-events: auto;
+}
+.file-info-icon:hover {
+  background: var(--primary-100, #eef2ff);
+  color: var(--primary-600, #4f46e5);
+  transform: scale(1.1);
+}
+.pcard:hover .file-info-icon {
+  opacity: 1;
+}
+
+/* Button-style file info icon (for _card_file.html) */
+.file-info-btn {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--border-light, #e2e8f0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  color: var(--text-tertiary, #94a3b8);
+  cursor: pointer;
+  opacity: 0;
+  transition: all 0.18s;
+  z-index: 2;
+  padding: 0;
+  line-height: 1;
+}
+.file-info-btn:hover {
+  background: var(--primary-100, #eef2ff);
+  color: var(--primary-600, #4f46e5);
+  transform: scale(1.1);
+}
+.file-card:hover .file-info-btn {
+  opacity: 1;
+}
+.file-info-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1rem;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s, visibility 0.2s;
+}
+.file-info-modal-overlay.show {
+  opacity: 1;
+  visibility: visible;
+}
+.file-info-modal {
+  background: var(--surface, #fff);
+  border-radius: 16px;
+  padding: 1.5rem;
+  max-width: 480px;
+  width: 100%;
+  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+  position: relative;
+}
+.file-info-modal__close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  background: none;
+  border: none;
+  font-size: 20px;
+  cursor: pointer;
+  color: var(--text-tertiary, #94a3b8);
+}
+.file-info-modal h3 {
+  font-size: 1.1rem;
+  color: var(--text-primary, #1e293b);
+  margin: 0 0 1rem;
+}
+.file-info-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--border-light, #e2e8f0);
+  font-size: 0.88rem;
+}
+.file-info-row:last-child {
+  border-bottom: none;
+}
+.file-info-label {
+  color: var(--text-tertiary, #94a3b8);
+}
+.file-info-value {
+  color: var(--text-primary, #1e293b);
+  font-weight: 600;
+}
+.file-info-license {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--gray-50, #f8fafc);
+  border-radius: 10px;
+  font-size: 0.82rem;
+  color: var(--text-secondary, #475569);
+  line-height: 1.5;
+}
+@media (max-width: 768px) {
+  .suggested-peers-grid {
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  }
+}
+
 </style>
 
 <script>
@@ -519,18 +657,19 @@ notes, practicals, and exam resources for top colleges across India." %}
       });
   }
   // Load after DOM ready
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', loadSuggestedPeers);
-  } else {
-    loadSuggestedPeers();
-  }
-})();
-</script>
-{% endif %}
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', loadSuggestedPeers);
+    } else {
+      loadSuggestedPeers();
+    }
+  })();
+  </script>
 
-<!-- ── MemoryWall Awareness Popup (shows once) ─────────────────────── -->
-{% if user_data %}
-<div id="mw-awareness" class="popup-overlay mw-awareness-overlay" data-action="dismissIfClicked">
+  {% endif %}
+
+  <!-- ── MemoryWall Awareness Popup (shows once) ─────────────────────── -->
+  {% if user_data %}
+  <div id="mw-awareness" class="popup-overlay mw-awareness-overlay" data-action="dismissIfClicked">
   <div class="mw-aw-box">
     <!-- Close -->
     <button type="button" data-action="mwDismiss" aria-label="Close" class="mw-aw-close">✕</button>
@@ -607,6 +746,63 @@ notes, practicals, and exam resources for top colleges across India." %}
   })();
 </script>
 {% endif %}
+
+<!-- ── File Info Modal (ℹ️ on file cards) — available globally ──────────── -->
+<div id="fileInfoModal" class="file-info-modal-overlay" data-action="closeFileInfo">
+  <div class="file-info-modal" role="dialog" aria-modal="true" aria-labelledby="fileInfoTitle">
+    <button type="button" class="file-info-modal__close" data-action="closeFileInfo" aria-label="Close">✕</button>
+    <h3 id="fileInfoTitle">📄 File Information</h3>
+    <div class="file-info-modal-body">
+      <!-- Populated by showFileInfo() -->
+    </div>
+  </div>
+</div>
+<script>
+  // File Info Modal: ℹ️ icon on file cards shows metadata + ownership
+  window.showFileInfo = function (e, el) {
+    if (e && e.target) { e.stopPropagation(); e.preventDefault(); }
+    const data = (el || e)?.dataset || {};
+    const name    = data.file_name    || 'Unknown file';
+    const subject = data.file_subject || '-';
+    const author  = data.file_author  || '-';
+    const year    = data.file_year    || data.file_date || '-';
+    const views   = data.file_views   || '0';
+    const ftype   = data.file_type    || data.file_format  || 'PDF';
+    const college = data.file_college || '-';
+    const size    = data.file_size    || '-';
+    const modal = document.getElementById('fileInfoModal');
+    if (!modal) return;
+    let html = '';
+    [['File', name], ['Type', ftype], ['College', college], ['Subject', subject],
+     ['Author', author], ['Year', year], ['Size', size], ['Views', views]]
+    .forEach(([label, val]) => {
+      html += `<div class="file-info-row"><span class="file-info-label">${label}</span><span class="file-info-value">${val || '-'}</span></div>`;
+    });
+    html += `<div class="file-info-license">
+      <strong>Ownership Notice:</strong> This file was contributed by a member of the AbhiHub
+      community. AbhiHub™ (AbhiHub Technologies) holds the exclusive platform rights to distribute,
+      brand, and monetize this resource. The original contributor retains copyright of their
+      submission. No third party may share or redistribute this file without explicit permission
+      from AbhiHub. <a href="mailto:abhihub.02@gmail.com">Contact</a>
+    </div>`;
+    const body = modal.querySelector('.file-info-modal-body');
+    if (body) body.innerHTML = html;
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  };
+  window.closeFileInfo = function () {
+    const modal = document.getElementById('fileInfoModal');
+    if (modal) modal.classList.remove('show');
+    document.body.style.overflow = '';
+  };
+  document.addEventListener('click', function (e) {
+    const m = document.getElementById('fileInfoModal');
+    if (m && m.classList.contains('show') && e.target === m) closeFileInfo();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeFileInfo();
+  });
+</script>
 
 <!-- ── T4: Premium First-Login Onboarding Modal ──────────────────── -->
 {% if user_data %}
@@ -1203,6 +1399,7 @@ notes, practicals, and exam resources for top colleges across India." %}
     {% set furl = url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) %}
     <a href="{{ furl }}" class="pcard">
       <span class="pcard-badge">📄 PYQ</span>
+      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="PYQ" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
       <div class="pcard-subject">{{ file['subject'] }}</div>
       <div class="pcard-name">{{ file['file-name'] }}</div>
       <div class="pcard-footer">
@@ -1232,6 +1429,7 @@ notes, practicals, and exam resources for top colleges across India." %}
       {% set furl = url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) %}
       <a href="{{ furl }}" class="pcard">
         <span class="pcard-badge">📄 PYQ</span>
+        <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="PYQ" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-author="{{ file.get('author','')[:15] }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
         <div class="pcard-subject">{{ file['subject'] }}</div>
         <div class="pcard-name">{{ file['file-name'] }}</div>
         <div class="pcard-footer">
@@ -1251,6 +1449,7 @@ notes, practicals, and exam resources for top colleges across India." %}
       {% set furl = url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) %}
       <a href="{{ furl }}" class="pcard">
         <span class="pcard-badge">📄 PYQ</span>
+        <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="PYQ" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-date="{{ file.get('date','') }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
         <div class="pcard-subject">{{ file['subject'] }}</div>
         <div class="pcard-name">{{ file['file-name'] }}</div>
         <div class="pcard-footer">
@@ -1311,6 +1510,7 @@ notes, practicals, and exam resources for top colleges across India." %}
     {% for file in relevant_notes %}
     <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) }}" class="pcard notes-card">
       <span class="pcard-badge notes">📝 Notes</span>
+      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="Notes" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
       <div class="pcard-subject">{{ file['subject'] }}</div>
       <div class="pcard-name">{{ file['file-name'] }}</div>
       <div class="pcard-footer">
@@ -1338,6 +1538,7 @@ notes, practicals, and exam resources for top colleges across India." %}
     <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) }}"
       class="pcard notes-card">
       <span class="pcard-badge notes">📝 Notes</span>
+      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="Notes" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
       <div class="pcard-subject">{{ file['subject'] }}</div>
       <div class="pcard-name">{{ file['file-name'] }}</div>
       <div class="pcard-footer">
@@ -1369,6 +1570,7 @@ notes, practicals, and exam resources for top colleges across India." %}
     <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) }}"
       class="pcard practical-card">
       <span class="pcard-badge practical">🧪 Practical</span>
+      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="Practical" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-author="{{ file.get('author','')[:15] }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
       <div class="pcard-subject">{{ file['subject'] }}</div>
       <div class="pcard-name">{{ file['file-name'] }}</div>
       <div class="pcard-footer">

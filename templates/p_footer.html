@@ -122,6 +122,55 @@
       color: var(--text-tertiary);
       font-size: var(--text-xs);
   }
+
+  .app-footer__ownership {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      align-items: center;
+      gap: var(--space-3);
+      font-size: var(--text-xs);
+      margin-bottom: var(--space-2);
+  }
+
+  .app-footer__separator {
+      color: var(--text-quaternary);
+  }
+
+  .app-footer__rights {
+      font-size: var(--text-2xs);
+      color: var(--text-quaternary);
+      line-height: 1.5;
+      margin-top: var(--space-2);
+  }
+
+  .app-footer__dev-link {
+      color: var(--primary-500);
+      text-decoration: none;
+  }
+
+  .app-footer__dev-link:hover {
+      text-decoration: underline;
+  }
+
+  .app-footer__email {
+      color: var(--primary-500);
+      text-decoration: none;
+  }
+
+  .app-footer__email:hover {
+      text-decoration: underline;
+  }
+
+  @media (max-width: 768px) {
+      .app-footer__ownership {
+          flex-direction: column;
+          gap: var(--space-2);
+      }
+      .app-footer__rights {
+          font-size: var(--text-3xs);
+      }
+  }
 </style>
 
 <!-- App Shell Footer -->
@@ -170,6 +219,17 @@
   </div>
 
   <div class="app-footer__bottom">
-      &copy; 2025 AbhiHub. All rights reserved.
+      <div class="app-footer__ownership">
+          <span>&copy; 2025 AbhiHub. All rights reserved.</span>
+          <span class="app-footer__separator">·</span>
+          <span>AbhiHub™ is a trademark of AbhiHub Technologies.</span>
+          <span class="app-footer__separator">·</span>
+          <span>Platform developed by <a href="https://www.linkedin.com/in/abhijeet" target="_blank" rel="noopener" class="app-footer__dev-link">Abhijeet</a>.</span>
+      </div>
+      <div class="app-footer__rights">
+          Content contributed by the AbhiHub student community remains the property of their respective contributors.
+          AbhiHub grants a non-exclusive license to display such content through the platform.
+          For copyright inquiries, contact: <a href="mailto:abhihub.02@gmail.com" class="app-footer__email">abhihub.02@gmail.com</a>
+      </div>
   </div>
 </footer>

@@ -2209,9 +2209,12 @@ def view_doc(doc_id, filename=None):
 
     # Security: Check Referer to prevent download managers from catching the PDF URL
     referer = request.headers.get('Referer', '')
-    if referer and BASE_DOMAIN not in referer and 'localhost' not in referer:
-        logging.warning(f"[VIEW-DOC] Blocked cross-origin PDF access from {referer} for {doc_id}")
-        abort(403, description="Access denied")
+    if referer:
+        ref_host = referer.split('/')[2] if len(referer.split('/')) > 2 else ''
+        allowed_hosts = [BASE_DOMAIN, 'localhost', '127.0.0.1', '0.0.0.0']
+        if not any(h in ref_host for h in allowed_hosts):
+            logging.warning(f"[VIEW-DOC] Blocked cross-origin PDF access from {referer} for {doc_id}")
+            abort(403, description="Access denied")
 
     # Optional: token-based access for programmatic clients
     token = request.args.get('token', '')
@@ -2226,12 +2229,15 @@ def view_doc(doc_id, filename=None):
     if not file_url:
         abort(404)
 
-    # Resolve Firebase storage paths to signed URLs
     if not file_url.startswith('http'):
+        # Cache signed URLs at L1 (5 min TTL) — Firebase signed URLs are valid for 1hr
+        # but generating them requires a Firebase API call; caching at L1 reduces that.
         try:
             bucket = storage.bucket()
             blob = bucket.blob(file_url)
             file_url = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
+            cache_key = f"signed-url:{doc_id}"
+            cache.l1.set(cache_key, file_url, ttl=300)  # 5 min TTL
         except Exception as e:
             logging.error(f"[VIEW-DOC] Signed URL error for {doc_id}: {e}")
             abort(500)
@@ -4748,11 +4754,18 @@ def api_extract_ocr():
         if is_pdf:
             pdf_text, pdf_img_bytes, pdf_img_mime = extract_pdf_info(content_bytes)
             if pdf_text and len(pdf_text.strip()) > 50:
+                # Cache native PDF text at L1 for 1hr — extraction is free, but saves repeated work
+                cache.l1.set(f"ocr:pdf:{doc_id}", pdf_text.strip(), ttl=3600)
                 return jsonify({'success': True, 'ocr_text': pdf_text.strip(), 'source': 'pdf_native'}), 200
 
             if pdf_img_bytes:
                 content_bytes = pdf_img_bytes
                 content_type = pdf_img_mime or 'image/png'
+
+        # Check if we already have a cached vision OCR result
+        cached_ocr = cache.l1.get(f"ocr:vision:{doc_id}")
+        if cached_ocr[0] is not None:
+            return jsonify({'success': True, 'ocr_text': cached_ocr[0], 'source': 'vision_ai_cached'}), 200
 
         b64_image = base64.b64encode(content_bytes).decode('utf-8')
         if not content_type or 'octet-stream' in content_type:
@@ -4802,6 +4815,8 @@ def api_extract_ocr():
                 logging.warning(f"[AI] OCR request failed: {ex}")
 
         if ocr_text:
+            # Cache vision OCR at L1 (2hr TTL — vision calls cost money, cache aggressively)
+            cache.l1.set(f"ocr:vision:{doc_id}", ocr_text, ttl=7200)
             return jsonify({'success': True, 'ocr_text': ocr_text, 'source': 'vision_ai'}), 200
 
         return jsonify({'success': False, 'message': 'OCR service temporary failure. Please retry.'}), 502

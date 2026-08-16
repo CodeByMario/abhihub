@@ -1,4 +1,5 @@
-/**
+    /**
+     * inline-handler-compat.js
  * inline-handler-compat.js
  * ========================
  * Replaces inline onclick="" handlers with delegated event listeners.
@@ -359,11 +360,22 @@
         resetView: function (e, el) {
             if (typeof window.resetView === 'function') window.resetView();
         },
-        zoomOut: function (e, el) {
-            if (typeof window.zoomOut === 'function') window.zoomOut();
-        },
         zoomIn: function (e, el) {
             if (typeof window.zoomIn === 'function') window.zoomIn();
+            else if (typeof window.zoomInImage === 'function') window.zoomInImage();
+        },
+        zoomOut: function (e, el) {
+            if (typeof window.zoomOut === 'function') window.zoomOut();
+            else if (typeof window.zoomOutImage === 'function') window.zoomOutImage();
+        },
+        resetImageZoom: function (e, el) {
+            if (typeof window.resetImageZoom === 'function') window.resetImageZoom();
+        },
+        toggleImageFullscreen: function (e, el) {
+            if (typeof window.toggleImageFullscreen === 'function') window.toggleImageFullscreen();
+        },
+        downloadImage: function (e, el) {
+            if (typeof window.downloadImage === 'function') window.downloadImage();
         },
         rotateImage: function (e, el) {
             if (typeof window.rotateImage === 'function') window.rotateImage();
@@ -478,6 +490,14 @@
             e.stopPropagation();
             var peerId = el.getAttribute('data-peer-id');
             if (peerId && typeof window.viewPeerMaterialsModal === 'function') window.viewPeerMaterialsModal(peerId);
+        },
+        showFileInfo: function (e, el) {
+            e.stopPropagation();
+            e.preventDefault();  // prevent anchor navigation when icon is inside <a>
+            if (typeof window.showFileInfo === 'function') window.showFileInfo(e, el);
+        },
+        closeFileInfo: function (e, el) {
+            if (typeof window.closeFileInfo === 'function') window.closeFileInfo();
         }
     };
 

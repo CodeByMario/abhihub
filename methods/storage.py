@@ -11,10 +11,20 @@ from datetime import datetime
 
 # Get the default app initialized in app.py
 default_app = get_app()
-bucket = storage.bucket(app=default_app)
+
+# DEFERRED: storage.bucket() crashes if Firebase credentials are missing or invalid.
+# Use a lazy proxy so the bucket is only accessed when a storage operation is actually performed.
+_bucket = None  # Lazily initialized
+
+def _get_bucket():
+    """Return Firebase storage bucket, initializing on first access."""
+    global _bucket
+    if _bucket is None:
+        _bucket = storage.bucket(app=default_app)
+    return _bucket
 
 def upload_file(file_path, destination_blob_name, chunk_size=15 * 1024 * 1024, timeout=600):
-    blob = bucket.blob(destination_blob_name)
+    blob = _get_bucket().blob(destination_blob_name)
     blob.chunk_size = chunk_size  # Set the chunk size to 15 MB
     retry = Retry(deadline=timeout)  # Set the retry deadline to handle timeouts
     blob.upload_from_filename(file_path, timeout=timeout, retry=retry)
@@ -57,7 +67,7 @@ def list_files(folder):
         return file_cache[folder]
 
     # Fetch blobs from the bucket with the specified prefix
-    blobs = bucket.list_blobs(prefix=folder)
+    blobs = _get_bucket().list_blobs(prefix=folder)
     file_list = [blob.name for blob in blobs if not blob.name.endswith('/')]
 
     # Load existing data from the JSON file if available
@@ -76,7 +86,7 @@ def list_files(folder):
     # Generate file metadata
     library = []
     for file_p in file_list:
-        blob = bucket.blob(file_p)
+        blob = _get_bucket().blob(file_p)
         info_temp = file_p.split('/')
 
         # Check if this file already exists in our data
@@ -147,13 +157,13 @@ def list_files(folder):
     return unique_library
 
 def download_file(destination_blob_name, file_path='static/test/', timeout=600):
-    blob = bucket.blob(destination_blob_name)
+    blob = _get_bucket().blob(destination_blob_name)
     retry = Retry(deadline=timeout)  # Set the retry deadline to handle timeouts
     blob.download_to_filename(file_path, timeout=timeout, retry=retry)
     print(f'File {destination_blob_name} downloaded to {file_path}.')
 
 def delete_file(destination_blob_name, timeout=600):
-    blob = bucket.blob(destination_blob_name)
+    blob = _get_bucket().blob(destination_blob_name)
     retry = Retry(deadline=timeout)  # Set the retry deadline to handle timeouts
     blob.delete(timeout=timeout, retry=retry)
     print(f'File {destination_blob_name} deleted.')

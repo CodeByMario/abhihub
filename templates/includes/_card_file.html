@@ -10,6 +10,21 @@
     <div class="label-badge">Verified</div>
     {% endif %}
 
+    <!-- File Info Icon (ℹ️) — shows metadata + ownership on click -->
+    <button type="button" class="file-info-btn" data-action="showFileInfo"
+        data-file-name="{{ file.filename }}"
+        data-file-type="{{ file.get('type', '') or file.get('file_type', '') or file.get('category', 'PDF') }}"
+        data-file-college="{{ file.get('college_name', '') or file.get('college', '') | default('AbhiHub') }}"
+        data-file-subject="{{ file.get('subject', '') }}"
+        data-file-author="{{ file.get('author', '') }}"
+        data-file-year="{{ file.get('year', '') or file.get('date', '')[:4] if file.get('date') else '' }}"
+        data-file-format="{{ file.get('format', 'PDF') }}"
+        data-file-size="{{ file.get('size', '-') }}"
+        title="View file information"
+        aria-label="File information">
+      ℹ️
+    </button>
+
     <div class="file-icon-wrapper">
         {% if file.format == 'pdf' or file.filename.endswith('.pdf') %}
         <img src="/static/premium/icon/notes.gif" class="file-icon" alt="PDF">
