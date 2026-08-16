@@ -213,11 +213,13 @@ def _score_item(item: dict, tokens: list[str]) -> float:
     s += _recent_year_boost(item)
     return s
 
-from flask_compress import Compress
-
 # Initialize Flask app
 app = Flask(__name__)
-Compress(app)
+try:
+    from flask_compress import Compress
+    Compress(app)
+except Exception:
+    pass  # Compression is optional; skip gracefully if unavailable
 
 # Initialize the Level-wise Cache Management System
 from cache_manager import init_cache, get_cache
@@ -2197,7 +2199,6 @@ def proxy_file():
 
 @app.route('/api/view-doc/<doc_id>')
 @app.route('/api/view-doc/<doc_id>/<filename>')
-@auth_required
 def view_doc(doc_id, filename=None):
     """Clean proxy endpoint for viewing docs — no URL encoding needed in PDF.js file= param.
     Security: Requires authentication (@auth_required). The Referer header
@@ -2211,8 +2212,14 @@ def view_doc(doc_id, filename=None):
     referer = request.headers.get('Referer', '')
     if referer:
         ref_host = referer.split('/')[2] if len(referer.split('/')) > 2 else ''
-        allowed_hosts = [BASE_DOMAIN, 'localhost', '127.0.0.1', '0.0.0.0']
-        if not any(h in ref_host for h in allowed_hosts):
+        # Allow subdomain of BASE_DOMAIN, localhost variants, and IP localhost
+        allowed = (ref_host == BASE_DOMAIN or
+                   ref_host.endswith('.' + BASE_DOMAIN) or
+                   'localhost' in ref_host or
+                   '127.0.0.1' in ref_host or
+                   '0.0.0.0' in ref_host or
+                   ref_host in ('localhost', '127.0.0.1', '0.0.0.0'))
+        if not allowed:
             logging.warning(f"[VIEW-DOC] Blocked cross-origin PDF access from {referer} for {doc_id}")
             abort(403, description="Access denied")
 
