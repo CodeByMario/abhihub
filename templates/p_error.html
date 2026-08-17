@@ -1,6 +1,7 @@
 {% extends 'p_struct.html' %}
 {% set disable_ads = true %}
 {% block content %}
+{% set user_profile_json = get_full_profile_json() | tojson %}
 {% include 'google_tag.html' %}
 
 <style>

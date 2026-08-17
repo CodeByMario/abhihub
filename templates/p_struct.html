@@ -873,6 +873,7 @@
     </script>
 
     <!-- Google Tag & Analytics -->
+    {% set user_profile_json = get_full_profile_json() | tojson %}
     {% include 'google_tag.html' %}
 
     <!-- Analytics Helper for Auto-Tracking -->

@@ -500,6 +500,7 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
             src="/api/view-doc/{{ document.id }}"
             alt="{{ document.title }} - {{ subj_name }} {{ file_type }} for {{ coll_name }}"
             style="max-width:100%;height:auto;border-radius:12px;box-shadow:0 10px 20px rgba(0,0,0,0.1);position:relative;z-index:2;opacity:0;transition:opacity 0.3s ease;cursor:zoom-in;"
+            onload="var s=document.getElementById('imageSkeleton'); if(s) s.style.display='none'; this.style.opacity='1'; if(typeof window.imageLoaded==='function') window.imageLoaded();"
             onerror="document.getElementById('imageSkeleton').style.display='none'; document.getElementById('previewImage').style.display='none'; document.getElementById('imageError').style.display='flex';">
           <!-- Watermark Overlay -->
           <div class="image-watermark" aria-hidden="true"></div>
@@ -977,6 +978,20 @@ document.addEventListener('DOMContentLoaded', function() {
   var scale = 1, panX = 0, panY = 0;
   var isDragging = false, dragStartX, dragStartY;
   var fullscreen = false;
+
+  // Wire toolbar buttons via event delegation
+  var toolbar = document.getElementById('imageToolbar');
+  if (toolbar) {
+    toolbar.addEventListener('click', function(e) {
+      var btn = e.target.closest('[data-action]');
+      if (!btn) return;
+      var action = btn.getAttribute('data-action');
+      if (action === 'zoomInImage') window.zoomInImage();
+      else if (action === 'zoomOutImage') window.zoomOutImage();
+      else if (action === 'resetImageZoom') window.resetImageZoom();
+      else if (action === 'toggleImageFullscreen') window.toggleImageFullscreen();
+    });
+  }
 
   // If image already loaded (cached), call imageLoaded manually
   if (img.complete && img.naturalWidth > 0) {

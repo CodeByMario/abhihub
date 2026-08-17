@@ -396,6 +396,18 @@ def get_device_type(user_agent: str) -> str:
 ########################
 #-------function-------#
 from methods.storage import upload_file, list_files, download_file, delete_file
+from methods.analytics_tracker import register_analytics_routes, get_full_profile_json
+
+# Register analytics routes
+register_analytics_routes(app)
+
+# Make user profile data available to all templates
+@app.context_processor
+def inject_user_profile():
+    """Inject user profile JSON into all templates for GA4 tracking."""
+    return {
+        'get_full_profile_json': get_full_profile_json
+    }
 
 
 ########################################

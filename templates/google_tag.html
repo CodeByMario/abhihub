@@ -1,4 +1,4 @@
-<!-- Google Analytics 4 - Comprehensive Tracking -->
+<!-- Google Analytics 4 - Comprehensive Tracking with Full User Profile -->
 <script>
   window.dataLayer = window.dataLayer || [];
   const CONSENT_KEY = 'abhihub-consent';
@@ -44,7 +44,24 @@
   function gtag() { window.dataLayer.push(arguments); }
   window.gtag = gtag;
 
-  window.USER_ID = '{{ session.get("user", {}).get("uid", "") }}' || null;
+  // ── Full user profile from server ──
+  window.ABHIHUB_USER_PROFILE = {{ user_profile_json | tojson }};
+
+  // ── Session tracking state ──
+  window.ABHIHUB_SESSION_START = Date.now();
+  window.ABHIHUB_SESSION_ID = sessionStorage.getItem('ga_session_id') || 
+    ('session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
+  sessionStorage.setItem('ga_session_id', window.ABHIHUB_SESSION_ID);
+
+  // Page view tracking state
+  window.ABHIHUB_PAGE_VIEWS = 0;
+  window.ABHIHUB_FILE_VIEWS = 0;
+  window.ABHIHUB_DOWNLOADS = 0;
+  window.ABHIHUB_SEARCHES = 0;
+
+  // File stay time tracking
+  window.ABHIHUB_CURRENT_FILE = null;
+  window.ABHIHUB_FILE_OPEN_TIME = 0;
 
   function initializeAnalytics() {
     if (!getConsentChoice()) {
@@ -61,6 +78,8 @@
       window.gtag = function() { window.dataLayer.push(arguments); };
       window.gtag('js', new Date());
       window.gtag('consent', 'default', { analytics_storage: 'granted' });
+      
+      // ── Configure GA4 with custom dimensions ──
       window.gtag('config', 'G-EH5BGS9BEG', {
         page_path: window.location.pathname,
         page_title: document.title,
@@ -69,29 +88,390 @@
         allow_google_signals: false,
         allow_ad_personalization_signals: false
       });
-      window.gtag('set', { user_id: window.USER_ID || 'anonymous' });
+
+      // ── Set user ID ──
+      const profile = window.ABHIHUB_USER_PROFILE || {};
+      window.gtag('set', { user_id: profile.userId || 'anonymous' });
+
+      // ── Set comprehensive user properties ──
+      // NOTE: Do NOT send PII (email, mobile) to GA4 per Google ToS
+      // Use user_id (UUID) for user identification only
       window.gtag('set', {
         user_properties: {
-          user_type: '{{ "authenticated" if session.get("user") else "anonymous" }}',
+          // Identity (non-PII)
+          user_type: profile.isAuthenticated ? 'authenticated' : 'anonymous',
+          user_id: profile.userId || 'anonymous',
+          user_name: profile.name || '',  // Display name only - acceptable
+          
+          // Academic context
+          user_college: profile.college || '',
+          user_branch: profile.branch || '',
+          user_year_of_study: profile.yearOfStudy || '',
+          user_role: profile.role || 'anonymous',
+          
+          // Platform
           platform: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
-          app_version: '{{ app_version | default("1.0.0") }}'
+          app_version: '{{ app_version | default("1.0.0") }}',
+          
+          // Session
+          session_id: window.ABHIHUB_SESSION_ID,
+          session_start_time: new Date(window.ABHIHUB_SESSION_START).toISOString()
         }
       });
 
-      if (window.USER_ID && typeof window.gtag === 'function') {
-        window.gtag('event', 'session_start_custom', { logged_in: true });
+      // ── Send initial page view with full context ──
+      sendEnhancedPageView();
+
+      // ── Track session start for authenticated users ──
+      if (profile.isAuthenticated) {
+        window.gtag('event', 'session_start_custom', {
+          logged_in: true,
+          user_id: profile.userId,
+          // NO PII - user_email removed per GA4 ToS
+          user_name: profile.name,
+          college: profile.college,
+          branch: profile.branch,
+          year_of_study: profile.yearOfStudy
+        });
       }
+
+      // ── Track page performance ──
+      trackPagePerformance();
+
+      console.log('[GA4] Analytics initialized with user profile:', profile);
     };
   }
 
-  if (!getConsentChoice()) {
-    window.__ABHIHUB_ANALYTICS_DISABLED__ = true;
-    document.addEventListener('DOMContentLoaded', ensureConsentBanner);
-  } else {
-    initializeAnalytics();
+  // ── Enhanced Page View Tracking ──
+  function sendEnhancedPageView() {
+    if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+    
+    const profile = window.ABHIHUB_USER_PROFILE || {};
+    window.ABHIHUB_PAGE_VIEWS++;
+
+    window.gtag('event', 'page_view', {
+      page_title: document.title,
+      page_path: window.location.pathname,
+      page_location: window.location.href,
+      page_category: getPageCategory(),
+      page_name: document.title,
+      referrer: document.referrer,
+      session_id: window.ABHIHUB_SESSION_ID,
+      
+      // User context (NO PII - use user_id only per GA4 ToS)
+      user_id: profile.userId || 'anonymous',
+      user_name: profile.name || '',
+      user_college: profile.college || '',
+      user_branch: profile.branch || '',
+      user_year_of_study: profile.yearOfStudy || '',
+      user_role: profile.role || 'anonymous',
+      user_type: profile.isAuthenticated ? 'authenticated' : 'anonymous',
+      
+      // Session metrics
+      session_id: window.ABHIHUB_SESSION_ID,
+      session_page_views: window.ABHIHUB_PAGE_VIEWS,
+      session_file_views: window.ABHIHUB_FILE_VIEWS,
+      session_downloads: window.ABHIHUB_DOWNLOADS,
+      session_searches: window.ABHIHUB_SEARCHES,
+      time_on_site_seconds: Math.floor((Date.now() - window.ABHIHUB_SESSION_START) / 1000),
+      
+      // Technical
+      platform: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+      user_agent: navigator.userAgent,
+      screen_resolution: window.screen.width + 'x' + window.screen.height,
+      viewport_size: window.innerWidth + 'x' + window.innerHeight,
+      
+      // Content metadata
+      content_type: getContentType(),
+      subject: getSubjectFromPage(),
+      semester: getSemesterFromPage(),
+      year: getYearFromPage(),
+      branch: getBranchFromPage(),
+      
+      timestamp: new Date().toISOString()
+    });
+
+    // Also send to server-side endpoint
+    sendPageViewToServer();
   }
 
-  // ── Throttle helper — defined FIRST so AbhiHubTracking can use it ──
+  function getPageCategory() {
+    const path = window.location.pathname;
+    if (path === '/' || path === '/index.html') return 'home';
+    if (path.includes('/dashboard') || path.includes('/index')) return 'dashboard';
+    if (path.includes('/search') || path.includes('/browse')) return 'search';
+    if (path.includes('/resource')) return 'resource';
+    if (path.includes('/upload')) return 'upload';
+    if (path.includes('/profile') || path.includes('/account')) return 'profile';
+    if (path.includes('/subject')) return 'subject';
+    if (path.includes('/college')) return 'college';
+    if (path.includes('/chat')) return 'chat';
+    if (path.includes('/login') || path.includes('/signup')) return 'auth';
+    return 'general';
+  }
+
+  function getContentType() {
+    const path = window.location.pathname;
+    if (path.includes('/notes')) return 'notes';
+    if (path.includes('/pyq') || path.includes('/papers')) return 'pyq';
+    if (path.includes('/practicals')) return 'practicals';
+    if (path.includes('/resource')) return 'resource';
+    return 'unknown';
+  }
+
+  function getSubjectFromPage() {
+    const titleMatch = document.title.match(/(\w+)\s*-\s*(SE|FE|TE|BE)/i);
+    if (titleMatch) return titleMatch[1];
+    
+    const path = window.location.pathname;
+    const parts = path.split('/');
+    if (parts.length > 2 && parts[1] === 'subject') {
+      return parts[2].replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase());
+    }
+    return '';
+  }
+
+  function getSemesterFromPage() {
+    const titleMatch = document.title.match(/(SE|FE|TE|BE)/i);
+    if (titleMatch) {
+      const semesterMap = { 'SE': '1-2', 'FE': '3-4', 'TE': '5-6', 'BE': '7-8' };
+      return semesterMap[titleMatch[1].toUpperCase()] || '';
+    }
+    return '';
+  }
+
+  function getYearFromPage() {
+    const titleMatch = document.title.match(/(SE|FE|TE|BE)/i);
+    if (titleMatch) {
+      const yearMap = { 'SE': '1st Year', 'FE': '2nd Year', 'TE': '3rd Year', 'BE': '4th Year' };
+      return yearMap[titleMatch[1].toUpperCase()] || '';
+    }
+    return '';
+  }
+
+  function getBranchFromPage() {
+    const profile = window.ABHIHUB_USER_PROFILE || {};
+    return profile.branch || '';
+  }
+
+  function trackPagePerformance() {
+    if (window.performance && window.performance.timing) {
+      const timing = window.performance.timing;
+      const pageLoadTime = timing.loadEventEnd - timing.navigationStart;
+      const domContentLoadedTime = timing.domContentLoadedEventEnd - timing.navigationStart;
+      const timeToFirstByte = timing.responseStart - timing.navigationStart;
+
+      window.gtag('event', 'page_performance', {
+        page_load_time_ms: pageLoadTime,
+        dom_content_loaded_ms: domContentLoadedTime,
+        time_to_first_byte_ms: timeToFirstByte,
+        page_path: window.location.pathname,
+        device_type: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'mobile' : 'desktop'
+      });
+    }
+  }
+
+  // ── Server-side pageview logging ──
+  function sendPageViewToServer() {
+    if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+    
+    fetch('/api/analytics/pageview', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        page_path: window.location.pathname,
+        page_title: document.title,
+        page_location: window.location.href,
+        page_category: getPageCategory(),
+        referrer: document.referrer,
+        session_id: window.ABHIHUB_SESSION_ID
+      })
+    }).catch(e => console.warn('[GA4] Server pageview failed:', e));
+  }
+
+  // ── User Properties Update (called when profile changes) ──
+  function updateUserProperties(newProfile) {
+    if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+    if (!window.gtag || typeof window.gtag !== 'function') return;
+    
+    // NOTE: Do NOT send PII (email, mobile) to GA4 per Google ToS
+    window.gtag('set', { user_id: newProfile.userId || 'anonymous' });
+    window.gtag('set', {
+      user_properties: {
+        user_type: newProfile.isAuthenticated ? 'authenticated' : 'anonymous',
+        user_id: newProfile.userId || 'anonymous',
+        user_name: newProfile.name || '',
+        user_college: newProfile.college || '',
+        user_branch: newProfile.branch || '',
+        user_year_of_study: newProfile.yearOfStudy || '',
+        user_role: newProfile.role || 'anonymous'
+      }
+    });
+    
+    console.log('[GA4] User properties updated:', newProfile);
+  }
+
+  // ── Session Duration Tracking ──
+  let sessionEndHandled = false;
+
+  function sendSessionEnd() {
+    if (sessionEndHandled) return;
+    sessionEndHandled = true;
+    
+    if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+    
+    const sessionDuration = Math.floor((Date.now() - window.ABHIHUB_SESSION_START) / 1000);
+    
+    window.gtag('event', 'session_end', {
+      session_id: window.ABHIHUB_SESSION_ID,
+      session_duration_seconds: sessionDuration,
+      session_page_views: window.ABHIHUB_PAGE_VIEWS,
+      session_file_views: window.ABHIHUB_FILE_VIEWS,
+      session_downloads: window.ABHIHUB_DOWNLOADS,
+      session_searches: window.ABHIHUB_SEARCHES,
+      engagement_quality: calculateEngagementQuality(),
+      exit_page: window.location.pathname,
+      timestamp: new Date().toISOString()
+    });
+
+    // Use sendBeacon for reliable delivery on page unload (works even if browser is closing)
+    // Fall back to fetch if sendBeacon is not available
+    const sessionData = JSON.stringify({
+      session_id: window.ABHIHUB_SESSION_ID,
+      session_duration_seconds: sessionDuration,
+      page_views: window.ABHIHUB_PAGE_VIEWS,
+      file_views: window.ABHIHUB_FILE_VIEWS,
+      downloads: window.ABHIHUB_DOWNLOADS,
+      searches: window.ABHIHUB_SEARCHES,
+      engagement_quality: calculateEngagementQuality(),
+      exit_page: window.location.pathname
+    });
+
+    if (navigator.sendBeacon) {
+      // sendBeacon is more reliable on page unload - it doesn't get cancelled
+      const blob = new Blob([sessionData], { type: 'application/json' });
+      navigator.sendBeacon('/api/analytics/session-end', blob);
+    } else {
+      // Fallback to fetch for older browsers
+      fetch('/api/analytics/session-end', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: sessionData,
+        keepalive: true  // Keep connection alive during unload
+      }).catch(e => console.warn('[GA4] Session end failed:', e));
+    }
+  }
+
+  function calculateEngagementQuality() {
+    const duration = (Date.now() - window.ABHIHUB_SESSION_START) / 1000 / 60; // minutes
+    const score = Math.min(
+      (duration / 10 * 30) + // up to 30 for 10+ min
+      (window.ABHIHUB_PAGE_VIEWS * 10) + // up to 30 for 3+ pages
+      (window.ABHIHUB_FILE_VIEWS * 10) + // up to 20 for 2+ files
+      (window.ABHIHUB_DOWNLOADS > 0 ? 10 : 0) + // 10 for download
+      (window.ABHIHUB_SEARCHES > 0 ? 10 : 0), // 10 for search
+      100
+    );
+    
+    if (score >= 75) return 'high';
+    if (score >= 40) return 'medium';
+    return 'low';
+  }
+
+  // Track session end on page unload
+  window.addEventListener('beforeunload', sendSessionEnd);
+  
+  // Track session end on tab visibility change (user switches tabs)
+  document.addEventListener('visibilitychange', function() {
+    if (document.visibilityState === 'hidden') {
+      sendSessionEnd();
+    }
+  });
+
+  // ── File Stay Time Tracking ──
+  function trackFileOpen(fileName, fileType, fileId, subject, college, branch, year) {
+    if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+    
+    window.ABHIHUB_CURRENT_FILE = {
+      name: fileName,
+      type: fileType,
+      id: fileId,
+      subject: subject,
+      college: college,
+      branch: branch,
+      year: year
+    };
+    window.ABHIHUB_FILE_OPEN_TIME = Date.now();
+    window.ABHIHUB_FILE_VIEWS++;
+  }
+
+  function trackFileClose() {
+    if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+    if (!window.ABHIHUB_CURRENT_FILE) return;
+    
+    const timeSpent = Math.floor((Date.now() - window.ABHIHUB_FILE_OPEN_TIME) / 1000);
+    const file = window.ABHIHUB_CURRENT_FILE;
+    
+    window.gtag('event', 'file_view', {
+      file_name: file.name,
+      file_type: file.type,
+      document_id: file.id,
+      subject: file.subject,
+      college: file.college,
+      branch: file.branch,
+      year: file.year,
+      time_spent_seconds: timeSpent,
+      session_file_views: window.ABHIHUB_FILE_VIEWS,
+      session_duration_seconds: Math.floor((Date.now() - window.ABHIHUB_SESSION_START) / 1000),
+      engagement_quality: calculateEngagementQuality(),
+      // NO PII - use user_id only per GA4 ToS
+      user_id: window.ABHIHUB_USER_PROFILE.userId || 'anonymous',
+      user_college: window.ABHIHUB_USER_PROFILE.college || '',
+      user_branch: window.ABHIHUB_USER_PROFILE.branch || '',
+      user_year_of_study: window.ABHIHUB_USER_PROFILE.yearOfStudy || '',
+      page_path: window.location.pathname,
+      timestamp: new Date().toISOString()
+    });
+
+    // GA4 Ecommerce: view_item
+    window.gtag('event', 'view_item', {
+      items: [{
+        item_id: 'file_' + (file.id || file.name).replace(/[^a-zA-Z0-9]/g, '_'),
+        item_name: file.name,
+        item_category: file.type,
+        item_category2: file.subject,
+        item_category3: file.branch,
+        item_variant: file.year,
+        price: 0,
+        quantity: 1
+      }]
+    });
+
+    // Send to server
+    fetch('/api/analytics/file-access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        document_id: file.id,
+        file_name: file.name,
+        file_type: file.type,
+        subject: file.subject,
+        college: file.college,
+        branch: file.branch,
+        year: file.year,
+        time_spent_seconds: timeSpent,
+        action: 'view',
+        session_id: window.ABHIHUB_SESSION_ID
+      })
+    }).catch(e => console.warn('[GA4] File access log failed:', e));
+
+    console.log('[GA4] File viewed:', file.name, '| Time:', timeSpent + 's');
+    
+    window.ABHIHUB_CURRENT_FILE = null;
+    window.ABHIHUB_FILE_OPEN_TIME = 0;
+  }
+
+  // ── Throttle helper ──
   window.gaThrottle = function(fn, limit) {
     var inThrottle;
     return function() {
@@ -104,38 +484,567 @@
     };
   };
 
-  // ==========================================
-  // PAGE VIEW TRACKING WITH CUSTOM DIMENSIONS
-  // ==========================================
-  function trackPageView(pageName, pageCategory) {
-    gtag('event', 'page_view', {
-      'page_title': document.title,
-      'page_path': window.location.pathname,
-      'page_location': window.location.href,
-      'page_category': pageCategory || 'general',
-      'page_name': pageName || document.title,
-      'referrer': document.referrer,
-      'session_id': getOrCreateSessionId()
-    });
-  }
-
-  // ==========================================
-  // SESSION MANAGEMENT
-  // ==========================================
-  function getOrCreateSessionId() {
-    let sessionId = sessionStorage.getItem('ga_session_id');
-    if (!sessionId) {
-      sessionId = 'session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-      sessionStorage.setItem('ga_session_id', sessionId);
+  // ── Safe gtag wrapper ──
+  function safeGtag() {
+    if (typeof window.gtag === 'function') {
+      window.gtag.apply(window, arguments);
     }
-    return sessionId;
   }
 
   // ==========================================
-  // ENHANCED DATA LAYER & CUSTOM DIMENSIONS
+  // FILE INTERACTION TRACKING
+  // ==========================================
+  window.AbhiHubTracking = {
+    // Track PDF/File View (Enhanced with Ecommerce, Throttled)
+    trackFileView: window.gaThrottle(function (fileName, fileType, fileId, subject, college, branch, year) {
+      trackFileOpen(fileName, fileType, fileId, subject, college, branch, year);
+      
+      const profile = window.ABHIHUB_USER_PROFILE || {};
+      const metadata = getContentMetadata();
+      const sizeBucket = getFileSizeBucket(0);
+
+      safeGtag('event', 'file_view', {
+        'file_name': fileName,
+        'file_type': fileType || 'unknown',
+        'document_id': fileId || '',
+        'subject': subject || metadata.subject,
+        'college': college || profile.college,
+        'branch': branch || profile.branch,
+        'year': year || metadata.year,
+        'file_size_kb': 0,
+        'file_size_bucket': sizeBucket,
+        'content_type': metadata.content_type,
+        'semester': metadata.semester,
+        'user_cohort': getUserCohort(),
+        'engagement_quality': calculateEngagementQuality(),
+        'session_quality_score': calculateSessionQuality(),
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString(),
+        // NO PII - use user_id only per GA4 ToS
+        'user_id': profile.userId || 'anonymous',
+        'user_name': profile.name || '',
+        'user_college': profile.college || '',
+        'user_branch': profile.branch || '',
+        'user_year_of_study': profile.yearOfStudy || ''
+      });
+
+      safeGtag('event', 'view_item', {
+        'items': [{
+          'item_id': 'file_' + (fileName || 'unknown').replace(/[^a-zA-Z0-9]/g, '_'),
+          'item_name': fileName,
+          'item_category': metadata.content_type,
+          'item_category2': subject || metadata.subject,
+          'item_category3': branch || profile.branch,
+          'item_variant': fileType || 'unknown',
+          'item_brand': year || metadata.year,
+          'price': 0,
+          'quantity': 1
+        }]
+      });
+
+      console.log('[GA4] File viewed:', fileName);
+    }, 2000),
+
+    // Track File Close (with stay time)
+    trackFileClose: function () {
+      trackFileClose();
+    },
+
+    // Track File Download (Enhanced with Ecommerce)
+    trackFileDownload: function (fileName, fileType, fileId, subject, college, branch, year) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      window.ABHIHUB_DOWNLOADS++;
+      
+      const profile = window.ABHIHUB_USER_PROFILE || {};
+      const metadata = getContentMetadata();
+      const sizeBucket = getFileSizeBucket(0);
+
+      safeGtag('event', 'file_download', {
+        'file_name': fileName,
+        'file_type': fileType || 'unknown',
+        'document_id': fileId || '',
+        'subject': subject || metadata.subject,
+        'college': college || profile.college,
+        'branch': branch || profile.branch,
+        'year': year || metadata.year,
+        'file_size_bucket': sizeBucket,
+        'content_type': metadata.content_type,
+        'user_cohort': getUserCohort(),
+        'engagement_quality': calculateEngagementQuality(),
+        'session_downloads': window.ABHIHUB_DOWNLOADS,
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString(),
+        // NO PII - use user_id only per GA4 ToS
+        'user_id': profile.userId || 'anonymous',
+        'user_name': profile.name || '',
+        'user_college': profile.college || '',
+        'user_branch': profile.branch || '',
+        'user_year_of_study': profile.yearOfStudy || ''
+      });
+
+      safeGtag('event', 'select_content', {
+        'content_type': 'file',
+        'item_id': 'file_' + (fileName || 'unknown').replace(/[^a-zA-Z0-9]/g, '_'),
+        'content_id': fileName,
+        'items': [{
+          'item_id': 'file_' + (fileName || 'unknown').replace(/[^a-zA-Z0-9]/g, '_'),
+          'item_name': fileName,
+          'item_category': metadata.content_type,
+          'item_category2': subject || metadata.subject,
+          'item_variant': fileType,
+          'price': 0,
+          'quantity': 1
+        }]
+      });
+
+      console.log('[GA4] Download:', fileName);
+    },
+
+    // Track File Search/Filter (Enhanced)
+    trackSearch: function (searchQuery, resultCount, searchType, refinementLevel) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      window.ABHIHUB_SEARCHES++;
+      
+      const isZeroResults = resultCount === 0;
+
+      safeGtag('event', 'search', {
+        'search_term': searchQuery,
+        'search_type': searchType || 'general',
+        'result_count': resultCount || 0,
+        'search_refinement_level': refinementLevel || 0,
+        'zero_results': isZeroResults,
+        'user_cohort': getUserCohort(),
+        'session_searches': window.ABHIHUB_SEARCHES,
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString(),
+        'user_id': window.ABHIHUB_USER_PROFILE.userId || 'anonymous',
+        'user_college': window.ABHIHUB_USER_PROFILE.college || '',
+        'user_branch': window.ABHIHUB_USER_PROFILE.branch || ''
+      });
+
+      console.log('[GA4] Search:', searchQuery, '| Results:', resultCount, isZeroResults ? '(ZERO)' : '');
+    },
+
+    // Track Subject Click/Browse
+    trackSubjectAccess: function (subjectName, contentType, college, branch) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      const profile = window.ABHIHUB_USER_PROFILE || {};
+      safeGtag('event', 'subject_access', {
+        'subject_name': subjectName,
+        'content_type': contentType || 'notes',
+        'college': college || profile.college,
+        'branch': branch || profile.branch,
+        'user_id': profile.userId || 'anonymous',
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[GA4] Subject accessed:', subjectName);
+    },
+
+    // Track User Authentication
+    trackLogin: function (loginMethod, userId, userEmail, userName) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      safeGtag('event', 'login', {
+        'method': loginMethod || 'email',
+        'user_id': userId || 'unknown',
+        // NO PII - userEmail removed per GA4 ToS
+        'user_name': userName || '',
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[GA4] User login:', loginMethod);
+    },
+
+    trackSignup: function (signupMethod, userId, userEmail, userName) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      safeGtag('event', 'sign_up', {
+        'method': signupMethod || 'email',
+        'user_id': userId || 'unknown',
+        // NO PII - userEmail removed per GA4 ToS
+        'user_name': userName || '',
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[GA4] User signup:', signupMethod);
+    },
+
+    trackLogout: function (userId, sessionDuration) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      safeGtag('event', 'logout', {
+        'user_id': userId || 'unknown',
+        'session_duration_seconds': sessionDuration || 0,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[GA4] User logout');
+    },
+
+    // Track Premium Signup/Upgrade
+    trackPremiumInteraction: function (action, planType) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      safeGtag('event', 'premium_interaction', {
+        'action': action,
+        'plan_type': planType || 'basic',
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[GA4] Premium action:', action);
+    },
+
+    // Track Share Action
+    trackShare: function (shareMethod, contentType, contentName) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      const profile = window.ABHIHUB_USER_PROFILE || {};
+      safeGtag('event', 'share', {
+        'method': shareMethod || 'copy_link',
+        'content_type': contentType || 'file',
+        'content_name': contentName || 'unknown',
+        'user_id': profile.userId || 'anonymous',
+        // NO PII - user_email removed per GA4 ToS
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[GA4] Content shared:', contentName, 'via', shareMethod);
+    },
+
+    // Track File Upload
+    trackUpload: function (fileName, fileType, fileSize, fileId) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      const profile = window.ABHIHUB_USER_PROFILE || {};
+      safeGtag('event', 'file_upload', {
+        'file_name': fileName,
+        'file_type': fileType || 'unknown',
+        'file_size_kb': fileSize || 0,
+        'document_id': fileId || '',
+        'user_id': profile.userId || 'anonymous',
+        // NO PII - user_email/user_name removed per GA4 ToS
+        'user_college': profile.college || '',
+        'user_branch': profile.branch || '',
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[GA4] File uploaded:', fileName);
+    },
+
+    // Track Filter/Sort Action
+    trackFilterAction: function (filterType, filterValue, resultCount) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      const profile = window.ABHIHUB_USER_PROFILE || {};
+      safeGtag('event', 'filter_applied', {
+        'filter_type': filterType,
+        'filter_value': filterValue,
+        'result_count': resultCount || 0,
+        'user_id': profile.userId || 'anonymous',
+        'user_college': profile.college || '',
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[GA4] Filter applied:', filterType, '=', filterValue);
+    },
+
+    // Track Page Section Engagement
+    trackSectionEngagement: function (sectionName, engagementType) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      safeGtag('event', 'section_engagement', {
+        'section_name': sectionName,
+        'engagement_type': engagementType || 'view',
+        'page_path': window.location.pathname,
+        'scroll_depth': getScrollPercentage(),
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[GA4] Section engagement:', sectionName);
+    },
+
+    // Track Click on Important Elements
+    trackElementClick: function (elementName, elementType, actionValue) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      const profile = window.ABHIHUB_USER_PROFILE || {};
+      safeGtag('event', 'element_click', {
+        'element_name': elementName,
+        'element_type': elementType || 'button',
+        'action_value': actionValue || 'click',
+        'user_id': profile.userId || 'anonymous',
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[GA4] Element clicked:', elementName);
+    },
+
+    // Track Feature Usage and Experience
+    trackFeatureUsage: function (featureName, featureStatus, experienceRating, feedbackMsg) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      const profile = window.ABHIHUB_USER_PROFILE || {};
+      safeGtag('event', 'feature_usage', {
+        'feature_name': featureName,
+        'feature_status': featureStatus || 'used',
+        'experience_rating': experienceRating || 0,
+        'feedback_message': feedbackMsg || '',
+        'user_id': profile.userId || 'anonymous',
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[GA4] Feature used:', featureName);
+    },
+
+    // Track Error Events (Enhanced with user context)
+    trackError: function (errorType, errorMessage, severity, pagePath) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      const profile = window.ABHIHUB_USER_PROFILE || {};
+      const errorData = {
+        error_type: errorType,
+        error_message: errorMessage,
+        severity: severity || 'warning',
+        page_path: pagePath || window.location.pathname,
+        timestamp: new Date().toISOString()
+      };
+
+      safeGtag('event', 'app_error', {
+        'error_type': errorType,
+        'error_message': errorMessage,
+        'severity': severity || 'warning',
+        'user_id': profile.userId || 'anonymous',
+        // NO PII - user_email/user_name removed per GA4 ToS
+        'user_college': profile.college || '',
+        'user_branch': profile.branch || '',
+        'page_path': pagePath || window.location.pathname,
+        'session_duration_seconds': Math.floor((Date.now() - window.ABHIHUB_SESSION_START) / 1000),
+        'timestamp': new Date().toISOString()
+      });
+
+      // Send to server-side error tracking
+      fetch('/api/analytics/error', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(errorData)
+      }).catch(e => console.warn('[GA4] Error log to server failed:', e));
+
+      console.log('[GA4] Error tracked:', errorType, '| Severity:', severity);
+    },
+
+    // Track Performance Metrics
+    trackPerformance: function () {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      if (window.performance && window.performance.timing) {
+        const timing = window.performance.timing;
+        const pageLoadTime = timing.loadEventEnd - timing.navigationStart;
+        const domContentLoadedTime = timing.domContentLoadedEventEnd - timing.navigationStart;
+        const timeToFirstByte = timing.responseStart - timing.navigationStart;
+
+        safeGtag('event', 'page_performance', {
+          'page_load_time_ms': pageLoadTime,
+          'dom_content_loaded_ms': domContentLoadedTime,
+          'time_to_first_byte_ms': timeToFirstByte,
+          'page_path': window.location.pathname,
+          'timestamp': new Date().toISOString()
+        });
+      }
+    },
+
+    // Track Form Submission
+    trackFormSubmission: function (formName, formData) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      const profile = window.ABHIHUB_USER_PROFILE || {};
+      safeGtag('event', 'form_submit', {
+        'form_name': formName,
+        'form_data': formData || {},
+        'user_id': profile.userId || 'anonymous',
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+      console.log('[GA4] Form submitted:', formName);
+    },
+
+    // Track Engagement Time (periodic + on unload)
+    trackEngagementTime: function () {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      const timeOnSite = Math.floor((Date.now() - window.ABHIHUB_SESSION_START) / 1000);
+      
+      safeGtag('event', 'engagement_time', {
+        'time_on_site_seconds': timeOnSite,
+        'session_page_views': window.ABHIHUB_PAGE_VIEWS,
+        'session_file_views': window.ABHIHUB_FILE_VIEWS,
+        'session_downloads': window.ABHIHUB_DOWNLOADS,
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+    },
+
+    // Track API Latency
+    trackApiLatency: function (endpoint, latencyMs, statusCode) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      safeGtag('event', 'api_latency', {
+        'endpoint': endpoint,
+        'latency_ms': latencyMs,
+        'status_code': statusCode,
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+    },
+
+    // Track Notification Open
+    trackNotificationOpen: function (unreadCount) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      
+      const profile = window.ABHIHUB_USER_PROFILE || {};
+      safeGtag('event', 'notification_open', {
+        'unread_count': unreadCount || 0,
+        'user_id': profile.userId || 'anonymous',
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+    },
+
+    // Track Study Pass Events
+    trackStudyPassDismiss: function () {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      safeGtag('event', 'study_pass_dismiss', {
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+    },
+
+    trackStudyPassPopup: function () {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      safeGtag('event', 'study_pass_popup', {
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+    },
+
+    trackStudyPassIgnored: function () {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      safeGtag('event', 'study_pass_ignored', {
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+    },
+
+    trackStudyPassUploadClick: function () {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      safeGtag('event', 'study_pass_upload_click', {
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+    },
+
+    trackStudyPassStoreRoomClick: function () {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      safeGtag('event', 'study_pass_store_room_click', {
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+    },
+
+    // Track Camera Upload
+    trackCameraUpload: function () {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      safeGtag('event', 'camera_upload', {
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+    },
+
+    // Track Upload Abandoned
+    trackUploadAbandoned: function (stage) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      safeGtag('event', 'upload_abandoned', {
+        'stage': stage,
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+    },
+
+    // Track Upload Failed
+    trackUploadFailed: function (reason, errorType, method) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      safeGtag('event', 'upload_failed', {
+        'reason': reason,
+        'error_type': errorType,
+        'method': method,
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+    },
+
+    // Track Upload Started
+    trackUploadStarted: function (count, method, category) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      safeGtag('event', 'upload_started', {
+        'count': count,
+        'method': method,
+        'category': category,
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+    },
+
+    // Track Upload Completed
+    trackUploadCompleted: function (count, method, types, totalSizeKb) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      const profile = window.ABHIHUB_USER_PROFILE || {};
+      safeGtag('event', 'upload_completed', {
+        'count': count,
+        'method': method,
+        'types': types,
+        'total_size_kb': totalSizeKb,
+        'user_id': profile.userId || 'anonymous',
+        // NO PII - user_email removed per GA4 ToS
+        'page_path': window.location.pathname,
+        'timestamp': new Date().toISOString()
+      });
+    },
+
+    // Track XP Earned
+    trackXpEarned: function (xp, score, count) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      safeGtag('event', 'xp_earned', {
+        'xp': xp,
+        'score': score,
+        'count': count,
+        'timestamp': new Date().toISOString()
+      });
+    },
+
+    // Track Badge Unlocked
+    trackBadgeUnlocked: function (badge) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      safeGtag('event', 'badge_unlocked', {
+        'badge': badge,
+        'timestamp': new Date().toISOString()
+      });
+    },
+
+    // Track Ad Click
+    trackEvent: function (eventName, params) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      safeGtag('event', eventName, params || {});
+    },
+
+    // Track Download (legacy compat)
+    trackDownload: function (fileName, fileType, subject) {
+      if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
+      this.trackFileDownload(fileName, fileType, '', subject, '', '', '');
+    }
+  };
+
+  // ==========================================
+  // HELPER FUNCTIONS
   // ==========================================
 
-  // Helper: Get content metadata from page
   function getContentMetadata() {
     const path = window.location.pathname;
     const metadata = {
@@ -146,29 +1055,28 @@
       branch: 'unknown'
     };
 
-    // Extract from URL patterns
     if (path.includes('/notes')) metadata.content_type = 'notes';
     else if (path.includes('/pyq') || path.includes('/papers')) metadata.content_type = 'pyq';
     else if (path.includes('/practicals')) metadata.content_type = 'practicals';
 
-    // Try to get from page title or meta tags
     const titleMatch = document.title.match(/(\w+)\s*-\s*(SE|FE|TE|BE)/i);
     if (titleMatch) {
       metadata.subject = titleMatch[1];
       metadata.year = titleMatch[2].toUpperCase();
     }
 
+    const profile = window.ABHIHUB_USER_PROFILE || {};
+    metadata.branch = profile.branch || '';
+
     return metadata;
   }
 
-  // Helper: Calculate file size bucket
   function getFileSizeBucket(sizeKB) {
-    if (sizeKB < 1024) return 'small'; // < 1MB
-    if (sizeKB < 5120) return 'medium'; // 1-5MB
-    return 'large'; // > 5MB
+    if (sizeKB < 1024) return 'small';
+    if (sizeKB < 5120) return 'medium';
+    return 'large';
   }
 
-  // Helper: Get user cohort (weeks since registration)
   function getUserCohort() {
     const regDate = localStorage.getItem('registration_date');
     if (!regDate) return 'unknown';
@@ -183,31 +1091,19 @@
     return 'month_3plus';
   }
 
-  // Session-level tracking
-  let sessionData = {
-    downloads: 0,
-    searches: 0,
-    fileViews: 0,
-    pageViews: 0,
-    interactions: 0,
-    startTime: Date.now()
-  };
-
-  // Helper: Calculate session quality score (0-100)
   function calculateSessionQuality() {
-    const timeOnSite = (Date.now() - sessionData.startTime) / 1000 / 60; // minutes
+    const timeOnSite = (Date.now() - window.ABHIHUB_SESSION_START) / 1000 / 60;
 
     let score = 0;
-    score += Math.min(timeOnSite / 3 * 20, 20); // Max 20 for 3+ min
-    score += Math.min(sessionData.pageViews * 10, 30); // Max 30 for 3 pages
-    score += Math.min(sessionData.downloads * 15, 30); // Max 30 for 2 downloads
-    score += sessionData.searches > 0 ? 10 : 0; // 10 for search usage
-    score += sessionData.interactions > 2 ? 10 : 0; // 10 for multiple interactions
+    score += Math.min(timeOnSite / 3 * 20, 20);
+    score += Math.min(window.ABHIHUB_PAGE_VIEWS * 10, 30);
+    score += Math.min(window.ABHIHUB_DOWNLOADS * 15, 30);
+    score += window.ABHIHUB_SEARCHES > 0 ? 10 : 0;
+    score += window.ABHIHUB_FILE_VIEWS > 2 ? 10 : 0;
 
     return Math.min(Math.round(score), 100);
   }
 
-  // Helper: Get engagement quality bucket
   function getEngagementQuality() {
     const score = calculateSessionQuality();
     if (score >= 75) return 'high';
@@ -215,693 +1111,31 @@
     return 'low';
   }
 
-  // Helper: Get content age in days
-  function getContentAge(uploadDate) {
-    if (!uploadDate) return null;
-    const days = Math.floor((Date.now() - new Date(uploadDate)) / (1000 * 60 * 60 * 24));
-    return days;
+  function getScrollPercentage() {
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    const scrollHeight = document.documentElement.scrollHeight - document.documentElement.clientHeight;
+    if (scrollHeight === 0) return 0;
+    return Math.round((scrollTop / scrollHeight) * 100);
+  }
+
+  // ==========================================
+  // INITIALIZE
+  // ==========================================
+
+  if (!getConsentChoice()) {
+    window.__ABHIHUB_ANALYTICS_DISABLED__ = true;
+    document.addEventListener('DOMContentLoaded', ensureConsentBanner);
+  } else {
+    initializeAnalytics();
   }
 
   // Push enhanced data layer on page load
-  window.dataLayer = window.dataLayer || [];
   window.dataLayer.push({
     'event': 'enhanced_page_data',
     'page_metadata': getContentMetadata(),
     'user_cohort': getUserCohort(),
-    'session_id': getOrCreateSessionId(),
-    'platform': /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'mobile' : 'desktop'
+    'session_id': window.ABHIHUB_SESSION_ID,
+    'platform': /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
+    'user_profile': window.ABHIHUB_USER_PROFILE
   });
-
-  // ==========================================
-  // FILE INTERACTION TRACKING
-  // ==========================================
-  window.AbhiHubTracking = {
-    // Track PDF/File View (Enhanced with Ecommerce, Throttled)
-    trackFileView: gaThrottle(function (fileName, fileType, subject, fileSize, uploadDate) {
-      sessionData.fileViews++;
-      sessionData.interactions++;
-
-      const metadata = getContentMetadata();
-      const sizeBucket = getFileSizeBucket(fileSize || 0);
-
-      // Standard event
-      safeGtag('event', 'file_view', {
-        'file_name': fileName,
-        'file_type': fileType || 'unknown',
-        'subject': subject || metadata.subject,
-        'file_size_kb': fileSize || 0,
-        'file_size_bucket': sizeBucket,
-        'content_type': metadata.content_type,
-        'semester': metadata.semester,
-        'year': metadata.year,
-        'user_cohort': getUserCohort(),
-        'engagement_quality': getEngagementQuality(),
-        'session_quality_score': calculateSessionQuality(),
-        'content_age_days': getContentAge(uploadDate),
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString(),
-        'user_id': window.USER_ID || 'anonymous',
-        'user_email': '{{ session.get("user", {}).get("email", "anonymous") | e }}',
-        'user_name': '{{ session.get("user", {}).get("name", "anonymous") | e }}'
-      });
-
-      // GA4 Ecommerce: view_item
-      safeGtag('event', 'view_item', {
-        'items': [{
-          'item_id': 'file_' + fileName.replace(/[^a-zA-Z0-9]/g, '_'),
-          'item_name': fileName,
-          'item_category': metadata.content_type,
-          'item_category2': subject || metadata.subject,
-          'item_category3': metadata.semester,
-          'item_variant': fileType || 'unknown',
-          'item_brand': metadata.year,
-          'price': 0,
-          'quantity': 1
-        }]
-      });
-
-      console.log('[Analytics] File viewed:', fileName, '| Quality:', getEngagementQuality());
-    }, 2000),
-
-    // Track File Download (Enhanced with Ecommerce)
-    trackFileDownload: function (fileName, fileType, subject, fileSize) {
-      sessionData.downloads++;
-      sessionData.interactions++;
-
-      const metadata = getContentMetadata();
-      const sizeBucket = getFileSizeBucket(fileSize || 0);
-
-      // Standard download event
-      gtag('event', 'file_download', {
-        'file_name': fileName,
-        'file_type': fileType || 'unknown',
-        'subject': subject || metadata.subject,
-        'file_size_bucket': sizeBucket,
-        'content_type': metadata.content_type,
-        'user_cohort': getUserCohort(),
-        'engagement_quality': getEngagementQuality(),
-        'session_downloads': sessionData.downloads,
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString(),
-        'user_id': window.USER_ID || 'anonymous',
-        'user_email': '{{ session.get("user", {}).get("email", "anonymous") | e }}',
-        'user_name': '{{ session.get("user", {}).get("name", "anonymous") | e }}'
-      });
-
-      // GA4 Ecommerce: select_content (download is like adding to cart)
-      gtag('event', 'select_content', {
-        'content_type': 'file',
-        'item_id': 'file_' + fileName.replace(/[^a-zA-Z0-9]/g, '_'),
-        'content_id': fileName,
-        'items': [{
-          'item_id': 'file_' + fileName.replace(/[^a-zA-Z0-9]/g, '_'),
-          'item_name': fileName,
-          'item_category': metadata.content_type,
-          'item_category2': subject || metadata.subject,
-          'item_variant': fileType,
-          'price': 0,
-          'quantity': 1
-        }]
-      });
-
-      console.log('[Analytics] Download #' + sessionData.downloads + ':', fileName);
-    },
-
-    // Track File Search/Filter (Enhanced)
-    trackSearch: function (searchQuery, resultCount, searchType, refinementLevel) {
-      sessionData.searches++;
-      sessionData.interactions++;
-
-      const isZeroResults = resultCount === 0;
-
-      gtag('event', 'search', {
-        'search_term': searchQuery,
-        'search_type': searchType || 'general',
-        'result_count': resultCount || 0,
-        'search_refinement_level': refinementLevel || 0,
-        'zero_results': isZeroResults,
-        'user_cohort': getUserCohort(),
-        'session_searches': sessionData.searches,
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
-      });
-
-      console.log('[Analytics] Search:', searchQuery, '| Results:', resultCount, isZeroResults ? '(ZERO)' : '');
-    },
-
-    // Track Subject Click/Browse
-    trackSubjectAccess: function (subjectName, contentType) {
-      gtag('event', 'subject_access', {
-        'subject_name': subjectName,
-        'content_type': contentType || 'notes',
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] Subject accessed:', subjectName);
-    },
-
-    // Track User Authentication
-    trackLogin: function (loginMethod, userId) {
-      gtag('event', 'login', {
-        'method': loginMethod || 'email',
-        'user_id': userId || 'unknown',
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] User login:', loginMethod);
-    },
-
-    trackSignup: function (signupMethod, userId) {
-      gtag('event', 'sign_up', {
-        'method': signupMethod || 'email',
-        'user_id': userId || 'unknown',
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] User signup:', signupMethod);
-    },
-
-    trackLogout: function (userId) {
-      gtag('event', 'logout', {
-        'user_id': userId || 'unknown',
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] User logout');
-    },
-
-    // Track Premium Signup/Upgrade
-    trackPremiumInteraction: function (action, planType) {
-      gtag('event', 'premium_interaction', {
-        'action': action,
-        'plan_type': planType || 'basic',
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] Premium action:', action);
-    },
-
-    // Track Share Action
-    trackShare: function (shareMethod, contentType, contentName) {
-      gtag('event', 'share', {
-        'method': shareMethod || 'copy_link',
-        'content_type': contentType || 'file',
-        'content_name': contentName || 'unknown',
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] Content shared:', contentName, 'via', shareMethod);
-    },
-
-    // Track File Upload
-    trackUpload: function (fileName, fileType, fileSize) {
-      gtag('event', 'file_upload', {
-        'file_name': fileName,
-        'file_type': fileType || 'unknown',
-        'file_size_kb': fileSize || 0,
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] File uploaded:', fileName);
-    },
-
-    // Track Filter/Sort Action
-    trackFilterAction: function (filterType, filterValue, resultCount) {
-      gtag('event', 'filter_applied', {
-        'filter_type': filterType,
-        'filter_value': filterValue,
-        'result_count': resultCount || 0,
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] Filter applied:', filterType, '=', filterValue);
-    },
-
-    // Track Page Section Engagement
-    trackSectionEngagement: function (sectionName, engagementType) {
-      gtag('event', 'section_engagement', {
-        'section_name': sectionName,
-        'engagement_type': engagementType || 'view',
-        'page_path': window.location.pathname,
-        'scroll_depth': getScrollPercentage(),
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] Section engagement:', sectionName);
-    },
-
-    // Track Click on Important Elements
-    trackElementClick: function (elementName, elementType, actionValue) {
-      gtag('event', 'element_click', {
-        'element_name': elementName,
-        'element_type': elementType || 'button',
-        'action_value': actionValue || 'click',
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] Element clicked:', elementName);
-    },
-
-    // Track Feature Usage and Experience
-    trackFeatureUsage: function (featureName, featureStatus, experienceRating, feedbackMsg) {
-      gtag('event', 'feature_usage', {
-        'feature_name': featureName,
-        'feature_status': featureStatus || 'used',
-        'experience_rating': experienceRating || 0,
-        'feedback_message': feedbackMsg || '',
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] Feature used:', featureName, '| Status:', featureStatus, '| Exp:', experienceRating);
-    },
-
-    // Track Error Events
-    trackError: function (errorType, errorMessage, severity) {
-      gtag('event', 'app_error', {
-        'error_type': errorType,
-        'error_message': errorMessage,
-        'severity': severity || 'warning',
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] Error tracked:', errorType);
-    },
-
-    // Track Performance Metrics
-    trackPerformance: function () {
-      if (window.performance && window.performance.timing) {
-        const timing = window.performance.timing;
-        const navigation = window.performance.navigation;
-
-        const pageLoadTime = timing.loadEventEnd - timing.navigationStart;
-        const domContentLoadedTime = timing.domContentLoadedEventEnd - timing.navigationStart;
-        const timeToFirstByte = timing.responseStart - timing.navigationStart;
-
-        gtag('event', 'page_performance', {
-          'page_load_time_ms': pageLoadTime,
-          'dom_content_loaded_ms': domContentLoadedTime,
-          'time_to_first_byte_ms': timeToFirstByte,
-          'page_path': window.location.pathname
-        });
-
-        console.log('[Analytics] Performance: Load=' + pageLoadTime + 'ms, DCL=' + domContentLoadedTime + 'ms');
-      }
-    },
-
-    // Track Form Submission
-    trackFormSubmission: function (formName, formData) {
-      gtag('event', 'form_submit', {
-        'form_name': formName,
-        'form_fields': Object.keys(formData || {}).join(','),
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] Form submitted:', formName);
-    },
-
-    // Track Exception/Custom Events
-    trackException: function (description, isFatal) {
-      gtag('event', 'exception', {
-        'description': description,
-        'fatal': isFatal || false,
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] Exception:', description);
-    },
-
-    // Track Time on Page (engagement)
-    trackTimeOnPage: function (timeSeconds) {
-      gtag('event', 'engagement_time', {
-        'time_on_page_seconds': timeSeconds,
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] Time on page:', timeSeconds, 'seconds');
-    },
-
-    // Track Content Impression (for recommendation tracking)
-    trackContentImpression: function (contentName, contentType, contentId) {
-      gtag('event', 'view_item', {
-        'items': [{
-          'item_name': contentName,
-          'item_category': contentType,
-          'item_id': contentId
-        }],
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] Content impression:', contentName);
-    },
-
-    // Track List View (for file listing pages)
-    trackItemList: function (listName, items) {
-      gtag('event', 'view_item_list', {
-        'item_list_name': listName,
-        'items': items.map((item, index) => ({
-          'item_id': 'file_' + (item.name || item.fileName || 'unknown').replace(/[^a-zA-Z0-9]/g, '_'),
-          'item_name': item.name || item.fileName,
-          'item_category': item.category || item.contentType || 'unknown',
-          'item_category2': item.subject,
-          'item_variant': item.type || item.fileType,
-          'index': index,
-          'price': 0,
-          'quantity': 1
-        }))
-      });
-
-      console.log('[Analytics] Item list viewed:', listName, '|', items.length, 'items');
-    },
-
-    // === FUNNEL TRACKING ===
-    // Funnel 1: Discovery to Download
-    trackDiscoveryFunnel: function (step) {
-      const funnel = 'discovery_to_download';
-      const validSteps = ['page_view', 'search_or_browse', 'file_view', 'file_download'];
-
-      if (!validSteps.includes(step)) return;
-
-      gtag('event', 'funnel_step', {
-        'funnel_name': funnel,
-        'funnel_step': step,
-        'funnel_step_number': validSteps.indexOf(step) + 1,
-        'session_quality': calculateSessionQuality(),
-        'timestamp': new Date().toISOString()
-      });
-
-      // Track in localStorage for completion analysis
-      const funnelData = JSON.parse(localStorage.getItem('funnel_' + funnel) || '[]');
-      funnelData.push({ step, time: Date.now() });
-      localStorage.setItem('funnel_' + funnel, JSON.stringify(funnelData));
-
-      console.log('[Analytics] Funnel:', funnel, '| Step:', step);
-    },
-
-    // Funnel 2: New User Activation
-    trackActivationFunnel: function (step) {
-      const funnel = 'new_user_activation';
-      const validSteps = ['first_visit', 'sign_up', 'first_file_view', 'first_download'];
-
-      if (!validSteps.includes(step)) return;
-
-      gtag('event', 'funnel_step', {
-        'funnel_name': funnel,
-        'funnel_step': step,
-        'funnel_step_number': validSteps.indexOf(step) + 1,
-        'user_cohort': getUserCohort(),
-        'timestamp': new Date().toISOString()
-      });
-
-      console.log('[Analytics] Activation Funnel | Step:', step);
-    },
-
-    // Funnel 3: Premium Conversion
-    trackPremiumFunnel: function (step) {
-      const funnel = 'premium_conversion';
-      const validSteps = ['premium_page_view', 'view_plans', 'start_checkout', 'complete_purchase'];
-
-      if (!validSteps.includes(step)) return;
-
-      gtag('event', 'funnel_step', {
-        'funnel_name': funnel,
-        'funnel_step': step,
-        'funnel_step_number': validSteps.indexOf(step) + 1,
-        'user_type': '{{ "authenticated" if session.get("user") else "anonymous" }}',
-        'timestamp': new Date().toISOString()
-      });
-
-      console.log('[Analytics] Premium Funnel | Step:', step);
-    }
-  };
-
-  // ==========================================
-  // SAFE GTAG WRAPPER (ad-blocker & idempotency guard)
-  // ==========================================
-  window._firedEvents = window._firedEvents || {};
-  window.safeGtag = function(cmd, name, params, dedupeTimeMs = 5000) {
-    if (cmd === 'event') {
-      const key = name + JSON.stringify(params || {});
-      const now = Date.now();
-      if (window._firedEvents[key] && (now - window._firedEvents[key] < dedupeTimeMs)) {
-        return; // Skip if fired recently
-      }
-      window._firedEvents[key] = now;
-      setTimeout(() => delete window._firedEvents[key], dedupeTimeMs + 100); // Prevent memory leak
-    }
-    if (typeof gtag === 'function') {
-      gtag(cmd, name, params || {});
-    }
-  };
-
-  // ==========================================
-  // THROTTLE HELPER
-  // ==========================================
-  window.gaThrottle = function(fn, limit) {
-    var inThrottle;
-    return function() {
-      var args = arguments;
-      var context = this;
-      if (!inThrottle) {
-        fn.apply(context, args);
-        inThrottle = true;
-        setTimeout(function() { inThrottle = false; }, limit);
-      }
-    };
-  };
-
-  // ==========================================
-  // MISSING EVENTS — Phase 3-4 from plan
-  // ==========================================
-  Object.assign(window.AbhiHubTracking, {
-
-    // Upload funnel — Phase 4
-    trackUploadStarted: function(fileCount, method, contentCategory) {
-      safeGtag('event', 'upload_started', {
-        file_count: fileCount || 1,
-        upload_method: method || 'file',
-        content_category: contentCategory || 'unknown',
-        page_path: window.location.pathname
-      });
-    },
-
-    trackUploadCompleted: function(fileCount, method, fileTypes, totalSizeKb) {
-      safeGtag('event', 'upload_completed', {
-        file_count: fileCount || 1,
-        file_types: fileTypes || 'unknown',
-        upload_method: method || 'file',
-        total_size_kb: totalSizeKb || 0,
-        page_path: window.location.pathname
-      });
-      // Funnel step
-      safeGtag('event', 'funnel_step', {
-        funnel_name: 'visitor_to_uploader',
-        funnel_step: 'upload_completed',
-        funnel_step_number: 3
-      });
-    },
-
-    trackUploadFailed: function(reason, errorCategory, method) {
-      safeGtag('event', 'upload_failed', {
-        error_category: errorCategory || 'unknown',
-        error_reason: reason || 'unknown',
-        upload_method: method || 'file',
-        page_path: window.location.pathname
-      });
-    },
-
-    trackUploadAbandoned: function(step) {
-      safeGtag('event', 'upload_abandoned', {
-        step: step || 'metadata',
-        page_path: window.location.pathname
-      });
-    },
-
-    // Camera upload — Phase 3
-    trackCameraUpload: function() {
-      safeGtag('event', 'upload_method_camera', {
-        page_path: window.location.pathname
-      });
-    },
-
-    // XP earned — Phase 3
-    trackXpEarned: function(xp, newRank, fileCount) {
-      safeGtag('event', 'xp_earned', {
-        xp: xp || 0,
-        new_rank: newRank || 0,
-        files_uploaded: fileCount || 1,
-        page_path: window.location.pathname
-      });
-    },
-
-    // Notification open — Phase 3
-    trackNotificationOpen: function(unreadCount) {
-      safeGtag('event', 'notification_open', {
-        notification_count: unreadCount || 0,
-        type: 'file_view',
-        page_path: window.location.pathname
-      });
-    },
-
-    trackApiLatency: function(endpoint, latencyMs, statusCode) {
-      safeGtag('event', 'api_performance', {
-        endpoint: endpoint,
-        latency_ms: latencyMs,
-        status_code: statusCode,
-        page_path: window.location.pathname
-      });
-    },
-
-    // Study Pass Restriction Events
-    trackStudyPassWarning: function() {
-      safeGtag('event', 'study_pass_warning_shown', { page_path: window.location.pathname });
-    },
-    trackStudyPassPopup: function() {
-      safeGtag('event', 'study_pass_popup_opened', { page_path: window.location.pathname });
-    },
-    trackStudyPassUploadClick: function() {
-      safeGtag('event', 'study_pass_upload_clicked', { page_path: window.location.pathname });
-    },
-    trackStudyPassStoreRoomClick: function() {
-      safeGtag('event', 'study_pass_store_room_clicked', { page_path: window.location.pathname });
-    },
-    trackStudyPassUnlocked: function() {
-      safeGtag('event', 'study_pass_unlocked', { page_path: window.location.pathname });
-    },
-    trackStudyPassDismiss: function() {
-      safeGtag('event', 'study_pass_dismiss', { page_path: window.location.pathname });
-    },
-    trackStudyPassIgnored: function() {
-      safeGtag('event', 'study_pass_ignored', { page_path: window.location.pathname });
-    },
-    trackBadgeUnlocked: function(badge_name) {
-      safeGtag('event', 'badge_unlocked', { badge_name: badge_name, page_path: window.location.pathname });
-    }
-  });
-
-  // ==========================================
-  // AUTO-TRACK SCROLL DEPTH
-  // ==========================================
-  function getScrollPercentage() {
-    const winScroll = document.body.scrollTop || document.documentElement.scrollTop;
-    const height = document.documentElement.scrollHeight - document.documentElement.clientHeight;
-    return height > 0 ? Math.round((winScroll / height) * 100) : 0;
-  }
-
-  let scrollTracked = false;
-  window.addEventListener('scroll', function () {
-    const scrollPercent = getScrollPercentage();
-    if (scrollPercent >= 50 && !scrollTracked) {
-      scrollTracked = true;
-      gtag('event', 'scroll_depth_50', {
-        'page_path': window.location.pathname,
-        'timestamp': new Date().toISOString()
-      });
-      console.log('[Analytics] Scroll depth 50%');
-    }
-  });
-
-  // ==========================================
-  // AUTO-TRACK PAGE ENGAGEMENT TIME (Delta-based)
-  // ==========================================
-  let lastVisibleTime = Date.now();
-  let totalEngagementSent = 0;
-
-  function sendEngagementDelta() {
-    const now = Date.now();
-    const deltaSeconds = Math.round((now - lastVisibleTime) / 1000);
-    if (deltaSeconds > 0) {
-      AbhiHubTracking.trackTimeOnPage(deltaSeconds);
-      totalEngagementSent += deltaSeconds;
-    }
-    lastVisibleTime = now;
-  }
-
-  document.addEventListener('visibilitychange', function () {
-    if (document.visibilityState === 'hidden') {
-      sendEngagementDelta();
-    } else {
-      lastVisibleTime = Date.now(); // Reset on return
-    }
-  });
-  window.addEventListener('pagehide', sendEngagementDelta);
-
-  // ==========================================
-  // TRACK VISIT MILESTONES (1, 3, 7, 21...)
-  // ==========================================
-  function trackVisitMilestones() {
-    const sessionAlreadyCounted = sessionStorage.getItem('visit_milestone_counted');
-    
-    if (!sessionAlreadyCounted) {
-      sessionStorage.setItem('visit_milestone_counted', 'true');
-      let visits = parseInt(localStorage.getItem('user_total_visits') || '0', 10);
-      visits++;
-      localStorage.setItem('user_total_visits', visits);
-
-      const milestones = [1, 3, 7, 21, 50, 100, 365];
-      if (milestones.includes(visits)) {
-        gtag('event', 'user_retention_milestone', {
-          'milestone_visit_count': visits,
-          'user_status': visits === 1 ? 'new_user' : 'returning_user',
-          'page_path': window.location.pathname,
-          'timestamp': new Date().toISOString()
-        });
-        console.log('[Analytics] Retention Milestone Reached:', visits, 'visits');
-      }
-    }
-  }
-
-  // ==========================================
-  // TRACK INITIAL PAGE VIEW
-  // ==========================================
-  document.addEventListener('DOMContentLoaded', function () {
-    trackVisitMilestones();
-    trackPageView(document.title, getPageCategory());
-    AbhiHubTracking.trackPerformance();
-  });
-
-  // ==========================================
-  // HELPER: Get Page Category
-  // ==========================================
-  function getPageCategory() {
-    const path = window.location.pathname;
-    if (path.includes('/notes')) return 'notes';
-    if (path.includes('/pyq') || path.includes('/papers')) return 'pyq';
-    if (path.includes('/practicals')) return 'practicals';
-    if (path.includes('/upload')) return 'upload';
-    if (path.includes('/dashboard')) return 'dashboard';
-    if (path.includes('/profile')) return 'profile';
-    if (path.includes('/store')) return 'store';
-    if (path.includes('/search')) return 'search';
-    if (path.includes('/login')) return 'authentication';
-    if (path.includes('/signup')) return 'authentication';
-    return 'general';
-  }
-
-  // ==========================================
-  // EXPOSE GLOBAL TRACKING FUNCTION
-  // ==========================================
-  window.trackEvent = function (eventName, eventData) {
-    safeGtag('event', eventName, eventData || {});
-    console.log('[Analytics] Event tracked:', eventName, eventData);
-  };
-
-  console.log('[Analytics] Google Analytics 4 loaded and ready. Use window.AbhiHubTracking.trackEventName() to track events.');
-</script>
-
-<!-- Schema.org Organization Markup -->
-<script type="application/ld+json">
-{
-  "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "AbhiHub",
-  "url": "https://app.abhihub.run.place",
-  "logo": "https://app.abhihub.run.place/static/premium/icons/icon-512x512.png",
-  "description": "AbhiHub - Engineering exam papers, notes, and practicals repository",
-  "sameAs": [
-    "https://www.facebook.com/abhihub",
-    "https://www.twitter.com/abhihub",
-    "https://www.instagram.com/abhihub"
-  ],
-  "contactPoint": {
-    "@type": "ContactPoint",
-    "contactType": "Customer Service",
-    "email": "support@abhihub.in"
-  }
-}
 </script>

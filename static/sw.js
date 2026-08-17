@@ -407,7 +407,14 @@ self.addEventListener('fetch', (event) => {
   }
 
   // Handle other requests with stale-while-revalidate
-  // Safety: verify content-type matches expected type to prevent SyntaxError
+  // /api/view-doc/ image endpoints: bypass SW cache entirely, go direct to network.
+  // These are proxied by Flask and carry no file extension, so the generic cache
+  // path can serve stale/broken responses and cause invisible images.
+  if (url.pathname.startsWith('/api/view-doc/') && isImageUrl(url)) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
   event.respondWith(
     (async () => {
       if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs')) {

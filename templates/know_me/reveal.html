@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='premium/css/style.css', v='2.0.1') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/know-me.css', v='2.1.0') }}">
+  {% set user_profile_json = get_full_profile_json() | tojson %}
   {% include 'google_tag.html' %}
 </head>
 
