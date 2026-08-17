@@ -72,7 +72,8 @@ def validate_uuid(val):
     try:
         uuid.UUID(str(val))
         return True
-    except Exception:
+    except Exception as e:
+        log.debug(f"validate_uuid failed for {val!r}: {e}")
         return False
 
 def get_all_colleges() -> Dict:
@@ -160,7 +161,8 @@ def get_waitlist_count(college_id: str) -> int:
     try:
         res = client.table('college_waitlist').select('id', count='exact').eq('college_id', college_id).execute()
         return res.count or 0
-    except Exception:
+    except Exception as e:
+        log.warning(f"get_waitlist_count failed for college_id={college_id!r}: {e}")
         return 0
 
 def join_college_waitlist(college_id: str, email: str, name: str = '') -> Dict:
@@ -198,7 +200,8 @@ def get_college_stats(college_id: str) -> Dict:
             if dept_ids:
                 sub_resp = client.table('subjects').select('id', count='exact').in_('department_id', dept_ids).execute()
                 total_subs = sub_resp.count or 0
-        except Exception:
+        except Exception as e:
+            log.debug(f"join_college_waitlist: failed to count subjects for dept_ids={dept_ids!r}: {e}")
             pass
 
         return {
@@ -527,7 +530,8 @@ def track_user_event(user_id: str, event_type: str, metadata: dict = None) -> No
             "event_type": event_type,
             "metadata": metadata or {}
         }).execute()
-    except Exception:
+    except Exception as e:
+        log.debug(f"track_user_event: non-blocking insert failed: {e}")
         pass  # Non-blocking; never raise
 
 def save_file_record(
@@ -1667,7 +1671,8 @@ def _notify_uploader_of_view(doc_id: str, viewer_id: str, viewer_email: str):
             vr = client.table('profiles').select('full_name').eq('id', viewer_id).limit(1).execute()
             if vr.data:
                 viewer_name = vr.data[0].get('full_name') or viewer_email.split('@')[0]
-        except Exception:
+        except Exception as e:
+            log.debug(f"save_file_record: profile lookup failed for viewer_id={viewer_id!r}: {e}")
             viewer_name = viewer_email.split('@')[0] if viewer_email else 'Someone'
 
         client.table('notifications').insert({
@@ -1920,7 +1925,8 @@ def award_contribution_xp(user_id: str, action_type: str, entity_id: str, entity
                     client.table('user_achievements').insert({
                         'user_id': user_id, 'badge_name': rank, 'badge_icon': '🏆'
                     }).execute()
-                except Exception:
+                except Exception as e:
+                    log.debug(f"add_xp_and_rank: badge insert failed (unique constraint?): {e}")
                     pass  # unique constraint handles duplicates
                     
             return {'success': True, 'xp_gained': base_xp, 'new_score': new_xp, 'new_rank': rank}

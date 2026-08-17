@@ -384,19 +384,46 @@ self.addEventListener('fetch', (event) => {
   }
 
   // All same-origin user files (images, PDFs, docs) → encrypted IDB cache-first
-  if (isUserFile(url)) {
+  // EXCLUDE /api/view-doc/ — these are proxied through Flask and should not be cached by SW
+  // PDF.js viewer fetches them via fetch() and requires proper streaming + headers
+  if (isUserFile(url) && !url.pathname.startsWith('/api/view-doc/')) {
     event.respondWith(handleEncryptedFileFetch(request.url));
     return;
   }
 
   // Handle navigation requests
   if (request.mode === 'navigate') {
-    event.respondWith(handleNavigationRequest(request));
+    event.respondWith(
+      (async () => {
+        // Try navigation preload first
+        try {
+          const preloadResponse = await event.preloadResponse;
+          if (preloadResponse) return preloadResponse;
+        } catch {}
+        return handleNavigationRequest(request);
+      })()
+    );
     return;
   }
 
   // Handle other requests with stale-while-revalidate
-  event.respondWith(handleStandardRequest(request));
+  // Safety: verify content-type matches expected type to prevent SyntaxError
+  event.respondWith(
+    (async () => {
+      if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs')) {
+        const cache = await caches.open(DYNAMIC_CACHE);
+        const cachedResponse = await cache.match(request, { ignoreSearch: true });
+        if (cachedResponse) {
+          const cachedType = cachedResponse.headers.get('Content-Type') || '';
+          if (cachedType.includes('text/html') || !cachedType.includes('javascript')) {
+            await cache.delete(request);
+            return fetch(request);
+          }
+        }
+      }
+      return handleStandardRequest(request);
+    })()
+  );
 });
 
 /**
@@ -481,7 +508,11 @@ async function handleNavigationRequest(request) {
 
   // Serve cached immediately if available (instant load)
   if (cachedResponse) {
-    return cachedResponse;
+    // Safety: don't serve HTML for non-HTML requests
+    const cachedType = cachedResponse.headers.get('Content-Type') || '';
+    if (cachedType.includes('text/html')) {
+      return cachedResponse;
+    }
   }
 
   // No cache — wait for network
@@ -547,6 +578,27 @@ async function handleStandardRequest(request) {
   const cache = await caches.open(cacheName);
   const cachedResponse = await cache.match(request, { ignoreSearch: true });
 
+  // Safety: verify cached response content type matches expected type
+  if (cachedResponse) {
+    const cachedType = cachedResponse.headers.get('Content-Type') || '';
+    const isJsOrCss = url.pathname.endsWith('.js') || url.pathname.endsWith('.css');
+    if (isJsOrCss && cachedType.includes('text/html')) {
+      // Don't serve HTML for JS/CSS requests — delete and fetch fresh
+      await cache.delete(request);
+    } else {
+      // Start background fetch
+      const fetchPromise = fetch(request).then(async (networkResponse) => {
+        if (networkResponse.ok && isCacheableUrl(url)) {
+          await cache.put(request, networkResponse.clone());
+          await limitCacheSize(cacheName, MAX_DYNAMIC_CACHE_ITEMS);
+        }
+        return networkResponse;
+      }).catch(() => null);
+
+      return cachedResponse;
+    }
+  }
+
   // Start background fetch
   const fetchPromise = fetch(request).then(async (networkResponse) => {
     if (networkResponse.ok && isCacheableUrl(url)) {
@@ -555,11 +607,6 @@ async function handleStandardRequest(request) {
     }
     return networkResponse;
   }).catch(() => null);
-
-  // Return cache immediately if available
-  if (cachedResponse) {
-    return cachedResponse;
-  }
 
   // Wait for network
   const networkResponse = await fetchPromise;

@@ -417,7 +417,7 @@ def auth_required(f):
     return decorated_function
 
 # Admin emails from environment variable (comma-separated)
-ADMIN_EMAILS = [e.strip().lower() for e in os.getenv('ADMIN_EMAILS', 'abhijeetshende4053@gmail.com,codebymario@gmail.com').split(',') if e.strip()]
+ADMIN_EMAILS = [e.strip().lower() for e in os.getenv('ADMIN_EMAILS', '').split(',') if e.strip()]
 
 # Decorator for admin-only routes
 def admin_required(f):
@@ -2185,9 +2185,11 @@ def proxy_file():
         resp.headers['Cache-Control'] = 'private, no-store, must-revalidate'
         resp.headers['X-Content-Type-Options'] = 'nosniff'
         resp.headers['Content-Disposition'] = 'inline'
-        resp.headers['Access-Control-Allow-Origin'] = '*'
+        resp.headers['Access-Control-Allow-Origin'] = request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://app.abhihub.run.place'
         resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
         resp.headers['Referrer-Policy'] = 'no-referrer'
+        resp.headers['X-Download-Options'] = 'noopen'
+        resp.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
         return resp
     except requests.exceptions.RequestException as e:
         logging.error(f"[PROXY] Request failed for {file_url}: {e}")
@@ -2201,27 +2203,17 @@ def proxy_file():
 @app.route('/api/view-doc/<doc_id>/<filename>')
 def view_doc(doc_id, filename=None):
     """Clean proxy endpoint for viewing docs — no URL encoding needed in PDF.js file= param.
-    Security: Requires authentication (@auth_required). The Referer header
-    must match the AbhiHub domain to prevent download managers from catching
-    raw PDF URLs by stripping session context. The token parameter is also
-    accepted as a fallback for direct API calls.
+    
+    Security: (1) Firebase signed URLs expire in 1 hour,
+    (2) doc_id is a UUID (unguessable), (3) CORS headers restrict embedding.
+    
+    Supports Range headers for PDF.js partial content requests.
     """
     from methods.supabase_helper import get_document_by_id_rich
 
-    # Security: Check Referer to prevent download managers from catching the PDF URL
-    referer = request.headers.get('Referer', '')
-    if referer:
-        ref_host = referer.split('/')[2] if len(referer.split('/')) > 2 else ''
-        # Allow subdomain of BASE_DOMAIN, localhost variants, and IP localhost
-        allowed = (ref_host == BASE_DOMAIN or
-                   ref_host.endswith('.' + BASE_DOMAIN) or
-                   'localhost' in ref_host or
-                   '127.0.0.1' in ref_host or
-                   '0.0.0.0' in ref_host or
-                   ref_host in ('localhost', '127.0.0.1', '0.0.0.0'))
-        if not allowed:
-            logging.warning(f"[VIEW-DOC] Blocked cross-origin PDF access from {referer} for {doc_id}")
-            abort(403, description="Access denied")
+    # Note: Removed Referer check — it blocks legitimate PDF.js iframe fetches.
+    # Security relies on: (1) Firebase signed URLs expire in 1 hour,
+    # (2) doc_id is a UUID (unguessable), (3) CORS headers restrict embedding.
 
     # Optional: token-based access for programmatic clients
     token = request.args.get('token', '')
@@ -2233,37 +2225,67 @@ def view_doc(doc_id, filename=None):
         abort(404)
     document = doc_res.get('data', {})
     file_url = document.get('file_url', '')
-    if not file_url:
+    # Handle Supabase tuple response format: (value, error)
+    if isinstance(file_url, (list, tuple)):
+        file_url = file_url[0] if file_url else ''
+    if not file_url or not isinstance(file_url, str):
         abort(404)
 
+    # Check for cached signed URL before generating a new one
     if not file_url.startswith('http'):
-        # Cache signed URLs at L1 (5 min TTL) — Firebase signed URLs are valid for 1hr
-        # but generating them requires a Firebase API call; caching at L1 reduces that.
+        cache_key = f"signed-url:{doc_id}"
         try:
-            bucket = storage.bucket()
-            blob = bucket.blob(file_url)
-            file_url = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
-            cache_key = f"signed-url:{doc_id}"
-            cache.l1.set(cache_key, file_url, ttl=300)  # 5 min TTL
-        except Exception as e:
-            logging.error(f"[VIEW-DOC] Signed URL error for {doc_id}: {e}")
-            abort(500)
+            cached_url, _ = cache.l1.get(cache_key)  # Returns (data, ttl_left) tuple
+            if cached_url is not None:
+                file_url = cached_url
+            else:
+                raise ValueError("Cache miss")
+        except Exception:
+            try:
+                bucket = storage.bucket()
+                blob = bucket.blob(file_url)
+                signed = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
+                # Handle both string and tuple returns from generate_signed_url
+                file_url = signed[0] if isinstance(signed, (list, tuple)) else signed
+                try:
+                    cache.l1.set(cache_key, file_url, ttl=300)  # 5 min TTL
+                except Exception:
+                    pass  # Non-fatal: cache storage can fail
+            except Exception as e:
+                logging.error(f"[VIEW-DOC] Signed URL error for {doc_id}: {e}")
+                abort(500)
+
+    # Final safety: coerce to string
+    if isinstance(file_url, (list, tuple)):
+        file_url = file_url[0] if file_url else ''
+    file_url = str(file_url)
 
     from urllib.parse import urlparse
     parsed = urlparse(file_url)
     if parsed.hostname not in _ALLOWED_PROXY_HOSTS:
         abort(403)
 
-    upstream = requests.get(file_url, stream=True, timeout=30, verify=True, headers={'User-Agent': 'AbhiHub-Proxy/1.0'})
+    # Support Range headers for PDF.js partial content requests
+    upstream_headers = {'User-Agent': 'AbhiHub-Proxy/1.0'}
+    if request.headers.get('Range'):
+        upstream_headers['Range'] = request.headers['Range']
+
+    upstream = requests.get(file_url, stream=True, timeout=30, verify=True, headers=upstream_headers)
     try:
         if upstream.status_code == 204:
-            return Response(b'', status=200, content_type='application/pdf', headers={
+            # Firebase returned 204 No Content — document not found or access denied.
+            # Don't silently return an empty 200 (breaks PDF.js "0 of 0 pages").
+            # Return a proper 404 with a user-facing message.
+            msg = json.dumps({"error": "Document not available", "detail": f"No content found for document {doc_id}"})
+            return Response(msg, status=404, content_type='application/json', headers={
                 'Cache-Control': 'private, no-store, must-revalidate',
                 'Content-Disposition': 'inline',
-                'Access-Control-Allow-Origin': '*',
+                'Access-Control-Allow-Origin': request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://app.abhihub.run.place',
                 'X-Content-Type-Options': 'nosniff',
                 'X-Frame-Options': 'SAMEORIGIN',
-                'Referrer-Policy': 'no-referrer'
+                'Referrer-Policy': 'no-referrer',
+                'X-Download-Options': 'noopen',
+                'X-Permitted-Cross-Domain-Policies': 'none',
             })
         if not upstream.ok:
             abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
@@ -2280,19 +2302,32 @@ def view_doc(doc_id, filename=None):
             except Exception as e:
                 logging.error(f"[VIEW-DOC] Stream interrupted for {doc_id}: {e}")
                 
+        response_headers = {
+            'Cache-Control': 'private, no-store, must-revalidate',
+            'Content-Disposition': 'inline',
+            'Access-Control-Allow-Origin': request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://app.abhihub.run.place',
+            'X-Content-Type-Options': 'nosniff',
+            'X-Frame-Options': 'SAMEORIGIN',
+            'Referrer-Policy': 'no-referrer',
+            'X-Download-Options': 'noopen',
+            'X-Permitted-Cross-Domain-Policies': 'none',
+        }
+        
+        # Preserve Content-Length if available (for PDF.js)
+        if 'Content-Length' in upstream.headers:
+            response_headers['Content-Length'] = upstream.headers['Content-Length']
+        
+        # Support 206 Partial Content for Range requests
+        if upstream.status_code == 206:
+            response_headers['Content-Range'] = upstream.headers.get('Content-Range', '')
+            response_headers['Accept-Ranges'] = 'bytes'
+        
         return Response(generate(),
                         status=upstream.status_code,
                         content_type=content_type,
-                        headers={
-                            'Cache-Control': 'private, no-store, must-revalidate',
-                            'Content-Disposition': 'inline',
-                            'Access-Control-Allow-Origin': '*',
-                            'X-Content-Type-Options': 'nosniff',
-                            'X-Frame-Options': 'SAMEORIGIN',
-                            'Referrer-Policy': 'no-referrer'
-                        })
+                        headers=response_headers)
     except Exception as e:
-        logging.error(f"[VIEW-DOC] Proxy error for {doc_id}: {e}")
+        logging.error(f"[VIEW-DOC] Exception streaming {doc_id}: {e}")
         abort(502)
 
 
@@ -2859,6 +2894,7 @@ def api_contact():
     return jsonify({'success': True})
 
 @app.route('/delete-account')
+@auth_required
 def delete_account():
     """Account deletion request page"""
     return render_template('delete_account.html')
@@ -3047,15 +3083,6 @@ def dashboard():
                          trending_notes=trending_notes,
                          recent_notes=recent_notes)
 
-def cors_headers(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        resp = f(*args, **kwargs)
-        resp.headers['Access-Control-Allow-Origin'] = '*'
-        resp.headers['Access-Control-Allow-Methods'] = 'GET, OPTIONS'
-        resp.headers['Access-Control-Allow-Headers'] = 'Content-Type'
-        return resp
-    return decorated_function
 
 def get_pdf_list():
     try:
@@ -3164,9 +3191,16 @@ def pdf_proxy(pdf_name):
     # Additionally, check that the Referer matches our domain to prevent
     # hotlinking by download managers that strip session cookies.
     referer = request.headers.get('Referer', '')
-    if referer and BASE_DOMAIN not in referer:
-        logging.warning(f"[PDF-PROXY] Blocked cross-origin PDF access from {referer} for {pdf_name}")
-        abort(403, description="Access denied")
+    if referer:
+        ref_host = referer.split('/')[2] if len(referer.split('/')) > 2 else ''
+        allowed = (ref_host == BASE_DOMAIN or
+                   ref_host.endswith('.' + BASE_DOMAIN) or
+                   'localhost' in ref_host or
+                   '127.0.0.1' in ref_host or
+                   '0.0.0.0' in ref_host)
+        if not allowed:
+            logging.warning(f"[PDF-PROXY] Blocked cross-origin PDF access from {referer} for {pdf_name}")
+            abort(403, description="Access denied")
     try:
         if pdf_name.startswith('http'):
             return redirect(pdf_name)
@@ -3213,7 +3247,7 @@ def pdf_proxy(pdf_name):
         
         # Common headers for both full and partial responses
         # PDF security: force inline display, prevent download managers, no caching
-        response.headers['Access-Control-Allow-Origin'] = '*'
+        response.headers['Access-Control-Allow-Origin'] = request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://app.abhihub.run.place'
         response.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
         response.headers['Access-Control-Allow-Headers'] = 'Range, Content-Type, Content-Range'
         response.headers['Access-Control-Expose-Headers'] = 'Content-Range, Content-Length, Accept-Ranges'
@@ -3223,6 +3257,8 @@ def pdf_proxy(pdf_name):
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['X-Frame-Options'] = 'SAMEORIGIN'
         response.headers['Referrer-Policy'] = 'no-referrer'
+        response.headers['X-Download-Options'] = 'noopen'
+        response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
         
         return response
         

@@ -374,9 +374,6 @@
         toggleImageFullscreen: function (e, el) {
             if (typeof window.toggleImageFullscreen === 'function') window.toggleImageFullscreen();
         },
-        downloadImage: function (e, el) {
-            if (typeof window.downloadImage === 'function') window.downloadImage();
-        },
         rotateImage: function (e, el) {
             if (typeof window.rotateImage === 'function') window.rotateImage();
         },

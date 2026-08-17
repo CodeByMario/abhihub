@@ -7825,3 +7825,10 @@ dialog :link{
     display:none;
   }
 }
+/* Anti-piracy: hide download/print when ?download=false */
+html[data-no-download] #downloadButton,
+html[data-no-download] #secondaryDownload,
+html[data-no-download] #printButton,
+html[data-no-download] #secondaryPrint {
+  display: none !important;
+}
