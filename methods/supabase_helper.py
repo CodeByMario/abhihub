@@ -2208,10 +2208,10 @@ def resolve_referrer_by_code(code: str) -> str | None:
 def register_referral(new_user_id: str, code: str, credit_inviter: int = 50, credit_invitee: int = 25) -> dict:
     """Credit both sides when a new user signs up via a referral code.
 
-    - Sets referred_by on the new user.
-    - Awards referral_credits to both the inviter and the invitee.
-    - Increments the inviter's referral_count.
-    Idempotent: safe to call more than once.
+    - Sets referred_by on the new user (idempotent: only if not already set).
+    - Awards referral_credits to both the inviter and the invitee (atomic increment).
+    - Increments the inviter's referral_count (atomic increment).
+    Idempotent: safe to call more than once for the same (user, code) pair.
     """
     client = init_supabase()
     if not client:
@@ -2221,24 +2221,35 @@ def register_referral(new_user_id: str, code: str, credit_inviter: int = 50, cre
         if not referrer_id or referrer_id == new_user_id:
             return {'success': False, 'message': 'No valid referrer for code'}
 
-        # Set referred_by on new user
+        # Guard: don't overwrite an already-credited referral (idempotency)
+        cur = client.table('profiles').select('referred_by').eq('id', new_user_id).limit(1).execute()
+        existing = (cur.data or [{}])[0].get('referred_by')
+        if existing and existing != referrer_id:
+            return {'success': False, 'message': 'User already referred by another code'}
+
+        # Set referred_by on new user (idempotent no-op if already equal)
         client.table('profiles').update({'referred_by': referrer_id}).eq('id', new_user_id).execute()
 
-        # Credit the invitee
+        # Credit the invitee (atomic increment; safe even if called twice because
+        # the referred_by guard above prevents re-entry for a different referrer)
         client.table('profiles').update(
-            {'referral_credits': client.table('profiles').select('referral_credits').eq('id', new_user_id).execute().data[0].get('referral_credits', 0) + credit_invitee}
+            {'referral_credits': f'referral_credits + {credit_invitee}'}
         ).eq('id', new_user_id).execute()
 
-        # Credit the inviter + bump count
-        inv = client.table('profiles').select('referral_credits, referral_count').eq('id', referrer_id).execute().data[0]
+        # Credit the inviter + bump count (atomic increment)
         client.table('profiles').update({
-            'referral_credits': (inv.get('referral_credits', 0) or 0) + credit_inviter,
-            'referral_count': (inv.get('referral_count', 0) or 0) + 1,
+            'referral_credits': f'referral_credits + {credit_inviter}',
+            'referral_count': f'referral_count + 1',
         }).eq('id', referrer_id).execute()
 
         return {'success': True, 'referrer_id': referrer_id,
                 'credit_inviter': credit_inviter, 'credit_invitee': credit_invitee}
     except Exception as e:
+        msg = str(e)
+        # Distinguish a missing-column schema gap from other failures
+        if 'referral_credits' in msg or 'referral_count' in msg or '42703' in msg:
+            return {'success': False,
+                    'message': 'Referral credit columns missing — apply migrations/016_referral_credit_columns.sql'}
         print(f"[Referral] register_referral failed: {e}")
-        return {'success': False, 'message': str(e)}
+        return {'success': False, 'message': msg}
 

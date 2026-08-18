@@ -86,6 +86,8 @@ notes, practicals, and exam resources for top colleges across India." %}
     <div class="exam-pack-banner-actions">
       <a href="/pyq" class="exam-pack-btn primary">Get exam pack →</a>
       <button id="examPackInviteBtn" type="button" class="exam-pack-btn ghost">Invite &amp; earn 50</button>
+      <button id="examPackWaBtn" type="button" class="exam-pack-btn wa" title="Share on WhatsApp">📲 WhatsApp</button>
+      <button id="examPackIgBtn" type="button" class="exam-pack-btn ig" title="Share on Instagram">📸 Instagram</button>
     </div>
   </div>
   <button id="examPackClose" type="button" class="exam-pack-close" aria-label="Dismiss">×</button>
@@ -107,6 +109,32 @@ notes, practicals, and exam resources for top colleges across India." %}
       var w = document.getElementById('referralWidget');
       if (w) { w.hidden = false; w.scrollIntoView({behavior:'smooth', block:'center'}); }
     });
+    // Build a share intent from the user's referral link (falls back to bare domain)
+    async function examPackShareUrl() {
+      try {
+        var r = await fetch('/api/referral/my-code', { credentials:'same-origin' });
+        var j = await r.json();
+        if (j.success && j.share_url) return j.share_url;
+      } catch(e){}
+      var base = location.hostname.indexOf('abhihub') >= 0 ? location.hostname : 'abhihub.edu.eu.org';
+      return 'https://' + base + '/signup';
+    }
+    var wa = document.getElementById('examPackWaBtn');
+    if (wa) wa.addEventListener('click', async function(){
+      var url = await examPackShareUrl();
+      var text = encodeURIComponent('Free engineering exam papers & notes on AbhiHub — join with my link: ' + url);
+      window.open('https://wa.me/?text=' + text, '_blank', 'noopener');
+    });
+    var ig = document.getElementById('examPackIgBtn');
+    if (ig) ig.addEventListener('click', async function(){
+      var url = await examPackShareUrl();
+      // Instagram has no direct share API; copy the link and point to the bio-card
+      try {
+        await navigator.clipboard.writeText(url);
+        alert('Invite link copied! Paste it in your Instagram bio or DM:\n' + url);
+      } catch(e){ alert('Your invite link: ' + url); }
+      window.open('https://instagram.com/', '_blank', 'noopener');
+    });
   } catch(e){}
 })();
 </script>
@@ -126,6 +154,10 @@ notes, practicals, and exam resources for top colleges across India." %}
 .exam-pack-btn.primary:hover { background:#f0fdfa; }
 .exam-pack-btn.ghost { background:rgba(255,255,255,0.18); color:#fff; }
 .exam-pack-btn.ghost:hover { background:rgba(255,255,255,0.3); }
+.exam-pack-btn.wa { background:#25D366; color:#fff; }
+.exam-pack-btn.wa:hover { background:#1ebe5b; }
+.exam-pack-btn.ig { background:#E1306C; color:#fff; }
+.exam-pack-btn.ig:hover { background:#c81d5a; }
 .exam-pack-close { position:absolute; top:6px; right:10px; background:none; border:none;
   color:#fff; font-size:1.3rem; line-height:1; cursor:pointer; opacity:0.85; }
 .exam-pack-close:hover { opacity:1; }
