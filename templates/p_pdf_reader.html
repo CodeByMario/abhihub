@@ -664,85 +664,85 @@
         '</div>';
     }
 
-    /* ── Mobile: use PDF.js viewer (no download button) ─────── */
-    if (isMobile) {
+    /* ── Primary viewer: PDF.js (self-hosted, no external dependency) ──
+       Per product rule: PDF.js is the canonical viewer. Adobe Embed SDK is
+       kept only as a last-resort fallback if PDF.js fails to load. */
+    function mountPdfJs() {
       viewport.innerHTML =
-        '<iframe id="pdfMobileFrame" src="/static/pdfjs-6.1.200-dist/web/viewer.html?file=' + encodeURIComponent(pdfUrl) + '&download=false" ' +
+        '<iframe id="pdfFrame" src="/static/pdfjs-6.1.200-dist/web/viewer.html?file=' + encodeURIComponent(pdfUrl) + '&download=false" ' +
           'style="border:none;display:block;width:100%;height:100%;background:#525659;" ' +
           'title="' + pdfName + '" ' +
           'onload="document.getElementById(\'loadingOverlay\').classList.add(\'hidden\');" ' +
-          'onerror="document.getElementById(\'loadingOverlay\').classList.add(\'hidden\'); ' +
-          'document.getElementById(\'adobe-dc-view\').innerHTML = ' +
-          '\'<p style="padding:2rem;color:#ef4444;text-align:center;">PDF failed to load. Try again later.</p>\';">' +
+          'onerror="document.getElementById(\'loadingOverlay\').classList.add(\'hidden\');">' +
         '</iframe>';
-      // Ensure iframe fills the viewport after layout
       setTimeout(function() {
-        var frame = document.getElementById('pdfMobileFrame');
+        var frame = document.getElementById('pdfFrame');
         if (frame) frame.style.height = viewport.clientHeight + 'px';
       }, 50);
-      // Timeout fallback — if iframe hasn't loaded in 15s, show error
+      // If PDF.js hasn't rendered within 15s, fall back to Adobe Embed
       setTimeout(function() {
-        if (!viewport.querySelector('iframe')?.contentDocument) {
-          showError('The PDF is taking too long to load. Check your connection and try again.');
+        var f = document.getElementById('pdfFrame');
+        if (f && (!f.contentDocument || f.contentDocument.body == null || f.contentDocument.body.children.length === 0)) {
+          mountAdobe();
         }
       }, 15000);
-      return;
     }
 
-    /* ── Desktop: Adobe Embed API ─────────────────────────── */
-    function showFallback(url, name) {
-      overlay.classList.add('hidden');
-      viewport.innerHTML =
-        '<iframe src="' + url + '" ' +
-          'style="border:none;display:block;width:100%;height:100%;background:#f1f5f9;" ' +
-          'title="' + name + '"></iframe>';
+    /* ── Fallback viewer: Adobe Embed SDK (only if PDF.js fails) ── */
+    function mountAdobe() {
+      viewport.innerHTML = '<div id="adobe-dc-view" style="width:100%;height:100%;"></div>';
+      function showFallbackIframe(url, name) {
+        overlay.classList.add('hidden');
+        viewport.innerHTML =
+          '<iframe src="' + url + '" ' +
+            'style="border:none;display:block;width:100%;height:100%;background:#f1f5f9;" ' +
+            'title="' + name + '"></iframe>';
+      }
+      document.addEventListener('adobe_dc_view_sdk.ready', function () {
+        try {
+          var adobeDCView = new AdobeDC.View({
+            clientId: 'eab5f878b6684648b54763245865faed',
+            divId: 'adobe-dc-view'
+          });
+          adobeDCView.previewFile(
+            { content: { location: { url: pdfUrl } }, metaData: { fileName: pdfName } },
+            {
+              embedMode: 'SIZED_CONTAINER',
+              showAnnotationTools: false,
+              showDownloadPDF: false,
+              showPrintPDF: false,
+              dockPageControls: false,
+              defaultViewMode: 'FIT_WIDTH',
+            }
+          ).then(function() {
+            overlay.classList.add('hidden');
+          }).catch(function(err) {
+            console.error('Adobe load error:', err);
+            showFallbackIframe(pdfUrl, pdfName);
+          });
+        } catch (e) {
+          console.error('Adobe init error:', e);
+          showFallbackIframe(pdfUrl, pdfName);
+        }
+      });
+      setTimeout(function() {
+        if (!window.AdobeDC) showFallbackIframe(pdfUrl, pdfName);
+      }, 8000);
     }
 
-    document.addEventListener('adobe_dc_view_sdk.ready', function () {
-      try {
-        const adobeDCView = new AdobeDC.View({
-          clientId: 'eab5f878b6684648b54763245865faed',
-          divId: 'adobe-dc-view'
-        });
-        adobeDCView.previewFile(
-          { content: { location: { url: pdfUrl } }, metaData: { fileName: pdfName } },
-          {
-            embedMode: 'SIZED_CONTAINER',
-            showAnnotationTools: false,
-            showDownloadPDF: false,
-            showPrintPDF: false,
-            dockPageControls: false,
-            defaultViewMode: 'FIT_WIDTH',
-          }
-        ).then(function() {
-          overlay.classList.add('hidden');
-        }).catch(function(err) {
-          console.error('Adobe load error:', err);
-          showFallback(pdfUrl, pdfName);
-        });
-      } catch (e) {
-        console.error('Adobe init error:', e);
-        showFallback(pdfUrl, pdfName);
-      }
-    });
-
-    // Timeout: if Adobe SDK hasn't loaded in 8s, fall back to iframe
-    setTimeout(function() {
-      if (!window.AdobeDC) {
-        showFallback(pdfUrl, pdfName);
-      }
-    }, 8000);
+    mountPdfJs();
   })();
 
-  /* ── AdBlock detection (desktop only) ───────────────────── */
+  /* ── AdBlock detection ──────────────────────────────────── */
   window.addEventListener('load', function () {
-    if (window.innerWidth >= 768) {
-      setTimeout(function () {
-        if (!window.AdobeDC) {
-          document.getElementById('adBlockerOverlay').classList.add('show');
-        }
-      }, 3500);
-    }
+    // PDF.js is self-hosted, so adblockers don't block it; only warn if the
+    // Adobe fallback SDK is blocked (non-fatal — PDF.js already rendered).
+    setTimeout(function () {
+      if (!window.AdobeDC) {
+        var ov = document.getElementById('adBlockerOverlay');
+        if (ov) ov.classList.add('show');
+      }
+    }, 3500);
   });
 
 </script>

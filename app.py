@@ -2642,7 +2642,14 @@ def pyq_landing():
     return render_template('pyq_landing.html', colleges=colleges)
 
 
-@app.route('/college/<college_slug>')
+@app.route('/search')
+def search_page():
+    """Public search page (renders the orphaned p_search.html UI).
+    Accepts ?q=... to prefill + auto-run the search on load."""
+    q = request.args.get('q', '').strip()
+    # Pass the query so the client can prefill + trigger SearchManager.
+    return render_template('p_search.html', initial_query=q)
+
 def college_landing(college_slug):
     """Dynamic SEO-optimized college landing page.
     Priority: brand group page > individual college page > 404
