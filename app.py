@@ -27,7 +27,7 @@ from supabase import create_client, ClientOptions
 load_dotenv()
 
 # IndexNow must use one environment-managed key for both submission and ownership verification.
-BASE_DOMAIN = os.getenv('BASE_DOMAIN', 'app.abhihub.run.place').strip().lower()
+BASE_DOMAIN = os.getenv('BASE_DOMAIN', 'abhihub.edu.eu.org').strip().lower()
 INDEXNOW_KEY = os.getenv('INDEX_NOW_BING_API_KEY', '').strip()
 
 # Initialize Supabase client for authentication

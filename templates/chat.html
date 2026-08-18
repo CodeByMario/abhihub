@@ -257,7 +257,7 @@
 const MY_ID = {{ my_id | tojson }};
 const MY_NAME = {{ my_name | tojson }};
 const PRELOAD_PEER = {{ (preload_peer | default('')) | tojson }};
-const ABHIHUB_HOSTS = ['app.abhihub.run.place', window.location.hostname];
+const ABHIHUB_HOSTS = ['app.abhihub.run.place', 'abhihub.edu.eu.org', 'www.abhihub.edu.eu.org', window.location.hostname];
 
 // ── IndexedDB helpers ──────────────────────────────────────────────────────
 const DB_NAME = 'abhihub_chat', DB_VER = 1, STORE = 'messages';
