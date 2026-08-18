@@ -100,7 +100,9 @@ def load_rows(path):
 
 def send_gmail(to, name, code):
     user = os.getenv('GMAIL_USER')
-    pw = os.getenv('GMAIL_APP_PASSWORD')
+    # Gmail app passwords are 16 alphanumeric chars; Google displays them with
+    # spaces (e.g. "poqt efgh ijkl mnop"). Strip all whitespace before use.
+    pw = (os.getenv('GMAIL_APP_PASSWORD') or '').replace(' ', '').replace('\t', '')
     msg = EmailMessage()
     msg['Subject'] = SUBJECT
     msg['From'] = f'{FROM_NAME} <{FROM_EMAIL}>'
@@ -192,11 +194,11 @@ def main():
             sys.exit(1)
         # Pre-flight credential sanity check (Gmail)
         if provider == 'gmail':
-            pw = os.getenv('GMAIL_APP_PASSWORD', '')
-            if len(pw) < 16 or ' ' in pw.strip():
+            pw = os.getenv('GMAIL_APP_PASSWORD', '').replace(' ', '').replace('\t', '')
+            if len(pw) != 16 or not pw.isalnum():
                 print('ERROR: GMAIL_APP_PASSWORD does not look like a 16-char Gmail App Password.')
                 print('  Fix: Google Account → Security → App Passwords → create one (2-Step Verification must be ON).')
-                print('  Then set GMAIL_APP_PASSWORD=<16-char code> in .env (no spaces).')
+                print('  Then set GMAIL_APP_PASSWORD=<16-char code> in .env (spaces are auto-stripped).')
                 sys.exit(1)
         if args.test:
             # Send a single test email to the first valid recipient (or the Gmail user)
