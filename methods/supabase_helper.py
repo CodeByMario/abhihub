@@ -2084,7 +2084,7 @@ def get_user_peer_materials_db(target_user_id: str) -> dict:
     if not client: return {'success': False, 'uploads': [], 'referred': []}
     try:
         # 1. Fetch user's profile info
-        prof_res = client.table('profiles').select('id, full_name, email, reputation_score, rank_title, colleges(name)').eq('id', target_user_id).limit(1).execute()
+        prof_res = client.table('profiles').select('id, full_name, email, reputation_score, rank_title, referral_code, colleges(name)').eq('id', target_user_id).limit(1).execute()
         prof = (prof_res.data or [{}])[0]
         col = prof.get('colleges') or {}
 
