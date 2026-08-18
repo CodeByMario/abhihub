@@ -133,6 +133,25 @@ def get_sender():
         return 'resend', send_resend
     return None, None
 
+def clean_name(raw, email=''):
+    """Derive a friendly first name for the greeting.
+
+    Handles: real names ('Niranjan Samantaray' -> 'Niranjan'),
+    email-handle full_names ('mahi.jhawar.etc' -> 'Mahi'),
+    and missing names (falls back to email local-part -> capitalized).
+    """
+    import re
+    raw = (raw or '').strip()
+    # Use email local-part whenever the name is empty or looks like an email/handle
+    if (not raw) or ('@' in raw) or ('.' in raw) or ('_' in raw) or raw.islower():
+        local = (email.split('@')[0] if '@' in email else raw) or 'there'
+        first = re.split(r'[._\-]', local)[0]
+        first = re.sub(r'\d+', '', first)
+        return first[:20].title() or 'there'
+    # Genuine spaced name: take the first word, title-cased
+    return raw.split()[0].strip().title()
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('--segment', default='dormant', help='which exports/users_<seg>.csv')
@@ -162,7 +181,7 @@ def main():
 
     sent = 0
     for i, r in enumerate(rows):
-        name = (r.get('full_name') or 'there').split()[0]
+        name = clean_name(r.get('full_name'), r.get('email') or '')
         code = r.get('referral_code') or 'ABHI-JOIN'
         to = r.get('email')
         if not to:
