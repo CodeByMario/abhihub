@@ -28,6 +28,7 @@ import urllib.request
 from email.message import EmailMessage
 
 # Load .env so GMAIL_*/BREVO_*/RESEND_* (and BASE_DOMAIN) are visible via os.getenv.
+# Overwrites existing env vars so the .env file always wins (handles quoted values).
 def _load_env():
     p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
     if os.path.exists(p):
@@ -37,7 +38,9 @@ def _load_env():
                 if not line or line.startswith('#') or '=' not in line:
                     continue
                 k, v = line.split('=', 1)
-                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+                # strip surrounding quotes (single or double) and inline whitespace
+                v = v.strip().strip('"').strip("'").strip()
+                os.environ[k.strip()] = v
 
 _load_env()
 
