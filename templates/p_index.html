@@ -174,7 +174,8 @@ notes, practicals, and exam resources for top colleges across India." %}
     <div class="referral-widget-row">
       <input id="referralLinkInput" class="referral-widget-input" type="text" readonly value="Loading…">
       <button id="referralCopyBtn" class="referral-widget-copy" type="button">Copy</button>
-      <a id="referralShareBtn" class="referral-widget-share" href="#" target="_blank" rel="noopener">Share</a>
+      <a id="referralShareBtn" class="referral-widget-share" href="#" target="_blank" rel="noopener">WhatsApp</a>
+      <button id="referralIgBtn" class="referral-widget-share ig" type="button" title="Share on Instagram">Instagram</button>
     </div>
   </div>
 </div>
@@ -193,6 +194,8 @@ notes, practicals, and exam resources for top colleges across India." %}
   font-weight:700; text-decoration:none; cursor:pointer; border:none; }
 .referral-widget-copy { background:#4f46e5; color:#fff; }
 .referral-widget-share { background:#22c55e; color:#fff; display:inline-flex; align-items:center; }
+.referral-widget-share.ig { background:#E1306C; }
+.referral-widget-share.ig:hover { background:#c81d5a; }
 .referral-widget-copy:hover { background:#4338ca; }
 .referral-widget-progress { font-size:0.74rem; font-weight:600; color:#4f46e5; margin-bottom:0.4rem; }
 .referral-widget-pulse { animation: referralPulse 0.8s ease-in-out 0s 2; }
@@ -225,6 +228,15 @@ notes, practicals, and exam resources for top colleges across India." %}
             : 'No friends joined yet — share your link to earn 50 credits each!';
           progressEl.hidden = false;
         }
+        const ig = document.getElementById('referralIgBtn');
+        if (ig) ig.addEventListener('click', () => {
+          try {
+            navigator.clipboard.writeText(j.share_url).then(() => {
+              alert('Invite link copied! Paste it in your Instagram bio or DM:\n' + j.share_url);
+            });
+          } catch (e) { alert('Your invite link: ' + j.share_url); }
+          window.open('https://instagram.com/', '_blank', 'noopener');
+        });
         copy.addEventListener('click', () => {
           navigator.clipboard.writeText(j.share_url).then(() => { copy.textContent='Copied!'; setTimeout(()=>copy.textContent='Copy',1500); });
         });
