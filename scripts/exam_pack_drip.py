@@ -31,6 +31,10 @@ BASE_DOMAIN = os.getenv('BASE_DOMAIN', 'abhihub.edu.eu.org').strip().lower()
 JOIN_URL = f"https://{BASE_DOMAIN}/signup"
 EXAM_PACK_URL = f"https://{BASE_DOMAIN}/pyq"
 
+# Sender identity — campaign goes out as info@<your domain>
+FROM_EMAIL = os.getenv('CAMPAIGN_FROM', f'info@{BASE_DOMAIN}')
+FROM_NAME = os.getenv('CAMPAIGN_FROM_NAME', 'AbhiHub')
+
 SUBJECT = "📚 Your branch exam pack is ready on AbhiHub"
 
 HTML = """\
@@ -85,7 +89,7 @@ def send_gmail(to, name, code):
     pw = os.getenv('GMAIL_APP_PASSWORD')
     msg = EmailMessage()
     msg['Subject'] = SUBJECT
-    msg['From'] = user
+    msg['From'] = f'{FROM_NAME} <{FROM_EMAIL}>'
     msg['To'] = to
     msg.set_content(render(TEXT, name, code))
     msg.add_alternative(render(HTML, name, code), subtype='html')
@@ -96,9 +100,9 @@ def send_gmail(to, name, code):
 def send_brevo(to, name, code):
     import urllib.request as u
     key = os.getenv('BREVO_API_KEY')
-    sender = os.getenv('BREVO_SENDER')
+    sender = os.getenv('BREVO_SENDER', FROM_EMAIL)
     payload = json.dumps({
-        'sender': {'email': sender},
+        'sender': {'name': FROM_NAME, 'email': sender},
         'to': [{'email': to}],
         'subject': SUBJECT,
         'textContent': render(TEXT, name, code),
@@ -110,9 +114,9 @@ def send_brevo(to, name, code):
 
 def send_resend(to, name, code):
     key = os.getenv('RESEND_API_KEY')
-    sender = os.getenv('RESEND_SENDER')
+    sender = os.getenv('RESEND_SENDER', FROM_EMAIL)
     payload = json.dumps({
-        'from': sender, 'to': [to], 'subject': SUBJECT,
+        'from': f'{FROM_NAME} <{sender}>', 'to': [to], 'subject': SUBJECT,
         'text': render(TEXT, name, code), 'html': render(HTML, name, code),
     }).encode()
     req = urllib.request.Request('https://api.resend.com/emails', data=payload,
