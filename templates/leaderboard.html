@@ -173,8 +173,9 @@
 <div class="lb-header">
   <h1>🏆 AbhiHub Leaderboard</h1>
   <p>Top student contributors helping peers ace their exams with notes, PYQs, and study resources.</p>
-  <div style="margin-top: 1.2rem;">
-    <button type="button" data-action="openPeerSearchModal" class="lb-find-btn">🔍 Find Students & Notes</button>
+  <div style="margin-top: 1.2rem; display:flex; gap:0.6rem; flex-wrap:wrap; justify-content:center;">
+    <button type="button" data-action="openPeerSearchModal" class="lb-find-btn">🔍 Find Students &amp; Notes</button>
+    <button type="button" id="lbShareBtn" class="lb-find-btn" style="background:#4f46e5;">📲 Invite peers &amp; climb faster</button>
   </div>
 </div>
 
@@ -241,4 +242,27 @@
 </div>
 
 {% include 'includes/_peer_search_modal.html' %}
+
+{% block scripts %}
+<script>
+(function(){
+  var btn = document.getElementById('lbShareBtn');
+  if (!btn) return;
+  btn.addEventListener('click', function(){
+    var url = 'https://abhihub.edu.eu.org/signup';
+    var text = encodeURIComponent('Climb the AbhiHub leaderboard with me — upload PYQs & notes, earn XP, help peers: ' + url);
+    // If logged in, prefer the user's own referral link
+    try {
+      fetch('/api/referral/my-code', { credentials:'same-origin' })
+        .then(function(r){ return r.json(); })
+        .then(function(j){
+          if (j.success && j.share_url) { url = j.share_url; text = encodeURIComponent('Join me on AbhiHub and climb the leaderboard — invite link: ' + url); }
+          window.open('https://wa.me/?text=' + text, '_blank', 'noopener');
+        })
+        .catch(function(){ window.open('https://wa.me/?text=' + text, '_blank', 'noopener'); });
+    } catch(e) { window.open('https://wa.me/?text=' + text, '_blank', 'noopener'); }
+  });
+})();
+</script>
+{% endblock %}
 {% endblock %}

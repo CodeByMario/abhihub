@@ -25,6 +25,7 @@ import smtplib
 import sys
 import json
 import urllib.request
+from datetime import datetime
 from email.message import EmailMessage
 
 # Load .env so GMAIL_*/BREVO_*/RESEND_* (and BASE_DOMAIN) are visible via os.getenv.
@@ -218,6 +219,9 @@ def main():
         print("DRY-RUN (no emails sent). Sample preview:")
 
     sent = 0
+    log_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+                            'exports', 'send_log.csv')
+    log_rows = []
     for i, r in enumerate(rows):
         name = clean_name(r.get('full_name'), r.get('email') or '')
         code = r.get('referral_code') or 'ABHI-JOIN'
@@ -228,14 +232,28 @@ def main():
             try:
                 sender(to, name, code)
                 sent += 1
+                log_rows.append({'sent_at': datetime.now().isoformat(timespec='seconds'),
+                                 'to': to, 'name': name, 'code': code,
+                                 'segment': args.segment, 'provider': provider})
             except Exception as e:
                 print(f"  FAIL {to}: {e}")
+                log_rows.append({'sent_at': datetime.now().isoformat(timespec='seconds'),
+                                 'to': to, 'name': name, 'code': code,
+                                 'segment': args.segment, 'provider': f'FAIL:{e}'})
         else:
             if i < 3:
                 print(f"\n--- to {to} (name={name}, code={code}) ---")
                 print(render(TEXT, name, code)[:220])
     if args.send:
-        print(f"Sent {sent}/{len(rows)}")
+        # Persist the send log (append mode so multiple campaigns accumulate)
+        import csv as _csv
+        write_header = not os.path.exists(log_path)
+        with open(log_path, 'a', newline='', encoding='utf-8') as lf:
+            w = _csv.DictWriter(lf, fieldnames=['sent_at', 'to', 'name', 'code', 'segment', 'provider'])
+            if write_header:
+                w.writeheader()
+            w.writerows(log_rows)
+        print(f"Sent {sent}/{len(rows)}  (log -> {log_path})")
     else:
         print(f"\nDry-run complete. Run with --send to deliver to all {len(rows)} recipients.")
 
