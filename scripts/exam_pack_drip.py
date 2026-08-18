@@ -27,6 +27,20 @@ import json
 import urllib.request
 from email.message import EmailMessage
 
+# Load .env so GMAIL_*/BREVO_*/RESEND_* (and BASE_DOMAIN) are visible via os.getenv.
+def _load_env():
+    p = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), '.env')
+    if os.path.exists(p):
+        with open(p) as f:
+            for line in f:
+                line = line.strip()
+                if not line or line.startswith('#') or '=' not in line:
+                    continue
+                k, v = line.split('=', 1)
+                os.environ.setdefault(k.strip(), v.strip().strip('"').strip("'"))
+
+_load_env()
+
 BASE_DOMAIN = os.getenv('BASE_DOMAIN', 'abhihub.edu.eu.org').strip().lower()
 JOIN_URL = f"https://{BASE_DOMAIN}/signup"
 EXAM_PACK_URL = f"https://{BASE_DOMAIN}/pyq"
@@ -157,6 +171,7 @@ def main():
     ap.add_argument('--segment', default='dormant', help='which exports/users_<seg>.csv')
     ap.add_argument('--csv', default='', help='explicit CSV path (overrides --segment)')
     ap.add_argument('--dry-run', action='store_true', help='preview only (default behaviour; explicit flag)')
+    ap.add_argument('--test', action='store_true', help='send ONE test email to validate SMTP credentials/deliverability')
     ap.add_argument('--send', action='store_true', help='actually send (default is dry-run)')
     args = ap.parse_args()
 
@@ -170,11 +185,29 @@ def main():
     provider, sender = get_sender()
 
     print(f"Loaded {len(rows)} recipients from {path}")
-    if args.send:
+    if args.send or args.test:
         if not sender:
             print('ERROR: no email provider configured (set GMAIL_*/BREVO_*/RESEND_* in .env)',
                   file=sys.stderr)
             sys.exit(1)
+        # Pre-flight credential sanity check (Gmail)
+        if provider == 'gmail':
+            pw = os.getenv('GMAIL_APP_PASSWORD', '')
+            if len(pw) < 16 or ' ' in pw.strip():
+                print('ERROR: GMAIL_APP_PASSWORD does not look like a 16-char Gmail App Password.')
+                print('  Fix: Google Account → Security → App Passwords → create one (2-Step Verification must be ON).')
+                print('  Then set GMAIL_APP_PASSWORD=<16-char code> in .env (no spaces).')
+                sys.exit(1)
+        if args.test:
+            # Send a single test email to the first valid recipient (or the Gmail user)
+            test_to = next((r.get('email') for r in rows if r.get('email')), os.getenv('GMAIL_USER'))
+            try:
+                sender(test_to, clean_name(rows[0].get('full_name'), test_to), rows[0].get('referral_code') or 'ABHI-TEST')
+                print(f"TEST SEND OK -> {test_to}")
+            except Exception as e:
+                print(f"TEST SEND FAILED: {e}")
+                print('  If 535/5.7.8 BadCredentials: the App Password is wrong/revoked. Regenerate it.')
+            sys.exit(0)
         print(f"SENDING via {provider} ...")
     else:
         print("DRY-RUN (no emails sent). Sample preview:")
