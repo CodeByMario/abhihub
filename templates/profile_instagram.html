@@ -133,6 +133,25 @@
   background: #e2e8f0;
 }
 
+/* Share-this-profile row (viral loop) */
+.ig-share-row {
+  display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
+  margin-bottom: 1.25rem; padding: 0.6rem 0.75rem;
+  background: #f8fafc; border: 1px solid var(--border-light, #e2e8f0); border-radius: 12px;
+}
+.ig-share-label { font-size: 0.72rem; font-weight: 700; color: #64748b; margin-right: 0.2rem; }
+.ig-share-btn {
+  display: inline-flex; align-items: center; gap: 0.3rem;
+  padding: 0.4rem 0.75rem; border-radius: 9px; font-size: 0.78rem; font-weight: 700;
+  text-decoration: none; cursor: pointer; border: none; color: #fff;
+}
+.ig-share-btn.wa { background: #25D366; }
+.ig-share-btn.wa:hover { background: #1ebe5b; }
+.ig-share-btn.ig { background: #E1306C; }
+.ig-share-btn.ig:hover { background: #c81d5a; }
+.ig-share-btn.copy { background: #4f46e5; }
+.ig-share-btn.copy:hover { background: #4338ca; }
+
 /* Section Headers */
 .ig-section-title {
   font-size: 1.05rem;
@@ -268,6 +287,18 @@
     <a href="/upload" class="ig-btn ig-btn-secondary">
       <i class="fas fa-upload"></i> Share Yours
     </a>
+  </div>
+
+  <!-- Share this profile (viral loop) -->
+  <div class="ig-share-row">
+    <span class="ig-share-label">Share this profile:</span>
+    <a class="ig-share-btn wa" target="_blank" rel="noopener"
+       href="https://wa.me/?text={{ ('Join me on AbhiHub for free engineering PYQs & notes: ' ~ request.url_root.rstrip('/') ~ '/signup?ref=' ~ peer.get('referral_code','')) | urlencode }}">
+       <i class="fab fa-whatsapp"></i> WhatsApp</a>
+    <button class="ig-share-btn ig" type="button" data-share-url="{{ request.url_root.rstrip('/') }}/signup?ref={{ peer.get('referral_code','') }}" onclick="(async()=>{const u=this.dataset.shareUrl;try{await navigator.clipboard.writeText(u);alert('Invite link copied! Paste it in your Instagram bio or DM:\\n'+u);}catch(e){alert('Your invite link: '+u);}window.open('https://instagram.com/','_blank','noopener');})()">
+       <i class="fab fa-instagram"></i> Instagram</button>
+    <button class="ig-share-btn copy" type="button" data-share-url="{{ request.url_root.rstrip('/') }}/signup?ref={{ peer.get('referral_code','') }}" onclick="(async()=>{const u=this.dataset.shareUrl;try{await navigator.clipboard.writeText(u);this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500);}catch(e){alert(u);}})()">
+       <i class="fas fa-copy"></i> Copy</button>
   </div>
 
   <!-- Shared Materials -->
