@@ -106,6 +106,15 @@ def main():
     rid, iid = referrer['id'], invitee['id']
     rcode = referrer['referral_code']
 
+    # Deterministic baseline: clear any residual referral state from prior runs
+    # so the credit assertions are not polluted by dirty state.
+    client.table('profiles').update(
+        {'referred_by': None, 'referral_credits': 0, 'referral_count': 0}
+    ).eq('id', iid).execute()
+    client.table('profiles').update(
+        {'referral_credits': 0, 'referral_count': 0}
+    ).eq('id', rid).execute()
+
     before_r = _fetch(client, rid)
     before_i = _fetch(client, iid)
 

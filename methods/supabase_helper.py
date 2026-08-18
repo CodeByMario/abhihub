@@ -2209,8 +2209,8 @@ def register_referral(new_user_id: str, code: str, credit_inviter: int = 50, cre
     """Credit both sides when a new user signs up via a referral code.
 
     - Sets referred_by on the new user (idempotent: only if not already set).
-    - Awards referral_credits to both the inviter and the invitee (atomic increment).
-    - Increments the inviter's referral_count (atomic increment).
+    - Awards referral_credits to both the inviter and the invitee.
+    - Increments the inviter's referral_count.
     Idempotent: safe to call more than once for the same (user, code) pair.
     """
     client = init_supabase()
@@ -2221,25 +2221,30 @@ def register_referral(new_user_id: str, code: str, credit_inviter: int = 50, cre
         if not referrer_id or referrer_id == new_user_id:
             return {'success': False, 'message': 'No valid referrer for code'}
 
-        # Guard: don't overwrite an already-credited referral (idempotency)
+        # Guard: don't overwrite an already-credited referral (idempotency).
+        # If already referred by the SAME code owner, treat as a safe repeat (no re-credit).
         cur = client.table('profiles').select('referred_by').eq('id', new_user_id).limit(1).execute()
         existing = (cur.data or [{}])[0].get('referred_by')
+        if existing == referrer_id:
+            return {'success': True, 'referrer_id': referrer_id,
+                    'credit_inviter': 0, 'credit_invitee': 0, 'note': 'already referred'}
         if existing and existing != referrer_id:
             return {'success': False, 'message': 'User already referred by another code'}
 
         # Set referred_by on new user (idempotent no-op if already equal)
         client.table('profiles').update({'referred_by': referrer_id}).eq('id', new_user_id).execute()
 
-        # Credit the invitee (atomic increment; safe even if called twice because
-        # the referred_by guard above prevents re-entry for a different referrer)
-        client.table('profiles').update(
-            {'referral_credits': f'referral_credits + {credit_invitee}'}
-        ).eq('id', new_user_id).execute()
+        # Credit the invitee (read current, add, write)
+        inv_data = client.table('profiles').select('referral_credits').eq('id', new_user_id).limit(1).execute()
+        cur_credits = (inv_data.data or [{}])[0].get('referral_credits', 0) or 0
+        client.table('profiles').update({'referral_credits': cur_credits + credit_invitee}).eq('id', new_user_id).execute()
 
-        # Credit the inviter + bump count (atomic increment)
+        # Credit the inviter + bump count
+        ref_data = client.table('profiles').select('referral_credits, referral_count').eq('id', referrer_id).limit(1).execute()
+        rd = (ref_data.data or [{}])[0]
         client.table('profiles').update({
-            'referral_credits': f'referral_credits + {credit_inviter}',
-            'referral_count': f'referral_count + 1',
+            'referral_credits': (rd.get('referral_credits', 0) or 0) + credit_inviter,
+            'referral_count': (rd.get('referral_count', 0) or 0) + 1,
         }).eq('id', referrer_id).execute()
 
         return {'success': True, 'referrer_id': referrer_id,
