@@ -2,11 +2,12 @@
 {% block page_head %}
 <meta name="robots" content="noindex, follow">
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<!-- OG tags for Instagram/Facebook rich preview -->
+<!-- OG tags for Instagram/Facebook rich preview (single source, brand domain) -->
 <meta property="og:title" content="{{ og_title | e }}">
 <meta property="og:description" content="{{ og_description | e }}">
 <meta property="og:image" content="{{ og_image or url_for('static', filename='images/android-chrome-512x512.png', _external=True) }}">
-<meta property="og:url" content="{{ canonical_domain }}{{ request.path }}">
+<meta property="og:url" content="https://abhihub.edu.eu.org{{ request.path }}">
+<link rel="canonical" href="https://abhihub.edu.eu.org{{ request.path }}">
 <meta property="og:type" content="profile">
 <meta property="profile:first_name" content="{{ (peer.get('name', 'Student').split(' ')[0] if peer and peer.get('name') else 'Student') | e }}">
 <meta property="profile:last_name" content="{{ (peer.get('name', 'Student').split(' ')[1] if peer and peer.get('name','').split(' ')|length > 1 else 'Hub') | e }}">
@@ -14,7 +15,6 @@
 <meta name="twitter:title" content="{{ og_title | e }}">
 <meta name="twitter:description" content="{{ og_description | e }}">
 <meta name="twitter:image" content="{{ og_image or url_for('static', filename='images/android-chrome-512x512.png', _external=True) }}">
-<link rel="canonical" href="{{ canonical_domain }}{{ request.path }}">
 {% endblock %}
 {% block page_styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
@@ -260,8 +260,10 @@
 
   <!-- CTAs -->
   <div class="ig-ctas">
-    <a href="/chat/{{ peer.get('id') }}" class="ig-btn ig-btn-primary">
-      <i class="fas fa-comments"></i> Chat Now
+    {# Primary CTA converts cold Instagram/WhatsApp traffic into signups
+       (carries the owner's referral code so the invite credits). #}
+    <a href="/signup?ref={{ peer.get('referral_code', '') }}" class="ig-btn ig-btn-primary">
+      <i class="fas fa-user-plus"></i> Join AbhiHub Free
     </a>
     <a href="/upload" class="ig-btn ig-btn-secondary">
       <i class="fas fa-upload"></i> Share Yours

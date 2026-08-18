@@ -43,6 +43,7 @@
 {% else %}
   {% set canonical_domain = request.url_root.rstrip('/') %}
 {% endif %}
+{% if not disable_canonical %}
 <link rel="canonical" href="{{ canonical_domain }}{{ request.path }}">
 
 <!-- 5. Open Graph Tags -->
@@ -52,6 +53,7 @@
 <meta property="og:description" content="{{ og_description | default(seo_description | default('AbhiHub is the best platform to organize exam resources...')) }}">
 <meta property="og:url" content="{{ canonical_domain }}{{ request.path }}">
 <meta property="og:image" content="{{ og_image | default(url_for('static', filename='images/android-chrome-512x512.png', _external=True)) }}">
+{% endif %}
 
 <!-- 6. Twitter Card Tags -->
 <meta name="twitter:card" content="summary_large_image">

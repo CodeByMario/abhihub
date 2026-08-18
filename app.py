@@ -5638,7 +5638,8 @@ def instagram_profile(user_id):
             og_title=og_title,
             og_description=og_description,
             og_image=og_image,
-            canonical_domain=request.host_url.rstrip('/'),
+            disable_canonical=True,
+            referral_code=peer.get('referral_code') or '',
         )
     except Exception as e:
         logging.error(f"[instagram_profile] {e}")

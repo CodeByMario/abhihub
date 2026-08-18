@@ -2134,7 +2134,8 @@ def get_user_peer_materials_db(target_user_id: str) -> dict:
                 'name': prof.get('full_name') or 'Student',
                 'college_name': col.get('name') or '',
                 'reputation_score': prof.get('reputation_score', 0),
-                'rank_title': prof.get('rank_title', 'Student')
+                'rank_title': prof.get('rank_title', 'Student'),
+                'referral_code': prof.get('referral_code') or ''
             },
             'uploads': uploads,
             'referred': referred
