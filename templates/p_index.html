@@ -77,6 +77,61 @@ notes, practicals, and exam resources for top colleges across India." %}
   </div>
 </div>
 
+<!-- ── Exam-pack seasonal banner (growth + re-engagement) ─────────────────── -->
+<div id="examPackBanner" class="exam-pack-banner">
+  <div class="exam-pack-banner-icon">📚</div>
+  <div class="exam-pack-banner-body">
+    <div class="exam-pack-banner-title">Your semester exam pack is ready — free</div>
+    <div class="exam-pack-banner-sub">Previous-year papers &amp; toppers' notes for your branch, in one place.</div>
+    <div class="exam-pack-banner-actions">
+      <a href="/pyq" class="exam-pack-btn primary">Get exam pack →</a>
+      <button id="examPackInviteBtn" type="button" class="exam-pack-btn ghost">Invite &amp; earn 50</button>
+    </div>
+  </div>
+  <button id="examPackClose" type="button" class="exam-pack-close" aria-label="Dismiss">×</button>
+</div>
+<script>
+(function(){
+  try {
+    if (localStorage.getItem('examPackBannerDismissed') === '1') {
+      var b = document.getElementById('examPackBanner'); if (b) b.remove();
+    }
+    var close = document.getElementById('examPackClose');
+    if (close) close.addEventListener('click', function(){
+      var el = document.getElementById('examPackBanner');
+      if (el) el.remove();
+      try { localStorage.setItem('examPackBannerDismissed','1'); } catch(e){}
+    });
+    var inv = document.getElementById('examPackInviteBtn');
+    if (inv) inv.addEventListener('click', function(){
+      var w = document.getElementById('referralWidget');
+      if (w) { w.hidden = false; w.scrollIntoView({behavior:'smooth', block:'center'}); }
+    });
+  } catch(e){}
+})();
+</script>
+<style>
+.exam-pack-banner { position:relative; display:flex; gap:0.75rem; align-items:center;
+  margin:0.75rem 0; padding:0.9rem 1rem; border-radius:14px;
+  background:linear-gradient(135deg,#0d9488,#10b981); color:#fff;
+  box-shadow:0 4px 14px rgba(13,148,136,0.25); }
+.exam-pack-banner-icon { font-size:1.7rem; }
+.exam-pack-banner-body { flex:1; min-width:0; }
+.exam-pack-banner-title { font-weight:800; font-size:0.98rem; }
+.exam-pack-banner-sub { font-size:0.78rem; opacity:0.92; margin-bottom:0.5rem; }
+.exam-pack-banner-actions { display:flex; gap:0.5rem; flex-wrap:wrap; }
+.exam-pack-btn { padding:0.45rem 0.9rem; border-radius:10px; font-size:0.82rem; font-weight:700;
+  text-decoration:none; cursor:pointer; border:none; }
+.exam-pack-btn.primary { background:#fff; color:#0d9488; }
+.exam-pack-btn.primary:hover { background:#f0fdfa; }
+.exam-pack-btn.ghost { background:rgba(255,255,255,0.18); color:#fff; }
+.exam-pack-btn.ghost:hover { background:rgba(255,255,255,0.3); }
+.exam-pack-close { position:absolute; top:6px; right:10px; background:none; border:none;
+  color:#fff; font-size:1.3rem; line-height:1; cursor:pointer; opacity:0.85; }
+.exam-pack-close:hover { opacity:1; }
+@media (max-width:480px){ .exam-pack-banner-sub{ display:none; } }
+</style>
+
 <!-- ── Invite / Referral Nudge (growth loop) ─────────────────────────────── -->
 <div id="referralWidget" class="referral-widget" hidden>
   <div class="referral-widget-icon">🎁</div>
