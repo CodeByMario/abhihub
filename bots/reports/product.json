@@ -1,0 +1,26 @@
+{
+  "bot": "product",
+  "role": "Product / R&D",
+  "emoji": "🧭",
+  "timestamp": "2026-08-18T08:31:33.150144+00:00",
+  "used_llm": false,
+  "used_db": false,
+  "metrics": {
+    "trending_topics": [
+      "general"
+    ]
+  },
+  "actions": [
+    {
+      "action": "Triage BUGS.md",
+      "detail": "Promote HIGH-severity engagement bugs to sprint",
+      "status": "done"
+    }
+  ],
+  "insights": [
+    "Roadmap draft:\n- Add 'Exam Pack' auto-collection per branch+sem\n- One-tap in-app preview (no download) for all files\n- Personalized 'continue studying' home rail"
+  ],
+  "recommendations": [
+    "Instrument feature adoption; kill low-adoption features quarterly."
+  ]
+}

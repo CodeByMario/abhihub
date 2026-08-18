@@ -194,7 +194,7 @@ const PRECACHE_URLS = [
 
 // Paths that should NEVER be cached (security-sensitive)
 const NEVER_CACHE_PATTERNS = [
-  /\/api\/(?!profile-status)/,  // block all /api/ except profile-status
+  /\/api\/(?!profile-status|view-doc)/,  // block all /api/ except profile-status and view-doc
   /\/auth\//,
   /\/login/,
   /\/logout/,
@@ -590,8 +590,9 @@ async function handleStandardRequest(request) {
     const cachedType = cachedResponse.headers.get('Content-Type') || '';
     const isJsOrCss = url.pathname.endsWith('.js') || url.pathname.endsWith('.css');
     if (isJsOrCss && cachedType.includes('text/html')) {
-      // Don't serve HTML for JS/CSS requests — delete and fetch fresh
+      // Don't serve HTML for JS/CSS requests — delete bad cache and fetch fresh
       await cache.delete(request);
+      return fetch(request);
     } else {
       // Start background fetch
       const fetchPromise = fetch(request).then(async (networkResponse) => {
@@ -601,6 +602,11 @@ async function handleStandardRequest(request) {
         }
         return networkResponse;
       }).catch(() => null);
+
+      // If this is a non-cacheable request (e.g. /api/view-doc/), always go network
+      if (!isCacheableUrl(url)) {
+        return fetch(request);
+      }
 
       return cachedResponse;
     }

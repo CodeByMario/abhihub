@@ -281,6 +281,13 @@ function authCreateAccountWithEmail() {
             const user = data.user;
             console.log('Signup successful for:', user.email);
 
+            // Capture referral code from the signup URL (?ref=ABHI-XXXXXX)
+            // and stash it so we can apply it right after backend auth.
+            const _refCode = new URLSearchParams(window.location.search).get('ref');
+            if (_refCode) {
+                try { sessionStorage.setItem('abhihub_ref_code', _refCode); } catch (e) {}
+            }
+
             // Try to create user profile
             try {
                 await supabase
@@ -309,16 +316,27 @@ function authCreateAccountWithEmail() {
                 loginUser(user, idToken);
             } else {
                 // Email confirmation is required
-                errorMsgEmail.textContent = 'Account created! Check your email for confirmation link';
+                errorMsgEmail.style.color = '#188038';
+                errorMsgEmail.innerHTML = '✅ Account created! We sent a confirmation link to <b>' + user.email +
+                    '</b>. Click it to start studying. ' +
+                    '<a href="#" id="resend-confirm-link" style="color:#4285f4;text-decoration:underline;">Resend email</a>';
                 console.log('Email confirmation required for:', user.email);
+
+                const resendLink = document.getElementById('resend-confirm-link');
+                if (resendLink) {
+                    resendLink.addEventListener('click', async (ev) => {
+                        ev.preventDefault();
+                        try {
+                            await supabase.auth.resend({ type: 'signup', email: user.email });
+                            errorMsgEmail.innerHTML = '📨 Confirmation email resent. Check your inbox (and spam).';
+                        } catch (e) {
+                            errorMsgEmail.textContent = 'Could not resend email. Try again later.';
+                        }
+                    });
+                }
 
                 // Clear input fields
                 clearAuthFields();
-
-                // Show success message for a few seconds
-                setTimeout(() => {
-                    errorMsgEmail.textContent = '';
-                }, 5000);
             }
         })
         .catch((error) => {
@@ -420,6 +438,23 @@ function loginUser(user, idToken) {
         .then(({ response, data }) => {
             if (response.ok && data.success) {
                 console.log('Backend authentication successful');
+                // Apply any referral code captured at signup (after session exists)
+                try {
+                    const _rc = sessionStorage.getItem('abhihub_ref_code');
+                    if (_rc) {
+                        fetch('/api/referral/register', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'same-origin',
+                            body: JSON.stringify({ code: _rc })
+                        }).then(r => r.json()).then(j => {
+                            if (j.success) {
+                                console.log('[Referral] credited invitee with', j.credit_invitee);
+                                sessionStorage.removeItem('abhihub_ref_code');
+                            }
+                        }).catch(() => {});
+                    }
+                } catch (e) {}
                 // Track login via GA
                 if (window.AbhiHubTracking) {
                     window.AbhiHubTracking.trackLogin('email', user?.email || '');

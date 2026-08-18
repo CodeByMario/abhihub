@@ -1,0 +1,27 @@
+{
+  "bot": "revenue",
+  "role": "Monetization / Revenue",
+  "emoji": "💰",
+  "timestamp": "2026-08-18T08:31:33.138351+00:00",
+  "used_llm": false,
+  "used_db": false,
+  "metrics": {
+    "waitlist_size": "n/a",
+    "credit_earn_upload": 10,
+    "credit_earn_referral": 50
+  },
+  "actions": [
+    {
+      "action": "Audit credit ledger",
+      "detail": "Ensure earn/burn balances prevent inflation",
+      "status": "done"
+    }
+  ],
+  "insights": [
+    "Credits tie engagement to value: upload + referrals earn, premium features burn.",
+    "Pricing levers:\n- Introduce 'Remove Ads' weekly pass (burn credits)\n- Tiered referral bonus for 5+ invited active peers"
+  ],
+  "recommendations": [
+    "Track AdSense RPM by page; shift ad slots to high-dwell PDF viewer pages."
+  ]
+}

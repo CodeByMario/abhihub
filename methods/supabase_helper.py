@@ -2143,3 +2143,101 @@ def get_user_peer_materials_db(target_user_id: str) -> dict:
         print(f"[PeerMaterialsDB] Error: {e}")
         return {'success': False, 'uploads': [], 'referred': []}
 
+
+# ────────────────────────────────────────────────────────────────────────────
+# Referral / Invite system (growth loop)
+# ────────────────────────────────────────────────────────────────────────────
+
+def generate_referral_code(user_id: str) -> str:
+    """Deterministic, brandable referral code from the user's uuid.
+
+    Format: ABHI-XXXXXX (first 6 hex chars of the uuid, uppercased).
+    Falls back to a random suffix if it collides (extremely unlikely).
+    """
+    import uuid as _uuid
+    import random as _random
+    base = ('ABHI-' + str(user_id).replace('-', '')[:6].upper())
+    # Guarantee uniqueness against the table.
+    client = init_supabase()
+    if not client:
+        return base
+    candidate = base
+    for _ in range(5):
+        res = client.table('profiles').select('id').eq('referral_code', candidate).execute()
+        if not (res.data or []):
+            return candidate
+        candidate = base + _random.choice('ABCDEFGHJKLMNPQRSTUVWXYZ23456789')
+    # Last resort: fully random
+    return 'ABHI-' + _uuid.uuid4().hex[:6].upper()
+
+
+def ensure_referral_code(user_id: str) -> str:
+    """Return the user's existing referral code, creating one if missing."""
+    client = init_supabase()
+    if not client:
+        return ''
+    try:
+        res = client.table('profiles').select('referral_code').eq('id', user_id).limit(1).execute()
+        if res.data and res.data[0].get('referral_code'):
+            return res.data[0]['referral_code']
+        code = generate_referral_code(user_id)
+        client.table('profiles').update({'referral_code': code}).eq('id', user_id).execute()
+        return code
+    except Exception as e:
+        print(f"[Referral] ensure_referral_code failed: {e}")
+        return ''
+
+
+def resolve_referrer_by_code(code: str) -> str | None:
+    """Map a referral code to a referrer profile id, or None."""
+    if not code:
+        return None
+    client = init_supabase()
+    if not client:
+        return None
+    try:
+        res = client.table('profiles').select('id').eq('referral_code', str(code).strip().upper()).limit(1).execute()
+        if res.data:
+            return res.data[0].get('id')
+    except Exception as e:
+        print(f"[Referral] resolve_referrer_by_code failed: {e}")
+    return None
+
+
+def register_referral(new_user_id: str, code: str, credit_inviter: int = 50, credit_invitee: int = 25) -> dict:
+    """Credit both sides when a new user signs up via a referral code.
+
+    - Sets referred_by on the new user.
+    - Awards referral_credits to both the inviter and the invitee.
+    - Increments the inviter's referral_count.
+    Idempotent: safe to call more than once.
+    """
+    client = init_supabase()
+    if not client:
+        return {'success': False, 'message': 'Supabase unavailable'}
+    try:
+        referrer_id = resolve_referrer_by_code(code)
+        if not referrer_id or referrer_id == new_user_id:
+            return {'success': False, 'message': 'No valid referrer for code'}
+
+        # Set referred_by on new user
+        client.table('profiles').update({'referred_by': referrer_id}).eq('id', new_user_id).execute()
+
+        # Credit the invitee
+        client.table('profiles').update(
+            {'referral_credits': client.table('profiles').select('referral_credits').eq('id', new_user_id).execute().data[0].get('referral_credits', 0) + credit_invitee}
+        ).eq('id', new_user_id).execute()
+
+        # Credit the inviter + bump count
+        inv = client.table('profiles').select('referral_credits, referral_count').eq('id', referrer_id).execute().data[0]
+        client.table('profiles').update({
+            'referral_credits': (inv.get('referral_credits', 0) or 0) + credit_inviter,
+            'referral_count': (inv.get('referral_count', 0) or 0) + 1,
+        }).eq('id', referrer_id).execute()
+
+        return {'success': True, 'referrer_id': referrer_id,
+                'credit_inviter': credit_inviter, 'credit_invitee': credit_invitee}
+    except Exception as e:
+        print(f"[Referral] register_referral failed: {e}")
+        return {'success': False, 'message': str(e)}
+

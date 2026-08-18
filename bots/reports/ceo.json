@@ -1,0 +1,58 @@
+{
+  "bot": "ceo",
+  "role": "Strategic Orchestration",
+  "emoji": "👑",
+  "timestamp": "2026-08-18T08:31:33.132687+00:00",
+  "used_llm": false,
+  "used_db": false,
+  "metrics": {
+    "bots_run": 7,
+    "weekly_priority_count": 4
+  },
+  "actions": [
+    {
+      "action": "Ran growth (Marketing / Growth)",
+      "detail": "2 actions, 1 recs",
+      "status": "done"
+    },
+    {
+      "action": "Ran engagement (Customer Success / Engagement)",
+      "detail": "3 actions, 1 recs",
+      "status": "done"
+    },
+    {
+      "action": "Ran revenue (Monetization / Revenue)",
+      "detail": "1 actions, 1 recs",
+      "status": "done"
+    },
+    {
+      "action": "Ran ops (Operations)",
+      "detail": "2 actions, 1 recs",
+      "status": "done"
+    },
+    {
+      "action": "Ran finance (Finance)",
+      "detail": "1 actions, 1 recs",
+      "status": "done"
+    },
+    {
+      "action": "Ran product (Product / R&D)",
+      "detail": "1 actions, 1 recs",
+      "status": "done"
+    },
+    {
+      "action": "Ran community (Community)",
+      "detail": "2 actions, 1 recs",
+      "status": "done"
+    }
+  ],
+  "insights": [
+    "Weekly priority assembled from all role bots."
+  ],
+  "recommendations": [
+    "P1 Re-engage 743 dormant users (highest ROI retention lever).",
+    "P2 Ship 'Exam Pack' auto-collection (product+growth synergy).",
+    "P3 Audit AdSense RPM on PDF viewer pages (revenue).",
+    "P4 Keep ops error rate flat; no unnecessary deploys."
+  ]
+}

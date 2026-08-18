@@ -1,0 +1,29 @@
+{
+  "bot": "community",
+  "role": "Community",
+  "emoji": "🤝",
+  "timestamp": "2026-08-18T08:31:33.153139+00:00",
+  "used_llm": false,
+  "used_db": false,
+  "metrics": {
+    "suggested_peers_available": 0
+  },
+  "actions": [
+    {
+      "action": "Surface top advocates",
+      "detail": "Rank by reputation_score + uploads",
+      "status": "done"
+    },
+    {
+      "action": "Nudge peer matching",
+      "detail": "Prompt same-college study pairs",
+      "status": "done"
+    }
+  ],
+  "insights": [
+    "Peer matching (same college) increases retention via accountability."
+  ],
+  "recommendations": [
+    "Run a monthly 'top contributor' spotlight + credit bonus to fuel UGC."
+  ]
+}

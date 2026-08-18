@@ -77,6 +77,56 @@ notes, practicals, and exam resources for top colleges across India." %}
   </div>
 </div>
 
+<!-- ── Invite / Referral Nudge (growth loop) ─────────────────────────────── -->
+<div id="referralWidget" class="referral-widget" hidden>
+  <div class="referral-widget-icon">🎁</div>
+  <div class="referral-widget-body">
+    <div class="referral-widget-title">Invite classmates — earn <b id="referralCredits">credits</b></div>
+    <div class="referral-widget-sub">Share your link. When a peer joins, you both get view credits.</div>
+    <div class="referral-widget-row">
+      <input id="referralLinkInput" class="referral-widget-input" type="text" readonly value="Loading…">
+      <button id="referralCopyBtn" class="referral-widget-copy" type="button">Copy</button>
+      <a id="referralShareBtn" class="referral-widget-share" href="#" target="_blank" rel="noopener">Share</a>
+    </div>
+  </div>
+</div>
+<style>
+.referral-widget { display:flex; gap:0.75rem; align-items:center; margin:0.75rem 0;
+  background:linear-gradient(135deg,#eef2ff,#faf5ff); border:1px solid #c7d2fe;
+  border-radius:14px; padding:0.85rem 1rem; }
+.referral-widget-icon { font-size:1.6rem; }
+.referral-widget-body { flex:1; min-width:0; }
+.referral-widget-title { font-weight:800; font-size:0.95rem; color:#312e81; }
+.referral-widget-sub { font-size:0.78rem; color:#6366f1; margin-bottom:0.4rem; }
+.referral-widget-row { display:flex; gap:0.4rem; flex-wrap:wrap; }
+.referral-widget-input { flex:1; min-width:160px; padding:0.4rem 0.6rem; border:1px solid #c7d2fe;
+  border-radius:8px; font-size:0.8rem; background:#fff; color:#3730a3; }
+.referral-widget-copy, .referral-widget-share { padding:0.4rem 0.8rem; border-radius:8px; font-size:0.8rem;
+  font-weight:700; text-decoration:none; cursor:pointer; border:none; }
+.referral-widget-copy { background:#4f46e5; color:#fff; }
+.referral-widget-share { background:#22c55e; color:#fff; display:inline-flex; align-items:center; }
+.referral-widget-copy:hover { background:#4338ca; }
+</style>
+<script>
+(async function loadReferral() {
+  try {
+    const r = await fetch('/api/referral/my-code', { credentials:'same-origin' });
+    const j = await r.json();
+    if (!j.success) return;
+    const widget = document.getElementById('referralWidget');
+    const input = document.getElementById('referralLinkInput');
+    const share = document.getElementById('referralShareBtn');
+    const copy = document.getElementById('referralCopyBtn');
+    input.value = j.share_url;
+    share.href = 'https://wa.me/?text=' + encodeURIComponent('Join me on AbhiHub for free engineering PYQs & notes: ' + j.share_url);
+    widget.hidden = false;
+    copy.addEventListener('click', () => {
+      navigator.clipboard.writeText(j.share_url).then(() => { copy.textContent='Copied!'; setTimeout(()=>copy.textContent='Copy',1500); });
+    });
+  } catch (e) { /* widget stays hidden if API unavailable */ }
+})();
+</script>
+
 {% include 'includes/_peer_search_modal.html' %}
 
 {% if user_data %}

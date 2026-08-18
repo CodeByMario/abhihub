@@ -1,0 +1,277 @@
+{
+  "timestamp": "2026-08-18T08:31:33.157419+00:00",
+  "bots": {
+    "ceo": {
+      "bot": "ceo",
+      "role": "Strategic Orchestration",
+      "emoji": "👑",
+      "timestamp": "2026-08-18T08:31:33.132687+00:00",
+      "used_llm": false,
+      "used_db": false,
+      "metrics": {
+        "bots_run": 7,
+        "weekly_priority_count": 4
+      },
+      "actions": [
+        {
+          "action": "Ran growth (Marketing / Growth)",
+          "detail": "2 actions, 1 recs",
+          "status": "done"
+        },
+        {
+          "action": "Ran engagement (Customer Success / Engagement)",
+          "detail": "3 actions, 1 recs",
+          "status": "done"
+        },
+        {
+          "action": "Ran revenue (Monetization / Revenue)",
+          "detail": "1 actions, 1 recs",
+          "status": "done"
+        },
+        {
+          "action": "Ran ops (Operations)",
+          "detail": "2 actions, 1 recs",
+          "status": "done"
+        },
+        {
+          "action": "Ran finance (Finance)",
+          "detail": "1 actions, 1 recs",
+          "status": "done"
+        },
+        {
+          "action": "Ran product (Product / R&D)",
+          "detail": "1 actions, 1 recs",
+          "status": "done"
+        },
+        {
+          "action": "Ran community (Community)",
+          "detail": "2 actions, 1 recs",
+          "status": "done"
+        }
+      ],
+      "insights": [
+        "Weekly priority assembled from all role bots."
+      ],
+      "recommendations": [
+        "P1 Re-engage 743 dormant users (highest ROI retention lever).",
+        "P2 Ship 'Exam Pack' auto-collection (product+growth synergy).",
+        "P3 Audit AdSense RPM on PDF viewer pages (revenue).",
+        "P4 Keep ops error rate flat; no unnecessary deploys."
+      ]
+    },
+    "growth": {
+      "bot": "growth",
+      "role": "Marketing / Growth",
+      "emoji": "🚀",
+      "timestamp": "2026-08-18T08:31:33.132687+00:00",
+      "used_llm": false,
+      "used_db": false,
+      "metrics": {
+        "canonical_domain": "abhihub.run.place",
+        "canonical_consistent": true,
+        "referral_credits_per_invite": 50
+      },
+      "actions": [
+        {
+          "action": "Audit canonical/SEO surface",
+          "detail": "BASE_DOMAIN=abhihub.run.place",
+          "status": "done"
+        },
+        {
+          "action": "Queue referral nudge",
+          "detail": "Reward invitees who reach 3 views",
+          "status": "done"
+        }
+      ],
+      "insights": [
+        "Content ideas:\n- Exam-season 'last 7 days' revision packs email\n- Instagram Reels: '1 note that got a 9-pointer'\n- Referral: give 50 credits per invited active peer\n- Branch-wise topper leaderboard (gamified)\n- WhatsApp channel for new-notes drop alerts"
+      ],
+      "recommendations": [
+        "Push the referral + exam-pack campaign 30 days before each semester end."
+      ]
+    },
+    "engagement": {
+      "bot": "engagement",
+      "role": "Customer Success / Engagement",
+      "emoji": "💬",
+      "timestamp": "2026-08-18T08:31:33.135212+00:00",
+      "used_llm": false,
+      "used_db": false,
+      "metrics": {
+        "total_users": 1280,
+        "active_users": 537,
+        "dormant_users": 743,
+        "activation_rate": "42.0%",
+        "nps_survey_pending": true
+      },
+      "actions": [
+        {
+          "action": "Identify dormant users",
+          "detail": "743 users inactive >14d",
+          "status": "done"
+        },
+        {
+          "action": "Send re-engagement nudge",
+          "detail": "Trigger via push + email to dormant segment",
+          "status": "done"
+        },
+        {
+          "action": "Launch NPS survey",
+          "detail": "Follow up detractors/passives to close loop",
+          "status": "done"
+        }
+      ],
+      "insights": [
+        "Re-engagement copy: New semester notes just dropped 📚 — jump back in and grab this week's topper-reviewed practicals."
+      ],
+      "recommendations": [
+        "Auto-trigger onboarding checklist for new signups; score health by login frequency + feature usage and intervene when both drop."
+      ]
+    },
+    "revenue": {
+      "bot": "revenue",
+      "role": "Monetization / Revenue",
+      "emoji": "💰",
+      "timestamp": "2026-08-18T08:31:33.138351+00:00",
+      "used_llm": false,
+      "used_db": false,
+      "metrics": {
+        "waitlist_size": "n/a",
+        "credit_earn_upload": 10,
+        "credit_earn_referral": 50
+      },
+      "actions": [
+        {
+          "action": "Audit credit ledger",
+          "detail": "Ensure earn/burn balances prevent inflation",
+          "status": "done"
+        }
+      ],
+      "insights": [
+        "Credits tie engagement to value: upload + referrals earn, premium features burn.",
+        "Pricing levers:\n- Introduce 'Remove Ads' weekly pass (burn credits)\n- Tiered referral bonus for 5+ invited active peers"
+      ],
+      "recommendations": [
+        "Track AdSense RPM by page; shift ad slots to high-dwell PDF viewer pages."
+      ]
+    },
+    "ops": {
+      "bot": "ops",
+      "role": "Operations",
+      "emoji": "⚙️",
+      "timestamp": "2026-08-18T08:31:33.140353+00:00",
+      "used_llm": false,
+      "used_db": false,
+      "metrics": {
+        "errors_7d": 3,
+        "health": "ok"
+      },
+      "actions": [
+        {
+          "action": "Scan service worker / cache",
+          "detail": "Verify SW not returning 403/204 on APIs",
+          "status": "done"
+        },
+        {
+          "action": "Check Heroku worker health",
+          "detail": "Confirm scheduler + cron jobs firing",
+          "status": "done"
+        }
+      ],
+      "insights": [],
+      "recommendations": [
+        "No critical ops incidents; hold the line on cost."
+      ]
+    },
+    "finance": {
+      "bot": "finance",
+      "role": "Finance",
+      "emoji": "📊",
+      "timestamp": "2026-08-18T08:31:33.145114+00:00",
+      "used_llm": false,
+      "used_db": false,
+      "metrics": {
+        "gross_revenue_est": 1000.0,
+        "ai_model_share_pct": 2.0,
+        "developer_share_pct": 98.0,
+        "ai_payout_est": 20.0,
+        "developer_payout_est": 980.0,
+        "college_share": 0.0
+      },
+      "actions": [
+        {
+          "action": "Compute payout split",
+          "detail": "Per AbhiHub policy (no college share)",
+          "status": "done"
+        }
+      ],
+      "insights": [
+        "AI models get 2.0% (base 2% + 0 step(s) of 0.5%/2yr, cap 5%). Developer gets the rest. College share = 0."
+      ],
+      "recommendations": [
+        "Wire live gross revenue from Supabase billing table to replace estimate."
+      ]
+    },
+    "product": {
+      "bot": "product",
+      "role": "Product / R&D",
+      "emoji": "🧭",
+      "timestamp": "2026-08-18T08:31:33.150144+00:00",
+      "used_llm": false,
+      "used_db": false,
+      "metrics": {
+        "trending_topics": [
+          "general"
+        ]
+      },
+      "actions": [
+        {
+          "action": "Triage BUGS.md",
+          "detail": "Promote HIGH-severity engagement bugs to sprint",
+          "status": "done"
+        }
+      ],
+      "insights": [
+        "Roadmap draft:\n- Add 'Exam Pack' auto-collection per branch+sem\n- One-tap in-app preview (no download) for all files\n- Personalized 'continue studying' home rail"
+      ],
+      "recommendations": [
+        "Instrument feature adoption; kill low-adoption features quarterly."
+      ]
+    },
+    "community": {
+      "bot": "community",
+      "role": "Community",
+      "emoji": "🤝",
+      "timestamp": "2026-08-18T08:31:33.153139+00:00",
+      "used_llm": false,
+      "used_db": false,
+      "metrics": {
+        "suggested_peers_available": 0
+      },
+      "actions": [
+        {
+          "action": "Surface top advocates",
+          "detail": "Rank by reputation_score + uploads",
+          "status": "done"
+        },
+        {
+          "action": "Nudge peer matching",
+          "detail": "Prompt same-college study pairs",
+          "status": "done"
+        }
+      ],
+      "insights": [
+        "Peer matching (same college) increases retention via accountability."
+      ],
+      "recommendations": [
+        "Run a monthly 'top contributor' spotlight + credit bonus to fuel UGC."
+      ]
+    }
+  },
+  "weekly_priority": [
+    "P1 Re-engage 743 dormant users (highest ROI retention lever).",
+    "P2 Ship 'Exam Pack' auto-collection (product+growth synergy).",
+    "P3 Audit AdSense RPM on PDF viewer pages (revenue).",
+    "P4 Keep ops error rate flat; no unnecessary deploys."
+  ]
+}

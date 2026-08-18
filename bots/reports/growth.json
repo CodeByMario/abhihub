@@ -1,0 +1,31 @@
+{
+  "bot": "growth",
+  "role": "Marketing / Growth",
+  "emoji": "🚀",
+  "timestamp": "2026-08-18T08:31:33.132687+00:00",
+  "used_llm": false,
+  "used_db": false,
+  "metrics": {
+    "canonical_domain": "abhihub.run.place",
+    "canonical_consistent": true,
+    "referral_credits_per_invite": 50
+  },
+  "actions": [
+    {
+      "action": "Audit canonical/SEO surface",
+      "detail": "BASE_DOMAIN=abhihub.run.place",
+      "status": "done"
+    },
+    {
+      "action": "Queue referral nudge",
+      "detail": "Reward invitees who reach 3 views",
+      "status": "done"
+    }
+  ],
+  "insights": [
+    "Content ideas:\n- Exam-season 'last 7 days' revision packs email\n- Instagram Reels: '1 note that got a 9-pointer'\n- Referral: give 50 credits per invited active peer\n- Branch-wise topper leaderboard (gamified)\n- WhatsApp channel for new-notes drop alerts"
+  ],
+  "recommendations": [
+    "Push the referral + exam-pack campaign 30 days before each semester end."
+  ]
+}

@@ -397,9 +397,11 @@ def get_device_type(user_agent: str) -> str:
 #-------function-------#
 from methods.storage import upload_file, list_files, download_file, delete_file
 from methods.analytics_tracker import register_analytics_routes, get_full_profile_json
+from methods.analytics_reporter_routes import register_reporter_routes
 
 # Register analytics routes
 register_analytics_routes(app)
+register_reporter_routes(app)
 
 # Make user profile data available to all templates
 @app.context_processor
@@ -675,6 +677,53 @@ def authorize():
     except Exception as e:
         logging.debug(f"Token verification failed: {e}")
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+
+
+@app.route('/api/referral/register', methods=['POST'])
+def api_referral_register():
+    """Capture a referral code at signup and credit both sides.
+
+    Body: {"code": "ABHI-XXXXXX"}
+    The new user is taken from the active session (set by /auth).
+    Safe to call repeatedly; the credit logic is idempotent per code.
+    """
+    if 'user' not in session:
+        return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+    try:
+        payload = request.get_json(silent=True) or {}
+        code = (payload.get('code') or '').strip()
+        if not code:
+            return jsonify({'success': False, 'message': 'No referral code provided'}), 400
+        new_user_id = session['user'].get('uid')
+        from methods.supabase_helper import register_referral, ensure_referral_code
+        # Make sure the new user has their own code too (idempotent)
+        ensure_referral_code(new_user_id)
+        result = register_referral(new_user_id, code)
+        if result.get('success'):
+            return jsonify({'success': True, 'credit_invitee': result.get('credit_invitee', 0)}), 200
+        return jsonify({'success': False, 'message': result.get('message', 'Could not apply referral')}), 400
+    except Exception as e:
+        logging.error(f"[Referral] register endpoint failed: {e}")
+        return jsonify({'success': False, 'message': 'Server error'}), 500
+
+
+@app.route('/api/referral/my-code', methods=['GET'])
+@auth_required
+def api_referral_my_code():
+    """Return the logged-in user's shareable referral code + link."""
+    try:
+        uid = session['user'].get('uid')
+        from methods.supabase_helper import ensure_referral_code
+        code = ensure_referral_code(uid)
+        base = os.getenv('BASE_DOMAIN', 'app.abhihub.run.place')
+        return jsonify({
+            'success': True,
+            'code': code,
+            'share_url': f"https://{base}/signup?ref={code}"
+        }), 200
+    except Exception as e:
+        logging.error(f"[Referral] my-code failed: {e}")
+        return jsonify({'success': False, 'message': 'Server error'}), 500
 
 @app.route('/auth-callback')
 def auth_callback():
@@ -3986,6 +4035,13 @@ def get_pending_documents():
         return jsonify({'success': True, 'documents': res.data or []})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/admin/analytics')
+@auth_required
+@admin_required
+def admin_analytics_dashboard():
+    """Admin analytics dashboard page."""
+    return render_template('admin_analytics.html')
 
 @app.route('/api/admin/approve-document', methods=['POST'])
 @auth_required

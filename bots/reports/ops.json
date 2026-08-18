@@ -1,0 +1,28 @@
+{
+  "bot": "ops",
+  "role": "Operations",
+  "emoji": "⚙️",
+  "timestamp": "2026-08-18T08:31:33.140353+00:00",
+  "used_llm": false,
+  "used_db": false,
+  "metrics": {
+    "errors_7d": 3,
+    "health": "ok"
+  },
+  "actions": [
+    {
+      "action": "Scan service worker / cache",
+      "detail": "Verify SW not returning 403/204 on APIs",
+      "status": "done"
+    },
+    {
+      "action": "Check Heroku worker health",
+      "detail": "Confirm scheduler + cron jobs firing",
+      "status": "done"
+    }
+  ],
+  "insights": [],
+  "recommendations": [
+    "No critical ops incidents; hold the line on cost."
+  ]
+}
