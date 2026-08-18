@@ -411,6 +411,11 @@ async function uploadOne(item, retries) {
           uploadedFingerprints.add(fp); // mark as uploaded for this session
           setFileStatus(item.id, 'done', 100);
           resolve({ ok: true, xp: (r.data && r.data.xp_gained) || 0, score: (r.data && r.data.new_score) || 0 });
+          // Growth hook: prompt the user to share their invite link right after a successful upload
+          // (highest-intent moment). Safe no-op if the invite module isn't present.
+          if (typeof window.AbhiHubInvitePrompt === 'function') {
+            try { window.AbhiHubInvitePrompt(); } catch (e) {}
+          }
         } else {
           setFileStatus(item.id, 'error', 0, r.message || 'Failed');
           resolve({ ok: false, msg: r.message });

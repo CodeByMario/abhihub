@@ -710,16 +710,30 @@ def api_referral_register():
 @app.route('/api/referral/my-code', methods=['GET'])
 @auth_required
 def api_referral_my_code():
-    """Return the logged-in user's shareable referral code + link."""
+    """Return the logged-in user's shareable referral code + link + progress."""
     try:
         uid = session['user'].get('uid')
-        from methods.supabase_helper import ensure_referral_code
+        from methods.supabase_helper import ensure_referral_code, init_supabase
         code = ensure_referral_code(uid)
-        base = os.getenv('BASE_DOMAIN', 'app.abhihub.run.place')
+        base = os.getenv('BASE_DOMAIN', 'abhihub.edu.eu.org')
+        # Pull progress stats (referral_count, referral_credits) for the dashboard
+        referral_count = 0
+        referral_credits = 0
+        client = init_supabase()
+        if client:
+            try:
+                pr = client.table('profiles').select('referral_count, referral_credits').eq('id', uid).limit(1).execute()
+                if pr.data:
+                    referral_count = pr.data[0].get('referral_count', 0) or 0
+                    referral_credits = pr.data[0].get('referral_credits', 0) or 0
+            except Exception:
+                pass
         return jsonify({
             'success': True,
             'code': code,
-            'share_url': f"https://{base}/signup?ref={code}"
+            'share_url': f"https://{base}/signup?ref={code}",
+            'referral_count': referral_count,
+            'referral_credits': referral_credits,
         }), 200
     except Exception as e:
         logging.error(f"[Referral] my-code failed: {e}")

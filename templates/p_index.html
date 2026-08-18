@@ -138,6 +138,7 @@ notes, practicals, and exam resources for top colleges across India." %}
   <div class="referral-widget-body">
     <div class="referral-widget-title">Invite classmates — earn <b id="referralCredits">credits</b></div>
     <div class="referral-widget-sub">Share your link. When a peer joins, you both get view credits.</div>
+    <div class="referral-widget-progress" id="referralProgress" hidden></div>
     <div class="referral-widget-row">
       <input id="referralLinkInput" class="referral-widget-input" type="text" readonly value="Loading…">
       <button id="referralCopyBtn" class="referral-widget-copy" type="button">Copy</button>
@@ -161,24 +162,56 @@ notes, practicals, and exam resources for top colleges across India." %}
 .referral-widget-copy { background:#4f46e5; color:#fff; }
 .referral-widget-share { background:#22c55e; color:#fff; display:inline-flex; align-items:center; }
 .referral-widget-copy:hover { background:#4338ca; }
+.referral-widget-progress { font-size:0.74rem; font-weight:600; color:#4f46e5; margin-bottom:0.4rem; }
+.referral-widget-pulse { animation: referralPulse 0.8s ease-in-out 0s 2; }
+@keyframes referralPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(79,70,229,0.5); }
+  100% { box-shadow: 0 0 0 14px rgba(79,70,229,0); }
+}
 </style>
 <script>
-(async function loadReferral() {
+(function loadReferral() {
   try {
-    const r = await fetch('/api/referral/my-code', { credentials:'same-origin' });
-    const j = await r.json();
-    if (!j.success) return;
-    const widget = document.getElementById('referralWidget');
-    const input = document.getElementById('referralLinkInput');
-    const share = document.getElementById('referralShareBtn');
-    const copy = document.getElementById('referralCopyBtn');
-    input.value = j.share_url;
-    share.href = 'https://wa.me/?text=' + encodeURIComponent('Join me on AbhiHub for free engineering PYQs & notes: ' + j.share_url);
-    widget.hidden = false;
-    copy.addEventListener('click', () => {
-      navigator.clipboard.writeText(j.share_url).then(() => { copy.textContent='Copied!'; setTimeout(()=>copy.textContent='Copy',1500); });
-    });
-  } catch (e) { /* widget stays hidden if API unavailable */ }
+    const r = fetch('/api/referral/my-code', { credentials:'same-origin' })
+      .then(res => res.json())
+      .then(j => {
+        if (!j.success) return;
+        const widget = document.getElementById('referralWidget');
+        const input = document.getElementById('referralLinkInput');
+        const share = document.getElementById('referralShareBtn');
+        const copy = document.getElementById('referralCopyBtn');
+        const creditsEl = document.getElementById('referralCredits');
+        const progressEl = document.getElementById('referralProgress');
+        input.value = j.share_url;
+        share.href = 'https://wa.me/?text=' + encodeURIComponent('Join me on AbhiHub for free engineering PYQs & notes: ' + j.share_url);
+        widget.hidden = false;
+        if (creditsEl) creditsEl.textContent = (j.referral_credits || 0) + ' credits';
+        if (progressEl) {
+          const n = j.referral_count || 0;
+          progressEl.textContent = n > 0
+            ? `🎉 ${n} friend${n === 1 ? '' : 's'} joined via your link — ${j.referral_credits || 0} credits earned`
+            : 'No friends joined yet — share your link to earn 50 credits each!';
+          progressEl.hidden = false;
+        }
+        copy.addEventListener('click', () => {
+          navigator.clipboard.writeText(j.share_url).then(() => { copy.textContent='Copied!'; setTimeout(()=>copy.textContent='Copy',1500); });
+        });
+
+        // Expose the post-upload invite prompt (highest-intent moment).
+        // Fires at most once per browser session to avoid nagging.
+        window.AbhiHubInvitePrompt = function () {
+          try {
+            if (sessionStorage.getItem('invitePrompted') === '1') return;
+            sessionStorage.setItem('invitePrompted', '1');
+            widget.hidden = false;
+            widget.scrollIntoView({ behavior:'smooth', block:'center' });
+            widget.classList.add('referral-widget-pulse');
+            setTimeout(() => widget.classList.remove('referral-widget-pulse'), 1600);
+          } catch (e) {}
+        };
+      })
+      .catch(() => { /* widget stays hidden if API unavailable */ });
+  } catch (e) { /* widget stays hidden if fetch unsupported */ }
 })();
 </script>
 
