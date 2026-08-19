@@ -49,6 +49,30 @@ variables a deployment needs; live values belong in a deployment-local
 treat it as compromised: rotate it immediately and remove it from the
 repository history.
 
+### The Supabase anon key is intentionally public
+
+`static/supabase-config.js` contains the Supabase **anon** (publishable)
+key. This is by design and is **not** a leak:
+
+- The anon key is designed to ship to browsers. Supabase's own client
+  libraries expect it in front-end code.
+- It grants no privileges by itself. All access is enforced server-side by
+  **Row Level Security (RLS)** policies on the `abhihub` schema.
+- The key that must never be exposed is the **service-role** key, which
+  bypasses RLS. It is server-only, read from the environment, and appears
+  nowhere in this repository.
+
+**This means RLS is the actual security boundary.** If you add a table,
+you must add RLS policies for it — otherwise the anon key can read it.
+Treat a missing RLS policy as a security bug and report it under this
+policy.
+
+### Generated data files are never committed
+
+Files under `exports/` (campaign CSVs, send logs) contain real user data —
+names and email addresses. They are git-ignored and must stay that way.
+Committing user data is treated as a privacy incident, not a style issue.
+
 ## Hardening assumptions
 
 - The application assumes HTTPS in production (Heroku provides this by

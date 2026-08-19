@@ -1304,7 +1304,8 @@ def api_predict_metadata(user_data=None):
     client = init_supabase()
     
     words = re.split(r'[\W_]+', filename.split('.')[0])
-    prediction = {'subject_id': None, 'type': None, 'unit': None, 'year': '2025'}
+    prediction = {'subject_id': None, 'type': None, 'unit': None,
+                  'year': str(datetime.now().year)}
     
     # 1. Predict Category / Unit
     for w in words:

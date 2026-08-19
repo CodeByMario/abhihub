@@ -196,8 +196,45 @@ and corrected a stale `BUGS.md` path in `dev/bots/roles/product.py`.
 Left co-located on purpose: `static/css/pipeline/MIGRATION.md` and
 `data/cache/README.md` (they document adjacent code) — both indexed.
 
-## STEP 9 — P4 doc updates ⬜ NEXT
-CHANGELOG.md entry, BUGS.md statuses.
+## STEP 9 — P4 doc updates ✅ DONE
+Rather than editing statuses from memory, wrote `dev/verify_bugs.py` which
+checks all 28 `BUGS.md` items against the actual code and prints evidence.
+First run: **24 fixed / 4 open** — so four items I'd have marked done were
+not.
+
+Closed three of them:
+- **M9** — 5 `traceback.print_exc()` sites in `supabase_helper.py` had
+  inline imports *and* wrote stack traces to stderr, bypassing logging
+  entirely. Replaced with `logging.error(..., exc_info=True)`.
+- **M11** — hardcoded `'2025'` year fallback → `datetime.now().year`.
+- **L2** — documented in `SECURITY.md` that the Supabase anon key is
+  publishable by design and that **RLS is the real security boundary**, so
+  a missing RLS policy on a new table is a security bug. Also documented
+  that `exports/` holds user data and must never be committed.
+
+Also fixed a **false positive in my own checker**: its regex flagged the
+legitimate module-level `import traceback` in `app.py` as inline. Fixed
+the checker, not the code.
+
+**M3 deferred with reasoning, not skipped.** `app.py` imports from
+`methods.supabase_helper` inside ~91 route bodies. Verified there is no
+circular import and no expensive import-time work, so the lazy imports are
+stylistic rather than load-bearing — but hoisting 59 distinct symbols
+touches nearly every route for zero functional gain. Documented in
+`BUGS.md` as deferred, to revisit only if `app.py` is ever split into
+blueprints.
+
+Final: **27 fixed / 1 deliberately deferred.**
+
+`BUGS.md` now opens with a verified status table plus three new sections:
+why M3 is deferred, findings investigated and dismissed (anon key, the
+non-existent `static/app.js`), and issues found during this pass that were
+never in the original audit (the PII leak, tracked `node_modules`, the
+README that wasn't a README).
+
+`CHANGELOG.md` — added a full `[Unreleased]` entry with a `Security`
+section leading on the PII purge. Also repaired pre-existing malformed
+`||-` bullets that were rendering as broken table rows.
 
 ---
 

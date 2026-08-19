@@ -1116,7 +1116,7 @@ def get_student_profile(user_id: str) -> Dict:
 
         return {'success': True, 'data': None, 'message': 'Not found'}
     except Exception as e:
-        import traceback; traceback.print_exc()
+        logging.error(f"[supabase_helper] operation failed: {e}", exc_info=True)
         return {'success': False, 'data': None, 'message': str(e)}
 
 def get_user_profile(user_id: str) -> Dict:
@@ -1180,9 +1180,7 @@ def create_or_update_student_profile(user_id: str, profile_data: dict) -> Dict:
         return {'success': True, 'message': 'Profile updated successfully'}
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        logging.error(f"[Profile ERROR] create_or_update_student_profile failed: {e}")
+        logging.error(f"[Profile ERROR] create_or_update_student_profile failed: {e}", exc_info=True)
         return {'success': False, 'message': str(e)}
 
 def check_profile_completed(user_id: str) -> bool:
@@ -1797,9 +1795,7 @@ def save_file_access(user_email: str, file_name: str, file_type: str = 'pdf', fi
         return {'success': True}
         
     except Exception as e:
-        logging.error(f"Error in save_file_access: {e}")
-        import traceback
-        traceback.print_exc()
+        logging.error(f"Error in save_file_access: {e}", exc_info=True)
         return {'success': False, 'message': str(e)}
 
 def get_user_file_history(user_email: str, limit: int = 10) -> Dict:
@@ -1847,9 +1843,7 @@ def get_user_file_history(user_email: str, limit: int = 10) -> Dict:
         return {'success': True, 'data': []}
             
     except Exception as e:
-        logging.error(f"Error in get_user_file_history: {e}")
-        import traceback
-        traceback.print_exc()
+        logging.error(f"Error in get_user_file_history: {e}", exc_info=True)
         return {'success': False, 'data': [], 'message': str(e)}
 
 def get_papo_meter_data(user_id: str) -> Dict:
@@ -2013,8 +2007,7 @@ def add_new_entity(entity_type: str, name: str, short_name: str = '', code: str 
         else:
             return {"success": False, "message": "Unknown entity type"}
     except Exception as e:
-        import traceback
-        traceback.print_exc()
+        logging.error(f"[supabase_helper] operation failed: {e}", exc_info=True)
         return {"success": False, "message": str(e)}
 
 def search_users_db(query_str: str, limit: int = 20) -> list:

@@ -1,7 +1,81 @@
 # AbhiHub Bug Inventory & Fix Plan
 
-> **Generated:** 2026-08-16 | **Sources:** `audit_report.md`, `security_scan.py`, `adv_security_scan.py`, manual code review
+> **Generated:** 2026-08-16 | **Sources:** `docs/history/audit_report_2026-07-11.md`, `security_scan.py`, `adv_security_scan.py`, manual code review
 > **Total findings tracked:** 277 raw (audit) + new manual findings = consolidated into ~25 actionable items below
+
+---
+
+## Status — 27 of 28 resolved
+
+Verified against the codebase, not from memory. Re-check any time with:
+
+```bash
+python dev/verify_bugs.py
+```
+
+| Item | Status | Evidence |
+|---|---|---|
+| H1 bare `except:` | ✅ Fixed | 0 in production code |
+| H2 `/delete-account` auth | ✅ Fixed | `@auth_required` present |
+| H3 `/pdf-proxy` auth | ✅ Fixed | auth + Referer check + rate limit |
+| H4 admin email default | ✅ Fixed | defaults to empty list |
+| H5 CSRF expiry | ✅ Fixed | `WTF_CSRF_TIME_LIMIT = 3600` |
+| H6 CORS wildcard | ✅ Fixed | 0 wildcards; `cors.py` deleted |
+| M1 view-log duplication | ✅ Fixed | `log_document_view()` helper |
+| M2 device detection | ✅ Fixed | single `get_device_type()` |
+| M3 inline helper imports | 🟡 **Deferred** | see note below |
+| M4 `init_supabase` imports | ✅ Fixed | 0 duplicate module-level |
+| M6 `print()` in production | ✅ Fixed | 0 across `app.py`/`methods/`/`data/` |
+| M7 custom fuzzy search | ✅ Fixed | `rapidfuzz` in use |
+| M8 manual CORS | ✅ Fixed | `cors.py` removed (was unused) |
+| M9 inline `traceback` | ✅ Fixed | replaced with `exc_info=True` |
+| M10 inline `re` | ✅ Fixed | hoisted to module level |
+| M11 hardcoded dates | ✅ Fixed | `datetime.now().year` |
+| M12 input length validation | ✅ Fixed | all 3 admin routes |
+| M13 O(N) rank lookup | ✅ Fixed | dict lookup, O(1) |
+| M14 4× list comprehensions | ✅ Fixed | single pass |
+| M15 SocketIO CORS | ✅ Fixed | restricted to app domain |
+| L1 dead code files | ✅ Fixed | root `.py` 23 → 7 |
+| L2 anon key undocumented | ✅ Fixed | documented in `SECURITY.md` |
+| L3 test secret | ✅ Fixed | dummy value, not a real secret |
+| L4 Turnstile sitekey | ✅ Fixed | env var in all 4 templates |
+| L5 `ROUTES.md` dead links | ✅ Fixed | relabelled `[REMOVED]` |
+| L6 `\|tojson\|safe` | ✅ Fixed | redundant filter removed |
+| L7 CSS doc location | ✅ Fixed | → `docs/history/` |
+| L8 `print()` in helper | ✅ Fixed | 0 remaining |
+
+### Why M3 is deferred, not forgotten
+
+`app.py` imports from `methods.supabase_helper` inside ~91 route bodies
+rather than once at the top. Before changing it I verified:
+
+- **No circular import** — `supabase_helper` does not import `app`.
+- **No expensive import-time work** — it only pulls stdlib + `dotenv`.
+
+So the lazy imports are *not* load-bearing; they are stylistic. But
+hoisting **59 distinct symbols** into one module-level import touches
+nearly every route for zero functional gain and real regression risk.
+
+**Decision:** leave as-is. Revisit only if `app.py` is split into
+blueprints, where the imports would move anyway. Tracked, not ignored.
+
+### Not a bug (investigated and dismissed)
+
+- **Supabase anon key in `static/supabase-config.js`** — publishable by
+  design; RLS is the security boundary. Now documented in `SECURITY.md`.
+  The service-role key appears nowhere in the repo.
+- **`static/app.js` with `process.env.REACT_APP_OPENAI_API_KEY`** — the
+  file does not exist; the original match came from `node_modules`.
+
+### Found during this pass (not in the original audit)
+
+- **🔴 Student PII committed to git.** `exports/*.csv` held real names and
+  institutional emails. Confined to unpushed commits, so purged from
+  history before any push; `exports/` and `*.csv` now git-ignored.
+- **`node_modules` tracked** — 3,141 files; untracked.
+- **`README.md` was not a README** — it held a CSS-pipeline summary with
+  copy-paste artifacts. Rewritten; original kept as
+  `docs/architecture/CSS_PIPELINE.md`.
 
 ---
 
