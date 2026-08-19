@@ -366,7 +366,7 @@ except Exception as e:
 # File Upload Security Configuration
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB max file size
 ALLOWED_EXTENSIONS = {
-    'pdf', 'png', 'jpg', 'jpeg'
+    'pdf', 'png', 'jpg', 'jpeg', 'webp'
 }
 
 def allowed_file(filename):
@@ -2145,6 +2145,12 @@ def upload():
         return render_template('p_upload.html')
     else:
         return render_template('p_login.html')
+
+@app.route('/local-viewer')
+@auth_required
+def local_viewer():
+    """Standalone page: open a local image/PDF, preview it, then upload to Cloudinary."""
+    return render_template('p_local_preview.html')
 
 @app.route('/preview')
 @auth_required
