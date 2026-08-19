@@ -4,6 +4,7 @@ Implements stateless, scalable search against the search_documents table.
 """
 from flask import request, jsonify
 from methods.supabase_helper import init_supabase
+import logging
 
 def execute_search(query: str, college_id: str = None, limit: int = 50):
     client = init_supabase()
@@ -88,7 +89,7 @@ def execute_search(query: str, college_id: str = None, limit: int = 50):
         return get_base_query().limit(limit).execute().data or []
         
     except Exception as e:
-        print(f"Search V2 error: {e}")
+        logging.error(f"Search V2 error: {e}")
         return []
 
 def search_v2_endpoint():
@@ -117,5 +118,5 @@ def search_analytics_endpoint():
                 }).execute()
         return jsonify({'success': True})
     except Exception as e:
-        print(f"Analytics error: {e}")
+        logging.error(f"Analytics error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500

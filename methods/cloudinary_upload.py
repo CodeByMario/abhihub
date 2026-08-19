@@ -11,6 +11,7 @@ import cloudinary.uploader
 from PIL import Image
 from typing import Dict, Optional, BinaryIO
 from dotenv import load_dotenv
+import logging
 
 # Load environment variables
 load_dotenv()
@@ -79,11 +80,11 @@ def compress_image(file_data: bytes, format: str = 'JPEG', quality: int = 90) ->
 
         img.save(output, **save_kwargs)
         compressed = output.getvalue()
-        print(f"✓ EXIF stripped+rotated, compressed to {len(compressed)} bytes")
+        logging.info(f"✓ EXIF stripped+rotated, compressed to {len(compressed)} bytes")
         return compressed
 
     except Exception as e:
-        print(f"Error compressing image: {e}")
+        logging.error(f"Error compressing image: {e}")
         return file_data
 
 
@@ -156,7 +157,7 @@ def upload_file_to_cloudinary(
             }
             image_format = format_map.get(ext, 'JPEG')
             file_bytes = compress_image(file_bytes, format=image_format, quality=85)
-            print(f"✓ Image compressed: {len(file_bytes)} bytes")
+            logging.info(f"✓ Image compressed: {len(file_bytes)} bytes")
         
         # Create unique filename with user ID and timestamp
         timestamp = int(time.time())
@@ -184,10 +185,10 @@ def upload_file_to_cloudinary(
             # For PDFs and documents
             upload_params['resource_type'] = 'raw'
         
-        print(f"📤 Uploading to Cloudinary: {public_id}")
+        logging.info(f"📤 Uploading to Cloudinary: {public_id}")
         result = cloudinary.uploader.upload(file_bytes, **upload_params)
         
-        print(f"✅ Upload successful: {result.get('secure_url')}")
+        logging.info(f"✅ Upload successful: {result.get('secure_url')}")
         
         return {
             'success': True,
@@ -203,7 +204,7 @@ def upload_file_to_cloudinary(
         }
     
     except Exception as e:
-        print(f"❌ Cloudinary upload error: {e}")
+        logging.error(f"❌ Cloudinary upload error: {e}")
         return {
             'success': False,
             'error': str(e),
@@ -229,7 +230,7 @@ def delete_file_from_cloudinary(public_id: str, resource_type: str = 'raw') -> D
             'result': result.get('result')
         }
     except Exception as e:
-        print(f"Error deleting from Cloudinary: {e}")
+        logging.error(f"Error deleting from Cloudinary: {e}")
         return {
             'success': False,
             'error': str(e)

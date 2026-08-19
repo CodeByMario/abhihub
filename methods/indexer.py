@@ -5,6 +5,7 @@ Handles tokenization, alias expansion, and weighting for the search_documents ta
 import re
 import json
 from methods.supabase_helper import init_supabase
+import logging
 
 _ALNUM = re.compile(r"[A-Za-z0-9]+")
 
@@ -89,10 +90,10 @@ def process_pending_documents():
                 }).eq('file_id', doc['file_id']).execute()
                 
             except Exception as e:
-                print(f"Error indexing document {doc.get('file_id')}: {e}")
+                logging.error(f"Error indexing document {doc.get('file_id')}: {e}")
                 client.table('search_documents').update({'status': 'failed'}).eq('file_id', doc.get('file_id')).execute()
                 
         return True
     except Exception as e:
-        print(f"Indexer error: {e}")
+        logging.error(f"Indexer error: {e}")
         return False

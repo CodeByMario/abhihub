@@ -5,7 +5,7 @@
      - clickable: Whether card is clickable (default: true)
 -->
 
-<div class="file-card fade-in" data-file='{{ file|tojson|safe }}' {% if clickable %}data-action="openFile" data-filename="{{ file.filename }}"{% endif %}>
+<div class="file-card fade-in" data-file='{{ file|tojson }}' {% if clickable %}data-action="openFile" data-filename="{{ file.filename }}"{% endif %}>
     {% if file.get('verified') %}
     <div class="label-badge">Verified</div>
     {% endif %}

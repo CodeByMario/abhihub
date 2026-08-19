@@ -6,6 +6,7 @@ Maps to abhihub.documents.
 import json
 from typing import Dict, List, Optional
 from data.db import get_client, validate_uuid, format_file_size
+import logging
 
 
 class Document:
@@ -342,5 +343,5 @@ class Document:
             rank_list.sort(key=lambda x: x["points"], reverse=True)
             return rank_list
         except Exception as e:
-            print(f"Error calculating ranks: {e}")
+            logging.error(f"Error calculating ranks: {e}")
             return []

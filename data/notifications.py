@@ -5,6 +5,7 @@ Maps to abhihub.notifications, abhihub.push_subscriptions.
 
 from typing import Dict, List
 from data.db import get_client
+import logging
 
 
 class Notification:
@@ -69,7 +70,7 @@ class Notification:
             )
             return res.data if res.data else []
         except Exception as e:
-            print(f"Error fetching notifications: {e}")
+            logging.error(f"Error fetching notifications: {e}")
             return []
 
     @staticmethod
@@ -145,7 +146,7 @@ class PushSubscription:
                 }
             return subs
         except Exception as e:
-            print(f"Error fetching subscriptions: {e}")
+            logging.error(f"Error fetching subscriptions: {e}")
             return {}
 
     @staticmethod
@@ -157,5 +158,5 @@ class PushSubscription:
             client.table(PushSubscription.TABLE).delete().eq("endpoint", endpoint).execute()
             return True
         except Exception as e:
-            print(f"Error removing subscription: {e}")
+            logging.error(f"Error removing subscription: {e}")
             return False

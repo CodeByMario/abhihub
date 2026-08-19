@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 from typing import List, Dict, Optional
 import json
 from datetime import datetime, timedelta
+import logging
 
 # Load environment variables
 load_dotenv()
@@ -49,7 +50,7 @@ def _get_cached_files() -> Optional[List[Dict]]:
         
         return cache_data.get('files', [])
     except Exception as e:
-        print(f"Error reading cache: {e}")
+        logging.error(f"Error reading cache: {e}")
         return None
 
 
@@ -72,9 +73,9 @@ def _save_to_cache(files: List[Dict]) -> None:
         with open(CACHE_FILE, 'w') as f:
             json.dump(cache_data, f)
         
-        print(f"Cached {len(files)} files")
+        logging.info(f"Cached {len(files)} files")
     except Exception as e:
-        print(f"Error saving cache: {e}")
+        logging.error(f"Error saving cache: {e}")
 
 
 def fetch_all_files(resource_type: str = "image", use_cache: bool = True) -> List[Dict]:
@@ -93,10 +94,10 @@ def fetch_all_files(resource_type: str = "image", use_cache: bool = True) -> Lis
     if use_cache:
         cached_files = _get_cached_files()
         if cached_files is not None:
-            print(f"Using cached data ({len(cached_files)} files)")
+            logging.info(f"Using cached data ({len(cached_files)} files)")
             return cached_files
     
-    print("Fetching fresh data from Cloudinary...")
+    logging.info("Fetching fresh data from Cloudinary...")
     results = []
     next_cursor = None
 
@@ -139,7 +140,7 @@ def fetch_all_files(resource_type: str = "image", use_cache: bool = True) -> Lis
                 break
 
     except Exception as e:
-        print(f"Error fetching files from Cloudinary: {e}")
+        logging.error(f"Error fetching files from Cloudinary: {e}")
         return []
 
     # Save to cache for future use
@@ -262,7 +263,7 @@ def sort_files(files: List[Dict], sort_by: str = "created_at", order: str = "des
         )
         return sorted_files
     except Exception as e:
-        print(f"Error sorting files: {e}")
+        logging.error(f"Error sorting files: {e}")
         return files
 
 

@@ -70,7 +70,7 @@ def remove_subscription(user_id):
                 u_id = p_res.data[0]['id']
                 client.table('push_subscriptions').delete().eq('user_id', u_id).execute()
                 return True
-        except:
+        except Exception:
             pass
     return False
 

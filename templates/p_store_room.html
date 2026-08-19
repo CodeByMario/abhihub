@@ -79,7 +79,7 @@
 
     <!-- Initial Data script -->
     <script>
-        window.INITIAL_STORE_ROOM_FILES = {{ files|tojson|safe if files else '[]' }};
+        window.INITIAL_STORE_ROOM_FILES = {{ files|tojson if files else '[]' }};
         window.INITIAL_TOTAL_PAPERS = {{ total_papers|default(0) }};
     </script>
 

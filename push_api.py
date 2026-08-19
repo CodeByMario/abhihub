@@ -75,7 +75,8 @@ def status():
         
         subscribed = is_user_subscribed(uuid) if uuid else False
         return jsonify({'enabled': True, 'subscribed': subscribed})
-    except:
+    except Exception as e:
+        logging.error(f"push_api: toggle subscription error: {e}")
         return jsonify({'enabled': False, 'subscribed': False})
 
 @push_api.route('/api/push/send', methods=['POST'])

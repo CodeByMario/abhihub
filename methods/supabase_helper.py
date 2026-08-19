@@ -24,7 +24,7 @@ except ImportError:
     SUPABASE_AVAILABLE = False
     Client = None
     ClientOptions = None
-    print("Warning: supabase-py not installed. Install with: pip install supabase")
+    logging.warning("Warning: supabase-py not installed. Install with: pip install supabase")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -34,13 +34,13 @@ _supabase_client = None
 def init_supabase():
     global _supabase_client
     if not SUPABASE_AVAILABLE:
-        print("❌ list_supabase: SUPABASE_AVAILABLE is False")
+        logging.error("❌ list_supabase: SUPABASE_AVAILABLE is False")
         return None
     if not SUPABASE_URL:
-        print("❌ list_supabase: SUPABASE_URL is empty")
+        logging.error("❌ list_supabase: SUPABASE_URL is empty")
         return None
     if not SUPABASE_KEY:
-        print("❌ list_supabase: SUPABASE_KEY is empty")
+        logging.error("❌ list_supabase: SUPABASE_KEY is empty")
         return None
         
     if _supabase_client is None:
@@ -50,10 +50,10 @@ def init_supabase():
                 SUPABASE_KEY,
                 options=ClientOptions(schema="abhihub")
             )
-            print("Success: Supabase client initialized with abhihub schema")
+            logging.info("Success: Supabase client initialized with abhihub schema")
         except Exception as e:
             traceback.print_exc()
-            print(f"Error initializing Supabase client: {e}")
+            logging.error(f"Error initializing Supabase client: {e}")
             return None
     return _supabase_client
 
@@ -554,13 +554,13 @@ def save_file_record(
             p_res = client.table('profiles').select('id').eq('email', user_email).execute()
             if p_res.data:
                 u_id = p_res.data[0]['id']
-                print(f"[Supabase] Resolved uploader_id from email: {u_id}")
+                logging.info(f"[Supabase] Resolved uploader_id from email: {u_id}")
         
         # Ensure that if we have a u_id, the profile exists safely
         if u_id:
             p_check = client.table('profiles').select('id').eq('id', u_id).execute()
             if not p_check.data:
-                print(f"[Supabase] Profile for {u_id} not found, creating base profile.")
+                logging.info(f"[Supabase] Profile for {u_id} not found, creating base profile.")
                 try:
                     # Provide default full_name if user_email is available, else generic name
                     name_part = user_email.split('@')[0] if user_email else 'Unknown User'
@@ -571,9 +571,9 @@ def save_file_record(
                         'full_name': name_part,
                         'role': 'student'
                     }).execute()
-                    print(f"[Supabase] Base profile created successfully.")
+                    logging.info(f"[Supabase] Base profile created successfully.")
                 except Exception as p_err:
-                    print(f"[Supabase] Failed to create base profile: {p_err}")
+                    logging.error(f"[Supabase] Failed to create base profile: {p_err}")
 
         # Resolve subject_id — prefer direct UUID from cascade dropdown
         sub_id = subject_id if validate_uuid(subject_id) else None
@@ -633,7 +633,7 @@ def save_file_record(
                 'college_id', 'department_id', 'subject_id', 'title', 'document_category'
             ))
             if is_labeled:
-                print(f"[Supabase] Duplicate registration prevented for URL: {file_url}")
+                logging.info(f"[Supabase] Duplicate registration prevented for URL: {file_url}")
                 return {
                     'success': False,
                     'message': 'File is already labeled and registered in the system.',
@@ -643,7 +643,7 @@ def save_file_record(
 
             update_res = client.table('documents').update(data).eq('id', existing['id']).execute()
             if update_res.data:
-                print(f"[Supabase] Completed metadata for existing document: {existing['id']}")
+                logging.info(f"[Supabase] Completed metadata for existing document: {existing['id']}")
                 return {'success': True, 'message': 'Existing file metadata updated', 'data': update_res.data[0]}
             return {'success': False, 'message': 'Failed to update existing file record'}
         # Duplicate protection for the same physical provider asset, even if
@@ -651,15 +651,15 @@ def save_file_record(
         if cloudinary_public_id:
             dup_check = client.table('documents').select('id').eq('storage_provider', storage_provider).eq('provider_public_id', cloudinary_public_id).execute()
             if dup_check.data:
-                print(f"[Supabase] Duplicate registration prevented for {storage_provider} ID: {cloudinary_public_id}")
+                logging.info(f"[Supabase] Duplicate registration prevented for {storage_provider} ID: {cloudinary_public_id}")
                 return {'success': False, 'message': 'File is already labeled and registered in the system.', 'conflict': True, 'data': dup_check.data[0]}
         
-        print(f"[Supabase] Inserting document: {data.get('title')}")
+        logging.info(f"[Supabase] Inserting document: {data.get('title')}")
         res = client.table('documents').insert(data).execute()
         
         if res.data:
             doc_id = res.data[0].get('id')
-            print(f"[Supabase] Successfully saved document record: {doc_id}")
+            logging.info(f"[Supabase] Successfully saved document record: {doc_id}")
             
             # --- Push to new Background Search Queue (Phase 2 Migration) ---
             try:
@@ -673,9 +673,9 @@ def save_file_record(
                     'normalized_title': _normalize(title or file_name) if '_normalize' in globals() else (title or file_name).lower(),
                     'status': 'pending'
                 }).execute()
-                print(f"[Supabase] Queued {doc_id} for background search indexing.")
+                logging.info(f"[Supabase] Queued {doc_id} for background search indexing.")
             except Exception as search_q_err:
-                print(f"[Supabase] Warning: Could not queue for indexing: {search_q_err}")
+                logging.error(f"[Supabase] Warning: Could not queue for indexing: {search_q_err}")
             # -------------------------------------------------------------
             
             # Phase 15: Gamification / Dopamine Loop
@@ -695,12 +695,12 @@ def save_file_record(
             
             return {'success': True, 'message': 'Saved successfully', 'data': res_data}
         
-        print(f"[Supabase] Failed to save document record. Response empty.")
+        logging.error(f"[Supabase] Failed to save document record. Response empty.")
         return {'success': False, 'message': 'Failed to save record to database'}
         
     except Exception as e:
         traceback.print_exc()
-        print(f"[Supabase] Error saving file record: {e}")
+        logging.error(f"[Supabase] Error saving file record: {e}")
         return {'success': False, 'message': str(e)}
 
 def verify_hierarchy(college_id: str, branch_id: str, subject_id: str) -> bool:
@@ -722,7 +722,7 @@ def verify_hierarchy(college_id: str, branch_id: str, subject_id: str) -> bool:
 
         return True
     except Exception as e:
-        print(f"[Supabase] Error in verify_hierarchy: {e}")
+        logging.error(f"[Supabase] Error in verify_hierarchy: {e}")
         return False
 
 def get_registered_storage_ids() -> set:
@@ -739,7 +739,7 @@ def get_registered_storage_ids() -> set:
                 registered.add(f"{prov}_{sid}")
         return registered
     except Exception as e:
-        print(f"[Supabase] Error getting registered storage ids: {e}")
+        logging.error(f"[Supabase] Error getting registered storage ids: {e}")
         return set()
 
 def get_pending_storage_assets() -> list:
@@ -750,7 +750,7 @@ def get_pending_storage_assets() -> list:
         res = client.table('storage_assets').select('*').eq('status', 'PENDING').execute()
         return res.data or []
     except Exception as e:
-        print(f"[Supabase] Error fetching pending assets: {e}")
+        logging.error(f"[Supabase] Error fetching pending assets: {e}")
         return []
 
 def mark_storage_asset_labeled(provider: str, provider_public_id: str) -> bool:
@@ -761,7 +761,7 @@ def mark_storage_asset_labeled(provider: str, provider_public_id: str) -> bool:
         client.table('storage_assets').update({'status': 'LABELED'}).eq('provider', provider).eq('provider_public_id', provider_public_id).execute()
         return True
     except Exception as e:
-        print(f"[Supabase] Error updating asset status: {e}")
+        logging.error(f"[Supabase] Error updating asset status: {e}")
         return False
 
 def log_label_audit(user_id: str, document_id: str, action: str, details: dict) -> bool:
@@ -777,7 +777,7 @@ def log_label_audit(user_id: str, document_id: str, action: str, details: dict) 
         }).execute()
         return True
     except Exception as e:
-        print(f"[Supabase] Error logging audit: {e}")
+        logging.error(f"[Supabase] Error logging audit: {e}")
         return False
 
 def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
@@ -1083,7 +1083,7 @@ def get_student_profile(user_id: str) -> Dict:
                 'college_name':          college.get('name', ''),
                 'branch_name':           dept.get('name', ''),
             }
-            print(f"[Profile] student row found -> {flat}")
+            logging.info(f"[Profile] student row found -> {flat}")
             return {'success': True, 'data': flat}
 
         # Fallback: teacher role or no students row yet — read from profiles directly
@@ -1111,7 +1111,7 @@ def get_student_profile(user_id: str) -> Dict:
                 'college_name':          college.get('name', ''),
                 'branch_name':           dept.get('name', ''),
             }
-            print(f"[Profile] profiles fallback -> {flat}")
+            logging.warning(f"[Profile] profiles fallback -> {flat}")
             return {'success': True, 'data': flat}
 
         return {'success': True, 'data': None, 'message': 'Not found'}
@@ -1148,7 +1148,7 @@ def create_or_update_student_profile(user_id: str, profile_data: dict) -> Dict:
             try: return int(val) if val not in (None, '') else None
             except (ValueError, TypeError): return None
 
-        print(f"[Profile] Upserting profile for user_id={user_id}, role={role}, college={valid_college_id}, dept={valid_department_id}")
+        logging.info(f"[Profile] Upserting profile for user_id={user_id}, role={role}, college={valid_college_id}, dept={valid_department_id}")
 
         profile_res = client.table('profiles').upsert({
             'id':            user_id,
@@ -1159,7 +1159,7 @@ def create_or_update_student_profile(user_id: str, profile_data: dict) -> Dict:
             'department_id': valid_department_id,
             'phone_number':  str(profile_data.get('student_moblie_number', '') or ''),
         }).execute()
-        print(f"[Profile] profiles upsert result: {profile_res.data}")
+        logging.info(f"[Profile] profiles upsert result: {profile_res.data}")
 
         if role == 'student':
             student_res = client.table('students').upsert({
@@ -1169,20 +1169,20 @@ def create_or_update_student_profile(user_id: str, profile_data: dict) -> Dict:
                 'year_of_joining':     _int(profile_data.get('year_of_joining')),
                 'profile_completed':   True
             }).execute()
-            print(f"[Profile] students upsert result: {student_res.data}")
+            logging.info(f"[Profile] students upsert result: {student_res.data}")
         elif role == 'teacher':
             teacher_res = client.table('teachers').upsert({
                 'profile_id':        user_id,
                 'profile_completed': True
             }).execute()
-            print(f"[Profile] teachers upsert result: {teacher_res.data}")
+            logging.info(f"[Profile] teachers upsert result: {teacher_res.data}")
 
         return {'success': True, 'message': 'Profile updated successfully'}
 
     except Exception as e:
         import traceback
         traceback.print_exc()
-        print(f"[Profile ERROR] create_or_update_student_profile failed: {e}")
+        logging.error(f"[Profile ERROR] create_or_update_student_profile failed: {e}")
         return {'success': False, 'message': str(e)}
 
 def check_profile_completed(user_id: str) -> bool:
@@ -1272,7 +1272,7 @@ def get_all_push_subscriptions() -> Dict:
             }
         return subs
     except Exception as e:
-        print(f"Error fetching subscriptions: {e}")
+        logging.error(f"Error fetching subscriptions: {e}")
         return {}
 
 def remove_push_subscription_by_endpoint(endpoint: str) -> bool:
@@ -1282,7 +1282,7 @@ def remove_push_subscription_by_endpoint(endpoint: str) -> bool:
         client.table('push_subscriptions').delete().eq('endpoint', endpoint).execute()
         return True
     except Exception as e:
-        print(f"Error removing subscription: {e}")
+        logging.error(f"Error removing subscription: {e}")
         return False
 
 def log_notification(user_email: str, notification_type: str, title: str, message: str, url: str = None) -> Dict:
@@ -1318,7 +1318,7 @@ def get_notification_history(limit: int = 10) -> List[Dict]:
         res = client.table('notifications').select('*').order('created_at', desc=True).limit(limit).execute()
         return res.data if res.data else []
     except Exception as e:
-        print(f"Error fetching notifications: {e}")
+        logging.error(f"Error fetching notifications: {e}")
         return []
 
 # ── Points awarded per document category ───────────────────────────────────
@@ -1416,7 +1416,7 @@ def calculate_user_ranks() -> List[Dict]:
         return rank_list
 
     except Exception as e:
-        print(f"[Ranking] Error calculating ranks: {e}")
+        logging.error(f"[Ranking] Error calculating ranks: {e}")
         return []
 
 
@@ -1458,11 +1458,11 @@ def recalculate_and_persist_user_rank(user_id: str) -> Dict:
             {'reputation_score': score_int}
         ).eq('id', user_id).execute()
 
-        print(f"[Ranking] Persisted reputation_score={score} for user {user_id}")
+        logging.info(f"[Ranking] Persisted reputation_score={score} for user {user_id}")
         return {'success': True, 'score': score}
 
     except Exception as e:
-        print(f"[Ranking] Error persisting rank for {user_id}: {e}")
+        logging.error(f"[Ranking] Error persisting rank for {user_id}: {e}")
         return {'success': False, 'message': str(e)}
 
 def get_reputation_stats(user_id: str) -> Dict:
@@ -1504,7 +1504,7 @@ def get_reputation_stats(user_id: str) -> Dict:
             'badges': badges
         }
     except Exception as e:
-        print(f"[Ranking] Error calculating reputation stats for {user_id}: {e}")
+        logging.error(f"[Ranking] Error calculating reputation stats for {user_id}: {e}")
         return {'success': False, 'message': str(e)}
 
 def get_contribution_timeline(user_id: str) -> Dict:
@@ -1515,7 +1515,7 @@ def get_contribution_timeline(user_id: str) -> Dict:
         res = client.table('contribution_logs').select('*').eq('user_id', user_id).order('created_at', desc=True).limit(20).execute()
         return {'success': True, 'timeline': res.data or []}
     except Exception as e:
-        print(f"Error fetching timeline: {e}")
+        logging.error(f"Error fetching timeline: {e}")
         return {'success': False, 'timeline': []}
 
 def get_leaderboard_data(college_id: str = None, limit: int = 50) -> Dict:
@@ -1576,13 +1576,13 @@ def get_leaderboard_data(college_id: str = None, limit: int = 50) -> Dict:
         if result:
             return {'success': True, 'data': result}
     except Exception as e:
-        print(f"[Leaderboard] View query failed ({e}), falling back to calculate_user_ranks()")
+        logging.error(f"[Leaderboard] View query failed ({e}), falling back to calculate_user_ranks()")
 
     try:
         result = _build_from_ranks()
         return {'success': True, 'data': result}
     except Exception as e2:
-        print(f"[Leaderboard] Fallback also failed: {e2}")
+        logging.error(f"[Leaderboard] Fallback also failed: {e2}")
         return {'success': False, 'data': []}
 
 def update_document_metadata(file_path: str, update_data: dict) -> Dict:
@@ -1683,10 +1683,10 @@ def _notify_uploader_of_view(doc_id: str, viewer_id: str, viewer_email: str):
             'action_url': None,
             'is_read': False
         }).execute()
-        print(f'[NOTIFY] Sent file_view notification to uploader {uploader_id[:8]} from {viewer_name}')
+        logging.info(f'[NOTIFY] Sent file_view notification to uploader {uploader_id[:8]} from {viewer_name}')
 
     except Exception as e:
-        print(f'[NOTIFY] Non-critical notify error: {e}')
+        logging.error(f'[NOTIFY] Non-critical notify error: {e}')
 
 
 def get_user_notifications(user_id: str, limit: int = 20, offset: int = 0) -> List[Dict]:
@@ -1703,7 +1703,7 @@ def get_user_notifications(user_id: str, limit: int = 20, offset: int = 0) -> Li
             .execute()
         return res.data if res.data else []
     except Exception as e:
-        print(f'[NOTIFY] get_user_notifications error: {e}')
+        logging.error(f'[NOTIFY] get_user_notifications error: {e}')
         return []
 
 
@@ -1720,7 +1720,7 @@ def mark_notifications_read(user_id: str) -> Dict:
             .execute()
         return {'success': True}
     except Exception as e:
-        print(f'[NOTIFY] mark_notifications_read error: {e}')
+        logging.error(f'[NOTIFY] mark_notifications_read error: {e}')
         return {'success': False, 'message': str(e)}
 def save_file_access(user_email: str, file_name: str, file_type: str = 'pdf', file_path: str = '', file_url: str = '', record_id: str = None) -> Dict:
     """
@@ -1765,7 +1765,7 @@ def save_file_access(user_email: str, file_name: str, file_type: str = 'pdf', fi
                     current_views = doc_res.data[0].get('view_count') or 0
                     client.table('documents').update({'view_count': current_views + 1}).eq('id', doc_id).execute()
             except Exception as view_err:
-                print(f"Warning: Could not increment view count: {view_err}")
+                logging.error(f"Warning: Could not increment view count: {view_err}")
 
             # Fire-and-forget: notify uploader (non-blocking)
             import threading
@@ -1786,18 +1786,18 @@ def save_file_access(user_email: str, file_name: str, file_type: str = 'pdf', fi
                     device_type=''
                 )
                 if result.get('success'):
-                    print(f"[FILE_ACCESS] Logged view for {user_email}: {file_name} (doc={doc_id[:8]})")
+                    logging.info(f"[FILE_ACCESS] Logged view for {user_email}: {file_name} (doc={doc_id[:8]})")
                 else:
-                    print(f"[FILE_ACCESS] Failed to log view: {result.get('message')}")
+                    logging.warning(f"[FILE_ACCESS] Failed to log view: {result.get('message')}")
             except Exception as dv_err:
-                print(f"Warning: Could not log to document_views: {dv_err}")
+                logging.warning(f"Warning: Could not log to document_views: {dv_err}")
         else:
-            print(f"[FILE_ACCESS] Skipped logging - doc_id={doc_id}, user_id={user_id}, file={file_name}")
+            logging.debug(f"[FILE_ACCESS] Skipped logging - doc_id={doc_id}, user_id={user_id}, file={file_name}")
 
         return {'success': True}
         
     except Exception as e:
-        print(f"Error in save_file_access: {e}")
+        logging.error(f"Error in save_file_access: {e}")
         import traceback
         traceback.print_exc()
         return {'success': False, 'message': str(e)}
@@ -1847,7 +1847,7 @@ def get_user_file_history(user_email: str, limit: int = 10) -> Dict:
         return {'success': True, 'data': []}
             
     except Exception as e:
-        print(f"Error in get_user_file_history: {e}")
+        logging.error(f"Error in get_user_file_history: {e}")
         import traceback
         traceback.print_exc()
         return {'success': False, 'data': [], 'message': str(e)}
@@ -1875,7 +1875,7 @@ def get_papo_meter_data(user_id: str) -> Dict:
             unique_docs = set(v['document_id'] for v in views_res.data)
             pap_count = len(unique_docs)
     except Exception as e:
-        print(f"[PapoMeter] Error getting pap count: {e}")
+        logging.error(f"[PapoMeter] Error getting pap count: {e}")
     
     try:
         # Punya: sum view_count of all documents uploaded by user
@@ -1886,7 +1886,7 @@ def get_papo_meter_data(user_id: str) -> Dict:
         if docs_res.data:
             punya_count = sum((d.get('view_count') or 0) for d in docs_res.data)
     except Exception as e:
-        print(f"[PapoMeter] Error getting punya count: {e}")
+        logging.error(f"[PapoMeter] Error getting punya count: {e}")
     
     return {'pap_count': pap_count, 'punya_count': punya_count}
 
@@ -1931,7 +1931,7 @@ def award_contribution_xp(user_id: str, action_type: str, entity_id: str, entity
                     
             return {'success': True, 'xp_gained': base_xp, 'new_score': new_xp, 'new_rank': rank}
     except Exception as e:
-        print(f"Error awarding XP: {e}")
+        logging.error(f"Error awarding XP: {e}")
     return {'success': False}
 
 def check_if_labeled(filename: str) -> bool:
@@ -2045,7 +2045,7 @@ def search_users_db(query_str: str, limit: int = 20) -> list:
                     'uploads_count': 0
                 }
         except Exception as e1:
-            print(f"[SearchUsersDB] Profiles query warning: {e1}")
+            logging.warning(f"[SearchUsersDB] Profiles query warning: {e1}")
 
         # 2. Search calculate_user_ranks() for document contributors
         try:
@@ -2070,12 +2070,12 @@ def search_users_db(query_str: str, limit: int = 20) -> list:
                             'uploads_count': r.get('upload_count', 0)
                         }
         except Exception as e2:
-            print(f"[SearchUsersDB] Ranks fallback warning: {e2}")
+            logging.warning(f"[SearchUsersDB] Ranks fallback warning: {e2}")
 
         result = list(users_map.values())[:limit]
         return result
     except Exception as e:
-        print(f"[SearchUsersDB] Error: {e}")
+        logging.error(f"[SearchUsersDB] Error: {e}")
         return []
 
 def get_user_peer_materials_db(target_user_id: str) -> dict:
@@ -2125,7 +2125,7 @@ def get_user_peer_materials_db(target_user_id: str) -> dict:
                 })
         except Exception as e:
             # Table may not exist in some deployments; log and continue with empty referred list
-            print(f"[PeerMaterialsDB] History query skipped: {e}")
+            logging.warning(f"[PeerMaterialsDB] History query skipped: {e}")
 
         return {
             'success': True,
@@ -2141,7 +2141,7 @@ def get_user_peer_materials_db(target_user_id: str) -> dict:
             'referred': referred
         }
     except Exception as e:
-        print(f"[PeerMaterialsDB] Error: {e}")
+        logging.error(f"[PeerMaterialsDB] Error: {e}")
         return {'success': False, 'uploads': [], 'referred': []}
 
 
@@ -2185,7 +2185,7 @@ def ensure_referral_code(user_id: str) -> str:
         client.table('profiles').update({'referral_code': code}).eq('id', user_id).execute()
         return code
     except Exception as e:
-        print(f"[Referral] ensure_referral_code failed: {e}")
+        logging.error(f"[Referral] ensure_referral_code failed: {e}")
         return ''
 
 
@@ -2201,7 +2201,7 @@ def resolve_referrer_by_code(code: str) -> str | None:
         if res.data:
             return res.data[0].get('id')
     except Exception as e:
-        print(f"[Referral] resolve_referrer_by_code failed: {e}")
+        logging.error(f"[Referral] resolve_referrer_by_code failed: {e}")
     return None
 
 
@@ -2255,6 +2255,6 @@ def register_referral(new_user_id: str, code: str, credit_inviter: int = 50, cre
         if 'referral_credits' in msg or 'referral_count' in msg or '42703' in msg:
             return {'success': False,
                     'message': 'Referral credit columns missing — apply migrations/016_referral_credit_columns.sql'}
-        print(f"[Referral] register_referral failed: {e}")
+        logging.error(f"[Referral] register_referral failed: {e}")
         return {'success': False, 'message': msg}
 

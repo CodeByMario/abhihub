@@ -1,6 +1,11 @@
 Contributing & Lightweight Dev Run
 ================================
 
+Before you start, read
+[`docs/architecture/ARCHITECTURE.md`](docs/architecture/ARCHITECTURE.md)
+— it explains what each file and folder is responsible for. The full
+documentation index is at [`docs/README.md`](docs/README.md).
+
 This repository supports a lightweight developer runtime for fast local
 iteration. Use the minimal requirements file when you don't need heavy
 external services.
@@ -43,7 +48,8 @@ Notes:
   push/notifications libraries. Add those from `requirements.txt` if you
   need full functionality.
 - Use environment variables (see `.env`) for credentials; do NOT commit
-  `firebase-auth.json` to the repository.
+  `firebase-auth.json` to the repository — configure Firebase via the
+  `FIREBASE_SERVICE_ACCOUNT_JSON` env var instead.
 
 Recording your work:
 - After any change, append a short entry to the relevant `.record/tasks/<ASSIGNEE>/` file

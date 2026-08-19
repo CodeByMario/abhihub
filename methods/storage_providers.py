@@ -1,6 +1,7 @@
 from abc import ABC, abstractmethod
 from typing import List, Dict
 import time
+import logging
 
 class StorageProvider(ABC):
     @abstractmethod
@@ -99,7 +100,7 @@ class CloudinaryProvider(StorageProvider):
                 import time
                 time.sleep(0.1) # Small delay to let sockets breathe
             except Exception as e:
-                print(f"Error in batch sync: {e}")
+                logging.error(f"Error in batch sync: {e}")
                 
         return {"success": True, "upserted": upserted}
         

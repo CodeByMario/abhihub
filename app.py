@@ -29,6 +29,7 @@ load_dotenv()
 # IndexNow must use one environment-managed key for both submission and ownership verification.
 BASE_DOMAIN = os.getenv('BASE_DOMAIN', 'abhihub.edu.eu.org').strip().lower()
 INDEXNOW_KEY = os.getenv('INDEX_NOW_BING_API_KEY', '').strip()
+TURNSTILE_SITEKEY = os.getenv('TURNSTILE_SITEKEY', '')
 
 # Initialize Supabase client for authentication
 # DEFERRED: create_client crashes if SUPABASE_URL/KEY are None (causes H10 on Heroku startup).
@@ -60,7 +61,7 @@ from firebase_admin import credentials, storage
 # Try to load Firebase credentials from environment variable first, fallback to file
 firebase_service_account = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
 if firebase_service_account:
-    # Load from environment variable (recommended for production on Heroku)
+    # Load from environment variable (required for open-source; no file fallback)
     try:
         cred_dict = json.loads(firebase_service_account)
         cred = credentials.Certificate(cred_dict)
@@ -68,18 +69,14 @@ if firebase_service_account:
         logging.warning(f"Firebase: Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: {e}")
         cred = None
 else:
-    # Fallback to file (for local development only)
-    _firebase_file = "firebase-auth.json"
-    _firebase_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), _firebase_file)
-    if os.path.exists(_firebase_path):
-        cred = credentials.Certificate(_firebase_path)
-    else:
-        logging.warning(f"Firebase: No credentials found (FIREBASE_SERVICE_ACCOUNT_JSON not set, {_firebase_file} not found). Firebase storage will be unavailable.")
-        cred = None
+    # No file fallback — FIREBASE_SERVICE_ACCOUNT_JSON env var is required.
+    # For local development, set the env var (copy firebase-auth.json content into it).
+    logging.warning("Firebase: FIREBASE_SERVICE_ACCOUNT_JSON not set. Firebase storage unavailable.")
+    cred = None
 
 if cred:
     firebase_admin.initialize_app(cred, {
-        'storageBucket': 'abhi-hub.appspot.com'
+        'storageBucket': os.getenv('FIREBASE_STORAGE_BUCKET', 'abhi-hub.appspot.com')
     })
 else:
     # Initialize with no cred — Firebase features will gracefully degrade
@@ -225,7 +222,7 @@ except Exception:
 from cache_manager import init_cache, get_cache
 cache = init_cache(app)
 
-socketio = SocketIO(app, cors_allowed_origins="*", logger=False, engineio_logger=False)
+socketio = SocketIO(app, cors_allowed_origins="https://app.abhihub.run.place", logger=False, engineio_logger=False)
 
 import mimetypes
 mimetypes.add_type('application/javascript', '.mjs')
@@ -392,6 +389,55 @@ def get_device_type(user_agent: str) -> str:
     if 'tablet' in ua or 'ipad' in ua:
         return 'tablet'
     return 'desktop'
+
+
+# Extension -> logical file-type used by file_records / document_views.
+_FILE_TYPE_BY_EXT = {
+    '.png': 'image', '.jpg': 'image', '.jpeg': 'image',
+    '.gif': 'image', '.webp': 'image', '.svg': 'image',
+    '.pdf': 'pdf',
+    '.doc': 'document', '.docx': 'document', '.txt': 'document',
+    '.xls': 'spreadsheet', '.xlsx': 'spreadsheet',
+    '.ppt': 'presentation', '.pptx': 'presentation',
+}
+
+
+def detect_file_type(filename: str) -> str:
+    """Map a filename/URL to a logical file type ('pdf', 'image', ...).
+
+    Single source of truth — previously this dict was inlined per route.
+    """
+    ext = os.path.splitext(os.path.basename(filename or '').split('?')[0])[1].lower()
+    return _FILE_TYPE_BY_EXT.get(ext, 'file')
+
+
+def log_document_view(file_name, file_url, record_id=None,
+                      file_type=None, file_path=None, user_email=None):
+    """Record that the current user viewed a document.
+
+    Shared by /preview, /view_pdf and /resource/<slug> so the view-logging
+    contract lives in exactly one place. Never raises: a logging failure
+    must not break document delivery.
+    """
+    if user_email is None:
+        user_email = session.get('user', {}).get('email', '')
+    if not user_email:
+        return False
+    try:
+        from methods.supabase_helper import save_file_access
+        save_file_access(
+            user_email=user_email,
+            file_name=file_name,
+            file_type=file_type or detect_file_type(file_name or file_url),
+            file_path=file_path if file_path is not None else file_url,
+            file_url=file_url,
+            record_id=record_id,
+        )
+        return True
+    except Exception as e:
+        logging.warning(f"[VIEW-LOG] could not record view for {file_name}: {e}")
+        return False
+
 
 ########################
 #-------function-------#
@@ -614,6 +660,8 @@ from PIL import Image
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
 
+import traceback
+
 
 @app.route('/static/<path:filename>')
 def static_files(filename):
@@ -813,7 +861,6 @@ def index_now_key(key):
 @app.route('/sitemap.xml')
 def sitemap():
     from methods.supabase_helper import get_sitemap_urls
-    import re
     
     # 1. Fetch raw data
     sitemap_res = get_sitemap_urls()
@@ -1158,6 +1205,8 @@ def api_add_subject(user_data=None):
     
     if not name:
         return jsonify({'success': False, 'message': 'Subject name required'}), 400
+    if len(name) > 80:
+        return jsonify({'success': False, 'message': 'Subject name too long (max 80 chars)'}), 400
     if not dept_id:
         return jsonify({'success': False, 'message': 'Department ID required'}), 400
         
@@ -1182,7 +1231,6 @@ def api_add_subject(user_data=None):
         
         # Auto-generate and store acronym alias (e.g. Transform Numerical Method -> tnm)
         if subj and name:
-            import re
             words = [w for w in re.split(r'\W+', name) if w and w.lower() not in ['and', 'of', 'the', '&']]
             acronym = "".join([w[0] for w in words]).lower()
             if len(acronym) > 1:
@@ -1193,7 +1241,7 @@ def api_add_subject(user_data=None):
                         'priority': 1
                     }).execute()
                 except Exception as e:
-                    print(f"Failed to save alias {acronym} for subject: {e}")
+                    logging.info(f"Failed to save alias {acronym} for subject: {e}")
                     
         return jsonify({'success': True, 'subject': subj}), 200
     except Exception as e:
@@ -1209,6 +1257,8 @@ def api_add_college(user_data=None):
     abbr = (data.get('abbreviation') or '').strip()
     if not name:
         return jsonify({'success': False, 'message': 'College name required'}), 400
+    if len(name) > 200:
+        return jsonify({'success': False, 'message': 'College name too long (max 200 chars)'}), 400
     from methods.supabase_helper import init_supabase
     client = init_supabase()
     try:
@@ -1251,7 +1301,6 @@ def api_predict_metadata(user_data=None):
     if not filename: return jsonify({'success': False})
     
     from methods.supabase_helper import init_supabase
-    import re
     client = init_supabase()
     
     words = re.split(r'[\W_]+', filename.split('.')[0])
@@ -1284,7 +1333,7 @@ def api_predict_metadata(user_data=None):
                 if best_match:
                     prediction['subject_id'] = best_match
     except Exception as e:
-        print("Prediction error:", e)
+            logging.error(f"Prediction error: {e}")
 
     return jsonify({'success': True, 'prediction': prediction}), 200
 
@@ -1457,7 +1506,7 @@ def label_store_room_paper():
         if not year: missing_fields.append('year')
 
         if missing_fields:
-            print(f"[DEBUG] Missing required fields: {missing_fields}")
+            logging.debug(f"[DEBUG] Missing required fields: {missing_fields}")
             return jsonify({'success': False, 'message': f'Missing required fields: {", ".join(missing_fields)}'}), 400
         if not subject_id:
             return jsonify({'success': False, 'message': 'Subject selection is required'}), 400
@@ -1471,8 +1520,8 @@ def label_store_room_paper():
         if document_category not in allowed_categories:
             document_category = 'papers'
 
-        print(f"[STORE_ROOM_LABEL] User: {user_email}, File: {filename}")
-        print(f"[STORE_ROOM_LABEL] College:{college_id} Branch:{branch_id} Subject:{subject_id} Sem:{semester}")
+            logging.info(f"[STORE_ROOM_LABEL] User: {user_email}, File: {filename}")
+            logging.info(f"[STORE_ROOM_LABEL] College:{college_id} Branch:{branch_id} Subject:{subject_id} Sem:{semester}")
 
         # Use the storage index identifier when supplied by the Store Room.
         # Parsing a Cloudinary URL can include a version segment and leave the
@@ -1517,7 +1566,7 @@ def label_store_room_paper():
         )
         
         if result.get('success'):
-            print(f"[STORE_ROOM_LABEL] SUCCESS: Saved to file_records")
+            logging.info(f"[STORE_ROOM_LABEL] SUCCESS: Saved to file_records")
             
             # 1. Update storage_assets status to LABELED
             from methods.supabase_helper import mark_storage_asset_labeled, log_label_audit
@@ -1544,7 +1593,7 @@ def label_store_room_paper():
                 'data': result.get('data', {})
             }), 200
         else:
-            print(f"[STORE_ROOM_LABEL] ERROR: {result.get('message')}")
+            logging.error(f"[STORE_ROOM_LABEL] ERROR: {result.get('message')}")
             # A pre-existing, fully labeled document can still have an old
             # PENDING storage row.  Clear that stale queue row so it is not
             # presented for labeling again.
@@ -1566,9 +1615,7 @@ def label_store_room_paper():
             }), status_code
     
     except Exception as e:
-        print(f"[STORE_ROOM_LABEL] EXCEPTION: {e}")
-        import traceback
-        traceback.print_exc()
+        logging.error(f"[STORE_ROOM_LABEL] EXCEPTION: {e}")
         return jsonify({
             'success': False,
             'message': f'Error labeling paper: {str(e)}'
@@ -1651,13 +1698,8 @@ def api_log_document_view():
         ip_address = request.headers.get('X-Forwarded-For', request.remote_addr)
         user_agent = request.headers.get('User-Agent', '')
         
-        # Detect device type
-        device_type = 'desktop'
-        user_agent_lower = user_agent.lower()
-        if 'mobile' in user_agent_lower or 'android' in user_agent_lower or 'iphone' in user_agent_lower:
-            device_type = 'mobile'
-        elif 'tablet' in user_agent_lower or 'ipad' in user_agent_lower:
-            device_type = 'tablet'
+        # Detect device type via shared helper
+        device_type = get_device_type(user_agent)
         
         # Log the view using DocumentView class
         from data.interactions import DocumentView
@@ -1684,8 +1726,6 @@ def api_log_document_view():
             
     except Exception as e:
         logging.error(f"[HISTORY] Exception in document view logging: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Error logging document view: {str(e)}'
@@ -1731,8 +1771,6 @@ def api_get_recent_documents():
             
     except Exception as e:
         logging.error(f"[HISTORY] Exception retrieving recent documents: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Error retrieving recent documents: {str(e)}',
@@ -1781,8 +1819,6 @@ def api_get_file_access_history():
             
     except Exception as e:
         logging.error(f"[FILE_HISTORY] Exception: {e}")
-        import traceback
-        traceback.print_exc()
         return jsonify({
             'success': False,
             'message': f'Error retrieving file access history: {str(e)}',
@@ -1869,7 +1905,7 @@ def get_all_files():
     Returns unified JSON array of all files.
     """
     try:
-        print("[API /api/files/all] Request received")
+        logging.info("[API /api/files/all] Request received")
         
         from methods.supabase_helper import get_all_files_merged
         
@@ -1881,14 +1917,14 @@ def get_all_files():
 
         
         if result.get('success'):
-            print(f"[API /api/files/all] Returning {result.get('count', 0)} files")
+            logging.info(f"[API /api/files/all] Returning {result.get('count', 0)} files")
             return jsonify({
                 'success': True,
                 'data': result.get('data', []),
                 'count': result.get('count', 0)
             }), 200
         else:
-            print(f"[API /api/files/all] ERROR: {result.get('message', 'Unknown error')}")
+            logging.error(f"[API /api/files/all] ERROR: {result.get('message', 'Unknown error')}")
             return jsonify({
                 'success': False,
                 'message': result.get('message', 'Failed to load files'),
@@ -1897,9 +1933,7 @@ def get_all_files():
             }), 500
     
     except Exception as e:
-        print(f"[API /api/files/all] EXCEPTION: {e}")
-        import traceback
-        traceback.print_exc()
+        logging.error(f"[API /api/files/all] EXCEPTION: {e}")
         return jsonify({
             'success': False,
             'message': f'Server error: {str(e)}'
@@ -2010,14 +2044,14 @@ def upload():
 
             # Guard: reject uploads with no subject selected
             if not subject_id or subject_id == '__other__':
-                print(f"[UPLOAD REJECTED] Reason:Missing subject_id Uploader:{user_id} File:{original_filename}")
+                logging.warning(f"[UPLOAD REJECTED] Reason:Missing subject_id Uploader:{user_id} File:{original_filename}")
                 return jsonify(
                     success=False,
                     message="Subject selection is required. Please select a subject from the dropdown."
                 ), 400
 
 
-            print(f"[UPLOAD] Uploader:{user_id} College:{college_id} Branch:{branch_id} Semester:{semester} Subject:{subject_name!r} SubjectID:{subject_id}")
+            logging.info(f"[UPLOAD] Uploader:{user_id} College:{college_id} Branch:{branch_id} Semester:{semester} Subject:{subject_name!r} SubjectID:{subject_id}")
             
             # Save to file_records table (Supabase abhihub.documents)
             from methods.supabase_helper import save_file_record
@@ -2041,7 +2075,7 @@ def upload():
             )
             
             if not file_record_result.get('success'):
-                print(f"[UPLOAD ERROR] Supabase record creation failed: {file_record_result.get('message')}")
+                logging.error(f"[UPLOAD ERROR] Supabase record creation failed: {file_record_result.get('message')}")
                 # We still return success if Cloudinary succeeded, but with a warning? 
                 # Actually, the user wants a record in abhihub.documents, so this is a failure for the task.
                 return jsonify(
@@ -2049,7 +2083,7 @@ def upload():
                     message=f"File uploaded to Cloudinary, but database record creation failed: {file_record_result.get('message')}"
                 ), 500
             
-            print(f"[UPLOAD SUCCESS] Document ID: {file_record_result.get('data', {}).get('id')}")
+            logging.info(f"[UPLOAD SUCCESS] Document ID: {file_record_result.get('data', {}).get('id')}")
 
             # ── Track UPLOAD event (non-blocking) ───────────────────────
             try:
@@ -2079,7 +2113,7 @@ def upload():
                             'responded_at': 'now()'
                         }).eq('id', material_request_id).execute()
             except Exception as _e:
-                print(f"[UPLOAD] Warning: could not mark material_request accepted: {_e}")
+                logging.warning(f"[UPLOAD] Warning: could not mark material_request accepted: {_e}")
 
             _grant_upload_credits()
 
@@ -2131,9 +2165,7 @@ def upload():
             ), 200
             
         except Exception as e:
-            print(f"[UPLOAD EXCEPTION] Upload error: {e}")
-            import traceback
-            traceback.print_exc()
+            logging.error(f"[UPLOAD EXCEPTION] Upload error: {e}")
             return jsonify(
                 success=False,
                 message=f"Upload failed: {str(e)}"
@@ -2172,31 +2204,12 @@ def preview():
                                 credits=q.get('credits', 0)))
     # ─────────────────────────────────────────────────────────────────────
 
-    # Log file access
-    if 'user' in session:
-        user_email = session['user'].get('email', '')
-        file_basename = os.path.basename(file_url)
-        
-        # Determine file type from extension
-        file_ext = os.path.splitext(file_basename)[1].lower()
-        file_type_map = {
-            '.png': 'image', '.jpg': 'image', '.jpeg': 'image', '.gif': 'image', '.webp': 'image',
-            '.pdf': 'pdf',
-            '.doc': 'document', '.docx': 'document', '.txt': 'document',
-            '.xls': 'spreadsheet', '.xlsx': 'spreadsheet',
-            '.ppt': 'presentation', '.pptx': 'presentation'
-        }
-        file_type = file_type_map.get(file_ext, 'file')
-        
-        record_id = request.args.get('record_id')
-        save_file_access(
-            user_email=user_email,
-            file_name=file_basename,
-            file_type=file_type,
-            file_path=file_url,
-            file_url=file_url,
-            record_id=record_id
-        )
+    # Log file access (shared helper — see log_document_view)
+    log_document_view(
+        file_name=os.path.basename(file_url),
+        file_url=file_url,
+        record_id=request.args.get('record_id'),
+    )
     
     if file_url.startswith('http'):
         return render_template('preview.html', file=file_url)
@@ -2626,7 +2639,6 @@ def features_tour():
 def pyq_landing():
     """SEO landing page targeting 'PYQ' and '[college] PYQ' searches"""
     from methods.supabase_helper import get_all_colleges, init_supabase
-    import re
     colleges_res = get_all_colleges()
     colleges = colleges_res.get('data', [])
     # Attach doc count to each college
@@ -2660,7 +2672,6 @@ def college_landing(college_slug):
     """Dynamic SEO-optimized college landing page.
     Priority: brand group page > individual college page > 404
     """
-    import re
     from methods.supabase_helper import (
         get_colleges_by_brand, get_college_by_slug,
         get_college_stats, get_recent_college_files, get_all_branches
@@ -2774,7 +2785,6 @@ def subject_landing(subject_slug):
 def resource_landing(slug):
     """Dynamic SEO-optimized resource landing page"""
     from methods.supabase_helper import get_document_by_id_rich
-    import re
     
     # Extract UUID from the end of the slug
     # A standard UUID is 36 chars long (e.g. 847afaa6-cec4-48db-9016-2218c169bb87)
@@ -2844,16 +2854,12 @@ def resource_landing(slug):
             except Exception:
                 pass
             
-    # Track view
-    from methods.supabase_helper import save_file_access
-    user_email = session.get('user', {}).get('email')
-    save_file_access(
-        user_email=user_email,
+    # Track view (shared helper — see log_document_view)
+    log_document_view(
         file_name=title,
-        file_type=document.get('file_type'),
-        file_path=document.get('file_url'),
         file_url=document.get('file_url'),
-        record_id=doc_id
+        record_id=doc_id,
+        file_type=document.get('file_type'),
     )
         
     # Fetch Suggested Documents
@@ -2898,7 +2904,7 @@ def resource_landing(slug):
                 sr_res = client.table('storage_assets').select('id, provider_public_id, filename').eq('status', 'PENDING').or_(or_cond).limit(4).execute()
                 store_room_docs = sr_res.data or []
     except Exception as e:
-        print(f"[Supabase] Error fetching suggestions: {e}")
+        logging.error(f"[Supabase] Error fetching suggestions: {e}")
 
     return render_template('resource.html', document=document, ai_models=AI_MODELS, best_model=get_best_ai_model(), suggested_docs=suggested_docs, store_room_docs=store_room_docs)
 
@@ -3026,15 +3032,24 @@ def dashboard():
         
         # Get user's uploaded files
         user_files = [f for f in files if f.get('author', '') == user_name or f.get('author_email', '') == user_email]
-        
-        # Calculate user statistics
         user_uploads_count = len(user_files)
-        user_notes_count = len([f for f in user_files if f.get('type', '').lower() == 'notes'])
-        user_papers_count = len([f for f in user_files if f.get('type', '').lower() in ['pyq', 'papers']])
-        user_practicals_count = len([f for f in user_files if f.get('type', '').lower() == 'practical'])
-        
-        # Get unique subjects user has contributed to
-        user_subjects = list(set([f.get('subject', '') for f in user_files if f.get('subject', '').strip()]))
+
+        # Single-pass categorization
+        user_notes_count = 0
+        user_papers_count = 0
+        user_practicals_count = 0
+        user_subjects = set()
+        for f in user_files:
+            ft = f.get('type', '').lower()
+            if ft == 'notes':
+                user_notes_count += 1
+            elif ft in ('pyq', 'papers'):
+                user_papers_count += 1
+            elif ft == 'practical':
+                user_practicals_count += 1
+            subj = f.get('subject', '').strip()
+            if subj:
+                user_subjects.add(subj)
         
         # Get file access history of the user (recently viewed files)
         from methods.supabase_helper import get_user_file_history
@@ -3058,13 +3073,10 @@ def dashboard():
 
             # Calculate global rank
             rank_list = calculate_user_ranks()
-            global_rank = '-'
-            computed_score = 0
-            for i, entry in enumerate(rank_list):
-                if entry.get('uploader_id') == user_id:
-                    global_rank = str(i + 1)
-                    computed_score = entry.get('points', 0)
-                    break
+            _rank_lookup = {e['uploader_id']: (str(i + 1), e.get('points', 0))
+                            for i, e in enumerate(rank_list)}
+            global_rank = _rank_lookup.get(user_id, ('-', 0))[0]
+            computed_score = _rank_lookup.get(user_id, ('-', 0))[1]
 
             # Reputation stats
             rep_stats = get_reputation_stats(user_id)
@@ -3225,18 +3237,14 @@ def view_pdf():
             return redirect(url_for('resource_landing', slug=f"legacy-redirect-{record_id}"), code=301)
 
 
-        # Log file access
-        if 'user' in session:
-            user_email = session['user'].get('email', '')
-            file_basename = os.path.basename(pdf_name)
-            save_file_access(
-                user_email=user_email,
-                file_name=file_basename,
-                file_type='pdf',
-                file_path=pdf_name,
-                file_url=url_for('pdf_proxy', pdf_name=pdf_name, _external=True),
-                record_id=record_id
-            )
+        # Log file access (shared helper — see log_document_view)
+        log_document_view(
+            file_name=os.path.basename(pdf_name),
+            file_url=url_for('pdf_proxy', pdf_name=pdf_name, _external=True),
+            record_id=record_id,
+            file_type='pdf',
+            file_path=pdf_name,
+        )
         
         # Use proxy URL — security is handled by @auth_required + Referer check
         if pdf_name.startswith('http'):
@@ -3884,7 +3892,7 @@ def _getSuggestedPeers(client, uid):
                     'is_verified': s.get('is_verified', False)
                 })
     except Exception as e:
-        print(f"[_getSuggestedPeers] {e}")
+        logging.error(f"[_getSuggestedPeers] {e}")
     return suggested
 
 
@@ -4629,9 +4637,9 @@ def send_upload_notifications_command():
     """
     from scheduled_tasks import run_upload_notifications_task
     
-    print("=== Running upload notifications task ===")
+    logging.info("=== Running upload notifications task ===")
     result = run_upload_notifications_task()
-    print(f"Complete: {result['sent']} sent, {result['failed']} failed, {result['total']} total")
+    logging.info(f"Complete: {result['sent']} sent, {result['failed']} failed, {result['total']} total")
     return result
 
 
@@ -4841,7 +4849,6 @@ def api_ask_paper():
 
     except Exception as e:
         logging.error(f"[AI] ask-paper error: {e}")
-        import traceback; traceback.print_exc()
         return jsonify({'success': False, 'message': f'Server error: {str(e)}'}), 500
 
 
@@ -5385,7 +5392,7 @@ def api_request_material():
                 'status': 'pending'
             }).execute()
     except Exception as e:
-        print(f"[RequestMaterial] DB insert error (non-fatal): {e}")
+        logging.error(f"[RequestMaterial] DB insert error (non-fatal): {e}")
 
     return jsonify({
         'success': True,
@@ -5434,7 +5441,7 @@ def api_get_material_requests():
 
         return jsonify({'success': True, 'requests': items}), 200
     except Exception as e:
-        print(f"[MaterialRequests] Error: {e}")
+        logging.error(f"[MaterialRequests] Error: {e}")
         return jsonify({'success': False, 'message': 'Server error'}), 500
 
 
@@ -5480,7 +5487,7 @@ def api_respond_material_request():
         client.table('material_requests').update(upd).eq('id', req_id).execute()
         return jsonify({'success': True, 'message': f'Request {action}ed'}), 200
     except Exception as e:
-        print(f"[MaterialRequests] Respond error: {e}")
+        logging.error(f"[MaterialRequests] Respond error: {e}")
         return jsonify({'success': False, 'message': 'Server error'}), 500
 
 # ── Peer Chat SocketIO relay — strict 2-person rooms ─────────────────────────

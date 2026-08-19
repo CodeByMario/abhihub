@@ -5,6 +5,7 @@ Centralized Supabase client and shared helpers for the data layer.
 import os
 import uuid
 from dotenv import load_dotenv
+import logging
 
 load_dotenv()
 
@@ -15,7 +16,7 @@ except ImportError:
     SUPABASE_AVAILABLE = False
     Client = None
     ClientOptions = None
-    print("Warning: supabase-py not installed. Install with: pip install supabase")
+    logging.warning("Warning: supabase-py not installed. Install with: pip install supabase")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 SUPABASE_KEY = os.getenv("SUPABASE_KEY")
@@ -30,10 +31,10 @@ def get_client():
         return _client
 
     if not SUPABASE_AVAILABLE:
-        print("❌ data.db: supabase-py not available")
+        logging.error("❌ data.db: supabase-py not available")
         return None
     if not SUPABASE_URL or not SUPABASE_KEY:
-        print("❌ data.db: SUPABASE_URL or SUPABASE_KEY missing")
+        logging.error("❌ data.db: SUPABASE_URL or SUPABASE_KEY missing")
         return None
 
     try:
@@ -42,11 +43,11 @@ def get_client():
             SUPABASE_KEY,
             options=ClientOptions(schema="abhihub"),
         )
-        print("✅ data.db: Supabase client initialised (abhihub schema)")
+        logging.info("✅ data.db: Supabase client initialised (abhihub schema)")
     except Exception as e:
         import traceback
         traceback.print_exc()
-        print(f"❌ data.db: failed to create client – {e}")
+        logging.error(f"❌ data.db: failed to create client – {e}")
         return None
 
     return _client

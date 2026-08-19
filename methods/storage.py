@@ -8,6 +8,7 @@ from datetime import timedelta
 import json
 import os
 from datetime import datetime
+import logging
 
 # Get the default app initialized in app.py
 default_app = get_app()
@@ -28,7 +29,7 @@ def upload_file(file_path, destination_blob_name, chunk_size=15 * 1024 * 1024, t
     blob.chunk_size = chunk_size  # Set the chunk size to 15 MB
     retry = Retry(deadline=timeout)  # Set the retry deadline to handle timeouts
     blob.upload_from_filename(file_path, timeout=timeout, retry=retry)
-    print(f'File {file_path} uploaded to {destination_blob_name}.')
+    logging.info(f'File {file_path} uploaded to {destination_blob_name}.')
 
     # Add file details to data/data.json
     info_temp = destination_blob_name.split('/')
@@ -81,7 +82,7 @@ def list_files(folder):
                 # Create a dictionary with file-path as key for quick lookup
                 existing_data_dict = {item['file-path']: item for item in existing_data}
             except json.JSONDecodeError:
-                print(f"Error decoding JSON from {data_file_path}. Using an empty list.")
+                logging.error(f"Error decoding JSON from {data_file_path}. Using an empty list.")
 
     # Generate file metadata
     library = []
@@ -160,11 +161,11 @@ def download_file(destination_blob_name, file_path='static/test/', timeout=600):
     blob = _get_bucket().blob(destination_blob_name)
     retry = Retry(deadline=timeout)  # Set the retry deadline to handle timeouts
     blob.download_to_filename(file_path, timeout=timeout, retry=retry)
-    print(f'File {destination_blob_name} downloaded to {file_path}.')
+    logging.info(f'File {destination_blob_name} downloaded to {file_path}.')
 
 def delete_file(destination_blob_name, timeout=600):
     blob = _get_bucket().blob(destination_blob_name)
     retry = Retry(deadline=timeout)  # Set the retry deadline to handle timeouts
     blob.delete(timeout=timeout, retry=retry)
-    print(f'File {destination_blob_name} deleted.')
+    logging.info(f'File {destination_blob_name} deleted.')
 

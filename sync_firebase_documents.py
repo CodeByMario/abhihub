@@ -37,8 +37,8 @@ if not firebase_admin._apps:
     if firebase_service_account:
         cred = credentials.Certificate(json.loads(firebase_service_account))
     else:
-        cred = credentials.Certificate("firebase-auth.json")
-    firebase_admin.initialize_app(cred, {'storageBucket': 'abhi-hub.appspot.com'})
+        cred = None  # No file fallback — open-source: requires env var
+    firebase_admin.initialize_app(cred, {'storageBucket': os.getenv('FIREBASE_STORAGE_BUCKET', 'abhi-hub.appspot.com')})
 
 bucket = fb_storage.bucket()
 

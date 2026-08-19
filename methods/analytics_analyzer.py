@@ -3,6 +3,7 @@ Background Analytics Analyzer
 Analyzes search_analytics for zero-result queries and common misspellings to suggest new aliases.
 """
 from methods.supabase_helper import init_supabase
+import logging
 
 def analyze_search_metrics():
     client = init_supabase()
@@ -22,10 +23,10 @@ def analyze_search_metrics():
         common_misses = [q for q, count in failed_queries.items() if count >= 5]
         
         if common_misses:
-            print(f"[Analytics Worker] High-frequency missing queries detected for admin review: {common_misses}")
+            logging.warning(f"[Analytics Worker] High-frequency missing queries detected for admin review: {common_misses}")
             # Here we would typically insert into an `alias_suggestions` table for admin approval
             
         return True
     except Exception as e:
-        print(f"Analytics analyzer error: {e}")
+        logging.error(f"Analytics analyzer error: {e}")
         return False

@@ -1,3 +1,7 @@
+import logging
+from typing import Dict
+
+
 def get_user_uploaded_files(user_email: str, limit: int = 20) -> Dict:
     """
     Get files uploaded by a specific user from file_records table.
@@ -19,7 +23,7 @@ def get_user_uploaded_files(user_email: str, limit: int = 20) -> Dict:
         }
     
     try:
-        print(f"[get_user_uploaded_files] Fetching files for user: {user_email}")
+        logging.info(f"[get_user_uploaded_files] Fetching files for user: {user_email}")
         
         # Query documents table for user's uploaded files in abhihub schema
         # Resolve user_id from email first to be safe, or join profiles
@@ -37,14 +41,14 @@ def get_user_uploaded_files(user_email: str, limit: int = 20) -> Dict:
             .execute()
         
         if response.data:
-            print(f"[get_user_uploaded_files] Found {len(response.data)} files")
+            logging.info(f"[get_user_uploaded_files] Found {len(response.data)} files")
             return {
                 'success': True,
                 'data': response.data,
                 'count': len(response.data)
             }
         else:
-            print(f"[get_user_uploaded_files] No files found for user")
+            logging.info(f"[get_user_uploaded_files] No files found for user")
             return {
                 'success': True,
                 'data': [],
@@ -52,7 +56,7 @@ def get_user_uploaded_files(user_email: str, limit: int = 20) -> Dict:
             }
     
     except Exception as e:
-        print(f"[get_user_uploaded_files] ERROR: {e}")
+        logging.error(f"[get_user_uploaded_files] ERROR: {e}")
         import traceback
         traceback.print_exc()
         return {

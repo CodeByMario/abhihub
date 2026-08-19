@@ -21,6 +21,10 @@ __pycache__/
 *.pyd
 .Python
 
+# Node
+node_modules/
+npm-debug.log*
+
 # IDE
 .vscode/
 .idea/
@@ -44,6 +48,12 @@ icons.json
 
 # Test/trash artifacts
 trash/
+.wip/
+
+# Generated exports — contain user PII, never commit
+exports/
+*.csv
 
 # Audit reports (generated)
 .ai/history/reports/
+data/raw/

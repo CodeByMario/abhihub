@@ -1,0 +1,1667 @@
+{
+  "/": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "features"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/<key>.txt": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "index_now_key"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/UHV": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "uhv_notes"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/abhijeetupdate": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "abhijeet_updae"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/about": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "about"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/account": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "account"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/account/update": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "update_account"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/admin/analytics": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "admin_analytics_dashboard"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/admin/controle": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "admin_control_panel"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/ads.txt": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "ads_txt"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/admin/approve-document": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "approve_document"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/admin/contact-messages": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "get_contact_messages"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/admin/entity/add": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_add_entity"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/admin/notification-history": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "get_admin_notification_history"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/admin/pending-documents": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "get_pending_documents"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/admin/reject-document": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "reject_document"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/admin/send-notification": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "send_admin_notification"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/admin/stats": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "get_admin_stats"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/admin/subscribers": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "get_admin_subscribers"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/admin/users": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "admin_get_users"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/admin/users/<user_id>/stats": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "admin_get_user_stats"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/ai/predict-metadata": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_predict_metadata"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/ask-paper": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_ask_paper"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/bookmark": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "toggle_bookmark_route"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/branches": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_get_branches"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/cache-health": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_cache_health"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/chat/online": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "chat_online_users"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/chat/peer/<target_user_id>/materials-summary": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_chat_peer_materials_summary"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/chat/search-peers": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "chat_search_peers"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/chat/user-info/<user_id>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "chat_user_info"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/check-auth": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "check_auth"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/check-duplicate": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_check_duplicate"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/check-profile": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_check_profile"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/colleges": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_add_college",
+      "api_get_colleges"
+    ],
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  "/api/contact": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_contact"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/departments": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_add_department",
+      "api_get_departments"
+    ],
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  "/api/document-view": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_log_document_view"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/events": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_track_event"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/extract-ocr": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_extract_ocr"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/file-access-history": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_get_file_access_history"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/files/all": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "get_all_files"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/interactions/bookmark": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_toggle_bookmark"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/interactions/comments/<doc_id>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_comments"
+    ],
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  "/api/interactions/comments/<document_id>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "add_comment_route",
+      "get_comments_route"
+    ],
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  "/api/interactions/like": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_toggle_like"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/like": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "toggle_like_route"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/material-request/respond": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_respond_material_request"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/material-requests": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_get_material_requests"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/memorywall/stats/<wall_id>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_memorywall_stats"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/memorywall/submit": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_memorywall_submit"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/memorywall/upload-signature": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_memorywall_upload_signature"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/my-notifications": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_get_my_notifications"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/my-notifications/read": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_mark_notifications_read"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/notifications/<notif_id>/read": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_mark_single_notification_read"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/onboarding/status": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_onboarding_status"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/onboarding/welcome-seen": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_onboarding_welcome_seen"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/profile": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "get_profile"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/profile-status": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "profile_status"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/profile/update": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_update_profile"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/proxy-file": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "proxy_file"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/quota": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_get_quota"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/recent-documents": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_get_recent_documents"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/referral/my-code": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_referral_my_code"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/referral/register": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_referral_register"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/report-suspect": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "report_suspect"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/request-material": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_request_material"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/semesters": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_get_semesters"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/subject-request": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_create_subject_request"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/subjects": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_add_subject",
+      "api_get_subjects"
+    ],
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  "/api/track-file-access": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "track_file_access_api"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/user/<target_user_id>/materials": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_get_peer_materials"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/users/search": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_search_users"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/view-doc/<doc_id>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "view_doc"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/view-doc/<doc_id>/<filename>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "view_doc"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/waitlist/join": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_waitlist_join"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/widget-data": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "widget_data"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/auth": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "authorize"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/auth-callback": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "auth_callback"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/chat": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "chat_page"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/chat/<peer_id>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "chat_with_peer"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/college/<college_slug>/<department_slug>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "department_landing"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/contact": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "contact"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/dashboard": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "dashboard"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/dashboard/": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "index"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/dashboard/about": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "premium_about"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/dashboard/profile": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "p_profile_redirect"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/dashboard/profile/old": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "p_profile_deprecated"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/dashboard/save_search": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "save_search"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/dashboard/search": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "search"
+    ],
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  "/dashboard/setting": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "p_setting"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/dashboard/share-receiver": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "share_receiver"
+    ],
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  "/dashboard/static/search.json": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "search_in"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/dashboard/suggest": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "suggest"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/dashboard/view": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "view"
+    ],
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  "/delete-account": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "delete_account"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/favicon.ico": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "favicon"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/features-tour": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "features_tour"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/get-file-url": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "get_file_url"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/help": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "help_center"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/indexnow": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "indexnow"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/join": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "join_team"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/leaderboard": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "leaderboard"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/local-viewer": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "local_viewer"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/login": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "login"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/logo": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "logo"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/logout": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "logout"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/m/<slug>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "memorywall_public"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/manifest.json": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "premium_manifest"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/memorywall": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "memorywall_dashboard"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/memorywall/create": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "memorywall_create"
+    ],
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  "/memorywall/reveal/<wall_id>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "memorywall_reveal"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/notifications": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "notifications_page"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/offline": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "offline_page"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/pdf-proxy/<path:pdf_name>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "pdf_proxy"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/prepair/<subject>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "exam_prep"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/preview": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "preview"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/privacy": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "privacy"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/profile": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "profile"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/profile/<user_id>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "peer_profile"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/pyq": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "pyq_landing"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/rank": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "calculate_rank"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/register": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "register"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/reset-password": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "reset_password"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/reset-password-confirm": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "reset_password_confirm"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/resource/<path:slug>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "resource_landing"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/robots.txt": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "robots_txt"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/search": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "search_page"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/settings": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "settings"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/show_rank": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "show_rank"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/signup": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "signup"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/sitemap.xml": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "sitemap"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/static/<path:filename>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "static_files"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/store-room": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "store_room"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/store-room/api/label": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "label_store_room_paper"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/store-room/api/rename-file": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "store_room_api_rename_file"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/store-room/api/sync": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "store_room_api_sync"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/store-room/api/unlabeled": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "store_room_api_unlabeled"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/store-room/api/verification-queue": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "store_room_api_verification_queue"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/store-room/api/verify": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "store_room_api_verify"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/subject/<subject_slug>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "subject_landing"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/support": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "support"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/sw.js": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "service_worker",
+      "service_worker_root"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/team": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "team"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/terms": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "terms"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/u/<user_id>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "instagram_profile"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/update-file-metadata": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "update_file_metadata"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/upload": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "upload"
+    ],
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  "/upload-gate": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "upload_gate"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/verify-file": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "verify_file"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/view_pdf": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "view_pdf"
+    ],
+    "methods": [
+      "GET"
+    ]
+  }
+}
