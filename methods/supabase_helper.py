@@ -1075,6 +1075,7 @@ def get_student_profile(user_id: str) -> Dict:
                 'registration_number':   row.get('registration_number'),
                 'pursuing_year':         row.get('pursuing_year'),
                 'year_of_joining':       row.get('year_of_joining'),
+                'degree':                row.get('degree') or prof.get('degree', ''),
                 'profile_completed':     row.get('profile_completed', False),
                 'student_name':          prof.get('full_name', ''),
                 'student_email':         prof.get('email', ''),
@@ -1103,6 +1104,7 @@ def get_student_profile(user_id: str) -> Dict:
                 'registration_number':   None,
                 'pursuing_year':         None,
                 'year_of_joining':       None,
+                'degree':                prof.get('degree', ''),
                 'profile_completed':     False,
                 'student_name':          prof.get('full_name', ''),
                 'student_email':         prof.get('email', ''),
@@ -1137,9 +1139,10 @@ def create_or_update_student_profile(user_id: str, profile_data: dict) -> Dict:
     if not client:
         return {'success': False, 'message': 'Supabase client unavailable'}
     try:
-        b_id  = profile_data.get('branch_id')
-        c_id  = profile_data.get('college_id')
-        role  = profile_data.get('user_role', 'student')
+        b_id   = profile_data.get('branch_id')
+        c_id   = profile_data.get('college_id')
+        role   = profile_data.get('user_role', 'student')
+        degree = profile_data.get('degree')
 
         # Validate UUIDs – both college and branch are UUID FKs in abhihub schema
         valid_college_id    = c_id if validate_uuid(c_id) else None
@@ -1152,7 +1155,7 @@ def create_or_update_student_profile(user_id: str, profile_data: dict) -> Dict:
 
         logging.info(f"[Profile] Upserting profile for user_id={user_id}, role={role}, college={valid_college_id}, dept={valid_department_id}")
 
-        profile_res = client.table('profiles').upsert({
+        prof_payload = {
             'id':            user_id,
             'role':          role,
             'email':         profile_data.get('student_email'),
@@ -1160,17 +1163,33 @@ def create_or_update_student_profile(user_id: str, profile_data: dict) -> Dict:
             'college_id':    valid_college_id,
             'department_id': valid_department_id,
             'phone_number':  str(profile_data.get('student_moblie_number', '') or ''),
-        }).execute()
-        logging.info(f"[Profile] profiles upsert result: {profile_res.data}")
+        }
+        if degree:
+            prof_payload['degree'] = degree
+
+        try:
+            profile_res = client.table('profiles').upsert(prof_payload).execute()
+        except Exception:
+            if 'degree' in prof_payload:
+                prof_payload.pop('degree')
+                profile_res = client.table('profiles').upsert(prof_payload).execute()
 
         if role == 'student':
-            student_res = client.table('students').upsert({
+            stud_payload = {
                 'profile_id':          user_id,
                 'registration_number': profile_data.get('registration_number') or None,
                 'pursuing_year':       _int(profile_data.get('pursuing_year')),
                 'year_of_joining':     _int(profile_data.get('year_of_joining')),
                 'profile_completed':   True
-            }).execute()
+            }
+            if degree:
+                stud_payload['degree'] = degree
+            try:
+                student_res = client.table('students').upsert(stud_payload).execute()
+            except Exception:
+                if 'degree' in stud_payload:
+                    stud_payload.pop('degree')
+                    student_res = client.table('students').upsert(stud_payload).execute()
             logging.info(f"[Profile] students upsert result: {student_res.data}")
         elif role == 'teacher':
             teacher_res = client.table('teachers').upsert({

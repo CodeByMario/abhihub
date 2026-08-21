@@ -244,7 +244,7 @@ body { background-color: var(--c-bg); }
   </div>
   <div class="file-grid">
     {% for dept in departments %}
-      <a href="/college/{{ college.abbreviation | default(college.name) | lower | replace(' ', '-') }}/{{ dept.abbreviation | default(dept.name) | lower | replace(' ', '-') }}" class="file-card" style="text-align:center; padding: 2rem 1.5rem;">
+      <a href="{{ request.path }}/{{ dept.abbreviation | default(dept.name) | lower | replace(' ', '-') }}" class="file-card" style="text-align:center; padding: 2rem 1.5rem;">
         <div style="font-size:2rem; margin-bottom:1rem;">🏢</div>
         <div class="file-name" style="font-size:1.2rem;">{{ dept.name }}</div>
         <div class="file-meta" style="justify-content:center; color: var(--c-primary); font-weight:700; margin-top:0.5rem;">Explore Resources →</div>

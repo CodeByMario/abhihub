@@ -9,13 +9,14 @@
 <div class="ac-page">
 
   <!-- Hero -->
-  {% set completion = 30 %}
+  {% set completion = 20 %}
   {% if profile %}
-    {% set completion = 30 %}
+    {% set completion = 20 %}
     {% if profile.student_name %}{% set completion = completion + 10 %}{% endif %}
     {% if profile.student_moblie_number %}{% set completion = completion + 10 %}{% endif %}
     {% if profile.college_id %}{% set completion = completion + 15 %}{% endif %}
     {% if profile.branch_id %}{% set completion = completion + 15 %}{% endif %}
+    {% if profile.degree %}{% set completion = completion + 10 %}{% endif %}
     {% if profile.year_of_joining %}{% set completion = completion + 10 %}{% endif %}
     {% if profile.user_role == 'student' and profile.pursuing_year %}{% set completion = completion + 10 %}{% endif %}
     {% if profile.user_role == 'teacher' %}{% set completion = completion + 10 %}{% endif %}
@@ -194,6 +195,22 @@
           </div>
 
           <div class="ac-field">
+            <label for="degree" class="ac-label">Degree / Course <span class="ac-req">*</span></label>
+            <div class="ac-input-wrap">
+              <span class="ac-input-icon">
+                <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l9-5-9-5-9 5 9 5z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 14l6.16-3.422a12.083 12.083 0 01.665 6.479A11.952 11.952 0 0112 20.055a11.952 11.952 0 01-6.824-2.998 12.078 12.078 0 01.665-6.479L12 14z"/></svg>
+              </span>
+              <select id="degree" name="degree" class="ac-select" required>
+                <option value="">Select Degree / Course</option>
+                {% set degrees = ['B.Tech', 'M.Tech', 'MBA', 'MCA', 'BCA', 'BBA', 'B.Sc', 'M.Sc', 'Diploma', 'Ph.D', 'Other'] %}
+                {% for d in degrees %}
+                <option value="{{ d }}" {% if profile and profile.degree == d %}selected{% endif %}>{{ d }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="ac-field">
             <label for="year_of_joining" class="ac-label">Year of Joining <span class="ac-req">*</span></label>
             <div class="ac-input-wrap">
               <span class="ac-input-icon">
@@ -254,6 +271,72 @@
 </div>
 
 <script>
+  const currentYear = new Date().getFullYear();
+
+  function getDegreeDuration(deg) {
+    deg = (deg || '').toUpperCase();
+    if (['MBA', 'M.TECH', 'M.SC'].includes(deg)) return 2;
+    if (['MCA', 'BCA', 'BBA', 'B.SC', 'DIPLOMA'].includes(deg)) return 3;
+    if (['B.TECH'].includes(deg)) return 4;
+    return 5;
+  }
+
+  function autoCalculatePursuingYear() {
+    const yojInput = document.getElementById('year_of_joining');
+    const degSelect = document.getElementById('degree');
+    const pySelect = document.getElementById('pursuing_year');
+    if (!yojInput || !pySelect) return;
+
+    const yoj = parseInt(yojInput.value);
+    const deg = degSelect ? degSelect.value : '';
+    if (!yoj || yoj > currentYear || yoj < 2000) return;
+
+    const maxYears = getDegreeDuration(deg);
+    const calcYear = (currentYear - yoj) + 1;
+
+    if (calcYear >= 1 && calcYear <= maxYears) {
+      pySelect.value = String(calcYear);
+    } else if (calcYear > maxYears) {
+      pySelect.value = String(maxYears);
+    } else if (calcYear < 1) {
+      pySelect.value = '1';
+    }
+  }
+
+  function filterBranchesByDegree() {
+    const degSelect = document.getElementById('degree');
+    const branchSelect = document.getElementById('branch_id');
+    if (!degSelect || !branchSelect) return;
+
+    const deg = degSelect.value.toUpperCase();
+    Array.from(branchSelect.options).forEach(opt => {
+      if (!opt.value) return;
+      const txt = opt.textContent.toUpperCase();
+      if (!deg) {
+        opt.style.display = '';
+        return;
+      }
+      if (deg.includes('MBA') || deg.includes('BBA')) {
+        opt.style.display = (txt.includes('MBA') || txt.includes('MANAGEMENT') || txt.includes('BUSINESS') || txt.includes('FINANCE') || txt.includes('MARKETING')) ? '' : 'none';
+      } else if (deg.includes('MCA') || deg.includes('BCA')) {
+        opt.style.display = (txt.includes('COMPUTER') || txt.includes('CS') || txt.includes('IT') || txt.includes('APPLICATION') || txt.includes('MCA') || txt.includes('BCA')) ? '' : 'none';
+      } else if (deg.includes('TECH')) {
+        opt.style.display = (txt.includes('TECH') || txt.includes('ENGINEERING') || txt.includes('CSE') || txt.includes('ECE') || txt.includes('ME') || txt.includes('EE') || txt.includes('CIVIL') || txt.includes('AI') || txt.includes('DS') || !txt.includes('MANAGEMENT')) ? '' : 'none';
+      } else {
+        opt.style.display = '';
+      }
+    });
+
+    const visibleOpts = Array.from(branchSelect.options).filter(o => o.style.display !== 'none');
+    if (visibleOpts.length <= 1) {
+      Array.from(branchSelect.options).forEach(o => o.style.display = '');
+    }
+
+    if (branchSelect.selectedOptions.length && branchSelect.selectedOptions[0].style.display === 'none') {
+      branchSelect.value = '';
+    }
+  }
+
   function toggleStudentFields() {
     const isStudent = document.getElementById('role_student').checked;
     const pyGroup  = document.getElementById('pursuing_year_group');
@@ -280,10 +363,31 @@
 
   document.addEventListener('DOMContentLoaded', () => {
     toggleStudentFields();
+
     const mobile = document.getElementById('student_moblie_number');
     if (mobile) mobile.addEventListener('input', () => {
       mobile.value = mobile.value.replace(/\D/g,'').slice(0,10);
     });
+
+    const yojInput = document.getElementById('year_of_joining');
+    if (yojInput) {
+      yojInput.setAttribute('max', currentYear);
+      yojInput.addEventListener('input', () => {
+        if (parseInt(yojInput.value) > currentYear) {
+          yojInput.value = currentYear;
+        }
+        autoCalculatePursuingYear();
+      });
+    }
+
+    const degSelect = document.getElementById('degree');
+    if (degSelect) {
+      degSelect.addEventListener('change', () => {
+        filterBranchesByDegree();
+        autoCalculatePursuingYear();
+      });
+      filterBranchesByDegree();
+    }
   });
 </script>
 

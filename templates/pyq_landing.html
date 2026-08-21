@@ -269,7 +269,7 @@ body { background-color: var(--pyq-bg); }
 
   <div class="college-grid" id="collegeGrid">
     {% for college in colleges %}
-    <a href="/college/{{ (college.abbreviation or college.name) | lower | replace(' ', '-') }}"
+    <a href="/pyq/{{ (college.abbreviation or college.name) | lower | replace(' ', '-') }}"
        class="college-card"
        data-search="{{ college.name | lower }} {{ (college.abbreviation or '') | lower }} {{ (college.popular_name or '') | lower }}">
       <div class="college-abbr">{{ college.abbreviation or college.name[:6] }}</div>

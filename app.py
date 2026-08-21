@@ -2576,6 +2576,7 @@ def update_account():
         'student_moblie_number': request.form.get('student_moblie_number'),
         'college_id': request.form.get('college_id'),
         'branch_id': request.form.get('branch_id'),
+        'degree': request.form.get('degree'),
         'user_role': request.form.get('user_role'),
         'year_of_joining': request.form.get('year_of_joining'),
         'pursuing_year': request.form.get('pursuing_year') if request.form.get('pursuing_year') else None,
@@ -2690,6 +2691,8 @@ def search_page():
     # Pass the query so the client can prefill + trigger SearchManager.
     return render_template('p_search.html', initial_query=q)
 
+@app.route('/college/<college_slug>')
+@app.route('/pyq/<college_slug>')
 def college_landing(college_slug):
     """Dynamic SEO-optimized college landing page.
     Priority: brand group page > individual college page > 404
@@ -2702,6 +2705,8 @@ def college_landing(college_slug):
     def slugify(text):
         return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
 
+    route_prefix = '/pyq' if request.path.startswith('/pyq') else '/college'
+
     # 1. Check if slug matches a brand group (popular_name shared by 2+ colleges)
     brand_res = get_colleges_by_brand(college_slug)
     if brand_res.get('success'):
@@ -2713,7 +2718,7 @@ def college_landing(college_slug):
             c = brand_colleges[0]
             canonical_slug = slugify(c.get('abbreviation') or c.get('name'))
             if college_slug != canonical_slug:
-                return redirect(f"/college/{canonical_slug}", code=301)
+                return redirect(f"{route_prefix}/{canonical_slug}", code=301)
             # Else fall through to normal college resolution
 
     # 2. Resolve as individual college slug
@@ -2727,7 +2732,7 @@ def college_landing(college_slug):
     # 3. If accessed via alias (not canonical abbr), 301-redirect
     canonical_slug = slugify(college.get('abbreviation') or college.get('name'))
     if college_slug != canonical_slug:
-        return redirect(f"/college/{canonical_slug}", code=301)
+        return redirect(f"{route_prefix}/{canonical_slug}", code=301)
 
     # 4. Check doc count — show coming soon if empty
     COMING_SOON_THRESHOLD = 1  
@@ -2752,6 +2757,7 @@ def college_landing(college_slug):
                            departments=departments)
 
 @app.route('/college/<college_slug>/<department_slug>')
+@app.route('/pyq/<college_slug>/<department_slug>')
 def department_landing(college_slug, department_slug):
     """Dynamic SEO-optimized department landing page"""
     from methods.supabase_helper import get_college_by_slug, get_department_by_slug, get_department_stats, get_recent_department_files
