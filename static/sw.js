@@ -9,7 +9,7 @@
  * - Background sync
  */
 
-const CACHE_VERSION = 'v2.0.4';
+const CACHE_VERSION = 'v2.0.5';
 const CACHE_NAME = `abhihub-${CACHE_VERSION}`;
 const STATIC_CACHE = `abhihub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `abhihub-dynamic-${CACHE_VERSION}`;
@@ -406,31 +406,20 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Handle other requests with stale-while-revalidate
+  // Handle other requests
   // /api/view-doc/ image endpoints: bypass SW cache entirely, go direct to network.
-  // These are proxied by Flask and carry no file extension, so the generic cache
-  // path can serve stale/broken responses and cause invisible images.
   if (url.pathname.startsWith('/api/view-doc/') && isImageUrl(url)) {
     event.respondWith(fetch(request));
     return;
   }
 
-  event.respondWith(
-    (async () => {
-      if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs')) {
-        const cache = await caches.open(DYNAMIC_CACHE);
-        const cachedResponse = await cache.match(request, { ignoreSearch: true });
-        if (cachedResponse) {
-          const cachedType = cachedResponse.headers.get('Content-Type') || '';
-          if (cachedType.includes('text/html') || !cachedType.includes('javascript')) {
-            await cache.delete(request);
-            return fetch(request);
-          }
-        }
-      }
-      return handleStandardRequest(request);
-    })()
-  );
+  // JS and CSS code: Network-First to ensure code updates are instantly reflected
+  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs') || url.pathname.endsWith('.css')) {
+    event.respondWith(handleNetworkFirstRequest(request));
+    return;
+  }
+
+  event.respondWith(handleStandardRequest(request));
 });
 
 /**
@@ -575,6 +564,24 @@ async function handleCacheableApiRequest(request) {
 }
 
 /**
+ * Handle JS and CSS requests with Network-First strategy
+ */
+async function handleNetworkFirstRequest(request) {
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse && networkResponse.ok) {
+      const cache = await caches.open(DYNAMIC_CACHE);
+      cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch (error) {
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) return cachedResponse;
+    return new Response('', { status: 404 });
+  }
+}
+
+/**
  * Handle standard requests with stale-while-revalidate
  */
 async function handleStandardRequest(request) {
@@ -583,7 +590,7 @@ async function handleStandardRequest(request) {
   // Determine which cache to use
   const cacheName = isCacheableUrl(url) ? DYNAMIC_CACHE : STATIC_CACHE;
   const cache = await caches.open(cacheName);
-  const cachedResponse = await cache.match(request, { ignoreSearch: true });
+  const cachedResponse = await cache.match(request);
 
   // Safety: verify cached response content type matches expected type
   if (cachedResponse) {
