@@ -548,6 +548,45 @@
 }
 .crop-footer button {
   flex: 1;
+  min-width: 110px;
+  border-radius: 14px;
+  border: 1px solid #e5e7eb;
+  padding: 0.9rem 1rem;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: #f8fafc;
+  color: #334155;
+  transition: all 0.2s ease;
+}
+.crop-footer button:hover { transform: translateY(-1px); background: #ffffff; }
+
+.carousel-metric {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+}
+.compression-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: #ecfdf5;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+.compression-badge.compressed { background: #ecfdf5; color: #16a34a; border-color: #bbf7d0; }
+.compression-badge.original { background: #f1f5f9; color: #64748b; border-color: #e2e8f0; }
+
+/* Carousel navigation row */
+.carousel-nav-row {
   min-width: 120px;
   border-radius: 14px;
   border: 1px solid #e5e7eb;
@@ -837,4 +876,106 @@
 .remove-img-btn:hover {
   transform: scale(1.1);
   background: #dc2626;
+}
+
+/* ── Meta form section dividers ── */
+.meta-section-label {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0 0.1rem;
+  border-top: 1px solid #f1f5f9;
+  margin-top: 0.25rem;
+}
+.meta-section-label:first-child { border-top: none; margin-top: 0; }
+.meta-section-icon { font-size: 0.9rem; }
+.meta-autofill-badge {
+  margin-left: auto;
+  background: #ecfdf5;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+/* ── Field-level auto-fill pill (shown when value comes from profile) ── */
+.field-autofill-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.15rem;
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  padding: 0.1rem 0.45rem;
+  font-size: 0.7rem;
+  font-weight: 700;
+  vertical-align: middle;
+  margin-left: 0.35rem;
+  animation: fadePill 0.3s ease-out;
+}
+@keyframes fadePill {
+  from { opacity: 0; transform: scale(0.8); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+/* ── Requests button — inline, not floating ── */
+#showRequestsBtn {
+  display: none; /* hidden by default; shown only if there are pending requests */
+  width: 100%;
+  margin-top: 0.75rem;
+  padding: 0.65rem 1rem;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 14px;
+  background: #f8fafc;
+  color: #64748b;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: center;
+  transition: border-color 0.2s, color 0.2s, background 0.2s;
+  position: static !important;
+}
+#showRequestsBtn:hover {
+  border-color: #6366f1;
+  color: #6366f1;
+  background: #f5f3ff;
+}
+
+/* ── Requests panel — anchored to form, not viewport ── */
+#materialRequestsPanel {
+  margin-top: 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  background: #fff;
+}
+
+/* ── Upload float — slim bottom bar instead of pill ── */
+#uploadFloat {
+  display: none;
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  z-index: 11000;
+  background: rgba(15, 23, 42, 0.92);
+  backdrop-filter: blur(8px);
+  color: #fff;
+  padding: 0.65rem 1.5rem;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.75rem;
+  border-top: 1px solid rgba(255,255,255,0.08);
+  font-size: 0.9rem;
+  font-weight: 600;
 }

@@ -540,7 +540,7 @@ def save_file_record(
     subject_name: str, document_type: str, year: str = '',
     college_id=None, branch_id=None, subject_code: str = '',
     semesters: list = None, title: str = '', description: str = '',
-    subject_id: str = None, semester: int = None, exam_type: str = '', file_hash: str = None
+    subject_id: str = None, semester: int = None, exam_type: str = '', file_hash: str = None, program: str = 'b.tech'
 ) -> Dict:
     client = init_supabase()
     if not client: return {'success': False, 'message': 'No client'}
@@ -615,7 +615,8 @@ def save_file_record(
             'file_size_bytes': file_size,
             'status': 'pending',  # All new uploads start as pending
             'exam_type': exam_type or None,
-            'file_hash': file_hash
+            'file_hash': file_hash,
+            'program': program
         }
 
         # A legacy/bulk upload can already have a document row for this URL
@@ -903,7 +904,7 @@ def get_related_documents(college_id: str = None, subject_id: str = None,
         log.error(f'get_related_documents error: {e}')
         return []
 
-def search_file_records(search_query='', document_type=None, college_id=None, branch_id=None, year=None, limit=50) -> List[Dict]:
+def search_file_records(search_query='', document_type=None, college_id=None, branch_id=None, year=None, program=None, limit=50) -> List[Dict]:
     client = init_supabase()
     if not client: return []
     try:
@@ -911,6 +912,7 @@ def search_file_records(search_query='', document_type=None, college_id=None, br
         if document_type: q = q.eq('document_category', document_type)
         if college_id and validate_uuid(college_id): q = q.eq('college_id', college_id)
         if branch_id and validate_uuid(branch_id): q = q.eq('department_id', branch_id)
+        if program: q = q.eq('program', program)
         if search_query:
             q = q.or_(f"title.ilike.%{search_query}%,description.ilike.%{search_query}%")
         res = q.order('created_at', desc=True).limit(limit).execute()

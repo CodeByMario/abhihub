@@ -3,10 +3,6 @@
 
 <title>{{ file_meta.get('file-name', pdf_name) }} — AbhiHub Reader</title>
 <meta name="referrer" content="same-origin">
-<meta http-equiv="Content-Security-Policy"
-      content="frame-src 'self' https://acrobatservices.adobe.com; script-src 'self' 'unsafe-inline' https://acrobatservices.adobe.com https://www.googletagmanager.com;">
-<script src="https://acrobatservices.adobe.com/view-sdk/viewer.js"></script>
-
 <style>
   /* ── Layout tokens ───────────────────────────────────────── */
   :root {
@@ -145,11 +141,6 @@
     position: relative;
     overflow: hidden;
     background: #e5e7eb;
-  }
-
-  #adobe-dc-view {
-    width: 100%;
-    height: 100%;
   }
 
   /* ── Loading overlay ────────────────────────────────────── */
@@ -335,6 +326,20 @@
   .pdf-suggestion-btn.ai-blue { color: #2563eb; }
   .pdf-suggestion-btn.ai-gray { color: #475569; }
   .ai-send-btn { padding: 0.65rem 1.25rem; background: #f59e0b; color: #fff; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
+  .reader-root.fullscreen-reader {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 999999 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    background: #0f172a !important;
+    display: flex !important;
+    flex-direction: column !important;
+  }
+  .reader-root.fullscreen-reader .reader-viewport {
+    flex: 1 !important;
+    height: 100% !important;
+  }
 </style>
 
 <!-- Signal studying mode to OverlayManager -->
@@ -343,6 +348,12 @@
   window.addEventListener('beforeunload', function () {
     document.dispatchEvent(new CustomEvent('abhihub:studying:end'));
   });
+  window.togglePdfReaderFullscreen = function() {
+    var root = document.querySelector('.reader-root');
+    if (!root) return;
+    var isFs = root.classList.toggle('fullscreen-reader');
+    document.body.style.overflow = isFs ? 'hidden' : '';
+  };
 </script>
 
 <!-- ── Reader Root ───────────────────────────────────────────── -->
@@ -381,6 +392,11 @@
 
     <!-- Actions -->
     <div class="reader-actions">
+      <button class="rdr-btn rdr-btn-ghost" type="button" onclick="togglePdfReaderFullscreen()" aria-label="Fullscreen Focus Mode" title="Fullscreen Focus Mode">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        <span class="btn-label">Fullscreen</span>
+      </button>
+
       {% if file_meta.get('url') %}
 
       <!-- Open in new tab: desktop only -->
@@ -431,9 +447,6 @@
       <div class="spinner" aria-hidden="true"></div>
       <span class="loading-label">Preparing document…</span>
     </div>
-
-    <!-- Adobe Embed container -->
-    <div id="adobe-dc-view" aria-label="PDF document viewer"></div>
 
   </div><!-- /.reader-viewport -->
 
@@ -516,7 +529,7 @@
         <button type="button" data-action="fillPdfQuestion" data-question="Extract all text from this PDF (OCR)" class="pdf-suggestion-btn ai-blue" aria-label="Extract all text from this PDF (OCR)">🔍 Extract OCR Text</button>
         <button type="button" data-action="fillPdfQuestion" data-question="Summarize key points in this paper" class="pdf-suggestion-btn ai-gray" aria-label="Summarize key points in this paper">📌 Summarize Paper</button>
         <button type="button" data-action="fillPdfQuestion" data-question="Solve question 1 step-by-step" class="pdf-suggestion-btn ai-gray" aria-label="Solve question 1 step-by-step">📝 Solve Q1</button>
-        <button type="button" data-action="fillPdfQuestion" data-question="List main topics &amp; formulas" class="pdf-suggestion-btn ai-gray" aria-label="List main topics &amp; formulas">🧪 Formulas &amp; Topics</button>
+        <button type="button" data-action="fillPdfQuestion" data-question="List main topics &amp; formulas" class="pdf-suggestion-btn ai-gray" aria-label="List main topics & formulas">🧪 Formulas &amp; Topics</button>
       </div>
 
       <!-- Question Box -->
@@ -628,10 +641,9 @@
   /* ── PDF Renderer ────────────────────────────────────────── */
   (function initPdfViewer() {
     const overlay  = document.getElementById('loadingOverlay');
-    const viewport = document.getElementById('adobe-dc-view');
+    const viewport = document.querySelector('.reader-viewport');
     const pdfUrl   = "/api/view-doc/{{ file_meta.get('id', '') }}/document.pdf";
     const pdfName  = "{{ file_meta.get('file-name', pdf_name) }}";
-    const isMobile = window.innerWidth < 768;
 
     /* ── Height-fit: measure actual available space ───────── */
     function fitHeight() {
@@ -664,9 +676,7 @@
         '</div>';
     }
 
-    /* ── Primary viewer: PDF.js (self-hosted, no external dependency) ──
-       Per product rule: PDF.js is the canonical viewer. Adobe Embed SDK is
-       kept only as a last-resort fallback if PDF.js fails to load. */
+    /* ── Primary viewer: PDF.js (self-hosted, no external dependency) ── */
     function mountPdfJs() {
       viewport.innerHTML =
         '<iframe id="pdfFrame" src="/static/pdfjs-6.1.200-dist/web/viewer.html?file=' + encodeURIComponent(pdfUrl) + '&download=false" ' +
@@ -679,55 +689,6 @@
         var frame = document.getElementById('pdfFrame');
         if (frame) frame.style.height = viewport.clientHeight + 'px';
       }, 50);
-      // If PDF.js hasn't rendered within 15s, fall back to Adobe Embed
-      setTimeout(function() {
-        var f = document.getElementById('pdfFrame');
-        if (f && (!f.contentDocument || f.contentDocument.body == null || f.contentDocument.body.children.length === 0)) {
-          mountAdobe();
-        }
-      }, 15000);
-    }
-
-    /* ── Fallback viewer: Adobe Embed SDK (only if PDF.js fails) ── */
-    function mountAdobe() {
-      viewport.innerHTML = '<div id="adobe-dc-view" style="width:100%;height:100%;"></div>';
-      function showFallbackIframe(url, name) {
-        overlay.classList.add('hidden');
-        viewport.innerHTML =
-          '<iframe src="' + url + '" ' +
-            'style="border:none;display:block;width:100%;height:100%;background:#f1f5f9;" ' +
-            'title="' + name + '"></iframe>';
-      }
-      document.addEventListener('adobe_dc_view_sdk.ready', function () {
-        try {
-          var adobeDCView = new AdobeDC.View({
-            clientId: 'eab5f878b6684648b54763245865faed',
-            divId: 'adobe-dc-view'
-          });
-          adobeDCView.previewFile(
-            { content: { location: { url: pdfUrl } }, metaData: { fileName: pdfName } },
-            {
-              embedMode: 'SIZED_CONTAINER',
-              showAnnotationTools: false,
-              showDownloadPDF: false,
-              showPrintPDF: false,
-              dockPageControls: false,
-              defaultViewMode: 'FIT_WIDTH',
-            }
-          ).then(function() {
-            overlay.classList.add('hidden');
-          }).catch(function(err) {
-            console.error('Adobe load error:', err);
-            showFallbackIframe(pdfUrl, pdfName);
-          });
-        } catch (e) {
-          console.error('Adobe init error:', e);
-          showFallbackIframe(pdfUrl, pdfName);
-        }
-      });
-      setTimeout(function() {
-        if (!window.AdobeDC) showFallbackIframe(pdfUrl, pdfName);
-      }, 8000);
     }
 
     mountPdfJs();
@@ -735,14 +696,15 @@
 
   /* ── AdBlock detection ──────────────────────────────────── */
   window.addEventListener('load', function () {
-    // PDF.js is self-hosted, so adblockers don't block it; only warn if the
-    // Adobe fallback SDK is blocked (non-fatal — PDF.js already rendered).
+    // PDF.js is self-hosted — adblockers do not block it.
+    // Warn if the PDF viewer iframe itself fails to load (rare edge case).
     setTimeout(function () {
-      if (!window.AdobeDC) {
+      var frame = document.getElementById('pdfFrame');
+      if (frame && (!frame.contentDocument || frame.contentDocument.body == null || frame.contentDocument.body.children.length === 0)) {
         var ov = document.getElementById('adBlockerOverlay');
         if (ov) ov.classList.add('show');
       }
-    }, 3500);
+    }, 5000);
   });
 
 </script>

@@ -82,6 +82,7 @@ class Document:
             "bookmark_count": doc.get("bookmark_count", 0),
             "is_liked": is_liked,
             "is_bookmarked": is_bookmarked,
+            "program": doc.get("program", "b.tech"),
         }
 
     # ── Queries ─────────────────────────────────────────────────────
@@ -115,6 +116,7 @@ class Document:
         college_id: str = None,
         department_id: str = None,
         year: str = None,
+        program: str = None,
         limit: int = 50,
     ) -> List[dict]:
         client = get_client()
@@ -130,6 +132,8 @@ class Document:
                 q = q.eq("college_id", college_id)
             if department_id and validate_uuid(department_id):
                 q = q.eq("department_id", department_id)
+            if program:
+                q = q.eq("program", program)
             if query:
                 q = q.or_(f"title.ilike.%{query}%,description.ilike.%{query}%")
             res = q.order("created_at", desc=True).limit(limit).execute()
@@ -202,6 +206,7 @@ class Document:
         year: str = "",
         college_id: str = None,
         department_id: str = None,
+        program: str = "b.tech",
     ) -> Dict:
         client = get_client()
         if not client:
@@ -234,6 +239,7 @@ class Document:
                 "file_type": file_type,
                 "file_size_bytes": file_size,
                 "status": "pending",
+                "program": program,
             }
             res = client.table(Document.TABLE).insert(data).execute()
             if res.data:

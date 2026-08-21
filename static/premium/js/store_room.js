@@ -203,7 +203,7 @@ class StoreRoomUI {
             clearTimeout(this.searchTimer);
             this.searchTimer = setTimeout(() => this.reloadFiles(), 300);
         });
-        ['sortSelect', 'formatFilter', 'verificationFilter'].forEach(id => {
+        ['groupSelect', 'sortSelect', 'formatFilter', 'verificationFilter'].forEach(id => {
             document.getElementById(id)?.addEventListener('change', () => this.reloadFiles());
         });
         
@@ -215,7 +215,10 @@ class StoreRoomUI {
         
         // Form Submit
         document.getElementById('labelForm')?.addEventListener('submit', (e) => this.handleFormSubmit(e));
-        
+
+        // Save Button (type=button — must manually trigger form submission)
+        document.getElementById('saveBtn')?.addEventListener('click', () => this.handleSave());
+
         // Auto-fill Title
         document.getElementById('documentTitle')?.addEventListener('input', (e) => {
             const titleInput = document.getElementById('docTitle');
@@ -333,7 +336,7 @@ class StoreRoomUI {
                         </div>
                     `;
                 } else {
-                    newFiles.forEach(f => this.grid.appendChild(this.createFileCard(f)));
+                    this.renderGrid();
                 }
                 
                 if (this.viewMoreContainer) {
@@ -346,6 +349,68 @@ class StoreRoomUI {
             console.error('Failed to load files', e);
             this.showToast('Failed to load files', 'error');
         }
+    }
+    
+    renderGrid() {
+        if (!this.grid) return;
+        this.grid.innerHTML = '';
+        
+        const groupBy = document.getElementById('groupSelect')?.value || 'name';
+        
+        if (groupBy === 'none') {
+            this.state.files.forEach(f => this.grid.appendChild(this.createFileCard(f)));
+            return;
+        }
+        
+        const clusters = {};
+        const getClusterKey = (file) => {
+            if (groupBy === 'date') {
+                if (!file.created_at) return 'Older';
+                const fileDate = new Date(file.created_at);
+                const now = new Date();
+                const diffDays = Math.floor((now - fileDate) / (1000 * 60 * 60 * 24));
+                if (diffDays <= 0) return '📅 Today';
+                if (diffDays === 1) return '📅 Yesterday';
+                if (diffDays <= 7) return '📅 This Week';
+                return '📅 Older';
+            }
+            if (groupBy === 'format') {
+                return `📁 ${(file.format || 'unknown').toUpperCase()} Files`;
+            }
+            // Default: Group by Name Pattern / Prefix Similarity
+            const fname = (file.filename || '').trim();
+            const cleanName = fname.replace(/\.[^/.]+$/, '');
+            const parts = cleanName.split(/[-_\s]+/);
+            if (parts.length > 0 && parts[0].length >= 3 && !/^\d+$/.test(parts[0])) {
+                return `🏷️ ${parts[0].toUpperCase()} Series`;
+            }
+            const match = cleanName.match(/^([A-Za-z]{2,})/);
+            if (match) {
+                return `🏷️ ${match[1].toUpperCase()} Series`;
+            }
+            return '🏷️ Uncategorized / Misc';
+        };
+        
+        this.state.files.forEach(file => {
+            const key = getClusterKey(file);
+            if (!clusters[key]) clusters[key] = [];
+            clusters[key].push(file);
+        });
+        
+        Object.keys(clusters).forEach(key => {
+            const groupEl = document.createElement('div');
+            groupEl.className = 'cluster-group';
+            groupEl.innerHTML = `
+                <div class="cluster-header">
+                    <span class="cluster-title">${key}</span>
+                    <span class="cluster-count">${clusters[key].length} ${clusters[key].length === 1 ? 'file' : 'files'}</span>
+                </div>
+                <div class="cluster-grid"></div>
+            `;
+            const clusterGrid = groupEl.querySelector('.cluster-grid');
+            clusters[key].forEach(f => clusterGrid.appendChild(this.createFileCard(f)));
+            this.grid.appendChild(groupEl);
+        });
     }
     
     createFileCard(file) {

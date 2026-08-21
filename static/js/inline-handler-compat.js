@@ -238,7 +238,8 @@
             if (file && typeof window.verifyFile === 'function') window.verifyFile(file);
         },
         saveChanges: function (e, el) {
-            if (typeof window.saveChanges === 'function') window.saveChanges(el);
+            if (typeof window.saveChanges === 'function') { window.saveChanges(el); return; }
+            if (typeof window.handleSave === 'function') { window.handleSave(); return; }
         },
         cancelChanges: function (e, el) {
             if (typeof window.cancelChanges === 'function') window.cancelChanges(el);
@@ -364,9 +365,17 @@
             if (typeof window.zoomIn === 'function') window.zoomIn();
             else if (typeof window.zoomInImage === 'function') window.zoomInImage();
         },
+        zoomInImage: function (e, el) {
+            if (typeof window.zoomInImage === 'function') window.zoomInImage();
+            else if (typeof window.zoomIn === 'function') window.zoomIn();
+        },
         zoomOut: function (e, el) {
             if (typeof window.zoomOut === 'function') window.zoomOut();
             else if (typeof window.zoomOutImage === 'function') window.zoomOutImage();
+        },
+        zoomOutImage: function (e, el) {
+            if (typeof window.zoomOutImage === 'function') window.zoomOutImage();
+            else if (typeof window.zoomOut === 'function') window.zoomOut();
         },
         resetImageZoom: function (e, el) {
             if (typeof window.resetImageZoom === 'function') window.resetImageZoom();
@@ -523,6 +532,15 @@
     function attachAll() {
         var elements = document.querySelectorAll('[data-action]');
         elements.forEach(attachDataAction);
+        // Also attach data-event-* listeners (file inputs, forms, etc.)
+        var eventEls = document.querySelectorAll('[data-event-change], [data-event-click], [data-event-submit]');
+        eventEls.forEach(function (el) {
+            ['change', 'click', 'submit'].forEach(function (ev) {
+                if (el.hasAttribute('data-event-' + ev)) {
+                    attachEventAction(el, ev);
+                }
+            });
+        });
     }
 
     // Attach for event-based actions (data-event-click, data-event-change, etc.)
@@ -546,6 +564,7 @@
         });
     }
 
+    window.attachAll = attachAll;
     // Initial attachment
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', attachAll);

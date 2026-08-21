@@ -34,10 +34,98 @@ async function computeFileHash(file) {
   }
 }
 
-// Stub for setFileStatus if it was missing from previous versions
+// Upload progress state (shared between processUploadBatch + uploadOne)
+var _progBar = null;
+var _progFloat = null;
+var _progText = null;
+var _progTotal = 0;
+var _progDone = 0;
+var _progCurrentFile = '';
+var _progCurrentPct = 0;
+
+function updateProgressUI() {
+  if (_progBar) {
+    var overall = _progTotal > 0
+      ? ((_progDone + (_progCurrentPct / 100)) / _progTotal) * 100
+      : 0;
+    _progBar.style.width = Math.min(overall, 100) + '%';
+  }
+  if (_progFloat) {
+    _progFloat.innerHTML = _progCurrentFile
+      ? '⬆ ' + _progCurrentFile + ' (' + _progCurrentPct + '%)'
+      : ('Uploading ' + _progDone + ' / ' + _progTotal + ' — Play Game 🎮');
+  }
+  if (_progText) {
+    _progText.innerText = 'Uploading ' + (_progDone + (_progCurrentPct > 0 ? 1 : 0)) + ' / ' + _progTotal;
+  }
+}
+
 function setFileStatus(id, status, progress, msg) {
-  // Can be expanded to update UI badges for individual files
-  if (status === 'error' && msg) console.warn(`File ${id} error: ${msg}`);
+  var container = document.getElementById('uploadFileList');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'uploadFileList';
+    var overlay = document.getElementById('uploadOverlay');
+    if (overlay) {
+      var panels = overlay.querySelectorAll('div');
+      if (panels.length > 0) overlay.insertBefore(container, panels[panels.length - 1]);
+      else overlay.appendChild(container);
+    }
+  }
+
+  var entry = document.getElementById('fs-' + id);
+  if (!entry) {
+    entry = document.createElement('div');
+    entry.id = 'fs-' + id;
+    entry.className = 'fs-entry';
+
+    var icon = document.createElement('span');
+    icon.className = 'fs-icon';
+    entry.appendChild(icon);
+
+    var nameEl = document.createElement('span');
+    nameEl.className = 'fs-name';
+    entry.appendChild(nameEl);
+
+    var bar = document.createElement('div');
+    bar.className = 'fs-bar';
+    var fill = document.createElement('div');
+    fill.className = 'fs-fill';
+    bar.appendChild(fill);
+    entry.appendChild(bar);
+
+    var pct = document.createElement('span');
+    pct.className = 'fs-pct';
+    entry.appendChild(pct);
+
+    entry._icon = icon;
+    entry._name = nameEl;
+    entry._fill = fill;
+    entry._pct = pct;
+    container.appendChild(entry);
+  }
+
+  var item = selectedFiles.filter(function(f) { return f.id === id; })[0];
+  if (item) {
+    entry._icon.textContent = (item.file.type && item.file.type.indexOf('image/') === 0) ? '🖼' : '📄';
+    entry._name.textContent = item.name;
+  }
+
+  entry.classList.remove('fs-uploading', 'fs-done', 'fs-error');
+  if (status === 'uploading') entry.classList.add('fs-uploading');
+  else if (status === 'done') entry.classList.add('fs-done');
+  else if (status === 'error') entry.classList.add('fs-error');
+
+  if (status === 'uploading') {
+    entry._fill.style.width = progress + '%';
+    entry._pct.textContent = progress + '%';
+  } else if (status === 'done') {
+    entry._fill.style.width = '100%';
+    entry._pct.textContent = '\u2713';
+  } else if (status === 'error') {
+    entry._fill.style.width = '0%';
+    entry._pct.textContent = '\u2717';
+  }
 }
 
 function showToast(msg, type) {
@@ -52,14 +140,10 @@ function showToast(msg, type) {
 
 /* ── File selection ── */
 function handleFilesSelected(filesOrEvent) {
-  // Support being called from data-event-change compat handler (receives event + el)
-  if (filesOrEvent && filesOrEvent.type && filesOrEvent.type.startsWith('change') && filesOrEvent.target) {
-    files = filesOrEvent.target.files;
-  }
   const files = (filesOrEvent && filesOrEvent.type && filesOrEvent.type.startsWith('change') && filesOrEvent.target)
     ? filesOrEvent.target.files
     : filesOrEvent;
-  const imgOnly = ['papers','practical'].includes(gv('type').toLowerCase());
+  // Type is read from the most recent meta-form (per-file, not global)
   // Detect camera captures (no lastModified or name starts with 'image')
   const fromCamera = Array.from(files).some(f =>
     !f.lastModified || f.name.toLowerCase().startsWith('image') || f.name.toLowerCase() === 'blob'
@@ -68,6 +152,11 @@ function handleFilesSelected(filesOrEvent) {
     window.AbhiHubTracking.trackCameraUpload();
   }
   Array.from(files).forEach(file => {
+    // Per-file type from the most recent meta-form (if any)
+    const activeForm = document.querySelector('.meta-form-wrap[style*="display: block"]');
+    const typeEl = activeForm?.querySelector('.meta-type');
+    const selType = typeEl ? typeEl.value : '';
+    const imgOnly = ['papers','practical'].includes(selType.toLowerCase());
     if (imgOnly && !file.type.startsWith('image/')) {
       return showToast(file.name + ': images only for this type', 'error');
     }
@@ -80,6 +169,9 @@ function handleFilesSelected(filesOrEvent) {
       id: uid(), file, blob: null, name: file.name, cropped: false, status: 'pending'
     };
     selectedFiles.push(newItem);
+
+    // Update the drop-zone hint + accept attr based on this file's type
+    updateDynamicFields();
     
     // Create DOM isolated form
     const template = document.getElementById('metaFormTemplate');
@@ -89,25 +181,25 @@ function handleFilesSelected(filesOrEvent) {
         const wrap = clone.querySelector('.meta-form-wrap');
         wrap.id = `meta-form-${newItem.id}`;
         wrap.style.display = 'none';
-        
+
         // Ensure unique IDs for AbhiHubSelect initialization tracking
         wrap.querySelectorAll('.abhihub-select').forEach(sel => {
             sel.id = `abhiselect_${uid()}`;
         });
-        
+
         container.appendChild(clone);
-        
-        // Pre-fill profile defaults
-        const addedWrap = document.getElementById(`meta-form-${newItem.id}`);
-        if (window.userCollegeId) {
-            addedWrap.querySelector('.college-select').value = window.userCollegeId;
-        }
-        if (window.userBranchId) {
-            addedWrap.querySelector('.branch-select').value = window.userBranchId;
-        }
-        
-        // Initialize AbhiHubSelect on new elements
+
+        // Initialize AbhiHubSelect on new elements FIRST so TomSelect instances exist
         if (window.AbhiHubSelect) window.AbhiHubSelect.init();
+
+        // Pre-fill profile defaults via cascade-aware autofill
+        const addedWrap = document.getElementById(`meta-form-${newItem.id}`);
+        if (typeof autofillMetaForm === 'function') {
+            autofillMetaForm(addedWrap);
+        }
+
+        // Wire dynamic fields for THIS file's category (notes/papers/practical)
+        updateDynamicFieldsForForm(addedWrap);
     }
     
     // Phase 5: AI Metadata Prediction (Async)
@@ -195,13 +287,19 @@ function renderCarousel(index) {
   
   document.getElementById('carouselFilename').textContent = item.name + (item.cropped ? ' (Cropped)' : '');
   const cImg = document.getElementById('carouselImg');
-  
-  if (item.blob) {
-    cImg.src = URL.createObjectURL(item.blob);
-  } else {
-    cImg.src = URL.createObjectURL(item.file);
-  }
+  const metricEl = document.getElementById('carouselMetric');
+  cImg.src = carouselImageSrc(item);
   cImg.style.transform = `rotate(${item.rotation || 0}deg)`;
+
+  // Compression badge for the carousel
+  if (metricEl && item.compression) {
+    const label = item.compression.label;
+    const cls = item.compression.cls || 'original';
+    metricEl.innerHTML = `<span class="compression-badge ${cls}">${label}</span>`;
+    metricEl.style.display = 'flex';
+  } else if (metricEl) {
+    metricEl.style.display = 'none';
+  }
   
   // DOM Isolation: Toggle visibility of forms
   document.querySelectorAll('.meta-form-wrap').forEach(el => el.style.display = 'none');
@@ -211,6 +309,48 @@ function renderCarousel(index) {
   document.getElementById('cCounter').textContent = (index + 1) + ' / ' + selectedFiles.length;
   document.getElementById('cPrevBtn').disabled = (index === 0);
   document.getElementById('cNextBtn').disabled = (index === selectedFiles.length - 1);
+}
+
+/**
+ * Carousel image source: prefer a client-side preview compression
+ * (item.previewBlob, set in uploadOne) for smooth rendering, fall
+ * back to the raw file. The upload FormData always sends the ORIGINAL
+ * file so the server (cloudinary_upload.py) owns compression authoritatively.
+ */
+function carouselImageSrc(item) {
+  if (item.previewBlob) return URL.createObjectURL(item.previewBlob);
+  if (item.blob) return URL.createObjectURL(item.blob);
+  return URL.createObjectURL(item.file);
+}
+
+/**
+ * Per-file dynamic field wiring: show/hide unit + exam groups
+ * based on the category selected in THIS form's .meta-type select.
+ * Called after each meta-form clone is appended so every file
+ * gets its own correct field visibility.
+ */
+function updateDynamicFieldsForForm(formWrap) {
+  if (!formWrap) return;
+  var typeEl = formWrap.querySelector('.meta-type');
+  var unitG  = formWrap.querySelector('.meta-unit-wrap');
+  var pracG  = formWrap.querySelector('.meta-practical-wrap');
+  var unitSel = formWrap.querySelector('.meta-unit');
+
+  if (!typeEl) return;
+  var type = (typeEl.value || '').toLowerCase();
+
+  if (unitG) unitG.style.display = 'none';
+  if (pracG) pracG.style.display = 'none';
+
+  if (type === 'notes') {
+    if (unitG) unitG.style.display = 'block';
+    if (unitSel) unitSel.innerHTML = '<option value="U1">Unit 1</option><option value="U2">Unit 2</option><option value="U3">Unit 3</option><option value="U4">Unit 4</option><option value="U5">Unit 5</option><option value="All">All Units</option>';
+  } else if (type === 'papers') {
+    if (unitG) unitG.style.display = 'block';
+    if (unitSel) unitSel.innerHTML = '<option value="CAE1">CAE-1</option><option value="CAE2">CAE-2</option><option value="CAE3">CAE-3</option><option value="ESE">End Sem/Resit</option>';
+  } else if (type === 'practical') {
+    if (pracG) pracG.style.display = 'grid';
+  }
 }
 
 function navigateCarousel(dir) {
@@ -252,14 +392,24 @@ function toggleCarouselCrop() {
 }
 
 /* ── Upload ── */
+/**
+ * Client-side compression for the carousel preview only.
+ * The server (cloudinary_upload.py) owns the authoritative
+ * compression + EXIF strip, so we keep this light: just
+ * downsample very large images for a smoother preview, never
+ * re-encoding if the file is already small.
+ */
 async function compressImage(fileObj, quality) {
-  quality = quality || 0.72;
+  quality = quality || 0.82;
   return new Promise(function(resolve) {
     if (!fileObj.type.startsWith('image/')) return resolve(fileObj);
     var img = new Image();
     img.onload = function() {
-      var MAX = 1280;
-      var scale = img.width > MAX ? MAX / img.width : 1;
+      var MAX = 1600;
+      var scaleW = img.width > MAX ? MAX / img.width : 1;
+      var scaleH = img.height > MAX ? MAX / img.height : 1;
+      var scale  = Math.min(scaleW, scaleH, 1);
+      if (scale >= 1) return resolve(fileObj); // already small enough
       var canvas = document.createElement('canvas');
       canvas.width  = Math.round(img.width  * scale);
       canvas.height = Math.round(img.height * scale);
@@ -284,11 +434,12 @@ function buildFormData(item) {
       const branchEl = form.querySelector('.branch-select');
       const semEl = form.querySelector('.semester-select');
       const subjEl = form.querySelector('.subject-select');
+      const progEl = form.querySelector('.program-select');
       
       const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
       const subjId = tsSubj ? tsSubj.getValue() : (subjEl ? subjEl.value : '');
       const subjOpt = tsSubj ? tsSubj.options[subjId] : null;
-      const subjText = subjOpt ? subjOpt.text : '';
+      const subjText = subjOpt ? subjOpt.text : (subjEl && subjEl.selectedIndex >= 0 ? subjEl.options[subjEl.selectedIndex]?.text : '') || subjId || '';
 
       m = {
           type: typeEl ? typeEl.value : '',
@@ -298,7 +449,8 @@ function buildFormData(item) {
           branch_id: branchEl ? branchEl.value : '',
           semester: semEl ? semEl.value : '',
           subject_id: subjId,
-          subject: subjText
+          subject: subjText,
+          program: progEl ? progEl.value : 'b.tech'
       };
   }
 
@@ -307,12 +459,22 @@ function buildFormData(item) {
   fd.append('semester',   m.semester  || '');
   fd.append('subject',    m.subject   || '');
   fd.append('subject_id', m.subject_id || '');
-  fd.append('Year',       m.year      || '2025');
+  fd.append('year',       m.year      || '2025');
+  fd.append('program',    m.program   || 'b.tech');
   fd.append('type',       m.type      || '');
   fd.append('document_type', m.type   || '');
   fd.append('unit',       m.unit      || '');
-
-  // ── Build a clean filename ──────────────────────────────────────────
+  // CSRF protection — the form's hidden input holds the token;
+  // grab it from the DOM so the XHR is not rejected.
+  const _csrfEl = document.querySelector('input[name="csrf_token"]');
+  if (_csrfEl) fd.append('csrf_token', _csrfEl.value);
+  // Optional metadata the duplicate-detection hash (if JS computed one)
+  if (item.fileHash) fd.append('file_hash', item.fileHash);
+  // Optional academic extras (exam_type, subject_code) — only if present
+  const _examEl = form ? form.querySelector('[name="exam_type"]') : null;
+  if (_examEl && _examEl.value) fd.append('exam_type', _examEl.value);
+  const _codeEl = form ? form.querySelector('[name="subject_code"]') : null;
+  if (_codeEl && _codeEl.value) fd.append('subject_code', _codeEl.value);
   const origName  = item.name || (item.file && item.file.name) || `file_${Date.now()}`;
   const ext       = origName.includes('.') ? origName.split('.').pop().toLowerCase() : 'jpg';
   const sanitize  = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
@@ -332,11 +494,6 @@ function buildFormData(item) {
     fileObj = new File([fileObj], finalName, { type: fileObj.type });
   }
   fd.append('upload_document', fileObj, finalName);
-  
-  if (item.fileHash) {
-    fd.append('file_hash', item.fileHash);
-  }
-  
   return fd;
 }
 
@@ -358,36 +515,42 @@ async function uploadOne(item, retries) {
     return { ok: true, xp: 0, score: 0 };
   }
 
-  // Compress image before building FormData
-  var rawFile = item.blob || item.file;
+  // ── Client-side preview compression (carousels only) ───────────────
+  // We NEVER modify item.file — that stays the original so the
+  // server (cloudinary_upload.py) is the single authority on
+  // compression + EXIF strip. We only produce a lighter preview
+  // blob for the carousel so large photos don't choke the tab.
+  var rawFile = item.file;
   if (rawFile && rawFile.type && rawFile.type.startsWith('image/') && rawFile.size > 500 * 1024) {
-    var compressed = await compressImage(rawFile);
-    if (compressed && compressed !== rawFile && compressed.size > 0) {
-      item.blob = compressed;
-    } else if (compressed && compressed.size === 0) {
-      // Compression failed silently — keep original
-      console.warn('[upload] Compression returned empty blob, using original.');
+    var preview = await compressImage(rawFile);
+    if (preview && preview !== rawFile && preview.size > 0) {
+      item.previewBlob = preview;
+      item.compression = {
+        label: `Preview ${((1 - preview.size / rawFile.size) * 100).toFixed(0)}%`,
+        cls: 'compressed'
+      };
+    } else if (preview && preview.size === 0) {
+      console.warn('[upload] Preview compression returned empty blob, skipping.');
     }
   }
 
-  // Zero-byte guard
-  var finalFile = item.blob || item.file;
-  if (!finalFile || finalFile.size === 0) {
+  // Zero-byte guard (on original, not preview)
+  if (!rawFile || rawFile.size === 0) {
     setFileStatus(item.id, 'error', 0, 'File is empty');
     showToast((item.name || 'File') + ': empty file, cannot upload', 'error');
     return { ok: false, msg: 'Empty file' };
   }
-  
-  // Phase 8: Duplicate Detection
+
+  // Phase 8: Duplicate Detection — hash the ORIGINAL file
   setFloatStatus(true, `Checking duplicates for ${item.name}...`);
-  item.fileHash = await computeFileHash(finalFile);
+  item.fileHash = await computeFileHash(rawFile);
   try {
     const dupCheck = await fetch('/api/check-duplicate', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ file_hash: item.fileHash })
     }).then(r => r.json());
-    
+
     if (dupCheck.success && dupCheck.is_duplicate) {
        setFileStatus(item.id, 'error', 0, 'Duplicate File Found');
        showToast((item.name || 'File') + ': exact duplicate already exists!', 'error');
@@ -400,32 +563,46 @@ async function uploadOne(item, retries) {
   return new Promise(function(resolve) {
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/upload', true);
-    xhr.timeout = 45000; // 45s — covers slow mobile 3G
+    xhr.timeout = 45000;
     xhr.upload.onprogress = function(e) {
-      if (e.lengthComputable) setFileStatus(item.id, 'uploading', Math.round(e.loaded / e.total * 100));
+      if (e.lengthComputable) {
+        setFileStatus(item.id, 'uploading', Math.round(e.loaded / e.total * 100));
+        if (_progCurrentFile !== item.name) {
+          _progCurrentFile = item.name;
+          _progCurrentPct = 0;
+        }
+        _progCurrentPct = Math.round(e.loaded / e.total * 100);
+        updateProgressUI();
+      }
     };
     xhr.onload = function() {
       try {
         var r = JSON.parse(xhr.responseText);
         if (xhr.status === 200 && r.success) {
-          uploadedFingerprints.add(fp); // mark as uploaded for this session
+          _progCurrentFile = '';
+          _progCurrentPct = 0;
+          uploadedFingerprints.add(fp);
           setFileStatus(item.id, 'done', 100);
           resolve({ ok: true, xp: (r.data && r.data.xp_gained) || 0, score: (r.data && r.data.new_score) || 0 });
-          // Growth hook: prompt the user to share their invite link right after a successful upload
-          // (highest-intent moment). Safe no-op if the invite module isn't present.
           if (typeof window.AbhiHubInvitePrompt === 'function') {
             try { window.AbhiHubInvitePrompt(); } catch (e) {}
           }
         } else {
+          _progCurrentFile = '';
+          _progCurrentPct = 0;
           setFileStatus(item.id, 'error', 0, r.message || 'Failed');
           resolve({ ok: false, msg: r.message });
         }
       } catch(e) {
+        _progCurrentFile = '';
+        _progCurrentPct = 0;
         setFileStatus(item.id, 'error', 0, 'Invalid response');
         resolve({ ok: false, msg: 'Invalid response' });
       }
     };
     xhr.onerror = function() {
+      _progCurrentFile = '';
+      _progCurrentPct = 0;
       if (retries > 0) {
         showToast('Network error — retrying…', 'error');
         setTimeout(function() { uploadOne(item, retries - 1).then(resolve); }, 1500);
@@ -472,7 +649,8 @@ async function startBulkUpload(event) {
         const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
         const subj = tsSubj ? tsSubj.getValue() : (subjEl ? subjEl.value : '');
         
-        return !type || !col || !branch || !subj;
+        const prog = form.querySelector('.program-select')?.value;
+        return !type || !col || !branch || !subj || !prog;
     });
     
     if (missing.length) {
@@ -492,7 +670,7 @@ async function startBulkUpload(event) {
           const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
           const subjId = tsSubj ? tsSubj.getValue() : (subjEl ? subjEl.value : '');
           const subjOpt = tsSubj ? tsSubj.options[subjId] : null;
-          const subjText = subjOpt ? subjOpt.text : '';
+          const subjText = subjOpt ? subjOpt.text : (subjEl && subjEl.selectedIndex >= 0 ? subjEl.options[subjEl.selectedIndex]?.text : '') || subjId || '';
           
           f.meta = {
               type: form.querySelector('.meta-type')?.value,
@@ -569,25 +747,41 @@ async function processUploadBatch(batch) {
   const pText = document.getElementById('uploadProgressText');
   const pBar = document.getElementById('uploadProgressBar');
   const fProg = document.getElementById('floatingProgress');
-  
-  for (const item of batch) {
-    if (pText) pText.innerText = `Uploading ${done + 1} / ${batch.length}`;
-    if (fProg) fProg.innerHTML = `Uploading ${done + 1} / ${batch.length} &mdash; Play Game 🎮`;
-    
-    const res = await uploadOne(item);
-    results.push(res);
-    
-    if (res.ok) {
-      done++;
-      if (typeof window.AbhiHubTracking !== 'undefined') {
-        window.AbhiHubTracking.trackUpload(item.name, item.file.type || 'image/jpeg', Math.round((item.blob || item.file).size / 1024));
-      }
-    } else {
-      failed++;
-      if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed(res.msg || 'network_error', 'system_error', _gaMethod);
+
+  // Bounded concurrency — upload up to 2 files simultaneously so the
+  // connection isn't saturated and each file still gets per-file progress.
+  const CONCURRENCY = 2;
+  const queue = [...batch];
+  const running = new Set();
+
+  function processNext() {
+    if (queue.length === 0 && running.size === 0) return;
+    while (running.size < CONCURRENCY && queue.length > 0) {
+      const item = queue.shift();
+      running.add(item.id);
+      uploadOne(item).then(res => {
+        results.push(res);
+        if (res.ok) { done++; if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUpload(item.name, item.file.type || 'image/jpeg', Math.round((item.blob || item.file).size / 1024)); }
+        else { failed++; if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed(res.msg || 'network_error', 'system_error', _gaMethod); }
+        if (pBar) pBar.style.width = `${((done+failed)/batch.length)*100}%`;
+        running.delete(item.id);
+        processNext();
+      });
     }
-    if (pBar) pBar.style.width = `${((done+failed)/batch.length)*100}%`;
   }
+
+  for (const item of batch) {
+    if (pText) pText.innerText = `Uploading 0 / ${batch.length}`;
+    if (fProg) fProg.innerHTML = `Uploading 0 / ${batch.length} &mdash; Play Game 🎮`;
+  }
+
+  processNext();
+
+  // Wait for all in-flight uploads to settle
+  await new Promise(resolve => {
+    const check = () => { if (running.size === 0) resolve(); else setTimeout(check, 50); };
+    check();
+  });
 
   activeUploads--;
   isUploading = false;

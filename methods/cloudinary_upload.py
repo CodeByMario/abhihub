@@ -9,6 +9,7 @@ import time
 import cloudinary
 import cloudinary.uploader
 from PIL import Image
+from pypdf import PdfReader, PdfWriter
 from typing import Dict, Optional, BinaryIO
 from dotenv import load_dotenv
 import logging
@@ -46,6 +47,37 @@ def get_cloudinary_resource_type(filename: str) -> str:
         return 'video'
     else:
         return 'raw'  # For PDFs, docs, archives, etc.
+
+
+def compress_pdf(file_data: bytes) -> bytes:
+    """
+    Strip PDF metadata (author, title, subject, creator, producer, etc.)
+    and rewrite the file. Copies page objects only — user metadata does not
+    transfer. The only metadata pypdf adds is /Producer, which we remove from
+    the raw bytes afterward. Does NOT downsample content — scanned PDFs
+    remain large; visual optimization requires a separate pipeline (Ghostscript
+    or PyMuPDF image downsampling) and is NOT done here.
+    Returns cleaned bytes, or original on any failure.
+    """
+    try:
+        reader = PdfReader(io.BytesIO(file_data))
+        writer = PdfWriter()
+        for page in reader.pages:
+            writer.add_page(page)
+        out = io.BytesIO()
+        writer.write(out)
+        cleaned = out.getvalue()
+        # pypdf always writes /Producer:pypdf — strip it from the raw bytes.
+        import re
+        cleaned = re.sub(rb'/Producer\s*\([^)]*\)', b'', cleaned)
+        if len(cleaned) < len(file_data):
+            logging.info(f"✓ PDF metadata stripped → {len(cleaned)} bytes (was {len(file_data)})")
+        else:
+            logging.info(f"✓ PDF metadata strip ran, size unchanged ({len(cleaned)} bytes) — file likely scanned, no metadata to remove")
+        return cleaned
+    except Exception as e:
+        logging.warning(f"PDF metadata strip failed, keeping original: {e}")
+        return file_data
 
 
 def compress_image(file_data: bytes, format: str = 'JPEG', quality: int = 90) -> bytes:
@@ -147,17 +179,21 @@ def upload_file_to_cloudinary(
         
         # Determine resource type
         resource_type = get_cloudinary_resource_type(filename)
+        ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
         
-        # Compress images if enabled
-        if compress and resource_type == 'image':
-            ext = filename.rsplit('.', 1)[-1].lower()
-            format_map = {
-                'jpg': 'JPEG', 'jpeg': 'JPEG',
-                'png': 'PNG', 'webp': 'WEBP'
-            }
-            image_format = format_map.get(ext, 'JPEG')
-            file_bytes = compress_image(file_bytes, format=image_format, quality=85)
-            logging.info(f"✓ Image compressed: {len(file_bytes)} bytes")
+        # Compress / clean files if enabled
+        if compress:
+            if resource_type == 'image':
+                format_map = {
+                    'jpg': 'JPEG', 'jpeg': 'JPEG',
+                    'png': 'PNG', 'webp': 'WEBP'
+                }
+                image_format = format_map.get(ext, 'JPEG')
+                file_bytes = compress_image(file_bytes, format=image_format, quality=85)
+                logging.info(f"✓ Image compressed: {len(file_bytes)} bytes")
+            elif ext == 'pdf':
+                file_bytes = compress_pdf(file_bytes)
+                logging.info(f"✓ PDF metadata stripped: {len(file_bytes)} bytes")
         
         # Create unique filename with user ID and timestamp
         timestamp = int(time.time())

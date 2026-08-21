@@ -510,6 +510,7 @@ function goBackToList() {
   document.getElementById('activeChatPanel').style.display = 'none';
   renderSidebar();
 }
+window.goBackToList = goBackToList;
 
 // ── Select peer / open conversation ───────────────────────────────────────
 async function selectPeer(peerId, el) {
@@ -548,6 +549,7 @@ async function selectPeer(peerId, el) {
   renderSidebar();
   document.getElementById('msgInput').focus();
 }
+window.selectPeer = selectPeer;
 
 // ── Send ───────────────────────────────────────────────────────────────────
 async function sendMessage() {
@@ -583,6 +585,7 @@ async function sendMessage() {
   input.style.height = 'auto';
   renderSidebar();
 }
+window.sendMessage = sendMessage;
 
 // ── History recovery ───────────────────────────────────────────────────────
 function requestHistory() {
@@ -590,12 +593,14 @@ function requestHistory() {
   socket.emit('chat_request_history', { to: activePeerId });
   alert('History request sent. The other student will see a prompt to share their local chat history.');
 }
+window.requestHistory = requestHistory;
 
 async function shareHistory(requesterId) {
   const history = await loadMessages(requesterId);
   socket.emit('chat_history_resend', { to: requesterId, messages: history });
   document.getElementById('historyBannerArea').innerHTML = '';
 }
+window.shareHistory = shareHistory;
 
 // ── Peer search ────────────────────────────────────────────────────────────
 let searchTimer = null;
@@ -622,7 +627,7 @@ async function searchPeers(q) {
         </div>
       </div>`
     ).join('');
-    setTimeout(attachAll, 0);
+    if (typeof window.attachAll === 'function') setTimeout(window.attachAll, 0);
   } catch(e) {}
 }
 
@@ -636,6 +641,7 @@ async function startChatWith(peerId, el) {
   document.getElementById('peerSearchInput').value = '';
   await selectPeer(peerId);
 }
+window.startChatWith = startChatWith;
 
 // ── Input auto-resize + Enter to send ─────────────────────────────────────
 document.getElementById('msgInput').addEventListener('keydown', e => {

@@ -600,6 +600,7 @@ notes, practicals, and exam resources for top colleges across India." %}
   flex-shrink: 0;
 }
 .suggested-peer-name {
+  width: 100%;
   font-size: 0.9rem;
   font-weight: 700;
   color: var(--text-primary, #1e293b);
@@ -612,6 +613,7 @@ notes, practicals, and exam resources for top colleges across India." %}
   margin-left: 2px;
 }
 .suggested-peer-meta {
+  width: 100%;
   font-size: 0.72rem;
   color: var(--text-tertiary, #94a3b8);
   white-space: nowrap;
@@ -619,6 +621,7 @@ notes, practicals, and exam resources for top colleges across India." %}
   text-overflow: ellipsis;
 }
 .suggested-peer-actions {
+  width: 100%;
   display: flex;
   gap: 0.4rem;
   margin-top: 0.3rem;
@@ -1510,26 +1513,40 @@ notes, practicals, and exam resources for top colleges across India." %}
 <div class="home-hero">
   <div class="home-hero-content">
     {% if user_data %}
+    <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);padding:.35rem .9rem;border-radius:20px;font-size:.8rem;font-weight:600;color:#fff;margin-bottom:1rem;border:1px solid rgba(255,255,255,0.25);">
+      <span>🏛️ {{ user_data.college_name or 'Engineering Hub' }}</span>
+      <span style="opacity:0.5;">|</span>
+      <span style="color:#fef08a;">⚡ Rank #{{ user_data.global_rank }}</span>
+    </div>
     <h1>
       {% set hour = (now.hour if now else 12) %}
-      {% if hour < 12 %}🌅{% elif hour < 17 %}☀️{% else %}🌆{% endif %} Hey {{ user_data.name.split()[0] }}, find your
-        papers! </h1>
-        <p>{{ user_data.college_name or 'Your college' }} · {{ user_data.paper_quota_remaining }} views left today</p>
-        {% else %}
-        <h1>📄 PYQ Papers, Notes & More</h1>
-        <p>Free engineering resources — GHRCE, RTMNU & more colleges</p>
-        {% endif %}
-        <div class="hero-stats">
-          <div class="hero-stat">{{ paper_count }}<span>Papers</span></div>
-          <div class="hero-stat">{{ notes_count }}<span>Notes</span></div>
-          <div class="hero-stat">🔥<span>Trending</span></div>
-        </div>
-        <form class="hero-search-wrap" action="/dashboard"
-          onsubmit="event.preventDefault(); const val=document.getElementById('heroSearchInput').value; const target=document.getElementById('searchFileName'); if(target){ target.value=val; target.dispatchEvent(new Event('input')); } const btn=document.getElementById('searchBtn'); if(btn){ btn.click(); } const sec=document.querySelector('.container_search'); if(sec){ sec.scrollIntoView({behavior:'smooth'}); }">
-          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-          <input type="text" id="heroSearchInput" placeholder="Search subjects, PYQ, notes…" autocomplete="off">
-          <button type="submit" class="hero-search-btn">🔍 Search</button>
-        </form>
+      {% if hour < 12 %}🌅{% elif hour < 17 %}☀️{% else %}🌆{% endif %} Hey {{ user_data.name.split()[0] }}, find your papers!
+    </h1>
+    <p style="display:flex;align-items:center;justify-content:center;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+      <span style="background:rgba(239,68,68,0.2);border:1px solid rgba(248,113,113,0.4);color:#fecaca;padding:.2rem .75rem;border-radius:12px;font-weight:700;font-size:.85rem;">
+        ⚡ Only {{ user_data.paper_quota_remaining }} views left today
+      </span>
+      {% if user_data.students_helped > 0 %}
+      <span style="background:rgba(16,185,129,0.2);border:1px solid rgba(52,211,153,0.4);color:#a7f3d0;padding:.2rem .75rem;border-radius:12px;font-weight:600;font-size:.85rem;">
+        🤝 Helped {{ user_data.students_helped }} peers
+      </span>
+      {% endif %}
+    </p>
+    {% else %}
+    <h1>📄 PYQ Papers, Notes & More</h1>
+    <p>Free engineering resources — GHRCE, RTMNU & more colleges</p>
+    {% endif %}
+    <div class="hero-stats">
+      <div class="hero-stat">🔓 {{ paper_count }}<span>Papers Ready</span></div>
+      <div class="hero-stat">📝 {{ notes_count }}<span>Active Notes</span></div>
+      <div class="hero-stat">🔥 Trending<span>College PYQs</span></div>
+    </div>
+    <form class="hero-search-wrap" action="/dashboard"
+      onsubmit="event.preventDefault(); const val=document.getElementById('heroSearchInput').value; const target=document.getElementById('searchFileName'); if(target){ target.value=val; target.dispatchEvent(new Event('input')); } const btn=document.getElementById('searchBtn'); if(btn){ btn.click(); } const sec=document.querySelector('.container_search'); if(sec){ sec.scrollIntoView({behavior:'smooth'}); }">
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+      <input type="text" id="heroSearchInput" placeholder="Search subjects, PYQ, notes…" autocomplete="off">
+      <button type="submit" class="hero-search-btn">🔍 Search</button>
+    </form>
   </div>
 </div>
 
@@ -1668,7 +1685,7 @@ notes, practicals, and exam resources for top colleges across India." %}
     </div>
   </div>
   <div class="container_search">
-    {% include 'p_search.html' %}
+    {% include 'includes/_search_partial.html' %}
   </div>
 </div>
 
@@ -1860,6 +1877,16 @@ notes, practicals, and exam resources for top colleges across India." %}
   // Note: SearchManager is defined in script.js which is loaded via p_struct.html
   // No need to define it again here
 </script>
+
+<style>
+  /* Fix overlapping elements at the bottom of the dashboard */
+  body {
+    padding-bottom: 90px !important;
+  }
+  .dashboard-float-support-btn {
+    bottom: 90px !important;
+  }
+</style>
 
 
 {% endblock %}

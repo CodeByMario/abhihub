@@ -362,8 +362,10 @@ except Exception as e:
 
 # File Upload Security Configuration
 MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB max file size
+# Match file input accept attr + JS type check: images + PDF only.
+# PDFs and images are the canonical upload types for AbhiHub.
 ALLOWED_EXTENSIONS = {
-    'pdf', 'png', 'jpg', 'jpeg', 'webp'
+    'pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'
 }
 
 def allowed_file(filename):
@@ -1497,6 +1499,7 @@ def label_store_room_paper():
         document_category = data.get('document_category', 'papers')
         custom_description = data.get('description', '')
         exam_type = data.get('exam_type', '')
+        program = data.get('program', 'b.tech') or 'b.tech'
         semester_raw = data.get('semester')
         semester = int(semester_raw) if semester_raw and str(semester_raw).isdigit() and 1 <= int(semester_raw) <= 8 else None
 
@@ -1563,7 +1566,8 @@ def label_store_room_paper():
             semester=semester,
             title=custom_title or subject_name,
             description=custom_description,
-            exam_type=exam_type
+            exam_type=exam_type,
+            program=program
         )
         
         if result.get('success'):
@@ -1959,7 +1963,7 @@ def upload():
         
         # Security: Validate file extension
         if not allowed_file(file.filename):
-            return jsonify(success=False, message="File type not allowed. Allowed types: PDF, DOC, DOCX, TXT, PPT, PPTX, XLS, XLSX, PNG, JPG, JPEG, GIF, WEBP, SVG, ZIP, RAR, 7Z"), 400
+            return jsonify(success=False, message="File type not allowed. Allowed types: PDF, PNG, JPG, JPEG, WEBP, GIF, SVG"), 400
         
         # Security: Check file size
         file.seek(0, os.SEEK_END)
@@ -2042,6 +2046,7 @@ def upload():
             unit = request.form.get('unit', '')
             practical_num = request.form.get('practical', '')
             practical_type = request.form.get('practical-type', '')
+            program = request.form.get('program', 'b.tech').strip() or 'b.tech'
 
             # Guard: reject uploads with no subject selected
             if not subject_id or subject_id == '__other__':
@@ -2056,14 +2061,20 @@ def upload():
             
             # Save to file_records table (Supabase abhihub.documents)
             from methods.supabase_helper import save_file_record
-            
+            from methods.cloudinary_upload import delete_file_from_cloudinary
+
+            # Read optional fields the JS client sends
+            file_hash = request.form.get('file_hash', '').strip() or None
+            exam_type = request.form.get('exam_type', '').strip() or ''
+            subject_code = request.form.get('subject_code', '').strip() or ''
+
             file_record_result = save_file_record(
                 user_id=user_id,
                 user_email=user_email,
                 file_name=original_filename,
                 file_url=upload_result['secure_url'],
                 file_type=file_type_category,
-                file_size=file_size,
+                file_size=upload_result.get('bytes') or file_size,
                 cloudinary_public_id=upload_result['public_id'],
                 subject_name=subject_name,
                 document_type=document_type.lower(),
@@ -2072,13 +2083,23 @@ def upload():
                 branch_id=branch_id if branch_id else None,
                 title=subject_name if subject_name else original_filename,
                 subject_id=subject_id if subject_id else None,
-                semester=semester
+                semester=semester,
+                program=program,
+                exam_type=exam_type,
+                subject_code=subject_code,
+                file_hash=file_hash
             )
             
             if not file_record_result.get('success'):
                 logging.error(f"[UPLOAD ERROR] Supabase record creation failed: {file_record_result.get('message')}")
-                # We still return success if Cloudinary succeeded, but with a warning? 
-                # Actually, the user wants a record in abhihub.documents, so this is a failure for the task.
+                # Clean up the orphaned Cloudinary asset so we never leave
+                # uploaded files stranded when the DB write fails.
+                try:
+                    _cleanup = delete_file_from_cloudinary(upload_result['public_id'], 'raw' if upload_result.get('resource_type') == 'raw' else 'image')
+                    if not _cleanup.get('success'):
+                        logging.warning(f"[UPLOAD] Cloudinary cleanup also failed for {upload_result['public_id']}: {_cleanup.get('error')}")
+                except Exception as _cu_err:
+                    logging.warning(f"[UPLOAD] Cloudinary cleanup exception: {_cu_err}")
                 return jsonify(
                     success=False,
                     message=f"File uploaded to Cloudinary, but database record creation failed: {file_record_result.get('message')}"
@@ -2157,7 +2178,7 @@ def upload():
                     'public_id': upload_result['public_id'],
                     'file_size': upload_result['bytes'],
                     'file_type': file_type_category,
-                    'compressed': upload_result.get('resource_type') == 'image',
+                    'compressed': upload_result.get('bytes', file_size) < file_size,
                     'credits_granted': QUOTA_PER_UPLOAD,
                     'credits_remaining': _get_quota().get('credits', 0),
                     'xp_gained': xp_gained,
@@ -3140,7 +3161,10 @@ def dashboard():
     # Personalized: same college, sorted by views
     user_college = user_data.get('college_name', '') if user_data else ''
     if user_college:
-        relevant_papers = [f for f in all_papers_by_views if f.get('college', '') == user_college][:8]
+        college_papers = [f for f in all_papers_by_views if f.get('college', '') == user_college]
+        relevant_papers = college_papers[:8]
+        # Hero stats: show college-specific counts
+        paper_count = len(college_papers)
     else:
         relevant_papers = all_papers_by_views[:8]
 
@@ -3157,7 +3181,10 @@ def dashboard():
 
     # Personalized notes: same college, sorted by views
     if user_college:
-        relevant_notes = [f for f in all_notes_by_views if f.get('college', '') == user_college][:8]
+        college_notes = [f for f in all_notes_by_views if f.get('college', '') == user_college]
+        relevant_notes = college_notes[:8]
+        # Hero stats: show college-specific counts
+        notes_count = len(college_notes)
     else:
         relevant_notes = all_notes_by_views[:8]
 

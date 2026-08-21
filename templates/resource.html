@@ -322,7 +322,7 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
   display: flex;
   align-items: center;
   justify-content: center;
-  touch-action: pan-y;
+  touch-action: none;
   background: #f8fafc;
 }
 .preview-iframe {
@@ -369,22 +369,48 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg transform='rotate(-30 120 120)'%3E%3Ctext x='120' y='120' fill='rgba(0,0,0,0.18)' font-size='18' font-family='sans-serif' font-weight='900' text-anchor='middle'%3E{{ request.host if request.host else 'AbhiHub' }}%3C/text%3E%3C/g%3E%3C/svg%3E");
   background-repeat: repeat;
 }
-#previewImage.fullscreen {
-  position: fixed;
+.image-viewer-wrap.fullscreen-mode {
+  position: fixed !important;
   inset: 0 !important;
-  width: 100% !important;
-  height: 100% !important;
+  z-index: 999999 !important;
+  width: 100vw !important;
+  height: 100vh !important;
   max-width: none !important;
   max-height: none !important;
   border-radius: 0 !important;
-  z-index: 99999;
-  box-shadow: none !important;
+  background: #090d16 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 !important;
+}
+.image-viewer-wrap.fullscreen-mode .image-toolbar {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+  z-index: 1000000 !important;
+}
+.image-viewer-wrap.fullscreen-mode .iv-btn {
+  background: rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+}
+.image-viewer-wrap.fullscreen-mode .iv-btn:hover {
+  background: rgba(255, 255, 255, 0.3) !important;
+}
+.image-viewer-wrap.fullscreen-mode .iv-zoom-label {
+  color: #f1f5f9 !important;
+}
+.image-viewer-wrap.fullscreen-mode .image-canvas {
+  flex: 1 !important;
+  height: 100% !important;
+  max-height: none !important;
+  min-height: 0 !important;
+  background: transparent !important;
 }
 #previewImage.zoomed {
   cursor: grab;
 }
 #previewImage.dragging {
   cursor: grabbing;
+  transition: none !important;
 }
 @media (max-width: 640px) {
   .image-toolbar { gap: 0.2rem; padding: 0.4rem; }
@@ -406,6 +432,45 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
 .ai-suggestion-btn:hover { background: #f1f5f9; }
 
 .ai-send-btn { padding: 0.65rem 1.25rem; background: #f59e0b; color: #fff; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+
+.preview-card.fullscreen-doc-card {
+  position: fixed !important;
+  inset: 0 !important;
+  z-index: 999999 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: none !important;
+  max-height: none !important;
+  border-radius: 0 !important;
+  background: #090d16 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  box-shadow: none !important;
+}
+.preview-card.fullscreen-doc-card .preview-header {
+  background: rgba(15, 23, 42, 0.95) !important;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+  color: #ffffff !important;
+  padding: 0.75rem 1.25rem !important;
+  z-index: 1000000 !important;
+}
+.preview-card.fullscreen-doc-card .preview-header * {
+  color: #ffffff !important;
+}
+.preview-card.fullscreen-doc-card .preview-iframe-wrap,
+.preview-card.fullscreen-doc-card .image-viewer-wrap {
+  flex: 1 !important;
+  height: 100% !important;
+  max-height: none !important;
+  min-height: 0 !important;
+}
+.preview-card.fullscreen-doc-card .preview-iframe {
+  height: 100% !important;
+  max-height: none !important;
+  min-height: 0 !important;
+}
 </style>
 {% endblock %}
 
@@ -441,11 +506,14 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
 <div class="main-layout-container">
   <div class="document-column">
     <div class="preview-card">
-    <div class="preview-header">
+    <div class="preview-header" style="display:flex; justify-content:space-between; align-items:center;">
       <div style="font-weight: 700; color: var(--r-text); display:flex; align-items:center; gap:0.5rem;">
         <span>📄</span> Document Preview
       </div>
-
+      <button type="button" onclick="toggleDocCardFullscreen()" aria-label="Fullscreen Focus Mode" title="Fullscreen Focus Mode" style="background: rgba(241,245,249,0.8); border: 1px solid var(--r-border); padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; color: var(--r-text); transition: all 0.2s;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+        <span>Fullscreen Focus</span>
+      </button>
     </div>
     
     <!-- PDF / Image Previewer -->
@@ -958,110 +1026,179 @@ Identify the main questions from the transcript above and solve them following t
     }
   };
 })();
+
+window.toggleDocCardFullscreen = function() {
+  var card = document.querySelector('.preview-card');
+  if (!card) return;
+  var isFs = card.classList.toggle('fullscreen-doc-card');
+  document.body.style.overflow = isFs ? 'hidden' : '';
+};
 </script>
 <script>
 /* ── Image Viewer Controls ─────────────────────────────── */
-// imageLoaded is defined globally so <img onload> can call it
-window.imageLoaded = function() {
-  var skeleton = document.getElementById('imageSkeleton');
-  var img = document.getElementById('previewImage');
-  if (skeleton) skeleton.style.display = 'none';
-  if (img) img.style.opacity = '1';
-  // Call updateTransform if viewer script has loaded
-  if (typeof updateTransform === 'function') updateTransform();
-};
-
-document.addEventListener('DOMContentLoaded', function() {
-  var img = document.getElementById('previewImage');
-  if (!img) return;
-  var canvas = document.getElementById('imageCanvas');
-  var zoomLabel = document.getElementById('ivZoomLabel');
+(function() {
   var scale = 1, panX = 0, panY = 0;
-  var isDragging = false, dragStartX, dragStartY;
-  var fullscreen = false;
+  var isDragging = false, dragStartX = 0, dragStartY = 0;
+  var isFullscreen = false;
 
-  // Wire toolbar buttons via event delegation
-  var toolbar = document.getElementById('imageToolbar');
-  if (toolbar) {
-    toolbar.addEventListener('click', function(e) {
-      var btn = e.target.closest('[data-action]');
-      if (!btn) return;
-      var action = btn.getAttribute('data-action');
-      if (action === 'zoomInImage') window.zoomInImage();
-      else if (action === 'zoomOutImage') window.zoomOutImage();
-      else if (action === 'resetImageZoom') window.resetImageZoom();
-      else if (action === 'toggleImageFullscreen') window.toggleImageFullscreen();
-    });
-  }
-
-  // If image already loaded (cached), call imageLoaded manually
-  if (img.complete && img.naturalWidth > 0) {
-    window.imageLoaded();
-  } else {
-    img.addEventListener('load', window.imageLoaded);
-  }
+  function getImg() { return document.getElementById('previewImage'); }
+  function getWrap() { var img = getImg(); return img ? img.closest('.image-viewer-wrap') : null; }
+  function getCanvas() { return document.getElementById('imageCanvas'); }
+  function getZoomLabel() { return document.getElementById('ivZoomLabel'); }
 
   function updateTransform() {
+    var img = getImg();
+    if (!img) return;
+    scale = Math.min(Math.max(0.5, scale), 5);
     img.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + scale + ')';
-    if (zoomLabel) zoomLabel.textContent = Math.round(scale * 100) + '%';
+    var label = getZoomLabel();
+    if (label) label.textContent = Math.round(scale * 100) + '%';
     img.classList.toggle('zoomed', scale !== 1);
     img.classList.toggle('dragging', isDragging);
   }
 
-  // Touch + mouse wheel zoom
-  canvas.addEventListener('wheel', function(e) {
-    e.preventDefault();
-    const delta = e.deltaY > 0 ? -0.1 : 0.1;
-    scale = Math.min(Math.max(0.5, scale + delta), 5);
+  // Global methods bound immediately
+  window.imageLoaded = function() {
+    var skeleton = document.getElementById('imageSkeleton');
+    var img = getImg();
+    if (skeleton) skeleton.style.display = 'none';
+    if (img) img.style.opacity = '1';
     updateTransform();
-  }, { passive: false });
-
-  // Pan when zoomed in
-  canvas.addEventListener('mousedown', function(e) {
-    if (scale <= 1) return;
-    isDragging = true;
-    dragStartX = e.clientX - panX;
-    dragStartY = e.clientY - panY;
-    updateTransform();
-  });
-  window.addEventListener('mousemove', function(e) {
-    if (!isDragging) return;
-    panX = e.clientX - dragStartX;
-    panY = e.clientY - dragStartY;
-    updateTransform();
-  });
-  window.addEventListener('mouseup', function() {
-    isDragging = false;
-    updateTransform();
-  });
-
-  // Touch pan
-  let touchStartX, touchStartY, touchPanX, touchPanY;
-  canvas.addEventListener('touchstart', function(e) {
-    if (scale <= 1 || e.touches.length !== 1) return;
-    touchStartX = e.touches[0].clientX;
-    touchStartY = e.touches[0].clientY;
-    touchPanX = panX;
-    touchPanY = panY;
-  }, { passive: true });
-  canvas.addEventListener('touchmove', function(e) {
-    if (scale <= 1 || e.touches.length !== 1) return;
-    panX = touchPanX + (e.touches[0].clientX - touchStartX);
-    panY = touchPanY + (e.touches[0].clientY - touchStartY);
-    updateTransform();
-  }, { passive: true });
+  };
 
   window.zoomInImage = function() { scale = Math.min(scale + 0.25, 5); updateTransform(); };
   window.zoomOutImage = function() { scale = Math.max(scale - 0.25, 0.5); updateTransform(); };
   window.resetImageZoom = function() { scale = 1; panX = 0; panY = 0; updateTransform(); };
-
   window.toggleImageFullscreen = function() {
-    fullscreen = !fullscreen;
-    img.classList.toggle('fullscreen', fullscreen);
-    document.body.style.overflow = fullscreen ? 'hidden' : '';
+    isFullscreen = !isFullscreen;
+    var wrap = getWrap();
+    if (wrap) wrap.classList.toggle('fullscreen-mode', isFullscreen);
+    document.body.style.overflow = isFullscreen ? 'hidden' : '';
+    panX = 0; panY = 0;
+    updateTransform();
   };
-});
 
+  function initListeners() {
+    var img = getImg();
+    var canvas = getCanvas();
+    if (!canvas) return;
+
+    if (img) {
+      img.addEventListener('dragstart', function(e) { e.preventDefault(); });
+      if (img.complete && img.naturalWidth > 0) window.imageLoaded();
+      else img.addEventListener('load', window.imageLoaded);
+    }
+
+    var toolbar = document.getElementById('imageToolbar');
+    if (toolbar && !toolbar.dataset.init) {
+      toolbar.dataset.init = 'true';
+      toolbar.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        var action = btn.getAttribute('data-action');
+        if (action === 'zoomInImage') window.zoomInImage();
+        else if (action === 'zoomOutImage') window.zoomOutImage();
+        else if (action === 'resetImageZoom') window.resetImageZoom();
+        else if (action === 'toggleImageFullscreen') window.toggleImageFullscreen();
+      });
+    }
+
+    if (canvas.dataset.init) return;
+    canvas.dataset.init = 'true';
+
+    canvas.addEventListener('wheel', function(e) {
+      e.preventDefault();
+      var delta = e.deltaY < 0 ? 0.15 : -0.15;
+      scale = Math.min(Math.max(0.5, scale + delta), 5);
+      if (scale <= 1) { panX = 0; panY = 0; }
+      updateTransform();
+    }, { passive: false });
+
+    canvas.addEventListener('mousedown', function(e) {
+      if (e.target.closest('#imageToolbar')) return;
+      if (scale <= 1) return;
+      e.preventDefault();
+      isDragging = true;
+      dragStartX = e.clientX - panX;
+      dragStartY = e.clientY - panY;
+      updateTransform();
+    });
+
+    window.addEventListener('mousemove', function(e) {
+      if (!isDragging) return;
+      panX = e.clientX - dragStartX;
+      panY = e.clientY - dragStartY;
+      updateTransform();
+    });
+
+    window.addEventListener('mouseup', function() {
+      if (isDragging) {
+        isDragging = false;
+        updateTransform();
+      }
+    });
+
+    var touchStartDist = 0, initialScale = 1;
+    var touchStartX = 0, touchStartY = 0;
+
+    canvas.addEventListener('touchstart', function(e) {
+      if (e.target.closest('#imageToolbar')) return;
+      if (e.touches.length === 2) {
+        touchStartDist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        initialScale = scale;
+      } else if (e.touches.length === 1 && scale > 1) {
+        isDragging = true;
+        touchStartX = e.touches[0].clientX - panX;
+        touchStartY = e.touches[0].clientY - panY;
+      }
+    }, { passive: true });
+
+    canvas.addEventListener('touchmove', function(e) {
+      if (e.touches.length === 2 && touchStartDist > 0) {
+        e.preventDefault();
+        var dist = Math.hypot(
+          e.touches[0].clientX - e.touches[1].clientX,
+          e.touches[0].clientY - e.touches[1].clientY
+        );
+        scale = Math.min(Math.max(0.5, initialScale * (dist / touchStartDist)), 5);
+        updateTransform();
+      } else if (e.touches.length === 1 && isDragging && scale > 1) {
+        e.preventDefault();
+        panX = e.touches[0].clientX - touchStartX;
+        panY = e.touches[0].clientY - touchStartY;
+        updateTransform();
+      }
+    }, { passive: false });
+
+    canvas.addEventListener('touchend', function(e) {
+      if (e.touches.length < 2) touchStartDist = 0;
+      if (e.touches.length === 0) isDragging = false;
+    });
+
+    canvas.addEventListener('dblclick', function(e) {
+      if (e.target.closest('#imageToolbar')) return;
+      if (scale === 1) scale = 2;
+      else { scale = 1; panX = 0; panY = 0; }
+      updateTransform();
+    });
+
+    window.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape' && isFullscreen) {
+        window.toggleImageFullscreen();
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', initListeners);
+  } else {
+    initListeners();
+  }
+})();
+</script>
 
 
 {% endif %}

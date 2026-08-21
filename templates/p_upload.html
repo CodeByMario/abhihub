@@ -36,7 +36,7 @@
             <span class="drop-label">Select Files / Drag &amp; Drop</span>
             <span class="drop-hint" id="fileHint">Images accepted • Max 50 MB each</span>
             <input type="file" id="fileInput" name="upload_document" hidden multiple accept="image/*,application/pdf"
-                   data-event-change="handleFilesSelectedEvent">
+                   data-event-change="handleFilesSelected">
           </div>
 
           <!-- Scan / camera row -->
@@ -49,7 +49,7 @@
             </button>
           </div>
           <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden
-                 data-event-change="handleFilesSelectedEvent">
+                 data-event-change="handleFilesSelected">
 
 
           <!-- Upload Carousel (Hidden by default) -->
@@ -58,6 +58,7 @@
             <div class="carousel-image-panel">
               <div class="carousel-header">
                 <span class="carousel-filename" id="carouselFilename">image.png</span>
+                <span class="carousel-metric" id="carouselMetric" style="display:none;"></span>
               </div>
               <div class="carousel-canvas">
                 <img id="carouselImg" src="" alt="preview">
@@ -76,22 +77,72 @@
               
               <template id="metaFormTemplate">
                 <div class="meta-form-wrap">
+
+                  <!-- ── Profile-sourced fields (auto-filled) ── -->
+                  <div class="meta-section-label">
+                    <span class="meta-section-icon">👤</span> From your profile
+                    <span class="meta-autofill-badge">Auto-filled</span>
+                  </div>
+
                   <div class="meta-field">
-                    <label>College *</label>
+                    <label>
+                      College *
+                      <span class="field-autofill-pill" data-field="college" style="display:none;">✓ saved</span>
+                    </label>
                     <select name="college_id" class="abhihub-select college-select" data-entity="college" required>
                       <option value="">Select College...</option>
                     </select>
                   </div>
                   <div class="meta-field">
-                    <label>Department *</label>
+                    <label>
+                      Department *
+                      <span class="field-autofill-pill" data-field="branch" style="display:none;">✓ saved</span>
+                    </label>
                     <select name="branch_id" class="abhihub-select branch-select" data-entity="branch" data-parent-class="college-select" required>
                       <option value="">Select Department...</option>
                     </select>
                   </div>
                   <div class="meta-field">
+                    <label>
+                      Program *
+                      <span class="field-autofill-pill" data-field="program" style="display:none;">✓ saved</span>
+                    </label>
+                    <select name="program" class="abhihub-select program-select" required>
+                      <option value="">Select Program...</option>
+                      <option value="b.tech" selected>B.Tech (Engineering)</option>
+                      <option value="m.tech">M.Tech</option>
+                      <option value="mba">MBA</option>
+                      <option value="bsc">B.Sc</option>
+                      <option value="msc">M.Sc</option>
+                      <option value="bca">BCA</option>
+                      <option value="mca">MCA</option>
+                      <option value="dip">Diploma</option>
+                      <option value="phd">PhD</option>
+                      <option value="other">Other Course</option>
+                    </select>
+                  </div>
+
+                  <!-- ── Document-specific fields ── -->
+                  <div class="meta-section-label" style="margin-top:0.5rem;">
+                    <span class="meta-section-icon">📄</span> Document details
+                  </div>
+
+                  <div class="meta-field">
+                    <label>Semester</label>
+                    <select name="semester" class="abhihub-select semester-select" data-entity="semester" data-parent-class="branch-select">
+                      <option value="">Select Semester...</option>
+                    </select>
+                  </div>
+                  <div class="meta-field">
+                    <label>Subject *</label>
+                    <select class="abhihub-select subject-select" data-entity="subject" data-parent-class="semester-select" required>
+                      <option value="">Select Subject...</option>
+                    </select>
+                  </div>
+                  <div class="meta-field">
                     <label>Category *</label>
                     <select class="modern-select meta-type" required>
-                      <option value="" disabled selected>Select</option>
+                      <option value="" disabled selected>Select type...</option>
                       <option value="papers">Papers 📄</option>
                       <option value="notes">Notes 📝</option>
                       <option value="practical">Practical 🧪</option>
@@ -114,18 +165,7 @@
                     <label>Exam / Unit *</label>
                     <select class="modern-select meta-unit"></select>
                   </div>
-                  <div class="meta-field">
-                    <label>Semester</label>
-                    <select name="semester" class="abhihub-select semester-select" data-entity="semester" data-parent-class="branch-select">
-                      <option value="">Select Semester...</option>
-                    </select>
-                  </div>
-                  <div class="meta-field">
-                    <label>Subject *</label>
-                    <select class="abhihub-select subject-select" data-entity="subject" data-parent-class="semester-select" required>
-                      <option value="">Select Subject...</option>
-                    </select>
-                  </div>
+
                 </div>
               </template>
               
@@ -141,6 +181,14 @@
 
           <!-- Submit -->
           <button type="submit" class="upload-btn" id="submitBtn" data-action="trackUploadStart">Upload Files</button>
+
+          <!-- ── Material Requests (inline, below submit) ── -->
+          <button id="showRequestsBtn" title="Show material requests" data-action="toggleRequestsPanel">📥 Respond to a material request</button>
+          <div id="materialRequestsPanel" style="display:none;">
+            <div class="requests-panel-header" style="padding:0.75rem 1rem; font-weight:700; font-size:0.9rem; border-bottom:1px solid #e2e8f0;">Incoming Requests</div>
+            <div id="requestsList" class="requests-list" style="max-height:280px; overflow-y:auto;"></div>
+            <div style="padding:0.75rem 1rem; border-top:1px solid #f1f5f9; text-align:right;"><button type="button" data-action="hideRequestsPanel" class="xp-action-btn" style="min-width:80px; padding:0.5rem 1rem;">Close</button></div>
+          </div>
 
         </form>
       </div>
@@ -183,15 +231,6 @@
    </div>
 </div>
 
-          <!-- ── Material Requests Panel (for recipients) ── -->
-          <div id="materialRequestsPanel" class="requests-panel" style="display:none;">
-            <div class="requests-panel-header">Incoming Requests</div>
-            <div id="requestsList" class="requests-list"></div>
-            <div class="requests-panel-footer"><button type="button" data-action="hideRequestsPanel" class="xp-action-btn">Close</button></div>
-          </div>
-
-          <button id="showRequestsBtn" class="show-requests-btn" title="Show material requests" data-action="toggleRequestsPanel">Requests</button>
-
 <!-- ── Toast container ── -->
 <div id="toastContainer"></div>
 
@@ -202,33 +241,22 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
-<script src="{{ url_for('static', filename='js/bulk_upload.js') }}?v=1.9"></script>
+<script src="{{ url_for('static', filename='js/bulk_upload.js') }}?v=2.1"></script>
 <script>
   /* ── Dynamic fields ── */
   function updateDynamicFields() {
-    const type = document.getElementById('type')?.value || '';
-    const unitG = document.getElementById('unitGroup');
-    const pracG = document.getElementById('practicalGroup');
-    const unitSel = document.getElementById('unit');
+    // Type is now per-file (each meta-form has its own .meta-type select).
+    // This function updates the global drop-zone hint based on the
+    // currently-active file's category, or falls back to the generic hint.
+    const activeForm = document.querySelector('.meta-form-wrap:not([style*="display: none"])') || document.querySelector('.meta-form-wrap');
+    const typeEl = activeForm ? activeForm.querySelector('.meta-type') : null;
+    const type = typeEl ? (typeEl.value || '').toLowerCase() : '';
 
-    if (unitG) unitG.style.display = 'none';
-    if (pracG) pracG.style.display = 'none';
-
-    if (type === 'notes') {
-      if (unitG) unitG.style.display = 'block';
-      if (unitSel) unitSel.innerHTML = '<option value="U1">Unit 1</option><option value="U2">Unit 2</option><option value="U3">Unit 3</option><option value="U4">Unit 4</option><option value="U5">Unit 5</option><option value="All">All Units</option>';
-    } else if (type === 'papers') {
-      if (unitG) unitG.style.display = 'block';
-      if (unitSel) unitSel.innerHTML = '<option value="CAE1">CAE-1</option><option value="CAE2">CAE-2</option><option value="CAE3">CAE-3</option><option value="ESE">End Sem/Resit</option>';
-    } else if (type === 'practical') {
-      if (pracG) pracG.style.display = 'grid';
-    }
-
-    // Update file hint
+    // Update file hint + file input accept based on active file's category
     const hint = document.getElementById('fileHint');
     const fileInput = document.getElementById('fileInput');
     if (hint && fileInput) {
-      if (['papers','practical'].includes(type)) {
+      if (['papers', 'practical'].includes(type)) {
         hint.textContent = 'Images only for this type • Max 50 MB each';
         fileInput.accept = 'image/*';
       } else {
@@ -238,36 +266,100 @@
     }
   }
 
-  /* ── Legacy form cascade logic has been replaced by AbhiHubSelect ── */
-  /* ── Load dropdowns + autofill profile ── */
+  /* ── Profile autofill: fetch once, apply to every cloned meta-form ── */
+  window.userCollegeId  = null;
+  window.userBranchId   = null;
+  window.userProgram    = null;
+  window.userSemester   = null;
+
+  /**
+   * Applies saved profile defaults to a cloned meta-form.
+   * Uses TomSelect API so cascade dropdowns react correctly.
+   */
+  async function autofillMetaForm(formWrap) {
+    if (!formWrap) return;
+    const { userCollegeId, userBranchId, userProgram, userSemester } = window;
+
+    // Helper: show the ✓ saved pill for a given data-field
+    const showPill = (field) => {
+      const pill = formWrap.querySelector(`.field-autofill-pill[data-field="${field}"]`);
+      if (pill) pill.style.display = 'inline-flex';
+    };
+
+    // 1. Program (plain select — no TomSelect)
+    if (userProgram) {
+      const progEl = formWrap.querySelector('.program-select');
+      if (progEl) { progEl.value = userProgram; showPill('program'); }
+    }
+
+    // 2. College — use TomSelect so the cascade fires
+    if (userCollegeId) {
+      const colEl = formWrap.querySelector('.college-select');
+      if (colEl) {
+        const tsCol = window.AbhiHubSelect?.instances[colEl.id];
+        if (tsCol) {
+          if (!tsCol.options[userCollegeId]) {
+            try {
+              const cjson = await fetch('/api/colleges').then(r => r.json());
+              const match = (cjson.colleges || []).find(c => c.id === userCollegeId);
+              if (match) tsCol.addOption({ value: match.id, text: match.name });
+            } catch(_) {}
+          }
+          tsCol.setValue(userCollegeId, false);
+          showPill('college');
+        } else {
+          colEl.value = userCollegeId;
+          colEl.dispatchEvent(new Event('change'));
+          showPill('college');
+        }
+
+        if (userBranchId) {
+          const branchEl = formWrap.querySelector('.branch-select');
+          if (branchEl) {
+            const trySetBranch = (attempts) => {
+              const tsBranch = window.AbhiHubSelect?.instances[branchEl.id];
+              if (tsBranch) {
+                if (tsBranch.options[userBranchId]) {
+                  tsBranch.setValue(userBranchId, false);
+                  showPill('branch');
+                  if (userSemester) {
+                    const semEl = formWrap.querySelector('.semester-select');
+                    if (semEl) setTimeout(() => {
+                      const tsSem = window.AbhiHubSelect?.instances[semEl.id];
+                      if (tsSem && tsSem.options[String(userSemester)]) tsSem.setValue(String(userSemester), false);
+                      else if (semEl) { semEl.value = userSemester; semEl.dispatchEvent(new Event('change')); }
+                    }, 400);
+                  }
+                } else if (attempts > 0) {
+                  setTimeout(() => trySetBranch(attempts - 1), 300);
+                }
+              } else if (attempts > 0) {
+                setTimeout(() => trySetBranch(attempts - 1), 300);
+              }
+            };
+            setTimeout(() => trySetBranch(10), 500);
+          }
+        }
+      }
+    }
+  }
+
   document.addEventListener('DOMContentLoaded', async () => {
     updateDynamicFields();
-    
-    // Initial fetch for colleges (top level)
-    fetch('/api/colleges')
-      .then(r => r.json())
-      .then(json => {
-        const colSel = document.getElementById('college_id');
-        if (window.AbhiHubSelect) window.AbhiHubSelect.init();
-        const ts = AbhiHubSelect.instances['college_id'];
-        if (ts) {
-            ts.clearOptions();
-            (json.colleges || []).forEach(c => ts.addOption({value: c.id, text: c.name}));
-            ts.refreshOptions(false);
-        }
-      })
-      .catch(() => {});
 
-      try {
-        const p = await fetch('/api/profile').then(r => r.json());
-        if (p.success && p.user) {
-          window.userCollegeId = p.user.college_id || p.user.user_metadata?.college_id;
-          window.userBranchId = p.user.department_id || p.user.user_metadata?.branch_id;
-        }
-      } catch (err) {
-        console.warn('Could not load profile defaults', err);
+    // Fetch and cache profile data once
+    try {
+      const p = await fetch('/api/profile').then(r => r.json());
+      if (p.success && p.user) {
+        window.userCollegeId = p.user.college_id || p.user.user_metadata?.college_id || null;
+        window.userBranchId  = p.user.department_id || p.user.user_metadata?.branch_id || null;
+        window.userProgram   = p.user.user_metadata?.program || null;
+        window.userSemester  = p.user.user_metadata?.semester || null;
       }
-    });
+    } catch (err) {
+      console.warn('[Upload] Could not load profile defaults', err);
+    }
+  });
 
   /* ── XP Modal / Contribution Story (Phase 15) ── */
   async function showXpModal(xpGained, newScore, fileCount) {
@@ -335,19 +427,22 @@
       const data = await res.json();
       if (!data.success) return;
       const list = document.getElementById('requestsList');
+      const btn = document.getElementById('showRequestsBtn');
       if (!data.requests || data.requests.length === 0) {
-        list.innerHTML = '<div style="padding:8px; color:#64748b;">No pending requests</div>';
+        list.innerHTML = '<div style="padding:12px; color:#64748b;">No pending requests</div>';
+        if (btn) btn.style.display = 'none';
         return;
       }
+      if (btn) btn.style.display = 'block';
       list.innerHTML = data.requests.map(r => `
-        <div style="padding:8px; border-bottom:1px solid #f1f5f9;">
-          <div style="font-weight:700;">${r.requester_name || r.requester_email}</div>
-          <div style="font-size:0.9rem; color:#64748b;">Subject: ${r.subject}</div>
-          <div style="margin-top:6px; font-size:0.9rem;">${r.details || ''}</div>
-          <div style="margin-top:8px; display:flex; gap:8px;">
-            <button onclick="respondRequest('${r.id}', 'accept')" style="background:#10b981; color:white; border:none; padding:6px 8px; border-radius:8px;">Accept & Upload</button>
-            <button onclick="respondRequest('${r.id}', 'reject')" style="background:#ef4444; color:white; border:none; padding:6px 8px; border-radius:8px;">Reject</button>
-            <button onclick="prefillUploadForRequest('${r.id}', '${(r.subject||'').replace(/'/g,"\\'") }')" style="background:#6366f1; color:white; border:none; padding:6px 8px; border-radius:8px;">Upload File</button>
+        <div style="padding:10px 1rem; border-bottom:1px solid #f1f5f9;">
+          <div style="font-weight:700; font-size:0.9rem;">${r.requester_name || r.requester_email}</div>
+          <div style="font-size:0.85rem; color:#64748b; margin-top:2px;">Subject: ${r.subject}</div>
+          <div style="margin-top:4px; font-size:0.85rem; color:#475569;">${r.details || ''}</div>
+          <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
+            <button onclick="respondRequest('${r.id}', 'accept')" style="background:#10b981; color:white; border:none; padding:5px 10px; border-radius:8px; font-size:0.82rem; cursor:pointer;">Accept & Upload</button>
+            <button onclick="respondRequest('${r.id}', 'reject')" style="background:#ef4444; color:white; border:none; padding:5px 10px; border-radius:8px; font-size:0.82rem; cursor:pointer;">Reject</button>
+            <button onclick="prefillUploadForRequest('${r.id}', '${(r.subject||'').replace(/'/g,"\\'") }')" style="background:#6366f1; color:white; border:none; padding:5px 10px; border-radius:8px; font-size:0.82rem; cursor:pointer;">Upload File</button>
           </div>
         </div>
       `).join('');
@@ -355,6 +450,9 @@
       console.warn('Could not fetch requests', e);
     }
   }
+
+  // Check for pending requests on page load (silently)
+  document.addEventListener('DOMContentLoaded', () => { fetchMaterialRequests(); });
 
   function toggleRequestsPanel(){
     const p = document.getElementById('materialRequestsPanel');
