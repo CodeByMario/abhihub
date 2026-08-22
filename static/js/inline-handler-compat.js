@@ -512,7 +512,7 @@
         var action = el.getAttribute('data-action');
         if (!action) return;
         if (el.hasAttribute('data-listener-attached')) return;
-        var fn = builtInActions[action] || resolveAction(action);
+        var fn = resolveAction(action) || builtInActions[action];
         if (!fn) return;
         el.addEventListener('click', function (e) {
             if (el.tagName === 'A' && el.getAttribute('href') === '#') e.preventDefault();
@@ -584,7 +584,9 @@
                 inlineEventAttrs.forEach(function (attr) {
                     var handler = node.getAttribute && node.getAttribute(attr);
                     if (handler && !node.hasAttribute('data-listener-' + attr)) {
-                        var match = handler.match(/^\s*([^(]+)\s*\(/);
+                        // Only convert simple handler calls without parameters (empty or no parentheses)
+                        // so that handlers passing arguments are executed natively by the browser.
+                        var match = handler.match(/^\s*([^(]+)\s*\(\s*\)/);
                         if (match) {
                             var eventName = attr.substring(2);
                             node.setAttribute('data-event-' + eventName, match[1].trim());
@@ -604,7 +606,9 @@
                         inlineEventAttrs.forEach(function (attr) {
                             var handler = child.getAttribute(attr);
                             if (handler && !child.hasAttribute('data-listener-' + attr)) {
-                                var match = handler.match(/^\s*([^(]+)\s*\(/);
+                                // Only convert simple handler calls without parameters (empty or no parentheses)
+                                // so that handlers passing arguments are executed natively by the browser.
+                                var match = handler.match(/^\s*([^(]+)\s*\(\s*\)/);
                                 if (match) {
                                     var eventName = attr.substring(2);
                                     child.setAttribute('data-event-' + eventName, match[1].trim());

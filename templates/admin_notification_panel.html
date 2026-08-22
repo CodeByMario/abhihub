@@ -751,6 +751,15 @@
 
     // Switch Tabs handler
     function switchAdminTab(tabId) {
+        // Handle data-action click event calls
+        if (typeof tabId !== 'string') {
+            const el = this || (tabId && tabId.currentTarget) || tabId;
+            if (el && typeof el.getAttribute === 'function') {
+                tabId = el.getAttribute('data-tab');
+            }
+        }
+        if (!tabId || typeof tabId !== 'string') return;
+
         document.querySelectorAll(".admin-view").forEach(v => v.style.display = "none");
         document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
         

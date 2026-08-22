@@ -311,6 +311,30 @@ def extract_pdf_info(pdf_bytes):
 
     return extracted_text.strip(), img_bytes, mime_type
 
+
+_easyocr_reader = None  # Lazy-loaded once; reused across requests
+
+def _local_ocr(image_bytes: bytes, mime_type: str = 'image/png') -> str:
+    """Run EasyOCR locally on image bytes. No binary dependencies — pure pip install."""
+    global _easyocr_reader
+    try:
+        import easyocr
+        from PIL import Image
+        import numpy as np
+        if _easyocr_reader is None:
+            logging.info("[OCR] Loading EasyOCR model (first-time download may take a moment)...")
+            _easyocr_reader = easyocr.Reader(['en'], gpu=False, verbose=False)
+            logging.info("[OCR] EasyOCR ready")
+        img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
+        result = _easyocr_reader.readtext(np.array(img), detail=0, paragraph=True)
+        return '\n'.join(result).strip()
+    except ImportError:
+        logging.warning("[OCR] easyocr not installed — run: pip install easyocr")
+        return ''
+    except Exception as e:
+        logging.warning(f"[OCR] EasyOCR failed: {e}")
+        return ''
+
 # Security Configuration - Load from environment variables
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
 
@@ -478,8 +502,8 @@ def auth_required(f):
         
     return decorated_function
 
-# Admin emails from environment variable (comma-separated)
-ADMIN_EMAILS = [e.strip().lower() for e in os.getenv('ADMIN_EMAILS', '').split(',') if e.strip()]
+# Admin emails from environment variable (comma-separated, fall back to ADMIN_EMAIL)
+ADMIN_EMAILS = [e.strip().lower() for e in (os.getenv('ADMIN_EMAILS') or os.getenv('ADMIN_EMAIL') or '').split(',') if e.strip()]
 
 # Decorator for admin-only routes
 def admin_required(f):
@@ -2205,45 +2229,6 @@ def upload():
 def local_viewer():
     """Standalone page: open a local image/PDF, preview it, then upload to Cloudinary."""
     return render_template('p_local_preview.html')
-
-@app.route('/preview')
-@auth_required
-def preview():
-    file_url = request.args.get('file_path')
-    if not file_url:
-        abort(404)
-        
-    record_id = request.args.get('record_id')
-    if record_id:
-        return redirect(url_for('resource_landing', slug=f"legacy-redirect-{record_id}"), code=301)
-
-
-    # ── Quota gate ────────────────────────────────────────────────────────
-    if not _consume_credit():
-        q = _get_quota()
-        return redirect(url_for('upload_gate',
-                                next=request.url,
-                                credits=q.get('credits', 0)))
-    # ─────────────────────────────────────────────────────────────────────
-
-    # Log file access (shared helper — see log_document_view)
-    log_document_view(
-        file_name=os.path.basename(file_url),
-        file_url=file_url,
-        record_id=request.args.get('record_id'),
-    )
-    
-    if file_url.startswith('http'):
-        return render_template('preview.html', file=file_url)
-    
-    try:
-        bucket = storage.bucket()
-        blob = bucket.blob(file_url)
-        signed_url = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
-        return render_template('preview.html', file=signed_url)
-    except Exception as e:
-        logging.error(f"Error generating signed URL for {file_url}: {e}")
-        return render_template('preview.html', file=file_url)
 
 
 @app.route('/upload-gate')
@@ -4771,7 +4756,7 @@ def api_ask_paper():
         if is_pdf:
             doc_text, img_bytes, img_mime = extract_pdf_info(content_bytes)
         
-        # If no native text, use vision OCR to get text first
+        # If no native text, use local Tesseract OCR
         if not doc_text or len(doc_text.strip()) < 30:
             if is_pdf and img_bytes:
                 ocr_source = img_bytes
@@ -4780,55 +4765,20 @@ def api_ask_paper():
                 ocr_source = content_bytes
                 ocr_mime = content_type if content_type and 'octet-stream' not in content_type else 'image/jpeg'
 
-            b64 = base64.b64encode(ocr_source).decode('utf-8')
-            openrouter_key = os.getenv('OPENROUTER_API_KEY', '').strip().strip("'\"")
-            if openrouter_key:
-                ocr_payload = [
-                    {'type': 'text', 'text': 'Extract ALL text from this document image exactly as written. Return only the raw text.'},
-                    {'type': 'image_url', 'image_url': {'url': f'data:{ocr_mime};base64,{b64}'}}
-                ]
-                ocr_model = selected_model if selected_model in AI_VISION_MODELS else next(iter(AI_VISION_MODELS))
-                try:
-                    r = requests.post(
-                        'https://openrouter.ai/api/v1/chat/completions',
-                        headers={
-                            'Authorization': f'Bearer {openrouter_key}',
-                            'Content-Type': 'application/json',
-                            'HTTP-Referer': 'https://abhihub.com',
-                            'X-Title': 'AbhiHub'
-                        },
-                        json={
-                            'model': ocr_model,
-                            'messages': [{'role': 'user', 'content': ocr_payload}],
-                            'max_tokens': 1024,
-                            'temperature': 0.05,
-                            'provider': {
-                                'allow_fallbacks': True,
-                                'sort': 'throughput'
-                            }
-                        },
-                        timeout=35
-                    )
-                    if r.ok:
-                        choices = r.json().get('choices', [])
-                        if choices:
-                            extracted = choices[0]['message']['content'].strip()
-                            if extracted:
-                                doc_text = extracted
-                                logging.info(f"[AI] OCR via {r.json().get('model', ocr_model)}: {len(doc_text)} chars")
-                    else:
-                        logging.warning(f"[AI] Inline OCR OpenRouter {r.status_code}: {r.text[:200]}")
-                except Exception as ex:
-                    logging.warning(f"[AI] Inline OCR request failed: {ex}")
+            extracted = _local_ocr(ocr_source, ocr_mime)
+            if extracted:
+                doc_text = extracted
+                logging.info(f"[AI] Local Tesseract OCR: {len(doc_text)} chars")
 
-        if not doc_text or len(doc_text.strip()) < 5:
-            doc_text = f'[Document: {doc_title} — text could not be extracted]'
+        # If OCR failed, return early — no point calling LLM with no content (saves tokens)
+        if not doc_text or len(doc_text.strip()) < 10:
+            return jsonify({'success': False, 'message': 'Could not extract text from this document. Please install Tesseract OCR on the server.'}), 422
 
-        # --- Step 2: Answer question using extracted text (any model works) ---
+        # --- Step 2: Answer question using extracted text ---
         system_prompt = (
             f"You are a helpful AI study assistant for AbhiHub students.\n"
-            f"CRITICAL RULE: Only answer questions directly related to AbhiHub, academic courses, or the provided document content (such as engineering question papers, notes, or study materials on AbhiHub).\n"
-            f"If the user asks about topics or context unrelated to AbhiHub or the provided document, politely tell them they are moving out of the topic, and if required, they can search the website for information.\n\n"
+            f"CRITICAL RULE: Only answer questions directly related to AbhiHub, academic courses, or the provided document content.\n"
+            f"If the question is unrelated to the document, say so and guide the user to search the website.\n\n"
             f"Document: {doc_title} ({doc_category})\n"
             f"--- DOCUMENT CONTENT ---\n{doc_text[:4000]}\n--- END ---\n\n"
             f"Give clear, accurate, well-formatted answers using Markdown."
@@ -4838,43 +4788,44 @@ def api_ask_paper():
         answer = None
 
         if openrouter_key:
-            # Single call — let OpenRouter's provider routing handle fallback.
-            # `allow_fallbacks: true` + `sort: throughput` = fastest available free provider.
-            # This works correctly under multi-worker gunicorn (no shared state needed).
-            try:
-                resp = requests.post(
-                    'https://openrouter.ai/api/v1/chat/completions',
-                    headers={
-                        'Authorization': f'Bearer {openrouter_key}',
-                        'Content-Type': 'application/json',
-                        'HTTP-Referer': 'https://abhihub.com',
-                        'X-Title': 'AbhiHub'
-                    },
-                    json={
-                        'model': selected_model,
-                        'messages': [
-                            {'role': 'system', 'content': system_prompt},
-                            {'role': 'user', 'content': question}
-                        ],
-                        'max_tokens': 800,
-                        'temperature': 0.2,
-                        'provider': {
-                            'allow_fallbacks': True,
-                            'sort': 'throughput'
-                        }
-                    },
-                    timeout=35
-                )
-                if resp.ok:
-                    choices = resp.json().get('choices', [])
-                    if choices:
-                        answer = choices[0]['message']['content']
-                        logging.info(f"[AI] Q&A answered via {resp.json().get('model', selected_model)}")
-                else:
-                    logging.warning(f"[AI] Q&A OpenRouter {resp.status_code}: {resp.text[:200]}")
-            except Exception as ex:
-                logging.warning(f"[AI] Q&A request failed: {ex}")
-
+            # Try each free text model in order — stop at first success
+            for model_id in AI_MODELS:
+                try:
+                    resp = requests.post(
+                        'https://openrouter.ai/api/v1/chat/completions',
+                        headers={
+                            'Authorization': f'Bearer {openrouter_key}',
+                            'Content-Type': 'application/json',
+                            'HTTP-Referer': 'https://abhihub.com',
+                            'X-Title': 'AbhiHub'
+                        },
+                        json={
+                            'model': model_id,
+                            'messages': [
+                                {'role': 'system', 'content': system_prompt},
+                                {'role': 'user', 'content': question}
+                            ],
+                            'max_tokens': 600,
+                            'temperature': 0.2,
+                            'provider': {'allow_fallbacks': True, 'sort': 'throughput'}
+                        },
+                        timeout=30
+                    )
+                    if resp.ok:
+                        choices = resp.json().get('choices', [])
+                        if choices:
+                            answer = choices[0]['message']['content']
+                            logging.info(f"[AI] Q&A answered via {model_id}")
+                            break
+                    elif resp.status_code == 429:
+                        logging.warning(f"[AI] {model_id} rate-limited, trying next")
+                        continue
+                    else:
+                        logging.warning(f"[AI] {model_id} error {resp.status_code}: {resp.text[:100]}")
+                        break
+                except Exception as ex:
+                    logging.warning(f"[AI] {model_id} failed: {ex}")
+                    continue
 
         if answer:
             return jsonify({'success': True, 'answer': answer.strip()}), 200
@@ -4946,59 +4897,17 @@ def api_extract_ocr():
         if cached_ocr[0] is not None:
             return jsonify({'success': True, 'ocr_text': cached_ocr[0], 'source': 'vision_ai_cached'}), 200
 
-        b64_image = base64.b64encode(content_bytes).decode('utf-8')
         if not content_type or 'octet-stream' in content_type:
             content_type = 'image/jpeg'
 
-        openrouter_key = os.getenv('OPENROUTER_API_KEY', '').strip().strip("'\"")
-
-        user_content = [
-            {'type': 'text', 'text': 'Extract all text, math equations, and tables from this document image perfectly. Return ONLY raw transcript without filler.'},
-            {'type': 'image_url', 'image_url': {'url': f'data:{content_type};base64,{b64_image}'}}
-        ]
-
-        ocr_text = None
-
-        # Single call — OpenRouter routes to fastest available vision provider.
-        if openrouter_key:
-            ocr_model = selected_model if selected_model in AI_VISION_MODELS else next(iter(AI_VISION_MODELS))
-            try:
-                ai_resp = requests.post(
-                    'https://openrouter.ai/api/v1/chat/completions',
-                    headers={
-                        'Authorization': f'Bearer {openrouter_key}',
-                        'Content-Type': 'application/json',
-                        'HTTP-Referer': 'https://abhihub.com',
-                        'X-Title': 'AbhiHub'
-                    },
-                    json={
-                        'model': ocr_model,
-                        'messages': [{'role': 'user', 'content': user_content}],
-                        'max_tokens': 1024,
-                        'temperature': 0.05,
-                        'provider': {
-                            'allow_fallbacks': True,
-                            'sort': 'throughput'
-                        }
-                    },
-                    timeout=35
-                )
-                if ai_resp.ok:
-                    choices = ai_resp.json().get('choices', [])
-                    if choices:
-                        ocr_text = choices[0]['message']['content']
-                        logging.info(f"[AI] OCR via {ai_resp.json().get('model', ocr_model)}: {len(ocr_text or '')} chars")
-                else:
-                    logging.warning(f"[AI] OCR OpenRouter {ai_resp.status_code}: {ai_resp.text[:200]}")
-            except Exception as ex:
-                logging.warning(f"[AI] OCR request failed: {ex}")
+        ocr_text = _local_ocr(content_bytes, content_type)
+        logging.info(f"[AI] Local Tesseract OCR (extract-ocr): {len(ocr_text)} chars")
 
         if ocr_text:
-            # Cache vision OCR at L1 (2hr TTL — vision calls cost money, cache aggressively)
-            cache.l1.set(f"ocr:vision:{doc_id}", ocr_text, ttl=7200)
-            return jsonify({'success': True, 'ocr_text': ocr_text, 'source': 'vision_ai'}), 200
+            cache.l1.set(f"ocr:local:{doc_id}", ocr_text, ttl=7200)
+            return jsonify({'success': True, 'ocr_text': ocr_text, 'source': 'local_tesseract'}), 200
 
-        return jsonify({'success': False, 'message': 'OCR service temporary failure. Please retry.'}), 502
+        return jsonify({'success': False, 'message': 'OCR could not extract text. Ensure Tesseract is installed.'}), 502
 
     except Exception as e:
         logging.error(f"[AI] extract-ocr error: {e}")

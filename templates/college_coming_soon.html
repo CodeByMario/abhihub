@@ -1,7 +1,7 @@
 {% set _abbr = college.abbreviation or college.name %}
 {% set _popular = college.popular_name or '' %}
 {% set _city = college.city or 'India' %}
-{% set seo_title = _abbr ~ ' PYQ, Exam Papers & Study Notes Waitlist | AbhiHub' %}
+{% set seo_title = _abbr ~ ' PYQs & Notes Waitlist | AbhiHub' %}
 {% set seo_description = 'AbhiHub is coming to ' ~ college.name ~ ' (' ~ _abbr ~ '). Join the waitlist and help bring free PYQs, notes and study materials to your college faster.' %}
 {% set seo_keywords = 'PYQ ' ~ _abbr ~ ', ' ~ _abbr ~ ' PYQ, ' ~ college.name ~ ' PYQ, ' ~ _abbr ~ ' notes, ' ~ college.name ~ ' study material, ' ~ _city ~ ' college PYQ, AbhiHub ' ~ _abbr %}
 {% set og_title = seo_title %}

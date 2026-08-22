@@ -1,7 +1,7 @@
 {% set _abbr = college.abbreviation or college.name %}
 {% set _popular = college.popular_name or '' %}
 {% set _city = college.city or 'India' %}
-{% set seo_title = _abbr ~ ' PYQ, Papers & Notes | ' ~ college.name ~ ' Previous Year Question Papers | AbhiHub' %}
+{% set seo_title = _abbr ~ ' PYQ, Notes & Previous Year Papers | AbhiHub' %}
 {% set seo_description = 'Download free previous year question papers (PYQ), notes, practicals and study materials for ' ~ college.name ~ ' (' ~ _abbr ~ '). ' ~ (_popular ~ ' ' if _popular else '') ~ 'All resources organized by department and subject on AbhiHub.' %}
 {% set seo_keywords = 'PYQ ' ~ _abbr ~ ', ' ~ _abbr ~ ' PYQ, ' ~ college.name ~ ' PYQ, PYQ ' ~ college.name ~ ', ' ~ college.name ~ ' papers, ' ~ college.name ~ ' papers abhihub, ' ~ _abbr ~ ' papers, ' ~ _abbr ~ ' papers abhihub, ' ~ (_popular ~ ' PYQ, PYQ ' ~ _popular ~ ', ' ~ _popular ~ ' papers, ' if _popular else '') ~ _abbr ~ ' Notes, ' ~ college.name ~ ' Previous Year Question Papers, ' ~ college.name ~ ' Study Material, ' ~ _city ~ ' college PYQ, ' ~ _city ~ ' engineering notes, AbhiHub' %}
 {% set og_title = seo_title %}

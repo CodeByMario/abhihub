@@ -1,10 +1,11 @@
 {% set file_type = 'PYQ' if 'pyq' in (document.document_category|lower) else ('Practical' if 'practical' in (document.document_category|lower) else 'Notes') %}
 {% set subj_name = document.subject.name if document.subject else 'Uncategorized' %}
 {% set coll_name = document.college.name if document.college else 'AbhiHub' %}
+{% set coll_abbr = (document.college.abbreviation or document.college.name) if document.college else 'AbhiHub' %}
 {% set dept_name = document.department.name if document.department else '' %}
 {% set uploader_name = document.uploader.full_name if document.uploader else 'Anonymous' %}
 
-{% set seo_title = subj_name ~ ' ' ~ file_type ~ ' Download | ' ~ coll_name ~ ' Exam Resources | AbhiHub' %}
+{% set seo_title = subj_name ~ ' ' ~ file_type ~ ' | ' ~ coll_abbr ~ ' | AbhiHub' %}
 {% set seo_description = 'Download ' ~ document.title ~ ', a verified ' ~ file_type ~ ' for ' ~ subj_name ~ ' from ' ~ coll_name ~ ' uploaded by ' ~ uploader_name ~ '. Free academic resources.' %}
 {% set seo_keywords = subj_name ~ ' ' ~ file_type ~ ', ' ~ coll_name ~ ' ' ~ subj_name ~ ', ' ~ document.title ~ ', ' ~ uploader_name %}
 {% set og_title = seo_title %}

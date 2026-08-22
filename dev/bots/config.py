@@ -37,7 +37,7 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
 SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
 
 # Model used for real LLM reasoning (cheap + capable).
-LLM_MODEL = os.environ.get("BOT_LLM_MODEL", "openai/gpt-4o-mini")
+LLM_MODEL = os.environ.get("BOT_LLM_MODEL", "google/gemma-3-12b-it:free")
 
 # Revenue / payout policy (matches AbhiHub policy).
 AI_BASE_SHARE = 0.02          # 2% base to AI models

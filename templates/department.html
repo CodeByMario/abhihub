@@ -1,4 +1,6 @@
-{% set seo_title = department.name ~ ' PYQ & Notes | ' ~ college.name ~ ' Previous Year Papers | AbhiHub' %}
+{% set _dept_abbr = department.abbreviation or department.name %}
+{% set _abbr = college.abbreviation or college.name %}
+{% set seo_title = _dept_abbr ~ ' PYQ & Notes - ' ~ _abbr ~ ' | AbhiHub' %}
 {% set seo_description = 'Download PYQ (previous year question papers), notes, practicals and study resources for the ' ~ department.name ~ ' department of ' ~ college.name ~ '. Free academic resources.' %}
 {% set seo_keywords = department.name ~ ' PYQ, PYQ ' ~ department.name ~ ', ' ~ department.name ~ ' Notes, ' ~ department.name ~ ' Previous Year Papers, ' ~ college.name ~ ' ' ~ department.name ~ ' PYQ, ' ~ department.name ~ ' Engineering, AbhiHub' %}
 {% set og_title = seo_title %}
