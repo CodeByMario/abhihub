@@ -1,0 +1,117 @@
+name: Auto-Triage Issues
+
+on:
+  issues:
+    types: [opened, edited, labeled, unlabeled]
+  pull_request:
+    types: [opened, edited, labeled, unlabeled]
+
+permissions:
+  issues: write
+  pull-requests: write
+
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Auto-label issue
+        uses: actions/github-script@v7
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          script: |
+            const fs = require('fs');
+            const issue = context.payload.issue || context.payload.pull_request;
+            const title = issue.title;
+            const body = issue.body || '';
+            const text = (title + ' ' + body).toLowerCase();
+            const number = issue.number;
+            const isPR = !!context.payload.pull_request;
+
+            // Skip if already has labels (avoid re-triage on every edit)
+            const existingLabels = issue.labels.map(l => l.name);
+            if (existingLabels.length > 0 && !existingLabels.includes('needs-triage')) {
+              console.log('Issue already has labels, skipping auto-triage');
+              return;
+            }
+
+            let labelsToAdd = [];
+
+            // Type detection
+            if (text.includes('bug') || text.includes('fix') || text.includes('broken') ||
+                text.includes('error') || text.includes('crash') || text.includes('fail')) {
+              labelsToAdd.push('bug');
+            } else if (text.includes('feature') || text.includes('enhancement') ||
+                       text.includes('improve') || text.includes('wishlist')) {
+              labelsToAdd.push('enhancement');
+            } else if (text.includes('question') || text.includes('how to') ||
+                       text.includes('help') || text.includes('support')) {
+              labelsToAdd.push('question');
+            } else if (text.includes('doc') || text.includes('documentation')) {
+              labelsToAdd.push('documentation');
+            }
+
+            // Priority detection
+            if (text.includes('critical') || text.includes('urgent') || text.includes('security') ||
+                text.includes('emergency') || text.includes('crash') || text.includes('data loss')) {
+              labelsToAdd.push('priority:critical');
+            } else if (text.includes('high') || text.includes('important')) {
+              labelsToAdd.push('priority:high');
+            } else if (text.includes('low') || text.includes('minor')) {
+              labelsToAdd.push('priority:low');
+            } else {
+              labelsToAdd.push('priority:medium');
+            }
+
+            // Component detection
+            if (text.includes('ui') || text.includes('css') || text.includes('html') ||
+                text.includes('frontend') || text.includes('button') || text.includes('layout')) {
+              labelsToAdd.push('frontend');
+            }
+            if (text.includes('api') || text.includes('server') || text.includes('database') ||
+                text.includes('backend') || text.includes('endpoint')) {
+              labelsToAdd.push('backend');
+            }
+            if (text.includes('mobile') || text.includes('ios') || text.includes('android') ||
+                text.includes('app')) {
+              labelsToAdd.push('mobile');
+            }
+            if (text.includes('ci') || text.includes('cd') || text.includes('deploy') ||
+                text.includes('docker') || text.includes('kubernetes') || text.includes('aws')) {
+              labelsToAdd.push('devops');
+            }
+            if (text.includes('test') || text.includes('testing') || text.includes('unit test') ||
+                text.includes('integration test')) {
+              labelsToAdd.push('testing');
+            }
+
+            // Add labels
+            if (labelsToAdd.length > 0) {
+              const uniqueLabels = [...new Set(labelsToAdd)];
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: number,
+                labels: uniqueLabels
+              });
+              console.log(`Added labels: ${uniqueLabels.join(', ')}`);
+
+              // Post triage comment
+              const comment = `## 🤖 Auto-Triage Report\n\nThis issue has been automatically triaged:\n\n` +
+                uniqueLabels.map(l => `- Added label: **${l}**`).join('\n') +
+                `\n\n*Triaged by GitHub Automation Bot*`;
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: number,
+                body: comment
+              });
+            } else {
+              // No type detected, add needs-triage
+              await github.rest.issues.addLabels({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: number,
+                labels: ['needs-triage', 'priority:medium']
+              });
+              console.log('Added labels: needs-triage, priority:medium');
+            }
