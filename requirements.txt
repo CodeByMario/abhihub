@@ -19,6 +19,3 @@ pypdf>=3.0.0
 gevent
 gevent-websocket
 apscheduler>=3.10.0
-pytest
-pytest-timeout
-easyocr

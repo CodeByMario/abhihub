@@ -312,29 +312,6 @@ def extract_pdf_info(pdf_bytes):
     return extracted_text.strip(), img_bytes, mime_type
 
 
-_easyocr_reader = None  # Lazy-loaded once; reused across requests
-
-def _local_ocr(image_bytes: bytes, mime_type: str = 'image/png') -> str:
-    """Run EasyOCR locally on image bytes. No binary dependencies — pure pip install."""
-    global _easyocr_reader
-    try:
-        import easyocr
-        from PIL import Image
-        import numpy as np
-        if _easyocr_reader is None:
-            logging.info("[OCR] Loading EasyOCR model (first-time download may take a moment)...")
-            _easyocr_reader = easyocr.Reader(['en'], gpu=False, verbose=False)
-            logging.info("[OCR] EasyOCR ready")
-        img = Image.open(io.BytesIO(image_bytes)).convert('RGB')
-        result = _easyocr_reader.readtext(np.array(img), detail=0, paragraph=True)
-        return '\n'.join(result).strip()
-    except ImportError:
-        logging.warning("[OCR] easyocr not installed — run: pip install easyocr")
-        return ''
-    except Exception as e:
-        logging.warning(f"[OCR] EasyOCR failed: {e}")
-        return ''
-
 # Security Configuration - Load from environment variables
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
 
@@ -4756,23 +4733,9 @@ def api_ask_paper():
         if is_pdf:
             doc_text, img_bytes, img_mime = extract_pdf_info(content_bytes)
         
-        # If no native text, use local Tesseract OCR
-        if not doc_text or len(doc_text.strip()) < 30:
-            if is_pdf and img_bytes:
-                ocr_source = img_bytes
-                ocr_mime = img_mime or 'image/png'
-            else:
-                ocr_source = content_bytes
-                ocr_mime = content_type if content_type and 'octet-stream' not in content_type else 'image/jpeg'
-
-            extracted = _local_ocr(ocr_source, ocr_mime)
-            if extracted:
-                doc_text = extracted
-                logging.info(f"[AI] Local Tesseract OCR: {len(doc_text)} chars")
-
-        # If OCR failed, return early — no point calling LLM with no content (saves tokens)
+        # If no native text extracted, cannot proceed (OCR removed)
         if not doc_text or len(doc_text.strip()) < 10:
-            return jsonify({'success': False, 'message': 'Could not extract text from this document. Please install Tesseract OCR on the server.'}), 422
+            return jsonify({'success': False, 'message': 'Could not extract text from this document.'}), 422
 
         # --- Step 2: Answer question using extracted text ---
         system_prompt = (
@@ -4897,17 +4860,7 @@ def api_extract_ocr():
         if cached_ocr[0] is not None:
             return jsonify({'success': True, 'ocr_text': cached_ocr[0], 'source': 'vision_ai_cached'}), 200
 
-        if not content_type or 'octet-stream' in content_type:
-            content_type = 'image/jpeg'
-
-        ocr_text = _local_ocr(content_bytes, content_type)
-        logging.info(f"[AI] Local Tesseract OCR (extract-ocr): {len(ocr_text)} chars")
-
-        if ocr_text:
-            cache.l1.set(f"ocr:local:{doc_id}", ocr_text, ttl=7200)
-            return jsonify({'success': True, 'ocr_text': ocr_text, 'source': 'local_tesseract'}), 200
-
-        return jsonify({'success': False, 'message': 'OCR could not extract text. Ensure Tesseract is installed.'}), 502
+        return jsonify({'success': False, 'message': 'OCR feature is not available.'}), 501
 
     except Exception as e:
         logging.error(f"[AI] extract-ocr error: {e}")
