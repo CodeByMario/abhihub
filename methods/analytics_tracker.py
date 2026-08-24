@@ -330,25 +330,28 @@ def register_analytics_routes(app):
 # ============================================================================
 
 def _log_pageview_to_supabase(data):
-    """Log pageview to Supabase document_views table."""
+    """Log pageview to Supabase document_views table.
+
+    document_views.document_id is a UUID — only rows with a real document UUID
+    belong there. Plain page paths (e.g. /admin/economy) are skipped.
+    """
     try:
+        page_path = data.get('page_path', '')
+        # document_views.document_id is a UUID; skip plain page paths
+        import re
+        if not re.match(r'^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$', str(page_path), re.I):
+            return  # regular page view, not a document view — nothing to log
         from methods.supabase_helper import init_supabase
         client = init_supabase()
         if not client:
             return
-        
+
         client.table('document_views').insert({
-            'document_id': data.get('page_path', ''),
+            'document_id': page_path,
             'user_id': data.get('user_id', ''),
             'ip_address': data.get('ip_address', ''),
             'device_type': data.get('device_type', ''),
-            'view_type': 'pageview',
-            'metadata': {
-                'page_title': data.get('page_title', ''),
-                'page_category': data.get('page_category', ''),
-                'referrer': data.get('referrer', ''),
-                'session_id': data.get('session_id', ''),
-            }
+            'accessed_at': data.get('timestamp', ''),
         }).execute()
     except Exception as e:
         logging.warning(f"[Analytics] Supabase pageview log failed: {e}")
@@ -387,17 +390,7 @@ def _log_file_access_to_supabase(data):
             'user_id': data.get('user_id', ''),
             'ip_address': data.get('ip_address', ''),
             'device_type': data.get('device_type', ''),
-            'view_type': data.get('action', 'view'),
-            'time_spent_seconds': data.get('time_spent_seconds', 0),
-            'metadata': {
-                'file_name': data.get('file_name', ''),
-                'file_type': data.get('file_type', ''),
-                'subject': data.get('subject', ''),
-                'college': data.get('college', ''),
-                'branch': data.get('branch', ''),
-                'year': data.get('year', ''),
-                'session_id': data.get('session_id', ''),
-            }
+            'accessed_at': data.get('timestamp', ''),
         }).execute()
     except Exception as e:
         logging.warning(f"[Analytics] Supabase file access log failed: {e}")
@@ -415,9 +408,8 @@ def _log_session_to_supabase(data):
             'user_id': data.get('user_id', ''),
             'ip_address': '',
             'user_agent': '',
-            'device_type': '',
-            'session_data': data,
-            'duration_minutes': round(data.get('session_duration_seconds', 0) / 60, 2),
+            'device_type': _detect_device(data.get('user_agent', '')),
+            'duration_minutes': max(int(round(data.get('session_duration_seconds', 0) / 60)), 0),
         }).execute()
     except Exception as e:
         logging.warning(f"[Analytics] Supabase session log failed: {e}")

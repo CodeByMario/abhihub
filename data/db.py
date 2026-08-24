@@ -19,7 +19,14 @@ except ImportError:
     logging.warning("Warning: supabase-py not installed. Install with: pip install supabase")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+# Legacy SUPABASE_KEY was removed; resolve from the current key names.
+SUPABASE_KEY = (
+    os.getenv("SUPABASE_SECRET_API_KEY")      # service_role — server-side only
+    or os.getenv("SECRET_API_KEY")
+    or os.getenv("SUPABASE_PUBLIC_API_KEY")   # anon fallback
+    or os.getenv("PUBLIC_API_KEY")
+    or os.getenv("SUPABASE_KEY")
+)
 
 _client = None
 
