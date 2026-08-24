@@ -91,6 +91,21 @@ def setup_jobs(scheduler):
     )
     logging.info("📅 Scheduled job: Analytics Analyzer (every 24 hours)")
 
+    # Job 4: Nightly rolling-score recalculation (AbhiHub Score, CCR, access level)
+    def _recalc_scores():
+        from methods.scoring_engine import recalculate_user_scores
+        result = recalculate_user_scores()
+        logging.info(f"[SCORING] nightly score recalc: {result}")
+
+    scheduler.add_job(
+        func=_recalc_scores,
+        trigger=IntervalTrigger(hours=24),
+        id='score_recalculator',
+        name='Nightly user score recalculation',
+        replace_existing=True
+    )
+    logging.info("📅 Scheduled job: Score Recalculator (every 24 hours)")
+
 
 def shutdown_scheduler():
     """

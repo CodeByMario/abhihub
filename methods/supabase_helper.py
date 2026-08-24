@@ -7,6 +7,7 @@ import os
 import json
 import logging
 import traceback
+import time
 from datetime import datetime
 from typing import Dict, Optional, List, Any
 from dotenv import load_dotenv
@@ -27,9 +28,68 @@ except ImportError:
     logging.warning("Warning: supabase-py not installed. Install with: pip install supabase")
 
 SUPABASE_URL = os.getenv("SUPABASE_URL")
-SUPABASE_KEY = os.getenv("SUPABASE_KEY")
+# Public/anon key — accepts legacy name SUPABASE_KEY or new SUPABASE_PUBLIC_API_KEY
+SUPABASE_KEY = os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_PUBLIC_API_KEY") or ""
+# Service key for admin access (new-style name preferred)
+SUPABASE_SECRET_API_KEY = os.getenv("SUPABASE_SECRET_API_KEY") or ""
+# Admin/service credential — bypasses RLS for tables like user_crushes where
+# anon access is denied. Accepts either:
+#   - SUPABASE_JWT = the JWT *signing secret* (raw string) → we mint a
+#     service_role token from it (Supabase legacy JWT secret auth), or
+#   - SUPABASE_JWT / SUPABASE_SERVICE_ROLE = an eyJ... API key (used as-is).
+# Falls back to SUPABASE_KEY if neither is set.
+_RAW_ADMIN_SECRET = os.getenv("SUPABASE_JWT") or os.getenv("SUPABASE_SERVICE_ROLE") or ""
+
+def _resolve_admin_key() -> str:
+    """Return a valid Supabase API key for admin access."""
+    # Preferred: real service_role / secret API key
+    if SUPABASE_SECRET_API_KEY:
+        return SUPABASE_SECRET_API_KEY
+    if _RAW_ADMIN_SECRET.startswith("eyJ"):
+        return _RAW_ADMIN_SECRET  # already a real API key (service_role)
+    if _RAW_ADMIN_SECRET:
+        # Raw signing secret — mint a service_role HS256 token.
+        try:
+            import jwt as pyjwt
+            return pyjwt.encode(
+                {"role": "service_role", "iss": "supabase", "iat": int(time.time()),
+                 "exp": int(time.time()) + 10 * 365 * 24 * 3600},
+                _RAW_ADMIN_SECRET,
+                algorithm="HS256",
+            )
+        except Exception as e:
+            logging.error(f"❌ Could not mint service_role token from secret: {e}")
+    return SUPABASE_KEY or ""
 
 _supabase_client = None
+_supabase_admin_client = None
+
+def init_supabase_admin():
+    """Supabase client using the service/JWT key (bypasses RLS).
+
+    Use ONLY for tables blocked by RLS for the anon key (e.g. user_crushes).
+    """
+    global _supabase_admin_client
+    if not SUPABASE_AVAILABLE:
+        logging.error("❌ init_supabase_admin: supabase-py not installed")
+        return None
+    admin_key = _resolve_admin_key()
+    if not SUPABASE_URL or not admin_key:
+        logging.error("❌ init_supabase_admin: SUPABASE_URL or admin key missing")
+        return None
+    if _supabase_admin_client is None:
+        try:
+            _supabase_admin_client = create_client(
+                SUPABASE_URL,
+                admin_key,
+                options=ClientOptions(schema="abhihub")
+            )
+            logging.info("✅ Supabase admin client initialized")
+        except Exception as e:
+            traceback.print_exc()
+            logging.error(f"Error initializing Supabase admin client: {e}")
+            return None
+    return _supabase_admin_client
 
 def init_supabase():
     global _supabase_client
@@ -682,9 +742,25 @@ def save_file_record(
             # Phase 15: Gamification / Dopamine Loop
             xp_data = {}
             if u_id:
+                # Anti-abuse: duplicate uploads (same file_hash already published
+                # by anyone) earn no publish points.
+                is_duplicate = False
+                if file_hash:
+                    try:
+                        dup_res = client.table('documents').select('id').eq('file_hash', file_hash).limit(2).execute()
+                        # More than one row means: this new doc + an earlier identical one
+                        is_duplicate = len(dup_res.data or []) > 1
+                        if is_duplicate:
+                            logging.info(f"[SCORING] duplicate upload detected (hash={file_hash[:12]}…), publish XP withheld for {u_id}")
+                    except Exception as dup_err:
+                        logging.warning(f"[SCORING] duplicate check failed (awarding XP): {dup_err}")
+
                 desc = f"Uploaded {document_type} for {subject_name or 'subject'}"
-                xp_result = award_contribution_xp(u_id, 'upload_document', doc_id, 'document', desc, base_xp=25)
-                if xp_result.get('success'):
+                if is_duplicate:
+                    xp_result = {'success': True, 'scored': False, 'reason': 'duplicate upload'}
+                else:
+                    xp_result = award_contribution_xp(u_id, 'upload_document', doc_id, 'document', desc, base_xp=25)
+                if xp_result.get('success') and xp_result.get('xp_gained') is not None:
                     xp_data = {
                         'xp_gained': xp_result['xp_gained'],
                         'new_score': xp_result['new_score'],
@@ -953,6 +1029,15 @@ def delete_file_record(record_id: str, user_email: str) -> Dict:
         log.error(f'delete_file_record error: {e}')
         return {'success': False}
 
+def _get_document_uploader(document_id: str):
+    """Uploader's profile id for a document, or None on failure."""
+    try:
+        res = init_supabase().table('documents').select('uploader_id').eq('id', document_id).limit(1).execute()
+        return res.data[0].get('uploader_id') if res.data else None
+    except Exception:
+        return None
+
+
 def toggle_like(user_email: str, document_id: str) -> Dict:
     client = init_supabase()
     if not client: return {'success': False, 'message': 'No client'}
@@ -977,6 +1062,15 @@ def toggle_like(user_email: str, document_id: str) -> Dict:
             doc_res = client.table('documents').select('like_count').eq('id', document_id).execute()
             count = (doc_res.data[0]['like_count'] or 0) + 1
             client.table('documents').update({'like_count': count}).eq('id', document_id).execute()
+            # Scoring: reward receiving a like (skip self-likes)
+            try:
+                from methods.scoring_engine import process_event
+                uploader = _get_document_uploader(document_id)
+                process_event(user_id=uploader, event_type='resource_liked', entity_id=document_id,
+                              entity_type='document', actor_is_owner=(uploader == u_id),
+                              description='Received a like')
+            except Exception as e:
+                logging.warning(f"[SCORING] like scoring skipped: {e}")
             return {'success': True, 'is_liked': True, 'like_count': count}
     except Exception as e:
         return {'success': False, 'message': str(e)}
@@ -1004,6 +1098,15 @@ def toggle_bookmark(user_email: str, document_id: str) -> Dict:
             doc_res = client.table('documents').select('bookmark_count').eq('id', document_id).execute()
             count = (doc_res.data[0]['bookmark_count'] or 0) + 1
             client.table('documents').update({'bookmark_count': count}).eq('id', document_id).execute()
+            # Scoring: reward receiving a bookmark (skip self-bookmarks)
+            try:
+                from methods.scoring_engine import process_event
+                uploader = _get_document_uploader(document_id)
+                process_event(user_id=uploader, event_type='resource_bookmarked', entity_id=document_id,
+                              entity_type='document', actor_is_owner=(uploader == u_id),
+                              description='Received a bookmark')
+            except Exception as e:
+                logging.warning(f"[SCORING] bookmark scoring skipped: {e}")
             return {'success': True, 'is_bookmarked': True, 'bookmark_count': count}
     except Exception as e:
         return {'success': False, 'message': str(e)}
@@ -1021,8 +1124,18 @@ def add_comment(user_email: str, document_id: str, content: str) -> Dict:
             'user_id': u_id,
             'content': content
         }).execute()
-        
+
         if res.data:
+            # Scoring: reward the uploader receiving a comment (skip self-comments)
+            try:
+                from methods.scoring_engine import process_event
+                uploader = _get_document_uploader(document_id)
+                if uploader:
+                    process_event(user_id=uploader, event_type='comment_created', entity_id=document_id,
+                                  entity_type='document', actor_is_owner=(uploader == u_id),
+                                  description='Received a comment')
+            except Exception as e:
+                logging.warning(f"[SCORING] comment scoring skipped: {e}")
             return {
                 'success': True, 
                 'comment': {
@@ -1905,10 +2018,20 @@ def get_papo_meter_data(user_id: str) -> Dict:
     
     return {'pap_count': pap_count, 'punya_count': punya_count}
 
-def award_contribution_xp(user_id: str, action_type: str, entity_id: str, entity_type: str, description: str, base_xp: int = 10) -> Dict:
+def award_contribution_xp(user_id: str, action_type: str, entity_id: str = None, entity_type: str = 'document', description: str = '', base_xp=None) -> Dict:
     client = init_supabase()
     if not client or not user_id: return {'success': False}
     try:
+        # Resolve points from scoring_config (admin-editable) unless caller pinned one
+        if base_xp is None:
+            try:
+                from methods.scoring_engine import get_points
+                pts = get_points()
+                base_xp = float(pts.get(action_type, 0) or 0)
+            except Exception:
+                base_xp = 0.0
+        if not base_xp or base_xp <= 0:
+            return {'success': True, 'scored': False, 'reason': 'zero/unknown point value'}
         # 1. Log the contribution
         client.table('contribution_logs').insert({
             'user_id': user_id, 'action_type': action_type, 'entity_id': entity_id,
