@@ -35,7 +35,7 @@ TURNSTILE_SITEKEY = os.getenv('TURNSTILE_SITEKEY', '')
 # DEFERRED: create_client crashes if SUPABASE_URL/KEY are None (causes H10 on Heroku startup).
 # We use a lazy proxy so the client is only created when first accessed.
 SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_KEY = os.getenv('SUPABASE_KEY')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY') or os.getenv('SUPABASE_PUBLIC_API_KEY')
 
 _supabase_client = None  # Lazily initialized
 
@@ -458,6 +458,27 @@ def inject_user_profile():
     """Inject user profile JSON into all templates for GA4 tracking."""
     return {
         'get_full_profile_json': get_full_profile_json
+    }
+
+
+@app.context_processor
+def inject_ad_decision():
+    """Inject dynamic ad decision (from access level) into all templates.
+
+    Templates use: {% if ad_decision.show_ads %}{% include 'ads/banner.html' %}{% endif %}
+    Density drives per-slot frequency: 'minimal'/'very_low' show ads rarely.
+    """
+    user_id = session.get('user', {}).get('uid')
+    try:
+        from methods.scoring_engine import get_ad_decision
+        ad_decision = get_ad_decision(user_id)
+    except Exception:
+        ad_decision = {'show_ads': True, 'density': 'high', 'level': None}
+    return {
+        'ad_decision': ad_decision,
+        'ad_density': ad_decision.get('density', 'high'),
+        # Convenience flags for slot-level frequency gating
+        'show_secondary_ads': ad_decision.get('density') in ('high', 'medium'),
     }
 
 
@@ -1718,6 +1739,32 @@ def api_log_document_view():
         
         if result.get('success'):
             logging.info(f"[HISTORY] Document view logged - User: {user_id}, Doc: {document_id}")
+
+            # Scoring engine: award contribution points for unique views only
+            try:
+                from methods.scoring_engine import process_event
+                # actor_is_owner: don't score views of one's own uploads
+                is_owner = False
+                try:
+                    from methods.supabase_helper import init_supabase as _init
+                    _res = _init().table('documents').select('uploader_id').eq('id', document_id).limit(1).execute()
+                    if _res.data:
+                        is_owner = (_res.data[0].get('uploader_id') == user_id)
+                except Exception:
+                    pass
+                score_res = process_event(
+                    user_id=user_id,
+                    event_type='resource_viewed',
+                    entity_id=document_id,
+                    entity_type='document',
+                    actor_is_owner=is_owner,
+                    description='Viewed a resource',
+                )
+                if score_res.get('scored'):
+                    logging.info(f"[SCORING] view scored for {user_id}: +{score_res.get('xp_gained')}")
+            except Exception as e:
+                logging.warning(f"[SCORING] view scoring skipped: {e}")
+
             return jsonify({
                 'success': True,
                 'message': 'Document view recorded',
@@ -1952,6 +1999,18 @@ def get_all_files():
 @auth_required
 def upload():
     if request.method == 'POST':
+        # Access level: enforce daily upload quota (Phase 3 feature gating)
+        try:
+            from methods.scoring_engine import check_upload_quota
+            quota = check_upload_quota(session.get('user', {}).get('uid'))
+            if not quota.get('allowed'):
+                return jsonify(success=False, message=(
+                    f"Daily upload limit reached ({quota.get('limit')}/day for your level). "
+                    "Contribute more to raise your access level!"
+                )), 429
+        except Exception as q_err:
+            logging.warning(f"[GATING] upload quota check skipped: {q_err}")
+
         # Security: Check if file is present
         if 'upload_document' not in request.files:
             return jsonify(success=False, message="No file provided"), 400
@@ -2591,7 +2650,9 @@ def api_check_profile():
 @app.route('/settings')
 @auth_required
 def settings():
-    return render_template('settings.html')
+    """Display user settings page with account, notification, credit, and privacy controls."""
+    user_data = session.get('user', {})
+    return render_template('settings.html', user_data=user_data)
 
 
 @app.route('/support')
@@ -2604,6 +2665,11 @@ def support():
 def about():
     """About page"""
     return render_template('about.html')
+
+@app.route('/open-source')
+def open_source():
+    """Open source page"""
+    return render_template('open_source.html')
 
 @app.route('/')
 def features():
@@ -4074,6 +4140,148 @@ def admin_analytics_dashboard():
     """Admin analytics dashboard page."""
     return render_template('admin_analytics.html')
 
+
+# ─── Admin Economy Dashboard (Dynamic Access & Contribution) ───
+
+@app.route('/api/my-access', methods=['GET'])
+@auth_required
+def api_my_access():
+    """Current user's access level, feature gate limits, and ad density."""
+    try:
+        from methods.scoring_engine import get_feature_gate
+        uid = session.get('user', {}).get('uid')
+        gate = get_feature_gate(uid)
+        quota = {'allowed': True, 'remaining': None}
+        progress = None
+        if uid:
+            from methods.scoring_engine import check_upload_quota, get_access_progress
+            quota = check_upload_quota(uid)
+            progress = get_access_progress(uid)
+        return jsonify({
+            'success': True,
+            'level': gate.get('level'),
+            'limits': {k: v for k, v in gate.items() if k != 'level'},
+            'uploads_today_remaining': quota.get('remaining'),
+            'progress': progress,
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/admin/economy')
+@auth_required
+@admin_required
+def admin_economy_dashboard():
+    """Admin economy dashboard: edit scoring config, view level distribution."""
+    return render_template('admin_economy.html')
+
+
+@app.route('/api/admin/economy/config', methods=['GET'])
+@auth_required
+@admin_required
+def api_admin_economy_get_config():
+    """Return all scoring_config entries."""
+    try:
+        from methods.supabase_helper import init_supabase
+        res = init_supabase().table('scoring_config').select('*').order('key').execute()
+        return jsonify({'success': True, 'config': res.data or []}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/economy/config', methods=['POST'])
+@auth_required
+@admin_required
+def api_admin_economy_update_config():
+    """Update one scoring_config key's JSONB value. Body: {key, value}."""
+    try:
+        data = request.json or {}
+        key = data.get('key')
+        value = data.get('value')
+        if not key or value is None:
+            return jsonify({'success': False, 'message': 'Missing key or value'}), 400
+        if not isinstance(value, (dict, list, int, float, str)):
+            return jsonify({'success': False, 'message': 'Invalid value type'}), 400
+
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        client.table('scoring_config').update({
+            'value': value, 'updated_at': 'now()'
+        }).eq('key', key).execute()
+
+        # Bust the in-process config cache so changes apply immediately
+        try:
+            import methods.scoring_engine as se
+            se._CONFIG_CACHE = {}
+            se._CONFIG_CACHE_AT = 0.0
+        except Exception:
+            pass
+        logging.info(f"[ECONOMY] admin updated scoring_config['{key}']")
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/economy/overview', methods=['GET'])
+@auth_required
+@admin_required
+def api_admin_economy_overview():
+    """Level distribution + top contributors/consumers + recent scored events."""
+    try:
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+
+        levels_res = client.table('profiles').select('id, full_name, access_level, abhihub_score, consumption_score, ccr').limit(5000).execute()
+        users = levels_res.data or []
+        dist = {}
+        for u in users:
+            lvl = u.get('access_level') or 'explorer'
+            dist[lvl] = dist.get(lvl, 0) + 1
+        by_score = sorted(users, key=lambda u: float(u.get('abhihub_score') or 0), reverse=True)
+        by_ccr = sorted(users, key=lambda u: float(u.get('ccr') or 0))
+
+        logs_res = client.table('contribution_logs').select(
+            'user_id, action_type, xp_awarded, description, created_at, profiles(full_name)'
+        ).order('created_at', desc=True).limit(25).execute()
+
+        return jsonify({
+            'success': True,
+            'total_users': len(users),
+            'level_distribution': dist,
+            'top_contributors': [
+                {'name': u.get('full_name'), 'score': u.get('abhihub_score'), 'level': u.get('access_level')}
+                for u in by_score[:10]
+            ],
+            'most_consumer_heavy': [
+                {'name': u.get('full_name'), 'ccr': u.get('ccr'), 'level': u.get('access_level')}
+                for u in by_ccr[:10] if float(u.get('ccr') or 0) > 0
+            ],
+            'recent_events': logs_res.data or [],
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/economy/user/<user_id>', methods=['POST'])
+@auth_required
+@admin_required
+def api_admin_economy_override_user(user_id):
+    """Manually override a user's access level. Body: {access_level}."""
+    try:
+        data = request.json or {}
+        level = data.get('access_level')
+        allowed = {'explorer', 'member', 'contributor', 'power_contributor', 'community_leader'}
+        if level not in allowed:
+            return jsonify({'success': False, 'message': f'access_level must be one of {allowed}'}), 400
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        # Manual override marker via negative ccr sentinel is hacky; instead store on profile
+        client.table('profiles').update({'access_level': level}).eq('id', user_id).execute()
+        logging.info(f"[ECONOMY] admin set user {user_id} access_level={level}")
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @app.route('/api/admin/approve-document', methods=['POST'])
 @auth_required
 @admin_required
@@ -4127,10 +4335,22 @@ def reject_document():
             pass
             
         client.table('documents').delete().eq('id', doc_id).execute()
-        
+
         if uploader_id:
+            # Anti-abuse: penalize the uploader for removed/spam content
+            try:
+                from methods.scoring_engine import get_config
+                pts = get_config('points') or {}
+                penalty = float(pts.get('spam_penalty_min', -10))
+                from methods.supabase_helper import award_contribution_xp
+                award_contribution_xp(
+                    uploader_id, 'content_removed', doc_id, 'document',
+                    'Document rejected/removed by moderation', base_xp=penalty
+                )
+            except Exception as pen_err:
+                logging.warning(f"[SCORING] removal penalty skipped: {pen_err}")
             recalculate_and_persist_user_rank(uploader_id)
-            
+
         return jsonify({'success': True, 'message': 'Document rejected and deleted successfully'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -5513,19 +5733,82 @@ def chat_with_peer(peer_id):
 
 
 @app.route('/profile/<user_id>')
-@auth_required
 def peer_profile(user_id):
-    """Public peer profile — shows uploaded files and referred materials."""
-    try:
-        from methods.supabase_helper import init_supabase, get_user_peer_materials_db
-        result = get_user_peer_materials_db(user_id)
-        return render_template('peer_profile.html', peer=result.get('user', {}),
-                               uploads=result.get('uploads', []),
-                               referred=result.get('referred', []))
-    except Exception as e:
-        logging.error(f"[peer_profile] {e}")
-        return redirect(url_for('dashboard'))
+    """Legacy peer profile route — redirects to the new /u/<user_id> URL."""
+    return redirect(url_for('instagram_profile', user_id=user_id))
 
+
+# ─── Crush API ──────────────────────────────────────────────────────────────
+
+@app.route('/api/crush/<target_id>', methods=['POST'])
+@auth_required
+def api_crush_toggle(target_id):
+    """Toggle a crush on target_id. Max 2 crushes per calendar year."""
+    me = session['user']['uid']
+    if me == target_id:
+        return jsonify({'success': False, 'message': 'Cannot crush yourself'}), 400
+    year = datetime.utcnow().year
+    try:
+        from methods.supabase_helper import init_supabase_admin, validate_uuid
+        if not validate_uuid(target_id):
+            return jsonify({'success': False, 'message': 'Invalid user'}), 400
+        client = init_supabase_admin()
+
+        # Check if already crushed
+        existing = client.table('user_crushes') \
+            .select('id').eq('from_user', me).eq('to_user', target_id).eq('year', year).execute()
+        if existing.data:
+            # Un-crush
+            client.table('user_crushes').delete() \
+                .eq('from_user', me).eq('to_user', target_id).eq('year', year).execute()
+            return jsonify({'success': True, 'action': 'removed', 'is_crush': False, 'is_match': False}), 200
+
+        # Enforce 2-per-year limit
+        count_res = client.table('user_crushes') \
+            .select('id', count='exact').eq('from_user', me).eq('year', year).execute()
+        if (count_res.count or 0) >= 2:
+            return jsonify({'success': False, 'message': 'You can only mark 2 crushes per year'}), 429
+
+        client.table('user_crushes').insert({'from_user': me, 'to_user': target_id, 'year': year}).execute()
+
+        # Check mutual match
+        mutual = client.table('user_crushes') \
+            .select('id').eq('from_user', target_id).eq('to_user', me).eq('year', year).execute()
+        is_match = bool(mutual.data)
+        return jsonify({'success': True, 'action': 'added', 'is_crush': True, 'is_match': is_match}), 200
+    except Exception as e:
+        logging.error(f"[CRUSH] {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/crush/status/<target_id>', methods=['GET'])
+@auth_required
+def api_crush_status(target_id):
+    """Return crush/match state between current user and target."""
+    me = session['user']['uid']
+    year = datetime.utcnow().year
+    try:
+        from methods.supabase_helper import init_supabase_admin, validate_uuid
+        if not validate_uuid(target_id):
+            return jsonify({'success': False}), 400
+        client = init_supabase_admin()
+        i_crushed = bool(client.table('user_crushes').select('id')
+            .eq('from_user', me).eq('to_user', target_id).eq('year', year).execute().data)
+        they_crushed = bool(client.table('user_crushes').select('id')
+            .eq('from_user', target_id).eq('to_user', me).eq('year', year).execute().data)
+        crushes_used = (client.table('user_crushes').select('id', count='exact')
+            .eq('from_user', me).eq('year', year).execute().count or 0)
+        return jsonify({
+            'success': True,
+            'is_crush': i_crushed,
+            'is_match': i_crushed and they_crushed,
+            'crushes_used': crushes_used,
+            'crushes_remaining': max(0, 2 - crushes_used)
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False}), 500
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 @app.route('/u/<user_id>')
 def instagram_profile(user_id):
@@ -5535,45 +5818,116 @@ def instagram_profile(user_id):
     No login required — anyone with the link can view the contributor's
     public profile and their shared materials.
     """
-    try:
-        from methods.supabase_helper import get_user_peer_materials_db
-
-        result = get_user_peer_materials_db(user_id)
-        if not result.get('success'):
-            abort(404)
-
-        peer = result.get('user', {})
-        uploads = result.get('uploads', [])
-        referred = result.get('referred', [])
-
-        # Build OG meta tags for rich Instagram/Facebook previews
-        og_title = (peer.get('name') or 'Student') + ' — AbhiHub'
-        og_description = f"{peer.get('name', 'A student')} from {peer.get('college_name', 'AbhiHub')} shared {len(uploads)} resource" \
-                        f"{'s' if len(uploads) != 1 else ''} on AbhiHub."
-        og_image = None
-
-        # Try to get a preview image from the first upload (if it's an image-based doc)
-        if uploads and uploads[0].get('file-path'):
-            file_path = uploads[0]['file-path']
-            if file_path.startswith('http'):
-                og_image = file_path
-            else:
-                og_image = url_for('static', filename='images/android-chrome-512x512.png', _external=True)
-
-        return render_template(
-            'profile_instagram.html',
-            peer=peer,
-            uploads=uploads,
-            referred=referred,
-            og_title=og_title,
-            og_description=og_description,
-            og_image=og_image,
-            disable_canonical=True,
-            referral_code=peer.get('referral_code') or '',
-        )
-    except Exception as e:
-        logging.error(f"[instagram_profile] {e}")
+    from methods.supabase_helper import init_supabase, validate_uuid
+    if not validate_uuid(user_id):
         abort(404)
+    client = init_supabase()
+    if not client:
+        abort(500)
+    try:
+        pr = client.table('profiles') \
+            .select('id, full_name, email, rank_title, reputation_score, is_verified, referral_code, college_id, department_id, colleges(name), departments(name, abbreviation)') \
+            .eq('id', user_id).single().execute()
+        if not pr.data:
+            abort(404)
+        p = pr.data
+        college_name = (p.get('colleges') or {}).get('name', '')
+        dept = p.get('departments') or {}
+        dept_name = dept.get('name') or dept.get('abbreviation') or ''
+        peer = {
+            'id': p.get('id'),
+            'name': p.get('full_name') or 'Student',
+            'email': p.get('email', ''),
+            'rank_title': p.get('rank_title', 'Student'),
+            'reputation_score': p.get('reputation_score', 0),
+            'is_verified': p.get('is_verified', False),
+            'referral_code': p.get('referral_code', ''),
+            'college_name': college_name,
+            'department_name': dept_name,
+            'pursuing_year': p.get('pursuing_year') or '',
+            'year_of_joining': p.get('year_of_joining') or '',
+        }
+    except Exception as e:
+        logging.error(f"[u/profile] {e}")
+        abort(404)
+
+    # Uploads
+    uploads = []
+    try:
+        docs = client.table('documents') \
+            .select('id, title, document_category, view_count, subjects(name)') \
+            .eq('uploader_id', user_id).eq('status', 'approved') \
+            .order('created_at', desc=True).limit(12).execute()
+        for d in (docs.data or []):
+            uploads.append({
+                'record_id': d.get('id'),
+                'file-name': d.get('title') or 'Untitled',
+                'type': d.get('document_category') or 'papers',
+                'subject': (d.get('subjects') or {}).get('name', ''),
+                'views': d.get('view_count', 0),
+            })
+    except Exception:
+        pass
+
+    # Referred (recently viewed)
+    referred = []
+    try:
+        views = client.table('document_views') \
+            .select('document_id, documents(id, title, document_category, subjects(name))') \
+            .eq('user_id', user_id).order('accessed_at', desc=True).limit(8).execute()
+        seen = set()
+        for v in (views.data or []):
+            doc = v.get('documents') or {}
+            did = doc.get('id')
+            if did and did not in seen:
+                seen.add(did)
+                referred.append({
+                    'record_id': did,
+                    'file-name': doc.get('title') or 'Untitled',
+                    'type': doc.get('document_category') or 'notes',
+                    'subject': (doc.get('subjects') or {}).get('name', ''),
+                })
+    except Exception:
+        pass
+
+    # Crush state (only if viewer is logged in and not viewing own profile)
+    crush_state = {'is_crush': False, 'is_match': False, 'crushes_remaining': 2, 'is_self': False}
+    viewer_id = session.get('user', {}).get('uid')
+    if viewer_id:
+        if viewer_id == user_id:
+            crush_state['is_self'] = True
+        else:
+            year = datetime.utcnow().year
+            try:
+                from methods.supabase_helper import init_supabase_admin
+                ac = init_supabase_admin() or client
+                i_crushed = bool(ac.table('user_crushes').select('id')
+                    .eq('from_user', viewer_id).eq('to_user', user_id).eq('year', year).execute().data)
+                they_crushed = bool(ac.table('user_crushes').select('id')
+                    .eq('from_user', user_id).eq('to_user', viewer_id).eq('year', year).execute().data)
+                used = (ac.table('user_crushes').select('id', count='exact')
+                    .eq('from_user', viewer_id).eq('year', year).execute().count or 0)
+                crush_state = {
+                    'is_crush': i_crushed,
+                    'is_match': i_crushed and they_crushed,
+                    'crushes_remaining': max(0, 2 - used),
+                    'is_self': False,
+                }
+            except Exception:
+                pass
+
+    og_title = f"{peer['name']} on AbhiHub"
+    og_description = f"{peer['name']} has shared {len(uploads)} study materials on AbhiHub."
+    og_image = None
+
+    return render_template('profile_instagram.html',
+                           peer=peer,
+                           uploads=uploads,
+                           referred=referred,
+                           crush_state=crush_state,
+                           og_title=og_title,
+                           og_description=og_description,
+                           og_image=og_image)
 
 
 @app.route('/api/chat/user-info/<user_id>')

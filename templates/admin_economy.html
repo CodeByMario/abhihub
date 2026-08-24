@@ -1,0 +1,126 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+<div style="max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem;">
+  <h1 style="font-size:1.5rem;margin-bottom:.25rem;">💰 Economy Dashboard</h1>
+  <p style="color:#64748b;margin-bottom:1.5rem;">Scoring config, level distribution, and user overrides. Changes apply within ~5 min (cache TTL) or instantly on this worker.</p>
+
+  <!-- Overview -->
+  <section id="overview" style="margin-bottom:2rem;">
+    <h2 style="font-size:1.15rem;">Overview</h2>
+    <div id="level-dist" style="display:flex;gap:.75rem;flex-wrap:wrap;margin:.75rem 0;"></div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;">
+      <div>
+        <h3 style="font-size:.95rem;">🏆 Top Contributors</h3>
+        <ol id="top-contrib" style="font-size:.85rem;padding-left:1.2rem;"></ol>
+      </div>
+      <div>
+        <h3 style="font-size:.95rem;">📉 Most Consumer-Heavy (lowest CCR)</h3>
+        <ol id="consumer-heavy" style="font-size:.85rem;padding-left:1.2rem;"></ol>
+      </div>
+    </div>
+    <h3 style="font-size:.95rem;margin-top:1rem;">Recent scored events</h3>
+    <table id="recent-events" style="width:100%;font-size:.8rem;border-collapse:collapse;">
+      <thead><tr style="text-align:left;color:#64748b;"><th>When</th><th>User</th><th>Action</th><th>XP</th><th>Note</th></tr></thead>
+      <tbody></tbody>
+    </table>
+  </section>
+
+  <!-- Config editor -->
+  <section id="config">
+    <h2 style="font-size:1.15rem;">⚙️ Scoring Config</h2>
+    <p style="font-size:.85rem;color:#64748b;">Values are JSON. Edit carefully — these drive all scoring, thresholds, ads, and rate limits.</p>
+    <div id="config-list"></div>
+  </section>
+
+  <!-- User override -->
+  <section style="margin-top:2rem;">
+    <h2 style="font-size:1.15rem;">👤 Manual Level Override</h2>
+    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
+      <input id="ov-user" placeholder="User UUID" style="padding:.4rem .6rem;border:1px solid #cbd5e1;border-radius:6px;min-width:260px;">
+      <select id="ov-level" style="padding:.4rem .6rem;border:1px solid #cbd5e1;border-radius:6px;">
+        <option>explorer</option><option>member</option><option>contributor</option>
+        <option>power_contributor</option><option>community_leader</option>
+      </select>
+      <button id="ov-apply" style="padding:.4rem 1rem;background:#0f172a;color:#fff;border:none;border-radius:6px;cursor:pointer;">Apply</button>
+      <span id="ov-msg" style="font-size:.85rem;align-self:center;"></span>
+    </div>
+  </section>
+</div>
+
+<style>
+  #config-list .cfg-row { border:1px solid var(--border,#e2e8f0); border-radius:8px; padding:.75rem; margin-bottom:.6rem; }
+  #config-list textarea { width:100%; min-height:70px; font-family:monospace; font-size:.8rem;
+    border:1px solid #cbd5e1; border-radius:6px; padding:.4rem; margin:.4rem 0; }
+  .pill { background:#f1f5f9;border-radius:999px;padding:.35rem .8rem;font-size:.85rem; }
+</style>
+
+<script>
+async function loadOverview() {
+  const r = await fetch('/api/admin/economy/overview');
+  const d = await r.json();
+  if (!d.success) return;
+  document.getElementById('level-dist').innerHTML =
+    Object.entries(d.level_distribution).map(([k,v]) =>
+      `<span class="pill"><b>${k}</b>: ${v}</span>`).join('') || '<i>No users scored yet</i>';
+  document.getElementById('top-contrib').innerHTML =
+    d.top_contributors.map(u => `<li>${u.name || u.level} — ${Math.round(u.score||0)}</li>`).join('');
+  document.getElementById('consumer-heavy').innerHTML =
+    d.most_consumer_heavy.map(u => `<li>${u.name} — CCR ${u.ccr}</li>`).join('') || '<li>—</li>';
+  const tb = document.querySelector('#recent-events tbody');
+  tb.innerHTML = (d.recent_events||[]).map(e => `<tr>
+    <td>${(e.created_at||'').slice(0,16).replace('T',' ')}</td>
+    <td>${(e.profiles && e.profiles.full_name) || e.user_id}</td>
+    <td>${e.action_type}</td><td>${e.xp_awarded}</td><td>${e.description||''}</td></tr>`).join('');
+}
+
+function renderConfig(items) {
+  document.getElementById('config-list').innerHTML = items.map((c,i) => `
+    <div class="cfg-row" data-key="${c.key}">
+      <b>${c.key}</b> ${c.description ? `<span style="color:#64748b;font-size:.8rem;">— ${c.description}</span>` : ''}
+      ${c.updated_at ? `<span style="color:#94a3b8;font-size:.75rem;">(updated ${(c.updated_at||'').slice(0,16)})</span>` : ''}
+      <textarea data-i="${i}">${JSON.stringify(c.value, null, 1)}</textarea>
+      <button onclick="saveCfg('${c.key}', ${i})">Save</button>
+      <span class="msg"></span>
+    </div>`).join('');
+  window.__cfg = items;
+}
+
+async function loadConfig() {
+  const r = await fetch('/api/admin/economy/config');
+  const d = await r.json();
+  if (d.success) renderConfig(d.config);
+}
+
+async function saveCfg(key, i) {
+  const row = document.querySelector(`[data-key="${key}"]`);
+  const msg = row.querySelector('.msg');
+  try {
+    const value = JSON.parse(row.querySelector('textarea').value);
+    const r = await fetch('/api/admin/economy/config', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({key, value})
+    });
+    const d = await r.json();
+    msg.textContent = d.success ? '✅ saved' : ('❌ ' + d.message);
+    msg.style.color = d.success ? 'green' : 'red';
+  } catch(err) {
+    msg.textContent = '❌ invalid JSON';
+    msg.style.color = 'red';
+  }
+}
+
+document.getElementById('ov-apply').onclick = async () => {
+  const msg = document.getElementById('ov-msg');
+  const r = await fetch('/api/admin/economy/user/' + document.getElementById('ov-user').value.trim(), {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({access_level: document.getElementById('ov-level').value})
+  });
+  const d = await r.json();
+  msg.textContent = d.success ? '✅ applied' : ('❌ ' + d.message);
+  msg.style.color = d.success ? 'green' : 'red';
+};
+
+loadOverview();
+loadConfig();
+</script>
+{% endblock %}
