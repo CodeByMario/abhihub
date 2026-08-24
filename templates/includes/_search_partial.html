@@ -296,7 +296,7 @@
 
 <!-- Ad Placement (In-Feed) -->
 <div style="max-width: 860px; margin: 0 auto 1rem;">
-    {% include 'ads/in_feed.html' %}
+    {% if show_secondary_ads %}{% include 'ads/in_feed.html' %}{% endif %}
 </div>
 
 <!-- History + Status -->

@@ -436,7 +436,7 @@
 
   <!-- Ad Placement (Banner) -->
   <div style="background: var(--surface); padding: 0.5rem 1rem; border-bottom: 1px solid var(--border);">
-      {% include 'ads/banner.html' %}
+      {% if show_secondary_ads %}{% include 'ads/banner.html' %}{% endif %}
   </div>
 
   <!-- PDF viewport -->

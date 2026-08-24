@@ -821,7 +821,7 @@ notes, practicals, and exam resources for top colleges across India." %}
           grid.innerHTML = d.suggested.map(u => {
             const init = (u.full_name || 'S').charAt(0).toUpperCase();
             const verified = u.is_verified ? '<span class="verified">✔️</span>' : '';
-            return `<div class="suggested-peer-card" title="View ${u.full_name || 'Student'}'s profile">
+            return `<div class="suggested-peer-card" title="View ${u.full_name || 'Student'}'s profile" onclick="location.href='/u/${u.id}'">
               <div class="suggested-peer-avatar">${init}</div>
               <div class="suggested-peer-name">${u.full_name || 'Student'} ${verified}</div>
               <div class="suggested-peer-meta">${u.college_name || 'AbhiHub'} • ⚡ ${u.reputation_score || 0} • 📤 ${u.uploads_count || 0}</div>
@@ -1552,7 +1552,7 @@ notes, practicals, and exam resources for top colleges across India." %}
 
 <!-- Ad Placement (Banner) -->
 <div class="home-section" style="padding-top:1rem; padding-bottom:0;">
-  {% include 'ads/banner.html' %}
+  {% if ad_decision.show_ads %}{% include 'ads/banner.html' %}{% endif %}
 </div>
 
 <!-- ── MemoryWall Feature Card ──────────────────────────────── -->

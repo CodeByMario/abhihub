@@ -479,6 +479,33 @@
     <div class="pf-hero-info">
       <h1 class="pf-hero-name">{{ data['user']['name'] }}</h1>
       <p class="pf-hero-email">{{ data['user']['email'] }}</p>
+      <!-- Access Level Badge (Dynamic Access Economy) -->
+      <div id="access-badge" style="margin:.5rem 0 .25rem;display:none;align-items:center;gap:.6rem;">
+        <span style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:.25rem .8rem;font-size:.8rem;font-weight:600;color:#fff;">
+          ⭐ <span id="access-level-name">Explorer</span>
+        </span>
+        <div style="flex:1;max-width:180px;height:6px;background:rgba(255,255,255,.25);border-radius:999px;overflow:hidden;">
+          <div id="access-progress-bar" style="height:100%;width:0%;background:#fff;border-radius:999px;transition:width .4s;"></div>
+        </div>
+        <span id="access-next" style="font-size:.72rem;color:rgba(255,255,255,.85);"></span>
+      </div>
+      <script>
+        (function () {
+          fetch('/api/my-access').then(r => r.json()).then(d => {
+            if (!d.success || !d.progress) return;
+            const wrap = document.getElementById('access-badge');
+            const names = {explorer:'Explorer', member:'Member', contributor:'Contributor',
+                           power_contributor:'Power Contributor', community_leader:'Community Leader'};
+            document.getElementById('access-level-name').textContent = names[d.level] || d.level;
+            document.getElementById('access-progress-bar').style.width =
+              Math.round((d.progress.progress || 0) * 100) + '%';
+            document.getElementById('access-next').textContent = d.progress.next_level
+              ? (names[d.progress.next_level] + ' @ ' + d.progress.next_threshold)
+              : 'Max level 🎉';
+            wrap.style.display = 'flex';
+          }).catch(() => {});
+        })();
+      </script>
       <div class="pf-hero-stats">
         <div class="pf-stat-box">
           <span class="pf-stat-num">{{ data.get('uploaded_files', [])|length }}</span>

@@ -95,7 +95,29 @@ def execute_search(query: str, college_id: str = None, limit: int = 50):
 def search_v2_endpoint():
     q = request.args.get('q', '').strip()
     college_id = request.args.get('college_id')
-    
+
+    # Access-level search quota (Phase 3). Fails open on any error.
+    try:
+        from methods.scoring_engine import get_feature_gate
+        from flask import session as _session
+        uid = _session.get('user', {}).get('uid')
+        gate = get_feature_gate(uid)
+        if uid and q:
+            client = init_supabase()
+            from datetime import datetime, timedelta, timezone
+            since = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
+            used = client.table('contribution_logs').select('id') \
+                .eq('user_id', uid).eq('action_type', 'search_performed') \
+                .gte('created_at', since).limit(gate['daily_searches'] + 1).execute()
+            if len(used.data or []) >= gate['daily_searches']:
+                return jsonify({
+                    'success': False,
+                    'message': f"Daily search limit reached ({gate['daily_searches']}/day for your level). Contribute to level up!",
+                    'quota_exceeded': True
+                }), 429
+    except Exception as quota_err:
+        logging.warning(f"[GATING] search quota check skipped: {quota_err}")
+
     results = execute_search(q, college_id)
     return jsonify({
         'success': True,
@@ -116,6 +138,23 @@ def search_analytics_endpoint():
                     'query': query,
                     'results_count': results_count
                 }).execute()
+
+                # Score consumption: log search_performed for quota tracking.
+                # Consumption events go through the engine but carry no points.
+                try:
+                    from flask import session as _session
+                    from methods.scoring_engine import process_event
+                    uid = _session.get('user', {}).get('uid')
+                    if uid:
+                        process_event(
+                            user_id=uid,
+                            event_type='search_performed',
+                            entity_id=None,
+                            entity_type='search',
+                            description=f'Searched: {query[:80]}',
+                        )
+                except Exception as se_err:
+                    logging.warning(f"[SCORING] search event skipped: {se_err}")
         return jsonify({'success': True})
     except Exception as e:
         logging.error(f"Analytics error: {e}")

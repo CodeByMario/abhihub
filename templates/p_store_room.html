@@ -88,7 +88,7 @@
 
     <!-- Ad Placement (In-Feed) -->
     <aside class="ad-wrapper" aria-label="Advertisement">
-        {% include 'ads/in_feed.html' %}
+        {% if show_secondary_ads %}{% include 'ads/in_feed.html' %}{% endif %}
     </aside>
 
     <!-- File Grid -->

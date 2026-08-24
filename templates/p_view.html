@@ -91,7 +91,7 @@
 
   <!-- Ad Placement (Banner) -->
   <div class="ad-banner">
-    {% include 'ads/banner.html' %}
+    {% if show_secondary_ads %}{% include 'ads/banner.html' %}{% endif %}
   </div>
 
   <div class="viewer-viewport">
