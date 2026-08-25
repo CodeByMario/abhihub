@@ -1,39 +1,149 @@
 {# 
-  Premium Horizontal Banner Ad
-  Usage: Place this at the top of pages or inside wide content containers.
-  Goal: Standard monetization with strict height boundaries to prevent layout shifts.
+  Social Follow CTA Banner
+  Usage: Place this at the top of pages to drive follows on Instagram, WhatsApp, LinkedIn.
+  Goal: Grow community by asking users to follow AbhiHub on social platforms.
 #}
-<div class="ad-container ad-banner">
-  <div class="ad-label">Advertisement</div>
-  <!-- Placeholder AbhiHub Logo -->
-  <img src="{{ url_for('static', filename='images/apple-touch-icon.png') }}" 
-       alt="AbhiHub Ad Placeholder" 
-       style="width:auto; height:70px; opacity: 0.5;">
+<div class="ad-container ad-banner ad-social-follow">
+  <div class="ad-label">Follow AbhiHub</div>
+  <div class="social-cta">
+    <div class="cta-text">
+      <span class="cta-emoji">📲</span>
+      <strong>Stay Updated — Follow AbhiHub!</strong>
+      <span class="cta-sub">Get latest papers, exam alerts &amp; community updates</span>
+    </div>
+    <div class="social-links">
+      <a href="https://www.instagram.com/_abhihub_" target="_blank" rel="noopener noreferrer"
+         class="social-link instagram">
+        <span class="social-icon">📸</span>
+        <span class="social-name">Instagram</span>
+        <span class="social-handle">@_abhihub_</span>
+      </a>
+      <a href="https://whatsapp.com/channel/0029VbAixWgLCoWwQwX1D91I" target="_blank" rel="noopener noreferrer"
+         class="social-link whatsapp">
+        <span class="social-icon">💬</span>
+        <span class="social-name">WhatsApp</span>
+        <span class="social-handle">Channel</span>
+      </a>
+      <a href="https://www.linkedin.com/company/abhihub" target="_blank" rel="noopener noreferrer"
+         class="social-link linkedin">
+        <span class="social-icon">💼</span>
+        <span class="social-name">LinkedIn</span>
+        <span class="social-handle">AbhiHub</span>
+      </a>
+    </div>
+  </div>
 </div>
 
 <style>
-.ad-banner {
-    width: 100%;
-    min-height: 90px;
-    background: #f1f5f9; /* Light gray background */
-    border: 2px dashed #94a3b8; /* Visible dashed border */
-    border-radius: 8px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: var(--space-6) 0;
-    overflow: hidden;
-    position: relative;
+.ad-social-follow {
+  width: 100%;
+  min-height: 100px;
+  background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #0f172a 100%);
+  border: 2px solid #475569;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--space-6) 0;
+  overflow: hidden;
+  position: relative;
 }
-.ad-banner .ad-label {
-    position: absolute;
-    top: 4px;
-    left: 8px;
-    font-size: 10px;
-    color: var(--text-tertiary);
-    z-index: 2;
+.ad-social-follow .ad-label {
+  position: absolute;
+  top: 6px;
+  left: 10px;
+  font-size: 10px;
+  color: #94a3b8;
+  z-index: 2;
+  letter-spacing: 1px;
+  text-transform: uppercase;
 }
-.ad-banner ins {
-    z-index: 1;
+.ad-social-follow .social-cta {
+  text-align: center;
+  padding: 0 1rem;
+}
+.ad-social-follow .cta-text {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.ad-social-follow .cta-emoji {
+  font-size: 1.8rem;
+  margin-bottom: 0.2rem;
+}
+.ad-social-follow .cta-text strong {
+  font-size: 1rem;
+  color: #f8fafc;
+  font-weight: 700;
+  margin-bottom: 0.15rem;
+}
+.ad-social-follow .cta-sub {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  margin-top: 0.1rem;
+}
+.ad-social-follow .social-links {
+  display: flex;
+  gap: 0.75rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.ad-social-follow .social-link {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.5rem 1rem;
+  background: #1e293b;
+  border: 1.5px solid #475569;
+  border-radius: 8px;
+  text-decoration: none;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.ad-social-follow .social-link .social-icon {
+  font-size: 1rem;
+}
+.ad-social-follow .social-link .social-name {
+  color: #94a3b8;
+  font-weight: 500;
+}
+.ad-social-follow .social-link .social-handle {
+  color: #f8fafc;
+  font-weight: 700;
+}
+.ad-social-follow .social-link:hover {
+  background: #334155;
+  border-color: #64748b;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+.ad-social-follow .social-link.instagram:hover {
+  border-color: #e1306c;
+  box-shadow: 0 4px 12px rgba(225, 48, 108, 0.3);
+}
+.ad-social-follow .social-link.whatsapp:hover {
+  border-color: #25d366;
+  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.3);
+}
+.ad-social-follow .social-link.linkedin:hover {
+  border-color: #0a66c2;
+  box-shadow: 0 4px 12px rgba(10, 102, 194, 0.3);
+}
+@media (max-width: 480px) {
+  .ad-social-follow .cta-text strong {
+    font-size: 0.9rem;
+  }
+  .ad-social-follow .social-link {
+    font-size: 0.72rem;
+    padding: 0.4rem 0.7rem;
+  }
+  .ad-social-follow .social-icon {
+    font-size: 0.85rem;
+  }
 }
 </style>

@@ -61,7 +61,7 @@ def client():
     from functools import wraps
 
     test_app = Flask(__name__)
-    test_app.secret_key = 'test-secret'
+    test_app.secret_key = os.getenv('FLASK_SECRET_KEY', 'test-secret')  # Test only — never use this pattern in production
 
     def auth_required(f):
         @wraps(f)
@@ -106,7 +106,7 @@ def fixed_client():
     from functools import wraps
 
     test_app = Flask(__name__)
-    test_app.secret_key = 'test-secret'
+    test_app.secret_key = os.getenv('FLASK_SECRET_KEY', 'test-secret')  # Test only — never use this pattern in production
     test_app.config['TESTING'] = True
 
     def auth_required(f):

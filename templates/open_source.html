@@ -1,0 +1,313 @@
+{% set seo_description = "AbhiHub is open source. Explore the codebase, report bugs, and contribute to a student-driven academic platform built with Flask, Supabase, and Cloudinary." %}
+{% extends 'p_struct.html' %}
+{% block content %}
+<style>
+:root {
+  --p: #2563eb; --p2: #7c3aed; --g: #10b981;
+  --txt: #0f172a; --muted: #64748b; --border: #e2e8f0;
+}
+body { background: #f8fafc; font-family: 'Kanit', sans-serif; margin: 0; overflow-x: hidden; }
+
+/* ── HERO ── */
+.os-hero {
+  min-height: 80vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; text-align: center;
+  padding: 5rem 1.5rem 4rem;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #7c3aed 100%);
+  color: #fff; position: relative; overflow: hidden;
+}
+.os-hero::before {
+  content: ''; position: absolute; inset: 0;
+  background: radial-gradient(circle at 20% 50%, rgba(37,99,235,.25), transparent 60%),
+              radial-gradient(circle at 80% 30%, rgba(124,58,237,.2), transparent 50%);
+  pointer-events: none;
+}
+.os-chip {
+  display: inline-block; background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.3); backdrop-filter: blur(8px);
+  padding: .4rem 1.2rem; border-radius: 99px; font-size: .85rem;
+  font-weight: 700; letter-spacing: .06em; text-transform: uppercase; margin-bottom: 2rem;
+}
+.os-title {
+  font-size: clamp(2.8rem, 6vw, 5rem); font-weight: 900; line-height: 1.05;
+  margin: 0 0 1.5rem; text-shadow: 0 10px 40px rgba(0,0,0,.3); max-width: 900px;
+}
+.os-title span { background: linear-gradient(90deg, #60a5fa, #a78bfa); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+.os-sub {
+  font-size: clamp(1rem, 2vw, 1.25rem); color: rgba(255,255,255,.85);
+  max-width: 640px; line-height: 1.7; margin: 0 0 3rem; font-weight: 500;
+}
+.os-cta { display: flex; gap: 1rem; flex-wrap: wrap; justify-content: center; }
+.os-btn {
+  padding: .85rem 2rem; border-radius: 16px; font-size: 1rem;
+  font-weight: 700; text-decoration: none; transition: all .2s;
+}
+.os-btn--white { background: #fff; color: var(--p); box-shadow: 0 8px 24px rgba(0,0,0,.15); }
+.os-btn--white:hover { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(0,0,0,.2); }
+.os-btn--ghost {
+  background: rgba(255,255,255,.15); color: #fff;
+  border: 1px solid rgba(255,255,255,.4); backdrop-filter: blur(8px);
+}
+.os-btn--ghost:hover { background: rgba(255,255,255,.25); transform: translateY(-2px); }
+
+/* ── SCROLL REVEAL ── */
+.sr { opacity: 0; transform: translateY(50px); transition: opacity .75s cubic-bezier(.16,1,.3,1), transform .75s cubic-bezier(.16,1,.3,1); }
+.sr.on { opacity: 1; transform: translateY(0); }
+.sr--left  { transform: translateX(-50px); }
+.sr--right { transform: translateX(50px); }
+.sr--left.on, .sr--right.on { transform: translateX(0); }
+
+/* ── SECTION WRAPPER ── */
+.os-section { max-width: 1100px; margin: 0 auto; padding: 5rem 1.5rem; }
+.sec-divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); max-width: 800px; margin: 0 auto; }
+
+/* ── STATS STRIP ── */
+.stats-strip {
+  display: flex; flex-wrap: wrap; gap: 1.5rem; justify-content: center;
+  padding: 3rem 1.5rem; background: #fff; border-bottom: 1px solid var(--border);
+}
+.stat-card {
+  text-align: center; padding: 1.5rem 2.5rem;
+  border-radius: 20px; background: linear-gradient(135deg, #f8fafc, #f1f5f9);
+  border: 1px solid var(--border); min-width: 140px;
+}
+.stat-card .num { font-size: 2rem; font-weight: 900; color: var(--p); }
+.stat-card .lbl { font-size: .85rem; color: var(--muted); font-weight: 600; margin-top: .25rem; }
+
+/* ── FEATURE ROWS ── */
+.fs { display: flex; align-items: center; gap: 5rem; }
+.fs:nth-child(even) { flex-direction: row-reverse; }
+.fs-content { flex: 1; }
+.fs-visual { flex: 1; display: flex; align-items: center; justify-content: center; }
+.fs-pill {
+  display: inline-flex; align-items: center; gap: .5rem;
+  padding: .35rem 1rem; border-radius: 99px; font-size: .8rem;
+  font-weight: 700; letter-spacing: .05em; text-transform: uppercase; margin-bottom: 1.25rem;
+}
+.fs-title { font-size: clamp(1.8rem, 3.5vw, 2.5rem); font-weight: 900; color: var(--txt); margin: 0 0 1rem; line-height: 1.2; }
+.fs-desc { font-size: 1.05rem; color: var(--muted); line-height: 1.7; font-weight: 500; margin: 0 0 1.5rem; }
+.fs-checks { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: .6rem; }
+.fs-checks li { display: flex; align-items: flex-start; gap: .75rem; font-size: .95rem; color: var(--txt); font-weight: 600; }
+.fs-checks li::before {
+  content: '✓'; background: linear-gradient(135deg, var(--p), var(--p2)); color: #fff;
+  width: 22px; height: 22px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: .7rem; font-weight: 900; flex-shrink: 0; margin-top: .15rem;
+}
+.emoji-card {
+  width: 240px; height: 240px; border-radius: 32px; display: flex;
+  align-items: center; justify-content: center; font-size: 6rem;
+  box-shadow: 0 24px 60px rgba(0,0,0,.08); position: relative;
+}
+.emoji-card::after {
+  content: ''; position: absolute; inset: -2px; border-radius: 34px;
+  background: linear-gradient(135deg, rgba(37,99,235,.2), rgba(124,58,237,.2)); z-index: -1;
+}
+
+/* ── STACK TABLE ── */
+.stack-grid {
+  display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1rem; margin-top: 2rem;
+}
+.stack-card {
+  background: #fff; border: 1px solid var(--border); border-radius: 16px;
+  padding: 1.25rem 1.5rem; display: flex; align-items: center; gap: 1rem;
+  transition: all .25s;
+}
+.stack-card:hover { transform: translateY(-3px); box-shadow: 0 10px 30px rgba(0,0,0,.08); }
+.stack-icon { font-size: 1.75rem; flex-shrink: 0; }
+.stack-info .name { font-weight: 800; color: var(--txt); font-size: .95rem; }
+.stack-info .role { font-size: .8rem; color: var(--muted); font-weight: 600; }
+
+/* ── HOW TO CONTRIBUTE ── */
+.steps { display: flex; flex-direction: column; gap: 1.25rem; margin-top: 2rem; }
+.step {
+  display: flex; gap: 1.25rem; align-items: flex-start;
+  background: #fff; border: 1px solid var(--border); border-radius: 16px; padding: 1.25rem 1.5rem;
+}
+.step-num {
+  width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--p), var(--p2)); color: #fff;
+  display: flex; align-items: center; justify-content: center; font-weight: 900; font-size: .9rem;
+}
+.step-body .step-title { font-weight: 800; color: var(--txt); margin-bottom: .25rem; }
+.step-body .step-desc { font-size: .9rem; color: var(--muted); font-weight: 500; }
+.step-body code {
+  background: #f1f5f9; border: 1px solid var(--border); border-radius: 6px;
+  padding: .15rem .5rem; font-size: .85rem; color: var(--p); font-family: monospace;
+}
+
+/* ── FINAL CTA ── */
+.os-final {
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 60%, #2563eb 100%);
+  padding: 6rem 1.5rem; text-align: center; margin-top: 4rem; position: relative; overflow: hidden;
+}
+.os-final::before {
+  content: ''; position: absolute; inset: 0; opacity: .06;
+  background: radial-gradient(circle at 50% 0%, #fff 0%, transparent 60%);
+}
+.os-final h2 { font-size: clamp(2rem, 4vw, 3rem); font-weight: 900; color: #fff; margin: 0 0 1rem; }
+.os-final p { font-size: 1.1rem; color: rgba(255,255,255,.8); max-width: 500px; margin: 0 auto 3rem; font-weight: 500; }
+.final-btns { display: flex; flex-wrap: wrap; gap: 1.25rem; justify-content: center; }
+.final-btn {
+  display: inline-flex; align-items: center; gap: .75rem; padding: .85rem 1.75rem;
+  border-radius: 16px; font-weight: 700; font-size: 1rem; text-decoration: none;
+  transition: all .25s; border: 1px solid rgba(255,255,255,.2); backdrop-filter: blur(8px); color: #fff;
+}
+.final-btn:hover { transform: translateY(-3px); box-shadow: 0 12px 30px rgba(0,0,0,.2); }
+.final-btn--gh { background: #24292f; }
+.final-btn--li { background: #0a66c2; }
+.final-btn--mail { background: var(--p); }
+
+@media (max-width: 850px) {
+  .fs, .fs:nth-child(even) { flex-direction: column; gap: 2.5rem; }
+  .fs-visual { order: -1; }
+  .emoji-card { width: 160px; height: 160px; font-size: 4rem; }
+  .os-section { padding: 3rem 1.25rem; }
+}
+</style>
+
+<!-- ════ HERO ════ -->
+<div class="os-hero">
+  <div class="os-chip">🌍 Open Source</div>
+  <h1 class="os-title">
+    Built in the open.<br>
+    <span>Powered by the community.</span>
+  </h1>
+  <p class="os-sub">AbhiHub is free and open source. Every line of code is public — fork it, improve it, or build on top of it.</p>
+  <div class="os-cta">
+    <a href="https://github.com/CodeByMario/abhihub" target="_blank" rel="noopener" class="os-btn os-btn--white">⭐ Star on GitHub</a>
+    <a href="https://github.com/CodeByMario/abhihub/fork" target="_blank" rel="noopener" class="os-btn os-btn--ghost">🍴 Fork the Repo</a>
+  </div>
+</div>
+
+<!-- ════ STATS ════ -->
+<div class="stats-strip sr">
+  <div class="stat-card"><div class="num">MIT</div><div class="lbl">License</div></div>
+  <div class="stat-card"><div class="num">Flask</div><div class="lbl">Backend</div></div>
+  <div class="stat-card"><div class="num">100%</div><div class="lbl">Free to Use</div></div>
+  <div class="stat-card"><div class="num">∞</div><div class="lbl">Contributors Welcome</div></div>
+</div>
+
+<!-- ════ WHY OPEN SOURCE ════ -->
+<div class="os-section">
+  <div class="fs sr sr--left">
+    <div class="fs-content">
+      <div class="fs-pill" style="background:#eff6ff;color:#2563eb;">🌐 Why Open Source</div>
+      <h2 class="fs-title">Transparent by design</h2>
+      <p class="fs-desc">AbhiHub was built by a student, for students. Making it open source means anyone can audit the code, suggest improvements, or adapt it for their own college community.</p>
+      <ul class="fs-checks">
+        <li>No hidden data collection — read the code yourself</li>
+        <li>Community-driven improvements and bug fixes</li>
+        <li>Free to fork and deploy for your own institution</li>
+      </ul>
+    </div>
+    <div class="fs-visual">
+      <div class="emoji-card" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);">🔓</div>
+    </div>
+  </div>
+</div>
+<div class="sec-divider"></div>
+
+<!-- ════ TECH STACK ════ -->
+<div class="os-section sr">
+  <div class="fs-pill" style="background:#fdf4ff;color:#9333ea;">🛠️ Tech Stack</div>
+  <h2 class="fs-title">What AbhiHub is built with</h2>
+  <p class="fs-desc" style="max-width:600px;">A modern, pragmatic stack chosen for reliability and developer friendliness.</p>
+  <div class="stack-grid">
+    <div class="stack-card"><span class="stack-icon">🐍</span><div class="stack-info"><div class="name">Flask</div><div class="role">Web framework</div></div></div>
+    <div class="stack-card"><span class="stack-icon">🐘</span><div class="stack-info"><div class="name">Supabase</div><div class="role">Database & Auth</div></div></div>
+    <div class="stack-card"><span class="stack-icon">☁️</span><div class="stack-info"><div class="name">Cloudinary</div><div class="role">File storage</div></div></div>
+    <div class="stack-card"><span class="stack-icon">📄</span><div class="stack-info"><div class="name">PDF.js</div><div class="role">In-browser viewer</div></div></div>
+    <div class="stack-card"><span class="stack-icon">⚡</span><div class="stack-info"><div class="name">Flask-SocketIO</div><div class="role">Realtime</div></div></div>
+    <div class="stack-card"><span class="stack-icon">🎨</span><div class="stack-info"><div class="name">Tailwind CSS</div><div class="role">Styling</div></div></div>
+    <div class="stack-card"><span class="stack-icon">🚀</span><div class="stack-info"><div class="name">Heroku</div><div class="role">Hosting</div></div></div>
+    <div class="stack-card"><span class="stack-icon">🔧</span><div class="stack-info"><div class="name">Gunicorn + Gevent</div><div class="role">WSGI server</div></div></div>
+  </div>
+</div>
+<div class="sec-divider"></div>
+
+<!-- ════ HOW TO CONTRIBUTE ════ -->
+<div class="os-section">
+  <div class="fs sr sr--right">
+    <div class="fs-content">
+      <div class="fs-pill" style="background:#f0fdf4;color:#15803d;">🤝 How to Contribute</div>
+      <h2 class="fs-title">Get involved in 4 steps</h2>
+      <p class="fs-desc">No contribution is too small — from fixing a typo to building a new feature.</p>
+      <div class="steps">
+        <div class="step">
+          <div class="step-num">1</div>
+          <div class="step-body">
+            <div class="step-title">Fork & clone</div>
+            <div class="step-desc">Fork the repo on GitHub, then run <code>git clone</code> locally.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">2</div>
+          <div class="step-body">
+            <div class="step-title">Set up your environment</div>
+            <div class="step-desc">Copy <code>.env.example</code> → <code>.env</code>, fill in your keys, then <code>pip install -r requirements-min.txt</code>.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">3</div>
+          <div class="step-body">
+            <div class="step-title">Make your change</div>
+            <div class="step-desc">Follow the docs in <code>.documentation/</code>. Run <code>pytest</code> before committing.</div>
+          </div>
+        </div>
+        <div class="step">
+          <div class="step-num">4</div>
+          <div class="step-body">
+            <div class="step-title">Open a Pull Request</div>
+            <div class="step-desc">Push your branch and open a PR. Describe what you changed and why.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="fs-visual">
+      <div class="emoji-card" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);">🤝</div>
+    </div>
+  </div>
+</div>
+<div class="sec-divider"></div>
+
+<!-- ════ CONTRIBUTION AREAS ════ -->
+<div class="os-section sr">
+  <div class="fs-pill" style="background:#fffbeb;color:#b45309;">💡 Where to Help</div>
+  <h2 class="fs-title">Areas that need contributors</h2>
+  <div class="stack-grid" style="margin-top:2rem;">
+    <div class="stack-card"><span class="stack-icon">🐛</span><div class="stack-info"><div class="name">Bug Reports</div><div class="role">Found something broken?</div></div></div>
+    <div class="stack-card"><span class="stack-icon">🎨</span><div class="stack-info"><div class="name">UI / UX</div><div class="role">Design improvements</div></div></div>
+    <div class="stack-card"><span class="stack-icon">🔍</span><div class="stack-info"><div class="name">Search</div><div class="role">Better relevance & filters</div></div></div>
+    <div class="stack-card"><span class="stack-icon">📱</span><div class="stack-info"><div class="name">Mobile</div><div class="role">PWA & responsive fixes</div></div></div>
+    <div class="stack-card"><span class="stack-icon">🧪</span><div class="stack-info"><div class="name">Tests</div><div class="role">Expand the pytest suite</div></div></div>
+    <div class="stack-card"><span class="stack-icon">📖</span><div class="stack-info"><div class="name">Docs</div><div class="role">Improve guides & READMEs</div></div></div>
+  </div>
+</div>
+
+<!-- ════ FINAL CTA ════ -->
+<div class="os-final sr">
+  <h2>Ready to contribute? 🚀</h2>
+  <p>Join the community and help make AbhiHub better for every engineering student.</p>
+  <div class="final-btns">
+    <a href="https://github.com/CodeByMario/abhihub" target="_blank" rel="noopener" class="final-btn final-btn--gh">
+      🐙 View on GitHub
+    </a>
+    <a href="https://www.linkedin.com/company/abhihub" target="_blank" rel="noopener" class="final-btn final-btn--li">
+      💼 AbhiHub on LinkedIn
+    </a>
+    <a href="mailto:abhihub.02@gmail.com" class="final-btn final-btn--mail">
+      📧 Email the Maintainer
+    </a>
+  </div>
+</div>
+
+<script>
+(function () {
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('on'); obs.unobserve(e.target); } });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.sr').forEach(el => obs.observe(el));
+})();
+</script>
+{% endblock %}

@@ -168,7 +168,7 @@
         },
         viewPeerDetail: function (e, el) {
             var userId = el.getAttribute('data-user-id');
-            if (userId) { window.location.href = '/peer/' + userId; }
+            if (userId) { window.location.href = '/u/' + userId; }
         },
         toggleLike: function (e, el) {
             e.stopPropagation();

@@ -305,7 +305,7 @@
         {% if 'notes' in file_type %}
           {% set preview_url = url_for('view_pdf', pdf_name=file['file-path'], record_id=file['record_id']) %}
         {% else %}
-          {% set preview_url = url_for('preview', file_path=file['file-path'], record_id=file['record_id']) %}
+          {% set preview_url = url_for('view_pdf', pdf_name=file['file-path'], record_id=file['record_id']) %}
         {% endif %}
         <a href="{{ preview_url }}" class="pf-file-card">
           <img src="/static/premium/icon/{% if 'notes' in file_type %}notes.gif{% elif 'practical' in file_type %}practicals.gif{% else %}papers.gif{% endif %}" class="pf-file-icon" alt="" aria-hidden="true">
@@ -343,7 +343,7 @@
         {% if 'notes' in file_type %}
           {% set preview_url = url_for('view_pdf', pdf_name=file['file-path'], record_id=file['record_id']) %}
         {% else %}
-          {% set preview_url = url_for('preview', file_path=file['file-path'], record_id=file['record_id']) %}
+          {% set preview_url = url_for('view_pdf', pdf_name=file['file-path'], record_id=file['record_id']) %}
         {% endif %}
         <a href="{{ preview_url }}" class="pf-file-card">
           <img src="/static/premium/icon/{% if 'notes' in file_type %}notes.gif{% elif 'practical' in file_type %}practicals.gif{% else %}papers.gif{% endif %}" class="pf-file-icon" alt="" aria-hidden="true">

@@ -317,6 +317,10 @@ notes, practicals, and exam resources for top colleges across India." %}
     const total = users.length;
     countEl.textContent = total;
 
+    // Hide the entire widget when no one is online
+    const widget = document.getElementById('onlineWidget');
+    if (widget) widget.style.display = (total === 0) ? 'none' : '';
+
     if (!users.length) {
       listEl.innerHTML = '<span style="font-size:.75rem;color:#94a3b8;">No one online right now</span>';
       return;
@@ -341,6 +345,9 @@ notes, practicals, and exam resources for top colleges across India." %}
   } catch (err) {
     const listEl = document.getElementById('onlineList');
     const countEl = document.getElementById('onlineCount');
+    // Hide widget on failure rather than showing a broken state
+    const widget = document.getElementById('onlineWidget');
+    if (widget) widget.style.display = 'none';
     if (countEl) countEl.textContent = '!';
     if (listEl) listEl.innerHTML = '<span style="font-size:.75rem;color:#f59e0b;">Unable to load</span>';
   }

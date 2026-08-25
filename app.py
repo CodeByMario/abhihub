@@ -58,21 +58,43 @@ supabase = _SupabaseProxy()
 import firebase_admin
 from firebase_admin import credentials, storage
 
-# Try to load Firebase credentials from environment variable first, fallback to file
+# Load Firebase service-account credentials:
+#   1. FIREBASE_SERVICE_ACCOUNT_JSON env var (primary — works local + Heroku)
+#   2. firebase-auth.json file (fallback, local dev) — git-ignored
+cred = None
 firebase_service_account = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
 if firebase_service_account:
-    # Load from environment variable (required for open-source; no file fallback)
     try:
         cred_dict = json.loads(firebase_service_account)
-        cred = credentials.Certificate(cred_dict)
+        if 'private_key' not in cred_dict or cred_dict.get('type') != 'service_account':
+            logging.warning(
+                "Firebase: FIREBASE_SERVICE_ACCOUNT_JSON looks like the WEB CLIENT config "
+                "(apiKey/authDomain/appId), not a service-account key. Firebase Storage signing "
+                "will fail. Generate a service account key: Firebase Console -> Project Settings "
+                "-> Service accounts -> Generate new private key."
+            )
+        else:
+            cred = credentials.Certificate(cred_dict)
+            logging.info("Firebase: credentials loaded from FIREBASE_SERVICE_ACCOUNT_JSON env var")
     except (json.JSONDecodeError, Exception) as e:
         logging.warning(f"Firebase: Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: {e}")
-        cred = None
-else:
-    # No file fallback — FIREBASE_SERVICE_ACCOUNT_JSON env var is required.
-    # For local development, set the env var (copy firebase-auth.json content into it).
-    logging.warning("Firebase: FIREBASE_SERVICE_ACCOUNT_JSON not set. Firebase storage unavailable.")
-    cred = None
+
+if cred is None:
+    _firebase_key_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'firebase-auth.json')
+    if os.path.exists(_firebase_key_path):
+        try:
+            cred = credentials.Certificate(_firebase_key_path)
+            logging.info("Firebase: credentials loaded from firebase-auth.json")
+        except Exception as e:
+            logging.warning(f"Firebase: failed to load firebase-auth.json: {e}")
+            cred = None
+
+if cred is None:
+    logging.warning(
+        "Firebase: no credentials found (neither FIREBASE_SERVICE_ACCOUNT_JSON nor "
+        "firebase-auth.json). Firebase storage unavailable — signed URL generation "
+        "will fail for Firebase-hosted documents."
+    )
 
 if cred:
     firebase_admin.initialize_app(cred, {
@@ -427,7 +449,6 @@ def log_document_view(file_name, file_url, record_id=None,
     if not user_email:
         return False
     try:
-        from methods.supabase_helper import save_file_access
         save_file_access(
             user_email=user_email,
             file_name=file_name,
@@ -767,7 +788,6 @@ def api_referral_register():
         if not code:
             return jsonify({'success': False, 'message': 'No referral code provided'}), 400
         new_user_id = session['user'].get('uid')
-        from methods.supabase_helper import register_referral, ensure_referral_code
         # Make sure the new user has their own code too (idempotent)
         ensure_referral_code(new_user_id)
         result = register_referral(new_user_id, code)
@@ -785,7 +805,6 @@ def api_referral_my_code():
     """Return the logged-in user's shareable referral code + link + progress."""
     try:
         uid = session['user'].get('uid')
-        from methods.supabase_helper import ensure_referral_code, init_supabase
         code = ensure_referral_code(uid)
         base = os.getenv('BASE_DOMAIN', 'abhihub.edu.eu.org')
         # Pull progress stats (referral_count, referral_credits) for the dashboard
@@ -884,7 +903,6 @@ def index_now_key(key):
 
 @app.route('/sitemap.xml')
 def sitemap():
-    from methods.supabase_helper import get_sitemap_urls
     
     # 1. Fetch raw data
     sitemap_res = get_sitemap_urls()
@@ -980,7 +998,6 @@ def profile_status(user_data=None):
         user_id = session.get('user', {}).get('uid')
         if not user_id:
             return jsonify({'profile_completed': False}), 200
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         res = client.table('profiles').select('college_id, department_id').eq('id', user_id).single().execute()
         completed = bool(res.data and res.data.get('college_id') and res.data.get('department_id'))
@@ -1004,7 +1021,6 @@ def get_profile(user_data=None):
         department_id = None
 
         if user_id:
-            from methods.supabase_helper import get_reputation_stats, init_supabase
             rep_stats = get_reputation_stats(user_id)
             if rep_stats.get('success'):
                 students_helped = rep_stats.get('students_helped', 0)
@@ -1024,7 +1040,6 @@ def get_profile(user_data=None):
                 
             timeline = []
             try:
-                from methods.supabase_helper import get_contribution_timeline
                 t_res = get_contribution_timeline(user_id)
                 if t_res.get('success'):
                     timeline = t_res.get('timeline', [])
@@ -1065,7 +1080,6 @@ def api_update_profile(user_data=None):
         college_id = (data.get('college_id') or '').strip()
         department_id = (data.get('department_id') or '').strip()
         
-        from methods.supabase_helper import init_supabase, validate_uuid
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'message': 'Supabase client unavailable'}), 500
@@ -1119,7 +1133,6 @@ def report_suspect():
         else:
             enum_action = 'unauthorized_access'
 
-        from methods.supabase_helper import log_security_audit_event
         res = log_security_audit_event(user_email, enum_action, ip_address, user_agent, {'frontend_action': action})
 
         logging.info(f"[SUSPECT] {user_email} | {enum_action}")
@@ -1136,7 +1149,6 @@ def report_suspect():
 def api_get_colleges():
     """Get all colleges for dropdown — cached at L1 for 1 hour (L3: browser/CDN 1hr)."""
     def fetch_all_colleges():
-        from methods.supabase_helper import get_all_colleges
         result = get_all_colleges()
         if result.get('success'):
             return result.get('data', [])
@@ -1155,7 +1167,6 @@ def api_get_colleges():
 def api_get_branches():
     """Get all branches for dropdown — cached at L1 for 1 hour (L3: browser/CDN 1hr)."""
     def fetch_all_branches():
-        from methods.supabase_helper import get_all_branches
         result = get_all_branches()
         if result.get('success'):
             return result.get('data', [])
@@ -1177,7 +1188,6 @@ def api_get_departments():
     college_id = request.args.get('college_id', '').strip()
     if not college_id:
         return jsonify({'success': False, 'departments': [], 'message': 'college_id required'}), 400
-    from methods.supabase_helper import get_departments_by_college
     result = get_departments_by_college(college_id)
     return jsonify({'success': result.get('success', False), 'departments': result.get('data', [])}), 200
 
@@ -1204,7 +1214,6 @@ def api_get_subjects():
 
     cache_key = f"subjects:{department_id}:{semester or 0}"
     def fetch_subjects():
-        from methods.supabase_helper import get_subjects_by_department
         result = get_subjects_by_department(department_id, semester=semester)
         return result.get('data', []) if result.get('success') else []
 
@@ -1239,7 +1248,6 @@ def api_add_subject(user_data=None):
     except (ValueError, TypeError):
         sem_val = None
 
-    from methods.supabase_helper import init_supabase
     client = init_supabase()
     try:
         insert_data = {
@@ -1283,7 +1291,6 @@ def api_add_college(user_data=None):
         return jsonify({'success': False, 'message': 'College name required'}), 400
     if len(name) > 200:
         return jsonify({'success': False, 'message': 'College name too long (max 200 chars)'}), 400
-    from methods.supabase_helper import init_supabase
     client = init_supabase()
     try:
         res = client.table('colleges').insert({'name': name, 'abbreviation': abbr or None}).execute()
@@ -1301,7 +1308,6 @@ def api_check_duplicate(user_data=None):
     if not file_hash:
         return jsonify({'success': False, 'message': 'Missing file_hash'}), 400
         
-    from methods.supabase_helper import init_supabase
     client = init_supabase()
     if not client: return jsonify({'success': False}), 500
     
@@ -1324,7 +1330,6 @@ def api_predict_metadata(user_data=None):
     filename = data.get('filename', '').lower()
     if not filename: return jsonify({'success': False})
     
-    from methods.supabase_helper import init_supabase
     client = init_supabase()
     
     words = re.split(r'[\W_]+', filename.split('.')[0])
@@ -1374,7 +1379,6 @@ def api_add_department(user_data=None):
         return jsonify({'success': False, 'message': 'Department name required'}), 400
     if len(name) > 120 or len(abbr) > 20:
         return jsonify({'success': False, 'message': 'Name too long (max 120) or abbreviation too long (max 20)'}), 400
-    from methods.supabase_helper import init_supabase
     client = init_supabase()
     try:
         res = client.table('departments').insert({'name': name, 'abbreviation': abbr or None}).execute()
@@ -1402,7 +1406,6 @@ def api_create_subject_request():
         return jsonify({'success': False, 'message': 'subject_name required'}), 400
     if len(subject_name) > 200:
         return jsonify({'success': False, 'message': 'Subject name too long (max 200 chars)'}), 400
-    from methods.supabase_helper import create_subject_request, track_user_event
     result = create_subject_request(
         user_id=user_id,
         college_id=data.get('college_id', ''),
@@ -1429,7 +1432,6 @@ def api_waitlist_join():
     if not college_id or not email or '@' not in email:
         return jsonify({'success': False, 'message': 'Valid email and college required'}), 400
 
-    from methods.supabase_helper import join_college_waitlist, validate_uuid
     if not validate_uuid(college_id):
         return jsonify({'success': False, 'message': 'Invalid college'}), 400
 
@@ -1442,7 +1444,6 @@ def api_waitlist_join():
 @auth_required
 def api_onboarding_status():
     user_id = session.get('user', {}).get('uid')
-    from methods.supabase_helper import get_onboarding_status
     result = get_onboarding_status(user_id)
     return jsonify(result), 200 if result.get('success') else 500
 
@@ -1451,7 +1452,6 @@ def api_onboarding_status():
 @auth_required
 def api_onboarding_welcome_seen():
     user_id = session.get('user', {}).get('uid')
-    from methods.supabase_helper import mark_welcome_seen
     result = mark_welcome_seen(user_id)
     return jsonify(result), 200 if result.get('success') else 500
 
@@ -1465,7 +1465,6 @@ def api_track_event():
     data = request.get_json(silent=True) or {}
     event_type = (data.get('event_type') or '').upper().strip()
     # track_user_event already filters to 3 allowed types
-    from methods.supabase_helper import track_user_event
     track_user_event(user_id, event_type, data.get('metadata', {}))
     return jsonify({'success': True}), 200
 
@@ -1538,7 +1537,6 @@ def label_store_room_paper():
             return jsonify({'success': False, 'message': 'Subject selection is required'}), 400
 
         # Validate the academic hierarchy
-        from methods.supabase_helper import verify_hierarchy
         if not verify_hierarchy(college_id, branch_id, subject_id):
             return jsonify({'success': False, 'message': 'Invalid academic hierarchy (mismatched college/branch/subject)'}), 400
 
@@ -1568,7 +1566,6 @@ def label_store_room_paper():
         file_ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'jpg'
         file_type = 'pdf' if file_ext == 'pdf' else 'image'
 
-        from methods.supabase_helper import save_file_record
 
         result = save_file_record(
             user_id=user_id or user_email.split('@')[0],
@@ -1596,7 +1593,6 @@ def label_store_room_paper():
             logging.info(f"[STORE_ROOM_LABEL] SUCCESS: Saved to file_records")
             
             # 1. Update storage_assets status to LABELED
-            from methods.supabase_helper import mark_storage_asset_labeled, log_label_audit
             storage_provider = storage_provider or ('cloudinary' if cloudinary_public_id else 'firebase')
             if cloudinary_public_id:
                 mark_storage_asset_labeled(storage_provider, cloudinary_public_id)
@@ -1625,7 +1621,6 @@ def label_store_room_paper():
             # PENDING storage row.  Clear that stale queue row so it is not
             # presented for labeling again.
             if result.get('conflict'):
-                from methods.supabase_helper import mark_storage_asset_labeled
                 storage_provider = storage_provider or ('cloudinary' if cloudinary_public_id else 'firebase')
                 if cloudinary_public_id:
                     mark_storage_asset_labeled(storage_provider, cloudinary_public_id)
@@ -1659,7 +1654,6 @@ def api_toggle_like():
     if not doc_id or not user_email:
         return jsonify({'success': False, 'message': 'Missing document or user info'}), 400
         
-    from methods.supabase_helper import toggle_like
     res = toggle_like(user_email, doc_id)
     return jsonify(res), 200 if res.get('success') else 500
 
@@ -1673,13 +1667,11 @@ def api_toggle_bookmark():
     if not doc_id or not user_email:
         return jsonify({'success': False, 'message': 'Missing document or user info'}), 400
         
-    from methods.supabase_helper import toggle_bookmark
     res = toggle_bookmark(user_email, doc_id)
     return jsonify(res), 200 if res.get('success') else 500
 
 @app.route('/api/interactions/comments/<doc_id>', methods=['GET', 'POST'])
 def api_comments(doc_id):
-    from methods.supabase_helper import add_comment, get_comments
     
     if request.method == 'GET':
         res = get_comments(doc_id)
@@ -1743,11 +1735,9 @@ def api_log_document_view():
             # Scoring engine: award contribution points for unique views only
             try:
                 from methods.scoring_engine import process_event
-                # actor_is_owner: don't score views of one's own uploads
                 is_owner = False
                 try:
-                    from methods.supabase_helper import init_supabase as _init
-                    _res = _init().table('documents').select('uploader_id').eq('id', document_id).limit(1).execute()
+                    _res = init_supabase().table('documents').select('uploader_id').eq('id', document_id).limit(1).execute()
                     if _res.data:
                         is_owner = (_res.data[0].get('uploader_id') == user_id)
                 except Exception:
@@ -1850,7 +1840,6 @@ def api_get_file_access_history():
         limit = request.args.get('limit', 20, type=int)
         limit = min(limit, 100)  # Cap at 100
         
-        from methods.supabase_helper import get_user_file_history
         result = get_user_file_history(user_email=user_email, limit=limit)
         
         if result.get('success'):
@@ -1889,7 +1878,6 @@ def api_get_my_notifications():
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
     limit  = min(request.args.get('limit', 20, type=int), 50)
     offset = request.args.get('offset', 0, type=int)
-    from methods.supabase_helper import get_user_notifications
     items = get_user_notifications(user_id, limit=limit, offset=offset)
     unread = sum(1 for n in items if not n.get('is_read'))
     return jsonify({'success': True, 'data': items, 'unread': unread}), 200
@@ -1902,7 +1890,6 @@ def api_mark_notifications_read():
     user_id = session.get('user', {}).get('uid')
     if not user_id:
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
-    from methods.supabase_helper import mark_notifications_read
     res = mark_notifications_read(user_id)
     return jsonify(res), 200 if res.get('success') else 500
 
@@ -1916,7 +1903,6 @@ def api_mark_single_notification_read(notif_id):
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
     try:
         client = None
-        from methods.supabase_helper import init_supabase, validate_uuid
         client = init_supabase()
         if not client or not validate_uuid(notif_id):
             return jsonify({'success': False, 'message': 'Invalid request'}), 400
@@ -1943,7 +1929,6 @@ def notifications_page():
         return redirect(url_for('login'))
     limit = min(request.args.get('limit', 50, type=int), 100)
     offset = request.args.get('offset', 0, type=int)
-    from methods.supabase_helper import get_user_notifications
     items = get_user_notifications(user_id, limit=limit, offset=offset)
     unread = sum(1 for n in items if not n.get('is_read'))
     has_more = len(items) == limit
@@ -1960,7 +1945,6 @@ def get_all_files():
     try:
         logging.info("[API /api/files/all] Request received")
         
-        from methods.supabase_helper import get_all_files_merged
         
         # Check if user is logged in to return personalized interactions
         user_info = session.get('user', {})
@@ -2120,7 +2104,6 @@ def upload():
             logging.info(f"[UPLOAD] Uploader:{user_id} College:{college_id} Branch:{branch_id} Semester:{semester} Subject:{subject_name!r} SubjectID:{subject_id}")
             
             # Save to file_records table (Supabase abhihub.documents)
-            from methods.supabase_helper import save_file_record
             from methods.cloudinary_upload import delete_file_from_cloudinary
 
             # Read optional fields the JS client sends
@@ -2169,7 +2152,6 @@ def upload():
 
             # ── Track UPLOAD event (non-blocking) ───────────────────────
             try:
-                from methods.supabase_helper import track_user_event
                 track_user_event(user_id, 'UPLOAD', {
                     'document_id': file_record_result.get('data', {}).get('id'),
                     'subject_id': subject_id or None,
@@ -2183,7 +2165,6 @@ def upload():
             try:
                 material_request_id = request.form.get('material_request_id')
                 if material_request_id:
-                    from methods.supabase_helper import init_supabase
                     client = init_supabase()
                     if client:
                         client.table('material_requests').update({
@@ -2213,7 +2194,6 @@ def upload():
             xp_gained = 0.0
             new_score = 0.0
             try:
-                from methods.supabase_helper import recalculate_and_persist_user_rank, POINTS_MAP, DEFAULT_POINTS
                 # XP for this specific upload (before persist)
                 cat = document_type.lower()
                 raw_pts = POINTS_MAP.get(cat, DEFAULT_POINTS)
@@ -2346,7 +2326,6 @@ def view_doc(doc_id, filename=None):
     
     Supports Range headers for PDF.js partial content requests.
     """
-    from methods.supabase_helper import get_document_by_id_rich
 
     # Note: Removed Referer check — it blocks legitimate PDF.js iframe fetches.
     # Security relies on: (1) Firebase signed URLs expire in 1 hour,
@@ -2389,7 +2368,16 @@ def view_doc(doc_id, filename=None):
                 except Exception:
                     pass  # Non-fatal: cache storage can fail
             except Exception as e:
-                logging.error(f"[VIEW-DOC] Signed URL error for {doc_id}: {e}")
+                cred_ok = bool(os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON'))
+                if not cred_ok or 'default app' in str(e).lower() or 'credential' in str(e).lower():
+                    logging.error(
+                        f"[VIEW-DOC] Firebase credentials missing/invalid for {doc_id}: {e}. "
+                        "Set FIREBASE_SERVICE_ACCOUNT_JSON to a SERVICE ACCOUNT key JSON "
+                        "(Firebase Console -> Project Settings -> Service accounts -> Generate new private key), "
+                        "NOT the web client config (apiKey/authDomain/appId)."
+                    )
+                else:
+                    logging.error(f"[VIEW-DOC] Signed URL error for {doc_id}: {e}")
                 abort(500)
 
     # Final safety: coerce to string
@@ -2407,7 +2395,50 @@ def view_doc(doc_id, filename=None):
     if request.headers.get('Range'):
         upstream_headers['Range'] = request.headers['Range']
 
-    upstream = requests.get(file_url, stream=True, timeout=30, verify=True, headers=upstream_headers)
+    def _fetch(url):
+        return requests.get(url, stream=True, timeout=30, verify=True, headers=upstream_headers)
+
+    upstream = _fetch(file_url)
+
+    # Self-heal: a cached or stored Firebase URL can go stale (signed URLs expire
+    # in 1h; token-less public URLs are rejected by storage rules). On 403/404,
+    # invalidate the cache, re-sign from the raw storage path, and retry once.
+    if upstream.status_code in (403, 404) and parsed.hostname in ('firebasestorage.googleapis.com', 'storage.googleapis.com'):
+        try:
+            cache.l1.delete(f"signed-url:{doc_id}")
+        except Exception:
+            pass
+        raw_path = document.get('file_url', '')
+        if isinstance(raw_path, (list, tuple)):
+            raw_path = raw_path[0] if raw_path else ''
+        raw_path = str(raw_path or '')
+        # Accept both bare storage paths ("premium/docs/x.pdf") and full URLs
+        # ("https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<path>%2Ffile.pdf?...")
+        if raw_path.startswith('http'):
+            from urllib.parse import unquote
+            m = re.search(r'/v0/b/[^/]+/o/(.+?)(?:\?|$)', raw_path)
+            raw_path = unquote(m.group(1)) if m else ''
+        if raw_path and not raw_path.startswith('http'):
+            try:
+                bucket = storage.bucket()
+                blob = bucket.blob(raw_path)
+                signed = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
+                fresh_url = signed[0] if isinstance(signed, (list, tuple)) else signed
+                try:
+                    cache.l1.set(f"signed-url:{doc_id}", fresh_url, ttl=300)
+                except Exception:
+                    pass
+                upstream.close()
+                upstream = _fetch(fresh_url)
+            except Exception as e:
+                cred_ok = bool(os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON'))
+                logging.error(
+                    f"[VIEW-DOC] Re-sign failed for {doc_id}: {e}. "
+                    + ("" if cred_ok else
+                       "FIREBASE_SERVICE_ACCOUNT_JSON is missing or invalid — set it to a SERVICE ACCOUNT key JSON "
+                       "(Firebase Console -> Project Settings -> Service accounts -> Generate new private key).")
+                )
+
     try:
         if upstream.status_code == 204:
             # Firebase returned 204 No Content — document not found or access denied.
@@ -2473,7 +2504,6 @@ def get_all_files_unified():
     """
     Get all active documents from Supabase `abhihub.documents`.
     """
-    from methods.supabase_helper import get_all_files_merged
     
     # Check if we have an active session to pass the user_id for like/bookmark status
     current_user_id = None
@@ -2491,7 +2521,6 @@ def get_all_files_unified():
 @app.route('/profile')
 @auth_required
 def profile():
-    from methods.supabase_helper import get_student_profile, get_user_uploaded_files, get_papo_meter_data
     
     user_info = session['user']
     user_id = user_info.get('uid')
@@ -2507,7 +2536,6 @@ def profile():
     
     # Map uploaded files to our unified format if necessary (though get_user_uploaded_files should return raw docs)
     # Actually, p_profile.html expects the unified format for the file cards
-    from methods.supabase_helper import _doc_to_json, get_contribution_timeline
     
     # Phase 18: Contribution Timeline
     timeline_result = get_contribution_timeline(user_id)
@@ -2533,7 +2561,6 @@ def p_profile_redirect():
 @app.route('/leaderboard', methods=['GET'])
 def leaderboard():
     """Phase 19: Global Gamification Leaderboard — cached at L1 for 10min."""
-    from methods.supabase_helper import get_leaderboard_data
 
     # Optional filter by college if requested
     college_id = request.args.get('college_id')
@@ -2557,7 +2584,6 @@ def leaderboard():
 @auth_required
 def account():
     """Display account management page"""
-    from methods.supabase_helper import get_student_profile, get_all_colleges, get_all_branches
     
     user_info = session['user']
     user_id = user_info.get('uid')
@@ -2584,7 +2610,6 @@ def account():
 @auth_required
 def update_account():
     """Handle account profile updates"""
-    from methods.supabase_helper import create_or_update_student_profile
     
     user_info = session['user']
     user_id = user_info.get('uid')
@@ -2605,7 +2630,6 @@ def update_account():
     }
     
     # Fetch static form data ONCE (colleges/branches are now cached)
-    from methods.supabase_helper import get_student_profile, get_all_colleges, get_all_branches
     colleges = get_all_colleges().get('data', [])
     branches = get_all_branches().get('data', [])
 
@@ -2632,7 +2656,6 @@ def update_account():
 @auth_required
 def api_check_profile():
     """API endpoint to check if profile is complete"""
-    from methods.supabase_helper import check_profile_completed
     
     user_info = session.get('user', {})
     user_id = user_info.get('uid')
@@ -2689,7 +2712,6 @@ def features_tour():
 @app.route('/pyq')
 def pyq_landing():
     """SEO landing page targeting 'PYQ' and '[college] PYQ' searches"""
-    from methods.supabase_helper import get_all_colleges, init_supabase
     colleges_res = get_all_colleges()
     colleges = colleges_res.get('data', [])
     # Attach doc count to each college
@@ -2725,10 +2747,6 @@ def college_landing(college_slug):
     """Dynamic SEO-optimized college landing page.
     Priority: brand group page > individual college page > 404
     """
-    from methods.supabase_helper import (
-        get_colleges_by_brand, get_college_by_slug,
-        get_college_stats, get_recent_college_files, get_all_branches
-    )
 
     def slugify(text):
         return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
@@ -2768,7 +2786,6 @@ def college_landing(college_slug):
     total_docs = stats.get('total_documents', 0)
 
     if total_docs < COMING_SOON_THRESHOLD:
-        from methods.supabase_helper import get_waitlist_count
         waitlist_count = get_waitlist_count(college_id)
         return render_template('college_coming_soon.html',
                                college=college,
@@ -2788,7 +2805,6 @@ def college_landing(college_slug):
 @app.route('/pyq/<college_slug>/<department_slug>')
 def department_landing(college_slug, department_slug):
     """Dynamic SEO-optimized department landing page"""
-    from methods.supabase_helper import get_college_by_slug, get_department_by_slug, get_department_stats, get_recent_department_files
     
     # 1. Resolve college
     college_res = get_college_by_slug(college_slug)
@@ -2817,7 +2833,6 @@ def department_landing(college_slug, department_slug):
 @app.route('/subject/<subject_slug>')
 def subject_landing(subject_slug):
     """Dynamic SEO-optimized subject landing page (aggregated across colleges)"""
-    from methods.supabase_helper import get_subjects_by_slug, get_subject_stats, get_recent_subject_files
     
     # 1. Resolve subject slug to a list of DB IDs
     subject_res = get_subjects_by_slug(subject_slug)
@@ -2840,7 +2855,6 @@ def subject_landing(subject_slug):
 @app.route('/resource/<path:slug>')
 def resource_landing(slug):
     """Dynamic SEO-optimized resource landing page"""
-    from methods.supabase_helper import get_document_by_id_rich
     
     # Extract UUID from the end of the slug
     # A standard UUID is 36 chars long (e.g. 847afaa6-cec4-48db-9016-2218c169bb87)
@@ -2896,7 +2910,6 @@ def resource_landing(slug):
     
     current_user_id = session.get('user', {}).get('uid')
     if current_user_id:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         if client:
             try:
@@ -3065,7 +3078,6 @@ def dashboard():
     via Flask first-rule-wins routing.
     """
     # Use unified documents from database
-    from methods.supabase_helper import get_all_file_records_formatted
     user_info = session.get('user', {})
     current_user_id = user_info.get('uid')
     files = get_all_file_records_formatted(current_user_id=current_user_id)
@@ -3108,7 +3120,6 @@ def dashboard():
                 user_subjects.add(subj)
         
         # Get file access history of the user (recently viewed files)
-        from methods.supabase_helper import get_user_file_history
         history_result = get_user_file_history(user_email, limit=10)
         file_history = []
         if history_result.get('success'):
@@ -3117,7 +3128,6 @@ def dashboard():
         # Get college name from profile
         college_name = ''
         try:
-            from methods.supabase_helper import get_student_profile, calculate_user_ranks, get_reputation_stats
             profile_res = get_student_profile(user_id)
             profile_data = profile_res.get('data', {}) if profile_res.get('success') else {}
             college_name = profile_data.get('college_name') or ''
@@ -3318,7 +3328,6 @@ def view_pdf():
         file_meta = {}
         if record_id:
             try:
-                from methods.supabase_helper import init_supabase, _doc_to_json, validate_uuid
                 if validate_uuid(record_id):
                     client = init_supabase()
                     if client:
@@ -3862,7 +3871,6 @@ def send_admin_notification():
     """Send push notification to selected users or all users"""
     try:
         from push_notifications import send_notification_to_all, send_notification_to_users
-        from methods.supabase_helper import log_notification
         
         data = request.get_json() or {}
         
@@ -3918,7 +3926,6 @@ def send_admin_notification():
 def get_admin_notification_history():
     """Get notification history (last 10 entries)"""
     try:
-        from methods.supabase_helper import get_notification_history
         history = get_notification_history()
         return jsonify({'success': True, 'history': history})
     
@@ -3972,7 +3979,6 @@ def chat_search_peers():
         return jsonify({'success': True, 'users': [], 'suggested': []})
 
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'users': [], 'suggested': [], 'error': 'DB error'}), 500
@@ -4026,7 +4032,6 @@ def chat_search_peers():
 def admin_get_users():
     """Get list of users for admin dashboard"""
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         res = client.table('profiles').select('id, full_name, email, created_at, role, reputation_score').order('created_at', desc=True).limit(500).execute()
         return jsonify({'success': True, 'users': res.data or []})
@@ -4039,7 +4044,6 @@ def admin_get_users():
 def admin_get_user_stats(user_id):
     """Get detailed stats for a specific user"""
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         
         # Last visit (from user_sessions)
@@ -4070,7 +4074,6 @@ def admin_get_user_stats(user_id):
 @admin_required
 def get_admin_stats():
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
@@ -4118,7 +4121,6 @@ def get_admin_stats():
 @admin_required
 def get_pending_documents():
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
@@ -4182,7 +4184,6 @@ def admin_economy_dashboard():
 def api_admin_economy_get_config():
     """Return all scoring_config entries."""
     try:
-        from methods.supabase_helper import init_supabase
         res = init_supabase().table('scoring_config').select('*').order('key').execute()
         return jsonify({'success': True, 'config': res.data or []}), 200
     except Exception as e:
@@ -4203,7 +4204,6 @@ def api_admin_economy_update_config():
         if not isinstance(value, (dict, list, int, float, str)):
             return jsonify({'success': False, 'message': 'Invalid value type'}), 400
 
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         client.table('scoring_config').update({
             'value': value, 'updated_at': 'now()'
@@ -4228,7 +4228,6 @@ def api_admin_economy_update_config():
 def api_admin_economy_overview():
     """Level distribution + top contributors/consumers + recent scored events."""
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
 
         levels_res = client.table('profiles').select('id, full_name, access_level, abhihub_score, consumption_score, ccr').limit(5000).execute()
@@ -4273,7 +4272,6 @@ def api_admin_economy_override_user(user_id):
         allowed = {'explorer', 'member', 'contributor', 'power_contributor', 'community_leader'}
         if level not in allowed:
             return jsonify({'success': False, 'message': f'access_level must be one of {allowed}'}), 400
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         # Manual override marker via negative ccr sentinel is hacky; instead store on profile
         client.table('profiles').update({'access_level': level}).eq('id', user_id).execute()
@@ -4292,7 +4290,6 @@ def approve_document():
         if not doc_id:
             return jsonify({'success': False, 'error': 'Document ID is required'}), 400
             
-        from methods.supabase_helper import init_supabase, recalculate_and_persist_user_rank
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
@@ -4321,7 +4318,6 @@ def reject_document():
         if not doc_id:
             return jsonify({'success': False, 'error': 'Document ID is required'}), 400
             
-        from methods.supabase_helper import init_supabase, recalculate_and_persist_user_rank
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
@@ -4342,7 +4338,6 @@ def reject_document():
                 from methods.scoring_engine import get_config
                 pts = get_config('points') or {}
                 penalty = float(pts.get('spam_penalty_min', -10))
-                from methods.supabase_helper import award_contribution_xp
                 award_contribution_xp(
                     uploader_id, 'content_removed', doc_id, 'document',
                     'Document rejected/removed by moderation', base_xp=penalty
@@ -4369,7 +4364,6 @@ def uhv_notes():
 @app.route('/rank')
 def calculate_rank():
     try:
-        from methods.supabase_helper import calculate_user_ranks
         rank_list = calculate_user_ranks()
         return jsonify({
             'status': 'success',
@@ -4438,7 +4432,6 @@ def verify_file():
             }
         
         # Insert into Supabase directly instead of data.json
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         if client:
             res = client.table('documents').select('id').eq('file_url', file_path).execute()
@@ -4500,7 +4493,6 @@ def update_file_metadata():
     Update file metadata in Supabase (Admin Only)
     """
     try:
-        from methods.supabase_helper import update_document_metadata
         data = request.get_json()
         file_path = data.get('file-path')
         
@@ -4525,8 +4517,68 @@ from methods.cloudinary_helper import (
     get_unique_formats, get_unique_folders
 )
 from methods.supabase_helper import (
-    save_labeled_paper, get_labeled_papers, check_if_labeled,
-    save_file_access, get_user_file_history
+    DEFAULT_POINTS,
+    POINTS_MAP,
+    _doc_to_json,
+    add_comment,
+    add_new_entity,
+    add_paper_verification,
+    award_contribution_xp,
+    calculate_user_ranks,
+    check_profile_completed,
+    create_or_update_student_profile,
+    create_subject_request,
+    ensure_referral_code,
+    get_all_branches,
+    get_all_colleges,
+    get_all_file_records_formatted,
+    get_all_files_merged,
+    get_college_by_slug,
+    get_comments,
+    get_contribution_timeline,
+    get_department_by_slug,
+    get_department_stats,
+    get_departments_by_college,
+    get_document_by_id_rich,
+    get_leaderboard_data,
+    get_notification_history,
+    get_onboarding_status,
+    get_papo_meter_data,
+    get_pending_storage_assets,
+    get_pending_verification_papers,
+    get_recent_department_files,
+    get_recent_subject_files,
+    get_reputation_stats,
+    get_sitemap_urls,
+    get_student_profile,
+    get_subject_stats,
+    get_subjects_by_department,
+    get_subjects_by_slug,
+    get_user_file_history,
+    get_user_notifications,
+    get_user_peer_materials_db,
+    get_user_uploaded_files,
+    get_waitlist_count,
+    init_supabase,
+    init_supabase_admin,
+    join_college_waitlist,
+    log_label_audit,
+    log_notification,
+    log_security_audit_event,
+    mark_notifications_read,
+    mark_storage_asset_labeled,
+    mark_welcome_seen,
+    recalculate_and_persist_user_rank,
+    register_referral,
+    save_file_access,
+    save_file_record,
+    search_users_db,
+    toggle_bookmark,
+    toggle_like,
+    track_user_event,
+    update_document_metadata,
+    validate_uuid,
+    verify_hierarchy,
 )
 
 _unlabeled_cache = {
@@ -4541,7 +4593,6 @@ def get_cached_unlabeled_files():
     if _unlabeled_cache['data'] is not None and (now - _unlabeled_cache['timestamp'] < _unlabeled_cache['ttl']):
         return _unlabeled_cache['data'], _unlabeled_cache['labeled_count']
         
-    from methods.supabase_helper import get_pending_storage_assets, init_supabase
     pending_assets = get_pending_storage_assets()
     
     unlabeled_files = []
@@ -4778,7 +4829,6 @@ def store_room_api_verify():
             }), 401
         
         # Save verification record to Supabase
-        from methods.supabase_helper import add_paper_verification
         result = add_paper_verification(labeled_paper_id, user_email)
         
         return jsonify(result)
@@ -4795,7 +4845,6 @@ def store_room_api_verification_queue():
     API endpoint to get papers pending verification
     """
     try:
-        from methods.supabase_helper import get_pending_verification_papers
         result = get_pending_verification_papers()
         
         return jsonify(result), 200 if result.get('success') else 400
@@ -4908,7 +4957,6 @@ def api_ask_paper():
             return jsonify({'success': False, 'message': 'doc_id and question are required'}), 400
 
         # Always fetch raw file_url from DB
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         raw = client.table('documents').select('file_url, title, document_category').eq('id', doc_id).single().execute()
         if not raw.data:
@@ -5032,7 +5080,6 @@ def api_extract_ocr():
         if not doc_id:
             return jsonify({'success': False, 'message': 'doc_id required'}), 400
 
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         raw = client.table('documents').select('file_url').eq('id', doc_id).single().execute()
         file_url = raw.data.get('file_url', '') if raw.data else ''
@@ -5101,7 +5148,6 @@ def toggle_like_route():
         if not document_id:
             return jsonify({'success': False, 'message': 'document_id is required'}), 400
             
-        from methods.supabase_helper import toggle_like
         user_email = user.get('email')
         res = toggle_like(user_email, document_id)
         return jsonify(res), 200 if res.get('success') else 500
@@ -5120,7 +5166,6 @@ def toggle_bookmark_route():
         if not document_id:
             return jsonify({'success': False, 'message': 'document_id is required'}), 400
             
-        from methods.supabase_helper import toggle_bookmark
         user_email = user.get('email')
         res = toggle_bookmark(user_email, document_id)
         return jsonify(res), 200 if res.get('success') else 500
@@ -5139,7 +5184,6 @@ def add_comment_route(document_id):
         if not document_id or not content:
             return jsonify({'success': False, 'message': 'document_id and content are required'}), 400
             
-        from methods.supabase_helper import add_comment
         user_email = user.get('email')
         res = add_comment(user_email, document_id, content)
         return jsonify(res), 200 if res.get('success') else 500
@@ -5152,7 +5196,6 @@ def get_comments_route(document_id):
         if not document_id:
             return jsonify({'success': False, 'message': 'document_id is required'}), 400
             
-        from methods.supabase_helper import get_comments
         res = get_comments(document_id)
         return jsonify(res), 200 if res.get('success') else 500
     except Exception as e:
@@ -5435,7 +5478,6 @@ def api_add_entity():
     except ValueError:
         semester = None
         
-    from methods.supabase_helper import add_new_entity
     result = add_new_entity(entity_type, name, short_name, code, semester, parent_id)
     return jsonify(result), 200 if result.get('success') else 500
 
@@ -5447,7 +5489,6 @@ def api_search_users():
     q = request.args.get('q', '').strip()
     if not q:
         return jsonify({'success': True, 'users': []})
-    from methods.supabase_helper import search_users_db
     users = search_users_db(q)
     return jsonify({'success': True, 'users': users})
 
@@ -5455,7 +5496,6 @@ def api_search_users():
 @auth_required
 def api_get_peer_materials(target_user_id):
     """Get target student's uploaded & referred study materials."""
-    from methods.supabase_helper import get_user_peer_materials_db
     res = get_user_peer_materials_db(target_user_id)
     return jsonify(res)
 
@@ -5467,7 +5507,6 @@ def api_chat_peer_materials_summary(target_user_id):
 
     Returns {success: true, user: {...}, uploads_count, recent_views: [...]}
     """
-    from methods.supabase_helper import get_user_peer_materials_db
     res = get_user_peer_materials_db(target_user_id)
     if not res.get('success'):
         return jsonify({'success': False, 'message': 'User not found'}), 404
@@ -5497,7 +5536,6 @@ def api_request_material():
     
     # Store or log request (simulated notification trigger)
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         if client:
             client.table('material_requests').insert({
@@ -5526,7 +5564,6 @@ def api_get_material_requests():
         return jsonify({'success': False, 'message': 'Not authenticated'}), 401
 
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'message': 'DB unavailable'}), 500
@@ -5577,7 +5614,6 @@ def api_respond_material_request():
         return jsonify({'success': False, 'message': 'Invalid parameters'}), 400
 
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'message': 'DB unavailable'}), 500
@@ -5644,8 +5680,9 @@ def chat_disconnect():
 def _get_merged_online_users():
     import time
     now_t = time.time()
-    # Prune old HTTP users — 70s timeout gives buffer above 60s polling interval
-    to_delete = [k for k, v in _chat_online_http.items() if now_t - v['time'] > 70]
+    # Prune old HTTP users — users stay "online" for 1 hour after last activity
+    ONLINE_WINDOW_S = 60 * 60
+    to_delete = [k for k, v in _chat_online_http.items() if now_t - v['time'] > ONLINE_WINDOW_S]
     for k in to_delete:
         del _chat_online_http[k]
     # Merge socket & HTTP
@@ -5749,7 +5786,6 @@ def api_crush_toggle(target_id):
         return jsonify({'success': False, 'message': 'Cannot crush yourself'}), 400
     year = datetime.utcnow().year
     try:
-        from methods.supabase_helper import init_supabase_admin, validate_uuid
         if not validate_uuid(target_id):
             return jsonify({'success': False, 'message': 'Invalid user'}), 400
         client = init_supabase_admin()
@@ -5788,7 +5824,6 @@ def api_crush_status(target_id):
     me = session['user']['uid']
     year = datetime.utcnow().year
     try:
-        from methods.supabase_helper import init_supabase_admin, validate_uuid
         if not validate_uuid(target_id):
             return jsonify({'success': False}), 400
         client = init_supabase_admin()
@@ -5818,7 +5853,6 @@ def instagram_profile(user_id):
     No login required — anyone with the link can view the contributor's
     public profile and their shared materials.
     """
-    from methods.supabase_helper import init_supabase, validate_uuid
     if not validate_uuid(user_id):
         abort(404)
     client = init_supabase()
@@ -5899,7 +5933,6 @@ def instagram_profile(user_id):
         else:
             year = datetime.utcnow().year
             try:
-                from methods.supabase_helper import init_supabase_admin
                 ac = init_supabase_admin() or client
                 i_crushed = bool(ac.table('user_crushes').select('id')
                     .eq('from_user', viewer_id).eq('to_user', user_id).eq('year', year).execute().data)
@@ -5935,7 +5968,6 @@ def instagram_profile(user_id):
 def chat_user_info(user_id):
     """Returns profile context shown in chat message badges."""
     try:
-        from methods.supabase_helper import get_student_profile
         prof = get_student_profile(user_id)
         # Check if we got a valid student name from the profile helper
         if not prof or not prof.get('student_name'):

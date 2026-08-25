@@ -1,340 +1,268 @@
-{% set seo_title = 'Contact AbhiHub | Support, Feedback & Business Inquiries' %}
-{% set seo_description = 'Contact AbhiHub for support, feedback, feature requests, or business inquiries about engineering study resources, PYQs, and notes.' %}
-{% set seo_keywords = 'contact AbhiHub, support, feedback, engineering study resources, business inquiries' %}
+{% set seo_title = 'Contact AbhiHub | Support, Feedback & Inquiries' %}
+{% set seo_description = 'Contact AbhiHub for support, feedback, or business inquiries about engineering study resources, PYQs, and notes.' %}
 {% extends 'p_struct.html' %}
 {% block content %}
-
 <style>
-    :root {
-        --primary: #2563eb;
-        --primary-dark: #1d4ed8;
-        --secondary: #64748b;
-        --accent: #f59e0b;
-        --glass: rgba(255, 255, 255, 0.7);
-        --glass-border: rgba(255, 255, 255, 0.3);
-    }
+.info-hero {
+  padding: 5rem 1.5rem 3.5rem;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 40%, #7c3aed 100%);
+  text-align: center; color: #fff; position: relative; overflow: hidden;
+}
+.info-hero::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 20% 50%, rgba(37,99,235,.25), transparent 60%),
+              radial-gradient(circle at 80% 30%, rgba(124,58,237,.2), transparent 50%);
+}
+.info-hero-chip {
+  display: inline-block; background: rgba(255,255,255,.15);
+  border: 1px solid rgba(255,255,255,.3); backdrop-filter: blur(8px);
+  padding: .35rem 1.1rem; border-radius: var(--radius-full);
+  font-size: var(--text-sm); font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; margin-bottom: 1.5rem;
+}
+.info-hero h1 { font-size: clamp(2.2rem, 5vw, 3.8rem); font-weight: 900; line-height: 1.1; margin: 0 0 1rem; }
+.info-hero h1 span { background: linear-gradient(90deg,#60a5fa,#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.info-hero p { font-size: clamp(1rem,2vw,1.2rem); color: rgba(255,255,255,.85); max-width: 560px; margin: 0 auto; line-height: 1.7; font-weight: 500; }
 
-    /* Hero Section */
-    .hero-section {
-        padding: 6rem 1rem 4rem;
-        background: radial-gradient(circle at top right, rgba(37, 99, 235, 0.1), transparent),
-            radial-gradient(circle at bottom left, rgba(37, 99, 235, 0.05), transparent);
-        position: relative;
-        overflow: hidden;
-        text-align: center;
-    }
+.sr { opacity:0; transform:translateY(40px); transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1); }
+.sr.on { opacity:1; transform:none; }
 
-    .hero-title {
-        font-size: clamp(2.5rem, 8vw, 4rem);
-        font-weight: 800;
-        line-height: 1.1;
-        margin-bottom: 1.5rem;
-        background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%);
-        -webkit-background-clip: text;
-        background-clip: text;
-        -webkit-text-fill-color: transparent;
-        letter-spacing: -0.02em;
-    }
+.info-body { max-width: 860px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
 
-    .hero-subtitle {
-        font-size: 1.25rem;
-        color: var(--secondary);
-        max-width: 600px;
-        margin: 0 auto 2.5rem;
-        line-height: 1.6;
-    }
+.info-card {
+  background: var(--surface); border: 1px solid var(--border-light);
+  border-radius: var(--radius-2xl); padding: 2.5rem;
+  box-shadow: var(--shadow-sm); margin-bottom: 1.5rem;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+}
+.info-card h2 { font-size: var(--text-2xl); font-weight: 900; color: var(--text-primary); margin: 0 0 1.5rem; text-align: center; }
 
-    /* Contact Card */
-    .contact-card {
-        background: var(--glass);
-        -webkit-backdrop-filter: blur(12px);
-        backdrop-filter: blur(12px);
-        border: 1px solid var(--glass-border);
-        padding: 3rem;
-        border-radius: 32px;
-        box-shadow: 0 20px 50px rgba(0, 0, 0, 0.05);
-        transition: transform 0.3s ease;
-    }
+/* Form */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem; }
+.form-group { display: flex; flex-direction: column; gap: .4rem; margin-bottom: 1rem; }
+.form-group label { font-size: var(--text-sm); font-weight: 700; color: var(--text-primary); }
+.form-group input,
+.form-group select,
+.form-group textarea {
+  padding: .75rem 1rem; border-radius: var(--radius-lg);
+  border: 1.5px solid var(--border-light); background: var(--bg-secondary);
+  font-family: var(--font-primary); font-size: var(--text-base); color: var(--text-primary);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+  outline: none; width: 100%; box-sizing: border-box;
+}
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus {
+  border-color: var(--primary-600);
+  box-shadow: 0 0 0 3px rgba(37,99,235,.12);
+  background: var(--surface);
+}
+.form-group textarea { resize: vertical; min-height: 130px; }
 
-    .form-label {
-        font-weight: 600;
-        color: #1e293b;
-        margin-bottom: 0.5rem;
-    }
+.btn-submit {
+  display: block; width: 100%; padding: 1rem;
+  background: linear-gradient(135deg, var(--primary-600), var(--accent-purple));
+  color: #fff; font-weight: 800; font-size: var(--text-base);
+  border: none; border-radius: var(--radius-full); cursor: pointer;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal);
+  box-shadow: 0 8px 24px rgba(37,99,235,.3); margin-top: .5rem;
+}
+.btn-submit:hover:not(:disabled) { transform: translateY(-2px); box-shadow: 0 14px 32px rgba(37,99,235,.4); }
+.btn-submit:disabled { opacity: .6; cursor: not-allowed; }
 
-    .form-control,
-    .form-select {
-        border-radius: 12px;
-        padding: 0.75rem 1rem;
-        border: 1px solid #e2e8f0;
-        background: rgba(255, 255, 255, 0.8);
-        transition: all 0.2s;
-    }
+/* Method cards */
+.method-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+.method-card {
+  background: var(--surface); border: 1px solid var(--border-light);
+  border-radius: var(--radius-xl); padding: 1.75rem 1.25rem; text-align: center;
+  transition: transform var(--transition-normal), box-shadow var(--transition-normal), border-color var(--transition-normal);
+}
+.method-card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); border-color: var(--primary-600); }
+.method-card .icon { font-size: 2rem; margin-bottom: .75rem; }
+.method-card h3 { font-size: var(--text-base); font-weight: 800; color: var(--text-primary); margin: 0 0 .4rem; }
+.method-card p { font-size: var(--text-sm); color: var(--text-secondary); margin: 0 0 .75rem; line-height: 1.5; }
+.method-card a { color: var(--primary-600); font-weight: 700; font-size: var(--text-sm); text-decoration: none; }
+.method-card a:hover { text-decoration: underline; }
 
-    .form-control:focus,
-    .form-select:focus {
-        border-color: var(--primary);
-        box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.1);
-        background: white;
-    }
+/* FAQ */
+.faq-item {
+  border: 1px solid var(--border-light); border-radius: var(--radius-xl);
+  margin-bottom: .75rem; overflow: hidden;
+}
+.faq-btn {
+  width: 100%; text-align: left; padding: 1.1rem 1.25rem;
+  background: var(--surface); border: none; cursor: pointer;
+  font-family: var(--font-primary); font-size: var(--text-base);
+  font-weight: 700; color: var(--text-primary);
+  display: flex; justify-content: space-between; align-items: center;
+  transition: background var(--transition-fast);
+}
+.faq-btn:hover { background: var(--bg-secondary); }
+.faq-btn.open { color: var(--primary-600); background: var(--primary-50); }
+.faq-btn .arrow { transition: transform var(--transition-normal); font-style: normal; }
+.faq-btn.open .arrow { transform: rotate(180deg); }
+.faq-body { display: none; padding: 0 1.25rem 1.1rem; color: var(--text-secondary); font-size: var(--text-sm); line-height: 1.7; }
+.faq-body.open { display: block; }
 
-    /* Contact Methods */
-    .method-grid {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-        gap: 2rem;
-        margin: 4rem 0;
-    }
+.turnstile-wrap { display: flex; justify-content: center; margin: .75rem 0; }
 
-    .method-card {
-        background: white;
-        border: 1px solid #e2e8f0;
-        padding: 2rem;
-        border-radius: 24px;
-        text-align: center;
-        transition: all 0.3s ease;
-    }
+#contactMsg {
+  padding: .85rem 1.25rem; border-radius: var(--radius-lg);
+  font-weight: 600; font-size: var(--text-sm); display: none; margin-top: .75rem; text-align: center;
+}
+#contactMsg.success { background: #f0fdf4; color: #15803d; border: 1px solid #bbf7d0; }
+#contactMsg.error   { background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
 
-    .method-card:hover {
-        transform: translateY(-8px);
-        border-color: var(--primary);
-        box-shadow: 0 20px 40px rgba(37, 99, 235, 0.08);
-    }
-
-    .method-icon {
-        font-size: 2.5rem;
-        margin-bottom: 1rem;
-        display: block;
-    }
-
-    /* FAQ Section */
-    .faq-section {
-        margin: 6rem 0;
-    }
-
-    .accordion-item {
-        border: 1px solid #e2e8f0;
-        border-radius: 16px !important;
-        margin-bottom: 1rem;
-        overflow: hidden;
-    }
-
-    .accordion-button {
-        font-weight: 700;
-        padding: 1.25rem;
-        color: #1e293b;
-        background: white;
-    }
-
-    .accordion-button:not(.collapsed) {
-        background: rgba(37, 99, 235, 0.05);
-        color: var(--primary);
-        box-shadow: none;
-    }
-
-    /* Animations */
-    @keyframes fadeInUp {
-        from {
-            opacity: 0;
-            transform: translateY(20px);
-        }
-
-        to {
-            opacity: 1;
-            transform: translateY(0);
-        }
-    }
-
-    .animate-fade-up {
-        animation: fadeInUp 0.6s ease-out forwards;
-    }
-
-    .delay-1 {
-        animation-delay: 0.1s;
-    }
-
-    .delay-2 {
-        animation-delay: 0.2s;
-    }
+@media (max-width: 600px) {
+  .form-row { grid-template-columns: 1fr; }
+  .info-card { padding: 1.5rem; }
+  .info-body { padding: 2rem 1rem 4rem; }
+}
 </style>
 
-<div class="container mx-auto px-4">
-    <!-- Hero -->
-    <section class="hero-section">
-        <div class="animate-fade-up">
-            <h1 class="hero-title">Get in Touch</h1>
-            <p class="hero-subtitle">
-                Have questions? We're here to help. Reach out to our team and we'll get back to you as soon as possible.
-            </p>
-        </div>
-    </section>
+<!-- Hero -->
+<div class="info-hero">
+  <div class="info-hero-chip">✉️ Contact</div>
+  <h1>Get in <span>Touch</span></h1>
+  <p>Have a question, feedback, or a bug to report? We're here to help.</p>
+</div>
 
-    <!-- Contact Form -->
-    <section class="max-w-4xl mx-auto py-12">
-        <div class="contact-card animate-fade-up delay-1">
-            <h2 class="text-2xl font-bold text-slate-900 mb-8 text-center">Send us a Message</h2>
-            <form id="contactForm" class="space-y-6">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <div>
-                        <label for="name" class="form-label">Full Name</label>
-                        <input type="text" id="name" class="form-control w-full" placeholder="John Doe" required>
-                    </div>
-                    <div>
-                        <label for="email" class="form-label">Email Address</label>
-                        <input type="email" id="email" class="form-control w-full" placeholder="john@example.com"
-                            required>
-                    </div>
-                </div>
-                <div>
-                    <label for="subject" class="form-label">Subject</label>
-                    <select id="subject" class="form-select w-full" required>
-                        <option value="">Select a subject</option>
-                        <option value="general">General Inquiry</option>
-                        <option value="technical">Technical Support</option>
-                        <option value="content">Content Submission</option>
-                        <option value="feedback">Feedback</option>
-                        <option value="other">Other</option>
-                    </select>
-                </div>
-                <div>
-                    <label for="message" class="form-label">Message</label>
-                    <textarea id="message" rows="5" class="form-control w-full" placeholder="How can we help you?"
-                        required></textarea>
-                </div>
-                <div class="flex justify-center my-2">
-                    <div class="cf-turnstile" data-sitekey="{{ TURNSTILE_SITEKEY }}" data-action="turnstile-spin-v2"></div>
-                </div>
-                <div class="text-center">
-                    <button type="submit"
-                        class="px-10 py-4 bg-blue-600 text-white rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-lg shadow-blue-200">
-                        Send Message
-                    </button>
-                </div>
-            </form>
-        </div>
-    </section>
+<div class="info-body">
 
-    <!-- Contact Methods -->
-    <section class="method-grid animate-fade-up delay-2">
-        <div class="method-card">
-            <span class="method-icon">📧</span>
-            <h3 class="text-xl font-bold mb-2">Email Us</h3>
-            <p class="text-slate-500 mb-4">For detailed inquiries and support.</p>
-            <a href="mailto:support@abhihub.com" class="text-blue-600 font-bold hover:underline">support@abhihub.com</a>
-        </div>
-        <div class="method-card">
-            <span class="method-icon">💬</span>
-            <h3 class="text-xl font-bold mb-2">Live Chat</h3>
-            <p class="text-slate-500 mb-4">Quick help from our support team.</p>
-            <span class="text-slate-400 text-sm">Available 9 AM - 6 PM</span>
-        </div>
-        <div class="method-card">
-            <span class="method-icon">🤝</span>
-            <h3 class="text-xl font-bold mb-2">Community</h3>
-            <p class="text-slate-500 mb-4">Join our peer support network.</p>
-            <span class="text-slate-400 text-sm">24/7 Community Support</span>
-        </div>
-    </section>
+  <!-- Method cards -->
+  <div class="method-row sr">
+    <div class="method-card">
+      <div class="icon">📧</div>
+      <h3>Email Us</h3>
+      <p>For detailed inquiries and support.</p>
+      <a href="mailto:abhihub.02@gmail.com">abhihub.02@gmail.com</a>
+    </div>
+    <div class="method-card">
+      <div class="icon">🐙</div>
+      <h3>GitHub Issues</h3>
+      <p>Found a bug? Open an issue.</p>
+      <a href="https://github.com/CodeByMario/abhihub/issues" target="_blank" rel="noopener">Open an Issue</a>
+    </div>
+    <div class="method-card">
+      <div class="icon">💼</div>
+      <h3>LinkedIn</h3>
+      <p>Connect with the AbhiHub team.</p>
+      <a href="https://www.linkedin.com/company/abhihub" target="_blank" rel="noopener">AbhiHub</a>
+    </div>
+  </div>
 
-    <!-- FAQ -->
-    <section class="faq-section animate-fade-up delay-2">
-        <div class="text-center mb-12">
-            <h2 class="text-3xl font-bold text-slate-900">Frequently Asked Questions</h2>
+  <!-- Contact form -->
+  <div class="info-card sr">
+    <h2>Send us a Message</h2>
+    <form id="contactForm" novalidate>
+      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="c-name">Full Name</label>
+          <input type="text" id="c-name" placeholder="Your name" required>
         </div>
-        <div class="max-w-3xl mx-auto">
-            <div class="accordion" id="faqAccordion">
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#faq1">
-                            How can I upload my study materials?
-                        </button>
-                    </h2>
-                    <div id="faq1" class="accordion-collapse collapse show" data-bs-parent="#faqAccordion">
-                        <div class="accordion-body text-slate-600">
-                            Simply create an account, log in, and use the upload feature. Make sure your materials are
-                            properly labeled and follow our content guidelines.
-                        </div>
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                            data-bs-target="#faq2">
-                            Is AbhiHub free to use?
-                        </button>
-                    </h2>
-                    <div id="faq2" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                        <div class="accordion-body text-slate-600">
-                            Yes! AbhiHub offers free access to most features. We also have premium features for enhanced
-                            functionality.
-                        </div>
-                    </div>
-                </div>
-                <div class="accordion-item">
-                    <h2 class="accordion-header">
-                        <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse"
-                            data-bs-target="#faq3">
-                            How do I report inappropriate content?
-                        </button>
-                    </h2>
-                    <div id="faq3" class="accordion-collapse collapse" data-bs-parent="#faqAccordion">
-                        <div class="accordion-body text-slate-600">
-                            You can report any inappropriate content using the report button on each resource, or
-                            contact us directly through this form.
-                        </div>
-                    </div>
-                </div>
-            </div>
+        <div class="form-group">
+          <label for="c-email">Email Address</label>
+          <input type="email" id="c-email" placeholder="you@example.com" required>
         </div>
-    </section>
+      </div>
+      <div class="form-group">
+        <label for="c-subject">Subject</label>
+        <select id="c-subject" required>
+          <option value="">Select a subject</option>
+          <option value="general">General Inquiry</option>
+          <option value="technical">Technical Support</option>
+          <option value="content">Content Submission</option>
+          <option value="feedback">Feedback</option>
+          <option value="other">Other</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label for="c-message">Message</label>
+        <textarea id="c-message" placeholder="How can we help you?" required></textarea>
+      </div>
+      <div class="turnstile-wrap">
+        <div class="cf-turnstile" data-sitekey="{{ TURNSTILE_SITEKEY }}" data-action="turnstile-spin-v2"></div>
+      </div>
+      <button type="submit" class="btn-submit" id="contactSubmit">Send Message →</button>
+      <div id="contactMsg"></div>
+    </form>
+  </div>
+
+  <!-- FAQ -->
+  <div class="info-card sr">
+    <h2>Frequently Asked Questions</h2>
+    <div class="faq-item">
+      <button class="faq-btn" data-faq="f1">How do I upload study materials? <span class="arrow">▾</span></button>
+      <div class="faq-body" id="f1">Create an account, log in, and use the Upload feature. Label your materials correctly and follow our content guidelines.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-btn" data-faq="f2">Is AbhiHub free to use? <span class="arrow">▾</span></button>
+      <div class="faq-body" id="f2">Yes! AbhiHub is free for all students. Upload materials to earn credits and unlock more paper views.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-btn" data-faq="f3">How do I report inappropriate content? <span class="arrow">▾</span></button>
+      <div class="faq-body" id="f3">Use the report button on any resource, or contact us directly through this form with the resource link.</div>
+    </div>
+    <div class="faq-item">
+      <button class="faq-btn" data-faq="f4">Can I delete my account? <span class="arrow">▾</span></button>
+      <div class="faq-body" id="f4">Yes. Go to <a href="{{ url_for('delete_account') }}" style="color:var(--primary-600);font-weight:700;">Delete Account</a> in your account settings to permanently remove your data.</div>
+    </div>
+  </div>
+
 </div>
 
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
 <script>
-    document.getElementById('contactForm').addEventListener('submit', async function (e) {
-        e.preventDefault();
-        const name = document.getElementById('name').value;
-        const email = document.getElementById('email').value;
-        const subject = document.getElementById('subject').value;
-        const message = document.getElementById('message').value;
-        const token = document.querySelector('[name="cf-turnstile-response"]')?.value || '';
+// FAQ accordion
+document.querySelectorAll('.faq-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    const id = btn.dataset.faq;
+    const body = document.getElementById(id);
+    const isOpen = body.classList.contains('open');
+    document.querySelectorAll('.faq-body').forEach(b => b.classList.remove('open'));
+    document.querySelectorAll('.faq-btn').forEach(b => b.classList.remove('open'));
+    if (!isOpen) { body.classList.add('open'); btn.classList.add('open'); }
+  });
+});
 
-        if (!token) {
-            alert('Please complete the security check.');
-            return;
-        }
-        
-        const btn = this.querySelector('button[type="submit"]');
-        const origText = btn.innerHTML;
-        btn.innerHTML = "Sending...";
-        btn.disabled = true;
+// Contact form
+document.getElementById('contactForm').addEventListener('submit', async function(e) {
+  e.preventDefault();
+  const name    = document.getElementById('c-name').value.trim();
+  const email   = document.getElementById('c-email').value.trim();
+  const subject = document.getElementById('c-subject').value;
+  const message = document.getElementById('c-message').value.trim();
+  const token   = document.querySelector('[name="cf-turnstile-response"]')?.value || '';
+  const msg     = document.getElementById('contactMsg');
+  const btn     = document.getElementById('contactSubmit');
 
-        try {
-            const res = await fetch('/api/contact', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ name, email, subject, message, turnstile_token: token })
-            });
-            const data = await res.json();
-            
-            if (data.success) {
-                alert('Thank you, ' + name + '! Your message has been sent successfully.');
-                this.reset();
-                window.turnstile?.reset();
-            } else {
-                window.turnstile?.reset();
-                alert('Failed to send message: ' + (data.error || 'Unknown error'));
-            }
-        } catch (error) {
-            console.error(error);
-            window.turnstile?.reset();
-            alert('A network error occurred. Please try again.');
-        } finally {
-            btn.innerHTML = origText;
-            btn.disabled = false;
-        }
-    });
+  if (!token) { showMsg('error', 'Please complete the security check.'); return; }
+
+  btn.textContent = 'Sending…'; btn.disabled = true;
+  try {
+    const res  = await fetch('/api/contact', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({name,email,subject,message,turnstile_token:token}) });
+    const data = await res.json();
+    if (data.success) {
+      showMsg('success', '✅ Message sent! We\'ll get back to you soon.');
+      this.reset(); window.turnstile?.reset();
+    } else {
+      window.turnstile?.reset();
+      showMsg('error', '❌ ' + (data.error || 'Failed to send. Please try again.'));
+    }
+  } catch { window.turnstile?.reset(); showMsg('error', '❌ Network error. Please try again.'); }
+  finally { btn.textContent = 'Send Message →'; btn.disabled = false; }
+
+  function showMsg(type, text) {
+    msg.className = type; msg.textContent = text; msg.style.display = 'block';
+    setTimeout(() => { msg.style.display = 'none'; }, 6000);
+  }
+});
+
+// Scroll reveal
+(function(){
+  const obs = new IntersectionObserver(es => es.forEach(e => { if(e.isIntersecting){e.target.classList.add('on');obs.unobserve(e.target);} }), {threshold:.1});
+  document.querySelectorAll('.sr').forEach(el => obs.observe(el));
+})();
 </script>
-
 {% endblock %}

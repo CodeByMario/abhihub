@@ -171,12 +171,10 @@ const handleEncryptedFileFetch = handleEncryptedPdfFetch;
 const PRECACHE_URLS = [
   '/',
   '/dashboard',
-  '/dashboard/',
   '/login',
   '/signup',
   '/offline',
   '/static/manifest.json',
-  '/static/css/abhihub-theme.css',
   '/static/premium/css/style.css',
   '/static/images/android-chrome-192x192.png',
   '/static/images/android-chrome-512x512.png',
@@ -188,8 +186,8 @@ const PRECACHE_URLS = [
   '/dashboard',
   '/account',
   '/profile',
-  '/dashboard',
-  '/dashboard/',
+  '/settings',
+  '/leaderboard',
 ];
 
 // Paths that should NEVER be cached (security-sensitive)

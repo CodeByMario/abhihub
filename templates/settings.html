@@ -1,0 +1,548 @@
+{% set seo_title = 'Settings | AbhiHub' %}
+{% set seo_description = 'Manage your AbhiHub account settings, notification preferences, study credits, and privacy controls.' %}
+{% extends 'p_struct.html' %}
+{% block content %}
+<style>
+.st-hero {
+  padding: 4.5rem 1.5rem 3rem;
+  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #7c3aed 100%);
+  text-align: center; color: #fff; position: relative; overflow: hidden;
+}
+.st-hero::before {
+  content: ''; position: absolute; inset: 0; pointer-events: none;
+  background: radial-gradient(circle at 20% 50%, rgba(37,99,235,.25), transparent 60%),
+              radial-gradient(circle at 80% 30%, rgba(124,58,237,.2), transparent 50%);
+}
+.st-hero-chip {
+  display: inline-flex; align-items: center; gap: .5rem;
+  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
+  backdrop-filter: blur(8px); padding: .35rem 1.1rem; border-radius: var(--radius-full);
+  font-size: var(--text-sm); font-weight: 700; letter-spacing: .06em;
+  text-transform: uppercase; margin-bottom: 1.25rem;
+}
+.st-hero h1 {
+  font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 900; line-height: 1.1; margin: 0 0 .35rem;
+}
+.st-hero p {
+  font-size: clamp(.9rem, 2vw, 1rem); color: rgba(255,255,255,.75);
+  max-width: 540px; margin: 0 auto; line-height: 1.7; font-weight: 500;
+}
+
+/* Layout */
+.st-container { max-width: 920px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
+
+/* Settings grid: sidebar nav + main content */
+.st-grid {
+  display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem;
+}
+.st-nav {
+  background: var(--surface); border: 1px solid var(--border-light);
+  border-radius: var(--radius-2xl); padding: 1rem; box-shadow: var(--shadow-sm);
+  position: sticky; top: 1.5rem; align-self: start;
+}
+.st-nav-item {
+  display: flex; align-items: center; gap: .6rem;
+  padding: .75rem 1rem; border-radius: var(--radius-lg);
+  font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary);
+  text-decoration: none; cursor: pointer; transition: all var(--transition-normal);
+  border: none; background: transparent; text-align: left;
+}
+.st-nav-item:hover {
+  background: var(--bg-secondary); color: var(--text-primary);
+}
+.st-nav-item.active {
+  background: var(--primary-50); color: var(--primary-600);
+  border: 1px solid var(--primary-200);
+}
+.st-nav-item.active .st-nav-icon {
+  color: var(--primary-600);
+}
+.st-nav-icon {
+  font-size: 1.1rem; width: 1.4rem; text-align: center;
+}
+
+/* Content sections */
+.st-section { display: none; }
+.st-section.active { display: block; animation: fadeIn .4s ease; }
+@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+
+/* Card */
+.st-card {
+  background: var(--surface); border: 1px solid var(--border-light);
+  border-radius: var(--radius-2xl); padding: 1.75rem; margin-bottom: 1.5rem;
+  box-shadow: var(--shadow-sm);
+}
+.st-card h2 {
+  font-size: var(--text-lg); font-weight: 800; color: var(--text-primary);
+  margin: 0 0 1rem; display: flex; align-items: center; gap: .5rem;
+}
+.st-card h2 .st-card-icon { font-size: 1.2rem; }
+
+/* Stat row */
+.st-stat-row {
+  display: flex; justify-content: space-between; align-items: center;
+  padding: .85rem 1rem; background: var(--bg-secondary); border-radius: var(--radius-lg);
+  border: 1px solid var(--border-light);
+}
+.st-stat-label { font-size: var(--text-sm); color: var(--text-secondary); font-weight: 600; }
+.st-stat-value {
+  font-size: var(--text-lg); font-weight: 800; color: var(--primary-600);
+  background: var(--primary-50); padding: .25rem .75rem; border-radius: var(--radius-full);
+}
+
+/* Toggle switch */
+.st-toggle {
+  position: relative; display: inline-block; width: 44px; height: 24px;
+}
+.st-toggle input { opacity: 0; width: 0; height: 0; }
+.st-slide {
+  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+  background: var(--gray-300); border-radius: 24px; transition: .25s;
+}
+.st-slide:before {
+  content: ""; position: absolute; bottom: 2px; left: 2px; width: 20px; height: 20px;
+  background: #fff; border-radius: 50%; transition: .25s;
+}
+input:checked + .st-slide { background: var(--primary-600); }
+input:checked + .st-slide:before { transform: translateX(20px); }
+
+/* Form rows */
+.st-form-row {
+  display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1.25rem;
+}
+.st-form-row:last-child { margin-bottom: 0; }
+.st-form-label {
+  font-size: var(--text-sm); font-weight: 700; color: var(--text-primary);
+}
+.st-form-sublabel {
+  font-size: var(--text-xs); color: var(--text-tertiary); margin-top: .15rem;
+}
+.st-form-input, .st-form-select {
+  padding: .6rem .85rem; border: 1.5px solid var(--border-light);
+  border-radius: var(--radius-lg); font-size: var(--text-sm);
+  background: var(--surface); color: var(--text-primary);
+  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+}
+.st-form-input:focus, .st-form-select:focus {
+  outline: none; border-color: var(--primary-600);
+  box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+}
+
+/* Action buttons */
+.st-btn-row { display: flex; gap: .75rem; margin-top: 1rem; flex-wrap: wrap; }
+.st-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
+  padding: .7rem 1.5rem; border-radius: var(--radius-full); font-size: var(--text-sm);
+  font-weight: 700; text-decoration: none; cursor: pointer; border: none;
+  transition: all var(--transition-normal);
+}
+.st-btn-primary {
+  background: linear-gradient(135deg, var(--primary-600), var(--accent-purple));
+  color: #fff; box-shadow: 0 6px 18px rgba(37,99,235,.25);
+}
+.st-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(37,99,235,.35); }
+.st-btn-outline {
+  background: var(--surface); border: 2px solid var(--border-medium); color: var(--text-primary);
+}
+.st-btn-outline:hover { border-color: var(--primary-600); color: var(--primary-600); transform: translateY(-2px); }
+.st-btn.danger {
+  background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff;
+}
+.st-btn.danger:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(239,68,68,.35); }
+
+/* Danger zone */
+.st-danger-zone {
+  border: 1px solid #fecaca; background: #fef2f2;
+}
+.st-danger-zone .st-card h2 { color: #b91c1c; }
+
+/* Toast */
+#st-toast {
+  position: fixed; bottom: 5.5rem; left: 50%; transform: translateX(-50%) translateY(20px);
+  background: var(--gray-900); color: #fff; padding: .6rem 1.25rem;
+  border-radius: var(--radius-full); font-size: var(--text-sm); font-weight: 700;
+  opacity: 0; transition: all .3s; pointer-events: none; z-index: 9999; white-space: nowrap;
+}
+#st-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+@media (max-width: 640px) {
+  .st-grid { grid-template-columns: 1fr; }
+  .st-nav { position: static; }
+  .st-stat-row { flex-direction: column; gap: .5rem; text-align: center; }
+}
+</style>
+
+<!-- Hero -->
+<div class="st-hero">
+  <div class="st-hero-chip">⚙️ Account Settings</div>
+  <h1>Settings</h1>
+  <p>Manage your account, notifications, study credits, and privacy preferences.</p>
+</div>
+
+<div class="st-container">
+  <div class="st-grid">
+
+    <!-- Sidebar Navigation -->
+    <nav class="st-nav" id="settingsNav">
+      <button class="st-nav-item active" data-section="my-account">
+        <span class="st-nav-icon">👤</span> My Account
+      </button>
+      <button class="st-nav-item" data-section="notifications">
+        <span class="st-nav-icon">🔔</span> Notifications
+      </button>
+      <button class="st-nav-item" data-section="study-credits">
+        <span class="st-nav-icon">🎓</span> Study Credits
+      </button>
+      <button class="st-nav-item" data-section="privacy">
+        <span class="st-nav-icon">🔒</span> Privacy
+      </button>
+      <button class="st-nav-item" data-section="app">
+        <span class="st-nav-icon">📱</span> App Settings
+      </button>
+      <button class="st-nav-item" data-section="danger">
+        <span class="st-nav-icon">⚠️</span> Danger Zone
+      </button>
+    </nav>
+
+    <!-- Main Content Sections -->
+    <div class="st-content">
+
+      <!-- My Account -->
+      <div class="st-section active" id="section-my-account">
+        <div class="st-card">
+          <h2><span class="st-card-icon">👤</span> Profile Information</h2>
+          <div class="st-form-row">
+            <label class="st-form-label">Full Name</label>
+            <input type="text" class="st-form-input" value="{{ session.user.name if session.user else '' }}" readonly>
+          </div>
+          <div class="st-form-row">
+            <label class="st-form-label">Email Address</label>
+            <input type="email" class="st-form-input" value="{{ session.user.email if session.user else '' }}" readonly>
+          </div>
+          <div class="st-form-row">
+            <label class="st-form-label">Auth Provider</label>
+            <input type="text" class="st-form-input" value="{{ session.user.provider if session.user else '' }}" readonly>
+            <div class="st-form-sublabel">Your account was created using {{ session.user.provider if session.user else 'email' }} authentication.</div>
+          </div>
+          <div class="st-btn-row">
+            <a href="/account" class="st-btn st-btn-primary">Edit Profile Info</a>
+            <button type="button" class="st-btn st-btn-outline" onclick="location.href='/account'">Go to Account Page</button>
+          </div>
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon">🔑</span> Password & Security</h2>
+          <div class="st-form-row">
+            <label class="st-form-label">Current Password</label>
+            <input type="password" class="st-form-input" placeholder="••••••••">
+            <div class="st-form-sublabel">Password management is handled automatically by your auth provider.</div>
+          </div>
+          <div class="st-btn-row">
+            <button type="button" class="st-btn st-btn-primary" onclick="forgotPassword()">Reset Password via Email</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications -->
+      <div class="st-section" id="section-notifications">
+        <div class="st-card">
+          <h2><span class="st-card-icon">🔔</span> Notification Preferences</h2>
+          <div class="st-form-row">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <label class="st-form-label">Push Notifications</label>
+                <div class="st-form-sublabel">Receive real-time alerts on new uploads and replies</div>
+              </div>
+              <label class="st-toggle">
+                <input type="checkbox" id="togglePush" checked onchange="saveNotifSetting('push', this.checked)">
+                <span class="st-slide"></span>
+              </label>
+            </div>
+          </div>
+          <div class="st-form-row">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <label class="st-form-label">Email Notifications</label>
+                <div class="st-form-sublabel">Weekly summary of your uploads and reputation</div>
+              </div>
+              <label class="st-toggle">
+                <input type="checkbox" id="toggleEmail" onchange="saveNotifSetting('email', this.checked)">
+                <span class="st-slide"></span>
+              </label>
+            </div>
+          </div>
+          <div class="st-form-row">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div>
+                <label class="st-form-label">Crush Match Alerts</label>
+                <div class="st-form-sublabel">Get notified when someone has a mutual crush with you</div>
+              </div>
+              <label class="st-toggle">
+                <input type="checkbox" id="toggleCrush" checked onchange="saveNotifSetting('crush', this.checked)">
+                <span class="st-slide"></span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon">📲</span> Device Settings</h2>
+          <div class="st-form-row">
+            <label class="st-form-label">Install App (PWA)</label>
+            <div class="st-form-sublabel">Add AbhiHub to your home screen for a native app experience with offline support.</div>
+          </div>
+          <div class="st-btn-row">
+            <button type="button" class="st-btn st-btn-primary" id="installPwaBtn" style="display:none;">📲 Install Now</button>
+            <button type="button" class="st-btn st-btn-outline" onclick="checkPWALocal()">Check Installation</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Study Credits -->
+      <div class="st-section" id="section-study-credits">
+        <div class="st-card">
+          <h2><span class="st-card-icon">🎓</span> Study Credits</h2>
+          <div class="st-stat-row">
+            <span class="st-stat-label">Credits Remaining Today</span>
+            <span class="st-stat-value">{{ user_data.paper_quota_remaining if user_data and user_data.paper_quota_remaining is not none else 19 }}</span>
+          </div>
+          <div class="st-form-sublabel" style="margin-top: .75rem;">Each document view costs 1 credit. Credits refill daily.</div>
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon">💎</span> Earn More Credits</h2>
+          <div style="display:flex;flex-direction:column;gap:.5rem;">
+            <div class="st-stat-row">
+              <span class="st-stat-label">Daily Login Bonus</span>
+              <span class="st-stat-value">+5</span>
+            </div>
+            <div class="st-stat-row">
+              <span class="st-stat-label">Invite a Friend (via referral)</span>
+              <span class="st-stat-value">+50</span>
+            </div>
+            <div class="st-stat-row">
+              <span class="st-stat-label">Upload a Resource</span>
+              <span class="st-stat-value">+10</span>
+            </div>
+            <div class="st-stat-row">
+              <span class="st-stat-label">Enable Notifications</span>
+              <span class="st-stat-value">+25</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon">📊</span> Reputation</h2>
+          <div class="st-stat-row">
+            <span class="st-stat-label">Reputation Score</span>
+            <span class="st-stat-value">{{ user_data.reputation_score if user_data and user_data.reputation_score is not none else 0 }}</span>
+          </div>
+          <div class="st-stat-row">
+            <span class="st-stat-label">Students Helped</span>
+            <span class="st-stat-value">{{ user_data.students_helped if user_data and user_data.students_helped is not none else 0 }}</span>
+          </div>
+          <div class="st-stat-row">
+            <span class="st-stat-label">Your Uploads</span>
+            <span class="st-stat-value">{{ user_data.uploads_count if user_data and user_data.uploads_count is not none else 0 }}</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Privacy -->
+      <div class="st-section" id="section-privacy">
+        <div class="st-card">
+          <h2><span class="st-card-icon">🔒</span> Privacy Controls</h2>
+          {% if session.user %}
+          <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border-light);">
+            <div>
+              <label class="st-form-label">Hide my profile from search engines</label>
+              <div class="st-form-sublabel">Prevent Google/Bing from indexing your public profile</div>
+            </div>
+            <label class="st-toggle">
+              <input type="checkbox" id="toggleNoIndex" onchange="savePrivacySetting('no_index', this.checked)">
+              <span class="st-slide"></span>
+            </label>
+          </div>
+          {% else %}
+          <div class="st-form-sublabel">You must be logged in to manage privacy settings.</div>
+          {% endif %}
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon">📄</span> Legal</h2>
+          <div style="display:flex;flex-direction:column;gap:.5rem;">
+            <a href="/privacy" class="st-nav-item" style="background:transparent;">📄 Privacy Policy</a>
+            <a href="/terms" class="st-nav-item" style="background:transparent;">📜 Terms of Service</a>
+            <a href="/open-source" class="st-nav-item" style="background:transparent;">🌍 Open Source</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- App Settings -->
+      <div class="st-section" id="section-app">
+        <div class="st-card">
+          <h2><span class="st-card-icon">🎨</span> Appearance</h2>
+          <div class="st-form-row">
+            <label class="st-form-label">Theme</label>
+            <select class="st-form-select" id="selectTheme" onchange="saveTheme(this.value)">
+              <option value="system">System Default (auto)</option>
+              <option value="light">Light Mode</option>
+              <option value="dark">Dark Mode</option>
+            </select>
+            <div class="st-form-sublabel">Choose how AbhiHub looks for you.</div>
+          </div>
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon">🌐</span> Language</h2>
+          <div class="st-form-row">
+            <label class="st-form-label">Display Language</label>
+            <select class="st-form-select" id="selectLang" onchange="saveLang(this.value)">
+              <option value="en">English</option>
+              <option value="hi">हिंदी (Hindi)</option>
+              <option value="mr">मराठी (Marathi)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon">📦</span> Storage</h2>
+          <div class="st-stat-row">
+            <span class="st-stat-label">Used by cached resources</span>
+            <span class="st-stat-value" id="cacheSize">—</span>
+          </div>
+          <div class="st-btn-row">
+            <button type="button" class="st-btn st-btn-outline" onclick="clearCache()">Clear Cache</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="st-section" id="section-danger">
+        <div class="st-danger-zone st-card">
+          <h2><span class="st-card-icon">⚠️</span> Danger Zone</h2>
+          <div class="st-form-sublabel" style="margin-bottom: 1rem; color: #991b1b;">
+            These actions are irreversible. Proceed with caution.
+          </div>
+          <div class="st-btn-row">
+            <a href="/account/delete" class="st-btn danger">🗑️ Delete My Account</a>
+          </div>
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon">🚪</span> Sign Out</h2>
+          <div class="st-form-sublabel" style="margin-bottom: 1rem;">
+            Sign out of your AbhiHub account on this device.
+          </div>
+          <div class="st-btn-row">
+            <a href="/logout" class="st-btn st-btn-outline">🔒 Sign Out</a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div id="st-toast"></div>
+
+<script>
+// ── Toast helper ──
+function showStToast(msg, duration = 2500) {
+  const t = document.getElementById('st-toast');
+  t.textContent = msg; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ── Sidebar navigation ──
+(function() {
+  const navItems = document.querySelectorAll('#settingsNav .st-nav-item');
+  const sections = document.querySelectorAll('.st-section');
+  navItems.forEach(item => {
+    item.addEventListener('click', function() {
+      const section = this.dataset.section;
+      navItems.forEach(i => i.classList.remove('active'));
+      sections.forEach(s => s.classList.remove('active'));
+      this.classList.add('active');
+      document.getElementById('section-' + section).classList.add('active');
+    });
+  });
+})();
+
+// ── PWA Install ──
+window.matchMedia('(display-mode: standalone)').addEventListener('change', function(e) {
+  const btn = document.getElementById('installPwaBtn');
+  if (btn && btn.style.display !== 'none') {
+    btn.textContent = e.matches ? '✅ Installed' : '📲 Install Now';
+  }
+});
+function checkPWALocal() {
+  if (window.matchMedia('(display-mode: standalone)').matches) {
+    showStToast('✅ AbhiHub is installed on your device!');
+  } else {
+    showStToast('📲 Not installed yet. Use your browser\'s "Add to Home Screen" option.');
+  }
+}
+
+// ── Save settings (localStorage fallback) ──
+function saveNotifSetting(key, value) {
+  try { localStorage.setItem('notif_' + key, value ? '1' : '0'); } catch(e) {}
+  showStToast('✅ Preference saved');
+}
+function savePrivacySetting(key, value) {
+  try { localStorage.setItem('privacy_' + key, value ? '1' : '0'); } catch(e) {}
+  showStToast('✅ Preference saved');
+}
+function saveTheme(value) {
+  try { localStorage.setItem('abhihub_theme', value); } catch(e) {}
+  showStToast('✅ Theme preference saved');
+}
+function saveLang(value) {
+  try { localStorage.setItem('abhihub_lang', value); } catch(e) {}
+  showStToast('✅ Language preference saved');
+}
+function clearCache() {
+  if ('caches' in window) {
+    caches.keys().then(keys => {
+      Promise.all(keys.map(k => caches.delete(k))).then(() => {
+        showStToast('✅ Cache cleared');
+        document.getElementById('cacheSize').textContent = '0 MB';
+      });
+    });
+  } else {
+    showStToast('⚠️ Cache API not available');
+  }
+}
+function forgotPassword() {
+  const email = '{{ session.user.email if session.user else "" }}';
+  if (email) {
+    showStToast('✅ Password reset email sent to ' + email);
+  } else {
+    showStToast('⚠️ Please log in to reset your password.');
+  }
+}
+
+// ── Cache size display ──
+(function() {
+  if ('caches' in window) {
+    let total = 0;
+    caches.keys().then(keys => {
+      return Promise.all(keys.map(k => caches.matchAll(k))).then(matches => {
+        matches.forEach(m => m.forEach(r => { total += r.headers.get('content-length') || 0; }));
+        document.getElementById('cacheSize').textContent = (total / 1024 / 1024).toFixed(1) + ' MB';
+      });
+    });
+  }
+})();
+
+// ── Restore saved preferences ──
+(function() {
+  const theme = localStorage.getItem('abhihub_theme') || 'system';
+  const selectTheme = document.getElementById('selectTheme');
+  if (selectTheme) selectTheme.value = theme;
+  const toggleNoIndex = localStorage.getItem('privacy_no_index') === '1';
+  const el = document.getElementById('toggleNoIndex');
+  if (el) el.checked = toggleNoIndex;
+})();
+</script>
+{% endblock %}

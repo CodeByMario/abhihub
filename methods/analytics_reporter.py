@@ -383,7 +383,7 @@ def get_traffic_sources(days=30, limit=15):
     try:
         since = _safe_ts_days(days)
         
-        res = client.table('document_views').select('metadata').gte('accessed_at', since).execute()
+        res = client.table('document_views').select('*').gte('accessed_at', since).execute()
         
         views = res.data or []
         
@@ -392,7 +392,7 @@ def get_traffic_sources(days=30, limit=15):
         
         for v in views:
             meta = v.get('metadata', {}) or {}
-            referrer = meta.get('referrer', '')
+            referrer = v.get('referrer', '') or meta.get('referrer', '')
             
             if not referrer or referrer == '':
                 direct_count += 1
