@@ -523,7 +523,7 @@ notes, practicals, and exam resources for top colleges across India." %}
 {% endif %}
 
 <!-- ── Suggested Peers & Classmates Section (logged-in users only) ── -->
-{% if user_data and user_data.get('college_name') %}
+{% if user_data and (user_data.get('college_id') or user_data.get('college_name')) %}
 <div class="suggested-peers-section">
   <div class="suggested-peers-header">
     <h3>🎓 People from your college</h3>
@@ -1602,7 +1602,7 @@ notes, practicals, and exam resources for top colleges across India." %}
   </div>
   <div class="hscroll-row">
     {% for file in relevant_papers %}
-    {% set furl = url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) %}
+    {% set _rid = file.get('record_id') or file.get('id') or '' %}{% set furl = url_for('resource_landing', slug=_rid) if _rid else '#' %}
     <a href="{{ furl }}" class="pcard">
       <span class="pcard-badge">📄 PYQ</span>
       <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="PYQ" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
@@ -1632,7 +1632,7 @@ notes, practicals, and exam resources for top colleges across India." %}
   <div id="tab-trending" class="tab-panel active">
     <div class="hscroll-row">
       {% for file in trending_papers %}
-      {% set furl = url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) %}
+      {% set _rid = file.get('record_id') or file.get('id') or '' %}{% set furl = url_for('resource_landing', slug=_rid) if _rid else '#' %}
       <a href="{{ furl }}" class="pcard">
         <span class="pcard-badge">📄 PYQ</span>
         <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="PYQ" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-author="{{ file.get('author','')[:15] }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
@@ -1652,7 +1652,7 @@ notes, practicals, and exam resources for top colleges across India." %}
   <div id="tab-recent" class="tab-panel">
     <div class="hscroll-row">
       {% for file in recent_papers %}
-      {% set furl = url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) %}
+      {% set _rid = file.get('record_id') or file.get('id') or '' %}{% set furl = url_for('resource_landing', slug=_rid) if _rid else '#' %}
       <a href="{{ furl }}" class="pcard">
         <span class="pcard-badge">📄 PYQ</span>
         <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="PYQ" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-date="{{ file.get('date','') }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
@@ -1714,7 +1714,7 @@ notes, practicals, and exam resources for top colleges across India." %}
   </div>
   <div class="hscroll-row">
     {% for file in relevant_notes %}
-    <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) }}" class="pcard notes-card">
+    <a href="{% set _rid = file.get('record_id') or file.get('id') or '' %}{{ url_for('resource_landing', slug=_rid ~ '-view') if _rid else '#' }}" class="pcard notes-card">
       <span class="pcard-badge notes">📝 Notes</span>
       <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="Notes" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
       <div class="pcard-subject">{{ file['subject'] }}</div>
@@ -1741,7 +1741,7 @@ notes, practicals, and exam resources for top colleges across India." %}
   </div>
   <div class="hscroll-row">
     {% for file in trending_notes %}
-    <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) }}"
+    <a href="{% set _rid = file.get('record_id') or file.get('id') or '' %}{{ url_for('resource_landing', slug=_rid ~ '-view') if _rid else '#' }}"
       class="pcard notes-card">
       <span class="pcard-badge notes">📝 Notes</span>
       <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="Notes" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
@@ -1773,7 +1773,7 @@ notes, practicals, and exam resources for top colleges across India." %}
   </div>
   <div class="hscroll-row">
     {% for file in practicals_files[:8] %}
-    <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) }}"
+    <a href="{% set _rid = file.get('record_id') or file.get('id') or '' %}{{ url_for('resource_landing', slug=_rid ~ '-view') if _rid else '#' }}"
       class="pcard practical-card">
       <span class="pcard-badge practical">🧪 Practical</span>
       <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="Practical" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-author="{{ file.get('author','')[:15] }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>

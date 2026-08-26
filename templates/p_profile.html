@@ -712,7 +712,8 @@
         {% if data.get('uploaded_files') and data['uploaded_files']|length > 0 %}
         <div class="pf-file-grid">
           {% for file in data['uploaded_files'] %}
-          <a href="{{ file['url'] }}" target="_blank" rel="noopener noreferrer"
+          {% set _rid = file.get('record_id') or file.get('id') or '' %}
+          <a href="{% if _rid %}{{ url_for('resource_landing', slug=_rid) }}{% else %}{{ file['url'] }}{% endif %}"
             class="pf-file-card uploaded-file-card {% if loop.index > 5 %}hidden{% endif %}">
             <img
               src="/static/premium/icon/{% if file['type'] in ['Notes','notes'] %}notes.gif{% elif file['type'] in ['Practical','practicals'] %}practicals.gif{% else %}papers.gif{% endif %}"
@@ -781,7 +782,7 @@
         {% if notes_files %}
         <div class="pf-file-grid">
           {% for file in notes_files %}
-          <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id', '')) }}"
+          <a href="{% set _rid = file.get('record_id') or file.get('id') or '' %}{{ url_for('resource_landing', slug=_rid) if _rid else '#' }}"
             class="pf-file-card notes-file-card {% if loop.index > 5 %}hidden{% endif %}">
             <img src="/static/premium/icon/notes.gif" class="pf-file-icon" alt="" aria-hidden="true">
             <div class="pf-file-name" title="{{ file['file-name'] }}">{{ file['file-name'] }}</div>
@@ -812,7 +813,7 @@
         {% if papers_files %}
         <div class="pf-file-grid">
           {% for file in papers_files %}
-          <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id', '')) }}"
+          <a href="{% set _rid = file.get('record_id') or file.get('id') or '' %}{{ url_for('resource_landing', slug=_rid) if _rid else '#' }}"
             class="pf-file-card papers-file-card {% if loop.index > 5 %}hidden{% endif %}">
             <img src="/static/premium/icon/papers.gif" class="pf-file-icon" alt="" aria-hidden="true">
             <div class="pf-file-name" title="{{ file['file-name'] }}">{{ file['file-name'] }}</div>
@@ -843,7 +844,7 @@
         {% if practicals_files %}
         <div class="pf-file-grid">
           {% for file in practicals_files %}
-          <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id', '')) }}"
+          <a href="{% set _rid = file.get('record_id') or file.get('id') or '' %}{{ url_for('resource_landing', slug=_rid) if _rid else '#' }}"
             class="pf-file-card practicals-file-card {% if loop.index > 5 %}hidden{% endif %}">
             <img src="/static/premium/icon/practicals.gif" class="pf-file-icon" alt="" aria-hidden="true">
             <div class="pf-file-name" title="{{ file['file-name'] }}">{{ file['file-name'] }}</div>

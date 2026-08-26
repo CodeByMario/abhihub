@@ -303,9 +303,9 @@
         {% for file in uploads %}
         {% set file_type = file.get('type','Papers').lower() %}
         {% if 'notes' in file_type %}
-          {% set preview_url = url_for('view_pdf', pdf_name=file['file-path'], record_id=file['record_id']) %}
+          {% set preview_url = url_for('resource_landing', slug=file['record_id']) %}
         {% else %}
-          {% set preview_url = url_for('view_pdf', pdf_name=file['file-path'], record_id=file['record_id']) %}
+          {% set preview_url = url_for('resource_landing', slug=file['record_id']) %}
         {% endif %}
         <a href="{{ preview_url }}" class="pf-file-card">
           <img src="/static/premium/icon/{% if 'notes' in file_type %}notes.gif{% elif 'practical' in file_type %}practicals.gif{% else %}papers.gif{% endif %}" class="pf-file-icon" alt="" aria-hidden="true">
@@ -341,9 +341,9 @@
         {% for file in referred %}
         {% set file_type = file.get('type','Notes').lower() %}
         {% if 'notes' in file_type %}
-          {% set preview_url = url_for('view_pdf', pdf_name=file['file-path'], record_id=file['record_id']) %}
+          {% set preview_url = url_for('resource_landing', slug=file['record_id']) %}
         {% else %}
-          {% set preview_url = url_for('view_pdf', pdf_name=file['file-path'], record_id=file['record_id']) %}
+          {% set preview_url = url_for('resource_landing', slug=file['record_id']) %}
         {% endif %}
         <a href="{{ preview_url }}" class="pf-file-card">
           <img src="/static/premium/icon/{% if 'notes' in file_type %}notes.gif{% elif 'practical' in file_type %}practicals.gif{% else %}papers.gif{% endif %}" class="pf-file-icon" alt="" aria-hidden="true">

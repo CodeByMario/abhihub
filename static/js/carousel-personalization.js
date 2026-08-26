@@ -34,13 +34,14 @@ const CarouselPersonalization = {
     },
 
     // Track file view (call this when user opens a file)
-    trackView(subject, fileName, fileType, filePath) {
+    trackView(subject, fileName, fileType, filePath, recordId) {
         const recent = this.getRecentActivity();
         const entry = {
             subject,
             fileName,
             fileType: fileType || 'unknown',
             filePath: filePath || '',
+            recordId: recordId || '',
             time: Date.now()
         };
         // Remove duplicates based on filePath
@@ -82,7 +83,7 @@ const CarouselPersonalization = {
             const timeAgo = this.getTimeAgo(file.time);
 
             return `
-                <a href="/view_pdf?pdf_name=${encodeURIComponent(file.filePath)}" class="file-card" title="View ${file.fileType}">
+                <a href="${file.recordId ? '/resource/' + encodeURIComponent(file.recordId) : '/view_pdf?pdf_name=' + encodeURIComponent(file.filePath)}" class="file-card" title="View ${file.fileType}">
                     <img src="/static/premium/icon/${icon}" alt="${file.fileType}">
                     <span class="file-card-title">${file.subject}</span>
                     <span class="file-card-meta">${file.fileName}</span>

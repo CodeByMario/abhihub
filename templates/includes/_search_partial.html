@@ -1,318 +1,48 @@
 <style>
-/* ── Smart Search Bar ── */
-.smart-search-wrap {
-    max-width: 860px;
-    margin: 0 auto 1.2rem;
-}
-.smart-search-bar {
-    display: flex;
-    align-items: center;
-    background: #fff;
-    border: 2px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 0.5rem 0.75rem 0.5rem 1.2rem;
-    gap: 0.5rem;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
-}
-.smart-search-bar:focus-within {
-    border-color: #2563eb;
-    box-shadow: 0 0 0 4px rgba(37,99,235,0.1);
-}
-.smart-search-bar svg { flex-shrink: 0; color: #94a3b8; }
-.smart-search-input {
-    flex: 1;
-    border: none;
-    outline: none;
-    font-size: 1rem;
-    color: #0f172a;
-    background: transparent;
-    min-width: 0;
-}
-.smart-search-input::placeholder { color: #94a3b8; }
-.smart-search-clear {
-    background: none;
-    border: none;
-    cursor: pointer;
-    color: #94a3b8;
-    padding: 4px;
-    border-radius: 6px;
-    line-height: 1;
-    display: none;
-}
-.smart-search-clear:hover { color: #475569; background: #f1f5f9; }
-
-/* ── Filter Chips Row ── */
-.filter-chips-row {
-    max-width: 860px;
-    margin: 0 auto 1.5rem;
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-    align-items: center;
-    position: relative;
-    z-index: 10;
-}
-.filter-chip-label {
-    font-size: 0.75rem;
-    color: #64748b;
-    font-weight: 600;
-    margin-right: 0.25rem;
-    white-space: nowrap;
-}
-.chip-select {
-    appearance: none;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 20px;
-    background: #f8fafc;
-    color: #334155;
-    font-size: 0.8rem;
-    font-weight: 500;
-    padding: 0.35rem 1.8rem 0.35rem 0.75rem;
-    cursor: pointer;
-    outline: none;
-    transition: all 0.2s;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 0.45rem center;
-    background-size: 1em;
-}
-.chip-select:hover, .chip-select:focus { border-color: #2563eb; background-color: #eff6ff; color: #1d4ed8; }
-.chip-select.active { border-color: #2563eb; background-color: #eff6ff; color: #1d4ed8; font-weight: 600; }
-.chip-divider { width: 1px; height: 18px; background: #e2e8f0; flex-shrink: 0; }
-.active-filter-count {
-    font-size: 0.72rem;
-    background: #ef4444;
-    color: #fff;
-    border-radius: 10px;
-    padding: 1px 6px;
-    font-weight: 700;
-    display: none;
-}
-
-/* ── Results header ── */
-.search-results-header {
-    max-width: 860px;
-    margin: 0 auto 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    font-size: 0.82rem;
-    color: #64748b;
-}
-.result-count-badge {
-    background: #f1f5f9;
-    border-radius: 8px;
-    padding: 3px 10px;
-    font-weight: 600;
-    color: #334155;
-}
-
-/* ── Result Cards ── */
-.search-file-list {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 1rem;
-    max-width: 1100px;
-    margin: 0 auto;
-}
-.search-file-card {
-    background: #fff;
-    border: 1px solid #f1f5f9;
-    border-radius: 14px;
-    padding: 1rem 1.1rem;
-    text-decoration: none;
-    color: inherit;
-    display: flex;
-    flex-direction: column;
-    gap: 0.5rem;
-    transition: transform 0.2s, box-shadow 0.2s;
-    position: relative;
-    overflow: hidden;
-}
-.search-file-card::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: #f59e0b;
-}
-.search-file-card.notes::before { background: #10b981; }
-.search-file-card.practicals::before, .search-file-card.practical::before { background: #8b5cf6; }
-.search-file-card:hover { transform: translateY(-3px); box-shadow: 0 8px 24px rgba(0,0,0,0.09); }
-.search-card-top { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
-.type-badge {
-    font-size: 0.62rem; font-weight: 700; letter-spacing: 0.5px; text-transform: uppercase;
-    padding: 2px 8px; border-radius: 6px;
-    background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa;
-}
-.type-badge.notes { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
-.type-badge.practicals, .type-badge.practical { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
-.search-file-card-title { font-size: 0.97rem; font-weight: 700; color: #0f172a; line-height: 1.3; }
-.search-file-card-meta {
-    font-size: 0.78rem; color: #64748b;
-    display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;
-}
-.search-card-footer {
-    display: flex; align-items: center; justify-content: space-between;
-    margin-top: auto; padding-top: 0.6rem; border-top: 1px solid #f1f5f9;
-    font-size: 0.75rem; color: #94a3b8;
-}
-.search-card-stats { display: flex; gap: 0.75rem; font-size: 0.72rem; color: #94a3b8; }
-
-/* ── Actions on cards ── */
-.file-card-actions {
-    display: flex; gap: 0.4rem; align-items: center;
-    padding-top: 0.5rem; border-top: 1px solid #f1f5f9;
-}
-.action-btn {
-    background: none; border: none; cursor: pointer;
-    color: #94a3b8; display: flex; align-items: center; gap: 3px;
-    font-size: 0.72rem; padding: 3px 6px; border-radius: 6px;
-    transition: color 0.15s, background 0.15s;
-}
-.action-btn:hover { background: #f1f5f9; color: #475569; }
-.action-btn.active { color: #ef4444; }
-.action-btn.active.bookmark-btn { color: #2563eb; }
-.action-btn .count { font-size: 0.72rem; }
-
-/* ── Loader / Empty ── */
-.loader {
-    display: none;
-    width: 32px; height: 32px;
-    border: 3px solid #f1f5f9; border-top-color: #2563eb;
-    border-radius: 50%;
-    animation: spin 0.8s linear infinite;
-    margin: 2.5rem auto;
-}
-@keyframes spin { to { transform: rotate(360deg); } }
-.empty-list {
-    text-align: center; padding: 3rem 1rem;
-    color: #64748b; font-size: 0.95rem;
-}
-.error-message { text-align: center; color: #ef4444; font-size: 0.88rem; padding: 1rem; }
-
-/* ── Search History ── */
-.search-history { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 0.75rem; max-width: 860px; margin-left: auto; margin-right: auto; }
-.history-tag {
-    background: #f1f5f9; color: #475569; padding: 0.3rem 0.85rem;
-    border-radius: 20px; font-size: 0.78rem; cursor: pointer;
-    border: 1px solid #e2e8f0; transition: background 0.15s;
-}
-.history-tag:hover { background: #e2e8f0; }
-
-/* Accessibility */
-.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); border: 0; }
-/* ── Load More ── */
-.load-more-container {
-    text-align: center;
-    margin: 2rem 0;
-    display: none;
-}
-.load-more-btn {
-    background: #f1f5f9;
-    color: #475569;
-    border: 1px solid #cbd5e1;
-    padding: 0.6rem 1.5rem;
-    border-radius: 20px;
-    font-size: 0.9rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.2s;
-}
-.load-more-btn:hover { background: #e2e8f0; color: #1e293b; }
-
-@media (max-width: 640px) {
-    .search-file-list { grid-template-columns: 1fr 1fr; }
-    .smart-search-bar { border-radius: 12px; }
-    .filter-chips-row {
-        flex-wrap: nowrap;
-        overflow-x: auto;
-        padding-bottom: 0.5rem;
-        -webkit-overflow-scrolling: touch;
-        scrollbar-width: none; /* Firefox */
-    }
-    .filter-chips-row::-webkit-scrollbar { display: none; /* Chrome/Safari */ }
-    .chip-select { flex-shrink: 0; }
-}
-@media (max-width: 420px) {
-    .search-file-list { grid-template-columns: 1fr; }
-}
+/* Responsive search experience shared by the dashboard and /search. */
+.ss-search { --ss-ink:#172033; --ss-muted:#65738a; --ss-line:#dfe6f0; --ss-surface:#fff; --ss-soft:#f5f8fc; --ss-primary:#2563eb; width:min(100%,1180px); margin:0 auto; color:var(--ss-ink); }
+.ss-panel { padding:clamp(1rem,2.5vw,2rem); border:1px solid var(--ss-line); border-radius:20px; background:linear-gradient(145deg,#fff,#f7faff); box-shadow:0 16px 42px rgba(30,64,175,.08); }
+.ss-intro { display:flex; align-items:end; justify-content:space-between; gap:1rem; margin-bottom:1.25rem; }
+.ss-kicker { display:block; margin-bottom:.35rem; color:var(--ss-primary); font-size:.72rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
+.ss-heading { margin:0; color:var(--ss-ink); font-size:clamp(1.3rem,2.6vw,2rem); line-height:1.15; }
+.ss-intro-copy { max-width:34rem; margin:.35rem 0 0; color:var(--ss-muted); font-size:.9rem; line-height:1.5; }
+.ss-tip { flex:0 0 auto; padding:.45rem .7rem; border-radius:999px; background:#eaf1ff; color:#2854a4; font-size:.75rem; font-weight:700; white-space:nowrap; }
+.ss-bar { display:flex; align-items:center; gap:.7rem; min-height:58px; padding:.55rem .65rem .55rem 1rem; border:2px solid var(--ss-line); border-radius:15px; background:var(--ss-surface); box-shadow:0 3px 12px rgba(15,23,42,.05); transition:border-color .2s,box-shadow .2s; }
+.ss-bar:focus-within { border-color:var(--ss-primary); box-shadow:0 0 0 4px rgba(37,99,235,.12); }.ss-bar>svg { flex:0 0 auto; color:var(--ss-primary); }
+.ss-input { flex:1; min-width:0; border:0; outline:0; color:var(--ss-ink); background:transparent; font:inherit; font-size:1rem; }.ss-input::placeholder { color:#96a2b5; }
+.ss-clear { display:none; place-items:center; width:36px; height:36px; padding:0; border:0; border-radius:9px; color:#64748b; background:transparent; cursor:pointer; }.ss-clear:hover,.ss-clear:focus-visible { color:var(--ss-ink); background:var(--ss-soft); }
+.ss-filter-area { display:grid; grid-template-columns:auto minmax(0,1fr); gap:.75rem 1rem; align-items:start; margin-top:1rem; padding:1rem; border:1px solid var(--ss-line); border-radius:15px; background:rgba(255,255,255,.72); }.ss-filter-title { display:flex; align-items:center; min-height:38px; color:var(--ss-muted); font-size:.8rem; font-weight:800; white-space:nowrap; }
+.ss-chips { display:grid; grid-template-columns:repeat(5,minmax(0,1fr)); gap:.55rem; }.ss-chip { width:100%; min-width:0; min-height:38px; padding:.45rem 2rem .45rem .7rem; appearance:none; border:1px solid #d6dfeb; border-radius:10px; outline:0; color:#34445d; background:#fff url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2364748b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") no-repeat right .65rem center/1em; font:inherit; font-size:.8rem; font-weight:600; cursor:pointer; transition:border-color .18s,background-color .18s,color .18s; }.ss-chip:hover,.ss-chip:focus { border-color:var(--ss-primary); background-color:#f3f7ff; color:#17499d; }.ss-chip.active { border-color:var(--ss-primary); background-color:#eaf1ff; color:#17499d; }.ss-divider { display:none; }
+.ss-history { display:flex; flex-wrap:wrap; gap:.45rem; margin:1rem 0 0; }.ss-tag { min-height:32px; padding:.3rem .75rem; border:1px solid var(--ss-line); border-radius:999px; color:#4b5d75; background:var(--ss-soft); font:inherit; font-size:.77rem; cursor:pointer; }.ss-tag:hover { border-color:#b7c8e6; background:#eaf1ff; }
+.ss-header { display:flex; align-items:center; justify-content:space-between; gap:.75rem; margin:1.25rem 0 .8rem; color:var(--ss-muted); font-size:.84rem; }.ss-count { padding:.4rem .7rem; border-radius:8px; color:#34445d; background:#edf2f8; font-weight:800; }#searchResetBtn { min-height:36px; padding:.35rem .75rem; border:1px solid #c9d6e8; border-radius:9px; color:#31507e; background:#fff; font:inherit; font-size:.78rem; font-weight:700; cursor:pointer; }#searchResetBtn:hover,#searchResetBtn:focus-visible { border-color:var(--ss-primary); color:#17499d; background:#f3f7ff; }
+.ss-results { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:1rem; }.ss-card { position:relative; display:flex; flex-direction:column; min-width:0; min-height:188px; padding:1rem; overflow:hidden; border:1px solid var(--ss-line); border-radius:14px; color:inherit; background:var(--ss-surface); text-decoration:none; box-shadow:0 2px 7px rgba(15,23,42,.025); transition:transform .2s,border-color .2s,box-shadow .2s; }.ss-card::before { position:absolute; inset:0 auto 0 0; width:4px; background:var(--accent-type,#f59e0b); content:''; }.ss-card.notes { --accent-type:#10b981; }.ss-card.practicals,.ss-card.practical { --accent-type:#8b5cf6; }.ss-card:hover { transform:translateY(-3px); border-color:#b8c8e3; box-shadow:0 12px 24px rgba(30,64,175,.11); }.ss-card:focus-visible { outline:3px solid rgba(37,99,235,.35); outline-offset:2px; }
+.ss-card-top { display:flex; align-items:center; justify-content:space-between; gap:.5rem; min-width:0; }.ss-badge { max-width:70%; overflow:hidden; padding:.2rem .45rem; border:1px solid var(--badge-bd,#fed7aa); border-radius:6px; color:var(--badge-fg,#c2410c); background:var(--badge-bg,#fff7ed); font-size:.62rem; font-weight:800; letter-spacing:.05em; text-overflow:ellipsis; text-transform:uppercase; white-space:nowrap; }.ss-badge.notes { --badge-bg:#ecfdf5; --badge-fg:#047857; --badge-bd:#a7f3d0; }.ss-badge.practicals,.ss-badge.practical { --badge-bg:#f5f3ff; --badge-fg:#6d28d9; --badge-bd:#ddd6fe; }.ss-title { display:-webkit-box; margin-top:.8rem; overflow:hidden; color:var(--ss-ink); font-size:1rem; font-weight:800; line-height:1.35; -webkit-box-orient:vertical; -webkit-line-clamp:2; }.ss-meta { display:-webkit-box; margin-top:.35rem; overflow:hidden; color:var(--ss-muted); font-size:.8rem; line-height:1.4; -webkit-box-orient:vertical; -webkit-line-clamp:2; }.ss-footer { display:flex; align-items:center; justify-content:space-between; gap:.5rem; margin-top:auto; padding-top:.8rem; border-top:1px solid #edf1f6; color:#718096; font-size:.75rem; }.ss-footer>span:first-child { min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }.ss-stats { display:flex; flex:0 0 auto; gap:.55rem; }.ss-actions { display:flex; gap:.25rem; margin-top:.6rem; padding-top:.55rem; border-top:1px solid #edf1f6; }.ss-btn { display:inline-flex; align-items:center; justify-content:center; gap:.2rem; min-width:34px; min-height:32px; padding:.25rem .4rem; border:0; border-radius:7px; color:#718096; background:transparent; font:inherit; font-size:.72rem; cursor:pointer; }.ss-btn:hover,.ss-btn:focus-visible { color:#405675; background:#f1f5f9; }.ss-btn.active { color:#e11d48; }.ss-btn.active.bookmark-btn { color:var(--ss-primary); }
+.ss-loader { display:none; width:32px; height:32px; margin:2.5rem auto; border:3px solid #e8eef7; border-top-color:var(--ss-primary); border-radius:50%; animation:ss-spin .8s linear infinite; }@keyframes ss-spin { to { transform:rotate(360deg); } }.ss-empty { padding:3.5rem 1rem; color:var(--ss-muted); text-align:center; }.ss-empty strong { display:block; color:var(--ss-ink); }.ss-error { padding:1rem; color:#dc2626; text-align:center; font-size:.88rem; }.ss-more-wrap { display:none; margin:1.5rem 0 .25rem; text-align:center; }.ss-more-btn { min-height:42px; padding:.55rem 1.25rem; border:1px solid #bed0ef; border-radius:10px; color:#17499d; background:#eff5ff; font:inherit; font-size:.86rem; font-weight:800; cursor:pointer; }.ss-more-btn:hover,.ss-more-btn:focus-visible { background:#e1edff; }.sr-only { position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); white-space:nowrap; border:0; }
+@media (max-width:900px) { .ss-chips { grid-template-columns:repeat(3,minmax(0,1fr)); }.ss-results { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media (max-width:640px) { .ss-search { width:100%; }.ss-panel { padding:1rem; border-right:0; border-left:0; border-radius:0; }.ss-intro { display:block; margin-bottom:1rem; }.ss-intro-copy { font-size:.84rem; }.ss-tip { display:inline-flex; margin-top:.75rem; white-space:normal; }.ss-bar { min-height:54px; padding-left:.85rem; border-radius:12px; }.ss-input { font-size:16px; }.ss-filter-area { display:block; padding:.75rem; border-radius:12px; }.ss-filter-title { min-height:auto; margin-bottom:.55rem; }.ss-chips { display:flex; gap:.5rem; overflow-x:auto; padding-bottom:.15rem; scrollbar-width:none; -webkit-overflow-scrolling:touch; }.ss-chips::-webkit-scrollbar,.ss-history::-webkit-scrollbar { display:none; }.ss-chip { flex:0 0 148px; min-height:42px; font-size:.82rem; }.ss-history { flex-wrap:nowrap; overflow-x:auto; padding-bottom:.2rem; scrollbar-width:none; }.ss-tag { flex:0 0 auto; min-height:34px; }.ss-header { margin-top:1rem; }.ss-results { gap:.7rem; }.ss-card { min-height:178px; padding:.85rem; border-radius:12px; }.ss-title { margin-top:.65rem; font-size:.92rem; }.ss-footer { align-items:flex-start; flex-direction:column; gap:.35rem; font-size:.72rem; } }
+@media (max-width:420px) { .ss-results { grid-template-columns:1fr; }.ss-card { min-height:162px; }.ss-footer { align-items:center; flex-direction:row; } }
+@media (hover:none) { .ss-card:hover { transform:none; box-shadow:0 2px 7px rgba(15,23,42,.025); }.ss-card:active { transform:scale(.985); } }@media (prefers-reduced-motion:reduce) { .ss-card,.ss-bar { transition:none; }.ss-loader { animation:none; } }
 </style>
 
-<!-- Smart Search Bar -->
-<div class="smart-search-wrap">
-    <div class="smart-search-bar">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-        <input type="text" id="searchFileName" class="smart-search-input"
-            placeholder="Search subjects, papers, notes…"
-            value="{{ initial_query }}"
-            autocomplete="off" aria-label="Search files">
-        <button id="searchClearBtn" class="smart-search-clear" aria-label="Clear search" title="Clear">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-        </button>
-    </div>
-</div>
-
-<!-- Filter Chips -->
-<div class="filter-chips-row">
-    <span class="filter-chip-label">Filters:</span>
-
-    <label for="searchType" class="sr-only">Type</label>
-    <select id="searchType" class="chip-select" aria-label="Filter by type">
-        <option value="">📁 All Types</option>
-    </select>
-
-    <label for="searchCollege" class="sr-only">College</label>
-    <select id="searchCollege" class="chip-select" aria-label="Filter by college">
-        <option value="">🏫 All Colleges</option>
-    </select>
-
-    <label for="searchSubject" class="sr-only">Subject</label>
-    <select id="searchSubject" class="chip-select" aria-label="Filter by subject">
-        <option value="">📚 All Subjects</option>
-    </select>
-
-    <label for="searchYear" class="sr-only">Year</label>
-    <select id="searchYear" class="chip-select" aria-label="Filter by year">
-        <option value="">📅 All Years</option>
-    </select>
-
-    <div class="chip-divider"></div>
-
-    <label for="searchSort" class="sr-only">Sort by</label>
-    <select id="searchSort" class="chip-select" aria-label="Sort by">
-        <option value="date_desc">⬇ Latest</option>
-        <option value="views_desc">👁 Most Viewed</option>
-        <option value="likes_desc">❤ Most Liked</option>
-        <option value="bookmarks_desc">🔖 Bookmarked</option>
-    </select>
-
-    <!-- Hidden author field (kept for JS compatibility) -->
-    <input type="hidden" id="searchAuthor" value="">
-    <!-- Hidden search btn for hero form compatibility -->
-    <button id="searchBtn" style="display:none;" aria-hidden="true"></button>
-</div>
-
-<!-- Ad Placement (In-Feed) -->
-<div style="max-width: 860px; margin: 0 auto 1rem;">
-    {% if show_secondary_ads %}{% include 'ads/in_feed.html' %}{% endif %}
-</div>
-
-<!-- History + Status -->
-<div id="searchHistory" class="search-history" aria-live="polite"></div>
-<div id="searchResultsHeader" class="search-results-header" style="display:none;">
-    <span id="searchResultCount" class="result-count-badge">0 results</span>
-    <button id="searchResetBtn" class="cs-reset-btn" type="button" data-action="resetFilters" aria-label="Reset search filters">Reset filters</button>
-</div>
-<div id="loader" class="loader" role="status" aria-label="Loading"></div>
-<div id="error" class="error-message" role="alert"></div>
-<div id="searchResults" class="search-file-list" aria-live="polite"></div>
-<div class="load-more-container" id="loadMoreContainer">
-    <button id="loadMoreBtn" class="load-more-btn" type="button" data-action="loadMore" aria-label="Load more search results">Load More Results</button>
-</div>
-<div id="noResults" class="empty-list" style="display:none;" role="status">
-    <div style="font-size:2rem;margin-bottom:0.5rem;">🔍</div>
-    <strong>No results found</strong>
-    <p style="margin-top:0.5rem;font-size:0.85rem;">Try different keywords or remove a filter</p>
-</div>
+<section class="ss-search" aria-labelledby="smartSearchTitle">
+  <div class="ss-panel">
+    <header class="ss-intro">
+      <div><span class="ss-kicker">Study library</span><h1 id="smartSearchTitle" class="ss-heading">Find exactly what you need</h1><p class="ss-intro-copy">Search papers, notes, and practical files, then narrow them down by college, subject, and year.</p></div>
+      <span class="ss-tip">Use filters to refine results</span>
+    </header>
+    <div class="ss-bar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg><input type="text" id="searchFileName" class="ss-input" placeholder="Search subjects, papers, notes…" value="{{ initial_query }}" autocomplete="off" aria-label="Search files"><button id="searchClearBtn" class="ss-clear" type="button" aria-label="Clear search" title="Clear search"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button></div>
+    <div class="ss-filter-area"><div class="ss-filter-title">Filter and sort</div><div class="ss-chips">
+      <label for="searchType" class="sr-only">Type</label><select id="searchType" class="ss-chip" aria-label="Filter by type"><option value="">All types</option></select>
+      <label for="searchCollege" class="sr-only">College</label><select id="searchCollege" class="ss-chip" aria-label="Filter by college"><option value="">All colleges</option></select>
+      <label for="searchSubject" class="sr-only">Subject</label><select id="searchSubject" class="ss-chip" aria-label="Filter by subject"><option value="">All subjects</option></select>
+      <label for="searchYear" class="sr-only">Year</label><select id="searchYear" class="ss-chip" aria-label="Filter by year"><option value="">All years</option></select>
+      <label for="searchSort" class="sr-only">Sort by</label><select id="searchSort" class="ss-chip" aria-label="Sort by"><option value="date_desc">Latest first</option><option value="views_desc">Most viewed</option><option value="likes_desc">Most liked</option><option value="bookmarks_desc">Most bookmarked</option></select>
+      <input type="hidden" id="searchAuthor" value=""><button id="searchBtn" hidden aria-hidden="true" type="button"></button>
+    </div></div>
+    <div id="searchHistory" class="ss-history" aria-live="polite"></div>
+    <div id="searchResultsHeader" class="ss-header" style="display:none;"><span id="searchResultCount" class="ss-count">0 results</span><button id="searchResetBtn" type="button" data-action="resetFilters" aria-label="Reset search filters">Reset filters</button></div>
+    <div id="loader" class="ss-loader" role="status" aria-label="Loading"></div><div id="error" class="ss-error" role="alert"></div><div id="searchResults" class="ss-results" aria-live="polite"></div>
+    <div id="loadMoreContainer" class="ss-more-wrap"><button id="loadMoreBtn" class="ss-more-btn" type="button" data-action="loadMore">Load more results</button></div>
+    <div id="noResults" class="ss-empty" style="display:none;" role="status"><div aria-hidden="true" style="font-size:2rem;margin-bottom:.5rem;">🔍</div><strong>No results found</strong><p style="margin:.5rem 0 0;font-size:.85rem;">Try different keywords or remove a filter.</p></div>
+  </div>
+</section>

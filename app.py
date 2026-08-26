@@ -3173,7 +3173,11 @@ def dashboard():
             'global_rank': global_rank,
             'students_helped': students_helped,
             'badges': badges,
-            'college_name': college_name
+            'college_name': college_name,
+            # Reliable gate for peer suggestions — college_id comes straight from
+            # profiles (always set when profile is complete), unlike the students-row
+            # join that get_student_profile depends on.
+            'college_id': profile_data.get('college_id') or ''
         }
     else:
         file_history = []
@@ -5859,12 +5863,24 @@ def instagram_profile(user_id):
     if not client:
         abort(500)
     try:
+        # pursuing_year / year_of_joining live in `students`, NOT profiles —
+        # selecting them from profiles raises 42703 and 404s the whole page.
         pr = client.table('profiles') \
             .select('id, full_name, email, rank_title, reputation_score, is_verified, referral_code, college_id, department_id, colleges(name), departments(name, abbreviation)') \
             .eq('id', user_id).single().execute()
         if not pr.data:
             abort(404)
         p = pr.data
+        # Optional academic details from the students row (may not exist)
+        academic = {}
+        try:
+            st = client.table('students') \
+                .select('pursuing_year, year_of_joining') \
+                .eq('profile_id', user_id).limit(1).execute()
+            if st.data:
+                academic = st.data[0]
+        except Exception as st_err:
+            logging.info(f"[u/profile] students lookup unavailable for {user_id}: {st_err}")
         college_name = (p.get('colleges') or {}).get('name', '')
         dept = p.get('departments') or {}
         dept_name = dept.get('name') or dept.get('abbreviation') or ''
@@ -5878,8 +5894,8 @@ def instagram_profile(user_id):
             'referral_code': p.get('referral_code', ''),
             'college_name': college_name,
             'department_name': dept_name,
-            'pursuing_year': p.get('pursuing_year') or '',
-            'year_of_joining': p.get('year_of_joining') or '',
+            'pursuing_year': academic.get('pursuing_year') or '',
+            'year_of_joining': academic.get('year_of_joining') or '',
         }
     except Exception as e:
         logging.error(f"[u/profile] {e}")
@@ -5902,6 +5918,23 @@ def instagram_profile(user_id):
             })
     except Exception:
         pass
+
+    # MemoryWall is public only while it is accepting responses.  Keep the
+    # profile page useful even if the MemoryWall service is temporarily down.
+    memory_wall = {'exists': False, 'is_open': False, 'url': '', 'response_count': 0}
+    try:
+        from methods.know_me import get_wall_by_user
+        wall_result = get_wall_by_user(user_id)
+        wall = wall_result.get('data') if wall_result.get('success') else None
+        if wall:
+            memory_wall = {
+                'exists': True,
+                'is_open': wall.get('status', 'open') != 'closed',
+                'url': url_for('memorywall_public', slug=wall.get('slug')),
+                'response_count': wall.get('response_count') or 0,
+            }
+    except Exception as e:
+        logging.info(f"[u/profile] MemoryWall lookup unavailable: {e}")
 
     # Referred (recently viewed)
     referred = []
@@ -5957,6 +5990,7 @@ def instagram_profile(user_id):
                            peer=peer,
                            uploads=uploads,
                            referred=referred,
+                           memory_wall=memory_wall,
                            crush_state=crush_state,
                            og_title=og_title,
                            og_description=og_description,

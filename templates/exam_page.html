@@ -26,8 +26,8 @@
             <div class="note-item">
                 <h3>{{ file['subject'] }}</h3>
                 <p>Shared by: {{ file['author'] }}</p>
-                <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id', '')) }}"
-                    class="button-86">{{ file['file-name'] }}</a>
+                <a href="{% if file.get('record_id') %}{{ url_for('resource_landing', slug=file['record_id']) }}{% else %}{{ url_for('view_pdf', pdf_name=file['file-path']) }}{% endif %}"
+                                    class="button-86">{{ file['file-name'] }}</a>
             </div>
             {% endif %}
             {% endfor %}
@@ -44,8 +44,8 @@
             <div class="paper-item">
                 <h3>{{ file['subject'] }}</h3>
                 <p>Shared by: {{ file['author'] }}</p>
-                <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id', '')) }}"
-                    class="button-86">{{ file['file-name'] }}</a>
+                <a href="{% if file.get('record_id') %}{{ url_for('resource_landing', slug=file['record_id']) }}{% else %}{{ url_for('view_pdf', pdf_name=file['file-path']) }}{% endif %}"
+                                    class="button-86">{{ file['file-name'] }}</a>
             </div>
             {% endif %}
             {% endfor %}

@@ -224,7 +224,7 @@ const SearchManager = {
         container.innerHTML = '';
         this.searchHistory.forEach(query => {
             const tag = document.createElement('button');
-            tag.className = 'history-tag';
+            tag.className = 'ss-tag';
             tag.textContent = query;
             tag.addEventListener('click', () => {
                 const fileNameInput = this.elements.fileName();
@@ -557,7 +557,7 @@ const SearchManager = {
     createResultCard(file) {
         const card = document.createElement('a');
         const typeClass = (file.type || 'default').toLowerCase();
-        card.className = 'search-file-card ' + typeClass;
+        card.className = 'ss-card ' + typeClass;
         card.href = this.getFileUrl(file);
 
         const s = str => str ? str.toString()
@@ -571,33 +571,33 @@ const SearchManager = {
         const bookmarkFill = file.is_bookmarked ? 'currentColor' : 'none';
 
         card.innerHTML = `
-          <div class="search-card-top">
-            <span class="type-badge ${typeClass}">${s(file.type || 'File')}</span>
+          <div class="ss-card-top">
+            <span class="ss-badge ${typeClass}">${s(file.type || 'File')}</span>
             <span style="font-size:0.72rem;color:#94a3b8;">${s(file.year || '')}</span>
           </div>
-          <div class="search-file-card-title">${s(file.subject)}</div>
-          <div class="search-file-card-meta">${s(file['file-name'])}</div>
-          <div class="search-card-footer">
+          <div class="ss-title">${s(file.subject)}</div>
+          <div class="ss-meta">${s(file['file-name'])}</div>
+          <div class="ss-footer">
             <span>👤 ${s(file.author)}</span>
-            <span class="search-card-stats">
+            <span class="ss-stats">
               <span>👁 ${file.view_count || 0}</span>
               <span>❤ ${file.like_count || 0}</span>
             </span>
           </div>
-          <div class="file-card-actions" onclick="event.preventDefault();event.stopPropagation();">
-            <button class="action-btn view-btn" data-id="${recordId}" onclick="window.location.href='${this.getFileUrl(file)}'">
+          <div class="ss-actions" onclick="event.preventDefault();event.stopPropagation();">
+            <button class="ss-btn view-btn" data-id="${recordId}" onclick="window.location.href='${this.getFileUrl(file)}'">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               <span class="count">${file.view_count > 0 ? file.view_count : ''}</span>
             </button>
-            <button class="action-btn like-btn ${isLiked}" data-id="${recordId}" onclick="window.toggleFileAction(this,'like')">
+            <button class="ss-btn like-btn ${isLiked}" data-id="${recordId}" onclick="window.toggleFileAction(this,'like')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="${likeFill}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
               <span class="count">${file.like_count > 0 ? file.like_count : ''}</span>
             </button>
-            <button class="action-btn comment-btn" data-id="${recordId}" onclick="window.openComments(event,'${recordId}')">
+            <button class="ss-btn comment-btn" data-id="${recordId}" onclick="window.openComments(event,'${recordId}')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               <span class="count">${file.comment_count > 0 ? file.comment_count : ''}</span>
             </button>
-            <button class="action-btn bookmark-btn ${isBookmarked}" data-id="${recordId}" onclick="window.toggleFileAction(this,'bookmark')">
+            <button class="ss-btn bookmark-btn ${isBookmarked}" data-id="${recordId}" onclick="window.toggleFileAction(this,'bookmark')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="${bookmarkFill}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
               <span class="count">${file.bookmark_count > 0 ? file.bookmark_count : ''}</span>
             </button>
@@ -623,19 +623,25 @@ const SearchManager = {
 
 
     getFileUrl(file) {
+        // Route ALL documents through the SEO landing page (/resource/<uuid>).
+        // The resource page proxies the actual file via /api/view-doc — one
+        // consistent viewer path for PDFs, images, Firebase and Cloudinary alike.
+        const recordId = file.record_id || file.id || '';
+        if (recordId) {
+            return `/resource/${encodeURIComponent(recordId)}`;
+        }
+        // Legacy fallback: no record id → old direct-viewer URLs
         const path = encodeURIComponent(file["file-path"] || '');
-        const recordId = file.record_id ? `&record_id=${encodeURIComponent(file.record_id)}` : '';
         const source = file.source ? `&source=${encodeURIComponent(file.source)}` : '';
 
-        // Safely determine PDF vs. Image format
         const formatStr = (file["file-type"] || file.format || '').toLowerCase();
         const fallbackIsPdf = typeof file["file-path"] === 'string' && file["file-path"].toLowerCase().endsWith('.pdf');
         const isPdf = formatStr === 'pdf' || (!formatStr && fallbackIsPdf);
 
         if (isPdf) {
-            return `/view_pdf?pdf_name=${path}${recordId}`;
+            return `/view_pdf?pdf_name=${path}`;
         } else {
-            return `/preview?file_path=${path}${recordId}${source}`;
+            return `/preview?file_path=${path}${source}`;
         }
     }
 };
