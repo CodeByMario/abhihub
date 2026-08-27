@@ -234,6 +234,32 @@ def _score_item(item: dict, tokens: list[str]) -> float:
 
 # Initialize Flask app
 app = Flask(__name__)
+
+# Sitemap URLs are opt-in. Keeping this registry next to the application
+# prevents newly added auth/account routes from being indexed by accident.
+_SITEMAP_REGISTRY = {}
+
+
+def sitemap_page(priority="0.80", changefreq="weekly"):
+    """Mark a static Flask view as eligible for inclusion in the sitemap."""
+    def decorator(view_func):
+        _SITEMAP_REGISTRY[view_func.__name__] = {
+            "priority": priority,
+            "changefreq": changefreq,
+        }
+
+        @wraps(view_func)
+        def wrapper(*args, **kwargs):
+            return view_func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def slugify(text):
+    """Create the canonical URL-safe form used by sitemap entries."""
+    return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
+
+
 try:
     from flask_compress import Compress
     Compress(app)
@@ -332,6 +358,35 @@ def extract_pdf_info(pdf_bytes):
             logging.warning(f"[extract_pdf_info] fitz error: {e}")
 
     return extracted_text.strip(), img_bytes, mime_type
+
+
+def _resolve_signed_url(file_url, log_tag="AI"):
+    """Return an http(s) URL, signing a raw Firebase storage path if needed."""
+    if not file_url or file_url.startswith('http'):
+        return file_url
+    bucket = storage.bucket()
+    blob = bucket.blob(file_url)
+    signed = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
+    return signed[0] if isinstance(signed, (list, tuple)) else signed
+
+
+def _looks_like_pdf(content_type, file_url, content_bytes):
+    """Identify PDFs from response metadata, URL, or file signature."""
+    return (
+        'pdf' in (content_type or '').lower()
+        or str(file_url or '').lower().endswith('.pdf')
+        or (content_bytes or b'').startswith(b'%PDF')
+    )
+
+def _load_contact_messages():
+    """Load contact messages from JSON file, swallowing exceptions."""
+    if not os.path.exists(CONTACT_FILE):
+        return []
+    try:
+        with open(CONTACT_FILE, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return []
 
 
 # Security Configuration - Load from environment variables
@@ -882,6 +937,7 @@ def reset_password_confirm():
         return redirect(url_for('reset_password'))
 
 @app.route('/terms')
+@sitemap_page()
 def terms():
     return render_template('terms.html')
 
@@ -913,22 +969,11 @@ def index_now_key(key):
 @app.route('/sitemap.xml')
 def sitemap():
     """Generate canonical sitemap URLs for the public host serving this request."""
-    sitemap_res = get_sitemap_urls()
-    data = sitemap_res.get('data', {}) if sitemap_res.get('success') else {}
-    
-    colleges = data.get('colleges', [])
-    departments = data.get('departments', [])
-    subjects = data.get('subjects', [])
-    documents = data.get('documents', [])
-    
     urls = []
     seen_urls = set()
     base_url = request.url_root.rstrip('/')
-    
-    def slugify(text):
-        return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
 
-    def add_url(path, lastmod=None, priority=None):
+    def add_url(path, lastmod=None, priority=None, changefreq=None):
         loc = f"{base_url}{path}"
         if loc in seen_urls:
             return
@@ -938,72 +983,60 @@ def sitemap():
             entry['lastmod'] = lastmod
         if priority:
             entry['priority'] = priority
+        if changefreq:
+            entry['changefreq'] = changefreq
         urls.append(entry)
 
-    # Standard public URLs
-    for static_route in [
-        '/',
-        '/pyq',
-        '/contact',
-        '/features-tour',
-        '/about',
-        '/open-source',
-        '/help',
-        '/terms',
-        '/privacy',
-        '/join',
-        '/team',
-        '/support',
-    ]:
-        priority = (
-            "1.00" if static_route == '/'
-            else "0.95" if static_route == '/pyq'
-            else "0.85" if static_route in ['/about', '/open-source', '/features-tour']
-            else "0.80"
-        )
-        add_url(static_route, priority=priority)
+    # Static pages come from Flask's route map, but only an explicit registry
+    # entry can include a route in the sitemap.
+    for rule in app.url_map.iter_rules():
+        if rule.endpoint not in _SITEMAP_REGISTRY:
+            continue
+        if 'GET' not in rule.methods or rule.arguments:
+            continue
+        metadata = _SITEMAP_REGISTRY[rule.endpoint]
+        add_url(str(rule), priority=metadata['priority'], changefreq=metadata['changefreq'])
 
-    # Include every public college page, but keep department and subject listings content-backed.
+    sitemap_res = get_sitemap_urls()
+    data = sitemap_res.get('data', {}) if sitemap_res.get('success') else {}
+    colleges = data.get('colleges', [])
+    departments = data.get('departments', [])
+    subjects = data.get('subjects', [])
+    documents = data.get('documents', [])
+
     populated_college_ids = {doc.get('college_id') for doc in documents if doc.get('college_id')}
     populated_department_ids = {doc.get('department_id') for doc in documents if doc.get('department_id')}
     populated_subject_ids = {doc.get('subject_id') for doc in documents if doc.get('subject_id')}
-    brand_counts = {}
-    for college in colleges:
-        popular_slug = slugify(college.get('popular_name'))
-        if popular_slug:
-            brand_counts[popular_slug] = brand_counts.get(popular_slug, 0) + 1
 
-    seen_brands = set()
+    college_slugs = {}
     for c in colleges:
+        if c.get('id') not in populated_college_ids:
+            continue
         c_slug = slugify(c.get('abbreviation') or c.get('name'))
         if not c_slug:
             continue
-        add_url(f"/college/{c_slug}", c.get('created_at'), "0.90")
-        p_slug = slugify(c.get('popular_name'))
-        if p_slug and p_slug != c_slug and brand_counts.get(p_slug, 0) > 1:
-            if p_slug not in seen_brands:
-                seen_brands.add(p_slug)
-                add_url(f"/college/{p_slug}", c.get('created_at'), "0.92")
+        college_slugs[c.get('id')] = c_slug
+        add_url(f"/college/{c_slug}", c.get('created_at'), "0.90", "weekly")
 
-    college_slugs = {
-        college.get('id'): slugify(college.get('abbreviation') or college.get('name'))
-        for college in colleges
-    }
     for department in departments:
+        if department.get('college_id') not in populated_college_ids:
+            continue
+        if department.get('id') not in populated_department_ids:
+            continue
         c_slug = college_slugs.get(department.get('college_id'))
         d_slug = slugify(department.get('abbreviation') or department.get('name'))
-        if c_slug and d_slug and department.get('college_id') in populated_college_ids and department.get('id') in populated_department_ids:
-            add_url(f"/college/{c_slug}/{d_slug}", department.get('created_at'), "0.85")
-            
-    # Subjects (Unique)
+        if c_slug and d_slug:
+            add_url(f"/college/{c_slug}/{d_slug}", department.get('created_at'), "0.85", "weekly")
+
     seen_subjects = set()
     for s in subjects:
+        if s.get('id') not in populated_subject_ids:
+            continue
         s_slug = slugify(s.get('name'))
-        if s_slug and s_slug not in seen_subjects and s.get('id') in populated_subject_ids:
+        if s_slug and s_slug not in seen_subjects:
             seen_subjects.add(s_slug)
-            add_url(f"/subject/{s_slug}", s.get('created_at'), "0.90")
-            
-    # Resources
+            add_url(f"/subject/{s_slug}", s.get('created_at'), "0.90", "weekly")
+
     for doc in documents:
         college_data = doc.get('college') or {}
         dept_data = doc.get('department') or {}
@@ -1015,17 +1048,35 @@ def sitemap():
         t_slug = slugify(doc.get('title') or 'file')
         
         canonical_slug = f"{c_slug}-{d_slug}-{s_slug}-{t_slug}-{doc.get('id')}"
-        add_url(f"/resource/{canonical_slug}", doc.get('updated_at') or doc.get('created_at'), "0.75")
+        add_url(f"/resource/{canonical_slug}", doc.get('updated_at') or doc.get('created_at'), "0.75", "monthly")
         
     response = make_response(render_template('sitemap.xml', urls=urls))
     response.headers['Content-Type'] = 'application/xml; charset=utf-8'
+    response.headers['Cache-Control'] = 'public, max-age=3600'
     return response
 
+
+@app.route('/sitemap-audit')
+def sitemap_audit():
+    """List unclassified static GET routes while running in debug mode."""
+    if not app.debug:
+        abort(404)
+    missing = []
+    for rule in app.url_map.iter_rules():
+        if rule.endpoint in _SITEMAP_REGISTRY:
+            continue
+        if 'GET' not in rule.methods or rule.arguments or rule.endpoint == 'static':
+            continue
+        missing.append(str(rule))
+    return {'unclassified_get_routes': sorted(missing)}
+
 @app.route('/privacy')
+@sitemap_page()
 def privacy():
     return render_template('privacy.html')
 
 @app.route('/help')
+@sitemap_page()
 def help_center():
     return render_template('help.html')
 
@@ -1562,7 +1613,6 @@ def label_store_room_paper():
         year = str(year_raw)
         try:
             year_int = int(year_raw)
-            from datetime import datetime
             current_year = datetime.now().year
             if year_int < 1900 or year_int > current_year + 1:
                 return jsonify({'success': False, 'message': 'Invalid year provided'}), 400
@@ -1643,12 +1693,10 @@ def label_store_room_paper():
         )
         
         if result.get('success'):
-            logging.info(f"[STORE_ROOM_LABEL] SUCCESS: Saved to file_records")
-            
+            logging.info("[STORE_ROOM_LABEL] SUCCESS: Saved to file_records")
+
             # 1. Update storage_assets status to LABELED
-            storage_provider = storage_provider or ('cloudinary' if cloudinary_public_id else 'firebase')
-            if cloudinary_public_id:
-                mark_storage_asset_labeled(storage_provider, cloudinary_public_id)
+            _mark_labeled(storage_provider, cloudinary_public_id)
             
             # 2. Log audit entry
             doc_id = result.get('data', {}).get('id')
@@ -1674,9 +1722,7 @@ def label_store_room_paper():
             # PENDING storage row.  Clear that stale queue row so it is not
             # presented for labeling again.
             if result.get('conflict'):
-                storage_provider = storage_provider or ('cloudinary' if cloudinary_public_id else 'firebase')
-                if cloudinary_public_id:
-                    mark_storage_asset_labeled(storage_provider, cloudinary_public_id)
+                _mark_labeled(storage_provider, cloudinary_public_id)
                 _unlabeled_cache['data'] = None
                 return jsonify({
                     'success': True,
@@ -2325,6 +2371,29 @@ _ALLOWED_PROXY_HOSTS = {
     'res.cloudinary.com',
 }
 
+
+def _secure_file_headers(extra=None):
+    """Build common no-store and anti-embedding headers for proxied files."""
+    headers = {
+        'Cache-Control': 'private, no-store, must-revalidate',
+        'Content-Disposition': 'inline',
+        'Access-Control-Allow-Origin': request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://app.abhihub.run.place',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'SAMEORIGIN',
+        'Referrer-Policy': 'no-referrer',
+        'X-Download-Options': 'noopen',
+        'X-Permitted-Cross-Domain-Policies': 'none',
+    }
+    if extra:
+        headers.update(extra)
+    return headers
+
+def _mark_labeled(storage_provider, cloudinary_public_id):
+    """Mark a storage asset as labeled."""
+    storage_provider = storage_provider or ('cloudinary' if cloudinary_public_id else 'firebase')
+    if cloudinary_public_id:
+        mark_storage_asset_labeled(storage_provider, cloudinary_public_id)
+
 @app.route('/api/proxy-file')
 @auth_required
 def proxy_file():
@@ -2352,14 +2421,7 @@ def proxy_file():
         content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
         resp = make_response(upstream.content)
         resp.headers['Content-Type'] = content_type
-        resp.headers['Cache-Control'] = 'private, no-store, must-revalidate'
-        resp.headers['X-Content-Type-Options'] = 'nosniff'
-        resp.headers['Content-Disposition'] = 'inline'
-        resp.headers['Access-Control-Allow-Origin'] = request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://app.abhihub.run.place'
-        resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
-        resp.headers['Referrer-Policy'] = 'no-referrer'
-        resp.headers['X-Download-Options'] = 'noopen'
-        resp.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
+        resp.headers.update(_secure_file_headers())
         return resp
     except requests.exceptions.RequestException as e:
         logging.error(f"[PROXY] Request failed for {file_url}: {e}")
@@ -2498,16 +2560,7 @@ def view_doc(doc_id, filename=None):
             # Don't silently return an empty 200 (breaks PDF.js "0 of 0 pages").
             # Return a proper 404 with a user-facing message.
             msg = json.dumps({"error": "Document not available", "detail": f"No content found for document {doc_id}"})
-            return Response(msg, status=404, content_type='application/json', headers={
-                'Cache-Control': 'private, no-store, must-revalidate',
-                'Content-Disposition': 'inline',
-                'Access-Control-Allow-Origin': request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://app.abhihub.run.place',
-                'X-Content-Type-Options': 'nosniff',
-                'X-Frame-Options': 'SAMEORIGIN',
-                'Referrer-Policy': 'no-referrer',
-                'X-Download-Options': 'noopen',
-                'X-Permitted-Cross-Domain-Policies': 'none',
-            })
+            return Response(msg, status=404, content_type='application/json', headers=_secure_file_headers())
         if not upstream.ok:
             abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
             
@@ -2523,16 +2576,7 @@ def view_doc(doc_id, filename=None):
             except Exception as e:
                 logging.error(f"[VIEW-DOC] Stream interrupted for {doc_id}: {e}")
                 
-        response_headers = {
-            'Cache-Control': 'private, no-store, must-revalidate',
-            'Content-Disposition': 'inline',
-            'Access-Control-Allow-Origin': request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://app.abhihub.run.place',
-            'X-Content-Type-Options': 'nosniff',
-            'X-Frame-Options': 'SAMEORIGIN',
-            'Referrer-Policy': 'no-referrer',
-            'X-Download-Options': 'noopen',
-            'X-Permitted-Cross-Domain-Policies': 'none',
-        }
+        response_headers = _secure_file_headers()
         
         # Preserve Content-Length if available (for PDF.js)
         if 'Content-Length' in upstream.headers:
@@ -2738,16 +2782,19 @@ def support():
 
 # Public pages
 @app.route('/about')
+@sitemap_page(priority="0.85")
 def about():
     """About page"""
     return render_template('about.html')
 
 @app.route('/open-source')
+@sitemap_page(priority="0.85")
 def open_source():
     """Open source page"""
     return render_template('open_source.html')
 
 @app.route('/')
+@sitemap_page(priority="1.00", changefreq="daily")
 def features():
     """Root route - handles OAuth callbacks and home page"""
     # If user is already authenticated, send to dashboard
@@ -2760,9 +2807,11 @@ def features():
     return render_template('p_landing.html')
 
 @app.route('/features-tour')
+@sitemap_page(priority="0.85")
 def features_tour():
     return render_template('features.html')
 @app.route('/pyq')
+@sitemap_page(priority="0.95", changefreq="daily")
 def pyq_landing():
     """SEO landing page targeting 'PYQ' and '[college] PYQ' searches"""
     colleges_res = get_all_colleges()
@@ -2801,8 +2850,6 @@ def college_landing(college_slug):
     Priority: brand group page > individual college page > 404
     """
 
-    def slugify(text):
-        return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
 
     route_prefix = '/pyq' if request.path.startswith('/pyq') else '/college'
 
@@ -3032,16 +3079,19 @@ def resource_landing(slug):
     return render_template('resource.html', document=document, ai_models=AI_MODELS, best_model=get_best_ai_model(), suggested_docs=suggested_docs, store_room_docs=store_room_docs)
 
 @app.route('/join')
+@sitemap_page()
 def join_team():
     """Collaborator recruitment landing page"""
     return render_template('join.html')
 
 @app.route('/team')
+@sitemap_page()
 def team():
     """Team page"""
     return render_template('team.html')
 
 @app.route('/contact')
+@sitemap_page()
 def contact():
     """Contact page"""
     return render_template('contact.html')
@@ -3092,13 +3142,7 @@ def api_contact():
     }
     
     os.makedirs('data', exist_ok=True)
-    messages = []
-    if os.path.exists(CONTACT_FILE):
-        try:
-            with open(CONTACT_FILE, 'r') as f:
-                messages = json.load(f)
-        except Exception:
-            pass
+    messages = _load_contact_messages()
     
     messages.insert(0, msg)
     
@@ -3863,13 +3907,6 @@ def widget_data():
 def favicon():
     return send_file('static/images/favicon.ico', mimetype='image/vnd.microsoft.icon')
 
-@app.route('/sw.js')
-def service_worker():
-    """Serve service worker from root scope so push notifications work."""
-    response = make_response(send_file('static/sw.js', mimetype='application/javascript'))
-    response.headers['Service-Worker-Allowed'] = '/'
-    response.headers['Cache-Control'] = 'no-cache'
-    return response
 
 ########################
 # Admin Control Panel #
@@ -3886,13 +3923,7 @@ def admin_control_panel():
 @auth_required
 @admin_required
 def get_contact_messages():
-    messages = []
-    if os.path.exists(CONTACT_FILE):
-        try:
-            with open(CONTACT_FILE, 'r') as f:
-                messages = json.load(f)
-        except Exception:
-            pass
+    messages = _load_contact_messages()
     return jsonify({'success': True, 'messages': messages})
 
 @app.route('/api/admin/subscribers', methods=['GET'])
@@ -4153,13 +4184,8 @@ def get_admin_stats():
             total_subs = 0
             
         messages_count = 0
-        if os.path.exists(CONTACT_FILE):
-            try:
-                with open(CONTACT_FILE, 'r') as f:
-                    messages = json.load(f)
-                    messages_count = len(messages)
-            except Exception:
-                pass
+        messages = _load_contact_messages()
+        messages_count = len(messages)
                 
         return jsonify({
             'success': True,
@@ -4646,6 +4672,13 @@ _unlabeled_cache = {
     'ttl': 60  # Cache for 60 seconds
 }
 
+
+def _mark_storage_asset_labeled(storage_provider, provider_public_id):
+    """Mark a queued storage asset as labeled when it has a provider ID."""
+    if provider_public_id:
+        provider = storage_provider or 'cloudinary'
+        mark_storage_asset_labeled(provider, provider_public_id)
+
 def get_cached_unlabeled_files():
     now = time.time()
     if _unlabeled_cache['data'] is not None and (now - _unlabeled_cache['timestamp'] < _unlabeled_cache['ttl']):
@@ -5000,7 +5033,7 @@ def api_ask_paper():
                 return jsonify({
                     'success': False,
                     'message': 'You have reached the limit of 5 chats per hour. Please try again later.'
-                }), 429
+                }), 
             # Record this chat request
             _chat_history[user_id].append(now)
 
@@ -5025,14 +5058,7 @@ def api_ask_paper():
         doc_category = raw.data.get('document_category', '')
 
         # Resolve Firebase storage paths to real HTTP URLs
-        if file_url and not file_url.startswith('http'):
-            try:
-                bucket = storage.bucket()
-                blob = bucket.blob(file_url)
-                file_url = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
-            except Exception as e:
-                logging.warning(f"[AI] Firebase signed URL failed: {e}")
-                return jsonify({'success': False, 'message': 'Could not resolve file URL'}), 400
+        file_url = _resolve_signed_url(file_url, log_tag="AI")
 
         if not file_url:
             return jsonify({'success': False, 'message': 'File URL not available'}), 400
@@ -5142,15 +5168,7 @@ def api_extract_ocr():
         raw = client.table('documents').select('file_url').eq('id', doc_id).single().execute()
         file_url = raw.data.get('file_url', '') if raw.data else ''
 
-        # Resolve Firebase storage paths to real HTTP URLs
-        if file_url and not file_url.startswith('http'):
-            try:
-                bucket = storage.bucket()
-                blob = bucket.blob(file_url)
-                file_url = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
-            except Exception as e:
-                logging.warning(f"[AI] OCR Firebase signed URL failed: {e}")
-                return jsonify({'success': False, 'message': 'Could not resolve file URL'}), 400
+        file_url = _resolve_signed_url(file_url, log_tag="AI")
 
         if not file_url:
             return jsonify({'success': False, 'message': 'File URL not available'}), 400
@@ -5162,11 +5180,11 @@ def api_extract_ocr():
             logging.warning(f"[AI] OCR file fetch failed: {e}")
             return jsonify({'success': False, 'message': 'Could not fetch file'}), 502
         if not file_resp.ok:
-            return jsonify({'success': False, 'message': 'Could not fetch file'}), 502
-
+            logging.warning(f"[AI] File fetch HTTP {file_resp.status_code} for {file_url[:80]}")
+            return jsonify({'success': False, 'message': f'Document fetch failed ({file_resp.status_code})'}), 502
         content_bytes = file_resp.content
         content_type = file_resp.headers.get('Content-Type', '').split(';')[0].lower()
-        is_pdf = 'pdf' in content_type or file_url.lower().endswith('.pdf') or content_bytes.startswith(b'%PDF')
+        is_pdf = _looks_like_pdf(content_type, file_url, content_bytes)
 
         # 1. Fast, Unlimited, 100% Free text extraction for PDFs
         if is_pdf:
@@ -6080,3 +6098,6 @@ def chat_user_info(user_id):
 if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV') != 'production'
     socketio.run(app, debug=debug_mode)
+
+
+

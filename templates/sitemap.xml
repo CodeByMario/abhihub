@@ -9,6 +9,9 @@
     {% if url.priority %}
     <priority>{{ url.priority }}</priority>
     {% endif %}
+    {% if url.changefreq %}
+    <changefreq>{{ url.changefreq }}</changefreq>
+    {% endif %}
   </url>
 {% endfor %}
 </urlset>
