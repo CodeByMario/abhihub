@@ -362,11 +362,11 @@ def check_csrf():
 
 
 # Redirect old Heroku domain to new custom domain (301 permanent redirect)
-@app.before_request
-def redirect_to_custom_domain():
-    """Redirect traffic from old Heroku domain to primary domain for SEO"""
-    if request.host == "abhi-hub-06bba7f4101d.herokuapp.com":
-        return redirect("https://app.abhihub.run.place" + request.full_path, code=301)
+def enforce_canonical_domain():
+    # If request comes from old Heroku/run.place domain
+    if request.host.endswith("abhihub.run.place"):
+        # Redirect permanently to new canonical domain
+        return redirect("https://www.abhihub.edu.eu.org" + request.full_path, code=301)
 
 init_push_api(app)
 
