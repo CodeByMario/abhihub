@@ -971,7 +971,7 @@ def sitemap():
     """Generate canonical sitemap URLs for the public host serving this request."""
     urls = []
     seen_urls = set()
-    base_url = request.url_root.rstrip('/')
+    base_url = "https://www.abhihub.edu.eu.org"
 
     def add_url(path, lastmod=None, priority=None, changefreq=None):
         loc = f"{base_url}{path}"
