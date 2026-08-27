@@ -270,7 +270,7 @@ except Exception:
 from cache_manager import init_cache, get_cache
 cache = init_cache(app)
 
-socketio = SocketIO(app, cors_allowed_origins="https://app.abhihub.run.place", logger=False, engineio_logger=False)
+socketio = SocketIO(app, cors_allowed_origins="https://www.abhihub.edu.eu.org", logger=False, engineio_logger=False)
 
 import mimetypes
 mimetypes.add_type('application/javascript', '.mjs')
@@ -2377,7 +2377,7 @@ def _secure_file_headers(extra=None):
     headers = {
         'Cache-Control': 'private, no-store, must-revalidate',
         'Content-Disposition': 'inline',
-        'Access-Control-Allow-Origin': request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://app.abhihub.run.place',
+        'Access-Control-Allow-Origin': request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://www.abhihub.edu.eu.org',
         'X-Content-Type-Options': 'nosniff',
         'X-Frame-Options': 'SAMEORIGIN',
         'Referrer-Policy': 'no-referrer',
@@ -3516,7 +3516,7 @@ def pdf_proxy(pdf_name):
         
         # Common headers for both full and partial responses
         # PDF security: force inline display, prevent download managers, no caching
-        response.headers['Access-Control-Allow-Origin'] = request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://app.abhihub.run.place'
+        response.headers['Access-Control-Allow-Origin'] = request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://www.abhihub.edu.eu.org'
         response.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
         response.headers['Access-Control-Allow-Headers'] = 'Range, Content-Type, Content-Range'
         response.headers['Access-Control-Expose-Headers'] = 'Content-Range, Content-Length, Accept-Ranges'
