@@ -1,11 +1,5 @@
 <!-- SEO FOUNDATION TEMPLATE -->
-{% set noindex_routes = ['/login', '/signup', '/dashboard', '/settings', '/admin'] %}
-{% set is_noindex = false %}
-{% for route in noindex_routes %}
-  {% if request.path.startswith(route) %}
-    {% set is_noindex = true %}
-  {% endif %}
-{% endfor %}
+{% set is_noindex = noindex | default(false) or request.path.startswith('/login') or request.path.startswith('/signup') or request.path.startswith('/dashboard') or request.path.startswith('/settings') or request.path.startswith('/admin') %}
 
 <!-- 1. Performance & Hints -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -34,15 +28,8 @@
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
 {% endif %}
 
-<!-- 4. Canonical URLs (Enforced Single Domain to prevent conflicts) -->
-{# Consolidate SEO authority on the public brand domain (abhihub.edu.eu.org)
-   regardless of which host served the page (app subdomain / www / bare). #}
-{% set _host = request.host.split(':')[0] %}
-{% if _host == 'app.abhihub.run.place' or _host.endswith('.abhihub.run.place') or _host == 'www.abhihub.edu.eu.org' or _host == 'abhihub.edu.eu.org' %}
-  {% set canonical_domain = 'https://abhihub.edu.eu.org' %}
-{% else %}
-  {% set canonical_domain = request.url_root.rstrip('/') %}
-{% endif %}
+<!-- 4. Canonical URLs -->
+{% set canonical_domain = request.url_root.rstrip('/') %}
 {% if not disable_canonical %}
 <link rel="canonical" href="{{ canonical_domain }}{{ request.path }}">
 
@@ -67,8 +54,8 @@
   "@context": "https://schema.org",
   "@type": "Organization",
   "name": "AbhiHub",
-  "url": "https://abhihub.edu.eu.org",
-  "logo": "https://abhihub.edu.eu.org/static/images/apple-touch-icon.png",
+  "url": "{{ canonical_domain }}/",
+  "logo": "{{ canonical_domain }}/static/images/apple-touch-icon.png",
   "description": "Student-driven platform for engineering resources and PYQs.",
   "sameAs": [
     "https://www.instagram.com/_abhihub_",

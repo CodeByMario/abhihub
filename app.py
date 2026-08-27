@@ -891,8 +891,16 @@ def ads_txt():
 
 @app.route('/robots.txt')
 def robots_txt():
-    """Expose the crawler directives at the host root."""
-    response = make_response(send_from_directory(app.root_path, 'robots.txt'))
+    """Expose crawler directives with a sitemap URL for the active host."""
+    with open(os.path.join(app.root_path, 'robots.txt'), encoding='utf-8') as robots_file:
+        robots_content = robots_file.read()
+    robots_content = re.sub(
+        r'^Sitemap:\s*.*$',
+        f"Sitemap: {url_for('sitemap', _external=True)}",
+        robots_content,
+        flags=re.MULTILINE,
+    )
+    response = make_response(robots_content)
     response.headers['Content-Type'] = 'text/plain; charset=utf-8'
     return response
 
@@ -904,8 +912,7 @@ def index_now_key(key):
 
 @app.route('/sitemap.xml')
 def sitemap():
-    
-    # 1. Fetch raw data
+    """Generate canonical sitemap URLs for the public host serving this request."""
     sitemap_res = get_sitemap_urls()
     data = sitemap_res.get('data', {}) if sitemap_res.get('success') else {}
     
@@ -915,41 +922,86 @@ def sitemap():
     documents = data.get('documents', [])
     
     urls = []
-    base_url = "https://app.abhihub.run.place"
+    seen_urls = set()
+    base_url = request.url_root.rstrip('/')
     
     def slugify(text):
         return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
-        
-    # Standard static URLs
-    for static_route in ['/', '/pyq', '/contact', '/features-tour', '/about']:
-        priority = "1.00" if static_route == '/' else ("0.95" if static_route == '/pyq' else "0.80")
-        urls.append({"loc": f"{base_url}{static_route}", "priority": priority})
-        
-    # Colleges + popular_name alias/brand URLs
+
+    def add_url(path, lastmod=None, priority=None):
+        loc = f"{base_url}{path}"
+        if loc in seen_urls:
+            return
+        seen_urls.add(loc)
+        entry = {'loc': loc}
+        if lastmod:
+            entry['lastmod'] = lastmod
+        if priority:
+            entry['priority'] = priority
+        urls.append(entry)
+
+    # Standard public URLs
+    for static_route in [
+        '/',
+        '/pyq',
+        '/contact',
+        '/features-tour',
+        '/about',
+        '/open-source',
+        '/help',
+        '/terms',
+        '/privacy',
+        '/join',
+        '/team',
+        '/support',
+    ]:
+        priority = (
+            "1.00" if static_route == '/'
+            else "0.95" if static_route == '/pyq'
+            else "0.85" if static_route in ['/about', '/open-source', '/features-tour']
+            else "0.80"
+        )
+        add_url(static_route, priority=priority)
+
+    # Include every public college page, but keep department and subject listings content-backed.
+    populated_college_ids = {doc.get('college_id') for doc in documents if doc.get('college_id')}
+    populated_department_ids = {doc.get('department_id') for doc in documents if doc.get('department_id')}
+    populated_subject_ids = {doc.get('subject_id') for doc in documents if doc.get('subject_id')}
+    brand_counts = {}
+    for college in colleges:
+        popular_slug = slugify(college.get('popular_name'))
+        if popular_slug:
+            brand_counts[popular_slug] = brand_counts.get(popular_slug, 0) + 1
+
     seen_brands = set()
     for c in colleges:
         c_slug = slugify(c.get('abbreviation') or c.get('name'))
-        urls.append({"loc": f"{base_url}/college/{c_slug}", "lastmod": c.get('created_at'), "priority": "0.90"})
-        # Add brand page URL (one per unique popular_name)
-        popular = c.get('popular_name')
-        if popular:
-            p_slug = slugify(popular)
+        if not c_slug:
+            continue
+        add_url(f"/college/{c_slug}", c.get('created_at'), "0.90")
+        p_slug = slugify(c.get('popular_name'))
+        if p_slug and p_slug != c_slug and brand_counts.get(p_slug, 0) > 1:
             if p_slug not in seen_brands:
                 seen_brands.add(p_slug)
-                urls.append({"loc": f"{base_url}/college/{p_slug}", "lastmod": c.get('created_at'), "priority": "0.92"})
-        
-        # Departments (Nested under colleges)
-        for d in departments:
-            d_slug = slugify(d.get('abbreviation') or d.get('name'))
-            urls.append({"loc": f"{base_url}/college/{c_slug}/{d_slug}", "lastmod": d.get('created_at'), "priority": "0.85"})
+                add_url(f"/college/{p_slug}", c.get('created_at'), "0.92")
+
+    college_slugs = {
+        college.get('id'): slugify(college.get('abbreviation') or college.get('name'))
+        for college in colleges
+    }
+    for department in departments:
+        c_slug = college_slugs.get(department.get('college_id'))
+        d_slug = slugify(department.get('abbreviation') or department.get('name'))
+        if c_slug and d_slug and department.get('college_id') in populated_college_ids and department.get('id') in populated_department_ids:
+            add_url(f"/college/{c_slug}/{d_slug}", department.get('created_at'), "0.85")
             
     # Subjects (Unique)
     seen_subjects = set()
     for s in subjects:
         s_slug = slugify(s.get('name'))
-        if s_slug and s_slug not in seen_subjects:
+        if s_slug and s_slug not in seen_subjects and s.get('id') in populated_subject_ids:
             seen_subjects.add(s_slug)
-            urls.append({"loc": f"{base_url}/subject/{s_slug}", "lastmod": s.get('created_at'), "priority": "0.90"})
+            add_url(f"/subject/{s_slug}", s.get('created_at'), "0.90")
             
     # Resources
     for doc in documents:
@@ -963,10 +1015,10 @@ def sitemap():
         t_slug = slugify(doc.get('title') or 'file')
         
         canonical_slug = f"{c_slug}-{d_slug}-{s_slug}-{t_slug}-{doc.get('id')}"
-        urls.append({"loc": f"{base_url}/resource/{canonical_slug}", "lastmod": doc.get('updated_at') or doc.get('created_at'), "priority": "0.75"})
+        add_url(f"/resource/{canonical_slug}", doc.get('updated_at') or doc.get('created_at'), "0.75")
         
     response = make_response(render_template('sitemap.xml', urls=urls))
-    response.headers['Content-Type'] = 'application/xml'
+    response.headers['Content-Type'] = 'application/xml; charset=utf-8'
     return response
 
 @app.route('/privacy')
@@ -2790,7 +2842,8 @@ def college_landing(college_slug):
         waitlist_count = get_waitlist_count(college_id)
         return render_template('college_coming_soon.html',
                                college=college,
-                               waitlist_count=waitlist_count)
+                               waitlist_count=waitlist_count,
+                               noindex=True)
 
     # 5. Enough material — render full college page
     recent_files = get_recent_college_files(college_id, limit=6).get('data', [])

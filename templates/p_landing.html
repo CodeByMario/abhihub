@@ -488,7 +488,7 @@
 
   function shareApp(platform) {
     const text = "Check out AbhiHub - The best place for engineering resources! 📚🚀";
-    const url = "https://abhihub.edu.eu.org";
+    const url = "{{ request.url_root.rstrip('/') }}";
 
     if (platform === 'whatsapp') {
       window.open(`https://wa.me/?text=${encodeURIComponent(text + ' ' + url)}`);
@@ -498,7 +498,7 @@
   }
 
   function copyLink() {
-    navigator.clipboard.writeText("https://abhihub.edu.eu.org");
+    navigator.clipboard.writeText("{{ request.url_root.rstrip('/') }}");
     alert("Link copied to clipboard!");
   }
 </script>

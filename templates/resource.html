@@ -4,10 +4,11 @@
 {% set coll_abbr = (document.college.abbreviation or document.college.name) if document.college else 'AbhiHub' %}
 {% set dept_name = document.department.name if document.department else '' %}
 {% set uploader_name = document.uploader.full_name if document.uploader else 'Anonymous' %}
+{% set resource_title = document.title or (subj_name ~ ' ' ~ file_type) %}
 
-{% set seo_title = subj_name ~ ' ' ~ file_type ~ ' | ' ~ coll_abbr ~ ' | AbhiHub' %}
-{% set seo_description = 'Download ' ~ document.title ~ ', a verified ' ~ file_type ~ ' for ' ~ subj_name ~ ' from ' ~ coll_name ~ ' uploaded by ' ~ uploader_name ~ '. Free academic resources.' %}
-{% set seo_keywords = subj_name ~ ' ' ~ file_type ~ ', ' ~ coll_name ~ ' ' ~ subj_name ~ ', ' ~ document.title ~ ', ' ~ uploader_name %}
+{% set seo_title = resource_title ~ ' | ' ~ subj_name ~ ' ' ~ file_type ~ ' | ' ~ coll_abbr ~ ' | AbhiHub' %}
+{% set seo_description = 'Download ' ~ resource_title ~ ', a verified ' ~ file_type ~ ' for ' ~ subj_name ~ ' from ' ~ coll_name ~ ' uploaded by ' ~ uploader_name ~ '. Free academic resources.' %}
+{% set seo_keywords = subj_name ~ ' ' ~ file_type ~ ', ' ~ coll_name ~ ' ' ~ subj_name ~ ', ' ~ resource_title ~ ', ' ~ uploader_name %}
 {% set og_title = seo_title %}
 {% set og_description = seo_description %}
 {% set og_type = 'article' %}

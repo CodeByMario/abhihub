@@ -412,21 +412,20 @@ def get_sitemap_urls() -> Dict:
     if not client: return {"success": False}
     try:
         # 1. Colleges
-        colleges = client.table('colleges').select('name, abbreviation, popular_name, created_at').execute().data
+        colleges = client.table('colleges').select('id, name, abbreviation, popular_name, created_at').execute().data
         
         # 2. Departments
-        # Since department pages are nested under colleges in the UI, we just need unique departments 
-        # (Though technically a department page route requires both. Let's just fetch all colleges and departments)
-        depts = client.table('departments').select('name, abbreviation, created_at').execute().data
-        
+        # Keep the college_id so sitemap generation can include only real, content-backed department pages.
+        depts = client.table('departments').select('id, college_id, name, abbreviation, created_at').execute().data
+
         # 3. Subjects
-        subjects = client.table('subjects').select('name, created_at').execute().data
-        
+        subjects = client.table('subjects').select('id, name, created_at').execute().data
+
         # 4. Resources
         # We need the relations to generate the canonical slug
         docs = client.table('documents')\
-            .select('id, title, updated_at, created_at, college:colleges(name, abbreviation), department:departments(name, abbreviation), subject:subjects(name)')\
-            .in_('status', ['approved', 'pending'])\
+            .select('id, college_id, department_id, subject_id, title, updated_at, created_at, college:colleges(id, name, abbreviation, popular_name), department:departments(id, name, abbreviation), subject:subjects(id, name)')\
+            .eq('status', 'approved')\
             .execute().data
             
         return {

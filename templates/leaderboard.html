@@ -249,7 +249,7 @@
   var btn = document.getElementById('lbShareBtn');
   if (!btn) return;
   btn.addEventListener('click', function(){
-    var url = 'https://abhihub.edu.eu.org/signup';
+    var url = '{{ request.url_root.rstrip("/") }}/signup';
     var text = encodeURIComponent('Climb the AbhiHub leaderboard with me — upload PYQs & notes, earn XP, help peers: ' + url);
     // If logged in, prefer the user's own referral link
     try {

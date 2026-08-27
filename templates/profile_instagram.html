@@ -4,7 +4,7 @@
 <meta property="og:title"       content="{{ og_title | e }}">
 <meta property="og:description" content="{{ og_description | e }}">
 <meta property="og:image"       content="{{ og_image or url_for('static', filename='images/android-chrome-512x512.png', _external=True) }}">
-<meta property="og:url"         content="https://abhihub.edu.eu.org{{ request.path }}">
+<meta property="og:url"         content="{{ request.url_root.rstrip('/') }}{{ request.path }}">
 <meta property="og:type"        content="profile">
 <meta name="twitter:card"       content="summary_large_image">
 <meta name="twitter:title"      content="{{ og_title | e }}">
