@@ -8,7 +8,7 @@ Disallow: /signup
 Disallow: /profile
 Disallow: /ranking
 Disallow: /delete-account
-Disallow: /pdf-reader
+
 
 Allow: /college/
 Allow: /dashboard
@@ -19,4 +19,5 @@ Allow: /upload
 Allow: /leaderboard
 Allow: /resource/
 
-Sitemap: https://app.abhihub.run.place/sitemap.xml
+
+Sitemap: https://www.abhihub.edu.eu.org/sitemap.xml

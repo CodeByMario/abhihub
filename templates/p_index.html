@@ -33,11 +33,11 @@ notes, practicals, and exam resources for top colleges across India." %}
     <div class="welcome-mini-user">
       {% set hour = (now.hour if now else 12) %}
       <span class="welcome-mini-greeting">
-        {% if hour < 12 %}🌅 Good Morning,{% elif hour < 17 %}☀️ Good Afternoon,{% elif hour < 21 %}🌆 Good Evening,{% else %}🌙 Good Night,{% endif %}
-        <strong>{{ user_data.name }}</strong>!
+        {% if hour < 12 %}🌅 Good Morning,{% elif hour < 17 %}☀️ Good Afternoon,{% elif hour < 21 %}🌆 Good Evening,{%
+          else %}🌙 Good Night,{% endif %} <strong>{{ user_data.name }}</strong>!
       </span>
       {% if user_data.get('badges') %}
-        <span class="welcome-mini-badge">🏆 {{ user_data.badges[0] }}</span>
+      <span class="welcome-mini-badge">🏆 {{ user_data.badges[0] }}</span>
       {% endif %}
     </div>
 
@@ -70,7 +70,8 @@ notes, practicals, and exam resources for top colleges across India." %}
     </div>
 
     <div class="welcome-mini-actions">
-      <button type="button" data-action="openPeerSearchModal" class="welcome-action-btn peer" aria-label="Search Students & Peer Notes">🔍 Find Peers</button>
+      <button type="button" data-action="openPeerSearchModal" class="welcome-action-btn peer"
+        aria-label="Search Students & Peer Notes">🔍 Find Peers</button>
       <a href="/upload" class="welcome-action-btn primary">📤 Upload</a>
       <a href="{{ url_for('support') }}" class="welcome-action-btn support" title="Support Us">💝</a>
     </div>
@@ -93,75 +94,159 @@ notes, practicals, and exam resources for top colleges across India." %}
   <button id="examPackClose" type="button" class="exam-pack-close" aria-label="Dismiss">×</button>
 </div>
 <script>
-(function(){
-  try {
-    if (localStorage.getItem('examPackBannerDismissed') === '1') {
-      var b = document.getElementById('examPackBanner'); if (b) b.remove();
-    }
-    var close = document.getElementById('examPackClose');
-    if (close) close.addEventListener('click', function(){
-      var el = document.getElementById('examPackBanner');
-      if (el) el.remove();
-      try { localStorage.setItem('examPackBannerDismissed','1'); } catch(e){}
-    });
-    var inv = document.getElementById('examPackInviteBtn');
-    if (inv) inv.addEventListener('click', function(){
-      var w = document.getElementById('referralWidget');
-      if (w) { w.hidden = false; w.scrollIntoView({behavior:'smooth', block:'center'}); }
-    });
-    // Build a share intent from the user's referral link (falls back to bare domain)
-    async function examPackShareUrl() {
-      try {
-        var r = await fetch('/api/referral/my-code', { credentials:'same-origin' });
-        var j = await r.json();
-        if (j.success && j.share_url) return j.share_url;
-      } catch(e){}
-      var base = location.hostname.indexOf('abhihub') >= 0 ? location.hostname : 'abhihub.edu.eu.org';
-      return 'https://' + base + '/signup';
-    }
-    var wa = document.getElementById('examPackWaBtn');
-    if (wa) wa.addEventListener('click', async function(){
-      var url = await examPackShareUrl();
-      var text = encodeURIComponent('Free engineering exam papers & notes on AbhiHub — join with my link: ' + url);
-      window.open('https://wa.me/?text=' + text, '_blank', 'noopener');
-    });
-    var ig = document.getElementById('examPackIgBtn');
-    if (ig) ig.addEventListener('click', async function(){
-      var url = await examPackShareUrl();
-      // Instagram has no direct share API; copy the link and point to the bio-card
-      try {
-        await navigator.clipboard.writeText(url);
-        alert('Invite link copied! Paste it in your Instagram bio or DM:\n' + url);
-      } catch(e){ alert('Your invite link: ' + url); }
-      window.open('https://instagram.com/', '_blank', 'noopener');
-    });
-  } catch(e){}
-})();
+  (function () {
+    try {
+      if (localStorage.getItem('examPackBannerDismissed') === '1') {
+        var b = document.getElementById('examPackBanner'); if (b) b.remove();
+      }
+      var close = document.getElementById('examPackClose');
+      if (close) close.addEventListener('click', function () {
+        var el = document.getElementById('examPackBanner');
+        if (el) el.remove();
+        try { localStorage.setItem('examPackBannerDismissed', '1'); } catch (e) { }
+      });
+      var inv = document.getElementById('examPackInviteBtn');
+      if (inv) inv.addEventListener('click', function () {
+        var w = document.getElementById('referralWidget');
+        if (w) { w.hidden = false; w.scrollIntoView({ behavior: 'smooth', block: 'center' }); }
+      });
+      // Build a share intent from the user's referral link (falls back to bare domain)
+      async function examPackShareUrl() {
+        try {
+          var r = await fetch('/api/referral/my-code', { credentials: 'same-origin' });
+          var j = await r.json();
+          if (j.success && j.share_url) return j.share_url;
+        } catch (e) { }
+        var base = location.hostname.indexOf('abhihub') >= 0 ? location.hostname : 'abhihub.edu.eu.org';
+        return 'https://' + base + '/signup';
+      }
+      var wa = document.getElementById('examPackWaBtn');
+      if (wa) wa.addEventListener('click', async function () {
+        var url = await examPackShareUrl();
+        var text = encodeURIComponent('Free engineering exam papers & notes on AbhiHub — join with my link: ' + url);
+        window.open('https://wa.me/?text=' + text, '_blank', 'noopener');
+      });
+      var ig = document.getElementById('examPackIgBtn');
+      if (ig) ig.addEventListener('click', async function () {
+        var url = await examPackShareUrl();
+        // Instagram has no direct share API; copy the link and point to the bio-card
+        try {
+          await navigator.clipboard.writeText(url);
+          alert('Invite link copied! Paste it in your Instagram bio or DM:\n' + url);
+        } catch (e) { alert('Your invite link: ' + url); }
+        window.open('https://instagram.com/', '_blank', 'noopener');
+      });
+    } catch (e) { }
+  })();
 </script>
 <style>
-.exam-pack-banner { position:relative; display:flex; gap:0.75rem; align-items:center;
-  margin:0.75rem 0; padding:0.9rem 1rem; border-radius:14px;
-  background:linear-gradient(135deg,#0d9488,#10b981); color:#fff;
-  box-shadow:0 4px 14px rgba(13,148,136,0.25); }
-.exam-pack-banner-icon { font-size:1.7rem; }
-.exam-pack-banner-body { flex:1; min-width:0; }
-.exam-pack-banner-title { font-weight:800; font-size:0.98rem; }
-.exam-pack-banner-sub { font-size:0.78rem; opacity:0.92; margin-bottom:0.5rem; }
-.exam-pack-banner-actions { display:flex; gap:0.5rem; flex-wrap:wrap; }
-.exam-pack-btn { padding:0.45rem 0.9rem; border-radius:10px; font-size:0.82rem; font-weight:700;
-  text-decoration:none; cursor:pointer; border:none; }
-.exam-pack-btn.primary { background:#fff; color:#0d9488; }
-.exam-pack-btn.primary:hover { background:#f0fdfa; }
-.exam-pack-btn.ghost { background:rgba(255,255,255,0.18); color:#fff; }
-.exam-pack-btn.ghost:hover { background:rgba(255,255,255,0.3); }
-.exam-pack-btn.wa { background:#25D366; color:#fff; }
-.exam-pack-btn.wa:hover { background:#1ebe5b; }
-.exam-pack-btn.ig { background:#E1306C; color:#fff; }
-.exam-pack-btn.ig:hover { background:#c81d5a; }
-.exam-pack-close { position:absolute; top:6px; right:10px; background:none; border:none;
-  color:#fff; font-size:1.3rem; line-height:1; cursor:pointer; opacity:0.85; }
-.exam-pack-close:hover { opacity:1; }
-@media (max-width:480px){ .exam-pack-banner-sub{ display:none; } }
+  .exam-pack-banner {
+    position: relative;
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin: 0.75rem 0;
+    padding: 0.9rem 1rem;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #0d9488, #10b981);
+    color: #fff;
+    box-shadow: 0 4px 14px rgba(13, 148, 136, 0.25);
+  }
+
+  .exam-pack-banner-icon {
+    font-size: 1.7rem;
+  }
+
+  .exam-pack-banner-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .exam-pack-banner-title {
+    font-weight: 800;
+    font-size: 0.98rem;
+  }
+
+  .exam-pack-banner-sub {
+    font-size: 0.78rem;
+    opacity: 0.92;
+    margin-bottom: 0.5rem;
+  }
+
+  .exam-pack-banner-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .exam-pack-btn {
+    padding: 0.45rem 0.9rem;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+  }
+
+  .exam-pack-btn.primary {
+    background: #fff;
+    color: #0d9488;
+  }
+
+  .exam-pack-btn.primary:hover {
+    background: #f0fdfa;
+  }
+
+  .exam-pack-btn.ghost {
+    background: rgba(255, 255, 255, 0.18);
+    color: #fff;
+  }
+
+  .exam-pack-btn.ghost:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .exam-pack-btn.wa {
+    background: #25D366;
+    color: #fff;
+  }
+
+  .exam-pack-btn.wa:hover {
+    background: #1ebe5b;
+  }
+
+  .exam-pack-btn.ig {
+    background: #E1306C;
+    color: #fff;
+  }
+
+  .exam-pack-btn.ig:hover {
+    background: #c81d5a;
+  }
+
+  .exam-pack-close {
+    position: absolute;
+    top: 6px;
+    right: 10px;
+    background: none;
+    border: none;
+    color: #fff;
+    font-size: 1.3rem;
+    line-height: 1;
+    cursor: pointer;
+    opacity: 0.85;
+  }
+
+  .exam-pack-close:hover {
+    opacity: 1;
+  }
+
+  @media (max-width:480px) {
+    .exam-pack-banner-sub {
+      display: none;
+    }
+  }
 </style>
 
 <!-- ── Invite / Referral Nudge (growth loop) ─────────────────────────────── -->
@@ -175,88 +260,175 @@ notes, practicals, and exam resources for top colleges across India." %}
       <input id="referralLinkInput" class="referral-widget-input" type="text" readonly value="Loading…">
       <button id="referralCopyBtn" class="referral-widget-copy" type="button">Copy</button>
       <a id="referralShareBtn" class="referral-widget-share" href="#" target="_blank" rel="noopener">WhatsApp</a>
-      <button id="referralIgBtn" class="referral-widget-share ig" type="button" title="Share on Instagram">Instagram</button>
+      <button id="referralIgBtn" class="referral-widget-share ig" type="button"
+        title="Share on Instagram">Instagram</button>
     </div>
   </div>
 </div>
 <style>
-.referral-widget { display:flex; gap:0.75rem; align-items:center; margin:0.75rem 0;
-  background:linear-gradient(135deg,#eef2ff,#faf5ff); border:1px solid #c7d2fe;
-  border-radius:14px; padding:0.85rem 1rem; }
-.referral-widget-icon { font-size:1.6rem; }
-.referral-widget-body { flex:1; min-width:0; }
-.referral-widget-title { font-weight:800; font-size:0.95rem; color:#312e81; }
-.referral-widget-sub { font-size:0.78rem; color:#6366f1; margin-bottom:0.4rem; }
-.referral-widget-row { display:flex; gap:0.4rem; flex-wrap:wrap; }
-.referral-widget-input { flex:1; min-width:160px; padding:0.4rem 0.6rem; border:1px solid #c7d2fe;
-  border-radius:8px; font-size:0.8rem; background:#fff; color:#3730a3; }
-.referral-widget-copy, .referral-widget-share { padding:0.4rem 0.8rem; border-radius:8px; font-size:0.8rem;
-  font-weight:700; text-decoration:none; cursor:pointer; border:none; }
-.referral-widget-copy { background:#4f46e5; color:#fff; }
-.referral-widget-share { background:#22c55e; color:#fff; display:inline-flex; align-items:center; }
-.referral-widget-share.ig { background:#E1306C; }
-.referral-widget-share.ig:hover { background:#c81d5a; }
-.referral-widget-copy:hover { background:#4338ca; }
-.referral-widget-progress { font-size:0.74rem; font-weight:600; color:#4f46e5; margin-bottom:0.4rem; }
-.referral-widget-pulse { animation: referralPulse 0.8s ease-in-out 0s 2; }
-@keyframes referralPulse {
-  0%   { box-shadow: 0 0 0 0 rgba(79,70,229,0.5); }
-  100% { box-shadow: 0 0 0 14px rgba(79,70,229,0); }
-}
+  .referral-widget {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    margin: 0.75rem 0;
+    background: linear-gradient(135deg, #eef2ff, #faf5ff);
+    border: 1px solid #c7d2fe;
+    border-radius: 14px;
+    padding: 0.85rem 1rem;
+  }
+
+  .referral-widget-icon {
+    font-size: 1.6rem;
+  }
+
+  .referral-widget-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .referral-widget-title {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: #312e81;
+  }
+
+  .referral-widget-sub {
+    font-size: 0.78rem;
+    color: #6366f1;
+    margin-bottom: 0.4rem;
+  }
+
+  .referral-widget-row {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .referral-widget-input {
+    flex: 1;
+    min-width: 160px;
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #c7d2fe;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    background: #fff;
+    color: #3730a3;
+  }
+
+  .referral-widget-copy,
+  .referral-widget-share {
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    border: none;
+  }
+
+  .referral-widget-copy {
+    background: #4f46e5;
+    color: #fff;
+  }
+
+  .referral-widget-share {
+    background: #22c55e;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .referral-widget-share.ig {
+    background: #E1306C;
+  }
+
+  .referral-widget-share.ig:hover {
+    background: #c81d5a;
+  }
+
+  .referral-widget-copy:hover {
+    background: #4338ca;
+  }
+
+  .referral-widget-progress {
+    font-size: 0.74rem;
+    font-weight: 600;
+    color: #4f46e5;
+    margin-bottom: 0.4rem;
+  }
+
+  .referral-widget-pulse {
+    animation: referralPulse 0.8s ease-in-out 0s 2;
+  }
+
+  @keyframes referralPulse {
+    0% {
+      box-shadow: 0 0 0 0 rgba(79, 70, 229, 0.5);
+    }
+
+    100% {
+      box-shadow: 0 0 0 14px rgba(79, 70, 229, 0);
+    }
+  }
 </style>
 <script>
-(function loadReferral() {
-  try {
-    const r = fetch('/api/referral/my-code', { credentials:'same-origin' })
-      .then(res => res.json())
-      .then(j => {
-        if (!j.success) return;
-        const widget = document.getElementById('referralWidget');
-        const input = document.getElementById('referralLinkInput');
-        const share = document.getElementById('referralShareBtn');
-        const copy = document.getElementById('referralCopyBtn');
-        const creditsEl = document.getElementById('referralCredits');
-        const progressEl = document.getElementById('referralProgress');
-        input.value = j.share_url;
-        share.href = 'https://wa.me/?text=' + encodeURIComponent('Join me on AbhiHub for free engineering PYQs & notes: ' + j.share_url);
-        widget.hidden = false;
-        if (creditsEl) creditsEl.textContent = (j.referral_credits || 0) + ' credits';
-        if (progressEl) {
-          const n = j.referral_count || 0;
-          progressEl.textContent = n > 0
-            ? `🎉 ${n} friend${n === 1 ? '' : 's'} joined via your link — ${j.referral_credits || 0} credits earned`
-            : 'No friends joined yet — share your link to earn 50 credits each!';
-          progressEl.hidden = false;
-        }
-        const ig = document.getElementById('referralIgBtn');
-        if (ig) ig.addEventListener('click', () => {
-          try {
-            navigator.clipboard.writeText(j.share_url).then(() => {
-              alert('Invite link copied! Paste it in your Instagram bio or DM:\n' + j.share_url);
-            });
-          } catch (e) { alert('Your invite link: ' + j.share_url); }
-          window.open('https://instagram.com/', '_blank', 'noopener');
-        });
-        copy.addEventListener('click', () => {
-          navigator.clipboard.writeText(j.share_url).then(() => { copy.textContent='Copied!'; setTimeout(()=>copy.textContent='Copy',1500); });
-        });
+  (function loadReferral() {
+    try {
+      const r = fetch('/api/referral/my-code', { credentials: 'same-origin' })
+        .then(res => res.json())
+        .then(j => {
+          if (!j.success) return;
+          const widget = document.getElementById('referralWidget');
+          const input = document.getElementById('referralLinkInput');
+          const share = document.getElementById('referralShareBtn');
+          const copy = document.getElementById('referralCopyBtn');
+          const creditsEl = document.getElementById('referralCredits');
+          const progressEl = document.getElementById('referralProgress');
+          input.value = j.share_url;
+          share.href = 'https://wa.me/?text=' + encodeURIComponent('Join me on AbhiHub for free engineering PYQs & notes: ' + j.share_url);
+          widget.hidden = false;
+          if (creditsEl) creditsEl.textContent = (j.referral_credits || 0) + ' credits';
+          if (progressEl) {
+            const n = j.referral_count || 0;
+            progressEl.textContent = n > 0
+              ? `🎉 ${n} friend${n === 1 ? '' : 's'} joined via your link — ${j.referral_credits || 0} credits earned`
+              : 'No friends joined yet — share your link to earn 50 credits each!';
+            progressEl.hidden = false;
+          }
+          const ig = document.getElementById('referralIgBtn');
+          if (ig) ig.addEventListener('click', () => {
+            if (window.AbhiHubTracking) window.AbhiHubTracking.trackShare('instagram', 'referral', 'Referral Link');
+            try {
+              navigator.clipboard.writeText(j.share_url).then(() => {
+                alert('Invite link copied! Paste it in your Instagram bio or DM:\n' + j.share_url);
+              });
+            } catch (e) { alert('Your invite link: ' + j.share_url); }
+            window.open('https://instagram.com/', '_blank', 'noopener');
+          });
+          share.addEventListener('click', () => {
+            if (window.AbhiHubTracking) window.AbhiHubTracking.trackShare('whatsapp', 'referral', 'Referral Link');
+          });
+          copy.addEventListener('click', () => {
+            if (window.AbhiHubTracking) window.AbhiHubTracking.trackShare('copy', 'referral', 'Referral Link');
+            navigator.clipboard.writeText(j.share_url).then(() => { copy.textContent = 'Copied!'; setTimeout(() => copy.textContent = 'Copy', 1500); });
+          });
 
-        // Expose the post-upload invite prompt (highest-intent moment).
-        // Fires at most once per browser session to avoid nagging.
-        window.AbhiHubInvitePrompt = function () {
-          try {
-            if (sessionStorage.getItem('invitePrompted') === '1') return;
-            sessionStorage.setItem('invitePrompted', '1');
-            widget.hidden = false;
-            widget.scrollIntoView({ behavior:'smooth', block:'center' });
-            widget.classList.add('referral-widget-pulse');
-            setTimeout(() => widget.classList.remove('referral-widget-pulse'), 1600);
-          } catch (e) {}
-        };
-      })
-      .catch(() => { /* widget stays hidden if API unavailable */ });
-  } catch (e) { /* widget stays hidden if fetch unsupported */ }
-})();
+          // Expose the post-upload invite prompt (highest-intent moment).
+          // Fires at most once per browser session to avoid nagging.
+          window.AbhiHubInvitePrompt = function () {
+            try {
+              if (sessionStorage.getItem('invitePrompted') === '1') return;
+              sessionStorage.setItem('invitePrompted', '1');
+              widget.hidden = false;
+              widget.scrollIntoView({ behavior: 'smooth', block: 'center' });
+              widget.classList.add('referral-widget-pulse');
+              setTimeout(() => widget.classList.remove('referral-widget-pulse'), 1600);
+            } catch (e) { }
+          };
+        })
+        .catch(() => { /* widget stays hidden if API unavailable */ });
+    } catch (e) { /* widget stays hidden if fetch unsupported */ }
+  })();
 </script>
 
 {% include 'includes/_peer_search_modal.html' %}
@@ -273,216 +445,321 @@ notes, practicals, and exam resources for top colleges across India." %}
   </div>
 </div>
 <style>
-.online-widget { margin: 0.75rem 0; }
-.online-inner { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; min-height: 36px; }
-.online-label { font-size: 0.78rem; font-weight: 700; color: #059669; letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 0.3rem; }
-.online-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulse 2s infinite; }
-.online-count-badge {
-  background: #d1fae5; color: #065f46; font-size: 0.72rem; font-weight: 800;
-  padding: 0.15rem 0.55rem; border-radius: 999px; min-width: 24px; text-align: center;
-  line-height: 1.4;
-}
-.online-list { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-.online-chip {
-  display: inline-flex; align-items: center; gap: 0.35rem;
-  padding: 0.3rem 0.65rem; background: #ecfdf5; border: 1px solid #6ee7b7;
-  border-radius: 20px; font-size: 0.78rem; font-weight: 700; color: #065f46;
-  cursor: pointer; text-decoration: none; transition: 0.2s;
-}
-.online-chip:hover { background: #d1fae5; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.15); }
-.online-chip .oc-dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; flex-shrink: 0; animation: pulse 2s infinite; }
-.online-chip.me { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
-.online-chip.me .oc-dot { background: #3b82f6; }
-.online-more { font-size: 0.72rem; color: #94a3b8; font-weight: 600; align-self: center; }
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-</style>
-<script>
-(async function pollOnline() {
-  const selfName = '{{ (session.user.name if session.user else "") | e }}' || '';
-  const selfUid  = '{{ session.user.uid if session.user else "" }}';
-  try {
-    const r = await fetch('/api/chat/online', { signal: AbortSignal.timeout(8000) });
-    const data = await r.json();
-    const listEl = document.getElementById('onlineList');
-    const countEl = document.getElementById('onlineCount');
-    if (!listEl || !countEl) return;
-
-    const users = (data.online || []).sort((a, b) => {
-      // Show self first
-      if (a.id === selfUid) return -1;
-      if (b.id === selfUid) return 1;
-      return 0;
-    });
-
-    const total = users.length;
-    countEl.textContent = total;
-
-    // Hide the entire widget when no one is online
-    const widget = document.getElementById('onlineWidget');
-    if (widget) widget.style.display = (total === 0) ? 'none' : '';
-
-    if (!users.length) {
-      listEl.innerHTML = '<span style="font-size:.75rem;color:#94a3b8;">No one online right now</span>';
-      return;
-    }
-
-    // Show self first, then others, cap at 10
-    const display = users.slice(0, 10);
-    const extra = total - display.length;
-
-    listEl.innerHTML = display.map(u => {
-      const isSelf = u.id === selfUid;
-      const cls = isSelf ? 'online-chip me' : 'online-chip';
-      const label = isSelf ? (u.name.split(' ')[0] + ' (You)') : u.name.split(' ')[0];
-      return `<a class="${cls}" href="${isSelf ? '#' : '/chat/' + u.id}" title="${isSelf ? 'You are online' : 'Chat with ' + u.name}">
-        <span class="oc-dot"></span>${label}
-      </a>`;
-    }).join('');
-
-    if (extra > 0) {
-      listEl.innerHTML += `<span class="online-more">+${extra} more</span>`;
-    }
-  } catch (err) {
-    const listEl = document.getElementById('onlineList');
-    const countEl = document.getElementById('onlineCount');
-    // Hide widget on failure rather than showing a broken state
-    const widget = document.getElementById('onlineWidget');
-    if (widget) widget.style.display = 'none';
-    if (countEl) countEl.textContent = '!';
-    if (listEl) listEl.innerHTML = '<span style="font-size:.75rem;color:#f59e0b;">Unable to load</span>';
+  .online-widget {
+    margin: 0.75rem 0;
   }
 
-  // Poll every 60s for mobile-friendly battery life
-  setTimeout(pollOnline, 60000);
-})();
+  .online-inner {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    min-height: 36px;
+  }
+
+  .online-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #059669;
+    letter-spacing: 0.04em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .online-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #10b981;
+    animation: pulse 2s infinite;
+  }
+
+  .online-count-badge {
+    background: #d1fae5;
+    color: #065f46;
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    min-width: 24px;
+    text-align: center;
+    line-height: 1.4;
+  }
+
+  .online-list {
+    display: flex;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+  }
+
+  .online-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.65rem;
+    background: #ecfdf5;
+    border: 1px solid #6ee7b7;
+    border-radius: 20px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: #065f46;
+    cursor: pointer;
+    text-decoration: none;
+    transition: 0.2s;
+  }
+
+  .online-chip:hover {
+    background: #d1fae5;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.15);
+  }
+
+  .online-chip .oc-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #10b981;
+    flex-shrink: 0;
+    animation: pulse 2s infinite;
+  }
+
+  .online-chip.me {
+    background: #dbeafe;
+    border-color: #93c5fd;
+    color: #1e40af;
+  }
+
+  .online-chip.me .oc-dot {
+    background: #3b82f6;
+  }
+
+  .online-more {
+    font-size: 0.72rem;
+    color: #94a3b8;
+    font-weight: 600;
+    align-self: center;
+  }
+
+  @keyframes pulse {
+
+    0%,
+    100% {
+      opacity: 1;
+    }
+
+    50% {
+      opacity: 0.4;
+    }
+  }
+</style>
+<script>
+  (async function pollOnline() {
+    const selfName = '{{ (session.user.name if session.user else "") | e }}' || '';
+    const selfUid = '{{ session.user.uid if session.user else "" }}';
+    try {
+      const r = await fetch('/api/chat/online', { signal: AbortSignal.timeout(8000) });
+      const data = await r.json();
+      const listEl = document.getElementById('onlineList');
+      const countEl = document.getElementById('onlineCount');
+      if (!listEl || !countEl) return;
+
+      const users = (data.online || []).sort((a, b) => {
+        // Show self first
+        if (a.id === selfUid) return -1;
+        if (b.id === selfUid) return 1;
+        return 0;
+      });
+
+      const total = users.length;
+      countEl.textContent = total;
+
+      // Hide the entire widget when no one is online
+      const widget = document.getElementById('onlineWidget');
+      if (widget) widget.style.display = (total === 0) ? 'none' : '';
+
+      if (!users.length) {
+        listEl.innerHTML = '<span style="font-size:.75rem;color:#94a3b8;">No one online right now</span>';
+        return;
+      }
+
+      // Show self first, then others, cap at 10
+      const display = users.slice(0, 10);
+      const extra = total - display.length;
+
+      listEl.innerHTML = display.map(u => {
+        const isSelf = u.id === selfUid;
+        const cls = isSelf ? 'online-chip me' : 'online-chip';
+        const label = isSelf ? (u.name.split(' ')[0] + ' (You)') : u.name.split(' ')[0];
+        return `<a class="${cls}" href="${isSelf ? '#' : '/chat/' + u.id}" title="${isSelf ? 'You are online' : 'Chat with ' + u.name}">
+        <span class="oc-dot"></span>${label}
+      </a>`;
+      }).join('');
+
+      if (extra > 0) {
+        listEl.innerHTML += `<span class="online-more">+${extra} more</span>`;
+      }
+    } catch (err) {
+      const listEl = document.getElementById('onlineList');
+      const countEl = document.getElementById('onlineCount');
+      // Hide widget on failure rather than showing a broken state
+      const widget = document.getElementById('onlineWidget');
+      if (widget) widget.style.display = 'none';
+      if (countEl) countEl.textContent = '!';
+      if (listEl) listEl.innerHTML = '<span style="font-size:.75rem;color:#f59e0b;">Unable to load</span>';
+    }
+
+    // Poll every 60s for mobile-friendly battery life
+    setTimeout(pollOnline, 60000);
+  })();
 </script>
 {% endif %}
 
 <style>
-.welcome-mini-banner {
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
-  border-radius: 18px;
-  padding: 0.85rem 1.25rem;
-  margin: 1rem 0;
-  box-shadow: 0 8px 24px rgba(49, 46, 129, 0.25);
-  color: #ffffff;
-}
-.welcome-mini-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-.welcome-mini-user {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 1rem;
-}
-.welcome-mini-greeting strong {
-  color: #a5b4fc;
-}
-.welcome-mini-badge {
-  background: rgba(255, 255, 255, 0.15);
-  padding: 0.2rem 0.6rem;
-  border-radius: 99px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  backdrop-filter: blur(4px);
-}
-.welcome-mini-stats {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.welcome-stat-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.35rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
-.welcome-stat-pill.highlight {
-  background: rgba(236, 72, 153, 0.2);
-  border-color: rgba(236, 72, 153, 0.3);
-}
-.welcome-stat-icon {
-  font-size: 0.9rem;
-}
-.welcome-stat-val {
-  font-weight: 800;
-  color: #ffffff;
-}
-.welcome-stat-lbl {
-  font-size: 0.75rem;
-  opacity: 0.75;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-.welcome-mini-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.welcome-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.45rem 0.9rem;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 0.82rem;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-.welcome-action-btn.primary {
-  background: #6366f1;
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
-}
-.welcome-action-btn.primary:hover {
-  background: #4f46e5;
-  transform: translateY(-1px);
-}
-.welcome-action-btn.peer {
-  background: rgba(255, 255, 255, 0.18);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  cursor: pointer;
-}
-.welcome-action-btn.peer:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-.welcome-action-btn.support {
-  background: rgba(244, 63, 94, 0.2);
-  color: #fda4af;
-  border: 1px solid rgba(244, 63, 94, 0.3);
-}
-.welcome-action-btn.support:hover {
-  background: rgba(244, 63, 94, 0.35);
-}
+  .welcome-mini-banner {
+    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
+    border-radius: 18px;
+    padding: 0.85rem 1.25rem;
+    margin: 1rem 0;
+    box-shadow: 0 8px 24px rgba(49, 46, 129, 0.25);
+    color: #ffffff;
+  }
 
-@media (max-width: 768px) {
   .welcome-mini-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-  .welcome-mini-stats {
-    width: 100%;
+    display: flex;
+    align-items: center;
     justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
   }
+
+  .welcome-mini-user {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 1rem;
+  }
+
+  .welcome-mini-greeting strong {
+    color: #a5b4fc;
+  }
+
+  .welcome-mini-badge {
+    background: rgba(255, 255, 255, 0.15);
+    padding: 0.2rem 0.6rem;
+    border-radius: 99px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    backdrop-filter: blur(4px);
+  }
+
+  .welcome-mini-stats {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .welcome-stat-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: rgba(255, 255, 255, 0.1);
+    padding: 0.35rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    backdrop-filter: blur(6px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+
+  .welcome-stat-pill.highlight {
+    background: rgba(236, 72, 153, 0.2);
+    border-color: rgba(236, 72, 153, 0.3);
+  }
+
+  .welcome-stat-icon {
+    font-size: 0.9rem;
+  }
+
+  .welcome-stat-val {
+    font-weight: 800;
+    color: #ffffff;
+  }
+
+  .welcome-stat-lbl {
+    font-size: 0.75rem;
+    opacity: 0.75;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
   .welcome-mini-actions {
-    width: 100%;
-    justify-content: flex-end;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
   }
-}
+
+  .welcome-action-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.45rem 0.9rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.82rem;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+
+  .welcome-action-btn.primary {
+    background: #6366f1;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
+  }
+
+  .welcome-action-btn.primary:hover {
+    background: #4f46e5;
+    transform: translateY(-1px);
+  }
+
+  .welcome-action-btn.peer {
+    background: rgba(255, 255, 255, 0.18);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    cursor: pointer;
+  }
+
+  .welcome-action-btn.peer:hover {
+    background: rgba(255, 255, 255, 0.3);
+  }
+
+  .welcome-action-btn.support {
+    background: rgba(244, 63, 94, 0.2);
+    color: #fda4af;
+    border: 1px solid rgba(244, 63, 94, 0.3);
+  }
+
+  .welcome-action-btn.support:hover {
+    background: rgba(244, 63, 94, 0.35);
+  }
+
+  @media (max-width: 768px) {
+    .welcome-mini-content {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.75rem;
+    }
+
+    .welcome-mini-stats {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .welcome-mini-actions {
+      width: 100%;
+      justify-content: flex-end;
+    }
+  }
 </style>
 
 <script>
@@ -535,300 +812,333 @@ notes, practicals, and exam resources for top colleges across India." %}
 </div>
 
 <style>
-.suggested-peers-section {
-  background: var(--surface, #fff);
-  border: 1px solid var(--border-light, #e2e8f0);
-  border-radius: 18px;
-  padding: 1.25rem;
-  margin: 1rem 0;
-}
-.suggested-peers-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-.suggested-peers-header h3 {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-primary, #1e293b);
-  margin: 0;
-}
-.suggested-peers-view-all {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--primary-600, #4f46e5);
-  text-decoration: none;
-  transition: all 0.15s;
-}
-.suggested-peers-view-all:hover {
-  color: var(--primary-700, #2563eb);
-  text-decoration: underline;
-}
-.suggested-peers-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 0.75rem;
-}
-.suggested-peers-grid.empty {
-  grid-template-columns: 1fr;
-}
-.suggested-peer-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.9rem;
-  background: var(--gray-50, #f8fafc);
-  border: 1px solid var(--border-light, #e2e8f0);
-  border-radius: 14px;
-  text-decoration: none;
-  color: inherit;
-  transition: all 0.18s;
-  text-align: center;
-}
-.suggested-peer-card:hover {
-  background: var(--primary-50, #eef2ff);
-  border-color: var(--primary-300, #c4b5fd);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
-}
-.suggested-peer-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-600, #4f46e5), var(--accent-pink, #f4725F));
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.3rem;
-  font-weight: 800;
-  flex-shrink: 0;
-}
-.suggested-peer-name {
-  width: 100%;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text-primary, #1e293b);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.suggested-peer-name .verified {
-  color: var(--primary-600, #4f46e5);
-  margin-left: 2px;
-}
-.suggested-peer-meta {
-  width: 100%;
-  font-size: 0.72rem;
-  color: var(--text-tertiary, #94a3b8);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.suggested-peer-actions {
-  width: 100%;
-  display: flex;
-  gap: 0.4rem;
-  margin-top: 0.3rem;
-}
-.suggested-peer-chat {
-  flex: 1;
-  padding: 0.35rem 0.6rem;
-  background: var(--primary-600, #4f46e5);
-  color: #fff;
-  border-radius: 8px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-decoration: none;
-  text-align: center;
-  transition: all 0.15s;
-}
-.suggested-peer-chat:hover {
-  background: var(--primary-700, #2563eb);
-  transform: translateY(-1px);
-}
-.suggested-peer-profile {
-  flex: 1;
-  padding: 0.35rem 0.6rem;
-  background: var(--gray-100, #f1f5f9);
-  color: var(--text-secondary, #475569);
-  border-radius: 8px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-decoration: none;
-  text-align: center;
-  transition: all 0.15s;
-}
-.suggested-peer-profile:hover {
-  background: var(--gray-200, #e2e8f0);
-}
-.suggested-peers-loading {
-  text-align: center;
-  padding: 1.5rem;
-  color: var(--text-tertiary, #94a3b8);
-  font-size: 0.88rem;
-}
-@media (max-width: 768px) {
-  .suggested-peers-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  .suggested-peers-section {
+    background: var(--surface, #fff);
+    border: 1px solid var(--border-light, #e2e8f0);
+    border-radius: 18px;
+    padding: 1.25rem;
+    margin: 1rem 0;
   }
-}
 
-
-/* File Info Icon & Modal */
-.file-info-icon {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid var(--border-light, #e2e8f0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  color: var(--text-tertiary, #94a3b8);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.18s, background-color 0.18s, color 0.18s;
-  z-index: 2;
-  pointer-events: auto;
-}
-.file-info-icon:hover {
-  background: var(--primary-100, #eef2ff);
-  color: var(--primary-600, #4f46e5);
-  transform: scale(1.1);
-}
-.pcard:hover .file-info-icon {
-  opacity: 1;
-}
-
-/* Button-style file info icon (for _card_file.html) */
-.file-info-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid var(--border-light, #e2e8f0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: var(--text-tertiary, #94a3b8);
-  cursor: pointer;
-  opacity: 0;
-  transition: all 0.18s;
-  z-index: 2;
-  padding: 0;
-  line-height: 1;
-}
-.file-info-btn:hover {
-  background: var(--primary-100, #eef2ff);
-  color: var(--primary-600, #4f46e5);
-  transform: scale(1.1);
-}
-.file-card:hover .file-info-btn {
-  opacity: 1;
-}
-.file-info-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  padding: 1rem;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s, visibility 0.2s;
-}
-.file-info-modal-overlay.show {
-  opacity: 1;
-  visibility: visible;
-}
-.file-info-modal {
-  background: var(--surface, #fff);
-  border-radius: 16px;
-  padding: 1.5rem;
-  max-width: 480px;
-  width: 100%;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  position: relative;
-}
-.file-info-modal__close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: var(--text-tertiary, #94a3b8);
-}
-.file-info-modal h3 {
-  font-size: 1.1rem;
-  color: var(--text-primary, #1e293b);
-  margin: 0 0 1rem;
-}
-.file-info-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border-light, #e2e8f0);
-  font-size: 0.88rem;
-}
-.file-info-row:last-child {
-  border-bottom: none;
-}
-.file-info-label {
-  color: var(--text-tertiary, #94a3b8);
-}
-.file-info-value {
-  color: var(--text-primary, #1e293b);
-  font-weight: 600;
-}
-.file-info-license {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: var(--gray-50, #f8fafc);
-  border-radius: 10px;
-  font-size: 0.82rem;
-  color: var(--text-secondary, #475569);
-  line-height: 1.5;
-}
-@media (max-width: 768px) {
-  .suggested-peers-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  .suggested-peers-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
   }
-}
 
+  .suggested-peers-header h3 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--text-primary, #1e293b);
+    margin: 0;
+  }
+
+  .suggested-peers-view-all {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--primary-600, #4f46e5);
+    text-decoration: none;
+    transition: all 0.15s;
+  }
+
+  .suggested-peers-view-all:hover {
+    color: var(--primary-700, #2563eb);
+    text-decoration: underline;
+  }
+
+  .suggested-peers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .suggested-peers-grid.empty {
+    grid-template-columns: 1fr;
+  }
+
+  .suggested-peer-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.9rem;
+    background: var(--gray-50, #f8fafc);
+    border: 1px solid var(--border-light, #e2e8f0);
+    border-radius: 14px;
+    text-decoration: none;
+    color: inherit;
+    transition: all 0.18s;
+    text-align: center;
+  }
+
+  .suggested-peer-card:hover {
+    background: var(--primary-50, #eef2ff);
+    border-color: var(--primary-300, #c4b5fd);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
+  }
+
+  .suggested-peer-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-600, #4f46e5), var(--accent-pink, #f4725F));
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.3rem;
+    font-weight: 800;
+    flex-shrink: 0;
+  }
+
+  .suggested-peer-name {
+    width: 100%;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: var(--text-primary, #1e293b);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .suggested-peer-name .verified {
+    color: var(--primary-600, #4f46e5);
+    margin-left: 2px;
+  }
+
+  .suggested-peer-meta {
+    width: 100%;
+    font-size: 0.72rem;
+    color: var(--text-tertiary, #94a3b8);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .suggested-peer-actions {
+    width: 100%;
+    display: flex;
+    gap: 0.4rem;
+    margin-top: 0.3rem;
+  }
+
+  .suggested-peer-chat {
+    flex: 1;
+    padding: 0.35rem 0.6rem;
+    background: var(--primary-600, #4f46e5);
+    color: #fff;
+    border-radius: 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.15s;
+  }
+
+  .suggested-peer-chat:hover {
+    background: var(--primary-700, #2563eb);
+    transform: translateY(-1px);
+  }
+
+  .suggested-peer-profile {
+    flex: 1;
+    padding: 0.35rem 0.6rem;
+    background: var(--gray-100, #f1f5f9);
+    color: var(--text-secondary, #475569);
+    border-radius: 8px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-decoration: none;
+    text-align: center;
+    transition: all 0.15s;
+  }
+
+  .suggested-peer-profile:hover {
+    background: var(--gray-200, #e2e8f0);
+  }
+
+  .suggested-peers-loading {
+    text-align: center;
+    padding: 1.5rem;
+    color: var(--text-tertiary, #94a3b8);
+    font-size: 0.88rem;
+  }
+
+  @media (max-width: 768px) {
+    .suggested-peers-grid {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+  }
+
+
+  /* File Info Icon & Modal */
+  .file-info-icon {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid var(--border-light, #e2e8f0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    color: var(--text-tertiary, #94a3b8);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 0.18s, background-color 0.18s, color 0.18s;
+    z-index: 2;
+    pointer-events: auto;
+  }
+
+  .file-info-icon:hover {
+    background: var(--primary-100, #eef2ff);
+    color: var(--primary-600, #4f46e5);
+    transform: scale(1.1);
+  }
+
+  .pcard:hover .file-info-icon {
+    opacity: 1;
+  }
+
+  /* Button-style file info icon (for _card_file.html) */
+  .file-info-btn {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.95);
+    border: 1px solid var(--border-light, #e2e8f0);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    color: var(--text-tertiary, #94a3b8);
+    cursor: pointer;
+    opacity: 0;
+    transition: all 0.18s;
+    z-index: 2;
+    padding: 0;
+    line-height: 1;
+  }
+
+  .file-info-btn:hover {
+    background: var(--primary-100, #eef2ff);
+    color: var(--primary-600, #4f46e5);
+    transform: scale(1.1);
+  }
+
+  .file-card:hover .file-info-btn {
+    opacity: 1;
+  }
+
+  .file-info-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.6);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    padding: 1rem;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.2s, visibility 0.2s;
+  }
+
+  .file-info-modal-overlay.show {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  .file-info-modal {
+    background: var(--surface, #fff);
+    border-radius: 16px;
+    padding: 1.5rem;
+    max-width: 480px;
+    width: 100%;
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+    position: relative;
+  }
+
+  .file-info-modal__close {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 20px;
+    cursor: pointer;
+    color: var(--text-tertiary, #94a3b8);
+  }
+
+  .file-info-modal h3 {
+    font-size: 1.1rem;
+    color: var(--text-primary, #1e293b);
+    margin: 0 0 1rem;
+  }
+
+  .file-info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--border-light, #e2e8f0);
+    font-size: 0.88rem;
+  }
+
+  .file-info-row:last-child {
+    border-bottom: none;
+  }
+
+  .file-info-label {
+    color: var(--text-tertiary, #94a3b8);
+  }
+
+  .file-info-value {
+    color: var(--text-primary, #1e293b);
+    font-weight: 600;
+  }
+
+  .file-info-license {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: var(--gray-50, #f8fafc);
+    border-radius: 10px;
+    font-size: 0.82rem;
+    color: var(--text-secondary, #475569);
+    line-height: 1.5;
+  }
+
+  @media (max-width: 768px) {
+    .suggested-peers-grid {
+      grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    }
+  }
 </style>
 
 <script>
-(function () {
-  function loadSuggestedPeers() {
-    const grid = document.getElementById('suggestedPeersGrid');
-    if (!grid) return;
-    fetch('/api/chat/search-peers?q=__suggested__', { signal: AbortSignal.timeout(8000) })
-      .then(r => r.json())
-      .then(d => {
-        if (d.success && (d.suggested || []).length) {
-          grid.className = 'suggested-peers-grid';
-          grid.innerHTML = d.suggested.map(u => {
-            const init = (u.full_name || 'S').charAt(0).toUpperCase();
-            const verified = u.is_verified ? '<span class="verified">✔️</span>' : '';
-            return `<div class="suggested-peer-card" title="View ${u.full_name || 'Student'}'s profile" onclick="location.href='/u/${u.id}'">
+  (function () {
+    function loadSuggestedPeers() {
+      const grid = document.getElementById('suggestedPeersGrid');
+      if (!grid) return;
+      fetch('/api/chat/search-peers?q=__suggested__', { signal: AbortSignal.timeout(8000) })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && (d.suggested || []).length) {
+            grid.className = 'suggested-peers-grid';
+            grid.innerHTML = d.suggested.map(u => {
+              const init = (u.full_name || 'S').charAt(0).toUpperCase();
+              const verified = u.is_verified ? '<span class="verified">✔️</span>' : '';
+              return `<div class="suggested-peer-card" title="View ${u.full_name || 'Student'}'s profile" onclick="location.href='/u/${u.id}'">
               <div class="suggested-peer-avatar">${init}</div>
               <div class="suggested-peer-name">${u.full_name || 'Student'} ${verified}</div>
               <div class="suggested-peer-meta">${u.college_name || 'AbhiHub'} • ⚡ ${u.reputation_score || 0} • 📤 ${u.uploads_count || 0}</div>
@@ -837,31 +1147,31 @@ notes, practicals, and exam resources for top colleges across India." %}
                 <a href="/u/${u.id}" class="suggested-peer-profile" title="Profile">Profile</a>
               </div>
             </div>`;
-          }).join('');
-        } else {
+            }).join('');
+          } else {
+            grid.className = 'suggested-peers-grid empty';
+            grid.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-tertiary);font-size:0.88rem;">No classmates found on AbhiHub yet.<br>Be the first to invite your college friends!</div>';
+          }
+        })
+        .catch(err => {
           grid.className = 'suggested-peers-grid empty';
-          grid.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-tertiary);font-size:0.88rem;">No classmates found on AbhiHub yet.<br>Be the first to invite your college friends!</div>';
-        }
-      })
-      .catch(err => {
-        grid.className = 'suggested-peers-grid empty';
-        grid.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-tertiary);font-size:0.88rem;">Unable to load suggestions right now.</div>';
-      });
-  }
-  // Load after DOM ready
+          grid.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-tertiary);font-size:0.88rem;">Unable to load suggestions right now.</div>';
+        });
+    }
+    // Load after DOM ready
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', loadSuggestedPeers);
     } else {
       loadSuggestedPeers();
     }
   })();
-  </script>
+</script>
 
-  {% endif %}
+{% endif %}
 
-  <!-- ── MemoryWall Awareness Popup (shows once) ─────────────────────── -->
-  {% if user_data %}
-  <div id="mw-awareness" class="popup-overlay mw-awareness-overlay" data-action="dismissIfClicked">
+<!-- ── MemoryWall Awareness Popup (shows once) ─────────────────────── -->
+{% if user_data %}
+<div id="mw-awareness" class="popup-overlay mw-awareness-overlay" data-action="dismissIfClicked">
   <div class="mw-aw-box">
     <!-- Close -->
     <button type="button" data-action="mwDismiss" aria-label="Close" class="mw-aw-close">✕</button>
@@ -954,22 +1264,22 @@ notes, practicals, and exam resources for top colleges across India." %}
   window.showFileInfo = function (e, el) {
     if (e && e.target) { e.stopPropagation(); e.preventDefault(); }
     const data = (el || e)?.dataset || {};
-    const name    = data.file_name    || 'Unknown file';
+    const name = data.file_name || 'Unknown file';
     const subject = data.file_subject || '-';
-    const author  = data.file_author  || '-';
-    const year    = data.file_year    || data.file_date || '-';
-    const views   = data.file_views   || '0';
-    const ftype   = data.file_type    || data.file_format  || 'PDF';
+    const author = data.file_author || '-';
+    const year = data.file_year || data.file_date || '-';
+    const views = data.file_views || '0';
+    const ftype = data.file_type || data.file_format || 'PDF';
     const college = data.file_college || '-';
-    const size    = data.file_size    || '-';
+    const size = data.file_size || '-';
     const modal = document.getElementById('fileInfoModal');
     if (!modal) return;
     let html = '';
     [['File', name], ['Type', ftype], ['College', college], ['Subject', subject],
-     ['Author', author], ['Year', year], ['Size', size], ['Views', views]]
-    .forEach(([label, val]) => {
-      html += `<div class="file-info-row"><span class="file-info-label">${label}</span><span class="file-info-value">${val || '-'}</span></div>`;
-    });
+    ['Author', author], ['Year', year], ['Size', size], ['Views', views]]
+      .forEach(([label, val]) => {
+        html += `<div class="file-info-row"><span class="file-info-label">${label}</span><span class="file-info-value">${val || '-'}</span></div>`;
+      });
     html += `<div class="file-info-license">
       <strong>Ownership Notice:</strong> This file was contributed by a member of the AbhiHub
       community. AbhiHub™ (AbhiHub Technologies) holds the exclusive platform rights to distribute,
@@ -1108,7 +1418,8 @@ notes, practicals, and exam resources for top colleges across India." %}
       <a href="{{ url_for('support') }}" data-action="closeSupportModal" class="dashboard-modal-link">
         💝 Support AbhiHub
       </a>
-      <button data-action="closeSupportModal" type="button" class="dashboard-modal-secondary-button">Maybe Later</button>
+      <button data-action="closeSupportModal" type="button" class="dashboard-modal-secondary-button">Maybe
+        Later</button>
       <p class="dashboard-modal-note">AbhiHub is free. Contributions are optional.</p>
     </div>
   </div>
@@ -1520,40 +1831,44 @@ notes, practicals, and exam resources for top colleges across India." %}
 <div class="home-hero">
   <div class="home-hero-content">
     {% if user_data %}
-    <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);padding:.35rem .9rem;border-radius:20px;font-size:.8rem;font-weight:600;color:#fff;margin-bottom:1rem;border:1px solid rgba(255,255,255,0.25);">
+    <div
+      style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);padding:.35rem .9rem;border-radius:20px;font-size:.8rem;font-weight:600;color:#fff;margin-bottom:1rem;border:1px solid rgba(255,255,255,0.25);">
       <span>🏛️ {{ user_data.college_name or 'Engineering Hub' }}</span>
       <span style="opacity:0.5;">|</span>
       <span style="color:#fef08a;">⚡ Rank #{{ user_data.global_rank }}</span>
     </div>
     <h1>
       {% set hour = (now.hour if now else 12) %}
-      {% if hour < 12 %}🌅{% elif hour < 17 %}☀️{% else %}🌆{% endif %} Hey {{ user_data.name.split()[0] }}, find your papers!
-    </h1>
-    <p style="display:flex;align-items:center;justify-content:center;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem;">
-      <span style="background:rgba(239,68,68,0.2);border:1px solid rgba(248,113,113,0.4);color:#fecaca;padding:.2rem .75rem;border-radius:12px;font-weight:700;font-size:.85rem;">
-        ⚡ Only {{ user_data.paper_quota_remaining }} views left today
-      </span>
-      {% if user_data.students_helped > 0 %}
-      <span style="background:rgba(16,185,129,0.2);border:1px solid rgba(52,211,153,0.4);color:#a7f3d0;padding:.2rem .75rem;border-radius:12px;font-weight:600;font-size:.85rem;">
-        🤝 Helped {{ user_data.students_helped }} peers
-      </span>
-      {% endif %}
-    </p>
-    {% else %}
-    <h1>📄 PYQ Papers, Notes & More</h1>
-    <p>Free engineering resources — GHRCE, RTMNU & more colleges</p>
-    {% endif %}
-    <div class="hero-stats">
-      <div class="hero-stat">🔓 {{ paper_count }}<span>Papers Ready</span></div>
-      <div class="hero-stat">📝 {{ notes_count }}<span>Active Notes</span></div>
-      <div class="hero-stat">🔥 Trending<span>College PYQs</span></div>
-    </div>
-    <form class="hero-search-wrap" action="/dashboard"
-      onsubmit="event.preventDefault(); const val=document.getElementById('heroSearchInput').value; const target=document.getElementById('searchFileName'); if(target){ target.value=val; target.dispatchEvent(new Event('input')); } const btn=document.getElementById('searchBtn'); if(btn){ btn.click(); } const sec=document.querySelector('.container_search'); if(sec){ sec.scrollIntoView({behavior:'smooth'}); }">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-      <input type="text" id="heroSearchInput" placeholder="Search subjects, PYQ, notes…" autocomplete="off">
-      <button type="submit" class="hero-search-btn">🔍 Search</button>
-    </form>
+      {% if hour < 12 %}🌅{% elif hour < 17 %}☀️{% else %}🌆{% endif %} Hey {{ user_data.name.split()[0] }}, find your
+        papers! </h1>
+        <p
+          style="display:flex;align-items:center;justify-content:center;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem;">
+          <span
+            style="background:rgba(239,68,68,0.2);border:1px solid rgba(248,113,113,0.4);color:#fecaca;padding:.2rem .75rem;border-radius:12px;font-weight:700;font-size:.85rem;">
+            ⚡ Only {{ user_data.paper_quota_remaining }} views left today
+          </span>
+          {% if user_data.students_helped > 0 %}
+          <span
+            style="background:rgba(16,185,129,0.2);border:1px solid rgba(52,211,153,0.4);color:#a7f3d0;padding:.2rem .75rem;border-radius:12px;font-weight:600;font-size:.85rem;">
+            🤝 Helped {{ user_data.students_helped }} peers
+          </span>
+          {% endif %}
+        </p>
+        {% else %}
+        <h1>📄 PYQ Papers, Notes & More</h1>
+        <p>Free engineering resources — GHRCE, RTMNU & more colleges</p>
+        {% endif %}
+        <div class="hero-stats">
+          <div class="hero-stat">🔓 {{ paper_count }}<span>Papers Ready</span></div>
+          <div class="hero-stat">📝 {{ notes_count }}<span>Active Notes</span></div>
+          <div class="hero-stat">🔥 Trending<span>College PYQs</span></div>
+        </div>
+        <form class="hero-search-wrap" action="/dashboard"
+          onsubmit="event.preventDefault(); const val=document.getElementById('heroSearchInput').value; const target=document.getElementById('searchFileName'); if(target){ target.value=val; target.dispatchEvent(new Event('input')); } const btn=document.getElementById('searchBtn'); if(btn){ btn.click(); } const sec=document.querySelector('.container_search'); if(sec){ sec.scrollIntoView({behavior:'smooth'}); }">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+          <input type="text" id="heroSearchInput" placeholder="Search subjects, PYQ, notes…" autocomplete="off">
+          <button type="submit" class="hero-search-btn">🔍 Search</button>
+        </form>
   </div>
 </div>
 
@@ -1602,10 +1917,15 @@ notes, practicals, and exam resources for top colleges across India." %}
   </div>
   <div class="hscroll-row">
     {% for file in relevant_papers %}
-    {% set _rid = file.get('record_id') or file.get('id') or '' %}{% set furl = url_for('resource_landing', slug=_rid) if _rid else '#' %}
+    {% set _rid = file.get('record_id') or file.get('id') or '' %}{% set furl = url_for('resource_landing', slug=_rid)
+    if _rid else '#' %}
     <a href="{{ furl }}" class="pcard">
       <span class="pcard-badge">📄 PYQ</span>
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="PYQ" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
+      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+        data-file-type="PYQ" data-file-subject="{{ file['subject'] }}"
+        data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
+        data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}"
+        data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
       <div class="pcard-subject">{{ file['subject'] }}</div>
       <div class="pcard-name">{{ file['file-name'] }}</div>
       <div class="pcard-footer">
@@ -1632,10 +1952,15 @@ notes, practicals, and exam resources for top colleges across India." %}
   <div id="tab-trending" class="tab-panel active">
     <div class="hscroll-row">
       {% for file in trending_papers %}
-      {% set _rid = file.get('record_id') or file.get('id') or '' %}{% set furl = url_for('resource_landing', slug=_rid) if _rid else '#' %}
+      {% set _rid = file.get('record_id') or file.get('id') or '' %}{% set furl = url_for('resource_landing', slug=_rid)
+      if _rid else '#' %}
       <a href="{{ furl }}" class="pcard">
         <span class="pcard-badge">📄 PYQ</span>
-        <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="PYQ" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-author="{{ file.get('author','')[:15] }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
+        <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+          data-file-type="PYQ" data-file-subject="{{ file['subject'] }}"
+          data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
+          data-file-author="{{ file.get('author','')[:15] }}" data-file-views="{{ file.get('view_count', 0) }}"
+          title="File info">ℹ️</span>
         <div class="pcard-subject">{{ file['subject'] }}</div>
         <div class="pcard-name">{{ file['file-name'] }}</div>
         <div class="pcard-footer">
@@ -1652,10 +1977,15 @@ notes, practicals, and exam resources for top colleges across India." %}
   <div id="tab-recent" class="tab-panel">
     <div class="hscroll-row">
       {% for file in recent_papers %}
-      {% set _rid = file.get('record_id') or file.get('id') or '' %}{% set furl = url_for('resource_landing', slug=_rid) if _rid else '#' %}
+      {% set _rid = file.get('record_id') or file.get('id') or '' %}{% set furl = url_for('resource_landing', slug=_rid)
+      if _rid else '#' %}
       <a href="{{ furl }}" class="pcard">
         <span class="pcard-badge">📄 PYQ</span>
-        <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="PYQ" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-date="{{ file.get('date','') }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
+        <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+          data-file-type="PYQ" data-file-subject="{{ file['subject'] }}"
+          data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
+          data-file-date="{{ file.get('date','') }}" data-file-views="{{ file.get('view_count', 0) }}"
+          title="File info">ℹ️</span>
         <div class="pcard-subject">{{ file['subject'] }}</div>
         <div class="pcard-name">{{ file['file-name'] }}</div>
         <div class="pcard-footer">
@@ -1714,9 +2044,13 @@ notes, practicals, and exam resources for top colleges across India." %}
   </div>
   <div class="hscroll-row">
     {% for file in relevant_notes %}
-    <a href="{% set _rid = file.get('record_id') or file.get('id') or '' %}{{ url_for('resource_landing', slug=_rid ~ '-view') if _rid else '#' }}" class="pcard notes-card">
+    <a href="{% set _rid = file.get('record_id') or file.get('id') or '' %}{{ url_for('resource_landing', slug=_rid ~ '-view') if _rid else '#' }}"
+      class="pcard notes-card">
       <span class="pcard-badge notes">📝 Notes</span>
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="Notes" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
+      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+        data-file-type="Notes" data-file-subject="{{ file['subject'] }}"
+        data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
+        data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
       <div class="pcard-subject">{{ file['subject'] }}</div>
       <div class="pcard-name">{{ file['file-name'] }}</div>
       <div class="pcard-footer">
@@ -1744,7 +2078,10 @@ notes, practicals, and exam resources for top colleges across India." %}
     <a href="{% set _rid = file.get('record_id') or file.get('id') or '' %}{{ url_for('resource_landing', slug=_rid ~ '-view') if _rid else '#' }}"
       class="pcard notes-card">
       <span class="pcard-badge notes">📝 Notes</span>
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="Notes" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
+      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+        data-file-type="Notes" data-file-subject="{{ file['subject'] }}"
+        data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
+        data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
       <div class="pcard-subject">{{ file['subject'] }}</div>
       <div class="pcard-name">{{ file['file-name'] }}</div>
       <div class="pcard-footer">
@@ -1776,7 +2113,11 @@ notes, practicals, and exam resources for top colleges across India." %}
     <a href="{% set _rid = file.get('record_id') or file.get('id') or '' %}{{ url_for('resource_landing', slug=_rid ~ '-view') if _rid else '#' }}"
       class="pcard practical-card">
       <span class="pcard-badge practical">🧪 Practical</span>
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="Practical" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-author="{{ file.get('author','')[:15] }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
+      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+        data-file-type="Practical" data-file-subject="{{ file['subject'] }}"
+        data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
+        data-file-author="{{ file.get('author','')[:15] }}" data-file-views="{{ file.get('view_count', 0) }}"
+        title="File info">ℹ️</span>
       <div class="pcard-subject">{{ file['subject'] }}</div>
       <div class="pcard-name">{{ file['file-name'] }}</div>
       <div class="pcard-footer">
@@ -1890,6 +2231,7 @@ notes, practicals, and exam resources for top colleges across India." %}
   body {
     padding-bottom: 90px !important;
   }
+
   .dashboard-float-support-btn {
     bottom: 90px !important;
   }

@@ -14,7 +14,7 @@
   function setConsentChoice(granted) {
     try {
       localStorage.setItem(CONSENT_KEY, granted ? 'granted' : 'denied');
-    } catch (e) {}
+    } catch (e) { }
     window.location.reload();
   }
 
@@ -27,11 +27,11 @@
     banner.innerHTML = '<span style="font-size:14px;line-height:1.4;">We use analytics to improve AbhiHub. Accept to enable analytics and improve your experience. <a href="/privacy" style="color:#bfdbfe;text-decoration:underline;">Privacy policy</a></span><span style="display:flex;gap:8px;"><button data-consent="accept" style="border:0;border-radius:999px;padding:8px 12px;background:#2563eb;color:#fff;cursor:pointer;">Accept</button><button data-consent="decline" style="border:0;border-radius:999px;padding:8px 12px;background:#475569;color:#fff;cursor:pointer;">Decline</button></span>';
     document.body.appendChild(banner);
 
-    banner.querySelector('[data-consent="accept"]').addEventListener('click', function() {
+    banner.querySelector('[data-consent="accept"]').addEventListener('click', function () {
       setConsentChoice(true);
     });
 
-    banner.querySelector('[data-consent="decline"]').addEventListener('click', function() {
+    banner.querySelector('[data-consent="decline"]').addEventListener('click', function () {
       setConsentChoice(false);
     });
   }
@@ -49,7 +49,7 @@
 
   // ── Session tracking state ──
   window.ABHIHUB_SESSION_START = Date.now();
-  window.ABHIHUB_SESSION_ID = sessionStorage.getItem('ga_session_id') || 
+  window.ABHIHUB_SESSION_ID = sessionStorage.getItem('ga_session_id') ||
     ('session_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9));
   sessionStorage.setItem('ga_session_id', window.ABHIHUB_SESSION_ID);
 
@@ -74,11 +74,11 @@
     gtagScript.src = 'https://www.googletagmanager.com/gtag/js?id=G-EH5BGS9BEG';
     document.head.appendChild(gtagScript);
 
-    gtagScript.onload = function() {
-      window.gtag = function() { window.dataLayer.push(arguments); };
+    gtagScript.onload = function () {
+      window.gtag = function () { window.dataLayer.push(arguments); };
       window.gtag('js', new Date());
       window.gtag('consent', 'default', { analytics_storage: 'granted' });
-      
+
       // ── Configure GA4 with custom dimensions ──
       window.gtag('config', 'G-EH5BGS9BEG', {
         page_path: window.location.pathname,
@@ -86,7 +86,8 @@
         send_page_view: true,
         anonymize_ip: true,
         allow_google_signals: false,
-        allow_ad_personalization_signals: false
+        allow_ad_personalization_signals: false,
+        debug_mode: window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1'
       });
 
       // ── Set user ID ──
@@ -102,17 +103,17 @@
           user_type: profile.isAuthenticated ? 'authenticated' : 'anonymous',
           user_id: profile.userId || 'anonymous',
           user_name: profile.name || '',  // Display name only - acceptable
-          
+
           // Academic context
           user_college: profile.college || '',
           user_branch: profile.branch || '',
           user_year_of_study: profile.yearOfStudy || '',
           user_role: profile.role || 'anonymous',
-          
+
           // Platform
           platform: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
           app_version: '{{ app_version | default("1.0.0") }}',
-          
+
           // Session
           session_id: window.ABHIHUB_SESSION_ID,
           session_start_time: new Date(window.ABHIHUB_SESSION_START).toISOString()
@@ -145,7 +146,7 @@
   // ── Enhanced Page View Tracking ──
   function sendEnhancedPageView() {
     if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-    
+
     const profile = window.ABHIHUB_USER_PROFILE || {};
     window.ABHIHUB_PAGE_VIEWS++;
 
@@ -157,7 +158,7 @@
       page_name: document.title,
       referrer: document.referrer,
       session_id: window.ABHIHUB_SESSION_ID,
-      
+
       // User context (NO PII - use user_id only per GA4 ToS)
       user_id: profile.userId || 'anonymous',
       user_name: profile.name || '',
@@ -166,7 +167,7 @@
       user_year_of_study: profile.yearOfStudy || '',
       user_role: profile.role || 'anonymous',
       user_type: profile.isAuthenticated ? 'authenticated' : 'anonymous',
-      
+
       // Session metrics
       session_id: window.ABHIHUB_SESSION_ID,
       session_page_views: window.ABHIHUB_PAGE_VIEWS,
@@ -174,20 +175,20 @@
       session_downloads: window.ABHIHUB_DOWNLOADS,
       session_searches: window.ABHIHUB_SEARCHES,
       time_on_site_seconds: Math.floor((Date.now() - window.ABHIHUB_SESSION_START) / 1000),
-      
+
       // Technical
       platform: /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent) ? 'mobile' : 'desktop',
       user_agent: navigator.userAgent,
       screen_resolution: window.screen.width + 'x' + window.screen.height,
       viewport_size: window.innerWidth + 'x' + window.innerHeight,
-      
+
       // Content metadata
       content_type: getContentType(),
       subject: getSubjectFromPage(),
       semester: getSemesterFromPage(),
       year: getYearFromPage(),
       branch: getBranchFromPage(),
-      
+
       timestamp: new Date().toISOString()
     });
 
@@ -222,7 +223,7 @@
   function getSubjectFromPage() {
     const titleMatch = document.title.match(/(\w+)\s*-\s*(SE|FE|TE|BE)/i);
     if (titleMatch) return titleMatch[1];
-    
+
     const path = window.location.pathname;
     const parts = path.split('/');
     if (parts.length > 2 && parts[1] === 'subject') {
@@ -274,7 +275,7 @@
   // ── Server-side pageview logging ──
   function sendPageViewToServer() {
     if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-    
+
     fetch('/api/analytics/pageview', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -293,7 +294,7 @@
   function updateUserProperties(newProfile) {
     if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
     if (!window.gtag || typeof window.gtag !== 'function') return;
-    
+
     // NOTE: Do NOT send PII (email, mobile) to GA4 per Google ToS
     window.gtag('set', { user_id: newProfile.userId || 'anonymous' });
     window.gtag('set', {
@@ -307,7 +308,7 @@
         user_role: newProfile.role || 'anonymous'
       }
     });
-    
+
     console.log('[GA4] User properties updated:', newProfile);
   }
 
@@ -317,11 +318,11 @@
   function sendSessionEnd() {
     if (sessionEndHandled) return;
     sessionEndHandled = true;
-    
+
     if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-    
+
     const sessionDuration = Math.floor((Date.now() - window.ABHIHUB_SESSION_START) / 1000);
-    
+
     window.gtag('event', 'session_end', {
       session_id: window.ABHIHUB_SESSION_ID,
       session_duration_seconds: sessionDuration,
@@ -372,7 +373,7 @@
       (window.ABHIHUB_SEARCHES > 0 ? 10 : 0), // 10 for search
       100
     );
-    
+
     if (score >= 75) return 'high';
     if (score >= 40) return 'medium';
     return 'low';
@@ -380,9 +381,9 @@
 
   // Track session end on page unload
   window.addEventListener('beforeunload', sendSessionEnd);
-  
+
   // Track session end on tab visibility change (user switches tabs)
-  document.addEventListener('visibilitychange', function() {
+  document.addEventListener('visibilitychange', function () {
     if (document.visibilityState === 'hidden') {
       sendSessionEnd();
     }
@@ -391,7 +392,7 @@
   // ── File Stay Time Tracking ──
   function trackFileOpen(fileName, fileType, fileId, subject, college, branch, year) {
     if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-    
+
     window.ABHIHUB_CURRENT_FILE = {
       name: fileName,
       type: fileType,
@@ -408,10 +409,10 @@
   function trackFileClose() {
     if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
     if (!window.ABHIHUB_CURRENT_FILE) return;
-    
+
     const timeSpent = Math.floor((Date.now() - window.ABHIHUB_FILE_OPEN_TIME) / 1000);
     const file = window.ABHIHUB_CURRENT_FILE;
-    
+
     window.gtag('event', 'file_view', {
       file_name: file.name,
       file_type: file.type,
@@ -466,20 +467,20 @@
     }).catch(e => console.warn('[GA4] File access log failed:', e));
 
     console.log('[GA4] File viewed:', file.name, '| Time:', timeSpent + 's');
-    
+
     window.ABHIHUB_CURRENT_FILE = null;
     window.ABHIHUB_FILE_OPEN_TIME = 0;
   }
 
   // ── Throttle helper ──
-  window.gaThrottle = function(fn, limit) {
+  window.gaThrottle = function (fn, limit) {
     var inThrottle;
-    return function() {
+    return function () {
       var args = arguments, context = this;
       if (!inThrottle) {
         fn.apply(context, args);
         inThrottle = true;
-        setTimeout(function() { inThrottle = false; }, limit);
+        setTimeout(function () { inThrottle = false; }, limit);
       }
     };
   };
@@ -498,7 +499,7 @@
     // Track PDF/File View (Enhanced with Ecommerce, Throttled)
     trackFileView: window.gaThrottle(function (fileName, fileType, fileId, subject, college, branch, year) {
       trackFileOpen(fileName, fileType, fileId, subject, college, branch, year);
-      
+
       const profile = window.ABHIHUB_USER_PROFILE || {};
       const metadata = getContentMetadata();
       const sizeBucket = getFileSizeBucket(0);
@@ -553,9 +554,9 @@
     // Track File Download (Enhanced with Ecommerce)
     trackFileDownload: function (fileName, fileType, fileId, subject, college, branch, year) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       window.ABHIHUB_DOWNLOADS++;
-      
+
       const profile = window.ABHIHUB_USER_PROFILE || {};
       const metadata = getContentMetadata();
       const sizeBucket = getFileSizeBucket(0);
@@ -604,9 +605,9 @@
     // Track File Search/Filter (Enhanced)
     trackSearch: function (searchQuery, resultCount, searchType, refinementLevel) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       window.ABHIHUB_SEARCHES++;
-      
+
       const isZeroResults = resultCount === 0;
 
       safeGtag('event', 'search', {
@@ -630,7 +631,7 @@
     // Track Subject Click/Browse
     trackSubjectAccess: function (subjectName, contentType, college, branch) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       const profile = window.ABHIHUB_USER_PROFILE || {};
       safeGtag('event', 'subject_access', {
         'subject_name': subjectName,
@@ -647,7 +648,7 @@
     // Track User Authentication
     trackLogin: function (loginMethod, userId, userEmail, userName) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       safeGtag('event', 'login', {
         'method': loginMethod || 'email',
         'user_id': userId || 'unknown',
@@ -660,7 +661,7 @@
 
     trackSignup: function (signupMethod, userId, userEmail, userName) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       safeGtag('event', 'sign_up', {
         'method': signupMethod || 'email',
         'user_id': userId || 'unknown',
@@ -673,7 +674,7 @@
 
     trackLogout: function (userId, sessionDuration) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       safeGtag('event', 'logout', {
         'user_id': userId || 'unknown',
         'session_duration_seconds': sessionDuration || 0,
@@ -685,7 +686,7 @@
     // Track Premium Signup/Upgrade
     trackPremiumInteraction: function (action, planType) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       safeGtag('event', 'premium_interaction', {
         'action': action,
         'plan_type': planType || 'basic',
@@ -698,7 +699,7 @@
     // Track Share Action
     trackShare: function (shareMethod, contentType, contentName) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       const profile = window.ABHIHUB_USER_PROFILE || {};
       safeGtag('event', 'share', {
         'method': shareMethod || 'copy_link',
@@ -715,7 +716,7 @@
     // Track File Upload
     trackUpload: function (fileName, fileType, fileSize, fileId) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       const profile = window.ABHIHUB_USER_PROFILE || {};
       safeGtag('event', 'file_upload', {
         'file_name': fileName,
@@ -735,7 +736,7 @@
     // Track Filter/Sort Action
     trackFilterAction: function (filterType, filterValue, resultCount) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       const profile = window.ABHIHUB_USER_PROFILE || {};
       safeGtag('event', 'filter_applied', {
         'filter_type': filterType,
@@ -752,7 +753,7 @@
     // Track Page Section Engagement
     trackSectionEngagement: function (sectionName, engagementType) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       safeGtag('event', 'section_engagement', {
         'section_name': sectionName,
         'engagement_type': engagementType || 'view',
@@ -766,7 +767,7 @@
     // Track Click on Important Elements
     trackElementClick: function (elementName, elementType, actionValue) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       const profile = window.ABHIHUB_USER_PROFILE || {};
       safeGtag('event', 'element_click', {
         'element_name': elementName,
@@ -782,7 +783,7 @@
     // Track Feature Usage and Experience
     trackFeatureUsage: function (featureName, featureStatus, experienceRating, feedbackMsg) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       const profile = window.ABHIHUB_USER_PROFILE || {};
       safeGtag('event', 'feature_usage', {
         'feature_name': featureName,
@@ -799,7 +800,7 @@
     // Track Error Events (Enhanced with user context)
     trackError: function (errorType, errorMessage, severity, pagePath) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       const profile = window.ABHIHUB_USER_PROFILE || {};
       const errorData = {
         error_type: errorType,
@@ -854,7 +855,7 @@
     // Track Form Submission
     trackFormSubmission: function (formName, formData) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       const profile = window.ABHIHUB_USER_PROFILE || {};
       safeGtag('event', 'form_submit', {
         'form_name': formName,
@@ -869,9 +870,9 @@
     // Track Engagement Time (periodic + on unload)
     trackEngagementTime: function () {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       const timeOnSite = Math.floor((Date.now() - window.ABHIHUB_SESSION_START) / 1000);
-      
+
       safeGtag('event', 'engagement_time', {
         'time_on_site_seconds': timeOnSite,
         'session_page_views': window.ABHIHUB_PAGE_VIEWS,
@@ -885,7 +886,7 @@
     // Track API Latency
     trackApiLatency: function (endpoint, latencyMs, statusCode) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       safeGtag('event', 'api_latency', {
         'endpoint': endpoint,
         'latency_ms': latencyMs,
@@ -898,7 +899,7 @@
     // Track Notification Open
     trackNotificationOpen: function (unreadCount) {
       if (window.__ABHIHUB_ANALYTICS_DISABLED__) return;
-      
+
       const profile = window.ABHIHUB_USER_PROFILE || {};
       safeGtag('event', 'notification_open', {
         'unread_count': unreadCount || 0,

@@ -1,5 +1,6 @@
 <!-- SEO FOUNDATION TEMPLATE -->
-{% set is_noindex = noindex | default(false) or request.path.startswith('/login') or request.path.startswith('/signup') or request.path.startswith('/dashboard') or request.path.startswith('/settings') or request.path.startswith('/admin') %}
+{% set is_noindex = noindex | default(false) or request.path.startswith('/login') or request.path.startswith('/signup')
+or request.path.startswith('/dashboard') or request.path.startswith('/settings') or request.path.startswith('/admin') %}
 
 <!-- 1. Performance & Hints -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -8,8 +9,10 @@
 
 <!-- 2. Core Meta Tags -->
 <title>{{ seo_title | default('AbhiHub - Engineering Exam Papers, PYQs & Study Resources') }}</title>
-<meta name="description" content="{{ seo_description | default('AbhiHub is the best platform to organize exam resources, engineering papers, GHRCE PYQ, and study materials. Free access to exam papers, practicals, and notes.') }}">
-<meta name="keywords" content="{{ seo_keywords | default('AbhiHub, engineering papers, GHRCE papers, exam resources, PYQ, practice papers, engineering notes, study materials, exam preparation') }}">
+<meta name="description"
+  content="{{ seo_description | default('AbhiHub is the best platform to organize exam resources, engineering papers, GHRCE PYQ, and study materials. Free access to exam papers, practicals, and notes.') }}">
+<meta name="keywords"
+  content="{{ seo_keywords | default('AbhiHub, engineering papers, GHRCE papers, exam resources, PYQ, practice papers, engineering notes, study materials, exam preparation') }}">
 <meta name="author" content="AbhiHub">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <meta name="theme-color" content="#2563eb">
@@ -18,7 +21,8 @@
 <!-- Google AdSense Script: Loaded via Google Tag Manager (CMP-gated) for compliance -->
 <!-- CMP consent handling implemented in google_tag.html - analytics/ads load only after user consent -->
 {% if not is_noindex and not disable_ads %}
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8274846157272362" crossorigin="anonymous"></script>
+<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8274846157272362"
+  crossorigin="anonymous"></script>
 {% endif %}
 
 <!-- 3. Robots Directives -->
@@ -36,22 +40,22 @@
 <!-- 5. Open Graph Tags -->
 <meta property="og:site_name" content="AbhiHub">
 <meta property="og:type" content="{{ og_type | default('website') }}">
-<meta property="og:title" content="{{ og_title | default(seo_title | default('AbhiHub - Engineering Exam Papers, PYQs & Study Resources')) }}">
-<meta property="og:description" content="{{ og_description | default(seo_description | default('AbhiHub is the best platform to organize exam resources...')) }}">
+<meta property="og:title"
+  content="{{ og_title | default(seo_title | default('AbhiHub - Engineering Exam Papers, PYQs & Study Resources')) }}">
+<meta property="og:description"
+  content="{{ og_description | default(seo_description | default('AbhiHub is the best platform to organize exam resources...')) }}">
 <meta property="og:url" content="{{ canonical_domain }}{{ request.path }}">
-<meta property="og:image" content="{{ og_image | default(url_for('static', filename='images/android-chrome-512x512.png', _external=True)) }}">
+<meta property="og:image"
+  content="{{ og_image | default(url_for('static', filename='images/android-chrome-512x512.png', _external=True)) }}">
 {% endif %}
 
 <!-- 6. Twitter Card Tags -->
 <meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="{{ twitter_title | default(og_title | default(seo_title | default('AbhiHub'))) }}">
-<meta name="twitter:description" content="{{ twitter_description | default(og_description | default(seo_description | default(''))) }}">
-<meta name="twitter:image" content="{{ twitter_image | default(og_image | default(url_for('static', filename='premium/icons/icon-512x512.png', _external=True))) }}">
-
-
-
-<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8274846157272362"
-     crossorigin="anonymous"></script>
+<meta name="twitter:description"
+  content="{{ twitter_description | default(og_description | default(seo_description | default(''))) }}">
+<meta name="twitter:image"
+  content="{{ twitter_image | default(og_image | default(url_for('static', filename='premium/icons/icon-512x512.png', _external=True))) }}">
 
 <!-- 7. Organization JSON-LD Schema -->
 <script type="application/ld+json">

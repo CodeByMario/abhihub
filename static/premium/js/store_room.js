@@ -10,17 +10,17 @@ class StoreRoomAPI {
         const res = await fetch(`/store-room/api/unlabeled?${urlParams}`);
         return res.json();
     }
-    
+
     static async fetchColleges() {
         const res = await fetch('/api/colleges');
         return res.json();
     }
-    
+
     static async syncStorage() {
         const res = await fetch('/store-room/api/sync', { method: 'POST' });
         return { response: res, data: await res.json() };
     }
-    
+
     static async submitLabel(payload) {
         const res = await fetch('/store-room/api/label', {
             method: 'POST',
@@ -29,7 +29,7 @@ class StoreRoomAPI {
         });
         return res.json();
     }
-    
+
     static async renameFile(payload) {
         const res = await fetch('/store-room/api/rename-file', {
             method: 'POST',
@@ -50,7 +50,7 @@ class StoreRoomState {
         this.rememberLabels = localStorage.getItem('storeroom_remember_labels') === 'true';
         this.lastLabels = JSON.parse(localStorage.getItem('storeroom_last_labels') || '{}');
     }
-    
+
     resetPagination() {
         this.currentOffset = 0;
         this.hasMore = true;
@@ -62,13 +62,13 @@ class GestureManager {
     static initResizer(resizerEl, leftPanel, rightPanel) {
         if (!resizerEl || !leftPanel || !rightPanel) return;
         let isResizing = false;
-        
+
         resizerEl.addEventListener('mousedown', (e) => {
             isResizing = true;
             document.body.style.cursor = 'col-resize';
             e.preventDefault();
         });
-        
+
         document.addEventListener('mousemove', (e) => {
             if (!isResizing) return;
             const containerWidth = document.querySelector('.labeling-view').clientWidth;
@@ -79,7 +79,7 @@ class GestureManager {
                 rightPanel.style.width = `${newWidth}px`;
             }
         });
-        
+
         document.addEventListener('mouseup', () => {
             if (isResizing) {
                 isResizing = false;
@@ -91,20 +91,20 @@ class GestureManager {
     static initMobileDrawer(handleEl, panelEl, closeCallback) {
         if (!handleEl || !panelEl) return;
         let startY = 0, currentY = 0, isDragging = false;
-        
+
         const onStart = (e) => {
             isDragging = true;
             startY = e.touches ? e.touches[0].clientY : e.clientY;
             panelEl.style.transition = 'none';
         };
-        
+
         const onMove = (e) => {
             if (!isDragging) return;
             currentY = e.touches ? e.touches[0].clientY : e.clientY;
             const diff = currentY - startY;
             if (diff > 0) panelEl.style.transform = `translateY(${diff}px)`;
         };
-        
+
         const onEnd = () => {
             if (!isDragging) return;
             isDragging = false;
@@ -113,7 +113,7 @@ class GestureManager {
             if (diff > 100) closeCallback();
             else panelEl.style.transform = 'translateY(0)';
         };
-        
+
         handleEl.addEventListener('touchstart', onStart, { passive: true });
         handleEl.addEventListener('touchmove', onMove, { passive: true });
         handleEl.addEventListener('touchend', onEnd);
@@ -126,18 +126,18 @@ class GestureManager {
         if (!imgEl || !containerEl) return null;
         let scale = 1, panX = 0, panY = 0;
         let isDragging = false, startX, startY;
-        
+
         const updateTransform = () => {
             imgEl.style.transform = `translate(${panX}px, ${panY}px) scale(${scale})`;
         };
-        
+
         containerEl.addEventListener('wheel', (e) => {
             e.preventDefault();
             scale += e.deltaY * -0.001;
             scale = Math.min(Math.max(0.5, scale), 5);
             updateTransform();
         });
-        
+
         containerEl.addEventListener('mousedown', (e) => {
             if (scale <= 1) return;
             isDragging = true;
@@ -145,19 +145,19 @@ class GestureManager {
             startY = e.clientY - panY;
             imgEl.style.cursor = 'grabbing';
         });
-        
+
         window.addEventListener('mousemove', (e) => {
             if (!isDragging) return;
             panX = e.clientX - startX;
             panY = e.clientY - startY;
             updateTransform();
         });
-        
+
         window.addEventListener('mouseup', () => {
             isDragging = false;
             imgEl.style.cursor = scale > 1 ? 'grab' : 'default';
         });
-        
+
         return {
             reset: () => { scale = 1; panX = 0; panY = 0; updateTransform(); },
             zoomIn: () => { scale = Math.min(scale + 0.25, 5); updateTransform(); },
@@ -175,13 +175,17 @@ class StoreRoomUI {
         this.viewerControls = null;
         this.init();
     }
-    
+
     init() {
         this.bindEvents();
         this.initGestures();
         this.loadMetadata();
         this.reloadFiles();
-        
+
+        if (window.AbhiHubTracking) {
+            window.AbhiHubTracking.trackSectionEngagement('store_room_page', 'view');
+        }
+
         // Remember Labels Toggle
         const toggle = document.getElementById('rememberToggle');
         if (toggle) {
@@ -193,11 +197,11 @@ class StoreRoomUI {
             });
         }
     }
-    
+
     bindEvents() {
         // Sync Button
         document.getElementById('syncStorageBtn')?.addEventListener('click', () => this.handleSync());
-        
+
         // Search & Filters
         document.getElementById('storeRoomSearchInput')?.addEventListener('input', () => {
             clearTimeout(this.searchTimer);
@@ -206,13 +210,13 @@ class StoreRoomUI {
         ['groupSelect', 'sortSelect', 'formatFilter', 'verificationFilter'].forEach(id => {
             document.getElementById(id)?.addEventListener('change', () => this.reloadFiles());
         });
-        
+
         // Pagination
         document.getElementById('viewMoreBtn')?.addEventListener('click', () => {
             this.state.currentOffset += this.state.itemsPerPage;
             this.loadMoreFiles();
         });
-        
+
         // Form Submit
         document.getElementById('labelForm')?.addEventListener('submit', (e) => this.handleFormSubmit(e));
 
@@ -226,7 +230,7 @@ class StoreRoomUI {
                 titleInput.value = e.target.value.replace(/_/g, ' ').replace(/\.[^/.]+$/, '');
             }
         });
-        
+
         // Auto-fill Subject Code
         document.getElementById('subjectName')?.addEventListener('change', (e) => {
             const tsSubj = window.AbhiHubSelect?.instances['subjectName'];
@@ -241,50 +245,50 @@ class StoreRoomUI {
                 }
             }
         });
-        
+
         // Close Modal — also handled by inline onclick, this is a fallback
         document.getElementById('closeLabelingBtn')?.addEventListener('click', () => this.closeLabelingDrawer());
     }
-    
+
     initGestures() {
         GestureManager.initResizer(
-            document.querySelector('.drawer-toggle-btn'), 
-            document.querySelector('.image-panel'), 
+            document.querySelector('.drawer-toggle-btn'),
+            document.querySelector('.image-panel'),
             document.querySelector('.form-panel')
         );
         GestureManager.initMobileDrawer(
-            document.querySelector('.drawer-indicator'), 
-            document.querySelector('.form-panel'), 
+            document.querySelector('.drawer-indicator'),
+            document.querySelector('.form-panel'),
             () => this.closeLabelingDrawer()
         );
         this.viewerControls = GestureManager.initImageViewer(
-            document.getElementById('previewImg'), 
+            document.getElementById('previewImg'),
             document.getElementById('imageContainer')
         );
     }
-    
+
     async handleSync() {
         const btn = document.getElementById('syncStorageBtn');
         if (!btn || btn.disabled) return;
-        
+
         const originalText = btn.innerHTML;
         btn.disabled = true;
         const setStatus = (text) => {
             btn.innerHTML = `<svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right: 8px; animation: spin 1s linear infinite;"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> ${text}`;
         };
-        
+
         setStatus('Connecting...');
         const phases = [
-            {time: 800, text: 'Fetching files...'},
-            {time: 2000, text: 'Comparing metadata...'},
-            {time: 3500, text: 'Updating queue...'}
+            { time: 800, text: 'Fetching files...' },
+            { time: 2000, text: 'Comparing metadata...' },
+            { time: 3500, text: 'Updating queue...' }
         ];
         let timers = phases.map(p => setTimeout(() => setStatus(p.text), p.time));
-        
+
         try {
             const { response, data } = await StoreRoomAPI.syncStorage();
             timers.forEach(t => clearTimeout(t));
-            
+
             if (response.ok && data.success) {
                 btn.innerHTML = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:8px;"><polyline points="20 6 9 17 4 12"></polyline></svg> Sync Complete`;
                 btn.style.cssText = 'background: var(--success-color, #10b981); border-color: var(--success-color, #10b981); color: white;';
@@ -301,16 +305,16 @@ class StoreRoomUI {
             btn.style.cssText = '';
         }
     }
-    
+
     async reloadFiles() {
         this.state.resetPagination();
         if (this.grid) this.grid.innerHTML = '';
         await this.loadMoreFiles();
     }
-    
+
     async loadMoreFiles() {
         if (!this.grid) return;
-        
+
         const params = {
             offset: this.state.currentOffset,
             limit: this.state.itemsPerPage,
@@ -319,14 +323,14 @@ class StoreRoomUI {
             format: document.getElementById('formatFilter')?.value || '',
             verification: document.getElementById('verificationFilter')?.value || ''
         };
-        
+
         try {
             const data = await StoreRoomAPI.fetchFiles(params);
             if (data.success) {
                 const newFiles = data.files || [];
                 this.state.files = this.state.currentOffset === 0 ? newFiles : [...this.state.files, ...newFiles];
                 this.state.hasMore = data.pagination?.has_more || false;
-                
+
                 if (this.state.currentOffset === 0 && this.state.files.length === 0) {
                     this.grid.innerHTML = `
                         <div class="empty-state">
@@ -338,11 +342,11 @@ class StoreRoomUI {
                 } else {
                     this.renderGrid();
                 }
-                
+
                 if (this.viewMoreContainer) {
                     this.viewMoreContainer.classList.toggle('hidden', !this.state.hasMore);
                 }
-                
+
                 if (data.statistics) this.updateStats(data.statistics);
             }
         } catch (e) {
@@ -350,18 +354,18 @@ class StoreRoomUI {
             this.showToast('Failed to load files', 'error');
         }
     }
-    
+
     renderGrid() {
         if (!this.grid) return;
         this.grid.innerHTML = '';
-        
+
         const groupBy = document.getElementById('groupSelect')?.value || 'name';
-        
+
         if (groupBy === 'none') {
             this.state.files.forEach(f => this.grid.appendChild(this.createFileCard(f)));
             return;
         }
-        
+
         const clusters = {};
         const getClusterKey = (file) => {
             if (groupBy === 'date') {
@@ -390,13 +394,13 @@ class StoreRoomUI {
             }
             return '🏷️ Uncategorized / Misc';
         };
-        
+
         this.state.files.forEach(file => {
             const key = getClusterKey(file);
             if (!clusters[key]) clusters[key] = [];
             clusters[key].push(file);
         });
-        
+
         Object.keys(clusters).forEach(key => {
             const groupEl = document.createElement('div');
             groupEl.className = 'cluster-group';
@@ -412,14 +416,14 @@ class StoreRoomUI {
             this.grid.appendChild(groupEl);
         });
     }
-    
+
     createFileCard(file) {
         const card = document.createElement('div');
         card.className = 'file-card';
         const isPdf = file.format === 'pdf' || (file.filename && file.filename.toLowerCase().endsWith('.pdf'));
         const iconPath = isPdf ? '/static/premium/icon/pdf.png' : '/static/premium/icon/image.png';
         const dateStr = new Date(file.created_at).toLocaleDateString();
-        
+
         card.innerHTML = `
             ${file.verification_status === 'pending' ? '<span class="label-badge" style="background:#fef3c7;color:#d97706;">Needs Verification</span>' : ''}
             <div class="file-icon-wrapper">
@@ -433,7 +437,7 @@ class StoreRoomUI {
         card.addEventListener('click', () => this.openLabelingDrawer(file));
         return card;
     }
-    
+
     async loadMetadata() {
         try {
             if (window.AbhiHubSelect) window.AbhiHubSelect.init();
@@ -442,10 +446,10 @@ class StoreRoomUI {
             console.error('Failed to load metadata', e);
         }
     }
-    
+
     loadLastLabels() {
         if (!this.state.rememberLabels) return;
-        
+
         // Simple non-dependent fields
         ['documentCategory', 'year', 'examType', 'difficulty'].forEach(id => {
             const val = this.state.lastLabels[id];
@@ -492,7 +496,7 @@ class StoreRoomUI {
             }
         }
     }
-    
+
     saveLastLabels() {
         if (!this.state.rememberLabels) return;
         ['documentCategory', 'collegeName', 'branch', 'semester', 'subjectName', 'year', 'examType', 'difficulty'].forEach(id => {
@@ -501,21 +505,27 @@ class StoreRoomUI {
         });
         localStorage.setItem('storeroom_last_labels', JSON.stringify(this.state.lastLabels));
     }
-    
+
     openLabelingDrawer(file) {
         this.state.activeFile = file;
+
+        if (window.AbhiHubTracking) {
+            const ext = file.format || (file.filename ? file.filename.split('.').pop() : 'unknown');
+            window.AbhiHubTracking.trackFileView(file.filename || file.name || 'Unknown', ext, '', 'Store Room', '', '', '');
+        }
+
         const view = document.getElementById('labelingView');
         const img = document.getElementById('previewImg');
         const frame = document.getElementById('previewFrame');
-        
+
         const badge = document.getElementById('fileInfoBadge');
         const docTitleEl = document.getElementById('documentTitle');
-        
+
         if (badge) badge.textContent = file.filename;
         if (docTitleEl && !docTitleEl.value) {
             docTitleEl.value = file.filename.replace(/_/g, ' ').replace(/\.[^/.]+$/, '');
         }
-        
+
         const isPdf = file.format === 'pdf' || (file.filename && file.filename.toLowerCase().endsWith('.pdf'));
         if (isPdf) {
             if (img) img.classList.add('hidden');
@@ -533,7 +543,7 @@ class StoreRoomUI {
             this.viewerControls?.reset();
             document.querySelector('.image-controls')?.classList.remove('hidden');
         }
-        
+
         if (view) {
             view.classList.add('active');
             document.body.style.overflow = 'hidden';
@@ -541,33 +551,33 @@ class StoreRoomUI {
             this.updateNavCounter(idx);
         }
     }
-    
+
     closeLabelingDrawer() {
         this.state.activeFile = null;
         const view = document.getElementById('labelingView');
         if (view) view.classList.remove('active');
         document.body.style.overflow = '';
-        
+
         const frame = document.getElementById('previewFrame');
         if (frame) frame.src = 'about:blank';
-        
+
         const formPanel = document.querySelector('.form-panel');
         if (formPanel) formPanel.style.transform = '';
     }
-    
+
     async handleFormSubmit(e) {
         e.preventDefault();
         const btn = document.getElementById('saveBtn');
         if (!btn || btn.disabled) return;
-        
+
         btn.disabled = true;
         const origText = btn.innerHTML;
         btn.innerHTML = `<svg class="spinner" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-6.219-8.56"></path></svg> Saving...`;
-        
+
         try {
             const formData = new FormData(e.target);
             const payload = Object.fromEntries(formData.entries());
-            
+
             // Map TomSelect values correctly (fallback to native select options)
             ['documentCategory', 'examType', 'difficulty'].forEach(id => {
                 const el = document.getElementById(id);
@@ -575,11 +585,11 @@ class StoreRoomUI {
                     payload[id] = el.options[el.selectedIndex]?.text || el.value;
                 }
             });
-            
+
             payload.college_id = document.getElementById('collegeName')?.value;
             payload.branch_id = document.getElementById('branch')?.value;
             payload.subject_id = document.getElementById('subjectName')?.value;
-            
+
             const subjSelect = document.getElementById('subjectName');
             if (subjSelect && subjSelect.selectedIndex >= 0) {
                 const optText = subjSelect.options[subjSelect.selectedIndex]?.text || '';
@@ -589,7 +599,7 @@ class StoreRoomUI {
                     payload.subject_code = match && match[2] ? match[2].trim() : '';
                 }
             }
-            
+
             if (this.state.activeFile) {
                 if (this.state.activeFile.record_id) {
                     payload.record_id = this.state.activeFile.record_id;
@@ -599,17 +609,17 @@ class StoreRoomUI {
                 payload.storage_provider = this.state.activeFile.storage_provider || '';
                 payload.provider_public_id = this.state.activeFile.storage_id || '';
             }
-            
+
             const data = await StoreRoomAPI.submitLabel(payload);
             if (data.success) {
                 this.saveLastLabels();
                 this.showToast('File successfully labeled! You can find it on the Home page.', 'success');
-                
+
                 // Optimistically remove the file from the grid and state BEFORE closing the drawer (which clears activeFile)
                 if (this.state.activeFile) {
                     const filename = this.state.activeFile.filename || this.state.activeFile.name;
                     this.state.files = this.state.files.filter(f => (f.filename || f.name) !== filename);
-                    
+
                     if (this.grid) {
                         Array.from(this.grid.children).forEach(card => {
                             const nameEl = card.querySelector('.file-name');
@@ -620,7 +630,7 @@ class StoreRoomUI {
                                 setTimeout(() => card.remove(), 300);
                             }
                         });
-                        
+
                         // Show empty state if all files are processed
                         if (this.state.files.length === 0) {
                             setTimeout(() => {
@@ -635,7 +645,7 @@ class StoreRoomUI {
                         }
                     }
                 }
-                
+
                 this.closeLabelingDrawer();
             } else {
                 throw new Error(data.message || 'Failed to save');
@@ -692,7 +702,7 @@ class StoreRoomUI {
         if (!this.state.activeFile) return;
         const newName = prompt("Enter new filename:", this.state.activeFile.filename);
         if (!newName || newName === this.state.activeFile.filename) return;
-        
+
         try {
             const fileId = this.state.activeFile.id || this.state.activeFile.storage_id || this.state.activeFile.path;
             const data = await StoreRoomAPI.renameFile({ file_id: fileId, new_name: newName });
@@ -702,7 +712,7 @@ class StoreRoomUI {
                 const titleInput = document.getElementById('docTitle');
                 if (fnInput) fnInput.value = newName;
                 if (titleInput) titleInput.value = newName.replace(/_/g, ' ').replace(/\.[^/.]+$/, '');
-                
+
                 this.showToast('Renamed successfully', 'success');
                 this.reloadFiles();
             } else {
@@ -712,7 +722,7 @@ class StoreRoomUI {
             this.showToast(e.message, 'error');
         }
     }
-    
+
     updateStats(stats) {
         const setVal = (selector, val) => {
             const el = document.querySelector(selector);
@@ -722,7 +732,7 @@ class StoreRoomUI {
         setVal('.stat-card.sorted .stat-number', stats.sorted);
         setVal('.stat-card.remaining .stat-number', stats.remaining);
     }
-    
+
     showToast(message, type = 'info') {
         if (window.showToast) return window.showToast(message, type);
         let container = document.getElementById('toastContainer');
@@ -746,13 +756,13 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // Global shims for inline onclick handlers in HTML
-function closeLabelingView()   { window.StoreRoom?.closeLabelingDrawer(); }
-function handleSave()          { window.StoreRoom?.handleSave(); }
-function loadMoreFiles()       { window.StoreRoom?.loadMoreFiles(); }
-function syncStorage()         { window.StoreRoom?.handleSync(); }
-function navigateFile(dir)     { window.StoreRoom?.navigateFile(dir); }
-function resetView()           { window.StoreRoom?.viewerControls?.reset(); }
-function zoomIn()              { window.StoreRoom?.viewerControls?.zoomIn(); }
-function zoomOut()             { window.StoreRoom?.viewerControls?.zoomOut(); }
-function rotateImage()         { window.StoreRoom?.rotateImage(); }
-function toggleFullscreen()    { window.StoreRoom?.toggleFullscreen(); }
+function closeLabelingView() { window.StoreRoom?.closeLabelingDrawer(); }
+function handleSave() { window.StoreRoom?.handleSave(); }
+function loadMoreFiles() { window.StoreRoom?.loadMoreFiles(); }
+function syncStorage() { window.StoreRoom?.handleSync(); }
+function navigateFile(dir) { window.StoreRoom?.navigateFile(dir); }
+function resetView() { window.StoreRoom?.viewerControls?.reset(); }
+function zoomIn() { window.StoreRoom?.viewerControls?.zoomIn(); }
+function zoomOut() { window.StoreRoom?.viewerControls?.zoomOut(); }
+function rotateImage() { window.StoreRoom?.rotateImage(); }
+function toggleFullscreen() { window.StoreRoom?.toggleFullscreen(); }

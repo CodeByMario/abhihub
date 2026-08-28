@@ -1,4 +1,5 @@
-{% set file_type = 'PYQ' if 'pyq' in (document.document_category|lower) else ('Practical' if 'practical' in (document.document_category|lower) else 'Notes') %}
+{% set file_type = 'PYQ' if 'pyq' in (document.document_category|lower) else ('Practical' if 'practical' in
+(document.document_category|lower) else 'Notes') %}
 {% set subj_name = document.subject.name if document.subject else 'Uncategorized' %}
 {% set coll_name = document.college.name if document.college else 'AbhiHub' %}
 {% set coll_abbr = (document.college.abbreviation or document.college.name) if document.college else 'AbhiHub' %}
@@ -7,8 +8,10 @@
 {% set resource_title = document.title or (subj_name ~ ' ' ~ file_type) %}
 
 {% set seo_title = resource_title ~ ' | ' ~ subj_name ~ ' ' ~ file_type ~ ' | ' ~ coll_abbr ~ ' | AbhiHub' %}
-{% set seo_description = 'Download ' ~ resource_title ~ ', a verified ' ~ file_type ~ ' for ' ~ subj_name ~ ' from ' ~ coll_name ~ ' uploaded by ' ~ uploader_name ~ '. Free academic resources.' %}
-{% set seo_keywords = subj_name ~ ' ' ~ file_type ~ ', ' ~ coll_name ~ ' ' ~ subj_name ~ ', ' ~ resource_title ~ ', ' ~ uploader_name %}
+{% set seo_description = 'Download ' ~ resource_title ~ ', a verified ' ~ file_type ~ ' for ' ~ subj_name ~ ' from ' ~
+coll_name ~ ' uploaded by ' ~ uploader_name ~ '. Free academic resources.' %}
+{% set seo_keywords = subj_name ~ ' ' ~ file_type ~ ', ' ~ coll_name ~ ' ' ~ subj_name ~ ', ' ~ resource_title ~ ', ' ~
+uploader_name %}
 {% set og_title = seo_title %}
 {% set og_description = seo_description %}
 {% set og_type = 'article' %}
@@ -42,437 +45,608 @@
 </script>
 
 <style>
-:root {
-  --r-primary: #f59e0b; /* Amber */
-  --r-bg: #fffbeb;
-  --r-card: #ffffff;
-  --r-text: #0f172a;
-  --r-muted: #64748b;
-  --r-border: #fef3c7;
-}
-
-body { background-color: var(--r-bg); overflow-x: hidden; }
-
-.resource-hero {
-  padding: 4rem 1.5rem 3rem;
-  background: linear-gradient(135deg, #1e293b 0%, #b45309 100%);
-  color: white;
-  text-align: center;
-  border-bottom-left-radius: 40px;
-  border-bottom-right-radius: 40px;
-  box-shadow: 0 20px 40px rgba(245, 158, 11, 0.15);
-  margin-bottom: -2rem;
-}
-
-.resource-hero h1 {
-  font-size: clamp(1.8rem, 4vw, 3rem);
-  font-weight: 900;
-  margin-bottom: 1rem;
-  text-shadow: 0 4px 20px rgba(0,0,0,0.2);
-}
-
-.breadcrumb-nav {
-  display: inline-flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  background: rgba(255,255,255,0.15);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  padding: 0.5rem 1.2rem;
-  border-radius: 99px;
-  font-weight: 600;
-  font-size: 0.85rem;
-  margin-bottom: 1.5rem;
-  border: 1px solid rgba(255,255,255,0.2);
-}
-
-.breadcrumb-nav a { color: white; text-decoration: none; }
-.breadcrumb-nav a:hover { text-decoration: underline; }
-
-.meta-bar {
-  max-width: 1000px;
-  margin: 0 auto 3rem;
-  position: relative;
-  z-index: 10;
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-  flex-wrap: wrap;
-}
-
-.meta-pill {
-  background: var(--r-card);
-  padding: 0.8rem 1.5rem;
-  border-radius: 99px;
-  font-weight: 700;
-  font-size: 0.9rem;
-  color: var(--r-text);
-  box-shadow: 0 10px 20px rgba(0,0,0,0.05);
-  border: 1px solid var(--r-border);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.meta-pill.like-btn.liked {
-  background-color: #fee2e2;
-  border-color: #fca5a5;
-  color: #b91c1c;
-}
-.meta-pill.bookmark-btn.bookmarked {
-  background-color: #e0e7ff;
-  border-color: #a5b4fc;
-  color: #4338ca;
-}
-.preview-container {
-  max-width: 1100px;
-  margin: 0 auto 5rem;
-  padding: 0 1.5rem;
-}
-
-.preview-card {
-  background: var(--r-card);
-  border-radius: 24px;
-  border: 1px solid var(--r-border);
-  box-shadow: 0 20px 40px rgba(0,0,0,0.08);
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-}
-
-.preview-header {
-  padding: 1.5rem 2rem;
-  border-bottom: 1px solid var(--r-border);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  background: #fdfaf4;
-}
-
-|.sr-hover { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
-|.sr-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-
-
-
-
-.main-layout-container {
-  max-width: 1400px;
-  width: 100%;
-  margin: 0 auto 5rem;
-  padding: 0 1.5rem;
-  box-sizing: border-box;
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 2rem;
-}
-
-@media(min-width: 1024px) {
-  .main-layout-container {
-    grid-template-columns: 2fr 1fr; /* 66% and 33% */
-    align-items: start;
+  :root {
+    --r-primary: #f59e0b;
+    /* Amber */
+    --r-bg: #fffbeb;
+    --r-card: #ffffff;
+    --r-text: #0f172a;
+    --r-muted: #64748b;
+    --r-border: #fef3c7;
   }
-}
 
-.document-column {
-  min-width: 0;
-}
+  body {
+    background-color: var(--r-bg);
+    overflow-x: hidden;
+  }
 
-.sidebar-column {
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  min-width: 0;
-}
+  .resource-hero {
+    padding: 4rem 1.5rem 3rem;
+    background: linear-gradient(135deg, #1e293b 0%, #b45309 100%);
+    color: white;
+    text-align: center;
+    border-bottom-left-radius: 40px;
+    border-bottom-right-radius: 40px;
+    box-shadow: 0 20px 40px rgba(245, 158, 11, 0.15);
+    margin-bottom: -2rem;
+  }
 
-.info-grid {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  padding: 0;
-}
+  .resource-hero h1 {
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    font-weight: 900;
+    margin-bottom: 1rem;
+    text-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  }
+
+  .breadcrumb-nav {
+    display: inline-flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    padding: 0.5rem 1.2rem;
+    border-radius: 99px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .breadcrumb-nav a {
+    color: white;
+    text-decoration: none;
+  }
+
+  .breadcrumb-nav a:hover {
+    text-decoration: underline;
+  }
+
+  .meta-bar {
+    max-width: 1000px;
+    margin: 0 auto 3rem;
+    position: relative;
+    z-index: 10;
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+
+  .meta-pill {
+    background: var(--r-card);
+    padding: 0.8rem 1.5rem;
+    border-radius: 99px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    color: var(--r-text);
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.05);
+    border: 1px solid var(--r-border);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .meta-pill.like-btn.liked {
+    background-color: #fee2e2;
+    border-color: #fca5a5;
+    color: #b91c1c;
+  }
+
+  .meta-pill.bookmark-btn.bookmarked {
+    background-color: #e0e7ff;
+    border-color: #a5b4fc;
+    color: #4338ca;
+  }
+
+  .preview-container {
+    max-width: 1100px;
+    margin: 0 auto 5rem;
+    padding: 0 1.5rem;
+  }
+
+  .preview-card {
+    background: var(--r-card);
+    border-radius: 24px;
+    border: 1px solid var(--r-border);
+    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.08);
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .preview-header {
+    padding: 1.5rem 2rem;
+    border-bottom: 1px solid var(--r-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #fdfaf4;
+  }
+
+  |.sr-hover {
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+  }
+
+  |.sr-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  }
 
 
-.info-grid.old {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 2rem;
-  padding: 2rem;
-}
 
-.info-box {
-  background: #fafaf9;
-  border-radius: 16px;
-  padding: 1.5rem;
-  border: 1px solid #e7e5e4;
-}
 
-.info-box h3 {
-  font-size: 1.1rem;
-  font-weight: 800;
-  color: var(--r-text);
-  margin-bottom: 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-}
+  .main-layout-container {
+    max-width: 1400px;
+    width: 100%;
+    margin: 0 auto 5rem;
+    padding: 0 1.5rem;
+    box-sizing: border-box;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
 
-.info-box p {
-  color: var(--r-muted);
-  margin-bottom: 0.5rem;
-  font-weight: 500;
-}
+  @media(min-width: 1024px) {
+    .main-layout-container {
+      grid-template-columns: 2fr 1fr;
+      /* 66% and 33% */
+      align-items: start;
+    }
+  }
 
-.info-box a {
-  color: var(--r-primary);
-  text-decoration: none;
-  font-weight: 700;
-}
+  .document-column {
+    min-width: 0;
+  }
 
-.info-box a:hover { text-decoration: underline; }
+  .sidebar-column {
+    display: flex;
+    flex-direction: column;
+    gap: 2rem;
+    min-width: 0;
+  }
 
-@media(max-width: 768px) {
-  .info-grid.old { grid-template-columns: 1fr; }
-  .preview-iframe { height: 100%; }
-  .meta-bar { padding: 0 1.5rem; justify-content: flex-start; }
-}
+  .info-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    padding: 0;
+  }
 
-.preview-iframe-wrap {
-  position: relative;
-  border-radius: 12px;
-  overflow: hidden;
-  height: 100%; /* fill available space on mobile */
-}
-.preview-loading-bar {
-  position: absolute;
-  inset: 0;
-  background: #f1f5f9;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10;
-  transition: opacity 0.3s;
-}
-.preview-loading-bar.hidden { opacity: 0; pointer-events: none; }
-.preview-loading-bar.error { background: #fef2f2; }
-.preview-loading-bar::after {
-  content: '';
-  width: 48px;
-  height: 48px;
-  border: 4px solid #e2e8f0;
-  border-top-color: #f59e0b;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-}
-.preview-loading-bar.error::after { border-top-color: #ef4444; content: none; }
-.preview-loading-bar.error .preview-loading-progress {
-  position: static;
-  text-align: center;
-  color: #ef4444;
-  font-weight: 600;
-  margin-top: 1rem;
-  font-size: 0.9rem;
-}
-|.sr-hover { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
-|.sr-hover:hover { transform: translateY(-2px); box-shadow: 0 10px 15px -3px rgba(0,0,0,0.1); }
-.image-viewer-wrap {
-  border-radius: 12px;
-  overflow: hidden;
-  background: #f1f5f9;
-  position: relative;
-}
-.image-toolbar {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  padding: 0.5rem;
-  background: rgba(255,255,255,0.95);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid var(--r-border);
-  flex-wrap: wrap;
-  justify-content: center;
-}
-.iv-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 36px;
-  height: 36px;
-  border: none;
-  border-radius: 8px;
-  background: var(--r-card);
-  color: var(--r-text);
-  cursor: pointer;
-  transition: background 0.15s, transform 0.15s;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.08);
-}
-.iv-btn:hover { background: #f1f5f9; transform: scale(1.05); }
-.iv-btn:active { transform: scale(0.95); }
-.iv-zoom-label {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--r-muted);
-  min-width: 48px;
-  text-align: center;
-  user-select: none;
-}
-.image-canvas {
-  position: relative;
-  overflow: hidden;
-  cursor: zoom-in;
-  min-height: 300px;
-  height: 100%;
-  max-height: 700px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  touch-action: none;
-  background: #f8fafc;
-}
-.preview-iframe {
-  width: 100%;
-  height: 80vh;
-  min-height: 400px;
-  max-height: 700px;
-  border: none;
-  display: block;
-  background: #525659;
-}
-@media (max-width: 768px) {
-  .preview-iframe { height: 70vh; min-height: 350px; }
-  .image-canvas { height: 100%; min-height: 250px; }
-}
-.image-skeleton {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #e2e8f0;
-  animation: pulse 2s infinite;
-  z-index: 1;
-}
-.image-error {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: #fef2f2;
-  z-index: 3;
-  padding: 2rem;
-  text-align: center;
-}
-.image-error a { color: #fff; }
-.image-watermark {
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  z-index: 5;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg transform='rotate(-30 120 120)'%3E%3Ctext x='120' y='120' fill='rgba(0,0,0,0.18)' font-size='18' font-family='sans-serif' font-weight='900' text-anchor='middle'%3E{{ request.host if request.host else 'AbhiHub' }}%3C/text%3E%3C/g%3E%3C/svg%3E");
-  background-repeat: repeat;
-}
-.image-viewer-wrap.fullscreen-mode {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 999999 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  max-width: none !important;
-  max-height: none !important;
-  border-radius: 0 !important;
-  background: #090d16 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  margin: 0 !important;
-}
-.image-viewer-wrap.fullscreen-mode .image-toolbar {
-  background: rgba(15, 23, 42, 0.95) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
-  z-index: 1000000 !important;
-}
-.image-viewer-wrap.fullscreen-mode .iv-btn {
-  background: rgba(255, 255, 255, 0.15) !important;
-  color: #ffffff !important;
-}
-.image-viewer-wrap.fullscreen-mode .iv-btn:hover {
-  background: rgba(255, 255, 255, 0.3) !important;
-}
-.image-viewer-wrap.fullscreen-mode .iv-zoom-label {
-  color: #f1f5f9 !important;
-}
-.image-viewer-wrap.fullscreen-mode .image-canvas {
-  flex: 1 !important;
-  height: 100% !important;
-  max-height: none !important;
-  min-height: 0 !important;
-  background: transparent !important;
-}
-#previewImage.zoomed {
-  cursor: grab;
-}
-#previewImage.dragging {
-  cursor: grabbing;
-  transition: none !important;
-}
-@media (max-width: 640px) {
-  .image-toolbar { gap: 0.2rem; padding: 0.4rem; }
-  .iv-btn { width: 32px; height: 32px; }
-  .iv-zoom-label { min-width: 36px; font-size: 0.7rem; }
-}
-.ai-toolbar-btn { padding: 0.3rem 0.6rem; border: none; border-radius: 6px; font-size: 0.8rem; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 0.25rem; }
-.ai-whatsapp { background: #25D366; color: #fff; }
-.ai-export { background: #ef4444; color: #fff; }
-.ai-fullscreen { background: #334155; color: #fff; }
 
-.ai-persona-btn { padding: 0.4rem 0.8rem; border-radius: 8px; border: 1px solid var(--r-border); background: #f8fafc; cursor: pointer; font-size: 0.85rem; font-weight: 600; transition: background 0.2s; }
-.ai-persona-btn:hover { background: #f1f5f9; }
-.ai-chatgpt { color: #10b981; }
-.ai-gemini { color: #3b82f6; }
-.ai-claude { color: #d97757; }
+  .info-grid.old {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    padding: 2rem;
+  }
 
-.ai-suggestion-btn { padding: 0.3rem 0.7rem; border-radius: 99px; border: 1px solid #e2e8f0; background: #f8fafc; cursor: pointer; font-size: 0.75rem; color: #475569; transition: background 0.2s; }
-.ai-suggestion-btn:hover { background: #f1f5f9; }
+  .info-box {
+    background: #fafaf9;
+    border-radius: 16px;
+    padding: 1.5rem;
+    border: 1px solid #e7e5e4;
+  }
 
-.ai-send-btn { padding: 0.65rem 1.25rem; background: #f59e0b; color: #fff; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
+  .info-box h3 {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--r-text);
+    margin-bottom: 1rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
 
-.preview-card.fullscreen-doc-card {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 999999 !important;
-  width: 100vw !important;
-  height: 100vh !important;
-  max-width: none !important;
-  max-height: none !important;
-  border-radius: 0 !important;
-  background: #090d16 !important;
-  display: flex !important;
-  flex-direction: column !important;
-  margin: 0 !important;
-  padding: 0 !important;
-  box-shadow: none !important;
-}
-.preview-card.fullscreen-doc-card .preview-header {
-  background: rgba(15, 23, 42, 0.95) !important;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
-  color: #ffffff !important;
-  padding: 0.75rem 1.25rem !important;
-  z-index: 1000000 !important;
-}
-.preview-card.fullscreen-doc-card .preview-header * {
-  color: #ffffff !important;
-}
-.preview-card.fullscreen-doc-card .preview-iframe-wrap,
-.preview-card.fullscreen-doc-card .image-viewer-wrap {
-  flex: 1 !important;
-  height: 100% !important;
-  max-height: none !important;
-  min-height: 0 !important;
-}
-.preview-card.fullscreen-doc-card .preview-iframe {
-  height: 100% !important;
-  max-height: none !important;
-  min-height: 0 !important;
-}
+  .info-box p {
+    color: var(--r-muted);
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+  }
+
+  .info-box a {
+    color: var(--r-primary);
+    text-decoration: none;
+    font-weight: 700;
+  }
+
+  .info-box a:hover {
+    text-decoration: underline;
+  }
+
+  @media(max-width: 768px) {
+    .info-grid.old {
+      grid-template-columns: 1fr;
+    }
+
+    .preview-iframe {
+      height: 100%;
+    }
+
+    .meta-bar {
+      padding: 0 1.5rem;
+      justify-content: flex-start;
+    }
+  }
+
+  .preview-iframe-wrap {
+    position: relative;
+    border-radius: 12px;
+    overflow: hidden;
+    height: 100%;
+    /* fill available space on mobile */
+  }
+
+  .preview-loading-bar {
+    position: absolute;
+    inset: 0;
+    background: #f1f5f9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 10;
+    transition: opacity 0.3s;
+  }
+
+  .preview-loading-bar.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .preview-loading-bar.error {
+    background: #fef2f2;
+  }
+
+  .preview-loading-bar::after {
+    content: '';
+    width: 48px;
+    height: 48px;
+    border: 4px solid #e2e8f0;
+    border-top-color: #f59e0b;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+  }
+
+  .preview-loading-bar.error::after {
+    border-top-color: #ef4444;
+    content: none;
+  }
+
+  .preview-loading-bar.error .preview-loading-progress {
+    position: static;
+    text-align: center;
+    color: #ef4444;
+    font-weight: 600;
+    margin-top: 1rem;
+    font-size: 0.9rem;
+  }
+
+  |.sr-hover {
+    transition: transform 0.2s, box-shadow 0.2s;
+    cursor: pointer;
+  }
+
+  |.sr-hover:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1);
+  }
+
+  .image-viewer-wrap {
+    border-radius: 12px;
+    overflow: hidden;
+    background: #f1f5f9;
+    position: relative;
+  }
+
+  .image-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 0.3rem;
+    padding: 0.5rem;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid var(--r-border);
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .iv-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    border-radius: 8px;
+    background: var(--r-card);
+    color: var(--r-text);
+    cursor: pointer;
+    transition: background 0.15s, transform 0.15s;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+  }
+
+  .iv-btn:hover {
+    background: #f1f5f9;
+    transform: scale(1.05);
+  }
+
+  .iv-btn:active {
+    transform: scale(0.95);
+  }
+
+  .iv-zoom-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--r-muted);
+    min-width: 48px;
+    text-align: center;
+    user-select: none;
+  }
+
+  .image-canvas {
+    position: relative;
+    overflow: hidden;
+    cursor: zoom-in;
+    min-height: 300px;
+    height: 100%;
+    max-height: 700px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    touch-action: none;
+    background: #f8fafc;
+  }
+
+  .preview-iframe {
+    width: 100%;
+    height: 80vh;
+    min-height: 400px;
+    max-height: 700px;
+    border: none;
+    display: block;
+    background: #525659;
+  }
+
+  @media (max-width: 768px) {
+    .preview-iframe {
+      height: 70vh;
+      min-height: 350px;
+    }
+
+    .image-canvas {
+      height: 100%;
+      min-height: 250px;
+    }
+  }
+
+  .image-skeleton {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #e2e8f0;
+    animation: pulse 2s infinite;
+    z-index: 1;
+  }
+
+  .image-error {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #fef2f2;
+    z-index: 3;
+    padding: 2rem;
+    text-align: center;
+  }
+
+  .image-error a {
+    color: #fff;
+  }
+
+  .image-watermark {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg transform='rotate(-30 120 120)'%3E%3Ctext x='120' y='120' fill='rgba(0,0,0,0.18)' font-size='18' font-family='sans-serif' font-weight='900' text-anchor='middle'%3E{{ request.host if request.host else 'AbhiHub' }}%3C/text%3E%3C/g%3E%3C/svg%3E");
+    background-repeat: repeat;
+  }
+
+  .image-viewer-wrap.fullscreen-mode {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 999999 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    background: #090d16 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+  }
+
+  .image-viewer-wrap.fullscreen-mode .image-toolbar {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+    z-index: 1000000 !important;
+  }
+
+  .image-viewer-wrap.fullscreen-mode .iv-btn {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+  }
+
+  .image-viewer-wrap.fullscreen-mode .iv-btn:hover {
+    background: rgba(255, 255, 255, 0.3) !important;
+  }
+
+  .image-viewer-wrap.fullscreen-mode .iv-zoom-label {
+    color: #f1f5f9 !important;
+  }
+
+  .image-viewer-wrap.fullscreen-mode .image-canvas {
+    flex: 1 !important;
+    height: 100% !important;
+    max-height: none !important;
+    min-height: 0 !important;
+    background: transparent !important;
+  }
+
+  #previewImage.zoomed {
+    cursor: grab;
+  }
+
+  #previewImage.dragging {
+    cursor: grabbing;
+    transition: none !important;
+  }
+
+  @media (max-width: 640px) {
+    .image-toolbar {
+      gap: 0.2rem;
+      padding: 0.4rem;
+    }
+
+    .iv-btn {
+      width: 32px;
+      height: 32px;
+    }
+
+    .iv-zoom-label {
+      min-width: 36px;
+      font-size: 0.7rem;
+    }
+  }
+
+  .ai-toolbar-btn {
+    padding: 0.3rem 0.6rem;
+    border: none;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .ai-whatsapp {
+    background: #25D366;
+    color: #fff;
+  }
+
+  .ai-export {
+    background: #ef4444;
+    color: #fff;
+  }
+
+  .ai-fullscreen {
+    background: #334155;
+    color: #fff;
+  }
+
+  .ai-persona-btn {
+    padding: 0.4rem 0.8rem;
+    border-radius: 8px;
+    border: 1px solid var(--r-border);
+    background: #f8fafc;
+    cursor: pointer;
+    font-size: 0.85rem;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+
+  .ai-persona-btn:hover {
+    background: #f1f5f9;
+  }
+
+  .ai-chatgpt {
+    color: #10b981;
+  }
+
+  .ai-gemini {
+    color: #3b82f6;
+  }
+
+  .ai-claude {
+    color: #d97757;
+  }
+
+  .ai-suggestion-btn {
+    padding: 0.3rem 0.7rem;
+    border-radius: 99px;
+    border: 1px solid #e2e8f0;
+    background: #f8fafc;
+    cursor: pointer;
+    font-size: 0.75rem;
+    color: #475569;
+    transition: background 0.2s;
+  }
+
+  .ai-suggestion-btn:hover {
+    background: #f1f5f9;
+  }
+
+  .ai-send-btn {
+    padding: 0.65rem 1.25rem;
+    background: #f59e0b;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .preview-card.fullscreen-doc-card {
+    position: fixed !important;
+    inset: 0 !important;
+    z-index: 999999 !important;
+    width: 100vw !important;
+    height: 100vh !important;
+    max-width: none !important;
+    max-height: none !important;
+    border-radius: 0 !important;
+    background: #090d16 !important;
+    display: flex !important;
+    flex-direction: column !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    box-shadow: none !important;
+  }
+
+  .preview-card.fullscreen-doc-card .preview-header {
+    background: rgba(15, 23, 42, 0.95) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+    padding: 0.75rem 1.25rem !important;
+    z-index: 1000000 !important;
+  }
+
+  .preview-card.fullscreen-doc-card .preview-header * {
+    color: #ffffff !important;
+  }
+
+  .preview-card.fullscreen-doc-card .preview-iframe-wrap,
+  .preview-card.fullscreen-doc-card .image-viewer-wrap {
+    flex: 1 !important;
+    height: 100% !important;
+    max-height: none !important;
+    min-height: 0 !important;
+  }
+
+  .preview-card.fullscreen-doc-card .preview-iframe {
+    height: 100% !important;
+    max-height: none !important;
+    min-height: 0 !important;
+  }
 </style>
 {% endblock %}
 
@@ -481,76 +655,119 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
   <div class="breadcrumb-nav">
     <a href="/">Home</a> <span>›</span>
     {% if document.college %}
-      <a href="/college/{{ (document.college.abbreviation or document.college.name) | lower | replace(' ', '-') }}">{{ document.college.abbreviation or document.college.name }}</a> <span>›</span>
+    <a href="/college/{{ (document.college.abbreviation or document.college.name) | lower | replace(' ', '-') }}">{{
+      document.college.abbreviation or document.college.name }}</a> <span>›</span>
     {% endif %}
     {% if document.subject %}
-      <a href="/subject/{{ document.subject.name | lower | replace(' ', '-') | replace('&', 'and') }}">{{ document.subject.name }}</a> <span>›</span>
+    <a href="/subject/{{ document.subject.name | lower | replace(' ', '-') | replace('&', 'and') }}">{{
+      document.subject.name }}</a> <span>›</span>
     {% endif %}
     <span>File</span>
   </div>
-  
+
   <h1>{{ document.title }}</h1>
-  <p>Verified {{ file_type }} uploaded by {{ uploader_name }} {% if document.uploader and document.uploader.is_verified %}✅{% endif %}</p>
+  <p>Verified {{ file_type }} uploaded by {{ uploader_name }} {% if document.uploader and document.uploader.is_verified
+    %}✅{% endif %}</p>
 </div>
 
 <div class="meta-bar">
   <div class="meta-pill">👁️ {{ document.view_count or 0 }} Views</div>
-  <button class="meta-pill like-btn {{ 'liked' if document.is_liked else '' }}" type="button" data-action="toggleLike" data-doc-id="{{ document.id }}" aria-label="Like this resource">
+  <button class="meta-pill like-btn {{ 'liked' if document.is_liked else '' }}" type="button" data-action="toggleLike"
+    data-doc-id="{{ document.id }}" aria-label="Like this resource">
     ❤️ <span class="like-count">{{ document.like_count or 0 }}</span> Likes
   </button>
-  <button class="meta-pill bookmark-btn {{ 'bookmarked' if document.is_bookmarked else '' }}" type="button" data-action="toggleBookmark" data-doc-id="{{ document.id }}" aria-label="Bookmark this resource">
+  <button class="meta-pill bookmark-btn {{ 'bookmarked' if document.is_bookmarked else '' }}" type="button"
+    data-action="toggleBookmark" data-doc-id="{{ document.id }}" aria-label="Bookmark this resource">
     🔖 <span class="bookmark-count">{{ document.bookmark_count or 0 }}</span> Save
   </button>
   <div class="meta-pill">📅 {{ document.created_at[:10] }}</div>
-  <div class="meta-pill">📦 {{ (document.file_size_bytes|int / 1024 / 1024)|round(2) if document.file_size_bytes else 'Unknown' }} MB</div>
+  <div class="meta-pill">📦 {{ (document.file_size_bytes|int / 1024 / 1024)|round(2) if document.file_size_bytes else
+    'Unknown' }} MB</div>
 </div>
 
 <div class="main-layout-container">
   <div class="document-column">
     <div class="preview-card">
-    <div class="preview-header" style="display:flex; justify-content:space-between; align-items:center;">
-      <div style="font-weight: 700; color: var(--r-text); display:flex; align-items:center; gap:0.5rem;">
-        <span>📄</span> Document Preview
+      <div class="preview-header" style="display:flex; justify-content:space-between; align-items:center;">
+        <div style="font-weight: 700; color: var(--r-text); display:flex; align-items:center; gap:0.5rem;">
+          <span>📄</span> Document Preview
+        </div>
+        <button type="button" onclick="toggleDocCardFullscreen()" aria-label="Fullscreen Focus Mode"
+          title="Fullscreen Focus Mode"
+          style="background: rgba(241,245,249,0.8); border: 1px solid var(--r-border); padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; color: var(--r-text); transition: all 0.2s;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="15 3 21 3 21 9" />
+            <polyline points="9 21 3 21 3 15" />
+            <line x1="21" y1="3" x2="14" y2="10" />
+            <line x1="3" y1="21" x2="10" y2="14" />
+          </svg>
+          <span>Fullscreen Focus</span>
+        </button>
       </div>
-      <button type="button" onclick="toggleDocCardFullscreen()" aria-label="Fullscreen Focus Mode" title="Fullscreen Focus Mode" style="background: rgba(241,245,249,0.8); border: 1px solid var(--r-border); padding: 0.35rem 0.75rem; border-radius: 8px; font-size: 0.82rem; font-weight: 600; cursor: pointer; display: inline-flex; align-items: center; gap: 0.35rem; color: var(--r-text); transition: all 0.2s;">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
-        <span>Fullscreen Focus</span>
-      </button>
-    </div>
-    
-    <!-- PDF / Image Previewer -->
-    {% if document.file_type == 'pdf' or '.pdf' in (document.file_url|lower) %}
+
+      <!-- PDF / Image Previewer -->
+      {% if document.file_type == 'pdf' or '.pdf' in (document.file_url|lower) %}
       <div class="preview-iframe-wrap">
         <div class="preview-loading-bar" id="pdfLoadingBar">
           <div class="preview-loading-progress" id="pdfLoadingProgress"></div>
         </div>
-        <iframe class="preview-iframe" src="{{ url_for('static', filename='pdfjs-6.1.200-dist/web/viewer.html') }}?file=/api/view-doc/{{ document.id }}/document.pdf&download=false" title="{{ document.title }}" data-feature="PDF Viewer" onload="document.getElementById('pdfLoadingBar').classList.add('hidden');" onerror="document.getElementById('pdfLoadingBar').classList.remove('hidden'); document.getElementById('pdfLoadingProgress').textContent = '⚠️ Failed to load PDF. The document may be unavailable.'; document.getElementById('pdfLoadingBar').classList.add('error');"></iframe>
+        <iframe class="preview-iframe"
+          src="{{ url_for('static', filename='pdfjs-6.1.200-dist/web/viewer.html') }}?file=/api/view-doc/{{ document.id }}/document.pdf&download=false"
+          title="{{ document.title }}" data-feature="PDF Viewer"
+          onload="document.getElementById('pdfLoadingBar').classList.add('hidden');"
+          onerror="document.getElementById('pdfLoadingBar').classList.remove('hidden'); document.getElementById('pdfLoadingProgress').textContent = '⚠️ Failed to load PDF. The document may be unavailable.'; document.getElementById('pdfLoadingBar').classList.add('error');"></iframe>
       </div>
-    {% elif document.file_type == 'image' or '.jpg' in (document.file_url|lower) or '.png' in (document.file_url|lower) or '.jpeg' in (document.file_url|lower) or '.webp' in (document.file_url|lower) %}
+      {% elif document.file_type == 'image' or '.jpg' in (document.file_url|lower) or '.png' in
+      (document.file_url|lower) or '.jpeg' in (document.file_url|lower) or '.webp' in (document.file_url|lower) %}
       <div class="image-viewer-wrap" data-feature="Image Viewer">
         <div class="image-toolbar" id="imageToolbar">
           <button type="button" data-action="zoomInImage" class="iv-btn" aria-label="Zoom in" title="Zoom in">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="11" y1="8" x2="11" y2="14"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              <line x1="11" y1="8" x2="11" y2="14" />
+              <line x1="8" y1="11" x2="14" y2="11" />
+            </svg>
           </button>
           <button type="button" data-action="zoomOutImage" class="iv-btn" aria-label="Zoom out" title="Zoom out">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+              <line x1="8" y1="11" x2="14" y2="11" />
+            </svg>
           </button>
           <span class="iv-zoom-label" id="ivZoomLabel" aria-live="polite">100%</span>
           <button type="button" data-action="resetImageZoom" class="iv-btn" aria-label="Reset zoom" title="Reset zoom">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+              <path d="M3 3v5h5" />
+            </svg>
           </button>
-          <button type="button" data-action="toggleImageFullscreen" class="iv-btn" aria-label="Toggle fullscreen" title="Fullscreen">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+          <button type="button" data-action="toggleImageFullscreen" class="iv-btn" aria-label="Toggle fullscreen"
+            title="Fullscreen">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="15 3 21 3 21 9" />
+              <polyline points="9 21 3 21 3 15" />
+              <line x1="21" y1="3" x2="14" y2="10" />
+              <line x1="3" y1="21" x2="10" y2="14" />
+            </svg>
           </button>
-<!-- [ARCHIVED — anti-piracy protection] Download button removed: no user must be able to download the document.
+          <!-- [ARCHIVED — anti-piracy protection] Download button removed: no user must be able to download the document.
      In-page preview remains fully functional via the viewer above.
      See app.py view_doc for Content-Disposition: inline + anti-hotlink protections. -->
           <!-- Download button: REMOVED per anti-piracy rule (keep preview public, block download) -->
         </div>
-        <div class="image-canvas" id="imageCanvas" tabindex="0" role="img" aria-label="{{ document.title }} — {{ subj_name }} {{ file_type }} for {{ coll_name }}">
+        <div class="image-canvas" id="imageCanvas" tabindex="0" role="img"
+          aria-label="{{ document.title }} — {{ subj_name }} {{ file_type }} for {{ coll_name }}">
           <!-- Skeleton Loader -->
           <div id="imageSkeleton" class="image-skeleton" aria-hidden="true">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
               <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
               <circle cx="8.5" cy="8.5" r="1.5"></circle>
               <polyline points="21 15 16 10 5 21"></polyline>
@@ -558,17 +775,21 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
           </div>
           <!-- Error State -->
           <div id="imageError" class="image-error" style="display:none;">
-            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10" />
+              <line x1="12" y1="8" x2="12" y2="12" />
+              <line x1="12" y1="16" x2="12.01" y2="16" />
             </svg>
             <p style="margin-top:1rem;color:#ef4444;font-weight:600;">Image failed to load</p>
-            <p style="color:#64748b;font-size:0.9rem;margin-bottom:1.5rem;">The file may have been removed or is unavailable.</p>
+            <p style="color:#64748b;font-size:0.9rem;margin-bottom:1.5rem;">The file may have been removed or is
+              unavailable.</p>
             <!-- Download link REMOVED per anti-piracy rule: no user must be able to download the document -->
           </div>
           <!-- Actual Image -->
-          {% set image_fname = (document.file_url.split('/')[-1] if document.file_url and '/' in document.file_url else 'image.jpg') %}
-          <img id="previewImage"
-            src="/api/view-doc/{{ document.id }}/{{ image_fname }}"
+          {% set image_fname = (document.file_url.split('/')[-1] if document.file_url and '/' in document.file_url else
+          'image.jpg') %}
+          <img id="previewImage" src="/api/view-doc/{{ document.id }}/{{ image_fname }}"
             alt="{{ document.title }} - {{ subj_name }} {{ file_type }} for {{ coll_name }}"
             style="max-width:100%;height:auto;border-radius:12px;box-shadow:0 10px 20px rgba(0,0,0,0.1);position:relative;z-index:2;opacity:0;transition:opacity 0.3s ease;cursor:zoom-in;"
             onload="var s=document.getElementById('imageSkeleton'); if(s) s.style.display='none'; this.style.opacity='1'; if(typeof window.imageLoaded==='function') window.imageLoaded();"
@@ -577,251 +798,299 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
           <div class="image-watermark" aria-hidden="true"></div>
         </div>
       </div>
-    {% else %}
+      {% else %}
       <div style="text-align:center; padding: 5rem 2rem; background: #f1f5f9;">
         <h3 style="font-weight: 800; font-size: 1.5rem; margin-bottom:1rem;">Preview not available</h3>
         <p style="color: var(--r-muted); margin-bottom: 2rem;">This file type cannot be previewed in the browser.</p>
       </div>
-    {% endif %}
+      {% endif %}
 
     </div>
   </div> <!-- End document-column -->
-  
+
   <div class="sidebar-column">
     <div class="preview-card" style="padding: 1.5rem;">
-    <div class="info-grid" style="padding:0;">
-      <div class="info-box">
-        <h3>About This Resource</h3>
-        <p><strong>Title:</strong> {{ document.title }}</p>
-        <p><strong>Category:</strong> {{ file_type }}</p>
-        <p><strong>Subject:</strong> 
-          {% if document.subject %}
-            <a href="/subject/{{ document.subject.name | lower | replace(' ', '-') | replace('&', 'and') }}">{{ document.subject.name }}</a>
-          {% else %}
+      <div class="info-grid" style="padding:0;">
+        <div class="info-box">
+          <h3>About This Resource</h3>
+          <p><strong>Title:</strong> {{ document.title }}</p>
+          <p><strong>Category:</strong> {{ file_type }}</p>
+          <p><strong>Subject:</strong>
+            {% if document.subject %}
+            <a href="/subject/{{ document.subject.name | lower | replace(' ', '-') | replace('&', 'and') }}">{{
+              document.subject.name }}</a>
+            {% else %}
             Uncategorized
-          {% endif %}
-        </p>
-        <p><strong>Institution:</strong> 
-          {% if document.college %}
-            <a href="/college/{{ (document.college.abbreviation or document.college.name) | lower | replace(' ', '-') }}">{{ document.college.name }}</a>
-          {% else %}
+            {% endif %}
+          </p>
+          <p><strong>Institution:</strong>
+            {% if document.college %}
+            <a
+              href="/college/{{ (document.college.abbreviation or document.college.name) | lower | replace(' ', '-') }}">{{
+              document.college.name }}</a>
+            {% else %}
             Not specified
-          {% endif %}
-        </p>
+            {% endif %}
+          </p>
+        </div>
+
+        <div class="info-box">
+          <h3>Contributor Info</h3>
+          <p><strong>Uploaded By:</strong> {{ uploader_name }} {% if document.uploader and document.uploader.is_verified
+            %}<span style="color:green;" title="Verified Contributor">✔</span>{% endif %}</p>
+          <p style="font-size: 0.9rem; margin-top: 1rem;">Contributors earn reputation points for every helpful resource
+            they upload. By viewing this file, you are directly supporting their rank on the AbhiHub leaderboard!</p>
+        </div>
+
       </div>
-      
-      <div class="info-box">
-        <h3>Contributor Info</h3>
-        <p><strong>Uploaded By:</strong> {{ uploader_name }} {% if document.uploader and document.uploader.is_verified %}<span style="color:green;" title="Verified Contributor">✔</span>{% endif %}</p>
-        <p style="font-size: 0.9rem; margin-top: 1rem;">Contributors earn reputation points for every helpful resource they upload. By viewing this file, you are directly supporting their rank on the AbhiHub leaderboard!</p>
+
+      <!-- AI Chat & OCR Panel (images & PDF documents) -->
+      {% if document.file_type in ['image', 'pdf'] or '.pdf' in (document.file_url|lower) or '.jpg' in
+      (document.file_url|lower) or '.png' in (document.file_url|lower) or '.jpeg' in (document.file_url|lower) or
+      '.webp' in (document.file_url|lower) %}
+      <style>
+        #aiChatPanel.fullscreen-chat {
+          position: fixed !important;
+          inset: 0 !important;
+          z-index: 9999 !important;
+          border-radius: 0 !important;
+          display: flex;
+          flex-direction: column;
+          max-width: none !important;
+          margin: 0 !important;
+        }
+
+        #aiChatPanel.fullscreen-chat #aiMessages {
+          flex: 1;
+          max-height: none !important;
+        }
+
+        .ai-thinking {
+          display: flex;
+          align-items: center;
+          gap: 0.5rem;
+          align-self: flex-start;
+          background: #f1f5f9;
+          color: #64748b;
+          padding: 0.6rem 0.9rem;
+          border-radius: 14px;
+          font-size: 0.85rem;
+          font-style: italic;
+        }
+
+        .ai-thinking-dots span {
+          display: inline-block;
+          width: 6px;
+          height: 6px;
+          background: #94a3b8;
+          border-radius: 50%;
+          margin: 0 1px;
+          animation: thinkBounce 1.2s infinite;
+        }
+
+        .ai-thinking-dots span:nth-child(2) {
+          animation-delay: 0.2s;
+        }
+
+        .ai-thinking-dots span:nth-child(3) {
+          animation-delay: 0.4s;
+        }
+
+        @keyframes thinkBounce {
+
+          0%,
+          80%,
+          100% {
+            transform: translateY(0);
+          }
+
+          40% {
+            transform: translateY(-6px);
+          }
+        }
+      </style>
+      <div class="preview-card" id="aiChatPanel">
+        <div class="preview-header" style="flex-wrap: wrap; gap: 0.5rem;">
+          <div style="font-weight:700;color:var(--r-text);display:flex;align-items:center;gap:.5rem;">
+            <span>🤖</span> Ask AI about this paper / PDF
+          </div>
+          <div style="display: flex; gap: 0.5rem; align-items: center;">
+            <span style="font-size:.8rem;color:var(--r-muted);">Powered by Free Vision & OCR AI</span>
+            <button type="button" data-action="shareChatWhatsApp" class="ai-toolbar-btn ai-whatsapp"
+              aria-label="Share on WhatsApp">Share WA</button>
+            <button type="button" data-action="exportChatPDF" class="ai-toolbar-btn ai-export"
+              aria-label="Export chat as PDF">Export PDF</button>
+            <button type="button" data-action="toggleChatFullscreen" id="chatFsBtn" class="ai-toolbar-btn ai-fullscreen"
+              title="Fullscreen" aria-label="Toggle fullscreen">⛶ Full</button>
+          </div>
+        </div>
+
+        <div id="aiMessages"
+          style="padding:1rem 1.5rem;min-height:80px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:.75rem;">
+        </div>
+
+        <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <button type="button" data-action="sendPersonaPrompt" data-model="ChatGPT" class="ai-persona-btn ai-chatgpt"
+            aria-label="Chat with ChatGPT">ChatGPT</button>
+          <button type="button" data-action="sendPersonaPrompt" data-model="Gemini" class="ai-persona-btn ai-gemini"
+            aria-label="Chat with Gemini">Gemini</button>
+          <button type="button" data-action="sendPersonaPrompt" data-model="Claude" class="ai-persona-btn ai-claude"
+            aria-label="Chat with Claude">Claude</button>
+        </div>
+
+        <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+          <span style="font-size: 0.8rem; color: var(--r-muted); align-self: center;">Suggestions:</span>
+          <button type="button" data-action="suggestQ" data-question="Solve question 1 step-by-step"
+            class="ai-suggestion-btn" aria-label="Solve question 1 step-by-step">Solve Q1</button>
+          <button type="button" data-action="suggestQ" data-question="Explain the core concepts in question 2"
+            class="ai-suggestion-btn" aria-label="Explain the core concepts in question 2">Explain Q2</button>
+          <button type="button" data-action="suggestQ" data-question="What are the most important topics in this paper?"
+            class="ai-suggestion-btn" aria-label="What are the most important topics in this paper?">Important
+            Topics</button>
+          <button type="button" data-action="suggestQ" data-question="Summarize the entire paper"
+            class="ai-suggestion-btn" aria-label="Summarize the entire paper">Summarize</button>
+        </div>
+
+        <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
+          <span style="font-size: 0.8rem; color: var(--r-muted); font-weight: 600;">🤖 AI OCR Model:</span>
+          <select id="aiModelSelect"
+            style="padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid var(--r-border); font-size: 0.8rem; background: #f8fafc; color: #334155; font-weight: 600; cursor: pointer;">
+            <option value="auto">✨ Auto (Best Available)</option>
+            {% for model in ai_models %}
+            <option value="{{ model }}" {% if model==best_model %}selected{% endif %}>{{
+              model.split('/')[-1].replace(':free', '').replace('-instruct', '') | upper }}</option>
+            {% endfor %}
+          </select>
+        </div>
+
+        <div style="padding:1rem 1.5rem;border-top:1px solid var(--r-border);display:flex;gap:.75rem;">
+          <input id="aiQuestion" type="text" placeholder="e.g. What topics are covered in this paper?" maxlength="300"
+            style="flex:1;padding:.65rem 1rem;border:1px solid var(--r-border);border-radius:12px;font-size:.9rem;outline:none;"
+            data-event-keyup="askAIOnEnter">
+          <button type="button" data-action="askAI" id="aiSendBtn" class="ai-send-btn">
+            Ask
+          </button>
+        </div>
       </div>
 
-    </div>
-    
-<!-- AI Chat & OCR Panel (images & PDF documents) -->
-{% if document.file_type in ['image', 'pdf'] or '.pdf' in (document.file_url|lower) or '.jpg' in (document.file_url|lower) or '.png' in (document.file_url|lower) or '.jpeg' in (document.file_url|lower) or '.webp' in (document.file_url|lower) %}
-<style>
-#aiChatPanel.fullscreen-chat {
-  position: fixed !important;
-  inset: 0 !important;
-  z-index: 9999 !important;
-  border-radius: 0 !important;
-  display: flex;
-  flex-direction: column;
-  max-width: none !important;
-  margin: 0 !important;
-}
-#aiChatPanel.fullscreen-chat #aiMessages {
-  flex: 1;
-  max-height: none !important;
-}
-.ai-thinking {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  align-self: flex-start;
-  background: #f1f5f9;
-  color: #64748b;
-  padding: 0.6rem 0.9rem;
-  border-radius: 14px;
-  font-size: 0.85rem;
-  font-style: italic;
-}
-.ai-thinking-dots span {
-  display: inline-block;
-  width: 6px; height: 6px;
-  background: #94a3b8;
-  border-radius: 50%;
-  margin: 0 1px;
-  animation: thinkBounce 1.2s infinite;
-}
-.ai-thinking-dots span:nth-child(2) { animation-delay: 0.2s; }
-.ai-thinking-dots span:nth-child(3) { animation-delay: 0.4s; }
-@keyframes thinkBounce {
-  0%,80%,100% { transform: translateY(0); }
-  40% { transform: translateY(-6px); }
-}
-</style>
-<div class="preview-card" id="aiChatPanel">
-    <div class="preview-header" style="flex-wrap: wrap; gap: 0.5rem;">
-      <div style="font-weight:700;color:var(--r-text);display:flex;align-items:center;gap:.5rem;">
-        <span>🤖</span> Ask AI about this paper / PDF
-      </div>
-      <div style="display: flex; gap: 0.5rem; align-items: center;">
-        <span style="font-size:.8rem;color:var(--r-muted);">Powered by Free Vision & OCR AI</span>
-        <button type="button" data-action="shareChatWhatsApp" class="ai-toolbar-btn ai-whatsapp" aria-label="Share on WhatsApp">Share WA</button>
-        <button type="button" data-action="exportChatPDF" class="ai-toolbar-btn ai-export" aria-label="Export chat as PDF">Export PDF</button>
-        <button type="button" data-action="toggleChatFullscreen" id="chatFsBtn" class="ai-toolbar-btn ai-fullscreen" title="Fullscreen" aria-label="Toggle fullscreen">⛶ Full</button>
-      </div>
-    </div>
+    </div> <!-- End sidebar-column -->
+  </div> <!-- End main-layout-container -->
 
-    <div id="aiMessages" style="padding:1rem 1.5rem;min-height:80px;max-height:320px;overflow-y:auto;display:flex;flex-direction:column;gap:.75rem;"></div>
+  <!-- Suggested Resources Section -->
+  {% if suggested_docs or store_room_docs %}
+  <div style="max-width: 1400px; margin: 0 auto 5rem; padding: 0 1.5rem; box-sizing: border-box;">
+    <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--r-text); margin-bottom: 1.5rem; text-align: center;">
+      Related Resources</h2>
 
-    <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-      <button type="button" data-action="sendPersonaPrompt" data-model="ChatGPT" class="ai-persona-btn ai-chatgpt" aria-label="Chat with ChatGPT">ChatGPT</button>
-      <button type="button" data-action="sendPersonaPrompt" data-model="Gemini" class="ai-persona-btn ai-gemini" aria-label="Chat with Gemini">Gemini</button>
-      <button type="button" data-action="sendPersonaPrompt" data-model="Claude" class="ai-persona-btn ai-claude" aria-label="Chat with Claude">Claude</button>
-    </div>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
 
-    <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-      <span style="font-size: 0.8rem; color: var(--r-muted); align-self: center;">Suggestions:</span>
-      <button type="button" data-action="suggestQ" data-question="Solve question 1 step-by-step" class="ai-suggestion-btn" aria-label="Solve question 1 step-by-step">Solve Q1</button>
-      <button type="button" data-action="suggestQ" data-question="Explain the core concepts in question 2" class="ai-suggestion-btn" aria-label="Explain the core concepts in question 2">Explain Q2</button>
-      <button type="button" data-action="suggestQ" data-question="What are the most important topics in this paper?" class="ai-suggestion-btn" aria-label="What are the most important topics in this paper?">Important Topics</button>
-      <button type="button" data-action="suggestQ" data-question="Summarize the entire paper" class="ai-suggestion-btn" aria-label="Summarize the entire paper">Summarize</button>
-    </div>
-
-    <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
-      <span style="font-size: 0.8rem; color: var(--r-muted); font-weight: 600;">🤖 AI OCR Model:</span>
-      <select id="aiModelSelect" style="padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid var(--r-border); font-size: 0.8rem; background: #f8fafc; color: #334155; font-weight: 600; cursor: pointer;">
-        <option value="auto">✨ Auto (Best Available)</option>
-        {% for model in ai_models %}
-          <option value="{{ model }}" {% if model == best_model %}selected{% endif %}>{{ model.split('/')[-1].replace(':free', '').replace('-instruct', '') | upper }}</option>
-        {% endfor %}
-      </select>
-    </div>
-
-    <div style="padding:1rem 1.5rem;border-top:1px solid var(--r-border);display:flex;gap:.75rem;">
-      <input id="aiQuestion" type="text" placeholder="e.g. What topics are covered in this paper?" maxlength="300"
-        style="flex:1;padding:.65rem 1rem;border:1px solid var(--r-border);border-radius:12px;font-size:.9rem;outline:none;"
-        data-event-keyup="askAIOnEnter">
-      <button type="button" data-action="askAI" id="aiSendBtn" class="ai-send-btn">
-        Ask
-      </button>
-    </div>
-  </div>
-
-  </div> <!-- End sidebar-column -->
-</div> <!-- End main-layout-container -->
-
-<!-- Suggested Resources Section -->
-{% if suggested_docs or store_room_docs %}
-<div style="max-width: 1400px; margin: 0 auto 5rem; padding: 0 1.5rem; box-sizing: border-box;">
-  <h2 style="font-size: 1.5rem; font-weight: 800; color: var(--r-text); margin-bottom: 1.5rem; text-align: center;">Related Resources</h2>
-  
-  <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 2rem;">
-    
-    {% if suggested_docs %}
-    <div>
-      <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--r-primary); margin-bottom: 1rem;">From the Library</h3>
-      <div style="display: flex; flex-direction: column; gap: 1rem;">
-        {% for s_doc in suggested_docs %}
-        <a href="/resource/{{ s_doc.id }}" style="text-decoration: none;">
-          <div class="info-box sr-hover" style="padding: 1rem;">
-              <h4 style="font-size: 1rem; font-weight: 700; color: var(--r-text); margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{{ s_doc.title }}</h4>
+      {% if suggested_docs %}
+      <div>
+        <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--r-primary); margin-bottom: 1rem;">From the Library
+        </h3>
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          {% for s_doc in suggested_docs %}
+          <a href="/resource/{{ s_doc.id }}" style="text-decoration: none;">
+            <div class="info-box sr-hover" style="padding: 1rem;">
+              <h4
+                style="font-size: 1rem; font-weight: 700; color: var(--r-text); margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">
+                {{ s_doc.title }}</h4>
               <div style="display: flex; justify-content: space-between; font-size: 0.8rem; color: var(--r-muted);">
                 <span>{{ s_doc.file_type | upper }}</span>
                 <span>👁️ {{ s_doc.view_count or 0 }} views</span>
               </div>
             </div>
-        </a>
-        {% endfor %}
-      </div>
-    </div>
-    {% endif %}
-
-    {% if store_room_docs %}
-    <div>
-      <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--r-muted); margin-bottom: 1rem;">From the Store Room (Unverified)</h3>
-      <div style="display: flex; flex-direction: column; gap: 1rem;">
-        {% for sr_doc in store_room_docs %}
-        <div class="info-box" style="padding: 1rem; background: #fef2f2; border-color: #fee2e2;">
-          <h4 style="font-size: 1rem; font-weight: 700; color: var(--r-text); margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="{{ sr_doc.filename }}">{{ sr_doc.filename }}</h4>
-          <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--r-muted);">
-            <span style="color: #ef4444; font-weight: 600;">Pending Verification</span>
-          </div>
+          </a>
+          {% endfor %}
         </div>
-        {% endfor %}
       </div>
+      {% endif %}
+
+      {% if store_room_docs %}
+      <div>
+        <h3 style="font-size: 1.1rem; font-weight: 700; color: var(--r-muted); margin-bottom: 1rem;">From the Store Room
+          (Unverified)</h3>
+        <div style="display: flex; flex-direction: column; gap: 1rem;">
+          {% for sr_doc in store_room_docs %}
+          <div class="info-box" style="padding: 1rem; background: #fef2f2; border-color: #fee2e2;">
+            <h4
+              style="font-size: 1rem; font-weight: 700; color: var(--r-text); margin-bottom: 0.5rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"
+              title="{{ sr_doc.filename }}">{{ sr_doc.filename }}</h4>
+            <div
+              style="display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; color: var(--r-muted);">
+              <span style="color: #ef4444; font-weight: 600;">Pending Verification</span>
+            </div>
+          </div>
+          {% endfor %}
+        </div>
+      </div>
+      {% endif %}
+
     </div>
-    {% endif %}
-
   </div>
-</div>
-{% endif %}
+  {% endif %}
 
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-<script>
-(function(){
-  const DOC_ID = '{{ document.id }}' || '';
-  // Guard: Jinja2 renders None as the string 'None'
-  const VALID_DOC_ID = (DOC_ID && DOC_ID !== 'None' && DOC_ID !== 'undefined') ? DOC_ID : '';
-  const msgs = document.getElementById('aiMessages');
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script>
+    (function () {
+      const DOC_ID = '{{ document.id }}' || '';
+      // Guard: Jinja2 renders None as the string 'None'
+      const VALID_DOC_ID = (DOC_ID && DOC_ID !== 'None' && DOC_ID !== 'undefined') ? DOC_ID : '';
+      const msgs = document.getElementById('aiMessages');
 
-  if (!VALID_DOC_ID) {
-    const warn = document.createElement('div');
-    warn.style.cssText = 'padding:.6rem .9rem;background:#fef3c7;color:#92400e;border-radius:10px;font-size:.85rem;';
-    warn.textContent = 'AI chat unavailable — document ID missing. Please refresh.';
-    msgs.appendChild(warn);
-  }
+      if (!VALID_DOC_ID) {
+        const warn = document.createElement('div');
+        warn.style.cssText = 'padding:.6rem .9rem;background:#fef3c7;color:#92400e;border-radius:10px;font-size:.85rem;';
+        warn.textContent = 'AI chat unavailable — document ID missing. Please refresh.';
+        msgs.appendChild(warn);
+      }
 
-  function addMsg(text, role) {
-    const d = document.createElement('div');
-    d.style.cssText = `max-width:85%;padding:.6rem .9rem;border-radius:14px;font-size:.88rem;line-height:1.5;word-break:break-word;${
-      role==='user'
-        ? 'align-self:flex-end;background:#f59e0b;color:#fff;'
-        : 'align-self:flex-start;background:#f1f5f9;color:#1e293b;'
-    }`;
-    if (role === 'ai' && typeof marked !== 'undefined') {
-      d.innerHTML = marked.parse(text);
-      d.querySelectorAll('pre').forEach(p => p.style.cssText = "background:#1e293b;color:#f8fafc;padding:0.5rem;border-radius:8px;overflow-x:auto;margin:0.5rem 0;");
-      d.querySelectorAll('code').forEach(c => c.style.cssText = "font-family:monospace;background:rgba(0,0,0,0.05);padding:0.1rem 0.3rem;border-radius:4px;");
-    } else {
-      d.textContent = text;
-    }
-    msgs.appendChild(d);
-    msgs.scrollTop = msgs.scrollHeight;
-  }
-  
-  window.shareChatWhatsApp = function() {
-    const chatElements = Array.from(document.getElementById('aiMessages').children);
-    if (chatElements.length === 0) return alert('No chat to share.');
-    let chatText = "*AbhiHub AI Reference Chat*\n\n";
-    chatElements.forEach(el => {
-      const isUser = el.style.alignSelf.includes('flex-end');
-      chatText += (isUser ? "*You*: " : "*AI*: ") + el.innerText + "\n\n";
-    });
-    chatText += `Study smarter with AbhiHub: ${window.location.href}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(chatText)}`, '_blank');
-  };
+      function addMsg(text, role) {
+        const d = document.createElement('div');
+        d.style.cssText = `max-width:85%;padding:.6rem .9rem;border-radius:14px;font-size:.88rem;line-height:1.5;word-break:break-word;${role === 'user'
+            ? 'align-self:flex-end;background:#f59e0b;color:#fff;'
+            : 'align-self:flex-start;background:#f1f5f9;color:#1e293b;'
+          }`;
+        if (role === 'ai' && typeof marked !== 'undefined') {
+          d.innerHTML = marked.parse(text);
+          d.querySelectorAll('pre').forEach(p => p.style.cssText = "background:#1e293b;color:#f8fafc;padding:0.5rem;border-radius:8px;overflow-x:auto;margin:0.5rem 0;");
+          d.querySelectorAll('code').forEach(c => c.style.cssText = "font-family:monospace;background:rgba(0,0,0,0.05);padding:0.1rem 0.3rem;border-radius:4px;");
+        } else {
+          d.textContent = text;
+        }
+        msgs.appendChild(d);
+        msgs.scrollTop = msgs.scrollHeight;
+      }
 
-  window.exportChatPDF = function() {
-    const originalMessages = document.getElementById('aiMessages');
-    if (originalMessages.children.length === 0) return alert('No chat to export.');
+      window.shareChatWhatsApp = function () {
+        const chatElements = Array.from(document.getElementById('aiMessages').children);
+        if (chatElements.length === 0) return alert('No chat to share.');
+        let chatText = "*AbhiHub AI Reference Chat*\n\n";
+        chatElements.forEach(el => {
+          const isUser = el.style.alignSelf.includes('flex-end');
+          chatText += (isUser ? "*You*: " : "*AI*: ") + el.innerText + "\n\n";
+        });
+        chatText += `Study smarter with AbhiHub: ${window.location.href}`;
+        window.open(`https://wa.me/?text=${encodeURIComponent(chatText)}`, '_blank');
+      };
 
-    const userName = `{{ session.user.name if 'user' in session else 'Student' | replace('`', '\\`') | replace('$', '\\$') }}`;
-    const userEmail = `{{ session.user.email if 'user' in session else 'Not Provided' | replace('`', '\\`') | replace('$', '\\$') }}`;
-    const subjectName = `{{ subj_name | replace('`', '\\`') | replace('$', '\\$') }}`;
-    const collegeName = `{{ coll_name | replace('`', '\\`') | replace('$', '\\$') }}`;
-    const docTitle = `{{ document.title | replace('`', '\\`') | replace('$', '\\$') }}`;
+      window.exportChatPDF = function () {
+        const originalMessages = document.getElementById('aiMessages');
+        if (originalMessages.children.length === 0) return alert('No chat to export.');
 
-    const wrapper = document.createElement('div');
-    wrapper.style.cssText = 'padding: 3rem; background: #fff; color: #000; width: 800px; position: absolute; left: -9999px; top: 0;';
-    
-    const cover = document.createElement('div');
-    cover.style.cssText = 'height: 950px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; page-break-after: always;';
-    cover.innerHTML = `
+        const userName = `{{ session.user.name if 'user' in session else 'Student' | replace('`', '\\`') | replace('$', '\\$') }}`;
+        const userEmail = `{{ session.user.email if 'user' in session else 'Not Provided' | replace('`', '\\`') | replace('$', '\\$') }}`;
+        const subjectName = `{{ subj_name | replace('`', '\\`') | replace('$', '\\$') }}`;
+        const collegeName = `{{ coll_name | replace('`', '\\`') | replace('$', '\\$') }}`;
+        const docTitle = `{{ document.title | replace('`', '\\`') | replace('$', '\\$') }}`;
+
+        const wrapper = document.createElement('div');
+        wrapper.style.cssText = 'padding: 3rem; background: #fff; color: #000; width: 800px; position: absolute; left: -9999px; top: 0;';
+
+        const cover = document.createElement('div');
+        cover.style.cssText = 'height: 950px; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; page-break-after: always;';
+        cover.innerHTML = `
       <h1 style="font-size: 4.5rem; color: #f59e0b; margin-bottom: 0.5rem; font-weight: 900; letter-spacing: -1px;">AbhiHub</h1>
       <h2 style="font-size: 1.8rem; margin-bottom: 4rem; color: #475569; font-weight: 600;">AI Reference Transcript</h2>
       <div style="font-size: 1.2rem; line-height: 2.2; text-align: left; background: #f8fafc; padding: 3rem; border-radius: 16px; width: 85%; border: 1px solid #e2e8f0; color: #334155; box-shadow: 0 4px 6px rgba(0,0,0,0.02);">
@@ -834,83 +1103,83 @@ body { background-color: var(--r-bg); overflow-x: hidden; }
         <div style="margin-bottom: 1rem;"><strong style="color: #0f172a; width: 140px; display: inline-block;">Date:</strong> ${new Date().toLocaleString()}</div>
       </div>
     `;
-    
-    const chatClone = document.createElement('div');
-    chatClone.innerHTML = '<h3 style="font-size:2rem; margin-bottom:2rem; color:#0f172a; border-bottom:3px solid #f59e0b; padding-bottom:1rem;">Conversation</h3>';
-    
-    const messagesClone = originalMessages.cloneNode(true);
-    messagesClone.style.cssText = 'max-height: none; overflow-y: visible; padding: 0; display: flex; flex-direction: column; gap: 1.5rem;';
-    
-    chatClone.appendChild(messagesClone);
-    wrapper.appendChild(cover);
-    wrapper.appendChild(chatClone);
-    document.body.appendChild(wrapper);
-    
-    const opt = {
-      margin:       [0.5, 0, 0.5, 0], // Top, Left, Bottom, Right margin
-      filename:     'AbhiHub_Chat_Transcript.pdf',
-      image:        { type: 'jpeg', quality: 0.98 },
-      html2canvas:  { scale: 2, useCORS: true, windowWidth: 800 },
-      jsPDF:        { unit: 'in', format: 'letter', orientation: 'portrait' }
-    };
-    
-    html2pdf().set(opt).from(wrapper).toPdf().get('pdf').then(function(pdf) {
-      const totalPages = pdf.internal.getNumberOfPages();
-      for (let i = 1; i <= totalPages; i++) {
-        pdf.setPage(i);
-        
-        // Header
-        pdf.setFontSize(11);
-        pdf.setTextColor(245, 158, 11); // AbhiHub Orange (#f59e0b)
-        pdf.textWithLink(window.location.hostname || window.location.origin, 0.5, 0.3, { url: window.location.origin });
-        
-        // Footer
-        pdf.setFontSize(9);
-        pdf.setTextColor(100, 116, 139); // Slate 500
-        pdf.textWithLink('Study smarter with AbhiHub - Click here', 0.5, 10.7, { url: window.location.origin });
-        pdf.text(`Page ${i} of ${totalPages}`, 7.5, 10.7);
-      }
-    }).save().then(() => {
-      document.body.removeChild(wrapper);
-    });
-  };
-  
-  window.suggestQ = function(text) {
-    const inp = document.getElementById('aiQuestion');
-    inp.value = text;
-    window.askAI();
-  };
-  
-  window.sendPersonaPrompt = async function(persona, btnElement) {
-    const originalText = btnElement.innerText;
-    btnElement.innerText = 'Extracting OCR...';
-    btnElement.disabled = true;
 
-    // OCR always needs a vision model — always use 'auto' so backend picks best vision model
-    let ocrText = 'OCR extraction failed or is unavailable. Please rely on the image.';
-    try {
-      const res = await fetch('/api/extract-ocr', {
-        method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ doc_id: VALID_DOC_ID, model: 'auto' })
-      });
-      const data = await res.json();
-      if (data.success && data.ocr_text) {
-        ocrText = data.ocr_text.trim();
-      }
-    } catch(e) {
-      console.error('OCR fetch error:', e);
-    }
-    
-    btnElement.innerText = originalText;
-    btnElement.disabled = false;
+        const chatClone = document.createElement('div');
+        chatClone.innerHTML = '<h3 style="font-size:2rem; margin-bottom:2rem; color:#0f172a; border-bottom:3px solid #f59e0b; padding-bottom:1rem;">Conversation</h3>';
 
-    const subjectName = `{{ subj_name | replace('`', '\\`') }}`;
-    const collegeName = `{{ coll_name | replace('`', '\\`') }}`;
-    const deptName = `{{ dept_name | replace('`', '\\`') }}`;
-    const docTitle = `{{ document.title | replace('`', '\\`') }}`;
+        const messagesClone = originalMessages.cloneNode(true);
+        messagesClone.style.cssText = 'max-height: none; overflow-y: visible; padding: 0; display: flex; flex-direction: column; gap: 1.5rem;';
 
-    const prompt = `Act as an expert University Professor (${persona}). Your goal is to provide a "Model Answer" for the provided question paper that maximizes student understanding and exam scores.
+        chatClone.appendChild(messagesClone);
+        wrapper.appendChild(cover);
+        wrapper.appendChild(chatClone);
+        document.body.appendChild(wrapper);
+
+        const opt = {
+          margin: [0.5, 0, 0.5, 0], // Top, Left, Bottom, Right margin
+          filename: 'AbhiHub_Chat_Transcript.pdf',
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, windowWidth: 800 },
+          jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(wrapper).toPdf().get('pdf').then(function (pdf) {
+          const totalPages = pdf.internal.getNumberOfPages();
+          for (let i = 1; i <= totalPages; i++) {
+            pdf.setPage(i);
+
+            // Header
+            pdf.setFontSize(11);
+            pdf.setTextColor(245, 158, 11); // AbhiHub Orange (#f59e0b)
+            pdf.textWithLink(window.location.hostname || window.location.origin, 0.5, 0.3, { url: window.location.origin });
+
+            // Footer
+            pdf.setFontSize(9);
+            pdf.setTextColor(100, 116, 139); // Slate 500
+            pdf.textWithLink('Study smarter with AbhiHub - Click here', 0.5, 10.7, { url: window.location.origin });
+            pdf.text(`Page ${i} of ${totalPages}`, 7.5, 10.7);
+          }
+        }).save().then(() => {
+          document.body.removeChild(wrapper);
+        });
+      };
+
+      window.suggestQ = function (text) {
+        const inp = document.getElementById('aiQuestion');
+        inp.value = text;
+        window.askAI();
+      };
+
+      window.sendPersonaPrompt = async function (persona, btnElement) {
+        const originalText = btnElement.innerText;
+        btnElement.innerText = 'Extracting OCR...';
+        btnElement.disabled = true;
+
+        // OCR always needs a vision model — always use 'auto' so backend picks best vision model
+        let ocrText = 'OCR extraction failed or is unavailable. Please rely on the image.';
+        try {
+          const res = await fetch('/api/extract-ocr', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ doc_id: VALID_DOC_ID, model: 'auto' })
+          });
+          const data = await res.json();
+          if (data.success && data.ocr_text) {
+            ocrText = data.ocr_text.trim();
+          }
+        } catch (e) {
+          console.error('OCR fetch error:', e);
+        }
+
+        btnElement.innerText = originalText;
+        btnElement.disabled = false;
+
+        const subjectName = `{{ subj_name | replace('`', '\\`') }}`;
+        const collegeName = `{{ coll_name | replace('`', '\\`') }}`;
+        const deptName = `{{ dept_name | replace('`', '\\`') }}`;
+        const docTitle = `{{ document.title | replace('`', '\\`') }}`;
+
+        const prompt = `Act as an expert University Professor (${persona}). Your goal is to provide a "Model Answer" for the provided question paper that maximizes student understanding and exam scores.
 
 Psychological Formatting Rules (Crucial for Student Learning):
 1. Bottom-Line Up Front: Give the final answer/solution immediately before the detailed steps to reduce cognitive load.
@@ -933,283 +1202,295 @@ Note: The OCR text might contain scanning errors. Please intelligently correct a
 
 Task:
 Identify the main questions from the transcript above and solve them following the exact structure rules.`;
-    
-    // Copy prompt to clipboard
-    navigator.clipboard.writeText(prompt).then(() => {
-      alert(`Prompt & OCR copied! Please paste it in ${persona}.`);
-      
-      let targetUrl = '';
-      if (persona === 'ChatGPT') targetUrl = `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`;
-      else if (persona === 'Gemini') targetUrl = 'https://gemini.google.com/app';
-      else if (persona === 'Claude') targetUrl = 'https://claude.ai/new';
-      
-      if (targetUrl) window.open(targetUrl, '_blank');
-    }).catch(err => {
-      alert("Failed to copy prompt to clipboard. Please try again.");
-    });
-  };
 
-  window.toggleChatFullscreen = function() {
-    const panel = document.getElementById('aiChatPanel');
-    const btn = document.getElementById('chatFsBtn');
-    const isFs = panel.classList.toggle('fullscreen-chat');
-    btn.textContent = isFs ? '✕ Exit' : '⛶ Full';
-    if (isFs) document.body.style.overflow = 'hidden';
-    else document.body.style.overflow = '';
-  };
+        // Copy prompt to clipboard
+        navigator.clipboard.writeText(prompt).then(() => {
+          alert(`Prompt & OCR copied! Please paste it in ${persona}.`);
 
-  function addThinking() {
-    const d = document.createElement('div');
-    d.className = 'ai-thinking';
-    d.id = 'aiThinking';
-    d.innerHTML = '<span>AI is thinking</span><span class="ai-thinking-dots"><span></span><span></span><span></span></span>';
-    msgs.appendChild(d);
-    msgs.scrollTop = msgs.scrollHeight;
-    return d;
-  }
+          let targetUrl = '';
+          if (persona === 'ChatGPT') targetUrl = `https://chatgpt.com/?q=${encodeURIComponent(prompt)}`;
+          else if (persona === 'Gemini') targetUrl = 'https://gemini.google.com/app';
+          else if (persona === 'Claude') targetUrl = 'https://claude.ai/new';
 
-  window.askAI = async function() {
-    const inp = document.getElementById('aiQuestion');
-    const btn = document.getElementById('aiSendBtn');
-    const q = inp.value.trim();
+          if (targetUrl) window.open(targetUrl, '_blank');
+        }).catch(err => {
+          alert("Failed to copy prompt to clipboard. Please try again.");
+        });
+      };
 
-    if (!VALID_DOC_ID) {
-      addMsg('Document ID missing — please refresh the page.', 'ai');
-      return;
-    }
-    if (!q) return;
+      window.toggleChatFullscreen = function () {
+        const panel = document.getElementById('aiChatPanel');
+        const btn = document.getElementById('chatFsBtn');
+        const isFs = panel.classList.toggle('fullscreen-chat');
+        btn.textContent = isFs ? '✕ Exit' : '⛶ Full';
+        if (isFs) document.body.style.overflow = 'hidden';
+        else document.body.style.overflow = '';
+      };
 
-    inp.value = '';
-    btn.disabled = true;
-    btn.textContent = '...';
-    addMsg(q, 'user');
-    const thinking = addThinking();
-
-    const selectedModel = document.getElementById('aiModelSelect')?.value || 'auto';
-
-    try {
-      const res = await fetch('/api/ask-paper', {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({doc_id: VALID_DOC_ID, question: q, model: selectedModel})
-      });
-
-      // Handle auth redirect (302 → login HTML)
-      if (res.redirected || res.url.includes('/login')) {
-        thinking.remove();
-        addMsg('Session expired — please log in again.', 'ai');
-        setTimeout(() => window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname), 1500);
-        return;
+      function addThinking() {
+        const d = document.createElement('div');
+        d.className = 'ai-thinking';
+        d.id = 'aiThinking';
+        d.innerHTML = '<span>AI is thinking</span><span class="ai-thinking-dots"><span></span><span></span><span></span></span>';
+        msgs.appendChild(d);
+        msgs.scrollTop = msgs.scrollHeight;
+        return d;
       }
 
-      let data = null;
-      try { data = await res.json(); } catch (e) {
-        thinking.remove();
-        addMsg('Server returned an unexpected response. Please try again.', 'ai');
-        return;
+      window.askAI = async function () {
+        const inp = document.getElementById('aiQuestion');
+        const btn = document.getElementById('aiSendBtn');
+        const q = inp.value.trim();
+
+        if (!VALID_DOC_ID) {
+          addMsg('Document ID missing — please refresh the page.', 'ai');
+          return;
+        }
+        if (!q) return;
+
+        inp.value = '';
+        btn.disabled = true;
+        btn.textContent = '...';
+        addMsg(q, 'user');
+        const thinking = addThinking();
+
+        const selectedModel = document.getElementById('aiModelSelect')?.value || 'auto';
+
+        try {
+          const res = await fetch('/api/ask-paper', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ doc_id: VALID_DOC_ID, question: q, model: selectedModel })
+          });
+
+          // Handle auth redirect (302 → login HTML)
+          if (res.redirected || res.url.includes('/login')) {
+            thinking.remove();
+            addMsg('Session expired — please log in again.', 'ai');
+            setTimeout(() => window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname), 1500);
+            return;
+          }
+
+          let data = null;
+          try { data = await res.json(); } catch (e) {
+            thinking.remove();
+            addMsg('Server returned an unexpected response. Please try again.', 'ai');
+            return;
+          }
+
+          thinking.remove();
+          if (res.status === 401) {
+            addMsg('Please log in to use the AI assistant.', 'ai');
+            return;
+          }
+          if (!res.ok) {
+            addMsg(data?.message || `Error ${res.status} — please try again.`, 'ai');
+            return;
+          }
+          addMsg(data?.success ? data.answer : (data?.message || 'Error. Try again.'), 'ai');
+        } catch (e) {
+          thinking.remove();
+          addMsg('Network error. Please check your connection.', 'ai');
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Ask';
+        }
+      };
+    })();
+
+    window.toggleDocCardFullscreen = function () {
+      var card = document.querySelector('.preview-card');
+      if (!card) return;
+      var isFs = card.classList.toggle('fullscreen-doc-card');
+      document.body.style.overflow = isFs ? 'hidden' : '';
+
+      if (window.AbhiHubTracking && isFs) {
+        window.AbhiHubTracking.trackFeatureUsage('fullscreen_view', 'activated', 0, 'pdf_doc_viewer');
+      }
+    };
+  </script>
+  <script>
+    /* ── Image Viewer Controls ─────────────────────────────── */
+    (function () {
+      var scale = 1, panX = 0, panY = 0;
+      var isDragging = false, dragStartX = 0, dragStartY = 0;
+      var isFullscreen = false;
+
+      function getImg() { return document.getElementById('previewImage'); }
+      function getWrap() { var img = getImg(); return img ? img.closest('.image-viewer-wrap') : null; }
+      function getCanvas() { return document.getElementById('imageCanvas'); }
+      function getZoomLabel() { return document.getElementById('ivZoomLabel'); }
+
+      function updateTransform() {
+        var img = getImg();
+        if (!img) return;
+        scale = Math.min(Math.max(0.5, scale), 5);
+        img.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + scale + ')';
+        var label = getZoomLabel();
+        if (label) label.textContent = Math.round(scale * 100) + '%';
+        img.classList.toggle('zoomed', scale !== 1);
+        img.classList.toggle('dragging', isDragging);
       }
 
-      thinking.remove();
-      if (res.status === 401) {
-        addMsg('Please log in to use the AI assistant.', 'ai');
-        return;
-      }
-      if (!res.ok) {
-        addMsg(data?.message || `Error ${res.status} — please try again.`, 'ai');
-        return;
-      }
-      addMsg(data?.success ? data.answer : (data?.message || 'Error. Try again.'), 'ai');
-    } catch(e) {
-      thinking.remove();
-      addMsg('Network error. Please check your connection.', 'ai');
-    } finally {
-      btn.disabled = false;
-      btn.textContent = 'Ask';
-    }
-  };
-})();
-
-window.toggleDocCardFullscreen = function() {
-  var card = document.querySelector('.preview-card');
-  if (!card) return;
-  var isFs = card.classList.toggle('fullscreen-doc-card');
-  document.body.style.overflow = isFs ? 'hidden' : '';
-};
-</script>
-<script>
-/* ── Image Viewer Controls ─────────────────────────────── */
-(function() {
-  var scale = 1, panX = 0, panY = 0;
-  var isDragging = false, dragStartX = 0, dragStartY = 0;
-  var isFullscreen = false;
-
-  function getImg() { return document.getElementById('previewImage'); }
-  function getWrap() { var img = getImg(); return img ? img.closest('.image-viewer-wrap') : null; }
-  function getCanvas() { return document.getElementById('imageCanvas'); }
-  function getZoomLabel() { return document.getElementById('ivZoomLabel'); }
-
-  function updateTransform() {
-    var img = getImg();
-    if (!img) return;
-    scale = Math.min(Math.max(0.5, scale), 5);
-    img.style.transform = 'translate(' + panX + 'px,' + panY + 'px) scale(' + scale + ')';
-    var label = getZoomLabel();
-    if (label) label.textContent = Math.round(scale * 100) + '%';
-    img.classList.toggle('zoomed', scale !== 1);
-    img.classList.toggle('dragging', isDragging);
-  }
-
-  // Global methods bound immediately
-  window.imageLoaded = function() {
-    var skeleton = document.getElementById('imageSkeleton');
-    var img = getImg();
-    if (skeleton) skeleton.style.display = 'none';
-    if (img) img.style.opacity = '1';
-    updateTransform();
-  };
-
-  window.zoomInImage = function() { scale = Math.min(scale + 0.25, 5); updateTransform(); };
-  window.zoomOutImage = function() { scale = Math.max(scale - 0.25, 0.5); updateTransform(); };
-  window.resetImageZoom = function() { scale = 1; panX = 0; panY = 0; updateTransform(); };
-  window.toggleImageFullscreen = function() {
-    isFullscreen = !isFullscreen;
-    var wrap = getWrap();
-    if (wrap) wrap.classList.toggle('fullscreen-mode', isFullscreen);
-    document.body.style.overflow = isFullscreen ? 'hidden' : '';
-    panX = 0; panY = 0;
-    updateTransform();
-  };
-
-  function initListeners() {
-    var img = getImg();
-    var canvas = getCanvas();
-    if (!canvas) return;
-
-    if (img) {
-      img.addEventListener('dragstart', function(e) { e.preventDefault(); });
-      if (img.complete && img.naturalWidth > 0) window.imageLoaded();
-      else img.addEventListener('load', window.imageLoaded);
-    }
-
-    var toolbar = document.getElementById('imageToolbar');
-    if (toolbar && !toolbar.dataset.init) {
-      toolbar.dataset.init = 'true';
-      toolbar.addEventListener('click', function(e) {
-        var btn = e.target.closest('[data-action]');
-        if (!btn) return;
-        var action = btn.getAttribute('data-action');
-        if (action === 'zoomInImage') window.zoomInImage();
-        else if (action === 'zoomOutImage') window.zoomOutImage();
-        else if (action === 'resetImageZoom') window.resetImageZoom();
-        else if (action === 'toggleImageFullscreen') window.toggleImageFullscreen();
-      });
-    }
-
-    if (canvas.dataset.init) return;
-    canvas.dataset.init = 'true';
-
-    canvas.addEventListener('wheel', function(e) {
-      e.preventDefault();
-      var delta = e.deltaY < 0 ? 0.15 : -0.15;
-      scale = Math.min(Math.max(0.5, scale + delta), 5);
-      if (scale <= 1) { panX = 0; panY = 0; }
-      updateTransform();
-    }, { passive: false });
-
-    canvas.addEventListener('mousedown', function(e) {
-      if (e.target.closest('#imageToolbar')) return;
-      if (scale <= 1) return;
-      e.preventDefault();
-      isDragging = true;
-      dragStartX = e.clientX - panX;
-      dragStartY = e.clientY - panY;
-      updateTransform();
-    });
-
-    window.addEventListener('mousemove', function(e) {
-      if (!isDragging) return;
-      panX = e.clientX - dragStartX;
-      panY = e.clientY - dragStartY;
-      updateTransform();
-    });
-
-    window.addEventListener('mouseup', function() {
-      if (isDragging) {
-        isDragging = false;
+      // Global methods bound immediately
+      window.imageLoaded = function () {
+        var skeleton = document.getElementById('imageSkeleton');
+        var img = getImg();
+        if (skeleton) skeleton.style.display = 'none';
+        if (img) img.style.opacity = '1';
         updateTransform();
-      }
-    });
+      };
 
-    var touchStartDist = 0, initialScale = 1;
-    var touchStartX = 0, touchStartY = 0;
-
-    canvas.addEventListener('touchstart', function(e) {
-      if (e.target.closest('#imageToolbar')) return;
-      if (e.touches.length === 2) {
-        touchStartDist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        initialScale = scale;
-      } else if (e.touches.length === 1 && scale > 1) {
-        isDragging = true;
-        touchStartX = e.touches[0].clientX - panX;
-        touchStartY = e.touches[0].clientY - panY;
-      }
-    }, { passive: true });
-
-    canvas.addEventListener('touchmove', function(e) {
-      if (e.touches.length === 2 && touchStartDist > 0) {
-        e.preventDefault();
-        var dist = Math.hypot(
-          e.touches[0].clientX - e.touches[1].clientX,
-          e.touches[0].clientY - e.touches[1].clientY
-        );
-        scale = Math.min(Math.max(0.5, initialScale * (dist / touchStartDist)), 5);
+      window.zoomInImage = function () { scale = Math.min(scale + 0.25, 5); updateTransform(); };
+      window.zoomOutImage = function () { scale = Math.max(scale - 0.25, 0.5); updateTransform(); };
+      window.resetImageZoom = function () { scale = 1; panX = 0; panY = 0; updateTransform(); };
+      window.toggleImageFullscreen = function () {
+        isFullscreen = !isFullscreen;
+        var wrap = getWrap();
+        if (wrap) wrap.classList.toggle('fullscreen-mode', isFullscreen);
+        document.body.style.overflow = isFullscreen ? 'hidden' : '';
+        panX = 0; panY = 0;
         updateTransform();
-      } else if (e.touches.length === 1 && isDragging && scale > 1) {
-        e.preventDefault();
-        panX = e.touches[0].clientX - touchStartX;
-        panY = e.touches[0].clientY - touchStartY;
-        updateTransform();
+
+        if (window.AbhiHubTracking && isFullscreen) {
+          window.AbhiHubTracking.trackFeatureUsage('fullscreen_view', 'activated', 0, 'image_viewer');
+        }
+      };
+
+      function initListeners() {
+        var img = getImg();
+        var canvas = getCanvas();
+        if (!canvas) return;
+
+        if (img) {
+          img.addEventListener('dragstart', function (e) { e.preventDefault(); });
+          if (img.complete && img.naturalWidth > 0) window.imageLoaded();
+          else img.addEventListener('load', window.imageLoaded);
+        }
+
+        var toolbar = document.getElementById('imageToolbar');
+        if (toolbar && !toolbar.dataset.init) {
+          toolbar.dataset.init = 'true';
+          toolbar.addEventListener('click', function (e) {
+            var btn = e.target.closest('[data-action]');
+            if (!btn) return;
+            var action = btn.getAttribute('data-action');
+            if (action === 'zoomInImage') window.zoomInImage();
+            else if (action === 'zoomOutImage') window.zoomOutImage();
+            else if (action === 'resetImageZoom') window.resetImageZoom();
+            else if (action === 'toggleImageFullscreen') window.toggleImageFullscreen();
+          });
+        }
+
+        if (canvas.dataset.init) return;
+        canvas.dataset.init = 'true';
+
+        canvas.addEventListener('wheel', function (e) {
+          e.preventDefault();
+          var delta = e.deltaY < 0 ? 0.15 : -0.15;
+          scale = Math.min(Math.max(0.5, scale + delta), 5);
+          if (scale <= 1) { panX = 0; panY = 0; }
+          updateTransform();
+        }, { passive: false });
+
+        canvas.addEventListener('mousedown', function (e) {
+          if (e.target.closest('#imageToolbar')) return;
+          if (scale <= 1) return;
+          e.preventDefault();
+          isDragging = true;
+          dragStartX = e.clientX - panX;
+          dragStartY = e.clientY - panY;
+          updateTransform();
+        });
+
+        window.addEventListener('mousemove', function (e) {
+          if (!isDragging) return;
+          panX = e.clientX - dragStartX;
+          panY = e.clientY - dragStartY;
+          updateTransform();
+        });
+
+        window.addEventListener('mouseup', function () {
+          if (isDragging) {
+            isDragging = false;
+            updateTransform();
+          }
+        });
+
+        var touchStartDist = 0, initialScale = 1;
+        var touchStartX = 0, touchStartY = 0;
+
+        canvas.addEventListener('touchstart', function (e) {
+          if (e.target.closest('#imageToolbar')) return;
+          if (e.touches.length === 2) {
+            touchStartDist = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+            );
+            initialScale = scale;
+          } else if (e.touches.length === 1 && scale > 1) {
+            isDragging = true;
+            touchStartX = e.touches[0].clientX - panX;
+            touchStartY = e.touches[0].clientY - panY;
+          }
+        }, { passive: true });
+
+        canvas.addEventListener('touchmove', function (e) {
+          if (e.touches.length === 2 && touchStartDist > 0) {
+            e.preventDefault();
+            var dist = Math.hypot(
+              e.touches[0].clientX - e.touches[1].clientX,
+              e.touches[0].clientY - e.touches[1].clientY
+            );
+            scale = Math.min(Math.max(0.5, initialScale * (dist / touchStartDist)), 5);
+            updateTransform();
+          } else if (e.touches.length === 1 && isDragging && scale > 1) {
+            e.preventDefault();
+            panX = e.touches[0].clientX - touchStartX;
+            panY = e.touches[0].clientY - touchStartY;
+            updateTransform();
+          }
+        }, { passive: false });
+
+        canvas.addEventListener('touchend', function (e) {
+          if (e.touches.length < 2) touchStartDist = 0;
+          if (e.touches.length === 0) isDragging = false;
+        });
+
+        canvas.addEventListener('dblclick', function (e) {
+          if (e.target.closest('#imageToolbar')) return;
+          if (scale === 1) scale = 2;
+          else { scale = 1; panX = 0; panY = 0; }
+          updateTransform();
+        });
+
+        window.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && isFullscreen) {
+            window.toggleImageFullscreen();
+          }
+        });
       }
-    }, { passive: false });
 
-    canvas.addEventListener('touchend', function(e) {
-      if (e.touches.length < 2) touchStartDist = 0;
-      if (e.touches.length === 0) isDragging = false;
-    });
-
-    canvas.addEventListener('dblclick', function(e) {
-      if (e.target.closest('#imageToolbar')) return;
-      if (scale === 1) scale = 2;
-      else { scale = 1; panX = 0; panY = 0; }
-      updateTransform();
-    });
-
-    window.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape' && isFullscreen) {
-        window.toggleImageFullscreen();
+      if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initListeners);
+      } else {
+        initListeners();
       }
-    });
-  }
-
-  if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', initListeners);
-  } else {
-    initListeners();
-  }
-})();
-</script>
+    })();
+  </script>
 
 
-{% endif %}
+  {% endif %}
 
-<!-- CTA -->
-<div style="background: linear-gradient(135deg, #f8fafc 0%, var(--r-bg) 100%); padding: 5rem 1.5rem; text-align: center; margin-top: 4rem;">
-  <h2 style="font-size: 2rem; font-weight: 800; margin-bottom: 1rem;">Was this file helpful?</h2>
-  <p style="color: #64748b; font-size: 1.1rem; max-width: 600px; margin: 0 auto 2rem;">Pay it forward! Upload your own notes, assignments, or practical files to help the next batch of students.</p>
-  <a href="{{ url_for('upload') }}" style="display:inline-block; padding: 1rem 2rem; background: var(--r-primary); color: white; border-radius: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 20px rgba(245,158,11,0.2);" data-feature="Resource Upload CTA">📤 Upload a File</a>
-</div>
+  <!-- CTA -->
+  <div
+    style="background: linear-gradient(135deg, #f8fafc 0%, var(--r-bg) 100%); padding: 5rem 1.5rem; text-align: center; margin-top: 4rem;">
+    <h2 style="font-size: 2rem; font-weight: 800; margin-bottom: 1rem;">Was this file helpful?</h2>
+    <p style="color: #64748b; font-size: 1.1rem; max-width: 600px; margin: 0 auto 2rem;">Pay it forward! Upload your own
+      notes, assignments, or practical files to help the next batch of students.</p>
+    <a href="{{ url_for('upload') }}"
+      style="display:inline-block; padding: 1rem 2rem; background: var(--r-primary); color: white; border-radius: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 20px rgba(245,158,11,0.2);"
+      data-feature="Resource Upload CTA">📤 Upload a File</a>
+  </div>
 
-{% endblock %}
+  {% endblock %}
