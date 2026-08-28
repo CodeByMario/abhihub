@@ -3,7 +3,7 @@
   "name": "AbhiHub Premium",
   "short_name": "AbhiHub",
   "description": "Your premium academic resource platform for notes, papers, and study materials",
-  "start_url": "/premium",
+  "start_url": "/dashboard",
   "scope": "/",
   "display": "standalone",
   "background_color": "#ffffff",
