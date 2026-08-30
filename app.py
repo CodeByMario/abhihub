@@ -2986,6 +2986,11 @@ def subject_landing(subject_slug):
                            stats=stats, 
                            recent_files=recent_files)
 
+@app.route('/resource/<path:slug>-view')
+def resource_landing_redirect(slug):
+    """Redirect resource slug with -view suffix to clean URL"""
+    return redirect(url_for('resource_landing', slug=slug), code=301)
+
 @app.route('/resource/<path:slug>')
 def resource_landing(slug):
     """Dynamic SEO-optimized resource landing page"""
