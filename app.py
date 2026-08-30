@@ -4696,6 +4696,7 @@ from methods.supabase_helper import (
     get_all_file_records_formatted,
     get_all_files_merged,
     get_college_by_slug,
+    get_colleges_by_brand,
     get_comments,
     get_contribution_timeline,
     get_department_by_slug,

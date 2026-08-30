@@ -751,7 +751,80 @@ self.addEventListener('widgetclick', (event) => {
 
 console.log('[SW] Service Worker loaded - version:', CACHE_VERSION);
 
+// ==================== DEPLOYMENT UPDATE MESSAGES ====================self.addEventListener('message', (event) => {
+
+  if (event.data) {
+
+    switch (event.data.type) {
+
+      case 'SKIP_WAITING':
+        self.skipWaiting();
+        break;
+
+
+
+      case 'CLEAR_CACHE':
+        // Clear all caches and trigger update
+        caches.keys().then(names => {
+          names.forEach(name => caches.delete(name));
+        });
+        // Claim clients to force refresh
+        self.clients.claim();
+        break;
+
+
+
+      case 'SHOW_UPDATE_NOTIFICATION':
+        // Show notification about available update
+        event.waitUntil(
+          self.registration.showNotification(
+            'AbhiHub Update Available',
+            {
+              body: 'A new version is available. Click to refresh the app.',
+              icon: '/static/images/android-chrome-192x192.png',
+              badge: '/static/images/favicon-32x32.png',
+              tag: 'abhihub-update',
+              data: { url: '/' }
+            }
+          )
+        );
+        break;
+
+
+
+      default:
+        break;
+
+    }
+
+  }
+
+});
+
+
+// ==================== SHOW INSTALL PROMPT ====================
+self.addEventListener('message', (event) => {
+  if (event.data) {
+    switch (event.data.type) {
+      case 'SHOW_INSTALL_PROMPT':
+        // Show the install prompt UI
+        // This is sent from the main page after beforeinstallprompt event
+        event.waitUntil(
+          self.registration.showNotification(
+            'AbhiHub Install',
+            {
+              body: 'Install AbhiHub for offline access and faster loading.',
+              icon: '/static/images/android-chrome-192x192.png',
+              badge: '/static/images/favicon-32x32.png',
+              tag: 'abhihub-install',
+              data: { url: '/' }
+            }
+          )
+        );
+        break;
+
 // ==================== PUSH NOTIFICATIONS ====================
+
 
 /**
  * Handle incoming push notifications
