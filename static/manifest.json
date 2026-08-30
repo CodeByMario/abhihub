@@ -1,6 +1,6 @@
 {
   "id": "/premium",
-  "name": "AbhiHub Premium",
+  "name": "AbhiHub",
   "short_name": "AbhiHub",
   "description": "Your premium academic resource platform for notes, papers, and study materials",
   "start_url": "/dashboard",
@@ -51,7 +51,19 @@
       "name": "Search Notes",
       "short_name": "Search",
       "description": "Search for study materials",
-      "url": "/premium",
+      "url": "/dashboard",
+      "icons": [
+        {
+          "src": "/static/images/android-chrome-192x192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Account",
+      "short_name": "Account",
+      "description": "Account",
+      "url": "/account",
       "icons": [
         {
           "src": "/static/images/android-chrome-192x192.png",

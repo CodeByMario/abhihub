@@ -77,7 +77,7 @@
         border-radius: 14px;
         margin-bottom: 2.5rem;
         width: fit-content;
-        box-shadow: inset 0 2px 4px rgba(0,0,0,0.04);
+        box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
         flex-wrap: wrap;
     }
 
@@ -98,7 +98,7 @@
 
     .tab-btn:hover {
         color: var(--text-primary);
-        background: rgba(255,255,255,0.5);
+        background: rgba(255, 255, 255, 0.5);
     }
 
     .tab-btn.active {
@@ -144,11 +144,25 @@
         transform: translateY(-5px);
     }
 
-    .kpi-card.indigo:hover::after { background: #4f46e5; }
-    .kpi-card.emerald:hover::after { background: #10b981; }
-    .kpi-card.amber:hover::after { background: #f59e0b; }
-    .kpi-card.rose:hover::after { background: #f43f5e; }
-    .kpi-card.sky:hover::after { background: #0ea5e9; }
+    .kpi-card.indigo:hover::after {
+        background: #4f46e5;
+    }
+
+    .kpi-card.emerald:hover::after {
+        background: #10b981;
+    }
+
+    .kpi-card.amber:hover::after {
+        background: #f59e0b;
+    }
+
+    .kpi-card.rose:hover::after {
+        background: #f43f5e;
+    }
+
+    .kpi-card.sky:hover::after {
+        background: #0ea5e9;
+    }
 
     .kpi-val {
         font-size: 2.2rem;
@@ -177,11 +191,30 @@
         transition: var(--transition-smooth);
     }
 
-    .indigo .kpi-icon-wrap { background: rgba(79, 70, 229, 0.1); color: #4f46e5; }
-    .emerald .kpi-icon-wrap { background: rgba(16, 185, 129, 0.1); color: #10b981; }
-    .amber .kpi-icon-wrap { background: rgba(245, 158, 11, 0.1); color: #f59e0b; }
-    .rose .kpi-icon-wrap { background: rgba(244, 63, 94, 0.1); color: #f43f5e; }
-    .sky .kpi-icon-wrap { background: rgba(14, 165, 233, 0.1); color: #0ea5e9; }
+    .indigo .kpi-icon-wrap {
+        background: rgba(79, 70, 229, 0.1);
+        color: #4f46e5;
+    }
+
+    .emerald .kpi-icon-wrap {
+        background: rgba(16, 185, 129, 0.1);
+        color: #10b981;
+    }
+
+    .amber .kpi-icon-wrap {
+        background: rgba(245, 158, 11, 0.1);
+        color: #f59e0b;
+    }
+
+    .rose .kpi-icon-wrap {
+        background: rgba(244, 63, 94, 0.1);
+        color: #f43f5e;
+    }
+
+    .sky .kpi-icon-wrap {
+        background: rgba(14, 165, 233, 0.1);
+        color: #0ea5e9;
+    }
 
     /* Layout Grids */
     .admin-grid-2 {
@@ -271,6 +304,17 @@
         box-shadow: 0 6px 20px rgba(16, 185, 129, 0.4);
     }
 
+    .btn-amber {
+        background: var(--warning-gradient);
+        color: white;
+        box-shadow: 0 4px 14px rgba(245, 158, 11, 0.3);
+    }
+
+    .btn-amber:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 20px rgba(245, 158, 11, 0.4);
+    }
+
     .btn-rose {
         background: var(--danger-gradient);
         color: white;
@@ -350,10 +394,29 @@
         letter-spacing: 0.5px;
     }
 
-    .badge-notes { background: #ecfdf5; color: #065f46; border: 1px solid #a7f3d0; }
-    .badge-pyq { background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; }
-    .badge-practical { background: #f5f3ff; color: #6d28d9; border: 1px solid #ddd6fe; }
-    .badge-other { background: #f1f5f9; color: #475569; border: 1px solid #cbd5e1; }
+    .badge-notes {
+        background: #ecfdf5;
+        color: #065f46;
+        border: 1px solid #a7f3d0;
+    }
+
+    .badge-pyq {
+        background: #fff7ed;
+        color: #c2410c;
+        border: 1px solid #fed7aa;
+    }
+
+    .badge-practical {
+        background: #f5f3ff;
+        color: #6d28d9;
+        border: 1px solid #ddd6fe;
+    }
+
+    .badge-other {
+        background: #f1f5f9;
+        color: #475569;
+        border: 1px solid #cbd5e1;
+    }
 
     .mod-meta {
         font-size: 0.85rem;
@@ -426,7 +489,8 @@
         gap: 0.75rem;
     }
 
-    .admin-user-card:hover, .admin-user-card.selected {
+    .admin-user-card:hover,
+    .admin-user-card.selected {
         border-color: #6366f1;
         background: #f5f3ff;
         transform: translateX(4px);
@@ -444,12 +508,28 @@
         animation: slideInDown 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
     }
 
-    .alert-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-    .alert-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+    .alert-success {
+        background: #dcfce7;
+        color: #15803d;
+        border: 1px solid #bbf7d0;
+    }
+
+    .alert-error {
+        background: #fee2e2;
+        color: #b91c1c;
+        border: 1px solid #fecaca;
+    }
 
     @keyframes slideInDown {
-        from { transform: translateY(-12px); opacity: 0; }
-        to { transform: translateY(0); opacity: 1; }
+        from {
+            transform: translateY(-12px);
+            opacity: 0;
+        }
+
+        to {
+            transform: translateY(0);
+            opacity: 1;
+        }
     }
 </style>
 
@@ -473,7 +553,8 @@
         <button class="tab-btn" type="button" data-action="switchAdminTab" data-tab="users" id="tab-users">
             <i class="fas fa-users"></i> Users
         </button>
-        <button class="tab-btn" type="button" data-action="switchAdminTab" data-tab="notifications" id="tab-notifications">
+        <button class="tab-btn" type="button" data-action="switchAdminTab" data-tab="notifications"
+            id="tab-notifications">
             <i class="fas fa-paper-plane"></i> Broadcast
         </button>
         <button class="tab-btn" type="button" data-action="switchAdminTab" data-tab="contact" id="tab-contact">
@@ -533,11 +614,17 @@
                     <i class="fas fa-bolt text-amber-500"></i> Quick Actions
                 </h3>
                 <div class="quick-actions-grid">
-                    <button type="button" class="btn-action btn-indigo" data-action="switchAdminTab" data-tab="moderation" aria-label="Go to Moderation Queue">Review Submissions</button>
-                        <i class="fas fa-clipboard-check"></i> Moderate Uploads
+                    <button type="button" class="btn-action btn-indigo" data-action="switchAdminTab"
+                        data-tab="moderation" aria-label="Go to Moderation Queue">Review Submissions</button>
+                    <i class="fas fa-clipboard-check"></i> Moderate Uploads
                     </button>
-                    <button type="button" class="btn-action btn-emerald" data-action="switchAdminTab" data-tab="notifications" aria-label="Go to Broadcast">Send Announcement</button>
-                        <i class="fas fa-paper-plane"></i> Send Push Msg
+                    <button type="button" class="btn-action btn-emerald" data-action="switchAdminTab"
+                        data-tab="notifications" aria-label="Go to Broadcast">Send Announcement</button>
+                    <i class="fas fa-paper-plane"></i> Send Push Msg
+                    </button>
+                    <button type="button" class="btn-action btn-amber" onclick="submitIndexNow()"
+                        aria-label="Submit URL to IndexNow">
+                        <i class="fas fa-search"></i> Submit to IndexNow
                     </button>
                 </div>
             </div>
@@ -547,17 +634,22 @@
                     <i class="fas fa-server text-indigo-500"></i> System Status
                 </h3>
                 <div style="display: flex; flex-direction: column; gap: 0.75rem;">
-                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
                         <span style="color: var(--text-secondary); font-weight: 600;">Database Engine</span>
-                        <span style="color: #10b981; font-weight: 700;"><i class="fas fa-circle-check"></i> Supabase</span>
+                        <span style="color: #10b981; font-weight: 700;"><i class="fas fa-circle-check"></i>
+                            Supabase</span>
                     </div>
-                    <div style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
+                    <div
+                        style="display: flex; justify-content: space-between; border-bottom: 1px solid #f1f5f9; padding-bottom: 0.5rem;">
                         <span style="color: var(--text-secondary); font-weight: 600;">Storage Service</span>
-                        <span style="color: #10b981; font-weight: 700;"><i class="fas fa-circle-check"></i> Firebase / Cloudinary</span>
+                        <span style="color: #10b981; font-weight: 700;"><i class="fas fa-circle-check"></i> Firebase /
+                            Cloudinary</span>
                     </div>
                     <div style="display: flex; justify-content: space-between;">
                         <span style="color: var(--text-secondary); font-weight: 600;">Rate Limiter Shield</span>
-                        <span style="color: #10b981; font-weight: 700;"><i class="fas fa-shield-halved"></i> Active</span>
+                        <span style="color: #10b981; font-weight: 700;"><i class="fas fa-shield-halved"></i>
+                            Active</span>
                     </div>
                 </div>
             </div>
@@ -567,7 +659,8 @@
     <!-- 2. DOCUMENT MODERATION VIEW -->
     <div id="view-moderation" class="admin-view" style="display: none;">
         <div class="glass-panel">
-            <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+            <h2
+                style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
                 <i class="fas fa-file-circle-check text-indigo-600"></i> Material Moderation Queue
             </h2>
             <div id="pendingDocsList">
@@ -585,11 +678,12 @@
             <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary);">
                 <i class="fas fa-users-viewfinder text-indigo-600"></i> Registered Student Accounts
             </h2>
-            
+
             <div class="user-list-grid">
                 <div class="users-sidebar">
                     <div class="form-group" style="margin-bottom: 1rem;">
-                        <input type="text" id="adminUserSearchInput" class="form-input" placeholder="Search by name or email..." onkeyup="searchAdminUsersLocal()">
+                        <input type="text" id="adminUserSearchInput" class="form-input"
+                            placeholder="Search by name or email..." onkeyup="searchAdminUsersLocal()">
                     </div>
                     <div id="adminUserCardsList">
                         <!-- Loaded dynamically -->
@@ -597,40 +691,66 @@
                 </div>
 
                 <div>
-                    <div class="glass-panel" id="userStatsPanel" style="box-shadow: none; border: 1px dashed #cbd5e1; margin-bottom: 0;">
-                        <div id="userStatsPlaceholder" style="text-align: center; padding: 4rem; color: var(--text-secondary);">
+                    <div class="glass-panel" id="userStatsPanel"
+                        style="box-shadow: none; border: 1px dashed #cbd5e1; margin-bottom: 0;">
+                        <div id="userStatsPlaceholder"
+                            style="text-align: center; padding: 4rem; color: var(--text-secondary);">
                             <i class="far fa-id-badge fa-3x" style="margin-bottom: 1rem; opacity: 0.5;"></i>
-                            <p>Select a student profile from the sidebar to audit their contribution history and metadata.</p>
+                            <p>Select a student profile from the sidebar to audit their contribution history and
+                                metadata.</p>
                         </div>
-                        
+
                         <div id="userStatsContent" style="display: none;">
-                            <div style="display: flex; align-items: center; gap: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1.2rem; margin-bottom: 1.5rem;">
-                                <div style="width: 60px; height: 60px; border-radius: 50%; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 800;" id="userStatInitials">A</div>
+                            <div
+                                style="display: flex; align-items: center; gap: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 1.2rem; margin-bottom: 1.5rem;">
+                                <div style="width: 60px; height: 60px; border-radius: 50%; background: #e0e7ff; color: #4f46e5; display: flex; align-items: center; justify-content: center; font-size: 1.8rem; font-weight: 800;"
+                                    id="userStatInitials">A</div>
                                 <div>
-                                    <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--text-primary); margin: 0;" id="userStatName">-</h3>
-                                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;" id="userStatEmail">-</p>
+                                    <h3 style="font-size: 1.3rem; font-weight: 800; color: var(--text-primary); margin: 0;"
+                                        id="userStatName">-</h3>
+                                    <p style="color: var(--text-secondary); font-size: 0.9rem; margin: 0;"
+                                        id="userStatEmail">-</p>
                                 </div>
                             </div>
 
-                            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
-                                <div style="background: #f8fafc; border-radius: 12px; padding: 1rem; text-align: center;">
-                                    <div style="font-size: 1.5rem; font-weight: 800; color: #4f46e5;" id="userStatRep">0</div>
-                                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Reputation XP</div>
+                            <div
+                                style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+                                <div
+                                    style="background: #f8fafc; border-radius: 12px; padding: 1rem; text-align: center;">
+                                    <div style="font-size: 1.5rem; font-weight: 800; color: #4f46e5;" id="userStatRep">0
+                                    </div>
+                                    <div
+                                        style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                                        Reputation XP</div>
                                 </div>
-                                <div style="background: #f8fafc; border-radius: 12px; padding: 1rem; text-align: center;">
-                                    <div style="font-size: 1.2rem; font-weight: 800; color: #0f172a;" id="userStatLastVisit">-</div>
-                                    <div style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">Last Active</div>
+                                <div
+                                    style="background: #f8fafc; border-radius: 12px; padding: 1rem; text-align: center;">
+                                    <div style="font-size: 1.2rem; font-weight: 800; color: #0f172a;"
+                                        id="userStatLastVisit">-</div>
+                                    <div
+                                        style="font-size: 0.8rem; font-weight: 700; color: var(--text-secondary); text-transform: uppercase;">
+                                        Last Active</div>
                                 </div>
                             </div>
 
                             <div style="margin-bottom: 1.5rem;">
-                                <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem;"><i class="fas fa-file-arrow-up text-indigo-500"></i> Uploaded Documents (<span id="userStatUploadCount">0</span>)</h4>
-                                <div id="userStatUploadsList" style="max-height: 180px; overflow-y: auto; background: #f8fafc; border-radius: 10px; padding: 0.5rem; font-size: 0.88rem;"></div>
+                                <h4
+                                    style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem;">
+                                    <i class="fas fa-file-arrow-up text-indigo-500"></i> Uploaded Documents (<span
+                                        id="userStatUploadCount">0</span>)</h4>
+                                <div id="userStatUploadsList"
+                                    style="max-height: 180px; overflow-y: auto; background: #f8fafc; border-radius: 10px; padding: 0.5rem; font-size: 0.88rem;">
+                                </div>
                             </div>
 
                             <div>
-                                <h4 style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem;"><i class="fas fa-eye text-emerald-500"></i> Recently Accessed Materials (<span id="userStatViewCount">0</span>)</h4>
-                                <div id="userStatViewsList" style="max-height: 180px; overflow-y: auto; background: #f8fafc; border-radius: 10px; padding: 0.5rem; font-size: 0.88rem;"></div>
+                                <h4
+                                    style="font-size: 0.95rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem;">
+                                    <i class="fas fa-eye text-emerald-500"></i> Recently Accessed Materials (<span
+                                        id="userStatViewCount">0</span>)</h4>
+                                <div id="userStatViewsList"
+                                    style="max-height: 180px; overflow-y: auto; background: #f8fafc; border-radius: 10px; padding: 0.5rem; font-size: 0.88rem;">
+                                </div>
                             </div>
                         </div>
                     </div>
@@ -644,32 +764,37 @@
         <div class="admin-grid-2">
             <!-- Composition Panel -->
             <div class="glass-panel">
-                <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+                <h2
+                    style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
                     <i class="fas fa-envelope-circle-check text-indigo-600"></i> Dispatch Push Alert
                 </h2>
 
                 <form id="pushNotificationForm" onsubmit="dispatchNotification(event)">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                     <div class="form-group">
                         <label class="form-label">Alert Title <span style="color: #ef4444;">*</span></label>
-                        <input type="text" id="pushTitle" class="form-input" required maxlength="100" placeholder="e.g. RTMNU Re-evaluation forms are out!">
+                        <input type="text" id="pushTitle" class="form-input" required maxlength="100"
+                            placeholder="e.g. RTMNU Re-evaluation forms are out!">
                         <div class="char-limit" id="pushTitleCounter">0 / 100</div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Alert Message Content <span style="color: #ef4444;">*</span></label>
-                        <textarea id="pushBody" class="form-input" rows="4" required maxlength="500" placeholder="Keep it clear and informative..."></textarea>
+                        <textarea id="pushBody" class="form-input" rows="4" required maxlength="500"
+                            placeholder="Keep it clear and informative..."></textarea>
                         <div class="char-limit" id="pushBodyCounter">0 / 500</div>
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Action Target Link</label>
-                        <input type="text" id="pushUrl" class="form-input" value="/dashboard" placeholder="e.g. /dashboard or /store-room">
+                        <input type="text" id="pushUrl" class="form-input" value="/dashboard"
+                            placeholder="e.g. /dashboard or /store-room">
                     </div>
 
                     <div class="form-group">
                         <label class="form-label">Notification Icon Image URL</label>
-                        <input type="url" id="pushIcon" class="form-input" value="/static/images/android-chrome-192x192.png">
+                        <input type="url" id="pushIcon" class="form-input"
+                            value="/static/images/android-chrome-192x192.png">
                     </div>
 
                     <div class="form-group">
@@ -682,7 +807,8 @@
 
                     <div id="recipientSelectorWrap" class="form-group" style="display: none;">
                         <label class="form-label">Select Subscriber Emails</label>
-                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; max-height: 200px; overflow-y: auto; padding: 0.5rem;" id="subscriberCheckboxList">
+                        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; max-height: 200px; overflow-y: auto; padding: 0.5rem;"
+                            id="subscriberCheckboxList">
                             <!-- Populated dynamically -->
                         </div>
                     </div>
@@ -703,7 +829,8 @@
                 <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary);">
                     <i class="fas fa-clock-rotate-left text-indigo-600"></i> Dispatch History Log
                 </h2>
-                <div id="pushHistoryContainer" style="max-height: 520px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem;">
+                <div id="pushHistoryContainer"
+                    style="max-height: 520px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem;">
                     <div style="text-align: center; padding: 2rem; color: var(--text-secondary);">
                         <i class="fas fa-circle-notch fa-spin"></i> Loading log...
                     </div>
@@ -715,7 +842,8 @@
     <!-- 5. FEEDBACK VIEW -->
     <div id="view-contact" class="admin-view" style="display: none;">
         <div class="glass-panel">
-            <h2 style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
+            <h2
+                style="font-size: 1.4rem; font-weight: 700; margin-bottom: 1.5rem; color: var(--text-primary); display: flex; align-items: center; gap: 0.5rem;">
                 <i class="fas fa-comment-dots text-indigo-600"></i> Feedback & Contact Messages
             </h2>
             <div id="contactMsgContainer" style="display: flex; flex-direction: column; gap: 1.25rem;">
@@ -765,23 +893,46 @@
 
         document.querySelectorAll(".admin-view").forEach(v => v.style.display = "none");
         document.querySelectorAll(".tab-btn").forEach(b => b.classList.remove("active"));
-        
+
         const view = document.getElementById(`view-${tabId}`);
         const btn = document.getElementById(`tab-${tabId}`);
-        if(view) view.style.display = "block";
-        if(btn) btn.classList.add("active");
+        if (view) view.style.display = "block";
+        if (btn) btn.classList.add("active");
 
-        if(tabId === 'overview') {
+        if (tabId === 'overview') {
             loadDashboardStats();
-        } else if(tabId === 'moderation') {
+        } else if (tabId === 'moderation') {
             loadPendingDocuments();
-        } else if(tabId === 'users') {
+        } else if (tabId === 'users') {
             loadAdminUsers();
-        } else if(tabId === 'notifications') {
+        } else if (tabId === 'notifications') {
             loadSubscriberCheckboxList();
             loadPushHistory();
-        } else if(tabId === 'contact') {
+        } else if (tabId === 'contact') {
             loadContactFeedbackMessages();
+        }
+    }
+
+    async function submitIndexNow() {
+        const urlStr = prompt("Enter full URLs to index (separated by commas):");
+        if (!urlStr) return;
+        const urls = urlStr.split(',').map(s => s.trim()).filter(Boolean);
+        if (urls.length === 0) return;
+
+        try {
+            const res = await fetch('/api/indexnow/submit', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ urls })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showAdminAlert(`Successfully submitted ${urls.length} URL(s) to IndexNow!`, 'success');
+            } else {
+                showAdminAlert(`IndexNow failed: ${data.message || data.reason}`, 'error');
+            }
+        } catch (err) {
+            showAdminAlert("Network error occurred while submitting URLs.", 'error');
         }
     }
 
@@ -790,7 +941,7 @@
         try {
             const res = await fetch('/api/admin/stats');
             const data = await res.json();
-            if(data.success) {
+            if (data.success) {
                 const s = data.stats;
                 document.getElementById("kpi-users").textContent = s.total_users;
                 document.getElementById("kpi-docs-approved").textContent = s.approved_documents;
@@ -809,14 +960,14 @@
         try {
             const res = await fetch('/api/admin/pending-documents');
             const data = await res.json();
-            if(data.success && data.documents && data.documents.length > 0) {
+            if (data.success && data.documents && data.documents.length > 0) {
                 container.innerHTML = data.documents.map(d => {
                     const profile = d.profiles || {};
                     const uploaderName = profile.full_name || "Unknown User";
                     const uploaderEmail = profile.email || "No Email";
                     const catClass = (d.document_category || '').toLowerCase();
                     const badgeClass = catClass === 'notes' ? 'badge-notes' : catClass === 'pyq' ? 'badge-pyq' : catClass === 'practical' ? 'badge-practical' : 'badge-other';
-                    
+
                     return `
                         <div class="mod-card" id="doc-card-${d.id}">
                             <div class="mod-header">
@@ -866,8 +1017,8 @@
     // Moderate: Approve document
     async function moderateApproveDocument(docId) {
         const btn = document.getElementById(`btn-approve-${docId}`);
-        if(btn) btn.disabled = true;
-        
+        if (btn) btn.disabled = true;
+
         try {
             const res = await fetch('/api/admin/approve-document', {
                 method: "POST",
@@ -875,10 +1026,10 @@
                 body: JSON.stringify({ document_id: docId })
             });
             const data = await res.json();
-            if(data.success) {
+            if (data.success) {
                 showAdminAlert("Document approved and published successfully!");
                 const card = document.getElementById(`doc-card-${docId}`);
-                if(card) {
+                if (card) {
                     card.style.transition = "all 0.4s ease";
                     card.style.opacity = 0;
                     card.style.transform = "scale(0.9)";
@@ -889,23 +1040,23 @@
                 }
             } else {
                 showAdminAlert(data.error || "Approval failed", "error");
-                if(btn) btn.disabled = false;
+                if (btn) btn.disabled = false;
             }
         } catch (e) {
             console.error(e);
             showAdminAlert("Request error occurred", "error");
-            if(btn) btn.disabled = false;
+            if (btn) btn.disabled = false;
         }
     }
 
     // Moderate: Reject/delete document
     async function moderateRejectDocument(docId) {
-        if(!confirm("Are you sure you want to REJECT and permanently DELETE this uploaded file? This action is irreversible.")) {
+        if (!confirm("Are you sure you want to REJECT and permanently DELETE this uploaded file? This action is irreversible.")) {
             return;
         }
-        
+
         const btn = document.getElementById(`btn-reject-${docId}`);
-        if(btn) btn.disabled = true;
+        if (btn) btn.disabled = true;
 
         try {
             const res = await fetch('/api/admin/reject-document', {
@@ -914,10 +1065,10 @@
                 body: JSON.stringify({ document_id: docId })
             });
             const data = await res.json();
-            if(data.success) {
+            if (data.success) {
                 showAdminAlert("Document rejected and file deleted.", "error");
                 const card = document.getElementById(`doc-card-${docId}`);
-                if(card) {
+                if (card) {
                     card.style.transition = "all 0.4s ease";
                     card.style.opacity = 0;
                     card.style.transform = "scale(0.9)";
@@ -928,12 +1079,12 @@
                 }
             } else {
                 showAdminAlert(data.error || "Rejection failed", "error");
-                if(btn) btn.disabled = false;
+                if (btn) btn.disabled = false;
             }
         } catch (e) {
             console.error(e);
             showAdminAlert("Request error occurred", "error");
-            if(btn) btn.disabled = false;
+            if (btn) btn.disabled = false;
         }
     }
 
@@ -944,7 +1095,7 @@
         try {
             const res = await fetch('/api/admin/users');
             const data = await res.json();
-            if(data.success) {
+            if (data.success) {
                 adminUsersList = data.users || [];
                 renderUserSidebarList(adminUsersList);
             }
@@ -957,7 +1108,7 @@
     // Render User sidebar cards
     function renderUserSidebarList(users) {
         const container = document.getElementById("adminUserCardsList");
-        if(!users || users.length === 0) {
+        if (!users || users.length === 0) {
             container.innerHTML = `<div style="color:var(--text-muted); text-align:center; padding:1rem;">No users found</div>`;
             return;
         }
@@ -978,8 +1129,8 @@
     // Filter users list locally
     function searchAdminUsersLocal() {
         const q = document.getElementById("adminUserSearchInput").value.toLowerCase().trim();
-        const filtered = adminUsersList.filter(u => 
-            (u.full_name && u.full_name.toLowerCase().includes(q)) || 
+        const filtered = adminUsersList.filter(u =>
+            (u.full_name && u.full_name.toLowerCase().includes(q)) ||
             (u.email && u.email.toLowerCase().includes(q))
         );
         renderUserSidebarList(filtered);
@@ -989,7 +1140,7 @@
     async function selectAdminUser(userId, name, email, repScore) {
         document.querySelectorAll(".admin-user-card").forEach(c => c.classList.remove("selected"));
         const selectedCard = document.getElementById(`user-card-${userId}`);
-        if(selectedCard) selectedCard.classList.add("selected");
+        if (selectedCard) selectedCard.classList.add("selected");
 
         document.getElementById("userStatsPlaceholder").style.display = "none";
         const content = document.getElementById("userStatsContent");
@@ -1000,7 +1151,7 @@
         document.getElementById("userStatEmail").textContent = email || "No Email Address";
         document.getElementById("userStatRep").textContent = repScore || 0;
         document.getElementById("userStatLastVisit").innerHTML = `<i class="fas fa-spinner fa-spin"></i>`;
-        
+
         const uploadsBox = document.getElementById("userStatUploadsList");
         const viewsBox = document.getElementById("userStatViewsList");
         uploadsBox.innerHTML = "Loading uploads...";
@@ -1009,9 +1160,9 @@
         try {
             const res = await fetch(`/api/admin/users/${userId}/stats`);
             const data = await res.json();
-            if(data.success) {
+            if (data.success) {
                 const s = data.stats;
-                
+
                 // Last Visit
                 if (s.last_visit && s.last_visit !== "Never") {
                     document.getElementById("userStatLastVisit").textContent = new Date(s.last_visit).toLocaleDateString();
@@ -1021,7 +1172,7 @@
 
                 // Render Uploads
                 document.getElementById("userStatUploadCount").textContent = s.uploaded_files.length;
-                if(s.uploaded_files && s.uploaded_files.length > 0) {
+                if (s.uploaded_files && s.uploaded_files.length > 0) {
                     uploadsBox.innerHTML = s.uploaded_files.map(f => `
                         <div style="padding: 0.4rem; border-bottom: 1px solid #f1f5f9; display:flex; justify-content:space-between; align-items:center;">
                             <span class="truncate" style="font-weight:600; color:var(--text-primary); max-width: 75%;">${f.title}</span>
@@ -1034,7 +1185,7 @@
 
                 // Render Views
                 document.getElementById("userStatViewCount").textContent = s.viewed_files.length;
-                if(s.viewed_files && s.viewed_files.length > 0) {
+                if (s.viewed_files && s.viewed_files.length > 0) {
                     viewsBox.innerHTML = s.viewed_files.map(v => {
                         const title = v.documents ? v.documents.title : "Unknown Resource";
                         return `
@@ -1068,9 +1219,9 @@
         try {
             const res = await fetch('/api/admin/subscribers');
             const data = await res.json();
-            if(data.success && data.subscribers) {
+            if (data.success && data.subscribers) {
                 adminSubscribers = data.subscribers;
-                if(adminSubscribers.length === 0) {
+                if (adminSubscribers.length === 0) {
                     container.innerHTML = `<p style="color:var(--text-muted); padding:0.5rem; font-size:0.85rem; margin:0;">No notification subscribers yet.</p>`;
                     return;
                 }
@@ -1092,7 +1243,7 @@
         try {
             const res = await fetch('/api/admin/notification-history');
             const data = await res.json();
-            if(data.success && data.history && data.history.length > 0) {
+            if (data.success && data.history && data.history.length > 0) {
                 container.innerHTML = data.history.map(h => `
                     <div class="history-item" style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:1rem; position:relative; overflow:hidden;">
                         <div style="font-weight:700; color:var(--text-primary); font-size:0.95rem; margin-bottom:0.25rem;">${h.title}</div>
@@ -1123,9 +1274,9 @@
         try {
             const targetType = document.getElementById("pushTargetType").value;
             let userIds = null;
-            if(targetType === 'selective') {
+            if (targetType === 'selective') {
                 userIds = Array.from(document.querySelectorAll(".subscriber-cb:checked")).map(cb => cb.value);
-                if(userIds.length === 0) {
+                if (userIds.length === 0) {
                     showAdminAlert("Please check at least one subscriber to target.", "error");
                     btn.disabled = false;
                     btn.innerHTML = originalText;
@@ -1149,7 +1300,7 @@
             });
 
             const data = await res.json();
-            if(data.success) {
+            if (data.success) {
                 showAdminAlert(`Notification successfully broadcasted to ${data.sent} device(s)!`);
                 clearPushForm();
                 loadPushHistory();
@@ -1178,7 +1329,7 @@
     function setupInputCharacterCounters() {
         const titleInput = document.getElementById("pushTitle");
         const bodyInput = document.getElementById("pushBody");
-        
+
         if (titleInput) {
             titleInput.addEventListener("input", () => {
                 const len = titleInput.value.length;
@@ -1200,7 +1351,7 @@
         try {
             const res = await fetch('/api/admin/contact-messages');
             const data = await res.json();
-            if(data.success && data.messages && data.messages.length > 0) {
+            if (data.success && data.messages && data.messages.length > 0) {
                 container.innerHTML = data.messages.map(m => `
                     <div style="background: white; border: var(--glass-border); border-radius:16px; padding:1.25rem; box-shadow: var(--card-shadow);">
                         <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.5rem;">

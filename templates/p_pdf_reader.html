@@ -7,7 +7,8 @@
   /* ── Layout tokens ───────────────────────────────────────── */
   :root {
     --reader-bar-h: 52px;
-    --bottom-nav-h: 64px; /* p_nav.html mobile bar height */
+    --bottom-nav-h: 64px;
+    /* p_nav.html mobile bar height */
     --blue: #2563eb;
     --blue-light: #dbeafe;
     --surface: #f8fafc;
@@ -16,13 +17,27 @@
     --muted: #64748b;
     --border: #e2e8f0;
     --radius: 14px;
-    --shadow: 0 4px 24px rgba(37,99,235,.08);
+    --shadow: 0 4px 24px rgba(37, 99, 235, .08);
   }
 
   /* ── Full-height page layout ─────────────────────────────── */
-  html, body { height: 100%; }
-  body { overflow-x: hidden; display: flex; flex-direction: column; }
-  main { flex: 1; min-height: 0; display: flex; flex-direction: column; }
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  main {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+  }
 
   /* When this page is rendered inside p_struct.html, make main fill
      remaining viewport space so height:100% resolves correctly */
@@ -51,7 +66,7 @@
     align-items: center;
     padding: 0 1rem;
     gap: .75rem;
-    box-shadow: 0 1px 4px rgba(0,0,0,.04);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, .04);
     position: relative;
     z-index: 5;
   }
@@ -71,7 +86,11 @@
     transition: background .18s, transform .18s;
     text-decoration: none;
   }
-  .reader-back:hover { background: #bfdbfe; transform: translateX(-2px); }
+
+  .reader-back:hover {
+    background: #bfdbfe;
+    transform: translateX(-2px);
+  }
 
   .reader-title {
     flex: 1;
@@ -99,13 +118,33 @@
     white-space: nowrap;
     letter-spacing: .01em;
   }
-  .chip-type   { background: #ede9fe; color: #6d28d9; }
-  .chip-subj   { background: #d1fae5; color: #065f46; }
-  .chip-year   { background: #fef9c3; color: #854d0e; }
-  .chip-verif  { background: #dcfce7; color: #166534; }
+
+  .chip-type {
+    background: #ede9fe;
+    color: #6d28d9;
+  }
+
+  .chip-subj {
+    background: #d1fae5;
+    color: #065f46;
+  }
+
+  .chip-year {
+    background: #fef9c3;
+    color: #854d0e;
+  }
+
+  .chip-verif {
+    background: #dcfce7;
+    color: #166534;
+  }
 
   /* ── Action buttons ─────────────────────────────────────── */
-  .reader-actions { display: flex; gap: .4rem; flex-shrink: 0; }
+  .reader-actions {
+    display: flex;
+    gap: .4rem;
+    flex-shrink: 0;
+  }
 
   .rdr-btn {
     display: flex;
@@ -121,23 +160,33 @@
     text-decoration: none;
     white-space: nowrap;
   }
+
   .rdr-btn-ghost {
     background: transparent;
     color: var(--muted);
     border: 1px solid var(--border);
   }
-  .rdr-btn-ghost:hover { background: var(--surface); color: var(--text); }
+
+  .rdr-btn-ghost:hover {
+    background: var(--surface);
+    color: var(--text);
+  }
+
   .rdr-btn-info {
     background: var(--blue-light);
     color: var(--blue);
     border: none;
   }
-  .rdr-btn-info:hover { background: #bfdbfe; }
+
+  .rdr-btn-info:hover {
+    background: #bfdbfe;
+  }
 
   /* ── PDF viewport ───────────────────────────────────────── */
   .reader-viewport {
     flex: 1;
-    min-height: 0; /* critical: allow flex item to shrink so sibling fills */
+    min-height: 0;
+    /* critical: allow flex item to shrink so sibling fills */
     position: relative;
     overflow: hidden;
     background: #e5e7eb;
@@ -147,7 +196,7 @@
   .reader-loading {
     position: absolute;
     inset: 0;
-    background: rgba(255,255,255,.92);
+    background: rgba(255, 255, 255, .92);
     backdrop-filter: blur(4px);
     z-index: 10;
     display: flex;
@@ -157,34 +206,53 @@
     gap: 1rem;
     transition: opacity .3s;
   }
-  .reader-loading.hidden { opacity: 0; pointer-events: none; }
+
+  .reader-loading.hidden {
+    opacity: 0;
+    pointer-events: none;
+  }
 
   .spinner {
-    width: 42px; height: 42px;
+    width: 42px;
+    height: 42px;
     border: 3px solid #e2e8f0;
     border-top-color: var(--blue);
     border-radius: 50%;
     animation: spin 1s linear infinite;
   }
-  .loading-label { color: var(--muted); font-size: .9rem; font-weight: 500; }
 
-  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-label {
+    color: var(--muted);
+    font-size: .9rem;
+    font-weight: 500;
+  }
+
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 
   /* ── Info Modal ─────────────────────────────────────────── */
   .info-backdrop {
     position: fixed;
     inset: 0;
     z-index: 4000;
-    background: rgba(10,10,30,.55);
+    background: rgba(10, 10, 30, .55);
     backdrop-filter: blur(4px);
     display: flex;
-    align-items: flex-end;       /* bottom-sheet on mobile */
+    align-items: flex-end;
+    /* bottom-sheet on mobile */
     justify-content: center;
     opacity: 0;
     pointer-events: none;
     transition: opacity .25s;
   }
-  .info-backdrop.open { opacity: 1; pointer-events: auto; }
+
+  .info-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
 
   .info-panel {
     background: var(--card);
@@ -194,11 +262,14 @@
     max-height: 85vh;
     overflow-y: auto;
     transform: translateY(40px);
-    transition: transform .3s cubic-bezier(.4,0,.2,1);
-    box-shadow: 0 -8px 40px rgba(37,99,235,.12);
+    transition: transform .3s cubic-bezier(.4, 0, .2, 1);
+    box-shadow: 0 -8px 40px rgba(37, 99, 235, .12);
     padding-bottom: env(safe-area-inset-bottom, 0);
   }
-  .info-backdrop.open .info-panel { transform: translateY(0); }
+
+  .info-backdrop.open .info-panel {
+    transform: translateY(0);
+  }
 
   .info-panel-header {
     position: sticky;
@@ -212,21 +283,36 @@
     border-radius: 24px 24px 0 0;
     z-index: 1;
   }
-  .info-panel-title { font-size: 1rem; font-weight: 700; color: var(--text); }
+
+  .info-panel-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--text);
+  }
+
   .info-close-btn {
-    width: 32px; height: 32px;
+    width: 32px;
+    height: 32px;
     border-radius: 50%;
     border: none;
     background: var(--surface);
     color: var(--muted);
     font-size: 1.1rem;
     cursor: pointer;
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: background .15s;
   }
-  .info-close-btn:hover { background: var(--border); }
 
-  .info-rows { padding: .5rem 1.25rem 1.25rem; }
+  .info-close-btn:hover {
+    background: var(--border);
+  }
+
+  .info-rows {
+    padding: .5rem 1.25rem 1.25rem;
+  }
+
   .info-row {
     display: flex;
     align-items: flex-start;
@@ -234,31 +320,55 @@
     padding: .65rem 0;
     border-bottom: 1px solid var(--border);
   }
-  .info-row:last-child { border-bottom: none; }
+
+  .info-row:last-child {
+    border-bottom: none;
+  }
+
   .info-icon {
-    width: 34px; height: 34px;
+    width: 34px;
+    height: 34px;
     border-radius: 9px;
     background: var(--blue-light);
-    display: flex; align-items: center; justify-content: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     font-size: 1rem;
     flex-shrink: 0;
   }
-  .info-key { font-size: .75rem; color: var(--muted); margin-bottom: .1rem; }
-  .info-val { font-size: .9rem; font-weight: 600; color: var(--text); }
-  .info-val.verified { color: #16a34a; }
+
+  .info-key {
+    font-size: .75rem;
+    color: var(--muted);
+    margin-bottom: .1rem;
+  }
+
+  .info-val {
+    font-size: .9rem;
+    font-weight: 600;
+    color: var(--text);
+  }
+
+  .info-val.verified {
+    color: #16a34a;
+  }
 
   /* ── AdBlocker / error overlay ──────────────────────────── */
   .sys-overlay {
     position: fixed;
     inset: 0;
-    background: rgba(0,0,0,.6);
+    background: rgba(0, 0, 0, .6);
     backdrop-filter: blur(4px);
     z-index: 5000;
     display: none;
     align-items: center;
     justify-content: center;
   }
-  .sys-overlay.show { display: flex; }
+
+  .sys-overlay.show {
+    display: flex;
+  }
+
   .sys-card {
     background: #fff;
     padding: 2rem;
@@ -266,12 +376,29 @@
     max-width: 380px;
     width: 90%;
     text-align: center;
-    box-shadow: 0 20px 60px rgba(0,0,0,.18);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, .18);
     position: relative;
   }
-  .sys-card-icon { font-size: 2.8rem; margin-bottom: .75rem; }
-  .sys-card-title { font-size: 1.35rem; font-weight: 700; color: var(--text); margin-bottom: .4rem; }
-  .sys-card-text { color: var(--muted); font-size: .9rem; line-height: 1.5; margin-bottom: 1.2rem; }
+
+  .sys-card-icon {
+    font-size: 2.8rem;
+    margin-bottom: .75rem;
+  }
+
+  .sys-card-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--text);
+    margin-bottom: .4rem;
+  }
+
+  .sys-card-text {
+    color: var(--muted);
+    font-size: .9rem;
+    line-height: 1.5;
+    margin-bottom: 1.2rem;
+  }
+
   .sys-card-btn {
     width: 100%;
     padding: .75rem;
@@ -284,7 +411,10 @@
     cursor: pointer;
     transition: transform .15s;
   }
-  .sys-card-btn:hover { transform: translateY(-1px); }
+
+  .sys-card-btn:hover {
+    transform: translateY(-1px);
+  }
 
   /* ── Responsive ─────────────────────────────────────────── */
   @media (min-width: 768px) {
@@ -293,39 +423,114 @@
       align-self: center;
       max-height: 80vh;
     }
-    .info-backdrop { align-items: center; }
-    .reader-bar { padding: 0 1.5rem; }
+
+    .info-backdrop {
+      align-items: center;
+    }
+
+    .reader-bar {
+      padding: 0 1.5rem;
+    }
   }
 
   @media (max-width: 640px) {
-    .chip-subj, .chip-year { display: none; }
-    .rdr-btn span.btn-label { display: none; }
-    .rdr-btn { padding: .4rem .55rem; }
+
+    .chip-subj,
+    .chip-year {
+      display: none;
+    }
+
+    .rdr-btn span.btn-label {
+      display: none;
+    }
+
+    .rdr-btn {
+      padding: .4rem .55rem;
+    }
+
     /* Account for bottom nav on mobile */
-    .reader-root { height: calc(100vh - 60px - var(--bottom-nav-h)); }
+    .reader-root {
+      height: calc(100vh - 60px - var(--bottom-nav-h));
+    }
+
     /* Hide desktop-only open-tab button on mobile */
-    .rdr-open-tab { display: none; }
+    .rdr-open-tab {
+      display: none;
+    }
   }
 
-  @media (min-width: 641px) {
-
-  }
+  @media (min-width: 641px) {}
 
   @media (max-width: 480px) {
-    .chip { display: none; }
+    .chip {
+      display: none;
+    }
   }
 
   /* AI Panel & PDF reader styles */
-  .rdr-btn-ai { background: linear-gradient(135deg, var(--blue), #1d4ed8); color: #fff; border: none; font-weight: 700; gap: 0.35rem; }
-  .rdr-btn-info.rdr-btn-info-clickable { cursor: pointer; }
-  .rdr-btn-ai:hover { background: linear-gradient(135deg, #1d4ed8, #1e40af); }
-  .pdf-ai-question-input { flex: 1; padding: 0.65rem 0.9rem; border: 1px solid #cbd5e1; border-radius: 12px; font-size: 0.9rem; outline: none; }
-  .pdf-ai-question-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,.1); }
-  .pdf-ai-send-btn { padding: 0.65rem 1.25rem; background: #f59e0b; color: #fff; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; white-space: nowrap; }
-  .pdf-ai-send-btn:hover { background: #d97706; }
-  .pdf-suggestion-btn.ai-blue { color: #2563eb; }
-  .pdf-suggestion-btn.ai-gray { color: #475569; }
-  .ai-send-btn { padding: 0.65rem 1.25rem; background: #f59e0b; color: #fff; border: none; border-radius: 12px; font-weight: 700; cursor: pointer; }
+  .rdr-btn-ai {
+    background: linear-gradient(135deg, var(--blue), #1d4ed8);
+    color: #fff;
+    border: none;
+    font-weight: 700;
+    gap: 0.35rem;
+  }
+
+  .rdr-btn-info.rdr-btn-info-clickable {
+    cursor: pointer;
+  }
+
+  .rdr-btn-ai:hover {
+    background: linear-gradient(135deg, #1d4ed8, #1e40af);
+  }
+
+  .pdf-ai-question-input {
+    flex: 1;
+    padding: 0.65rem 0.9rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    font-size: 0.9rem;
+    outline: none;
+  }
+
+  .pdf-ai-question-input:focus {
+    border-color: var(--blue);
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, .1);
+  }
+
+  .pdf-ai-send-btn {
+    padding: 0.65rem 1.25rem;
+    background: #f59e0b;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+  }
+
+  .pdf-ai-send-btn:hover {
+    background: #d97706;
+  }
+
+  .pdf-suggestion-btn.ai-blue {
+    color: #2563eb;
+  }
+
+  .pdf-suggestion-btn.ai-gray {
+    color: #475569;
+  }
+
+  .ai-send-btn {
+    padding: 0.65rem 1.25rem;
+    background: #f59e0b;
+    color: #fff;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+
   .reader-root.fullscreen-reader {
     position: fixed !important;
     inset: 0 !important;
@@ -336,9 +541,137 @@
     display: flex !important;
     flex-direction: column !important;
   }
+
   .reader-root.fullscreen-reader .reader-viewport {
     flex: 1 !important;
     height: 100% !important;
+  }
+
+  /* ── Report Issue ───────────────────────────────────────── */
+  .report-fab {
+    position: fixed;
+    bottom: 80px;
+    right: 18px;
+    z-index: 6000;
+    background: #fef2f2;
+    color: #b91c1c;
+    border: 1px solid #fca5a5;
+    border-radius: 50px;
+    padding: 0.4rem 0.85rem 0.4rem 0.65rem;
+    font-size: 0.8rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+    box-shadow: 0 4px 14px rgba(239, 68, 68, .2);
+    transition: all .2s;
+    opacity: 0.85;
+  }
+
+  .report-fab:hover {
+    opacity: 1;
+    transform: scale(1.06);
+  }
+
+  .report-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 7000;
+    background: rgba(10, 10, 30, .55);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: flex-end;
+    justify-content: center;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity .25s;
+  }
+
+  .report-modal-backdrop.open {
+    opacity: 1;
+    pointer-events: auto;
+  }
+
+  .report-modal-panel {
+    background: #fff;
+    border-radius: 24px 24px 0 0;
+    width: 100%;
+    max-width: 500px;
+    padding: 1.5rem 1.5rem calc(1.5rem + env(safe-area-inset-bottom, 0px));
+    transform: translateY(40px);
+    transition: transform .3s cubic-bezier(.4, 0, .2, 1);
+    box-shadow: 0 -8px 40px rgba(239, 68, 68, .12);
+  }
+
+  .report-modal-backdrop.open .report-modal-panel {
+    transform: translateY(0);
+  }
+
+  .report-modal-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin-bottom: 1rem;
+  }
+
+  .report-select,
+  .report-textarea {
+    width: 100%;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.7rem 0.9rem;
+    font-size: 0.9rem;
+    color: #0f172a;
+    background: #f8fafc;
+    margin-bottom: 0.75rem;
+    box-sizing: border-box;
+    font-family: inherit;
+  }
+
+  .report-textarea {
+    resize: vertical;
+    min-height: 90px;
+  }
+
+  .report-select:focus,
+  .report-textarea:focus {
+    outline: none;
+    border-color: #ef4444;
+    box-shadow: 0 0 0 3px rgba(239, 68, 68, .12);
+  }
+
+  .report-submit-btn {
+    width: 100%;
+    padding: 0.75rem;
+    border: none;
+    border-radius: 12px;
+    background: #ef4444;
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.95rem;
+    cursor: pointer;
+    transition: background .15s;
+  }
+
+  .report-submit-btn:hover {
+    background: #dc2626;
+  }
+
+  .report-submit-btn:disabled {
+    background: #fca5a5;
+    cursor: not-allowed;
+  }
+
+  .report-modal-close {
+    float: right;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 1.2rem;
+    color: #94a3b8;
+    line-height: 1;
+    margin-top: -4px;
   }
 </style>
 
@@ -348,7 +681,7 @@
   window.addEventListener('beforeunload', function () {
     document.dispatchEvent(new CustomEvent('abhihub:studying:end'));
   });
-  window.togglePdfReaderFullscreen = function() {
+  window.togglePdfReaderFullscreen = function () {
     var root = document.querySelector('.reader-root');
     if (!root) return;
     var isFs = root.classList.toggle('fullscreen-reader');
@@ -365,7 +698,7 @@
     <!-- Back -->
     <button class="reader-back" type="button" data-action="goBack" aria-label="Go back" title="Back">
       <svg width="18" height="18" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+        <path stroke-linecap="round" stroke-linejoin="round" d="M10 19l-7-7m0 0l7-7m-7 7h18" />
       </svg>
     </button>
 
@@ -392,41 +725,41 @@
 
     <!-- Actions -->
     <div class="reader-actions">
-      <button class="rdr-btn rdr-btn-ghost" type="button" onclick="togglePdfReaderFullscreen()" aria-label="Fullscreen Focus Mode" title="Fullscreen Focus Mode">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+      <button class="rdr-btn rdr-btn-ghost" type="button" onclick="togglePdfReaderFullscreen()"
+        aria-label="Fullscreen Focus Mode" title="Fullscreen Focus Mode">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="15 3 21 3 21 9" />
+          <polyline points="9 21 3 21 3 15" />
+          <line x1="21" y1="3" x2="14" y2="10" />
+          <line x1="3" y1="21" x2="10" y2="14" />
+        </svg>
         <span class="btn-label">Fullscreen</span>
       </button>
 
       {% if file_meta.get('url') %}
 
       <!-- Open in new tab: desktop only -->
-      <a class="rdr-btn rdr-btn-ghost rdr-open-tab"
-         href="{{ file_meta['url'] }}"
-         target="_blank"
-         rel="noopener noreferrer"
-         aria-label="Open in new tab"
-         title="Open in new tab">
+      <a class="rdr-btn rdr-btn-ghost rdr-open-tab" href="{{ file_meta['url'] }}" target="_blank"
+        rel="noopener noreferrer" aria-label="Open in new tab" title="Open in new tab">
         <svg width="14" height="14" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-          <path stroke-linecap="round" stroke-linejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
         </svg>
         <span class="btn-label">Open</span>
       </a>
       {% endif %}
 
-      <button class="rdr-btn rdr-btn-ai" id="aiToggleBtn" type="button" data-action="openAIModal" aria-label="Ask AI Assistant" title="Ask AI &amp; Unlimited OCR">
+      <button class="rdr-btn rdr-btn-ai" id="aiToggleBtn" type="button" data-action="openAIModal"
+        aria-label="Ask AI Assistant" title="Ask AI &amp; Unlimited OCR">
         🤖 <span class="btn-label">Ask AI</span>
       </button>
 
-      <button class="rdr-btn rdr-btn-info rdr-btn-info-clickable"
-              id="infoToggleBtn"
-              type="button"
-              data-action="openInfo"
-              aria-label="Document information"
-              aria-haspopup="dialog"
-              title="Document info">
+      <button class="rdr-btn rdr-btn-info rdr-btn-info-clickable" id="infoToggleBtn" type="button"
+        data-action="openInfo" aria-label="Document information" aria-haspopup="dialog" title="Document info">
         <svg width="16" height="16" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2.2">
-          <circle cx="12" cy="12" r="10"/>
-          <path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-4m0-4h.01"/>
+          <circle cx="12" cy="12" r="10" />
+          <path stroke-linecap="round" stroke-linejoin="round" d="M12 16v-4m0-4h.01" />
         </svg>
         <span class="btn-label">Info</span>
       </button>
@@ -436,7 +769,7 @@
 
   <!-- Ad Placement (Banner) -->
   <div style="background: var(--surface); padding: 0.5rem 1rem; border-bottom: 1px solid var(--border);">
-      {% if show_secondary_ads %}{% include 'ads/banner.html' %}{% endif %}
+    {% if show_secondary_ads %}{% include 'ads/banner.html' %}{% endif %}
   </div>
 
   <!-- PDF viewport -->
@@ -453,7 +786,8 @@
 </div><!-- /.reader-root -->
 
 <!-- ── Info Modal ─────────────────────────────────────────────── -->
-<div class="info-backdrop" id="infoBackdrop" role="dialog" aria-modal="true" aria-labelledby="infoPanelTitle" data-action="closeInfoOnBackdrop">
+<div class="info-backdrop" id="infoBackdrop" role="dialog" aria-modal="true" aria-labelledby="infoPanelTitle"
+  data-action="closeInfoOnBackdrop">
   <div class="info-panel" id="infoPanel">
 
     <div class="info-panel-header">
@@ -464,15 +798,15 @@
     <div class="info-rows">
 
       {% set rows = [
-        ('📄', 'File Name',   file_meta.get('file-name', pdf_name)),
-        ('📚', 'Subject',     file_meta.get('subject', '—')),
-        ('👤', 'Author',      file_meta.get('author', '—')),
-        ('📂', 'Type',        file_meta.get('type', '—')),
-        ('📅', 'Year',        file_meta.get('year') or '—'),
-        ('🗓️', 'Upload Date', file_meta.get('date') or '—'),
-        ('💾', 'Size',        file_meta.get('size', '—')),
-        ('👁️', 'Views',       file_meta.get('view_count', '—')),
-        ('❤️', 'Likes',       file_meta.get('like_count', '—')),
+      ('📄', 'File Name', file_meta.get('file-name', pdf_name)),
+      ('📚', 'Subject', file_meta.get('subject', '—')),
+      ('👤', 'Author', file_meta.get('author', '—')),
+      ('📂', 'Type', file_meta.get('type', '—')),
+      ('📅', 'Year', file_meta.get('year') or '—'),
+      ('🗓️', 'Upload Date', file_meta.get('date') or '—'),
+      ('💾', 'Size', file_meta.get('size', '—')),
+      ('👁️', 'Views', file_meta.get('view_count', '—')),
+      ('❤️', 'Likes', file_meta.get('like_count', '—')),
       ] %}
 
       {% for icon, key, val in rows %}
@@ -501,7 +835,8 @@
 </div><!-- /.info-backdrop -->
 
 <!-- ── AI Assistant Modal ────────────────────────────────────── -->
-<div class="info-backdrop" id="aiBackdrop" role="dialog" aria-modal="true" aria-labelledby="aiPanelTitle" data-action="closeAIModalOnBackdrop">
+<div class="info-backdrop" id="aiBackdrop" role="dialog" aria-modal="true" aria-labelledby="aiPanelTitle"
+  data-action="closeAIModalOnBackdrop">
   <div class="info-panel" id="aiPanel" style="max-width: 600px;">
 
     <div class="info-panel-header">
@@ -511,9 +846,11 @@
 
     <div style="padding: 1.25rem;">
       <!-- AI Model Selector -->
-      <div style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; background: #f1f5f9; padding: 0.6rem 0.8rem; border-radius: 12px;">
+      <div
+        style="margin-bottom: 1rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap; background: #f1f5f9; padding: 0.6rem 0.8rem; border-radius: 12px;">
         <span style="font-size: 0.82rem; font-weight: 700; color: #334155;">🧠 Select AI / OCR Model:</span>
-        <select id="pdfAiModelSelect" style="flex: 1; padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 600; background: #ffffff; color: #1e293b;">
+        <select id="pdfAiModelSelect"
+          style="flex: 1; padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 600; background: #ffffff; color: #1e293b;">
           <option value="auto" selected>✨ Auto (NVIDIA Llama 3.1 70B & Vision Fallback)</option>
           <option value="google/gemini-2.0-flash-lite-preview-02-05:free">Google Gemini 2.0 Flash Lite (Free)</option>
           <option value="google/gemini-2.0-flash-exp:free">Google Gemini 2.0 Flash (Free)</option>
@@ -526,25 +863,32 @@
 
       <!-- Quick Action Chips -->
       <div style="display: flex; gap: 0.4rem; flex-wrap: wrap; margin-bottom: 1rem;">
-        <button type="button" data-action="fillPdfQuestion" data-question="Extract all text from this PDF (OCR)" class="pdf-suggestion-btn ai-blue" aria-label="Extract all text from this PDF (OCR)">🔍 Extract OCR Text</button>
-        <button type="button" data-action="fillPdfQuestion" data-question="Summarize key points in this paper" class="pdf-suggestion-btn ai-gray" aria-label="Summarize key points in this paper">📌 Summarize Paper</button>
-        <button type="button" data-action="fillPdfQuestion" data-question="Solve question 1 step-by-step" class="pdf-suggestion-btn ai-gray" aria-label="Solve question 1 step-by-step">📝 Solve Q1</button>
-        <button type="button" data-action="fillPdfQuestion" data-question="List main topics &amp; formulas" class="pdf-suggestion-btn ai-gray" aria-label="List main topics & formulas">🧪 Formulas &amp; Topics</button>
+        <button type="button" data-action="fillPdfQuestion" data-question="Extract all text from this PDF (OCR)"
+          class="pdf-suggestion-btn ai-blue" aria-label="Extract all text from this PDF (OCR)">🔍 Extract OCR
+          Text</button>
+        <button type="button" data-action="fillPdfQuestion" data-question="Summarize key points in this paper"
+          class="pdf-suggestion-btn ai-gray" aria-label="Summarize key points in this paper">📌 Summarize Paper</button>
+        <button type="button" data-action="fillPdfQuestion" data-question="Solve question 1 step-by-step"
+          class="pdf-suggestion-btn ai-gray" aria-label="Solve question 1 step-by-step">📝 Solve Q1</button>
+        <button type="button" data-action="fillPdfQuestion" data-question="List main topics &amp; formulas"
+          class="pdf-suggestion-btn ai-gray" aria-label="List main topics & formulas">🧪 Formulas &amp; Topics</button>
       </div>
 
       <!-- Question Box -->
       <input id="pdfAiQuestion" type="text" placeholder="Ask anything about this document..." maxlength="300"
-                class="pdf-ai-question-input"
-                data-event-keyup="askPdfAIOnEnter">
-               <button type="button" data-action="askPdfAI" id="pdfAiSendBtn" class="pdf-ai-send-btn" aria-label="Send AI question">
-                 Ask AI
-               </button>
-      </div>
+        class="pdf-ai-question-input" data-event-keyup="askPdfAIOnEnter">
+      <button type="button" data-action="askPdfAI" id="pdfAiSendBtn" class="pdf-ai-send-btn"
+        aria-label="Send AI question">
+        Ask AI
+      </button>
+    </div>
 
-      <!-- AI Response Container -->
-      <div id="pdfAiResult" style="display: none; padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; font-size: 0.9rem; line-height: 1.6; color: #1e293b; max-height: 250px; overflow-y: auto; white-space: pre-wrap;"></div>
+    <!-- AI Response Container -->
+    <div id="pdfAiResult"
+      style="display: none; padding: 1rem; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; font-size: 0.9rem; line-height: 1.6; color: #1e293b; max-height: 250px; overflow-y: auto; white-space: pre-wrap;">
     </div>
   </div>
+</div>
 </div>
 
 <!-- ── AdBlocker overlay ──────────────────────────────────────── -->
@@ -553,8 +897,41 @@
     <div class="sys-card-icon">⚠️</div>
     <h2 class="sys-card-title" id="adblockTitle">AdBlocker Detected</h2>
     <p class="sys-card-text">An extension is blocking the PDF viewer.
-      <strong style="color:#ef4444;">Disable ad blockers</strong> for this site to view the document.</p>
+      <strong style="color:#ef4444;">Disable ad blockers</strong> for this site to view the document.
+    </p>
     <button class="sys-card-btn" type="button" data-action="reloadPage" aria-label="Refresh page">Refresh Page</button>
+  </div>
+</div>
+
+<!-- ── Report Issue FAB ───────────────────────────────────────── -->
+<button class="report-fab" id="reportIssueFab" onclick="openReportModal()" title="Report an issue with this document">
+  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+    stroke-linecap="round" stroke-linejoin="round">
+    <circle cx="12" cy="12" r="10" />
+    <line x1="12" y1="8" x2="12" y2="12" />
+    <line x1="12" y1="16" x2="12.01" y2="16" />
+  </svg>
+  Report
+</button>
+
+<!-- ── Report Issue Modal ─────────────────────────────────────── -->
+<div class="report-modal-backdrop" id="reportModalBackdrop" onclick="closeReportModalOnBackdrop(event)">
+  <div class="report-modal-panel">
+    <div class="report-modal-title">
+      🚩 Report an Issue
+      <button class="report-modal-close" onclick="closeReportModal()" aria-label="Close">✕</button>
+    </div>
+    <select class="report-select" id="reportIssueType">
+      <option value="Wrong content">Wrong content</option>
+      <option value="Broken / unreadable file">Broken / unreadable file</option>
+      <option value="Low quality scan">Low quality scan</option>
+      <option value="Duplicate document">Duplicate document</option>
+      <option value="Copyright violation">Copyright violation</option>
+      <option value="Other">Other</option>
+    </select>
+    <textarea class="report-textarea" id="reportMessage" placeholder="Describe the issue..."></textarea>
+    <button class="report-submit-btn" id="reportSubmitBtn" onclick="submitDocReport()">Submit Report</button>
+    <div id="reportStatusMsg" style="margin-top:0.75rem;font-size:0.85rem;font-weight:600;text-align:center;"></div>
   </div>
 </div>
 
@@ -634,16 +1011,16 @@
   function closeInfoOnBackdrop(e) {
     if (e.target === document.getElementById('infoBackdrop')) closeInfo();
   }
-  document.addEventListener('keydown', function(e) {
+  document.addEventListener('keydown', function (e) {
     if (e.key === 'Escape') { closeInfo(); closeAIModal(); }
   });
 
   /* ── PDF Renderer ────────────────────────────────────────── */
   (function initPdfViewer() {
-    const overlay  = document.getElementById('loadingOverlay');
+    const overlay = document.getElementById('loadingOverlay');
     const viewport = document.querySelector('.reader-viewport');
-    const pdfUrl   = "/api/view-doc/{{ file_meta.get('id', '') }}/document.pdf";
-    const pdfName  = "{{ file_meta.get('file-name', pdf_name) }}";
+    const pdfUrl = "/api/view-doc/{{ file_meta.get('id', '') }}/document.pdf";
+    const pdfName = "{{ file_meta.get('file-name', pdf_name) }}";
 
     /* ── Height-fit: measure actual available space ───────── */
     function fitHeight() {
@@ -652,7 +1029,7 @@
       // p_struct has a sticky top header + ad banner + bottom nav on mobile.
       // Measure what's actually left rather than hardcoding px values.
       const topHeader = document.querySelector('header.site-header')?.offsetHeight || 0;
-      const adBanner  = document.querySelector('.ad-banner-wrap')?.offsetHeight || 0;
+      const adBanner = document.querySelector('.ad-banner-wrap')?.offsetHeight || 0;
       const bottomNav = window.innerWidth < 768
         ? (document.getElementById('bottomNav')?.offsetHeight || 64)
         : 0;
@@ -667,12 +1044,12 @@
       overlay.classList.add('hidden');
       viewport.innerHTML =
         '<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100%;padding:2rem;text-align:center;background:#f8fafc;">' +
-          '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:1rem;">' +
-            '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' +
-          '</svg>' +
-          '<p style="color:#ef4444;font-weight:700;margin-bottom:0.5rem;">Document unavailable</p>' +
-          '<p style="color:#64748b;font-size:0.9rem;margin-bottom:1.5rem;max-width:300px;">' + msg + '</p>' +
-          '<!-- Download link REMOVED per anti-piracy rule: no user must be able to download the document -->' +
+        '<svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:1rem;">' +
+        '<circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>' +
+        '</svg>' +
+        '<p style="color:#ef4444;font-weight:700;margin-bottom:0.5rem;">Document unavailable</p>' +
+        '<p style="color:#64748b;font-size:0.9rem;margin-bottom:1.5rem;max-width:300px;">' + msg + '</p>' +
+        '<!-- Download link REMOVED per anti-piracy rule: no user must be able to download the document -->' +
         '</div>';
     }
 
@@ -680,12 +1057,12 @@
     function mountPdfJs() {
       viewport.innerHTML =
         '<iframe id="pdfFrame" src="/static/pdfjs-6.1.200-dist/web/viewer.html?file=' + encodeURIComponent(pdfUrl) + '&download=false" ' +
-          'style="border:none;display:block;width:100%;height:100%;background:#525659;" ' +
-          'title="' + pdfName + '" ' +
-          'onload="document.getElementById(\'loadingOverlay\').classList.add(\'hidden\');" ' +
-          'onerror="document.getElementById(\'loadingOverlay\').classList.add(\'hidden\');">' +
+        'style="border:none;display:block;width:100%;height:100%;background:#525659;" ' +
+        'title="' + pdfName + '" ' +
+        'onload="document.getElementById(\'loadingOverlay\').classList.add(\'hidden\');" ' +
+        'onerror="document.getElementById(\'loadingOverlay\').classList.add(\'hidden\');">' +
         '</iframe>';
-      setTimeout(function() {
+      setTimeout(function () {
         var frame = document.getElementById('pdfFrame');
         if (frame) frame.style.height = viewport.clientHeight + 'px';
       }, 50);
@@ -696,8 +1073,6 @@
 
   /* ── AdBlock detection ──────────────────────────────────── */
   window.addEventListener('load', function () {
-    // PDF.js is self-hosted — adblockers do not block it.
-    // Warn if the PDF viewer iframe itself fails to load (rare edge case).
     setTimeout(function () {
       var frame = document.getElementById('pdfFrame');
       if (frame && (!frame.contentDocument || frame.contentDocument.body == null || frame.contentDocument.body.children.length === 0)) {
@@ -706,6 +1081,65 @@
       }
     }, 5000);
   });
+
+  /* ── Report Issue ───────────────────────────────────────── */
+  const _reportDocId = "{{ file_meta.get('id', '') }}";
+  const _reportDocTitle = "{{ file_meta.get('file-name', pdf_name) | replace('"', '') }}";
+
+  function openReportModal() {
+    document.getElementById('reportModalBackdrop').classList.add('open');
+    document.getElementById('reportStatusMsg').textContent = '';
+    document.getElementById('reportMessage').value = '';
+  }
+  function closeReportModal() {
+    document.getElementById('reportModalBackdrop').classList.remove('open');
+  }
+  function closeReportModalOnBackdrop(e) {
+    if (e.target === document.getElementById('reportModalBackdrop')) closeReportModal();
+  }
+
+  async function submitDocReport() {
+    const issueType = document.getElementById('reportIssueType').value;
+    const message = document.getElementById('reportMessage').value.trim();
+    const btn = document.getElementById('reportSubmitBtn');
+    const statusEl = document.getElementById('reportStatusMsg');
+
+    if (!message) {
+      statusEl.style.color = '#ef4444';
+      statusEl.textContent = 'Please describe the issue.';
+      return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Submitting...';
+    try {
+      const res = await fetch('/api/report-issue', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          doc_id: _reportDocId,
+          doc_title: _reportDocTitle,
+          doc_url: window.location.href,
+          issue_type: issueType,
+          message: message
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        statusEl.style.color = '#16a34a';
+        statusEl.textContent = '✅ Report submitted! Admin will review it shortly.';
+        setTimeout(closeReportModal, 2000);
+      } else {
+        statusEl.style.color = '#ef4444';
+        statusEl.textContent = data.error || 'Failed to submit.';
+      }
+    } catch (err) {
+      statusEl.style.color = '#ef4444';
+      statusEl.textContent = 'Network error. Please retry.';
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Submit Report';
+    }
+  }
 
 </script>
 

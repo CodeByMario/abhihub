@@ -732,6 +732,39 @@ def _consume_credit():
 
     return True
 
+@app.route('/<key>.txt')
+def indexnow_key_file(key):
+    """Serve the IndexNow key verification file dynamically based on .env configuration."""
+    # Ensure they can't query just any random .txt file - only the configured IndexNow key
+    if INDEXNOW_KEY and key == INDEXNOW_KEY:
+        return INDEXNOW_KEY, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+    abort(404)
+
+@app.route('/api/indexnow/submit', methods=['POST'])
+@admin_required
+def submit_indexnow():
+    """Submit URLs to Bing IndexNow"""
+    if not INDEXNOW_KEY:
+        return jsonify({'success': False, 'message': 'INDEX_NOW_BING_API_KEY is not set.'}), 500
+        
+    data = request.json or {}
+    urls = data.get('urls', [])
+    if not urls:
+        return jsonify({'success': False, 'message': 'No urls provided.'}), 400
+        
+    payload = {
+        "host": BASE_DOMAIN,
+        "key": INDEXNOW_KEY,
+        "keyLocation": f"https://{BASE_DOMAIN}/{INDEXNOW_KEY}.txt",
+        "urlList": urls
+    }
+    
+    try:
+        resp = requests.post('https://api.indexnow.org/IndexNow', json=payload, timeout=10)
+        return jsonify({'success': resp.status_code == 200, 'status': resp.status_code, 'reason': resp.reason})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 @app.route('/api/quota', methods=['GET'])
 @auth_required
 def api_get_quota():
@@ -3100,6 +3133,54 @@ import json
 import os
 CONTACT_FILE = os.path.join('data', 'contact_messages.json')
 
+# ─── In-viewer document issue reporting (no Turnstile required — auth-gated) ──
+@app.route('/api/report-issue', methods=['POST'])
+@auth_required
+def api_report_issue():
+    """Submit a document issue report from within a viewer page.
+    Saves directly to CONTACT_FILE so the Admin Feedback panel shows it.
+    No Turnstile required — the session auth is sufficient protection.
+    """
+    data = request.get_json() or {}
+    user = session.get('user', {})
+
+    doc_title = data.get('doc_title', 'Unknown document')
+    doc_id    = data.get('doc_id', '')
+    doc_url   = data.get('doc_url', request.referrer or '')
+    issue_type = data.get('issue_type', 'General issue')
+    message   = data.get('message', '').strip()
+
+    if not message:
+        return jsonify({'success': False, 'error': 'Please describe the issue.'}), 400
+
+    msg = {
+        'name':      user.get('name', 'Authenticated User'),
+        'email':     user.get('email', 'unknown@abhihub'),
+        'subject':   f'[DOC REPORT] {issue_type} — {doc_title[:60]}',
+        'message':   (
+            f'**Document:** {doc_title}\n'
+            f'**Doc ID:** {doc_id}\n'
+            f'**Page URL:** {doc_url}\n'
+            f'**Issue Type:** {issue_type}\n\n'
+            f'{message}'
+        ),
+        'timestamp': datetime.now().isoformat(),
+        'source':    'in_viewer_report',
+    }
+
+    os.makedirs('data', exist_ok=True)
+    messages = _load_contact_messages()
+    messages.insert(0, msg)
+    try:
+        with open(CONTACT_FILE, 'w') as f:
+            json.dump(messages, f)
+    except Exception as e:
+        logging.error(f'[REPORT-ISSUE] Failed to write: {e}')
+        return jsonify({'success': False, 'error': 'Could not save report.'}), 500
+
+    logging.info(f'[REPORT-ISSUE] {user.get("email")} reported issue on doc {doc_id}: {issue_type}')
+    return jsonify({'success': True})
+
 @app.route('/api/contact', methods=['POST'])
 def api_contact():
     data = request.get_json()
@@ -4205,11 +4286,7 @@ def get_admin_stats():
 @admin_required
 def get_pending_documents():
     try:
-        client = init_supabase()
-        if not client:
-            return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
-            
-        res = client.table('documents')\
+        res = supabase.table('documents')\
             .select('id, title, document_category, file_type, file_url, created_at, uploader_id, profiles(full_name, email)')\
             .eq('status', 'pending')\
             .order('created_at', desc=True)\
@@ -4217,6 +4294,7 @@ def get_pending_documents():
             
         return jsonify({'success': True, 'documents': res.data or []})
     except Exception as e:
+        logging.error(f'[pending-documents] {e}')
         return jsonify({'success': False, 'error': str(e)}), 500
 
 @app.route('/admin/analytics')
