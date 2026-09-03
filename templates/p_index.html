@@ -13,7 +13,7 @@ notes, practicals, and exam resources for top colleges across India." %}
 <script src="{{ url_for('static', filename='premium/js/interactions.js') }}"></script>
 {% endblock %}
 {% block page_styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/pipeline.css') }}">
 {% endblock %}
 {% block content %}
 
@@ -21,7 +21,7 @@ notes, practicals, and exam resources for top colleges across India." %}
   window.ABHIHUB_USER_NAME = '{{ session.user.name if session.user else "" }}';
   window.ABHIHUB_USER_COLLEGE = '{{ user_data.college_name if user_data else "" }}';
 </script>
-<script src="/static/js/carousel-personalization.js"></script>
+<script src="{{ url_for('static', filename='js/pages/p_index.js') }}"></script>
 
 
 
@@ -1912,7 +1912,7 @@ notes, practicals, and exam resources for top colleges across India." %}
       </div>
       <div class="home-section-subtitle">Sorted by most viewed · click to read</div>
     </div>
-    <a href="/store-room?type=pyq{% if user_data and user_data.college_name %}&college={{ user_data.college_name | urlencode }}{% endif %}"
+    <a href="/college/{{ (user_data.college_name | default('')) | lower | replace(' ', '-') }}/files?type=pyq"
       class="home-see-all">See all →</a>
   </div>
   <div class="hscroll-row">
@@ -1942,7 +1942,7 @@ notes, practicals, and exam resources for top colleges across India." %}
 <div class="home-section" style="padding-top:0;">
   <div class="home-section-header">
     <div class="home-section-title">📚 Browse Papers</div>
-    <a href="/store-room?type=pyq" class="home-see-all">Full library →</a>
+    <a href="/college/{{ (user_data.college_name | default('')) | lower | replace(' ', '-') }}/files?type=pyq" class="home-see-all">Full library →</a>
   </div>
   <div class="tab-bar">
     <button class="tab-btn active" type="button" data-action="switchTab" data-tab="tab-trending">🔥 Trending</button>
@@ -2040,7 +2040,7 @@ notes, practicals, and exam resources for top colleges across India." %}
       </div>
       <div class="home-section-subtitle">Sorted by most viewed · click to read</div>
     </div>
-    <a href="/store-room?type=notes" class="home-see-all">See all →</a>
+    <a href="/college/{{ (user_data.college_name | default('')) | lower | replace(' ', '-') }}/files?type=notes" class="home-see-all">See all →</a>
   </div>
   <div class="hscroll-row">
     {% for file in relevant_notes %}
@@ -2071,7 +2071,7 @@ notes, practicals, and exam resources for top colleges across India." %}
       <div class="home-section-title">🔥 Trending Notes</div>
       <div class="home-section-subtitle">Most viewed study notes across colleges</div>
     </div>
-    <a href="/store-room?type=notes" class="home-see-all">See all →</a>
+    <a href="/college/{{ (user_data.college_name | default('')) | lower | replace(' ', '-') }}/files?type=notes" class="home-see-all">See all →</a>
   </div>
   <div class="hscroll-row">
     {% for file in trending_notes %}
@@ -2105,7 +2105,7 @@ notes, practicals, and exam resources for top colleges across India." %}
   <div class="home-section-header">
     <div class="home-section-title">🧪 Practicals</div>
     {% if practicals_files|length > 6 %}
-    <a href="/store-room?type=practical" class="home-see-all">See all →</a>
+    <a href="/college/{{ (user_data.college_name | default('')) | lower | replace(' ', '-') }}/files?type=practical" class="home-see-all">See all →</a>
     {% endif %}
   </div>
   <div class="hscroll-row">

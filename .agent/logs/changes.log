@@ -64,3 +64,63 @@ All 28 items from the BUGS.md audit were already fixed in recent commits (`1de4a
 
 ---
 *All 28 items from the BUGS.md audit verified as completed. All Phase 1, Phase 2, and Phase 3 items done.*
+
+## 2026-09-02 — CSS Pipeline Extraction + Inline CSS Cleanup
+
+### Changes — CSS Pipeline Structure
+- Created new pipeline modules under `static/css/pipeline/`:
+  - `00_variables.css` — design tokens extracted from template inline styles
+  - `01_reset.css` — baseline CSS reset
+  - `02_typography.css` — typography system
+  - `03_components.css` — reusable components from admin_notification_panel.html
+  - `04_layout.css` — layout styles from resource.html
+  - `05_utilities.css` — utility classes from know_me templates
+  - `06_pages.css` — admin economy page styles
+  - `07_responsive.css` — profile page responsive styles
+  - `08_animations.css` — features page animations/hero
+  - `upload-page.css` — upload page bundle
+  - `dashboard-home.css` — dashboard home bundle
+  - `support-page.css` — support page bundle
+  - `pipeline-master.css` — master entry point importing all modules
+
+### Changes — Template Inline CSS Extraction
+- Extracted inline `<style>` blocks and repeated `style=""` attributes from:
+  - `templates/admin_notification_panel.html`
+  - `templates/resource.html`
+  - `templates/know_me/dashboard.html`
+  - `templates/admin_economy.html`
+  - `templates/p_profile.html`
+  - `templates/features.html`
+  - `templates/p_upload.html`
+  - `templates/p_index.html`
+  - `templates/p_support.html`
+  - `templates/know_me/reveal.html` — no standalone block extracted; reuses existing `static/css/know-me.css`
+
+### Audit Results
+- Files with inline CSS before: 67/81
+- Total `<style>` tags: 57
+- Total `style=""` attributes: 665
+- Extracted to pipeline: 9 page bundles + 9 pipeline modules
+
+### Files Changed
+- `static/css/pipeline/00_variables.css`
+- `static/css/pipeline/01_reset.css`
+- `static/css/pipeline/02_typography.css`
+- `static/css/pipeline/03_components.css`
+- `static/css/pipeline/04_layout.css`
+- `static/css/pipeline/05_utilities.css`
+- `static/css/pipeline/06_pages.css`
+- `static/css/pipeline/07_responsive.css`
+- `static/css/pipeline/08_animations.css`
+- `static/css/pipeline/upload-page.css`
+- `static/css/pipeline/dashboard-home.css`
+- `static/css/pipeline/support-page.css`
+- `static/css/pipeline/pipeline-master.css`
+- `.agent/memory/important-notes.md`
+
+### Rules Applied
+- Followed skill rules-first approach
+- Progressive memory system: Flashcard → Summary → Important Notes → History
+- Minimum-context principle: read only relevant files
+- Reused existing CSS pipeline structure
+- No new dependencies added

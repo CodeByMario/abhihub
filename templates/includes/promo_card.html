@@ -1,8 +1,8 @@
     <!-- ===== PROMO ANNOUNCEMENT STRIP ===== -->
     <div id="promoStrip">
-        <span class="promo-tag">📤 {{ promo_context.get('upload_goal_month', 'May') if promo_context else 'May' }} Drive</span>
-        <span id="promoStripText">Help your juniors — upload a paper this month &amp; boost your rank!</span>
-        <a href="/upload" id="promoStripLink">Upload now →</a>
+        <span class="promo-tag">💰 Earnings</span>
+        <span id="promoStripText">Contribute to unlock rewards — check your earnings eligibility now.</span>
+        <a href="/earnings" id="promoStripLink">Check Earnings →</a>
         <button id="promoStripClose" type="button" data-action="dismissPromoStrip" aria-label="Close announcement">✕</button>
     </div>
 
@@ -11,9 +11,9 @@
         <div id="promoCard">
             <div class="promo-card-header">
                 <button type="button" class="promo-close-btn" data-action="closePromoCard" aria-label="Close">✕</button>
-                <span class="promo-emoji">📤</span>
-                <h2 id="promoCardTitle">Share your knowledge!</h2>
-                <p id="promoCardDesc">Upload one paper this {{ promo_context.get('upload_goal_month', 'May') if promo_context else 'May' }} &amp; make a difference for your peers</p>
+                <span class="promo-emoji">💰</span>
+                <h2 id="promoCardTitle">Earn rewards for contributing</h2>
+                <p id="promoCardDesc">Upload notes and papers to boost rank, earn credits, and unlock rewards.</p>
             </div>
             <div class="promo-card-body">
                 <ul class="promo-features-list">
@@ -22,19 +22,19 @@
                         <span><strong>Earn reputation points</strong> — you currently have {{ promo_context.get('reputation_score', 0) if promo_context else 0 }} pts</span>
                     </li>
                     <li>
-                        <span class="pf-icon violet">🎓</span>
-                        <span><strong>Help your juniors</strong> — you've helped {{ promo_context.get('students_helped', 0) if promo_context else 0 }} students</span>
+                        <span class="pf-icon violet">🚀</span>
+                        <span><strong>Boost your rank</strong> — reach Contributor to unlock earnings eligibility</span>
                     </li>
                     <li>
-                        <span class="pf-icon teal">⚡</span>
-                        <span><strong>Takes under 60 seconds</strong> — photo, scan, or PDF — any format</span>
+                        <span class="pf-icon teal">🎁</span>
+                        <span><strong>Refer friends</strong> — share your link and earn referral credits</span>
                     </li>
                     <li>
-                        <span class="pf-icon blue">📊</span>
-                        <span><strong>Free Views</strong> — you have {{ promo_context.get('remaining_views', 19) if promo_context else 19 }} views left</span>
+                        <span class="pf-icon blue">📈</span>
+                        <span><strong>Get discovered</strong> — aim for 50+ views on your uploads to grow faster</span>
                     </li>
                 </ul>
-                <a href="/upload" class="promo-cta-btn" id="promoUploadBtn" data-action="markUploadClicked">Upload a Paper Now 🚀</a>
+                <a href="/earnings" class="promo-cta-btn" id="promoUploadBtn" data-action="markUploadClicked">Check Earnings 💰</a>
                 <span class="promo-dismiss-link" data-action="snoozePromoCard">Remind me tomorrow</span>
             </div>
         </div>

@@ -1,0 +1,280 @@
+
+/* ================================================
+   AbhiHub Navigation Bar Styles
+   Supports both Bootstrap and custom navbar systems
+   ================================================ */
+
+/* --- Bootstrap Native Navbar Styling --- */
+.navbar {
+  --bs-bg-color: var(--background) !important;
+  --bs-text-color: var(--text) !important;
+  background: var(--background) !important;
+  padding: 0.75rem 0 !important;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05) !important;
+}
+
+.navbar-brand {
+  color: var(--primary-color) !important;
+  font-weight: 700 !important;
+  font-size: 1.25rem !important;
+  transition: var(--transition-fast) !important;
+}
+
+.navbar-brand:hover {
+  color: var(--secondary-color) !important;
+}
+
+.navbar-toggler {
+  border-color: var(--border) !important;
+}
+
+.navbar-toggler:hover {
+  border-color: var(--primary-color) !important;
+}
+
+.navbar-toggler-icon {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 30 30%3E%3Cpath stroke='var(--text)' stroke-width='2' stroke-linecap='round' stroke-linejoin='round' d='M4 7h22M4 15h22M4 23h22'/%3E%3C/svg%3E") !important;
+}
+
+/* Bootstrap nav links */
+.navbar-nav .nav-link {
+  color: var(--text) !important;
+  font-weight: 500 !important;
+  position: relative !important;
+  transition: var(--transition-fast) !important;
+}
+
+.navbar-nav .nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -0.25rem;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background: var(--primary-color);
+  transition: var(--transition-fast) !important;
+  width: 100%;
+}
+
+.navbar-nav .nav-link:hover::after {
+  width: 100%;
+}
+
+/* Bootstrap buttons in navbar */
+.navbar .btn-primary {
+  background: var(--primary-color) !important;
+  border-color: var(--primary-color) !important;
+  color: #ffffff !important;
+  transition: var(--transition-fast) !important;
+}
+
+.navbar .btn-primary:hover {
+  background: var(--secondary-color) !important;
+  border-color: var(--secondary-color) !important;
+}
+
+/* Reduce Bootstrap defaults */
+.navbar-light .navbar-nav .nav-link {
+  color: var(--text) !important;
+}
+
+.navbar-light .navbar-nav .nav-link:hover {
+  color: var(--primary-color) !important;
+}
+
+/* --- Custom Navbar (navbar__item system) --- */
+/* Only apply when .navbar__item exists */
+.navbar__item {
+  display: inline-block;
+  position: relative;
+  margin: 0 var(--spacing-1) 0 0;
+}
+
+.navbar__item.-blue {
+  color: var(--primary-color) !important;
+}
+
+.navbar__item.-blue:hover {
+  color: var(--secondary-color) !important;
+}
+
+.navbar__item.-orange {
+  color: var(--secondary-color) !important;
+}
+
+.navbar__item.-orange:hover {
+  color: var(--primary-color) !important;  
+}
+
+.navbar__item.-navy-blue {
+  color: var(--primary-color) !important;
+}
+
+.navbar__item.-purple {
+  color: var(--primary-color) !important;
+}
+
+.navbar__item.-green {
+  color: var(--success) !important;
+}
+
+.navbar__item.-yellow {
+  color: #d97706 !important;
+}
+
+.navbar__item.-red {
+  color: var(--error) !important;
+}
+
+/* Active state */
+.navbar__item--active {
+  color: var(--primary-color) !important;
+}
+
+/* Bottom nav layout */
+.navbar--bottom {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 800;
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.25rem calc(0.5rem + env(safe-area-inset-bottom, 0px));
+  background: rgba(255, 255, 255, 0.92);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+}
+
+.navbar--bottom .navbar__item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  margin: 0;
+  flex: 1 1 0;
+  min-width: 0;
+  text-align: center;
+  padding: 0.15rem 0;
+  border-radius: 12px;
+  transition: background 0.2s ease, transform 0.2s ease;
+}
+
+.navbar--bottom .navbar__item:active {
+  transform: translateY(1px);
+}
+
+.navbar--bottom .navbar__icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.navbar--bottom .navbar__icon .icon {
+  width: 22px;
+  height: 22px;
+}
+
+.navbar--bottom .navbar__label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.navbar--bottom .navbar__item--active {
+  background: rgba(37, 99, 235, 0.06);
+  color: var(--primary-color) !important;
+}
+
+/* Notification dot */
+.notification-dot {
+  position: absolute;
+  top: 0.15rem;
+  right: -0.3rem;
+  background: var(--error);
+  color: #ffffff;
+  border-radius: 9999px;
+  padding: 0.15rem 0.3rem;
+  font-size: 0.65rem;
+  font-weight: bold;
+}
+
+/* Search form */
+.nav-search-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(var(--background-rgb), 0.95);
+  z-index: 1000;
+  padding: var(--spacing-5);
+}
+
+.nav-search-wrapper {
+  max-width: 400px;
+  margin: 0 auto;
+  display: flex;
+}
+
+.nav-search-field {
+  flex: 1;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-md);
+  background: var(--background);
+  color: var(--text);
+  font-size: var(--font-size-md);
+}
+
+.nav-search-btn {
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--primary-color);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  margin-left: var(--spacing-2);
+  cursor: pointer;
+}
+
+.nav-search-close-btn {
+  padding: var(--spacing-2) var(--spacing-3);
+  background: var(--error);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--radius-md);
+  cursor: pointer;
+}
+
+/* Mobile */
+@media (max-width: 991.98px) {
+  .navbar-collapse {
+    border-top: 1px solid var(--border) !important;
+    padding-top: 1rem !important;
+  }
+  
+  .navbar-nav .nav-link,
+  .navbar-nav .nav-link {
+    padding: 0.5rem 0.75rem !important;
+    color: var(--text) !important;
+  }
+  
+  .navbar-nav .active > .nav-link,
+  .navbar-nav .active > .nav-link {
+    color: var(--primary-color) !important;
+  }
+  
+  .nav-search-overlay {
+    padding: var(--spacing-3);
+  }
+}

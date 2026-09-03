@@ -6,14 +6,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="language" content="en">
     <meta name="google" content="translate">
-    
+
     <!-- Central SEO Template -->
     {% include 'includes/seo_head.html' %}
 
     <!-- PWA Manifest & App Icons -->
     <link rel="manifest" href="/static/manifest.json">
     <link rel="apple-touch-icon" href="/static/images/apple-touch-icon.png">
-    
+
     <script src="/static/js/push-notifications.js" defer></script>
 
     {% block page_head %}{% endblock %}
@@ -30,7 +30,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/promo.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/profile-nudge.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/notification-bell.css') }}">
-    
+
     <link rel="stylesheet" href="{{ url_for('static', filename='css/overlay-system.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.min.css') }}">
     {% block page_styles %}{% endblock %}
@@ -41,7 +41,7 @@
 
     <!-- Study Pass System Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/study-pass.css') }}">
-    
+
     <!-- TomSelect CSS -->
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
     <!-- AbhiHub Select Component Styles -->
@@ -68,7 +68,8 @@
     <div id="pwaInstallPopup" class="popup-overlay pwa-install-popup" data-action="dismissIfClicked">
         <div class="pwa-popup-content">
             <div class="pwa-popup-header">
-                <button type="button" class="pwa-popup-close" data-action="dismissInstallPopup" aria-label="Close">✕</button>
+                <button type="button" class="pwa-popup-close" data-action="dismissInstallPopup"
+                    aria-label="Close">✕</button>
                 <img src="/static/images/android-chrome-192x192.png" alt="AbhiHub" class="pwa-app-icon">
                 <h2 class="pwa-popup-title">Install AbhiHub</h2>
                 <p class="pwa-popup-subtitle">Get the full app experience</p>
@@ -90,7 +91,8 @@
                 </div>
                 <div id="installActions" class="pwa-install-actions">
                     <button class="pwa-install-btn primary" type="button" data-action="installPWA">Install App</button>
-                    <button class="pwa-install-btn secondary" type="button" data-action="dismissInstallPopup">Maybe Later</button>
+                    <button class="pwa-install-btn secondary" type="button" data-action="dismissInstallPopup">Maybe
+                        Later</button>
                 </div>
                 <div id="installInstructions" class="pwa-instructions">
                     <strong>How to install:</strong>
@@ -106,7 +108,8 @@
 
     <!-- ===== PROFILE COMPLETION + NOTIFICATION POPUP ===== -->
     <!-- Styles: css/pipeline/profile-nudge.css -->
-    <div id="profileNudgeOverlay" class="popup-overlay profile-nudge-overlay" role="dialog" aria-modal="true" aria-labelledby="profileNudgeTitle">
+    <div id="profileNudgeOverlay" class="popup-overlay profile-nudge-overlay" role="dialog" aria-modal="true"
+        aria-labelledby="profileNudgeTitle">
         <div id="profileNudgeCard">
 
             <!-- Step 1: Complete Profile -->
@@ -139,8 +142,10 @@
                             <span>Earn <strong>verified contributor</strong> badge</span>
                         </li>
                     </ul>
-                    <a href="/account" class="nudge-cta-btn nudge-cta-btn--profile" data-action="dismissProfileNudge">Complete Profile Now 🚀</a>
-                    <span class="nudge-secondary-link" data-action="nudgeGoToStep2">Enable notifications instead →</span>
+                    <a href="/account" class="nudge-cta-btn nudge-cta-btn--profile"
+                        data-action="dismissProfileNudge">Complete Profile Now 🚀</a>
+                    <span class="nudge-secondary-link" data-action="nudgeGoToStep2">Enable notifications instead
+                        →</span>
                 </div>
             </div>
 
@@ -152,7 +157,8 @@
                     <p>Get notified when new papers are uploaded, your rank changes, or documents are approved</p>
                 </div>
                 <div class="nudge-body">
-                    <button id="nudgeEnableNotifBtn" type="button" data-action="nudgeEnableNotifications" class="nudge-cta-btn nudge-cta-btn--notif">Enable Notifications 🔔</button>
+                    <button id="nudgeEnableNotifBtn" type="button" data-action="nudgeEnableNotifications"
+                        class="nudge-cta-btn nudge-cta-btn--notif">Enable Notifications 🔔</button>
                 </div>
             </div>
 
@@ -163,32 +169,34 @@
     <header>
         <nav class="main-nav" role="navigation" aria-label="Main navigation">
             <div class="logo kanit-bold cursor-pointer" data-action="switchToEliteVersion">
-                    <span class="logo-text">AbhiHub</span>
-                </div>
-                <!-- Notification Bell: styles in css/pipeline/notification-bell.css -->
-                <div id="notifBellWrap">
-                    <button id="notifBell" type="button" data-action="toggleNotifPanel" aria-label="Notifications" aria-expanded="false">
-                        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2"
-                            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
-                        </svg>
-                        <span id="notifBadge"></span>
-                    </button>
+                <span class="logo-text">AbhiHub</span>
+            </div>
+            <!-- Notification Bell: styles in css/pipeline/notification-bell.css -->
+            <div id="notifBellWrap">
+                <button id="notifBell" type="button" data-action="toggleNotifPanel" aria-label="Notifications"
+                    aria-expanded="false">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2"
+                        stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    </svg>
+                    <span id="notifBadge"></span>
+                </button>
 
                 <div id="notifPanel">
                     <div class="notif-panel-header">
                         <span class="notif-panel-title">🔔 Notifications</span>
-                        <button type="button" data-action="markAllRead" class="notif-mark-read-btn">Mark all read</button>
+                        <button type="button" data-action="markAllRead" class="notif-mark-read-btn">Mark all
+                            read</button>
                     </div>
                     <div id="notifList">
                         <div class="notif-loading">Loading…</div>
                     </div>
                     <div class="notif-panel-footer">
-                            <a href="/notifications" class="notif-view-all">View All</a>
-                            <span>Updates every 3 min</span>
-                        </div>
+                        <a href="/notifications" class="notif-view-all">View All</a>
+                        <span>Updates every 3 min</span>
                     </div>
+                </div>
             </div>
 
         </nav>
@@ -208,14 +216,16 @@
         <div class="entity-modal-card">
             <div class="entity-modal-header">
                 <h3 id="entityModalTitle">Add New</h3>
-                <button type="button" class="entity-modal-close" aria-label="Close" data-action="closeEntityModal">&times;</button>
+                <button type="button" class="entity-modal-close" aria-label="Close"
+                    data-action="closeEntityModal">&times;</button>
             </div>
             <form id="entityModalForm">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
                 <div class="entity-modal-body">
                     <div class="entity-field-group" id="entitySemesterField" style="display: none;">
                         <label>Semester *</label>
-                        <select id="entitySemester" style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 1rem;">
+                        <select id="entitySemester"
+                            style="width: 100%; padding: 0.5rem; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 1rem;">
                             <option value="">Select Semester</option>
                             <option value="1">Semester 1</option>
                             <option value="2">Semester 2</option>
@@ -699,67 +709,67 @@
         })();
     </script>
 
-        <!-- Global overlay helpers (make some common popup controls available on every page) -->
-        <script>
-            window.openSupportModal = function() {
-                try {
-                    var showFn = function() {
-                        var el = document.getElementById('supportModal');
-                        if (el) { el.classList.add('show'); el.style.display = ''; document.body.style.overflow = 'hidden'; }
-                    };
-
-                    if (window.OverlayManager && typeof window.OverlayManager.request === 'function') {
-                        window.OverlayManager.request({
-                            id: 'supportModal',
-                            priority: 60,
-                            show: showFn,
-                            immediate: true
-                        });
-                    } else {
-                        showFn();
-                    }
-                } catch(e){}
-            };
-
-            window.closeSupportModal = function() {
-                try {
+    <!-- Global overlay helpers (make some common popup controls available on every page) -->
+    <script>
+        window.openSupportModal = function () {
+            try {
+                var showFn = function () {
                     var el = document.getElementById('supportModal');
-                    if (window.OverlayManager && typeof window.OverlayManager.dismiss === 'function') {
-                        window.OverlayManager.dismiss('supportModal', 6 * 60 * 60 * 1000); // 6h cooldown
-                    }
-                    if (el) { el.classList.remove('show'); el.style.display = ''; document.body.style.overflow = ''; }
-                } catch(e){}
-            };
-            // Ensure clicking modal close buttons inside support modal always closes it
-            document.addEventListener('click', function(e){
-                try {
-                    var btn = e.target.closest('.dashboard-modal-close, .dashboard-modal-secondary-button');
-                    if (!btn) return;
-                    var support = document.getElementById('supportModal');
-                    if (support && support.contains(btn)) {
-                        window.closeSupportModal();
-                    }
-                } catch(e){}
-            });
-            // Debug helper: force-close any overlay (use from browser console)
-            window.forceCloseAllOverlays = function() {
-                try {
-                    var sels = ['.popup-overlay', '.dashboard-modal-body', '.profile-nudge-overlay', '.pwa-install-popup', '.mw-awareness-overlay'];
-                    sels.forEach(s => {
-                        document.querySelectorAll(s).forEach(el => {
-                            el.classList.remove('show');
-                            try { el.style.display = 'none'; } catch(e){}
-                        });
-                    });
-                    // also hide any inline popup containers
-                    document.querySelectorAll('[id$="-popup"]').forEach(el => { el.classList.remove('show'); try{el.style.display='none';}catch(e){} });
-                    document.body.style.overflow = '';
-                    console.log('[forceCloseAllOverlays] closed overlays');
-                } catch(e) { console.error('[forceCloseAllOverlays]', e); }
-            };
-        </script>
+                    if (el) { el.classList.add('show'); el.style.display = ''; document.body.style.overflow = 'hidden'; }
+                };
 
-        <!-- Security Module -->
+                if (window.OverlayManager && typeof window.OverlayManager.request === 'function') {
+                    window.OverlayManager.request({
+                        id: 'supportModal',
+                        priority: 60,
+                        show: showFn,
+                        immediate: true
+                    });
+                } else {
+                    showFn();
+                }
+            } catch (e) { }
+        };
+
+        window.closeSupportModal = function () {
+            try {
+                var el = document.getElementById('supportModal');
+                if (window.OverlayManager && typeof window.OverlayManager.dismiss === 'function') {
+                    window.OverlayManager.dismiss('supportModal', 6 * 60 * 60 * 1000); // 6h cooldown
+                }
+                if (el) { el.classList.remove('show'); el.style.display = ''; document.body.style.overflow = ''; }
+            } catch (e) { }
+        };
+        // Ensure clicking modal close buttons inside support modal always closes it
+        document.addEventListener('click', function (e) {
+            try {
+                var btn = e.target.closest('.dashboard-modal-close, .dashboard-modal-secondary-button');
+                if (!btn) return;
+                var support = document.getElementById('supportModal');
+                if (support && support.contains(btn)) {
+                    window.closeSupportModal();
+                }
+            } catch (e) { }
+        });
+        // Debug helper: force-close any overlay (use from browser console)
+        window.forceCloseAllOverlays = function () {
+            try {
+                var sels = ['.popup-overlay', '.dashboard-modal-body', '.profile-nudge-overlay', '.pwa-install-popup', '.mw-awareness-overlay'];
+                sels.forEach(s => {
+                    document.querySelectorAll(s).forEach(el => {
+                        el.classList.remove('show');
+                        try { el.style.display = 'none'; } catch (e) { }
+                    });
+                });
+                // also hide any inline popup containers
+                document.querySelectorAll('[id$="-popup"]').forEach(el => { el.classList.remove('show'); try { el.style.display = 'none'; } catch (e) { } });
+                document.body.style.overflow = '';
+                console.log('[forceCloseAllOverlays] closed overlays');
+            } catch (e) { console.error('[forceCloseAllOverlays]', e); }
+        };
+    </script>
+
+    <!-- Security Module -->
     <script src="{{ url_for('static', filename='js/security.js') }}" defer></script>
 
     <!-- Engagement Layer -->
@@ -767,12 +777,12 @@
     <script src="{{ url_for('static', filename='js/access-gates.js') }}" defer></script>
     <script src="{{ url_for('static', filename='js/ad-manager.js') }}" defer></script>
     <script>
-      // Boot engagement layer after DOM + deferred scripts are ready
-      document.addEventListener('DOMContentLoaded', function () {
-        setTimeout(function () {
-          if (window.AccessGates) window.AccessGates.init();
-        }, 1000);
-      });
+        // Boot engagement layer after DOM + deferred scripts are ready
+        document.addEventListener('DOMContentLoaded', function () {
+            setTimeout(function () {
+                if (window.AccessGates) window.AccessGates.init();
+            }, 1000);
+        });
     </script>
 
     <!-- Phase 1: Soft Warning Toast -->
@@ -890,7 +900,7 @@
     <!-- Ad placements are disabled by default until consent and AdSense approval are in place. -->
 
 </body>
-    <amp-auto-ads type="adsense"
-        data-ad-client="ca-pub-8274846157272362">
-    </amp-auto-ads>
+<amp-auto-ads type="adsense" data-ad-client="ca-pub-8274846157272362">
+</amp-auto-ads>
+
 </html>

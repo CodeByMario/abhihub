@@ -1,6 +1,6 @@
 {% extends 'p_struct.html' %}
 {% block page_styles %}
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.css">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/03_components.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/p_upload.css') }}">
 {% endblock %}
 {% block content %}
@@ -240,7 +240,7 @@
   <span id="uploadFloatText">Uploading…</span>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.6.2/cropper.min.js"></script>
+<script src="{{ url_for('static', filename='js/pages/p_upload.js') }}"></script>
 <script src="{{ url_for('static', filename='js/bulk_upload.js') }}?v=2.1"></script>
 <script>
   /* ── Dynamic fields ── */

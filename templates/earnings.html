@@ -1,0 +1,161 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+<style>
+  .earn-page {
+    padding: 1.5rem 1rem 5rem;
+    max-width: 1320px;
+    margin: 0 auto;
+  }
+  .earn-hero {
+    background: linear-gradient(135deg, var(--primary-700), var(--primary-500) 60%, #6366f1);
+    border-radius: 20px;
+    padding: 2rem;
+    color: #fff;
+    margin-bottom: 1.5rem;
+  }
+  .earn-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    margin: 0 0 0.4rem;
+  }
+  .earn-sub {
+    margin: 0;
+    color: rgba(255,255,255,0.85);
+    font-size: 0.95rem;
+  }
+  .earn-card {
+    background: #fff;
+    border-radius: 16px;
+    padding: 1.25rem;
+    border: 1px solid var(--border-light);
+    margin-bottom: 1.25rem;
+  }
+  .earn-card h3 {
+    font-size: 1rem;
+    margin: 0 0 0.6rem;
+    color: var(--text-primary);
+  }
+  .earn-muted {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    line-height: 1.55;
+  }
+  .earn-list {
+    margin: 0.6rem 0 0 1.1rem;
+    padding: 0;
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    line-height: 1.6;
+  }
+  .earn-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.18);
+    border: 1px solid rgba(255,255,255,0.35);
+    color: #fff;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+  .earn-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-top: 1rem;
+  }
+  .earn-btn {
+    padding: 0.7rem 1rem;
+    border-radius: 12px;
+    border: 0;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    color: #fff;
+    background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+  }
+  .earn-btn-secondary {
+    background: #f1f5f9;
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+  }
+  .earn-result {
+    margin-top: 0.75rem;
+    font-size: 0.9rem;
+    display: none;
+  }
+  @media (max-width: 640px) {
+    .earn-hero { padding: 1.25rem; }
+  }
+</style>
+
+<div class="earn-page">
+  <div class="earn-hero">
+    <div class="earn-title">Earnings</div>
+    <p class="earn-sub">Rewards are coming soon. Boost your rank now to unlock benefits.</p>
+    <div class="earn-badge">🚧 Coming soon</div>
+  </div>
+
+  <div class="earn-card">
+    <h3>Check Eligibility</h3>
+    <p class="earn-muted">Current eligibility is based on your rank tier.</p>
+    <button id="eligibilityBtn" class="earn-btn" type="button">Check Eligibility</button>
+    <div id="eligibilityResult" class="earn-result"></div>
+  </div>
+
+  <div class="earn-card">
+    <h3>How to Boost Rank</h3>
+    <p class="earn-muted">Rank tiers: Explorer → Member → Contributor → Power Contributor → Community Leader.</p>
+    <ul class="earn-list">
+      <li>Refer friends using your referral link.</li>
+      <li>Share files publicly to get more views.</li>
+      <li>Aim for at least <strong>50 views</strong> on your uploads.</li>
+      <li>Keep uploading useful notes, papers, and practicals.</li>
+    </ul>
+    <div class="earn-actions">
+      <a class="earn-btn" href="{{ url_for('profile') }}">Open Profile</a>
+      <a class="earn-btn earn-btn-secondary" href="{{ url_for('upload') }}">Upload Files</a>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function () {
+    const btn = document.getElementById('eligibilityBtn');
+    const out = document.getElementById('eligibilityResult');
+    if (!btn || !out) return;
+
+    function show(eligible) {
+      out.style.display = 'block';
+      if (eligible) {
+        out.innerHTML = '<div style="color:#059669;">✅ You are eligible — rewards are coming soon.</div>';
+      } else {
+        out.innerHTML = '<div style="color:#b45309;">❌ Not eligible yet — reach <strong>Contributor</strong> rank to unlock rewards.</div>';
+      }
+    }
+
+    btn.addEventListener('click', async () => {
+      out.style.display = 'none';
+      btn.disabled = true;
+      btn.textContent = 'Checking…';
+      try {
+        const r = await fetch('/api/my-access');
+        const d = await r.json();
+        if (!d.success) throw new Error('failed');
+        const level = (d.level || 'explorer').toLowerCase();
+        const eligible = ['contributor','power_contributor','community_leader'].includes(level);
+        show(eligible);
+      } catch (e) {
+        out.style.display = 'block';
+        out.innerHTML = '<div style="color:#b45309;">Could not check eligibility right now.</div>';
+      } finally {
+        btn.disabled = false;
+        btn.textContent = 'Check Eligibility';
+      }
+    });
+  })();
+</script>
+
+{% endblock %}

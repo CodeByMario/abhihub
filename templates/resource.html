@@ -655,7 +655,10 @@ uploader_name %}
   <div class="breadcrumb-nav">
     <a href="/">Home</a> <span>›</span>
     {% if document.college %}
-    <a href="/college/{{ (document.college.abbreviation or document.college.name) | lower | replace(' ', '-') }}">{{
+    {% set college_slug = (document.college.abbreviation or document.college.name) | lower | replace(' ', '-') %}
+    {% set doc_cat = (document.document_category or '') | lower %}
+    {% set cat_param = 'pyq' if doc_cat in ['papers', 'paper', 'pyq'] else ('notes' if doc_cat == 'notes' else ('practical' if doc_cat in ['practical', 'practicals'] else '')) %}
+    <a href="/college/{{ college_slug }}/files{% if cat_param %}?type={{ cat_param }}{% endif %}">{{
       document.college.abbreviation or document.college.name }}</a> <span>›</span>
     {% endif %}
     {% if document.subject %}
@@ -908,20 +911,69 @@ uploader_name %}
             transform: translateY(-6px);
           }
         }
+
+        .ai-chat-gate {
+          position: relative;
+        }
+
+        .ai-rank-gate {
+          position: absolute;
+          inset: 0;
+          background: rgba(15, 23, 42, 0.55);
+          backdrop-filter: blur(2px);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          padding: 1rem;
+          border-radius: 16px;
+        }
+
+        .ai-rank-gate-box {
+          background: rgba(255, 255, 255, 0.92);
+          border: 1px solid #e2e8f0;
+          border-radius: 16px;
+          padding: 1.1rem 1.25rem;
+          max-width: 320px;
+          text-align: center;
+          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+        }
+
+        .ai-rank-gate-title {
+          font-weight: 900;
+          color: #0f172a;
+          margin-bottom: 0.4rem;
+        }
+
+        .ai-rank-gate-copy {
+          font-size: 0.9rem;
+          color: #475569;
+          margin-bottom: 0.9rem;
+        }
+
+        .ai-rank-gate-cta {
+          display: inline-block;
+          padding: 0.55rem 0.9rem;
+          border-radius: 12px;
+          background: #2563eb;
+          color: white;
+          font-weight: 800;
+          text-decoration: none;
+        }
+
+        .ai-chat-gate.ai-allowed .ai-rank-gate {
+          display: none;
+        }
       </style>
-      <div class="preview-card" id="aiChatPanel">
+      <div class="preview-card ai-chat-gate{% if ai_chat_allowed %} ai-allowed{% endif %}" id="aiChatPanel">
         <div class="preview-header" style="flex-wrap: wrap; gap: 0.5rem;">
           <div style="font-weight:700;color:var(--r-text);display:flex;align-items:center;gap:.5rem;">
             <span>🤖</span> Ask AI about this paper / PDF
           </div>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
             <span style="font-size:.8rem;color:var(--r-muted);">Powered by Free Vision & OCR AI</span>
-            <button type="button" data-action="shareChatWhatsApp" class="ai-toolbar-btn ai-whatsapp"
-              aria-label="Share on WhatsApp">Share WA</button>
-            <button type="button" data-action="exportChatPDF" class="ai-toolbar-btn ai-export"
-              aria-label="Export chat as PDF">Export PDF</button>
-            <button type="button" data-action="toggleChatFullscreen" id="chatFsBtn" class="ai-toolbar-btn ai-fullscreen"
-              title="Fullscreen" aria-label="Toggle fullscreen">⛶ Full</button>
+            <button type="button" data-action="shareChatWhatsApp" class="ai-toolbar-btn ai-whatsapp" aria-label="Share on WhatsApp">Share WA</button>
+            <button type="button" data-action="exportChatPDF" class="ai-toolbar-btn ai-export" aria-label="Export chat as PDF">Export PDF</button>
+            <button type="button" data-action="toggleChatFullscreen" id="chatFsBtn" class="ai-toolbar-btn ai-fullscreen" title="Fullscreen" aria-label="Toggle fullscreen">⛶ Full</button>
           </div>
         </div>
 
@@ -930,46 +982,40 @@ uploader_name %}
         </div>
 
         <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-          <button type="button" data-action="sendPersonaPrompt" data-model="ChatGPT" class="ai-persona-btn ai-chatgpt"
-            aria-label="Chat with ChatGPT">ChatGPT</button>
-          <button type="button" data-action="sendPersonaPrompt" data-model="Gemini" class="ai-persona-btn ai-gemini"
-            aria-label="Chat with Gemini">Gemini</button>
-          <button type="button" data-action="sendPersonaPrompt" data-model="Claude" class="ai-persona-btn ai-claude"
-            aria-label="Chat with Claude">Claude</button>
+          <button type="button" data-action="sendPersonaPrompt" data-model="ChatGPT" class="ai-persona-btn ai-chatgpt" aria-label="Chat with ChatGPT">ChatGPT</button>
+          <button type="button" data-action="sendPersonaPrompt" data-model="Gemini" class="ai-persona-btn ai-gemini" aria-label="Chat with Gemini">Gemini</button>
+          <button type="button" data-action="sendPersonaPrompt" data-model="Claude" class="ai-persona-btn ai-claude" aria-label="Chat with Claude">Claude</button>
         </div>
 
         <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <span style="font-size: 0.8rem; color: var(--r-muted); align-self: center;">Suggestions:</span>
-          <button type="button" data-action="suggestQ" data-question="Solve question 1 step-by-step"
-            class="ai-suggestion-btn" aria-label="Solve question 1 step-by-step">Solve Q1</button>
-          <button type="button" data-action="suggestQ" data-question="Explain the core concepts in question 2"
-            class="ai-suggestion-btn" aria-label="Explain the core concepts in question 2">Explain Q2</button>
-          <button type="button" data-action="suggestQ" data-question="What are the most important topics in this paper?"
-            class="ai-suggestion-btn" aria-label="What are the most important topics in this paper?">Important
-            Topics</button>
-          <button type="button" data-action="suggestQ" data-question="Summarize the entire paper"
-            class="ai-suggestion-btn" aria-label="Summarize the entire paper">Summarize</button>
+          <button type="button" data-action="suggestQ" data-question="Solve question 1 step-by-step" class="ai-suggestion-btn" aria-label="Solve question 1 step-by-step">Solve Q1</button>
+          <button type="button" data-action="suggestQ" data-question="Explain the core concepts in question 2" class="ai-suggestion-btn" aria-label="Explain the core concepts in question 2">Explain Q2</button>
+          <button type="button" data-action="suggestQ" data-question="What are the most important topics in this paper?" class="ai-suggestion-btn" aria-label="What are the most important topics in this paper?">Important Topics</button>
+          <button type="button" data-action="suggestQ" data-question="Summarize the entire paper" class="ai-suggestion-btn" aria-label="Summarize the entire paper">Summarize</button>
         </div>
 
         <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
           <span style="font-size: 0.8rem; color: var(--r-muted); font-weight: 600;">🤖 AI OCR Model:</span>
-          <select id="aiModelSelect"
-            style="padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid var(--r-border); font-size: 0.8rem; background: #f8fafc; color: #334155; font-weight: 600; cursor: pointer;">
+          <select id="aiModelSelect" style="padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid var(--r-border); font-size: 0.8rem; background: #f8fafc; color: #334155; font-weight: 600; cursor: pointer;">
             <option value="auto">✨ Auto (Best Available)</option>
             {% for model in ai_models %}
-            <option value="{{ model }}" {% if model==best_model %}selected{% endif %}>{{
-              model.split('/')[-1].replace(':free', '').replace('-instruct', '') | upper }}</option>
+            <option value="{{ model }}" {% if model==best_model %}selected{% endif %}>{{ model.split('/')[-1].replace(':free', '').replace('-instruct', '') | upper }}</option>
             {% endfor %}
           </select>
         </div>
 
         <div style="padding:1rem 1.5rem;border-top:1px solid var(--r-border);display:flex;gap:.75rem;">
-          <input id="aiQuestion" type="text" placeholder="e.g. What topics are covered in this paper?" maxlength="300"
-            style="flex:1;padding:.65rem 1rem;border:1px solid var(--r-border);border-radius:12px;font-size:.9rem;outline:none;"
-            data-event-keyup="askAIOnEnter">
-          <button type="button" data-action="askAI" id="aiSendBtn" class="ai-send-btn">
-            Ask
-          </button>
+          <input id="aiQuestion" type="text" placeholder="e.g. What topics are covered in this paper?" maxlength="300" style="flex:1;padding:.65rem 1rem;border:1px solid var(--r-border);border-radius:12px;font-size:.9rem;outline:none;" data-event-keyup="askAIOnEnter">
+          <button type="button" data-action="askAI" id="aiSendBtn" class="ai-send-btn">Ask</button>
+        </div>
+
+        <div class="ai-rank-gate" aria-hidden="true">
+          <div class="ai-rank-gate-box">
+            <div class="ai-rank-gate-title">🔒 Higher rank required</div>
+            <div class="ai-rank-gate-copy">AI chat unlocks after you reach <strong>Contributor</strong>.</div>
+            <a class="ai-rank-gate-cta" href="/leaderboard">Check your rank</a>
+          </div>
         </div>
       </div>
 

@@ -122,6 +122,13 @@
   - **Decision:** Leave as-is for now (stylistic, not load-bearing)
   - Revisit only if `app.py` is split into blueprints
 
+## CSS Pipeline Standardization
+- Central CSS pipeline under `static/css/pipeline/`
+- Entry points: `pipeline.css`, `pipeline-master.css`
+- Modules: variables, reset, base, components, layout, utilities, pages, responsive, animations, app-shell, navbar, notification-bell, feature-tour, profile-nudge, promo, pwa-install
+- Feature bundles: `upload-page.css`, `dashboard-home.css`, `support-page.css`
+- Goal: extract inline `<style>` blocks and repeated `style=""` attributes into reusable classes
+
 ## M3 Deferred Decision (Investigated and Dismissed)
 - Lazy imports in route functions are not load-bearing; they are stylistic
 - Hoisting 59 distinct symbols into one module-level import touches nearly every route

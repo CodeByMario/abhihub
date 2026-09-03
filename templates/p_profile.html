@@ -481,11 +481,14 @@
       <p class="pf-hero-email">{{ data['user']['email'] }}</p>
       <!-- Access Level Badge (Dynamic Access Economy) -->
       <div id="access-badge" style="margin:.5rem 0 .25rem;display:none;align-items:center;gap:.6rem;">
-        <span style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:.25rem .8rem;font-size:.8rem;font-weight:600;color:#fff;">
+        <span
+          style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:.25rem .8rem;font-size:.8rem;font-weight:600;color:#fff;">
           ⭐ <span id="access-level-name">Explorer</span>
         </span>
-        <div style="flex:1;max-width:180px;height:6px;background:rgba(255,255,255,.25);border-radius:999px;overflow:hidden;">
-          <div id="access-progress-bar" style="height:100%;width:0%;background:#fff;border-radius:999px;transition:width .4s;"></div>
+        <div
+          style="flex:1;max-width:180px;height:6px;background:rgba(255,255,255,.25);border-radius:999px;overflow:hidden;">
+          <div id="access-progress-bar"
+            style="height:100%;width:0%;background:#fff;border-radius:999px;transition:width .4s;"></div>
         </div>
         <span id="access-next" style="font-size:.72rem;color:rgba(255,255,255,.85);"></span>
       </div>
@@ -494,8 +497,10 @@
           fetch('/api/my-access').then(r => r.json()).then(d => {
             if (!d.success || !d.progress) return;
             const wrap = document.getElementById('access-badge');
-            const names = {explorer:'Explorer', member:'Member', contributor:'Contributor',
-                           power_contributor:'Power Contributor', community_leader:'Community Leader'};
+            const names = {
+              explorer: 'Explorer', member: 'Member', contributor: 'Contributor',
+              power_contributor: 'Power Contributor', community_leader: 'Community Leader'
+            };
             document.getElementById('access-level-name').textContent = names[d.level] || d.level;
             document.getElementById('access-progress-bar').style.width =
               Math.round((d.progress.progress || 0) * 100) + '%';
@@ -503,7 +508,44 @@
               ? (names[d.progress.next_level] + ' @ ' + d.progress.next_threshold)
               : 'Max level 🎉';
             wrap.style.display = 'flex';
-          }).catch(() => {});
+          }).catch(() => { });
+        })();
+      </script>
+
+      <script>
+        (function () {
+          const btn = document.getElementById('checkEligibilityBtn');
+          const out = document.getElementById('eligibilityResult');
+          if (!btn || !out) return;
+
+          function render(eligible, level) {
+            out.style.display = 'block';
+            if (eligible) {
+              out.innerHTML = '<div style="color:#059669;">✅ You are eligible — rewards are coming soon.</div>';
+            } else {
+              out.innerHTML = '<div style="color:#b45309;">❌ Not eligible yet — reach <strong>Contributor</strong> rank to unlock rewards.</div>';
+            }
+          }
+
+          btn.addEventListener('click', async () => {
+            out.style.display = 'none';
+            btn.disabled = true;
+            btn.textContent = 'Checking…';
+            try {
+              const r = await fetch('/api/my-access');
+              const d = await r.json();
+              if (!d.success) throw new Error('Failed to load access data');
+              const level = (d.level || 'explorer').toLowerCase();
+              const eligible = ['contributor', 'power_contributor', 'community_leader'].includes(level);
+              render(eligible, level);
+            } catch (e) {
+              out.style.display = 'block';
+              out.innerHTML = '<div style="color:#b45309;">Could not check eligibility right now.</div>';
+            } finally {
+              btn.disabled = false;
+              btn.textContent = 'Check Eligibility';
+            }
+          });
         })();
       </script>
       <div class="pf-hero-stats">
@@ -516,12 +558,14 @@
           <span class="pf-stat-num">{{ notes_count }}</span>
           <span class="pf-stat-label">Notes</span>
         </div>
-        {% set papers_count = data.get('uploaded_files', []) | selectattr('type', 'equalto', 'Papers') | list | length %}
+        {% set papers_count = data.get('uploaded_files', []) | selectattr('type', 'equalto', 'Papers') | list | length
+        %}
         <div class="pf-stat-box">
           <span class="pf-stat-num">{{ papers_count }}</span>
           <span class="pf-stat-label">Papers</span>
         </div>
-        {% set lab_count = data.get('uploaded_files', []) | selectattr('type', 'equalto', 'Practicals') | list | length %}
+        {% set lab_count = data.get('uploaded_files', []) | selectattr('type', 'equalto', 'Practicals') | list | length
+        %}
         <div class="pf-stat-box">
           <span class="pf-stat-num">{{ lab_count }}</span>
           <span class="pf-stat-label">Lab</span>
@@ -529,6 +573,7 @@
       </div>
     </div>
   </div>
+
 
   <!-- ☸ Papo Meter ☸ -->
   <div class="papo-meter" style="
@@ -616,18 +661,18 @@
           <span class="pf-setting-arrow">›</span>
         </a>
 
-        <a href="{{ url_for('account') }}" class="pf-setting-item">
-          <div class="pf-setting-icon pf-icon-purple">🔒</div>
+        <a href="{{ url_for('earnings') }}" class="pf-setting-item">
+          <div class="pf-setting-icon pf-icon-amber">💰</div>
           <div class="pf-setting-text">
-            <span class="pf-setting-label">Security</span>
-            <span class="pf-setting-desc">Password &amp; login</span>
+            <span class="pf-setting-label">Earnings</span>
+            <span class="pf-setting-desc">Rewards & rank benefits</span>
           </div>
           <span class="pf-setting-arrow">›</span>
         </a>
 
         <!-- Notification toggle -->
-        <button id="notificationToggle" class="pf-toggle-wrap" type="button" data-action="handleNotificationToggle" role="switch"
-          aria-checked="false">
+        <button id="notificationToggle" class="pf-toggle-wrap" type="button" data-action="handleNotificationToggle"
+          role="switch" aria-checked="false">
           <div class="pf-setting-icon pf-icon-amber">🔔</div>
           <div class="pf-setting-text">
             <span class="pf-setting-label">Notifications</span>
@@ -727,7 +772,8 @@
           {% endfor %}
         </div>
         {% if data['uploaded_files']|length > 5 %}
-        <button id="uploaded-show-more" class="pf-show-more" type="button" data-action="showMore" data-category="uploaded">
+        <button id="uploaded-show-more" class="pf-show-more" type="button" data-action="showMore"
+          data-category="uploaded">
           ↓ Show more ({{ data['uploaded_files']|length - 5 }} more)
         </button>
         {% endif %}
@@ -739,7 +785,7 @@
         </div>
         {% endif %}
       </div>
-      
+
       <!-- PHASE 18: CONTRIBUTION TIMELINE -->
       <div class="pf-section">
         <div class="pf-section-head">
@@ -747,27 +793,32 @@
         </div>
         <div style="background: #fff; border-radius: 12px; border: 1px solid var(--border-light); padding: 1.25rem;">
           {% if data.get('timeline') and data['timeline']|length > 0 %}
-            <div style="position: relative; padding-left: 20px;">
-              <div style="position: absolute; top: 0; bottom: 0; left: 6px; width: 2px; background: var(--border-medium);"></div>
-              {% for event in data['timeline'] %}
-                <div style="position: relative; margin-bottom: 1rem;">
-                  <div style="position: absolute; left: -20px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary-600); border: 2px solid #fff;"></div>
-                  <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary);">
-                    {{ event['description'] }}
-                  </div>
-                  <div style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 0.15rem; display: flex; gap: 0.5rem; align-items: center;">
-                    <span>{{ event['created_at'].split('T')[0] }}</span>
-                    {% if event['xp_awarded'] > 0 %}
-                      <span style="color: #10b981; font-weight: 600;">+{{ event['xp_awarded'] }} XP</span>
-                    {% endif %}
-                  </div>
-                </div>
-              {% endfor %}
+          <div style="position: relative; padding-left: 20px;">
+            <div
+              style="position: absolute; top: 0; bottom: 0; left: 6px; width: 2px; background: var(--border-medium);">
             </div>
+            {% for event in data['timeline'] %}
+            <div style="position: relative; margin-bottom: 1rem;">
+              <div
+                style="position: absolute; left: -20px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary-600); border: 2px solid #fff;">
+              </div>
+              <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary);">
+                {{ event['description'] }}
+              </div>
+              <div
+                style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 0.15rem; display: flex; gap: 0.5rem; align-items: center;">
+                <span>{{ event['created_at'].split('T')[0] }}</span>
+                {% if event['xp_awarded'] > 0 %}
+                <span style="color: #10b981; font-weight: 600;">+{{ event['xp_awarded'] }} XP</span>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
           {% else %}
-            <div class="pf-empty" style="border: none; padding: 1rem;">
-              <p>No contributions yet. Your timeline will appear here when you upload files.</p>
-            </div>
+          <div class="pf-empty" style="border: none; padding: 1rem;">
+            <p>No contributions yet. Your timeline will appear here when you upload files.</p>
+          </div>
           {% endif %}
         </div>
       </div>
@@ -853,7 +904,8 @@
           {% endfor %}
         </div>
         {% if practicals_files|length > 5 %}
-        <button id="practicals-show-more" class="pf-show-more" type="button" data-action="showMore" data-category="practicals">
+        <button id="practicals-show-more" class="pf-show-more" type="button" data-action="showMore"
+          data-category="practicals">
           ↓ Show more ({{ practicals_files|length - 5 }} more)
         </button>
         {% endif %}

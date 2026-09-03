@@ -2808,6 +2808,13 @@ def settings():
     return render_template('settings.html', user_data=user_data)
 
 
+@app.route('/earnings')
+@auth_required
+def earnings():
+    """Eligibility and earnings info page."""
+    return render_template('earnings.html')
+
+
 @app.route('/support')
 @auth_required
 def support():
@@ -2935,6 +2942,92 @@ def college_landing(college_slug):
                            recent_files=recent_files,
                            departments=departments)
 
+@app.route('/college/<college_slug>/files')
+@app.route('/pyq/<college_slug>/files')
+def college_files(college_slug):
+    """College files listing with filters, search, and pagination (16 per page)."""
+
+    client = init_supabase()
+    if not client:
+        abort(500, description='Database client unavailable')
+
+    # Resolve college
+    college_res = get_college_by_slug(college_slug)
+    if not college_res.get('success'):
+        abort(404)
+    college = college_res.get('data')
+    college_id = college.get('id')
+
+    # Filters
+    raw_type = request.args.get('type', '').strip().lower()
+    doc_type_map = {
+        'pyq': 'papers',
+        'papers': 'papers',
+        'paper': 'papers',
+        'notes': 'notes',
+        'practical': 'practical',
+        'practicals': 'practical',
+        'other': 'other',
+    }
+    doc_type = doc_type_map.get(raw_type, raw_type)
+    department_slug = request.args.get('branch', '').strip().lower()
+    search_query = request.args.get('search', '').strip()
+    page = max(1, int(request.args.get('page', '1') or '1'))
+    page_size = 16
+    offset = (page - 1) * page_size
+
+    dept_res = {'success': False, 'data': {}}
+    if department_slug:
+        dept_res = get_department_by_slug(department_slug)
+
+    # Base query
+    q = client.table('documents') \
+        .select('*, subjects(name, subject_code), profiles!documents_uploader_id_fkey(full_name), colleges(name, abbreviation), departments(name, abbreviation)') \
+        .eq('college_id', college_id) \
+        .in_('status', ['approved', 'pending']) \
+        .order('view_count', desc=True)
+
+    if doc_type:
+        q = q.eq('document_category', doc_type)
+    if dept_res.get('success') and dept_res.get('data', {}).get('college_id') == college_id:
+        q = q.eq('department_id', dept_res['data']['id'])
+    if search_query:
+        q = q.or_(f"title.ilike.%{search_query}%,description.ilike.%{search_query}%")
+
+    # Count + paginated fetch
+    try:
+        count_resp = client.table('documents') \
+            .select('id', count='exact') \
+            .eq('college_id', college_id) \
+            .in_('status', ['approved', 'pending'])
+        if doc_type:
+            count_resp = count_resp.eq('document_category', doc_type)
+        if dept_res.get('success') and dept_res.get('data', {}).get('college_id') == college_id:
+            count_resp = count_resp.eq('department_id', dept_res['data']['id'])
+        total_count = count_resp.execute().count or 0
+
+        items_resp = q.limit(page_size).offset(offset).execute()
+        files = items_resp.data or []
+    except Exception as e:
+        logging.error(f"[college_files] query failed: {e}")
+        files = []
+        total_count = 0
+
+    departments = get_all_branches().get('data', [])
+
+    return render_template('college_files.html',
+                           college=college,
+                           files=files,
+                           departments=departments,
+                           filters={
+                               'type': doc_type,
+                               'branch': department_slug,
+                               'search': search_query,
+                               'page': page,
+                               'page_size': page_size,
+                               'total': total_count
+                           })
+
 @app.route('/college/<college_slug>/<department_slug>')
 @app.route('/pyq/<college_slug>/<department_slug>')
 def department_landing(college_slug, department_slug):
@@ -3048,6 +3141,14 @@ def resource_landing(slug):
     document['is_bookmarked'] = False
     
     current_user_id = session.get('user', {}).get('uid')
+    ai_chat_allowed = False
+    if current_user_id:
+        try:
+            from methods.scoring_engine import get_feature_gate
+            ai_chat_allowed = get_feature_gate(current_user_id).get('level') in ['contributor', 'power_contributor', 'community_leader']
+        except Exception:
+            ai_chat_allowed = False
+    
     if current_user_id:
         client = init_supabase()
         if client:
@@ -3114,7 +3215,7 @@ def resource_landing(slug):
     except Exception as e:
         logging.error(f"[Supabase] Error fetching suggestions: {e}")
 
-    return render_template('resource.html', document=document, ai_models=AI_MODELS, best_model=get_best_ai_model(), suggested_docs=suggested_docs, store_room_docs=store_room_docs)
+    return render_template('resource.html', document=document, ai_models=AI_MODELS, best_model=get_best_ai_model(), suggested_docs=suggested_docs, store_room_docs=store_room_docs, ai_chat_allowed=ai_chat_allowed)
 
 @app.route('/join')
 @sitemap_page()

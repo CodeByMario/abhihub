@@ -1,69 +1,51 @@
-<div class="navbar">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/navbar.css') }}">
+
+<div class="navbar navbar--bottom" role="navigation" aria-label="Main">
   <a href="{{ url_for('dashboard') }}" class="navbar__item -blue" data-page="home" data-feature="Nav: Home">
-    <span class="navbar__icon">
-      <svg class="icon">
-        <use xlink:href="#icon-home"></use>
-      </svg>
+    <span class="navbar__icon" aria-hidden="true">
+      <svg class="icon"><use xlink:href="#icon-home"></use></svg>
     </span>
     <span class="navbar__label">Home</span>
   </a>
+
+  <a href="{{ url_for('upload') }}" class="navbar__item -yellow" data-page="upload" data-feature="Nav: Upload">
+    <span class="navbar__icon" aria-hidden="true">
+      <svg class="icon"><use xlink:href="#icon-upload"></use></svg>
+    </span>
+    <span class="navbar__label">Upload</span>
+  </a>
+
   <a href="{{ url_for('leaderboard') }}" class="navbar__item -orange" data-page="ranking" data-feature="Nav: Ranking">
-    <span class="navbar__icon">
-      <svg class="icon">
-        <use xlink:href="#icon-cup"></use>
-      </svg>
+    <span class="navbar__icon" aria-hidden="true">
+      <svg class="icon"><use xlink:href="#icon-cup"></use></svg>
     </span>
     <span class="navbar__label">Ranking</span>
   </a>
 
-  <a href="{{ url_for('upload') }}" class="navbar__item -navy-blue navbar__item--fab" data-page="upload" data-feature="Nav: Upload">
-    <span class="navbar__icon navbar__icon--fab">
-      <svg class="icon">
-        <use xlink:href="#icon-plus"></use>
-      </svg>
-    </span>
-    <span class="navbar__label">Contribute</span>
-  </a>
-  <a href="{{ url_for('profile') }}" class="navbar__item -purple" id="accountNavItem" data-page="profile" data-feature="Nav: Profile">
-    <span class="navbar__icon">
-      <svg class="icon">
-        <use xlink:href="#icon-user"></use>
-      </svg>
+  <a href="{{ url_for('profile') }}" class="navbar__item -purple" data-page="profile" data-feature="Nav: Profile">
+    <span class="navbar__icon" aria-hidden="true">
+      <svg class="icon"><use xlink:href="#icon-user"></use></svg>
       <span id="accountRedDot" class="notification-dot"></span>
     </span>
     <span class="navbar__label">Account</span>
   </a>
+
   <a href="{{ url_for('store_room') }}" class="navbar__item -green" data-page="store-room" data-feature="Nav: Store Room">
-    <span class="navbar__icon">
-      <svg class="icon">
-        <use xlink:href="#icon-folder"></use>
-      </svg>
+    <span class="navbar__icon" aria-hidden="true">
+      <svg class="icon"><use xlink:href="#icon-folder"></use></svg>
     </span>
     <span class="navbar__label">Store Room</span>
   </a>
+
   {% if session.get('user', {}).get('email', '').lower() == 'codebymario@gmail.com' %}
-  <a href="{{ url_for('admin_control_panel') }}" class="navbar__item -red" title="Admin Panel">
-    <span class="navbar__icon">
-      <svg class="icon">
-        <use xlink:href="#icon-settings"></use>
-      </svg>
+  <a href="{{ url_for('admin_control_panel') }}" class="navbar__item -red" title="Admin Panel" data-page="admin">
+    <span class="navbar__icon" aria-hidden="true">
+      <svg class="icon"><use xlink:href="#icon-settings"></use></svg>
     </span>
     <span class="navbar__label">Admin</span>
   </a>
   {% endif %}
 </div>
-
-<!-- Hidden search form -->
-<form id="navSearchOverlay" class="nav-search-overlay" action="{{ url_for('search') }}" method="post" role="search"
-  aria-label="Site search">
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-  <div class="nav-search-wrapper">
-    <input type="text" name="search" placeholder="Search Here" class="nav-search-field" autocomplete="off"
-      aria-label="Search input">
-    <button type="submit" class="nav-search-btn" aria-label="Submit search">🔎</button>
-    <button type="button" id="navSearchClose" class="nav-search-close-btn" aria-label="Close search">✖</button>
-  </div>
-</form>
 
 <!-- SVG Icon Definitions -->
 <svg style="display:none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -77,7 +59,7 @@
     <symbol id="icon-search" viewBox="0 0 32 32">
       <title>search</title>
       <path
-        d="M30.56 28.64l-5.76-5.76c2.24-2.4 3.52-5.6 3.52-9.12 0-7.52-6.24-13.76-13.76-13.76s-13.76 6.24-13.76 13.76 6.24 13.76 13.76 13.76c2.72 0 5.12-0.8 7.36-2.080l6.080 6.080c0.32 0.32 0.8 0.48 1.28 0.48s0.96-0.16 1.28-0.48c0.8-0.8 0.8-2.080 0-2.88zM4.64 13.76c0-5.44 4.48-9.92 9.92-9.92s9.92 4.48 9.92 9.92-4.48 9.92-9.92 9.92-9.92-4.48-9.92-9.92z">
+        d="M30.56 28.64l-5.76-5.76c2.24-2.4 3.52-5.6 3.52-9.12 0-7.52-6.24-13.76-13.76-13.76s-13.76 6.24-13.76 13.76 6.24 13.76 13.76 13.76c2.72 0 5.12-0.8 7.36-2.080l6.080 6.080c0.32 0.32 0.8 0.48 1.28 0.48s0.96-0.16 1.28-0.48c0.8-0.8 0.8-2.080 0-2.88zM4.64 13.76c0-5.44 4.48-9.92 9.92-9.92s9.92 4.48 9.92 9.92-4.48 9.92-9.92 9.92z">
       </path>
     </symbol>
     <symbol id="icon-user" viewBox="0 0 32 32">
@@ -89,7 +71,7 @@
         d="M16 16.32c-2.24 0-4.16-0.8-5.76-2.4s-2.4-3.68-2.4-5.76c0-2.24 0.8-4.16 2.4-5.76s3.52-2.4 5.76-2.4c4.48 0 8.16 3.68 8.16 8.16s-3.68 8.16-8.16 8.16zM16 1.44c-1.76 0-3.52 0.64-4.8 1.92s-1.92 3.040-1.92 4.8c0 1.76 0.64 3.52 1.92 4.8s2.88 1.92 4.8 1.92c3.84 0 6.72-3.040 6.72-6.72s-3.040-6.72-6.72-6.72zM16 14.56c-3.52 0-6.4-2.88-6.4-6.4 0-1.76 0.64-3.36 1.92-4.48s2.72-1.92 4.48-1.92c3.68 0 6.4 2.72 6.4 6.4 0 1.76-0.64 3.36-1.92 4.48-1.28 1.28-2.88 1.92-4.48 1.92zM16 3.2c-1.44 0-2.56 0.48-3.52 1.44s-1.44 2.080-1.44 3.52c0 2.72 2.24 4.96 4.96 4.96 1.28 0 2.56-0.48 3.52-1.44s1.44-2.24 1.44-3.52c0-2.72-2.24-4.96-4.96-4.96z">
       </path>
       <path
-        d="M3.68 30.4c0 1.12-1.76 1.12-1.76 0v-3.68c0-4.64 3.84-8.48 8.48-8.48h11.36c4.64 0 8.48 3.84 8.48 8.48v3.68c0 1.12-1.76 1.12-1.76 0v-3.68c0-3.68-3.040-6.72-6.72-6.72h-11.36c-3.68 0-6.72 3.040-6.72 6.72v3.68z">
+        d="M3.68 30.4c0 1.12-1.76 1.12-1.76 0v-3.68c0-4.64 3.84-8.48 8.48-8.48h11.36c4.64 0 8.48 3.84 8.48 8.48v3.68c0 1.12-1.76 1.12-1.76 0v-3.68c0-3.68-3.040-6.72-6.72-6.72h-11.36c-3.68 0-6.72 3.040-6.72 6.72v3.68c0 0 0 0.16 0.16 0.16s0.16-0.16 0.16-0.16v-3.68c0-2.080-0.8-4-2.24-5.44s-3.36-2.24-5.44-2.24h-11.52c-2.080 0-4 0.8-5.44 2.24s-2.24 3.36-2.24 5.44v3.68c0 0 0 0.16 0.16 0.16s0-0.16 0-0.16v-3.68c0-1.92 0.8-3.84 2.24-5.28 1.44-1.28 3.2-2.080 5.28-2.080z">
       </path>
       <path
         d="M29.28 32c-0.96 0-1.6-0.64-1.6-1.6v-3.68c0-1.6-0.64-3.040-1.76-4.16s-2.56-1.76-4.16-1.76h-11.36c-1.6 0-3.040 0.64-4.16 1.76s-1.76 2.56-1.76 4.16v3.68c0 0.96-0.64 1.6-1.6 1.6s-1.6-0.64-1.6-1.6v-3.68c0-2.4 0.96-4.8 2.72-6.56 1.6-1.6 3.84-2.56 6.4-2.56h11.36c2.4 0 4.8 0.96 6.56 2.72s2.72 4 2.72 6.56v3.52c-0.16 0.96-0.8 1.6-1.76 1.6zM10.4 19.36h11.36c1.92 0 3.84 0.8 5.28 2.24s2.24 3.2 2.24 5.28v3.52c0 0 0 0.16 0.16 0.16s0.16-0.16 0.16-0.16v-3.68c0-2.080-0.8-4-2.24-5.44s-3.36-2.24-5.44-2.24h-11.52c-2.080 0-4 0.8-5.44 2.24s-2.24 3.36-2.24 5.44v3.68c0 0 0 0.16 0.16 0.16s0-0.16 0-0.16v-3.68c0-1.92 0.8-3.84 2.24-5.28 1.44-1.28 3.2-2.080 5.28-2.080z">
@@ -116,36 +98,39 @@
         d="M28 6h-12l-2-2h-10c-1.1 0-2 0.9-2 2v20c0 1.1 0.9 2 2 2h24c1.1 0 2-0.9 2-2v-18c0-1.1-0.9-2-2-2zM28 26h-24v-18h9.17l2 2h12.83v16z">
       </path>
     </symbol>
+    <symbol id="icon-upload" viewBox="0 0 32 32">
+      <title>upload</title>
+      <path d="M16 4.48l12.48 9.92v14.080h-24.96v-14.080l12.48-9.92zM16 0.48l-15.52 12.48v18.72h31.040v-18.72l-15.52-12.48z"/>
+      <path d="M28.8 28.8h-25.6v-14.56l12-9.6 12 9.6v13.44zM4 28h24.16v-13.44l-12-9.6-12 9.6v13.44z"/>
+      <path d="M16 22.24l-3.2-3.2-1.6 1.6 5.6 5.6 5.6-5.6-1.6-1.6-3.2 3.2v-9.28h-2.56v9.28z"/>
+    </symbol>
+
+    <symbol id="icon-settings" viewBox="0 0 32 32">
+      <title>settings</title>
+      <path
+        d="M30.56 28.64l-5.76-5.76c2.24-2.4 3.52-5.6 3.52-9.12 0-7.52-6.24-13.76-13.76-13.76s-13.76 6.24-13.76 13.76 6.24 13.76 13.76 13.76c2.72 0 5.12-0.8 7.36-2.080l6.080 6.080c0.32 0.32 0.8 0.48 1.28 0.48s0.96-0.16 1.28-0.48c0.8-0.8 0.8-2.080 0-2.88zM4.64 13.76c0-5.44 4.48-9.92 9.92-9.92s9.92 4.48 9.92 9.92-4.48 9.92-9.92 9.92z">
+      </path>
+    </symbol>
   </defs>
 </svg>
 
 <!-- Active page highlight script -->
 <script>
   (function () {
-    // Highlight active nav item based on current page
     const currentPath = window.location.pathname;
     const navItems = document.querySelectorAll('.navbar__item[data-page]');
-
     navItems.forEach(item => {
       const page = item.dataset.page;
       if (
         (page === 'home' && (currentPath === '/dashboard/' || currentPath === '/dashboard')) ||
         (page === 'ranking' && currentPath.includes('rank')) ||
-        (page === 'upload' && currentPath.includes('upload')) ||
         (page === 'profile' && currentPath.includes('profile')) ||
-        (page === 'store-room' && currentPath.includes('store-room'))
+        (page === 'store-room' && currentPath.includes('store-room')) ||
+        (page === 'upload' && (currentPath === '/upload' || currentPath === '/upload-gate')) ||
+        (page === 'admin' && currentPath.includes('admin'))
       ) {
         item.classList.add('navbar__item--active');
       }
     });
   })();
-</script>
-
-<!-- Microsoft Clarity -->
-<script type="text/javascript">
-  (function (c, l, a, r, i, t, y) {
-    c[a] = c[a] || function () { (c[a].q = c[a].q || []).push(arguments) };
-    t = l.createElement(r); t.async = 1; t.src = "https://www.clarity.ms/tag/" + i;
-    y = l.getElementsByTagName(r)[0]; y.parentNode.insertBefore(t, y);
-  })(window, document, "clarity", "script", "tsfckjhcgq");
 </script>
