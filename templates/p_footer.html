@@ -1,235 +1,258 @@
 <style>
-  /* 
-   * Professional App-Style Footer using AbhiHub Design Tokens 
-   * Ensures styling works independently of the pre-compiled Tailwind bundle.
-   */
-  .app-footer {
-      background: var(--bg-secondary);
-      border-top: 1px solid var(--border-light);
-      padding: var(--space-12) 0 var(--space-8);
-      margin-top: var(--space-12);
-      font-family: var(--font-primary);
-      position: relative;
-      z-index: 10;
-      /* Ensure it doesn't overlap with the bottom mobile nav */
-      padding-bottom: calc(var(--nav-bottom-height) + var(--space-8));
-  }
+    /* Professional App-Style Footer using AbhiHub Design Tokens */
+    * {
+        box-sizing: border-box;
+    }
 
-  .app-footer__container {
-      max-width: var(--max-content-width);
-      margin: 0 auto;
-      padding: 0 var(--space-6);
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-      gap: var(--space-8);
-  }
+    .app-footer {
+        background: var(--bg-secondary);
+        border-top: 1px solid var(--border-light);
+        padding: var(--space-12) 0 var(--space-8);
+        margin-top: var(--space-12);
+        font-family: var(--font-primary);
+        position: relative;
+        z-index: 10;
+        /* Ensure it doesn't overlap with the bottom mobile nav */
+        padding-bottom: calc(var(--nav-bottom-height) + var(--space-8));
+    }
 
-  .app-footer__brand {
-      grid-column: span 2;
-  }
+    .app-footer__container {
+        max-width: var(--max-content-width);
+        margin: 0 auto;
+        padding: 0 var(--space-6);
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+        gap: var(--space-8);
+    }
 
-  @media (max-width: 768px) {
-      .app-footer__brand {
-          grid-column: span 1;
-      }
-      .app-footer__container {
-          grid-template-columns: 1fr;
-          gap: var(--space-6);
-      }
-  }
+    .app-footer__brand {
+        grid-column: span 2;
+    }
 
-  .app-footer__title {
-      font-size: var(--text-2xl);
-      font-weight: 700;
-      background: var(--gradient-primary);
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      margin-bottom: var(--space-4);
-      letter-spacing: -0.025em;
-  }
+    @media (max-width: 768px) {
+        .app-footer__brand {
+            grid-column: span 1;
+        }
 
-  .app-footer__desc {
-      color: var(--text-secondary);
-      font-size: var(--text-sm);
-      line-height: 1.6;
-      max-width: 300px;
-  }
+        .app-footer__container {
+            grid-template-columns: 1fr;
+            gap: var(--space-6);
+        }
+    }
 
-  .app-footer__col-title {
-      font-size: var(--text-sm);
-      font-weight: 600;
-      color: var(--text-primary);
-      text-transform: uppercase;
-      letter-spacing: 0.05em;
-      margin-bottom: var(--space-4);
-  }
+    .app-footer__title {
+        font-size: var(--text-2xl);
+        font-weight: 700;
+        background: var(--gradient-primary);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: var(--space-4);
+        letter-spacing: -0.025em;
+    }
 
-  .app-footer__list {
-      list-style: none;
-      padding: 0;
-      margin: 0;
-      display: flex;
-      flex-direction: column;
-      gap: var(--space-3);
-  }
+    .app-footer__desc {
+        color: var(--text-secondary);
+        font-size: var(--text-sm);
+        line-height: 1.6;
+        max-width: 300px;
+    }
 
-  .app-footer__link {
-      color: var(--text-secondary);
-      font-size: var(--text-sm);
-      text-decoration: none;
-      transition: color var(--transition-fast), transform var(--transition-fast);
-      display: inline-flex;
-      align-items: center;
-  }
+    .app-footer__col-title {
+        font-size: var(--text-sm);
+        font-weight: 600;
+        color: var(--text-primary);
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+        margin-bottom: var(--space-4);
+    }
 
-  .app-footer__link:hover {
-      color: var(--primary-600);
-      transform: translateX(4px);
-  }
+    .app-footer__list {
+        list-style: none;
+        padding: 0;
+        margin: 0;
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-3);
+    }
 
-  .app-footer__social {
-      display: flex;
-      gap: var(--space-4);
-      margin-top: var(--space-2);
-  }
+    .app-footer__link {
+        color: var(--text-secondary);
+        font-size: var(--text-sm);
+        text-decoration: none;
+        transition: color var(--transition-fast), transform var(--transition-fast);
+        display: inline-flex;
+        align-items: center;
+    }
 
-  .app-footer__social-link {
-      color: var(--text-secondary);
-      font-size: var(--text-sm);
-      font-weight: 500;
-      text-decoration: none;
-      padding: var(--space-2) var(--space-4);
-      background: var(--surface);
-      border: 1px solid var(--border-light);
-      border-radius: var(--radius-full);
-      transition: all var(--transition-fast);
-      box-shadow: var(--shadow-sm);
-  }
+    .app-footer__link:hover {
+        color: var(--primary-600);
+        transform: translateX(4px);
+    }
 
-  .app-footer__social-link:hover {
-      border-color: var(--primary-400);
-      color: var(--primary-600);
-      box-shadow: var(--shadow-md);
-      transform: translateY(-2px);
-  }
+    .app-footer__social {
+        display: flex;
+        gap: var(--space-4);
+        margin-top: var(--space-2);
+    }
 
-  .app-footer__bottom {
-      max-width: var(--max-content-width);
-      margin: var(--space-12) auto 0;
-      padding: var(--space-6) var(--space-6) 0;
-      border-top: 1px solid var(--border-light);
-      text-align: center;
-      color: var(--text-tertiary);
-      font-size: var(--text-xs);
-  }
+    .app-footer__social-link {
+        color: var(--text-secondary);
+        font-size: var(--text-sm);
+        font-weight: 500;
+        text-decoration: none;
+        padding: var(--space-2) var(--space-4);
+        background: var(--surface);
+        border: 1px solid var(--border-light);
+        border-radius: var(--radius-full);
+        transition: all var(--transition-fast);
+        box-shadow: var(--shadow-sm);
+    }
 
-  .app-footer__ownership {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      align-items: center;
-      gap: var(--space-3);
-      font-size: var(--text-xs);
-      margin-bottom: var(--space-2);
-  }
+    .app-footer__social-link:hover {
+        border-color: var(--primary-400);
+        color: var(--primary-600);
+        box-shadow: var(--shadow-md);
+        transform: translateY(-2px);
+    }
 
-  .app-footer__separator {
-      color: var(--text-quaternary);
-  }
+    .app-footer__bottom {
+        max-width: var(--max-content-width);
+        margin: var(--space-12) auto 0;
+        padding: var(--space-6) var(--space-6) 0;
+        border-top: 1px solid var(--border-light);
+        text-align: center;
+        color: var(--text-tertiary);
+        font-size: var(--text-xs);
+    }
 
-  .app-footer__rights {
-      font-size: var(--text-2xs);
-      color: var(--text-quaternary);
-      line-height: 1.5;
-      margin-top: var(--space-2);
-  }
+    .app-footer__ownership {
+        display: flex;
+        flex-wrap: wrap;
+        justify-content: center;
+        align-items: center;
+        gap: var(--space-3);
+        font-size: var(--text-xs);
+        margin-bottom: var(--space-2);
+    }
 
-  .app-footer__dev-link {
-      color: var(--primary-500);
-      text-decoration: none;
-  }
+    .app-footer__separator {
+        color: var(--text-quaternary);
+    }
 
-  .app-footer__dev-link:hover {
-      text-decoration: underline;
-  }
+    .app-footer__rights {
+        font-size: var(--text-2xs);
+        color: var(--text-quaternary);
+        line-height: 1.5;
+        margin-top: var(--space-2);
+    }
 
-  .app-footer__email {
-      color: var(--primary-500);
-      text-decoration: none;
-  }
+    .app-footer__dev-link {
+        color: #c530f5;
+        text-decoration: none;
+    }
 
-  .app-footer__email:hover {
-      text-decoration: underline;
-  }
+    .app-footer__dev-link:hover {
+        text-decoration: underline;
+    }
 
-  @media (max-width: 768px) {
-      .app-footer__ownership {
-          flex-direction: column;
-          gap: var(--space-2);
-      }
-      .app-footer__rights {
-          font-size: var(--text-3xs);
-      }
-  }
+    .app-footer__email {
+        color: #c530f5;
+        text-decoration: none;
+    }
+
+    .app-footer__email:hover {
+        text-decoration: underline;
+    }
+
+    @media (max-width: 768px) {
+        .app-footer__ownership {
+            flex-direction: column;
+            gap: var(--space-2);
+        }
+
+        .app-footer__rights {
+            font-size: var(--text-3xs);
+        }
+    }
 </style>
 
 <!-- App Shell Footer -->
 <footer class="app-footer">
-  <div class="app-footer__container">
-      
-      <!-- Brand Column -->
-      <div class="app-footer__brand">
-          <div class="app-footer__title">AbhiHub</div>
-          <p class="app-footer__desc">Your professional platform for organizing exam resources, engineering papers, and study materials.</p>
-      </div>
+    <div class="app-footer__container">
 
-      <!-- Quick Links Column -->
-      <div>
-          <h6 class="app-footer__col-title">Navigation</h6>
-          <ul class="app-footer__list">
-              <li><a href="{{ url_for('features') }}" class="app-footer__link">Home</a></li>
-              <li><a href="{{ url_for('dashboard') }}" class="app-footer__link">Dashboard</a></li>
-              <li><a href="{{ url_for('profile') }}" class="app-footer__link">Profile</a></li>
-              <li><a href="{{ url_for('pyq_landing') }}" class="app-footer__link">PYQ & Papers</a></li>
-          </ul>
-      </div>
+        <!-- Brand Column -->
+        <div class="app-footer__brand">
+            <div class="app-footer__title">AbhiHub</div>
+            <p class="app-footer__desc">Your professional platform for organizing exam resources, engineering papers,
+                and study materials.</p>
+        </div>
 
-      <!-- Company Column -->
-      <div>
-          <h6 class="app-footer__col-title">Company</h6>
-          <ul class="app-footer__list">
-              <li><a href="{{ url_for('about') }}" class="app-footer__link">About Us</a></li>
-              <li><a href="{{ url_for('contact') }}" class="app-footer__link">Contact</a></li>
-              <li><a href="{{ url_for('privacy') }}" class="app-footer__link">Privacy Policy</a></li>
-              <li><a href="{{ url_for('terms') }}" class="app-footer__link">Terms of Service</a></li>
-              <li><a href="javascript:void(0)" data-action="openPrivacySettings" class="app-footer__link" aria-label="Open privacy settings">Privacy Settings</a></li>
-          </ul>
-      </div>
+        <!-- Quick Links Column -->
+        <div>
+            <h6 class="app-footer__col-title">Navigation</h6>
+            <ul class="app-footer__list">
+                <li><a href="{{ url_for('features') }}" class="app-footer__link">Home</a></li>
+                <li><a href="{{ url_for('dashboard') }}" class="app-footer__link">Dashboard</a></li>
+                <li><a href="{{ url_for('profile') }}" class="app-footer__link">Profile</a></li>
+                <li><a href="{{ url_for('pyq_landing') }}" class="app-footer__link">PYQ & Papers</a></li>
+            </ul>
+        </div>
 
-      <!-- Connect Column -->
-      <div>
-          <h6 class="app-footer__col-title">Connect</h6>
-          <p class="app-footer__desc" style="margin-bottom: 12px;">Follow us for updates and study tips.</p>
-          <div class="app-footer__social">
-              <a href="https://www.instagram.com/_abhihub_" class="app-footer__social-link" target="_blank" rel="noopener">Instagram</a>
-              <a href="https://www.linkedin.com/company/abhihub" class="app-footer__social-link" target="_blank" rel="noopener">LinkedIn</a>
-          </div>
-      </div>
-      
-  </div>
+        <!-- Company Column -->
+        <div>
+            <h6 class="app-footer__col-title">Company</h6>
+            <ul class="app-footer__list">
+                <li><a href="{{ url_for('about') }}" class="app-footer__link">About Us</a></li>
+                <li><a href="{{ url_for('contact') }}" class="app-footer__link">Contact</a></li>
+                <li><a href="{{ url_for('privacy') }}" class="app-footer__link">Privacy Policy</a></li>
+                <li><a href="{{ url_for('terms') }}" class="app-footer__link">Terms of Service</a></li>
+                <li><a href="javascript:void(0)" data-action="openPrivacySettings" class="app-footer__link"
+                        aria-label="Open privacy settings">Privacy Settings</a></li>
+            </ul>
+        </div>
 
-  <div class="app-footer__bottom">
-      <div class="app-footer__ownership">
-          <span>&copy; 2025 AbhiHub. All rights reserved.</span>
-          <span class="app-footer__separator">·</span>
-          <span>AbhiHub™ is a trademark of AbhiHub Technologies.</span>
-          <span class="app-footer__separator">·</span>
-          <span>Platform developed by <a href="https://www.linkedin.com/in/abhijeet" target="_blank" rel="noopener" class="app-footer__dev-link">Abhijeet</a>.</span>
-      </div>
-      <div class="app-footer__rights">
-          Content contributed by the AbhiHub student community remains the property of their respective contributors.
-          AbhiHub grants a non-exclusive license to display such content through the platform.
-          For copyright inquiries, contact: <a href="mailto:abhihub.02@gmail.com" class="app-footer__email">abhihub.02@gmail.com</a>
-      </div>
-  </div>
+        <!-- Connect Column -->
+        <div>
+            <h6 class="app-footer__col-title">Connect</h6>
+            <p class="app-footer__desc" style="margin-bottom: 12px;">Follow us for updates and study tips.</p>
+            <div class="app-footer__social">
+                <a href="https://www.instagram.com/_abhihub_" class="app-footer__social-link" target="_blank"
+                    rel="noopener">Instagram</a>
+                <a href="https://www.linkedin.com/company/abhihub" class="app-footer__social-link" target="_blank"
+                    rel="noopener">LinkedIn</a>
+            </div>
+        </div>
+
+    </div>
+
+    <div class="app-footer__bottom">
+        <div class="app-footer__ownership">
+            <span>&copy; 2025 AbhiHub. All rights reserved.</span>
+            <span class="app-footer__separator">·</span>
+            <span>AbhiHub™ is a trademark of AbhiHub Technologies.</span>
+            <span class="app-footer__separator">·</span>
+            <span>Platform developed by <a href="https://www.linkedin.com/in/mrabhijeetshende" target="_blank"
+                    rel="noopener" class="app-footer__dev-link">Abhijeet Shende</a>.</span>
+        </div>
+        <div class="app-footer__rights">
+            Content contributed by the AbhiHub student community remains the property of their respective contributors.
+            AbhiHub grants a non-exclusive license to display such content through the platform.
+            For copyright inquiries, contact: <a href="mailto:abhihub.02@gmail.com"
+                class="app-footer__email">abhihub.02@gmail.com</a>
+        </div>
+        <div class="app-footer__version">
+            Version: <span id="app-version">Loading...</span>
+        </div>
+    </div>
 </footer>
+<script>
+    // Fetch and display app version in footer
+    fetch('/api/version')
+        .then(response => response.json())
+        .then(data => {
+            document.getElementById('app-version').textContent = data.version || '1.0.0';
+        })
+        .catch(() => {
+            document.getElementById('app-version').textContent = '1.0.0';
+        });
+</script>

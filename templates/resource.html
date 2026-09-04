@@ -1,5 +1,15 @@
-{% set file_type = 'PYQ' if 'pyq' in (document.document_category|lower) else ('Practical' if 'practical' in
-(document.document_category|lower) else 'Notes') %}
+{% set cat_lower = ((document.document_category or '') ~ ' ' ~ (document.title or '') ~ ' ' ~ (document.description or
+'')) | lower %}
+{% set file_type = 'PYQ' if ('pyq' in cat_lower or 'paper' in cat_lower or 'exam' in cat_lower or 'ese' in cat_lower or
+'mse' in cat_lower or 'endsem' in cat_lower or 'midsem' in cat_lower or 'sessional' in cat_lower or 'prelim' in
+cat_lower or 'unit test' in cat_lower)
+else ('Question Bank' if ('question' in cat_lower or 'qb' in cat_lower or 'qbank' in cat_lower)
+else ('Practical' if ('practical' in cat_lower or 'lab' in cat_lower or 'experiment' in cat_lower or 'manual' in
+cat_lower or 'viva' in cat_lower)
+else ('Syllabus' if 'syllabus' in cat_lower
+else ('Assignment' if ('assignment' in cat_lower or 'assisment' in cat_lower or 'submission' in cat_lower)
+else ('Timetable' if ('timetable' in cat_lower or 'datesheet' in cat_lower or 'schedule' in cat_lower)
+else 'Notes'))))) %}
 {% set subj_name = document.subject.name if document.subject else 'Uncategorized' %}
 {% set coll_name = document.college.name if document.college else 'AbhiHub' %}
 {% set coll_abbr = (document.college.abbreviation or document.college.name) if document.college else 'AbhiHub' %}
@@ -453,8 +463,35 @@ uploader_name %}
     inset: 0;
     pointer-events: none;
     z-index: 5;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240' viewBox='0 0 240 240'%3E%3Cg transform='rotate(-30 120 120)'%3E%3Ctext x='120' y='120' fill='rgba(0,0,0,0.18)' font-size='18' font-family='sans-serif' font-weight='900' text-anchor='middle'%3E{{ request.host if request.host else 'AbhiHub' }}%3C/text%3E%3C/g%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220' viewBox='0 0 220 220'%3E%3Cg transform='rotate(-30 110 110)'%3E%3Ctext x='110' y='110' fill='rgba(0,0,0,0.22)' font-size='20' font-family='sans-serif' font-weight='900' text-anchor='middle'%3EAbhiHub%3C/text%3E%3C/g%3E%3C/svg%3E");
     background-repeat: repeat;
+  }
+
+  .image-watermark-logo {
+    position: absolute;
+    bottom: 14px;
+    right: 14px;
+    z-index: 6;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(15, 23, 42, 0.75);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    padding: 6px 12px;
+    border-radius: 99px;
+    color: #ffffff;
+    font-size: 0.8rem;
+    font-weight: 800;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+
+  .image-watermark-logo img {
+    width: 18px;
+    height: 18px;
+    object-fit: contain;
   }
 
   .image-viewer-wrap.fullscreen-mode {
@@ -657,7 +694,8 @@ uploader_name %}
     {% if document.college %}
     {% set college_slug = (document.college.abbreviation or document.college.name) | lower | replace(' ', '-') %}
     {% set doc_cat = (document.document_category or '') | lower %}
-    {% set cat_param = 'pyq' if doc_cat in ['papers', 'paper', 'pyq'] else ('notes' if doc_cat == 'notes' else ('practical' if doc_cat in ['practical', 'practicals'] else '')) %}
+    {% set cat_param = 'pyq' if doc_cat in ['papers', 'paper', 'pyq'] else ('notes' if doc_cat == 'notes' else
+    ('practical' if doc_cat in ['practical', 'practicals'] else '')) %}
     <a href="/college/{{ college_slug }}/files{% if cat_param %}?type={{ cat_param }}{% endif %}">{{
       document.college.abbreviation or document.college.name }}</a> <span>›</span>
     {% endif %}
@@ -799,6 +837,11 @@ uploader_name %}
             onerror="document.getElementById('imageSkeleton').style.display='none'; document.getElementById('previewImage').style.display='none'; document.getElementById('imageError').style.display='flex';">
           <!-- Watermark Overlay -->
           <div class="image-watermark" aria-hidden="true"></div>
+          <!-- Logo Badge in Bottom Right Corner -->
+          <div class="image-watermark-logo" aria-hidden="true">
+            <img src="{{ url_for('static', filename='images/logo.png') }}" alt="AbhiHub Logo">
+            <span>AbhiHub</span>
+          </div>
         </div>
       </div>
       {% else %}
@@ -971,9 +1014,12 @@ uploader_name %}
           </div>
           <div style="display: flex; gap: 0.5rem; align-items: center;">
             <span style="font-size:.8rem;color:var(--r-muted);">Powered by Free Vision & OCR AI</span>
-            <button type="button" data-action="shareChatWhatsApp" class="ai-toolbar-btn ai-whatsapp" aria-label="Share on WhatsApp">Share WA</button>
-            <button type="button" data-action="exportChatPDF" class="ai-toolbar-btn ai-export" aria-label="Export chat as PDF">Export PDF</button>
-            <button type="button" data-action="toggleChatFullscreen" id="chatFsBtn" class="ai-toolbar-btn ai-fullscreen" title="Fullscreen" aria-label="Toggle fullscreen">⛶ Full</button>
+            <button type="button" data-action="shareChatWhatsApp" class="ai-toolbar-btn ai-whatsapp"
+              aria-label="Share on WhatsApp">Share WA</button>
+            <button type="button" data-action="exportChatPDF" class="ai-toolbar-btn ai-export"
+              aria-label="Export chat as PDF">Export PDF</button>
+            <button type="button" data-action="toggleChatFullscreen" id="chatFsBtn" class="ai-toolbar-btn ai-fullscreen"
+              title="Fullscreen" aria-label="Toggle fullscreen">⛶ Full</button>
           </div>
         </div>
 
@@ -982,31 +1028,43 @@ uploader_name %}
         </div>
 
         <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-          <button type="button" data-action="sendPersonaPrompt" data-model="ChatGPT" class="ai-persona-btn ai-chatgpt" aria-label="Chat with ChatGPT">ChatGPT</button>
-          <button type="button" data-action="sendPersonaPrompt" data-model="Gemini" class="ai-persona-btn ai-gemini" aria-label="Chat with Gemini">Gemini</button>
-          <button type="button" data-action="sendPersonaPrompt" data-model="Claude" class="ai-persona-btn ai-claude" aria-label="Chat with Claude">Claude</button>
+          <button type="button" data-action="sendPersonaPrompt" data-model="ChatGPT" class="ai-persona-btn ai-chatgpt"
+            aria-label="Chat with ChatGPT">ChatGPT</button>
+          <button type="button" data-action="sendPersonaPrompt" data-model="Gemini" class="ai-persona-btn ai-gemini"
+            aria-label="Chat with Gemini">Gemini</button>
+          <button type="button" data-action="sendPersonaPrompt" data-model="Claude" class="ai-persona-btn ai-claude"
+            aria-label="Chat with Claude">Claude</button>
         </div>
 
         <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
           <span style="font-size: 0.8rem; color: var(--r-muted); align-self: center;">Suggestions:</span>
-          <button type="button" data-action="suggestQ" data-question="Solve question 1 step-by-step" class="ai-suggestion-btn" aria-label="Solve question 1 step-by-step">Solve Q1</button>
-          <button type="button" data-action="suggestQ" data-question="Explain the core concepts in question 2" class="ai-suggestion-btn" aria-label="Explain the core concepts in question 2">Explain Q2</button>
-          <button type="button" data-action="suggestQ" data-question="What are the most important topics in this paper?" class="ai-suggestion-btn" aria-label="What are the most important topics in this paper?">Important Topics</button>
-          <button type="button" data-action="suggestQ" data-question="Summarize the entire paper" class="ai-suggestion-btn" aria-label="Summarize the entire paper">Summarize</button>
+          <button type="button" data-action="suggestQ" data-question="Solve question 1 step-by-step"
+            class="ai-suggestion-btn" aria-label="Solve question 1 step-by-step">Solve Q1</button>
+          <button type="button" data-action="suggestQ" data-question="Explain the core concepts in question 2"
+            class="ai-suggestion-btn" aria-label="Explain the core concepts in question 2">Explain Q2</button>
+          <button type="button" data-action="suggestQ" data-question="What are the most important topics in this paper?"
+            class="ai-suggestion-btn" aria-label="What are the most important topics in this paper?">Important
+            Topics</button>
+          <button type="button" data-action="suggestQ" data-question="Summarize the entire paper"
+            class="ai-suggestion-btn" aria-label="Summarize the entire paper">Summarize</button>
         </div>
 
         <div style="padding: 0 1.5rem 0.5rem; display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap;">
           <span style="font-size: 0.8rem; color: var(--r-muted); font-weight: 600;">🤖 AI OCR Model:</span>
-          <select id="aiModelSelect" style="padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid var(--r-border); font-size: 0.8rem; background: #f8fafc; color: #334155; font-weight: 600; cursor: pointer;">
+          <select id="aiModelSelect"
+            style="padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid var(--r-border); font-size: 0.8rem; background: #f8fafc; color: #334155; font-weight: 600; cursor: pointer;">
             <option value="auto">✨ Auto (Best Available)</option>
             {% for model in ai_models %}
-            <option value="{{ model }}" {% if model==best_model %}selected{% endif %}>{{ model.split('/')[-1].replace(':free', '').replace('-instruct', '') | upper }}</option>
+            <option value="{{ model }}" {% if model==best_model %}selected{% endif %}>{{
+              model.split('/')[-1].replace(':free', '').replace('-instruct', '') | upper }}</option>
             {% endfor %}
           </select>
         </div>
 
         <div style="padding:1rem 1.5rem;border-top:1px solid var(--r-border);display:flex;gap:.75rem;">
-          <input id="aiQuestion" type="text" placeholder="e.g. What topics are covered in this paper?" maxlength="300" style="flex:1;padding:.65rem 1rem;border:1px solid var(--r-border);border-radius:12px;font-size:.9rem;outline:none;" data-event-keyup="askAIOnEnter">
+          <input id="aiQuestion" type="text" placeholder="e.g. What topics are covered in this paper?" maxlength="300"
+            style="flex:1;padding:.65rem 1rem;border:1px solid var(--r-border);border-radius:12px;font-size:.9rem;outline:none;"
+            data-event-keyup="askAIOnEnter">
           <button type="button" data-action="askAI" id="aiSendBtn" class="ai-send-btn">Ask</button>
         </div>
 
@@ -1718,10 +1776,14 @@ Identify the main questions from the transcript above and solve them following t
       const statusEl = document.getElementById('rReportStatus');
       if (!message) { statusEl.style.color = '#ef4444'; statusEl.textContent = 'Please describe the issue.'; return; }
       btn.disabled = true; btn.textContent = 'Submitting...';
+      const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || '';
       try {
         const res = await fetch('/api/report-issue', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: {
+            'Content-Type': 'application/json',
+            'X-CSRFToken': csrfToken
+          },
           body: JSON.stringify({ doc_id: _rDocId, doc_title: _rDocTitle, doc_url: window.location.href, issue_type: issueType, message })
         });
         const data = await res.json();
@@ -1730,7 +1792,7 @@ Identify the main questions from the transcript above and solve them following t
           statusEl.textContent = '✅ Report submitted! Admin will review it shortly.';
           setTimeout(rCloseReport, 2000);
         } else { statusEl.style.color = '#ef4444'; statusEl.textContent = data.error || 'Failed to submit.'; }
-      } catch { statusEl.style.color = '#ef4444'; statusEl.textContent = 'Network error. Please retry.'; }
+      } catch (err) { statusEl.style.color = '#ef4444'; statusEl.textContent = 'Network error. Please retry.'; }
       finally { btn.disabled = false; btn.textContent = 'Submit Report'; }
     }
   </script>

@@ -1,10 +1,10 @@
 'use strict';
 
-let selectedFiles        = [];
-let isUploading          = false;
-let cropperInst          = null;
-let currentCropId        = null;
-let currentMetaId        = null;
+let selectedFiles = [];
+let isUploading = false;
+let cropperInst = null;
+let currentCropId = null;
+let currentMetaId = null;
 let uploadedFingerprints = new Set(); // duplicate guard (session-scoped)
 
 function fileFingerprint(item) {
@@ -14,13 +14,13 @@ function fileFingerprint(item) {
 
 function fmtSize(b) {
   if (b < 1024) return b + 'B';
-  if (b < 1048576) return (b/1024).toFixed(1) + 'KB';
-  return (b/1048576).toFixed(2) + 'MB';
+  if (b < 1048576) return (b / 1024).toFixed(1) + 'KB';
+  return (b / 1048576).toFixed(2) + 'MB';
 }
 function uid() {
-  return 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2,8);
+  return 'f_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
 }
-function gv(id) { return (document.getElementById(id)||{}).value || ''; }
+function gv(id) { return (document.getElementById(id) || {}).value || ''; }
 
 async function computeFileHash(file) {
   try {
@@ -28,9 +28,9 @@ async function computeFileHash(file) {
     const hashBuffer = await crypto.subtle.digest('SHA-256', buffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
     return hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
-  } catch(e) {
+  } catch (e) {
     console.error("Hashing failed", e);
-    return fileFingerprint({file: file}); // Fallback
+    return fileFingerprint({ file: file }); // Fallback
   }
 }
 
@@ -105,7 +105,7 @@ function setFileStatus(id, status, progress, msg) {
     container.appendChild(entry);
   }
 
-  var item = selectedFiles.filter(function(f) { return f.id === id; })[0];
+  var item = selectedFiles.filter(function (f) { return f.id === id; })[0];
   if (item) {
     entry._icon.textContent = (item.file.type && item.file.type.indexOf('image/') === 0) ? '🖼' : '📄';
     entry._name.textContent = item.name;
@@ -132,7 +132,7 @@ function showToast(msg, type) {
   const c = document.getElementById('toastContainer');
   if (!c) return;
   const d = document.createElement('div');
-  d.className = 'bu-toast bu-toast-' + (type||'info');
+  d.className = 'bu-toast bu-toast-' + (type || 'info');
   d.textContent = msg;
   c.appendChild(d);
   setTimeout(() => d.remove(), 4000);
@@ -156,14 +156,14 @@ function handleFilesSelected(filesOrEvent) {
     const activeForm = document.querySelector('.meta-form-wrap[style*="display: block"]');
     const typeEl = activeForm?.querySelector('.meta-type');
     const selType = typeEl ? typeEl.value : '';
-    const imgOnly = ['papers','practical'].includes(selType.toLowerCase());
+    const imgOnly = ['papers', 'practical'].includes(selType.toLowerCase());
     if (imgOnly && !file.type.startsWith('image/')) {
       return showToast(file.name + ': images only for this type', 'error');
     }
     if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
       return showToast(file.name + ': unsupported type', 'error');
     }
-    if (file.size > 50*1024*1024) return showToast(file.name + ': exceeds 50 MB', 'error');
+    if (file.size > 50 * 1024 * 1024) return showToast(file.name + ': exceeds 50 MB', 'error');
 
     const newItem = {
       id: uid(), file, blob: null, name: file.name, cropped: false, status: 'pending'
@@ -172,36 +172,36 @@ function handleFilesSelected(filesOrEvent) {
 
     // Update the drop-zone hint + accept attr based on this file's type
     updateDynamicFields();
-    
+
     // Create DOM isolated form
     const template = document.getElementById('metaFormTemplate');
     const container = document.getElementById('metaFormsContainer');
     if (template && container) {
-        const clone = template.content.cloneNode(true);
-        const wrap = clone.querySelector('.meta-form-wrap');
-        wrap.id = `meta-form-${newItem.id}`;
-        wrap.style.display = 'none';
+      const clone = template.content.cloneNode(true);
+      const wrap = clone.querySelector('.meta-form-wrap');
+      wrap.id = `meta-form-${newItem.id}`;
+      wrap.style.display = 'none';
 
-        // Ensure unique IDs for AbhiHubSelect initialization tracking
-        wrap.querySelectorAll('.abhihub-select').forEach(sel => {
-            sel.id = `abhiselect_${uid()}`;
-        });
+      // Ensure unique IDs for AbhiHubSelect initialization tracking
+      wrap.querySelectorAll('.abhihub-select').forEach(sel => {
+        sel.id = `abhiselect_${uid()}`;
+      });
 
-        container.appendChild(clone);
+      container.appendChild(clone);
 
-        // Initialize AbhiHubSelect on new elements FIRST so TomSelect instances exist
-        if (window.AbhiHubSelect) window.AbhiHubSelect.init();
+      // Initialize AbhiHubSelect on new elements FIRST so TomSelect instances exist
+      if (window.AbhiHubSelect) window.AbhiHubSelect.init();
 
-        // Pre-fill profile defaults via cascade-aware autofill
-        const addedWrap = document.getElementById(`meta-form-${newItem.id}`);
-        if (typeof autofillMetaForm === 'function') {
-            autofillMetaForm(addedWrap);
-        }
+      // Pre-fill profile defaults via cascade-aware autofill
+      const addedWrap = document.getElementById(`meta-form-${newItem.id}`);
+      if (typeof autofillMetaForm === 'function') {
+        autofillMetaForm(addedWrap);
+      }
 
-        // Wire dynamic fields for THIS file's category (notes/papers/practical)
-        updateDynamicFieldsForForm(addedWrap);
+      // Wire dynamic fields for THIS file's category (notes/papers/practical)
+      updateDynamicFieldsForForm(addedWrap);
     }
-    
+
     // Phase 5: AI Metadata Prediction (Async)
     fetch('/api/ai/predict-metadata', {
       method: 'POST',
@@ -212,34 +212,34 @@ function handleFilesSelected(filesOrEvent) {
         const p = data.prediction;
         const form = document.getElementById(`meta-form-${newItem.id}`);
         if (!form) return;
-        
+
         if (p.type) {
-            const typeEl = form.querySelector('.meta-type');
-            if (typeEl && !typeEl.value) typeEl.value = p.type;
+          const typeEl = form.querySelector('.meta-type');
+          if (typeEl && !typeEl.value) typeEl.value = p.type;
         }
         if (p.unit) {
-            const unitEl = form.querySelector('.meta-unit');
-            if (unitEl && !unitEl.value) {
-                // simple assignment, may need updateMetaUnit call logic but skipping for brevity
-                unitEl.innerHTML = `<option value="${p.unit}">${p.unit}</option>`;
-                unitEl.value = p.unit;
-            }
+          const unitEl = form.querySelector('.meta-unit');
+          if (unitEl && !unitEl.value) {
+            // simple assignment, may need updateMetaUnit call logic but skipping for brevity
+            unitEl.innerHTML = `<option value="${p.unit}">${p.unit}</option>`;
+            unitEl.value = p.unit;
+          }
         }
         if (p.year) {
-            const yearEl = form.querySelector('.meta-year');
-            if (yearEl) yearEl.value = p.year;
+          const yearEl = form.querySelector('.meta-year');
+          if (yearEl) yearEl.value = p.year;
         }
         if (p.subject_id) {
-           const subjEl = form.querySelector('.subject-select');
-           const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
-           if (tsSubj) {
-               if (!tsSubj.options[p.subject_id]) tsSubj.addOption({value: p.subject_id, text: p.subject || 'Loading...'});
-               tsSubj.setValue(p.subject_id, true); // silent set
-           } else if (subjEl) {
-               subjEl.value = p.subject_id;
-           }
+          const subjEl = form.querySelector('.subject-select');
+          const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
+          if (tsSubj) {
+            if (!tsSubj.options[p.subject_id]) tsSubj.addOption({ value: p.subject_id, text: p.subject || 'Loading...' });
+            tsSubj.setValue(p.subject_id, true); // silent set
+          } else if (subjEl) {
+            subjEl.value = p.subject_id;
+          }
         }
-        
+
         showToast('🤖 AI auto-filled metadata for ' + newItem.name, 'info');
       }
     }).catch(e => console.warn("AI predict error:", e));
@@ -269,11 +269,11 @@ let carouselRotation = 0;
 function removeCarouselImage() {
   if (selectedFiles.length === 0) return;
   const item = selectedFiles[carouselIndex];
-  
+
   // Remove the isolated form
   const form = document.getElementById(`meta-form-${item.id}`);
   if (form) form.remove();
-  
+
   removeFile(item.id);
 }
 
@@ -284,11 +284,16 @@ function renderCarousel(index) {
   }
   carouselIndex = index;
   const item = selectedFiles[index];
-  
+
   document.getElementById('carouselFilename').textContent = item.name + (item.cropped ? ' (Cropped)' : '');
   const cImg = document.getElementById('carouselImg');
   const metricEl = document.getElementById('carouselMetric');
-  cImg.src = carouselImageSrc(item);
+  const isPdf = item.file && (item.file.type === 'application/pdf' || item.name.toLowerCase().endsWith('.pdf'));
+  if (isPdf) {
+    cImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="%23ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><text x="6" y="18" fill="%23ef4444" font-size="6" font-family="sans-serif" font-weight="bold">PDF FILE</text></svg>';
+  } else {
+    cImg.src = carouselImageSrc(item);
+  }
   cImg.style.transform = `rotate(${item.rotation || 0}deg)`;
 
   // Compression badge for the carousel
@@ -300,7 +305,7 @@ function renderCarousel(index) {
   } else if (metricEl) {
     metricEl.style.display = 'none';
   }
-  
+
   // DOM Isolation: Toggle visibility of forms
   document.querySelectorAll('.meta-form-wrap').forEach(el => el.style.display = 'none');
   const activeForm = document.getElementById(`meta-form-${item.id}`);
@@ -332,8 +337,8 @@ function carouselImageSrc(item) {
 function updateDynamicFieldsForForm(formWrap) {
   if (!formWrap) return;
   var typeEl = formWrap.querySelector('.meta-type');
-  var unitG  = formWrap.querySelector('.meta-unit-wrap');
-  var pracG  = formWrap.querySelector('.meta-practical-wrap');
+  var unitG = formWrap.querySelector('.meta-unit-wrap');
+  var pracG = formWrap.querySelector('.meta-practical-wrap');
   var unitSel = formWrap.querySelector('.meta-unit');
 
   if (!typeEl) return;
@@ -374,12 +379,12 @@ function toggleCarouselCrop() {
   const img = document.getElementById('carouselImg');
   if (cropperInst) {
     // Apply crop
-    cropperInst.getCroppedCanvas({ maxWidth:2400, maxHeight:2400, imageSmoothingQuality:'high' })
+    cropperInst.getCroppedCanvas({ maxWidth: 2400, maxHeight: 2400, imageSmoothingQuality: 'high' })
       .toBlob(blob => {
         const item = selectedFiles[carouselIndex];
         item.blob = blob;
         item.cropped = true;
-        cropperInst.destroy(); 
+        cropperInst.destroy();
         cropperInst = null;
         img.src = URL.createObjectURL(blob);
         img.style.transform = `rotate(0deg)`;
@@ -387,7 +392,7 @@ function toggleCarouselCrop() {
       }, 'image/jpeg', 0.92);
   } else {
     // Start crop
-    cropperInst = new Cropper(img, { viewMode:1, movable:true, zoomable:true, rotatable:true });
+    cropperInst = new Cropper(img, { viewMode: 1, movable: true, zoomable: true, rotatable: true });
   }
 }
 
@@ -401,69 +406,69 @@ function toggleCarouselCrop() {
  */
 async function compressImage(fileObj, quality) {
   quality = quality || 0.82;
-  return new Promise(function(resolve) {
+  return new Promise(function (resolve) {
     if (!fileObj.type.startsWith('image/')) return resolve(fileObj);
     var img = new Image();
-    img.onload = function() {
+    img.onload = function () {
       var MAX = 1600;
       var scaleW = img.width > MAX ? MAX / img.width : 1;
       var scaleH = img.height > MAX ? MAX / img.height : 1;
-      var scale  = Math.min(scaleW, scaleH, 1);
+      var scale = Math.min(scaleW, scaleH, 1);
       if (scale >= 1) return resolve(fileObj); // already small enough
       var canvas = document.createElement('canvas');
-      canvas.width  = Math.round(img.width  * scale);
+      canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
       canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
-      canvas.toBlob(function(blob) { resolve(blob || fileObj); }, 'image/jpeg', quality);
+      canvas.toBlob(function (blob) { resolve(blob || fileObj); }, 'image/jpeg', quality);
     };
-    img.onerror = function() { resolve(fileObj); };
+    img.onerror = function () { resolve(fileObj); };
     img.src = URL.createObjectURL(fileObj);
   });
 }
 
 function buildFormData(item) {
   const fd = new FormData();
-  
+
   const form = document.getElementById(`meta-form-${item.id}`);
   let m = {};
   if (form) {
-      const typeEl = form.querySelector('.meta-type');
-      const yearEl = form.querySelector('.meta-year');
-      const unitEl = form.querySelector('.meta-unit');
-      const colEl = form.querySelector('.college-select');
-      const branchEl = form.querySelector('.branch-select');
-      const semEl = form.querySelector('.semester-select');
-      const subjEl = form.querySelector('.subject-select');
-      const progEl = form.querySelector('.program-select');
-      
-      const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
-      const subjId = tsSubj ? tsSubj.getValue() : (subjEl ? subjEl.value : '');
-      const subjOpt = tsSubj ? tsSubj.options[subjId] : null;
-      const subjText = subjOpt ? subjOpt.text : (subjEl && subjEl.selectedIndex >= 0 ? subjEl.options[subjEl.selectedIndex]?.text : '') || subjId || '';
+    const typeEl = form.querySelector('.meta-type');
+    const yearEl = form.querySelector('.meta-year');
+    const unitEl = form.querySelector('.meta-unit');
+    const colEl = form.querySelector('.college-select');
+    const branchEl = form.querySelector('.branch-select');
+    const semEl = form.querySelector('.semester-select');
+    const subjEl = form.querySelector('.subject-select');
+    const progEl = form.querySelector('.program-select');
 
-      m = {
-          type: typeEl ? typeEl.value : '',
-          year: yearEl ? yearEl.value : '2025',
-          unit: unitEl ? unitEl.value : '',
-          college_id: colEl ? colEl.value : '',
-          branch_id: branchEl ? branchEl.value : '',
-          semester: semEl ? semEl.value : '',
-          subject_id: subjId,
-          subject: subjText,
-          program: progEl ? progEl.value : 'b.tech'
-      };
+    const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
+    const subjId = tsSubj ? tsSubj.getValue() : (subjEl ? subjEl.value : '');
+    const subjOpt = tsSubj ? tsSubj.options[subjId] : null;
+    const subjText = subjOpt ? subjOpt.text : (subjEl && subjEl.selectedIndex >= 0 ? subjEl.options[subjEl.selectedIndex]?.text : '') || subjId || '';
+
+    m = {
+      type: typeEl ? typeEl.value : '',
+      year: yearEl ? yearEl.value : '2025',
+      unit: unitEl ? unitEl.value : '',
+      college_id: colEl ? colEl.value : '',
+      branch_id: branchEl ? branchEl.value : '',
+      semester: semEl ? semEl.value : '',
+      subject_id: subjId,
+      subject: subjText,
+      program: progEl ? progEl.value : 'b.tech'
+    };
   }
 
   fd.append('college_id', m.college_id || '');
-  fd.append('branch_id',  m.branch_id || '');
-  fd.append('semester',   m.semester  || '');
-  fd.append('subject',    m.subject   || '');
+  fd.append('branch_id', m.branch_id || '');
+  fd.append('semester', m.semester || '');
+  fd.append('subject', m.subject || '');
   fd.append('subject_id', m.subject_id || '');
-  fd.append('year',       m.year      || '2025');
-  fd.append('program',    m.program   || 'b.tech');
-  fd.append('type',       m.type      || '');
-  fd.append('document_type', m.type   || '');
-  fd.append('unit',       m.unit      || '');
+  fd.append('year', m.year || '2025');
+  fd.append('program', m.program || 'b.tech');
+  fd.append('type', m.type || '');
+  fd.append('document_type', m.type || '');
+  fd.append('unit', m.unit || '');
   // CSRF protection — the form's hidden input holds the token;
   // grab it from the DOM so the XHR is not rejected.
   const _csrfEl = document.querySelector('input[name="csrf_token"]');
@@ -475,14 +480,14 @@ function buildFormData(item) {
   if (_examEl && _examEl.value) fd.append('exam_type', _examEl.value);
   const _codeEl = form ? form.querySelector('[name="subject_code"]') : null;
   if (_codeEl && _codeEl.value) fd.append('subject_code', _codeEl.value);
-  const origName  = item.name || (item.file && item.file.name) || `file_${Date.now()}`;
-  const ext       = origName.includes('.') ? origName.split('.').pop().toLowerCase() : 'jpg';
-  const sanitize  = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-  const code      = sanitize(m.subject || '');
-  const docType   = sanitize(m.type || '');
-  const year      = sanitize(m.year || '2025');
-  const unit      = sanitize(m.unit || '');
-  const parts     = [code, docType, year];
+  const origName = item.name || (item.file && item.file.name) || `file_${Date.now()}`;
+  const ext = origName.includes('.') ? origName.split('.').pop().toLowerCase() : 'jpg';
+  const sanitize = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
+  const code = sanitize(m.subject || '');
+  const docType = sanitize(m.type || '');
+  const year = sanitize(m.year || '2025');
+  const unit = sanitize(m.unit || '');
+  const parts = [code, docType, year];
   if (unit) parts.push(unit);
   const cleanName = parts.filter(Boolean).join('_') || sanitize(origName.replace(/\.[^.]+$/, ''));
   const finalName = `${cleanName}.${ext}`;
@@ -552,19 +557,19 @@ async function uploadOne(item, retries) {
     }).then(r => r.json());
 
     if (dupCheck.success && dupCheck.is_duplicate) {
-       setFileStatus(item.id, 'error', 0, 'Duplicate File Found');
-       showToast((item.name || 'File') + ': exact duplicate already exists!', 'error');
-       return { ok: false, msg: 'Duplicate detected' };
+      setFileStatus(item.id, 'error', 0, 'Duplicate File Found');
+      showToast((item.name || 'File') + ': exact duplicate already exists!', 'error');
+      return { ok: false, msg: 'Duplicate detected' };
     }
   } catch (e) {
     console.warn("Duplicate check failed, continuing upload", e);
   }
 
-  return new Promise(function(resolve) {
+  return new Promise(function (resolve) {
     var xhr = new XMLHttpRequest();
     xhr.open('POST', '/upload', true);
     xhr.timeout = 45000;
-    xhr.upload.onprogress = function(e) {
+    xhr.upload.onprogress = function (e) {
       if (e.lengthComputable) {
         setFileStatus(item.id, 'uploading', Math.round(e.loaded / e.total * 100));
         if (_progCurrentFile !== item.name) {
@@ -575,7 +580,7 @@ async function uploadOne(item, retries) {
         updateProgressUI();
       }
     };
-    xhr.onload = function() {
+    xhr.onload = function () {
       try {
         var r = JSON.parse(xhr.responseText);
         if (xhr.status === 200 && r.success) {
@@ -585,7 +590,7 @@ async function uploadOne(item, retries) {
           setFileStatus(item.id, 'done', 100);
           resolve({ ok: true, xp: (r.data && r.data.xp_gained) || 0, score: (r.data && r.data.new_score) || 0 });
           if (typeof window.AbhiHubInvitePrompt === 'function') {
-            try { window.AbhiHubInvitePrompt(); } catch (e) {}
+            try { window.AbhiHubInvitePrompt(); } catch (e) { }
           }
         } else {
           _progCurrentFile = '';
@@ -593,28 +598,28 @@ async function uploadOne(item, retries) {
           setFileStatus(item.id, 'error', 0, r.message || 'Failed');
           resolve({ ok: false, msg: r.message });
         }
-      } catch(e) {
+      } catch (e) {
         _progCurrentFile = '';
         _progCurrentPct = 0;
         setFileStatus(item.id, 'error', 0, 'Invalid response');
         resolve({ ok: false, msg: 'Invalid response' });
       }
     };
-    xhr.onerror = function() {
+    xhr.onerror = function () {
       _progCurrentFile = '';
       _progCurrentPct = 0;
       if (retries > 0) {
         showToast('Network error — retrying…', 'error');
-        setTimeout(function() { uploadOne(item, retries - 1).then(resolve); }, 1500);
+        setTimeout(function () { uploadOne(item, retries - 1).then(resolve); }, 1500);
       } else {
         setFileStatus(item.id, 'error', 0, 'Network error');
         resolve({ ok: false });
       }
     };
-    xhr.ontimeout = function() {
+    xhr.ontimeout = function () {
       if (retries > 0) {
         showToast('Upload timed out — retrying…', 'error');
-        setTimeout(function() { uploadOne(item, retries - 1).then(resolve); }, 2000);
+        setTimeout(function () { uploadOne(item, retries - 1).then(resolve); }, 2000);
       } else {
         setFileStatus(item.id, 'error', 0, 'Timed out');
         resolve({ ok: false, msg: 'Upload timed out' });
@@ -627,60 +632,60 @@ async function uploadOne(item, retries) {
 function handleBeforeUnload(e) {
   if (isUploading) {
     if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadAbandoned('uploading');
-    e.preventDefault(); e.returnValue='Upload in progress.';
+    e.preventDefault(); e.returnValue = 'Upload in progress.';
   } else if (selectedFiles.length > 0) {
     if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadAbandoned('metadata');
   }
 }
 
 async function startBulkUpload(event) {
-    event.preventDefault();
-    if (!selectedFiles.length) return showToast('Select at least one file', 'error');
-  
-    // Validate all have required metadata (including college and branch now)
-    const missing = selectedFiles.filter(f => {
-        const form = document.getElementById(`meta-form-${f.id}`);
-        if (!form) return true;
-        const type = form.querySelector('.meta-type')?.value;
-        const col = form.querySelector('.college-select')?.value;
-        const branch = form.querySelector('.branch-select')?.value;
-        
-        const subjEl = form.querySelector('.subject-select');
-        const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
-        const subj = tsSubj ? tsSubj.getValue() : (subjEl ? subjEl.value : '');
-        
-        const prog = form.querySelector('.program-select')?.value;
-        return !type || !col || !branch || !subj || !prog;
-    });
-    
-    if (missing.length) {
-      if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed('missing_metadata', 'validation_error', 'file');
-      showToast('Fill metadata (College, Department, Category, Subject) for all image(s) first', 'error');
-      return;
-    }
-  
+  event.preventDefault();
+  if (!selectedFiles.length) return showToast('Select at least one file', 'error');
+
+  // Validate all have required metadata (including college and branch now)
+  const missing = selectedFiles.filter(f => {
+    const form = document.getElementById(`meta-form-${f.id}`);
+    if (!form) return true;
+    const type = form.querySelector('.meta-type')?.value;
+    const col = form.querySelector('.college-select')?.value;
+    const branch = form.querySelector('.branch-select')?.value;
+
+    const subjEl = form.querySelector('.subject-select');
+    const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
+    const subj = tsSubj ? tsSubj.getValue() : (subjEl ? subjEl.value : '');
+
+    const prog = form.querySelector('.program-select')?.value;
+    return !type || !col || !branch || !subj || !prog;
+  });
+
+  if (missing.length) {
+    if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed('missing_metadata', 'validation_error', 'file');
+    showToast('Fill metadata (College, Department, Category, Subject) for all image(s) first', 'error');
+    return;
+  }
+
   // Extract batch
   const uploadBatch = [...selectedFiles];
-  
+
   // Build meta object for each item before upload to prevent DOM lookup issues later
   uploadBatch.forEach(f => {
-      const form = document.getElementById(`meta-form-${f.id}`);
-      if (form) {
-          const subjEl = form.querySelector('.subject-select');
-          const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
-          const subjId = tsSubj ? tsSubj.getValue() : (subjEl ? subjEl.value : '');
-          const subjOpt = tsSubj ? tsSubj.options[subjId] : null;
-          const subjText = subjOpt ? subjOpt.text : (subjEl && subjEl.selectedIndex >= 0 ? subjEl.options[subjEl.selectedIndex]?.text : '') || subjId || '';
-          
-          f.meta = {
-              type: form.querySelector('.meta-type')?.value,
-              college_id: form.querySelector('.college-select')?.value,
-              branch_id: form.querySelector('.branch-select')?.value,
-              subject: subjText
-          };
-      } else {
-          f.meta = { type: 'unknown', subject: 'unknown' };
-      }
+    const form = document.getElementById(`meta-form-${f.id}`);
+    if (form) {
+      const subjEl = form.querySelector('.subject-select');
+      const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
+      const subjId = tsSubj ? tsSubj.getValue() : (subjEl ? subjEl.value : '');
+      const subjOpt = tsSubj ? tsSubj.options[subjId] : null;
+      const subjText = subjOpt ? subjOpt.text : (subjEl && subjEl.selectedIndex >= 0 ? subjEl.options[subjEl.selectedIndex]?.text : '') || subjId || '';
+
+      f.meta = {
+        type: form.querySelector('.meta-type')?.value,
+        college_id: form.querySelector('.college-select')?.value,
+        branch_id: form.querySelector('.branch-select')?.value,
+        subject: subjText
+      };
+    } else {
+      f.meta = { type: 'unknown', subject: 'unknown' };
+    }
   });
 
   // Show floating progress pill offering the game
@@ -702,30 +707,30 @@ async function startBulkUpload(event) {
         <canvas id="marioCanvas" width="400" height="150" style="background:#87CEEB;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.5);"></canvas>
     </div>
   `;
-  
+
   let floatingProgress = document.getElementById('floatingProgress');
   if (!floatingProgress) {
-      floatingProgress = document.createElement('div');
-      floatingProgress.id = 'floatingProgress';
-      floatingProgress.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#2563eb;color:white;padding:12px 20px;border-radius:30px;font-weight:bold;box-shadow:0 4px 15px rgba(0,0,0,0.3);z-index:99998;display:none;cursor:pointer;transition:transform 0.2s;';
-      floatingProgress.onmouseover = () => floatingProgress.style.transform = 'scale(1.05)';
-      floatingProgress.onmouseout = () => floatingProgress.style.transform = 'scale(1)';
-      floatingProgress.onclick = () => { overlay.style.display = 'flex'; floatingProgress.style.display = 'none'; startMarioGame(); };
-      document.body.appendChild(floatingProgress);
+    floatingProgress = document.createElement('div');
+    floatingProgress.id = 'floatingProgress';
+    floatingProgress.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#2563eb;color:white;padding:12px 20px;border-radius:30px;font-weight:bold;box-shadow:0 4px 15px rgba(0,0,0,0.3);z-index:99998;display:none;cursor:pointer;transition:transform 0.2s;';
+    floatingProgress.onmouseover = () => floatingProgress.style.transform = 'scale(1.05)';
+    floatingProgress.onmouseout = () => floatingProgress.style.transform = 'scale(1)';
+    floatingProgress.onclick = () => { overlay.style.display = 'flex'; floatingProgress.style.display = 'none'; startMarioGame(); };
+    document.body.appendChild(floatingProgress);
   }
-  
+
   // Show the pill, keep the overlay hidden
   overlay.style.display = 'none';
   floatingProgress.style.display = 'block';
   floatingProgress.innerHTML = `Uploading 0 / ${uploadBatch.length} &mdash; Play Game 🎮`;
-  
+
   await processUploadBatch(uploadBatch);
 }
 
-window.minimizeUploadOverlay = function() {
-    document.getElementById('uploadOverlay').style.display = 'none';
-    const floating = document.getElementById('floatingProgress');
-    if (floating) floating.style.display = 'block';
+window.minimizeUploadOverlay = function () {
+  document.getElementById('uploadOverlay').style.display = 'none';
+  const floating = document.getElementById('floatingProgress');
+  if (floating) floating.style.display = 'block';
 };
 
 let activeUploads = 0;
@@ -734,19 +739,24 @@ async function processUploadBatch(batch) {
   activeUploads++;
   isUploading = true;
   window.addEventListener('beforeunload', handleBeforeUnload);
-  
+
   const _gaMethod = batch.some(f => !f.file.lastModified || f.file.name.toLowerCase().startsWith('image')) ? 'camera' : 'file';
-  
+
   if (typeof window.AbhiHubTracking !== 'undefined') {
     const _category = batch[0].meta.type || 'unknown';
     window.AbhiHubTracking.trackUploadStarted(batch.length, _gaMethod, _category);
   }
 
-  let done=0, failed=0;
+  let done = 0, failed = 0;
   const results = [];
-  const pText = document.getElementById('uploadProgressText');
-  const pBar = document.getElementById('uploadProgressBar');
-  const fProg = document.getElementById('floatingProgress');
+  _progTotal = batch.length;
+  _progDone = 0;
+  _progBar = document.getElementById('uploadProgressBar');
+  _progFloat = document.getElementById('floatingProgress');
+  _progText = document.getElementById('uploadProgressText');
+  const pText = _progText;
+  const pBar = _progBar;
+  const fProg = _progFloat;
 
   // Bounded concurrency — upload up to 2 files simultaneously so the
   // connection isn't saturated and each file still gets per-file progress.
@@ -763,7 +773,7 @@ async function processUploadBatch(batch) {
         results.push(res);
         if (res.ok) { done++; if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUpload(item.name, item.file.type || 'image/jpeg', Math.round((item.blob || item.file).size / 1024)); }
         else { failed++; if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed(res.msg || 'network_error', 'system_error', _gaMethod); }
-        if (pBar) pBar.style.width = `${((done+failed)/batch.length)*100}%`;
+        if (pBar) pBar.style.width = `${((done + failed) / batch.length) * 100}%`;
         running.delete(item.id);
         processNext();
       });
@@ -798,30 +808,30 @@ async function processUploadBatch(batch) {
     if (firstCol && firstBranch && firstCol !== '__other__' && firstBranch !== '__other__') {
       fetch('/api/profile/update', {
         method: 'POST',
-        headers: {'Content-Type':'application/json'},
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ college_id: firstCol, department_id: firstBranch })
       }).catch(e => console.error(e));
     }
 
     const totalXp = results.filter(r => r.ok).reduce((sum, r) => sum + (r.xp || 0), 0);
     const lastScore = results.filter(r => r.ok).slice(-1)[0]?.score || 0;
-    
+
     if (typeof window.AbhiHubTracking !== 'undefined') {
       const types = Array.from(new Set(batch.map(f => f.file.type || 'image/jpeg'))).join(',');
       const totalSizeKb = Math.round(batch.reduce((sum, f) => sum + (f.blob || f.file).size, 0) / 1024);
       window.AbhiHubTracking.trackUploadCompleted(done, _gaMethod, types, totalSizeKb);
       if (totalXp > 0) window.AbhiHubTracking.trackXpEarned(totalXp, lastScore, done);
     }
-    
+
     if (typeof window.markUserUploaded === 'function') window.markUserUploaded();
     if (typeof showXpModal === 'function') showXpModal(totalXp, lastScore, done);
-    
+
     // Clear the UI cards after a slight delay so user sees the checkmarks
     setTimeout(() => {
-        selectedFiles.length = 0; 
-        document.getElementById('uploadCarousel').style.display = 'none';
+      selectedFiles.length = 0;
+      document.getElementById('uploadCarousel').style.display = 'none';
     }, 2000);
-    
+
   } else if (done > 0) {
     showToast(`${done} succeeded, ${failed} failed.`, 'error');
   } else {
@@ -832,103 +842,103 @@ async function processUploadBatch(batch) {
 // Mario Mini-Game
 let marioAnim;
 function startMarioGame() {
-    const canvas = document.getElementById('marioCanvas');
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    let mario = { x: 50, y: 100, width: 20, height: 20, dy: 0, jumpPower: -10, grounded: false };
-    let obstacles = [];
-    let frame = 0;
-    let score = 0;
-    let gravity = 0.6;
-    let isGameOver = false;
+  const canvas = document.getElementById('marioCanvas');
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  let mario = { x: 50, y: 100, width: 20, height: 20, dy: 0, jumpPower: -10, grounded: false };
+  let obstacles = [];
+  let frame = 0;
+  let score = 0;
+  let gravity = 0.6;
+  let isGameOver = false;
 
-    function jump() {
-        if (mario.grounded) { mario.dy = mario.jumpPower; mario.grounded = false; }
-        else if (isGameOver) reset();
+  function jump() {
+    if (mario.grounded) { mario.dy = mario.jumpPower; mario.grounded = false; }
+    else if (isGameOver) reset();
+  }
+
+  const jumpHandler = (e) => { if (e.code === 'Space' || e.type === 'touchstart') jump(); };
+  window.addEventListener('keydown', jumpHandler);
+  canvas.addEventListener('touchstart', jumpHandler);
+
+  function reset() {
+    mario.y = 100; mario.dy = 0; obstacles = []; score = 0; frame = 0; isGameOver = false;
+    loop();
+  }
+
+  function loop() {
+    if (!document.getElementById('marioCanvas')) {
+      window.removeEventListener('keydown', jumpHandler);
+      return;
     }
-    
-    const jumpHandler = (e) => { if(e.code === 'Space' || e.type === 'touchstart') jump(); };
-    window.addEventListener('keydown', jumpHandler);
-    canvas.addEventListener('touchstart', jumpHandler);
+    if (isGameOver) return;
 
-    function reset() {
-        mario.y = 100; mario.dy = 0; obstacles = []; score = 0; frame = 0; isGameOver = false;
-        loop();
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Ground (Brick style)
+    ctx.fillStyle = '#8B4513';
+    ctx.fillRect(0, 120, canvas.width, 30);
+    ctx.fillStyle = '#A0522D';
+    for (let i = 0; i < canvas.width; i += 20) { ctx.strokeRect(i, 120, 20, 15); ctx.strokeRect(i - 10, 135, 20, 15); }
+
+    // Mario physics
+    mario.dy += gravity;
+    mario.y += mario.dy;
+    if (mario.y + mario.height >= 120) {
+      mario.y = 120 - mario.height;
+      mario.dy = 0;
+      mario.grounded = true;
     }
 
-    function loop() {
-        if (!document.getElementById('marioCanvas')) {
-            window.removeEventListener('keydown', jumpHandler);
-            return;
-        }
-        if (isGameOver) return;
-        
-        ctx.clearRect(0, 0, canvas.width, canvas.height);
-        
-        // Ground (Brick style)
-        ctx.fillStyle = '#8B4513';
-        ctx.fillRect(0, 120, canvas.width, 30);
-        ctx.fillStyle = '#A0522D';
-        for(let i=0; i<canvas.width; i+=20) { ctx.strokeRect(i, 120, 20, 15); ctx.strokeRect(i-10, 135, 20, 15); }
+    // Draw Mario (Red Block with blue pants)
+    ctx.fillStyle = '#ef4444'; // Red shirt
+    ctx.fillRect(mario.x, mario.y, mario.width, mario.height * 0.6);
+    ctx.fillStyle = '#3b82f6'; // Blue pants
+    ctx.fillRect(mario.x, mario.y + mario.height * 0.6, mario.width, mario.height * 0.4);
 
-        // Mario physics
-        mario.dy += gravity;
-        mario.y += mario.dy;
-        if (mario.y + mario.height >= 120) {
-            mario.y = 120 - mario.height;
-            mario.dy = 0;
-            mario.grounded = true;
-        }
-
-        // Draw Mario (Red Block with blue pants)
-        ctx.fillStyle = '#ef4444'; // Red shirt
-        ctx.fillRect(mario.x, mario.y, mario.width, mario.height * 0.6);
-        ctx.fillStyle = '#3b82f6'; // Blue pants
-        ctx.fillRect(mario.x, mario.y + mario.height * 0.6, mario.width, mario.height * 0.4);
-
-        // Obstacles (Green Pipes)
-        if (frame % 90 === 0) {
-            obstacles.push({ x: canvas.width, width: 24, height: 25 + Math.random()*25 });
-        }
-
-        ctx.fillStyle = '#22c55e'; // Pipe Green
-        for (let i = 0; i < obstacles.length; i++) {
-            let obs = obstacles[i];
-            obs.x -= 4.0;
-            // Draw pipe body
-            ctx.fillRect(obs.x + 2, 120 - obs.height + 10, obs.width - 4, obs.height - 10);
-            // Draw pipe lip
-            ctx.fillRect(obs.x, 120 - obs.height, obs.width, 10);
-
-            // Collision
-            if (mario.x < obs.x + obs.width && mario.x + mario.width > obs.x &&
-                mario.y < 120 && mario.y + mario.height > 120 - obs.height) {
-                isGameOver = true;
-            }
-        }
-        
-        obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
-        
-        // Score
-        score++;
-        ctx.fillStyle = '#1e293b';
-        ctx.font = 'bold 16px monospace';
-        ctx.fillText(`SCORE: ${Math.floor(score/10)}`, canvas.width - 120, 30);
-        
-        if (isGameOver) {
-            ctx.fillStyle = 'rgba(0,0,0,0.7)';
-            ctx.fillRect(0,0,canvas.width, canvas.height);
-            ctx.fillStyle = 'white';
-            ctx.font = 'bold 20px sans-serif';
-            ctx.fillText("MAMA MIA! Tap to restart.", 70, 80);
-        }
-
-        frame++;
-        marioAnim = requestAnimationFrame(loop);
+    // Obstacles (Green Pipes)
+    if (frame % 90 === 0) {
+      obstacles.push({ x: canvas.width, width: 24, height: 25 + Math.random() * 25 });
     }
-    
-    cancelAnimationFrame(marioAnim);
-    reset();
+
+    ctx.fillStyle = '#22c55e'; // Pipe Green
+    for (let i = 0; i < obstacles.length; i++) {
+      let obs = obstacles[i];
+      obs.x -= 4.0;
+      // Draw pipe body
+      ctx.fillRect(obs.x + 2, 120 - obs.height + 10, obs.width - 4, obs.height - 10);
+      // Draw pipe lip
+      ctx.fillRect(obs.x, 120 - obs.height, obs.width, 10);
+
+      // Collision
+      if (mario.x < obs.x + obs.width && mario.x + mario.width > obs.x &&
+        mario.y < 120 && mario.y + mario.height > 120 - obs.height) {
+        isGameOver = true;
+      }
+    }
+
+    obstacles = obstacles.filter(obs => obs.x + obs.width > 0);
+
+    // Score
+    score++;
+    ctx.fillStyle = '#1e293b';
+    ctx.font = 'bold 16px monospace';
+    ctx.fillText(`SCORE: ${Math.floor(score / 10)}`, canvas.width - 120, 30);
+
+    if (isGameOver) {
+      ctx.fillStyle = 'rgba(0,0,0,0.7)';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.fillStyle = 'white';
+      ctx.font = 'bold 20px sans-serif';
+      ctx.fillText("MAMA MIA! Tap to restart.", 70, 80);
+    }
+
+    frame++;
+    marioAnim = requestAnimationFrame(loop);
+  }
+
+  cancelAnimationFrame(marioAnim);
+  reset();
 }
 
 function setFloatStatus(show, text) {
@@ -943,10 +953,10 @@ function setFloatStatus(show, text) {
 function initDragDrop() {
   const da = document.getElementById('dropArea');
   if (!da) return;
-  ['dragenter','dragover','dragleave','drop'].forEach(n =>
+  ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(n =>
     da.addEventListener(n, e => { e.preventDefault(); e.stopPropagation(); })
   );
-  da.addEventListener('dragover',  () => da.classList.add('drag-over'));
+  da.addEventListener('dragover', () => da.classList.add('drag-over'));
   da.addEventListener('dragleave', () => da.classList.remove('drag-over'));
   da.addEventListener('drop', e => { da.classList.remove('drag-over'); handleFilesSelected(e.dataTransfer.files); });
 }

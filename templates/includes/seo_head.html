@@ -1,9 +1,9 @@
 <!-- SEO FOUNDATION TEMPLATE -->
 {% set is_noindex = noindex | default(false) or request.path.startswith('/login') or request.path.startswith('/signup')
-or request.path.startswith('/dashboard') or request.path.startswith('/settings') or request.path.startswith('/admin') %}
+or request.path.startswith('/settings') or request.path.startswith('/admin') %}
 
 <!-- 1. Performance & Hints -->
-<link rel="preconnect" href="https://fonts.googleapis.com">
+
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://fonts.googleapis.com">
 

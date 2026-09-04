@@ -27,7 +27,7 @@ from supabase import create_client, ClientOptions
 load_dotenv()
 
 # IndexNow must use one environment-managed key for both submission and ownership verification.
-BASE_DOMAIN = os.getenv('BASE_DOMAIN', 'abhihub.edu.eu.org').strip().lower()
+BASE_DOMAIN = os.getenv('BASE_DOMAIN', 'www.abhihub.edu.eu.org').strip().lower()
 INDEXNOW_KEY = os.getenv('INDEX_NOW_BING_API_KEY', '').strip()
 TURNSTILE_SITEKEY = os.getenv('TURNSTILE_SITEKEY', '')
 
@@ -234,6 +234,32 @@ def _score_item(item: dict, tokens: list[str]) -> float:
 
 # Initialize Flask app
 app = Flask(__name__)
+
+# Response caching to improve server response time
+from flask import make_response, request
+import time
+
+@app.after_request
+def add_cache_control(response):
+    """Add cache control headers to improve performance."""
+    # Cache static assets for 1 year
+    if request.path.startswith('/static/'):
+        response.headers['Cache-Control'] = 'public, max-age=31536000, must-revalidate'
+    # Cache API responses for 5 minutes
+    elif request.path.startswith('/api/'):
+        response.headers['Cache-Control'] = 'public, max-age=300, must-revalidate'
+    # Cache HTML for 1 minute (excluding dynamic pages)
+    elif request.path.endswith('.html') and not request.path.startswith('/dashboard'):
+        response.headers['Cache-Control'] = 'public, max-age=60, must-revalidate'
+    return response
+
+# Add gzip compression for text responses
+try:
+    from flask_compress import Compress
+    compress = Compress()
+    compress.init_app(app)
+except ImportError:
+    pass
 
 # Sitemap URLs are opt-in. Keeping this registry next to the application
 # prevents newly added auth/account routes from being indexed by accident.
@@ -3079,10 +3105,10 @@ def subject_landing(subject_slug):
                            stats=stats, 
                            recent_files=recent_files)
 
-@app.route('/resource/<path:slug>-view')
-def resource_landing_redirect(slug):
-    """Redirect resource slug with -view suffix to clean URL"""
-    return redirect(url_for('resource_landing', slug=slug), code=301)
+# @app.route('/resource/<path:slug>-view')
+# def resource_landing_redirect(slug):
+#     """Redirect resource slug with -view suffix to clean URL"""
+#     return redirect(url_for('resource_landing', slug=slug), code=301)
 
 @app.route('/resource/<path:slug>')
 def resource_landing(slug):
@@ -3239,16 +3265,16 @@ import json
 import os
 CONTACT_FILE = os.path.join('data', 'contact_messages.json')
 
-# ─── In-viewer document issue reporting (no Turnstile required — auth-gated) ──
+# ─── In-viewer document issue reporting (CSRF exempt — handles both auth and guest visitors) ──
 @app.route('/api/report-issue', methods=['POST'])
-@auth_required
+@csrf.exempt
 def api_report_issue():
     """Submit a document issue report from within a viewer page.
     Saves directly to CONTACT_FILE so the Admin Feedback panel shows it.
-    No Turnstile required — the session auth is sufficient protection.
+    No Turnstile required.
     """
     data = request.get_json() or {}
-    user = session.get('user', {})
+    user = session.get('user') or {}
 
     doc_title = data.get('doc_title', 'Unknown document')
     doc_id    = data.get('doc_id', '')
@@ -4392,7 +4418,10 @@ def get_admin_stats():
 @admin_required
 def get_pending_documents():
     try:
-        res = supabase.table('documents')\
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
+        res = client.table('documents')\
             .select('id, title, document_category, file_type, file_url, created_at, uploader_id, profiles(full_name, email)')\
             .eq('status', 'pending')\
             .order('created_at', desc=True)\
@@ -4402,6 +4431,26 @@ def get_pending_documents():
     except Exception as e:
         logging.error(f'[pending-documents] {e}')
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+
+@app.route('/api/indexnow/submit', methods=['POST'])
+@auth_required
+@admin_required
+def api_indexnow_submit():
+    try:
+        data = request.get_json() or {}
+        urls = data.get('urls', [])
+        if not urls or not isinstance(urls, list):
+            return jsonify({'success': False, 'message': 'urls list is required'}), 400
+        
+        success = _trigger_indexnow(urls)
+        if success:
+            return jsonify({'success': True, 'message': f'Submitted {len(urls)} URLs successfully'})
+        return jsonify({'success': False, 'message': 'IndexNow submission failed or key not configured'}), 400
+    except Exception as e:
+        logging.error(f'[api_indexnow_submit] {e}')
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/admin/analytics')
 @auth_required
@@ -4541,9 +4590,16 @@ def api_admin_economy_override_user(user_id):
         if level not in allowed:
             return jsonify({'success': False, 'message': f'access_level must be one of {allowed}'}), 400
         client = init_supabase()
-        # Manual override marker via negative ccr sentinel is hacky; instead store on profile
-        client.table('profiles').update({'access_level': level}).eq('id', user_id).execute()
-        logging.info(f"[ECONOMY] admin set user {user_id} access_level={level}")
+        target_uid = user_id.strip()
+        if '@' in target_uid or len(target_uid) != 36:
+            res = client.table('profiles').select('id').or_(f"email.eq.{target_uid},full_name.ilike.%{target_uid}%").limit(1).execute()
+            if res.data and len(res.data) > 0:
+                target_uid = res.data[0]['id']
+            else:
+                return jsonify({'success': False, 'message': f'User "{user_id}" not found'}), 404
+
+        client.table('profiles').update({'access_level': level}).eq('id', target_uid).execute()
+        logging.info(f"[ECONOMY] admin set user {target_uid} access_level={level}")
         return jsonify({'success': True}), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500
@@ -6286,3 +6342,8 @@ if __name__ == '__main__':
 
 
 
+
+@app.route('/api/version')
+def version_info():
+    """Return current app version for footer and cache management"""
+    return jsonify({"version": "1.0.0"})

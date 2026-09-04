@@ -201,7 +201,9 @@ def upload_file_to_cloudinary(
         name_without_ext = sanitized_name.rsplit('.', 1)[0] if '.' in sanitized_name else sanitized_name
         ext = sanitized_name.rsplit('.', 1)[-1] if '.' in sanitized_name else ''
         
-        public_id = f"{folder}/{user_id}_{timestamp}_{name_without_ext}"
+        public_id = f"{user_id}_{timestamp}_{name_without_ext}"
+        if resource_type == 'raw' and ext:
+            public_id = f"{public_id}.{ext}"
         
         # Upload to Cloudinary
         upload_params = {

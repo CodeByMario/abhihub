@@ -1,126 +1,435 @@
 {% extends 'p_struct.html' %}
+
+{% block page_head %}
+<title>Economy Dashboard | AbhiHub Admin</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% endblock %}
+
 {% block content %}
-<div style="max-width: 1100px; margin: 0 auto; padding: 1.5rem 1rem;">
-  <h1 style="font-size:1.5rem;margin-bottom:.25rem;">💰 Economy Dashboard</h1>
-  <p style="color:#64748b;margin-bottom:1.5rem;">Scoring config, level distribution, and user overrides. Changes apply within ~5 min (cache TTL) or instantly on this worker.</p>
-
-  <!-- Overview -->
-  <section id="overview" style="margin-bottom:2rem;">
-    <h2 style="font-size:1.15rem;">Overview</h2>
-    <div id="level-dist" style="display:flex;gap:.75rem;flex-wrap:wrap;margin:.75rem 0;"></div>
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;">
-      <div>
-        <h3 style="font-size:.95rem;">🏆 Top Contributors</h3>
-        <ol id="top-contrib" style="font-size:.85rem;padding-left:1.2rem;"></ol>
-      </div>
-      <div>
-        <h3 style="font-size:.95rem;">📉 Most Consumer-Heavy (lowest CCR)</h3>
-        <ol id="consumer-heavy" style="font-size:.85rem;padding-left:1.2rem;"></ol>
-      </div>
-    </div>
-    <h3 style="font-size:.95rem;margin-top:1rem;">Recent scored events</h3>
-    <table id="recent-events" style="width:100%;font-size:.8rem;border-collapse:collapse;">
-      <thead><tr style="text-align:left;color:#64748b;"><th>When</th><th>User</th><th>Action</th><th>XP</th><th>Note</th></tr></thead>
-      <tbody></tbody>
-    </table>
-  </section>
-
-  <!-- Config editor -->
-  <section id="config">
-    <h2 style="font-size:1.15rem;">⚙️ Scoring Config</h2>
-    <p style="font-size:.85rem;color:#64748b;">Values are JSON. Edit carefully — these drive all scoring, thresholds, ads, and rate limits.</p>
-    <div id="config-list"></div>
-  </section>
-
-  <!-- User override -->
-  <section style="margin-top:2rem;">
-    <h2 style="font-size:1.15rem;">👤 Manual Level Override</h2>
-    <div style="display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.5rem;">
-      <input id="ov-user" placeholder="User UUID" style="padding:.4rem .6rem;border:1px solid #cbd5e1;border-radius:6px;min-width:260px;">
-      <select id="ov-level" style="padding:.4rem .6rem;border:1px solid #cbd5e1;border-radius:6px;">
-        <option>explorer</option><option>member</option><option>contributor</option>
-        <option>power_contributor</option><option>community_leader</option>
-      </select>
-      <button id="ov-apply" style="padding:.4rem 1rem;background:#0f172a;color:#fff;border:none;border-radius:6px;cursor:pointer;">Apply</button>
-      <span id="ov-msg" style="font-size:.85rem;align-self:center;"></span>
-    </div>
-  </section>
-</div>
-
 <style>
-  #config-list .cfg-row { border:1px solid var(--border,#e2e8f0); border-radius:8px; padding:.75rem; margin-bottom:.6rem; }
-  #config-list textarea { width:100%; min-height:70px; font-family:monospace; font-size:.8rem;
-    border:1px solid #cbd5e1; border-radius:6px; padding:.4rem; margin:.4rem 0; }
-  .pill { background:#f1f5f9;border-radius:999px;padding:.35rem .8rem;font-size:.85rem; }
+  :root {
+    --admin-bg-light: #f8fafc;
+    --glass-surface: rgba(255, 255, 255, 0.9);
+    --glass-border: 1px solid rgba(0, 0, 0, 0.08);
+    --primary-gradient: linear-gradient(135deg, #4f46e5 0%, #6366f1 100%);
+    --text-primary: #0f172a;
+    --text-secondary: #475569;
+    --text-muted: #94a3b8;
+    --card-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+    --transition-smooth: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .admin-container {
+    max-width: 1250px;
+    margin: 2rem auto;
+    padding: 0 1.5rem;
+    font-family: 'Outfit', sans-serif;
+  }
+
+  .admin-header {
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .header-title-wrap h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.5px;
+    margin-bottom: 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .header-title-wrap p {
+    color: var(--text-secondary);
+    font-size: 0.95rem;
+  }
+
+  .tabs-bar {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.35rem;
+    background: #f1f5f9;
+    border-radius: 14px;
+    margin-bottom: 2rem;
+    width: fit-content;
+    box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.04);
+    flex-wrap: wrap;
+  }
+
+  .tab-btn {
+    padding: 0.75rem 1.4rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-secondary);
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+  }
+
+  .tab-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.5);
+  }
+
+  .tab-btn.active {
+    color: white;
+    background: #4f46e5;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+  }
+
+  .glass-panel {
+    background: var(--glass-surface);
+    -webkit-backdrop-filter: blur(16px);
+    backdrop-filter: blur(16px);
+    border: var(--glass-border);
+    border-radius: 20px;
+    box-shadow: var(--card-shadow);
+    padding: 2rem;
+    margin-bottom: 2rem;
+    transition: var(--transition-smooth);
+  }
+
+  .glass-panel h2 {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .section-subtitle {
+    color: var(--text-secondary);
+    font-size: 0.88rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .pill {
+    background: #e0e7ff;
+    color: #3730a3;
+    border-radius: 999px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.85rem;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .data-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    margin-top: 1rem;
+  }
+
+  .data-table th {
+    text-align: left;
+    padding: 0.75rem 1rem;
+    background: #f8fafc;
+    color: var(--text-secondary);
+    font-weight: 700;
+    border-bottom: 1px solid #e2e8f0;
+  }
+
+  .data-table td {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    color: var(--text-primary);
+  }
+
+  .data-table tr:hover td {
+    background: #f8fafc;
+  }
+
+  #config-list .cfg-row {
+    background: white;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.02);
+  }
+
+  #config-list textarea {
+    width: 100%;
+    min-height: 80px;
+    font-family: monospace;
+    font-size: 0.85rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    padding: 0.6rem;
+    margin: 0.6rem 0;
+    background: #f8fafc;
+    color: #0f172a;
+  }
+
+  #config-list textarea:focus {
+    outline: none;
+    border-color: #6366f1;
+    background: white;
+  }
+
+  .btn-action {
+    padding: 0.55rem 1.2rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: var(--transition-smooth);
+    background: var(--primary-gradient);
+    color: white;
+    box-shadow: 0 4px 12px rgba(79, 70, 229, 0.25);
+  }
+
+  .btn-action:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(79, 70, 229, 0.35);
+  }
+
+  .form-input {
+    padding: 0.55rem 0.9rem;
+    background: #f8fafc;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 0.9rem;
+  }
+
+  .form-input:focus {
+    outline: none;
+    border-color: #6366f1;
+    background: white;
+  }
+
+  .admin-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .admin-grid-2 {
+      grid-template-columns: 1fr;
+    }
+  }
 </style>
 
-<script>
-async function loadOverview() {
-  const r = await fetch('/api/admin/economy/overview');
-  const d = await r.json();
-  if (!d.success) return;
-  document.getElementById('level-dist').innerHTML =
-    Object.entries(d.level_distribution).map(([k,v]) =>
-      `<span class="pill"><b>${k}</b>: ${v}</span>`).join('') || '<i>No users scored yet</i>';
-  document.getElementById('top-contrib').innerHTML =
-    d.top_contributors.map(u => `<li>${u.name || u.level} — ${Math.round(u.score||0)}</li>`).join('');
-  document.getElementById('consumer-heavy').innerHTML =
-    d.most_consumer_heavy.map(u => `<li>${u.name} — CCR ${u.ccr}</li>`).join('') || '<li>—</li>';
-  const tb = document.querySelector('#recent-events tbody');
-  tb.innerHTML = (d.recent_events||[]).map(e => `<tr>
-    <td>${(e.created_at||'').slice(0,16).replace('T',' ')}</td>
-    <td>${(e.profiles && e.profiles.full_name) || e.user_id}</td>
-    <td>${e.action_type}</td><td>${e.xp_awarded}</td><td>${e.description||''}</td></tr>`).join('');
-}
+<div class="admin-container">
+  <!-- Header -->
+  <div class="admin-header">
+    <div class="header-title-wrap">
+      <h1><i class="fas fa-coins text-indigo-600"></i> Economy Dashboard</h1>
+      <p>Scoring config, level distribution, and user overrides. Changes apply within ~5 min (cache TTL) or instantly on
+        this worker.</p>
+    </div>
+  </div>
 
-function renderConfig(items) {
-  document.getElementById('config-list').innerHTML = items.map((c,i) => `
+  <!-- Navigation Tabs -->
+  <div class="tabs-bar">
+    <a href="/admin/notification-panel" class="tab-btn">
+      <i class="fas fa-chart-line"></i> Overview
+    </a>
+    <a href="/admin/notification-panel" class="tab-btn">
+      <i class="fas fa-circle-check"></i> Moderation Queue
+    </a>
+    <a href="/admin/notification-panel" class="tab-btn">
+      <i class="fas fa-users"></i> Users
+    </a>
+    <a href="/admin/notification-panel" class="tab-btn">
+      <i class="fas fa-paper-plane"></i> Broadcast
+    </a>
+    <a href="/admin/notification-panel" class="tab-btn">
+      <i class="fas fa-envelope"></i> Feedback
+    </a>
+    <a href="/admin/economy" class="tab-btn active">
+      <i class="fas fa-coins"></i> Economy
+    </a>
+  </div>
+
+  <!-- Overview Panel -->
+  <div class="glass-panel" id="overview">
+    <h2><i class="fas fa-chart-pie text-indigo-500"></i> Overview</h2>
+    <p class="section-subtitle">User level distribution & top score performers</p>
+    <div id="level-dist" style="display:flex;gap:.75rem;flex-wrap:wrap;margin:.75rem 0 1.5rem 0;"></div>
+
+    <div class="admin-grid-2">
+      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem;">
+        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-primary);"><i
+            class="fas fa-trophy text-amber-500"></i> Top Contributors</h3>
+        <ol id="top-contrib" style="font-size: 0.88rem; padding-left: 1.2rem; color: var(--text-secondary);"></ol>
+      </div>
+      <div style="background: white; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem;">
+        <h3 style="font-size: 1rem; font-weight: 700; margin-bottom: 0.75rem; color: var(--text-primary);"><i
+            class="fas fa-chart-line-down text-rose-500"></i> Most Consumer-Heavy (lowest CCR)</h3>
+        <ol id="consumer-heavy" style="font-size: 0.88rem; padding-left: 1.2rem; color: var(--text-secondary);"></ol>
+      </div>
+    </div>
+
+    <h3 style="font-size: 1rem; font-weight: 700; margin-top: 1.5rem; color: var(--text-primary);"><i
+        class="fas fa-history text-indigo-500"></i> Recent Scored Events</h3>
+    <div style="overflow-x: auto;">
+      <table id="recent-events" class="data-table">
+        <thead>
+          <tr>
+            <th>When</th>
+            <th>User</th>
+            <th>Action</th>
+            <th>XP</th>
+            <th>Note</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Config Editor Panel -->
+  <div class="glass-panel" id="config">
+    <h2><i class="fas fa-sliders text-indigo-500"></i> Scoring Config</h2>
+    <p class="section-subtitle">Values are JSON. Edit carefully — these drive all scoring, thresholds, ads, and rate
+      limits.</p>
+    <div id="config-list"></div>
+  </div>
+
+  <!-- Manual User Override Panel -->
+  <div class="glass-panel" style="margin-bottom: 2rem;">
+    <h2><i class="fas fa-user-gear text-indigo-500"></i> Manual Level Override</h2>
+    <p class="section-subtitle">Search by Student Name, Email, or UUID to assign level overrides</p>
+    <div style="display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;margin-top:.5rem;">
+      <input id="ov-user" class="form-input" list="user-override-list" placeholder="Search by Name, Email, or UUID..."
+        style="min-width:320px;flex:1;">
+      <datalist id="user-override-list"></datalist>
+      <select id="ov-level" class="form-input" aria-label="Override Access Level">
+        <option>explorer</option>
+        <option>member</option>
+        <option>contributor</option>
+        <option>power_contributor</option>
+        <option>community_leader</option>
+      </select>
+      <button id="ov-apply" class="btn-action"><i class="fas fa-check"></i> Apply</button>
+      <span id="ov-msg" style="font-size:.88rem;font-weight:600;"></span>
+    </div>
+  </div>
+</div>
+
+
+<script>
+  async function loadOverview() {
+    const r = await fetch('/api/admin/economy/overview');
+    const d = await r.json();
+    if (!d.success) return;
+    document.getElementById('level-dist').innerHTML =
+      Object.entries(d.level_distribution).map(([k, v]) =>
+        `<span class="pill"><b>${k}</b>: ${v}</span>`).join('') || '<i>No users scored yet</i>';
+    document.getElementById('top-contrib').innerHTML =
+      d.top_contributors.map(u => `<li>${u.name || u.level} — ${Math.round(u.score || 0)}</li>`).join('');
+    document.getElementById('consumer-heavy').innerHTML =
+      d.most_consumer_heavy.map(u => `<li>${u.name} — CCR ${u.ccr}</li>`).join('') || '<li>—</li>';
+    const tb = document.querySelector('#recent-events tbody');
+    tb.innerHTML = (d.recent_events || []).map(e => `<tr>
+    <td>${(e.created_at || '').slice(0, 16).replace('T', ' ')}</td>
+    <td>${(e.profiles && e.profiles.full_name) || e.user_id}</td>
+    <td>${e.action_type}</td><td>${e.xp_awarded}</td><td>${e.description || ''}</td></tr>`).join('');
+  }
+
+  function renderConfig(items) {
+    document.getElementById('config-list').innerHTML = items.map((c, i) => `
     <div class="cfg-row" data-key="${c.key}">
       <b>${c.key}</b> ${c.description ? `<span style="color:#64748b;font-size:.8rem;">— ${c.description}</span>` : ''}
-      ${c.updated_at ? `<span style="color:#94a3b8;font-size:.75rem;">(updated ${(c.updated_at||'').slice(0,16)})</span>` : ''}
+      ${c.updated_at ? `<span style="color:#94a3b8;font-size:.75rem;">(updated ${(c.updated_at || '').slice(0, 16)})</span>` : ''}
       <textarea data-i="${i}">${JSON.stringify(c.value, null, 1)}</textarea>
       <button onclick="saveCfg('${c.key}', ${i})">Save</button>
       <span class="msg"></span>
     </div>`).join('');
-  window.__cfg = items;
-}
+    window.__cfg = items;
+  }
 
-async function loadConfig() {
-  const r = await fetch('/api/admin/economy/config');
-  const d = await r.json();
-  if (d.success) renderConfig(d.config);
-}
+  async function loadConfig() {
+    const r = await fetch('/api/admin/economy/config');
+    const d = await r.json();
+    if (d.success) renderConfig(d.config);
+  }
 
-async function saveCfg(key, i) {
-  const row = document.querySelector(`[data-key="${key}"]`);
-  const msg = row.querySelector('.msg');
-  try {
-    const value = JSON.parse(row.querySelector('textarea').value);
-    const r = await fetch('/api/admin/economy/config', {
-      method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({key, value})
+  async function saveCfg(key, i) {
+    const row = document.querySelector(`[data-key="${key}"]`);
+    const msg = row.querySelector('.msg');
+    try {
+      const value = JSON.parse(row.querySelector('textarea').value);
+      const r = await fetch('/api/admin/economy/config', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key, value })
+      });
+      const d = await r.json();
+      msg.textContent = d.success ? '✅ saved' : ('❌ ' + d.message);
+      msg.style.color = d.success ? 'green' : 'red';
+    } catch (err) {
+      msg.textContent = '❌ invalid JSON';
+      msg.style.color = 'red';
+    }
+  }
+
+  const ovUserBtn = document.getElementById('ov-user');
+  let _ovTimer = null;
+  if (ovUserBtn) {
+    ovUserBtn.addEventListener('input', (e) => {
+      clearTimeout(_ovTimer);
+      const q = e.target.value.trim();
+      if (q.length < 2) return;
+      _ovTimer = setTimeout(async () => {
+        try {
+          const r = await fetch('/api/chat/search-peers?q=' + encodeURIComponent(q));
+          const d = await r.json();
+          if (d.success && d.users) {
+            const dl = document.getElementById('user-override-list');
+            if (dl) {
+              dl.innerHTML = d.users.map(u =>
+                `<option value="${u.email || u.id}">${u.full_name || 'User'} (${u.email || u.id})</option>`
+              ).join('');
+            }
+          }
+        } catch (err) { }
+      }, 300);
+    });
+  }
+
+  document.getElementById('ov-apply').onclick = async () => {
+    const msg = document.getElementById('ov-msg');
+    const inputVal = document.getElementById('ov-user').value.trim();
+    if (!inputVal) {
+      msg.textContent = '❌ Please enter a user Email, Name, or UUID';
+      msg.style.color = 'red';
+      return;
+    }
+    const r = await fetch('/api/admin/economy/user/' + encodeURIComponent(inputVal), {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ access_level: document.getElementById('ov-level').value })
     });
     const d = await r.json();
-    msg.textContent = d.success ? '✅ saved' : ('❌ ' + d.message);
+    msg.textContent = d.success ? '✅ applied' : ('❌ ' + (d.message || d.error));
     msg.style.color = d.success ? 'green' : 'red';
-  } catch(err) {
-    msg.textContent = '❌ invalid JSON';
-    msg.style.color = 'red';
-  }
-}
+  };
 
-document.getElementById('ov-apply').onclick = async () => {
-  const msg = document.getElementById('ov-msg');
-  const r = await fetch('/api/admin/economy/user/' + document.getElementById('ov-user').value.trim(), {
-    method:'POST', headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({access_level: document.getElementById('ov-level').value})
-  });
-  const d = await r.json();
-  msg.textContent = d.success ? '✅ applied' : ('❌ ' + d.message);
-  msg.style.color = d.success ? 'green' : 'red';
-};
-
-loadOverview();
-loadConfig();
+  loadOverview();
+  loadConfig();
 </script>
 {% endblock %}

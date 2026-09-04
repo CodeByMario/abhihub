@@ -46,6 +46,12 @@
     <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
     <!-- AbhiHub Select Component Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/abhihub-select.css') }}">
+
+<!-- Preconnect for improved performance -->
+<link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
+<link rel="dns-prefetch" href="https://www.abhihub.edu.eu.org">
 </head>
 
 <body class="font-regular">
@@ -60,7 +66,7 @@
     <!-- Popup Container -->
     <div id="popup" class="popup">
         <div class="close" id="close">X</div>
-        <img id="popupImg" class="image" src="#" width="400" alt="Timetable">
+        <img id="popupImg" loading="lazy" class="image" src="#" width="400" alt="Timetable">
     </div>
 
     <!-- Search Overlay -->
@@ -391,7 +397,7 @@
             // Initial fetch + poll every 3 min (silent when panel closed)
             if (window.__CURRENT_USER__?.uid) {
                 _fetchNotifications(true);
-                _pollTimer = setInterval(() => _fetchNotifications(true), 3 * 60 * 1000);
+                _pollTimer = setInterval(() => _fetchNotifications(true), 10 * 60 * 1000);  // 10 minutes instead of 3 - reduces main thread blocking
             }
         })();
     </script>
@@ -904,3 +910,37 @@
 </amp-auto-ads>
 
 </html>
+<!-- Skeleton Loading States -->
+<style>
+.skeleton {
+  background: #f1f5f9;
+  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
+  background-size: 200% 100%;
+  animation: loading 1.5s ease-in-out infinite;
+}
+
+@keyframes loading {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.skeleton-text {
+  width: 70%;
+  height: 1.2rem;
+  margin: 0.5rem 0;
+  border-radius: 0.25rem;
+}
+
+.skeleton-image {
+  width: 100%;
+  height: 180px;
+  border-radius: 0.5rem;
+}
+</style>

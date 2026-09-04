@@ -859,7 +859,15 @@ def log_label_audit(user_id: str, document_id: str, action: str, details: dict) 
 def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
     title = doc.get('title', 'Untitled')
     url = doc.get('file_url', '')
-    doc_type = str(doc.get('document_category', 'Other')).capitalize()
+    raw_cat = str(doc.get('document_category', 'Other')).lower()
+    if raw_cat in ['papers', 'paper', 'pyq', 'exam']:
+        doc_type = 'PYQ'
+    elif 'question' in raw_cat or 'qb' in raw_cat:
+        doc_type = 'Question Bank'
+    elif raw_cat in ['practical', 'practicals', 'lab']:
+        doc_type = 'Practical'
+    else:
+        doc_type = raw_cat.capitalize()
     
     prof = doc.get('profiles') or doc.get('profiles!documents_uploader_id_fkey') or {}
     author = prof.get('full_name') or (prof.get('email') and prof.get('email').split('@')[0]) or 'Unknown'
@@ -1389,7 +1397,11 @@ def get_all_push_subscriptions() -> Dict:
         subs = {}
         for row in res.data:
             user_id = row['user_id']
-            subs[user_id] = {
+            if user_id not in subs:
+                subs[user_id] = []
+            prof = row.get('profiles') or {}
+            email = prof.get('email', '') if isinstance(prof, dict) else ''
+            subs[user_id].append({
                 'subscription': {
                     'endpoint': row['endpoint'],
                     'keys': {
@@ -1397,10 +1409,10 @@ def get_all_push_subscriptions() -> Dict:
                         'auth': row['auth']
                     }
                 },
-                'email': row.get('profiles', {}).get('email', ''),
+                'email': email,
                 'created_at': row.get('created_at'),
-                'device_type': row.get('device_type')
-            }
+                'device_type': row.get('device_type') or 'web'
+            })
         return subs
     except Exception as e:
         logging.error(f"Error fetching subscriptions: {e}")

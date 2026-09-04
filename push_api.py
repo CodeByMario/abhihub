@@ -2,6 +2,7 @@
 # Add this file's routes to your Flask app using: from push_api import init_push_api
 
 import os
+import logging
 from flask import Blueprint, jsonify, request, session
 
 push_api = Blueprint('push_api', __name__)
@@ -25,16 +26,26 @@ def subscribe():
     """Subscribe to push notifications."""
     try:
         from push_notifications import add_subscription
-        data = request.get_json()
+        data = request.get_json() or {}
         subscription = data.get('subscription')
+        device_type = data.get('device_type')
         
         if not subscription:
             return jsonify({'error': 'No subscription data'}), 400
         
+        if not device_type:
+            ua = (request.headers.get('User-Agent') or '').lower()
+            if any(m in ua for m in ['mobile', 'android', 'iphone']):
+                device_type = 'mobile'
+            elif any(t in ua for t in ['tablet', 'ipad']):
+                device_type = 'tablet'
+            else:
+                device_type = 'desktop'
+
         # Use uid as user_id (UUID), email for save_push_subscription lookup
         user = session.get('user', {})
         user_email = user.get('email', 'anonymous')
-        success = add_subscription(user_email, subscription)
+        success = add_subscription(user_email, subscription, device_type=device_type)
         
         if success:
             return jsonify({'success': True})

@@ -1,4 +1,6 @@
 {% set seo_description = "Welcome to AbhiHub! Download free engineering previous year question papers (PYQs), study
+{% include 'includes/_loading_spinner.html' %}
+
 notes, practicals, and exam resources for top colleges across India." %}
 {% extends 'p_struct.html' %}
 {% block page_head %}
@@ -247,6 +249,88 @@ notes, practicals, and exam resources for top colleges across India." %}
       display: none;
     }
   }
+
+/* ===========================
+   Page Loading Spinner
+   =========================== */
+.page-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--card, #1e1b4b);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground, #ffffff);
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.page-loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-spinner {
+  text-align: center;
+  color: var(--foreground, #ffffff);
+}
+
+.spinner-icon {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-top-color: var(--accent, #3b82f6);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+  @media (max-width: 480px) {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Skeleton Loading States */
+.skeleton-loading {
+  display: none;
+  gap: 1rem;
+}
+
+.skeleton-row {
+  background: var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  height: 1rem;
+  width: 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+.skeleton-tall {
+  width: 80%;
+  margin: 0 auto;
+}
+
+@keyframes skeleton-loading {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+@media (max-width: 768px) {
+  .skeleton-row {
+    margin-bottom: 0.5rem;
+  }
+}
 </style>
 
 <!-- ── Invite / Referral Nudge (growth loop) ─────────────────────────────── -->
@@ -332,11 +416,11 @@ notes, practicals, and exam resources for top colleges across India." %}
   }
 
   .referral-widget-share {
-    background: #22c55e;
-    color: #fff;
-    display: inline-flex;
-    align-items: center;
-  }
+      background: #14b8a6;
+      color: #fff;
+      display: inline-flex;
+      align-items: center;
+    }
 
   .referral-widget-share.ig {
     background: #E1306C;
@@ -370,6 +454,88 @@ notes, practicals, and exam resources for top colleges across India." %}
       box-shadow: 0 0 0 14px rgba(79, 70, 229, 0);
     }
   }
+
+/* ===========================
+   Page Loading Spinner
+   =========================== */
+.page-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--card, #1e1b4b);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground, #ffffff);
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.page-loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-spinner {
+  text-align: center;
+  color: var(--foreground, #ffffff);
+}
+
+.spinner-icon {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-top-color: var(--accent, #3b82f6);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+  @media (max-width: 480px) {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Skeleton Loading States */
+.skeleton-loading {
+  display: none;
+  gap: 1rem;
+}
+
+.skeleton-row {
+  background: var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  height: 1rem;
+  width: 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+.skeleton-tall {
+  width: 80%;
+  margin: 0 auto;
+}
+
+@keyframes skeleton-loading {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+@media (max-width: 768px) {
+  .skeleton-row {
+    margin-bottom: 0.5rem;
+  }
+}
 </style>
 <script>
   (function loadReferral() {
@@ -552,6 +718,88 @@ notes, practicals, and exam resources for top colleges across India." %}
       opacity: 0.4;
     }
   }
+
+/* ===========================
+   Page Loading Spinner
+   =========================== */
+.page-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--card, #1e1b4b);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground, #ffffff);
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.page-loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-spinner {
+  text-align: center;
+  color: var(--foreground, #ffffff);
+}
+
+.spinner-icon {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-top-color: var(--accent, #3b82f6);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+  @media (max-width: 480px) {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Skeleton Loading States */
+.skeleton-loading {
+  display: none;
+  gap: 1rem;
+}
+
+.skeleton-row {
+  background: var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  height: 1rem;
+  width: 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+.skeleton-tall {
+  width: 80%;
+  margin: 0 auto;
+}
+
+@keyframes skeleton-loading {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+@media (max-width: 768px) {
+  .skeleton-row {
+    margin-bottom: 0.5rem;
+  }
+}
 </style>
 <script>
   (async function pollOnline() {
@@ -760,6 +1008,88 @@ notes, practicals, and exam resources for top colleges across India." %}
       justify-content: flex-end;
     }
   }
+
+/* ===========================
+   Page Loading Spinner
+   =========================== */
+.page-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--card, #1e1b4b);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground, #ffffff);
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.page-loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-spinner {
+  text-align: center;
+  color: var(--foreground, #ffffff);
+}
+
+.spinner-icon {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-top-color: var(--accent, #3b82f6);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+  @media (max-width: 480px) {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Skeleton Loading States */
+.skeleton-loading {
+  display: none;
+  gap: 1rem;
+}
+
+.skeleton-row {
+  background: var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  height: 1rem;
+  width: 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+.skeleton-tall {
+  width: 80%;
+  margin: 0 auto;
+}
+
+@keyframes skeleton-loading {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+@media (max-width: 768px) {
+  .skeleton-row {
+    margin-bottom: 0.5rem;
+  }
+}
 </style>
 
 <script>
@@ -790,7 +1120,35 @@ notes, practicals, and exam resources for top colleges across India." %}
           }
         })
         .catch(err => console.error("Poll rank error", err));
-    }, 30000);
+    
+
+  // Standalone check function for initial load (called once on DOM ready)
+  function checkRankPoints() {
+    const authorName = window.ABHIHUB_USER_NAME;
+    if (!authorName) return;
+
+    fetch('/rank')
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'success' && data.rank) {
+          let newRank = '-';
+          let newPoints = 0;
+
+          data.rank.forEach((r, idx) => {
+            if (r.author === authorName) {
+              newRank = (idx + 1).toString();
+              newPoints = r.points;
+            }
+          });
+
+          const elRank = document.getElementById('live-global-rank');
+          const elPts = document.getElementById('live-reputation-score');
+
+          if (elRank) elRank.textContent = newRank;
+          if (elPts) elPts.textContent = newPoints;
+        }
+      });
+  }}, 120000);  // 2 minutes - reduced frequency to reduce TBT
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -1123,6 +1481,88 @@ notes, practicals, and exam resources for top colleges across India." %}
       grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
     }
   }
+
+/* ===========================
+   Page Loading Spinner
+   =========================== */
+.page-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--card, #1e1b4b);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground, #ffffff);
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.page-loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-spinner {
+  text-align: center;
+  color: var(--foreground, #ffffff);
+}
+
+.spinner-icon {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-top-color: var(--accent, #3b82f6);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+  @media (max-width: 480px) {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Skeleton Loading States */
+.skeleton-loading {
+  display: none;
+  gap: 1rem;
+}
+
+.skeleton-row {
+  background: var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  height: 1rem;
+  width: 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+.skeleton-tall {
+  width: 80%;
+  margin: 0 auto;
+}
+
+@keyframes skeleton-loading {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+@media (max-width: 768px) {
+  .skeleton-row {
+    margin-bottom: 0.5rem;
+  }
+}
 </style>
 
 <script>
@@ -1367,6 +1807,42 @@ notes, practicals, and exam resources for top colleges across India." %}
       }
     } catch { }
   })();
+
+
+// Page Loading Overlay Control
+document.addEventListener('DOMContentLoaded', function() {
+  const overlay = document.getElementById('page-loading-overlay');
+  if (!overlay) return;
+  
+  // Hide overlay after a short delay to let content paint
+  setTimeout(() => {
+    overlay.classList.add('hidden');
+    setTimeout(() => {
+      overlay.style.display = 'none';
+    }, 300);
+  }, 500);
+  
+  // Also hide if all critical resources are loaded
+  window.addEventListener('load', function() {
+    if (overlay && !overlay.classList.contains('hidden')) {
+      overlay.classList.add('hidden');
+      setTimeout(() => {
+        overlay.style.display = 'none';
+      }, 300);
+    }
+  });
+});
+
+// Initialize skeleton loading states for content areas
+document.addEventListener('DOMContentLoaded', function() {
+  // Add skeleton placeholders for content that might load dynamically
+  const statsContainer = document.querySelector('.welcome-mini-stats');
+  if (statsContainer) {
+    // Skeleton will be shown by CSS if content isn't ready
+    statsContainer.style.opacity = '0';
+    statsContainer.style.transition = 'opacity 0.3s ease';
+  }
+});
 </script>
 {% endif %}
 
@@ -1825,6 +2301,88 @@ notes, practicals, and exam resources for top colleges across India." %}
       grid-template-columns: 1fr;
     }
   }
+
+/* ===========================
+   Page Loading Spinner
+   =========================== */
+.page-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--card, #1e1b4b);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground, #ffffff);
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.page-loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-spinner {
+  text-align: center;
+  color: var(--foreground, #ffffff);
+}
+
+.spinner-icon {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-top-color: var(--accent, #3b82f6);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+  @media (max-width: 480px) {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Skeleton Loading States */
+.skeleton-loading {
+  display: none;
+  gap: 1rem;
+}
+
+.skeleton-row {
+  background: var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  height: 1rem;
+  width: 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+.skeleton-tall {
+  width: 80%;
+  margin: 0 auto;
+}
+
+@keyframes skeleton-loading {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+@media (max-width: 768px) {
+  .skeleton-row {
+    margin-bottom: 0.5rem;
+  }
+}
 </style>
 
 <!-- ── Hero ─────────────────────────────────────────────────── -->
@@ -2235,6 +2793,88 @@ notes, practicals, and exam resources for top colleges across India." %}
   .dashboard-float-support-btn {
     bottom: 90px !important;
   }
+
+/* ===========================
+   Page Loading Spinner
+   =========================== */
+.page-loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--card, #1e1b4b);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--foreground, #ffffff);
+  transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.page-loading-overlay.hidden {
+  opacity: 0;
+  visibility: hidden;
+}
+
+.loading-spinner {
+  text-align: center;
+  color: var(--foreground, #ffffff);
+}
+
+.spinner-icon {
+  width: 48px;
+  height: 48px;
+  border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
+  border-top-color: var(--accent, #3b82f6);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+  margin: 0 auto 1rem;
+  @media (max-width: 480px) {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.loading-text {
+  font-size: 0.95rem;
+  font-weight: 500;
+}
+
+/* Skeleton Loading States */
+.skeleton-loading {
+  display: none;
+  gap: 1rem;
+}
+
+.skeleton-row {
+  background: var(--border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  height: 1rem;
+  width: 100%;
+  animation: skeleton-loading 1.5s ease-in-out infinite;
+}
+
+.skeleton-tall {
+  width: 80%;
+  margin: 0 auto;
+}
+
+@keyframes skeleton-loading {
+  0% { opacity: 0.6; }
+  50% { opacity: 1; }
+  100% { opacity: 0.6; }
+}
+
+@media (max-width: 768px) {
+  .skeleton-row {
+    margin-bottom: 0.5rem;
+  }
+}
 </style>
 
 

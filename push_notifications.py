@@ -42,7 +42,7 @@ def save_subscriptions(subscriptions):
     return True
 
 
-def add_subscription(user_id, subscription_info):
+def add_subscription(user_id, subscription_info, device_type=None):
     """
     Add or update a push subscription for a user.
     """
@@ -54,7 +54,7 @@ def add_subscription(user_id, subscription_info):
     p256dh = keys.get('p256dh', '')
     auth = keys.get('auth', '')
     
-    res = save_push_subscription(user_id, endpoint, p256dh, auth, device_type='web')
+    res = save_push_subscription(user_id, endpoint, p256dh, auth, device_type=device_type or 'web')
     return res.get('success', False)
 
 
@@ -81,38 +81,20 @@ def remove_subscription_by_endpoint(endpoint):
 
 def send_notification(user_id, title, body, url=None, icon=None, tag=None):
     """
-    Send a push notification to a specific user (user_id = UUID from profiles).
-    
-    Args:
-        user_id: Target user UUID (must match key in get_all_push_subscriptions)
-        title: Notification title
-        body: Notification body text
-        url: URL to open on click (optional)
-        icon: Icon URL (optional)
-        tag: Notification tag for grouping (optional)
-    
-    Returns:
-        dict: Result with success status and message
+    Send a push notification to all devices registered under user_id (UUID).
     """
     if not VAPID_PRIVATE_KEY or not VAPID_PUBLIC_KEY:
         return {'success': False, 'error': 'VAPID keys not configured'}
     
     subscriptions = load_subscriptions()  # keyed by UUID
     
-    if user_id not in subscriptions:
+    if user_id not in subscriptions or not subscriptions[user_id]:
         return {'success': False, 'error': 'User not subscribed'}
     
-    sub_data = subscriptions[user_id]['subscription']
-    # Build a proper subscription_info dict for pywebpush
-    subscription_info = {
-        'endpoint': sub_data['endpoint'],
-        'keys': {
-            'p256dh': sub_data['keys']['p256dh'],
-            'auth': sub_data['keys']['auth']
-        }
-    }
+    sub_list = subscriptions[user_id]
+    if not isinstance(sub_list, list):
+        sub_list = [sub_list]
     
-    # Build notification payload
     payload = {
         'title': title,
         'body': body,
@@ -123,23 +105,49 @@ def send_notification(user_id, title, body, url=None, icon=None, tag=None):
         'timestamp': datetime.utcnow().isoformat()
     }
     
-    try:
-        webpush(
-            subscription_info=subscription_info,
-            data=json.dumps(payload),
-            vapid_private_key=VAPID_PRIVATE_KEY,
-            vapid_claims=VAPID_CLAIMS
-        )
-        return {'success': True, 'message': 'Notification sent'}
+    sent_count = 0
+    failed_count = 0
+    expired_count = 0
     
-    except WebPushException as e:
-        # Handle expired/invalid subscriptions
-        if e.response and e.response.status_code in (404, 410):
-            endpoint = sub_data.get('endpoint', '')
-            remove_subscription_by_endpoint(endpoint)
-            return {'success': False, 'error': 'Subscription expired', 'removed': True}
+    for item in sub_list:
+        sub_data = item.get('subscription', item)
+        endpoint = sub_data.get('endpoint')
+        keys = sub_data.get('keys', {})
+        if not endpoint or not keys:
+            continue
         
-        return {'success': False, 'error': str(e)}
+        subscription_info = {
+            'endpoint': endpoint,
+            'keys': {
+                'p256dh': keys.get('p256dh', ''),
+                'auth': keys.get('auth', '')
+            }
+        }
+        
+        try:
+            webpush(
+                subscription_info=subscription_info,
+                data=json.dumps(payload),
+                vapid_private_key=VAPID_PRIVATE_KEY,
+                vapid_claims=VAPID_CLAIMS
+            )
+            sent_count += 1
+        except WebPushException as e:
+            if e.response and e.response.status_code in (404, 410):
+                remove_subscription_by_endpoint(endpoint)
+                expired_count += 1
+            else:
+                failed_count += 1
+        except Exception:
+            failed_count += 1
+    
+    return {
+        'success': sent_count > 0,
+        'sent': sent_count,
+        'failed': failed_count,
+        'expired': expired_count,
+        'removed': expired_count > 0 and sent_count == 0
+    }
 
 
 def send_notification_to_all(title, body, url=None, icon=None, tag=None):
@@ -175,18 +183,29 @@ def send_notification_to_all(title, body, url=None, icon=None, tag=None):
 
 
 def get_subscription_count():
-    """Get the number of active subscriptions."""
+    """Get total number of active subscription endpoints across all users."""
     subscriptions = load_subscriptions()
-    return len(subscriptions)
+    total = 0
+    for val in subscriptions.values():
+        if isinstance(val, list):
+            total += len(val)
+        else:
+            total += 1
+    return total
 
 
 def is_user_subscribed(user_id):
     """
     Check if a user (by UUID) is subscribed to push notifications.
-    The subscriptions dict is keyed by user UUID.
+    Returns True if at least one active subscription endpoint exists.
     """
-    subscriptions = load_subscriptions()  # keyed by UUID
-    return user_id in subscriptions
+    subscriptions = load_subscriptions()
+    subs = subscriptions.get(user_id)
+    if not subs:
+        return False
+    if isinstance(subs, list):
+        return len(subs) > 0
+    return True
 
 
 def get_all_subscriptions():
