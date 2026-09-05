@@ -42,6 +42,8 @@ var _progTotal = 0;
 var _progDone = 0;
 var _progCurrentFile = '';
 var _progCurrentPct = 0;
+var _statusModalOpen = false;
+var _duplicateDecisions = {};
 
 function updateProgressUI() {
   if (_progBar) {
@@ -163,12 +165,13 @@ function handleFilesSelected(filesOrEvent) {
     if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
       return showToast(file.name + ': unsupported type', 'error');
     }
-    if (file.size > 50 * 1024 * 1024) return showToast(file.name + ': exceeds 50 MB', 'error');
+    if (file.size > 500 * 1024 * 1024) return showToast(file.name + ': exceeds 500 MB', 'error');
 
     const newItem = {
-      id: uid(), file, blob: null, name: file.name, cropped: false, status: 'pending'
+      id: uid(), file, blob: null, compressedBlob: null, name: file.name, cropped: false, status: 'pending', compressionStatus: 'compressing'
     };
     selectedFiles.push(newItem);
+    startBackgroundCompression(newItem);
 
     // Update the drop-zone hint + accept attr based on this file's type
     updateDynamicFields();
@@ -268,7 +271,9 @@ let carouselRotation = 0;
 
 function removeCarouselImage() {
   if (selectedFiles.length === 0) return;
+  carouselIndex = Math.max(0, Math.min(carouselIndex, selectedFiles.length - 1));
   const item = selectedFiles[carouselIndex];
+  if (!item) return;
 
   // Remove the isolated form
   const form = document.getElementById(`meta-form-${item.id}`);
@@ -279,22 +284,28 @@ function removeCarouselImage() {
 
 function renderCarousel(index) {
   if (selectedFiles.length === 0) {
-    document.getElementById('uploadCarousel').style.display = 'none';
+    const el = document.getElementById('uploadCarousel');
+    if (el) el.style.display = 'none';
     return;
   }
+  index = Math.max(0, Math.min(index, selectedFiles.length - 1));
   carouselIndex = index;
   const item = selectedFiles[index];
+  if (!item) return;
 
-  document.getElementById('carouselFilename').textContent = item.name + (item.cropped ? ' (Cropped)' : '');
+  const fnEl = document.getElementById('carouselFilename');
+  if (fnEl) fnEl.textContent = item.name + (item.cropped ? ' (Cropped)' : '');
   const cImg = document.getElementById('carouselImg');
   const metricEl = document.getElementById('carouselMetric');
   const isPdf = item.file && (item.file.type === 'application/pdf' || item.name.toLowerCase().endsWith('.pdf'));
-  if (isPdf) {
-    cImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="%23ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><text x="6" y="18" fill="%23ef4444" font-size="6" font-family="sans-serif" font-weight="bold">PDF FILE</text></svg>';
-  } else {
-    cImg.src = carouselImageSrc(item);
+  if (cImg) {
+    if (isPdf) {
+      cImg.src = 'data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120" viewBox="0 0 24 24" fill="none" stroke="%23ef4444" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><text x="6" y="18" fill="%23ef4444" font-size="6" font-family="sans-serif" font-weight="bold">PDF FILE</text></svg>';
+    } else {
+      cImg.src = carouselImageSrc(item);
+    }
+    cImg.style.transform = `rotate(${item.rotation || 0}deg)`;
   }
-  cImg.style.transform = `rotate(${item.rotation || 0}deg)`;
 
   // Compression badge for the carousel
   if (metricEl && item.compression) {
@@ -311,9 +322,12 @@ function renderCarousel(index) {
   const activeForm = document.getElementById(`meta-form-${item.id}`);
   if (activeForm) activeForm.style.display = 'block';
 
-  document.getElementById('cCounter').textContent = (index + 1) + ' / ' + selectedFiles.length;
-  document.getElementById('cPrevBtn').disabled = (index === 0);
-  document.getElementById('cNextBtn').disabled = (index === selectedFiles.length - 1);
+  const cCounter = document.getElementById('cCounter');
+  if (cCounter) cCounter.textContent = (index + 1) + ' / ' + selectedFiles.length;
+  const cPrevBtn = document.getElementById('cPrevBtn');
+  if (cPrevBtn) cPrevBtn.disabled = (index === 0);
+  const cNextBtn = document.getElementById('cNextBtn');
+  if (cNextBtn) cNextBtn.disabled = (index === selectedFiles.length - 1);
 }
 
 /**
@@ -340,12 +354,14 @@ function updateDynamicFieldsForForm(formWrap) {
   var unitG = formWrap.querySelector('.meta-unit-wrap');
   var pracG = formWrap.querySelector('.meta-practical-wrap');
   var unitSel = formWrap.querySelector('.meta-unit');
+  var qbG = formWrap.querySelector('.qb-tags-wrap');
 
   if (!typeEl) return;
   var type = (typeEl.value || '').toLowerCase();
 
   if (unitG) unitG.style.display = 'none';
   if (pracG) pracG.style.display = 'none';
+  if (qbG) qbG.style.display = 'none';
 
   if (type === 'notes') {
     if (unitG) unitG.style.display = 'block';
@@ -355,23 +371,53 @@ function updateDynamicFieldsForForm(formWrap) {
     if (unitSel) unitSel.innerHTML = '<option value="CAE1">CAE-1</option><option value="CAE2">CAE-2</option><option value="CAE3">CAE-3</option><option value="ESE">End Sem/Resit</option>';
   } else if (type === 'practical') {
     if (pracG) pracG.style.display = 'grid';
+  } else if (type === 'question_bank') {
+    if (qbG) qbG.style.display = 'block';
   }
 }
 
 function navigateCarousel(dir) {
+  if (selectedFiles.length === 0) return;
+  if (typeof dir !== 'number') {
+    if (typeof dir === 'string') {
+      dir = parseInt(dir, 10);
+    } else if (dir && dir.currentTarget && dir.currentTarget.getAttribute) {
+      dir = parseInt(dir.currentTarget.getAttribute('data-direction'), 10);
+    } else if (dir && dir.target && dir.target.closest) {
+      const btn = dir.target.closest('[data-direction]');
+      dir = btn ? parseInt(btn.getAttribute('data-direction'), 10) : -1;
+    } else {
+      dir = -1;
+    }
+  }
+  if (isNaN(dir)) dir = -1;
   let newIdx = carouselIndex + dir;
-  if (newIdx < 0) newIdx = 0;
-  if (newIdx >= selectedFiles.length) newIdx = selectedFiles.length - 1;
+  newIdx = Math.max(0, Math.min(newIdx, selectedFiles.length - 1));
   renderCarousel(newIdx);
 }
 
 function rotateCarousel(deg) {
+  if (typeof deg !== 'number') {
+    if (typeof deg === 'string') {
+      deg = parseInt(deg, 10);
+    } else if (deg && deg.currentTarget && deg.currentTarget.getAttribute) {
+      deg = parseInt(deg.currentTarget.getAttribute('data-direction'), 10);
+    } else if (deg && deg.target && deg.target.closest) {
+      const btn = deg.target.closest('[data-direction]');
+      deg = btn ? parseInt(btn.getAttribute('data-direction'), 10) : 90;
+    } else {
+      deg = 90;
+    }
+  }
+  if (isNaN(deg)) deg = 90;
   if (cropperInst) {
     cropperInst.rotate(deg);
   } else {
     const imgEl = document.getElementById('carouselImg');
-    carouselRotation = (carouselRotation + deg) % 360;
-    imgEl.style.transform = `rotate(${carouselRotation}deg)`;
+    if (imgEl) {
+      carouselRotation = (carouselRotation + deg) % 360;
+      imgEl.style.transform = `rotate(${carouselRotation}deg)`;
+    }
   }
 }
 
@@ -396,29 +442,88 @@ function toggleCarouselCrop() {
   }
 }
 
-/* ── Upload ── */
-/**
- * Client-side compression for the carousel preview only.
- * The server (cloudinary_upload.py) owns the authoritative
- * compression + EXIF strip, so we keep this light: just
- * downsample very large images for a smoother preview, never
- * re-encoding if the file is already small.
- */
+/* ── Upload & Compression ── */
+async function startBackgroundCompression(item) {
+  if (!item || !item.file) return;
+  const rawFile = item.file;
+  item.compressionStatus = 'compressing';
+  item.compression = { label: '⚡ Compressing...', cls: 'compressing' };
+
+  if (selectedFiles[carouselIndex] && selectedFiles[carouselIndex].id === item.id) {
+    renderCarousel(carouselIndex);
+  }
+
+  try {
+    let compressedBlob = null;
+    if (rawFile.type.startsWith('image/')) {
+      compressedBlob = await compressImage(rawFile, 0.82);
+    } else if (rawFile.type === 'application/pdf') {
+      compressedBlob = await compressPdfFile(rawFile);
+    }
+
+    if (compressedBlob && compressedBlob.size > 0 && compressedBlob.size < rawFile.size) {
+      item.compressedBlob = compressedBlob;
+      item.blob = compressedBlob;
+      const savedPct = Math.round((1 - compressedBlob.size / rawFile.size) * 100);
+      item.compressionStatus = 'done';
+      item.compression = {
+        label: `⚡ Ready (${fmtSize(rawFile.size)} ➔ ${fmtSize(compressedBlob.size)}, -${savedPct}%)`,
+        cls: 'compressed'
+      };
+    } else {
+      item.compressionStatus = 'done';
+      item.compression = {
+        label: `✓ Ready (${fmtSize(rawFile.size)})`,
+        cls: 'original'
+      };
+    }
+  } catch (err) {
+    console.warn("Background compression warning:", err);
+    item.compressionStatus = 'done';
+    item.compression = { label: `✓ Ready (${fmtSize(rawFile.size)})`, cls: 'original' };
+  }
+
+  if (selectedFiles[carouselIndex] && selectedFiles[carouselIndex].id === item.id) {
+    renderCarousel(carouselIndex);
+  }
+}
+
+async function compressPdfFile(fileObj) {
+  if (fileObj.size <= 1024 * 1024) return fileObj;
+  return fileObj;
+}
+
 async function compressImage(fileObj, quality) {
-  quality = quality || 0.82;
+  quality = quality || 0.75;
   return new Promise(function (resolve) {
-    if (!fileObj.type.startsWith('image/')) return resolve(fileObj);
+    if (!fileObj.type || !fileObj.type.startsWith('image/')) return resolve(fileObj);
     var img = new Image();
     img.onload = function () {
       var MAX = 1600;
       var scaleW = img.width > MAX ? MAX / img.width : 1;
       var scaleH = img.height > MAX ? MAX / img.height : 1;
       var scale = Math.min(scaleW, scaleH, 1);
-      if (scale >= 1) return resolve(fileObj); // already small enough
       var canvas = document.createElement('canvas');
       canvas.width = Math.round(img.width * scale);
       canvas.height = Math.round(img.height * scale);
-      canvas.getContext('2d').drawImage(img, 0, 0, canvas.width, canvas.height);
+      var ctx = canvas.getContext('2d');
+      ctx.filter = 'grayscale(100%) contrast(110%)';
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+      ctx.filter = 'none';
+
+      // AbhiHub logo watermark on bottom right corner
+      var fontSize = Math.max(14, Math.round(canvas.width * 0.025));
+      var padding = Math.max(12, Math.round(canvas.width * 0.015));
+      ctx.font = 'bold ' + fontSize + 'px system-ui, sans-serif';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'bottom';
+      ctx.shadowColor = 'rgba(0, 0, 0, 0.8)';
+      ctx.shadowBlur = 4;
+      ctx.shadowOffsetX = 1;
+      ctx.shadowOffsetY = 1;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillText('🚀 AbhiHub', canvas.width - padding, canvas.height - padding);
+
       canvas.toBlob(function (blob) { resolve(blob || fileObj); }, 'image/jpeg', quality);
     };
     img.onerror = function () { resolve(fileObj); };
@@ -458,6 +563,9 @@ function buildFormData(item) {
       program: progEl ? progEl.value : 'b.tech'
     };
   }
+  if (item.meta) {
+    m = Object.assign({}, item.meta, m);
+  }
 
   fd.append('college_id', m.college_id || '');
   fd.append('branch_id', m.branch_id || '');
@@ -469,17 +577,16 @@ function buildFormData(item) {
   fd.append('type', m.type || '');
   fd.append('document_type', m.type || '');
   fd.append('unit', m.unit || '');
-  // CSRF protection — the form's hidden input holds the token;
-  // grab it from the DOM so the XHR is not rejected.
   const _csrfEl = document.querySelector('input[name="csrf_token"]');
   if (_csrfEl) fd.append('csrf_token', _csrfEl.value);
-  // Optional metadata the duplicate-detection hash (if JS computed one)
   if (item.fileHash) fd.append('file_hash', item.fileHash);
-  // Optional academic extras (exam_type, subject_code) — only if present
   const _examEl = form ? form.querySelector('[name="exam_type"]') : null;
   if (_examEl && _examEl.value) fd.append('exam_type', _examEl.value);
   const _codeEl = form ? form.querySelector('[name="subject_code"]') : null;
   if (_codeEl && _codeEl.value) fd.append('subject_code', _codeEl.value);
+  const _qbForm = form || document.querySelector('.meta-form-wrap');
+  const _qbTags = _qbForm ? _qbForm.querySelector('.qb-tags') : null;
+  if (_qbTags && _qbTags.value) fd.append('qb_tags', _qbTags.value.trim());
   const origName = item.name || (item.file && item.file.name) || `file_${Date.now()}`;
   const ext = origName.includes('.') ? origName.split('.').pop().toLowerCase() : 'jpg';
   const sanitize = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
@@ -487,12 +594,14 @@ function buildFormData(item) {
   const docType = sanitize(m.type || '');
   const year = sanitize(m.year || '2025');
   const unit = sanitize(m.unit || '');
+  const randSuffix = Math.random().toString(36).slice(2, 7);
   const parts = [code, docType, year];
   if (unit) parts.push(unit);
-  const cleanName = parts.filter(Boolean).join('_') || sanitize(origName.replace(/\.[^.]+$/, ''));
+  parts.push(randSuffix);
+  const cleanName = parts.filter(Boolean).join('_') || `doc_${Date.now()}_${randSuffix}`;
   const finalName = `${cleanName}.${ext}`;
 
-  let fileObj = item.blob || item.file;
+  let fileObj = item.compressedBlob || item.blob || item.file;
   if (!(fileObj instanceof File)) {
     fileObj = new File([fileObj], finalName, { type: fileObj.type || 'image/jpeg' });
   } else {
@@ -506,8 +615,9 @@ function buildFormData(item) {
 async function uploadOne(item, retries) {
   retries = (retries === undefined) ? 2 : retries;
 
-  if (!item.meta || !item.meta.subject || !item.meta.type) {
-    setFileStatus(item.id, 'error', 0, 'Fill metadata first');
+  if (!item.meta || !item.meta.type || (item.meta.type.toLowerCase() !== 'question_bank' && !item.meta.subject)) {
+    openStatusModal();
+    setItemStatus(item.id, 'error', 0, 'Fill metadata first');
     showToast(item.name + ': fill metadata (📝) first', 'error');
     return { ok: false, msg: 'Missing metadata' };
   }
@@ -515,12 +625,14 @@ async function uploadOne(item, retries) {
   // Duplicate guard — skip if already uploaded this session
   var fp = fileFingerprint(item);
   if (uploadedFingerprints.has(fp)) {
-    setFileStatus(item.id, 'done', 100);
-    showToast((item.name || 'File') + ': already uploaded, skipping', 'info');
+    openStatusModal();
+    setItemStatus(item.id, 'skipped', 100, 'Already uploaded in this session');
     return { ok: true, xp: 0, score: 0 };
   }
 
-  // ── Client-side preview compression (carousels only) ───────────────
+  openStatusModal();
+  ensureStatusItem(item.id, item.name);
+  setItemStatus(item.id, 'checking', 0, 'Checking duplicates…');
   // We NEVER modify item.file — that stays the original so the
   // server (cloudinary_upload.py) is the single authority on
   // compression + EXIF strip. We only produce a lighter preview
@@ -557,18 +669,41 @@ async function uploadOne(item, retries) {
     }).then(r => r.json());
 
     if (dupCheck.success && dupCheck.is_duplicate) {
-      setFileStatus(item.id, 'error', 0, 'Duplicate File Found');
-      showToast((item.name || 'File') + ': exact duplicate already exists!', 'error');
-      return { ok: false, msg: 'Duplicate detected' };
+      setItemStatus(item.id, 'duplicate', 0, 'Duplicate detected');
+      const choice = await showDuplicatePrompt(item, dupCheck.existing_file);
+      if (choice === 'skip') {
+        setItemStatus(item.id, 'skipped', 100, 'Skipped by user');
+        return { ok: true, xp: 0, score: 0, skipped: true };
+      }
+      if (choice === 'cancel') {
+        setItemStatus(item.id, 'error', 0, 'Cancelled by user');
+        return { ok: false, msg: 'Cancelled by user' };
+      }
+      // continue uploading anyway
+      setItemStatus(item.id, 'uploading', 0, 'Uploading anyway...');
     }
   } catch (e) {
     console.warn("Duplicate check failed, continuing upload", e);
+    setItemStatus(item.id, 'uploading', 0, 'Duplicate check failed, uploading...');
   }
 
-  return new Promise(function (resolve) {
+  return new Promise(async function (resolve) {
+    let sigRes = null;
+    try {
+      const res = await fetch('/api/get-upload-signature', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ filename: item.name })
+      });
+      sigRes = await res.json();
+    } catch (e) {
+      console.warn('Presigned URL fetch failed, falling back to app server route', e);
+    }
+
     var xhr = new XMLHttpRequest();
-    xhr.open('POST', '/upload', true);
-    xhr.timeout = 45000;
+    var targetUrl = '/upload';
+    xhr.open('POST', targetUrl, true);
+    xhr.timeout = 180000;
     xhr.upload.onprogress = function (e) {
       if (e.lengthComputable) {
         setFileStatus(item.id, 'uploading', Math.round(e.loaded / e.total * 100));
@@ -583,25 +718,28 @@ async function uploadOne(item, retries) {
     xhr.onload = function () {
       try {
         var r = JSON.parse(xhr.responseText);
-        if (xhr.status === 200 && r.success) {
+        if (xhr.status === 200 && (r.success || r.secure_url)) {
           _progCurrentFile = '';
           _progCurrentPct = 0;
           uploadedFingerprints.add(fp);
           setFileStatus(item.id, 'done', 100);
-          resolve({ ok: true, xp: (r.data && r.data.xp_gained) || 0, score: (r.data && r.data.new_score) || 0 });
+          setItemStatus(item.id, 'done', 100, 'Uploaded');
+          resolve({ ok: true, xp: (r.data && r.data.xp_gained) || 1, score: (r.data && r.data.new_score) || 0 });
           if (typeof window.AbhiHubInvitePrompt === 'function') {
             try { window.AbhiHubInvitePrompt(); } catch (e) { }
           }
         } else {
           _progCurrentFile = '';
           _progCurrentPct = 0;
-          setFileStatus(item.id, 'error', 0, r.message || 'Failed');
-          resolve({ ok: false, msg: r.message });
+          setFileStatus(item.id, 'error', 0, r.message || r.error || 'Failed');
+          setItemStatus(item.id, 'error', 0, r.message || r.error || 'Failed');
+          resolve({ ok: false, msg: r.message || r.error });
         }
       } catch (e) {
         _progCurrentFile = '';
         _progCurrentPct = 0;
         setFileStatus(item.id, 'error', 0, 'Invalid response');
+        setItemStatus(item.id, 'error', 0, 'Invalid response');
         resolve({ ok: false, msg: 'Invalid response' });
       }
     };
@@ -613,6 +751,7 @@ async function uploadOne(item, retries) {
         setTimeout(function () { uploadOne(item, retries - 1).then(resolve); }, 1500);
       } else {
         setFileStatus(item.id, 'error', 0, 'Network error');
+        setItemStatus(item.id, 'error', 0, 'Network error');
         resolve({ ok: false });
       }
     };
@@ -622,10 +761,20 @@ async function uploadOne(item, retries) {
         setTimeout(function () { uploadOne(item, retries - 1).then(resolve); }, 2000);
       } else {
         setFileStatus(item.id, 'error', 0, 'Timed out');
+        setItemStatus(item.id, 'error', 0, 'Timed out');
         resolve({ ok: false, msg: 'Upload timed out' });
       }
     };
-    xhr.send(buildFormData(item));
+
+    var fd = buildFormData(item);
+    if (sigRes && sigRes.success) {
+      fd.append('api_key', sigRes.api_key);
+      fd.append('timestamp', sigRes.timestamp);
+      fd.append('signature', sigRes.signature);
+      fd.append('folder', sigRes.folder);
+      fd.append('file', item.file);
+    }
+    xhr.send(fd);
   });
 }
 
@@ -667,6 +816,11 @@ async function startBulkUpload(event) {
   // Extract batch
   const uploadBatch = [...selectedFiles];
 
+  // Reset upload status modal for a fresh batch
+  const statusList = document.getElementById('uploadStatusList');
+  if (statusList) statusList.innerHTML = '';
+  if (typeof updateStatusSummary === 'function') updateStatusSummary();
+
   // Build meta object for each item before upload to prevent DOM lookup issues later
   uploadBatch.forEach(f => {
     const form = document.getElementById(`meta-form-${f.id}`);
@@ -687,6 +841,8 @@ async function startBulkUpload(event) {
       f.meta = { type: 'unknown', subject: 'unknown' };
     }
   });
+
+  openStatusModal();
 
   // Show floating progress pill offering the game
   let overlay = document.getElementById('uploadOverlay');
@@ -740,6 +896,12 @@ async function processUploadBatch(batch) {
   isUploading = true;
   window.addEventListener('beforeunload', handleBeforeUnload);
 
+  openStatusModal();
+  const statusList = document.getElementById('uploadStatusList');
+  if (statusList) statusList.innerHTML = '';
+  batch.forEach(item => ensureStatusItem(item.id, item.name));
+  updateStatusSummary();
+
   const _gaMethod = batch.some(f => !f.file.lastModified || f.file.name.toLowerCase().startsWith('image')) ? 'camera' : 'file';
 
   if (typeof window.AbhiHubTracking !== 'undefined') {
@@ -771,7 +933,9 @@ async function processUploadBatch(batch) {
       running.add(item.id);
       uploadOne(item).then(res => {
         results.push(res);
-        if (res.ok) { done++; if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUpload(item.name, item.file.type || 'image/jpeg', Math.round((item.blob || item.file).size / 1024)); }
+        if (res.skipped) {
+          // counted neither as success upload nor failure
+        } else if (res.ok) { done++; if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUpload(item.name, item.file.type || 'image/jpeg', Math.round((item.blob || item.file).size / 1024)); }
         else { failed++; if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed(res.msg || 'network_error', 'system_error', _gaMethod); }
         if (pBar) pBar.style.width = `${((done + failed) / batch.length) * 100}%`;
         running.delete(item.id);
@@ -949,6 +1113,138 @@ function setFloatStatus(show, text) {
   if (t && text) t.textContent = text;
 }
 
+/* ── Upload Status Modal ── */
+function openStatusModal() {
+  const overlay = document.getElementById('uploadStatusModal');
+  if (!overlay) return;
+  overlay.style.display = 'flex';
+  _statusModalOpen = true;
+}
+
+function closeStatusModal() {
+  const overlay = document.getElementById('uploadStatusModal');
+  if (overlay) overlay.style.display = 'none';
+  _statusModalOpen = false;
+}
+
+function ensureStatusItem(id, name) {
+  const list = document.getElementById('uploadStatusList');
+  if (!list) return null;
+  let el = document.getElementById('us-' + id);
+  if (el) return el;
+  el = document.createElement('div');
+  el.id = 'us-' + id;
+  el.className = 'upload-status-item';
+  el.innerHTML = `
+    <div class="upload-status-row">
+      <div class="upload-status-name" title="${(name||'').replace(/"/g,'&quot;')}">${name||'File'}</div>
+      <span class="upload-status-pill pending" id="us-pill-${id}">Pending</span>
+    </div>
+    <div class="upload-status-meta" id="us-meta-${id}"></div>
+    <div class="upload-status-progress"><div class="upload-status-progress-fill" id="us-fill-${id}"></div></div>
+    <div class="upload-status-actions-row" id="us-actions-${id}" style="display:none;"></div>
+  `;
+  list.appendChild(el);
+  return el;
+}
+
+function setItemStatus(id, status, progress, msg) {
+  const item = (typeof selectedFiles !== 'undefined' ? selectedFiles : []).find(f => f.id === id);
+  const name = item ? item.name : 'File';
+  ensureStatusItem(id, name);
+
+  const pill = document.getElementById('us-pill-' + id);
+  const fill = document.getElementById('us-fill-' + id);
+  const meta = document.getElementById('us-meta-' + id);
+  const actions = document.getElementById('us-actions-' + id);
+  const el = document.getElementById('us-' + id);
+  if (!el) return;
+
+  if (pill) {
+    pill.className = 'upload-status-pill ' + (status || 'pending');
+    const map = {
+      pending: 'Pending',
+      checking: 'Checking…',
+      uploading: 'Uploading',
+      done: 'Done',
+      error: 'Failed',
+      skipped: 'Skipped',
+      duplicate: 'Duplicate',
+      waiting: 'Waiting'
+    };
+    if (pill.textContent !== (map[status] || status)) pill.textContent = map[status] || status;
+  }
+
+  if (fill) {
+    fill.style.width = (typeof progress === 'number' ? Math.max(0, Math.min(100, progress)) : 0) + '%';
+  }
+
+  if (meta && typeof msg === 'string') meta.textContent = msg;
+  if (actions) actions.style.display = 'none';
+
+  el.classList.remove('is-done', 'is-error', 'duplicate-prompt');
+  if (status === 'done') el.classList.add('is-done');
+  else if (status === 'error') el.classList.add('is-error');
+  else if (status === 'duplicate') el.classList.add('duplicate-prompt');
+
+  updateStatusSummary();
+}
+
+function updateStatusSummary() {
+  const list = document.getElementById('uploadStatusList');
+  const summary = document.getElementById('usSummary');
+  const title = document.getElementById('usTitle');
+  const subtitle = document.getElementById('usSubtitle');
+  const closeBtn = document.getElementById('usClose');
+  if (!list || !summary) return;
+  const entries = Array.from(list.querySelectorAll('.upload-status-item'));
+  const total = entries.length;
+  const done = entries.filter(x => x.classList.contains('is-done')).length;
+  const error = entries.filter(x => x.classList.contains('is-error')).length;
+  const skipped = entries.filter(x => querySelectorOne(x, '.upload-status-pill') && querySelectorOne(x, '.upload-status-pill').classList.contains('skipped')).length;
+  const uploading = entries.filter(x => querySelectorOne(x, '.upload-status-pill') && querySelectorOne(x, '.upload-status-pill').classList.contains('uploading')).length;
+
+  summary.textContent = [uploading ? `Uploading ${uploading}` : '', done ? `Done ${done}` : '', error ? `Failed ${error}` : '', skipped ? `Skipped ${skipped}` : ''].filter(Boolean).join(' · ') || 'Preparing…';
+
+  if (title) {
+    if (error) title.textContent = 'Upload Issues';
+    else if (done && done === total) title.textContent = 'Upload Complete';
+    else title.textContent = 'Uploading…';
+  }
+  if (subtitle) subtitle.textContent = total ? `${done + error + skipped} of ${total} processed` : 'Please keep this window open';
+  if (closeBtn) closeBtn.style.display = (done + error + skipped) >= total && total > 0 ? 'inline-flex' : 'none';
+}
+
+function querySelectorOne(el, sel) {
+  try { return el.querySelector(sel); } catch (e) { return null; }
+}
+
+function showDuplicatePrompt(item, existing) {
+  const id = item.id;
+  ensureStatusItem(id, item.name);
+  setItemStatus(id, 'duplicate', 0, 'Duplicate detected');
+  const el = document.getElementById('us-' + id);
+  const actions = el ? el.querySelector('.upload-status-actions-row') : null;
+  if (!actions) return;
+
+  actions.innerHTML = `
+    <button id="dup-skip-${id}">Skip this file</button>
+    <button id="dup-continue-${id}">Upload anyway</button>
+    <button id="dup-cancel-${id}">Cancel upload</button>
+  `;
+  actions.style.display = 'flex';
+
+  return new Promise(function (resolve) {
+    const done = function (choice) {
+      actions.style.display = 'none';
+      resolve(choice);
+    };
+    document.getElementById('dup-skip-' + id)?.addEventListener('click', function () { done('skip'); });
+    document.getElementById('dup-continue-' + id)?.addEventListener('click', function () { done('continue'); });
+    document.getElementById('dup-cancel-' + id)?.addEventListener('click', function () { done('cancel'); });
+  });
+}
+
 /* ── Drag & drop ── */
 function initDragDrop() {
   const da = document.getElementById('dropArea');
@@ -961,4 +1257,13 @@ function initDragDrop() {
   da.addEventListener('drop', e => { da.classList.remove('drag-over'); handleFilesSelected(e.dataTransfer.files); });
 }
 
-document.addEventListener('DOMContentLoaded', initDragDrop);
+document.addEventListener('DOMContentLoaded', function () {
+  initDragDrop();
+
+  const usClose = document.getElementById('usClose');
+  const usMinimize = document.getElementById('usMinimize');
+  const usOverlay = document.getElementById('uploadStatusModal');
+  if (usClose) usClose.addEventListener('click', function () { closeStatusModal(); });
+  if (usMinimize) usMinimize.addEventListener('click', function () { closeStatusModal(); });
+  if (usOverlay) usOverlay.addEventListener('click', function (e) { if (e.target === usOverlay) closeStatusModal(); });
+});

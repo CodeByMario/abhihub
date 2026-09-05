@@ -2406,3 +2406,43 @@ def register_referral(new_user_id: str, code: str, credit_inviter: int = 50, cre
         logging.error(f"[Referral] register_referral failed: {e}")
         return {'success': False, 'message': msg}
 
+
+
+def upload_file_to_supabase(file_data: bytes, supabase_path: str, content_type: str = 'application/octet-stream') -> Dict:
+    """
+    Upload file to Supabase Storage bucket.
+    
+    Args:
+        file_data: File bytes
+        supabase_path: Path within the bucket (e.g., 'cloudinary_fallback/public_id.pdf')
+        content_type: MIME type of the file
+        
+    Returns:
+        dict: {'success': bool, 'url': str, 'public_path': str, 'message': str (if failed)}
+    """
+    client = init_supabase()
+    if not client:
+        return {'success': False, 'message': 'Supabase client not available'}
+    
+    try:
+        # Use the 'public' bucket which allows anon key access
+        bucket_name = 'public'
+        
+        # Upload the file
+        response = client.storage.from_(bucket_name).upload(
+            path=supabase_path,
+            file=file_data,
+            file_options={'content-type': content_type, 'upsert': 'true'}
+        )
+        
+        # Get public URL
+        public_url = client.storage.from_(bucket_name).get_public_url(supabase_path)
+        
+        return {
+            'success': True,
+            'url': public_url,
+            'public_path': supabase_path
+        }
+    except Exception as e:
+        logging.error(f'[Supabase] Upload to storage failed: {e}')
+        return {'success': False, 'message': str(e)}

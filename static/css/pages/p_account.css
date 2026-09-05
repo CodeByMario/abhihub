@@ -4,12 +4,12 @@
 .ac-card, .ac-input, .ac-select, .ac-btn,
 .ac-role-card, .ac-alert { border: 1px solid var(--border-light); box-sizing: border-box; }
 
-.ac-page { padding: 1.5rem 1rem 6rem; max-width: 780px; margin: 0 auto; }
+.ac-page { padding:clamp(1rem, 3vw, 2rem) clamp(1rem, 4vw, 2rem) 7rem; max-width:860px; margin:0 auto; }
 
 /* Hero */
 .ac-hero {
   background: linear-gradient(135deg, var(--primary-700) 0%, var(--primary-500) 55%, #6366f1 100%);
-  border-radius: 20px; padding: 1.75rem 2rem; margin-bottom: 1.5rem;
+  border-radius:18px; padding:clamp(1.15rem, 4vw, 1.75rem); margin-bottom:1.25rem;
   display: flex; align-items: center; gap: 1.2rem; position: relative; overflow: hidden;
 }
 .ac-hero::after {
@@ -17,8 +17,8 @@
   width:180px; height:180px; border-radius:50%; background:rgba(255,255,255,0.07);
 }
 .ac-hero-icon { font-size:2.2rem; flex-shrink:0; }
-.ac-hero h1 { font-size:1.3rem; font-weight:700; color:#fff; margin:0 0 .15rem; }
-.ac-hero p  { font-size:.82rem; color:rgba(255,255,255,.75); margin:0; }
+.ac-hero h1 { font-size:clamp(1.2rem, 3vw, 1.45rem); font-weight:750; color:#fff; margin:0 0 .15rem; }
+.ac-hero p  { font-size:.88rem; color:rgba(255,255,255,.8); margin:0; }
 
 /* Progress ring */
 .ac-ring-wrap { position:relative; width:72px; height:72px; flex-shrink:0; margin-left:auto; }
@@ -48,11 +48,11 @@
 
 /* Card */
 .ac-card {
-  background:#fff; border-radius:16px; margin-bottom:1.25rem;
-  overflow:hidden; box-shadow:0 2px 8px rgba(0,0,0,.04);
+  background:#fff; border-radius:14px; margin-bottom:1rem;
+  overflow:hidden; box-shadow:0 1px 3px rgba(15,23,42,.05);
 }
 .ac-card-head {
-  display:flex; align-items:center; gap:.75rem; padding:.9rem 1.3rem;
+  display:flex; align-items:center; gap:.75rem; padding:1rem 1.25rem;
   background:var(--background-secondary); border-bottom:1px solid var(--border-light);
 }
 .ac-head-icon {
@@ -62,17 +62,16 @@
 .ac-head-icon.blue   { background:#dbeafe; }
 .ac-head-icon.purple { background:#ede9fe; }
 .ac-head-icon.green  { background:#d1fae5; }
-.ac-head-title { font-size:.95rem; font-weight:700; color:var(--text-primary); margin:0; }
-.ac-head-sub   { font-size:.72rem; color:var(--text-tertiary); }
-.ac-card-body  { padding:1.25rem 1.3rem; }
+.ac-head-title { font-size:1rem; font-weight:700; color:var(--text-primary); margin:0; }
+.ac-head-sub   { font-size:.8rem; color:var(--text-tertiary); }
+.ac-card-body  { padding:1.25rem; }
 
 /* Form */
-.ac-grid { display:grid; grid-template-columns:1fr; gap:1rem; }
-@media(min-width:600px){ .ac-grid { grid-template-columns:1fr 1fr; } }
+.ac-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:1rem; }
 .ac-span2 { grid-column:1/-1; }
 
-.ac-field { display:flex; flex-direction:column; gap:.35rem; }
-.ac-label { font-size:.8rem; font-weight:600; color:var(--text-secondary); }
+.ac-field { display:flex; flex-direction:column; gap:.4rem; min-width:0; }
+.ac-label { font-size:.82rem; font-weight:650; color:var(--text-secondary); }
 .ac-req   { color:#ef4444; }
 
 .ac-input-wrap { position:relative; }
@@ -80,14 +79,14 @@
   position:absolute; left:.85rem; top:50%; transform:translateY(-50%);
   color:var(--text-tertiary); pointer-events:none; display:flex;
 }
-.ac-input, .ac-select {
-  width:100%; padding:.7rem .85rem .7rem 2.6rem;
-  border-radius:10px; font-size:.88rem; color:var(--text-primary);
+.ac-input, .ac-select, .ac-input-wrap .abhihub-select {
+  width:100%; min-height:44px; padding:.7rem .85rem .7rem 2.6rem;
+  border-radius:10px; font-size:.92rem; color:var(--text-primary);
   background:#fff; outline:none; transition:border-color .2s, box-shadow .2s;
   border: 1px solid var(--border-medium) !important;
   appearance: auto;
 }
-.ac-input:focus, .ac-select:focus {
+.ac-input:focus, .ac-select:focus, .ac-input-wrap .abhihub-select:focus {
   border-color:var(--primary-500) !important;
   box-shadow:0 0 0 3px rgba(59,130,246,.12);
 }
@@ -101,12 +100,12 @@
 }
 
 /* Role Cards */
-.ac-role-grid { display:grid; grid-template-columns:1fr 1fr; gap:1rem; max-width:380px; margin:0 auto; }
+.ac-role-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.75rem; max-width:440px; }
 .ac-role-input { display:none; }
 .ac-role-label { cursor:pointer; display:block; }
 .ac-role-card {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
-  padding:1.4rem 1rem; border-radius:14px; text-align:center; position:relative;
+  min-height:124px; padding:1.15rem 1rem; border-radius:12px; text-align:center; position:relative;
   transition:all .25s; border: 2px solid var(--border-light) !important;
   background:#fff;
 }
@@ -136,4 +135,38 @@
 .ac-role-input[value="teacher"]:checked + .ac-role-label .ac-role-emoji { transform:scale(1.15) rotate(5deg); }
 .ac-role-input[value="teacher"]:checked + .ac-role-label .ac-role-tick  { opacity:1; transform:scale(1); background:#8b5cf6; }
 
-/* Removed fixed action bar - now inline with form */
+/* Form actions */
+.ac-actions { display:flex; align-items:center; justify-content:space-between; gap:1rem; margin:1.5rem 0 0; }
+.ac-actions-note { margin:0; max-width:320px; font-size:.8rem; color:var(--text-tertiary); }
+.ac-actions-buttons { display:flex; align-items:center; gap:.75rem; }
+.ac-btn { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:.65rem 1.15rem; border-radius:10px; font-size:.9rem; font-weight:700; text-decoration:none; cursor:pointer; transition:background .2s, border-color .2s, transform .2s; }
+.ac-btn:focus-visible, .ac-role-label:focus-within .ac-role-card { outline:3px solid rgba(37,99,235,.28); outline-offset:2px; }
+.ac-btn-primary { border:1px solid var(--primary-600); background:var(--primary-600); color:#fff; box-shadow:0 2px 5px rgba(37,99,235,.18); }
+.ac-btn-primary:hover { background:var(--primary-700); transform:translateY(-1px); }
+.ac-btn-secondary { border:1px solid var(--border-medium); background:#fff; color:var(--text-secondary); }
+.ac-btn-secondary:hover { background:var(--background-secondary); }
+
+@media (max-width:599px) {
+  .ac-page { padding-bottom:6.5rem; }
+  .ac-hero { gap:.85rem; }
+  .ac-hero-icon { display:none; }
+  .ac-ring-wrap { width:60px; height:60px; }
+  .ac-ring-wrap svg { width:60px; height:60px; }
+  .ac-grid { grid-template-columns:1fr; gap:.9rem; }
+  .ac-span2 { grid-column:auto; }
+  .ac-card-head, .ac-card-body { padding-left:1rem; padding-right:1rem; }
+  .ac-role-grid { max-width:none; }
+  .ac-role-card { min-height:110px; padding:.9rem .65rem; }
+  .ac-role-emoji { font-size:1.65rem; }
+  .ac-actions { align-items:stretch; flex-direction:column-reverse; }
+  .ac-actions-note { max-width:none; text-align:center; }
+  .ac-actions-buttons { display:grid; grid-template-columns:1fr 1fr; }
+  .ac-btn { width:100%; padding-left:.75rem; padding-right:.75rem; }
+}
+
+@media (max-width:360px) {
+  .ac-hero { align-items:flex-start; }
+  .ac-ring-wrap { width:52px; height:52px; }
+  .ac-ring-wrap svg { width:52px; height:52px; }
+  .ac-actions-buttons { grid-template-columns:1fr; }
+}

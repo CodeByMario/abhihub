@@ -130,6 +130,7 @@
         (page === 'admin' && currentPath.includes('admin'))
       ) {
         item.classList.add('navbar__item--active');
+        item.setAttribute('aria-current', 'page');
       }
     });
   })();

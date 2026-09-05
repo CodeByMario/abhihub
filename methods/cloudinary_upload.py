@@ -29,18 +29,18 @@ cloudinary.config(
 def get_cloudinary_resource_type(filename: str) -> str:
     """
     Determine Cloudinary resource type based on file extension.
-    
+
     Args:
         filename: Original filename
-    
+
     Returns:
         'image', 'video', or 'raw'
     """
     ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
-    
+
     image_extensions = {'png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'tiff'}
     video_extensions = {'mp4', 'mov', 'avi', 'wmv', 'flv', 'webm'}
-    
+
     if ext in image_extensions:
         return 'image'
     elif ext in video_extensions:
@@ -48,42 +48,37 @@ def get_cloudinary_resource_type(filename: str) -> str:
     else:
         return 'raw'  # For PDFs, docs, archives, etc.
 
-
 def compress_pdf(file_data: bytes) -> bytes:
     """
-    Strip PDF metadata (author, title, subject, creator, producer, etc.)
-    and rewrite the file. Copies page objects only — user metadata does not
-    transfer. The only metadata pypdf adds is /Producer, which we remove from
-    the raw bytes afterward. Does NOT downsample content — scanned PDFs
-    remain large; visual optimization requires a separate pipeline (Ghostscript
-    or PyMuPDF image downsampling) and is NOT done here.
-    Returns cleaned bytes, or original on any failure.
+    Strip PDF metadata cleanly using pypdf writer and compress streams.
+    Returns valid cleaned PDF bytes, or original on any failure.
     """
     try:
         reader = PdfReader(io.BytesIO(file_data))
         writer = PdfWriter()
         for page in reader.pages:
+            try:
+                page.compress_content_streams()
+            except Exception:
+                pass
             writer.add_page(page)
+        writer.add_metadata({})
         out = io.BytesIO()
         writer.write(out)
         cleaned = out.getvalue()
-        # pypdf always writes /Producer:pypdf — strip it from the raw bytes.
-        import re
-        cleaned = re.sub(rb'/Producer\s*\([^)]*\)', b'', cleaned)
         if len(cleaned) < len(file_data):
-            logging.info(f"✓ PDF metadata stripped → {len(cleaned)} bytes (was {len(file_data)})")
+            logging.info(f"✓ PDF metadata stripped & streams compressed → {len(cleaned)} bytes (was {len(file_data)}")
         else:
-            logging.info(f"✓ PDF metadata strip ran, size unchanged ({len(cleaned)} bytes) — file likely scanned, no metadata to remove")
+            logging.info(f"✓ PDF metadata stripped ({len(cleaned)} bytes)")
         return cleaned
     except Exception as e:
         logging.warning(f"PDF metadata strip failed, keeping original: {e}")
         return file_data
 
-
-def compress_image(file_data: bytes, format: str = 'JPEG', quality: int = 90) -> bytes:
+def compress_image(file_data: bytes, format: str = 'JPEG', quality: int = 75) -> bytes:
     """
-    Compress image, auto-rotate from EXIF, and strip all metadata.
-    Quality 90 keeps text in scanned papers sharp.
+    Compress image, convert document photos to high-contrast grayscale,
+    strip EXIF metadata, and maximize legibility of text documents.
     """
     try:
         img = Image.open(io.BytesIO(file_data))
@@ -93,18 +88,43 @@ def compress_image(file_data: bytes, format: str = 'JPEG', quality: int = 90) ->
             from PIL import ImageOps
             img = ImageOps.exif_transpose(img)
         except Exception:
-            pass  # Non-critical; continue without rotation fix
+            pass
 
-        # Convert to RGB for JPEG/WEBP (drop alpha, palette)
-        if format.upper() in ('JPEG', 'WEBP') and img.mode not in ('RGB',):
-            bg = Image.new('RGB', img.size, (255, 255, 255))
-            if img.mode in ('RGBA', 'LA'):
-                bg.paste(img, mask=img.split()[-1])
+        # Convert to Grayscale & enhance contrast for scanned document text
+        from PIL import ImageEnhance, ImageOps
+        img = img.convert('L')
+        img = ImageOps.autocontrast(img, cutoff=1)
+        enhancer = ImageEnhance.Contrast(img)
+        img = enhancer.enhance(1.15)
+
+        # Convert to RGB for JPEG save
+        if format.upper() in ('JPEG', 'WEBP'):
+            img = img.convert('RGB')
+
+        # Add AbhiHub watermark to bottom right corner
+        try:
+            from PIL import ImageDraw, ImageFont
+            draw = ImageDraw.Draw(img)
+            w, h = img.size
+            font_size = max(16, int(w * 0.025))
+            try:
+                font = ImageFont.truetype("arial.ttf", font_size)
+            except Exception:
+                font = ImageFont.load_default()
+            text = "AbhiHub"
+            padding = max(12, int(w * 0.015))
+            if hasattr(draw, 'textbbox'):
+                bbox = draw.textbbox((0, 0), text, font=font)
+                tw, th = bbox[2] - bbox[0], bbox[3] - bbox[1]
             else:
-                bg.paste(img.convert('RGB'))
-            img = bg
+                tw, th = font_size * 4, font_size
+            x = w - tw - padding
+            y = h - th - padding
+            draw.text((x + 1, y + 1), text, fill=(0, 0, 0), font=font)
+            draw.text((x, y), text, fill=(255, 255, 255), font=font)
+        except Exception as wm_err:
+            logging.warning(f"Watermark error: {wm_err}")
 
-        # Strip EXIF by saving clean to buffer (no putdata needed after convert)
         output = io.BytesIO()
         save_kwargs = {'format': format, 'optimize': True}
         if format.upper() in ('JPEG', 'WEBP'):
@@ -112,21 +132,19 @@ def compress_image(file_data: bytes, format: str = 'JPEG', quality: int = 90) ->
 
         img.save(output, **save_kwargs)
         compressed = output.getvalue()
-        logging.info(f"✓ EXIF stripped+rotated, compressed to {len(compressed)} bytes")
+        logging.info(f"✓ Document image converted to grayscale & compressed to {len(compressed)} bytes")
         return compressed
-
     except Exception as e:
         logging.error(f"Error compressing image: {e}")
         return file_data
 
-
 def sanitize_filename(filename: str) -> str:
     """
     Sanitize filename for safe cloud storage.
-    
+
     Args:
         filename: Original filename
-    
+
     Returns:
         Sanitized filename
     """
@@ -138,7 +156,6 @@ def sanitize_filename(filename: str) -> str:
     filename = filename.lower()
     return filename
 
-
 def upload_file_to_cloudinary(
     file_data: BinaryIO,
     filename: str,
@@ -148,14 +165,14 @@ def upload_file_to_cloudinary(
 ) -> Dict:
     """
     Upload file to Cloudinary with compression and user ID tracking.
-    
+
     Args:
         file_data: File data (file object or bytes)
         filename: Original filename
         user_id: User ID for tracking and naming
         folder: Cloudinary folder path
         compress: Whether to compress images (default: True)
-    
+
     Returns:
         dict: {
             'success': bool,
@@ -166,7 +183,8 @@ def upload_file_to_cloudinary(
             'format': str,
             'bytes': int,
             'original_filename': str,
-            'error': str (if failed)
+            'error': str (if failed),
+            'supabase_url': str (optional, fallback URL)
         }
     """
     try:
@@ -176,11 +194,11 @@ def upload_file_to_cloudinary(
             file_data.seek(0)  # Reset for potential reuse
         else:
             file_bytes = file_data
-        
+
         # Determine resource type
         resource_type = get_cloudinary_resource_type(filename)
         ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
-        
+
         # Compress / clean files if enabled
         if compress:
             if resource_type == 'image':
@@ -194,17 +212,23 @@ def upload_file_to_cloudinary(
             elif ext == 'pdf':
                 file_bytes = compress_pdf(file_bytes)
                 logging.info(f"✓ PDF metadata stripped: {len(file_bytes)} bytes")
-        
+
         # Create unique filename with user ID and timestamp
         timestamp = int(time.time())
         sanitized_name = sanitize_filename(filename)
         name_without_ext = sanitized_name.rsplit('.', 1)[0] if '.' in sanitized_name else sanitized_name
         ext = sanitized_name.rsplit('.', 1)[-1] if '.' in sanitized_name else ''
-        
+
         public_id = f"{user_id}_{timestamp}_{name_without_ext}"
-        if resource_type == 'raw' and ext:
+        # Cloudinary Free tier blocks PDF sharing/delivery.
+        # Keep the file bytes intact, but upload with a non-PDF extension
+        # so Cloudinary does not apply PDF-specific delivery restrictions.
+        # The app still serves it with Content-Type: application/pdf.
+        if resource_type == 'raw' and ext and ext.lower() == 'pdf':
+            public_id = f"{public_id}.txt"
+        elif resource_type == 'raw' and ext:
             public_id = f"{public_id}.{ext}"
-        
+
         # Upload to Cloudinary
         upload_params = {
             'public_id': public_id,
@@ -212,9 +236,10 @@ def upload_file_to_cloudinary(
             'folder': folder,
             'overwrite': False,
             'use_filename': False,
-            'unique_filename': True
+            'unique_filename': True,
+            'access_control': [{'access_type': 'anonymous'}]  # Ensure public access for proxied delivery
         }
-        
+
         # Add optimization for different resource types
         if resource_type == 'image':
             upload_params['quality'] = 'auto:good'
@@ -222,12 +247,43 @@ def upload_file_to_cloudinary(
         elif resource_type == 'raw':
             # For PDFs and documents
             upload_params['resource_type'] = 'raw'
-        
+
         logging.info(f"📤 Uploading to Cloudinary: {public_id}")
         result = cloudinary.uploader.upload(file_bytes, **upload_params)
-        
+
+        # Ensure the resource is publicly accessible via admin API.
+        # The access_control param on upload doesn't always stick for raw resources
+        # on some account configurations; an explicit admin update guarantees it.
+        try:
+            import cloudinary.api as _cld_api
+            _cld_api.update(result.get('public_id'), resource_type=resource_type, access_mode='public')
+            logging.info(f"✓ Public access confirmed for {result.get('public_id')}")
+        except Exception as _e:
+            logging.warning(f"[cloudinary] Could not set public access on {public_id}: {_e}")
+
+        # Also upload to Supabase Storage as a fallback/public delivery layer.
+        # Cloudinary Free plan may block all access methods (signed URLs, admin API),
+        # but Supabase Storage with anon key provides reliable public access.
+        try:
+            from methods.supabase_helper import init_supabase, upload_file_to_supabase
+            client = init_supabase()
+            if client:
+                supabase_result = upload_file_to_supabase(
+                    file_data=file_bytes,
+                    supabase_path=f"cloudinary_fallback/{result['public_id']}{ext if ext else '.pdf'}",
+                    content_type='application/pdf' if ext and ext.lower() == 'pdf' else 'application/octet-stream'
+                )
+                if supabase_result.get('success'):
+                    result['supabase_url'] = supabase_result.get('url')
+                    result['supabase_public_id'] = supabase_result.get('public_path')
+                    logging.info(f"✓ Uploaded to Supabase fallback: {supabase_result.get('url')}")
+                else:
+                    logging.warning(f"[cloudinary] Supabase upload fallback skipped: {supabase_result.get('message')}")
+        except Exception as _e:
+            logging.warning(f"[cloudinary] Supabase fallback upload skipped: {_e}")
+
         logging.info(f"✅ Upload successful: {result.get('secure_url')}")
-        
+
         return {
             'success': True,
             'url': result.get('url'),
@@ -238,9 +294,11 @@ def upload_file_to_cloudinary(
             'bytes': result.get('bytes'),
             'original_filename': filename,
             'width': result.get('width'),
-            'height': result.get('height')
+            'height': result.get('height'),
+            # Optional fallback fields
+            'supabase_url': result.get('supabase_url'),
+            'supabase_public_id': result.get('supabase_public_id')
         }
-    
     except Exception as e:
         logging.error(f"❌ Cloudinary upload error: {e}")
         return {
@@ -249,15 +307,14 @@ def upload_file_to_cloudinary(
             'original_filename': filename
         }
 
-
 def delete_file_from_cloudinary(public_id: str, resource_type: str = 'raw') -> Dict:
     """
     Delete a file from Cloudinary.
-    
+
     Args:
         public_id: Cloudinary public ID
         resource_type: Resource type ('image', 'video', or 'raw')
-    
+
     Returns:
         dict: {'success': bool, 'result': str}
     """

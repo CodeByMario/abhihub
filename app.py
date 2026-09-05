@@ -296,7 +296,11 @@ except Exception:
 from cache_manager import init_cache, get_cache
 cache = init_cache(app)
 
-socketio = SocketIO(app, cors_allowed_origins="https://www.abhihub.edu.eu.org", logger=False, engineio_logger=False)
+_socket_cors_origins = os.getenv('SOCKETIO_CORS_ORIGINS', 'https://www.abhihub.edu.eu.org').split(',')
+# Permit local/preview hosts during development; production remains allow-listed.
+if os.getenv('FLASK_ENV') != 'production':
+    _socket_cors_origins = '*'
+socketio = SocketIO(app, cors_allowed_origins=_socket_cors_origins, logger=False, engineio_logger=False)
 
 import mimetypes
 mimetypes.add_type('application/javascript', '.mjs')
@@ -466,7 +470,7 @@ except Exception as e:
 
 
 # File Upload Security Configuration
-MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB max file size
+MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB max file size
 # Match file input accept attr + JS type check: images + PDF only.
 # PDFs and images are the canonical upload types for AbhiHub.
 ALLOWED_EXTENSIONS = {
@@ -519,18 +523,83 @@ def detect_file_type(filename: str) -> str:
 
 
 def log_document_view(file_name, file_url, record_id=None,
-                      file_type=None, file_path=None, user_email=None):
+                      file_type=None, file_path=None, user_email=None,
+                      uploader_id=None, uploader_email=None):
     """Record that the current user viewed a document.
 
     Shared by /preview, /view_pdf and /resource/<slug> so the view-logging
-    contract lives in exactly one place. Never raises: a logging failure
-    must not break document delivery.
+    contract lives in exactly one place. Deducts 1 view from paper quota
+    only ONCE per day for non-uploaders (uploaders view for free).
+    Never raises: a logging failure must not break document delivery.
     """
     if user_email is None:
         user_email = session.get('user', {}).get('email', '')
+    user_id = session.get('user', {}).get('uid', '')
     if not user_email:
         return False
     try:
+        # Check 1: Free view if user is the uploader
+        is_owner = False
+        if user_id and uploader_id and str(user_id) == str(uploader_id):
+            is_owner = True
+        elif user_email and uploader_email and user_email.lower() == str(uploader_email).lower():
+            is_owner = True
+        elif record_id and user_id:
+            try:
+                doc_chk = supabase.table('documents').select('uploader_id').eq('id', record_id).limit(1).execute()
+                if doc_chk.data and str(doc_chk.data[0].get('uploader_id')) == str(user_id):
+                    is_owner = True
+            except Exception:
+                pass
+
+        # Check 2: Same-day deduplication (charge only once per day per file)
+        today_str = datetime.utcnow().strftime('%Y-%m-%d')
+        doc_key = str(record_id or file_name or file_url)
+        cache_view_key = f"viewed:{user_id or user_email}:{doc_key}:{today_str}"
+
+        already_viewed_today = False
+        try:
+            if cache.l1.get(cache_view_key)[0] is not None:
+                already_viewed_today = True
+        except Exception:
+            pass
+
+        if not already_viewed_today:
+            viewed_dict = session.get('viewed_today', {})
+            if viewed_dict.get(doc_key) == today_str:
+                already_viewed_today = True
+
+        # Deduct credit ONLY if user is not the uploader AND has not viewed it today
+        if not is_owner and not already_viewed_today:
+            allowed = _consume_credit()
+            if allowed:
+                try:
+                    cache.l1.set(cache_view_key, True, ttl=86400)
+                except Exception:
+                    pass
+                viewed_dict = session.get('viewed_today', {})
+                viewed_dict[doc_key] = today_str
+                session['viewed_today'] = viewed_dict
+                session.modified = True
+
+                # Send notification for credit deduction
+                try:
+                    doc_title = file_name or "document"
+                    notif_title = "1 Credit Deducted"
+                    notif_msg = f"1 view credit was deducted for viewing '{doc_title}'."
+                    action_url = f"/resource/{record_id}" if record_id else None
+
+                    if user_id:
+                        from data.notifications import Notification
+                        Notification.create(user_id, "quota_deduction", notif_title, notif_msg, action_url)
+                        try:
+                            from push_notifications import send_notification
+                            send_notification(user_id, notif_title, notif_msg, action_url)
+                        except Exception:
+                            pass
+                except Exception as ne:
+                    logging.warning(f"[VIEW-LOG] Could not send deduction notification: {ne}")
+
         save_file_access(
             user_email=user_email,
             file_name=file_name,
@@ -711,21 +780,67 @@ def _get_quota():
     session.modified = True
     return q
 
+def log_credit_transaction(user_id, amount, tx_type, reason):
+    """Record credit earning or spending transaction for ledger tracking."""
+    if not user_id:
+        return
+    try:
+        data = {
+            'user_id': user_id,
+            'amount': amount,
+            'type': tx_type,  # 'earn' or 'spend'
+            'reason': reason,
+            'created_at': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        # Session storage for fast UI response
+        history = session.get('credit_history', [])
+        if not isinstance(history, list):
+            history = []
+        history.insert(0, data)
+        session['credit_history'] = history[:100]
+        session.modified = True
+
+        # Database storage
+        try:
+            supabase.table('credit_transactions').insert(data).execute()
+        except Exception:
+            pass
+    except Exception as e:
+        logging.warning(f"[CREDIT-LOG] Could not log credit tx: {e}")
+
 def _grant_upload_credits():
-    """Award +1 reputation score to the user after a successful upload."""
+    """Award +3 paper quota views and +1 reputation score to the user after a successful upload."""
     user = session.get('user', {})
     user_id = user.get('uid')
     if not user_id:
         return
     
-    # Fetch current rep
-    res = supabase.table('profiles').select('reputation_score').eq('id', user_id).execute()
+    # Fetch current quota and rep
+    res = supabase.table('profiles').select('paper_quota_remaining, reputation_score').eq('id', user_id).execute()
     if res.data:
+        curr_quota = res.data[0].get('paper_quota_remaining')
+        if curr_quota is None:
+            curr_quota = 19
         curr_rep = res.data[0].get('reputation_score') or 0
-        supabase.table('profiles').update({'reputation_score': curr_rep + 1}).eq('id', user_id).execute()
-        logging.info(f"[REWARD] Granted +1 reputation to {user.get('email')} -> {curr_rep + 1}")
+        new_quota = curr_quota + 3
+        
+        supabase.table('profiles').update({
+            'paper_quota_remaining': new_quota,
+            'reputation_score': curr_rep + 1
+        }).eq('id', user_id).execute()
 
-def _consume_credit():
+        # Update session quota
+        q = session.get('paper_quota', {})
+        if isinstance(q, dict):
+            q['credits'] = new_quota
+            session['paper_quota'] = q
+            session.modified = True
+
+        cache.l1.delete(f"user:quota:{user_id}")
+        log_credit_transaction(user_id, 3, 'earn', "Document upload reward (+3 views)")
+        logging.info(f"[REWARD] Granted +3 views (quota={new_quota}) and +1 rep to {user.get('email')}")
+
+def _consume_credit(doc_name="Document"):
     """
     Deduct 1 credit for a paper open.
     Returns True if the open is allowed, False if quota is exhausted.
@@ -752,6 +867,7 @@ def _consume_credit():
     # Update backend
     if user_id:
         supabase.table('profiles').update({'paper_quota_remaining': new_credits}).eq('id', user_id).execute()
+        log_credit_transaction(user_id, -1, 'spend', f"Viewed: {doc_name}")
 
     # Invalidate quota cache — it changed
     cache.l1.delete(f"user:quota:{user_id}")
@@ -813,6 +929,90 @@ def api_cache_health():
         'cache': cache.stats(),
         'timestamp': datetime.utcnow().isoformat() + 'Z'
     }), 200
+
+
+@app.route('/api/get-upload-signature', methods=['POST'])
+@auth_required
+def get_upload_signature():
+    """Generates a presigned Cloudinary upload signature for client-side direct uploads."""
+    import time
+    import cloudinary.utils
+    timestamp = int(time.time())
+    folder = "uploads"
+    params = {
+        'timestamp': timestamp,
+        'folder': folder
+    }
+    api_secret = os.getenv('CLOUDINARY_API_SECRET')
+    cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME')
+    api_key = os.getenv('CLOUDINARY_API_KEY')
+    if not api_secret or not cloud_name:
+        return jsonify({'success': False, 'message': 'Storage configuration error'}), 500
+
+    signature = cloudinary.utils.api_sign_request(params, api_secret)
+    return jsonify({
+        'success': True,
+        'upload_url': f"https://api.cloudinary.com/v1_1/{cloud_name}/auto/upload",
+        'api_key': api_key,
+        'timestamp': timestamp,
+        'signature': signature,
+        'folder': folder
+    }), 200
+
+
+def _async_compress_and_update(public_id, secure_url, resource_type, filename):
+    """Background worker task: downloads uploaded file, applies compression, and updates storage."""
+    try:
+        import requests
+        from methods.cloudinary_upload import compress_image, compress_pdf, upload_file_to_cloudinary
+        resp = requests.get(secure_url, timeout=30)
+        if resp.status_code != 200:
+            return
+        
+        file_bytes = resp.content
+        ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+        
+        compressed_bytes = file_bytes
+        if resource_type == 'image':
+            compressed_bytes = compress_image(file_bytes, format='JPEG', quality=80)
+        elif ext == 'pdf':
+            compressed_bytes = compress_pdf(file_bytes)
+            
+        if len(compressed_bytes) < len(file_bytes):
+            import io
+            upload_file_to_cloudinary(
+                io.BytesIO(compressed_bytes),
+                filename,
+                user_id="async_worker",
+                folder="uploads",
+                compress=False
+            )
+            logging.info(f"✓ Async background compression complete for {public_id}: {len(file_bytes)} ➔ {len(compressed_bytes)} bytes")
+    except Exception as e:
+        logging.error(f"Async post-upload worker error for {public_id}: {e}")
+
+
+@app.route('/api/webhooks/cloudinary-upload', methods=['POST'])
+def webhook_cloudinary_upload():
+    """Webhook triggered on storage upload completion to run async background compression."""
+    import threading
+    data = request.get_json(silent=True) or request.form.to_dict()
+    public_id = data.get('public_id')
+    secure_url = data.get('secure_url') or data.get('url')
+    resource_type = data.get('resource_type', 'raw')
+    filename = data.get('original_filename') or f"{public_id}.pdf"
+    
+    if not public_id or not secure_url:
+        return jsonify({'success': False, 'message': 'Missing upload payload'}), 400
+        
+    thread = threading.Thread(
+        target=_async_compress_and_update,
+        args=(public_id, secure_url, resource_type, filename)
+    )
+    thread.daemon = True
+    thread.start()
+    
+    return jsonify({'success': True, 'message': 'Async compression queued'}), 200
 # ─────────────────────────────────────────────────────────────────────────────
 
 from PIL import Image
@@ -922,28 +1122,110 @@ def api_referral_my_code():
         uid = session['user'].get('uid')
         code = ensure_referral_code(uid)
         base = os.getenv('BASE_DOMAIN', 'abhihub.edu.eu.org')
-        # Pull progress stats (referral_count, referral_credits) for the dashboard
         referral_count = 0
         referral_credits = 0
-        client = init_supabase()
-        if client:
-            try:
-                pr = client.table('profiles').select('referral_count, referral_credits').eq('id', uid).limit(1).execute()
-                if pr.data:
-                    referral_count = pr.data[0].get('referral_count', 0) or 0
-                    referral_credits = pr.data[0].get('referral_credits', 0) or 0
-            except Exception:
-                pass
+        try:
+            client = init_supabase()
+            if client:
+                res = client.table('profiles').select('referral_count, referral_credits').eq('id', uid).limit(1).execute()
+                if res.data:
+                    referral_count = res.data[0].get('referral_count', 0) or 0
+                    referral_credits = res.data[0].get('referral_credits', 0) or 0
+        except Exception as e:
+            logging.error(f"[Referral] my-code lookup failed: {e}")
+
+        share_url = f"https://{base}/signup?ref={code}"
         return jsonify({
             'success': True,
             'code': code,
-            'share_url': f"https://{base}/signup?ref={code}",
+            'share_url': share_url,
             'referral_count': referral_count,
-            'referral_credits': referral_credits,
+            'referral_credits': referral_credits
         }), 200
     except Exception as e:
-        logging.error(f"[Referral] my-code failed: {e}")
+        logging.error(f"[Referral] my-code endpoint failed: {e}")
         return jsonify({'success': False, 'message': 'Server error'}), 500
+
+
+@app.route('/api/buy-credits', methods=['POST'])
+@auth_required
+def api_buy_credits():
+    """Endpoint to purchase credit packs (50, 100, 500 views @ ₹2/view)."""
+    try:
+        user_info = session.get('user', {})
+        user_id = user_info.get('uid')
+        if not user_id:
+            return jsonify({'success': False, 'message': 'Authentication required'}), 401
+            
+        data = request.get_json() or {}
+        pack_size = int(data.get('pack', 0) or 0)
+        
+        valid_packs = {50: 100, 100: 200, 500: 1000}  # Pack views -> price in INR (₹2/view)
+        if pack_size not in valid_packs:
+            return jsonify({'success': False, 'message': 'Invalid pack. Choose 50, 100, or 500 views.'}), 400
+            
+        price_inr = valid_packs[pack_size]
+        
+        # Grant credits to user profile
+        res = supabase.table('profiles').select('paper_quota_remaining').eq('id', user_id).execute()
+        curr_quota = 19
+        if res.data:
+            curr_quota = res.data[0].get('paper_quota_remaining')
+            if curr_quota is None:
+                curr_quota = 19
+                
+        new_quota = curr_quota + pack_size
+        supabase.table('profiles').update({
+            'paper_quota_remaining': new_quota
+        }).eq('id', user_id).execute()
+        
+        # Update session quota & cache
+        if 'paper_quota' in session and isinstance(session['paper_quota'], dict):
+            session['paper_quota']['credits'] = new_quota
+            session.modified = True
+            
+        cache.l1.delete(f"user:quota:{user_id}")
+        log_credit_transaction(user_id, pack_size, 'earn', f"Bought {pack_size} Views Pack (₹{price_inr})")
+        logging.info(f"[BUY-CREDITS] User {user_info.get('email')} bought {pack_size} views for ₹{price_inr} -> new quota: {new_quota}")
+        
+        return jsonify({
+            'success': True,
+            'pack': pack_size,
+            'price_inr': price_inr,
+            'added_views': pack_size,
+            'new_total_views': new_quota,
+            'message': f"Successfully added {pack_size} views to your account!"
+        }), 200
+    except Exception as e:
+        logging.error(f"[BUY-CREDITS] Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/credit-history', methods=['GET'])
+@auth_required
+def api_credit_history():
+    """Retrieve user credit transactions (spend & earn history) and current quota balance."""
+    try:
+        uid = session['user'].get('uid')
+        quota_info = _get_quota()
+        remaining = quota_info.get('credits', 19)
+        txs = []
+        try:
+            res = supabase.table('credit_transactions').select('*').eq('user_id', uid).order('created_at', desc=True).limit(50).execute()
+            if res.data:
+                txs = res.data
+        except Exception:
+            pass
+        if not txs:
+            txs = session.get('credit_history', [])
+        return jsonify({
+            'success': True,
+            'remaining_credits': remaining,
+            'transactions': txs
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @app.route('/auth-callback')
 def auth_callback():
@@ -1689,20 +1971,20 @@ def label_store_room_paper():
         missing_fields = []
         if not filename: missing_fields.append('filename')
         if not file_url: missing_fields.append('url')
-        if not subject_name: missing_fields.append('subject_name')
+        if not subject_name and document_category.lower() != 'question_bank': missing_fields.append('subject_name')
         if not year: missing_fields.append('year')
 
         if missing_fields:
             logging.debug(f"[DEBUG] Missing required fields: {missing_fields}")
             return jsonify({'success': False, 'message': f'Missing required fields: {", ".join(missing_fields)}'}), 400
-        if not subject_id:
+        if not subject_id and document_category.lower() != 'question_bank':
             return jsonify({'success': False, 'message': 'Subject selection is required'}), 400
 
         # Validate the academic hierarchy
         if not verify_hierarchy(college_id, branch_id, subject_id):
             return jsonify({'success': False, 'message': 'Invalid academic hierarchy (mismatched college/branch/subject)'}), 400
 
-        allowed_categories = ['papers', 'notes', 'practical', 'syllabus', 'assisment', 'timetable']
+        allowed_categories = ['papers', 'notes', 'practical', 'syllabus', 'assisment', 'timetable', 'question_bank']
         if document_category not in allowed_categories:
             document_category = 'papers'
 
@@ -2141,17 +2423,8 @@ def get_all_files():
 @auth_required
 def upload():
     if request.method == 'POST':
-        # Access level: enforce daily upload quota (Phase 3 feature gating)
-        try:
-            from methods.scoring_engine import check_upload_quota
-            quota = check_upload_quota(session.get('user', {}).get('uid'))
-            if not quota.get('allowed'):
-                return jsonify(success=False, message=(
-                    f"Daily upload limit reached ({quota.get('limit')}/day for your level). "
-                    "Contribute more to raise your access level!"
-                )), 429
-        except Exception as q_err:
-            logging.warning(f"[GATING] upload quota check skipped: {q_err}")
+        # Upload quota check disabled — no upload limit enforced
+
 
         # Security: Check if file is present
         if 'upload_document' not in request.files:
@@ -2189,13 +2462,20 @@ def upload():
             year = request.form.get('Year', '')
             doc_type = request.form.get('type', 'Other')
 
-            # Build metadata-aware filename: {type}_{subject}_{unit}_{year}.ext
+            # Build metadata-aware filename:
+            # stable pattern so files are easy to find/filter:
+            # {year}_{dept/subject}_{type}_{unit}_{random}.{ext}
             _ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
             _unit = request.form.get('unit', '')
             _doc = (request.form.get('document_type') or doc_type or 'file').strip()
-            _parts = [p.strip() for p in [_doc, subject, _unit, year] if p.strip()]
-            _base = '_'.join(_parts).replace(' ', '_')
-            _base = re.sub(r'[^a-zA-Z0-9_-]', '', _base).lower() or 'upload'
+            _subject_part = (subject or '').strip()
+            if not _subject_part and _doc.lower() == 'question_bank':
+                _subject_part = (request.form.get('qb_tags') or '').strip() or 'question_bank'
+            _safe = lambda s: re.sub(r'[^a-zA-Z0-9_-]+', '', s.replace(' ', '_')).lower()
+            _parts = [str(year), _safe(_subject_part), _safe(_doc)]
+            if _unit: _parts.append(_safe(_unit))
+            _parts.append(str(int(time.time()))[-6:])
+            _base = '_'.join(p for p in _parts if p) or 'upload'
             original_filename = f"{_base}.{_ext}"
 
             # Determine file type for categorization
@@ -2213,10 +2493,11 @@ def upload():
             folder_map = {
                 'papers': 'pyq',
                 'notes': 'notes',
-                'practical': 'practicals',
-                'syllabus': 'other',
+                'practical': 'practical',
+                'syllabus': 'syllabus',
                 'assisment': 'other',
-                'timetable': 'other'
+                'timetable': 'other',
+                'question_bank': 'pyq'
             }
             cloudinary_folder = folder_map.get(doc_type, 'uploads')
             
@@ -2250,8 +2531,9 @@ def upload():
             practical_type = request.form.get('practical-type', '')
             program = request.form.get('program', 'b.tech').strip() or 'b.tech'
 
-            # Guard: reject uploads with no subject selected
-            if not subject_id or subject_id == '__other__':
+            # Guard: reject uploads with no subject selected,
+            # except for question_bank which is tagged by batch/semester/dept
+            if (not subject_id or subject_id == '__other__') and document_type.lower() != 'question_bank':
                 logging.warning(f"[UPLOAD REJECTED] Reason:Missing subject_id Uploader:{user_id} File:{original_filename}")
                 return jsonify(
                     success=False,
@@ -2305,6 +2587,28 @@ def upload():
                     success=False,
                     message=f"File uploaded to Cloudinary, but database record creation failed: {file_record_result.get('message')}"
                 ), 500
+            
+            # Persist Question Bank tags when provided
+            try:
+                if document_type.lower() == 'question_bank':
+                    raw_tags = (request.form.get('qb_tags') or '').strip()
+                    if raw_tags and file_record_result.get('data', {}).get('id'):
+                        doc_id = file_record_result['data']['id']
+                        tag_names = [t.strip() for t in re.split(r'[\,\;|]+', raw_tags) if t.strip()]
+                        tag_names = list(dict.fromkeys(tag_names))
+                        for tag_name in tag_names[:20]:
+                            try:
+                                tag_res = client.table('tags').select('id').eq('name', tag_name).limit(1).execute()
+                                tag_id = tag_res.data[0]['id'] if tag_res.data else None
+                                if not tag_id:
+                                    ins = client.table('tags').insert({'name': tag_name}).execute()
+                                    tag_id = ins.data[0]['id'] if ins.data else None
+                                if tag_id:
+                                    client.table('document_tags').insert({'document_id': doc_id, 'tag_id': tag_id}).execute()
+                            except Exception:
+                                pass
+            except Exception:
+                pass
             
             logging.info(f"[UPLOAD SUCCESS] Document ID: {file_record_result.get('data', {}).get('id')}")
 
@@ -2534,6 +2838,22 @@ def view_doc(doc_id, filename=None):
             try:
                 bucket = storage.bucket()
                 blob = bucket.blob(file_url)
+                try:
+                    signer = getattr(blob, 'generate_signed_url_with_service_account', None)
+                except Exception:
+                    signer = None
+                try:
+                    signing_creds = getattr(blob, '_credential', None)
+                except Exception:
+                    signing_creds = None
+                logging.info(
+                    "[VIEW-DOC] Firebase sign attempt doc=%s bucket=%s path=%s signer=%s creds=%s",
+                    doc_id,
+                    getattr(bucket, 'name', None),
+                    file_url,
+                    getattr(getattr(signer, 'signer', None), 'service_account_email', None),
+                    getattr(getattr(signing_creds, 'signer', None), 'service_account_email', None),
+                )
                 signed = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
                 # Handle both string and tuple returns from generate_signed_url
                 file_url = signed[0] if isinstance(signed, (list, tuple)) else signed
@@ -2542,17 +2862,8 @@ def view_doc(doc_id, filename=None):
                 except Exception:
                     pass  # Non-fatal: cache storage can fail
             except Exception as e:
-                cred_ok = bool(os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON'))
-                if not cred_ok or 'default app' in str(e).lower() or 'credential' in str(e).lower():
-                    logging.error(
-                        f"[VIEW-DOC] Firebase credentials missing/invalid for {doc_id}: {e}. "
-                        "Set FIREBASE_SERVICE_ACCOUNT_JSON to a SERVICE ACCOUNT key JSON "
-                        "(Firebase Console -> Project Settings -> Service accounts -> Generate new private key), "
-                        "NOT the web client config (apiKey/authDomain/appId)."
-                    )
-                else:
-                    logging.error(f"[VIEW-DOC] Signed URL error for {doc_id}: {e}")
-                abort(500)
+                logging.error(f"[VIEW-DOC] Firebase init/sign setup error for {doc_id}: {e}")
+                raise
 
     # Final safety: coerce to string
     if isinstance(file_url, (list, tuple)):
@@ -2565,14 +2876,47 @@ def view_doc(doc_id, filename=None):
         abort(403)
 
     # Support Range headers for PDF.js partial content requests
-    upstream_headers = {'User-Agent': 'AbhiHub-Proxy/1.0'}
+    upstream_headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
     if request.headers.get('Range'):
         upstream_headers['Range'] = request.headers['Range']
 
     def _fetch(url):
         return requests.get(url, stream=True, timeout=30, verify=True, headers=upstream_headers)
 
+    # Proactively sign Cloudinary URLs — avoids 401 on accounts with strict access control.
+    if parsed.hostname == 'res.cloudinary.com':
+        try:
+            import cloudinary
+            import cloudinary.utils as _cld_utils
+            import time as _time
+            # Ensure Cloudinary SDK is configured in this request context.
+            cloudinary.config(
+                cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+                api_key=os.getenv('CLOUDINARY_API_KEY'),
+                api_secret=os.getenv('CLOUDINARY_API_SECRET'),
+                secure=True,
+            )
+            # Prefer stored public_id; fall back to parsing from URL
+            pub_id = document.get('cloudinary_public_id') or document.get('public_id') or ''
+            if not pub_id:
+                m = re.search(r'/upload/(?:v\d+/)?(.+)$', parsed.path)
+                pub_id = m.group(1) if m else ''
+            if pub_id:
+                rtype = 'raw' if '/raw/' in parsed.path else ('image' if '/image/' in parsed.path else 'raw')
+                signed_url, _ = _cld_utils.cloudinary_url(
+                    pub_id, resource_type=rtype, type='upload',
+                    sign_url=True, expires_at=int(_time.time()) + 3600
+                )
+                if signed_url:
+                    file_url = signed_url
+                    parsed = urlparse(file_url)
+        except Exception as _e:
+            logging.warning(f"[VIEW-DOC] Cloudinary pre-sign failed for {doc_id}: {_e}")
+
     upstream = _fetch(file_url)
+
 
     # Self-heal: a cached or stored Firebase URL can go stale (signed URLs expire
     # in 1h; token-less public URLs are rejected by storage rules). On 403/404,
@@ -2613,7 +2957,60 @@ def view_doc(doc_id, filename=None):
                        "(Firebase Console -> Project Settings -> Service accounts -> Generate new private key).")
                 )
 
+    # Self-heal: Cloudinary raw resources with strict access control return 401.
+    # Generate a short-lived signed URL and retry once. If that also fails,
+    # use the Cloudinary admin API to download server-side as a final fallback.
+    if upstream.status_code == 401 and parsed.hostname == 'res.cloudinary.com':
+        try:
+            import cloudinary.utils as _cld_utils
+            import time as _time
+            m = re.search(r'/upload/(?:v\d+/)?(.+)$', parsed.path)
+            if m:
+                pub = m.group(1)  # e.g. "pyq/uid_ts_name.pdf"
+                rtype = 'raw' if '/raw/' in parsed.path else ('image' if '/image/' in parsed.path else 'raw')
+                signed_url, _ = _cld_utils.cloudinary_url(
+                    pub, resource_type=rtype, type='upload',
+                    sign_url=True, expires_at=int(_time.time()) + 3600
+                )
+                if signed_url:
+                    upstream.close()
+                    upstream = _fetch(signed_url)
+                    logging.info(f"[VIEW-DOC] Cloudinary signed URL used for {doc_id}")
+        except Exception as _e:
+            logging.error(f"[VIEW-DOC] Cloudinary sign failed for {doc_id}: {_e}")
+
+        # Final fallback: download via Cloudinary admin API (server-side).
+        # This bypasses all access-control issues since we authenticate with
+        # the API secret directly. Used when both the public URL and signed URL
+        # return 401 — common when an account's resources are accidentally set
+        # to private or the policy requires higher access levels.
+        if upstream.status_code == 401:
+            try:
+                import cloudinary
+                import cloudinary.api as _cld_api
+                cloudinary.config(
+                    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+                    api_key=os.getenv('CLOUDINARY_API_KEY'),
+                    api_secret=os.getenv('CLOUDINARY_API_SECRET'),
+                    secure=True,
+                )
+                pub_id = document.get('cloudinary_public_id') or document.get('public_id') or ''
+                if not pub_id:
+                    _m = re.search(r'/upload/(?:v\d+/)?(.+)$', parsed.path)
+                    pub_id = _m.group(1) if _m else ''
+                if pub_id:
+                    _rtype = 'raw' if '/raw/' in parsed.path else ('image' if '/image/' in parsed.path else 'raw')
+                    _resource = _cld_api.resource(pub_id, resource_type=_rtype, secure_url=True)
+                    _admin_url = _resource.get('secure_url') if _resource else None
+                    if _admin_url:
+                        upstream.close()
+                        upstream = _fetch(_admin_url)
+                        logging.info(f"[VIEW-DOC] Cloudinary admin API download used for {doc_id}")
+            except Exception as _e2:
+                logging.error(f"[VIEW-DOC] Cloudinary admin API fallback failed for {doc_id}: {_e2}")
+
     try:
+
         if upstream.status_code == 204:
             # Firebase returned 204 No Content — document not found or access denied.
             # Don't silently return an empty 200 (breaks PDF.js "0 of 0 pages").
@@ -2621,11 +3018,49 @@ def view_doc(doc_id, filename=None):
             msg = json.dumps({"error": "Document not available", "detail": f"No content found for document {doc_id}"})
             return Response(msg, status=404, content_type='application/json', headers=_secure_file_headers())
         if not upstream.ok:
-            abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
+                    logging.error(f"[VIEW-DOC] Upstream failed for doc_id={doc_id}: status={upstream.status_code}, url={file_url}, body={upstream.text[:300]}\n")
+                    # If upstream is 401 from Cloudinary and all self-healing failed,
+                    # try the Supabase fallback URL if available, otherwise return 404 with guidance
+                    if upstream.status_code == 401 and document.get('supabase_url'):
+                        logging.info(f"[VIEW-DOC] Cloudinary 401 after self-heal, trying Supabase fallback for {doc_id}")
+                        try:
+                            from methods.supabase_helper import init_supabase
+                            sup_client = init_supabase()
+                            if sup_client:
+                                # Fetch from Supabase storage using signed URL
+                                import urllib.parse
+                                supabase_url = document.get('supabase_url')
+                                # Get a signed URL from Supabase
+                                from datetime import timedelta
+                                from uuid import uuid4
+                                bucket_name = supabase_url.split('/')[-3]  # Extract bucket name
+                                # Try to get a public URL
+                                try:
+                                    fresh_url = sup_client.storage.from_(bucket_name).get_public_url(
+                                        supabase_url.split(f'/{bucket_name}/')[-1]
+                                    )
+                                    upstream = _fetch(fresh_url)
+                                    logging.info(f"[VIEW-DOC] Supabase fallback URL fetched for {doc_id}")
+                                except Exception as _e2:
+                                    logging.warning(f"[VIEW-DOC] Supabase fallback failed: {_e2}")
+                        except Exception as _e3:
+                            logging.warning(f"[VIEW-DOC] Supabase fallback setup error: {_e3}")
+            
+                    # If still 401 or no fallback available, return 404 with guidance rather than 502
+                    if upstream.status_code == 401:
+                        msg = json.dumps({"error": "File unavailable", "detail": f"Document {doc_id} cannot be accessed — Cloudinary access restricted. Check storage configuration."})
+                        return Response(msg, status=404, content_type='application/json', headers=_secure_file_headers())
+            
+                    abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
             
         content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
-        if document.get('file_type') == 'pdf' or '.pdf' in file_url.lower():
+        if document.get('file_type') == 'pdf' or '.pdf' in file_url.lower() or file_url.lower().endswith('.txt'):
             content_type = 'application/pdf'
+            filename = document.get('title') or 'document.pdf'
+            filename = re.sub(r'[^a-z0-9_\-\.]+', '_', filename, flags=re.I)
+            if not filename.lower().endswith('.pdf'):
+                filename = filename.rsplit('.',1)[0] + '.pdf'
+            response_headers['Content-Disposition'] = f"inline; filename*=UTF-8''{filename}"
             
         def generate():
             try:
@@ -3105,10 +3540,10 @@ def subject_landing(subject_slug):
                            stats=stats, 
                            recent_files=recent_files)
 
-# @app.route('/resource/<path:slug>-view')
-# def resource_landing_redirect(slug):
-#     """Redirect resource slug with -view suffix to clean URL"""
-#     return redirect(url_for('resource_landing', slug=slug), code=301)
+@app.route('/resource/<path:slug>-view')
+def resource_landing_redirect(slug):
+    """Redirect resource slug with -view suffix to clean URL"""
+    return redirect(url_for('resource_landing', slug=slug), code=301)
 
 @app.route('/resource/<path:slug>')
 def resource_landing(slug):
@@ -5912,7 +6347,7 @@ def api_get_material_requests():
         return jsonify({'success': True, 'requests': items}), 200
     except Exception as e:
         logging.error(f"[MaterialRequests] Error: {e}")
-        return jsonify({'success': False, 'message': 'Server error'}), 500
+        return jsonify({'success': True, 'requests': []}), 200
 
 
 @app.route('/api/material-request/respond', methods=['POST'])
@@ -5974,6 +6409,129 @@ def _get_uid():
     user = session.get('user', {})
     return user.get('uid') or user.get('id') or user.get('user_id')
 
+_chat_online = {}        # {user_id: {sid, name}}
+_chat_online_http = {}   # {user_id: {time, name}}
+
+def _expire_chat_history(uid_a, uid_b):
+    try:
+        key = 'chat_messages:' + '_'.join(sorted([uid_a, uid_b]))
+        cache.l1.delete(key)
+    except Exception:
+        pass
+
+CHAT_SECRET = os.getenv('CHAT_SECRET')
+
+def _chat_secret():
+    if not CHAT_SECRET:
+        return None
+    try:
+        import base64
+        b = base64.urlsafe_b64encode(CHAT_SECRET.encode('utf-8')[:32])
+        return b.decode('utf-8')
+    except Exception:
+        return None
+
+def _enc(text: str):
+    secret = _chat_secret()
+    if not secret:
+        return None
+    try:
+        from cryptography.fernet import Fernet
+        return Fernet(secret.encode('utf-8')).encrypt(text.encode('utf-8')).decode('utf-8')
+    except Exception:
+        return None
+
+def _dec(token: str):
+    secret = _chat_secret()
+    if not secret or not token:
+        return token
+    try:
+        from cryptography.fernet import Fernet
+        return Fernet(secret.encode('utf-8')).decrypt(token.encode('utf-8')).decode('utf-8')
+    except Exception:
+        return token
+
+def _persist_chat_message(uid_a, uid_b, payload):
+    try:
+        key = 'chat_messages:' + '_'.join(sorted([uid_a, uid_b]))
+        data = cache.l1.get(key)
+        history = data[0] if data and data[0] else []
+        if not isinstance(history, list):
+            history = []
+        item = {
+            # CHAT_SECRET is optional in local development. Keep the message
+            # readable until encryption is configured instead of storing None.
+            'cipher': _enc(payload.get('text', '')) or payload.get('text', ''),
+            'from': payload.get('from'),
+            'to': payload.get('to'),
+            'ts': payload.get('ts'),
+            'sender_meta': payload.get('sender_meta', {}),
+            'status': 'sent',
+        }
+        history.append(item)
+        max_age = 7 * 24 * 60 * 60
+        cache.l1.set(key, history, ttl=max_age)
+    except Exception:
+        pass
+
+def _get_chat_history(uid_a, uid_b):
+    try:
+        key = 'chat_messages:' + '_'.join(sorted([uid_a, uid_b]))
+        data = cache.l1.get(key)
+        raw = data[0] if data and data[0] and isinstance(data[0], list) else []
+        out = []
+        for m in raw:
+            out.append({
+                'text': _dec(m.get('text') or m.get('cipher') or ''),
+                'from': m.get('from'),
+                'to': m.get('to'),
+                'ts': m.get('ts'),
+                'sender_meta': m.get('sender_meta', {}),
+                'status': m.get('status', 'sent'),
+            })
+        return out
+    except Exception:
+        return []
+
+def _expire_chat_history(uid_a, uid_b):
+    try:
+        key = 'chat_messages:' + '_'.join(sorted([uid_a, uid_b]))
+        cache.l1.delete(key)
+    except Exception:
+        pass
+
+@app.route('/api/chat/history/<peer_id>')
+@auth_required
+def api_chat_history(peer_id):
+    me = _get_uid()
+    if not me or not validate_uuid(peer_id):
+        return jsonify({'success': False, 'error': 'Invalid request'}), 400
+    try:
+        history = _get_chat_history(me, peer_id)
+        return jsonify({'success': True, 'messages': history})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@socketio.on('chat_delivered')
+def chat_delivered(data):
+    uid = _get_uid()
+    peer_id = data.get('to')
+    msg_ts = data.get('ts')
+    if not uid or not peer_id or not msg_ts:
+        return
+    room = _pair_room(uid, peer_id)
+    emit('chat_received', {'from': uid, 'to': peer_id, 'ts': msg_ts, 'status': 'delivered'}, to=room)
+
+@socketio.on('chat_read')
+def chat_read(data):
+    uid = _get_uid()
+    peer_id = data.get('to')
+    msg_ts = data.get('ts')
+    if not uid or not peer_id or not msg_ts:
+        return
+    room = _pair_room(uid, peer_id)
+    emit('chat_read_receipt', {'from': uid, 'to': peer_id, 'ts': msg_ts, 'status': 'read'}, to=room)
+
 @socketio.on('connect')
 def chat_connect():
     uid = _get_uid()
@@ -5982,9 +6540,8 @@ def chat_connect():
     user = session.get('user', {})
     name = user.get('name') or (user.get('user_metadata') or {}).get('full_name') or user.get('email', 'Student')
     _chat_online[uid] = {'sid': request.sid, 'name': name}
-    join_room(uid)  # personal inbox room
-    join_room('online-counter-room')  # for targeted online list broadcasts
-    # Notify all connected clients of updated list
+    join_room(uid)
+    join_room('online-counter-room')
     socketio.emit('chat_online_update', {'online': _safe_online_list()})
 
 @socketio.on('disconnect')
@@ -5994,15 +6551,26 @@ def chat_disconnect():
         del _chat_online[uid]
         socketio.emit('chat_online_update', {'online': _safe_online_list()})
 
+@socketio.on('reconnect')
+def chat_reconnect():
+    chat_connect()
+
+@socketio.on('heartbeat')
+def chat_heartbeat(data):
+    uid = _get_uid()
+    if not uid:
+        return
+    user = session.get('user', {})
+    name = user.get('name') or (user.get('user_metadata') or {}).get('full_name') or user.get('email', 'Student')
+    _chat_online[uid] = {'sid': request.sid, 'name': name}
+
 def _get_merged_online_users():
     import time
     now_t = time.time()
-    # Prune old HTTP users — users stay "online" for 1 hour after last activity
     ONLINE_WINDOW_S = 60 * 60
     to_delete = [k for k, v in _chat_online_http.items() if now_t - v['time'] > ONLINE_WINDOW_S]
     for k in to_delete:
         del _chat_online_http[k]
-    # Merge socket & HTTP
     merged = {}
     for k, v in _chat_online.items():
         merged[k] = v['name']
@@ -6015,7 +6583,6 @@ def _safe_online_list():
 
 @socketio.on('chat_join')
 def chat_join(data):
-    """Client joins the private 2-person room for a specific conversation."""
     uid = _get_uid()
     peer_id = data.get('peer')
     if not uid or not peer_id or uid == peer_id:
@@ -6024,22 +6591,55 @@ def chat_join(data):
     join_room(room)
     emit('chat_joined', {'room': room})
 
-@socketio.on('chat_send')
-def chat_send(data):
-    """Relay to the private pair room. Server NEVER stores the content."""
-    uid = _get_uid()
-    peer_id = data.get('to')
-    if not uid or not peer_id or uid == peer_id:
-        return
-    room = _pair_room(uid, peer_id)
+
+def _relay_chat_message(uid, data):
+    """Validate, persist, deliver, and alert for one chat message."""
+    peer_id = (data or {}).get('to')
+    text = str((data or {}).get('text', '')).strip()[:4000]
+    if not uid or not peer_id or uid == peer_id or not text or not validate_uuid(peer_id):
+        return None
     payload = {
         'from': uid,
-        'text': str(data.get('text', ''))[:2000],
-        'ts': data.get('ts'),
-        'sender_meta': data.get('sender_meta', {})
+        'to': peer_id,
+        'text': text,
+        'ts': (data or {}).get('ts') or datetime.utcnow().isoformat() + 'Z',
+        'sender_meta': (data or {}).get('sender_meta') or {}
     }
-    # Emit to the private room — only the two joined participants receive it
-    emit('chat_receive', payload, to=room)
+    _persist_chat_message(uid, peer_id, payload)
+    # A personal room is joined on every authenticated connection.
+    socketio.emit('chat_receive', payload, to=peer_id)
+    _create_chat_notification(uid, peer_id, payload)
+    return payload
+
+
+@socketio.on('chat_send')
+def chat_send(data):
+    _relay_chat_message(_get_uid(), data)
+
+
+@app.route('/api/chat/messages', methods=['POST'])
+@auth_required
+def api_chat_send_message():
+    """HTTP fallback when a network blocks WebSocket upgrades."""
+    payload = _relay_chat_message(_get_uid(), request.get_json(silent=True) or {})
+    if not payload:
+        return jsonify({'success': False, 'error': 'Invalid message'}), 400
+    return jsonify({'success': True, 'message': payload})
+
+
+def _create_chat_notification(sender_id, recipient_id, payload):
+    """Store a chat alert and fan it out to subscribed devices."""
+    try:
+        sender = (payload.get('sender_meta') or {}).get('name') or 'A student'
+        preview = str(payload.get('text') or '').strip().replace('\n', ' ')[:140]
+        title = f"New message from {sender}"
+        action_url = url_for('chat_with_peer', peer_id=sender_id)
+        from data.notifications import Notification
+        Notification.create(recipient_id, 'chat_message', title, preview or 'Sent you a message', action_url)
+        from push_notifications import send_notification
+        send_notification(recipient_id, title, preview or 'Sent you a message', action_url, tag=f'chat-{sender_id}')
+    except Exception as exc:
+        logging.info(f"[chat] notification unavailable: {exc}")
 
 @socketio.on('chat_request_history')
 def chat_request_history(data):

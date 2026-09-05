@@ -74,11 +74,204 @@ notes, practicals, and exam resources for top colleges across India." %}
     <div class="welcome-mini-actions">
       <button type="button" data-action="openPeerSearchModal" class="welcome-action-btn peer"
         aria-label="Search Students & Peer Notes">🔍 Find Peers</button>
+      <button type="button" onclick="openBuyCreditsModal()" class="welcome-action-btn primary"
+        style="background: linear-gradient(135deg, #10b981, #059669); color: #fff;" title="Buy Views Quota">💎 Buy
+        Credits</button>
       <a href="/upload" class="welcome-action-btn primary">📤 Upload</a>
       <a href="{{ url_for('support') }}" class="welcome-action-btn support" title="Support Us">💝</a>
     </div>
   </div>
 </div>
+
+<!-- ── Buy Credits Modal (₹2 / view) ─────────────────────────────────── -->
+<div id="buyCreditsModal" class="buy-credits-modal-overlay" style="display: none;">
+  <div class="buy-credits-modal">
+    <div class="buy-credits-header">
+      <h3 style="margin: 0; font-size: 1.2rem; color: #0f172a;">💎 Buy View Credits</h3>
+      <button type="button" onclick="closeBuyCreditsModal()" class="buy-credits-close">&times;</button>
+    </div>
+    <p style="font-size: 0.85rem; color: #64748b; margin: 0.3rem 0 1rem 0;">
+      Rate: <strong>₹2 / view</strong>. Get instant views to access and download exam resources.
+    </p>
+    <div class="buy-credits-grid">
+      <div class="buy-pack-card" onclick="selectCreditPack(50, 100)">
+        <div class="pack-badge">Standard</div>
+        <div class="pack-views">50 Views</div>
+        <div class="pack-price">₹100</div>
+        <div class="pack-unit">₹2.00 / view</div>
+        <button type="button" class="pack-buy-btn">Buy 50 Views</button>
+      </div>
+      <div class="buy-pack-card featured" onclick="selectCreditPack(100, 200)">
+        <div class="pack-badge featured-badge">Best Value</div>
+        <div class="pack-views">100 Views</div>
+        <div class="pack-price">₹200</div>
+        <div class="pack-unit">₹2.00 / view</div>
+        <button type="button" class="pack-buy-btn featured-btn">Buy 100 Views</button>
+      </div>
+      <div class="buy-pack-card" onclick="selectCreditPack(500, 1000)">
+        <div class="pack-badge">Pro Pack</div>
+        <div class="pack-views">500 Views</div>
+        <div class="pack-price">₹1000</div>
+        <div class="pack-unit">₹2.00 / view</div>
+        <button type="button" class="pack-buy-btn">Buy 500 Views</button>
+      </div>
+    </div>
+    <div id="buyCreditsStatus" style="margin-top: 1rem; font-size: 0.85rem; text-align: center; font-weight: 600;">
+    </div>
+  </div>
+</div>
+
+<style>
+  .buy-credits-modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .buy-credits-modal {
+    background: #ffffff;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 520px;
+    padding: 1.5rem;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  }
+
+  .buy-credits-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .buy-credits-close {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    cursor: pointer;
+    color: #64748b;
+  }
+
+  .buy-credits-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+    gap: 0.75rem;
+    margin-top: 0.5rem;
+  }
+
+  .buy-pack-card {
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 1rem 0.75rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    position: relative;
+    background: #fafafa;
+  }
+
+  .buy-pack-card:hover {
+    border-color: #10b981;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 16px rgba(16, 185, 129, 0.12);
+  }
+
+  .buy-pack-card.featured {
+    border: 2px solid #10b981;
+    background: #f0fdf4;
+  }
+
+  .pack-badge {
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    margin-bottom: 0.25rem;
+  }
+
+  .featured-badge {
+    color: #047857;
+  }
+
+  .pack-views {
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #0f172a;
+  }
+
+  .pack-price {
+    font-size: 1.3rem;
+    font-weight: 800;
+    color: #10b981;
+    margin: 0.2rem 0;
+  }
+
+  .pack-unit {
+    font-size: 0.72rem;
+    color: #64748b;
+    margin-bottom: 0.75rem;
+  }
+
+  .pack-buy-btn {
+    width: 100%;
+    padding: 0.45rem;
+    border: none;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    background: #0f172a;
+    color: #fff;
+    cursor: pointer;
+  }
+
+  .featured-btn {
+    background: #10b981;
+  }
+</style>
+
+<script>
+  function openBuyCreditsModal() {
+    document.getElementById('buyCreditsModal').style.display = 'flex';
+  }
+  function closeBuyCreditsModal() {
+    document.getElementById('buyCreditsModal').style.display = 'none';
+    document.getElementById('buyCreditsStatus').textContent = '';
+  }
+  async function selectCreditPack(packViews, priceInr) {
+    const statusEl = document.getElementById('buyCreditsStatus');
+    statusEl.style.color = '#3b82f6';
+    statusEl.textContent = `Processing purchase for ${packViews} views (₹${priceInr})…`;
+    try {
+      const res = await fetch('/api/buy-credits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pack: packViews })
+      });
+      const data = await res.json();
+      if (data.success) {
+        statusEl.style.color = '#10b981';
+        statusEl.textContent = `🎉 ${data.message}`;
+        const viewsEl = document.querySelector('.welcome-stat-val');
+        if (viewsEl) viewsEl.textContent = data.new_total_views;
+        setTimeout(() => closeBuyCreditsModal(), 1800);
+      } else {
+        statusEl.style.color = '#ef4444';
+        statusEl.textContent = data.message || 'Purchase failed';
+      }
+    } catch (err) {
+      statusEl.style.color = '#ef4444';
+      statusEl.textContent = 'Error completing purchase. Please try again.';
+    }
+  }
+</script>
 
 <!-- ── Exam-pack seasonal banner (growth + re-engagement) ─────────────────── -->
 <div id="examPackBanner" class="exam-pack-banner">
@@ -250,87 +443,98 @@ notes, practicals, and exam resources for top colleges across India." %}
     }
   }
 
-/* ===========================
+  /* ===========================
    Page Loading Spinner
    =========================== */
-.page-loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--card, #1e1b4b);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--foreground, #ffffff);
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-.page-loading-overlay.hidden {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.loading-spinner {
-  text-align: center;
-  color: var(--foreground, #ffffff);
-}
-
-.spinner-icon {
-  width: 48px;
-  height: 48px;
-  border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
-  border-top-color: var(--accent, #3b82f6);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 1rem;
-  @media (max-width: 480px) {
-    width: 32px;
-    height: 32px;
+  .page-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--card, #1e1b4b);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--foreground, #ffffff);
+    transition: opacity 0.3s ease, visibility 0.3s ease;
   }
-}
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+  .page-loading-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+  }
 
-.loading-text {
-  font-size: 0.95rem;
-  font-weight: 500;
-}
+  .loading-spinner {
+    text-align: center;
+    color: var(--foreground, #ffffff);
+  }
 
-/* Skeleton Loading States */
-.skeleton-loading {
-  display: none;
-  gap: 1rem;
-}
+  .spinner-icon {
+    width: 48px;
+    height: 48px;
+    border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
+    border-top-color: var(--accent, #3b82f6);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1rem;
 
-.skeleton-row {
-  background: var(--border, rgba(255, 255, 255, 0.1));
-  border-radius: 6px;
-  height: 1rem;
-  width: 100%;
-  animation: skeleton-loading 1.5s ease-in-out infinite;
-}
+    @media (max-width: 480px) {
+      width: 32px;
+      height: 32px;
+    }
+  }
 
-.skeleton-tall {
-  width: 80%;
-  margin: 0 auto;
-}
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 
-@keyframes skeleton-loading {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-}
+  .loading-text {
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
 
-@media (max-width: 768px) {
+  /* Skeleton Loading States */
+  .skeleton-loading {
+    display: none;
+    gap: 1rem;
+  }
+
   .skeleton-row {
-    margin-bottom: 0.5rem;
+    background: var(--border, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    height: 1rem;
+    width: 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
   }
-}
+
+  .skeleton-tall {
+    width: 80%;
+    margin: 0 auto;
+  }
+
+  @keyframes skeleton-loading {
+    0% {
+      opacity: 0.6;
+    }
+
+    50% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0.6;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .skeleton-row {
+      margin-bottom: 0.5rem;
+    }
+  }
 </style>
 
 <!-- ── Invite / Referral Nudge (growth loop) ─────────────────────────────── -->
@@ -416,11 +620,11 @@ notes, practicals, and exam resources for top colleges across India." %}
   }
 
   .referral-widget-share {
-      background: #14b8a6;
-      color: #fff;
-      display: inline-flex;
-      align-items: center;
-    }
+    background: #14b8a6;
+    color: #fff;
+    display: inline-flex;
+    align-items: center;
+  }
 
   .referral-widget-share.ig {
     background: #E1306C;
@@ -455,87 +659,98 @@ notes, practicals, and exam resources for top colleges across India." %}
     }
   }
 
-/* ===========================
+  /* ===========================
    Page Loading Spinner
    =========================== */
-.page-loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--card, #1e1b4b);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--foreground, #ffffff);
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-.page-loading-overlay.hidden {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.loading-spinner {
-  text-align: center;
-  color: var(--foreground, #ffffff);
-}
-
-.spinner-icon {
-  width: 48px;
-  height: 48px;
-  border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
-  border-top-color: var(--accent, #3b82f6);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 1rem;
-  @media (max-width: 480px) {
-    width: 32px;
-    height: 32px;
+  .page-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--card, #1e1b4b);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--foreground, #ffffff);
+    transition: opacity 0.3s ease, visibility 0.3s ease;
   }
-}
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+  .page-loading-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+  }
 
-.loading-text {
-  font-size: 0.95rem;
-  font-weight: 500;
-}
+  .loading-spinner {
+    text-align: center;
+    color: var(--foreground, #ffffff);
+  }
 
-/* Skeleton Loading States */
-.skeleton-loading {
-  display: none;
-  gap: 1rem;
-}
+  .spinner-icon {
+    width: 48px;
+    height: 48px;
+    border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
+    border-top-color: var(--accent, #3b82f6);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1rem;
 
-.skeleton-row {
-  background: var(--border, rgba(255, 255, 255, 0.1));
-  border-radius: 6px;
-  height: 1rem;
-  width: 100%;
-  animation: skeleton-loading 1.5s ease-in-out infinite;
-}
+    @media (max-width: 480px) {
+      width: 32px;
+      height: 32px;
+    }
+  }
 
-.skeleton-tall {
-  width: 80%;
-  margin: 0 auto;
-}
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 
-@keyframes skeleton-loading {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-}
+  .loading-text {
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
 
-@media (max-width: 768px) {
+  /* Skeleton Loading States */
+  .skeleton-loading {
+    display: none;
+    gap: 1rem;
+  }
+
   .skeleton-row {
-    margin-bottom: 0.5rem;
+    background: var(--border, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    height: 1rem;
+    width: 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
   }
-}
+
+  .skeleton-tall {
+    width: 80%;
+    margin: 0 auto;
+  }
+
+  @keyframes skeleton-loading {
+    0% {
+      opacity: 0.6;
+    }
+
+    50% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0.6;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .skeleton-row {
+      margin-bottom: 0.5rem;
+    }
+  }
 </style>
 <script>
   (function loadReferral() {
@@ -719,87 +934,98 @@ notes, practicals, and exam resources for top colleges across India." %}
     }
   }
 
-/* ===========================
+  /* ===========================
    Page Loading Spinner
    =========================== */
-.page-loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--card, #1e1b4b);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--foreground, #ffffff);
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-.page-loading-overlay.hidden {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.loading-spinner {
-  text-align: center;
-  color: var(--foreground, #ffffff);
-}
-
-.spinner-icon {
-  width: 48px;
-  height: 48px;
-  border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
-  border-top-color: var(--accent, #3b82f6);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 1rem;
-  @media (max-width: 480px) {
-    width: 32px;
-    height: 32px;
+  .page-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--card, #1e1b4b);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--foreground, #ffffff);
+    transition: opacity 0.3s ease, visibility 0.3s ease;
   }
-}
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+  .page-loading-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+  }
 
-.loading-text {
-  font-size: 0.95rem;
-  font-weight: 500;
-}
+  .loading-spinner {
+    text-align: center;
+    color: var(--foreground, #ffffff);
+  }
 
-/* Skeleton Loading States */
-.skeleton-loading {
-  display: none;
-  gap: 1rem;
-}
+  .spinner-icon {
+    width: 48px;
+    height: 48px;
+    border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
+    border-top-color: var(--accent, #3b82f6);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1rem;
 
-.skeleton-row {
-  background: var(--border, rgba(255, 255, 255, 0.1));
-  border-radius: 6px;
-  height: 1rem;
-  width: 100%;
-  animation: skeleton-loading 1.5s ease-in-out infinite;
-}
+    @media (max-width: 480px) {
+      width: 32px;
+      height: 32px;
+    }
+  }
 
-.skeleton-tall {
-  width: 80%;
-  margin: 0 auto;
-}
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 
-@keyframes skeleton-loading {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-}
+  .loading-text {
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
 
-@media (max-width: 768px) {
+  /* Skeleton Loading States */
+  .skeleton-loading {
+    display: none;
+    gap: 1rem;
+  }
+
   .skeleton-row {
-    margin-bottom: 0.5rem;
+    background: var(--border, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    height: 1rem;
+    width: 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
   }
-}
+
+  .skeleton-tall {
+    width: 80%;
+    margin: 0 auto;
+  }
+
+  @keyframes skeleton-loading {
+    0% {
+      opacity: 0.6;
+    }
+
+    50% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0.6;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .skeleton-row {
+      margin-bottom: 0.5rem;
+    }
+  }
 </style>
 <script>
   (async function pollOnline() {
@@ -1009,87 +1235,98 @@ notes, practicals, and exam resources for top colleges across India." %}
     }
   }
 
-/* ===========================
+  /* ===========================
    Page Loading Spinner
    =========================== */
-.page-loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--card, #1e1b4b);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--foreground, #ffffff);
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-.page-loading-overlay.hidden {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.loading-spinner {
-  text-align: center;
-  color: var(--foreground, #ffffff);
-}
-
-.spinner-icon {
-  width: 48px;
-  height: 48px;
-  border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
-  border-top-color: var(--accent, #3b82f6);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 1rem;
-  @media (max-width: 480px) {
-    width: 32px;
-    height: 32px;
+  .page-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--card, #1e1b4b);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--foreground, #ffffff);
+    transition: opacity 0.3s ease, visibility 0.3s ease;
   }
-}
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+  .page-loading-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+  }
 
-.loading-text {
-  font-size: 0.95rem;
-  font-weight: 500;
-}
+  .loading-spinner {
+    text-align: center;
+    color: var(--foreground, #ffffff);
+  }
 
-/* Skeleton Loading States */
-.skeleton-loading {
-  display: none;
-  gap: 1rem;
-}
+  .spinner-icon {
+    width: 48px;
+    height: 48px;
+    border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
+    border-top-color: var(--accent, #3b82f6);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1rem;
 
-.skeleton-row {
-  background: var(--border, rgba(255, 255, 255, 0.1));
-  border-radius: 6px;
-  height: 1rem;
-  width: 100%;
-  animation: skeleton-loading 1.5s ease-in-out infinite;
-}
+    @media (max-width: 480px) {
+      width: 32px;
+      height: 32px;
+    }
+  }
 
-.skeleton-tall {
-  width: 80%;
-  margin: 0 auto;
-}
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 
-@keyframes skeleton-loading {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-}
+  .loading-text {
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
 
-@media (max-width: 768px) {
+  /* Skeleton Loading States */
+  .skeleton-loading {
+    display: none;
+    gap: 1rem;
+  }
+
   .skeleton-row {
-    margin-bottom: 0.5rem;
+    background: var(--border, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    height: 1rem;
+    width: 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
   }
-}
+
+  .skeleton-tall {
+    width: 80%;
+    margin: 0 auto;
+  }
+
+  @keyframes skeleton-loading {
+    0% {
+      opacity: 0.6;
+    }
+
+    50% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0.6;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .skeleton-row {
+      margin-bottom: 0.5rem;
+    }
+  }
 </style>
 
 <script>
@@ -1120,35 +1357,36 @@ notes, practicals, and exam resources for top colleges across India." %}
           }
         })
         .catch(err => console.error("Poll rank error", err));
-    
 
-  // Standalone check function for initial load (called once on DOM ready)
-  function checkRankPoints() {
-    const authorName = window.ABHIHUB_USER_NAME;
-    if (!authorName) return;
 
-    fetch('/rank')
-      .then(r => r.json())
-      .then(data => {
-        if (data.status === 'success' && data.rank) {
-          let newRank = '-';
-          let newPoints = 0;
+      // Standalone check function for initial load (called once on DOM ready)
+      function checkRankPoints() {
+        const authorName = window.ABHIHUB_USER_NAME;
+        if (!authorName) return;
 
-          data.rank.forEach((r, idx) => {
-            if (r.author === authorName) {
-              newRank = (idx + 1).toString();
-              newPoints = r.points;
+        fetch('/rank')
+          .then(r => r.json())
+          .then(data => {
+            if (data.status === 'success' && data.rank) {
+              let newRank = '-';
+              let newPoints = 0;
+
+              data.rank.forEach((r, idx) => {
+                if (r.author === authorName) {
+                  newRank = (idx + 1).toString();
+                  newPoints = r.points;
+                }
+              });
+
+              const elRank = document.getElementById('live-global-rank');
+              const elPts = document.getElementById('live-reputation-score');
+
+              if (elRank) elRank.textContent = newRank;
+              if (elPts) elPts.textContent = newPoints;
             }
           });
-
-          const elRank = document.getElementById('live-global-rank');
-          const elPts = document.getElementById('live-reputation-score');
-
-          if (elRank) elRank.textContent = newRank;
-          if (elPts) elPts.textContent = newPoints;
-        }
-      });
-  }}, 120000);  // 2 minutes - reduced frequency to reduce TBT
+      }
+    }, 120000);  // 2 minutes - reduced frequency to reduce TBT
   }
 
   document.addEventListener("DOMContentLoaded", () => {
@@ -1482,87 +1720,98 @@ notes, practicals, and exam resources for top colleges across India." %}
     }
   }
 
-/* ===========================
+  /* ===========================
    Page Loading Spinner
    =========================== */
-.page-loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--card, #1e1b4b);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--foreground, #ffffff);
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-.page-loading-overlay.hidden {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.loading-spinner {
-  text-align: center;
-  color: var(--foreground, #ffffff);
-}
-
-.spinner-icon {
-  width: 48px;
-  height: 48px;
-  border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
-  border-top-color: var(--accent, #3b82f6);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 1rem;
-  @media (max-width: 480px) {
-    width: 32px;
-    height: 32px;
+  .page-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--card, #1e1b4b);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--foreground, #ffffff);
+    transition: opacity 0.3s ease, visibility 0.3s ease;
   }
-}
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+  .page-loading-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+  }
 
-.loading-text {
-  font-size: 0.95rem;
-  font-weight: 500;
-}
+  .loading-spinner {
+    text-align: center;
+    color: var(--foreground, #ffffff);
+  }
 
-/* Skeleton Loading States */
-.skeleton-loading {
-  display: none;
-  gap: 1rem;
-}
+  .spinner-icon {
+    width: 48px;
+    height: 48px;
+    border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
+    border-top-color: var(--accent, #3b82f6);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1rem;
 
-.skeleton-row {
-  background: var(--border, rgba(255, 255, 255, 0.1));
-  border-radius: 6px;
-  height: 1rem;
-  width: 100%;
-  animation: skeleton-loading 1.5s ease-in-out infinite;
-}
+    @media (max-width: 480px) {
+      width: 32px;
+      height: 32px;
+    }
+  }
 
-.skeleton-tall {
-  width: 80%;
-  margin: 0 auto;
-}
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 
-@keyframes skeleton-loading {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-}
+  .loading-text {
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
 
-@media (max-width: 768px) {
+  /* Skeleton Loading States */
+  .skeleton-loading {
+    display: none;
+    gap: 1rem;
+  }
+
   .skeleton-row {
-    margin-bottom: 0.5rem;
+    background: var(--border, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    height: 1rem;
+    width: 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
   }
-}
+
+  .skeleton-tall {
+    width: 80%;
+    margin: 0 auto;
+  }
+
+  @keyframes skeleton-loading {
+    0% {
+      opacity: 0.6;
+    }
+
+    50% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0.6;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .skeleton-row {
+      margin-bottom: 0.5rem;
+    }
+  }
 </style>
 
 <script>
@@ -1809,40 +2058,40 @@ notes, practicals, and exam resources for top colleges across India." %}
   })();
 
 
-// Page Loading Overlay Control
-document.addEventListener('DOMContentLoaded', function() {
-  const overlay = document.getElementById('page-loading-overlay');
-  if (!overlay) return;
-  
-  // Hide overlay after a short delay to let content paint
-  setTimeout(() => {
-    overlay.classList.add('hidden');
+  // Page Loading Overlay Control
+  document.addEventListener('DOMContentLoaded', function () {
+    const overlay = document.getElementById('page-loading-overlay');
+    if (!overlay) return;
+
+    // Hide overlay after a short delay to let content paint
     setTimeout(() => {
-      overlay.style.display = 'none';
-    }, 300);
-  }, 500);
-  
-  // Also hide if all critical resources are loaded
-  window.addEventListener('load', function() {
-    if (overlay && !overlay.classList.contains('hidden')) {
       overlay.classList.add('hidden');
       setTimeout(() => {
         overlay.style.display = 'none';
       }, 300);
+    }, 500);
+
+    // Also hide if all critical resources are loaded
+    window.addEventListener('load', function () {
+      if (overlay && !overlay.classList.contains('hidden')) {
+        overlay.classList.add('hidden');
+        setTimeout(() => {
+          overlay.style.display = 'none';
+        }, 300);
+      }
+    });
+  });
+
+  // Initialize skeleton loading states for content areas
+  document.addEventListener('DOMContentLoaded', function () {
+    // Add skeleton placeholders for content that might load dynamically
+    const statsContainer = document.querySelector('.welcome-mini-stats');
+    if (statsContainer) {
+      // Skeleton will be shown by CSS if content isn't ready
+      statsContainer.style.opacity = '0';
+      statsContainer.style.transition = 'opacity 0.3s ease';
     }
   });
-});
-
-// Initialize skeleton loading states for content areas
-document.addEventListener('DOMContentLoaded', function() {
-  // Add skeleton placeholders for content that might load dynamically
-  const statsContainer = document.querySelector('.welcome-mini-stats');
-  if (statsContainer) {
-    // Skeleton will be shown by CSS if content isn't ready
-    statsContainer.style.opacity = '0';
-    statsContainer.style.transition = 'opacity 0.3s ease';
-  }
-});
 </script>
 {% endif %}
 
@@ -2302,87 +2551,98 @@ document.addEventListener('DOMContentLoaded', function() {
     }
   }
 
-/* ===========================
+  /* ===========================
    Page Loading Spinner
    =========================== */
-.page-loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--card, #1e1b4b);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--foreground, #ffffff);
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-.page-loading-overlay.hidden {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.loading-spinner {
-  text-align: center;
-  color: var(--foreground, #ffffff);
-}
-
-.spinner-icon {
-  width: 48px;
-  height: 48px;
-  border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
-  border-top-color: var(--accent, #3b82f6);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 1rem;
-  @media (max-width: 480px) {
-    width: 32px;
-    height: 32px;
+  .page-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--card, #1e1b4b);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--foreground, #ffffff);
+    transition: opacity 0.3s ease, visibility 0.3s ease;
   }
-}
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+  .page-loading-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+  }
 
-.loading-text {
-  font-size: 0.95rem;
-  font-weight: 500;
-}
+  .loading-spinner {
+    text-align: center;
+    color: var(--foreground, #ffffff);
+  }
 
-/* Skeleton Loading States */
-.skeleton-loading {
-  display: none;
-  gap: 1rem;
-}
+  .spinner-icon {
+    width: 48px;
+    height: 48px;
+    border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
+    border-top-color: var(--accent, #3b82f6);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1rem;
 
-.skeleton-row {
-  background: var(--border, rgba(255, 255, 255, 0.1));
-  border-radius: 6px;
-  height: 1rem;
-  width: 100%;
-  animation: skeleton-loading 1.5s ease-in-out infinite;
-}
+    @media (max-width: 480px) {
+      width: 32px;
+      height: 32px;
+    }
+  }
 
-.skeleton-tall {
-  width: 80%;
-  margin: 0 auto;
-}
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 
-@keyframes skeleton-loading {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-}
+  .loading-text {
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
 
-@media (max-width: 768px) {
+  /* Skeleton Loading States */
+  .skeleton-loading {
+    display: none;
+    gap: 1rem;
+  }
+
   .skeleton-row {
-    margin-bottom: 0.5rem;
+    background: var(--border, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    height: 1rem;
+    width: 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
   }
-}
+
+  .skeleton-tall {
+    width: 80%;
+    margin: 0 auto;
+  }
+
+  @keyframes skeleton-loading {
+    0% {
+      opacity: 0.6;
+    }
+
+    50% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0.6;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .skeleton-row {
+      margin-bottom: 0.5rem;
+    }
+  }
 </style>
 
 <!-- ── Hero ─────────────────────────────────────────────────── -->
@@ -2500,7 +2760,8 @@ document.addEventListener('DOMContentLoaded', function() {
 <div class="home-section" style="padding-top:0;">
   <div class="home-section-header">
     <div class="home-section-title">📚 Browse Papers</div>
-    <a href="/college/{{ (user_data.college_name | default('')) | lower | replace(' ', '-') }}/files?type=pyq" class="home-see-all">Full library →</a>
+    <a href="/college/{{ (user_data.college_name | default('')) | lower | replace(' ', '-') }}/files?type=pyq"
+      class="home-see-all">Full library →</a>
   </div>
   <div class="tab-bar">
     <button class="tab-btn active" type="button" data-action="switchTab" data-tab="tab-trending">🔥 Trending</button>
@@ -2598,7 +2859,8 @@ document.addEventListener('DOMContentLoaded', function() {
       </div>
       <div class="home-section-subtitle">Sorted by most viewed · click to read</div>
     </div>
-    <a href="/college/{{ (user_data.college_name | default('')) | lower | replace(' ', '-') }}/files?type=notes" class="home-see-all">See all →</a>
+    <a href="/college/{{ (user_data.college_name | default('')) | lower | replace(' ', '-') }}/files?type=notes"
+      class="home-see-all">See all →</a>
   </div>
   <div class="hscroll-row">
     {% for file in relevant_notes %}
@@ -2629,7 +2891,8 @@ document.addEventListener('DOMContentLoaded', function() {
       <div class="home-section-title">🔥 Trending Notes</div>
       <div class="home-section-subtitle">Most viewed study notes across colleges</div>
     </div>
-    <a href="/college/{{ (user_data.college_name | default('')) | lower | replace(' ', '-') }}/files?type=notes" class="home-see-all">See all →</a>
+    <a href="/college/{{ (user_data.college_name | default('')) | lower | replace(' ', '-') }}/files?type=notes"
+      class="home-see-all">See all →</a>
   </div>
   <div class="hscroll-row">
     {% for file in trending_notes %}
@@ -2663,7 +2926,8 @@ document.addEventListener('DOMContentLoaded', function() {
   <div class="home-section-header">
     <div class="home-section-title">🧪 Practicals</div>
     {% if practicals_files|length > 6 %}
-    <a href="/college/{{ (user_data.college_name | default('')) | lower | replace(' ', '-') }}/files?type=practical" class="home-see-all">See all →</a>
+    <a href="/college/{{ (user_data.college_name | default('')) | lower | replace(' ', '-') }}/files?type=practical"
+      class="home-see-all">See all →</a>
     {% endif %}
   </div>
   <div class="hscroll-row">
@@ -2794,87 +3058,98 @@ document.addEventListener('DOMContentLoaded', function() {
     bottom: 90px !important;
   }
 
-/* ===========================
+  /* ===========================
    Page Loading Spinner
    =========================== */
-.page-loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: var(--card, #1e1b4b);
-  z-index: 9999;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  color: var(--foreground, #ffffff);
-  transition: opacity 0.3s ease, visibility 0.3s ease;
-}
-
-.page-loading-overlay.hidden {
-  opacity: 0;
-  visibility: hidden;
-}
-
-.loading-spinner {
-  text-align: center;
-  color: var(--foreground, #ffffff);
-}
-
-.spinner-icon {
-  width: 48px;
-  height: 48px;
-  border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
-  border-top-color: var(--accent, #3b82f6);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-  margin: 0 auto 1rem;
-  @media (max-width: 480px) {
-    width: 32px;
-    height: 32px;
+  .page-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--card, #1e1b4b);
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--foreground, #ffffff);
+    transition: opacity 0.3s ease, visibility 0.3s ease;
   }
-}
 
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
+  .page-loading-overlay.hidden {
+    opacity: 0;
+    visibility: hidden;
+  }
 
-.loading-text {
-  font-size: 0.95rem;
-  font-weight: 500;
-}
+  .loading-spinner {
+    text-align: center;
+    color: var(--foreground, #ffffff);
+  }
 
-/* Skeleton Loading States */
-.skeleton-loading {
-  display: none;
-  gap: 1rem;
-}
+  .spinner-icon {
+    width: 48px;
+    height: 48px;
+    border: 3px solid var(--border, rgba(255, 255, 255, 0.1));
+    border-top-color: var(--accent, #3b82f6);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin: 0 auto 1rem;
 
-.skeleton-row {
-  background: var(--border, rgba(255, 255, 255, 0.1));
-  border-radius: 6px;
-  height: 1rem;
-  width: 100%;
-  animation: skeleton-loading 1.5s ease-in-out infinite;
-}
+    @media (max-width: 480px) {
+      width: 32px;
+      height: 32px;
+    }
+  }
 
-.skeleton-tall {
-  width: 80%;
-  margin: 0 auto;
-}
+  @keyframes spin {
+    to {
+      transform: rotate(360deg);
+    }
+  }
 
-@keyframes skeleton-loading {
-  0% { opacity: 0.6; }
-  50% { opacity: 1; }
-  100% { opacity: 0.6; }
-}
+  .loading-text {
+    font-size: 0.95rem;
+    font-weight: 500;
+  }
 
-@media (max-width: 768px) {
+  /* Skeleton Loading States */
+  .skeleton-loading {
+    display: none;
+    gap: 1rem;
+  }
+
   .skeleton-row {
-    margin-bottom: 0.5rem;
+    background: var(--border, rgba(255, 255, 255, 0.1));
+    border-radius: 6px;
+    height: 1rem;
+    width: 100%;
+    animation: skeleton-loading 1.5s ease-in-out infinite;
   }
-}
+
+  .skeleton-tall {
+    width: 80%;
+    margin: 0 auto;
+  }
+
+  @keyframes skeleton-loading {
+    0% {
+      opacity: 0.6;
+    }
+
+    50% {
+      opacity: 1;
+    }
+
+    100% {
+      opacity: 0.6;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .skeleton-row {
+      margin-bottom: 0.5rem;
+    }
+  }
 </style>
 
 

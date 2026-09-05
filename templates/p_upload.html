@@ -2,6 +2,7 @@
 {% block page_styles %}
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/03_components.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/p_upload.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/p_upload_status_modal.css') }}">
 {% endblock %}
 {% block content %}
 
@@ -122,23 +123,6 @@
                     </select>
                   </div>
 
-                  <!-- ── Document-specific fields ── -->
-                  <div class="meta-section-label" style="margin-top:0.5rem;">
-                    <span class="meta-section-icon">📄</span> Document details
-                  </div>
-
-                  <div class="meta-field">
-                    <label>Semester</label>
-                    <select name="semester" class="abhihub-select semester-select" data-entity="semester" data-parent-class="branch-select">
-                      <option value="">Select Semester...</option>
-                    </select>
-                  </div>
-                  <div class="meta-field">
-                    <label>Subject *</label>
-                    <select class="abhihub-select subject-select" data-entity="subject" data-parent-class="semester-select" required>
-                      <option value="">Select Subject...</option>
-                    </select>
-                  </div>
                   <div class="meta-field">
                     <label>Category *</label>
                     <select class="modern-select meta-type" required>
@@ -149,6 +133,7 @@
                       <option value="syllabus">Syllabus 📋</option>
                       <option value="assisment">Assignment 📝</option>
                       <option value="timetable">Timetable 📅</option>
+                      <option value="question_bank">Question Bank 🎯</option>
                     </select>
                   </div>
                   <div class="meta-field">
@@ -164,6 +149,23 @@
                   <div class="meta-field upload-hidden-section meta-unit-wrap">
                     <label>Exam / Unit *</label>
                     <select class="modern-select meta-unit"></select>
+                  </div>
+                  <div class="meta-field">
+                    <label>Semester</label>
+                    <select name="semester" class="abhihub-select semester-select" data-entity="semester" data-parent-class="branch-select">
+                      <option value="">Select Semester...</option>
+                    </select>
+                  </div>
+                  <div class="meta-field">
+                    <label>Subject *</label>
+                    <select class="abhihub-select subject-select" data-entity="subject" data-parent-class="semester-select" required>
+                      <option value="">Select Subject...</option>
+                    </select>
+                  </div>
+                  <div class="meta-field upload-hidden-section qb-tags-wrap" style="display:none;">
+                    <label>Subject Tags</label>
+                    <input type="text" class="modern-input qb-tags" placeholder="e.g. AI, ML, Data Structures" />
+                    <small style="color:#64748b;">Comma-separated tags for this question bank</small>
                   </div>
 
                 </div>
@@ -234,6 +236,24 @@
 <!-- ── Toast container ── -->
 <div id="toastContainer"></div>
 
+<!-- ── Upload Status Modal ── -->
+<div id="uploadStatusModal" class="upload-status-overlay" style="display:none;" data-action="dismissIfClicked">
+  <div class="upload-status-card" onclick="event.stopPropagation()">
+    <div class="upload-status-header">
+      <div>
+        <div class="upload-status-title" id="usTitle">Uploading…</div>
+        <div class="upload-status-subtitle" id="usSubtitle">Please keep this window open</div>
+      </div>
+      <div class="upload-status-actions">
+        <button type="button" class="upload-status-minimize" id="usMinimize" aria-label="Minimize">−</button>
+        <button type="button" class="upload-status-close" id="usClose" aria-label="Close" style="display:none;">✕</button>
+      </div>
+    </div>
+    <div class="upload-status-summary" id="usSummary"></div>
+    <div class="upload-status-list" id="uploadStatusList"></div>
+  </div>
+</div>
+
 <!-- ── Floating upload indicator ── -->
 <div id="uploadFloat">
   <div class="mini-spin"></div>
@@ -256,12 +276,12 @@
     const hint = document.getElementById('fileHint');
     const fileInput = document.getElementById('fileInput');
     if (hint && fileInput) {
-      if (['papers', 'practical'].includes(type)) {
-        hint.textContent = 'Images only for this type • Max 50 MB each';
-        fileInput.accept = 'image/*';
+      if (['papers', 'practical', 'question_bank'].includes(type)) {
+        hint.textContent = 'PDF or Images • Max 50 MB each';
+        fileInput.accept = 'application/pdf,image/*';
       } else {
         hint.textContent = 'PDF or Images • Max 50 MB each';
-        fileInput.accept = 'image/*,application/pdf';
+        fileInput.accept = 'application/pdf,image/*';
       }
     }
   }

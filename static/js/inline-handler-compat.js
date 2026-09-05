@@ -1,18 +1,18 @@
-    /**
-     * inline-handler-compat.js
+/**
  * inline-handler-compat.js
- * ========================
- * Replaces inline onclick="" handlers with delegated event listeners.
- *
- * Usage:  Replace onclick="myFunction()" with data-action="myFunction"
- *         The script auto-attaches a click listener from window scope.
- *
- * This is a progressive migration path: templates can be converted one at
- * a time while the script maintains backward compatibility with any
- * remaining inline handlers.
- *
- * Loaded in p_struct.html on all pages.
- */
+* inline-handler-compat.js
+* ========================
+* Replaces inline onclick="" handlers with delegated event listeners.
+*
+* Usage:  Replace onclick="myFunction()" with data-action="myFunction"
+*         The script auto-attaches a click listener from window scope.
+*
+* This is a progressive migration path: templates can be converted one at
+* a time while the script maintains backward compatibility with any
+* remaining inline handlers.
+*
+* Loaded in p_struct.html on all pages.
+*/
 
 (function () {
     'use strict';
@@ -512,7 +512,7 @@
         var action = el.getAttribute('data-action');
         if (!action) return;
         if (el.hasAttribute('data-listener-attached')) return;
-        var fn = resolveAction(action) || builtInActions[action];
+        var fn = builtInActions[action] || resolveAction(action);
         if (!fn) return;
         el.addEventListener('click', function (e) {
             if (el.tagName === 'A' && el.getAttribute('href') === '#') e.preventDefault();

@@ -1,15 +1,82 @@
 {% extends "p_struct.html" %}
+{% block page_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/chat.css') }}">
+<script src="/socket.io/socket.io.js" defer></script>
+{% endblock %}
+
 {% block content %}
-<div style="max-width:800px; margin:2rem auto; padding:1.5rem; text-align:center;">
-  <div style="background:#fff; border-radius:24px; padding:2.5rem 1.5rem; box-shadow:0 15px 45px rgba(0,0,0,0.07); border:1px solid #e2e8f0; margin-bottom:2rem;">
-    <div style="font-size:3.5rem; margin-bottom:1rem;">💬✨</div>
-    <span style="display:inline-block; background:#ede9fe; color:#4f46e5; font-weight:800; font-size:0.8rem; padding:0.4rem 1rem; border-radius:999px; text-transform:uppercase; letter-spacing:1px; margin-bottom:1rem;">Under Development</span>
-    <h1 style="font-size:2rem; font-weight:900; color:#0f172a; margin:0 0 0.5rem;">Peer Chat is Coming Soon!</h1>
-    <p style="color:#64748b; font-size:1rem; max-width:540px; margin:0 auto 1.5rem; line-height:1.6;">
-      We are crafting a real-time peer study chat experience. While this feature is being developed, enjoy a quick game break below! 🚀
-    </p>
+<div class="chat-shell">
+  <div class="chat-header">
+    <div class="chat-header-left">
+      <a class="chat-back" href="{{ url_for('dashboard') }}" aria-label="Back">←</a>
+      <div>
+        <div class="chat-title">Chat</div>
+        <div class="chat-subtitle" id="chatSubtitle">Open a conversation</div>
+      </div>
+    </div>
+    <div class="chat-header-right">
+      <button type="button" class="chip" data-action="chatEnableNotifications">Enable alerts</button>
+      <button type="button" class="chip" data-action="chatNewConversation">New</button>
+    </div>
   </div>
 
-  {% include 'dino_game.html' %}
+  <div class="chat-body">
+    <aside class="chat-sidebar" id="chatSidebar" aria-label="Conversations">
+      <div class="chat-search">
+        <label class="sr-only" for="peerSearch">Search conversations</label>
+        <span class="search-icon" aria-hidden="true">⌕</span>
+        <input id="peerSearch" type="search" placeholder="Search conversations" autocomplete="off">
+        <button type="button" class="icon-button" data-action="chatRefreshPeers" aria-label="Refresh conversations">↻</button>
+      </div>
+      <div class="chat-peers" id="peerList">
+        <div class="empty">No conversations yet</div>
+      </div>
+    </aside>
+
+    <main class="chat-main">
+    <div class="chat-placeholder" id="chatPlaceholder">
+      <div class="chat-placeholder-box">
+        <div class="chat-placeholder-emoji">💬</div>
+        <h2>Messages</h2>
+        <p>Choose a peer or open a profile to start texting.</p>
+        <div class="chat-placeholder-actions">
+          <button type="button" class="btn primary" data-action="chatNewConversation">Start chat</button>
+        </div>
+      </div>
+    </div>
+
+    <section class="chat-room" id="chatRoom" hidden>
+      <div class="chat-room-header" id="chatRoomHeader">
+        <div class="chat-person">
+          <div class="room-avatar" id="chatRoomAvatar" aria-hidden="true">C</div>
+          <div>
+            <div class="chat-room-title" id="chatRoomTitle">Chat</div>
+            <div class="room-status">Conversation</div>
+          </div>
+        </div>
+        <div class="chat-room-meta" id="chatRoomMeta"></div>
+      </div>
+
+      <div class="chat-messages" id="chatMessages">
+        <div class="empty">No messages yet</div>
+      </div>
+
+      <form class="chat-composer" id="chatComposer" autocomplete="off">
+        <label class="sr-only" for="chatEmojiBtn">Emoji</label>
+        <button type="button" class="composer-icon" id="chatEmojiBtn" data-action="chatToggleEmoji" aria-label="Add emoji">😊</button>
+        <label class="sr-only" for="chatInput">Message</label>
+        <input id="chatInput" type="text" placeholder="Message" maxlength="4000">
+        <button type="submit" class="btn send" aria-label="Send message"><span>Send</span><span aria-hidden="true">➤</span></button>
+        <div class="emoji-picker" id="emojiPicker" hidden>
+          <div class="emoji-grid" id="emojiGrid"></div>
+        </div>
+      </form>
+    </section>
+    </main>
+  </div>
 </div>
+
+{% if preload_peer %}
+<span id="preloadPeer" hidden>{{ preload_peer }}</span>
+{% endif %}
 {% endblock %}

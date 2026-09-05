@@ -128,7 +128,12 @@ const AbhiHubSelect = {
                 const deptEl = semEl ? (semEl.dataset.parent ? document.getElementById(semEl.dataset.parent) : semEl.closest('.meta-form-wrap')?.querySelector('.branch-select')) : null;
                 const deptId = deptEl ? deptEl.value : null;
                 
-                url = `/api/subjects?department_id=${deptId}&semester=${parentValue}`;
+                const isUploadForm = el.closest('#uploadForm') !== null;
+                if (isUploadForm) {
+                    url = `/api/subjects?department_id=${deptId}`;
+                } else {
+                    url = `/api/subjects?department_id=${deptId}&semester=${parentValue}`;
+                }
             }
             
             let json;
