@@ -1112,15 +1112,16 @@
     btn.disabled = true;
     btn.textContent = 'Submitting...';
     try {
-      const res = await fetch('/api/report-issue', {
+      const res = await fetch('/api/report-broken-file', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          doc_id: _reportDocId,
-          doc_title: _reportDocTitle,
-          doc_url: window.location.href,
+          file_id: _reportDocId,
+          file_name: _reportDocTitle,
+          file_type: 'pdf',
           issue_type: issueType,
-          message: message
+          error_message: message,
+          page_url: window.location.href
         })
       });
       const data = await res.json();
@@ -1130,7 +1131,7 @@
         setTimeout(closeReportModal, 2000);
       } else {
         statusEl.style.color = '#ef4444';
-        statusEl.textContent = data.error || 'Failed to submit.';
+        statusEl.textContent = data.message || 'Failed to submit.';
       }
     } catch (err) {
       statusEl.style.color = '#ef4444';

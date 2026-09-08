@@ -3060,8 +3060,7 @@ def view_doc(doc_id, filename=None):
             filename = re.sub(r'[^a-z0-9_\-\.]+', '_', filename, flags=re.I)
             if not filename.lower().endswith('.pdf'):
                 filename = filename.rsplit('.',1)[0] + '.pdf'
-            response_headers['Content-Disposition'] = f"inline; filename*=UTF-8''{filename}"
-            
+        
         def generate():
             try:
                 for chunk in upstream.iter_content(chunk_size=65536):
@@ -3069,8 +3068,11 @@ def view_doc(doc_id, filename=None):
                         yield chunk
             except Exception as e:
                 logging.error(f"[VIEW-DOC] Stream interrupted for {doc_id}: {e}")
-                
+        
         response_headers = _secure_file_headers()
+       
+        if document.get('file_type') == 'pdf' or '.pdf' in file_url.lower() or file_url.lower().endswith('.txt'):
+            response_headers['Content-Disposition'] = f"inline; filename*=UTF-8''{filename}"
         
         # Preserve Content-Length if available (for PDF.js)
         if 'Content-Length' in upstream.headers:
@@ -4125,31 +4127,32 @@ def pdf_proxy(pdf_name):
         # Get PDF from Firebase Storage
         bucket = storage.bucket()
         blob = bucket.blob(pdf_name)
-        
+
         import mimetypes
-        
+
         # Download PDF content
         pdf_content = blob.download_as_bytes()
         file_size = len(pdf_content)
-        
+
         # Determine content type dynamically based on file extension
+        # Handle .txt files that are actually PDFs (Cloudinary Free tier workaround)
         content_type, _ = mimetypes.guess_type(pdf_name)
-        if not content_type:
-            content_type = 'application/pdf'  # Fallback
-            
+        if not content_type or pdf_name.lower().endswith('.txt'):
+            content_type = 'application/pdf'  # Fallback for PDFs stored as .txt
+
         # Handle Range requests for progressive PDF loading
         range_header = request.headers.get('Range')
-        
+
         if range_header:
             # Parse Range header (e.g., "bytes=0-1023")
             byte_range = range_header.replace('bytes=', '').split('-')
             start = int(byte_range[0]) if byte_range[0] else 0
             end = int(byte_range[1]) if len(byte_range) > 1 and byte_range[1] else file_size - 1
-            
+
             # Ensure valid range
             end = min(end, file_size - 1)
             length = end - start + 1
-            
+
             # Create partial content response (206)
             response = make_response(pdf_content[start:end+1])
             response.status_code = 206
@@ -4161,7 +4164,7 @@ def pdf_proxy(pdf_name):
             response = make_response(pdf_content)
             response.headers['Content-Type'] = content_type
             response.headers['Content-Length'] = str(file_size)
-        
+
         # Common headers for both full and partial responses
         # PDF security: force inline display, prevent download managers, no caching
         response.headers['Access-Control-Allow-Origin'] = request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://www.abhihub.edu.eu.org'
@@ -4176,9 +4179,9 @@ def pdf_proxy(pdf_name):
         response.headers['Referrer-Policy'] = 'no-referrer'
         response.headers['X-Download-Options'] = 'noopen'
         response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
-        
+
         return response
-        
+
     except Exception as e:
         logging.error(f"Error proxying PDF {pdf_name}: {e}")
         abort(404, description="PDF not found")
@@ -5658,6 +5661,112 @@ def track_file_access_api():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@app.route('/api/report-broken-file', methods=['POST'])
+@auth_required
+def report_broken_file():
+    """API endpoint for users to report broken/missing files with detailed logging to Supabase."""
+    try:
+        if 'user' not in session:
+            return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+        
+        data = request.get_json() or request.form.to_dict()
+        if not data:
+            return jsonify({'success': False, 'message': 'No data provided'}), 400
+        
+        user_email = session['user'].get('email', 'anonymous')
+        user_id = session['user'].get('uid', '')
+        
+        file_id = data.get('file_id', '')
+        file_name = data.get('file_name', '')
+        file_url = data.get('file_url', '')
+        file_type = data.get('file_type', 'unknown')
+        error_message = data.get('error_message', '')
+        issue_type = data.get('issue_type', 'other')
+        page_url = data.get('page_url', request.referrer or '')
+        viewer_type = data.get('viewer_type', 'pdf')
+        
+        if not file_name and not file_id and not file_url:
+            return jsonify({'success': False, 'message': 'File name, ID, or URL is required'}), 400
+        
+        # Store the report in Supabase
+        report_data = {
+            'doc_id': str(file_id) if file_id else file_name,
+            'viewer_type': viewer_type,
+            'error_msg': f"{issue_type}: {error_message}" if error_message else issue_type,
+            'page_url': page_url,
+            'reporter_email': user_email,
+            'reporter_id': user_id,
+            'file_name': file_name,
+            'file_url': file_url,
+            'file_type': file_type,
+            'issue_type': issue_type,
+            'status': 'open',
+        }
+        
+        try:
+            result = supabase.table('viewer_failure_reports').insert(report_data).execute()
+            report_id = result.data[0].get('id') if result.data else None
+        except Exception as db_err:
+            logging.error(f"Error saving viewer failure report to Supabase: {db_err}")
+            # Fallback: log to local logging if Supabase fails
+            logging.error(f"[FILE-REPORT] {user_email} reported: {file_name} - {error_message}")
+            return jsonify({'success': False, 'message': 'Could not save report to database'}), 500
+        
+        logging.info(f"[FILE-REPORT] Reported broken file: {file_name} by {user_email} (report_id={report_id})")
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Report submitted successfully',
+            'report_id': report_id
+        }), 200
+    
+    except Exception as e:
+        logging.error(f"Error in report_broken_file: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/file-reports')
+@admin_required
+def admin_file_reports():
+    """API endpoint for admin to view all file reports/logs."""
+    try:
+        # Fetch all reports from the viewer_failure_reports table
+        result = supabase.table('viewer_failure_reports').select(
+            'id, doc_id, viewer_type, error_msg, page_url, reporter_email, reporter_id, file_name, file_url, file_type, issue_type, status, created_at'
+        ).order('created_at', desc=True).execute()
+        
+        reports = result.data if result.data else []
+        
+        # Also fetch file access history for comprehensive logging
+        try:
+            access_result = supabase.table('file_access_history').select(
+                'id, user_email, file_name, file_type, file_path, file_url, status, created_at'
+            ).order('created_at', desc=True).limit(500).execute()
+            access_logs = access_result.data if access_result.data else []
+        except Exception as access_err:
+            logging.warning(f"Could not fetch file_access_history: {access_err}")
+            access_logs = []
+        
+        return jsonify({
+            'success': True,
+            'reports': reports,
+            'access_logs': access_logs,
+            'total_reports': len(reports),
+            'total_access_logs': len(access_logs)
+        }), 200
+        
+    except Exception as e:
+        logging.error(f"Error fetching admin file reports: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/admin/file-reports')
+@admin_required
+def admin_file_reports_page():
+    """Admin page for viewing all file reports and logs."""
+    return render_template('admin_file_reports.html')
+
+
 # Flask CLI command for Heroku Scheduler (alternative to APScheduler)
 @app.cli.command('send-upload-notifications')
 def send_upload_notifications_command():
@@ -6412,13 +6521,6 @@ def _get_uid():
 _chat_online = {}        # {user_id: {sid, name}}
 _chat_online_http = {}   # {user_id: {time, name}}
 
-def _expire_chat_history(uid_a, uid_b):
-    try:
-        key = 'chat_messages:' + '_'.join(sorted([uid_a, uid_b]))
-        cache.l1.delete(key)
-    except Exception:
-        pass
-
 CHAT_SECRET = os.getenv('CHAT_SECRET')
 
 def _chat_secret():
@@ -6452,6 +6554,27 @@ def _dec(token: str):
         return token
 
 def _persist_chat_message(uid_a, uid_b, payload):
+    """Persist chat message — Supabase (encrypted) with in-memory cache fallback."""
+    from methods.encrypted_chat import save_message_supabase
+
+    # Try Supabase persistence first (encrypted at rest)
+    plaintext = payload.get('text', '')
+    peer_pubkey = None
+
+    # Try to get sender's public key for E2E encryption
+    try:
+        from methods.encrypted_chat import get_user_keys
+        keys = get_user_keys(uid_a)
+        peer_pubkey = keys.get('public_key')
+    except Exception:
+        pass
+
+    saved = save_message_supabase(uid_a, uid_b, plaintext, sender_public_key=peer_pubkey)
+    if saved:
+        # Update payload with the server-assigned message ID
+        payload['msg_id'] = saved.get('id', '')
+
+    # Also keep in in-memory cache for real-time delivery
     try:
         key = 'chat_messages:' + '_'.join(sorted([uid_a, uid_b]))
         data = cache.l1.get(key)
@@ -6459,14 +6582,13 @@ def _persist_chat_message(uid_a, uid_b, payload):
         if not isinstance(history, list):
             history = []
         item = {
-            # CHAT_SECRET is optional in local development. Keep the message
-            # readable until encryption is configured instead of storing None.
             'cipher': _enc(payload.get('text', '')) or payload.get('text', ''),
             'from': payload.get('from'),
             'to': payload.get('to'),
             'ts': payload.get('ts'),
             'sender_meta': payload.get('sender_meta', {}),
             'status': 'sent',
+            'msg_id': saved.get('id') if saved else '',
         }
         history.append(item)
         max_age = 7 * 24 * 60 * 60
@@ -6475,6 +6597,31 @@ def _persist_chat_message(uid_a, uid_b, payload):
         pass
 
 def _get_chat_history(uid_a, uid_b):
+    """Load chat history — Supabase (encrypted) with in-memory cache fallback."""
+    from methods.encrypted_chat import load_conversation_supabase
+
+    try:
+        # Try to get the recipient's private key for decryption
+        my_keys = {}
+        try:
+            from methods.encrypted_chat import get_user_keys
+            my_keys = get_user_keys(uid_a)
+        except Exception:
+            pass
+        my_privkey = my_keys.get('private_key')
+
+        # Try Supabase first
+        messages = load_conversation_supabase(
+            uid_a, uid_b,
+            my_privkey=my_privkey,
+            peer_pubkey=my_keys.get('public_key')
+        )
+        if messages:
+            return messages
+    except Exception:
+        pass
+
+    # Fallback: in-memory cache
     try:
         key = 'chat_messages:' + '_'.join(sorted([uid_a, uid_b]))
         data = cache.l1.get(key)
@@ -6517,20 +6664,36 @@ def chat_delivered(data):
     uid = _get_uid()
     peer_id = data.get('to')
     msg_ts = data.get('ts')
+    msg_id = data.get('msg_id', '')
     if not uid or not peer_id or not msg_ts:
         return
     room = _pair_room(uid, peer_id)
     emit('chat_received', {'from': uid, 'to': peer_id, 'ts': msg_ts, 'status': 'delivered'}, to=room)
+    # Update Supabase
+    if msg_id:
+        try:
+            from methods.encrypted_chat import mark_message_delivered
+            mark_message_delivered(msg_id, uid)
+        except Exception:
+            pass
 
 @socketio.on('chat_read')
 def chat_read(data):
     uid = _get_uid()
     peer_id = data.get('to')
     msg_ts = data.get('ts')
+    msg_id = data.get('msg_id', '')
     if not uid or not peer_id or not msg_ts:
         return
     room = _pair_room(uid, peer_id)
     emit('chat_read_receipt', {'from': uid, 'to': peer_id, 'ts': msg_ts, 'status': 'read'}, to=room)
+    # Update Supabase
+    if msg_id:
+        try:
+            from methods.encrypted_chat import mark_message_read
+            mark_message_read(msg_id, uid)
+        except Exception:
+            pass
 
 @socketio.on('connect')
 def chat_connect():
@@ -6683,7 +6846,38 @@ def chat_page():
 @app.route('/chat/<peer_id>')
 @auth_required
 def chat_with_peer(peer_id):
-    return render_template('chat.html', preload_peer=peer_id)
+    try:
+        return render_template('chat.html', preload_peer=peer_id)
+    except Exception:
+        return render_template('chat.html', preload_peer=peer_id)
+
+@app.route('/api/chat/keys', methods=['GET', 'POST'])
+@auth_required
+def chat_keys():
+    """Generate or retrieve user's NaCl key pair for E2E encryption."""
+    from methods.encrypted_chat import generate_user_keys, store_user_keys, get_user_keys
+    uid = _get_uid()
+    if not uid:
+        return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+    if request.method == 'GET':
+        keys = get_user_keys(uid)
+        if keys:
+            return jsonify({'success': True, 'public_key': keys.get('public_key', '')})
+        # Generate keys if they don't exist
+        keys = generate_user_keys()
+        if keys:
+            store_user_keys(uid, keys['public_key'], keys['private_key'])
+            return jsonify({'success': True, 'public_key': keys['public_key']})
+        return jsonify({'success': False, 'error': 'Could not generate keys'}), 500
+
+    # POST: client generates keys locally and uploads their public key
+    data = request.get_json(silent=True) or {}
+    public_key = data.get('public_key', '')
+    if public_key:
+        store_user_keys(uid, public_key, '')
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'error': 'public_key required'}), 400
 
 
 @app.route('/profile/<user_id>')

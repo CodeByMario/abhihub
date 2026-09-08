@@ -224,7 +224,23 @@ function persistMsg(peerId, msg) {
   LS.set(key, filtered);
 }
 
-function loadHistory(peerId) {
+async function loadHistory(peerId) {
+  // Prefer server-side history (Supabase, encrypted) over localStorage
+  const myId = getMyId();
+  if (myId && peerId) {
+    try {
+      const res = await fetch(`/api/chat/history/${encodeURIComponent(peerId)}`, {
+        headers: { 'Accept': 'application/json' }
+      });
+      const data = await res.json();
+      if (data.success && data.messages && data.messages.length) {
+        return data.messages;
+      }
+    } catch (e) {
+      // Fall back to localStorage if server fetch fails
+      console.debug('Server history fetch failed:', e);
+    }
+  }
   const key = 'chat_history:' + [peerId, getMyId()].sort().join('_');
   const maxAge = 7 * 24 * 60 * 60 * 1000;
   const now = Date.now();
@@ -269,7 +285,7 @@ function receiveMessage(msg) {
   }
   if (LS.get('current_peer') === peerId) {
     renderHistory(peerId);
-    chatSocket?.emit('chat_delivered', { to: peerId, ts: msg.ts });
+    chatSocket?.emit('chat_delivered', { to: peerId, ts: msg.ts, msg_id: msg.msg_id || '' });
   }
   showChatAlert(peerId, msg);
   window._fetchNotifications?.(true);
@@ -358,12 +374,10 @@ function openChat(peerId) {
   renderHistory(peerId);
   $('#chatInput').focus();
 }
-
-function renderHistory(peerId) {
+async function renderHistory(peerId) {
   const container = $('#chatMessages');
-  const messages = loadHistory(peerId);
-  if (!messages.length) { container.innerHTML = '<div class="chat-empty">No messages yet</div>'; return; }
-
+  const messages = await loadHistory(peerId);
+  if (!messages || !messages.length) { container.innerHTML = '<div class="chat-empty">No messages yet</div>'; return; }
   const myId = getMyId();
   container.innerHTML = '';
   const frag = document.createDocumentFragment();
@@ -438,8 +452,7 @@ function startDisappearingCleanup(peerId) {
   const tick = () => {
     const container = $('#chatMessages');
     if (!container || LS.get('current_peer') !== peerId) return;
-    const myId = getMyId();
-    const messages = loadHistory(peerId);
+    const messages = LS.get('chat_history:' + [peerId, getMyId()].sort().join('_'), []);
     if (!messages.length) { container.innerHTML = '<div class="chat-empty">No messages yet</div>'; }
     const now = Date.now();
     let changed = false;
