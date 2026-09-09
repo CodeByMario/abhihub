@@ -47,6 +47,18 @@ class Profile:
             return None
 
     @staticmethod
+    def get_email_by_id(user_id: str) -> Optional[str]:
+        """Quick lookup: profile UUID → email."""
+        client = get_client()
+        if not client or not validate_uuid(user_id):
+            return None
+        try:
+            res = client.table(Profile.TABLE).select("email").eq("id", user_id).limit(1).execute()
+            return res.data[0].get("email") if res.data else None
+        except Exception:
+            return None
+
+    @staticmethod
     def upsert(user_id: str, email: str, full_name: str,
                role: str = "student", college_id: str = None,
                department_id: str = None) -> Dict:

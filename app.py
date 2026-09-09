@@ -591,7 +591,10 @@ def log_document_view(file_name, file_url, record_id=None,
 
                     if user_id:
                         from data.notifications import Notification
-                        Notification.create(user_id, "quota_deduction", notif_title, notif_msg, action_url)
+                        res = Notification.create(user_id, "quota_deduction", notif_title, notif_msg, action_url)
+                        # Fall back to 'marketing' if quota_deduction enum hasn't been migrated
+                        if not res.get('success'):
+                            Notification.create(user_id, "marketing", notif_title, notif_msg, action_url)
                         try:
                             from push_notifications import send_notification
                             send_notification(user_id, notif_title, notif_msg, action_url)
@@ -2863,7 +2866,9 @@ def view_doc(doc_id, filename=None):
                     pass  # Non-fatal: cache storage can fail
             except Exception as e:
                 logging.error(f"[VIEW-DOC] Firebase init/sign setup error for {doc_id}: {e}")
-                raise
+                # Don't re-raise — just fall back to the stored file_url
+                # The document may have a direct public URL that still works
+                pass
 
     # Final safety: coerce to string
     if isinstance(file_url, (list, tuple)):
@@ -4670,6 +4675,83 @@ def get_admin_notification_history():
         return jsonify({'success': True, 'history': history})
     
     except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/broadcast-stats', methods=['GET'])
+@auth_required
+@admin_required
+def get_admin_broadcast_stats():
+    """Get broadcast delivery stats (sent vs read) for admin notifications."""
+    try:
+        limit = min(request.args.get('limit', 50, type=int), 200)
+        stats = get_admin_broadcast_delivery_stats(limit=limit)
+        return jsonify({'success': True, **stats})
+    except Exception as e:
+        logging.error(f"[admin broadcast-stats] {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/system-health', methods=['GET'])
+@auth_required
+@admin_required
+def get_system_health():
+    """Live system health dashboard: DB, storage, cache, CPU, memory, active users."""
+    import time, os, psutil
+    try:
+        client = init_supabase()
+        db_ok = client is not None
+        db_latency = None
+        if db_ok:
+            t0 = time.time()
+            try:
+                client.table('profiles').select('id').limit(1).execute()
+                db_latency = round((time.time() - t0) * 1000)
+            except Exception:
+                db_ok = False
+        try:
+            usage = psutil.virtual_memory()
+            mem_pct = round(usage.percent, 1)
+            swap = psutil.swap_memory()
+            swap_pct = round(swap.percent, 1)
+        except Exception:
+            mem_pct = swap_pct = None
+        try:
+            cpu_pct = round(psutil.cpu_percent(interval=0.5), 1)
+        except Exception:
+            cpu_pct = None
+        try:
+            disk = psutil.disk_usage('/')
+            disk_pct = round(disk.percent, 1)
+        except Exception:
+            disk_pct = None
+        now = time.time()
+        active_chat = sum(1 for u, info in _chat_online.items()
+                          if now - info.get('time', 0) < 300)
+        active_http = sum(1 for u, info in _chat_online_http.items()
+                          if now - info.get('time', 0) < 300)
+        try:
+            cache_size = len(cache.l1._store) if hasattr(cache.l1, '_store') else 'N/A'
+        except Exception:
+            cache_size = 'N/A'
+        return jsonify({
+            'success': True,
+            'health': {
+                'database': 'connected' if db_ok else 'disconnected',
+                'db_latency_ms': db_latency,
+                'cpu_percent': cpu_pct,
+                'memory_percent': mem_pct,
+                'swap_percent': swap_pct,
+                'disk_percent': disk_pct,
+                'active_chat_users': active_chat,
+                'active_http_users': active_http,
+                'cache_entries': cache_size,
+                'supabase_url': bool(os.getenv('SUPABASE_URL')),
+                'pusubscriptions': len(load_subscriptions()) if db_ok else 0,
+            }
+        })
+    except Exception as e:
+        logging.error(f"[admin system-health] {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 def _getSuggestedPeers(client, uid):
@@ -6718,6 +6800,60 @@ def chat_disconnect():
 def chat_reconnect():
     chat_connect()
 
+# ── Admin real-time updates ──────────────────────────────────────────────────
+# Admin dashboard subscribes to 'admin-room' for live KPI / activity updates.
+
+@socketio.on('join_admin_room')
+def join_admin_room(data):
+    """Admin joins the admin-room namespace to receive real-time updates."""
+    socketio.join_room('admin-room')
+    # Send immediate snapshot
+    try:
+        stats = get_admin_broadcast_delivery_stats(limit=20)
+        health = get_system_health().get_json()
+        socketio.emit('admin_snapshot', {
+            'broadcast_stats': stats.get_json() if hasattr(stats, 'get_json') else stats,
+            'system_health': health.get_json() if hasattr(health, 'get_json') else health,
+            'ts': datetime.utcnow().isoformat() + 'Z'
+        }, room='admin-room')
+    except Exception as e:
+        logging.error(f"[admin] snapshot error: {e}")
+
+
+def _emit_admin_activity_event(event_type, **kwargs):
+    """Push a real-time activity event to the admin dashboard."""
+    try:
+        payload = {'event': event_type, 'ts': datetime.utcnow().isoformat() + 'Z'}
+        payload.update(kwargs)
+        socketio.emit('admin_activity', payload, room='admin-room')
+    except Exception as e:
+        logging.debug(f"[admin] emit_activity failed: {e}")
+
+
+def _notify_admin_of_chat_activity(sender_id, peer_id, msg_ts):
+    """Lightweight notification to admin dashboard about chat activity."""
+    try:
+        client = init_supabase()
+        if not client:
+            return
+        sender_name = 'A student'
+        try:
+            r = client.table('profiles').select('full_name').eq('id', sender_id).limit(1).execute()
+            if r.data:
+                sender_name = r.data[0].get('full_name', 'A student') or 'A student'
+        except Exception:
+            pass
+        _emit_admin_activity_event('chat_message', {
+            'sender_id': sender_id,
+            'sender_name': sender_name,
+            'peer_id': peer_id,
+            'ts': msg_ts,
+            'msg_id': 'ch_' + str(abs(hash(msg_ts + sender_id)))[-8:]
+        })
+    except Exception:
+        pass
+
+
 @socketio.on('heartbeat')
 def chat_heartbeat(data):
     uid = _get_uid()
@@ -6771,6 +6907,26 @@ def _relay_chat_message(uid, data):
     _persist_chat_message(uid, peer_id, payload)
     # A personal room is joined on every authenticated connection.
     socketio.emit('chat_receive', payload, to=peer_id)
+    # ACK back to sender that message was saved and queued for delivery
+    sender_sid = _chat_online.get(uid, {}).get('sid')
+    if sender_sid and sender_sid != peer_id:
+        socketio.emit('chat_message_ack', {
+            'msg_id': payload.get('msg_id', ''),
+            'ts': payload.get('ts', ''),
+            'error': None
+        }, to=sender_sid)
+    else:
+        # Sender not connected via WebSocket - send ACK via HTTP fallback
+        try:
+            import requests as _req
+            headers = {'Content-Type': 'application/json'}
+            _req.post(f'http://127.0.0.1:{os.getenv("PORT", "5000")}/api/chat/messages', json={
+                'to': uid, 'text': 'ACK: message delivered', 'ts': payload.get('ts', '')
+            }, timeout=2, headers=headers)
+        except Exception:
+            pass
+    # Notify admin dashboard of chat activity (privacy-safe, no message content)
+    _notify_admin_of_chat_activity(uid, peer_id, payload.get('ts', ''))
     _create_chat_notification(uid, peer_id, payload)
     return payload
 
@@ -6798,7 +6954,10 @@ def _create_chat_notification(sender_id, recipient_id, payload):
         title = f"New message from {sender}"
         action_url = url_for('chat_with_peer', peer_id=sender_id)
         from data.notifications import Notification
-        Notification.create(recipient_id, 'chat_message', title, preview or 'Sent you a message', action_url)
+        res = Notification.create(recipient_id, 'chat_message', title, preview or 'Sent you a message', action_url)
+        # Fall back to 'marketing' if chat_message enum hasn't been migrated yet
+        if not res.get('success'):
+            Notification.create(recipient_id, 'marketing', title, preview or 'Sent you a message', action_url)
         from push_notifications import send_notification
         send_notification(recipient_id, title, preview or 'Sent you a message', action_url, tag=f'chat-{sender_id}')
     except Exception as exc:

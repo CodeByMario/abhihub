@@ -1124,14 +1124,19 @@
           page_url: window.location.href
         })
       });
-      const data = await res.json();
-      if (data.success) {
+      const data = await res.json().catch(() => ({}));
+      if (res.ok && data.success) {
         statusEl.style.color = '#16a34a';
         statusEl.textContent = '✅ Report submitted! Admin will review it shortly.';
         setTimeout(closeReportModal, 2000);
       } else {
         statusEl.style.color = '#ef4444';
-        statusEl.textContent = data.message || 'Failed to submit.';
+        const errMsg = data.message || data.error || `Error ${res.status}: ${res.statusText}`;
+        statusEl.textContent = errMsg || 'Failed to submit. Please try again.';
+        if (res.status === 401) {
+          // Not logged in — prompt to login
+          statusEl.textContent = 'ℹ️ Please log in to report issues. You can still describe the problem below.';
+        }
       }
     } catch (err) {
       statusEl.style.color = '#ef4444';

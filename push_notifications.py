@@ -45,16 +45,22 @@ def save_subscriptions(subscriptions):
 def add_subscription(user_id, subscription_info, device_type=None):
     """
     Add or update a push subscription for a user.
+    Accepts user_id as UUID; resolves to email via Profile for save_push_subscription.
     """
     if not subscription_info or 'endpoint' not in subscription_info:
         return False
-        
+
     endpoint = subscription_info.get('endpoint')
     keys = subscription_info.get('keys', {})
     p256dh = keys.get('p256dh', '')
     auth = keys.get('auth', '')
-    
-    res = save_push_subscription(user_id, endpoint, p256dh, auth, device_type=device_type or 'web')
+
+    # save_push_subscription expects user_email parameter
+    from data.profiles import Profile
+    email = Profile.get_email_by_id(user_id)
+    if not email:
+        return {'success': False, 'message': 'User email not found'}
+    res = save_push_subscription(email, endpoint, p256dh, auth, device_type=device_type or 'web')
     return res.get('success', False)
 
 

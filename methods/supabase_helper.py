@@ -1464,6 +1464,70 @@ def get_notification_history(limit: int = 10) -> List[Dict]:
         logging.error(f"Error fetching notifications: {e}")
         return []
 
+def get_notification_history_paginated(limit: int = 50, offset: int = 0, notification_type: str = None) -> Dict:
+    """Paginated notification history for admin — supports filtering by type."""
+    client = init_supabase()
+    if not client:
+        return {'data': [], 'total': 0, 'offset': offset, 'limit': limit}
+    try:
+        query = client.table('notifications').select('*').order('created_at', desc=True)
+        if notification_type:
+            query = query.eq('type', notification_type)
+        query = query.limit(limit).offset(offset)
+        res = query.execute()
+        data = res.data if res.data else []
+        # Total count (separate query)
+        count_query = client.table('notifications')
+        if notification_type:
+            count_query = count_query.eq('type', notification_type)
+        count_res = count_query.select('id', count='exact').execute()
+        total = count_res.count if hasattr(count_res, 'count') and count_res.count else len(data)
+        return {'data': data, 'total': total, 'offset': offset, 'limit': limit}
+    except Exception as e:
+        logging.error(f"Error fetching paginated notifications: {e}")
+        return {'data': [], 'total': 0, 'offset': offset, 'limit': limit}
+
+def get_admin_broadcast_delivery_stats(limit: int = 50) -> Dict:
+    """Get delivery stats for admin-broadcasted notifications (type=system or marketing)."""
+    client = init_supabase()
+    if not client:
+        return {'history': [], 'total_sent': 0, 'total_read': 0}
+    try:
+        # Get admin broadcast notifications
+        res = (client.table('notifications')
+               .select('*, profiles(full_name, email)')
+               .or_('type.eq.system, type.eq.marketing')
+               .order('created_at', desc=True)
+               .limit(limit)
+               .execute())
+        history = []
+        total_sent = 0
+        total_read = 0
+        for n in (res.data or []):
+            is_read = n.get('is_read', False)
+            profile = n.get('profiles') or {}
+            history.append({
+                'id': n.get('id'),
+                'type': n.get('type'),
+                'title': n.get('title'),
+                'message': n.get('message'),
+                'action_url': n.get('action_url'),
+                'is_read': is_read,
+                'created_at': n.get('created_at'),
+                'recipient_name': profile.get('full_name', 'All Users') if n.get('user_id') != 'all' else 'All Users',
+                'recipient_email': profile.get('email', ''),
+            })
+            if n.get('user_id') == 'all':
+                total_sent += 1  # broadcast = sent to everyone
+            else:
+                total_sent += 1
+            if is_read:
+                total_read += 1
+        return {'history': history, 'total_sent': total_sent, 'total_read': total_read}
+    except Exception as e:
+        logging.error(f"Error fetching broadcast delivery stats: {e}")
+        return {'history': [], 'total_sent': 0, 'total_read': 0}
+
 # ── Points awarded per document category ───────────────────────────────────
 POINTS_MAP = {
     'notes':          3,

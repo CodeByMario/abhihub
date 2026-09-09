@@ -152,6 +152,7 @@ const CHAT_CSS = `:root {
   border-bottom-left-radius:6px;
 }
 .bubble.meta { margin-top:0.3rem; font-size:0.72rem; opacity:0.7; display:flex; gap:0.5rem; align-items:center; }
+.msg-status { font-weight:700; }
 
 /* Match theming */
 .chat-room.is-match .bubble.mine {
@@ -285,8 +286,8 @@ function receiveMessage(msg) {
   }
   if (LS.get('current_peer') === peerId) {
     renderHistory(peerId);
-    chatSocket?.emit('chat_delivered', { to: peerId, ts: msg.ts, msg_id: msg.msg_id || '' });
   }
+  chatSocket?.emit('chat_delivered', { to: peerId, ts: msg.ts, msg_id: msg.msg_id || '' });
   showChatAlert(peerId, msg);
   window._fetchNotifications?.(true);
   loadPeers($('#peerSearch')?.value || '');
@@ -300,6 +301,22 @@ function connectChatSocket() {
     if (peerId) chatSocket.emit('chat_join', { peer: peerId });
   });
   chatSocket.on('chat_receive', receiveMessage);
+  chatSocket.on('chat_received', (data) => {
+    // Reply to sender that their message was delivered
+    updateMessageStatus(data.msg_id || data.ts, 'delivered');
+  });
+  chatSocket.on('chat_read_receipt', (data) => {
+    // Reply to sender that their message was read
+    updateMessageStatus(data.msg_id || data.ts, 'read');
+  });
+  chatSocket.on('chat_message_ack', (data) => {
+    // Server ACK that message was saved and delivered to recipient room
+    updateMessageStatus(data.msg_id || data.ts, 'sent');
+    if (data.error) {
+      // Message failed to save — retry UI
+      showSendError(data.error);
+    }
+  });
 }
 
 function getPreloadPeer() {
@@ -447,6 +464,53 @@ function updateTimerText(timerEl, iso) {
   }
 }
 
+function updateMessageStatus(ts, status) {
+  const bubbles = document.querySelectorAll(`.bubble-wrap[data-ts="${CSS.escape(ts)}"]`);
+  if (!bubbles.length) return;
+  const bubbleWarp = bubbles[0];
+  const bubble = bubbleWarp.querySelector('.bubble');
+  const metaDiv = bubble?.querySelector('.bubble.meta');
+  if (!metaDiv) return;
+
+  // Update or add status indicator
+  let statusEl = metaDiv.querySelector('.msg-status');
+  if (!statusEl) {
+    statusEl = document.createElement('span');
+    statusEl.className = 'msg-status';
+    metaDiv.appendChild(statusEl);
+  }
+
+  if (status === 'sent') {
+    statusEl.textContent = '✓';
+    statusEl.style.color = '#64748b';
+  } else if (status === 'delivered') {
+    statusEl.textContent = '✓✓';
+    statusEl.style.color = '#64748b';
+  } else if (status === 'read') {
+    statusEl.textContent = '✓✓';
+    statusEl.style.color = '#3b82f6';
+  } else if (status === 'failed') {
+    statusEl.textContent = '⚠️';
+    statusEl.style.color = '#ef4444';
+  }
+}
+
+function showSendError(errorMsg) {
+  const input = document.getElementById('chatInput');
+  const statusBar = document.getElementById('chatSendStatus') || (() => {
+    const div = document.createElement('div');
+    div.id = 'chatSendStatus';
+    div.style.cssText = 'color:#ef4444; font-size:0.7rem; margin-top:0.25rem; font-weight:600; display:none;';
+    input?.parentElement?.appendChild(div);
+    return div;
+  })();
+  if (statusBar) {
+    statusBar.textContent = errorMsg;
+    statusBar.style.display = 'block';
+    setTimeout(() => { statusBar.style.display = 'none'; }, 3000);
+  }
+}
+
 function startDisappearingCleanup(peerId) {
   if (startDisappearingCleanup._timers.has(peerId)) return;
   const tick = () => {
@@ -525,6 +589,14 @@ async function loadCrushState(peerId) {
 
 async function sendMessage() {
   const input = $('#chatInput');
+  const composer = $('#chatComposer');
+  const statusBar = composer?.parentElement?.querySelector('#chatSendStatus') || (() => {
+    const div = document.createElement('div');
+    div.id = 'chatSendStatus';
+    div.style.cssText = 'color:#64748b; font-size:0.7rem; margin-top:0.25rem; font-weight:600; display:none; white-space:nowrap;';
+    composer?.parentElement?.appendChild(div);
+    return div;
+  })();
   const peerId = LS.get('current_peer');
   const text = (input.value || '').trim();
   if (!peerId || !text) return;
@@ -539,26 +611,130 @@ async function sendMessage() {
   list.push(msg);
   LS.set(key, list);
 
+  // Show "sending" indicator
+  if (statusBar) {
+    statusBar.textContent = 'Sending...';
+    statusBar.style.color = '#64748b';
+    statusBar.style.display = 'block';
+  }
+
+  let sent = false;
   if (chatSocket?.connected) {
-    chatSocket.emit('chat_send', { to: peerId, text, ts: msg.ts, sender_meta: msg.sender_meta });
+    // Emit with retry: re-emit after 3s if no ACK received
+    let ackReceived = false;
+    const ackHandler = (data) => {
+      if (data.ts === msg.ts || data.msg_id === msg.msg_id) {
+        ackReceived = true;
+        if (statusBar) {
+          statusBar.textContent = '✓';
+          statusBar.style.color = '#16a34a';
+          setTimeout(() => { statusBar.style.display = 'none'; }, 2000);
+        }
+      }
+    };
+    chatSocket.once('chat_message_ack', ackHandler);
+
+    // Timeout for ACK: if no ACK in 5s, retry via HTTP
+    setTimeout(() => {
+      chatSocket.off('chat_message_ack', ackHandler);
+      if (!ackReceived) {
+        // Retry via HTTP fallback
+        retryHttpSend(peerId, msg, statusBar);
+      }
+    }, 5000);
+
+    chatSocket.emit('chat_send', { to: peerId, text, ts: msg.ts, sender_meta: msg.sender_meta, msg_id: msg.ts });
   } else {
-    try {
-      await fetchJson('/api/chat/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-        body: JSON.stringify({ to: peerId, text, ts: msg.ts, sender_meta: msg.sender_meta })
-      });
-    } catch (error) {
-      list.pop();
-      LS.set(key, list);
-      renderHistory(peerId);
-      window.alert('Message could not be sent. Please check your connection and try again.');
-      return;
-    }
+    // Socket not connected — try HTTP directly
+    await httpSendMessage(peerId, msg, statusBar);
   }
 
   input.value = '';
   renderHistory(peerId);
+}
+
+async function httpSendMessage(peerId, msg, statusBar) {
+  try {
+    const res = await fetchJson('/api/chat/messages', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+      body: JSON.stringify({ to: peerId, text: msg.text, ts: msg.ts, sender_meta: msg.sender_meta })
+    });
+    if (res.success && res.message) {
+      // Update the message with server-assigned msg_id for tracking
+      const serverMsg = res.message;
+      const key = 'chat_history:' + [peerId, getMyId()].sort().join('_');
+      const list = LS.get(key, []);
+      const idx = list.findIndex(m => m.ts === msg.ts);
+      if (idx >= 0) {
+        list[idx].msg_id = serverMsg.msg_id || '';
+        list[idx].ts = serverMsg.ts || list[idx].ts;
+        LS.set(key, list);
+      }
+      if (statusBar) {
+        statusBar.textContent = '✓ Sent';
+        statusBar.style.color = '#16a34a';
+        setTimeout(() => { statusBar.style.display = 'none'; }, 2000);
+      }
+      return true;
+    }
+    return false;
+  } catch (error) {
+    console.error('[chat] HTTP send failed:', error);
+    return false;
+  }
+}
+
+async function retryHttpSend(peerId, msg, statusBar) {
+  if (!statusBar) return;
+  statusBar.textContent = 'Retrying...';
+  statusBar.style.color = '#f59e0b';
+  const ok = await httpSendMessage(peerId, msg, statusBar);
+  if (!ok) {
+    statusBar.textContent = '⚠️ Not sent — check connection';
+    statusBar.style.color = '#ef4444';
+  }
+}
+
+function renderHistory(peerId) {
+  const container = $('#chatMessages');
+  const messages = LS.get('chat_history:' + [peerId, getMyId()].sort().join('_'), []);
+  if (!messages || !messages.length) { container.innerHTML = '<div class="chat-empty">No messages yet</div>'; return; }
+  const myId = getMyId();
+  container.innerHTML = '';
+  const frag = document.createDocumentFragment();
+  messages.forEach(msg => {
+    const isMine = msg.from === myId;
+    const wrap = document.createElement('div');
+    wrap.className = 'bubble-wrap ' + (isMine ? 'mine' : 'theirs');
+    wrap.setAttribute('data-ts', msg.ts);
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble ' + (isMine ? 'mine' : 'theirs');
+    const text = document.createElement('div');
+    text.className = 'bubble-text';
+    text.innerHTML = linkifyAbhiHub(escapeHtml(msg.text));
+    bubble.appendChild(text);
+    const meta = document.createElement('div');
+    meta.className = 'bubble meta';
+    const left = document.createElement('span');
+    left.textContent = formatTime(msg.ts) || '';
+    const timer = document.createElement('span');
+    timer.className = 'timer-pill';
+    updateTimerText(timer, msg.ts);
+    meta.appendChild(left);
+    meta.appendChild(timer);
+    bubble.appendChild(meta);
+    const avatar = document.createElement('div');
+    avatar.className = 'peer-avatar';
+    avatar.style.background = isMine ? '#eef2ff' : safeColor(peerId);
+    avatar.style.color = isMine ? '#4f46e5' : '#fff';
+    avatar.textContent = isMine ? 'Me' : initials(getUserInfo(peerId)?.name || peerId);
+    wrap.appendChild(avatar);
+    wrap.appendChild(bubble);
+    frag.appendChild(wrap);
+  });
+  container.appendChild(frag);
+  container.scrollTop = container.scrollHeight;
 }
 
 document.addEventListener('DOMContentLoaded', () => {

@@ -862,12 +862,151 @@
     // System stats and lists cache
     let adminSubscribers = [];
     let adminUsersList = [];
+    let adminPollTimer = null;
+    let adminSocket = null;
 
-    // Trigger on document load
+    // ── Real-time SocketIO connection for admin ───────────────────────────────
+    function connectAdminSocket() {
+        // Use standard SocketIO client from the page (flask-socketio provides /socket.io/)
+        if (typeof io === 'undefined') {
+            console.warn('[Admin] SocketIO client not loaded — will use polling fallback');
+            return;
+        }
+        try {
+            adminSocket = io(window.location.origin, {
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionAttempts: 10
+            });
+            adminSocket.on('connect', () => {
+                adminSocket.emit('join_admin_room', {});
+                console.log('[Admin] SocketIO connected');
+            });
+            adminSocket.on('admin_snapshot', (data) => {
+                if (data.broadcast_stats) updateBroadcastStatsUI(data.broadcast_stats);
+                if (data.system_health) updateSystemHealthUI(data.system_health);
+            });
+            adminSocket.on('admin_activity', (data) => {
+                handleAdminActivity(data);
+            });
+            adminSocket.on('disconnect', () => {
+                console.warn('[Admin] SocketIO disconnected — fallback to polling');
+                adminSocket = null;
+            });
+        } catch (e) {
+            console.warn('[Admin] SocketIO init failed:', e);
+            adminSocket = null;
+        }
+    }
+
+    // ── Handle real-time admin activity events ────────────────────────────────
+    function handleAdminActivity(data) {
+        const area = document.getElementById('adminAlertArea');
+        if (!area) return;
+        const icon = data.event === 'chat_message' ? 'fa-comment' :
+                      data.event === 'new_user' ? 'fa-user-plus' :
+                      data.event === 'upload' ? 'fa-upload' : 'fa-bell';
+        const color = data.event === 'chat_message' ? 'text-indigo-600' :
+                      data.event === 'new_user' ? 'text-emerald-600' :
+                      data.event === 'upload' ? 'text-amber-600' : 'text-slate-600';
+        const label = data.event === 'chat_message' ? 'Chat' :
+                      data.event === 'new_user' ? 'New User' :
+                      data.event === 'upload' ? 'Upload' : 'Activity';
+        const detail = data.event === 'chat_message' ?
+            `${data.sender_name || 'A student'} → ${data.peer_id ? data.peer_id.slice(0, 8) + '...' : ''}` :
+            data.event === 'new_user' ? data.user_name || 'New user' :
+            data.event === 'upload' ? data.title || 'New upload' :
+            (data.description || '');
+        area.innerHTML = `
+            <div class="admin-alert alert-success" style="animation: slideInDown 0.3s ease;">
+                <i class="fas ${icon} ${color}"></i>
+                <span style="font-size: 0.9rem;">
+                    <strong>${label}:</strong> ${detail}
+                    <span style="font-size: 0.7rem; color: var(--text-muted); margin-left: 0.5rem;">
+                        ${new Date(data.ts).toLocaleTimeString()}
+                    </span>
+                </span>
+            </div>
+        `;
+        setTimeout(() => { area.innerHTML = ''; }, 8000);
+    }
+
+    // ── System health UI update ───────────────────────────────────────────────
+    function updateSystemHealthUI(h) {
+        const cards = {
+            'database': { el: 'kpi-health-db', icon: 'fa-database', ok: 'text-emerald-600', bad: 'text-rose-600' },
+            'cpu_percent': { el: 'kpi-health-cpu', icon: 'fa-microchip', ok: 'text-emerald-600', bad: 'text-amber-600' },
+            'memory_percent': { el: 'kpi-health-mem', icon: 'fa-memory', ok: 'text-emerald-600', bad: 'text-amber-600' },
+        };
+        if (h.database) {
+            const el = document.getElementById(cards.database.el);
+            if (el) {
+                const is_ok = h.database === 'connected';
+                el.innerHTML = `<i class="fas ${is_ok ? 'fa-circle-check' : 'fa-circle-exclamation'} ${is_ok ? cards.database.ok : cards.database.bad}"></i> ${h.database === 'connected' ? 'Connected' : 'Disconnected'} <span style="font-size:0.75rem;color:var(--text-muted);">${h.db_latency_ms ? h.db_latency_ms + 'ms' : '—'}</span>`;
+            }
+        }
+        if (h.cpu_percent !== null && h.cpu_percent !== undefined) {
+            const pct = Math.round(h.cpu_percent);
+            const el = document.getElementById('kpi-health-cpu');
+            if (el) {
+                const color = pct > 80 ? 'text-rose-600' : pct > 60 ? 'text-amber-600' : 'text-emerald-600';
+                el.innerHTML = `<i class="fas fa-microchip ${color}"></i> ${pct}%`;
+            }
+        }
+        if (h.memory_percent !== null && h.memory_percent !== undefined) {
+            const pct = Math.round(h.memory_percent);
+            const el = document.getElementById('kpi-health-mem');
+            if (el) {
+                const color = pct > 80 ? 'text-rose-600' : pct > 60 ? 'text-amber-600' : 'text-emerald-600';
+                el.innerHTML = `<i class="fas fa-memory ${color}"></i> ${pct}%`;
+            }
+        }
+        if (h.active_chat_users !== undefined) {
+            const el = document.getElementById('kpi-health-chat');
+            if (el) el.textContent = h.active_chat_users;
+        }
+        if (h.active_http_users !== undefined) {
+            const el = document.getElementById('kpi-health-http');
+            if (el) el.textContent = h.active_http_users;
+        }
+    }
+
+    // ── Broadcast stats UI ─────────────────────────────────────────────────────
+    function updateBroadcastStatsUI(stats) {
+        const sentEl = document.getElementById('kpi-broadcast-sent');
+        const readEl = document.getElementById('kpi-broadcast-read');
+        if (sentEl) sentEl.textContent = stats.total_sent || 0;
+        if (readEl) readEl.textContent = stats.total_read || 0;
+    }
+
+    // ── Trigger on document load ──────────────────────────────────────────────
     document.addEventListener("DOMContentLoaded", () => {
         loadDashboardStats();
         setupInputCharacterCounters();
+        // Start live polling for KPIs, health, and notifications
+        startAdminPolling();
+        // Try SocketIO for real-time events (falls back to polling)
+        setTimeout(connectAdminSocket, 1000);
     });
+
+    // ── Live polling for admin dashboard ──────────────────────────────────────
+    function startAdminPolling() {
+        // KPIs + system health: poll every 15s
+        adminPollTimer = setInterval(() => {
+            loadDashboardStats();
+            loadSystemHealth();
+            loadBroadcastStats();
+        }, 15000);
+        // Notification history: poll every 5s for new entries
+        setInterval(loadNotificationHistory, 5000);
+    }
+
+    function stopAdminPolling() {
+        if (adminPollTimer) {
+            clearInterval(adminPollTimer);
+            adminPollTimer = null;
+        }
+    }
 
     // Alert helper
     function showAdminAlert(message, type = "success") {
