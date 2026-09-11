@@ -1,0 +1,253 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "name": "abhihub-production-manifest",
+  "version": "1.0.0",
+  "timestamp": "2026-09-11T09:40:00Z",
+  "runtime": {
+    "language": "python",
+    "version": "3.12",
+    "framework": "Flask 2.0.1 + GeventWebSocketWorker + Flask-SocketIO",
+    "entrypoint": "gunicorn -k geventwebsocket.gunicorn.workers.GeventWebSocketWorker -w 1 --config gunicorn.conf.py app:app",
+    "port_variable": "PORT",
+    "default_port": 5000,
+    "health_endpoints": [
+      "/health",
+      "/api/health"
+    ]
+  },
+  "allowlist": [
+    "app.py",
+    "gunicorn.conf.py",
+    "cache_manager.py",
+    "push_api.py",
+    "push_notifications.py",
+    "scheduled_tasks.py",
+    "firebase_config.py",
+    "Procfile",
+    "requirements.txt",
+    "robots.txt",
+    "ads.txt",
+    "favicon.ico",
+    "LICENSE",
+    "data/__init__.py",
+    "data/analytics.py",
+    "data/colleges.py",
+    "data/contact_messages.json",
+    "data/db.py",
+    "data/documents.py",
+    "data/interactions.py",
+    "data/notifications.py",
+    "data/profiles.py",
+    "methods/__init__.py",
+    "methods/admin_db_helper.py",
+    "methods/analytics_analyzer.py",
+    "methods/analytics_reporter.py",
+    "methods/analytics_reporter_routes.py",
+    "methods/analytics_tracker.py",
+    "methods/cloudinary_helper.py",
+    "methods/cloudinary_upload.py",
+    "methods/encrypted_chat.py",
+    "methods/get_user_uploaded_files.py",
+    "methods/indexer.py",
+    "methods/know_me.py",
+    "methods/know_me_generator.py",
+    "methods/scoring_engine.py",
+    "methods/search_api.py",
+    "methods/seo_helper.py",
+    "methods/storage.py",
+    "methods/storage_providers.py",
+    "methods/supabase_helper.py",
+    "methods/upload_notifier.py",
+    "templates/**",
+    "static/**",
+    "migrations/**"
+  ],
+  "denylist": [
+    {
+      "pattern": ".env*",
+      "reason": "Live secrets, database passwords, and API keys must never enter runtime artifacts or images."
+    },
+    {
+      "pattern": "firebase-auth.json",
+      "reason": "Service account private key; production uses FIREBASE_SERVICE_ACCOUNT_JSON env var."
+    },
+    {
+      "pattern": ".git/**",
+      "reason": "Version control history and git internals are not needed at runtime."
+    },
+    {
+      "pattern": ".git*",
+      "reason": "Git configuration and placeholder files (.gitkeep, .gitignore)."
+    },
+    {
+      "pattern": ".github/**",
+      "reason": "CI/CD workflow definitions and GitHub metadata."
+    },
+    {
+      "pattern": ".vscode/**",
+      "reason": "Local editor configuration."
+    },
+    {
+      "pattern": "tests/**",
+      "reason": "Unit and integration test suites are build/CI verification only."
+    },
+    {
+      "pattern": ".pytest_cache/**",
+      "reason": "Pytest execution cache."
+    },
+    {
+      "pattern": "docs/**",
+      "reason": "Architecture documentation, release runbooks, and audit notes."
+    },
+    {
+      "pattern": "conductor/**",
+      "reason": "Conductor track specifications, task plans, and registry."
+    },
+    {
+      "pattern": "*.md",
+      "reason": "Markdown documentation and notes are not required for web execution."
+    },
+    {
+      "pattern": "*-instruction.md",
+      "reason": "Agent instructions and prompts."
+    },
+    {
+      "pattern": "data/cache/**",
+      "reason": "Local developer cache JSON dumps."
+    },
+    {
+      "pattern": "data/raw/**",
+      "reason": "Local mock data and test JSON files."
+    },
+    {
+      "pattern": "dev/**",
+      "reason": "Local route verification scripts and debug tools."
+    },
+    {
+      "pattern": "trash/**",
+      "reason": "Legacy unused scratch files and discarded scripts."
+    },
+    {
+      "pattern": "icons/**",
+      "reason": "Raw asset source; bundled icons reside in static/premium/icons."
+    },
+    {
+      "pattern": "bot.py",
+      "reason": "GitHub automation bot for repo management."
+    },
+    {
+      "pattern": "setup.py",
+      "reason": "GitHub automation initialization script."
+    },
+    {
+      "pattern": "config/**",
+      "reason": "GitHub bot labels and contributor configuration."
+    },
+    {
+      "pattern": "scripts/auto_assign.py",
+      "reason": "GitHub bot issue triaging script."
+    },
+    {
+      "pattern": "scripts/feature_planner.py",
+      "reason": "GitHub bot feature breakdown script."
+    },
+    {
+      "pattern": "sync_firebase_documents.py",
+      "reason": "One-off offline migration synchronization utility."
+    },
+    {
+      "pattern": "getSettings.ts",
+      "reason": "Stray external TypeScript file."
+    },
+    {
+      "pattern": "E?UsersabhihubNew",
+      "reason": "Corrupted stray filename."
+    },
+    {
+      "pattern": "node_modules/**",
+      "reason": "Node development dependencies; only compiled static CSS is shipped."
+    },
+    {
+      "pattern": ".venv/**",
+      "reason": "Local virtual environment."
+    },
+    {
+      "pattern": "__pycache__/**",
+      "reason": "Local Python bytecode."
+    },
+    {
+      "pattern": "*.pyc",
+      "reason": "Compiled bytecode."
+    },
+    {
+      "pattern": ".agent/**",
+      "reason": "Agent execution cache."
+    },
+    {
+      "pattern": ".agents/**",
+      "reason": "Agent workspace customizations."
+    },
+    {
+      "pattern": ".ai/**",
+      "reason": "AI tooling directory."
+    },
+    {
+      "pattern": ".codegraph/**",
+      "reason": "Code graph indexing cache."
+    },
+    {
+      "pattern": ".know_me/**",
+      "reason": "Local feature data cache."
+    },
+    {
+      "pattern": ".record/**",
+      "reason": "Session records."
+    },
+    {
+      "pattern": ".wip/**",
+      "reason": "Work-in-progress staging."
+    },
+    {
+      "pattern": ".documentation/**",
+      "reason": "Internal documentation."
+    },
+    {
+      "pattern": "software-development/**",
+      "reason": "Development audit directory."
+    },
+    {
+      "pattern": "skills/**",
+      "reason": "Agent skills."
+    }
+  ],
+  "required_environment_variables": [
+    "SECRET_KEY",
+    "SUPABASE_URL",
+    "SUPABASE_KEY"
+  ],
+  "optional_environment_variables": [
+    "BASE_DOMAIN",
+    "CLOUDINARY_URL",
+    "CLOUDINARY_CLOUD_NAME",
+    "CLOUDINARY_API_KEY",
+    "CLOUDINARY_API_SECRET",
+    "FIREBASE_SERVICE_ACCOUNT_JSON",
+    "FIREBASE_STORAGE_BUCKET",
+    "VAPID_PUBLIC_KEY",
+    "VAPID_PRIVATE_KEY",
+    "VAPID_CLAIMS_EMAIL",
+    "OPENROUTER_API_KEY",
+    "NVIDIA_API_KEY",
+    "TURNSTILE_SITEKEY",
+    "TURNSTILE_SECRET",
+    "INDEX_NOW_BING_API_KEY",
+    "GMAIL_USER",
+    "GMAIL_APP_PASSWORD",
+    "BREVO_API_KEY",
+    "BREVO_SENDER",
+    "RESEND_API_KEY",
+    "RESEND_SENDER",
+    "CAMPAIGN_FROM",
+    "CAMPAIGN_FROM_NAME"
+  ]
+}
