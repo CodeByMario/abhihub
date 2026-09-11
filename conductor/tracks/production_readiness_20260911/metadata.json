@@ -1,9 +1,0 @@
-{
-  "id": "production_readiness_20260911",
-  "title": "AbhiHub Production Readiness Hardening",
-  "type": "chore",
-  "status": "planned",
-  "created_at": "2026-09-11T13:20:00Z",
-  "branch": "chore/production-readiness",
-  "base_commit": "39832b1f8627cf949993496150ac50f825d55e37"
-}
