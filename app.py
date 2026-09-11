@@ -18,7 +18,7 @@ import hashlib
 import hmac
 import requests
 import json
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 import logging
 from dotenv import load_dotenv
 from supabase import create_client, ClientOptions
@@ -237,20 +237,31 @@ app = Flask(__name__)
 
 # Response caching to improve server response time
 from flask import make_response, request
+# Response caching and security headers
+from flask import make_response, request
 import time
 
 @app.after_request
-def add_cache_control(response):
-    """Add cache control headers to improve performance."""
-    # Cache static assets for 1 year
+def apply_security_and_cache_headers(response):
+    """Add security and cache control headers to all responses."""
+    # Global Security Headers
+    response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+    response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    response.headers.setdefault('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()')
+    
+    # HSTS in production
+    if os.getenv('FLASK_ENV', 'production').lower() != 'development':
+        response.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+
+    # Performance / Cache-Control
     if request.path.startswith('/static/'):
         response.headers['Cache-Control'] = 'public, max-age=31536000, must-revalidate'
-    # Cache API responses for 5 minutes
     elif request.path.startswith('/api/'):
-        response.headers['Cache-Control'] = 'public, max-age=300, must-revalidate'
-    # Cache HTML for 1 minute (excluding dynamic pages)
+        if 'Cache-Control' not in response.headers:
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     elif request.path.endswith('.html') and not request.path.startswith('/dashboard'):
-        response.headers['Cache-Control'] = 'public, max-age=60, must-revalidate'
+        response.headers.setdefault('Cache-Control', 'public, max-age=60, must-revalidate')
     return response
 
 # Add gzip compression for text responses
@@ -260,6 +271,17 @@ try:
     compress.init_app(app)
 except ImportError:
     pass
+
+@app.route('/health')
+@app.route('/api/health')
+def health_check():
+    """Lightweight health check endpoint for monitoring without secret leakage."""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'abhihub',
+        'version': '1.0.0',
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }), 200
 
 # Sitemap URLs are opt-in. Keeping this registry next to the application
 # prevents newly added auth/account routes from being indexed by accident.
@@ -284,13 +306,6 @@ def sitemap_page(priority="0.80", changefreq="weekly"):
 def slugify(text):
     """Create the canonical URL-safe form used by sitemap entries."""
     return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
-
-
-try:
-    from flask_compress import Compress
-    Compress(app)
-except Exception:
-    pass  # Compression is optional; skip gracefully if unavailable
 
 # Initialize the Level-wise Cache Management System
 from cache_manager import init_cache, get_cache
@@ -423,12 +438,13 @@ def _load_contact_messages():
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
 
 # Configure session cookie settings
-# SESSION_COOKIE_SECURE should be True in production (HTTPS), False in development (HTTP)
-app.config['SESSION_COOKIE_SECURE'] = os.getenv('FLASK_ENV') == 'production'
+# SESSION_COOKIE_SECURE defaults to True for HTTPS unless FLASK_ENV is explicitly 'development'
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('FLASK_ENV', 'production').lower() != 'development'
 app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access to cookies
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=90)
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB request limit to prevent DoS memory exhaustion
 
 # CSRF Protection
 app.config['WTF_CSRF_ENABLED'] = True
@@ -470,19 +486,42 @@ except Exception as e:
 
 
 # File Upload Security Configuration
-MAX_FILE_SIZE = 500 * 1024 * 1024  # 500MB max file size
+MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB max file size
 # Match file input accept attr + JS type check: images + PDF only.
 # PDFs and images are the canonical upload types for AbhiHub.
 ALLOWED_EXTENSIONS = {
-    'pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'
+    'pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif'
 }
 
 def allowed_file(filename):
     """Check if file extension is allowed"""
-    if '.' not in filename:
+    if not filename or '.' not in filename:
         return False  # no extension — rejected
     ext = filename.rsplit('.', 1)[1].lower()
     return ext in ALLOWED_EXTENSIONS
+
+def validate_file_content(file_obj, filename):
+    """Validate both file extension and magic byte header signature."""
+    if not allowed_file(filename):
+        return False
+    ext = filename.rsplit('.', 1)[1].lower()
+    try:
+        header = file_obj.read(16)
+        file_obj.seek(0)
+    except Exception:
+        return False
+
+    if ext == 'pdf':
+        return header.startswith(b'%PDF')
+    elif ext in {'jpg', 'jpeg'}:
+        return header.startswith(b'\xff\xd8\xff')
+    elif ext == 'png':
+        return header.startswith(b'\x89PNG\r\n\x1a\n')
+    elif ext == 'gif':
+        return header.startswith(b'GIF87a') or header.startswith(b'GIF89a')
+    elif ext == 'webp':
+        return header.startswith(b'RIFF') and b'WEBP' in header[:16]
+    return False
 
 def sanitize_filename(filename):
     """Sanitize filename to prevent path traversal and other attacks"""
@@ -685,11 +724,15 @@ def admin_required(f):
         # Check if user is authenticated first
         user = session.get('user')
         if not user:
+            if request.path.startswith('/api/') or request.path.startswith('/store-room/api/'):
+                return jsonify({'success': False, 'message': 'Unauthorized'}), 401
             return redirect(url_for('login'))
             
         # Check if user email matches admin email
         user_email = user.get('email', '').lower()
-        if user_email not in ADMIN_EMAILS:
+        if not ADMIN_EMAILS or user_email not in ADMIN_EMAILS:
+            if request.path.startswith('/api/') or request.path.startswith('/store-room/api/'):
+                return jsonify({'success': False, 'message': 'Forbidden: Admin access required'}), 403
             abort(403)  # Forbidden
             
         return f(*args, **kwargs)
@@ -994,6 +1037,10 @@ def _async_compress_and_update(public_id, secure_url, resource_type, filename):
     except Exception as e:
         logging.error(f"Async post-upload worker error for {public_id}: {e}")
 
+@app.route('/api/version')
+def version_info():
+    """Return current app version for footer and cache management"""
+    return jsonify({"version": "1.0.0"})
 
 @app.route('/api/webhooks/cloudinary-upload', methods=['POST'])
 def webhook_cloudinary_upload():
@@ -1041,7 +1088,7 @@ def authorize():
         return "Unauthorized", 401
 
     token = token[7:]  # Strip off 'Bearer ' to get the actual token
-    logging.debug(f"Received token: {token}")
+    # Do not log raw authentication tokens (CWE-532)
 
     try:
         # Get user from Supabase using the token
@@ -1082,7 +1129,7 @@ def authorize():
         if session_result.get('success'):
             session['session_id'] = session_result.get('session_id')
         
-        logging.debug(f"User authenticated: {user_data.email}")
+        logging.debug(f"User authenticated: uid={user_data.id}")
         return jsonify({'success': True, 'message': 'Authenticated'}), 200
     
     except Exception as e:
@@ -1429,13 +1476,14 @@ def logout():
     # Log out the user session if it exists
     session_id = session.get('session_id')
     if session_id:
-        from data.profiles import UserSession
-        UserSession.log_logout(session_id)
-        session.pop('session_id', None)
-        
-    session.pop('user', None)  # Remove the user from session
+        try:
+            from data.profiles import UserSession
+            UserSession.log_logout(session_id)
+        except Exception as e:
+            logging.warning(f"Failed to log session logout: {e}")
+    session.clear()  # Purge all session keys
     response = make_response(render_template('logout_clear.html'))
-    response.set_cookie('session', '', expires=0)  # Clear the session cookie
+    response.set_cookie(app.config.get('SESSION_COOKIE_NAME', 'session'), '', expires=0, path='/')
     return response
 
 @app.route('/api/profile-status')
@@ -2439,9 +2487,9 @@ def upload():
         if file.filename == '':
             return jsonify(success=False, message="No file selected"), 400
         
-        # Security: Validate file extension
-        if not allowed_file(file.filename):
-            return jsonify(success=False, message="File type not allowed. Allowed types: PDF, PNG, JPG, JPEG, WEBP, GIF, SVG"), 400
+        # Security: Validate file extension and magic byte signature
+        if not validate_file_content(file, file.filename):
+            return jsonify(success=False, message="File type not allowed or invalid file content. Allowed types: PDF, PNG, JPG, JPEG, WEBP, GIF"), 400
         
         # Security: Check file size
         file.seek(0, os.SEEK_END)
@@ -5900,7 +5948,7 @@ def api_ask_paper():
                 return jsonify({
                     'success': False,
                     'message': 'You have reached the limit of 5 chats per hour. Please try again later.'
-                }), 
+                }), 429
             # Record this chat request
             _chat_history[user_id].append(now)
 
@@ -7293,10 +7341,3 @@ if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV') != 'production'
     socketio.run(app, debug=debug_mode)
 
-
-
-
-@app.route('/api/version')
-def version_info():
-    """Return current app version for footer and cache management"""
-    return jsonify({"version": "1.0.0"})
