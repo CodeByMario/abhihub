@@ -1,0 +1,66 @@
+# Git & CI/CD
+.git
+.gitignore
+.github
+
+# Secrets & Local Configurations
+.env*
+firebase-auth.json
+*.pem
+*.key
+*.cert
+
+# Test & Automation
+tests
+.pytest_cache
+coverage
+automation_test_report.md
+
+# Documentation & Agent Instructions
+docs
+conductor
+*.md
+*-instruction.md
+LICENSE*
+!LICENSE
+
+# Node / Frontend Build Tools (handled in multi-stage builder)
+node_modules
+package.json
+package-lock.json
+tailwind.config.js
+
+# Python Build & Virtual Environments
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+
+# Dev & Stray Utilities
+dev
+trash
+icons
+bot.py
+setup.py
+config
+scripts
+sync_firebase_documents.py
+getSettings.ts
+E?UsersabhihubNew
+
+# IDE & Agent Workspaces
+.vscode
+.idea
+.agent
+.agents
+.ai
+.codegraph
+.know_me
+.record
+.wip
+.documentation
+software-development
+skills
+dist
+build

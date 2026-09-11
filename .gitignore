@@ -57,3 +57,5 @@ exports/
 # Audit reports (generated)
 .ai/history/reports/
 data/raw/
+dist/
+build/
