@@ -83,19 +83,20 @@ def get_user_profile_data():
 
 def get_full_profile_json():
     """
-    Return the full user profile as a JSON-safe dict for embedding in templates.
+    Return sanitized user profile as JSON-safe dict for embedding in templates.
+    Strictly zero PII (no email, mobile, or private user credentials).
     """
     profile = get_user_profile_data()
     return {
         'userId': profile['uid'] or 'anonymous',
-        'email': profile['email'] or '',
-        'name': profile['name'] or '',
-        'mobile': profile['mobile'] or '',
         'branch': profile['branch'] or '',
         'college': profile['college'] or '',
         'yearOfStudy': profile['year_of_study'] or '',
         'role': profile['role'] or 'anonymous',
-        'isAuthenticated': profile['isAuthenticated']
+        'isAuthenticated': profile['isAuthenticated'],
+        'creatorStatus': 'active_uploader' if profile.get('uid') else 'never_uploaded',
+        'readerStatus': 'reader' if profile.get('uid') else 'never_read',
+        'engagementStage': 'returning' if profile.get('uid') else 'new'
     }
 
 

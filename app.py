@@ -3083,9 +3083,6 @@ def view_doc(doc_id, filename=None):
                                 # Fetch from Supabase storage using signed URL
                                 import urllib.parse
                                 supabase_url = document.get('supabase_url')
-                                # Get a signed URL from Supabase
-                                from datetime import timedelta
-                                from uuid import uuid4
                                 bucket_name = supabase_url.split('/')[-3]  # Extract bucket name
                                 # Try to get a public URL
                                 try:
@@ -3665,19 +3662,18 @@ def resource_landing(slug):
         except Exception:
             ai_chat_allowed = False
     
-    if current_user_id:
-        client = init_supabase()
-        if client:
-            try:
-                like_check = client.table('document_votes').select('id').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
-                document['is_liked'] = bool(like_check.data)
-            except Exception:
-                pass
-            try:
-                bm_check = client.table('bookmarks').select('id').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
-                document['is_bookmarked'] = bool(bm_check.data)
-            except Exception:
-                pass
+    client = init_supabase()
+    if current_user_id and client:
+        try:
+            like_check = client.table('document_votes').select('id').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
+            document['is_liked'] = bool(like_check.data)
+        except Exception:
+            pass
+        try:
+            bm_check = client.table('bookmarks').select('id').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
+            document['is_bookmarked'] = bool(bm_check.data)
+        except Exception:
+            pass
             
     # Track view (shared helper — see log_document_view)
     log_document_view(

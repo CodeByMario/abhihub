@@ -818,7 +818,8 @@ self.addEventListener("push", (event) => {
     icon: '/static/images/android-chrome-192x192.png',
     badge: '/static/images/favicon-32x32.png',
     url: '/dashboard',
-    tag: 'abhihub-notification'
+    tag: 'abhihub-notification',
+    notification_id: null
   };
 
   // Parse push data if available
@@ -837,7 +838,11 @@ self.addEventListener("push", (event) => {
     icon: data.icon,
     badge: data.badge,
     tag: data.tag,
-    data: { url: data.url },
+    data: {
+      url: data.url,
+      notification_id: data.notification_id,
+      timestamp: Date.now()
+    },
     vibrate: [100, 50, 100],
     requireInteraction: false,
     actions: [
@@ -859,26 +864,48 @@ self.addEventListener('notificationclick', (event) => {
 
   event.notification.close();
 
-  // Handle actions
-  if (event.action === 'dismiss') {
+  // Handle dismiss action
+  if (event.action === 'dismiss' || event.action === 'close') {
     return;
   }
 
-  // Get URL from notification data or default to /premium
-  const urlToOpen = event.notification.data?.url || '/dashboard';
+  // Record open if notification_id exists
+  const notifData = event.notification.data || {};
+  if (notifData.notification_id) {
+    try {
+      fetch(`/api/notifications/${encodeURIComponent(notifData.notification_id)}/open`, {
+        method: 'POST',
+        credentials: 'same-origin'
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
+  // Sanitize allowlisted URL
+  let rawUrl = notifData.url ? notifData.url : '/dashboard';
+  let urlToOpen = '/dashboard';
+  if (typeof rawUrl === 'string' && rawUrl.startsWith('/') && !rawUrl.startsWith('//') && !rawUrl.includes('\\')) {
+    const ALLOWED = ['/dashboard', '/profile', '/resource', '/chat', '/settings', '/notifications', '/pyqs', '/notes'];
+    if (ALLOWED.some(prefix => rawUrl === prefix || rawUrl.startsWith(prefix + '/') || rawUrl.startsWith(prefix + '?') || rawUrl.startsWith(prefix + '#'))) {
+      urlToOpen = rawUrl;
+    }
+  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Check if app window is already open
+        // Check if any app window from same origin is already open
         for (const client of clientList) {
-          if (client.url.includes('/dashboard') && 'focus' in client) {
-            client.navigate(urlToOpen);
+          if (client.url && client.url.includes(self.location.origin) && 'focus' in client) {
+            if ('navigate' in client && urlToOpen) {
+              client.navigate(urlToOpen);
+            }
             return client.focus();
           }
         }
-        // Open new window if not
-        return clients.openWindow(urlToOpen);
+        // Open new window if no active tab found
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
       })
   );
 });
@@ -889,3 +916,5 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('notificationclose', (event) => {
   console.log('[SW] Notification closed');
 });
+
+

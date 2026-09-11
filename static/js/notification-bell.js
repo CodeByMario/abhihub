@@ -15,6 +15,17 @@
     var _notifOpen = false;
     var _initialized = false;
 
+    // ── HTML Escaping helper ─────────────────────────────────────
+    function escapeHtml(str) {
+        if (!str) return '';
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
     // ── Time formatting ──────────────────────────────────────────
     function timeAgo(iso) {
         if (!iso) return '—';
@@ -48,8 +59,9 @@
             var unreadDot = n.is_read ? '' : '<div class="notif-unread-dot"></div>';
             var title = escapeHtml(n.title || '');
             var msg = escapeHtml(n.message || '');
+            var actionUrl = n.action_url ? escapeHtml(n.action_url) : '';
             return (
-                '<div class="notif-item ' + unreadClass + '" data-notif-id="' + n.id + '">' +
+                '<div class="notif-item ' + unreadClass + '" data-notif-id="' + n.id + '" data-action-url="' + actionUrl + '" style="cursor:pointer;">' +
                     '<div class="notif-item-icon default">' + typeIcon + '</div>' +
                     '<div class="notif-item-content">' +
                         '<div class="notif-item-title">' + title + '</div>' +
@@ -61,6 +73,7 @@
             );
         }).join('');
     }
+
 
     // ── Update unread badge ─────────────────────────────────────
     function updateBadge(unread) {
@@ -220,16 +233,22 @@
         var markAllBtn = document.querySelector('[data-action="markAllRead"]');
         if (markAllBtn) markAllBtn.addEventListener('click', markAllRead);
 
-        // Wire up individual notification click → mark read
+        // Wire up individual notification click → mark read + navigate
         var list = document.getElementById('notifList');
         if (list) {
             list.addEventListener('click', function (e) {
                 var item = e.target.closest('.notif-item');
                 if (item && item.getAttribute('data-notif-id')) {
-                    markRead(item.getAttribute('data-notif-id'));
+                    var notifId = item.getAttribute('data-notif-id');
+                    var actionUrl = item.getAttribute('data-action-url');
+                    markRead(notifId);
+                    if (actionUrl && actionUrl.startsWith('/') && !actionUrl.startsWith('//') && !actionUrl.includes('\\')) {
+                        setTimeout(function () { window.location.href = actionUrl; }, 150);
+                    }
                 }
             });
         }
+
 
         document.addEventListener('click', onDocumentClick);
 
