@@ -1,0 +1,79 @@
+/**
+ * AbhiHub — feature-tour.css
+ * Styles for the feature tour overlay and tooltip.
+ * Extracted from p_struct.html inline <style> block.
+ */
+
+#featureTourOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: 4000;
+    pointer-events: auto;
+    transition: background var(--transition-normal);
+}
+
+#featureTourTooltip {
+    position: absolute;
+    z-index: 4100;
+    background: var(--surface);
+    border-radius: var(--radius-xl);
+    box-shadow: 0 8px 32px rgba(37, 99, 235, 0.13);
+    padding: var(--space-5);
+    min-width: 220px;
+    max-width: 320px;
+    font-size: var(--text-base);
+    color: var(--text-primary);
+    line-height: 1.6;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    animation: fadeIn 0.2s ease-out;
+}
+
+#featureTourTooltip .ft-title {
+    font-weight: 700;
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-2);
+    color: var(--primary-700);
+}
+
+#featureTourTooltip .ft-actions {
+    margin-top: var(--space-4);
+    width: 100%;
+    display: flex;
+    gap: var(--space-3);
+    justify-content: flex-end;
+}
+
+#featureTourTooltip button {
+    background: var(--gradient-primary);
+    color: var(--text-inverse);
+    border: none;
+    border-radius: var(--radius-lg);
+    padding: var(--space-2) var(--space-5);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--transition-fast);
+    font-family: var(--font-primary);
+}
+
+#featureTourTooltip button.ft-skip {
+    background: var(--bg-tertiary);
+    color: var(--text-gray-dark);
+    border: 1px solid var(--border-medium);
+}
+
+#featureTourTooltip button:hover {
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-md);
+}
+
+.ft-highlight {
+    position: relative;
+    z-index: 4050 !important;
+    box-shadow: 0 0 0 4px var(--brand-yellow), 0 0 0 12px rgba(98, 238, 168, 0.63);
+    border-radius: var(--radius-lg) !important;
+    transition: box-shadow var(--transition-normal);
+}

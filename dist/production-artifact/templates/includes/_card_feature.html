@@ -1,0 +1,25 @@
+<!-- _card_feature.html - Reusable feature/benefit card component -->
+<!-- Parameters:
+     - icon: Icon emoji or HTML
+     - title: Card title
+     - description: Card description text
+     - link_url: Optional link URL (if provided, makes card clickable)
+     - link_text: Optional link text
+-->
+
+{% if link_url %}
+<a href="{{ link_url }}" class="glass-card">
+{% else %}
+<div class="glass-card">
+{% endif %}
+  <div class="icon-box">{{ icon }}</div>
+  <h3 class="card-title">{{ title }}</h3>
+  <p class="card-desc">{{ description }}</p>
+  {% if link_text %}
+  <span class="card-link">{{ link_text }}</span>
+  {% endif %}
+{% if link_url %}
+</a>
+{% else %}
+</div>
+{% endif %}

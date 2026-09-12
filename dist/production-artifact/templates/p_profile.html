@@ -1,0 +1,598 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/p_profile.css') }}">
+
+<div class="pf-page">
+
+  <!-- Hero Banner -->
+  <div class="pf-hero">
+    <div class="pf-avatar-wrap">
+      <img
+        src="{{ data['user'].get('picture') or data['user'].get('user_metadata', {}).get('avatar_url', '') or 'https://ui-avatars.com/api/?name=' ~ data['user']['name']|urlencode ~ '&background=6366f1&color=fff&size=160&bold=true' }}"
+        alt="{{ data['user']['name'] }}" class="pf-avatar" loading="lazy">
+      <div class="pf-crown">👑</div>
+    </div>
+    <div class="pf-hero-info">
+      <h1 class="pf-hero-name">{{ data['user']['name'] }}</h1>
+      <p class="pf-hero-email">{{ data['user']['email'] }}</p>
+      <!-- Access Level Badge (Dynamic Access Economy) -->
+      <div id="access-badge" style="margin:.5rem 0 .25rem;display:none;align-items:center;gap:.6rem;">
+        <span
+          style="background:rgba(255,255,255,.18);border:1px solid rgba(255,255,255,.35);border-radius:999px;padding:.25rem .8rem;font-size:.8rem;font-weight:600;color:#fff;">
+          ⭐ <span id="access-level-name">Explorer</span>
+        </span>
+        <div
+          style="flex:1;max-width:180px;height:6px;background:rgba(255,255,255,.25);border-radius:999px;overflow:hidden;">
+          <div id="access-progress-bar"
+            style="height:100%;width:0%;background:#fff;border-radius:999px;transition:width .4s;"></div>
+        </div>
+        <span id="access-next" style="font-size:.72rem;color:rgba(255,255,255,.85);"></span>
+      </div>
+
+
+      <div style="margin-top: 0.5rem; display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+        <button id="checkEligibilityBtn" type="button"
+          style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.4); color: #fff; border-radius: 8px; padding: 0.35rem 0.75rem; font-size: 0.78rem; font-weight: 600; cursor: pointer; backdrop-filter: blur(4px);">
+          Check Eligibility
+        </button>
+        <div id="eligibilityResult" style="font-size: 0.78rem; display: none;"></div>
+      </div>
+
+
+      <div class="pf-hero-stats">
+        <div class="pf-stat-box">
+          <span class="pf-stat-num">{{ data.get('uploaded_files', [])|length }}</span>
+          <span class="pf-stat-label">Uploads</span>
+        </div>
+        {% set notes_count = data.get('uploaded_files', []) | selectattr('type', 'equalto', 'Notes') | list | length %}
+        <div class="pf-stat-box">
+          <span class="pf-stat-num">{{ notes_count }}</span>
+          <span class="pf-stat-label">Notes</span>
+        </div>
+        {% set papers_count = data.get('uploaded_files', []) | selectattr('type', 'equalto', 'Papers') | list | length
+        %}
+        <div class="pf-stat-box">
+          <span class="pf-stat-num">{{ papers_count }}</span>
+          <span class="pf-stat-label">Papers</span>
+        </div>
+        {% set lab_count = data.get('uploaded_files', []) | selectattr('type', 'equalto', 'Practicals') | list | length
+        %}
+        <div class="pf-stat-box">
+          <span class="pf-stat-num">{{ lab_count }}</span>
+          <span class="pf-stat-label">Lab</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- ☸ Papo Meter ☸ -->
+  <div class="papo-meter" style="
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  ">
+    <!-- Pap Card -->
+    <div style="
+      background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+      border-radius: 16px;
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div style="
+        position: absolute;
+        right: -16px;
+        top: -16px;
+        width: 80px;
+        height: 80px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+      "></div>
+      <div style="font-size: 1.5rem; margin-bottom: 0.3rem;">📖</div>
+      <div style="font-size: 2rem; font-weight: 800; color: #fff; line-height: 1;">
+        {{ data.get('papo_meter', {}).get('pap_count', 0) }}
+      </div>
+      <div
+        style="font-size: 0.72rem; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 0.25rem; font-weight: 600;">
+        पाप — Files Accessed
+      </div>
+      <div style="font-size: 0.68rem; color: rgba(255,255,255,0.6); margin-top: 0.15rem;">
+        Documents you've viewed
+      </div>
+    </div>
+
+    <!-- Punya Card -->
+    <div style="
+      background: linear-gradient(135deg, #10b981 0%, #059669 100%);
+      border-radius: 16px;
+      padding: 1.25rem;
+      position: relative;
+      overflow: hidden;
+    ">
+      <div style="
+        position: absolute;
+        right: -16px;
+        top: -16px;
+        width: 80px;
+        height: 80px;
+        background: rgba(255,255,255,0.1);
+        border-radius: 50%;
+      "></div>
+      <div style="font-size: 1.5rem; margin-bottom: 0.3rem;">🌟</div>
+      <div style="font-size: 2rem; font-weight: 800; color: #fff; line-height: 1;">
+        {{ data.get('papo_meter', {}).get('punya_count', 0) }}
+      </div>
+      <div
+        style="font-size: 0.72rem; color: rgba(255,255,255,0.8); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 0.25rem; font-weight: 600;">
+        पुण्य — Views Earned
+      </div>
+      <div style="font-size: 0.68rem; color: rgba(255,255,255,0.6); margin-top: 0.15rem;">
+        Total views on your uploads
+      </div>
+    </div>
+  </div>
+
+  <!-- 💳 Credit History & Ledger 💳 -->
+  <div class="pf-card"
+    style="margin-bottom: 1.5rem; background: #fff; border-radius: 16px; padding: 1.25rem; border: 1px solid var(--border-light, #e2e8f0);">
+    <div
+      style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; flex-wrap: wrap; gap: 0.5rem;">
+      <div style="display: flex; align-items: center; gap: 0.75rem;">
+        <div
+          style="background: #ecfdf5; color: #10b981; width: 38px; height: 38px; border-radius: 10px; display: flex; align-items: center; justify-content: center; font-size: 1.2rem;">
+          💳</div>
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.6rem;">
+            <h3 style="font-size: 1.05rem; font-weight: 700; color: #1e293b; margin: 0;">Credit History & Ledger</h3>
+            <span id="walletBalancePill"
+              style="background: #e0f2fe; color: #0369a1; font-weight: 700; font-size: 0.75rem; padding: 0.2rem 0.6rem; border-radius: 999px; border: 1px solid #bae6fd;">
+              💰 Quota: <span id="walletBalanceVal">--</span> Views
+            </span>
+          </div>
+          <p style="font-size: 0.78rem; color: #64748b; margin: 0.15rem 0 0 0;">Track earned and spent study view
+            credits</p>
+        </div>
+      </div>
+      <div style="display: flex; gap: 0.5rem; align-items: center;">
+        <button type="button" onclick="openBuyCreditsModal()"
+          style="background: linear-gradient(135deg, #10b981, #059669); color: #fff; border: none; padding: 0.4rem 0.85rem; border-radius: 8px; font-weight: 700; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 0.3rem; box-shadow: 0 2px 4px rgba(16,185,129,0.2);">
+          💎 Buy Credits
+        </button>
+        <button type="button" onclick="loadCreditHistory()"
+          style="background: #f1f5f9; border: 1px solid #cbd5e1; padding: 0.4rem 0.75rem; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 0.8rem; color: #334155;">🔄
+          Refresh</button>
+      </div>
+    </div>
+    <div id="creditLedgerList" style="display: flex; flex-direction: column; gap: 0.6rem;">
+      <div style="text-align: center; color: #94a3b8; padding: 1rem; font-size: 0.88rem;">Loading transaction history…
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Buy Credits Modal ── -->
+  <div id="buyCreditsModalProfile" class="buy-credits-modal-overlay"
+    style="display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.65); backdrop-filter: blur(4px); z-index: 99999; align-items: center; justify-content: center;">
+    <div
+      style="background: #fff; border-radius: 20px; width: 90%; max-width: 520px; padding: 1.5rem; box-shadow: 0 20px 25px -5px rgba(0,0,0,0.1); position: relative;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+        <h3 style="margin: 0; font-size: 1.2rem; color: #0f172a;">💎 Buy View Credits</h3>
+        <button type="button" onclick="closeBuyCreditsModal()"
+          style="background: none; border: none; font-size: 1.5rem; cursor: pointer; color: #64748b;">&times;</button>
+      </div>
+      <p style="font-size: 0.85rem; color: #64748b; margin: 0 0 1.25rem 0;">Rate: <strong>₹2 / view</strong>. Instantly
+        top up view credits to access study material.</p>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 0.9rem;">
+        <div onclick="selectCreditPackProfile(50, 100)"
+          style="border: 2px solid #e2e8f0; border-radius: 14px; padding: 1rem; text-align: center; cursor: pointer; background: #fafafa; transition: all 0.2s;">
+          <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Standard</div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0.2rem 0;">50 Views</div>
+          <div style="font-size: 1.1rem; font-weight: 800; color: #10b981;">₹100</div>
+          <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.2rem;">₹2.00 / view</div>
+        </div>
+        <div onclick="selectCreditPackProfile(100, 200)"
+          style="border: 2px solid #10b981; border-radius: 14px; padding: 1rem; text-align: center; cursor: pointer; background: #f0fdf4; transition: all 0.2s; position: relative;">
+          <div
+            style="font-size: 0.68rem; font-weight: 800; color: #fff; background: #10b981; padding: 0.15rem 0.5rem; border-radius: 999px; display: inline-block;">
+            BEST VALUE</div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0.2rem 0;">100 Views</div>
+          <div style="font-size: 1.1rem; font-weight: 800; color: #10b981;">₹200</div>
+          <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.2rem;">₹2.00 / view</div>
+        </div>
+        <div onclick="selectCreditPackProfile(500, 1000)"
+          style="border: 2px solid #e2e8f0; border-radius: 14px; padding: 1rem; text-align: center; cursor: pointer; background: #fafafa; transition: all 0.2s;">
+          <div style="font-size: 0.7rem; font-weight: 700; color: #64748b; text-transform: uppercase;">Pro Pack</div>
+          <div style="font-size: 1.25rem; font-weight: 800; color: #0f172a; margin: 0.2rem 0;">500 Views</div>
+          <div style="font-size: 1.1rem; font-weight: 800; color: #10b981;">₹1000</div>
+          <div style="font-size: 0.7rem; color: #94a3b8; margin-top: 0.2rem;">₹2.00 / view</div>
+        </div>
+      </div>
+      <div id="buyCreditsStatusProfile"
+        style="margin-top: 1rem; font-size: 0.85rem; text-align: center; font-weight: 600;"></div>
+    </div>
+  </div>
+
+  <!-- Two-column grid -->
+  <div class="pf-grid">
+
+    <!-- ── SIDEBAR ── -->
+    <div>
+      <!-- Account Settings -->
+      <div class="pf-card" style="margin-bottom:1.25rem;">
+        <div class="pf-card-head">Account</div>
+
+        <a href="{{ url_for('account') }}" class="pf-setting-item">
+          <div class="pf-setting-icon pf-icon-blue">✏️</div>
+          <div class="pf-setting-text">
+            <span class="pf-setting-label">Edit Profile</span>
+            <span class="pf-setting-desc">Name, photo &amp; bio</span>
+          </div>
+          <span class="pf-setting-arrow">›</span>
+        </a>
+
+        <a href="{{ url_for('earnings') }}" class="pf-setting-item">
+          <div class="pf-setting-icon pf-icon-amber">💰</div>
+          <div class="pf-setting-text">
+            <span class="pf-setting-label">Earnings</span>
+            <span class="pf-setting-desc">Rewards & rank benefits</span>
+          </div>
+          <span class="pf-setting-arrow">›</span>
+        </a>
+
+        <!-- Notification toggle -->
+        <button id="notificationToggle" class="pf-toggle-wrap" type="button" data-action="handleNotificationToggle"
+          role="switch" aria-checked="false">
+          <div class="pf-setting-icon pf-icon-amber">🔔</div>
+          <div class="pf-setting-text">
+            <span class="pf-setting-label">Notifications</span>
+            <span class="pf-setting-desc" id="notifStatus">Loading…</span>
+          </div>
+          <div class="pf-toggle-track" id="toggleTrack">
+            <div class="pf-toggle-thumb" id="toggleThumb"></div>
+          </div>
+        </button>
+      </div>
+
+      <!-- Preferences -->
+      <div class="pf-card" style="margin-bottom:1.25rem;">
+        <div class="pf-card-head">Preferences</div>
+
+        <a href="{{ url_for('upload') }}" class="pf-setting-item">
+          <div class="pf-setting-icon pf-icon-green">📤</div>
+          <div class="pf-setting-text">
+            <span class="pf-setting-label">Upload Notes</span>
+            <span class="pf-setting-desc">Share your material</span>
+          </div>
+          <span class="pf-setting-arrow">›</span>
+        </a>
+
+        <a href="/" class="pf-setting-item">
+          <div class="pf-setting-icon pf-icon-slate">🏠</div>
+          <div class="pf-setting-text">
+            <span class="pf-setting-label">Browse Library</span>
+            <span class="pf-setting-desc">Explore all files</span>
+          </div>
+          <span class="pf-setting-arrow">›</span>
+        </a>
+
+        <a href="{{ url_for('support') }}" class="pf-setting-item">
+          <div class="pf-setting-icon pf-icon-amber">💝</div>
+          <div class="pf-setting-text">
+            <span class="pf-setting-label">Support AbhiHub</span>
+            <span class="pf-setting-desc">Help keep us free</span>
+          </div>
+          <span class="pf-setting-arrow">›</span>
+        </a>
+
+        <!-- Version & Cache Management Option -->
+        <a href="javascript:void(0)" class="pf-setting-item" onclick="clearCacheAndRefresh()">
+          <div class="pf-setting-icon pf-icon-purple">🧹</div>
+          <div class="pf-setting-text">
+            <span class="pf-setting-label">Clear Cache &amp; Check Version</span>
+            <span class="pf-setting-desc">Free up storage and verify app version</span>
+          </div>
+          <span class="pf-setting-arrow">›</span>
+        </a>
+        <!-- Update Service Worker Option -->
+        <a href="javascript:void(0)" class="pf-setting-item" onclick="updateServiceWorker()">
+          <div class="pf-setting-icon pf-icon-blue">🔄</div>
+          <div class="pf-setting-text">
+            <span class="pf-setting-label">Update Service Worker</span>
+            <span class="pf-setting-desc">Clear old service worker and apply update</span>
+          </div>
+          <span class="pf-setting-arrow">›</span>
+        </a>
+
+
+        <a href="#" class="pf-setting-item" data-action="printPage" aria-label="Print this page">
+          <div class="pf-setting-icon pf-icon-blue">🖨️</div>
+          <div class="pf-setting-text">
+            <span class="pf-setting-label">Print / Save PDF</span>
+            <span class="pf-setting-desc">Export this page</span>
+          </div>
+          <span class="pf-setting-arrow">›</span>
+        </a>
+      </div>
+
+      <!-- Danger Zone -->
+      <div class="pf-card">
+        <div class="pf-card-head">Session</div>
+        <a href="/logout" class="pf-setting-item danger">
+          <div class="pf-setting-icon pf-icon-red">🚪</div>
+          <div class="pf-setting-text">
+            <span class="pf-setting-label">Sign Out</span>
+            <span class="pf-setting-desc">End current session</span>
+          </div>
+          <span class="pf-setting-arrow" style="color:#ef4444;">›</span>
+        </a>
+      </div>
+    </div>
+
+    <!-- ── MAIN CONTENT ── -->
+    <div>
+
+      <!-- Upload CTA -->
+      <a href="{{ url_for('upload') }}" class="pf-upload-btn">
+        <span style="font-size:1.1rem;">＋</span> Upload New Notes
+      </a>
+
+      <!-- YOUR UPLOADS -->
+      <div class="pf-section">
+        <div class="pf-section-head">
+          <h2 class="pf-section-title">Your Uploads</h2>
+          <span class="pf-badge">{{ data.get('uploaded_files', [])|length }}</span>
+        </div>
+
+        {% if data.get('uploaded_files') and data['uploaded_files']|length > 0 %}
+        <div class="pf-file-grid">
+          {% for file in data['uploaded_files'] %}
+          {% set _rid = file.get('record_id') or file.get('id') or '' %}
+          <a href="{% if _rid %}{{ url_for('resource_landing', slug=_rid) }}{% else %}{{ file['url'] }}{% endif %}"
+            class="pf-file-card uploaded-file-card {% if loop.index > 5 %}hidden{% endif %}">
+            <img
+              src="/static/premium/icon/{% if file['type'] in ['Notes','notes'] %}notes.gif{% elif file['type'] in ['Practical','practicals'] %}practicals.gif{% else %}papers.gif{% endif %}"
+              class="pf-file-icon" alt="" aria-hidden="true">
+            <div class="pf-file-name" title="{{ file['file-name'] }}">{{ file['file-name'] }}</div>
+            <div class="pf-file-meta">
+              <span>{{ file['subject'][:12] if file['subject'] else 'N/A' }}</span>
+              {% if file.get('verified') %}<span class="pf-verified">✓</span>{% endif %}
+            </div>
+          </a>
+          {% endfor %}
+        </div>
+        {% if data['uploaded_files']|length > 5 %}
+        <button id="uploaded-show-more" class="pf-show-more" type="button" data-action="showMore"
+          data-category="uploaded">
+          ↓ Show more ({{ data['uploaded_files']|length - 5 }} more)
+        </button>
+        {% endif %}
+        {% else %}
+        <div class="pf-empty">
+          <div class="pf-empty-icon">📁</div>
+          <p>No uploads yet. <a href="{{ url_for('upload') }}" style="color:var(--primary-600);">Upload your first
+              file</a></p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- PHASE 18: CONTRIBUTION TIMELINE -->
+      <div class="pf-section">
+        <div class="pf-section-head">
+          <h2 class="pf-section-title">Contribution Timeline</h2>
+        </div>
+        <div style="background: #fff; border-radius: 12px; border: 1px solid var(--border-light); padding: 1.25rem;">
+          {% if data.get('timeline') and data['timeline']|length > 0 %}
+          <div style="position: relative; padding-left: 20px;">
+            <div
+              style="position: absolute; top: 0; bottom: 0; left: 6px; width: 2px; background: var(--border-medium);">
+            </div>
+            {% for event in data['timeline'] %}
+            <div class="timeline-item {% if loop.index > 5 %}hidden{% endif %}"
+              style="position: relative; margin-bottom: 1rem;">
+              <div
+                style="position: absolute; left: -20px; top: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--primary-600); border: 2px solid #fff;">
+              </div>
+              <div style="font-size: 0.82rem; font-weight: 600; color: var(--text-primary);">
+                {{ event['description'] }}
+              </div>
+              <div
+                style="font-size: 0.72rem; color: var(--text-tertiary); margin-top: 0.15rem; display: flex; gap: 0.5rem; align-items: center;">
+                <span>{{ event['created_at'].split('T')[0] }}</span>
+                {% if event['xp_awarded'] > 0 %}
+                <span style="color: #10b981; font-weight: 600;">+{{ event['xp_awarded'] }} XP</span>
+                {% endif %}
+              </div>
+            </div>
+            {% endfor %}
+          </div>
+          {% if data['timeline']|length > 5 %}
+          <button id="timeline-show-more" class="pf-show-more" type="button" data-action="showMore"
+            data-category="timeline">
+            ↓ Show more ({{ data['timeline']|length - 5 }} more)
+          </button>
+          {% endif %}
+          {% else %}
+          <div class="pf-empty" style="border: none; padding: 1rem;">
+            <p>No contributions yet. Your timeline will appear here when you upload files.</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- STUDY MATERIAL -->
+      {% set notes_files = data.get('uploaded_files', []) | selectattr('type', 'equalto', 'Notes') | list %}
+      <div class="pf-section">
+        <div class="pf-section-head">
+          <h2 class="pf-section-title">Study Material</h2>
+          <span class="pf-badge">{{ notes_files|length }}</span>
+        </div>
+        {% if notes_files %}
+        <div class="pf-file-grid">
+          {% for file in notes_files %}
+          <a href="{% set _rid = file.get('record_id') or file.get('id') or '' %}{{ url_for('resource_landing', slug=_rid) if _rid else '#' }}"
+            class="pf-file-card notes-file-card {% if loop.index > 5 %}hidden{% endif %}">
+            <img src="/static/premium/icon/notes.gif" class="pf-file-icon" alt="" aria-hidden="true">
+            <div class="pf-file-name" title="{{ file['file-name'] }}">{{ file['file-name'] }}</div>
+            <div class="pf-file-meta"><span>{{ file['subject'] }}</span></div>
+          </a>
+          {% endfor %}
+        </div>
+        {% if notes_files|length > 5 %}
+        <button id="notes-show-more" class="pf-show-more" type="button" data-action="showMore" data-category="notes">
+          ↓ Show more ({{ notes_files|length - 5 }} more)
+        </button>
+        {% endif %}
+        {% else %}
+        <div class="pf-empty">
+          <div class="pf-empty-icon">📝</div>
+          <p>No study material available</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- PYQs & PAPERS -->
+      {% set papers_files = data.get('uploaded_files', []) | selectattr('type', 'equalto', 'Papers') | list %}
+      <div class="pf-section">
+        <div class="pf-section-head">
+          <h2 class="pf-section-title">PYQs &amp; Papers</h2>
+          <span class="pf-badge">{{ papers_files|length }}</span>
+        </div>
+        {% if papers_files %}
+        <div class="pf-file-grid">
+          {% for file in papers_files %}
+          <a href="{% set _rid = file.get('record_id') or file.get('id') or '' %}{{ url_for('resource_landing', slug=_rid) if _rid else '#' }}"
+            class="pf-file-card papers-file-card {% if loop.index > 5 %}hidden{% endif %}">
+            <img src="/static/premium/icon/papers.gif" class="pf-file-icon" alt="" aria-hidden="true">
+            <div class="pf-file-name" title="{{ file['file-name'] }}">{{ file['file-name'] }}</div>
+            <div class="pf-file-meta"><span>{{ file['subject'] }}</span></div>
+          </a>
+          {% endfor %}
+        </div>
+        {% if papers_files|length > 5 %}
+        <button id="papers-show-more" class="pf-show-more" type="button" data-action="showMore" data-category="papers">
+          ↓ Show more ({{ papers_files|length - 5 }} more)
+        </button>
+        {% endif %}
+        {% else %}
+        <div class="pf-empty">
+          <div class="pf-empty-icon">📄</div>
+          <p>No papers available</p>
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- LAB WORK -->
+      {% set practicals_files = data.get('uploaded_files', []) | selectattr('type', 'equalto', 'Practicals') | list %}
+      <div class="pf-section">
+        <div class="pf-section-head">
+          <h2 class="pf-section-title">Lab Work</h2>
+          <span class="pf-badge">{{ practicals_files|length }}</span>
+        </div>
+        {% if practicals_files %}
+        <div class="pf-file-grid">
+          {% for file in practicals_files %}
+          <a href="{% set _rid = file.get('record_id') or file.get('id') or '' %}{{ url_for('resource_landing', slug=_rid) if _rid else '#' }}"
+            class="pf-file-card practicals-file-card {% if loop.index > 5 %}hidden{% endif %}">
+            <img src="/static/premium/icon/practicals.gif" class="pf-file-icon" alt="" aria-hidden="true">
+            <div class="pf-file-name" title="{{ file['file-name'] }}">{{ file['file-name'] }}</div>
+            <div class="pf-file-meta"><span>{{ file['subject'] }}</span></div>
+          </a>
+          {% endfor %}
+        </div>
+        {% if practicals_files|length > 5 %}
+        <button id="practicals-show-more" class="pf-show-more" type="button" data-action="showMore"
+          data-category="practicals">
+          ↓ Show more ({{ practicals_files|length - 5 }} more)
+        </button>
+        {% endif %}
+        {% else %}
+        <div class="pf-empty">
+          <div class="pf-empty-icon">🔬</div>
+          <p>No practicals available</p>
+        </div>
+        {% endif %}
+      </div>
+
+    </div><!-- /main -->
+  </div><!-- /grid -->
+</div><!-- /page -->
+
+<script src="{{ url_for('static', filename='premium/js/interactions.js') }}"></script>
+<script src="{{ url_for('static', filename='js/pages/p_profile.js') }}"></script>
+<script>
+  function openBuyCreditsModal() {
+    const m = document.getElementById('buyCreditsModalProfile');
+    if (m) m.style.display = 'flex';
+  }
+
+  function closeBuyCreditsModal() {
+    const m = document.getElementById('buyCreditsModalProfile');
+    if (m) m.style.display = 'none';
+    const status = document.getElementById('buyCreditsStatusProfile');
+    if (status) status.innerHTML = '';
+  }
+
+  async function selectCreditPackProfile(pack, price) {
+    const status = document.getElementById('buyCreditsStatusProfile');
+    if (status) status.innerHTML = '<span style="color:#0369a1;">Processing credit pack purchase…</span>';
+    try {
+      const res = await fetch('/api/buy-credits', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pack: pack })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (status) status.innerHTML = `<span style="color:#10b981;">🎉 ${data.message}</span>`;
+        setTimeout(() => {
+          closeBuyCreditsModal();
+          loadCreditHistory();
+        }, 1200);
+      } else {
+        if (status) status.innerHTML = `<span style="color:#ef4444;">⚠️ ${data.message}</span>`;
+      }
+    } catch (e) {
+      if (status) status.innerHTML = '<span style="color:#ef4444;">⚠️ Network error during purchase.</span>';
+    }
+  }
+
+  async function loadCreditHistory() {
+    const container = document.getElementById('creditLedgerList');
+    const balanceVal = document.getElementById('walletBalanceVal');
+    if (!container) return;
+    try {
+      const res = await fetch('/api/credit-history');
+      const data = await res.json();
+      if (data.success) {
+        if (balanceVal && data.remaining_credits !== undefined) {
+          balanceVal.textContent = data.remaining_credits;
+        }
+        if (data.transactions && data.transactions.length > 0) {
+          container.innerHTML = data.transactions.map(tx => {
+            const isEarn = tx.amount > 0 || tx.type === 'earn';
+            const color = isEarn ? '#10b981' : '#ef4444';
+            const bg = isEarn ? '#f0fdf4' : '#fef2f2';
+            const badgeText = isEarn ? `+${tx.amount}` : `${tx.amount}`;
+            return `
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.7rem 0.9rem; background: ${bg}; border-radius: 10px; font-size: 0.86rem; border: 1px solid ${isEarn ? '#bbf7d0' : '#fecaca'};">
+                <div style="display: flex; align-items: center; gap: 0.75rem;">
+                  <span style="font-weight: 800; color: ${color}; font-size: 0.95rem; min-width: 36px;">${badgeText}</span>
+                  <span style="font-weight: 600; color: #1e293b;">${tx.reason || 'Credit Transaction'}</span>
+                </div>
+                <span style="font-size: 0.75rem; color: #64748b; font-weight: 500;">${tx.created_at || ''}</span>
+              </div>
+            `;
+          }).join('');
+        } else {
+          container.innerHTML = '<div style="text-align: center; color: #94a3b8; padding: 1rem; font-size: 0.88rem;">No credit transactions recorded yet.</div>';
+        }
+      }
+    } catch (e) {
+      container.innerHTML = '<div style="text-align: center; color: #ef4444; padding: 1rem; font-size: 0.88rem;">Could not load credit history.</div>';
+    }
+  }
+  document.addEventListener('DOMContentLoaded', loadCreditHistory);
+</script>
+{% endblock %}

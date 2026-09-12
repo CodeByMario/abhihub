@@ -1,0 +1,132 @@
+/**
+ * AbhiHub — app-shell.css
+ * Styles for the authenticated app shell:
+ * header, main-nav, logo, body class, image popup.
+ * These were previously in premium/css/style.css.
+ * Depends on: 01_tokens.css
+ */
+
+/* ── Body base class ── */
+.font-regular {
+    font-family: var(--font-primary);
+    font-weight: 400;
+}
+
+/* ── Header ── */
+header {
+    width: 100%;
+    height: fit-content;
+    display: flex;
+    position: sticky;
+    top: var(--strip-h, 0px);
+    z-index: 1000;
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    background: rgba(255, 255, 255, 0.9);
+    border-bottom: 1px solid var(--border-light);
+    transition: top 0.3s;
+}
+
+/* ── Main Nav ── */
+.main-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    height: 64px;
+    padding: 0 var(--space-6);
+    position: relative;
+}
+
+/* ── Logo ── */
+.logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    text-decoration: none;
+    transition: transform var(--transition-fast);
+}
+
+.logo:hover { transform: translateY(-1px); }
+
+.logo-text {
+    font-size: var(--text-2xl);
+    font-weight: 700;
+    background: var(--gradient-primary);
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.025em;
+}
+
+/* Kanit font weight helpers (used as classes in templates) */
+.kanit-bold     { font-family: var(--font-primary); font-weight: 700; }
+.kanit-semibold { font-family: var(--font-primary); font-weight: 600; }
+.kanit-medium   { font-family: var(--font-primary); font-weight: 500; }
+.kanit-regular  { font-family: var(--font-primary); font-weight: 400; }
+.kanit-light    { font-family: var(--font-primary); font-weight: 300; }
+
+/* ── Main content area ── */
+main {
+    padding: var(--space-6);
+    margin-top: var(--space-6);
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    margin-bottom: var(--space-20);
+    max-width: var(--max-content-width);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+@media (max-width: 768px) {
+    .main-nav { padding: 0 var(--space-4); }
+    main       { padding: var(--space-4); margin-top: var(--space-4); gap: var(--space-6); }
+}
+
+/* ── Image popup (timetable viewer) ── */
+.popup {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    padding: var(--space-4);
+}
+
+.popup .close {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--text-inverse);
+    border: none;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-lg);
+    font-weight: 600;
+    transition: all var(--transition-fast);
+    backdrop-filter: blur(10px);
+}
+
+.popup .close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.popup .image {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-2xl);
+    object-fit: contain;
+}

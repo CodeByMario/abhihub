@@ -1,0 +1,36 @@
+{# 
+  Premium In-Feed Ad Unit
+  Usage: Place this between resource cards or lists.
+  Goal: Blends natively with the content. Maximizes CTR without breaking UX.
+#}
+<div class="ad-container ad-infeed">
+  <div class="ad-label">Advertisement</div>
+  <!-- Placeholder AbhiHub Logo -->
+  <img src="{{ url_for('static', filename='images/apple-touch-icon.png') }}" 
+       alt="AbhiHub Ad Placeholder" 
+       style="width:auto; height:100px; opacity: 0.5;">
+</div>
+
+<style>
+.ad-infeed {
+    background: #f1f5f9;
+    border: 2px dashed #94a3b8;
+    border-radius: 8px;
+    padding: var(--space-4);
+    margin: var(--space-6) 0;
+    min-height: 150px; /* Prevents CLS */
+    position: relative;
+    box-shadow: none;
+    overflow: hidden;
+}
+.ad-infeed .ad-label {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    font-size: 10px;
+    text-transform: uppercase;
+    color: var(--text-tertiary);
+    letter-spacing: 0.05em;
+    z-index: 2;
+}
+</style>

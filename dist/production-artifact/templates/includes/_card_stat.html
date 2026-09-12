@@ -1,0 +1,14 @@
+<!-- _card_stat.html - Statistics/metric card component -->
+<!-- Parameters:
+     - value: The number/statistic value
+     - label: The label/description
+     - icon: Optional icon HTML
+-->
+
+<div class="stat-card">
+  {% if icon %}
+  <div class="stat-icon">{{ icon }}</div>
+  {% endif %}
+  <div class="stat-value">{{ value }}</div>
+  <div class="stat-label">{{ label }}</div>
+</div>
