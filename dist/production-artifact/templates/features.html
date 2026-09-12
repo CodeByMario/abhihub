@@ -1,0 +1,410 @@
+{% set seo_description = "Explore AbhiHub's core features: Gamified learning, real-time AI assistance, seamless document previews, and a massive community-driven library of study materials." %}
+{% set seo_title = 'AbhiHub Features | AI Study Tools, PYQs & Resource Library' %}
+{% extends 'p_struct.html' %}
+{% block content %}
+<style>
+:root {
+  --p: #2563eb; --p2: #7c3aed; --g: #10b981;
+  --txt: #0f172a; --muted: #64748b; --border: #e2e8f0;
+  --r: 28px;
+}
+body { background: #f8fafc; font-family: 'Kanit',sans-serif; margin:0; overflow-x:hidden; }
+
+/* ── HERO ── */
+.fh { min-height:90vh; display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; padding:5rem 1.5rem 4rem;
+  background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 40%,#7c3aed 100%);
+  color:#fff; position:relative; overflow:hidden; }
+.fh::before { content:''; position:absolute; inset:0;
+  background:radial-gradient(circle at 20% 50%,rgba(37,99,235,.25),transparent 60%),
+              radial-gradient(circle at 80% 30%,rgba(124,58,237,.2),transparent 50%);
+  pointer-events:none; }
+.fh-chip { display:inline-block; background:rgba(255,255,255,.15); border:1px solid rgba(255,255,255,.3);
+  backdrop-filter:blur(8px); padding:.4rem 1.2rem; border-radius:99px; font-size:.85rem; font-weight:700;
+  letter-spacing:.06em; text-transform:uppercase; margin-bottom:2rem; }
+.fh-title { font-size:clamp(2.8rem,6vw,5rem); font-weight:900; line-height:1.05; margin:0 0 1.5rem;
+  text-shadow:0 10px 40px rgba(0,0,0,.3); max-width:900px; }
+.fh-title span { background:linear-gradient(90deg,#60a5fa,#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
+.fh-sub { font-size:clamp(1rem,2vw,1.3rem); color:rgba(255,255,255,.85); max-width:680px; line-height:1.7; margin:0 0 3rem; font-weight:500; }
+.fh-cta { display:flex; gap:1rem; flex-wrap:wrap; justify-content:center; margin-bottom:3rem; }
+.fh-btn { padding:.85rem 2rem; border-radius:16px; font-size:1rem; font-weight:700; text-decoration:none; transition:all .2s; }
+.fh-btn--white { background:#fff; color:var(--p); box-shadow:0 8px 24px rgba(0,0,0,.15); }
+.fh-btn--white:hover { transform:translateY(-2px); box-shadow:0 14px 32px rgba(0,0,0,.2); }
+.fh-btn--ghost { background:rgba(255,255,255,.15); color:#fff; border:1px solid rgba(255,255,255,.4); backdrop-filter:blur(8px); }
+.fh-btn--ghost:hover { background:rgba(255,255,255,.25); transform:translateY(-2px); }
+.scroll-hint { display:flex; flex-direction:column; align-items:center; gap:.4rem; font-size:.8rem;
+  font-weight:600; opacity:.7; animation:bob 2.5s infinite; }
+@keyframes bob { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
+
+/* ── SCROLL REVEAL ── */
+.sr { opacity:0; transform:translateY(50px); transition:opacity .75s cubic-bezier(.16,1,.3,1),transform .75s cubic-bezier(.16,1,.3,1); }
+.sr.on { opacity:1; transform:translateY(0); }
+.sr--left  { transform:translateX(-50px); }
+.sr--right { transform:translateX(50px); }
+.sr--left.on, .sr--right.on { transform:translateX(0); }
+
+/* ── FEATURE SECTIONS ── */
+.fs { max-width:1100px; margin:0 auto; padding:5rem 1.5rem; display:flex; align-items:center; gap:5rem; }
+.fs:nth-child(even) { flex-direction:row-reverse; }
+.fs-content { flex:1; }
+.fs-visual { flex:1; display:flex; align-items:center; justify-content:center; }
+.fs-pill { display:inline-flex; align-items:center; gap:.5rem; padding:.35rem 1rem; border-radius:99px;
+  font-size:.8rem; font-weight:700; letter-spacing:.05em; text-transform:uppercase; margin-bottom:1.25rem; }
+.fs-num { font-size:.75rem; font-weight:900; background:var(--p); color:#fff; width:24px; height:24px;
+  border-radius:50%; display:inline-flex; align-items:center; justify-content:center; margin-right:.25rem; flex-shrink:0; }
+.fs-title { font-size:clamp(1.8rem,3.5vw,2.5rem); font-weight:900; color:var(--txt); margin:0 0 1rem; line-height:1.2; }
+.fs-desc { font-size:1.05rem; color:var(--muted); line-height:1.7; font-weight:500; margin:0 0 1.5rem; }
+.fs-checks { list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:.6rem; }
+.fs-checks li { display:flex; align-items:flex-start; gap:.75rem; font-size:.95rem; color:var(--txt); font-weight:600; }
+.fs-checks li::before { content:'✓'; background:linear-gradient(135deg,var(--p),var(--p2)); color:#fff;
+  width:22px; height:22px; border-radius:50%; display:flex; align-items:center; justify-content:center;
+  font-size:.7rem; font-weight:900; flex-shrink:0; margin-top:.15rem; }
+
+/* Emoji Card Visual */
+.emoji-card { width:260px; height:260px; border-radius:32px; display:flex; align-items:center; justify-content:center;
+  font-size:7rem; position:relative; box-shadow:0 24px 60px rgba(0,0,0,.08); }
+.emoji-card::after { content:''; position:absolute; inset:-2px; border-radius:34px; background:linear-gradient(135deg,rgba(37,99,235,.2),rgba(124,58,237,.2)); z-index:-1; }
+
+/* Device icons strip */
+.devices { display:flex; gap:1rem; flex-wrap:wrap; margin-top:1.25rem; }
+.dev-tag { display:inline-flex; align-items:center; gap:.4rem; background:#f1f5f9; border:1px solid var(--border);
+  padding:.4rem .85rem; border-radius:99px; font-size:.85rem; font-weight:700; color:var(--txt); }
+
+/* Section divider */
+.sec-divider { height:1px; background:linear-gradient(90deg,transparent,var(--border),transparent); max-width:800px; margin:0 auto; }
+
+/* ── CONNECT SECTION ── */
+.connect-sec { background:linear-gradient(135deg,#0f172a 0%,#1e3a5f 60%,#2563eb 100%);
+  padding:6rem 1.5rem; text-align:center; margin-top:4rem; position:relative; overflow:hidden; }
+.connect-sec::before { content:''; position:absolute; inset:0; opacity:.06;
+  background:radial-gradient(circle at 50% 0%,#fff 0%,transparent 60%); }
+.connect-title { font-size:clamp(2rem,4vw,3rem); font-weight:900; color:#fff; margin:0 0 1rem; }
+.connect-sub { font-size:1.1rem; color:rgba(255,255,255,.8); max-width:500px; margin:0 auto 3rem; font-weight:500; }
+.socials { display:flex; flex-wrap:wrap; gap:1.25rem; justify-content:center; }
+.soc-btn { display:inline-flex; align-items:center; gap:.75rem; padding:.85rem 1.75rem; border-radius:16px;
+  font-weight:700; font-size:1rem; text-decoration:none; transition:all .25s; border:1px solid rgba(255,255,255,.2);
+  backdrop-filter:blur(8px); color:#fff; }
+.soc-btn:hover { transform:translateY(-3px); box-shadow:0 12px 30px rgba(0,0,0,.2); }
+.soc-btn--ig  { background:linear-gradient(135deg,#833ab4,#fd1d1d,#f77737); }
+.soc-btn--yt  { background:#ff0000; }
+.soc-btn--wa  { background:#25d366; }
+.soc-btn--tw  { background:#1da1f2; }
+.soc-btn--li  { background:#0a66c2; }
+.soc-btn--gh  { background:#24292f; }
+.soc-btn--mail{ background:var(--p); }
+
+/* ── CTA FINAL ── */
+.final-cta { text-align:center; padding:5rem 1.5rem; }
+.final-cta h2 { font-size:clamp(1.8rem,4vw,3rem); font-weight:900; color:var(--txt); margin:0 0 1rem; }
+.final-cta p { color:var(--muted); font-size:1.1rem; margin:0 0 2.5rem; font-weight:500; }
+.cta-btns { display:flex; gap:1rem; justify-content:center; flex-wrap:wrap; }
+.cta-btn { padding:.9rem 2.2rem; border-radius:16px; font-size:1rem; font-weight:700; text-decoration:none; transition:all .2s; }
+.cta-btn--main { background:linear-gradient(135deg,var(--p),var(--p2)); color:#fff; box-shadow:0 8px 24px rgba(37,99,235,.3); }
+.cta-btn--main:hover { transform:translateY(-2px); box-shadow:0 14px 32px rgba(37,99,235,.4); }
+.cta-btn--sec { background:#f1f5f9; color:var(--txt); border:1px solid var(--border); }
+.cta-btn--sec:hover { background:#e2e8f0; transform:translateY(-2px); }
+
+/* ── RESPONSIVE ── */
+@media(max-width:850px) {
+  .fs,.fs:nth-child(even) { flex-direction:column; gap:2.5rem; padding:3rem 1.25rem; }
+  .fs-visual { order:-1; }
+  .emoji-card { width:180px; height:180px; font-size:5rem; }
+}
+</style>
+
+<!-- ════ HERO ════ -->
+<div class="fh">
+  <div class="fh-chip">🎓 Built for Engineering Students</div>
+  <h1 class="fh-title">
+    Everything you need.<br>
+    <span>All in one place.</span>
+  </h1>
+  <p class="fh-sub">AbhiHub is a student-driven academic platform that turns chaotic WhatsApp study groups into a structured, searchable, and social learning ecosystem.</p>
+  <div class="fh-cta">
+    <a href="{{ url_for('signup') }}" class="fh-btn fh-btn--white">Get Started Free</a>
+    <a href="{{ url_for('login') }}" class="fh-btn fh-btn--ghost">Sign In</a>
+  </div>
+  <div class="scroll-hint">
+    <span>Scroll to explore all features</span>
+    <span style="font-size:1.4rem">↓</span>
+  </div>
+</div>
+
+<!-- ════ FEATURE 1 — WHAT IS ABHIHUB ════ -->
+<div class="fs sr sr--left">
+  <div class="fs-content">
+    <div class="fs-pill" style="background:#eff6ff;color:#2563eb;">
+      <span class="fs-num">1</span> About the Platform
+    </div>
+    <h2 class="fs-title">What is AbhiHub?</h2>
+    <p class="fs-desc">AbhiHub is a collaborative academic platform designed by engineering students, for engineering students. It centralizes verified study materials, rewards contributors, and creates a community-powered learning engine that gets smarter every day.</p>
+    <ul class="fs-checks">
+      <li>Free forever for students</li>
+      <li>Verified, community-curated content</li>
+      <li>Earn recognition for every contribution</li>
+    </ul>
+  </div>
+  <div class="fs-visual">
+    <div class="emoji-card" style="background:linear-gradient(135deg,#eff6ff,#dbeafe);">🎓</div>
+  </div>
+</div>
+<div class="sec-divider"></div>
+
+<!-- ════ FEATURE 2 — PERSONALIZED DASHBOARD ════ -->
+<div class="fs sr sr--right">
+  <div class="fs-content">
+    <div class="fs-pill" style="background:#fdf4ff;color:#9333ea;">
+      <span class="fs-num" style="background:#9333ea;">2</span> Smart Experience
+    </div>
+    <h2 class="fs-title">Personalized Dashboard</h2>
+    <p class="fs-desc">Your homepage is built around you. Based on your college, branch, and semester, AbhiHub intelligently curates PYQs, notes, and lab manuals specific to your exact courses — no more hunting through irrelevant files.</p>
+    <ul class="fs-checks">
+      <li>Filtered by your college & branch automatically</li>
+      <li>Recent uploads surface to the top</li>
+      <li>Quick-access shortcuts to your saved files</li>
+    </ul>
+  </div>
+  <div class="fs-visual">
+    <div class="emoji-card" style="background:linear-gradient(135deg,#fdf4ff,#ede9fe);">🎯</div>
+  </div>
+</div>
+<div class="sec-divider"></div>
+
+<!-- ════ FEATURE 3 — NOTIFICATIONS ════ -->
+<div class="fs sr sr--left">
+  <div class="fs-content">
+    <div class="fs-pill" style="background:#fffbeb;color:#b45309;">
+      <span class="fs-num" style="background:#f59e0b;">3</span> Stay In The Loop
+    </div>
+    <h2 class="fs-title">Smart Notifications</h2>
+    <p class="fs-desc">Never miss a moment. AbhiHub's notification system keeps you updated in real-time when new files drop in your subject, when someone downloads your uploads, or when the platform has important announcements.</p>
+    <ul class="fs-checks">
+      <li>Real-time new file alerts for your subjects</li>
+      <li>Download notifications for your uploads</li>
+      <li>Platform-wide important announcements</li>
+    </ul>
+  </div>
+  <div class="fs-visual">
+    <div class="emoji-card" style="background:linear-gradient(135deg,#fffbeb,#fef3c7);">🔔</div>
+  </div>
+</div>
+<div class="sec-divider"></div>
+
+<!-- ════ FEATURE 4 — PWA ════ -->
+<div class="fs sr sr--right">
+  <div class="fs-content">
+    <div class="fs-pill" style="background:#f0fdf4;color:#15803d;">
+      <span class="fs-num" style="background:#10b981;">4</span> Progressive Web App
+    </div>
+    <h2 class="fs-title">Install on Any Device</h2>
+    <p class="fs-desc">AbhiHub is a full Progressive Web App (PWA). Install it on any device and get a native app experience — no app store needed. Works beautifully across all your devices.</p>
+    <div class="devices">
+      <span class="dev-tag">🪟 Windows</span>
+      <span class="dev-tag">🤖 Android</span>
+      <span class="dev-tag">🍎 iOS</span>
+      <span class="dev-tag">🖥️ macOS</span>
+    </div>
+    <ul class="fs-checks" style="margin-top:1rem;">
+      <li>Works offline with cached resources</li>
+      <li>Home screen installation in one tap</li>
+      <li>Fast loading — no app store downloads</li>
+    </ul>
+  </div>
+  <div class="fs-visual">
+    <div class="emoji-card" style="background:linear-gradient(135deg,#f0fdf4,#dcfce7);">📲</div>
+  </div>
+</div>
+<div class="sec-divider"></div>
+
+<!-- ════ FEATURE 5 — SEARCH ════ -->
+<div class="fs sr sr--left">
+  <div class="fs-content">
+    <div class="fs-pill" style="background:#f3e8ff;color:#7e22ce;">
+      <span class="fs-num" style="background:#7c3aed;">5</span> Universal Search
+    </div>
+    <h2 class="fs-title">Lightning Fast Search</h2>
+    <p class="fs-desc">Our advanced search bar lets you filter resources by subject, type, author, year, or exam instantly. Supports fuzzy matching so even typos don't stop you from finding what you need.</p>
+    <ul class="fs-checks">
+      <li>Filter by type:, subject:, year:, author:</li>
+      <li>Fuzzy matching for typo tolerance</li>
+      <li>Results ranked by relevance & recency</li>
+    </ul>
+  </div>
+  <div class="fs-visual">
+    <div class="emoji-card" style="background:linear-gradient(135deg,#faf5ff,#ede9fe);">🔍</div>
+  </div>
+</div>
+<div class="sec-divider"></div>
+
+<!-- ════ FEATURE 6 — UPLOAD ════ -->
+<div class="fs sr sr--right">
+  <div class="fs-content">
+    <div class="fs-pill" style="background:#e0f2fe;color:#0369a1;">
+      <span class="fs-num" style="background:#0284c7;">6</span> Cloud Uploads
+    </div>
+    <h2 class="fs-title">Organized Cloud Storage</h2>
+    <p class="fs-desc">Upload your personal notes, PYQs, and lab files to AbhiHub's organized cloud storage. Tag them correctly by subject and type so they surface instantly when you — or your fellow students — need them next.</p>
+    <ul class="fs-checks">
+      <li>Upload once, access from any device forever</li>
+      <li>Auto-tagged by subject, year, and type</li>
+      <li>Help the community while building your library</li>
+    </ul>
+  </div>
+  <div class="fs-visual">
+    <div class="emoji-card" style="background:linear-gradient(135deg,#e0f2fe,#bae6fd);">☁️</div>
+  </div>
+</div>
+<div class="sec-divider"></div>
+
+<!-- ════ FEATURE 7 — LEADERBOARD ════ -->
+<div class="fs sr sr--left">
+  <div class="fs-content">
+    <div class="fs-pill" style="background:#fefce8;color:#a16207;">
+      <span class="fs-num" style="background:#ca8a04;">7</span> Gamification
+    </div>
+    <h2 class="fs-title">Ranking Leaderboard</h2>
+    <p class="fs-desc">Every upload earns you reputation XP. Every download of your file boosts your score. Watch yourself climb the global student leaderboard and establish yourself as a top contributor on your campus.</p>
+    <ul class="fs-checks">
+      <li>Earn XP for every verified upload</li>
+      <li>Bonus points when others download your files</li>
+      <li>Weekly & all-time rankings across campuses</li>
+    </ul>
+  </div>
+  <div class="fs-visual">
+    <div class="emoji-card" style="background:linear-gradient(135deg,#fefce8,#fef9c3);">🏆</div>
+  </div>
+</div>
+<div class="sec-divider"></div>
+
+<!-- ════ FEATURE 8 — PROFILE ════ -->
+<div class="fs sr sr--right">
+  <div class="fs-content">
+    <div class="fs-pill" style="background:#ffe4e6;color:#be123c;">
+      <span class="fs-num" style="background:#e11d48;">8</span> Your Impact
+    </div>
+    <h2 class="fs-title">Impact Profile</h2>
+    <p class="fs-desc">Your profile tells the story of your contribution. See how many students your uploads have helped, track your total downloads, and watch your community impact grow in real-time with a beautiful profile dashboard.</p>
+    <ul class="fs-checks">
+      <li>Real-time "students helped" counter</li>
+      <li>Full upload history & download analytics</li>
+      <li>Your XP, rank, and contribution timeline</li>
+    </ul>
+  </div>
+  <div class="fs-visual">
+    <div class="emoji-card" style="background:linear-gradient(135deg,#fff1f2,#ffe4e6);">📈</div>
+  </div>
+</div>
+<div class="sec-divider"></div>
+
+<!-- ════ FEATURE 9 — STORE ROOM ════ -->
+<div class="fs sr sr--left">
+  <div class="fs-content">
+    <div class="fs-pill" style="background:#ecfeff;color:#0e7490;">
+      <span class="fs-num" style="background:#0891b2;">9</span> The Vault
+    </div>
+    <h2 class="fs-title">The Store Room</h2>
+    <p class="fs-desc">Can't find a specific file on your dashboard? Dive into the Store Room — an ever-expanding raw library containing thousands of documents from across all colleges, subjects, and years. If it exists, it's probably here.</p>
+    <ul class="fs-checks">
+      <li>Thousands of files from the full community</li>
+      <li>Filter by college, branch, or subject</li>
+      <li>The fallback vault when the dashboard isn't enough</li>
+    </ul>
+  </div>
+  <div class="fs-visual">
+    <div class="emoji-card" style="background:linear-gradient(135deg,#ecfeff,#cffafe);">🏛️</div>
+  </div>
+</div>
+<div class="sec-divider"></div>
+
+<!-- ════ FEATURE 10 — LABELING ════ -->
+<div class="fs sr sr--right">
+  <div class="fs-content">
+    <div class="fs-pill" style="background:#fdf4ff;color:#a21caf;">
+      <span class="fs-num" style="background:#c026d3;">10</span> Community Power
+    </div>
+    <h2 class="fs-title">Crowdsourced Labeling</h2>
+    <p class="fs-desc">Raw uploads are often unsorted image scans. The Store Room's labeling feature lets you tag and categorize those raw images — turning community chaos into organized, searchable resources. Label a file and help hundreds of students.</p>
+    <ul class="fs-checks">
+      <li>Tag raw images with college, subject & type</li>
+      <li>Earn bonus XP for each label you contribute</li>
+      <li>Transforms unsorted scans into discoverable files</li>
+    </ul>
+  </div>
+  <div class="fs-visual">
+    <div class="emoji-card" style="background:linear-gradient(135deg,#fdf4ff,#fae8ff);">🏷️</div>
+  </div>
+</div>
+<div class="sec-divider"></div>
+
+<!-- ════ FEATURE 11 — MARIO GAME ════ -->
+<div class="fs sr sr--left">
+  <div class="fs-content">
+    <div class="fs-pill" style="background:#fff1f2;color:#9f1239;">
+      <span class="fs-num" style="background:#e11d48;">11</span> Easter Egg 🍄
+    </div>
+    <h2 class="fs-title">AbhiHub Mario Run</h2>
+    <p class="fs-desc">Studying is hard. You deserve a break. We've built a retro-style Mario Run game directly inside the platform. When your brain needs a 5-minute reset, we've got you covered — no excuses needed.</p>
+    <ul class="fs-checks">
+      <li>Full browser-based retro game</li>
+      <li>No downloads. Plays instantly.</li>
+      <li>The perfect 5-minute study break</li>
+    </ul>
+    <a href="/game"
+       style="display:inline-flex;align-items:center;gap:.6rem;margin-top:1.5rem;padding:.85rem 1.75rem;
+              background:linear-gradient(135deg,#dc2626,#b91c1c);color:#fff;border-radius:16px;
+              font-weight:700;text-decoration:none;font-size:1rem;box-shadow:0 8px 20px rgba(220,38,38,.3);
+              transition:all .2s;">
+      🎮 Play Now
+    </a>
+  </div>
+  <div class="fs-visual">
+    <div class="emoji-card" style="background:linear-gradient(135deg,#fff1f2,#fee2e2);">🍄</div>
+  </div>
+</div>
+
+<!-- ════ CONNECT WITH US ════ -->
+<div class="connect-sec sr">
+  <h2 class="connect-title">Connect With Us 🤝</h2>
+  <p class="connect-sub">AbhiHub – Smarter Learning Starts Here. Follow along and be part of the growing student community.</p>
+  <div class="socials">
+    <a href="https://www.instagram.com/_abhihub_" target="_blank" class="soc-btn soc-btn--ig">
+      📸 Instagram
+    </a>
+    <a href="https://t.me/abhi_hub" target="_blank" class="soc-btn" style="background:#229ed9;">
+      ✈️ Telegram
+    </a>
+    <a href="https://www.linkedin.com/company/abhihub" target="_blank" class="soc-btn soc-btn--li">
+      💼 LinkedIn
+    </a>
+    <a href="https://abhi-hub-v02-e1ae04210f71.herokuapp.com/dashboard/" target="_blank" class="soc-btn" style="background:linear-gradient(135deg,#f59e0b,#d97706);">
+      ⭐ AbhiHub Elite
+    </a>
+    <a href="https://abhi-hub-06bba7f4101d.herokuapp.com/" target="_blank" class="soc-btn" style="background:linear-gradient(135deg,#2563eb,#7c3aed);">
+      💎 AbhiHub Premium
+    </a>
+    <a href="mailto:codebymario@gmail.com" class="soc-btn soc-btn--mail">
+      📧 Email Us
+    </a>
+  </div>
+</div>
+
+<!-- ════ FINAL CTA ════ -->
+<div class="final-cta sr">
+  <h2>Ready to study smarter?</h2>
+  <p>Join thousands of engineering students already using AbhiHub every day.</p>
+  <div class="cta-btns">
+    <a href="{{ url_for('signup') }}" class="cta-btn cta-btn--main">🚀 Get Started Free</a>
+    <a href="{{ url_for('login') }}" class="cta-btn cta-btn--sec">Sign In</a>
+  </div>
+</div>
+
+<script>
+(function() {
+  const obs = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) { e.target.classList.add('on'); obs.unobserve(e.target); }
+    });
+  }, { threshold: 0.12 });
+  document.querySelectorAll('.sr').forEach(el => obs.observe(el));
+})();
+</script>
+{% endblock %}

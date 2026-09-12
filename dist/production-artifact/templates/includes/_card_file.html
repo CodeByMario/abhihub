@@ -1,0 +1,69 @@
+<!-- _card_file.html - File/resource card component -->
+<!-- Parameters:
+     - file: File object with properties (filename, format, size, created_at, verified, record_id, etc.)
+     - show_actions: Whether to show like/comment/bookmark actions (default: true)
+     - clickable: Whether card is clickable (default: true)
+-->
+
+<div class="file-card fade-in" data-file='{{ file|tojson }}' {% if clickable %}data-action="openFile" data-filename="{{ file.filename }}"{% endif %}>
+    {% if file.get('verified') %}
+    <div class="label-badge">Verified</div>
+    {% endif %}
+
+    <!-- File Info Icon (ℹ️) — shows metadata + ownership on click -->
+    <button type="button" class="file-info-btn" data-action="showFileInfo"
+        data-file-name="{{ file.filename }}"
+        data-file-type="{{ file.get('type', '') or file.get('file_type', '') or file.get('category', 'PDF') }}"
+        data-file-college="{{ file.get('college_name', '') or file.get('college', '') | default('AbhiHub') }}"
+        data-file-subject="{{ file.get('subject', '') }}"
+        data-file-author="{{ file.get('author', '') }}"
+        data-file-year="{{ file.get('year', '') or file.get('date', '')[:4] if file.get('date') else '' }}"
+        data-file-format="{{ file.get('format', 'PDF') }}"
+        data-file-size="{{ file.get('size', '-') }}"
+        title="View file information"
+        aria-label="File information">
+      ℹ️
+    </button>
+
+    <div class="file-icon-wrapper">
+        {% if file.format == 'pdf' or file.filename.endswith('.pdf') %}
+        <img src="/static/premium/icon/notes.gif" class="file-icon" alt="PDF">
+        {% else %}
+        <img src="/static/premium/icon/practicals.gif" class="file-icon" alt="Image">
+        {% endif %}
+    </div>
+
+    <div class="file-name" title="{{ file.filename }}">{{ file.filename }}</div>
+    <div class="file-meta">
+        <span>{{ file.format|upper }}</span>
+        <span>•</span>
+        <span>{{ file.size }}</span>
+    </div>
+    <div class="file-meta file-meta--date">
+        {{ file.created_at[:10] if file.created_at else 'Recent' }}
+    </div>
+
+    {% if show_actions and file.get('record_id') %}
+    <div class="file-card-footer" data-action="stopPropagation">
+        <!-- Like button -->
+        <button class="action-btn like-btn {{ 'liked' if file.get('is_liked') else '' }}"
+            data-action="toggleLikeCard" data-record-id="{{ file.record_id }}">
+            <i class="fas fa-heart file-action-icon {{ 'liked' if file.get('is_liked') else '' }}"></i>
+            <span class="like-count">{{ file.get('like_count') if file.get('like_count', 0) > 0 else '' }}</span>
+        </button>
+
+        <!-- Comment button -->
+        <button class="action-btn comment-btn"
+            data-action="openCommentsCard" data-record-id="{{ file.record_id }}">
+            <i class="fas fa-comment file-action-icon"></i>
+            <span class="comment-count">{{ file.get('comment_count') if file.get('comment_count', 0) > 0 else '' }}</span>
+        </button>
+
+        <!-- Bookmark button -->
+        <button class="action-btn bookmark-btn {{ 'bookmarked' if file.get('is_bookmarked') else '' }}"
+            data-action="toggleBookmarkCard" data-record-id="{{ file.record_id }}">
+            <i class="fas fa-bookmark file-action-icon {{ 'bookmarked' if file.get('is_bookmarked') else '' }}"></i>
+        </button>
+    </div>
+    {% endif %}
+</div>

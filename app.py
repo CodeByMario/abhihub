@@ -2783,6 +2783,9 @@ _ALLOWED_PROXY_HOSTS = {
     'storage.googleapis.com',
     'firebasestorage.googleapis.com',
     'res.cloudinary.com',
+    'abhi-hub.appspot.com',
+    'abhihub-b94f6.appspot.com',
+    'abhihub-b94f6.firebasestorage.app',
 }
 
 
@@ -2922,6 +2925,13 @@ def view_doc(doc_id, filename=None):
     if isinstance(file_url, (list, tuple)):
         file_url = file_url[0] if file_url else ''
     file_url = str(file_url)
+
+    # If file_url is a relative path (e.g. Documents/...), construct Firebase Storage URL fallback
+    if not file_url.startswith('http'):
+        import urllib.parse
+        bucket_name = os.getenv('FIREBASE_STORAGE_BUCKET', 'abhi-hub.appspot.com')
+        encoded_path = urllib.parse.quote(file_url, safe='')
+        file_url = f"https://firebasestorage.googleapis.com/v0/b/{bucket_name}/o/{encoded_path}?alt=media"
 
     from urllib.parse import urlparse
     parsed = urlparse(file_url)

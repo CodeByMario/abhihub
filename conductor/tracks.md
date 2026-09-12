@@ -1,9 +1,4 @@
-# Tracks Registry
+# Conductor Tracks Registry
 
----
-
-- [ ] **Track: AbhiHub Production Readiness Hardening**  
-  *Link: [./tracks/production_readiness_20260911/index.md](./tracks/production_readiness_20260911/index.md)*
-
-- [ ] **Track: Cross-Platform Notification Reliability Hardening**  
-  *Link: [./tracks/notifications_cross_platform_20260911/index.md](./tracks/notifications_cross_platform_20260911/index.md)*
+- [x] **Track: UI & Structural Redesign of /resource Page**
+  *Link: [resource_redesign_20260912](./tracks/resource_redesign_20260912/index.md)*

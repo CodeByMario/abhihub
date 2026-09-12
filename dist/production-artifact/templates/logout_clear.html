@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Logging out...</title>
+    <script>
+        (function() {
+            // 1. Clear LocalStorage and SessionStorage
+            try { localStorage.clear(); } catch(e) {}
+            try { sessionStorage.clear(); } catch(e) {}
+
+            // 2. Clear all cache databases in CacheStorage
+            if (window.caches) {
+                caches.keys().then(function(keys) {
+                    keys.forEach(function(key) {
+                        caches.delete(key);
+                    });
+                }).catch(function(err) {
+                    console.error("Cache clear failed", err);
+                });
+            }
+
+            // 3. Unregister Service Workers
+            if (navigator.serviceWorker) {
+                navigator.serviceWorker.getRegistrations().then(function(registrations) {
+                    registrations.forEach(function(registration) {
+                        registration.unregister();
+                    });
+                }).catch(function(err) {
+                    console.error("Service worker unregistration failed", err);
+                });
+            }
+
+            // 4. Redirect to login page
+            window.location.href = "{{ url_for('login') }}";
+        })();
+    </script>
+</head>
+<body>
+    <div style="font-family: sans-serif; text-align: center; margin-top: 20vh; color: #475569;">
+        <h2>Logging out securely...</h2>
+        <p>Clearing session data and cache.</p>
+    </div>
+</body>
+</html>
