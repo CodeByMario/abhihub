@@ -7,7 +7,7 @@ college, branch, semester, and subject.
 Documents are **previewed in-browser only** (PDF.js), never downloaded.
 
 - **Live:** https://abhihub.edu.eu.org
-- **App:** https://app.abhihub.run.place
+- **App:** https://www.abhihub.edu.eu.org 
 
 ---
 
