@@ -28,28 +28,42 @@ uploader_name %}
 
 {% extends 'p_struct.html' %}
 {% block page_head %}
-<!-- Dynamic Learning Resource Schema -->
+<!-- Dynamic Learning Resource & Educational Schema -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "LearningResource",
-  "name": "{{ document.title }}",
-  "description": "{{ seo_description }}",
-  "learningResourceType": "{{ file_type }}",
+  "@type": ["LearningResource", "DigitalDocument"],
+  "name": {{ (document.title or resource_title) | tojson }},
+  "description": {{ seo_description | tojson }},
+  "learningResourceType": {{ file_type | tojson }},
+  "genre": {{ file_type | tojson }},
   "url": "{{ request.base_url }}",
+  "isAccessibleForFree": true,
+  "inLanguage": "en-IN",
+  "educationalLevel": "Higher Education / Undergraduate Engineering",
   "datePublished": "{{ document.created_at }}",
   "dateModified": "{{ document.updated_at or document.created_at }}",
   "author": {
     "@type": "Person",
-    "name": "{{ uploader_name }}"
+    "name": {{ uploader_name | tojson }}
+  },
+  "publisher": {
+    "@type": "Organization",
+    "name": "AbhiHub",
+    "url": "{{ canonical_domain }}/"
   },
   "provider": {
     "@type": "CollegeOrUniversity",
-    "name": "{{ coll_name }}"
+    "name": {{ coll_name | tojson }}
   },
   "about": {
     "@type": "Thing",
-    "name": "{{ subj_name }}"
+    "name": {{ subj_name | tojson }}
+  },
+  "educationalAlignment": {
+    "@type": "AlignmentObject",
+    "alignmentType": "educationalSubject",
+    "targetName": {{ subj_name | tojson }}
   }
 }
 </script>

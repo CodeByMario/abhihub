@@ -9,7 +9,6 @@ Disallow: /profile
 Disallow: /ranking
 Disallow: /delete-account
 
-
 Allow: /college/
 Allow: /dashboard
 Allow: /store-room
@@ -18,6 +17,30 @@ Allow: /features-tour
 Allow: /upload
 Allow: /leaderboard
 Allow: /resource/
+Allow: /llms.txt
+
+# AI model crawlers — allow full access to public content
+User-agent: GPTBot
+Allow: /
+
+User-agent: ChatGPT-User
+Allow: /
+
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Gemini-Google-Bot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
 
 
 Sitemap: https://www.abhihub.edu.eu.org/sitemap.xml
+

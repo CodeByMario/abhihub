@@ -1304,6 +1304,11 @@ def robots_txt():
     response.headers['Content-Type'] = 'text/plain; charset=utf-8'
     return response
 
+@app.route('/llms.txt')
+def llms_txt():
+    """GEO signal file for AI model crawlers (GPTBot, PerplexityBot, ClaudeBot, Gemini)."""
+    return send_from_directory('static', 'llms.txt', mimetype='text/plain')
+
 @app.route('/<key>.txt')
 def index_now_key(key):
     if INDEXNOW_KEY and key == INDEXNOW_KEY:
@@ -1312,34 +1317,57 @@ def index_now_key(key):
 
 @app.route('/sitemap.xml')
 def sitemap():
-    """Generate canonical sitemap URLs for the public host serving this request."""
-    urls = []
-    seen_urls = set()
+    """Return Sitemap Index pointing to modular sub-sitemaps for search engines."""
     base_url = "https://www.abhihub.edu.eu.org"
+    now_iso = datetime.utcnow().strftime('%Y-%m-%d')
+    sitemaps = [
+        {'loc': f"{base_url}/sitemap-pages.xml", 'lastmod': now_iso},
+        {'loc': f"{base_url}/sitemap-colleges.xml", 'lastmod': now_iso},
+        {'loc': f"{base_url}/sitemap-documents.xml", 'lastmod': now_iso},
+    ]
+    response = make_response(render_template('sitemap_index.xml', sitemaps=sitemaps))
+    response.headers['Content-Type'] = 'application/xml; charset=utf-8'
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    return response
 
-    def add_url(path, lastmod=None, priority=None, changefreq=None):
-        loc = f"{base_url}{path}"
-        if loc in seen_urls:
-            return
-        seen_urls.add(loc)
-        entry = {'loc': loc}
-        if lastmod:
-            entry['lastmod'] = lastmod
-        if priority:
-            entry['priority'] = priority
-        if changefreq:
-            entry['changefreq'] = changefreq
-        urls.append(entry)
 
-    # Static pages come from Flask's route map, but only an explicit registry
-    # entry can include a route in the sitemap.
+@app.route('/sitemap-pages.xml')
+def sitemap_pages():
+    """Sitemap module for core static routes."""
+    urls = []
+    seen = set()
+    base_url = "https://www.abhihub.edu.eu.org"
     for rule in app.url_map.iter_rules():
         if rule.endpoint not in _SITEMAP_REGISTRY:
             continue
         if 'GET' not in rule.methods or rule.arguments:
             continue
-        metadata = _SITEMAP_REGISTRY[rule.endpoint]
-        add_url(str(rule), priority=metadata['priority'], changefreq=metadata['changefreq'])
+        loc = f"{base_url}{rule}"
+        if loc not in seen:
+            seen.add(loc)
+            metadata = _SITEMAP_REGISTRY[rule.endpoint]
+            urls.append({'loc': loc, 'priority': metadata['priority'], 'changefreq': metadata['changefreq']})
+    response = make_response(render_template('sitemap.xml', urls=urls))
+    response.headers['Content-Type'] = 'application/xml; charset=utf-8'
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    return response
+
+
+@app.route('/sitemap-colleges.xml')
+def sitemap_colleges():
+    """Sitemap module for colleges, departments, and subjects."""
+    urls = []
+    seen = set()
+    base_url = "https://www.abhihub.edu.eu.org"
+
+    def add_u(path, lastmod=None, priority="0.85", changefreq="weekly"):
+        loc = f"{base_url}{path}"
+        if loc not in seen:
+            seen.add(loc)
+            entry = {'loc': loc, 'priority': priority, 'changefreq': changefreq}
+            if lastmod:
+                entry['lastmod'] = str(lastmod)[:10]
+            urls.append(entry)
 
     sitemap_res = get_sitemap_urls()
     data = sitemap_res.get('data', {}) if sitemap_res.get('success') else {}
@@ -1360,7 +1388,7 @@ def sitemap():
         if not c_slug:
             continue
         college_slugs[c.get('id')] = c_slug
-        add_url(f"/college/{c_slug}", c.get('created_at'), "0.90", "weekly")
+        add_u(f"/college/{c_slug}", c.get('created_at'), "0.90", "weekly")
 
     for department in departments:
         if department.get('college_id') not in populated_college_ids:
@@ -1370,7 +1398,7 @@ def sitemap():
         c_slug = college_slugs.get(department.get('college_id'))
         d_slug = slugify(department.get('abbreviation') or department.get('name'))
         if c_slug and d_slug:
-            add_url(f"/college/{c_slug}/{d_slug}", department.get('created_at'), "0.85", "weekly")
+            add_u(f"/college/{c_slug}/{d_slug}", department.get('created_at'), "0.85", "weekly")
 
     seen_subjects = set()
     for s in subjects:
@@ -1379,21 +1407,45 @@ def sitemap():
         s_slug = slugify(s.get('name'))
         if s_slug and s_slug not in seen_subjects:
             seen_subjects.add(s_slug)
-            add_url(f"/subject/{s_slug}", s.get('created_at'), "0.90", "weekly")
+            add_u(f"/subject/{s_slug}", s.get('created_at'), "0.90", "weekly")
+
+    response = make_response(render_template('sitemap.xml', urls=urls))
+    response.headers['Content-Type'] = 'application/xml; charset=utf-8'
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    return response
+
+
+@app.route('/sitemap-documents.xml')
+def sitemap_documents():
+    """Sitemap module for documents and PYQs."""
+    urls = []
+    seen = set()
+    base_url = "https://www.abhihub.edu.eu.org"
+
+    sitemap_res = get_sitemap_urls()
+    data = sitemap_res.get('data', {}) if sitemap_res.get('success') else {}
+    documents = data.get('documents', [])
 
     for doc in documents:
         college_data = doc.get('college') or {}
         dept_data = doc.get('department') or {}
         subj_data = doc.get('subject') or {}
-        
+
         c_slug = slugify(college_data.get('abbreviation') or college_data.get('name') or 'college')
         d_slug = slugify(dept_data.get('abbreviation') or dept_data.get('name') or 'dept')
         s_slug = slugify(subj_data.get('name') or 'subject')
         t_slug = slugify(doc.get('title') or 'file')
-        
+
         canonical_slug = f"{c_slug}-{d_slug}-{s_slug}-{t_slug}-{doc.get('id')}"
-        add_url(f"/resource/{canonical_slug}", doc.get('updated_at') or doc.get('created_at'), "0.75", "monthly")
-        
+        loc = f"{base_url}/resource/{canonical_slug}"
+        if loc not in seen:
+            seen.add(loc)
+            entry = {'loc': loc, 'priority': "0.75", 'changefreq': "monthly"}
+            lastmod = doc.get('updated_at') or doc.get('created_at')
+            if lastmod:
+                entry['lastmod'] = str(lastmod)[:10]
+            urls.append(entry)
+
     response = make_response(render_template('sitemap.xml', urls=urls))
     response.headers['Content-Type'] = 'application/xml; charset=utf-8'
     response.headers['Cache-Control'] = 'public, max-age=3600'
@@ -3722,48 +3774,42 @@ CONTACT_FILE = os.path.join('data', 'contact_messages.json')
 @csrf.exempt
 def api_report_issue():
     """Submit a document issue report from within a viewer page.
-    Saves directly to CONTACT_FILE so the Admin Feedback panel shows it.
+    Saves to Supabase viewer_failure_reports so the Admin File Reports panel shows it.
     No Turnstile required.
     """
     data = request.get_json() or {}
     user = session.get('user') or {}
 
-    doc_title = data.get('doc_title', 'Unknown document')
-    doc_id    = data.get('doc_id', '')
-    doc_url   = data.get('doc_url', request.referrer or '')
+    doc_title  = data.get('doc_title', 'Unknown document')
+    doc_id     = data.get('doc_id', '')
+    doc_url    = data.get('doc_url', request.referrer or '')
     issue_type = data.get('issue_type', 'General issue')
-    message   = data.get('message', '').strip()
+    message    = data.get('message', '').strip()
 
     if not message:
         return jsonify({'success': False, 'error': 'Please describe the issue.'}), 400
 
-    msg = {
-        'name':      user.get('name', 'Authenticated User'),
-        'email':     user.get('email', 'unknown@abhihub'),
-        'subject':   f'[DOC REPORT] {issue_type} — {doc_title[:60]}',
-        'message':   (
-            f'**Document:** {doc_title}\n'
-            f'**Doc ID:** {doc_id}\n'
-            f'**Page URL:** {doc_url}\n'
-            f'**Issue Type:** {issue_type}\n\n'
-            f'{message}'
-        ),
-        'timestamp': datetime.now().isoformat(),
-        'source':    'in_viewer_report',
+    report_data = {
+        'doc_id':          doc_id or doc_title[:80],
+        'file_name':       doc_title,
+        'issue_type':      issue_type,
+        'error_msg':       message,
+        'page_url':        doc_url,
+        'reporter_email':  user.get('email', 'guest'),
+        'reporter_id':     user.get('uid', ''),
+        'viewer_type':     'in_viewer_report',
+        'status':          'open',
     }
 
-    os.makedirs('data', exist_ok=True)
-    messages = _load_contact_messages()
-    messages.insert(0, msg)
     try:
-        with open(CONTACT_FILE, 'w') as f:
-            json.dump(messages, f)
+        result = supabase.table('viewer_failure_reports').insert(report_data).execute()
+        report_id = result.data[0].get('id') if result.data else None
     except Exception as e:
-        logging.error(f'[REPORT-ISSUE] Failed to write: {e}')
+        logging.error(f'[REPORT-ISSUE] Supabase insert failed: {e}')
         return jsonify({'success': False, 'error': 'Could not save report.'}), 500
 
-    logging.info(f'[REPORT-ISSUE] {user.get("email")} reported issue on doc {doc_id}: {issue_type}')
-    return jsonify({'success': True})
+    logging.info(f'[REPORT-ISSUE] {user.get("email")} reported issue on doc {doc_id}: {issue_type} (id={report_id})')
+    return jsonify({'success': True, 'report_id': report_id})
 
 @app.route('/api/contact', methods=['POST'])
 def api_contact():

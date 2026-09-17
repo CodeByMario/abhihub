@@ -1,4 +1,4 @@
-{% set seo_description = "Welcome to AbhiHub! Download free engineering previous year question papers (PYQs), study
+﻿{% set seo_description = "Welcome to AbhiHub! Download free engineering previous year question papers (PYQs), study
 {% include 'includes/_loading_spinner.html' %}
 
 notes, practicals, and exam resources for top colleges across India." %}
@@ -16,6 +16,7 @@ notes, practicals, and exam resources for top colleges across India." %}
 {% endblock %}
 {% block page_styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/pipeline.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/dashboard-home.css') }}">
 {% endblock %}
 {% block content %}
 
@@ -121,121 +122,8 @@ notes, practicals, and exam resources for top colleges across India." %}
   </div>
 </div>
 
-<style>
-  .buy-credits-modal-overlay {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: rgba(15, 23, 42, 0.65);
-    backdrop-filter: blur(4px);
-    z-index: 99999;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: 1rem;
-  }
 
-  .buy-credits-modal {
-    background: #ffffff;
-    border-radius: 16px;
-    width: 100%;
-    max-width: 520px;
-    padding: 1.5rem;
-    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
-  }
 
-  .buy-credits-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-  }
-
-  .buy-credits-close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: #64748b;
-  }
-
-  .buy-credits-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
-    gap: 0.75rem;
-    margin-top: 0.5rem;
-  }
-
-  .buy-pack-card {
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 1rem 0.75rem;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    position: relative;
-    background: #fafafa;
-  }
-
-  .buy-pack-card:hover {
-    border-color: #10b981;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 16px rgba(16, 185, 129, 0.12);
-  }
-
-  .buy-pack-card.featured {
-    border: 2px solid #10b981;
-    background: #f0fdf4;
-  }
-
-  .pack-badge {
-    font-size: 0.68rem;
-    font-weight: 700;
-    color: #64748b;
-    text-transform: uppercase;
-    margin-bottom: 0.25rem;
-  }
-
-  .featured-badge {
-    color: #047857;
-  }
-
-  .pack-views {
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: #0f172a;
-  }
-
-  .pack-price {
-    font-size: 1.3rem;
-    font-weight: 800;
-    color: #10b981;
-    margin: 0.2rem 0;
-  }
-
-  .pack-unit {
-    font-size: 0.72rem;
-    color: #64748b;
-    margin-bottom: 0.75rem;
-  }
-
-  .pack-buy-btn {
-    width: 100%;
-    padding: 0.45rem;
-    border: none;
-    border-radius: 8px;
-    font-size: 0.78rem;
-    font-weight: 700;
-    background: #0f172a;
-    color: #fff;
-    cursor: pointer;
-  }
-
-  .featured-btn {
-    background: #10b981;
-  }
-</style>
 
 <script>
   function openBuyCreditsModal() {
@@ -1089,155 +977,8 @@ notes, practicals, and exam resources for top colleges across India." %}
 </script>
 {% endif %}
 
+
 <style>
-  .welcome-mini-banner {
-    background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
-    border-radius: 18px;
-    padding: 0.85rem 1.25rem;
-    margin: 1rem 0;
-    box-shadow: 0 8px 24px rgba(49, 46, 129, 0.25);
-    color: #ffffff;
-  }
-
-  .welcome-mini-content {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
-  }
-
-  .welcome-mini-user {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    font-size: 1rem;
-  }
-
-  .welcome-mini-greeting strong {
-    color: #a5b4fc;
-  }
-
-  .welcome-mini-badge {
-    background: rgba(255, 255, 255, 0.15);
-    padding: 0.2rem 0.6rem;
-    border-radius: 99px;
-    font-size: 0.75rem;
-    font-weight: 700;
-    backdrop-filter: blur(4px);
-  }
-
-  .welcome-mini-stats {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
-
-  .welcome-stat-pill {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-    background: rgba(255, 255, 255, 0.1);
-    padding: 0.35rem 0.75rem;
-    border-radius: 12px;
-    font-size: 0.85rem;
-    backdrop-filter: blur(6px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-  }
-
-  .welcome-stat-pill.highlight {
-    background: rgba(236, 72, 153, 0.2);
-    border-color: rgba(236, 72, 153, 0.3);
-  }
-
-  .welcome-stat-icon {
-    font-size: 0.9rem;
-  }
-
-  .welcome-stat-val {
-    font-weight: 800;
-    color: #ffffff;
-  }
-
-  .welcome-stat-lbl {
-    font-size: 0.75rem;
-    opacity: 0.75;
-    text-transform: uppercase;
-    letter-spacing: 0.03em;
-  }
-
-  .welcome-mini-actions {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .welcome-action-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 0.45rem 0.9rem;
-    border-radius: 10px;
-    font-weight: 700;
-    font-size: 0.82rem;
-    text-decoration: none;
-    transition: all 0.2s ease;
-  }
-
-  .welcome-action-btn.primary {
-    background: #6366f1;
-    color: #ffffff;
-    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
-  }
-
-  .welcome-action-btn.primary:hover {
-    background: #4f46e5;
-    transform: translateY(-1px);
-  }
-
-  .welcome-action-btn.peer {
-    background: rgba(255, 255, 255, 0.18);
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    cursor: pointer;
-  }
-
-  .welcome-action-btn.peer:hover {
-    background: rgba(255, 255, 255, 0.3);
-  }
-
-  .welcome-action-btn.support {
-    background: rgba(244, 63, 94, 0.2);
-    color: #fda4af;
-    border: 1px solid rgba(244, 63, 94, 0.3);
-  }
-
-  .welcome-action-btn.support:hover {
-    background: rgba(244, 63, 94, 0.35);
-  }
-
-  @media (max-width: 768px) {
-    .welcome-mini-content {
-      flex-direction: column;
-      align-items: flex-start;
-      gap: 0.75rem;
-    }
-
-    .welcome-mini-stats {
-      width: 100%;
-      justify-content: space-between;
-    }
-
-    .welcome-mini-actions {
-      width: 100%;
-      justify-content: flex-end;
-    }
-  }
-
-  /* ===========================
-   Page Loading Spinner
-   =========================== */
   .page-loading-overlay {
     position: fixed;
     top: 0;

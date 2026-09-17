@@ -17,6 +17,10 @@ or request.path.startswith('/settings') or request.path.startswith('/admin') %}
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
 <meta name="theme-color" content="#2563eb">
 <meta name="google-adsense-account" content="ca-pub-8274846157272362">
+<!-- Geo signals for India-specific ranking -->
+<meta name="geo.region" content="IN">
+<meta name="geo.country" content="India">
+<meta name="language" content="en-IN">
 
 <!-- Google AdSense Script: Loaded via Google Tag Manager (CMP-gated) for compliance -->
 <!-- CMP consent handling implemented in google_tag.html - analytics/ads load only after user consent -->
@@ -57,18 +61,49 @@ or request.path.startswith('/settings') or request.path.startswith('/admin') %}
 <meta name="twitter:image"
   content="{{ twitter_image | default(og_image | default(url_for('static', filename='premium/icons/icon-512x512.png', _external=True))) }}">
 
-<!-- 7. Organization JSON-LD Schema -->
+<!-- 7. Organization + WebSite JSON-LD Schema -->
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
-  "@type": "Organization",
-  "name": "AbhiHub",
-  "url": "{{ canonical_domain }}/",
-  "logo": "{{ canonical_domain }}/static/images/apple-touch-icon.png",
-  "description": "Student-driven platform for engineering resources and PYQs.",
-  "sameAs": [
-    "https://www.instagram.com/_abhihub_",
-    "https://www.linkedin.com/company/abhihub"
+  "@graph": [
+    {
+      "@type": "Organization",
+      "@id": "{{ canonical_domain }}/#organization",
+      "name": "AbhiHub",
+      "alternateName": ["Abhi Hub", "AbhiHub PYQ", "AbhiHub Notes"],
+      "url": "{{ canonical_domain }}/",
+      "logo": "{{ canonical_domain }}/static/images/apple-touch-icon.png",
+      "description": "AbhiHub is a free, student-driven platform for sharing and downloading engineering PYQ (Previous Year Question Papers), notes, and practicals for colleges across India including GHRCE, Raisoni, RCOEM and VIT.",
+      "foundingDate": "2023",
+      "areaServed": {
+        "@type": "Country",
+        "name": "India"
+      },
+      "knowsAbout": [
+        "PYQ", "Previous Year Question Papers", "Engineering Notes",
+        "Engineering Exam Papers", "College Study Resources", "Student Notes Sharing"
+      ],
+      "sameAs": [
+        "https://www.instagram.com/_abhihub_",
+        "https://www.linkedin.com/company/abhihub"
+      ]
+    },
+    {
+      "@type": "WebSite",
+      "@id": "{{ canonical_domain }}/#website",
+      "name": "AbhiHub",
+      "url": "{{ canonical_domain }}/",
+      "description": "Free PYQ and engineering notes for college students in India",
+      "publisher": { "@id": "{{ canonical_domain }}/#organization" },
+      "potentialAction": {
+        "@type": "SearchAction",
+        "target": {
+          "@type": "EntryPoint",
+          "urlTemplate": "{{ canonical_domain }}/pyq?q={search_term_string}"
+        },
+        "query-input": "required name=search_term_string"
+      }
+    }
   ]
 }
 </script>
