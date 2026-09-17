@@ -1370,21 +1370,47 @@ def log_security_audit_event(user_email: str, event_type: str, ip_address: str, 
     except Exception as e:
         return {'success': False, 'message': str(e)}
 
-def save_push_subscription(user_email: str, endpoint: str, p256dh: str, auth: str, device_type: str = None) -> Dict:
+def save_push_subscription(
+    user_email_or_id: str,
+    endpoint: str,
+    p256dh: str,
+    auth: str,
+    device_type: str = None,
+    platform: str = None,
+    browser: str = None,
+    permission_state: str = "granted"
+) -> Dict:
     client = init_supabase()
     if not client: return {'success': False, 'message': 'No client'}
     try:
-        p_res = client.table('profiles').select('id').eq('email', user_email).execute()
-        if not p_res.data: return {'success': False, 'message': 'User not found'}
-        user_id = p_res.data[0]['id']
+        user_id = None
+        # Check if user_email_or_id is a UUID or email
+        if validate_uuid(user_email_or_id):
+            user_id = user_email_or_id
+        else:
+            p_res = client.table('profiles').select('id').eq('email', user_email_or_id).execute()
+            if p_res.data:
+                user_id = p_res.data[0]['id']
         
-        client.table('push_subscriptions').upsert({
+        if not user_id:
+            return {'success': False, 'message': 'User not found'}
+        
+        data = {
             'user_id': user_id,
             'endpoint': endpoint,
             'p256dh': p256dh,
             'auth': auth,
-            'device_type': device_type
-        }, on_conflict='endpoint').execute()
+            'enabled': True,
+            'permission_state': permission_state or 'granted'
+        }
+        if device_type:
+            data['device_type'] = device_type
+        if platform:
+            data['platform'] = platform
+        if browser:
+            data['browser'] = browser
+            
+        client.table('push_subscriptions').upsert(data, on_conflict='endpoint').execute()
         return {'success': True}
     except Exception as e:
         return {'success': False, 'message': str(e)}

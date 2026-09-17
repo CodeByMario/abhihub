@@ -98,6 +98,9 @@ class PushSubscription:
         p256dh: str = "",
         auth: str = "",
         device_type: str = None,
+        platform: str = None,
+        browser: str = None,
+        permission_state: str = "granted",
     ) -> Dict:
         client = get_client()
         if not client:
@@ -115,9 +118,16 @@ class PushSubscription:
                 "endpoint": endpoint,
                 "p256dh": p256dh,
                 "auth": auth,
+                "enabled": True,
+                "permission_state": permission_state or "granted",
             }
             if device_type:
                 data["device_type"] = device_type
+            if platform:
+                data["platform"] = platform
+            if browser:
+                data["browser"] = browser
+
             client.table(PushSubscription.TABLE).upsert(data, on_conflict="endpoint").execute()
             return {"success": True}
         except Exception as e:
@@ -132,18 +142,26 @@ class PushSubscription:
             res = client.table(PushSubscription.TABLE).select("*, profiles(email)").execute()
             subs = {}
             for row in res.data:
-                subs[row["user_id"]] = {
+                u_id = row.get("user_id")
+                if not u_id:
+                    continue
+                if u_id not in subs:
+                    subs[u_id] = []
+                subs[u_id].append({
                     "subscription": {
-                        "endpoint": row["endpoint"],
+                        "endpoint": row.get("endpoint"),
                         "keys": {
-                            "p256dh": row["p256dh"],
-                            "auth": row["auth"],
+                            "p256dh": row.get("p256dh"),
+                            "auth": row.get("auth"),
                         },
                     },
-                    "email": (row.get("profiles") or {}).get("email", ""),
+                    "email": (row.get("profiles") or {}).get("email", "") if isinstance(row.get("profiles"), dict) else "",
                     "created_at": row.get("created_at"),
-                    "device_type": row.get("device_type"),
-                }
+                    "device_type": row.get("device_type") or "web",
+                    "platform": row.get("platform") or "unknown",
+                    "browser": row.get("browser") or "unknown",
+                    "enabled": row.get("enabled", True),
+                })
             return subs
         except Exception as e:
             logging.error(f"Error fetching subscriptions: {e}")
@@ -160,3 +178,4 @@ class PushSubscription:
         except Exception as e:
             logging.error(f"Error removing subscription: {e}")
             return False
+

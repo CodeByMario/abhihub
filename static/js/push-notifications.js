@@ -1,7 +1,7 @@
 /**
  * AbhiHub Push Notification Client
  * Handles push notification subscription and permission management.
- * Works on both mobile (via browser notifications) and laptop/desktop (via service worker push).
+ * Connects to unified /sw.js service worker.
  */
 (function () {
     'use strict';
@@ -12,7 +12,6 @@
     var STATUS_URL = '/api/push/status';
 
     var _swReg = null;
-    var _initialized = false;
 
     // ── Helpers ─────────────────────────────────────────────────
     function isSupported() {
@@ -34,16 +33,66 @@
         return outputArray;
     }
 
-    // ── Service Worker registration ─────────────────────────────
+    function getPlatformMetadata() {
+        var ua = (navigator.userAgent || '').toLowerCase();
+        var platform = 'unknown';
+        var deviceType = 'desktop';
+        var browser = 'unknown';
+
+        if (/iphone|ipad|ipod/.test(ua)) {
+            platform = 'ios';
+            deviceType = /ipad/.test(ua) ? 'tablet' : 'mobile';
+        } else if (/android/.test(ua)) {
+            platform = 'android';
+            deviceType = 'mobile';
+        } else if (/macintosh|mac os x/.test(ua)) {
+            platform = 'macos';
+            deviceType = 'desktop';
+        } else if (/windows/.test(ua)) {
+            platform = 'windows';
+            deviceType = 'desktop';
+        } else if (/linux/.test(ua)) {
+            platform = 'linux';
+            deviceType = 'desktop';
+        }
+
+        if (/edg\//.test(ua)) browser = 'edge';
+        else if (/chrome|crios/.test(ua)) browser = 'chrome';
+        else if (/firefox|fxios/.test(ua)) browser = 'firefox';
+        else if (/safari/.test(ua)) browser = 'safari';
+
+        return { platform: platform, device_type: deviceType, browser: browser };
+    }
+
+    function trackSafeEvent(eventName, eventData) {
+        try {
+            if (window.AbhiHubTracking && typeof window.AbhiHubTracking.trackEvent === 'function') {
+                window.AbhiHubTracking.trackEvent(eventName, eventData || {});
+            }
+        } catch (e) {}
+    }
+
+    function isStandalone() {
+        return (window.navigator.standalone === true) || (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches);
+    }
+
+    function isIos() {
+        var ua = (navigator.userAgent || '').toLowerCase();
+        return /iphone|ipad|ipod/.test(ua);
+    }
+
+    // ── Service Worker registration (Unified to /sw.js) ──────────
     function registerServiceWorker() {
         if (_swReg) return Promise.resolve(_swReg);
         if (!('serviceWorker' in navigator)) return Promise.resolve(null);
-        return navigator.serviceWorker.register('/static/js/service-worker.js', {
+        return navigator.serviceWorker.register('/sw.js', {
             scope: '/'
         }).then(function (reg) {
             _swReg = reg;
-            console.log('[Push] Service worker registered');
-            return reg;
+            return navigator.serviceWorker.ready.then(function (readyReg) {
+                _swReg = readyReg;
+                return readyReg;
+            });
         }).catch(function (err) {
             console.warn('[Push] SW registration failed:', err);
             return null;
@@ -62,11 +111,24 @@
     // ── Request notification permission ─────────────────────────
     function requestPermission() {
         if (!('Notification' in window)) return Promise.resolve('denied');
-        return Notification.requestPermission();
+        trackSafeEvent('notification_permission_prompted');
+        return Notification.requestPermission().then(function (perm) {
+            trackSafeEvent('notification_permission_result', { permission: perm });
+            return perm;
+        });
     }
 
     // ── Subscribe to push ──────────────────────────────────────
     function subscribe() {
+        if (isIos() && !isStandalone()) {
+            trackSafeEvent('notification_ios_pwa_required');
+            return Promise.reject({
+                success: false,
+                is_ios_pwa_required: true,
+                error: 'On iOS, please tap Share and "Add to Home Screen" first to enable notifications.'
+            });
+        }
+
         return requestPermission().then(function (permission) {
             if (permission !== 'granted') {
                 return Promise.reject({ success: false, error: 'Notification permission denied' });
@@ -74,18 +136,23 @@
             return getVapidPublicKey().then(function (key) {
                 if (!key) throw { success: false, error: 'Push not configured on server' };
                 return registerServiceWorker().then(function (reg) {
-                    if (!reg || !reg.pushManager) throw { success: false, error: 'SW not available' };
+                    if (!reg || !reg.pushManager) throw { success: false, error: 'Service worker push manager unavailable' };
                     return reg.pushManager.subscribe({
                         userVisibleOnly: true,
                         applicationServerKey: urlBase64ToUint8Array(key)
                     }).then(function (subscription) {
-                        return sendSubscriptionToServer(subscription.toJSON());
+                        return sendSubscriptionToServer(subscription.toJSON(), permission);
                     });
                 });
             });
         }).catch(function (err) {
             console.error('[Push] Subscribe error:', err);
-            return { success: false, error: err.message || 'Subscription failed' };
+            trackSafeEvent('notification_subscription_failed');
+            return {
+                success: false,
+                error: err.error || err.message || 'Subscription failed',
+                is_ios_pwa_required: !!err.is_ios_pwa_required
+            };
         });
     }
 
@@ -99,13 +166,23 @@
         });
     }
 
-    function sendSubscriptionToServer(sub) {
+    function sendSubscriptionToServer(sub, permissionState) {
+        var meta = getPlatformMetadata();
+        var payload = {
+            subscription: sub,
+            platform: meta.platform,
+            device_type: meta.device_type,
+            browser: meta.browser,
+            permission_state: permissionState || 'granted'
+        };
+
         return fetch(SUBSCRIBE_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ subscription: sub })
+            body: JSON.stringify(payload)
         }).then(function (r) {
             if (!r.ok) return r.json().then(function (d) { throw d; });
+            trackSafeEvent('push_subscription_registered', { platform: meta.platform });
             return { success: true };
         }).catch(function (err) {
             if (err && err.error) throw err;
@@ -116,11 +193,16 @@
     // ── Unsubscribe ────────────────────────────────────────────
     function unsubscribe() {
         return getSubscription().then(function (sub) {
-            if (!sub) return { success: false, error: 'No subscription' };
+            if (!sub) return { success: true, message: 'No active subscription' };
+            var endpoint = sub.endpoint;
             return sub.unsubscribe().then(function () {
-                return fetch(UNSUBSCRIBE_URL, { method: 'DELETE' }).then(function (r) {
-                    if (r.ok) return { success: true };
-                    return { success: false, error: 'Unsubscribe API failed' };
+                return fetch(UNSUBSCRIBE_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ endpoint: endpoint })
+                }).then(function (r) {
+                    trackSafeEvent('notification_disabled');
+                    return { success: true };
                 });
             }).catch(function (err) {
                 return { success: false, error: err.message || 'Unsubscribe failed' };
@@ -130,15 +212,34 @@
 
     // ── Status ──────────────────────────────────────────────────
     function getStatus() {
-        if (!isSupported()) return Promise.resolve({ supported: false, subscribed: false, permission: 'denied' });
+        if (!isSupported()) {
+            return Promise.resolve({
+                supported: false,
+                subscribed: false,
+                permission: 'denied',
+                is_ios: isIos(),
+                is_standalone: isStandalone(),
+                requires_pwa: isIos() && !isStandalone()
+            });
+        }
         return getSubscription().then(function (sub) {
             return {
                 supported: true,
                 subscribed: !!sub,
-                permission: Notification.permission || 'default'
+                permission: Notification.permission || 'default',
+                is_ios: isIos(),
+                is_standalone: isStandalone(),
+                requires_pwa: isIos() && !isStandalone()
             };
         }).catch(function () {
-            return { supported: true, subscribed: false, permission: 'unknown' };
+            return {
+                supported: true,
+                subscribed: false,
+                permission: 'unknown',
+                is_ios: isIos(),
+                is_standalone: isStandalone(),
+                requires_pwa: isIos() && !isStandalone()
+            };
         });
     }
 
@@ -152,7 +253,10 @@
 
     // ── Expose globally ────────────────────────────────────────
     window.PushNotifications = {
+        init: getStatus,
         isSupported: isSupported,
+        isStandalone: isStandalone,
+        isIos: isIos,
         requestPermission: requestPermission,
         subscribe: subscribe,
         unsubscribe: unsubscribe,
@@ -161,24 +265,20 @@
         getSubscription: getSubscription
     };
 
-    // ── Auto-init (don't request permission automatically) ─────
-    // Just register SW silently; permission prompt comes from user action
+    // ── Auto-init ──────────────────────────────────────────────
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function () {
-            registerServiceWorker().then(function () {
-                // Update bell UI if it exists
-                updateBellPushStatus();
-            });
+            registerServiceWorker().then(updateBellPushStatus);
+            wireProfileNudgeButton();
         });
     } else {
         registerServiceWorker().then(updateBellPushStatus);
+        wireProfileNudgeButton();
     }
 
-    // ── Update bell UI to show push status ─────────────────────
     function updateBellPushStatus() {
         var bell = document.getElementById('notifBell');
         if (!bell) return;
-        // Add push subscription status indicator
         var existing = bell.querySelector('.push-status-indicator');
         if (!existing) {
             existing = document.createElement('span');
@@ -202,16 +302,13 @@
         });
     }
 
-    // ── Wire "Enable notifications" button in profile nudge ────
     function wireProfileNudgeButton() {
         var btn = document.getElementById('nudgeEnableNotifBtn');
         if (!btn) return;
         btn.addEventListener('click', function () {
             PushNotifications.subscribe().then(function (result) {
                 if (result.success) {
-                    // Update bell indicator
                     updateBellPushStatus();
-                    // Optionally show a small confirmation
                     var card = document.getElementById('profileNudgeCard');
                     if (card) {
                         var msg = document.createElement('div');
@@ -225,12 +322,5 @@
                 }
             });
         });
-    }
-
-    // Wire up on load
-    if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', wireProfileNudgeButton);
-    } else {
-        wireProfileNudgeButton();
     }
 })();

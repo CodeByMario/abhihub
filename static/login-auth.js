@@ -25,8 +25,10 @@ async function handleOAuthCallback() {
             if (response.ok && data.success) {
                 console.log('Login successful, redirecting to dashboard');
                 // Track login via GA
-                if (window.AbhiHubTracking) {
-                    window.AbhiHubTracking.trackLogin('google_oauth', '');
+                if (window.AbhiHubAnalytics) {
+                    window.AbhiHubAnalytics.track('login', { method: 'google_oauth' });
+                } else if (window.AbhiHubTracking) {
+                    window.AbhiHubTracking.trackLogin('google_oauth');
                 }
                 // Clear the hash and redirect
                 window.location.hash = '';
@@ -309,8 +311,10 @@ function authCreateAccountWithEmail() {
             if (data.session) {
                 console.log('Auto-login after signup');
                 // Track signup via GA
-                if (window.AbhiHubTracking) {
-                    window.AbhiHubTracking.trackSignup('email', user?.email || '');
+                if (window.AbhiHubAnalytics) {
+                    window.AbhiHubAnalytics.track('sign_up', { method: 'email' });
+                } else if (window.AbhiHubTracking) {
+                    window.AbhiHubTracking.trackSignup('email');
                 }
                 const idToken = data.session.access_token;
                 loginUser(user, idToken);
@@ -456,8 +460,10 @@ function loginUser(user, idToken) {
                     }
                 } catch (e) {}
                 // Track login via GA
-                if (window.AbhiHubTracking) {
-                    window.AbhiHubTracking.trackLogin('email', user?.email || '');
+                if (window.AbhiHubAnalytics) {
+                    window.AbhiHubAnalytics.track('login', { method: 'email' });
+                } else if (window.AbhiHubTracking) {
+                    window.AbhiHubTracking.trackLogin('email');
                 }
                 window.location.href = '/dashboard';
             } else {
