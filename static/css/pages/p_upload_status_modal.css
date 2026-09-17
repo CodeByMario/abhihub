@@ -1,0 +1,217 @@
+/* Upload Status Modal - real-time per-file upload popup */
+
+.upload-status-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 11100;
+  background: rgba(15, 23, 42, 0.72);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  align-items: center;
+  justify-content: center;
+  padding: 1.25rem;
+}
+
+.upload-status-overlay.show {
+  display: flex;
+}
+
+.upload-status-card {
+  width: min(100%, 520px);
+  max-width: 520px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 22px;
+  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.35);
+  color: #e2e8f0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Ubuntu, Cantarell, Noto Sans, sans-serif;
+}
+
+.upload-status-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 1rem 1.1rem 0.75rem;
+  border-bottom: 1px solid #1e293b;
+}
+
+.upload-status-title {
+  font-size: 1.05rem;
+  font-weight: 800;
+  letter-spacing: -0.2px;
+  color: #f8fafc;
+}
+
+.upload-status-subtitle {
+  font-size: 0.85rem;
+  color: #94a3b8;
+  margin-top: 0.2rem;
+}
+
+.upload-status-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.upload-status-minimize,
+.upload-status-close {
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  width: 34px;
+  height: 34px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.upload-status-minimize:hover,
+.upload-status-close:hover {
+  background: #334155;
+}
+
+.upload-status-summary {
+  padding: 0.75rem 1.1rem;
+  color: #cbd5e1;
+  font-size: 0.88rem;
+}
+
+.upload-status-list {
+  padding: 0.5rem 0.75rem 0.9rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.upload-status-item {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 16px;
+  padding: 0.75rem 0.9rem;
+}
+
+.upload-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.upload-status-name {
+  font-weight: 700;
+  font-size: 0.9rem;
+  color: #f8fafc;
+  word-break: break-word;
+}
+
+.upload-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.28rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.upload-status-pill.pending {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.upload-status-pill.checking {
+  background: #0f172a;
+  color: #7dd3fc;
+  border: 1px solid #334155;
+}
+
+.upload-status-pill.uploading {
+  background: #1e3a8a;
+  color: #bfdbfe;
+}
+
+.upload-status-pill.done {
+  background: #022c22;
+  color: #a7f3d0;
+  border: 1px solid #064e3b;
+}
+
+.upload-status-pill.error {
+  background: #450a0a;
+  color: #fecaca;
+  border: 1px solid #7f1d1d;
+}
+
+.upload-status-pill.skipped {
+  background: #4b1d7a;
+  color: #e9d5ff;
+  border: 1px solid #6b21a8;
+}
+
+.upload-status-meta {
+  margin-top: 0.5rem;
+  font-size: 0.82rem;
+  color: #94a3b8;
+}
+
+.upload-status-progress {
+  margin-top: 0.55rem;
+  height: 10px;
+  width: 100%;
+  background: #0f172a;
+  border-radius: 999px;
+  overflow: hidden;
+}
+
+.upload-status-progress-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, #2563eb, #8b5cf6);
+  border-radius: 999px;
+  transition: width 0.25s ease;
+}
+
+.upload-status-item.is-done .upload-status-progress-fill {
+  background: #10b981;
+}
+
+.upload-status-item.is-error .upload-status-progress-fill {
+  background: #ef4444;
+}
+
+.upload-status-actions-row {
+  margin-top: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.upload-status-actions-row button {
+  padding: 0.4rem 0.7rem;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.upload-status-actions-row button:hover {
+  background: #1e293b;
+}
+
+.upload-status-item.duplicate-prompt {
+  border-color: #92400e;
+  background: #2a1f05;
+}

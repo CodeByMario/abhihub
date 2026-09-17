@@ -1,0 +1,23 @@
+User-agent: *
+Disallow: /admin/
+Disallow: /api/
+Disallow: /account
+Disallow: /settings
+Disallow: /login
+Disallow: /signup
+Disallow: /profile
+Disallow: /ranking
+Disallow: /delete-account
+
+
+Allow: /college/
+Allow: /dashboard
+Allow: /store-room
+Allow: /pyq
+Allow: /features-tour
+Allow: /upload
+Allow: /leaderboard
+Allow: /resource/
+
+
+Sitemap: https://www.abhihub.edu.eu.org/sitemap.xml

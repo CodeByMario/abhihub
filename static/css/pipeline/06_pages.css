@@ -1,0 +1,161 @@
+/* CSS Pipeline - Admin Economy (Extracted from templates/admin_economy.html)
+   ======================================================
+   Admin economy dashboard page styles.
+   Updated: 2026-09-02 by Hermes Agent
+*/
+
+/* Page Container */
+.admin-economy-page {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1.5rem 1rem;
+}
+
+/* Header */
+.admin-economy-page h1 {
+    font-size: 1.5rem;
+    margin-bottom: 0.25rem;
+}
+
+.admin-economy-page p {
+    color: #64748b;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+}
+
+/* Overview Section */
+#overview {
+    margin-bottom: 2rem;
+}
+
+#overview h2 {
+    font-size: 1.15rem;
+    margin-bottom: 0.5rem;
+}
+
+#level-dist {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin: 0.75rem 0;
+}
+
+#level-dist .pill {
+    background: #f1f5f9;
+    border-radius: 999px;
+    padding: 0.35rem 0.8rem;
+    font-size: 0.85rem;
+}
+
+#top-contrib,
+#consumer-heavy {
+    font-size: 0.85rem;
+    padding-left: 1.2rem;
+}
+
+/* Table */
+#recent-events {
+    width: 100%;
+    font-size: 0.8rem;
+    border-collapse: collapse;
+}
+
+#recent-events thead tr {
+    text-align: left;
+    color: #64748b;
+}
+
+#recent-events th,
+#recent-events td {
+    padding: 0.5rem 0.75rem;
+}
+
+#recent-events th {
+    background-color: transparent;
+}
+
+/* Config Editor Section */
+#config {
+    margin-top: 2rem;
+}
+
+#config h2 {
+    font-size: 1.15rem;
+    margin-bottom: 0.5rem;
+}
+
+#config p {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 1rem;
+}
+
+#config-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+}
+
+#config-list .cfg-row {
+    border: 1px solid var(--border, #e2e8f0);
+    border-radius: 8px;
+    padding: 0.75rem;
+    margin-bottom: 0.6rem;
+}
+
+#config-list textarea {
+    width: 100%;
+    min-height: 70px;
+    font-family: monospace;
+    font-size: 0.8rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 0.4rem;
+    margin: 0.4rem 0;
+}
+
+/* User Override Section */
+#ov-msg {
+    font-size: 0.85rem;
+    align-self: center;
+}
+
+/* Input Styles */
+#ov-user {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    min-width: 260px;
+}
+
+#ov-level {
+    padding: 0.4rem 0.6rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+}
+
+#ov-apply {
+    padding: 0.4rem 1rem;
+    background: #0f172a;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+#ov-apply:hover {
+    background: #1e293b;
+}
+
+/* Table Styles for Recent Events */
+#recent-events tbody tr {
+    border-bottom: 1px solid #f1f5f9;
+}
+
+#recent-events tbody tr:last-child {
+    border-bottom: none;
+}
+
+#recent-events tbody td {
+    vertical-align: middle;
+}

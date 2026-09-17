@@ -1,0 +1,211 @@
+/**
+ * AbhiHub — profile-nudge.css
+ * Styles for the profile completion + notifications nudge overlay.
+ * Extracted from p_struct.html inline <style> block.
+ */
+
+#profileNudgeOverlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    z-index: 9500;
+    background: rgba(8, 8, 25, 0.68);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    align-items: center;
+    justify-content: center;
+}
+
+#profileNudgeOverlay.show {
+    display: flex;
+}
+
+#profileNudgeCard {
+    background: var(--surface);
+    border-radius: var(--radius-2xl);
+    max-width: 420px;
+    width: 92%;
+    box-shadow: 0 32px 80px rgba(124, 58, 237, 0.22), 0 2px 16px rgba(0, 0, 0, 0.13);
+    overflow: hidden;
+    transform: translateY(36px) scale(0.96);
+    transition: transform 0.38s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+/* ── Animations (self-contained so load order doesn't matter) ── */
+@keyframes promoBounce {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-6px); }
+}
+
+/* ── Animations (self-contained so load order does not matter) ── */
+@keyframes promoBounce {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-6px); }
+}
+
+/* ── Nudge Step Headers ── */
+.nudge-header {
+    padding: var(--space-8) var(--space-6) var(--space-6);
+    text-align: center;
+    position: relative;
+}
+
+.nudge-header--profile {
+    background: linear-gradient(135deg, #7c3aed 0%, var(--primary-600) 55%, #0891b2 100%);
+}
+
+.nudge-header--notif {
+    background: linear-gradient(135deg, #0891b2 0%, var(--primary-600) 55%, #7c3aed 100%);
+}
+
+.nudge-emoji {
+    font-size: 2.6rem;
+    display: block;
+    margin-bottom: var(--space-2);
+    animation: promoBounce 1.8s infinite;
+}
+
+.nudge-header h2 {
+    color: var(--text-inverse);
+    font-size: var(--text-2xl);
+    font-weight: 800;
+    margin: 0 0 var(--space-1);
+}
+
+.nudge-header p {
+    color: rgba(255, 255, 255, 0.88);
+    font-size: var(--text-sm);
+    margin: 0;
+}
+
+.nudge-close-btn {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    background: rgba(255, 255, 255, 0.18);
+    border: none;
+    color: var(--text-inverse);
+    font-size: 1.1rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition-fast);
+}
+
+.nudge-close-btn:hover { background: rgba(255, 255, 255, 0.35); }
+
+/* ── Nudge Body ── */
+.nudge-body {
+    padding: var(--space-6);
+}
+
+/* ── Progress Bar ── */
+.nudge-progress-wrap {
+    margin-bottom: var(--space-5);
+}
+
+.nudge-progress-labels {
+    display: flex;
+    justify-content: space-between;
+    font-size: var(--text-xs);
+    color: var(--text-gray-medium);
+    margin-bottom: var(--space-1);
+}
+
+.nudge-progress-track {
+    background: var(--gray-200);
+    border-radius: var(--radius-full);
+    height: 8px;
+    overflow: hidden;
+}
+
+#nudgeProgressBar {
+    height: 100%;
+    background: linear-gradient(90deg, #7c3aed, var(--primary-600));
+    border-radius: var(--radius-full);
+    width: 0%;
+    transition: width 0.5s ease;
+}
+
+/* ── Nudge Feature List ── */
+.nudge-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.nudge-list li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--text-base);
+    color: var(--text-gray-dark);
+}
+
+.nudge-list-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.nudge-list-icon.violet { background: #ede9fe; }
+.nudge-list-icon.blue   { background: #dbeafe; }
+.nudge-list-icon.teal   { background: #ccfbf1; }
+.nudge-list-icon.amber  { background: #fef3c7; }
+
+/* ── Nudge CTA ── */
+.nudge-cta-btn {
+    display: block;
+    width: 100%;
+    padding: var(--space-3);
+    border: none;
+    border-radius: var(--radius-lg);
+    color: var(--text-inverse);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: var(--shadow-blue-md);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    margin-bottom: var(--space-2);
+    font-family: var(--font-primary);
+}
+
+.nudge-cta-btn--profile {
+    background: linear-gradient(135deg, #7c3aed, var(--primary-600));
+}
+
+.nudge-cta-btn--notif {
+    background: linear-gradient(135deg, #0891b2, var(--primary-600));
+    box-shadow: 0 4px 18px rgba(8, 145, 178, 0.28);
+}
+
+.nudge-cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-blue-lg);
+    color: var(--text-inverse);
+}
+
+.nudge-secondary-link {
+    display: block;
+    text-align: center;
+    font-size: var(--text-sm);
+    color: var(--text-gray-light);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+}
+
+.nudge-secondary-link:hover { color: var(--gray-500); }

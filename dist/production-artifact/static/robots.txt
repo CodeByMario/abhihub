@@ -1,0 +1,27 @@
+User-agent: *
+Allow: /
+Allow: /premium/
+Allow: /premium/search
+Allow: /premium/about
+Allow: /static/
+
+# Disallow admin and auth pages
+Disallow: /login
+Disallow: /signup
+Disallow: /logout
+Disallow: /upload
+Disallow: /admin/
+Disallow: /abhijeet_updae
+
+# Sitemap location
+Sitemap: https://abhi-hub-06bba7f4101d.herokuapp.com/sitemap.xml
+
+# Crawl delay (be nice to servers)
+Crawl-delay: 1
+
+# Block specific bots (optional)
+User-agent: AhrefsBot
+Crawl-delay: 10
+
+User-agent: SemrushBot
+Crawl-delay: 10

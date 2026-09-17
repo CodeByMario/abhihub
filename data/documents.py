@@ -31,34 +31,25 @@ class Document:
         subject = subj_data.get("name", "General")
         year = ""
 
-        desc_str = doc.get("description") or "{}"
+        raw_desc = doc.get("description") or ""
+        text_description = ""
         try:
-            if desc_str.startswith("{"):
-                desc = json.loads(desc_str)
+            if raw_desc.startswith("{"):
+                desc = json.loads(raw_desc)
                 if not subj_data:
                     subject = desc.get("subject", subject)
                 year = desc.get("year", "")
+                text_description = desc.get("text_description", "")
             else:
-                if "Year:" in desc_str:
-                    year = desc_str.split("Year:")[1].split("|")[0].strip()
+                text_description = raw_desc
+                if "Year:" in raw_desc:
+                    year = raw_desc.split("Year:")[1].split("|")[0].strip()
         except Exception:
-            pass
+            text_description = str(raw_desc)
 
-        file_path = f"Documents/{author}/{doc_type}/{year}/{subject}/{title}"
-
-        is_liked = False
-        is_bookmarked = False
-        if current_user_id:
-            if isinstance(doc.get("document_votes"), list):
-                is_liked = any(
-                    str(v.get("user_id")) == str(current_user_id)
-                    for v in doc["document_votes"]
-                )
-            if isinstance(doc.get("bookmarks"), list):
-                is_bookmarked = any(
-                    str(b.get("user_id")) == str(current_user_id)
-                    for b in doc["bookmarks"]
-                )
+        topics_covered = doc.get("topics_covered") or []
+        if isinstance(topics_covered, str):
+            topics_covered = [t.strip() for t in topics_covered.split(",") if t.strip()]
 
         return {
             "file-name": title,
@@ -83,6 +74,10 @@ class Document:
             "is_liked": is_liked,
             "is_bookmarked": is_bookmarked,
             "program": doc.get("program", "b.tech"),
+            "description": text_description,
+            "topics_covered": topics_covered,
+            "difficulty_level": doc.get("difficulty_level", ""),
+            "uploader_note": doc.get("uploader_note", ""),
         }
 
     # ── Queries ─────────────────────────────────────────────────────

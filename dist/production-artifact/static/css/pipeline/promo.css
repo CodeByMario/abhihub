@@ -1,0 +1,238 @@
+/**
+ * AbhiHub — promo.css
+ * Styles for the promo announcement strip and promo card modal.
+ * Extracted from p_struct.html inline <style> block.
+ */
+
+/* ── Promo Strip ── */
+#promoStrip {
+    z-index: 8500;
+    background: linear-gradient(90deg, #7c3aed 0%, var(--primary-600) 50%, #06b6d4 100%);
+    color: var(--text-inverse);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--space-2);
+    padding: 0.55rem 3rem 0.55rem var(--space-4);
+    text-align: center;
+    animation: promoSlideDown 0.45s cubic-bezier(0.4, 0, 0.2, 1);
+    box-shadow: 0 2px 12px rgba(37, 99, 235, 0.18);
+    transition: transform 0.3s, opacity 0.3s, visibility 0.3s;
+    position: relative;
+}
+
+#promoStrip.hidden {
+    transform: translateY(-100%);
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+#promoStrip a {
+    color: var(--brand-yellow);
+    text-decoration: underline;
+    font-weight: 700;
+    transition: opacity var(--transition-fast);
+}
+
+#promoStrip a:hover { opacity: 0.8; }
+
+#promoStrip .promo-tag {
+    background: rgba(255, 255, 255, 0.22);
+    border-radius: 30px;
+    padding: 0.15rem 0.7rem;
+    font-size: var(--text-xs);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    white-space: nowrap;
+}
+
+#promoStripClose {
+    position: absolute;
+    right: var(--space-3);
+    background: rgba(255, 255, 255, 0.18);
+    border: none;
+    color: var(--text-inverse);
+    font-size: 1.1rem;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition-fast);
+}
+
+#promoStripClose:hover { background: rgba(255, 255, 255, 0.35); }
+
+/* ── Promo Card Modal ── */
+#promoCardOverlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 10, 30, 0.62);
+    z-index: 9200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+}
+
+#promoCardOverlay.show {
+    opacity: 1;
+    pointer-events: auto;
+}
+
+#promoCard {
+    background: var(--surface);
+    border-radius: 22px;
+    max-width: 400px;
+    width: 92%;
+    box-shadow: 0 30px 80px rgba(37, 99, 235, 0.22), 0 2px 12px rgba(0, 0, 0, 0.12);
+    overflow: hidden;
+    transform: translateY(30px) scale(0.97);
+    transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+}
+
+#promoCardOverlay.show #promoCard {
+    transform: translateY(0) scale(1);
+}
+
+.promo-card-header {
+    background: linear-gradient(135deg, #7c3aed 0%, var(--primary-600) 60%, #06b6d4 100%);
+    padding: var(--space-8) var(--space-6) var(--space-6);
+    text-align: center;
+    position: relative;
+}
+
+.promo-card-header .promo-emoji {
+    font-size: 2.8rem;
+    display: block;
+    margin-bottom: var(--space-2);
+    filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.15));
+    animation: promoBounce 1.8s infinite;
+}
+
+.promo-card-header h2 {
+    color: var(--text-inverse);
+    font-size: var(--text-2xl);
+    font-weight: 800;
+    margin: 0 0 var(--space-1);
+}
+
+.promo-card-header p {
+    color: rgba(255, 255, 255, 0.88);
+    font-size: var(--text-sm);
+    margin: 0;
+}
+
+.promo-close-btn {
+    position: absolute;
+    top: var(--space-3);
+    right: var(--space-3);
+    background: rgba(255, 255, 255, 0.18);
+    border: none;
+    color: var(--text-inverse);
+    font-size: 1.1rem;
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background var(--transition-fast);
+}
+
+.promo-close-btn:hover { background: rgba(255, 255, 255, 0.35); }
+
+.promo-card-body {
+    padding: var(--space-6);
+}
+
+.promo-features-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 var(--space-5);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.promo-features-list li {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    font-size: var(--text-base);
+    color: var(--text-gray-dark);
+}
+
+.promo-features-list li .pf-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: 9px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+}
+
+.pf-icon.violet { background: #ede9fe; }
+.pf-icon.blue   { background: #dbeafe; }
+.pf-icon.teal   { background: #ccfbf1; }
+.pf-icon.amber  { background: #fef3c7; }
+
+.promo-cta-btn {
+    display: block;
+    width: 100%;
+    padding: var(--space-3);
+    border: none;
+    border-radius: var(--radius-lg);
+    background: linear-gradient(135deg, #7c3aed, var(--primary-600));
+    color: var(--text-inverse);
+    font-size: var(--text-lg);
+    font-weight: 700;
+    cursor: pointer;
+    text-align: center;
+    text-decoration: none;
+    box-shadow: var(--shadow-blue-md);
+    transition: transform var(--transition-fast), box-shadow var(--transition-fast);
+    margin-bottom: var(--space-2);
+    font-family: var(--font-primary);
+}
+
+.promo-cta-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 28px rgba(37, 99, 235, 0.38);
+    color: var(--text-inverse);
+}
+
+.promo-dismiss-link {
+    display: block;
+    text-align: center;
+    font-size: var(--text-sm);
+    color: var(--text-gray-light);
+    cursor: pointer;
+    transition: color var(--transition-fast);
+}
+
+.promo-dismiss-link:hover { color: var(--gray-500); }
+
+/* ── Animations ── */
+@keyframes promoSlideDown {
+    from { transform: translateY(-100%); opacity: 0; }
+    to   { transform: translateY(0);     opacity: 1; }
+}
+
+@keyframes promoBounce {
+    0%, 100% { transform: translateY(0); }
+    50%       { transform: translateY(-6px); }
+}

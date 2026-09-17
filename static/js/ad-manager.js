@@ -19,6 +19,36 @@
   // Active ad registry (for inline cards)
   const _inlineSlots = {};
 
+  // ── Content Length Gate (AdSense Low Value Content Protection) ────────────
+
+  function getPageWordCount() {
+    const container = document.getElementById('resourcePageContent') || 
+                      document.querySelector('[data-word-count]') || 
+                      document.querySelector('.main-layout-container') ||
+                      document.body;
+    if (!container) return 0;
+
+    const clone = container.cloneNode(true);
+    clone.querySelectorAll('script, style, iframe, svg, noscript, .ad-container, .ad-inline-card').forEach(el => el.remove());
+    const text = clone.innerText || clone.textContent || '';
+    const words = text.trim().split(/\s+/).filter(Boolean);
+    return words.length;
+  }
+
+  function passesContentLengthGate() {
+    const path = window.location.pathname.toLowerCase();
+    const gatedRoutes = ['/resource/', '/subject/', '/college/', '/department/'];
+    const isGatedRoute = gatedRoutes.some(route => path.includes(route));
+    if (!isGatedRoute) return true;
+
+    const wordCount = getPageWordCount();
+    if (wordCount < 150) {
+      console.warn(`[AdManager] Ad injection suppressed on ${path}: original text word count (${wordCount}) < 150 words threshold.`);
+      return false;
+    }
+    return true;
+  }
+
   // ── Inline Card Ads ───────────────────────────────────────────────────────
 
   /**
@@ -31,6 +61,9 @@
   function renderInlineAd(slotId, adConfig) {
     const slot = document.getElementById(slotId);
     if (!slot || !adConfig) return;
+
+    // Content length gate check
+    if (!passesContentLengthGate()) return;
 
     // Don't show if studying
     if (window.OverlayManager && window.OverlayManager.isBlocking()) return;
@@ -70,6 +103,9 @@
    */
   function requestInterstitial(adConfig) {
     if (!window.OverlayManager) return;
+
+    // Content length gate check
+    if (!passesContentLengthGate()) return;
 
     // Max once per session
     if (sessionStorage.getItem(SESSION_INTERSTITIAL_KEY) === '1') return;

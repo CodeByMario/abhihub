@@ -1,0 +1,27 @@
+/* Tailwind input file for building site CSS
+   This file pulls in project tokens, base, components, layout and utilities
+   so Tailwind can process the final output.
+*/
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Project token and base layer imports */
+@import "./pipeline/01_tokens.css";
+@import "./pipeline/02_base.css";
+
+/* Layout and components */
+@import "./pipeline/04_layout.css";
+@import "./pipeline/03_components.css";
+
+/* Utilities & extras */
+@import "./pipeline/05_utilities.css";
+@import "./pipeline/pipeline.css";
+
+/* Page-specific overrides (optional) */
+@import "./pages/dashboard.css";
+@import "./pages/p_account.css";
+@import "./pages/p_file_receiver.css";
+@import "./pages/p_store_room.css";
+@import "./pages/p_upload.css";

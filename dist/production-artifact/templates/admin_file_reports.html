@@ -1,0 +1,259 @@
+{% extends 'p_struct.html' %}
+{% block page_head %}
+<title>File Reports | AbhiHub Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.umd.search.png"></script>
+<style>
+  :root {
+    --dash-bg: #0f172a;
+    --dash-card: #1e293b;
+    --dash-border: #334155;
+    --dash-text: #f1f5f9;
+    --dash-muted: #94a3b8;
+    --dash-accent: #3b82f6;
+    --dash-success: #10b981;
+    --dash-warning: #f59e0b;
+    --dash-danger: #ef4444;
+  }
+  body { background: var(--dash-bg); color: var(--dash-text); }
+  .dash-container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+  .dash-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
+  }
+  .dash-title { font-size: 1.5rem; font-weight: 700; }
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .kpi-card {
+    background: var(--dash-card); border: 1px solid var(--dash-border);
+    border-radius: 12px; padding: 1.25rem;
+  }
+  .kpi-label { font-size: 0.75rem; color: var(--dash-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi-value { font-size: 1.75rem; font-weight: 700; margin-top: 0.25rem; }
+  .dash-card {
+    background: var(--dash-card); border: 1px solid var(--dash-border);
+    border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden;
+  }
+  .dash-card-header {
+    background: #0d172a; padding: 0.75rem 1rem; font-weight: 600;
+    border-bottom: 1px solid var(--dash-border); display: flex;
+    justify-content: space-between; align-items: center;
+  }
+  .dash-card-body { padding: 1rem; }
+  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--dash-border); }
+  th { color: var(--dash-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
+  tr:hover td { background: rgba(59, 130, 246, 0.05); }
+  .badge {
+    display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px;
+    font-size: 0.75rem; font-weight: 500;
+  }
+  .badge-open { background: rgba(245, 158, 11, 0.2); color: var(--dash-warning); }
+  .badge-resolved { background: rgba(16, 185, 135, 0.2); color: var(--dash-success); }
+  .badge-critical { background: rgba(239, 68, 68, 0.2); color: var(--dash-danger); }
+  .filter-bar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
+  .filter-bar input, .filter-bar select {
+    background: var(--dash-card); color: var(--dash-text);
+    border: 1px solid var(--dash-border); border-radius: 8px;
+    padding: 0.5rem 1rem; font-size: 0.875rem;
+  }
+  .text-muted { color: var(--dash-muted); }
+  .timestamp { color: var(--dash-muted); font-size: 0.75rem; }
+  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.5rem; }
+  .status-dot.open { background: var(--dash-warning); }
+  .status-dot.resolved { background: var(--dash-success); }
+</style>
+{% endblock %}
+{% block content %}
+<div class="dash-container">
+  <div class="dash-header">
+    <h1 class="dash-title">📋 File Reports & Access Logs</h1>
+  </div>
+
+  <!-- KPIs -->
+  <div class="kpi-grid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Reports</div>
+      <div class="kpi-value" id="kpi-total-reports">0</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Open Reports</div>
+      <div class="kpi-value" id="kpi-open-reports">0</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Resolved</div>
+      <div class="kpi-value" id="kpi-resolved-reports">0</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Access Logs (last 500)</div>
+      <div class="kpi-value" id="kpi-access-logs">0</div>
+    </div>
+  </div>
+
+  <!-- Report Filters -->
+  <div class="filter-bar">
+    <input type="text" id="report-search" placeholder="Search reports by file name or reporter..." style="flex:1; min-width: 250px;">
+    <select id="status-filter">
+      <option value="all">All Statuses</option>
+      <option value="open">Open</option>
+      <option value="resolved">Resolved</option>
+    </select>
+  </div>
+
+  <!-- Reports Table -->
+  <div class="dash-card">
+    <div class="dash-card-header">
+      File Failure Reports
+    </div>
+    <div class="dash-card-body">
+      <div style="overflow-x: auto;">
+      <table id="reports-table">
+        <thead>
+          <tr>
+            <th>Status</th>
+            <th>File / Doc ID</th>
+            <th>Issue Type</th>
+            <th>Error</th>
+            <th>Reporter</th>
+            <th>Page URL</th>
+            <th>Reported At</th>
+          </tr>
+        </thead>
+        <tbody id="reports-tbody">
+          <tr><td colspan="7" class="text-muted" style="text-align:center; padding:2rem;">Loading reports...</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Access Logs Table -->
+  <div class="dash-card">
+    <div class="dash-card-header">
+      File Access Logs
+    </div>
+    <div class="dash-card-body">
+      <div style="overflow-x: auto;">
+      <table id="access-logs-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>File Name</th>
+            <th>Type</th>
+            <th>Path</th>
+            <th>Status</th>
+            <th>Accessed At</th>
+          </tr>
+        </thead>
+        <tbody id="access-logs-tbody">
+          <tr><td colspan="6" class="text-muted" style="text-align:center; padding:2rem;">Loading access logs...</td></tr>
+        </tbody>
+      </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let reportsData = [];
+let accessLogsData = [];
+
+async function loadReports() {
+  try {
+    const res = await fetch('/api/admin/file-reports');
+    const data = await res.json();
+    if (data.success) {
+      reportsData = data.reports || [];
+      accessLogsData = data.access_logs || [];
+      renderReports();
+      renderAccessLogs();
+      updateKPIs();
+    }
+  } catch(e) {
+    console.error('Error loading reports:', e);
+    document.getElementById('reports-tbody').innerHTML = '<tr><td colspan="7" class="text-muted" style="text-align:center;">Error loading reports</td></tr>';
+    document.getElementById('access-logs-tbody').innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align:center;">Error loading logs</td></tr>';
+  }
+}
+
+function updateKPIs() {
+  document.getElementById('kpi-total-reports').textContent = reportsData.length;
+  document.getElementById('kpi-open-reports').textContent = reportsData.filter(r => r.status === 'open').length;
+  document.getElementById('kpi-resolved-reports').textContent = reportsData.filter(r => r.status === 'resolved').length;
+  document.getElementById('kpi-access-logs').textContent = accessLogsData.length;
+}
+
+function renderReports() {
+  const search = document.getElementById('report-search').value.toLowerCase();
+  const statusFilter = document.getElementById('status-filter').value;
+  
+  let filtered = reportsData.filter(r => {
+    const matchesSearch = !search || 
+      (r.file_name && r.file_name.toLowerCase().includes(search)) ||
+      (r.doc_id && r.doc_id.toLowerCase().includes(search)) ||
+      (r.reporter_email && r.reporter_email.toLowerCase().includes(search));
+    const matchesStatus = statusFilter === 'all' || (r.status === statusFilter);
+    return matchesSearch && matchesStatus;
+  });
+  
+  if (filtered.length === 0) {
+    document.getElementById('reports-tbody').innerHTML = '<tr><td colspan="7" class="text-muted" style="text-align:center; padding:2rem;">No reports match your filters</td></tr>';
+    return;
+  }
+  
+  document.getElementById('reports-tbody').innerHTML = filtered.map(r => {
+    const statusClass = r.status === 'resolved' ? 'badge-resolved' : 'badge-open';
+    const dotClass = r.status === 'resolved' ? 'resolved' : 'open';
+    const createdAt = r.created_at ? new Date(r.created_at).toLocaleString() : '—';
+    const errorDisplay = r.error_msg ? `<div style="max-width:250px; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(r.error_msg)}</div>` : '—';
+    
+    return `<tr>
+      <td><span class="status-dot ${dotClass}"></span><span class="badge ${statusClass}">${escapeHtml(r.status)}</span></td>
+      <td>${escapeHtml(r.file_name || r.doc_id || '—')}</td>
+      <td>${escapeHtml(r.issue_type || '—')}</td>
+      <td>${errorDisplay}</td>
+      <td>${escapeHtml(r.reporter_email || 'anonymous')}</td>
+      <td>${r.page_url ? `<a href="${escapeHtml(r.page_url)}" target="_blank" style="color:var(--dash-accent); font-size:0.75rem;">${escapeHtml(r.page_url.substring(0, 50))}</a>` : '—'}</td>
+      <td class="timestamp">${createdAt}</td>
+    </tr>`;
+  }).join('');
+}
+
+function renderAccessLogs() {
+  if (accessLogsData.length === 0) {
+    document.getElementById('access-logs-tbody').innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align:center; padding:2rem;">No access logs</td></tr>';
+    return;
+  }
+  
+  document.getElementById('access-logs-tbody').innerHTML = accessLogsData.map(l => {
+    const createdAt = l.created_at ? new Date(l.created_at).toLocaleString() : '—';
+    return `<tr>
+      <td>${escapeHtml(l.user_email || 'anonymous')}</td>
+      <td>${escapeHtml(l.file_name || '—')}</td>
+      <td>${escapeHtml(l.file_type || '—')}</td>
+      <td>${escapeHtml(l.file_path || '—')}</td>
+      <td>${escapeHtml(l.status || '—')}</td>
+      <td class="timestamp">${createdAt}</td>
+    </tr>`;
+  }).join('');
+}
+
+function escapeHtml(text) {
+  if (!text) return '—';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Event listeners
+document.getElementById('report-search').addEventListener('input', renderReports);
+document.getElementById('status-filter').addEventListener('change', renderReports);
+
+// Load on page load
+loadReports();
+
+// Refresh every 60 seconds
+setInterval(loadReports, 60000);
+</script>
+{% endblock %}

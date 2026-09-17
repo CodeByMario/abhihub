@@ -1,0 +1,335 @@
+{% set _abbr = college.abbreviation or college.name %}
+{% set _city = college.city or 'India' %}
+{% set seo_title = _abbr ~ ' Files | Browse ' ~ _abbr ~ ' PYQs, Notes & Practicals | AbhiHub' %}
+{% set seo_description = 'Browse all files for ' ~ college.name ~ ' (' ~ _abbr ~ '). Filter by branch, search by subject, and paginate through 16 files per page.' %}
+{% set seo_keywords = _abbr ~ ' files, ' ~ _abbr ~ ' PYQ, ' ~ _abbr ~ ' notes, ' ~ college.name ~ ' practicals, branch wise ' ~ _abbr ~ ' papers, AbhiHub' %}
+{% set og_title = seo_title %}
+{% set og_description = seo_description %}
+{% set og_type = 'website' %}
+
+{% extends 'p_struct.html' %}
+{% block page_head %}
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "CollegeOrUniversity",
+      "name": "{{ college.name }}",
+      "alternateName": ["{{ _abbr }}"],
+      "address": { "@type": "PostalAddress", "addressLocality": "{{ _city }}", "addressCountry": "IN" },
+      "url": "{{ request.base_url }}",
+      "description": "Browse all files for {{ college.name }} ({{ _abbr }}) on AbhiHub."
+    },
+    {
+      "@type": "BreadcrumbList",
+      "itemListElement": [
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": "{{ request.url_root.rstrip('/') }}/" },
+        { "@type": "ListItem", "position": 2, "name": "{{ college.name }}", "item": "{{ request.url_root.rstrip('/') }}/college/{{ (college.abbreviation or college.name) | lower | replace(' ', '-') }}" },
+        { "@type": "ListItem", "position": 3, "name": "Files", "item": "{{ request.base_url }}" }
+      ]
+    }
+  ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<style>
+  .college-page {
+    max-width: 1100px;
+    margin: 0 auto 5rem;
+    padding: 0 1.5rem;
+  }
+  .college-hero {
+    padding: 5.5rem 1.5rem 3rem;
+    background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%);
+    color: white;
+    text-align: center;
+    border-bottom-left-radius: 40px;
+    border-bottom-right-radius: 40px;
+    box-shadow: 0 20px 40px rgba(37, 99, 235, 0.15);
+    margin-bottom: 1.5rem;
+  }
+  .college-hero h1 {
+    font-size: clamp(1.6rem, 4.5vw, 2.6rem);
+    font-weight: 900;
+    margin-bottom: 0.6rem;
+  }
+  .college-hero p {
+    font-size: 1rem;
+    opacity: 0.9;
+    max-width: 560px;
+    margin: 0 auto;
+  }
+  .college-toolbar {
+    max-width: 1100px;
+    margin: 0 auto 2rem;
+    padding: 0 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .college-search {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .college-search input[type="text"] {
+    flex: 1 1 auto;
+    padding: 0.85rem 1rem;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    box-shadow: 0 10px 24px rgba(0,0,0,0.05);
+    font-size: 1rem;
+  }
+  .college-search button {
+    padding: 0.85rem 1.1rem;
+    border-radius: 16px;
+    border: none;
+    background: #2563eb;
+    color: white;
+    font-weight: 800;
+    box-shadow: 0 10px 24px rgba(37,99,235,0.25);
+  }
+  .college-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    align-items: center;
+  }
+  .filter-chip {
+    padding: 0.45rem 0.9rem;
+    border-radius: 9999px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    color: #0f172a;
+    text-decoration: none;
+    font-weight: 700;
+    font-size: 0.85rem;
+    transition: all 0.18s ease;
+  }
+  .filter-chip:hover {
+    border-color: #2563eb;
+    color: #2563eb;
+  }
+  .filter-chip.active {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+  }
+  .filter-select {
+    padding: 0.5rem 0.75rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: white;
+    font-weight: 700;
+  }
+  .file-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+  .pcard {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.1rem;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+    transition: transform 0.25s, box-shadow 0.25s;
+    position: relative;
+    overflow: hidden;
+  }
+  .pcard::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #f59e0b, #ef4444);
+  }
+  .pcard.notes-card::before { background: linear-gradient(90deg, #10b981, #3b82f6); }
+  .pcard.practical-card::before { background: linear-gradient(90deg, #8b5cf6, #ec4899); }
+  .pcard:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 28px rgba(0,0,0,0.1);
+  }
+  .pcard-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    padding: 3px 8px;
+    border-radius: 6px;
+    background: #fff7ed;
+    color: #c2410c;
+    border: 1px solid #fed7aa;
+    width: fit-content;
+  }
+  .pcard-badge.notes { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
+  .pcard-badge.practical { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
+  .pcard-subject {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #0f172a;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .pcard-name {
+    font-size: 0.8rem;
+    color: #64748b;
+    display: -webkit-box;
+    -webkit-line-clamp: 1;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  .pcard-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 0.6rem;
+    border-top: 1px solid #f1f5f9;
+  }
+  .pcard-meta { font-size: 0.75rem; color: #94a3b8; display: flex; align-items: center; gap: 0.35rem; }
+  .pcard-views { font-size: 0.75rem; color: #2563eb; font-weight: 600; display: flex; align-items: center; gap: 3px; }
+
+  .pagination {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 1.5rem;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+  .pagination a, .pagination button {
+    padding: 0.65rem 0.9rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    font-weight: 700;
+    color: #0f172a;
+    text-decoration: none;
+  }
+  .pagination .page-active {
+    background: #2563eb;
+    color: white;
+    border-color: #2563eb;
+  }
+  .empty-state {
+    grid-column: 1/-1;
+    text-align: center;
+    padding: 3rem;
+    background: #ffffff;
+    border-radius: 20px;
+    border: 1px dashed #e2e8f0;
+    color: #64748b;
+  }
+  @media (max-width: 640px) {
+    .college-hero { padding: 4.5rem 1rem 2.5rem; }
+    .file-grid { grid-template-columns: 1fr; }
+  }
+</style>
+
+<div class="college-hero">
+  <h1>{{ college.name }} Files</h1>
+  <p>Browse {{ _abbr }} resources by branch. Use filters to narrow down exactly what you need.</p>
+</div>
+
+<div class="college-toolbar">
+  <form class="college-search" action="{{ request.path }}" method="get">
+    {% if filters.type %}
+    <input type="hidden" name="type" value="{{ filters.type }}">
+    {% endif %}
+    {% if filters.branch %}
+    <input type="hidden" name="branch" value="{{ filters.branch }}">
+    {% endif %}
+    <input type="text" name="search" value="{{ filters.search }}" placeholder="Search files by title or keyword...">
+    <button type="submit">Search</button>
+  </form>
+
+  <form class="college-filters" action="{{ request.path }}" method="get">
+    {% if filters.search %}
+    <input type="hidden" name="search" value="{{ filters.search }}">
+    {% endif %}
+    <a class="filter-chip {{ 'active' if not filters.type }}" href="{{ request.path }}?{% if filters.search %}search={{ filters.search | urlencode }}&{% endif %}page=1">All</a>
+    <a class="filter-chip {{ 'active' if filters.type == 'pyq' or filters.type == 'papers' or filters.type == 'paper' }}" href="{{ request.path }}?type=pyq{% if filters.search %}&search={{ filters.search | urlencode }}{% endif %}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}&page=1">📄 PYQ</a>
+    <a class="filter-chip {{ 'active' if filters.type == 'notes' }}" href="{{ request.path }}?type=notes{% if filters.search %}&search={{ filters.search | urlencode }}{% endif %}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}&page=1">📝 Notes</a>
+    <a class="filter-chip {{ 'active' if filters.type == 'practical' or filters.type == 'practicals' }}" href="{{ request.path }}?type=practical{% if filters.search %}&search={{ filters.search | urlencode }}{% endif %}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}&page=1">🧪 Practicals</a>
+
+    <select class="filter-select" name="branch" onchange="this.form.submit()">
+      <option value="">All Branches</option>
+      {% for dept in departments %}
+        {% set selected = 'selected' if filters.branch == (dept.abbreviation or dept.name | lower | replace(' ', '-')) else '' %}
+        <option value="{{ (dept.abbreviation or dept.name) | lower | replace(' ', '-') }}" {{ selected }}>{{ dept.name }}</option>
+      {% endfor %}
+    </select>
+
+    {% if filters.type %}<input type="hidden" name="type" value="{{ filters.type }}">{% endif %}
+    {% if filters.search %}<input type="hidden" name="search" value="{{ filters.search }}">{% endif %}
+    <input type="hidden" name="page" value="1">
+  </form>
+</div>
+
+<div class="college-page">
+  <div class="file-grid">
+    {% for file in files %}
+      {% set cat = (file.get('document_category', '') | string | lower) %}
+      {% set is_pyq = cat in ['pyq', 'papers', 'paper'] %}
+      {% set is_practical = cat in ['practical', 'practicals'] %}
+      {% set _rid = file.get('record_id') or file.get('id') or '' %}
+      {% set furl = url_for('resource_landing', slug=_rid) if _rid else '#' %}
+      <a href="{{ furl }}" class="pcard {% if is_practical %}practical-card{% elif not is_pyq %}notes-card{% endif %}">
+        {% if is_pyq %}
+          <span class="pcard-badge">📄 PYQ</span>
+        {% elif is_practical %}
+          <span class="pcard-badge practical">🧪 Practical</span>
+        {% else %}
+          <span class="pcard-badge notes">📝 Notes</span>
+        {% endif %}
+
+        <div class="pcard-subject">{{ file.get('subjects', {}).get('name', 'Uncategorized') if file.get('subjects') else 'Uncategorized' }}</div>
+        <div class="pcard-name">{{ file.get('title', 'File') }}</div>
+
+        <div class="pcard-footer">
+          <span class="pcard-meta">👤 {{ file.get('profiles', {}).get('full_name', 'Anonymous') if file.get('profiles') else 'Anonymous' }}</span>
+          <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
+        </div>
+      </a>
+    {% else %}
+      <div class="empty-state">
+        No files found for the selected filters. Try changing branch or search term.
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if filters.total > filters.page_size %}
+  <div class="pagination">
+    {% set prev_page = filters.page - 1 %}
+    {% if prev_page >= 1 %}
+      <a href="{{ request.path }}?type={{ filters.type }}&branch={{ filters.branch }}&search={{ filters.search | urlencode }}&page={{ prev_page }}">← Prev</a>
+    {% else %}
+      <button disabled>← Prev</button>
+    {% endif %}
+
+    <span>Page {{ filters.page }} of {{ (filters.total // filters.page_size) + (1 if filters.total % filters.page_size else 0) }} · {{ filters.total }} files</span>
+
+    {% set next_page = filters.page + 1 %}
+    {% if next_page * filters.page_size <= filters.total or (next_page - 1) * filters.page_size < filters.total %}
+      <a href="{{ request.path }}?type={{ filters.type }}&branch={{ filters.branch }}&search={{ filters.search | urlencode }}&page={{ next_page }}">Next →</a>
+    {% else %}
+      <button disabled>Next →</button>
+    {% endif %}
+  </div>
+  {% endif %}
+</div>
+{% endblock %}

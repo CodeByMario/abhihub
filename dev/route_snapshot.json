@@ -54,6 +54,17 @@
       "GET"
     ]
   },
+  "/open-source": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "open_source"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
   "/account": {
     "files": [
       "app.py"
@@ -286,15 +297,19 @@
     ]
   },
   "/api/chat/online": {
-    "files": [
-      "app.py"
-    ],
-    "handlers": [
-      "chat_online_users"
-    ],
-    "methods": [
-      "GET"
-    ]
+    "files": ["app.py"],
+    "handlers": ["chat_online_users"],
+    "methods": ["GET"]
+  },
+  "/api/crush/<target_id>": {
+    "files": ["app.py"],
+    "handlers": ["api_crush_toggle"],
+    "methods": ["POST"]
+  },
+  "/api/crush/status/<target_id>": {
+    "files": ["app.py"],
+    "handlers": ["api_crush_status"],
+    "methods": ["GET"]
   },
   "/api/chat/peer/<target_user_id>/materials-summary": {
     "files": [

@@ -1,0 +1,128 @@
+/* CSS Pipeline - Profile Page (Extracted from templates/p_profile.html)
+   ======================================================
+   User profile page styles.
+   Updated: 2026-09-02 by Hermes Agent
+*/
+
+/* Profile Card */
+.profile-card {
+    background: rgba(255, 255, 255, 0.18);
+    border: 1px solid rgba(255, 255, 255, 0.35);
+    border-radius: 999px;
+    padding: 0.25rem 0.8rem;
+}
+
+/* Progress Badge */
+.badge-status {
+    background: linear-gradient(135deg, #f97316 0%, #ef4444 100%);
+    border-radius: 16px;
+    padding: 1.25rem;
+    position: absolute;
+    right: -16px;
+    top: -16px;
+    width: 80px;
+    height: 80px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid var(--border-medium);
+}
+
+.badge-status .inner {
+    position: absolute;
+    left: -20px;
+    top: 4px;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--primary-color);
+}
+
+/ /* Status Tags */
+.status-tag {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.8);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 0.15rem;
+    display: flex;
+    gap: 0.5rem;
+    align-items: center;
+}
+
+/* Progress Bar */
+.progress-bar {
+    flex: 1;
+    max-width: 180px;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.25);
+    border-radius: 999px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    background: #fff;
+    border-radius: 999px;
+    transition: width 0.4s;
+}
+
+/ /* Text Styles */
+.text-tertiary {
+    font-size: 0.72rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 0.15rem;
+}
+
+.text-primary {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+
+/* Section Styles */
+.section-margin {
+    margin: 0.5rem 0 0.25rem;
+}
+
+.section-margin-none {
+    display: none;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+/* Grid Layout */
+.profile-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Two Column Layout */
+.two-col-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+}
+
+/* Progress Item */
+.progress-item {
+    height: 100%;
+    width: 0%;
+    background: #fff;
+    border-radius: 999px;
+    transition: width 0.4s;
+}
+
+/* Counter */
+.counter {
+    font-size: 0.68rem;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 0.15rem;
+}
+
+/* Counter Primary */
+.counter-primary {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--text-primary);
+}

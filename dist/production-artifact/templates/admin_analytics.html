@@ -1,0 +1,478 @@
+{% extends 'p_struct.html' %}
+{% block page_head %}
+<title>Analytics Dashboard | AbhiHub Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --dash-bg: #0f172a;
+    --dash-card: #1e293b;
+    --dash-border: #334155;
+    --dash-text: #f1f5f9;
+    --dash-muted: #94a3b8;
+    --dash-accent: #3b82f6;
+    --dash-success: #10b981;
+    --dash-warning: #f59e0b;
+    --dash-danger: #ef4444;
+  }
+  
+  body { background: var(--dash-bg); color: var(--dash-text); }
+  
+  .dash-container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+  
+  .dash-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
+  }
+  
+  .dash-title { font-size: 1.5rem; font-weight: 700; }
+  
+  .dash-controls { display: flex; gap: 0.5rem; align-items: center; }
+  
+  .dash-select {
+    background: var(--dash-card); color: var(--dash-text);
+    border: 1px solid var(--dash-border); border-radius: 8px;
+    padding: 0.5rem 1rem; font-size: 0.875rem; cursor: pointer;
+  }
+  
+  .kpi-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem; margin-bottom: 1.5rem;
+  }
+  
+  .kpi-card {
+    background: var(--dash-card); border: 1px solid var(--dash-border);
+    border-radius: 12px; padding: 1.25rem;
+  }
+  
+  .kpi-label { font-size: 0.75rem; color: var(--dash-muted); text-transform: uppercase; letter-spacing: 0.05em; }
+  .kpi-value { font-size: 1.75rem; font-weight: 700; margin-top: 0.25rem; }
+  .kpi-change { font-size: 0.75rem; margin-top: 0.25rem; }
+  .kpi-change.up { color: var(--dash-success); }
+  .kpi-change.down { color: var(--dash-danger); }
+  
+  .chart-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+    gap: 1rem; margin-bottom: 1.5rem;
+  }
+  
+  .chart-card {
+    background: var(--dash-card); border: 1px solid var(--dash-border);
+    border-radius: 12px; padding: 1.25rem;
+  }
+  
+  .chart-title { font-size: 0.875rem; font-weight: 600; margin-bottom: 1rem; color: var(--dash-muted); }
+  .chart-container { position: relative; height: 250px; }
+  
+  .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+  .data-table th { text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--dash-border); color: var(--dash-muted); font-weight: 600; }
+  .data-table td { padding: 0.75rem; border-bottom: 1px solid var(--dash-border); }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  
+  .badge {
+    display: inline-block; padding: 0.15rem 0.5rem; border-radius: 99px;
+    font-size: 0.7rem; font-weight: 600;
+  }
+  .badge-pdf { background: #fef2f2; color: #b91c1c; }
+  .badge-notes { background: #dcfce7; color: #166534; }
+  .badge-pyq { background: #dbeafe; color: #1e40af; }
+  
+  .loading { text-align: center; padding: 2rem; color: var(--dash-muted); }
+  .error-msg { background: #fef2f2; color: #b91c1c; padding: 1rem; border-radius: 8px; margin: 1rem 0; }
+  
+  @media (max-width: 768px) {
+    .chart-grid { grid-template-columns: 1fr; }
+    .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dash-container">
+  <div class="dash-header">
+    <div>
+      <h1 class="dash-title">📊 Analytics Dashboard</h1>
+      <p style="color: var(--dash-muted); font-size: 0.875rem;">Real-time insights into AbhiHub usage</p>
+    </div>
+    <div class="dash-controls">
+      <select class="dash-select" id="periodSelect" onchange="loadAllData()">
+        <option value="7">Last 7 days</option>
+        <option value="30" selected>Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="365">Last year</option>
+      </select>
+      <button class="dash-select" onclick="loadAllData()" style="background: var(--dash-accent); border-color: var(--dash-accent);">🔄 Refresh</button>
+    </div>
+  </div>
+  
+  <!-- KPI Cards -->
+  <div class="kpi-grid" id="kpiGrid">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Views</div>
+      <div class="kpi-value" id="kpiViews">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Unique Users</div>
+      <div class="kpi-value" id="kpiUsers">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">File Views</div>
+      <div class="kpi-value" id="kpiFileViews">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg Session</div>
+      <div class="kpi-value" id="kpiSession">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Avg Time on File</div>
+      <div class="kpi-value" id="kpiTime">—</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">Total Sessions</div>
+      <div class="kpi-value" id="kpiTotalSessions">—</div>
+    </div>
+  </div>
+  
+  <!-- Charts Row 1 -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">📈 Daily Views Trend</div>
+      <div class="chart-container"><canvas id="dailyViewsChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">⏰ Hourly Usage Pattern</div>
+      <div class="chart-container"><canvas id="hourlyChart"></canvas></div>
+    </div>
+  </div>
+  
+  <!-- Charts Row 2 -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">🏫 Top Colleges</div>
+      <div class="chart-container"><canvas id="collegesChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">📱 Device Breakdown</div>
+      <div class="chart-container"><canvas id="devicesChart"></canvas></div>
+    </div>
+  </div>
+  
+  <!-- Trending Files Table -->
+  <div class="chart-card" style="margin-bottom: 1.5rem;">
+    <div class="chart-title">🔥 Trending Files</div>
+    <div style="overflow-x: auto;">
+      <table class="data-table" id="trendingTable">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>File Name</th>
+            <th>Type</th>
+            <th>Subject</th>
+            <th>College</th>
+            <th>Views</th>
+            <th>Unique Viewers</th>
+            <th>Avg Time</th>
+          </tr>
+        </thead>
+        <tbody id="trendingBody">
+          <tr><td colspan="8" class="loading">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <!-- Charts Row 3 -->
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">📚 Trending Subjects</div>
+      <div class="chart-container"><canvas id="subjectsChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">🔗 Traffic Sources</div>
+      <div class="chart-container"><canvas id="referrersChart"></canvas></div>
+    </div>
+  </div>
+  
+  <!-- Recent Activity -->
+  <div class="chart-card" style="margin-bottom: 1.5rem;">
+    <div class="chart-title">🕐 Recent Activity</div>
+    <div style="overflow-x: auto;">
+      <table class="data-table" id="activityTable">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>File</th>
+            <th>Type</th>
+            <th>Device</th>
+            <th>Time Spent</th>
+          </tr>
+        </thead>
+        <tbody id="activityBody">
+          <tr><td colspan="5" class="loading">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+  
+  <!-- Errors -->
+  <div class="chart-card">
+    <div class="chart-title">⚠️ Recent Errors (7 days)</div>
+    <div style="overflow-x: auto;">
+      <table class="data-table" id="errorsTable">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Error Type</th>
+            <th>Message</th>
+            <th>Severity</th>
+            <th>Page</th>
+          </tr>
+        </thead>
+        <tbody id="errorsBody">
+          <tr><td colspan="5" class="loading">Loading...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+  const COLORS = {
+    blue: '#3b82f6', green: '#10b981', yellow: '#f59e0b', red: '#ef4444',
+    purple: '#8b5cf6', cyan: '#06b6d4', pink: '#ec4899', orange: '#f97316',
+    slate: '#64748b'
+  };
+  
+  const CHART_DEFAULTS = {
+    responsive: true, maintainAspectRatio: false,
+    plugins: { legend: { labels: { color: '#94a3b8' } } },
+    scales: {
+      x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
+      y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
+    }
+  };
+  
+  let charts = {};
+  
+  function getPeriod() { return document.getElementById('periodSelect').value; }
+  
+  async function fetchData(endpoint) {
+    try {
+      const res = await fetch(`${endpoint}?days=${getPeriod()}`);
+      return await res.json();
+    } catch (e) {
+      console.error(`Failed to fetch ${endpoint}:`, e);
+      return { success: false, data: null };
+    }
+  }
+  
+  function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+  
+  function formatNumber(n) { return n?.toLocaleString() || '0'; }
+  function formatTime(seconds) {
+    if (!seconds) return '0s';
+    if (seconds < 60) return `${Math.round(seconds)}s`;
+    return `${Math.round(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+  }
+  
+  // === Load KPIs ===
+  function loadKPIs() {
+    fetchData('/api/admin/analytics/overview').then(r => {
+      if (!r.success || !r.data) return;
+      const d = r.data;
+      document.getElementById('kpiViews').textContent = formatNumber(d.total_views);
+      document.getElementById('kpiUsers').textContent = formatNumber(d.unique_users);
+      document.getElementById('kpiFileViews').textContent = formatNumber(d.file_views);
+      document.getElementById('kpiSession').textContent = `${d.avg_session_minutes}m`;
+      document.getElementById('kpiTime').textContent = formatTime(d.avg_time_on_file_seconds);
+      document.getElementById('kpiTotalSessions').textContent = formatNumber(d.total_sessions);
+    });
+  }
+  
+  // === Daily Views Chart ===
+  function loadDailyViews() {
+    fetchData('/api/admin/analytics/daily-views').then(r => {
+      if (!r.success) return;
+      destroyChart('daily');
+      const ctx = document.getElementById('dailyViewsChart').getContext('2d');
+      charts.daily = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: r.data.map(d => d.date.slice(5)),
+          datasets: [{
+            label: 'Views', data: r.data.map(d => d.views),
+            borderColor: COLORS.blue, backgroundColor: 'rgba(59,130,246,0.1)',
+            fill: true, tension: 0.3
+          }]
+        },
+        options: CHART_DEFAULTS
+      });
+    });
+  }
+  
+  // === Hourly Chart ===
+  function loadHourly() {
+    fetchData('/api/admin/analytics/usage-patterns').then(r => {
+      if (!r.success) return;
+      destroyChart('hourly');
+      const ctx = document.getElementById('hourlyChart').getContext('2d');
+      charts.hourly = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: r.data.hourly.map(h => h.hour),
+          datasets: [{
+            label: 'Views', data: r.data.hourly.map(h => h.views),
+            backgroundColor: COLORS.cyan
+          }]
+        },
+        options: CHART_DEFAULTS
+      });
+    });
+  }
+  
+  // === Colleges Chart ===
+  function loadColleges() {
+    fetchData('/api/admin/analytics/demographics').then(r => {
+      if (!r.success) return;
+      destroyChart('colleges');
+      const colleges = r.data.colleges || [];
+      const ctx = document.getElementById('collegesChart').getContext('2d');
+      charts.colleges = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: colleges.map(c => c.name?.slice(0, 20) || 'Unknown'),
+          datasets: [{
+            label: 'Users', data: colleges.map(c => c.count),
+            backgroundColor: COLORS.green
+          }]
+        },
+        options: { ...CHART_DEFAULTS, indexAxis: 'y' }
+      });
+    });
+  }
+  
+  // === Devices Chart ===
+  function loadDevices() {
+    fetchData('/api/admin/analytics/devices').then(r => {
+      if (!r.success) return;
+      destroyChart('devices');
+      const devices = r.data.devices || [];
+      const ctx = document.getElementById('devicesChart').getContext('2d');
+      charts.devices = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: devices.map(d => d.type),
+          datasets: [{
+            data: devices.map(d => d.count),
+            backgroundColor: [COLORS.blue, COLORS.green, COLORS.yellow, COLORS.purple]
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } } }
+      });
+    });
+  }
+  
+  // === Trending Files Table ===
+  function loadTrendingFiles() {
+    fetchData('/api/admin/analytics/trending-files').then(r => {
+      if (!r.success) return;
+      const tbody = document.getElementById('trendingBody');
+      tbody.innerHTML = r.data.map((f, i) => `
+        <tr>
+          <td>${i + 1}</td>
+          <td>${f.title?.slice(0, 40) || 'Unknown'}</td>
+          <td><span class="badge badge-${f.file_type}">${f.file_type || '—'}</span></td>
+          <td>${f.subject || '—'}</td>
+          <td>${f.college || '—'}</td>
+          <td><strong>${formatNumber(f.view_count)}</strong></td>
+          <td>${formatNumber(f.unique_viewers)}</td>
+          <td>${formatTime(f.avg_time_seconds)}</td>
+        </tr>
+      `).join('');
+    });
+  }
+  
+  // === Subjects Chart ===
+  function loadSubjects() {
+    fetchData('/api/admin/analytics/trending-subjects').then(r => {
+      if (!r.success) return;
+      destroyChart('subjects');
+      const subjects = r.data || [];
+      const ctx = document.getElementById('subjectsChart').getContext('2d');
+      charts.subjects = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: subjects.map(s => s.name?.slice(0, 15) || 'Unknown'),
+          datasets: [{
+            label: 'Views', data: subjects.map(s => s.view_count),
+            backgroundColor: COLORS.purple
+          }]
+        },
+        options: CHART_DEFAULTS
+      });
+    });
+  }
+  
+  // === Referrers Chart ===
+  function loadReferrers() {
+    fetchData('/api/admin/analytics/traffic-sources').then(r => {
+      if (!r.success) return;
+      destroyChart('referrers');
+      const refs = r.data || [];
+      const ctx = document.getElementById('referrersChart').getContext('2d');
+      charts.referrers = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: refs.map(r => r.source?.slice(0, 25) || 'Unknown'),
+          datasets: [{
+            data: refs.map(r => r.views),
+            backgroundColor: [COLORS.blue, COLORS.green, COLORS.yellow, COLORS.red, COLORS.purple, COLORS.cyan, COLORS.pink, COLORS.orange]
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } } }
+      });
+    });
+  }
+  
+  // === Recent Activity ===
+  function loadActivity() {
+    fetch('/api/admin/analytics/recent-activity?limit=20').then(r => r.json()).then(r => {
+      if (!r.success) return;
+      const tbody = document.getElementById('activityBody');
+      tbody.innerHTML = r.data.map(a => `
+        <tr>
+          <td>${a.accessed_at ? a.accessed_at.slice(0, 16).replace('T', ' ') : '—'}</td>
+          <td>${a.document_title?.slice(0, 35) || 'Unknown'}</td>
+          <td><span class="badge badge-${a.file_type}">${a.file_type || '—'}</span></td>
+          <td>${a.device_type || '—'}</td>
+          <td>${formatTime(a.time_spent_seconds)}</td>
+        </tr>
+      `).join('');
+    });
+  }
+  
+  // === Errors ===
+  function loadErrors() {
+    fetch('/api/admin/analytics/errors').then(r => r.json()).then(r => {
+      if (!r.success) return;
+      const tbody = document.getElementById('errorsBody');
+      tbody.innerHTML = r.data.length ? r.data.map(e => `
+        <tr>
+          <td>${e.timestamp ? e.timestamp.slice(0, 16).replace('T', ' ') : '—'}</td>
+          <td>${e.error_type || '—'}</td>
+          <td>${e.error_message?.slice(0, 60) || '—'}</td>
+          <td><span class="badge" style="background: ${e.severity === 'error' ? '#fef2f2' : '#fef9c3'}; color: ${e.severity === 'error' ? '#b91c1c' : '#854d0e'}">${e.severity || 'warning'}</span></td>
+          <td>${e.page_path || '—'}</td>
+        </tr>
+      `).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--dash-muted)">No errors in this period 🎉</td></tr>';
+    });
+  }
+  
+  function loadAllData() {
+    loadKPIs(); loadDailyViews(); loadHourly(); loadColleges(); loadDevices();
+    loadTrendingFiles(); loadSubjects(); loadReferrers(); loadActivity(); loadErrors();
+  }
+  
+  // Initial load
+  document.addEventListener('DOMContentLoaded', loadAllData);
+</script>
+{% endblock %}

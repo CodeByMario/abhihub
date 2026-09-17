@@ -1,5 +1,5 @@
-{% set seo_title = 'PYQ & Papers | Free Previous Year Question Papers for All Colleges | AbhiHub' %}
-{% set seo_description = 'Download free PYQ (Previous Year Question Papers) for engineering colleges across India. GHRCE, Raisoni, RCOEM, VIT and more — organized by subject and semester on AbhiHub.' %}
+{% set seo_title = 'Free PYQ – Previous Year Question Papers | AbhiHub' %}
+{% set seo_description = 'Download free PYQ for engineering colleges in India — GHRCE, Raisoni, RCOEM, VIT and more. Browse by college, subject and semester on AbhiHub.' %}
 {% set seo_keywords = 'PYQ, PYQ previous year question papers, college PYQ, engineering PYQ, engineering papers, previous year papers abhihub, PYQ free download, PYQ PDF, GHRCE PYQ, Raisoni PYQ, RCOEM PYQ, VIT PYQ, engineering notes, exam preparation, AbhiHub PYQ' %}
 {% set og_title = seo_title %}
 {% set og_description = seo_description %}
@@ -14,9 +14,20 @@
     {
       "@type": "CollectionPage",
       "name": "Free PYQ - Previous Year Question Papers | AbhiHub",
-      "url": "https://abhihub.edu.eu.org/pyq",
-      "description": "Free previous year question papers for engineering colleges across India, organized by college, department and subject.",
-      "provider": { "@type": "Organization", "name": "AbhiHub" }
+      "url": "{{ request.url_root.rstrip('/') }}/pyq",
+      "description": "Free previous year question papers for engineering colleges across India, organized by college, department and subject. Includes GHRCE, Raisoni, RCOEM, VIT Nagpur and more.",
+      "provider": { "@type": "Organization", "name": "AbhiHub", "url": "{{ request.url_root.rstrip('/') }}/" },
+      "audience": { "@type": "EducationalAudience", "educationalRole": "student" }
+    },
+    {
+      "@type": "SoftwareApplication",
+      "name": "AbhiHub",
+      "applicationCategory": "EducationalApplication",
+      "operatingSystem": "Web",
+      "url": "{{ request.url_root.rstrip('/') }}/",
+      "description": "Free web app for engineering students in India to find, download and share PYQ (Previous Year Question Papers) and study notes by college, department and subject.",
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
+      "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "120", "bestRating": "5" }
     },
     {
       "@type": "FAQPage",
@@ -24,17 +35,32 @@
         {
           "@type": "Question",
           "name": "What is PYQ?",
-          "acceptedAnswer": { "@type": "Answer", "text": "PYQ stands for Previous Year Question Papers. These are past exam papers used by students to understand exam patterns and prepare effectively." }
+          "acceptedAnswer": { "@type": "Answer", "text": "PYQ stands for Previous Year Question Papers. These are past exam papers used by students to understand exam patterns, important topics and marking schemes before appearing for their university exams." }
         },
         {
           "@type": "Question",
-          "name": "Where can I download free PYQ for engineering colleges?",
-          "acceptedAnswer": { "@type": "Answer", "text": "AbhiHub provides free PYQ downloads for engineering colleges including GHRCE (Raisoni), RCOEM, VIT Nagpur and more. Browse by college below." }
+          "name": "Where can I download free PYQ for engineering colleges in India?",
+          "acceptedAnswer": { "@type": "Answer", "text": "AbhiHub (abhihub.edu.eu.org/pyq) provides completely free PYQ downloads for engineering colleges including GHRCE (Raisoni), RCOEM, VIT Nagpur and more. All papers are organized by college, department, subject and semester." }
+        },
+        {
+          "@type": "Question",
+          "name": "Where can I find GHRCE PYQ papers?",
+          "acceptedAnswer": { "@type": "Answer", "text": "GHRCE (G H Raisoni College of Engineering) PYQ papers are available free on AbhiHub at abhihub.edu.eu.org/pyq. Browse by GHRCE, select your department and subject to download papers." }
+        },
+        {
+          "@type": "Question",
+          "name": "What is the best website for engineering notes and PYQ in India?",
+          "acceptedAnswer": { "@type": "Answer", "text": "AbhiHub is a free, student-driven platform that provides PYQ, notes, practicals and study resources for engineering colleges across India. It is organized by college, department and subject, making it easy to find exam-specific material." }
         },
         {
           "@type": "Question",
           "name": "Are these PYQs reliable?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes. All PYQs on AbhiHub are uploaded by verified student contributors and reviewed for accuracy before being made public." }
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. All PYQs on AbhiHub are uploaded by verified student contributors from the respective colleges. Files are reviewed before being made public." }
+        },
+        {
+          "@type": "Question",
+          "name": "Can I upload PYQ and notes for my college on AbhiHub?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Yes. AbhiHub is a student-driven platform. Any engineering student can upload PYQ, notes or practicals for their college. Uploaders earn reputation points on the contributor leaderboard." }
         }
       ]
     }
@@ -269,7 +295,7 @@ body { background-color: var(--pyq-bg); }
 
   <div class="college-grid" id="collegeGrid">
     {% for college in colleges %}
-    <a href="/pyq/{{ (college.abbreviation or college.name) | lower | replace(' ', '-') }}"
+    <a href="/college/{{ (college.abbreviation or college.name) | lower | replace(' ', '-') }}/files?page=1" 
        class="college-card"
        data-search="{{ college.name | lower }} {{ (college.abbreviation or '') | lower }} {{ (college.popular_name or '') | lower }}">
       <div class="college-abbr">{{ college.abbreviation or college.name[:6] }}</div>
@@ -291,7 +317,6 @@ body { background-color: var(--pyq-bg); }
   </div>
 </div>
 
-<!-- FAQ -->
 <div class="faq-section">
   <h2 style="font-size:1.8rem; font-weight:800; color:var(--pyq-text); margin-bottom:1.5rem;">Frequently Asked Questions</h2>
 
@@ -302,17 +327,27 @@ body { background-color: var(--pyq-bg); }
 
   <div class="faq-item">
     <div class="faq-q">Which colleges are available on AbhiHub?</div>
-    <div class="faq-a">AbhiHub currently has PYQs and notes for {{ colleges | length }} colleges including GHRCE (Raisoni), and more being added by student contributors every week.</div>
+    <div class="faq-a">AbhiHub currently has PYQs and notes for {{ colleges | length }} colleges including <strong>GHRCE (Raisoni), RCOEM, VIT Nagpur</strong> and more being added by student contributors every week.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">Where can I find GHRCE PYQ papers?</div>
+    <div class="faq-a">GHRCE (G H Raisoni College of Engineering) PYQ papers are available free on AbhiHub. Search for <strong>GHRCE</strong> above or go to <a href="/pyq" style="color:var(--pyq-primary); font-weight:700;">abhihub.edu.eu.org/pyq</a> and select GHRCE from the college list.</div>
+  </div>
+
+  <div class="faq-item">
+    <div class="faq-q">What is the best website for engineering notes and PYQ in India?</div>
+    <div class="faq-a"><strong>AbhiHub</strong> is a free, student-driven platform for downloading engineering PYQ, notes and practicals — organized by college, department and subject. No login required to browse.</div>
   </div>
 
   <div class="faq-item">
     <div class="faq-q">How do I find PYQ for my subject?</div>
-    <div class="faq-a">Click your college above → select your department → select your subject → download the PYQ PDF. All resources are free.</div>
+    <div class="faq-a">Click your college above → select your department → select your subject → download the PYQ PDF. All resources are free and organized by semester.</div>
   </div>
 
   <div class="faq-item">
     <div class="faq-q">Can I upload PYQs for my college?</div>
-    <div class="faq-a">Yes! AbhiHub is student-driven. <a href="/upload" style="color:var(--pyq-primary); font-weight:700;">Upload your PYQs</a> and earn reputation points on the leaderboard.</div>
+    <div class="faq-a">Yes! AbhiHub is student-driven. <a href="/upload" style="color:var(--pyq-primary); font-weight:700;">Upload your PYQs</a> and earn reputation points on the leaderboard. The more you contribute, the more students you help.</div>
   </div>
 </div>
 

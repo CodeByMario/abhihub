@@ -1,0 +1,40 @@
+<!-- _card_team_member.html - Team member card component -->
+<!-- Parameters:
+     - avatar: Avatar emoji or image URL
+     - name: Team member name
+     - role: Job title/role
+     - bio: Short biography/description
+     - social_links: List of social media links (optional)
+     - email: Email address (optional)
+     - linkedin: LinkedIn URL (optional)
+     - github: GitHub URL (optional)
+     - twitter: Twitter URL (optional)
+-->
+
+<div class="team-card">
+    <div class="team-avatar">
+        {{ avatar or "👨‍💻" }}
+    </div>
+    <h4>{{ name }}</h4>
+    <p class="text-muted">{{ role }}</p>
+    <p class="mb-4">
+        {{ bio }}
+    </p>
+    <div class="social-links">
+        {% if email %}
+        <a href="mailto:{{ email }}" title="Email" class="social-email">✉️</a>
+        {% endif %}
+        {% if linkedin %}
+        <a href="{{ linkedin }}" title="LinkedIn" class="social-linkedin">💼</a>
+        {% endif %}
+        {% if github %}
+        <a href="{{ github }}" title="GitHub" class="social-github">🐙</a>
+        {% endif %}
+        {% if twitter %}
+        <a href="{{ twitter }}" title="Twitter" class="social-twitter">🐦</a>
+        {% endif %}
+        {% for link in social_links %}
+        <a href="{{ link.url }}" title="{{ link.title }}" class="{{ link.class }}">{{ link.icon }}</a>
+        {% endfor %}
+    </div>
+</div>

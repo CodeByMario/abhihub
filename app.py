@@ -18,7 +18,7 @@ import hashlib
 import hmac
 import requests
 import json
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, timezone
 import logging
 from dotenv import load_dotenv
 from supabase import create_client, ClientOptions
@@ -27,7 +27,7 @@ from supabase import create_client, ClientOptions
 load_dotenv()
 
 # IndexNow must use one environment-managed key for both submission and ownership verification.
-BASE_DOMAIN = os.getenv('BASE_DOMAIN', 'abhihub.edu.eu.org').strip().lower()
+BASE_DOMAIN = os.getenv('BASE_DOMAIN', 'www.abhihub.edu.eu.org').strip().lower()
 INDEXNOW_KEY = os.getenv('INDEX_NOW_BING_API_KEY', '').strip()
 TURNSTILE_SITEKEY = os.getenv('TURNSTILE_SITEKEY', '')
 
@@ -35,7 +35,7 @@ TURNSTILE_SITEKEY = os.getenv('TURNSTILE_SITEKEY', '')
 # DEFERRED: create_client crashes if SUPABASE_URL/KEY are None (causes H10 on Heroku startup).
 # We use a lazy proxy so the client is only created when first accessed.
 SUPABASE_URL = os.getenv('SUPABASE_URL')
-SUPABASE_KEY = os.getenv('SUPABASE_KEY')
+SUPABASE_KEY = os.getenv('SUPABASE_KEY') or os.getenv('SUPABASE_PUBLIC_API_KEY')
 
 _supabase_client = None  # Lazily initialized
 
@@ -58,21 +58,43 @@ supabase = _SupabaseProxy()
 import firebase_admin
 from firebase_admin import credentials, storage
 
-# Try to load Firebase credentials from environment variable first, fallback to file
+# Load Firebase service-account credentials:
+#   1. FIREBASE_SERVICE_ACCOUNT_JSON env var (primary — works local + Heroku)
+#   2. firebase-auth.json file (fallback, local dev) — git-ignored
+cred = None
 firebase_service_account = os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON')
 if firebase_service_account:
-    # Load from environment variable (required for open-source; no file fallback)
     try:
         cred_dict = json.loads(firebase_service_account)
-        cred = credentials.Certificate(cred_dict)
+        if 'private_key' not in cred_dict or cred_dict.get('type') != 'service_account':
+            logging.warning(
+                "Firebase: FIREBASE_SERVICE_ACCOUNT_JSON looks like the WEB CLIENT config "
+                "(apiKey/authDomain/appId), not a service-account key. Firebase Storage signing "
+                "will fail. Generate a service account key: Firebase Console -> Project Settings "
+                "-> Service accounts -> Generate new private key."
+            )
+        else:
+            cred = credentials.Certificate(cred_dict)
+            logging.info("Firebase: credentials loaded from FIREBASE_SERVICE_ACCOUNT_JSON env var")
     except (json.JSONDecodeError, Exception) as e:
         logging.warning(f"Firebase: Failed to parse FIREBASE_SERVICE_ACCOUNT_JSON: {e}")
-        cred = None
-else:
-    # No file fallback — FIREBASE_SERVICE_ACCOUNT_JSON env var is required.
-    # For local development, set the env var (copy firebase-auth.json content into it).
-    logging.warning("Firebase: FIREBASE_SERVICE_ACCOUNT_JSON not set. Firebase storage unavailable.")
-    cred = None
+
+if cred is None:
+    _firebase_key_path = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'firebase-auth.json')
+    if os.path.exists(_firebase_key_path):
+        try:
+            cred = credentials.Certificate(_firebase_key_path)
+            logging.info("Firebase: credentials loaded from firebase-auth.json")
+        except Exception as e:
+            logging.warning(f"Firebase: failed to load firebase-auth.json: {e}")
+            cred = None
+
+if cred is None:
+    logging.warning(
+        "Firebase: no credentials found (neither FIREBASE_SERVICE_ACCOUNT_JSON nor "
+        "firebase-auth.json). Firebase storage unavailable — signed URL generation "
+        "will fail for Firebase-hosted documents."
+    )
 
 if cred:
     firebase_admin.initialize_app(cred, {
@@ -212,17 +234,88 @@ def _score_item(item: dict, tokens: list[str]) -> float:
 
 # Initialize Flask app
 app = Flask(__name__)
+
+# Response caching to improve server response time
+from flask import make_response, request
+# Response caching and security headers
+from flask import make_response, request
+import time
+
+@app.after_request
+def apply_security_and_cache_headers(response):
+    """Add security and cache control headers to all responses."""
+    # Global Security Headers
+    response.headers.setdefault('X-Content-Type-Options', 'nosniff')
+    response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+    response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
+    response.headers.setdefault('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()')
+    
+    # HSTS in production
+    if os.getenv('FLASK_ENV', 'production').lower() != 'development':
+        response.headers.setdefault('Strict-Transport-Security', 'max-age=31536000; includeSubDomains')
+
+    # Performance / Cache-Control
+    if request.path.startswith('/static/'):
+        response.headers['Cache-Control'] = 'public, max-age=31536000, must-revalidate'
+    elif request.path.startswith('/api/'):
+        if 'Cache-Control' not in response.headers:
+            response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    elif request.path.endswith('.html') and not request.path.startswith('/dashboard'):
+        response.headers.setdefault('Cache-Control', 'public, max-age=60, must-revalidate')
+    return response
+
+# Add gzip compression for text responses
 try:
     from flask_compress import Compress
-    Compress(app)
-except Exception:
-    pass  # Compression is optional; skip gracefully if unavailable
+    compress = Compress()
+    compress.init_app(app)
+except ImportError:
+    pass
+
+@app.route('/health')
+@app.route('/api/health')
+def health_check():
+    """Lightweight health check endpoint for monitoring without secret leakage."""
+    return jsonify({
+        'status': 'healthy',
+        'service': 'abhihub',
+        'version': '1.0.0',
+        'timestamp': datetime.now(timezone.utc).isoformat()
+    }), 200
+
+# Sitemap URLs are opt-in. Keeping this registry next to the application
+# prevents newly added auth/account routes from being indexed by accident.
+_SITEMAP_REGISTRY = {}
+
+
+def sitemap_page(priority="0.80", changefreq="weekly"):
+    """Mark a static Flask view as eligible for inclusion in the sitemap."""
+    def decorator(view_func):
+        _SITEMAP_REGISTRY[view_func.__name__] = {
+            "priority": priority,
+            "changefreq": changefreq,
+        }
+
+        @wraps(view_func)
+        def wrapper(*args, **kwargs):
+            return view_func(*args, **kwargs)
+        return wrapper
+    return decorator
+
+
+def slugify(text):
+    """Create the canonical URL-safe form used by sitemap entries."""
+    return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
 
 # Initialize the Level-wise Cache Management System
 from cache_manager import init_cache, get_cache
 cache = init_cache(app)
 
-socketio = SocketIO(app, cors_allowed_origins="https://app.abhihub.run.place", logger=False, engineio_logger=False)
+_socket_cors_origins = os.getenv('SOCKETIO_CORS_ORIGINS', 'https://www.abhihub.edu.eu.org').split(',')
+# Permit local/preview hosts during development; production remains allow-listed.
+if os.getenv('FLASK_ENV') != 'production':
+    _socket_cors_origins = '*'
+socketio = SocketIO(app, cors_allowed_origins=_socket_cors_origins, logger=False, engineio_logger=False)
 
 import mimetypes
 mimetypes.add_type('application/javascript', '.mjs')
@@ -312,16 +405,46 @@ def extract_pdf_info(pdf_bytes):
     return extracted_text.strip(), img_bytes, mime_type
 
 
+def _resolve_signed_url(file_url, log_tag="AI"):
+    """Return an http(s) URL, signing a raw Firebase storage path if needed."""
+    if not file_url or file_url.startswith('http'):
+        return file_url
+    bucket = storage.bucket()
+    blob = bucket.blob(file_url)
+    signed = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
+    return signed[0] if isinstance(signed, (list, tuple)) else signed
+
+
+def _looks_like_pdf(content_type, file_url, content_bytes):
+    """Identify PDFs from response metadata, URL, or file signature."""
+    return (
+        'pdf' in (content_type or '').lower()
+        or str(file_url or '').lower().endswith('.pdf')
+        or (content_bytes or b'').startswith(b'%PDF')
+    )
+
+def _load_contact_messages():
+    """Load contact messages from JSON file, swallowing exceptions."""
+    if not os.path.exists(CONTACT_FILE):
+        return []
+    try:
+        with open(CONTACT_FILE, 'r') as f:
+            return json.load(f)
+    except Exception:
+        return []
+
+
 # Security Configuration - Load from environment variables
 app.secret_key = os.getenv('SECRET_KEY', secrets.token_hex(32))
 
 # Configure session cookie settings
-# SESSION_COOKIE_SECURE should be True in production (HTTPS), False in development (HTTP)
-app.config['SESSION_COOKIE_SECURE'] = os.getenv('FLASK_ENV') == 'production'
+# SESSION_COOKIE_SECURE defaults to True for HTTPS unless FLASK_ENV is explicitly 'development'
+app.config['SESSION_COOKIE_SECURE'] = os.getenv('FLASK_ENV', 'production').lower() != 'development'
 app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access to cookies
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=90)
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True
 app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB request limit to prevent DoS memory exhaustion
 
 # CSRF Protection
 app.config['WTF_CSRF_ENABLED'] = True
@@ -341,10 +464,11 @@ def check_csrf():
 
 # Redirect old Heroku domain to new custom domain (301 permanent redirect)
 @app.before_request
-def redirect_to_custom_domain():
-    """Redirect traffic from old Heroku domain to primary domain for SEO"""
-    if request.host == "abhi-hub-06bba7f4101d.herokuapp.com":
-        return redirect("https://app.abhihub.run.place" + request.full_path, code=301)
+def redirect_to_new_domain():
+    old_domains = ["app.abhihub.run.place", "abhihub.herokuapp.com", "abhihub.run.place"]
+    if any(d in request.host for d in old_domains):
+        new_url = "https://www.abhihub.edu.eu.org" + request.full_path
+        return redirect(new_url, code=301)
 
 init_push_api(app)
 
@@ -366,15 +490,38 @@ MAX_FILE_SIZE = 50 * 1024 * 1024  # 50MB max file size
 # Match file input accept attr + JS type check: images + PDF only.
 # PDFs and images are the canonical upload types for AbhiHub.
 ALLOWED_EXTENSIONS = {
-    'pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif', 'svg'
+    'pdf', 'png', 'jpg', 'jpeg', 'webp', 'gif'
 }
 
 def allowed_file(filename):
     """Check if file extension is allowed"""
-    if '.' not in filename:
+    if not filename or '.' not in filename:
         return False  # no extension — rejected
     ext = filename.rsplit('.', 1)[1].lower()
     return ext in ALLOWED_EXTENSIONS
+
+def validate_file_content(file_obj, filename):
+    """Validate both file extension and magic byte header signature."""
+    if not allowed_file(filename):
+        return False
+    ext = filename.rsplit('.', 1)[1].lower()
+    try:
+        header = file_obj.read(16)
+        file_obj.seek(0)
+    except Exception:
+        return False
+
+    if ext == 'pdf':
+        return header.startswith(b'%PDF')
+    elif ext in {'jpg', 'jpeg'}:
+        return header.startswith(b'\xff\xd8\xff')
+    elif ext == 'png':
+        return header.startswith(b'\x89PNG\r\n\x1a\n')
+    elif ext == 'gif':
+        return header.startswith(b'GIF87a') or header.startswith(b'GIF89a')
+    elif ext == 'webp':
+        return header.startswith(b'RIFF') and b'WEBP' in header[:16]
+    return False
 
 def sanitize_filename(filename):
     """Sanitize filename to prevent path traversal and other attacks"""
@@ -415,19 +562,86 @@ def detect_file_type(filename: str) -> str:
 
 
 def log_document_view(file_name, file_url, record_id=None,
-                      file_type=None, file_path=None, user_email=None):
+                      file_type=None, file_path=None, user_email=None,
+                      uploader_id=None, uploader_email=None):
     """Record that the current user viewed a document.
 
     Shared by /preview, /view_pdf and /resource/<slug> so the view-logging
-    contract lives in exactly one place. Never raises: a logging failure
-    must not break document delivery.
+    contract lives in exactly one place. Deducts 1 view from paper quota
+    only ONCE per day for non-uploaders (uploaders view for free).
+    Never raises: a logging failure must not break document delivery.
     """
     if user_email is None:
         user_email = session.get('user', {}).get('email', '')
+    user_id = session.get('user', {}).get('uid', '')
     if not user_email:
         return False
     try:
-        from methods.supabase_helper import save_file_access
+        # Check 1: Free view if user is the uploader
+        is_owner = False
+        if user_id and uploader_id and str(user_id) == str(uploader_id):
+            is_owner = True
+        elif user_email and uploader_email and user_email.lower() == str(uploader_email).lower():
+            is_owner = True
+        elif record_id and user_id:
+            try:
+                doc_chk = supabase.table('documents').select('uploader_id').eq('id', record_id).limit(1).execute()
+                if doc_chk.data and str(doc_chk.data[0].get('uploader_id')) == str(user_id):
+                    is_owner = True
+            except Exception:
+                pass
+
+        # Check 2: Same-day deduplication (charge only once per day per file)
+        today_str = datetime.utcnow().strftime('%Y-%m-%d')
+        doc_key = str(record_id or file_name or file_url)
+        cache_view_key = f"viewed:{user_id or user_email}:{doc_key}:{today_str}"
+
+        already_viewed_today = False
+        try:
+            if cache.l1.get(cache_view_key)[0] is not None:
+                already_viewed_today = True
+        except Exception:
+            pass
+
+        if not already_viewed_today:
+            viewed_dict = session.get('viewed_today', {})
+            if viewed_dict.get(doc_key) == today_str:
+                already_viewed_today = True
+
+        # Deduct credit ONLY if user is not the uploader AND has not viewed it today
+        if not is_owner and not already_viewed_today:
+            allowed = _consume_credit()
+            if allowed:
+                try:
+                    cache.l1.set(cache_view_key, True, ttl=86400)
+                except Exception:
+                    pass
+                viewed_dict = session.get('viewed_today', {})
+                viewed_dict[doc_key] = today_str
+                session['viewed_today'] = viewed_dict
+                session.modified = True
+
+                # Send notification for credit deduction
+                try:
+                    doc_title = file_name or "document"
+                    notif_title = "1 Credit Deducted"
+                    notif_msg = f"1 view credit was deducted for viewing '{doc_title}'."
+                    action_url = f"/resource/{record_id}" if record_id else None
+
+                    if user_id:
+                        from data.notifications import Notification
+                        res = Notification.create(user_id, "quota_deduction", notif_title, notif_msg, action_url)
+                        # Fall back to 'marketing' if quota_deduction enum hasn't been migrated
+                        if not res.get('success'):
+                            Notification.create(user_id, "marketing", notif_title, notif_msg, action_url)
+                        try:
+                            from push_notifications import send_notification
+                            send_notification(user_id, notif_title, notif_msg, action_url)
+                        except Exception:
+                            pass
+                except Exception as ne:
+                    logging.warning(f"[VIEW-LOG] Could not send deduction notification: {ne}")
+
         save_file_access(
             user_email=user_email,
             file_name=file_name,
@@ -461,6 +675,27 @@ def inject_user_profile():
     }
 
 
+@app.context_processor
+def inject_ad_decision():
+    """Inject dynamic ad decision (from access level) into all templates.
+
+    Templates use: {% if ad_decision.show_ads %}{% include 'ads/banner.html' %}{% endif %}
+    Density drives per-slot frequency: 'minimal'/'very_low' show ads rarely.
+    """
+    user_id = session.get('user', {}).get('uid')
+    try:
+        from methods.scoring_engine import get_ad_decision
+        ad_decision = get_ad_decision(user_id)
+    except Exception:
+        ad_decision = {'show_ads': True, 'density': 'high', 'level': None}
+    return {
+        'ad_decision': ad_decision,
+        'ad_density': ad_decision.get('density', 'high'),
+        # Convenience flags for slot-level frequency gating
+        'show_secondary_ads': ad_decision.get('density') in ('high', 'medium'),
+    }
+
+
 ########################################
 """ Authentication and Authorization """
 
@@ -489,11 +724,15 @@ def admin_required(f):
         # Check if user is authenticated first
         user = session.get('user')
         if not user:
+            if request.path.startswith('/api/') or request.path.startswith('/store-room/api/'):
+                return jsonify({'success': False, 'message': 'Unauthorized'}), 401
             return redirect(url_for('login'))
             
         # Check if user email matches admin email
         user_email = user.get('email', '').lower()
-        if user_email not in ADMIN_EMAILS:
+        if not ADMIN_EMAILS or user_email not in ADMIN_EMAILS:
+            if request.path.startswith('/api/') or request.path.startswith('/store-room/api/'):
+                return jsonify({'success': False, 'message': 'Forbidden: Admin access required'}), 403
             abort(403)  # Forbidden
             
         return f(*args, **kwargs)
@@ -587,21 +826,67 @@ def _get_quota():
     session.modified = True
     return q
 
+def log_credit_transaction(user_id, amount, tx_type, reason):
+    """Record credit earning or spending transaction for ledger tracking."""
+    if not user_id:
+        return
+    try:
+        data = {
+            'user_id': user_id,
+            'amount': amount,
+            'type': tx_type,  # 'earn' or 'spend'
+            'reason': reason,
+            'created_at': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+        }
+        # Session storage for fast UI response
+        history = session.get('credit_history', [])
+        if not isinstance(history, list):
+            history = []
+        history.insert(0, data)
+        session['credit_history'] = history[:100]
+        session.modified = True
+
+        # Database storage
+        try:
+            supabase.table('credit_transactions').insert(data).execute()
+        except Exception:
+            pass
+    except Exception as e:
+        logging.warning(f"[CREDIT-LOG] Could not log credit tx: {e}")
+
 def _grant_upload_credits():
-    """Award +1 reputation score to the user after a successful upload."""
+    """Award +3 paper quota views and +1 reputation score to the user after a successful upload."""
     user = session.get('user', {})
     user_id = user.get('uid')
     if not user_id:
         return
     
-    # Fetch current rep
-    res = supabase.table('profiles').select('reputation_score').eq('id', user_id).execute()
+    # Fetch current quota and rep
+    res = supabase.table('profiles').select('paper_quota_remaining, reputation_score').eq('id', user_id).execute()
     if res.data:
+        curr_quota = res.data[0].get('paper_quota_remaining')
+        if curr_quota is None:
+            curr_quota = 19
         curr_rep = res.data[0].get('reputation_score') or 0
-        supabase.table('profiles').update({'reputation_score': curr_rep + 1}).eq('id', user_id).execute()
-        logging.info(f"[REWARD] Granted +1 reputation to {user.get('email')} -> {curr_rep + 1}")
+        new_quota = curr_quota + 3
+        
+        supabase.table('profiles').update({
+            'paper_quota_remaining': new_quota,
+            'reputation_score': curr_rep + 1
+        }).eq('id', user_id).execute()
 
-def _consume_credit():
+        # Update session quota
+        q = session.get('paper_quota', {})
+        if isinstance(q, dict):
+            q['credits'] = new_quota
+            session['paper_quota'] = q
+            session.modified = True
+
+        cache.l1.delete(f"user:quota:{user_id}")
+        log_credit_transaction(user_id, 3, 'earn', "Document upload reward (+3 views)")
+        logging.info(f"[REWARD] Granted +3 views (quota={new_quota}) and +1 rep to {user.get('email')}")
+
+def _consume_credit(doc_name="Document"):
     """
     Deduct 1 credit for a paper open.
     Returns True if the open is allowed, False if quota is exhausted.
@@ -628,11 +913,45 @@ def _consume_credit():
     # Update backend
     if user_id:
         supabase.table('profiles').update({'paper_quota_remaining': new_credits}).eq('id', user_id).execute()
+        log_credit_transaction(user_id, -1, 'spend', f"Viewed: {doc_name}")
 
     # Invalidate quota cache — it changed
     cache.l1.delete(f"user:quota:{user_id}")
 
     return True
+
+@app.route('/<key>.txt')
+def indexnow_key_file(key):
+    """Serve the IndexNow key verification file dynamically based on .env configuration."""
+    # Ensure they can't query just any random .txt file - only the configured IndexNow key
+    if INDEXNOW_KEY and key == INDEXNOW_KEY:
+        return INDEXNOW_KEY, 200, {'Content-Type': 'text/plain; charset=utf-8'}
+    abort(404)
+
+@app.route('/api/indexnow/submit', methods=['POST'])
+@admin_required
+def submit_indexnow():
+    """Submit URLs to Bing IndexNow"""
+    if not INDEXNOW_KEY:
+        return jsonify({'success': False, 'message': 'INDEX_NOW_BING_API_KEY is not set.'}), 500
+        
+    data = request.json or {}
+    urls = data.get('urls', [])
+    if not urls:
+        return jsonify({'success': False, 'message': 'No urls provided.'}), 400
+        
+    payload = {
+        "host": BASE_DOMAIN,
+        "key": INDEXNOW_KEY,
+        "keyLocation": f"https://{BASE_DOMAIN}/{INDEXNOW_KEY}.txt",
+        "urlList": urls
+    }
+    
+    try:
+        resp = requests.post('https://api.indexnow.org/IndexNow', json=payload, timeout=10)
+        return jsonify({'success': resp.status_code == 200, 'status': resp.status_code, 'reason': resp.reason})
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/quota', methods=['GET'])
 @auth_required
@@ -656,6 +975,94 @@ def api_cache_health():
         'cache': cache.stats(),
         'timestamp': datetime.utcnow().isoformat() + 'Z'
     }), 200
+
+
+@app.route('/api/get-upload-signature', methods=['POST'])
+@auth_required
+def get_upload_signature():
+    """Generates a presigned Cloudinary upload signature for client-side direct uploads."""
+    import time
+    import cloudinary.utils
+    timestamp = int(time.time())
+    folder = "uploads"
+    params = {
+        'timestamp': timestamp,
+        'folder': folder
+    }
+    api_secret = os.getenv('CLOUDINARY_API_SECRET')
+    cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME')
+    api_key = os.getenv('CLOUDINARY_API_KEY')
+    if not api_secret or not cloud_name:
+        return jsonify({'success': False, 'message': 'Storage configuration error'}), 500
+
+    signature = cloudinary.utils.api_sign_request(params, api_secret)
+    return jsonify({
+        'success': True,
+        'upload_url': f"https://api.cloudinary.com/v1_1/{cloud_name}/auto/upload",
+        'api_key': api_key,
+        'timestamp': timestamp,
+        'signature': signature,
+        'folder': folder
+    }), 200
+
+
+def _async_compress_and_update(public_id, secure_url, resource_type, filename):
+    """Background worker task: downloads uploaded file, applies compression, and updates storage."""
+    try:
+        import requests
+        from methods.cloudinary_upload import compress_image, compress_pdf, upload_file_to_cloudinary
+        resp = requests.get(secure_url, timeout=30)
+        if resp.status_code != 200:
+            return
+        
+        file_bytes = resp.content
+        ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
+        
+        compressed_bytes = file_bytes
+        if resource_type == 'image':
+            compressed_bytes = compress_image(file_bytes, format='JPEG', quality=80)
+        elif ext == 'pdf':
+            compressed_bytes = compress_pdf(file_bytes)
+            
+        if len(compressed_bytes) < len(file_bytes):
+            import io
+            upload_file_to_cloudinary(
+                io.BytesIO(compressed_bytes),
+                filename,
+                user_id="async_worker",
+                folder="uploads",
+                compress=False
+            )
+            logging.info(f"✓ Async background compression complete for {public_id}: {len(file_bytes)} ➔ {len(compressed_bytes)} bytes")
+    except Exception as e:
+        logging.error(f"Async post-upload worker error for {public_id}: {e}")
+
+@app.route('/api/version')
+def version_info():
+    """Return current app version for footer and cache management"""
+    return jsonify({"version": "1.0.0"})
+
+@app.route('/api/webhooks/cloudinary-upload', methods=['POST'])
+def webhook_cloudinary_upload():
+    """Webhook triggered on storage upload completion to run async background compression."""
+    import threading
+    data = request.get_json(silent=True) or request.form.to_dict()
+    public_id = data.get('public_id')
+    secure_url = data.get('secure_url') or data.get('url')
+    resource_type = data.get('resource_type', 'raw')
+    filename = data.get('original_filename') or f"{public_id}.pdf"
+    
+    if not public_id or not secure_url:
+        return jsonify({'success': False, 'message': 'Missing upload payload'}), 400
+        
+    thread = threading.Thread(
+        target=_async_compress_and_update,
+        args=(public_id, secure_url, resource_type, filename)
+    )
+    thread.daemon = True
+    thread.start()
+    
+    return jsonify({'success': True, 'message': 'Async compression queued'}), 200
 # ─────────────────────────────────────────────────────────────────────────────
 
 from PIL import Image
@@ -681,7 +1088,7 @@ def authorize():
         return "Unauthorized", 401
 
     token = token[7:]  # Strip off 'Bearer ' to get the actual token
-    logging.debug(f"Received token: {token}")
+    # Do not log raw authentication tokens (CWE-532)
 
     try:
         # Get user from Supabase using the token
@@ -722,7 +1129,7 @@ def authorize():
         if session_result.get('success'):
             session['session_id'] = session_result.get('session_id')
         
-        logging.debug(f"User authenticated: {user_data.email}")
+        logging.debug(f"User authenticated: uid={user_data.id}")
         return jsonify({'success': True, 'message': 'Authenticated'}), 200
     
     except Exception as e:
@@ -746,7 +1153,6 @@ def api_referral_register():
         if not code:
             return jsonify({'success': False, 'message': 'No referral code provided'}), 400
         new_user_id = session['user'].get('uid')
-        from methods.supabase_helper import register_referral, ensure_referral_code
         # Make sure the new user has their own code too (idempotent)
         ensure_referral_code(new_user_id)
         result = register_referral(new_user_id, code)
@@ -764,31 +1170,112 @@ def api_referral_my_code():
     """Return the logged-in user's shareable referral code + link + progress."""
     try:
         uid = session['user'].get('uid')
-        from methods.supabase_helper import ensure_referral_code, init_supabase
         code = ensure_referral_code(uid)
         base = os.getenv('BASE_DOMAIN', 'abhihub.edu.eu.org')
-        # Pull progress stats (referral_count, referral_credits) for the dashboard
         referral_count = 0
         referral_credits = 0
-        client = init_supabase()
-        if client:
-            try:
-                pr = client.table('profiles').select('referral_count, referral_credits').eq('id', uid).limit(1).execute()
-                if pr.data:
-                    referral_count = pr.data[0].get('referral_count', 0) or 0
-                    referral_credits = pr.data[0].get('referral_credits', 0) or 0
-            except Exception:
-                pass
+        try:
+            client = init_supabase()
+            if client:
+                res = client.table('profiles').select('referral_count, referral_credits').eq('id', uid).limit(1).execute()
+                if res.data:
+                    referral_count = res.data[0].get('referral_count', 0) or 0
+                    referral_credits = res.data[0].get('referral_credits', 0) or 0
+        except Exception as e:
+            logging.error(f"[Referral] my-code lookup failed: {e}")
+
+        share_url = f"https://{base}/signup?ref={code}"
         return jsonify({
             'success': True,
             'code': code,
-            'share_url': f"https://{base}/signup?ref={code}",
+            'share_url': share_url,
             'referral_count': referral_count,
-            'referral_credits': referral_credits,
+            'referral_credits': referral_credits
         }), 200
     except Exception as e:
-        logging.error(f"[Referral] my-code failed: {e}")
+        logging.error(f"[Referral] my-code endpoint failed: {e}")
         return jsonify({'success': False, 'message': 'Server error'}), 500
+
+
+@app.route('/api/buy-credits', methods=['POST'])
+@auth_required
+def api_buy_credits():
+    """Endpoint to purchase credit packs (50, 100, 500 views @ ₹2/view)."""
+    try:
+        user_info = session.get('user', {})
+        user_id = user_info.get('uid')
+        if not user_id:
+            return jsonify({'success': False, 'message': 'Authentication required'}), 401
+            
+        data = request.get_json() or {}
+        pack_size = int(data.get('pack', 0) or 0)
+        
+        valid_packs = {50: 100, 100: 200, 500: 1000}  # Pack views -> price in INR (₹2/view)
+        if pack_size not in valid_packs:
+            return jsonify({'success': False, 'message': 'Invalid pack. Choose 50, 100, or 500 views.'}), 400
+            
+        price_inr = valid_packs[pack_size]
+        
+        # Grant credits to user profile
+        res = supabase.table('profiles').select('paper_quota_remaining').eq('id', user_id).execute()
+        curr_quota = 19
+        if res.data:
+            curr_quota = res.data[0].get('paper_quota_remaining')
+            if curr_quota is None:
+                curr_quota = 19
+                
+        new_quota = curr_quota + pack_size
+        supabase.table('profiles').update({
+            'paper_quota_remaining': new_quota
+        }).eq('id', user_id).execute()
+        
+        # Update session quota & cache
+        if 'paper_quota' in session and isinstance(session['paper_quota'], dict):
+            session['paper_quota']['credits'] = new_quota
+            session.modified = True
+            
+        cache.l1.delete(f"user:quota:{user_id}")
+        log_credit_transaction(user_id, pack_size, 'earn', f"Bought {pack_size} Views Pack (₹{price_inr})")
+        logging.info(f"[BUY-CREDITS] User {user_info.get('email')} bought {pack_size} views for ₹{price_inr} -> new quota: {new_quota}")
+        
+        return jsonify({
+            'success': True,
+            'pack': pack_size,
+            'price_inr': price_inr,
+            'added_views': pack_size,
+            'new_total_views': new_quota,
+            'message': f"Successfully added {pack_size} views to your account!"
+        }), 200
+    except Exception as e:
+        logging.error(f"[BUY-CREDITS] Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/credit-history', methods=['GET'])
+@auth_required
+def api_credit_history():
+    """Retrieve user credit transactions (spend & earn history) and current quota balance."""
+    try:
+        uid = session['user'].get('uid')
+        quota_info = _get_quota()
+        remaining = quota_info.get('credits', 19)
+        txs = []
+        try:
+            res = supabase.table('credit_transactions').select('*').eq('user_id', uid).order('created_at', desc=True).limit(50).execute()
+            if res.data:
+                txs = res.data
+        except Exception:
+            pass
+        if not txs:
+            txs = session.get('credit_history', [])
+        return jsonify({
+            'success': True,
+            'remaining_credits': remaining,
+            'transactions': txs
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
 
 @app.route('/auth-callback')
 def auth_callback():
@@ -841,6 +1328,7 @@ def reset_password_confirm():
         return redirect(url_for('reset_password'))
 
 @app.route('/terms')
+@sitemap_page()
 def terms():
     return render_template('terms.html')
 
@@ -850,10 +1338,23 @@ def ads_txt():
 
 @app.route('/robots.txt')
 def robots_txt():
-    """Expose the crawler directives at the host root."""
-    response = make_response(send_from_directory(app.root_path, 'robots.txt'))
+    """Expose crawler directives with a sitemap URL for the active host."""
+    with open(os.path.join(app.root_path, 'robots.txt'), encoding='utf-8') as robots_file:
+        robots_content = robots_file.read()
+    robots_content = re.sub(
+        r'^Sitemap:\s*.*$',
+        f"Sitemap: {url_for('sitemap', _external=True)}",
+        robots_content,
+        flags=re.MULTILINE,
+    )
+    response = make_response(robots_content)
     response.headers['Content-Type'] = 'text/plain; charset=utf-8'
     return response
+
+@app.route('/llms.txt')
+def llms_txt():
+    """GEO signal file for AI model crawlers (GPTBot, PerplexityBot, ClaudeBot, Gemini)."""
+    return send_from_directory('static', 'llms.txt', mimetype='text/plain')
 
 @app.route('/<key>.txt')
 def index_now_key(key):
@@ -863,77 +1364,162 @@ def index_now_key(key):
 
 @app.route('/sitemap.xml')
 def sitemap():
-    from methods.supabase_helper import get_sitemap_urls
-    
-    # 1. Fetch raw data
+    """Return Sitemap Index pointing to modular sub-sitemaps for search engines."""
+    base_url = "https://www.abhihub.edu.eu.org"
+    now_iso = datetime.utcnow().strftime('%Y-%m-%d')
+    sitemaps = [
+        {'loc': f"{base_url}/sitemap-pages.xml", 'lastmod': now_iso},
+        {'loc': f"{base_url}/sitemap-colleges.xml", 'lastmod': now_iso},
+        {'loc': f"{base_url}/sitemap-documents.xml", 'lastmod': now_iso},
+    ]
+    response = make_response(render_template('sitemap_index.xml', sitemaps=sitemaps))
+    response.headers['Content-Type'] = 'application/xml; charset=utf-8'
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    return response
+
+
+@app.route('/sitemap-pages.xml')
+def sitemap_pages():
+    """Sitemap module for core static routes."""
+    urls = []
+    seen = set()
+    base_url = "https://www.abhihub.edu.eu.org"
+    for rule in app.url_map.iter_rules():
+        if rule.endpoint not in _SITEMAP_REGISTRY:
+            continue
+        if 'GET' not in rule.methods or rule.arguments:
+            continue
+        loc = f"{base_url}{rule}"
+        if loc not in seen:
+            seen.add(loc)
+            metadata = _SITEMAP_REGISTRY[rule.endpoint]
+            urls.append({'loc': loc, 'priority': metadata['priority'], 'changefreq': metadata['changefreq']})
+    response = make_response(render_template('sitemap.xml', urls=urls))
+    response.headers['Content-Type'] = 'application/xml; charset=utf-8'
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    return response
+
+
+@app.route('/sitemap-colleges.xml')
+def sitemap_colleges():
+    """Sitemap module for colleges, departments, and subjects."""
+    urls = []
+    seen = set()
+    base_url = "https://www.abhihub.edu.eu.org"
+
+    def add_u(path, lastmod=None, priority="0.85", changefreq="weekly"):
+        loc = f"{base_url}{path}"
+        if loc not in seen:
+            seen.add(loc)
+            entry = {'loc': loc, 'priority': priority, 'changefreq': changefreq}
+            if lastmod:
+                entry['lastmod'] = str(lastmod)[:10]
+            urls.append(entry)
+
     sitemap_res = get_sitemap_urls()
     data = sitemap_res.get('data', {}) if sitemap_res.get('success') else {}
-    
     colleges = data.get('colleges', [])
     departments = data.get('departments', [])
     subjects = data.get('subjects', [])
     documents = data.get('documents', [])
-    
-    urls = []
-    base_url = "https://app.abhihub.run.place"
-    
-    def slugify(text):
-        return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
-        
-    # Standard static URLs
-    for static_route in ['/', '/pyq', '/contact', '/features-tour', '/about']:
-        priority = "1.00" if static_route == '/' else ("0.95" if static_route == '/pyq' else "0.80")
-        urls.append({"loc": f"{base_url}{static_route}", "priority": priority})
-        
-    # Colleges + popular_name alias/brand URLs
-    seen_brands = set()
+
+    populated_college_ids = {doc.get('college_id') for doc in documents if doc.get('college_id')}
+    populated_department_ids = {doc.get('department_id') for doc in documents if doc.get('department_id')}
+    populated_subject_ids = {doc.get('subject_id') for doc in documents if doc.get('subject_id')}
+
+    college_slugs = {}
     for c in colleges:
+        if c.get('id') not in populated_college_ids:
+            continue
         c_slug = slugify(c.get('abbreviation') or c.get('name'))
-        urls.append({"loc": f"{base_url}/college/{c_slug}", "lastmod": c.get('created_at'), "priority": "0.90"})
-        # Add brand page URL (one per unique popular_name)
-        popular = c.get('popular_name')
-        if popular:
-            p_slug = slugify(popular)
-            if p_slug not in seen_brands:
-                seen_brands.add(p_slug)
-                urls.append({"loc": f"{base_url}/college/{p_slug}", "lastmod": c.get('created_at'), "priority": "0.92"})
-        
-        # Departments (Nested under colleges)
-        for d in departments:
-            d_slug = slugify(d.get('abbreviation') or d.get('name'))
-            urls.append({"loc": f"{base_url}/college/{c_slug}/{d_slug}", "lastmod": d.get('created_at'), "priority": "0.85"})
-            
-    # Subjects (Unique)
+        if not c_slug:
+            continue
+        college_slugs[c.get('id')] = c_slug
+        add_u(f"/college/{c_slug}", c.get('created_at'), "0.90", "weekly")
+
+    for department in departments:
+        if department.get('college_id') not in populated_college_ids:
+            continue
+        if department.get('id') not in populated_department_ids:
+            continue
+        c_slug = college_slugs.get(department.get('college_id'))
+        d_slug = slugify(department.get('abbreviation') or department.get('name'))
+        if c_slug and d_slug:
+            add_u(f"/college/{c_slug}/{d_slug}", department.get('created_at'), "0.85", "weekly")
+
     seen_subjects = set()
     for s in subjects:
+        if s.get('id') not in populated_subject_ids:
+            continue
         s_slug = slugify(s.get('name'))
         if s_slug and s_slug not in seen_subjects:
             seen_subjects.add(s_slug)
-            urls.append({"loc": f"{base_url}/subject/{s_slug}", "lastmod": s.get('created_at'), "priority": "0.90"})
-            
-    # Resources
+            add_u(f"/subject/{s_slug}", s.get('created_at'), "0.90", "weekly")
+
+    response = make_response(render_template('sitemap.xml', urls=urls))
+    response.headers['Content-Type'] = 'application/xml; charset=utf-8'
+    response.headers['Cache-Control'] = 'public, max-age=3600'
+    return response
+
+
+@app.route('/sitemap-documents.xml')
+def sitemap_documents():
+    """Sitemap module for documents and PYQs."""
+    urls = []
+    seen = set()
+    base_url = "https://www.abhihub.edu.eu.org"
+
+    sitemap_res = get_sitemap_urls()
+    data = sitemap_res.get('data', {}) if sitemap_res.get('success') else {}
+    documents = data.get('documents', [])
+
     for doc in documents:
         college_data = doc.get('college') or {}
         dept_data = doc.get('department') or {}
         subj_data = doc.get('subject') or {}
-        
+
         c_slug = slugify(college_data.get('abbreviation') or college_data.get('name') or 'college')
         d_slug = slugify(dept_data.get('abbreviation') or dept_data.get('name') or 'dept')
         s_slug = slugify(subj_data.get('name') or 'subject')
         t_slug = slugify(doc.get('title') or 'file')
-        
+
         canonical_slug = f"{c_slug}-{d_slug}-{s_slug}-{t_slug}-{doc.get('id')}"
-        urls.append({"loc": f"{base_url}/resource/{canonical_slug}", "lastmod": doc.get('updated_at') or doc.get('created_at'), "priority": "0.75"})
-        
+        loc = f"{base_url}/resource/{canonical_slug}"
+        if loc not in seen:
+            seen.add(loc)
+            entry = {'loc': loc, 'priority': "0.75", 'changefreq': "monthly"}
+            lastmod = doc.get('updated_at') or doc.get('created_at')
+            if lastmod:
+                entry['lastmod'] = str(lastmod)[:10]
+            urls.append(entry)
+
     response = make_response(render_template('sitemap.xml', urls=urls))
-    response.headers['Content-Type'] = 'application/xml'
+    response.headers['Content-Type'] = 'application/xml; charset=utf-8'
+    response.headers['Cache-Control'] = 'public, max-age=3600'
     return response
 
+
+@app.route('/sitemap-audit')
+def sitemap_audit():
+    """List unclassified static GET routes while running in debug mode."""
+    if not app.debug:
+        abort(404)
+    missing = []
+    for rule in app.url_map.iter_rules():
+        if rule.endpoint in _SITEMAP_REGISTRY:
+            continue
+        if 'GET' not in rule.methods or rule.arguments or rule.endpoint == 'static':
+            continue
+        missing.append(str(rule))
+    return {'unclassified_get_routes': sorted(missing)}
+
 @app.route('/privacy')
+@sitemap_page()
 def privacy():
     return render_template('privacy.html')
 
 @app.route('/help')
+@sitemap_page()
 def help_center():
     return render_template('help.html')
 
@@ -942,13 +1528,14 @@ def logout():
     # Log out the user session if it exists
     session_id = session.get('session_id')
     if session_id:
-        from data.profiles import UserSession
-        UserSession.log_logout(session_id)
-        session.pop('session_id', None)
-        
-    session.pop('user', None)  # Remove the user from session
+        try:
+            from data.profiles import UserSession
+            UserSession.log_logout(session_id)
+        except Exception as e:
+            logging.warning(f"Failed to log session logout: {e}")
+    session.clear()  # Purge all session keys
     response = make_response(render_template('logout_clear.html'))
-    response.set_cookie('session', '', expires=0)  # Clear the session cookie
+    response.set_cookie(app.config.get('SESSION_COOKIE_NAME', 'session'), '', expires=0, path='/')
     return response
 
 @app.route('/api/profile-status')
@@ -959,7 +1546,6 @@ def profile_status(user_data=None):
         user_id = session.get('user', {}).get('uid')
         if not user_id:
             return jsonify({'profile_completed': False}), 200
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         res = client.table('profiles').select('college_id, department_id').eq('id', user_id).single().execute()
         completed = bool(res.data and res.data.get('college_id') and res.data.get('department_id'))
@@ -983,7 +1569,6 @@ def get_profile(user_data=None):
         department_id = None
 
         if user_id:
-            from methods.supabase_helper import get_reputation_stats, init_supabase
             rep_stats = get_reputation_stats(user_id)
             if rep_stats.get('success'):
                 students_helped = rep_stats.get('students_helped', 0)
@@ -1003,7 +1588,6 @@ def get_profile(user_data=None):
                 
             timeline = []
             try:
-                from methods.supabase_helper import get_contribution_timeline
                 t_res = get_contribution_timeline(user_id)
                 if t_res.get('success'):
                     timeline = t_res.get('timeline', [])
@@ -1044,7 +1628,6 @@ def api_update_profile(user_data=None):
         college_id = (data.get('college_id') or '').strip()
         department_id = (data.get('department_id') or '').strip()
         
-        from methods.supabase_helper import init_supabase, validate_uuid
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'message': 'Supabase client unavailable'}), 500
@@ -1098,7 +1681,6 @@ def report_suspect():
         else:
             enum_action = 'unauthorized_access'
 
-        from methods.supabase_helper import log_security_audit_event
         res = log_security_audit_event(user_email, enum_action, ip_address, user_agent, {'frontend_action': action})
 
         logging.info(f"[SUSPECT] {user_email} | {enum_action}")
@@ -1115,7 +1697,6 @@ def report_suspect():
 def api_get_colleges():
     """Get all colleges for dropdown — cached at L1 for 1 hour (L3: browser/CDN 1hr)."""
     def fetch_all_colleges():
-        from methods.supabase_helper import get_all_colleges
         result = get_all_colleges()
         if result.get('success'):
             return result.get('data', [])
@@ -1134,7 +1715,6 @@ def api_get_colleges():
 def api_get_branches():
     """Get all branches for dropdown — cached at L1 for 1 hour (L3: browser/CDN 1hr)."""
     def fetch_all_branches():
-        from methods.supabase_helper import get_all_branches
         result = get_all_branches()
         if result.get('success'):
             return result.get('data', [])
@@ -1156,7 +1736,6 @@ def api_get_departments():
     college_id = request.args.get('college_id', '').strip()
     if not college_id:
         return jsonify({'success': False, 'departments': [], 'message': 'college_id required'}), 400
-    from methods.supabase_helper import get_departments_by_college
     result = get_departments_by_college(college_id)
     return jsonify({'success': result.get('success', False), 'departments': result.get('data', [])}), 200
 
@@ -1183,7 +1762,6 @@ def api_get_subjects():
 
     cache_key = f"subjects:{department_id}:{semester or 0}"
     def fetch_subjects():
-        from methods.supabase_helper import get_subjects_by_department
         result = get_subjects_by_department(department_id, semester=semester)
         return result.get('data', []) if result.get('success') else []
 
@@ -1218,7 +1796,6 @@ def api_add_subject(user_data=None):
     except (ValueError, TypeError):
         sem_val = None
 
-    from methods.supabase_helper import init_supabase
     client = init_supabase()
     try:
         insert_data = {
@@ -1262,7 +1839,6 @@ def api_add_college(user_data=None):
         return jsonify({'success': False, 'message': 'College name required'}), 400
     if len(name) > 200:
         return jsonify({'success': False, 'message': 'College name too long (max 200 chars)'}), 400
-    from methods.supabase_helper import init_supabase
     client = init_supabase()
     try:
         res = client.table('colleges').insert({'name': name, 'abbreviation': abbr or None}).execute()
@@ -1280,7 +1856,6 @@ def api_check_duplicate(user_data=None):
     if not file_hash:
         return jsonify({'success': False, 'message': 'Missing file_hash'}), 400
         
-    from methods.supabase_helper import init_supabase
     client = init_supabase()
     if not client: return jsonify({'success': False}), 500
     
@@ -1303,7 +1878,6 @@ def api_predict_metadata(user_data=None):
     filename = data.get('filename', '').lower()
     if not filename: return jsonify({'success': False})
     
-    from methods.supabase_helper import init_supabase
     client = init_supabase()
     
     words = re.split(r'[\W_]+', filename.split('.')[0])
@@ -1353,7 +1927,6 @@ def api_add_department(user_data=None):
         return jsonify({'success': False, 'message': 'Department name required'}), 400
     if len(name) > 120 or len(abbr) > 20:
         return jsonify({'success': False, 'message': 'Name too long (max 120) or abbreviation too long (max 20)'}), 400
-    from methods.supabase_helper import init_supabase
     client = init_supabase()
     try:
         res = client.table('departments').insert({'name': name, 'abbreviation': abbr or None}).execute()
@@ -1381,7 +1954,6 @@ def api_create_subject_request():
         return jsonify({'success': False, 'message': 'subject_name required'}), 400
     if len(subject_name) > 200:
         return jsonify({'success': False, 'message': 'Subject name too long (max 200 chars)'}), 400
-    from methods.supabase_helper import create_subject_request, track_user_event
     result = create_subject_request(
         user_id=user_id,
         college_id=data.get('college_id', ''),
@@ -1408,7 +1980,6 @@ def api_waitlist_join():
     if not college_id or not email or '@' not in email:
         return jsonify({'success': False, 'message': 'Valid email and college required'}), 400
 
-    from methods.supabase_helper import join_college_waitlist, validate_uuid
     if not validate_uuid(college_id):
         return jsonify({'success': False, 'message': 'Invalid college'}), 400
 
@@ -1421,7 +1992,6 @@ def api_waitlist_join():
 @auth_required
 def api_onboarding_status():
     user_id = session.get('user', {}).get('uid')
-    from methods.supabase_helper import get_onboarding_status
     result = get_onboarding_status(user_id)
     return jsonify(result), 200 if result.get('success') else 500
 
@@ -1430,7 +2000,6 @@ def api_onboarding_status():
 @auth_required
 def api_onboarding_welcome_seen():
     user_id = session.get('user', {}).get('uid')
-    from methods.supabase_helper import mark_welcome_seen
     result = mark_welcome_seen(user_id)
     return jsonify(result), 200 if result.get('success') else 500
 
@@ -1444,7 +2013,6 @@ def api_track_event():
     data = request.get_json(silent=True) or {}
     event_type = (data.get('event_type') or '').upper().strip()
     # track_user_event already filters to 3 allowed types
-    from methods.supabase_helper import track_user_event
     track_user_event(user_id, event_type, data.get('metadata', {}))
     return jsonify({'success': True}), 200
 
@@ -1489,7 +2057,6 @@ def label_store_room_paper():
         year = str(year_raw)
         try:
             year_int = int(year_raw)
-            from datetime import datetime
             current_year = datetime.now().year
             if year_int < 1900 or year_int > current_year + 1:
                 return jsonify({'success': False, 'message': 'Invalid year provided'}), 400
@@ -1507,21 +2074,20 @@ def label_store_room_paper():
         missing_fields = []
         if not filename: missing_fields.append('filename')
         if not file_url: missing_fields.append('url')
-        if not subject_name: missing_fields.append('subject_name')
+        if not subject_name and document_category.lower() != 'question_bank': missing_fields.append('subject_name')
         if not year: missing_fields.append('year')
 
         if missing_fields:
             logging.debug(f"[DEBUG] Missing required fields: {missing_fields}")
             return jsonify({'success': False, 'message': f'Missing required fields: {", ".join(missing_fields)}'}), 400
-        if not subject_id:
+        if not subject_id and document_category.lower() != 'question_bank':
             return jsonify({'success': False, 'message': 'Subject selection is required'}), 400
 
         # Validate the academic hierarchy
-        from methods.supabase_helper import verify_hierarchy
         if not verify_hierarchy(college_id, branch_id, subject_id):
             return jsonify({'success': False, 'message': 'Invalid academic hierarchy (mismatched college/branch/subject)'}), 400
 
-        allowed_categories = ['papers', 'notes', 'practical', 'syllabus', 'assisment', 'timetable']
+        allowed_categories = ['papers', 'notes', 'practical', 'syllabus', 'assisment', 'timetable', 'question_bank']
         if document_category not in allowed_categories:
             document_category = 'papers'
 
@@ -1547,7 +2113,6 @@ def label_store_room_paper():
         file_ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'jpg'
         file_type = 'pdf' if file_ext == 'pdf' else 'image'
 
-        from methods.supabase_helper import save_file_record
 
         result = save_file_record(
             user_id=user_id or user_email.split('@')[0],
@@ -1572,13 +2137,10 @@ def label_store_room_paper():
         )
         
         if result.get('success'):
-            logging.info(f"[STORE_ROOM_LABEL] SUCCESS: Saved to file_records")
-            
+            logging.info("[STORE_ROOM_LABEL] SUCCESS: Saved to file_records")
+
             # 1. Update storage_assets status to LABELED
-            from methods.supabase_helper import mark_storage_asset_labeled, log_label_audit
-            storage_provider = storage_provider or ('cloudinary' if cloudinary_public_id else 'firebase')
-            if cloudinary_public_id:
-                mark_storage_asset_labeled(storage_provider, cloudinary_public_id)
+            _mark_labeled(storage_provider, cloudinary_public_id)
             
             # 2. Log audit entry
             doc_id = result.get('data', {}).get('id')
@@ -1604,10 +2166,7 @@ def label_store_room_paper():
             # PENDING storage row.  Clear that stale queue row so it is not
             # presented for labeling again.
             if result.get('conflict'):
-                from methods.supabase_helper import mark_storage_asset_labeled
-                storage_provider = storage_provider or ('cloudinary' if cloudinary_public_id else 'firebase')
-                if cloudinary_public_id:
-                    mark_storage_asset_labeled(storage_provider, cloudinary_public_id)
+                _mark_labeled(storage_provider, cloudinary_public_id)
                 _unlabeled_cache['data'] = None
                 return jsonify({
                     'success': True,
@@ -1638,7 +2197,6 @@ def api_toggle_like():
     if not doc_id or not user_email:
         return jsonify({'success': False, 'message': 'Missing document or user info'}), 400
         
-    from methods.supabase_helper import toggle_like
     res = toggle_like(user_email, doc_id)
     return jsonify(res), 200 if res.get('success') else 500
 
@@ -1652,13 +2210,11 @@ def api_toggle_bookmark():
     if not doc_id or not user_email:
         return jsonify({'success': False, 'message': 'Missing document or user info'}), 400
         
-    from methods.supabase_helper import toggle_bookmark
     res = toggle_bookmark(user_email, doc_id)
     return jsonify(res), 200 if res.get('success') else 500
 
 @app.route('/api/interactions/comments/<doc_id>', methods=['GET', 'POST'])
 def api_comments(doc_id):
-    from methods.supabase_helper import add_comment, get_comments
     
     if request.method == 'GET':
         res = get_comments(doc_id)
@@ -1718,6 +2274,30 @@ def api_log_document_view():
         
         if result.get('success'):
             logging.info(f"[HISTORY] Document view logged - User: {user_id}, Doc: {document_id}")
+
+            # Scoring engine: award contribution points for unique views only
+            try:
+                from methods.scoring_engine import process_event
+                is_owner = False
+                try:
+                    _res = init_supabase().table('documents').select('uploader_id').eq('id', document_id).limit(1).execute()
+                    if _res.data:
+                        is_owner = (_res.data[0].get('uploader_id') == user_id)
+                except Exception:
+                    pass
+                score_res = process_event(
+                    user_id=user_id,
+                    event_type='resource_viewed',
+                    entity_id=document_id,
+                    entity_type='document',
+                    actor_is_owner=is_owner,
+                    description='Viewed a resource',
+                )
+                if score_res.get('scored'):
+                    logging.info(f"[SCORING] view scored for {user_id}: +{score_res.get('xp_gained')}")
+            except Exception as e:
+                logging.warning(f"[SCORING] view scoring skipped: {e}")
+
             return jsonify({
                 'success': True,
                 'message': 'Document view recorded',
@@ -1803,7 +2383,6 @@ def api_get_file_access_history():
         limit = request.args.get('limit', 20, type=int)
         limit = min(limit, 100)  # Cap at 100
         
-        from methods.supabase_helper import get_user_file_history
         result = get_user_file_history(user_email=user_email, limit=limit)
         
         if result.get('success'):
@@ -1842,7 +2421,6 @@ def api_get_my_notifications():
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
     limit  = min(request.args.get('limit', 20, type=int), 50)
     offset = request.args.get('offset', 0, type=int)
-    from methods.supabase_helper import get_user_notifications
     items = get_user_notifications(user_id, limit=limit, offset=offset)
     unread = sum(1 for n in items if not n.get('is_read'))
     return jsonify({'success': True, 'data': items, 'unread': unread}), 200
@@ -1855,7 +2433,6 @@ def api_mark_notifications_read():
     user_id = session.get('user', {}).get('uid')
     if not user_id:
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
-    from methods.supabase_helper import mark_notifications_read
     res = mark_notifications_read(user_id)
     return jsonify(res), 200 if res.get('success') else 500
 
@@ -1869,7 +2446,6 @@ def api_mark_single_notification_read(notif_id):
         return jsonify({'success': False, 'message': 'Unauthorized'}), 401
     try:
         client = None
-        from methods.supabase_helper import init_supabase, validate_uuid
         client = init_supabase()
         if not client or not validate_uuid(notif_id):
             return jsonify({'success': False, 'message': 'Invalid request'}), 400
@@ -1896,7 +2472,6 @@ def notifications_page():
         return redirect(url_for('login'))
     limit = min(request.args.get('limit', 50, type=int), 100)
     offset = request.args.get('offset', 0, type=int)
-    from methods.supabase_helper import get_user_notifications
     items = get_user_notifications(user_id, limit=limit, offset=offset)
     unread = sum(1 for n in items if not n.get('is_read'))
     has_more = len(items) == limit
@@ -1913,7 +2488,6 @@ def get_all_files():
     try:
         logging.info("[API /api/files/all] Request received")
         
-        from methods.supabase_helper import get_all_files_merged
         
         # Check if user is logged in to return personalized interactions
         user_info = session.get('user', {})
@@ -1952,6 +2526,9 @@ def get_all_files():
 @auth_required
 def upload():
     if request.method == 'POST':
+        # Upload quota check disabled — no upload limit enforced
+
+
         # Security: Check if file is present
         if 'upload_document' not in request.files:
             return jsonify(success=False, message="No file provided"), 400
@@ -1962,9 +2539,9 @@ def upload():
         if file.filename == '':
             return jsonify(success=False, message="No file selected"), 400
         
-        # Security: Validate file extension
-        if not allowed_file(file.filename):
-            return jsonify(success=False, message="File type not allowed. Allowed types: PDF, PNG, JPG, JPEG, WEBP, GIF, SVG"), 400
+        # Security: Validate file extension and magic byte signature
+        if not validate_file_content(file, file.filename):
+            return jsonify(success=False, message="File type not allowed or invalid file content. Allowed types: PDF, PNG, JPG, JPEG, WEBP, GIF"), 400
         
         # Security: Check file size
         file.seek(0, os.SEEK_END)
@@ -1988,13 +2565,20 @@ def upload():
             year = request.form.get('Year', '')
             doc_type = request.form.get('type', 'Other')
 
-            # Build metadata-aware filename: {type}_{subject}_{unit}_{year}.ext
+            # Build metadata-aware filename:
+            # stable pattern so files are easy to find/filter:
+            # {year}_{dept/subject}_{type}_{unit}_{random}.{ext}
             _ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
             _unit = request.form.get('unit', '')
             _doc = (request.form.get('document_type') or doc_type or 'file').strip()
-            _parts = [p.strip() for p in [_doc, subject, _unit, year] if p.strip()]
-            _base = '_'.join(_parts).replace(' ', '_')
-            _base = re.sub(r'[^a-zA-Z0-9_-]', '', _base).lower() or 'upload'
+            _subject_part = (subject or '').strip()
+            if not _subject_part and _doc.lower() == 'question_bank':
+                _subject_part = (request.form.get('qb_tags') or '').strip() or 'question_bank'
+            _safe = lambda s: re.sub(r'[^a-zA-Z0-9_-]+', '', s.replace(' ', '_')).lower()
+            _parts = [str(year), _safe(_subject_part), _safe(_doc)]
+            if _unit: _parts.append(_safe(_unit))
+            _parts.append(str(int(time.time()))[-6:])
+            _base = '_'.join(p for p in _parts if p) or 'upload'
             original_filename = f"{_base}.{_ext}"
 
             # Determine file type for categorization
@@ -2012,10 +2596,11 @@ def upload():
             folder_map = {
                 'papers': 'pyq',
                 'notes': 'notes',
-                'practical': 'practicals',
-                'syllabus': 'other',
+                'practical': 'practical',
+                'syllabus': 'syllabus',
                 'assisment': 'other',
-                'timetable': 'other'
+                'timetable': 'other',
+                'question_bank': 'pyq'
             }
             cloudinary_folder = folder_map.get(doc_type, 'uploads')
             
@@ -2049,8 +2634,9 @@ def upload():
             practical_type = request.form.get('practical-type', '')
             program = request.form.get('program', 'b.tech').strip() or 'b.tech'
 
-            # Guard: reject uploads with no subject selected
-            if not subject_id or subject_id == '__other__':
+            # Guard: reject uploads with no subject selected,
+            # except for question_bank which is tagged by batch/semester/dept
+            if (not subject_id or subject_id == '__other__') and document_type.lower() != 'question_bank':
                 logging.warning(f"[UPLOAD REJECTED] Reason:Missing subject_id Uploader:{user_id} File:{original_filename}")
                 return jsonify(
                     success=False,
@@ -2061,7 +2647,6 @@ def upload():
             logging.info(f"[UPLOAD] Uploader:{user_id} College:{college_id} Branch:{branch_id} Semester:{semester} Subject:{subject_name!r} SubjectID:{subject_id}")
             
             # Save to file_records table (Supabase abhihub.documents)
-            from methods.supabase_helper import save_file_record
             from methods.cloudinary_upload import delete_file_from_cloudinary
 
             # Read optional fields the JS client sends
@@ -2106,11 +2691,32 @@ def upload():
                     message=f"File uploaded to Cloudinary, but database record creation failed: {file_record_result.get('message')}"
                 ), 500
             
+            # Persist Question Bank tags when provided
+            try:
+                if document_type.lower() == 'question_bank':
+                    raw_tags = (request.form.get('qb_tags') or '').strip()
+                    if raw_tags and file_record_result.get('data', {}).get('id'):
+                        doc_id = file_record_result['data']['id']
+                        tag_names = [t.strip() for t in re.split(r'[\,\;|]+', raw_tags) if t.strip()]
+                        tag_names = list(dict.fromkeys(tag_names))
+                        for tag_name in tag_names[:20]:
+                            try:
+                                tag_res = client.table('tags').select('id').eq('name', tag_name).limit(1).execute()
+                                tag_id = tag_res.data[0]['id'] if tag_res.data else None
+                                if not tag_id:
+                                    ins = client.table('tags').insert({'name': tag_name}).execute()
+                                    tag_id = ins.data[0]['id'] if ins.data else None
+                                if tag_id:
+                                    client.table('document_tags').insert({'document_id': doc_id, 'tag_id': tag_id}).execute()
+                            except Exception:
+                                pass
+            except Exception:
+                pass
+            
             logging.info(f"[UPLOAD SUCCESS] Document ID: {file_record_result.get('data', {}).get('id')}")
 
             # ── Track UPLOAD event (non-blocking) ───────────────────────
             try:
-                from methods.supabase_helper import track_user_event
                 track_user_event(user_id, 'UPLOAD', {
                     'document_id': file_record_result.get('data', {}).get('id'),
                     'subject_id': subject_id or None,
@@ -2124,7 +2730,6 @@ def upload():
             try:
                 material_request_id = request.form.get('material_request_id')
                 if material_request_id:
-                    from methods.supabase_helper import init_supabase
                     client = init_supabase()
                     if client:
                         client.table('material_requests').update({
@@ -2154,7 +2759,6 @@ def upload():
             xp_gained = 0.0
             new_score = 0.0
             try:
-                from methods.supabase_helper import recalculate_and_persist_user_rank, POINTS_MAP, DEFAULT_POINTS
                 # XP for this specific upload (before persist)
                 cat = document_type.lower()
                 raw_pts = POINTS_MAP.get(cat, DEFAULT_POINTS)
@@ -2231,7 +2835,33 @@ _ALLOWED_PROXY_HOSTS = {
     'storage.googleapis.com',
     'firebasestorage.googleapis.com',
     'res.cloudinary.com',
+    'abhi-hub.appspot.com',
+    'abhihub-b94f6.appspot.com',
+    'abhihub-b94f6.firebasestorage.app',
 }
+
+
+def _secure_file_headers(extra=None):
+    """Build common no-store and anti-embedding headers for proxied files."""
+    headers = {
+        'Cache-Control': 'private, no-store, must-revalidate',
+        'Content-Disposition': 'inline',
+        'Access-Control-Allow-Origin': request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://www.abhihub.edu.eu.org',
+        'X-Content-Type-Options': 'nosniff',
+        'X-Frame-Options': 'SAMEORIGIN',
+        'Referrer-Policy': 'no-referrer',
+        'X-Download-Options': 'noopen',
+        'X-Permitted-Cross-Domain-Policies': 'none',
+    }
+    if extra:
+        headers.update(extra)
+    return headers
+
+def _mark_labeled(storage_provider, cloudinary_public_id):
+    """Mark a storage asset as labeled."""
+    storage_provider = storage_provider or ('cloudinary' if cloudinary_public_id else 'firebase')
+    if cloudinary_public_id:
+        mark_storage_asset_labeled(storage_provider, cloudinary_public_id)
 
 @app.route('/api/proxy-file')
 @auth_required
@@ -2260,14 +2890,7 @@ def proxy_file():
         content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
         resp = make_response(upstream.content)
         resp.headers['Content-Type'] = content_type
-        resp.headers['Cache-Control'] = 'private, no-store, must-revalidate'
-        resp.headers['X-Content-Type-Options'] = 'nosniff'
-        resp.headers['Content-Disposition'] = 'inline'
-        resp.headers['Access-Control-Allow-Origin'] = request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://app.abhihub.run.place'
-        resp.headers['X-Frame-Options'] = 'SAMEORIGIN'
-        resp.headers['Referrer-Policy'] = 'no-referrer'
-        resp.headers['X-Download-Options'] = 'noopen'
-        resp.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
+        resp.headers.update(_secure_file_headers())
         return resp
     except requests.exceptions.RequestException as e:
         logging.error(f"[PROXY] Request failed for {file_url}: {e}")
@@ -2287,7 +2910,6 @@ def view_doc(doc_id, filename=None):
     
     Supports Range headers for PDF.js partial content requests.
     """
-    from methods.supabase_helper import get_document_by_id_rich
 
     # Note: Removed Referer check — it blocks legitimate PDF.js iframe fetches.
     # Security relies on: (1) Firebase signed URLs expire in 1 hour,
@@ -2322,6 +2944,22 @@ def view_doc(doc_id, filename=None):
             try:
                 bucket = storage.bucket()
                 blob = bucket.blob(file_url)
+                try:
+                    signer = getattr(blob, 'generate_signed_url_with_service_account', None)
+                except Exception:
+                    signer = None
+                try:
+                    signing_creds = getattr(blob, '_credential', None)
+                except Exception:
+                    signing_creds = None
+                logging.info(
+                    "[VIEW-DOC] Firebase sign attempt doc=%s bucket=%s path=%s signer=%s creds=%s",
+                    doc_id,
+                    getattr(bucket, 'name', None),
+                    file_url,
+                    getattr(getattr(signer, 'signer', None), 'service_account_email', None),
+                    getattr(getattr(signing_creds, 'signer', None), 'service_account_email', None),
+                )
                 signed = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
                 # Handle both string and tuple returns from generate_signed_url
                 file_url = signed[0] if isinstance(signed, (list, tuple)) else signed
@@ -2330,13 +2968,22 @@ def view_doc(doc_id, filename=None):
                 except Exception:
                     pass  # Non-fatal: cache storage can fail
             except Exception as e:
-                logging.error(f"[VIEW-DOC] Signed URL error for {doc_id}: {e}")
-                abort(500)
+                logging.error(f"[VIEW-DOC] Firebase init/sign setup error for {doc_id}: {e}")
+                # Don't re-raise — just fall back to the stored file_url
+                # The document may have a direct public URL that still works
+                pass
 
     # Final safety: coerce to string
     if isinstance(file_url, (list, tuple)):
         file_url = file_url[0] if file_url else ''
     file_url = str(file_url)
+
+    # If file_url is a relative path (e.g. Documents/...), construct Firebase Storage URL fallback
+    if not file_url.startswith('http'):
+        import urllib.parse
+        bucket_name = os.getenv('FIREBASE_STORAGE_BUCKET', 'abhi-hub.appspot.com')
+        encoded_path = urllib.parse.quote(file_url, safe='')
+        file_url = f"https://firebasestorage.googleapis.com/v0/b/{bucket_name}/o/{encoded_path}?alt=media"
 
     from urllib.parse import urlparse
     parsed = urlparse(file_url)
@@ -2344,34 +2991,188 @@ def view_doc(doc_id, filename=None):
         abort(403)
 
     # Support Range headers for PDF.js partial content requests
-    upstream_headers = {'User-Agent': 'AbhiHub-Proxy/1.0'}
+    upstream_headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
+    }
     if request.headers.get('Range'):
         upstream_headers['Range'] = request.headers['Range']
 
-    upstream = requests.get(file_url, stream=True, timeout=30, verify=True, headers=upstream_headers)
+    def _fetch(url):
+        return requests.get(url, stream=True, timeout=30, verify=True, headers=upstream_headers)
+
+    # Proactively sign Cloudinary URLs — avoids 401 on accounts with strict access control.
+    if parsed.hostname == 'res.cloudinary.com':
+        try:
+            import cloudinary
+            import cloudinary.utils as _cld_utils
+            import time as _time
+            # Ensure Cloudinary SDK is configured in this request context.
+            cloudinary.config(
+                cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+                api_key=os.getenv('CLOUDINARY_API_KEY'),
+                api_secret=os.getenv('CLOUDINARY_API_SECRET'),
+                secure=True,
+            )
+            # Prefer stored public_id; fall back to parsing from URL
+            pub_id = document.get('cloudinary_public_id') or document.get('public_id') or ''
+            if not pub_id:
+                m = re.search(r'/upload/(?:v\d+/)?(.+)$', parsed.path)
+                pub_id = m.group(1) if m else ''
+            if pub_id:
+                rtype = 'raw' if '/raw/' in parsed.path else ('image' if '/image/' in parsed.path else 'raw')
+                signed_url, _ = _cld_utils.cloudinary_url(
+                    pub_id, resource_type=rtype, type='upload',
+                    sign_url=True, expires_at=int(_time.time()) + 3600
+                )
+                if signed_url:
+                    file_url = signed_url
+                    parsed = urlparse(file_url)
+        except Exception as _e:
+            logging.warning(f"[VIEW-DOC] Cloudinary pre-sign failed for {doc_id}: {_e}")
+
+    upstream = _fetch(file_url)
+
+
+    # Self-heal: a cached or stored Firebase URL can go stale (signed URLs expire
+    # in 1h; token-less public URLs are rejected by storage rules). On 403/404,
+    # invalidate the cache, re-sign from the raw storage path, and retry once.
+    if upstream.status_code in (403, 404) and parsed.hostname in ('firebasestorage.googleapis.com', 'storage.googleapis.com'):
+        try:
+            cache.l1.delete(f"signed-url:{doc_id}")
+        except Exception:
+            pass
+        raw_path = document.get('file_url', '')
+        if isinstance(raw_path, (list, tuple)):
+            raw_path = raw_path[0] if raw_path else ''
+        raw_path = str(raw_path or '')
+        # Accept both bare storage paths ("premium/docs/x.pdf") and full URLs
+        # ("https://firebasestorage.googleapis.com/v0/b/<bucket>/o/<path>%2Ffile.pdf?...")
+        if raw_path.startswith('http'):
+            from urllib.parse import unquote
+            m = re.search(r'/v0/b/[^/]+/o/(.+?)(?:\?|$)', raw_path)
+            raw_path = unquote(m.group(1)) if m else ''
+        if raw_path and not raw_path.startswith('http'):
+            try:
+                bucket = storage.bucket()
+                blob = bucket.blob(raw_path)
+                signed = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
+                fresh_url = signed[0] if isinstance(signed, (list, tuple)) else signed
+                try:
+                    cache.l1.set(f"signed-url:{doc_id}", fresh_url, ttl=300)
+                except Exception:
+                    pass
+                upstream.close()
+                upstream = _fetch(fresh_url)
+            except Exception as e:
+                cred_ok = bool(os.getenv('FIREBASE_SERVICE_ACCOUNT_JSON'))
+                logging.error(
+                    f"[VIEW-DOC] Re-sign failed for {doc_id}: {e}. "
+                    + ("" if cred_ok else
+                       "FIREBASE_SERVICE_ACCOUNT_JSON is missing or invalid — set it to a SERVICE ACCOUNT key JSON "
+                       "(Firebase Console -> Project Settings -> Service accounts -> Generate new private key).")
+                )
+
+    # Self-heal: Cloudinary raw resources with strict access control return 401.
+    # Generate a short-lived signed URL and retry once. If that also fails,
+    # use the Cloudinary admin API to download server-side as a final fallback.
+    if upstream.status_code == 401 and parsed.hostname == 'res.cloudinary.com':
+        try:
+            import cloudinary.utils as _cld_utils
+            import time as _time
+            m = re.search(r'/upload/(?:v\d+/)?(.+)$', parsed.path)
+            if m:
+                pub = m.group(1)  # e.g. "pyq/uid_ts_name.pdf"
+                rtype = 'raw' if '/raw/' in parsed.path else ('image' if '/image/' in parsed.path else 'raw')
+                signed_url, _ = _cld_utils.cloudinary_url(
+                    pub, resource_type=rtype, type='upload',
+                    sign_url=True, expires_at=int(_time.time()) + 3600
+                )
+                if signed_url:
+                    upstream.close()
+                    upstream = _fetch(signed_url)
+                    logging.info(f"[VIEW-DOC] Cloudinary signed URL used for {doc_id}")
+        except Exception as _e:
+            logging.error(f"[VIEW-DOC] Cloudinary sign failed for {doc_id}: {_e}")
+
+        # Final fallback: download via Cloudinary admin API (server-side).
+        # This bypasses all access-control issues since we authenticate with
+        # the API secret directly. Used when both the public URL and signed URL
+        # return 401 — common when an account's resources are accidentally set
+        # to private or the policy requires higher access levels.
+        if upstream.status_code == 401:
+            try:
+                import cloudinary
+                import cloudinary.api as _cld_api
+                cloudinary.config(
+                    cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+                    api_key=os.getenv('CLOUDINARY_API_KEY'),
+                    api_secret=os.getenv('CLOUDINARY_API_SECRET'),
+                    secure=True,
+                )
+                pub_id = document.get('cloudinary_public_id') or document.get('public_id') or ''
+                if not pub_id:
+                    _m = re.search(r'/upload/(?:v\d+/)?(.+)$', parsed.path)
+                    pub_id = _m.group(1) if _m else ''
+                if pub_id:
+                    _rtype = 'raw' if '/raw/' in parsed.path else ('image' if '/image/' in parsed.path else 'raw')
+                    _resource = _cld_api.resource(pub_id, resource_type=_rtype, secure_url=True)
+                    _admin_url = _resource.get('secure_url') if _resource else None
+                    if _admin_url:
+                        upstream.close()
+                        upstream = _fetch(_admin_url)
+                        logging.info(f"[VIEW-DOC] Cloudinary admin API download used for {doc_id}")
+            except Exception as _e2:
+                logging.error(f"[VIEW-DOC] Cloudinary admin API fallback failed for {doc_id}: {_e2}")
+
     try:
+
         if upstream.status_code == 204:
             # Firebase returned 204 No Content — document not found or access denied.
             # Don't silently return an empty 200 (breaks PDF.js "0 of 0 pages").
             # Return a proper 404 with a user-facing message.
             msg = json.dumps({"error": "Document not available", "detail": f"No content found for document {doc_id}"})
-            return Response(msg, status=404, content_type='application/json', headers={
-                'Cache-Control': 'private, no-store, must-revalidate',
-                'Content-Disposition': 'inline',
-                'Access-Control-Allow-Origin': request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://app.abhihub.run.place',
-                'X-Content-Type-Options': 'nosniff',
-                'X-Frame-Options': 'SAMEORIGIN',
-                'Referrer-Policy': 'no-referrer',
-                'X-Download-Options': 'noopen',
-                'X-Permitted-Cross-Domain-Policies': 'none',
-            })
+            return Response(msg, status=404, content_type='application/json', headers=_secure_file_headers())
         if not upstream.ok:
-            abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
+                    logging.error(f"[VIEW-DOC] Upstream failed for doc_id={doc_id}: status={upstream.status_code}, url={file_url}, body={upstream.text[:300]}\n")
+                    # If upstream is 401 from Cloudinary and all self-healing failed,
+                    # try the Supabase fallback URL if available, otherwise return 404 with guidance
+                    if upstream.status_code == 401 and document.get('supabase_url'):
+                        logging.info(f"[VIEW-DOC] Cloudinary 401 after self-heal, trying Supabase fallback for {doc_id}")
+                        try:
+                            from methods.supabase_helper import init_supabase
+                            sup_client = init_supabase()
+                            if sup_client:
+                                # Fetch from Supabase storage using signed URL
+                                import urllib.parse
+                                supabase_url = document.get('supabase_url')
+                                bucket_name = supabase_url.split('/')[-3]  # Extract bucket name
+                                # Try to get a public URL
+                                try:
+                                    fresh_url = sup_client.storage.from_(bucket_name).get_public_url(
+                                        supabase_url.split(f'/{bucket_name}/')[-1]
+                                    )
+                                    upstream = _fetch(fresh_url)
+                                    logging.info(f"[VIEW-DOC] Supabase fallback URL fetched for {doc_id}")
+                                except Exception as _e2:
+                                    logging.warning(f"[VIEW-DOC] Supabase fallback failed: {_e2}")
+                        except Exception as _e3:
+                            logging.warning(f"[VIEW-DOC] Supabase fallback setup error: {_e3}")
+            
+                    # If still 401 or no fallback available, return 404 with guidance rather than 502
+                    if upstream.status_code == 401:
+                        msg = json.dumps({"error": "File unavailable", "detail": f"Document {doc_id} cannot be accessed — Cloudinary access restricted. Check storage configuration."})
+                        return Response(msg, status=404, content_type='application/json', headers=_secure_file_headers())
+            
+                    abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
             
         content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
-        if document.get('file_type') == 'pdf' or '.pdf' in file_url.lower():
+        if document.get('file_type') == 'pdf' or '.pdf' in file_url.lower() or file_url.lower().endswith('.txt'):
             content_type = 'application/pdf'
-            
+            filename = document.get('title') or 'document.pdf'
+            filename = re.sub(r'[^a-z0-9_\-\.]+', '_', filename, flags=re.I)
+            if not filename.lower().endswith('.pdf'):
+                filename = filename.rsplit('.',1)[0] + '.pdf'
+        
         def generate():
             try:
                 for chunk in upstream.iter_content(chunk_size=65536):
@@ -2379,17 +3180,11 @@ def view_doc(doc_id, filename=None):
                         yield chunk
             except Exception as e:
                 logging.error(f"[VIEW-DOC] Stream interrupted for {doc_id}: {e}")
-                
-        response_headers = {
-            'Cache-Control': 'private, no-store, must-revalidate',
-            'Content-Disposition': 'inline',
-            'Access-Control-Allow-Origin': request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://app.abhihub.run.place',
-            'X-Content-Type-Options': 'nosniff',
-            'X-Frame-Options': 'SAMEORIGIN',
-            'Referrer-Policy': 'no-referrer',
-            'X-Download-Options': 'noopen',
-            'X-Permitted-Cross-Domain-Policies': 'none',
-        }
+        
+        response_headers = _secure_file_headers()
+       
+        if document.get('file_type') == 'pdf' or '.pdf' in file_url.lower() or file_url.lower().endswith('.txt'):
+            response_headers['Content-Disposition'] = f"inline; filename*=UTF-8''{filename}"
         
         # Preserve Content-Length if available (for PDF.js)
         if 'Content-Length' in upstream.headers:
@@ -2414,7 +3209,6 @@ def get_all_files_unified():
     """
     Get all active documents from Supabase `abhihub.documents`.
     """
-    from methods.supabase_helper import get_all_files_merged
     
     # Check if we have an active session to pass the user_id for like/bookmark status
     current_user_id = None
@@ -2432,7 +3226,6 @@ def get_all_files_unified():
 @app.route('/profile')
 @auth_required
 def profile():
-    from methods.supabase_helper import get_student_profile, get_user_uploaded_files, get_papo_meter_data
     
     user_info = session['user']
     user_id = user_info.get('uid')
@@ -2448,7 +3241,6 @@ def profile():
     
     # Map uploaded files to our unified format if necessary (though get_user_uploaded_files should return raw docs)
     # Actually, p_profile.html expects the unified format for the file cards
-    from methods.supabase_helper import _doc_to_json, get_contribution_timeline
     
     # Phase 18: Contribution Timeline
     timeline_result = get_contribution_timeline(user_id)
@@ -2474,7 +3266,6 @@ def p_profile_redirect():
 @app.route('/leaderboard', methods=['GET'])
 def leaderboard():
     """Phase 19: Global Gamification Leaderboard — cached at L1 for 10min."""
-    from methods.supabase_helper import get_leaderboard_data
 
     # Optional filter by college if requested
     college_id = request.args.get('college_id')
@@ -2498,7 +3289,6 @@ def leaderboard():
 @auth_required
 def account():
     """Display account management page"""
-    from methods.supabase_helper import get_student_profile, get_all_colleges, get_all_branches
     
     user_info = session['user']
     user_id = user_info.get('uid')
@@ -2525,7 +3315,6 @@ def account():
 @auth_required
 def update_account():
     """Handle account profile updates"""
-    from methods.supabase_helper import create_or_update_student_profile
     
     user_info = session['user']
     user_id = user_info.get('uid')
@@ -2546,7 +3335,6 @@ def update_account():
     }
     
     # Fetch static form data ONCE (colleges/branches are now cached)
-    from methods.supabase_helper import get_student_profile, get_all_colleges, get_all_branches
     colleges = get_all_colleges().get('data', [])
     branches = get_all_branches().get('data', [])
 
@@ -2573,7 +3361,6 @@ def update_account():
 @auth_required
 def api_check_profile():
     """API endpoint to check if profile is complete"""
-    from methods.supabase_helper import check_profile_completed
     
     user_info = session.get('user', {})
     user_id = user_info.get('uid')
@@ -2591,7 +3378,16 @@ def api_check_profile():
 @app.route('/settings')
 @auth_required
 def settings():
-    return render_template('settings.html')
+    """Display user settings page with account, notification, credit, and privacy controls."""
+    user_data = session.get('user', {})
+    return render_template('settings.html', user_data=user_data)
+
+
+@app.route('/earnings')
+@auth_required
+def earnings():
+    """Eligibility and earnings info page."""
+    return render_template('earnings.html')
 
 
 @app.route('/support')
@@ -2601,11 +3397,19 @@ def support():
 
 # Public pages
 @app.route('/about')
+@sitemap_page(priority="0.85")
 def about():
     """About page"""
     return render_template('about.html')
 
+@app.route('/open-source')
+@sitemap_page(priority="0.85")
+def open_source():
+    """Open source page"""
+    return render_template('open_source.html')
+
 @app.route('/')
+@sitemap_page(priority="1.00", changefreq="daily")
 def features():
     """Root route - handles OAuth callbacks and home page"""
     # If user is already authenticated, send to dashboard
@@ -2618,12 +3422,13 @@ def features():
     return render_template('p_landing.html')
 
 @app.route('/features-tour')
+@sitemap_page(priority="0.85")
 def features_tour():
     return render_template('features.html')
 @app.route('/pyq')
+@sitemap_page(priority="0.95", changefreq="daily")
 def pyq_landing():
     """SEO landing page targeting 'PYQ' and '[college] PYQ' searches"""
-    from methods.supabase_helper import get_all_colleges, init_supabase
     colleges_res = get_all_colleges()
     colleges = colleges_res.get('data', [])
     # Attach doc count to each college
@@ -2659,13 +3464,7 @@ def college_landing(college_slug):
     """Dynamic SEO-optimized college landing page.
     Priority: brand group page > individual college page > 404
     """
-    from methods.supabase_helper import (
-        get_colleges_by_brand, get_college_by_slug,
-        get_college_stats, get_recent_college_files, get_all_branches
-    )
 
-    def slugify(text):
-        return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
 
     route_prefix = '/pyq' if request.path.startswith('/pyq') else '/college'
 
@@ -2702,11 +3501,11 @@ def college_landing(college_slug):
     total_docs = stats.get('total_documents', 0)
 
     if total_docs < COMING_SOON_THRESHOLD:
-        from methods.supabase_helper import get_waitlist_count
         waitlist_count = get_waitlist_count(college_id)
         return render_template('college_coming_soon.html',
                                college=college,
-                               waitlist_count=waitlist_count)
+                               waitlist_count=waitlist_count,
+                               noindex=True)
 
     # 5. Enough material — render full college page
     recent_files = get_recent_college_files(college_id, limit=6).get('data', [])
@@ -2718,11 +3517,96 @@ def college_landing(college_slug):
                            recent_files=recent_files,
                            departments=departments)
 
+@app.route('/college/<college_slug>/files')
+@app.route('/pyq/<college_slug>/files')
+def college_files(college_slug):
+    """College files listing with filters, search, and pagination (16 per page)."""
+
+    client = init_supabase()
+    if not client:
+        abort(500, description='Database client unavailable')
+
+    # Resolve college
+    college_res = get_college_by_slug(college_slug)
+    if not college_res.get('success'):
+        abort(404)
+    college = college_res.get('data')
+    college_id = college.get('id')
+
+    # Filters
+    raw_type = request.args.get('type', '').strip().lower()
+    doc_type_map = {
+        'pyq': 'papers',
+        'papers': 'papers',
+        'paper': 'papers',
+        'notes': 'notes',
+        'practical': 'practical',
+        'practicals': 'practical',
+        'other': 'other',
+    }
+    doc_type = doc_type_map.get(raw_type, raw_type)
+    department_slug = request.args.get('branch', '').strip().lower()
+    search_query = request.args.get('search', '').strip()
+    page = max(1, int(request.args.get('page', '1') or '1'))
+    page_size = 16
+    offset = (page - 1) * page_size
+
+    dept_res = {'success': False, 'data': {}}
+    if department_slug:
+        dept_res = get_department_by_slug(department_slug)
+
+    # Base query
+    q = client.table('documents') \
+        .select('*, subjects(name, subject_code), profiles!documents_uploader_id_fkey(full_name), colleges(name, abbreviation), departments(name, abbreviation)') \
+        .eq('college_id', college_id) \
+        .in_('status', ['approved', 'pending']) \
+        .order('view_count', desc=True)
+
+    if doc_type:
+        q = q.eq('document_category', doc_type)
+    if dept_res.get('success') and dept_res.get('data', {}).get('college_id') == college_id:
+        q = q.eq('department_id', dept_res['data']['id'])
+    if search_query:
+        q = q.or_(f"title.ilike.%{search_query}%,description.ilike.%{search_query}%")
+
+    # Count + paginated fetch
+    try:
+        count_resp = client.table('documents') \
+            .select('id', count='exact') \
+            .eq('college_id', college_id) \
+            .in_('status', ['approved', 'pending'])
+        if doc_type:
+            count_resp = count_resp.eq('document_category', doc_type)
+        if dept_res.get('success') and dept_res.get('data', {}).get('college_id') == college_id:
+            count_resp = count_resp.eq('department_id', dept_res['data']['id'])
+        total_count = count_resp.execute().count or 0
+
+        items_resp = q.limit(page_size).offset(offset).execute()
+        files = items_resp.data or []
+    except Exception as e:
+        logging.error(f"[college_files] query failed: {e}")
+        files = []
+        total_count = 0
+
+    departments = get_all_branches().get('data', [])
+
+    return render_template('college_files.html',
+                           college=college,
+                           files=files,
+                           departments=departments,
+                           filters={
+                               'type': doc_type,
+                               'branch': department_slug,
+                               'search': search_query,
+                               'page': page,
+                               'page_size': page_size,
+                               'total': total_count
+                           })
+
 @app.route('/college/<college_slug>/<department_slug>')
 @app.route('/pyq/<college_slug>/<department_slug>')
 def department_landing(college_slug, department_slug):
     """Dynamic SEO-optimized department landing page"""
-    from methods.supabase_helper import get_college_by_slug, get_department_by_slug, get_department_stats, get_recent_department_files
     
     # 1. Resolve college
     college_res = get_college_by_slug(college_slug)
@@ -2751,7 +3635,6 @@ def department_landing(college_slug, department_slug):
 @app.route('/subject/<subject_slug>')
 def subject_landing(subject_slug):
     """Dynamic SEO-optimized subject landing page (aggregated across colleges)"""
-    from methods.supabase_helper import get_subjects_by_slug, get_subject_stats, get_recent_subject_files
     
     # 1. Resolve subject slug to a list of DB IDs
     subject_res = get_subjects_by_slug(subject_slug)
@@ -2771,10 +3654,14 @@ def subject_landing(subject_slug):
                            stats=stats, 
                            recent_files=recent_files)
 
+@app.route('/resource/<path:slug>-view')
+def resource_landing_redirect(slug):
+    """Redirect resource slug with -view suffix to clean URL"""
+    return redirect(url_for('resource_landing', slug=slug), code=301)
+
 @app.route('/resource/<path:slug>')
 def resource_landing(slug):
     """Dynamic SEO-optimized resource landing page"""
-    from methods.supabase_helper import get_document_by_id_rich
     
     # Extract UUID from the end of the slug
     # A standard UUID is 36 chars long (e.g. 847afaa6-cec4-48db-9016-2218c169bb87)
@@ -2829,20 +3716,26 @@ def resource_landing(slug):
     document['is_bookmarked'] = False
     
     current_user_id = session.get('user', {}).get('uid')
+    ai_chat_allowed = False
     if current_user_id:
-        from methods.supabase_helper import init_supabase
-        client = init_supabase()
-        if client:
-            try:
-                like_check = client.table('document_votes').select('id').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
-                document['is_liked'] = bool(like_check.data)
-            except Exception:
-                pass
-            try:
-                bm_check = client.table('bookmarks').select('id').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
-                document['is_bookmarked'] = bool(bm_check.data)
-            except Exception:
-                pass
+        try:
+            from methods.scoring_engine import get_feature_gate
+            ai_chat_allowed = get_feature_gate(current_user_id).get('level') in ['contributor', 'power_contributor', 'community_leader']
+        except Exception:
+            ai_chat_allowed = False
+    
+    client = init_supabase()
+    if current_user_id and client:
+        try:
+            like_check = client.table('document_votes').select('id').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
+            document['is_liked'] = bool(like_check.data)
+        except Exception:
+            pass
+        try:
+            bm_check = client.table('bookmarks').select('id').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
+            document['is_bookmarked'] = bool(bm_check.data)
+        except Exception:
+            pass
             
     # Track view (shared helper — see log_document_view)
     log_document_view(
@@ -2896,19 +3789,22 @@ def resource_landing(slug):
     except Exception as e:
         logging.error(f"[Supabase] Error fetching suggestions: {e}")
 
-    return render_template('resource.html', document=document, ai_models=AI_MODELS, best_model=get_best_ai_model(), suggested_docs=suggested_docs, store_room_docs=store_room_docs)
+    return render_template('resource.html', document=document, ai_models=AI_MODELS, best_model=get_best_ai_model(), suggested_docs=suggested_docs, store_room_docs=store_room_docs, ai_chat_allowed=ai_chat_allowed)
 
 @app.route('/join')
+@sitemap_page()
 def join_team():
     """Collaborator recruitment landing page"""
     return render_template('join.html')
 
 @app.route('/team')
+@sitemap_page()
 def team():
     """Team page"""
     return render_template('team.html')
 
 @app.route('/contact')
+@sitemap_page()
 def contact():
     """Contact page"""
     return render_template('contact.html')
@@ -2916,6 +3812,48 @@ def contact():
 import json
 import os
 CONTACT_FILE = os.path.join('data', 'contact_messages.json')
+
+# ─── In-viewer document issue reporting (CSRF exempt — handles both auth and guest visitors) ──
+@app.route('/api/report-issue', methods=['POST'])
+@csrf.exempt
+def api_report_issue():
+    """Submit a document issue report from within a viewer page.
+    Saves to Supabase viewer_failure_reports so the Admin File Reports panel shows it.
+    No Turnstile required.
+    """
+    data = request.get_json() or {}
+    user = session.get('user') or {}
+
+    doc_title  = data.get('doc_title', 'Unknown document')
+    doc_id     = data.get('doc_id', '')
+    doc_url    = data.get('doc_url', request.referrer or '')
+    issue_type = data.get('issue_type', 'General issue')
+    message    = data.get('message', '').strip()
+
+    if not message:
+        return jsonify({'success': False, 'error': 'Please describe the issue.'}), 400
+
+    report_data = {
+        'doc_id':          doc_id or doc_title[:80],
+        'file_name':       doc_title,
+        'issue_type':      issue_type,
+        'error_msg':       message,
+        'page_url':        doc_url,
+        'reporter_email':  user.get('email', 'guest'),
+        'reporter_id':     user.get('uid', ''),
+        'viewer_type':     'in_viewer_report',
+        'status':          'open',
+    }
+
+    try:
+        result = supabase.table('viewer_failure_reports').insert(report_data).execute()
+        report_id = result.data[0].get('id') if result.data else None
+    except Exception as e:
+        logging.error(f'[REPORT-ISSUE] Supabase insert failed: {e}')
+        return jsonify({'success': False, 'error': 'Could not save report.'}), 500
+
+    logging.info(f'[REPORT-ISSUE] {user.get("email")} reported issue on doc {doc_id}: {issue_type} (id={report_id})')
+    return jsonify({'success': True, 'report_id': report_id})
 
 @app.route('/api/contact', methods=['POST'])
 def api_contact():
@@ -2959,13 +3897,7 @@ def api_contact():
     }
     
     os.makedirs('data', exist_ok=True)
-    messages = []
-    if os.path.exists(CONTACT_FILE):
-        try:
-            with open(CONTACT_FILE, 'r') as f:
-                messages = json.load(f)
-        except Exception:
-            pass
+    messages = _load_contact_messages()
     
     messages.insert(0, msg)
     
@@ -2999,7 +3931,6 @@ def dashboard():
     via Flask first-rule-wins routing.
     """
     # Use unified documents from database
-    from methods.supabase_helper import get_all_file_records_formatted
     user_info = session.get('user', {})
     current_user_id = user_info.get('uid')
     files = get_all_file_records_formatted(current_user_id=current_user_id)
@@ -3042,7 +3973,6 @@ def dashboard():
                 user_subjects.add(subj)
         
         # Get file access history of the user (recently viewed files)
-        from methods.supabase_helper import get_user_file_history
         history_result = get_user_file_history(user_email, limit=10)
         file_history = []
         if history_result.get('success'):
@@ -3051,7 +3981,6 @@ def dashboard():
         # Get college name from profile
         college_name = ''
         try:
-            from methods.supabase_helper import get_student_profile, calculate_user_ranks, get_reputation_stats
             profile_res = get_student_profile(user_id)
             profile_data = profile_res.get('data', {}) if profile_res.get('success') else {}
             college_name = profile_data.get('college_name') or ''
@@ -3097,7 +4026,11 @@ def dashboard():
             'global_rank': global_rank,
             'students_helped': students_helped,
             'badges': badges,
-            'college_name': college_name
+            'college_name': college_name,
+            # Reliable gate for peer suggestions — college_id comes straight from
+            # profiles (always set when profile is complete), unlike the students-row
+            # join that get_student_profile depends on.
+            'college_id': profile_data.get('college_id') or ''
         }
     else:
         file_history = []
@@ -3252,7 +4185,6 @@ def view_pdf():
         file_meta = {}
         if record_id:
             try:
-                from methods.supabase_helper import init_supabase, _doc_to_json, validate_uuid
                 if validate_uuid(record_id):
                     client = init_supabase()
                     if client:
@@ -3300,31 +4232,32 @@ def pdf_proxy(pdf_name):
         # Get PDF from Firebase Storage
         bucket = storage.bucket()
         blob = bucket.blob(pdf_name)
-        
+
         import mimetypes
-        
+
         # Download PDF content
         pdf_content = blob.download_as_bytes()
         file_size = len(pdf_content)
-        
+
         # Determine content type dynamically based on file extension
+        # Handle .txt files that are actually PDFs (Cloudinary Free tier workaround)
         content_type, _ = mimetypes.guess_type(pdf_name)
-        if not content_type:
-            content_type = 'application/pdf'  # Fallback
-            
+        if not content_type or pdf_name.lower().endswith('.txt'):
+            content_type = 'application/pdf'  # Fallback for PDFs stored as .txt
+
         # Handle Range requests for progressive PDF loading
         range_header = request.headers.get('Range')
-        
+
         if range_header:
             # Parse Range header (e.g., "bytes=0-1023")
             byte_range = range_header.replace('bytes=', '').split('-')
             start = int(byte_range[0]) if byte_range[0] else 0
             end = int(byte_range[1]) if len(byte_range) > 1 and byte_range[1] else file_size - 1
-            
+
             # Ensure valid range
             end = min(end, file_size - 1)
             length = end - start + 1
-            
+
             # Create partial content response (206)
             response = make_response(pdf_content[start:end+1])
             response.status_code = 206
@@ -3336,10 +4269,10 @@ def pdf_proxy(pdf_name):
             response = make_response(pdf_content)
             response.headers['Content-Type'] = content_type
             response.headers['Content-Length'] = str(file_size)
-        
+
         # Common headers for both full and partial responses
         # PDF security: force inline display, prevent download managers, no caching
-        response.headers['Access-Control-Allow-Origin'] = request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://app.abhihub.run.place'
+        response.headers['Access-Control-Allow-Origin'] = request.host if request.host in _ALLOWED_PROXY_HOSTS else 'https://www.abhihub.edu.eu.org'
         response.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
         response.headers['Access-Control-Allow-Headers'] = 'Range, Content-Type, Content-Range'
         response.headers['Access-Control-Expose-Headers'] = 'Content-Range, Content-Length, Accept-Ranges'
@@ -3351,9 +4284,9 @@ def pdf_proxy(pdf_name):
         response.headers['Referrer-Policy'] = 'no-referrer'
         response.headers['X-Download-Options'] = 'noopen'
         response.headers['X-Permitted-Cross-Domain-Policies'] = 'none'
-        
+
         return response
-        
+
     except Exception as e:
         logging.error(f"Error proxying PDF {pdf_name}: {e}")
         abort(404, description="PDF not found")
@@ -3730,13 +4663,6 @@ def widget_data():
 def favicon():
     return send_file('static/images/favicon.ico', mimetype='image/vnd.microsoft.icon')
 
-@app.route('/sw.js')
-def service_worker():
-    """Serve service worker from root scope so push notifications work."""
-    response = make_response(send_file('static/sw.js', mimetype='application/javascript'))
-    response.headers['Service-Worker-Allowed'] = '/'
-    response.headers['Cache-Control'] = 'no-cache'
-    return response
 
 ########################
 # Admin Control Panel #
@@ -3753,13 +4679,7 @@ def admin_control_panel():
 @auth_required
 @admin_required
 def get_contact_messages():
-    messages = []
-    if os.path.exists(CONTACT_FILE):
-        try:
-            with open(CONTACT_FILE, 'r') as f:
-                messages = json.load(f)
-        except Exception:
-            pass
+    messages = _load_contact_messages()
     return jsonify({'success': True, 'messages': messages})
 
 @app.route('/api/admin/subscribers', methods=['GET'])
@@ -3796,7 +4716,6 @@ def send_admin_notification():
     """Send push notification to selected users or all users"""
     try:
         from push_notifications import send_notification_to_all, send_notification_to_users
-        from methods.supabase_helper import log_notification
         
         data = request.get_json() or {}
         
@@ -3852,11 +4771,87 @@ def send_admin_notification():
 def get_admin_notification_history():
     """Get notification history (last 10 entries)"""
     try:
-        from methods.supabase_helper import get_notification_history
         history = get_notification_history()
         return jsonify({'success': True, 'history': history})
     
     except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/broadcast-stats', methods=['GET'])
+@auth_required
+@admin_required
+def get_admin_broadcast_stats():
+    """Get broadcast delivery stats (sent vs read) for admin notifications."""
+    try:
+        limit = min(request.args.get('limit', 50, type=int), 200)
+        stats = get_admin_broadcast_delivery_stats(limit=limit)
+        return jsonify({'success': True, **stats})
+    except Exception as e:
+        logging.error(f"[admin broadcast-stats] {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/admin/system-health', methods=['GET'])
+@auth_required
+@admin_required
+def get_system_health():
+    """Live system health dashboard: DB, storage, cache, CPU, memory, active users."""
+    import time, os, psutil
+    try:
+        client = init_supabase()
+        db_ok = client is not None
+        db_latency = None
+        if db_ok:
+            t0 = time.time()
+            try:
+                client.table('profiles').select('id').limit(1).execute()
+                db_latency = round((time.time() - t0) * 1000)
+            except Exception:
+                db_ok = False
+        try:
+            usage = psutil.virtual_memory()
+            mem_pct = round(usage.percent, 1)
+            swap = psutil.swap_memory()
+            swap_pct = round(swap.percent, 1)
+        except Exception:
+            mem_pct = swap_pct = None
+        try:
+            cpu_pct = round(psutil.cpu_percent(interval=0.5), 1)
+        except Exception:
+            cpu_pct = None
+        try:
+            disk = psutil.disk_usage('/')
+            disk_pct = round(disk.percent, 1)
+        except Exception:
+            disk_pct = None
+        now = time.time()
+        active_chat = sum(1 for u, info in _chat_online.items()
+                          if now - info.get('time', 0) < 300)
+        active_http = sum(1 for u, info in _chat_online_http.items()
+                          if now - info.get('time', 0) < 300)
+        try:
+            cache_size = len(cache.l1._store) if hasattr(cache.l1, '_store') else 'N/A'
+        except Exception:
+            cache_size = 'N/A'
+        return jsonify({
+            'success': True,
+            'health': {
+                'database': 'connected' if db_ok else 'disconnected',
+                'db_latency_ms': db_latency,
+                'cpu_percent': cpu_pct,
+                'memory_percent': mem_pct,
+                'swap_percent': swap_pct,
+                'disk_percent': disk_pct,
+                'active_chat_users': active_chat,
+                'active_http_users': active_http,
+                'cache_entries': cache_size,
+                'supabase_url': bool(os.getenv('SUPABASE_URL')),
+                'pusubscriptions': len(load_subscriptions()) if db_ok else 0,
+            }
+        })
+    except Exception as e:
+        logging.error(f"[admin system-health] {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
 
 def _getSuggestedPeers(client, uid):
@@ -3906,7 +4901,6 @@ def chat_search_peers():
         return jsonify({'success': True, 'users': [], 'suggested': []})
 
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'users': [], 'suggested': [], 'error': 'DB error'}), 500
@@ -3960,7 +4954,6 @@ def chat_search_peers():
 def admin_get_users():
     """Get list of users for admin dashboard"""
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         res = client.table('profiles').select('id, full_name, email, created_at, role, reputation_score').order('created_at', desc=True).limit(500).execute()
         return jsonify({'success': True, 'users': res.data or []})
@@ -3973,7 +4966,6 @@ def admin_get_users():
 def admin_get_user_stats(user_id):
     """Get detailed stats for a specific user"""
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         
         # Last visit (from user_sessions)
@@ -4004,7 +4996,6 @@ def admin_get_user_stats(user_id):
 @admin_required
 def get_admin_stats():
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
@@ -4026,13 +5017,8 @@ def get_admin_stats():
             total_subs = 0
             
         messages_count = 0
-        if os.path.exists(CONTACT_FILE):
-            try:
-                with open(CONTACT_FILE, 'r') as f:
-                    messages = json.load(f)
-                    messages_count = len(messages)
-            except Exception:
-                pass
+        messages = _load_contact_messages()
+        messages_count = len(messages)
                 
         return jsonify({
             'success': True,
@@ -4052,11 +5038,9 @@ def get_admin_stats():
 @admin_required
 def get_pending_documents():
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
-            
         res = client.table('documents')\
             .select('id, title, document_category, file_type, file_url, created_at, uploader_id, profiles(full_name, email)')\
             .eq('status', 'pending')\
@@ -4065,7 +5049,28 @@ def get_pending_documents():
             
         return jsonify({'success': True, 'documents': res.data or []})
     except Exception as e:
+        logging.error(f'[pending-documents] {e}')
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+
+@app.route('/api/indexnow/submit', methods=['POST'])
+@auth_required
+@admin_required
+def api_indexnow_submit():
+    try:
+        data = request.get_json() or {}
+        urls = data.get('urls', [])
+        if not urls or not isinstance(urls, list):
+            return jsonify({'success': False, 'message': 'urls list is required'}), 400
+        
+        success = _trigger_indexnow(urls)
+        if success:
+            return jsonify({'success': True, 'message': f'Submitted {len(urls)} URLs successfully'})
+        return jsonify({'success': False, 'message': 'IndexNow submission failed or key not configured'}), 400
+    except Exception as e:
+        logging.error(f'[api_indexnow_submit] {e}')
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/admin/analytics')
 @auth_required
@@ -4073,6 +5078,151 @@ def get_pending_documents():
 def admin_analytics_dashboard():
     """Admin analytics dashboard page."""
     return render_template('admin_analytics.html')
+
+
+# ─── Admin Economy Dashboard (Dynamic Access & Contribution) ───
+
+@app.route('/api/my-access', methods=['GET'])
+@auth_required
+def api_my_access():
+    """Current user's access level, feature gate limits, and ad density."""
+    try:
+        from methods.scoring_engine import get_feature_gate
+        uid = session.get('user', {}).get('uid')
+        gate = get_feature_gate(uid)
+        quota = {'allowed': True, 'remaining': None}
+        progress = None
+        if uid:
+            from methods.scoring_engine import check_upload_quota, get_access_progress
+            quota = check_upload_quota(uid)
+            progress = get_access_progress(uid)
+        return jsonify({
+            'success': True,
+            'level': gate.get('level'),
+            'limits': {k: v for k, v in gate.items() if k != 'level'},
+            'uploads_today_remaining': quota.get('remaining'),
+            'progress': progress,
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/admin/economy')
+@auth_required
+@admin_required
+def admin_economy_dashboard():
+    """Admin economy dashboard: edit scoring config, view level distribution."""
+    return render_template('admin_economy.html')
+
+
+@app.route('/api/admin/economy/config', methods=['GET'])
+@auth_required
+@admin_required
+def api_admin_economy_get_config():
+    """Return all scoring_config entries."""
+    try:
+        res = init_supabase().table('scoring_config').select('*').order('key').execute()
+        return jsonify({'success': True, 'config': res.data or []}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/economy/config', methods=['POST'])
+@auth_required
+@admin_required
+def api_admin_economy_update_config():
+    """Update one scoring_config key's JSONB value. Body: {key, value}."""
+    try:
+        data = request.json or {}
+        key = data.get('key')
+        value = data.get('value')
+        if not key or value is None:
+            return jsonify({'success': False, 'message': 'Missing key or value'}), 400
+        if not isinstance(value, (dict, list, int, float, str)):
+            return jsonify({'success': False, 'message': 'Invalid value type'}), 400
+
+        client = init_supabase()
+        client.table('scoring_config').update({
+            'value': value, 'updated_at': 'now()'
+        }).eq('key', key).execute()
+
+        # Bust the in-process config cache so changes apply immediately
+        try:
+            import methods.scoring_engine as se
+            se._CONFIG_CACHE = {}
+            se._CONFIG_CACHE_AT = 0.0
+        except Exception:
+            pass
+        logging.info(f"[ECONOMY] admin updated scoring_config['{key}']")
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/economy/overview', methods=['GET'])
+@auth_required
+@admin_required
+def api_admin_economy_overview():
+    """Level distribution + top contributors/consumers + recent scored events."""
+    try:
+        client = init_supabase()
+
+        levels_res = client.table('profiles').select('id, full_name, access_level, abhihub_score, consumption_score, ccr').limit(5000).execute()
+        users = levels_res.data or []
+        dist = {}
+        for u in users:
+            lvl = u.get('access_level') or 'explorer'
+            dist[lvl] = dist.get(lvl, 0) + 1
+        by_score = sorted(users, key=lambda u: float(u.get('abhihub_score') or 0), reverse=True)
+        by_ccr = sorted(users, key=lambda u: float(u.get('ccr') or 0))
+
+        logs_res = client.table('contribution_logs').select(
+            'user_id, action_type, xp_awarded, description, created_at, profiles(full_name)'
+        ).order('created_at', desc=True).limit(25).execute()
+
+        return jsonify({
+            'success': True,
+            'total_users': len(users),
+            'level_distribution': dist,
+            'top_contributors': [
+                {'name': u.get('full_name'), 'score': u.get('abhihub_score'), 'level': u.get('access_level')}
+                for u in by_score[:10]
+            ],
+            'most_consumer_heavy': [
+                {'name': u.get('full_name'), 'ccr': u.get('ccr'), 'level': u.get('access_level')}
+                for u in by_ccr[:10] if float(u.get('ccr') or 0) > 0
+            ],
+            'recent_events': logs_res.data or [],
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/economy/user/<user_id>', methods=['POST'])
+@auth_required
+@admin_required
+def api_admin_economy_override_user(user_id):
+    """Manually override a user's access level. Body: {access_level}."""
+    try:
+        data = request.json or {}
+        level = data.get('access_level')
+        allowed = {'explorer', 'member', 'contributor', 'power_contributor', 'community_leader'}
+        if level not in allowed:
+            return jsonify({'success': False, 'message': f'access_level must be one of {allowed}'}), 400
+        client = init_supabase()
+        target_uid = user_id.strip()
+        if '@' in target_uid or len(target_uid) != 36:
+            res = client.table('profiles').select('id').or_(f"email.eq.{target_uid},full_name.ilike.%{target_uid}%").limit(1).execute()
+            if res.data and len(res.data) > 0:
+                target_uid = res.data[0]['id']
+            else:
+                return jsonify({'success': False, 'message': f'User "{user_id}" not found'}), 404
+
+        client.table('profiles').update({'access_level': level}).eq('id', target_uid).execute()
+        logging.info(f"[ECONOMY] admin set user {target_uid} access_level={level}")
+        return jsonify({'success': True}), 200
+    except Exception as e:
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/admin/approve-document', methods=['POST'])
 @auth_required
@@ -4084,7 +5234,6 @@ def approve_document():
         if not doc_id:
             return jsonify({'success': False, 'error': 'Document ID is required'}), 400
             
-        from methods.supabase_helper import init_supabase, recalculate_and_persist_user_rank
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
@@ -4113,7 +5262,6 @@ def reject_document():
         if not doc_id:
             return jsonify({'success': False, 'error': 'Document ID is required'}), 400
             
-        from methods.supabase_helper import init_supabase, recalculate_and_persist_user_rank
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
@@ -4127,10 +5275,21 @@ def reject_document():
             pass
             
         client.table('documents').delete().eq('id', doc_id).execute()
-        
+
         if uploader_id:
+            # Anti-abuse: penalize the uploader for removed/spam content
+            try:
+                from methods.scoring_engine import get_config
+                pts = get_config('points') or {}
+                penalty = float(pts.get('spam_penalty_min', -10))
+                award_contribution_xp(
+                    uploader_id, 'content_removed', doc_id, 'document',
+                    'Document rejected/removed by moderation', base_xp=penalty
+                )
+            except Exception as pen_err:
+                logging.warning(f"[SCORING] removal penalty skipped: {pen_err}")
             recalculate_and_persist_user_rank(uploader_id)
-            
+
         return jsonify({'success': True, 'message': 'Document rejected and deleted successfully'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -4149,7 +5308,6 @@ def uhv_notes():
 @app.route('/rank')
 def calculate_rank():
     try:
-        from methods.supabase_helper import calculate_user_ranks
         rank_list = calculate_user_ranks()
         return jsonify({
             'status': 'success',
@@ -4218,7 +5376,6 @@ def verify_file():
             }
         
         # Insert into Supabase directly instead of data.json
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         if client:
             res = client.table('documents').select('id').eq('file_url', file_path).execute()
@@ -4280,7 +5437,6 @@ def update_file_metadata():
     Update file metadata in Supabase (Admin Only)
     """
     try:
-        from methods.supabase_helper import update_document_metadata
         data = request.get_json()
         file_path = data.get('file-path')
         
@@ -4305,8 +5461,69 @@ from methods.cloudinary_helper import (
     get_unique_formats, get_unique_folders
 )
 from methods.supabase_helper import (
-    save_labeled_paper, get_labeled_papers, check_if_labeled,
-    save_file_access, get_user_file_history
+    DEFAULT_POINTS,
+    POINTS_MAP,
+    _doc_to_json,
+    add_comment,
+    add_new_entity,
+    add_paper_verification,
+    award_contribution_xp,
+    calculate_user_ranks,
+    check_profile_completed,
+    create_or_update_student_profile,
+    create_subject_request,
+    ensure_referral_code,
+    get_all_branches,
+    get_all_colleges,
+    get_all_file_records_formatted,
+    get_all_files_merged,
+    get_college_by_slug,
+    get_colleges_by_brand,
+    get_comments,
+    get_contribution_timeline,
+    get_department_by_slug,
+    get_department_stats,
+    get_departments_by_college,
+    get_document_by_id_rich,
+    get_leaderboard_data,
+    get_notification_history,
+    get_onboarding_status,
+    get_papo_meter_data,
+    get_pending_storage_assets,
+    get_pending_verification_papers,
+    get_recent_department_files,
+    get_recent_subject_files,
+    get_reputation_stats,
+    get_sitemap_urls,
+    get_student_profile,
+    get_subject_stats,
+    get_subjects_by_department,
+    get_subjects_by_slug,
+    get_user_file_history,
+    get_user_notifications,
+    get_user_peer_materials_db,
+    get_user_uploaded_files,
+    get_waitlist_count,
+    init_supabase,
+    init_supabase_admin,
+    join_college_waitlist,
+    log_label_audit,
+    log_notification,
+    log_security_audit_event,
+    mark_notifications_read,
+    mark_storage_asset_labeled,
+    mark_welcome_seen,
+    recalculate_and_persist_user_rank,
+    register_referral,
+    save_file_access,
+    save_file_record,
+    search_users_db,
+    toggle_bookmark,
+    toggle_like,
+    track_user_event,
+    update_document_metadata,
+    validate_uuid,
+    verify_hierarchy,
 )
 
 _unlabeled_cache = {
@@ -4316,12 +5533,18 @@ _unlabeled_cache = {
     'ttl': 60  # Cache for 60 seconds
 }
 
+
+def _mark_storage_asset_labeled(storage_provider, provider_public_id):
+    """Mark a queued storage asset as labeled when it has a provider ID."""
+    if provider_public_id:
+        provider = storage_provider or 'cloudinary'
+        mark_storage_asset_labeled(provider, provider_public_id)
+
 def get_cached_unlabeled_files():
     now = time.time()
     if _unlabeled_cache['data'] is not None and (now - _unlabeled_cache['timestamp'] < _unlabeled_cache['ttl']):
         return _unlabeled_cache['data'], _unlabeled_cache['labeled_count']
         
-    from methods.supabase_helper import get_pending_storage_assets, init_supabase
     pending_assets = get_pending_storage_assets()
     
     unlabeled_files = []
@@ -4558,7 +5781,6 @@ def store_room_api_verify():
             }), 401
         
         # Save verification record to Supabase
-        from methods.supabase_helper import add_paper_verification
         result = add_paper_verification(labeled_paper_id, user_email)
         
         return jsonify(result)
@@ -4575,7 +5797,6 @@ def store_room_api_verification_queue():
     API endpoint to get papers pending verification
     """
     try:
-        from methods.supabase_helper import get_pending_verification_papers
         result = get_pending_verification_papers()
         
         return jsonify(result), 200 if result.get('success') else 400
@@ -4620,6 +5841,112 @@ def track_file_access_api():
     except Exception as e:
         logging.error(f"Error tracking file access: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/report-broken-file', methods=['POST'])
+@auth_required
+def report_broken_file():
+    """API endpoint for users to report broken/missing files with detailed logging to Supabase."""
+    try:
+        if 'user' not in session:
+            return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+        
+        data = request.get_json() or request.form.to_dict()
+        if not data:
+            return jsonify({'success': False, 'message': 'No data provided'}), 400
+        
+        user_email = session['user'].get('email', 'anonymous')
+        user_id = session['user'].get('uid', '')
+        
+        file_id = data.get('file_id', '')
+        file_name = data.get('file_name', '')
+        file_url = data.get('file_url', '')
+        file_type = data.get('file_type', 'unknown')
+        error_message = data.get('error_message', '')
+        issue_type = data.get('issue_type', 'other')
+        page_url = data.get('page_url', request.referrer or '')
+        viewer_type = data.get('viewer_type', 'pdf')
+        
+        if not file_name and not file_id and not file_url:
+            return jsonify({'success': False, 'message': 'File name, ID, or URL is required'}), 400
+        
+        # Store the report in Supabase
+        report_data = {
+            'doc_id': str(file_id) if file_id else file_name,
+            'viewer_type': viewer_type,
+            'error_msg': f"{issue_type}: {error_message}" if error_message else issue_type,
+            'page_url': page_url,
+            'reporter_email': user_email,
+            'reporter_id': user_id,
+            'file_name': file_name,
+            'file_url': file_url,
+            'file_type': file_type,
+            'issue_type': issue_type,
+            'status': 'open',
+        }
+        
+        try:
+            result = supabase.table('viewer_failure_reports').insert(report_data).execute()
+            report_id = result.data[0].get('id') if result.data else None
+        except Exception as db_err:
+            logging.error(f"Error saving viewer failure report to Supabase: {db_err}")
+            # Fallback: log to local logging if Supabase fails
+            logging.error(f"[FILE-REPORT] {user_email} reported: {file_name} - {error_message}")
+            return jsonify({'success': False, 'message': 'Could not save report to database'}), 500
+        
+        logging.info(f"[FILE-REPORT] Reported broken file: {file_name} by {user_email} (report_id={report_id})")
+        
+        return jsonify({
+            'success': True, 
+            'message': 'Report submitted successfully',
+            'report_id': report_id
+        }), 200
+    
+    except Exception as e:
+        logging.error(f"Error in report_broken_file: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/admin/file-reports')
+@admin_required
+def admin_file_reports():
+    """API endpoint for admin to view all file reports/logs."""
+    try:
+        # Fetch all reports from the viewer_failure_reports table
+        result = supabase.table('viewer_failure_reports').select(
+            'id, doc_id, viewer_type, error_msg, page_url, reporter_email, reporter_id, file_name, file_url, file_type, issue_type, status, created_at'
+        ).order('created_at', desc=True).execute()
+        
+        reports = result.data if result.data else []
+        
+        # Also fetch file access history for comprehensive logging
+        try:
+            access_result = supabase.table('file_access_history').select(
+                'id, user_email, file_name, file_type, file_path, file_url, status, created_at'
+            ).order('created_at', desc=True).limit(500).execute()
+            access_logs = access_result.data if access_result.data else []
+        except Exception as access_err:
+            logging.warning(f"Could not fetch file_access_history: {access_err}")
+            access_logs = []
+        
+        return jsonify({
+            'success': True,
+            'reports': reports,
+            'access_logs': access_logs,
+            'total_reports': len(reports),
+            'total_access_logs': len(access_logs)
+        }), 200
+        
+    except Exception as e:
+        logging.error(f"Error fetching admin file reports: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/admin/file-reports')
+@admin_required
+def admin_file_reports_page():
+    """Admin page for viewing all file reports and logs."""
+    return render_template('admin_file_reports.html')
 
 
 # Flask CLI command for Heroku Scheduler (alternative to APScheduler)
@@ -4688,7 +6015,6 @@ def api_ask_paper():
             return jsonify({'success': False, 'message': 'doc_id and question are required'}), 400
 
         # Always fetch raw file_url from DB
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         raw = client.table('documents').select('file_url, title, document_category').eq('id', doc_id).single().execute()
         if not raw.data:
@@ -4699,14 +6025,7 @@ def api_ask_paper():
         doc_category = raw.data.get('document_category', '')
 
         # Resolve Firebase storage paths to real HTTP URLs
-        if file_url and not file_url.startswith('http'):
-            try:
-                bucket = storage.bucket()
-                blob = bucket.blob(file_url)
-                file_url = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
-            except Exception as e:
-                logging.warning(f"[AI] Firebase signed URL failed: {e}")
-                return jsonify({'success': False, 'message': 'Could not resolve file URL'}), 400
+        file_url = _resolve_signed_url(file_url, log_tag="AI")
 
         if not file_url:
             return jsonify({'success': False, 'message': 'File URL not available'}), 400
@@ -4812,20 +6131,11 @@ def api_extract_ocr():
         if not doc_id:
             return jsonify({'success': False, 'message': 'doc_id required'}), 400
 
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         raw = client.table('documents').select('file_url').eq('id', doc_id).single().execute()
         file_url = raw.data.get('file_url', '') if raw.data else ''
 
-        # Resolve Firebase storage paths to real HTTP URLs
-        if file_url and not file_url.startswith('http'):
-            try:
-                bucket = storage.bucket()
-                blob = bucket.blob(file_url)
-                file_url = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
-            except Exception as e:
-                logging.warning(f"[AI] OCR Firebase signed URL failed: {e}")
-                return jsonify({'success': False, 'message': 'Could not resolve file URL'}), 400
+        file_url = _resolve_signed_url(file_url, log_tag="AI")
 
         if not file_url:
             return jsonify({'success': False, 'message': 'File URL not available'}), 400
@@ -4837,11 +6147,11 @@ def api_extract_ocr():
             logging.warning(f"[AI] OCR file fetch failed: {e}")
             return jsonify({'success': False, 'message': 'Could not fetch file'}), 502
         if not file_resp.ok:
-            return jsonify({'success': False, 'message': 'Could not fetch file'}), 502
-
+            logging.warning(f"[AI] File fetch HTTP {file_resp.status_code} for {file_url[:80]}")
+            return jsonify({'success': False, 'message': f'Document fetch failed ({file_resp.status_code})'}), 502
         content_bytes = file_resp.content
         content_type = file_resp.headers.get('Content-Type', '').split(';')[0].lower()
-        is_pdf = 'pdf' in content_type or file_url.lower().endswith('.pdf') or content_bytes.startswith(b'%PDF')
+        is_pdf = _looks_like_pdf(content_type, file_url, content_bytes)
 
         # 1. Fast, Unlimited, 100% Free text extraction for PDFs
         if is_pdf:
@@ -4881,7 +6191,6 @@ def toggle_like_route():
         if not document_id:
             return jsonify({'success': False, 'message': 'document_id is required'}), 400
             
-        from methods.supabase_helper import toggle_like
         user_email = user.get('email')
         res = toggle_like(user_email, document_id)
         return jsonify(res), 200 if res.get('success') else 500
@@ -4900,7 +6209,6 @@ def toggle_bookmark_route():
         if not document_id:
             return jsonify({'success': False, 'message': 'document_id is required'}), 400
             
-        from methods.supabase_helper import toggle_bookmark
         user_email = user.get('email')
         res = toggle_bookmark(user_email, document_id)
         return jsonify(res), 200 if res.get('success') else 500
@@ -4919,7 +6227,6 @@ def add_comment_route(document_id):
         if not document_id or not content:
             return jsonify({'success': False, 'message': 'document_id and content are required'}), 400
             
-        from methods.supabase_helper import add_comment
         user_email = user.get('email')
         res = add_comment(user_email, document_id, content)
         return jsonify(res), 200 if res.get('success') else 500
@@ -4932,7 +6239,6 @@ def get_comments_route(document_id):
         if not document_id:
             return jsonify({'success': False, 'message': 'document_id is required'}), 400
             
-        from methods.supabase_helper import get_comments
         res = get_comments(document_id)
         return jsonify(res), 200 if res.get('success') else 500
     except Exception as e:
@@ -5215,7 +6521,6 @@ def api_add_entity():
     except ValueError:
         semester = None
         
-    from methods.supabase_helper import add_new_entity
     result = add_new_entity(entity_type, name, short_name, code, semester, parent_id)
     return jsonify(result), 200 if result.get('success') else 500
 
@@ -5227,7 +6532,6 @@ def api_search_users():
     q = request.args.get('q', '').strip()
     if not q:
         return jsonify({'success': True, 'users': []})
-    from methods.supabase_helper import search_users_db
     users = search_users_db(q)
     return jsonify({'success': True, 'users': users})
 
@@ -5235,7 +6539,6 @@ def api_search_users():
 @auth_required
 def api_get_peer_materials(target_user_id):
     """Get target student's uploaded & referred study materials."""
-    from methods.supabase_helper import get_user_peer_materials_db
     res = get_user_peer_materials_db(target_user_id)
     return jsonify(res)
 
@@ -5247,7 +6550,6 @@ def api_chat_peer_materials_summary(target_user_id):
 
     Returns {success: true, user: {...}, uploads_count, recent_views: [...]}
     """
-    from methods.supabase_helper import get_user_peer_materials_db
     res = get_user_peer_materials_db(target_user_id)
     if not res.get('success'):
         return jsonify({'success': False, 'message': 'User not found'}), 404
@@ -5277,7 +6579,6 @@ def api_request_material():
     
     # Store or log request (simulated notification trigger)
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         if client:
             client.table('material_requests').insert({
@@ -5306,7 +6607,6 @@ def api_get_material_requests():
         return jsonify({'success': False, 'message': 'Not authenticated'}), 401
 
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'message': 'DB unavailable'}), 500
@@ -5338,7 +6638,7 @@ def api_get_material_requests():
         return jsonify({'success': True, 'requests': items}), 200
     except Exception as e:
         logging.error(f"[MaterialRequests] Error: {e}")
-        return jsonify({'success': False, 'message': 'Server error'}), 500
+        return jsonify({'success': True, 'requests': []}), 200
 
 
 @app.route('/api/material-request/respond', methods=['POST'])
@@ -5357,7 +6657,6 @@ def api_respond_material_request():
         return jsonify({'success': False, 'message': 'Invalid parameters'}), 400
 
     try:
-        from methods.supabase_helper import init_supabase
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'message': 'DB unavailable'}), 500
@@ -5401,6 +6700,183 @@ def _get_uid():
     user = session.get('user', {})
     return user.get('uid') or user.get('id') or user.get('user_id')
 
+_chat_online = {}        # {user_id: {sid, name}}
+_chat_online_http = {}   # {user_id: {time, name}}
+
+CHAT_SECRET = os.getenv('CHAT_SECRET')
+
+def _chat_secret():
+    if not CHAT_SECRET:
+        return None
+    try:
+        import base64
+        b = base64.urlsafe_b64encode(CHAT_SECRET.encode('utf-8')[:32])
+        return b.decode('utf-8')
+    except Exception:
+        return None
+
+def _enc(text: str):
+    secret = _chat_secret()
+    if not secret:
+        return None
+    try:
+        from cryptography.fernet import Fernet
+        return Fernet(secret.encode('utf-8')).encrypt(text.encode('utf-8')).decode('utf-8')
+    except Exception:
+        return None
+
+def _dec(token: str):
+    secret = _chat_secret()
+    if not secret or not token:
+        return token
+    try:
+        from cryptography.fernet import Fernet
+        return Fernet(secret.encode('utf-8')).decrypt(token.encode('utf-8')).decode('utf-8')
+    except Exception:
+        return token
+
+def _persist_chat_message(uid_a, uid_b, payload):
+    """Persist chat message — Supabase (encrypted) with in-memory cache fallback."""
+    from methods.encrypted_chat import save_message_supabase
+
+    # Try Supabase persistence first (encrypted at rest)
+    plaintext = payload.get('text', '')
+    peer_pubkey = None
+
+    # Try to get sender's public key for E2E encryption
+    try:
+        from methods.encrypted_chat import get_user_keys
+        keys = get_user_keys(uid_a)
+        peer_pubkey = keys.get('public_key')
+    except Exception:
+        pass
+
+    saved = save_message_supabase(uid_a, uid_b, plaintext, sender_public_key=peer_pubkey)
+    if saved:
+        # Update payload with the server-assigned message ID
+        payload['msg_id'] = saved.get('id', '')
+
+    # Also keep in in-memory cache for real-time delivery
+    try:
+        key = 'chat_messages:' + '_'.join(sorted([uid_a, uid_b]))
+        data = cache.l1.get(key)
+        history = data[0] if data and data[0] else []
+        if not isinstance(history, list):
+            history = []
+        item = {
+            'cipher': _enc(payload.get('text', '')) or payload.get('text', ''),
+            'from': payload.get('from'),
+            'to': payload.get('to'),
+            'ts': payload.get('ts'),
+            'sender_meta': payload.get('sender_meta', {}),
+            'status': 'sent',
+            'msg_id': saved.get('id') if saved else '',
+        }
+        history.append(item)
+        max_age = 7 * 24 * 60 * 60
+        cache.l1.set(key, history, ttl=max_age)
+    except Exception:
+        pass
+
+def _get_chat_history(uid_a, uid_b):
+    """Load chat history — Supabase (encrypted) with in-memory cache fallback."""
+    from methods.encrypted_chat import load_conversation_supabase
+
+    try:
+        # Try to get the recipient's private key for decryption
+        my_keys = {}
+        try:
+            from methods.encrypted_chat import get_user_keys
+            my_keys = get_user_keys(uid_a)
+        except Exception:
+            pass
+        my_privkey = my_keys.get('private_key')
+
+        # Try Supabase first
+        messages = load_conversation_supabase(
+            uid_a, uid_b,
+            my_privkey=my_privkey,
+            peer_pubkey=my_keys.get('public_key')
+        )
+        if messages:
+            return messages
+    except Exception:
+        pass
+
+    # Fallback: in-memory cache
+    try:
+        key = 'chat_messages:' + '_'.join(sorted([uid_a, uid_b]))
+        data = cache.l1.get(key)
+        raw = data[0] if data and data[0] and isinstance(data[0], list) else []
+        out = []
+        for m in raw:
+            out.append({
+                'text': _dec(m.get('text') or m.get('cipher') or ''),
+                'from': m.get('from'),
+                'to': m.get('to'),
+                'ts': m.get('ts'),
+                'sender_meta': m.get('sender_meta', {}),
+                'status': m.get('status', 'sent'),
+            })
+        return out
+    except Exception:
+        return []
+
+def _expire_chat_history(uid_a, uid_b):
+    try:
+        key = 'chat_messages:' + '_'.join(sorted([uid_a, uid_b]))
+        cache.l1.delete(key)
+    except Exception:
+        pass
+
+@app.route('/api/chat/history/<peer_id>')
+@auth_required
+def api_chat_history(peer_id):
+    me = _get_uid()
+    if not me or not validate_uuid(peer_id):
+        return jsonify({'success': False, 'error': 'Invalid request'}), 400
+    try:
+        history = _get_chat_history(me, peer_id)
+        return jsonify({'success': True, 'messages': history})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@socketio.on('chat_delivered')
+def chat_delivered(data):
+    uid = _get_uid()
+    peer_id = data.get('to')
+    msg_ts = data.get('ts')
+    msg_id = data.get('msg_id', '')
+    if not uid or not peer_id or not msg_ts:
+        return
+    room = _pair_room(uid, peer_id)
+    emit('chat_received', {'from': uid, 'to': peer_id, 'ts': msg_ts, 'status': 'delivered'}, to=room)
+    # Update Supabase
+    if msg_id:
+        try:
+            from methods.encrypted_chat import mark_message_delivered
+            mark_message_delivered(msg_id, uid)
+        except Exception:
+            pass
+
+@socketio.on('chat_read')
+def chat_read(data):
+    uid = _get_uid()
+    peer_id = data.get('to')
+    msg_ts = data.get('ts')
+    msg_id = data.get('msg_id', '')
+    if not uid or not peer_id or not msg_ts:
+        return
+    room = _pair_room(uid, peer_id)
+    emit('chat_read_receipt', {'from': uid, 'to': peer_id, 'ts': msg_ts, 'status': 'read'}, to=room)
+    # Update Supabase
+    if msg_id:
+        try:
+            from methods.encrypted_chat import mark_message_read
+            mark_message_read(msg_id, uid)
+        except Exception:
+            pass
+
 @socketio.on('connect')
 def chat_connect():
     uid = _get_uid()
@@ -5409,9 +6885,8 @@ def chat_connect():
     user = session.get('user', {})
     name = user.get('name') or (user.get('user_metadata') or {}).get('full_name') or user.get('email', 'Student')
     _chat_online[uid] = {'sid': request.sid, 'name': name}
-    join_room(uid)  # personal inbox room
-    join_room('online-counter-room')  # for targeted online list broadcasts
-    # Notify all connected clients of updated list
+    join_room(uid)
+    join_room('online-counter-room')
     socketio.emit('chat_online_update', {'online': _safe_online_list()})
 
 @socketio.on('disconnect')
@@ -5421,14 +6896,80 @@ def chat_disconnect():
         del _chat_online[uid]
         socketio.emit('chat_online_update', {'online': _safe_online_list()})
 
+@socketio.on('reconnect')
+def chat_reconnect():
+    chat_connect()
+
+# ── Admin real-time updates ──────────────────────────────────────────────────
+# Admin dashboard subscribes to 'admin-room' for live KPI / activity updates.
+
+@socketio.on('join_admin_room')
+def join_admin_room(data):
+    """Admin joins the admin-room namespace to receive real-time updates."""
+    socketio.join_room('admin-room')
+    # Send immediate snapshot
+    try:
+        stats = get_admin_broadcast_delivery_stats(limit=20)
+        health = get_system_health().get_json()
+        socketio.emit('admin_snapshot', {
+            'broadcast_stats': stats.get_json() if hasattr(stats, 'get_json') else stats,
+            'system_health': health.get_json() if hasattr(health, 'get_json') else health,
+            'ts': datetime.utcnow().isoformat() + 'Z'
+        }, room='admin-room')
+    except Exception as e:
+        logging.error(f"[admin] snapshot error: {e}")
+
+
+def _emit_admin_activity_event(event_type, **kwargs):
+    """Push a real-time activity event to the admin dashboard."""
+    try:
+        payload = {'event': event_type, 'ts': datetime.utcnow().isoformat() + 'Z'}
+        payload.update(kwargs)
+        socketio.emit('admin_activity', payload, room='admin-room')
+    except Exception as e:
+        logging.debug(f"[admin] emit_activity failed: {e}")
+
+
+def _notify_admin_of_chat_activity(sender_id, peer_id, msg_ts):
+    """Lightweight notification to admin dashboard about chat activity."""
+    try:
+        client = init_supabase()
+        if not client:
+            return
+        sender_name = 'A student'
+        try:
+            r = client.table('profiles').select('full_name').eq('id', sender_id).limit(1).execute()
+            if r.data:
+                sender_name = r.data[0].get('full_name', 'A student') or 'A student'
+        except Exception:
+            pass
+        _emit_admin_activity_event('chat_message', {
+            'sender_id': sender_id,
+            'sender_name': sender_name,
+            'peer_id': peer_id,
+            'ts': msg_ts,
+            'msg_id': 'ch_' + str(abs(hash(msg_ts + sender_id)))[-8:]
+        })
+    except Exception:
+        pass
+
+
+@socketio.on('heartbeat')
+def chat_heartbeat(data):
+    uid = _get_uid()
+    if not uid:
+        return
+    user = session.get('user', {})
+    name = user.get('name') or (user.get('user_metadata') or {}).get('full_name') or user.get('email', 'Student')
+    _chat_online[uid] = {'sid': request.sid, 'name': name}
+
 def _get_merged_online_users():
     import time
     now_t = time.time()
-    # Prune old HTTP users — 70s timeout gives buffer above 60s polling interval
-    to_delete = [k for k, v in _chat_online_http.items() if now_t - v['time'] > 70]
+    ONLINE_WINDOW_S = 60 * 60
+    to_delete = [k for k, v in _chat_online_http.items() if now_t - v['time'] > ONLINE_WINDOW_S]
     for k in to_delete:
         del _chat_online_http[k]
-    # Merge socket & HTTP
     merged = {}
     for k, v in _chat_online.items():
         merged[k] = v['name']
@@ -5441,7 +6982,6 @@ def _safe_online_list():
 
 @socketio.on('chat_join')
 def chat_join(data):
-    """Client joins the private 2-person room for a specific conversation."""
     uid = _get_uid()
     peer_id = data.get('peer')
     if not uid or not peer_id or uid == peer_id:
@@ -5450,22 +6990,78 @@ def chat_join(data):
     join_room(room)
     emit('chat_joined', {'room': room})
 
-@socketio.on('chat_send')
-def chat_send(data):
-    """Relay to the private pair room. Server NEVER stores the content."""
-    uid = _get_uid()
-    peer_id = data.get('to')
-    if not uid or not peer_id or uid == peer_id:
-        return
-    room = _pair_room(uid, peer_id)
+
+def _relay_chat_message(uid, data):
+    """Validate, persist, deliver, and alert for one chat message."""
+    peer_id = (data or {}).get('to')
+    text = str((data or {}).get('text', '')).strip()[:4000]
+    if not uid or not peer_id or uid == peer_id or not text or not validate_uuid(peer_id):
+        return None
     payload = {
         'from': uid,
-        'text': str(data.get('text', ''))[:2000],
-        'ts': data.get('ts'),
-        'sender_meta': data.get('sender_meta', {})
+        'to': peer_id,
+        'text': text,
+        'ts': (data or {}).get('ts') or datetime.utcnow().isoformat() + 'Z',
+        'sender_meta': (data or {}).get('sender_meta') or {}
     }
-    # Emit to the private room — only the two joined participants receive it
-    emit('chat_receive', payload, to=room)
+    _persist_chat_message(uid, peer_id, payload)
+    # A personal room is joined on every authenticated connection.
+    socketio.emit('chat_receive', payload, to=peer_id)
+    # ACK back to sender that message was saved and queued for delivery
+    sender_sid = _chat_online.get(uid, {}).get('sid')
+    if sender_sid and sender_sid != peer_id:
+        socketio.emit('chat_message_ack', {
+            'msg_id': payload.get('msg_id', ''),
+            'ts': payload.get('ts', ''),
+            'error': None
+        }, to=sender_sid)
+    else:
+        # Sender not connected via WebSocket - send ACK via HTTP fallback
+        try:
+            import requests as _req
+            headers = {'Content-Type': 'application/json'}
+            _req.post(f'http://127.0.0.1:{os.getenv("PORT", "5000")}/api/chat/messages', json={
+                'to': uid, 'text': 'ACK: message delivered', 'ts': payload.get('ts', '')
+            }, timeout=2, headers=headers)
+        except Exception:
+            pass
+    # Notify admin dashboard of chat activity (privacy-safe, no message content)
+    _notify_admin_of_chat_activity(uid, peer_id, payload.get('ts', ''))
+    _create_chat_notification(uid, peer_id, payload)
+    return payload
+
+
+@socketio.on('chat_send')
+def chat_send(data):
+    _relay_chat_message(_get_uid(), data)
+
+
+@app.route('/api/chat/messages', methods=['POST'])
+@auth_required
+def api_chat_send_message():
+    """HTTP fallback when a network blocks WebSocket upgrades."""
+    payload = _relay_chat_message(_get_uid(), request.get_json(silent=True) or {})
+    if not payload:
+        return jsonify({'success': False, 'error': 'Invalid message'}), 400
+    return jsonify({'success': True, 'message': payload})
+
+
+def _create_chat_notification(sender_id, recipient_id, payload):
+    """Store a chat alert and fan it out to subscribed devices."""
+    try:
+        sender = (payload.get('sender_meta') or {}).get('name') or 'A student'
+        preview = str(payload.get('text') or '').strip().replace('\n', ' ')[:140]
+        title = f"New message from {sender}"
+        action_url = url_for('chat_with_peer', peer_id=sender_id)
+        from data.notifications import Notification
+        res = Notification.create(recipient_id, 'chat_message', title, preview or 'Sent you a message', action_url)
+        # Fall back to 'marketing' if chat_message enum hasn't been migrated yet
+        if not res.get('success'):
+            Notification.create(recipient_id, 'marketing', title, preview or 'Sent you a message', action_url)
+        from push_notifications import send_notification
+        send_notification(recipient_id, title, preview or 'Sent you a message', action_url, tag=f'chat-{sender_id}')
+    except Exception as exc:
+        logging.info(f"[chat] notification unavailable: {exc}")
 
 @socketio.on('chat_request_history')
 def chat_request_history(data):
@@ -5509,23 +7105,115 @@ def chat_page():
 @app.route('/chat/<peer_id>')
 @auth_required
 def chat_with_peer(peer_id):
-    return render_template('chat.html', preload_peer=peer_id)
+    try:
+        return render_template('chat.html', preload_peer=peer_id)
+    except Exception:
+        return render_template('chat.html', preload_peer=peer_id)
+
+@app.route('/api/chat/keys', methods=['GET', 'POST'])
+@auth_required
+def chat_keys():
+    """Generate or retrieve user's NaCl key pair for E2E encryption."""
+    from methods.encrypted_chat import generate_user_keys, store_user_keys, get_user_keys
+    uid = _get_uid()
+    if not uid:
+        return jsonify({'success': False, 'error': 'Not authenticated'}), 401
+
+    if request.method == 'GET':
+        keys = get_user_keys(uid)
+        if keys:
+            return jsonify({'success': True, 'public_key': keys.get('public_key', '')})
+        # Generate keys if they don't exist
+        keys = generate_user_keys()
+        if keys:
+            store_user_keys(uid, keys['public_key'], keys['private_key'])
+            return jsonify({'success': True, 'public_key': keys['public_key']})
+        return jsonify({'success': False, 'error': 'Could not generate keys'}), 500
+
+    # POST: client generates keys locally and uploads their public key
+    data = request.get_json(silent=True) or {}
+    public_key = data.get('public_key', '')
+    if public_key:
+        store_user_keys(uid, public_key, '')
+        return jsonify({'success': True})
+    return jsonify({'success': False, 'error': 'public_key required'}), 400
 
 
 @app.route('/profile/<user_id>')
-@auth_required
 def peer_profile(user_id):
-    """Public peer profile — shows uploaded files and referred materials."""
-    try:
-        from methods.supabase_helper import init_supabase, get_user_peer_materials_db
-        result = get_user_peer_materials_db(user_id)
-        return render_template('peer_profile.html', peer=result.get('user', {}),
-                               uploads=result.get('uploads', []),
-                               referred=result.get('referred', []))
-    except Exception as e:
-        logging.error(f"[peer_profile] {e}")
-        return redirect(url_for('dashboard'))
+    """Legacy peer profile route — redirects to the new /u/<user_id> URL."""
+    return redirect(url_for('instagram_profile', user_id=user_id))
 
+
+# ─── Crush API ──────────────────────────────────────────────────────────────
+
+@app.route('/api/crush/<target_id>', methods=['POST'])
+@auth_required
+def api_crush_toggle(target_id):
+    """Toggle a crush on target_id. Max 2 crushes per calendar year."""
+    me = session['user']['uid']
+    if me == target_id:
+        return jsonify({'success': False, 'message': 'Cannot crush yourself'}), 400
+    year = datetime.utcnow().year
+    try:
+        if not validate_uuid(target_id):
+            return jsonify({'success': False, 'message': 'Invalid user'}), 400
+        client = init_supabase_admin()
+
+        # Check if already crushed
+        existing = client.table('user_crushes') \
+            .select('id').eq('from_user', me).eq('to_user', target_id).eq('year', year).execute()
+        if existing.data:
+            # Un-crush
+            client.table('user_crushes').delete() \
+                .eq('from_user', me).eq('to_user', target_id).eq('year', year).execute()
+            return jsonify({'success': True, 'action': 'removed', 'is_crush': False, 'is_match': False}), 200
+
+        # Enforce 2-per-year limit
+        count_res = client.table('user_crushes') \
+            .select('id', count='exact').eq('from_user', me).eq('year', year).execute()
+        if (count_res.count or 0) >= 2:
+            return jsonify({'success': False, 'message': 'You can only mark 2 crushes per year'}), 429
+
+        client.table('user_crushes').insert({'from_user': me, 'to_user': target_id, 'year': year}).execute()
+
+        # Check mutual match
+        mutual = client.table('user_crushes') \
+            .select('id').eq('from_user', target_id).eq('to_user', me).eq('year', year).execute()
+        is_match = bool(mutual.data)
+        return jsonify({'success': True, 'action': 'added', 'is_crush': True, 'is_match': is_match}), 200
+    except Exception as e:
+        logging.error(f"[CRUSH] {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@app.route('/api/crush/status/<target_id>', methods=['GET'])
+@auth_required
+def api_crush_status(target_id):
+    """Return crush/match state between current user and target."""
+    me = session['user']['uid']
+    year = datetime.utcnow().year
+    try:
+        if not validate_uuid(target_id):
+            return jsonify({'success': False}), 400
+        client = init_supabase_admin()
+        i_crushed = bool(client.table('user_crushes').select('id')
+            .eq('from_user', me).eq('to_user', target_id).eq('year', year).execute().data)
+        they_crushed = bool(client.table('user_crushes').select('id')
+            .eq('from_user', target_id).eq('to_user', me).eq('year', year).execute().data)
+        crushes_used = (client.table('user_crushes').select('id', count='exact')
+            .eq('from_user', me).eq('year', year).execute().count or 0)
+        return jsonify({
+            'success': True,
+            'is_crush': i_crushed,
+            'is_match': i_crushed and they_crushed,
+            'crushes_used': crushes_used,
+            'crushes_remaining': max(0, 2 - crushes_used)
+        }), 200
+    except Exception as e:
+        return jsonify({'success': False}), 500
+
+# ─────────────────────────────────────────────────────────────────────────────
 
 @app.route('/u/<user_id>')
 def instagram_profile(user_id):
@@ -5535,45 +7223,144 @@ def instagram_profile(user_id):
     No login required — anyone with the link can view the contributor's
     public profile and their shared materials.
     """
-    try:
-        from methods.supabase_helper import get_user_peer_materials_db
-
-        result = get_user_peer_materials_db(user_id)
-        if not result.get('success'):
-            abort(404)
-
-        peer = result.get('user', {})
-        uploads = result.get('uploads', [])
-        referred = result.get('referred', [])
-
-        # Build OG meta tags for rich Instagram/Facebook previews
-        og_title = (peer.get('name') or 'Student') + ' — AbhiHub'
-        og_description = f"{peer.get('name', 'A student')} from {peer.get('college_name', 'AbhiHub')} shared {len(uploads)} resource" \
-                        f"{'s' if len(uploads) != 1 else ''} on AbhiHub."
-        og_image = None
-
-        # Try to get a preview image from the first upload (if it's an image-based doc)
-        if uploads and uploads[0].get('file-path'):
-            file_path = uploads[0]['file-path']
-            if file_path.startswith('http'):
-                og_image = file_path
-            else:
-                og_image = url_for('static', filename='images/android-chrome-512x512.png', _external=True)
-
-        return render_template(
-            'profile_instagram.html',
-            peer=peer,
-            uploads=uploads,
-            referred=referred,
-            og_title=og_title,
-            og_description=og_description,
-            og_image=og_image,
-            disable_canonical=True,
-            referral_code=peer.get('referral_code') or '',
-        )
-    except Exception as e:
-        logging.error(f"[instagram_profile] {e}")
+    if not validate_uuid(user_id):
         abort(404)
+    client = init_supabase()
+    if not client:
+        abort(500)
+    try:
+        # pursuing_year / year_of_joining live in `students`, NOT profiles —
+        # selecting them from profiles raises 42703 and 404s the whole page.
+        pr = client.table('profiles') \
+            .select('id, full_name, email, rank_title, reputation_score, is_verified, referral_code, college_id, department_id, colleges(name), departments(name, abbreviation)') \
+            .eq('id', user_id).single().execute()
+        if not pr.data:
+            abort(404)
+        p = pr.data
+        # Optional academic details from the students row (may not exist)
+        academic = {}
+        try:
+            st = client.table('students') \
+                .select('pursuing_year, year_of_joining') \
+                .eq('profile_id', user_id).limit(1).execute()
+            if st.data:
+                academic = st.data[0]
+        except Exception as st_err:
+            logging.info(f"[u/profile] students lookup unavailable for {user_id}: {st_err}")
+        college_name = (p.get('colleges') or {}).get('name', '')
+        dept = p.get('departments') or {}
+        dept_name = dept.get('name') or dept.get('abbreviation') or ''
+        peer = {
+            'id': p.get('id'),
+            'name': p.get('full_name') or 'Student',
+            'email': p.get('email', ''),
+            'rank_title': p.get('rank_title', 'Student'),
+            'reputation_score': p.get('reputation_score', 0),
+            'is_verified': p.get('is_verified', False),
+            'referral_code': p.get('referral_code', ''),
+            'college_name': college_name,
+            'department_name': dept_name,
+            'pursuing_year': academic.get('pursuing_year') or '',
+            'year_of_joining': academic.get('year_of_joining') or '',
+        }
+    except Exception as e:
+        logging.error(f"[u/profile] {e}")
+        abort(404)
+
+    # Uploads
+    uploads = []
+    try:
+        docs = client.table('documents') \
+            .select('id, title, document_category, view_count, subjects(name)') \
+            .eq('uploader_id', user_id).eq('status', 'approved') \
+            .order('created_at', desc=True).limit(12).execute()
+        for d in (docs.data or []):
+            uploads.append({
+                'record_id': d.get('id'),
+                'file-name': d.get('title') or 'Untitled',
+                'type': d.get('document_category') or 'papers',
+                'subject': (d.get('subjects') or {}).get('name', ''),
+                'views': d.get('view_count', 0),
+            })
+    except Exception:
+        pass
+
+    # MemoryWall is public only while it is accepting responses.  Keep the
+    # profile page useful even if the MemoryWall service is temporarily down.
+    memory_wall = {'exists': False, 'is_open': False, 'url': '', 'response_count': 0}
+    try:
+        from methods.know_me import get_wall_by_user
+        wall_result = get_wall_by_user(user_id)
+        wall = wall_result.get('data') if wall_result.get('success') else None
+        if wall:
+            memory_wall = {
+                'exists': True,
+                'is_open': wall.get('status', 'open') != 'closed',
+                'url': url_for('memorywall_public', slug=wall.get('slug')),
+                'response_count': wall.get('response_count') or 0,
+            }
+    except Exception as e:
+        logging.info(f"[u/profile] MemoryWall lookup unavailable: {e}")
+
+    # Referred (recently viewed)
+    referred = []
+    try:
+        views = client.table('document_views') \
+            .select('document_id, documents(id, title, document_category, subjects(name))') \
+            .eq('user_id', user_id).order('accessed_at', desc=True).limit(8).execute()
+        seen = set()
+        for v in (views.data or []):
+            doc = v.get('documents') or {}
+            did = doc.get('id')
+            if did and did not in seen:
+                seen.add(did)
+                referred.append({
+                    'record_id': did,
+                    'file-name': doc.get('title') or 'Untitled',
+                    'type': doc.get('document_category') or 'notes',
+                    'subject': (doc.get('subjects') or {}).get('name', ''),
+                })
+    except Exception:
+        pass
+
+    # Crush state (only if viewer is logged in and not viewing own profile)
+    crush_state = {'is_crush': False, 'is_match': False, 'crushes_remaining': 2, 'is_self': False}
+    viewer_id = session.get('user', {}).get('uid')
+    if viewer_id:
+        if viewer_id == user_id:
+            crush_state['is_self'] = True
+        else:
+            year = datetime.utcnow().year
+            try:
+                ac = init_supabase_admin() or client
+                i_crushed = bool(ac.table('user_crushes').select('id')
+                    .eq('from_user', viewer_id).eq('to_user', user_id).eq('year', year).execute().data)
+                they_crushed = bool(ac.table('user_crushes').select('id')
+                    .eq('from_user', user_id).eq('to_user', viewer_id).eq('year', year).execute().data)
+                used = (ac.table('user_crushes').select('id', count='exact')
+                    .eq('from_user', viewer_id).eq('year', year).execute().count or 0)
+                crush_state = {
+                    'is_crush': i_crushed,
+                    'is_match': i_crushed and they_crushed,
+                    'crushes_remaining': max(0, 2 - used),
+                    'is_self': False,
+                }
+            except Exception:
+                pass
+
+    og_title = f"{peer['name']} on AbhiHub"
+    og_description = f"{peer['name']} has shared {len(uploads)} study materials on AbhiHub."
+    og_image = None
+
+    return render_template('profile_instagram.html',
+                           peer=peer,
+                           uploads=uploads,
+                           referred=referred,
+                           memory_wall=memory_wall,
+                           crush_state=crush_state,
+                           og_title=og_title,
+                           og_description=og_description,
+                           og_image=og_image)
 
 
 @app.route('/api/chat/user-info/<user_id>')
@@ -5581,7 +7368,6 @@ def instagram_profile(user_id):
 def chat_user_info(user_id):
     """Returns profile context shown in chat message badges."""
     try:
-        from methods.supabase_helper import get_student_profile
         prof = get_student_profile(user_id)
         # Check if we got a valid student name from the profile helper
         if not prof or not prof.get('student_name'):
@@ -5606,3 +7392,4 @@ def chat_user_info(user_id):
 if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV') != 'production'
     socketio.run(app, debug=debug_mode)
+

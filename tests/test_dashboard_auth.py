@@ -44,8 +44,9 @@ sys.modules['data.documents'].Document = type('Document', (), {
 sys.modules['data.interactions'] = type(sys)('data.interactions')
 sys.modules['data.notifications'] = type(sys)('data.notifications')
 sys.modules['data.analytics'] = type(sys)('data.analytics')
-sys.modules['push_api'] = type(sys)('push_api')
-sys.modules['push_api'].init_push_api = lambda app: None
+if 'push_api' not in sys.modules:
+    sys.modules['push_api'] = type(sys)('push_api')
+    sys.modules['push_api'].init_push_api = lambda app: None
 sys.modules['scheduled_tasks'] = type(sys)('scheduled_tasks')
 sys.modules['scheduled_tasks'].init_scheduler = lambda app: None
 
@@ -61,7 +62,7 @@ def client():
     from functools import wraps
 
     test_app = Flask(__name__)
-    test_app.secret_key = 'test-secret'
+    test_app.secret_key = os.getenv('FLASK_SECRET_KEY', 'test-secret')  # Test only — never use this pattern in production
 
     def auth_required(f):
         @wraps(f)
@@ -106,7 +107,7 @@ def fixed_client():
     from functools import wraps
 
     test_app = Flask(__name__)
-    test_app.secret_key = 'test-secret'
+    test_app.secret_key = os.getenv('FLASK_SECRET_KEY', 'test-secret')  # Test only — never use this pattern in production
     test_app.config['TESTING'] = True
 
     def auth_required(f):
@@ -201,7 +202,7 @@ class TestRouteMapIntegrity:
         app_path = os.path.join(os.path.dirname(__file__), '..', 'app.py')
         app_path = os.path.abspath(app_path)
 
-        with open(app_path, 'r') as f:
+        with open(app_path, 'r', encoding='utf-8') as f:
             tree = ast.parse(f.read())
 
         dashboard_count = 0

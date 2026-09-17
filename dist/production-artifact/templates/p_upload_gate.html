@@ -1,0 +1,96 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+<div class="gate-page" id="uploadGatePage">
+  <div class="gate-card">
+
+    <span class="gate-lock">🤝</span>
+
+    <h1 class="gate-title">Keep your study flow going 📚</h1>
+    <p class="gate-subtitle">
+      Looks like you've been studying hard today. If you have an old paper or note, sharing it helps other students too — and unlocks more paper views for you instantly.
+    </p>
+
+    <!-- Credit dots visual -->
+    <div class="credit-meter">
+      <div class="credit-label">
+        <strong>📄 Paper Credits</strong>
+        {{ credits }} remaining
+      </div>
+      <div class="credit-dots" id="creditDots">
+        {% for i in range(quota_per_upload) %}
+          <div class="credit-dot {% if i < (quota_per_upload - credits) %}used{% endif %}"></div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- How it works -->
+    <div class="how-strip">
+      <span class="how-step"><span class="step-icon">📤</span> Upload 1 paper</span>
+      <span class="how-arrow">→</span>
+      <span class="how-step"><span class="step-icon">🎁</span> Get {{ quota_per_upload }} opens</span>
+      <span class="how-arrow">→</span>
+      <span class="how-step"><span class="step-icon">📖</span> Read freely</span>
+    </div>
+
+    <a href="{{ url_for('upload') }}?next={{ next_url | urlencode }}"
+       class="gate-upload-btn"
+       id="gateUploadBtn"
+       data-action="handleGateUpload"
+       data-track-upload="true">
+      Share a Paper &amp; Continue
+    </a>
+
+    <a href="/store-room" class="gate-back-link" data-action="trackStoreRoomClick" data-prevent-close="true">Open My Store Room</a>
+    <p style="font-size: 0.8rem; color: #6b7280; margin-top: 1rem;">Papers already saved in your Store Room are always available anytime 💙</p>
+
+    <div class="gate-perks">
+      <span class="gate-perk">⚡ Instant unlock</span>
+      <span class="gate-perk">🏆 +1 reputation</span>
+      <span class="gate-perk">🎓 Help your juniors</span>
+      <span class="gate-perk">⏱ Takes &lt; 60s</span>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  // After a successful upload on the upload page, this gate will automatically
+  // grant new credits (via _grant_upload_credits on the server), so returning
+  // to next_url will work.
+  window.gateActionTaken = false;
+
+  function handleGateUpload() {
+    const btn = document.getElementById('gateUploadBtn');
+    if (btn) {
+      btn.innerHTML = 'Redirecting...';
+      btn.style.opacity = '0.7';
+    }
+  }
+
+  // Track ignored/bounced users
+  window.addEventListener('beforeunload', function() {
+    if (!window.gateActionTaken && window.AbhiHubTracking) {
+      window.AbhiHubTracking.trackStudyPassIgnored();
+    }
+  });
+
+  // If user already has credits (e.g. opened gate via direct URL), redirect
+  fetch('/api/quota')
+    .then(r => r.json())
+    .then(data => {
+      if (data.credits > 0) {
+        const next = '{{ next_url | e }}';
+        if (next && next !== window.location.href) {
+          window.location.href = next;
+        }
+      } else {
+        if (window.AbhiHubTracking) {
+          window.AbhiHubTracking.trackStudyPassPopup();
+        }
+      }
+    })
+    .catch(() => {});
+</script>
+
+{% endblock %}

@@ -1,0 +1,110 @@
+{% set seo_title = 'Help Center & FAQs - How to Use AbhiHub | AbhiHub' %}
+{% set seo_description = 'Learn how to use AbhiHub. Get answers to frequently asked questions about finding PYQs, uploading study materials, using AI Chat, and earning leaderboard points.' %}
+{% extends 'p_struct.html' %}
+
+{% block content %}
+<style>
+.help-hero {
+    background: linear-gradient(135deg, #1e293b 0%, #3b82f6 100%);
+    color: white;
+    padding: 5rem 1.5rem;
+    text-align: center;
+    border-bottom-left-radius: 30px;
+    border-bottom-right-radius: 30px;
+    margin-bottom: 3rem;
+}
+.help-hero h1 { font-size: 2.5rem; font-weight: 900; margin-bottom: 1rem; }
+.help-hero p { font-size: 1.1rem; opacity: 0.9; max-width: 600px; margin: 0 auto; line-height: 1.6; }
+
+.help-container {
+    max-width: 900px;
+    margin: 0 auto 5rem;
+    padding: 0 1.5rem;
+}
+
+.faq-section { margin-bottom: 3rem; }
+.faq-section h2 { font-size: 1.8rem; font-weight: 800; color: #0f172a; border-bottom: 2px solid #e2e8f0; padding-bottom: 0.5rem; margin-bottom: 1.5rem; }
+
+.faq-card {
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 1rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+}
+.faq-card h3 { font-size: 1.25rem; font-weight: 700; color: #1e293b; margin-bottom: 0.75rem; display: flex; align-items: center; gap: 0.5rem; }
+.faq-card p { font-size: 1rem; color: #475569; line-height: 1.6; margin-bottom: 1rem; }
+.faq-card p:last-child { margin-bottom: 0; }
+.faq-card a { color: #2563eb; font-weight: 600; text-decoration: none; }
+.faq-card a:hover { text-decoration: underline; }
+.faq-card ul { margin-left: 1.5rem; color: #475569; line-height: 1.6; margin-bottom: 1rem; }
+.faq-card li { margin-bottom: 0.5rem; }
+</style>
+
+<div class="help-hero">
+    <h1>AbhiHub Help Center</h1>
+    <p>Everything you need to know about navigating AbhiHub, finding the best study materials, and contributing to the community.</p>
+</div>
+
+<div class="help-container">
+    
+    <div class="faq-section">
+        <h2>🔍 Finding Resources</h2>
+        
+        <div class="faq-card">
+            <h3>How do I find Previous Year Question Papers (PYQs)?</h3>
+            <p>You can find PYQs by using the <a href="/">Global Search Bar</a> on the homepage. Just type the subject name (e.g., "DBMS PYQ" or "Data Structures") and use the filter chips to narrow down by "College" and "Year".</p>
+            <p>Alternatively, you can browse all papers directly from our dedicated <a href="/pyq">PYQ Landing Page</a>.</p>
+        </div>
+
+        <div class="faq-card">
+            <h3>Are the study notes and practical files free?</h3>
+            <p>Yes! Absolutely everything on AbhiHub is completely free for students. Our goal is to democratize education by allowing students to share notes, assignments, and practicals freely.</p>
+        </div>
+    </div>
+
+    <div class="faq-section">
+        <h2>📤 Uploading & Contributing</h2>
+        
+        <div class="faq-card">
+            <h3>How can I upload my own notes or exam papers?</h3>
+            <p>Uploading is simple and helps thousands of other students. Just visit the <a href="/upload">Upload Page</a>, drag and drop your PDFs or Images, select the correct subject and college, and hit submit. Your files will be immediately available in the AbhiHub database.</p>
+        </div>
+
+        <div class="faq-card">
+            <h3>What is the Store Room?</h3>
+            <p>The <a href="/store-room">Store Room</a> is where you can view your pending uploads and correctly label any files that you bulk-uploaded without metadata. Proper labeling ensures your files appear in search results.</p>
+        </div>
+    </div>
+
+    <div class="faq-section">
+        <h2>🤖 Features & Tools</h2>
+        
+        <div class="faq-card">
+            <h3>How does the AI Chat work on document pages?</h3>
+            <p>When you open an image-based exam paper, you will see an <strong>"Ask AI about this paper"</strong> panel. We automatically extract the text (OCR) from the question paper. You can then click the one-click persona buttons (ChatGPT, Gemini, Claude) to instantly copy an optimized prompt and solve the paper step-by-step!</p>
+        </div>
+
+        <div class="faq-card">
+            <h3>What is the AbhiHub Leaderboard?</h3>
+            <p>We believe contributors should be recognized. Every time you upload a helpful resource, you gain Reputation Points (XP). You can track your rank globally or within your specific college on the <a href="/leaderboard">Leaderboard Page</a>.</p>
+        </div>
+    </div>
+
+    <div class="faq-section">
+        <h2>⚙️ Account & Settings</h2>
+        
+        <div class="faq-card">
+            <h3>How do I update my College or Department?</h3>
+            <p>Simply navigate to your <a href="/account">Account Settings</a> (or Profile). There, you can select your default college and department. This helps us personalize the resources you see on your dashboard.</p>
+        </div>
+
+        <div class="faq-card">
+            <h3>Need more help?</h3>
+            <p>If you encounter a bug, have a feature request, or just want to say hi, feel free to visit our <a href="/contact">Contact Us</a> page. The development team actively reviews all feedback!</p>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

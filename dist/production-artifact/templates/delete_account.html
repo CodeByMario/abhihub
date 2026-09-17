@@ -1,0 +1,282 @@
+{% set seo_title = 'Delete Account | AbhiHub' %}
+{% set seo_description = 'Request deletion of your AbhiHub account. This is a manual process and may take several days to a month to complete.' %}
+{% set og_title = seo_title %}
+{% set og_description = seo_description %}
+
+{% extends 'p_struct.html' %}
+{% block page_head %}
+<meta name="robots" content="noindex, nofollow">
+<style>
+:root {
+  --del-bg: #fff5f5;
+  --del-card: #ffffff;
+  --del-red: #dc2626;
+  --del-red-soft: #fee2e2;
+  --del-text: #0f172a;
+  --del-muted: #64748b;
+  --del-border: #fecaca;
+}
+
+body { background: var(--del-bg); }
+
+.del-wrap {
+  max-width: 640px;
+  margin: 4rem auto 6rem;
+  padding: 0 1.5rem;
+}
+
+.del-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--del-muted);
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+  margin-bottom: 2rem;
+  transition: color 0.2s;
+}
+.del-back:hover { color: var(--del-text); }
+
+.del-card {
+  background: var(--del-card);
+  border: 1.5px solid var(--del-border);
+  border-radius: 24px;
+  padding: 2.5rem;
+  box-shadow: 0 8px 32px rgba(220, 38, 38, 0.06);
+}
+
+.del-icon {
+  width: 64px;
+  height: 64px;
+  background: var(--del-red-soft);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2rem;
+  margin-bottom: 1.5rem;
+}
+
+.del-card h1 {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: var(--del-text);
+  margin-bottom: 0.75rem;
+}
+
+.del-card .del-lead {
+  color: var(--del-muted);
+  font-size: 1rem;
+  line-height: 1.7;
+  margin-bottom: 2rem;
+}
+
+.del-notice {
+  background: var(--del-red-soft);
+  border: 1px solid var(--del-border);
+  border-radius: 16px;
+  padding: 1.25rem 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.del-notice-title {
+  font-weight: 800;
+  color: var(--del-red);
+  font-size: 0.9rem;
+  margin-bottom: 0.6rem;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.del-notice ul {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #7f1d1d;
+  font-size: 0.9rem;
+  line-height: 1.8;
+}
+
+.del-process {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.del-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.del-step-num {
+  min-width: 32px;
+  height: 32px;
+  background: var(--del-red);
+  color: white;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.del-step-text {
+  color: var(--del-muted);
+  font-size: 0.95rem;
+  line-height: 1.5;
+  padding-top: 0.35rem;
+}
+
+.del-step-text strong {
+  color: var(--del-text);
+}
+
+.del-email-box {
+  background: #f8fafc;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.del-email-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--del-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin-bottom: 0.5rem;
+}
+
+.del-email-value {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--del-text);
+  word-break: break-all;
+}
+
+.del-email-hint {
+  font-size: 0.82rem;
+  color: var(--del-muted);
+  margin-top: 0.4rem;
+}
+
+.del-btn-group {
+  display: flex;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.del-btn-primary {
+  flex: 1;
+  padding: 0.9rem 1.5rem;
+  background: var(--del-red);
+  color: white;
+  border: none;
+  border-radius: 14px;
+  font-weight: 800;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  transition: background 0.2s, transform 0.15s;
+}
+.del-btn-primary:hover {
+  background: #b91c1c;
+  color: white;
+  transform: translateY(-2px);
+}
+
+.del-btn-secondary {
+  flex: 1;
+  padding: 0.9rem 1.5rem;
+  background: #f1f5f9;
+  color: var(--del-text);
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  text-decoration: none;
+  display: inline-block;
+  text-align: center;
+  transition: background 0.2s;
+}
+.del-btn-secondary:hover {
+  background: #e2e8f0;
+  color: var(--del-text);
+}
+
+@media(max-width: 480px) {
+  .del-btn-group { flex-direction: column; }
+  .del-btn-primary, .del-btn-secondary { flex: unset; }
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="del-wrap">
+  <a href="/account" class="del-back">← Back to Account</a>
+
+  <div class="del-card">
+    <div class="del-icon">🗑️</div>
+    <h1>Delete Your Account</h1>
+    <p class="del-lead">
+      We're sorry to see you go. Account deletion on AbhiHub is a <strong>manual process</strong>
+      handled by our admin team. To request deletion, send an email to us at the address below.
+    </p>
+
+    <div class="del-notice">
+      <div class="del-notice-title">⚠️ Before You Delete</div>
+      <ul>
+        <li>All your uploaded files and contributions will be permanently removed</li>
+        <li>Your reputation points and leaderboard ranking will be lost</li>
+        <li>You will lose access to all bookmarks and saved resources</li>
+        <li>This action <strong>cannot be undone</strong></li>
+      </ul>
+    </div>
+
+    <div class="del-process">
+      <div class="del-step">
+        <div class="del-step-num">1</div>
+        <div class="del-step-text">Send an email to <strong>codebymario@gmail.com</strong> with subject: <strong>"Account Deletion Request"</strong></div>
+      </div>
+      <div class="del-step">
+        <div class="del-step-num">2</div>
+        <div class="del-step-text">Include your registered email address and the reason for deletion (optional)</div>
+      </div>
+      <div class="del-step">
+        <div class="del-step-num">3</div>
+        <div class="del-step-text">Our team will verify your identity and process the request. <strong>This may take several days to a month</strong> as this is a fully manual process</div>
+      </div>
+      <div class="del-step">
+        <div class="del-step-num">4</div>
+        <div class="del-step-text">You'll receive a confirmation email once your account has been deleted</div>
+      </div>
+    </div>
+
+    <div class="del-email-box">
+      <div class="del-email-label">Send deletion request to</div>
+      <div class="del-email-value">codebymario@gmail.com</div>
+      <div class="del-email-hint">Use the button below to open your email app with the subject pre-filled</div>
+    </div>
+
+    <div class="del-btn-group">
+      <a
+        href="mailto:codebymario@gmail.com?subject=Account%20Deletion%20Request&body=Hi%2C%0A%0AI%20would%20like%20to%20request%20the%20deletion%20of%20my%20AbhiHub%20account.%0A%0ARegistered%20Email%3A%20{{ session.get('user', {}).get('email', '[your-email]') }}%0A%0AReason%20(optional)%3A%20%0A%0AThank%20you."
+        class="del-btn-primary"
+        id="deleteRequestBtn"
+      >
+        📧 Send Deletion Request
+      </a>
+      <a href="/account" class="del-btn-secondary">Cancel</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
