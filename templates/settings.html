@@ -199,6 +199,9 @@ input:checked + .st-slide:before { transform: translateX(20px); }
       <button class="st-nav-item" data-section="app">
         <span class="st-nav-icon">📱</span> App Settings
       </button>
+      <button class="st-nav-item" data-section="ai-assistant">
+        <span class="st-nav-icon">🤖</span> AI Assistant & BYOK
+      </button>
       <button class="st-nav-item" data-section="danger">
         <span class="st-nav-icon">⚠️</span> Danger Zone
       </button>
@@ -484,6 +487,61 @@ input:checked + .st-slide:before { transform: translateX(20px); }
         </div>
       </div>
 
+      <!-- AI Assistant & BYOK Settings -->
+      <div class="st-section" id="section-ai-assistant">
+        <div class="st-card">
+          <h2><span class="st-card-icon">🤖</span> AI Tutor & Agent Configuration</h2>
+          <p style="color:var(--text-secondary); margin-bottom:1.25rem; font-size:var(--text-sm); line-height:1.6;">
+            AbhiHub AI gives you instant help with notes, PYQs, summaries, and explanations. Bring Your Own Key (BYOK) from OpenRouter to unlock unlimited usage and advanced reasoning models.
+          </p>
+
+          <div class="st-form-row">
+            <label class="st-form-label">Active Plan</label>
+            <div id="aiPlanBadge" style="display:inline-block; font-weight:700; padding:0.35rem 0.85rem; border-radius:12px; background:#e0f2fe; color:#0369a1; font-size:var(--text-sm);">
+              Checking plan...
+            </div>
+          </div>
+
+          <div class="st-form-row">
+            <label class="st-form-label">OpenRouter API Key (BYOK)</label>
+            <input type="password" id="aiApiKeyInput" class="st-form-input" placeholder="sk-or-v1-...">
+            <div class="st-form-sublabel">Your key is Fernet-encrypted on the server and tested before saving. Never shared.</div>
+          </div>
+
+          <div class="st-form-row">
+            <label class="st-form-label">Model Selection</label>
+            <select id="aiModelSelect" class="st-form-input">
+              <optgroup label="Free Tier (Platform Managed)">
+                <option value="google/gemma-4-31b-it:free">Google Gemma 4 31B (Free)</option>
+                <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 8B (Free)</option>
+                <option value="openai/gpt-oss-20b:free">GPT OSS 20B (Free)</option>
+              </optgroup>
+              <optgroup label="Advanced Models (BYOK Key Required)">
+                <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (Anthropic)</option>
+                <option value="openai/gpt-4o">GPT-4o (OpenAI)</option>
+                <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash (Google)</option>
+                <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B Instruct (Meta)</option>
+                <option value="deepseek/deepseek-r1">DeepSeek R1 (Reasoning)</option>
+              </optgroup>
+            </select>
+            <div class="st-form-sublabel">Pick which intelligence model powers the unified assistant across the app.</div>
+          </div>
+
+          <div class="st-btn-row" style="display:flex; gap:0.75rem; margin-top:1.25rem;">
+            <button type="button" class="st-btn st-btn-primary" id="saveAiBtn" onclick="saveAiSettings()">💾 Save Key & Model</button>
+            <button type="button" class="st-btn st-btn-outline" id="deleteAiBtn" onclick="removeAiKey()" style="color:#ef4444; border-color:#fca5a5;">🗑️ Remove Key</button>
+          </div>
+          <div id="aiSettingStatus" style="margin-top:0.75rem; font-size:var(--text-sm); font-weight:600;"></div>
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon">📊</span> Recent AI Usage (Last 7 Days)</h2>
+          <div id="aiUsageStats" style="font-size:var(--text-sm); color:var(--text-secondary); line-height:1.6;">
+            Loading usage activity...
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
@@ -692,6 +750,98 @@ function sendTestNotification() {
       }
     });
 })();
+// ── AI Settings Handlers ──
+function loadAiSettings() {
+  const model = localStorage.getItem('ai_preferred_model');
+  const sel = document.getElementById('aiModelSelect');
+  if (model && sel) sel.value = model;
+
+  fetch('/api/ai/usage')
+    .then(r => r.json())
+    .then(data => {
+      const badge = document.getElementById('aiPlanBadge');
+      const stats = document.getElementById('aiUsageStats');
+      if (data && data.success) {
+        const rows = data.rows || [];
+        const total = data.total_cost_usd || 0;
+        if (badge) {
+          badge.textContent = `Active · 7-day spend: $${total.toFixed(4)}`;
+        }
+        if (stats) {
+          if (rows.length === 0) {
+            stats.innerHTML = 'No AI queries in the last 7 days yet. Start chatting with the AI assistant anytime!';
+          } else {
+            stats.innerHTML = `<strong>${rows.length} requests logged</strong> (Total Cost: $${total.toFixed(4)})<br>` +
+              rows.slice(0, 5).map(r => `• ${new Date(r.created_at).toLocaleDateString()} — ${r.model_used || 'AI'} (${r.tokens_in || 0}+${r.tokens_out || 0} tokens)`).join('<br>');
+          }
+        }
+      }
+    }).catch(() => {
+      const badge = document.getElementById('aiPlanBadge');
+      if (badge) badge.textContent = 'Free Tier (Standard)';
+    });
+}
+
+function saveAiSettings() {
+  const keyInput = document.getElementById('aiApiKeyInput');
+  const modelSelect = document.getElementById('aiModelSelect');
+  const statusEl = document.getElementById('aiSettingStatus');
+  const btn = document.getElementById('saveAiBtn');
+
+  const key = (keyInput ? keyInput.value : '').trim();
+  const model = modelSelect ? modelSelect.value : '';
+
+  if (model) {
+    localStorage.setItem('ai_preferred_model', model);
+  }
+
+  if (key) {
+    if (btn) { btn.disabled = true; btn.textContent = 'Validating key...'; }
+    if (statusEl) { statusEl.textContent = 'Validating key with provider...'; statusEl.style.color = 'var(--text-secondary)'; }
+
+    fetch('/api/ai/key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: key })
+    })
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(res => {
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save Key & Model'; }
+      if (res.ok && res.data.success) {
+        showStToast('✅ BYOK Key saved & activated!');
+        if (statusEl) { statusEl.textContent = '✅ Key validated & encrypted. BYOK plan active.'; statusEl.style.color = '#16a34a'; }
+        if (keyInput) keyInput.value = '';
+        loadAiSettings();
+      } else {
+        showStToast('❌ ' + (res.data.message || 'Key validation failed'));
+        if (statusEl) { statusEl.textContent = '❌ ' + (res.data.message || 'Validation failed'); statusEl.style.color = '#dc2626'; }
+      }
+    })
+    .catch(err => {
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save Key & Model'; }
+      showStToast('❌ Network error saving key');
+    });
+  } else {
+    showStToast('✅ Model preference saved');
+    if (statusEl) { statusEl.textContent = 'Model preference updated.'; statusEl.style.color = '#16a34a'; }
+  }
+}
+
+function removeAiKey() {
+  if (!confirm('Remove your custom API key and revert to the free tier?')) return;
+  fetch('/api/ai/key', { method: 'DELETE' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showStToast('✅ API key removed. Reverted to free tier.');
+        loadAiSettings();
+      } else {
+        showStToast('⚠️ ' + (data.message || 'Error removing key'));
+      }
+    }).catch(() => showStToast('❌ Error removing key'));
+}
+
+document.addEventListener('DOMContentLoaded', loadAiSettings);
 </script>
 {% endblock %}
 

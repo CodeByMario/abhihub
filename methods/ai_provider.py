@@ -198,11 +198,11 @@ def decrypt_key(ciphertext: str) -> str:
     return _fernet().decrypt(ciphertext.encode()).decode()
 
 
-def resolve_provider(ai_profile: dict) -> tuple[OpenRouterAdapter, float | None]:
+def resolve_provider(ai_profile: dict, preferred_model: str | None = None) -> tuple[OpenRouterAdapter, float | None]:
     """Return (adapter, cost_ceiling_usd).
 
     cost_ceiling_usd is None for BYOK (no ceiling); float for free tier.
-    Never logs key values.
+    Supports preferred_model for BYOK and free models.
     """
     plan = ai_profile.get("ai_plan", "free")
     key_enc = ai_profile.get("ai_key_enc")
@@ -210,7 +210,8 @@ def resolve_provider(ai_profile: dict) -> tuple[OpenRouterAdapter, float | None]
     if plan == "byok" and key_enc:
         try:
             key = decrypt_key(key_enc)
-            return OpenRouterAdapter(api_key=key), None  # ponytail: None = no ceiling
+            models = [preferred_model] if preferred_model else None
+            return OpenRouterAdapter(api_key=key, models=models), None
         except Exception as exc:
             log.error("[ai_provider] BYOK decrypt failed: %s", exc)
             raise KeyInvalidError("Could not decrypt stored key — please re-enter it in Settings")
@@ -220,8 +221,12 @@ def resolve_provider(ai_profile: dict) -> tuple[OpenRouterAdapter, float | None]
     if not platform_key:
         raise ProviderError("Platform AI key not configured")
 
+    models = None
+    if preferred_model and preferred_model in _FREE_MODELS:
+        models = [preferred_model] + [m for m in _FREE_MODELS if m != preferred_model]
+
     ceiling = float(os.getenv("AI_MAX_COST_USD_PER_DAY", "0.02"))
-    return OpenRouterAdapter(api_key=platform_key), ceiling
+    return OpenRouterAdapter(api_key=platform_key, models=models), ceiling
 
 
 # ── Startup validation ────────────────────────────────────────────────────────

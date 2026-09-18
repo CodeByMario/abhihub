@@ -280,6 +280,62 @@
                 placeholder="Enrollment / Reg No. (Optional)">
             </div>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. AI Assistant & Model Configuration -->
+    <div class="ac-card" id="aiConfigCard">
+      <div class="ac-card-head">
+        <div class="ac-head-icon" style="background: rgba(98, 238, 168, 0.2); color: var(--accent-green-dark, #059669);">⚡</div>
+        <div>
+          <div class="ac-head-title">AbhiHub AI (On-Device Assistant)</div>
+          <div class="ac-head-sub">Configure local WebGPU acceleration, offline caching &amp; model selection</div>
+        </div>
+      </div>
+      <div class="ac-card-body">
+        <div class="ac-grid">
+          
+          <div class="ac-field ac-span2">
+            <label for="aiModelSelect" class="ac-label">Active AI Model</label>
+            <div class="ac-input-wrap">
+              <select id="aiModelSelect" class="ac-input" style="cursor: pointer;">
+                <option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">Qwen 2.5 0.5B (Ultra-Light / Best for Mobile &amp; iOS — 350 MB)</option>
+                <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC">Llama 3.2 1B (Balanced / Fast — 850 MB)</option>
+                <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen 2.5 1.5B (High Accuracy / Math &amp; Code — 1.1 GB)</option>
+                <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC">Llama 3.2 3B (Pro / Deep Reasoning — 1.8 GB)</option>
+              </select>
+            </div>
+            <p style="font-size: 0.78rem; color: var(--text-secondary, #64748b); margin-top: 4px;">
+              Models run 100% locally on your device via WebGPU. All chat data stays private on your hardware.
+            </p>
+          </div>
+
+          <div class="ac-field">
+            <label class="ac-label">Hardware Acceleration</label>
+            <div id="aiHardwareStatus" style="font-size: 0.85rem; font-weight: 600; padding: 8px 12px; background: var(--bg-secondary, #f8fafc); border: 1px solid var(--border-light, #e2e8f0); border-radius: var(--radius-md, 0.5rem); display: flex; align-items: center; gap: 6px;">
+              <span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span>
+              <span>WebGPU Enabled</span>
+            </div>
+          </div>
+
+          <div class="ac-field">
+            <label class="ac-label">Cached Model Storage</label>
+            <div id="aiCacheStatus" style="font-size: 0.85rem; font-weight: 600; padding: 10px 14px; background: var(--bg-secondary, #f8fafc); border: 1px solid var(--border-light, #e2e8f0); border-radius: var(--radius-md, 0.5rem); display: flex; align-items: center; justify-content: space-between;">
+              <span id="aiCacheSizeLabel">💾 Calculating cache size...</span>
+              <span id="aiCacheBadge" style="font-size: 0.72rem; padding: 2px 8px; border-radius: 9999px; background: #e0f2fe; color: #0284c7; font-weight: 600;">IndexedDB &amp; Cache API</span>
+            </div>
+          </div>
+
+          <div class="ac-field ac-span2" style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 6px;">
+            <button type="button" id="btnSaveAiModel" class="ac-btn ac-btn-primary" style="padding: 8px 16px; font-size: 0.85rem;">
+              📥 Preload &amp; Cache Model
+            </button>
+            <button type="button" id="btnClearAiCache" class="ac-btn ac-btn-secondary" style="padding: 8px 16px; font-size: 0.85rem; border-color: #fca5a5; color: #dc2626;">
+              🗑️ Clear AI Cache (<span id="aiClearSizeText">0 MB</span>)
+            </button>
+            <span id="aiActionStatusMsg" style="font-size: 0.82rem; font-weight: 500; align-self: center; color: var(--accent-green-dark, #059669);"></span>
+          </div>
 
         </div>
       </div>
@@ -418,6 +474,125 @@
         autoCalculatePursuingYear();
       });
       filterBranchesByDegree();
+    }
+
+    // AI On-Device Assistant Settings Wiring
+    const aiSelect = document.getElementById('aiModelSelect');
+    const btnSave = document.getElementById('btnSaveAiModel');
+    const btnClear = document.getElementById('btnClearAiCache');
+    const statusMsg = document.getElementById('aiActionStatusMsg');
+    const hwStatus = document.getElementById('aiHardwareStatus');
+    const cacheSizeLabel = document.getElementById('aiCacheSizeLabel');
+    const clearSizeText = document.getElementById('aiClearSizeText');
+
+    async function refreshAiStorageSize() {
+      let totalBytes = 0;
+      try {
+        if ('caches' in window) {
+          const cacheNames = ['abhihub-ai-models-v1', 'webllm/model', 'webllm/wasm'];
+          for (const name of cacheNames) {
+            try {
+              const cache = await caches.open(name);
+              const keys = await cache.keys();
+              for (const req of keys) {
+                const res = await cache.match(req);
+                if (res) {
+                  const blob = await res.blob().catch(() => null);
+                  if (blob) totalBytes += blob.size;
+                }
+              }
+            } catch (e) {}
+          }
+        }
+      } catch (e) {}
+
+      if (totalBytes === 0 && navigator.storage && navigator.storage.estimate) {
+        try {
+          const estimate = await navigator.storage.estimate();
+          if (estimate.usage) totalBytes = estimate.usage;
+        } catch (e) {}
+      }
+
+      const mb = (totalBytes / (1024 * 1024)).toFixed(1);
+      if (cacheSizeLabel) {
+        if (totalBytes > 0) {
+          cacheSizeLabel.innerHTML = `💾 <strong>${mb} MB</strong> cached on device (instant load)`;
+        } else {
+          cacheSizeLabel.innerHTML = `💾 <strong>0 MB</strong> cached (not preloaded yet)`;
+        }
+      }
+      if (clearSizeText) {
+        clearSizeText.textContent = `${mb} MB`;
+      }
+    }
+    refreshAiStorageSize();
+
+    // Listen for precache progress updates to update size in real time
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.addEventListener('message', (event) => {
+        const { type, payload } = event.data || {};
+        if (type === 'AI_MODEL_PRECACHE_PROGRESS' && payload) {
+          if (payload.status === 'ready' || payload.progress === 100) {
+            refreshAiStorageSize();
+          }
+          if (statusMsg && payload.text) {
+            statusMsg.textContent = `⚡ ${payload.text}`;
+          }
+        }
+      });
+    }
+
+    const savedModel = localStorage.getItem('abhihub_ai_model') || 'Qwen2.5-0.5B-Instruct-q4f16_1-MLC';
+    if (aiSelect) {
+      aiSelect.value = savedModel;
+    }
+
+    if (navigator.gpu) {
+      if (hwStatus) hwStatus.innerHTML = '<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#10b981;"></span> WebGPU Accelerated (Native GPU)';
+    } else {
+      if (hwStatus) hwStatus.innerHTML = '<span style="display:inline-block; width:8px; height:8px; border-radius:50%; background:#f59e0b;"></span> CPU / WASM Mode';
+    }
+
+    if (btnSave) {
+      btnSave.addEventListener('click', () => {
+        const selected = aiSelect.value;
+        localStorage.setItem('abhihub_ai_model', selected);
+        const baseUrl = `https://huggingface.co/mlc-ai/${selected}/resolve/main`;
+        if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+          navigator.serviceWorker.controller.postMessage({
+            type: 'START_AI_MODEL_PRECACHE',
+            payload: { modelId: selected, baseUrl }
+          });
+        }
+        window.dispatchEvent(new CustomEvent('abhihub_ai_config_change', { detail: { modelId: selected } }));
+        if (statusMsg) {
+          statusMsg.textContent = '📥 Starting 8-stream parallel background download...';
+        }
+      });
+    }
+
+    if (btnClear) {
+      btnClear.addEventListener('click', async () => {
+        if (confirm('Clear local WebLLM model cache to reclaim disk space?')) {
+          try {
+            if (navigator.serviceWorker && navigator.serviceWorker.controller) {
+              navigator.serviceWorker.controller.postMessage({ type: 'CLEAR_AI_MODEL_CACHE' });
+            }
+            if (window.indexedDB) {
+              const dbs = ['webllm/model', 'webllm/config', 'mlc-web-llm'];
+              dbs.forEach(name => indexedDB.deleteDatabase(name));
+            }
+            localStorage.removeItem('abhihub_ai_model_cached');
+            if (statusMsg) {
+              statusMsg.textContent = '✅ Cache cleared. Reclaiming storage.';
+              setTimeout(() => { statusMsg.textContent = ''; }, 4000);
+            }
+            setTimeout(refreshAiStorageSize, 600);
+          } catch (e) {
+            alert('Failed to clear cache: ' + e.message);
+          }
+        }
+      });
     }
   });
 </script>

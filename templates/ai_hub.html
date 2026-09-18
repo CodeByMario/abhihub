@@ -1,0 +1,908 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AbhiHub AI — Your Personal Study Agent</title>
+    <meta name="description" content="AbhiHub AI: your personal study agent for engineering notes, PYQs, and subject help. Powered by WebGPU or external AI — fully AbhiHub-native.">
+
+    <link rel="stylesheet" href="/static/css/pipeline/01_tokens.css">
+    <link rel="stylesheet" href="/static/css/pipeline/02_base.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <!-- Non-blocking font load: won't cause errors if Google CDN drops the connection -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=optional" onload="this.rel='stylesheet'">
+    <noscript><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=optional" rel="stylesheet"></noscript>
+
+    <style>
+    /* ── Reset & Base ─────────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    :root {
+        --bg:       #0c0f1a;
+        --surface:  #12162a;
+        --surface2: #1a1f38;
+        --border:   rgba(255,255,255,0.08);
+        --accent:   #7c6af7;
+        --accent2:  #a78bfa;
+        --text:     #e2e8f0;
+        --muted:    rgba(255,255,255,0.45);
+        --green:    #34d399;
+        --yellow:   #fbbf24;
+        --red:      #f87171;
+        --radius:   14px;
+        --font:     'Inter', system-ui, sans-serif;
+        --mono:     'JetBrains Mono', monospace;
+    }
+    html, body { height: 100%; overflow: hidden; }
+    body { background: var(--bg); color: var(--text); font-family: var(--font); display: flex; flex-direction: column; }
+
+    /* ── Agent Shell ──────────────────────────────────────────────── */
+    .agent-shell {
+        display: flex; flex-direction: column; height: 100vh;
+        max-width: 900px; margin: 0 auto; width: 100%;
+    }
+
+    /* ── Agent Header ─────────────────────────────────────────────── */
+    .agent-header {
+        display: flex; align-items: center; gap: 12px;
+        padding: 12px 20px;
+        background: var(--surface);
+        border-bottom: 1px solid var(--border);
+        flex-shrink: 0;
+    }
+    .agent-logo {
+        width: 36px; height: 36px; border-radius: 10px;
+        background: linear-gradient(135deg, var(--accent), #ec4899);
+        display: flex; align-items: center; justify-content: center;
+        font-size: 18px; flex-shrink: 0;
+    }
+    .agent-title { flex: 1; }
+    .agent-title h1 { font-size: 15px; font-weight: 700; color: #fff; line-height: 1.2; }
+    .agent-title .agent-sub { font-size: 11.5px; color: var(--muted); }
+
+    /* Provider selector (header right) */
+    .provider-selector {
+        display: flex; align-items: center; gap: 6px;
+        background: var(--surface2);
+        border: 1px solid var(--border);
+        border-radius: 20px;
+        padding: 5px 6px 5px 10px;
+        cursor: pointer;
+        transition: border-color 0.18s;
+        flex-shrink: 0;
+    }
+    .provider-selector:hover { border-color: rgba(255,255,255,0.2); }
+    .provider-selector .prov-icon { font-size: 14px; }
+    .provider-selector .prov-name { font-size: 12px; font-weight: 600; color: #fff; }
+    .provider-selector .prov-caret { color: var(--muted); font-size: 10px; }
+    .provider-selector .prov-badge {
+        font-size: 9.5px; font-weight: 700; padding: 2px 6px; border-radius: 10px;
+    }
+    .prov-badge.free { background: rgba(52,211,153,0.15); color: var(--green); }
+    .prov-badge.paid { background: rgba(251,191,36,0.15);  color: var(--yellow); }
+
+    .header-btn {
+        width: 32px; height: 32px; border-radius: 8px;
+        background: var(--surface2); border: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; font-size: 15px; color: var(--muted);
+        transition: all 0.18s; flex-shrink: 0;
+    }
+    .header-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+
+    /* ── Chat Area ────────────────────────────────────────────────── */
+    .chat-area {
+        flex: 1; overflow-y: auto; padding: 24px 20px;
+        display: flex; flex-direction: column; gap: 20px;
+        scroll-behavior: smooth;
+    }
+    .chat-area::-webkit-scrollbar { width: 4px; }
+    .chat-area::-webkit-scrollbar-track { background: transparent; }
+    .chat-area::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+    /* Messages */
+    .msg-row { display: flex; gap: 12px; max-width: 780px; }
+    .msg-row.user { flex-direction: row-reverse; align-self: flex-end; }
+    .msg-avatar {
+        width: 32px; height: 32px; border-radius: 50%; flex-shrink: 0;
+        display: flex; align-items: center; justify-content: center;
+        font-size: 14px; margin-top: 2px;
+    }
+    .msg-row.assistant .msg-avatar { background: linear-gradient(135deg, var(--accent), #ec4899); }
+    .msg-row.user .msg-avatar { background: var(--surface2); border: 1px solid var(--border); }
+
+    .msg-bubble {
+        padding: 12px 16px; border-radius: var(--radius);
+        font-size: 14px; line-height: 1.65; max-width: 100%;
+    }
+    .msg-row.assistant .msg-bubble {
+        background: var(--surface2); border: 1px solid var(--border);
+        border-top-left-radius: 4px; color: var(--text);
+    }
+    .msg-row.user .msg-bubble {
+        background: var(--accent); color: #fff;
+        border-top-right-radius: 4px;
+    }
+    .msg-bubble a { color: var(--accent2); }
+    .msg-bubble code { font-family: var(--mono); font-size: 12.5px; background: rgba(0,0,0,0.3); padding: 1px 5px; border-radius: 4px; }
+    .msg-bubble strong { color: #fff; }
+
+    /* Welcome Card */
+    .welcome-card {
+        background: linear-gradient(135deg, rgba(124,106,247,0.12), rgba(236,72,153,0.06));
+        border: 1px solid rgba(124,106,247,0.2);
+        border-radius: 18px; padding: 28px 24px; max-width: 600px; align-self: center; text-align: center;
+    }
+    .welcome-card .wc-logo { font-size: 40px; margin-bottom: 12px; }
+    .welcome-card h2 { font-size: 20px; font-weight: 800; color: #fff; margin-bottom: 6px; }
+    .welcome-card p { font-size: 13.5px; color: var(--muted); line-height: 1.6; margin-bottom: 18px; }
+    .chips { display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+    .chip {
+        padding: 7px 14px; border-radius: 20px; font-size: 12.5px; font-weight: 500;
+        background: var(--surface2); border: 1px solid var(--border);
+        color: var(--text); cursor: pointer; transition: all 0.18s;
+    }
+    .chip:hover { border-color: var(--accent); color: var(--accent2); background: rgba(124,106,247,0.1); }
+
+    /* No-key nudge */
+    .key-nudge {
+        background: rgba(251,191,36,0.08); border: 1px solid rgba(251,191,36,0.2);
+        border-radius: 12px; padding: 14px 18px;
+        display: flex; align-items: center; gap: 12px;
+        font-size: 13px; color: var(--text);
+        max-width: 600px; align-self: center; cursor: pointer;
+        transition: background 0.18s;
+    }
+    .key-nudge:hover { background: rgba(251,191,36,0.14); }
+    .key-nudge .nudge-icon { font-size: 22px; flex-shrink: 0; }
+    .key-nudge strong { color: #fff; display: block; margin-bottom: 2px; }
+    .key-nudge span { color: var(--muted); font-size: 12px; }
+
+    /* Status banner (model loading) */
+    .status-banner {
+        background: var(--surface2); border: 1px solid var(--border);
+        border-radius: 10px; padding: 12px 16px;
+        display: none; max-width: 480px; align-self: center; width: 100%;
+    }
+    .status-banner.visible { display: block; }
+    .status-banner-text { font-size: 12.5px; color: var(--muted); margin-bottom: 8px; }
+    .status-bar-bg { height: 4px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; }
+    .status-bar-fill { height: 100%; background: var(--accent); border-radius: 4px; transition: width 0.3s; }
+
+    /* ── Input Area ───────────────────────────────────────────────── */
+    .input-area {
+        padding: 12px 20px 16px;
+        background: var(--surface);
+        border-top: 1px solid var(--border);
+        flex-shrink: 0;
+    }
+    .input-row {
+        display: flex; gap: 8px; align-items: flex-end;
+        background: var(--surface2); border: 1.5px solid var(--border);
+        border-radius: var(--radius); padding: 8px 8px 8px 14px;
+        transition: border-color 0.2s;
+    }
+    .input-row:focus-within { border-color: var(--accent); }
+    .chat-input {
+        flex: 1; background: transparent; border: none; outline: none;
+        color: var(--text); font-family: var(--font); font-size: 14px;
+        resize: none; max-height: 120px; min-height: 22px; line-height: 1.5;
+    }
+    .chat-input::placeholder { color: var(--muted); }
+    .send-btn {
+        width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0;
+        background: var(--accent); border: none; color: #fff;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer; transition: all 0.18s; font-size: 15px;
+    }
+    .send-btn:hover:not(:disabled) { filter: brightness(1.15); transform: translateY(-1px); }
+    .send-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+    .send-btn svg { pointer-events: none; }
+
+    .input-meta {
+        display: flex; align-items: center; justify-content: space-between;
+        margin-top: 8px; padding: 0 2px;
+    }
+    .input-meta-left { font-size: 11px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+    .active-model-badge {
+        display: inline-flex; align-items: center; gap: 4px;
+        font-size: 11px; color: var(--muted);
+    }
+    .active-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); flex-shrink: 0; }
+    .input-hint { font-size: 11px; color: rgba(255,255,255,0.2); }
+
+    /* ── Settings Modal ───────────────────────────────────────────── */
+    .modal-overlay {
+        position: fixed; inset: 0; z-index: 1000;
+        background: rgba(0,0,0,0.7); backdrop-filter: blur(6px);
+        display: flex; align-items: center; justify-content: center;
+        opacity: 0; pointer-events: none; transition: opacity 0.2s;
+    }
+    .modal-overlay.open { opacity: 1; pointer-events: all; }
+    .modal {
+        background: var(--surface); border: 1px solid var(--border);
+        border-radius: 20px; width: min(540px, calc(100vw - 32px));
+        max-height: 85vh; overflow-y: auto;
+        transform: translateY(20px); transition: transform 0.25s;
+    }
+    .modal-overlay.open .modal { transform: translateY(0); }
+    .modal::-webkit-scrollbar { width: 4px; }
+    .modal::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 4px; }
+
+    .modal-head {
+        padding: 20px 22px 16px;
+        border-bottom: 1px solid var(--border);
+        display: flex; align-items: center; justify-content: space-between;
+    }
+    .modal-head h2 { font-size: 16px; font-weight: 700; color: #fff; }
+    .modal-head p { font-size: 12px; color: var(--muted); margin-top: 2px; }
+    .modal-close {
+        width: 30px; height: 30px; border-radius: 8px; border: none;
+        background: rgba(255,255,255,0.06); color: var(--muted);
+        cursor: pointer; font-size: 16px; display: flex; align-items: center; justify-content: center;
+    }
+    .modal-close:hover { background: rgba(255,255,255,0.12); color: #fff; }
+
+    /* Provider cards inside modal */
+    .modal-body { padding: 16px 22px 22px; }
+    .prov-card {
+        border: 1.5px solid var(--border);
+        border-radius: 14px; overflow: hidden; margin-bottom: 12px;
+        transition: border-color 0.18s;
+    }
+    .prov-card.active { border-color: var(--accent); }
+    .prov-card.connected:not(.active) { border-color: rgba(52,211,153,0.3); }
+    .prov-card-head {
+        display: flex; align-items: center; gap: 10px;
+        padding: 14px 16px; cursor: pointer;
+        background: rgba(255,255,255,0.02);
+        transition: background 0.18s;
+    }
+    .prov-card-head:hover { background: rgba(255,255,255,0.05); }
+    .prov-card-icon { font-size: 20px; }
+    .prov-card-info { flex: 1; }
+    .prov-card-name { font-size: 13.5px; font-weight: 600; color: #fff; }
+    .prov-card-tagline { font-size: 11.5px; color: var(--muted); }
+    .prov-card-status {
+        font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 10px;
+    }
+    .prov-card-status.active-lbl { background: rgba(124,106,247,0.2); color: var(--accent2); }
+    .prov-card-status.connected-lbl { background: rgba(52,211,153,0.15); color: var(--green); }
+    .prov-card-status.none-lbl { background: rgba(255,255,255,0.06); color: var(--muted); }
+
+    .prov-card-body { padding: 12px 16px 14px; border-top: 1px solid var(--border); background: rgba(0,0,0,0.2); }
+    .field-label { font-size: 11.5px; color: var(--muted); font-weight: 600; margin-bottom: 5px; display: flex; align-items: center; justify-content: space-between; }
+    .key-row { display: flex; gap: 6px; margin-bottom: 8px; }
+    .key-input {
+        flex: 1; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px; padding: 8px 10px; color: #fff;
+        font-family: var(--mono); font-size: 12px; transition: border-color 0.2s;
+    }
+    .key-input:focus { outline: none; border-color: var(--accent); }
+    .key-input::placeholder { color: rgba(255,255,255,0.25); }
+    .icon-btn {
+        width: 36px; border-radius: 8px; border: 1px solid rgba(255,255,255,0.1);
+        background: rgba(255,255,255,0.05); color: var(--muted); cursor: pointer;
+        display: flex; align-items: center; justify-content: center; font-size: 13px;
+        transition: all 0.18s;
+    }
+    .icon-btn:hover { background: rgba(255,255,255,0.1); color: #fff; }
+    .model-select {
+        width: 100%; background: rgba(0,0,0,0.4); border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 8px; padding: 8px 10px; color: #fff; font-size: 12px;
+        margin-bottom: 10px; cursor: pointer; transition: border-color 0.2s;
+    }
+    .model-select:focus { outline: none; border-color: var(--accent); }
+    .model-select option { background: #1a1f38; }
+    .prov-actions { display: flex; gap: 6px; }
+    .btn-sm {
+        padding: 7px 14px; border-radius: 8px; border: none; font-size: 12px;
+        font-weight: 600; cursor: pointer; transition: all 0.18s;
+    }
+    .btn-test { background: rgba(255,255,255,0.07); color: var(--text); border: 1px solid rgba(255,255,255,0.1); }
+    .btn-test:hover { background: rgba(255,255,255,0.12); }
+    .btn-use { background: var(--accent); color: #fff; }
+    .btn-use:hover { filter: brightness(1.12); }
+    .btn-use.btn-active { background: var(--green); color: #0a1628; }
+    .get-key-link {
+        font-size: 11px; color: var(--accent2); text-decoration: none;
+        display: inline-flex; align-items: center; gap: 3px;
+    }
+    .get-key-link:hover { text-decoration: underline; }
+    .prov-status { font-size: 11.5px; margin-top: 8px; min-height: 14px; }
+    .prov-status.ok    { color: var(--green); }
+    .prov-status.error { color: var(--red); }
+    .prov-status.checking { color: var(--yellow); }
+
+    /* On-device section in modal */
+    .ondevice-section { margin-bottom: 14px; }
+    .ondevice-head {
+        display: flex; align-items: center; gap: 10px; padding: 14px 16px;
+        border: 1.5px solid var(--border); border-radius: 14px; cursor: pointer;
+        background: rgba(255,255,255,0.02); transition: all 0.18s;
+        margin-bottom: 0;
+    }
+    .ondevice-head.active { border-color: var(--accent); }
+    .ondevice-head:hover { background: rgba(255,255,255,0.05); }
+    .ondevice-expand { background: none; border: none; color: var(--muted); font-size: 11px; cursor: pointer; margin-left: auto; }
+
+    .ondevice-body {
+        border: 1.5px solid var(--border); border-top: none;
+        border-radius: 0 0 14px 14px; padding: 14px 16px;
+        display: none; background: rgba(0,0,0,0.2);
+    }
+    .ondevice-body.open { display: block; }
+
+    /* Security notice */
+    .sec-notice {
+        display: flex; align-items: flex-start; gap: 10px;
+        background: rgba(52,211,153,0.06); border: 1px solid rgba(52,211,153,0.15);
+        border-radius: 10px; padding: 12px 14px; font-size: 12.5px;
+        color: rgba(255,255,255,0.75); line-height: 1.5; margin-bottom: 16px;
+    }
+    .sec-notice strong { color: var(--green); }
+    .divider-label {
+        font-size: 11px; font-weight: 700; color: var(--muted);
+        text-transform: uppercase; letter-spacing: 0.8px;
+        display: flex; align-items: center; gap: 8px; margin-bottom: 12px;
+    }
+    .divider-label::before, .divider-label::after {
+        content: ""; flex: 1; height: 1px; background: var(--border);
+    }
+
+    /* ── WebGPU Progress overlay (inside chat) ────────────────────── */
+    .load-progress {
+        background: var(--surface2); border: 1px solid var(--border);
+        border-radius: 12px; padding: 16px 18px;
+        max-width: 480px; align-self: center; width: 100%;
+        display: none;
+    }
+    .load-progress.visible { display: block; }
+    .load-title { font-size: 13px; font-weight: 600; color: #fff; margin-bottom: 4px; }
+    .load-sub { font-size: 11.5px; color: var(--muted); margin-bottom: 10px; }
+    .load-pct { float: right; font-size: 11px; color: var(--accent2); }
+    .load-bar-bg { height: 4px; background: rgba(255,255,255,0.08); border-radius: 4px; overflow: hidden; clear: both; }
+    .load-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), #ec4899); border-radius: 4px; transition: width 0.4s; }
+
+    /* ── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+        .agent-shell { max-width: 100%; }
+        .provider-selector .prov-name { display: none; }
+        .chat-area { padding: 16px 14px; }
+        .input-area { padding: 10px 14px 12px; }
+        .modal { border-radius: 20px 20px 0 0; position: fixed; bottom: 0; }
+    }
+    </style>
+</head>
+<body class="{% if is_embed %}embed-mode{% endif %}">
+
+<div class="agent-shell">
+
+    <!-- ── Agent Header ───────────────────────────────────────────── -->
+    <header class="agent-header">
+        <div class="agent-logo">🤖</div>
+        <div class="agent-title">
+            <h1>AbhiHub AI</h1>
+            <div class="agent-sub">Your personal study agent · AbhiHub exclusive</div>
+        </div>
+
+        <!-- Provider selector pill -->
+        <div class="provider-selector" id="providerPill" onclick="openSettings()">
+            <span class="prov-icon" id="pillIcon">🧠</span>
+            <span class="prov-name" id="pillName">On-Device</span>
+            <span class="prov-badge free" id="pillBadge">Free</span>
+            <span class="prov-caret">▾</span>
+        </div>
+
+        <!-- Settings button -->
+        <button class="header-btn" onclick="openSettings()" title="AI Settings & API Keys">⚙</button>
+
+        {% if not is_embed %}
+        <a href="https://abhihub.edu.eu.org" class="header-btn" title="Back to AbhiHub" style="text-decoration:none; font-size:13px;">🏠</a>
+        {% endif %}
+    </header>
+
+    <!-- ── Chat Area ───────────────────────────────────────────────── -->
+    <main class="chat-area" id="chatArea">
+
+        <!-- Welcome card -->
+        <div class="welcome-card" id="welcomeCard">
+            <div class="wc-logo">🎓</div>
+            <h2 id="welcomeHeading">Hi! I'm AbhiHub AI</h2>
+            <p>Your exclusive study agent for <strong>notes, PYQs, subjects, and engineering help</strong> — all powered by AbhiHub's resources.</p>
+            <div class="chips">
+                <button class="chip" onclick="quickPrompt('Explain the Fourier Transform with a real engineering application.')">📐 Fourier Transform</button>
+                <button class="chip" onclick="quickPrompt('Give me a high-yield summary for ACID Properties in DBMS with examples.')">📝 DBMS: ACID</button>
+                <button class="chip" onclick="quickPrompt('How do I prepare for my end semester exams on AbhiHub?')">📚 Exam Prep</button>
+                <button class="chip" onclick="quickPrompt('What resources does AbhiHub have for Computer Networks?')">🌐 Computer Networks</button>
+                <button class="chip" onclick="quickPrompt('Summarize the differences between 8085 and 8086 microprocessors.')">⚡ 8085 vs 8086</button>
+            </div>
+        </div>
+
+        <!-- Key nudge (shown when no provider configured) -->
+        <div class="key-nudge" id="keyNudge" style="display:none;" onclick="openSettings()">
+            <span class="nudge-icon">🔑</span>
+            <div>
+                <strong>Add a free API key to start chatting instantly</strong>
+                <span>Groq (100% free) or Google Gemini (free tier) — no GPU needed. Tap to set up in seconds.</span>
+            </div>
+        </div>
+
+        <!-- Model loading progress (WebGPU) -->
+        <div class="load-progress" id="loadProgress">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div class="load-title" id="loadTitle">Loading model...</div>
+                <span class="load-pct" id="loadPct">0%</span>
+            </div>
+            <div class="load-sub" id="loadSub">Downloading to your browser's cache. This happens only once.</div>
+            <div class="load-bar-bg"><div class="load-bar-fill" id="loadFill" style="width:0%"></div></div>
+        </div>
+
+    </main>
+
+    <!-- ── Input Area ──────────────────────────────────────────────── -->
+    <footer class="input-area">
+        <div class="input-row">
+            <textarea class="chat-input" id="chatInput" placeholder="Ask anything about your studies on AbhiHub..." rows="1"></textarea>
+            <button class="send-btn" id="sendBtn" onclick="sendMessage()">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+            </button>
+        </div>
+        <div class="input-meta">
+            <div class="input-meta-left">
+                <div class="active-model-badge">
+                    <span class="active-dot" id="activeDot"></span>
+                    <span id="activeModelLabel">Select a provider in settings ⚙</span>
+                </div>
+            </div>
+            <div class="input-hint">Enter to send</div>
+        </div>
+    </footer>
+
+</div>
+
+<!-- ── Settings Modal ─────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="settingsOverlay" onclick="closeSettingsOnBg(event)">
+<div class="modal" id="settingsModal">
+
+    <div class="modal-head">
+        <div>
+            <h2>⚙ AbhiHub AI Settings</h2>
+            <p>Choose your AI provider. All responses are AbhiHub-exclusive.</p>
+        </div>
+        <button class="modal-close" onclick="closeSettings()">✕</button>
+    </div>
+
+    <div class="modal-body">
+
+        <div class="sec-notice">
+            🔒 <span><strong>Privacy:</strong> API keys are stored in your browser only. AbhiHub servers never see them. All calls go directly browser → provider.</span>
+        </div>
+
+        <!-- On-Device Section -->
+        <div class="divider-label">🧠 On-Device (WebGPU)</div>
+        <div class="ondevice-section">
+            <div class="ondevice-head" id="ondeviceHead" onclick="toggleOnDevice()">
+                <span style="font-size:20px">🧠</span>
+                <div style="flex:1">
+                    <div style="font-size:13.5px; font-weight:600; color:#fff">On-Device WebGPU</div>
+                    <div style="font-size:11.5px; color:var(--muted)">Private · No API key · Works offline after first download</div>
+                </div>
+                <span class="prov-card-status" id="ondeviceStatus">---</span>
+                <button class="icon-btn" style="width:auto; padding:4px 8px; font-size:11px;">▾</button>
+            </div>
+            <div class="ondevice-body" id="ondeviceBody">
+                <div class="field-label" style="margin-bottom:8px;">Select Model</div>
+                <select class="model-select" id="webllmModelSelect">
+                    <option value="Qwen2.5-0.5B-Instruct-q4f16_1-MLC">Qwen 2.5 0.5B — Ultra-fast (350 MB) · Mobile/iOS</option>
+                    <option value="Llama-3.2-1B-Instruct-q4f16_1-MLC" selected>Llama 3.2 1B — Balanced (850 MB) · Recommended</option>
+                    <option value="Qwen2.5-1.5B-Instruct-q4f16_1-MLC">Qwen 2.5 1.5B — High accuracy (1.1 GB) · Math/Code</option>
+                    <option value="Llama-3.2-3B-Instruct-q4f16_1-MLC">Llama 3.2 3B — Best quality (1.8 GB) · Desktop/Mac</option>
+                </select>
+                <div class="prov-actions">
+                    <button class="btn-sm btn-test" id="loadModelBtn" onclick="loadWebLLM()">⬇ Download & Load</button>
+                    <button class="btn-sm btn-use" id="useWebllmBtn" onclick="useProvider('webllm')">Use This</button>
+                </div>
+                <div class="prov-status" id="ondeviceStatusMsg"></div>
+                <div style="font-size:11px; color:var(--muted); margin-top:8px;">Requires Chrome/Edge 113+ with Hardware Acceleration. Model is cached in IndexedDB — loads instantly after first download.</div>
+            </div>
+        </div>
+
+        <!-- External Providers -->
+        <div class="divider-label" style="margin-top:18px;">🌐 External API Providers</div>
+        <div id="providerList"></div>
+
+    </div>
+</div>
+</div>
+
+<!-- ─── Scripts ────────────────────────────────────────────────────────────── -->
+<script type="module">
+import { AbhiHubWebLLMManager, initCrossSubdomainServer, buildAbhiHubSystemPrompt } from "/static/js/ai/webllm-core.js";
+import {
+    PROVIDERS, PROVIDER_ORDER,
+    saveKey, getKey, saveModel, getModel,
+    saveActiveProvider, getActiveProvider, hasKey,
+    streamExternalResponse, testConnection
+} from "/static/js/ai/external-provider.js";
+
+// ─── State ───────────────────────────────────────────────────────────────────
+const manager      = initCrossSubdomainServer();
+let activeProvider = getActiveProvider();
+let conversation   = [];
+let isGenerating   = false;
+
+// ─── DOM refs ─────────────────────────────────────────────────────────────────
+const chatArea   = document.getElementById("chatArea");
+const chatInput  = document.getElementById("chatInput");
+const sendBtn    = document.getElementById("sendBtn");
+
+// ─── Init ─────────────────────────────────────────────────────────────────────
+window.openSettings      = openSettings;
+window.closeSettings     = closeSettings;
+window.closeSettingsOnBg = (e) => { if (e.target === document.getElementById("settingsOverlay")) closeSettings(); };
+window.quickPrompt       = (text) => { chatInput.value = text; chatInput.focus(); };
+window.useProvider       = useProvider;
+window.loadWebLLM        = loadWebLLM;
+window.toggleOnDevice    = toggleOnDevice;
+
+// Personalize welcome heading
+const user = window.__CURRENT_USER__ || {};
+if (user.name && user.name !== "Student") {
+    document.getElementById("welcomeHeading").textContent = `Hi ${user.name}! I'm AbhiHub AI 👋`;
+}
+
+// Update pill + status bar + show nudge if no key
+updateProviderPill();
+checkNudge();
+
+// ─── Provider Pill ─────────────────────────────────────────────────────────
+function updateProviderPill() {
+    const pillIcon  = document.getElementById("pillIcon");
+    const pillName  = document.getElementById("pillName");
+    const pillBadge = document.getElementById("pillBadge");
+    const dotEl     = document.getElementById("activeDot");
+    const labelEl   = document.getElementById("activeModelLabel");
+
+    if (activeProvider === "webllm") {
+        pillIcon.textContent  = "🧠";
+        pillName.textContent  = "On-Device";
+        pillBadge.textContent = "Free";
+        pillBadge.className   = "prov-badge free";
+        const mId = document.getElementById("webllmModelSelect")?.value || "Llama 3.2 1B";
+        const mName = mId.includes("0.5B") ? "Qwen 2.5 0.5B" : mId.includes("1B") ? "Llama 3.2 1B" : mId.includes("1.5B") ? "Qwen 2.5 1.5B" : "Llama 3.2 3B";
+        dotEl.style.background  = manager.isLoaded ? "var(--green)" : "var(--yellow)";
+        labelEl.textContent      = manager.isLoaded ? `WebGPU · ${mName}` : "On-Device — load model below ⚙";
+    } else {
+        const p = PROVIDERS[activeProvider];
+        if (p) {
+            pillIcon.textContent  = p.icon;
+            pillName.textContent  = p.name;
+            pillBadge.textContent = p.free ? "Free" : "Paid";
+            pillBadge.className   = `prov-badge ${p.free ? "free" : "paid"}`;
+            const savedModel = getModel(activeProvider);
+            const modelName  = p.models.find(m => m.id === savedModel)?.name || savedModel;
+            dotEl.style.background = hasKey(activeProvider) ? "var(--green)" : "var(--red)";
+            labelEl.textContent    = hasKey(activeProvider) ? `${p.name} · ${modelName}` : `${p.name} — API key missing ⚙`;
+        }
+    }
+
+    sendBtn.disabled = isGenerating;
+}
+
+function checkNudge() {
+    const anyKey = PROVIDER_ORDER.some(id => hasKey(id));
+    const nudge  = document.getElementById("keyNudge");
+    nudge.style.display = (!anyKey && activeProvider === "webllm" && !manager.isLoaded) ? "flex" : "none";
+}
+
+// ─── Settings Modal ───────────────────────────────────────────────────────────
+function openSettings() {
+    renderProviderList();
+    document.getElementById("settingsOverlay").classList.add("open");
+}
+function closeSettings() {
+    document.getElementById("settingsOverlay").classList.remove("open");
+    updateProviderPill();
+    checkNudge();
+}
+function toggleOnDevice() {
+    const body = document.getElementById("ondeviceBody");
+    body.classList.toggle("open");
+}
+
+function renderProviderList() {
+    const list = document.getElementById("providerList");
+    list.innerHTML = "";
+
+    // On-device status
+    const odStatus = document.getElementById("ondeviceStatus");
+    const odHead   = document.getElementById("ondeviceHead");
+    if (activeProvider === "webllm") {
+        odStatus.className   = "prov-card-status active-lbl";
+        odStatus.textContent = "Active";
+        odHead.classList.add("active");
+    } else {
+        odStatus.className   = "prov-card-status none-lbl";
+        odStatus.textContent = manager.isLoaded ? "Loaded" : "Not loaded";
+        odHead.classList.remove("active");
+    }
+
+    for (const id of PROVIDER_ORDER) {
+        const p          = PROVIDERS[id];
+        const savedKey   = getKey(id);
+        const savedModel = getModel(id);
+        const isActive   = activeProvider === id;
+
+        const card = document.createElement("div");
+        card.className = `prov-card${isActive ? " active" : ""}${savedKey ? " connected" : ""}`;
+
+        const modelOpts = p.models.map(m =>
+            `<option value="${m.id}"${m.id === savedModel ? " selected" : ""}>${m.name}${m.recommended ? " ★" : ""} — ${m.note}</option>`
+        ).join("");
+
+        const statusLabel = isActive ? `<span class="prov-card-status active-lbl">Active</span>` :
+                            savedKey  ? `<span class="prov-card-status connected-lbl">Connected</span>` :
+                                        `<span class="prov-card-status none-lbl">No key</span>`;
+
+        card.innerHTML = `
+            <div class="prov-card-head" onclick="this.nextElementSibling.classList.toggle('open'); this.closest('.prov-card').classList.toggle('expanded')">
+                <span class="prov-card-icon">${p.icon}</span>
+                <div class="prov-card-info">
+                    <div class="prov-card-name">${p.name}</div>
+                    <div class="prov-card-tagline">${p.tagline} · ${p.rateLimit}</div>
+                </div>
+                ${statusLabel}
+                <span style="color:var(--muted); font-size:10px; margin-left:4px;">▾</span>
+            </div>
+            <div class="prov-card-body" style="display:none;">
+                <div class="field-label">
+                    ${p.keyLabel}
+                    <a class="get-key-link" href="${p.keyUrl}" target="_blank" rel="noopener">↗ ${p.keyGuide}</a>
+                </div>
+                <div class="key-row">
+                    <input type="password" class="key-input" id="key-${id}" value="${savedKey}" placeholder="${p.keyPlaceholder}" autocomplete="new-password">
+                    <button class="icon-btn" onclick="toggleKeyVis('${id}')">👁</button>
+                </div>
+                <div class="field-label" style="margin-bottom:5px;">Model</div>
+                <select class="model-select" id="model-${id}">${modelOpts}</select>
+                <div class="prov-actions">
+                    <button class="btn-sm btn-test" id="test-${id}" onclick="runTest('${id}')">Test Connection</button>
+                    <button class="btn-sm btn-use${isActive ? " btn-active" : ""}" onclick="useProvider('${id}')">${isActive ? "✓ Active" : "Use This"}</button>
+                </div>
+                <div class="prov-status" id="status-${id}"></div>
+            </div>
+        `;
+
+        // Auto-open active card
+        if (isActive) {
+            setTimeout(() => card.querySelector(".prov-card-body").style.display = "block", 0);
+        }
+
+        list.appendChild(card);
+    }
+}
+
+window.toggleKeyVis = (id) => {
+    const inp = document.getElementById(`key-${id}`);
+    inp.type  = inp.type === "password" ? "text" : "password";
+};
+
+window.runTest = async (id) => {
+    const apiKey  = document.getElementById(`key-${id}`)?.value.trim();
+    const model   = document.getElementById(`model-${id}`)?.value;
+    const statusEl = document.getElementById(`status-${id}`);
+    const testBtn  = document.getElementById(`test-${id}`);
+
+    if (!apiKey) { statusEl.className = "prov-status error"; statusEl.textContent = "⚠ Enter an API key first."; return; }
+
+    saveKey(id, apiKey);
+    saveModel(id, model);
+    statusEl.className   = "prov-status checking";
+    statusEl.textContent = "Testing connection...";
+    testBtn.disabled     = true;
+
+    const r = await testConnection(id, apiKey, model);
+    testBtn.disabled = false;
+
+    if (r.ok) {
+        statusEl.className   = "prov-status ok";
+        statusEl.textContent = `✓ Ready — "${r.preview}..."`;
+    } else {
+        statusEl.className   = "prov-status error";
+        statusEl.textContent = `✕ ${r.error}`;
+    }
+};
+
+function useProvider(id) {
+    if (id !== "webllm") {
+        const apiKey = document.getElementById(`key-${id}`)?.value.trim();
+        if (!apiKey) {
+            const s = document.getElementById(`status-${id}`);
+            if (s) { s.className = "prov-status error"; s.textContent = "⚠ Save an API key first."; }
+            return;
+        }
+        saveKey(id, apiKey);
+        saveModel(id, document.getElementById(`model-${id}`)?.value || "");
+    }
+    activeProvider = id;
+    saveActiveProvider(id);
+    renderProviderList();
+    updateProviderPill();
+    if (id !== "webllm") closeSettings();
+}
+
+// ─── WebLLM load ───────────────────────────────────────────────────────────
+async function loadWebLLM() {
+    const modelId = document.getElementById("webllmModelSelect")?.value;
+    const progress = document.getElementById("loadProgress");
+    const title    = document.getElementById("loadTitle");
+    const sub      = document.getElementById("loadSub");
+    const pct      = document.getElementById("loadPct");
+    const fill     = document.getElementById("loadFill");
+
+    progress.classList.add("visible");
+    document.getElementById("loadModelBtn").disabled = true;
+    document.getElementById("ondeviceStatusMsg").textContent = "";
+
+    try {
+        await manager.initEngine(modelId, (report) => {
+            if (report.text) {
+                title.textContent = report.fromCache ? `⚡ ${report.text}` : report.text;
+                sub.textContent   = report.fromCache ? "Loading from cache — instant!" : "Downloading model weights...";
+            }
+            if (typeof report.progress === "number") {
+                const p = Math.round(report.progress * 100);
+                pct.textContent  = `${p}%`;
+                fill.style.width = `${p}%`;
+            }
+        });
+        progress.classList.remove("visible");
+        document.getElementById("ondeviceStatusMsg").className   = "prov-status ok";
+        document.getElementById("ondeviceStatusMsg").textContent = "✓ Model loaded and ready!";
+        document.getElementById("loadModelBtn").disabled = false;
+        useProvider("webllm");
+    } catch (err) {
+        progress.classList.remove("visible");
+        document.getElementById("ondeviceStatusMsg").className   = "prov-status error";
+        document.getElementById("ondeviceStatusMsg").textContent = `✕ ${err.message}`;
+        document.getElementById("loadModelBtn").disabled = false;
+    }
+}
+
+// ─── Chat ─────────────────────────────────────────────────────────────────────
+async function sendMessage() {
+    const text = chatInput.value.trim();
+    if (!text || isGenerating) return;
+
+    // Hide welcome UI
+    document.getElementById("welcomeCard").style.display = "none";
+    document.getElementById("keyNudge").style.display    = "none";
+
+    appendMsg("user", text);
+    conversation.push({ role: "user", content: text });
+    chatInput.value = "";
+    chatInput.style.height = "auto";
+
+    const botBubble = appendMsg("assistant", "");
+    botBubble.innerHTML = `<span style="color:var(--muted); font-size:12px;">thinking...</span>`;
+
+    isGenerating     = true;
+    sendBtn.disabled = true;
+
+    try {
+        // Build system prompt: AbhiHub identity + user profile + page context
+        const profile    = user;
+        const pageCtx    = getPageContext();
+        const systemPrompt = buildAbhiHubSystemPrompt(
+            { name: profile.name, college: profile.college, branch: profile.branch, degree: profile.degree, year: profile.year },
+            { title: pageCtx.title, url: pageCtx.url, heading: pageCtx.heading,
+              fileLinks: pageCtx.fileLinks, pageImages: pageCtx.pageImages, pdfText: pageCtx.pdfText }
+        );
+
+        if (activeProvider !== "webllm") {
+            const apiKey = getKey(activeProvider);
+            const model  = getModel(activeProvider);
+            if (!apiKey) throw new Error(`No API key for ${PROVIDERS[activeProvider]?.name}. Click ⚙ to add one.`);
+
+            let full = "";
+            await streamExternalResponse(
+                activeProvider, apiKey, model,
+                [{ role: "system", content: systemPrompt }, ...conversation],
+                (delta, current) => {
+                    full = current;
+                    botBubble.innerHTML = renderMarkdown(current);
+                    chatArea.scrollTop = chatArea.scrollHeight;
+                }
+            );
+            conversation.push({ role: "assistant", content: full });
+        } else {
+            if (!manager.isLoaded) throw new Error("Load the on-device model first — click ⚙ and select a model.");
+            let full = "";
+            await manager.generateStream(conversation, (delta, current) => {
+                full = current;
+                botBubble.innerHTML = renderMarkdown(current);
+                chatArea.scrollTop = chatArea.scrollHeight;
+            }, { systemPrompt });
+            conversation.push({ role: "assistant", content: full });
+        }
+    } catch (err) {
+        botBubble.innerHTML = `<span style="color:var(--red)">⚠ ${err.message}</span>`;
+        conversation.pop();
+    } finally {
+        isGenerating     = false;
+        sendBtn.disabled = false;
+        updateProviderPill();
+    }
+}
+
+function appendMsg(role, text) {
+    const row    = document.createElement("div");
+    row.className = `msg-row ${role}`;
+    const avatar = document.createElement("div");
+    avatar.className = "msg-avatar";
+    avatar.textContent = role === "user" ? "👤" : "🤖";
+    const bubble = document.createElement("div");
+    bubble.className = "msg-bubble";
+    if (text) bubble.innerHTML = renderMarkdown(text);
+    row.appendChild(avatar);
+    row.appendChild(bubble);
+    chatArea.appendChild(row);
+    chatArea.scrollTop = chatArea.scrollHeight;
+    return bubble;
+}
+
+function renderMarkdown(text) {
+    return text
+        .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+        .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+        .replace(/\*(.+?)\*/g, "<em>$1</em>")
+        .replace(/`([^`]+)`/g, "<code>$1</code>")
+        .replace(/\[([^\]]+)\]\((https?:\/\/[^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>')
+        .replace(/^#{1,3}\s+(.+)$/gm, "<strong>$1</strong>")
+        .replace(/^[-•]\s+(.+)$/gm, "• $1")
+        .replace(/\n\n+/g, "<br><br>")
+        .replace(/\n/g, "<br>");
+}
+
+function getPageContext() {
+    const fileLinks  = [];
+    const pageImages = [];
+    const seenUrls   = new Set();
+
+    document.querySelectorAll('a[href*=".pdf"], a[href*="/view"], a[href*="/download"], a[data-file-url]').forEach(el => {
+        const href = el.getAttribute("href") || el.getAttribute("data-file-url") || "";
+        const name = el.innerText?.trim() || "Document";
+        if (href && !href.startsWith("#") && !seenUrls.has(href)) {
+            seenUrls.add(href);
+            fileLinks.push({ name: name.slice(0, 60), url: new URL(href, location.href).href });
+        }
+    });
+
+    document.querySelectorAll("img[src]").forEach(img => {
+        const src = img.getAttribute("src") || "";
+        const alt = img.getAttribute("alt") || "";
+        if (src && (img.naturalWidth > 80 || alt) && !src.includes("logo") && !src.includes("icon")) {
+            pageImages.push({ alt: alt || "Image", url: new URL(src, location.href).href });
+        }
+    });
+
+    let pdfText = "";
+    const layer = document.querySelector(".textLayer, .pdfViewer, .reader-root");
+    if (layer) pdfText = layer.innerText?.trim().slice(0, 3000) || "";
+
+    return { title: document.title, url: location.href, heading: document.querySelector("h1")?.innerText?.trim() || "", fileLinks: fileLinks.slice(0, 15), pageImages: pageImages.slice(0, 8), pdfText };
+}
+
+// ─── Input auto-resize & Enter to send ────────────────────────────────────────
+chatInput.addEventListener("input", () => {
+    chatInput.style.height = "auto";
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 120) + "px";
+});
+chatInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendMessage(); }
+});
+</script>
+
+</body>
+</html>

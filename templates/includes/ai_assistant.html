@@ -1,0 +1,518 @@
+<!-- Unified AbhiHub AI Assistant Component -->
+<style>
+/* ── Floating Launcher ────────────────────────────────────────── */
+#abhiAiLauncher {
+  position: fixed;
+  bottom: 82px;
+  right: 18px;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
+  color: #fff;
+  border-radius: 999px;
+  border: 1px solid rgba(255,255,255,0.25);
+  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4), 0 2px 6px rgba(0,0,0,0.2);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+  user-select: none;
+}
+#abhiAiLauncher:hover {
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.5);
+}
+#abhiAiLauncher .ai-spark {
+  display: inline-block;
+  animation: aiSpin 6s linear infinite;
+}
+@keyframes aiSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* ── Assistant Drawer ─────────────────────────────────────────── */
+#abhiAiDrawer {
+  position: fixed;
+  bottom: 80px;
+  right: 18px;
+  width: min(420px, calc(100vw - 36px));
+  height: min(600px, calc(100vh - 120px));
+  background: #0f172a;
+  color: #f8fafc;
+  border-radius: 20px;
+  border: 1px solid rgba(255,255,255,0.12);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+  display: none;
+  flex-direction: column;
+  z-index: 9999;
+  overflow: hidden;
+  animation: aiDrawerIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#abhiAiDrawer.open {
+  display: flex;
+}
+@keyframes aiDrawerIn {
+  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* ── Drawer Header ────────────────────────────────────────────── */
+.ai-drw-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: #1e293b;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.ai-drw-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 800;
+  font-size: 15px;
+}
+.ai-drw-badge {
+  font-size: 11px;
+  background: #3b82f6;
+  color: #fff;
+  padding: 2px 8px;
+  border-radius: 99px;
+  font-weight: 600;
+}
+.ai-drw-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ai-drw-btn {
+  background: transparent;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  font-size: 16px;
+  transition: color 0.15s, background 0.15s;
+  text-decoration: none;
+}
+.ai-drw-btn:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.08);
+}
+
+/* ── Context Bar ──────────────────────────────────────────────── */
+#aiContextBar {
+  background: linear-gradient(90deg, #1e1b4b, #312e81);
+  padding: 10px 14px;
+  border-bottom: 1px solid rgba(124, 58, 237, 0.3);
+  font-size: 12px;
+  display: none;
+}
+.ai-ctx-file {
+  font-weight: 700;
+  color: #c7d2fe;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 6px;
+}
+.ai-ctx-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ai-ctx-chip {
+  background: rgba(255,255,255,0.15);
+  border: 1px solid rgba(255,255,255,0.2);
+  color: #e0e7ff;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 99px;
+  cursor: pointer;
+}
+.ai-ctx-chip:hover {
+  background: #4f46e5;
+  color: #fff;
+}
+
+/* ── Messages List ────────────────────────────────────────────── */
+#aiMsgList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.ai-bubble {
+  max-width: 88%;
+  padding: 10px 14px;
+  border-radius: 14px;
+  font-size: 13px;
+  line-height: 1.5;
+  word-wrap: break-word;
+}
+.ai-bubble.user {
+  align-self: flex-end;
+  background: #4f46e5;
+  color: #fff;
+  border-bottom-right-radius: 4px;
+}
+.ai-bubble.assistant {
+  align-self: flex-start;
+  background: #1e293b;
+  color: #e2e8f0;
+  border: 1px solid rgba(255,255,255,0.08);
+  border-bottom-left-radius: 4px;
+}
+.ai-bubble.thinking {
+  align-self: flex-start;
+  background: #1e293b;
+  color: #94a3b8;
+  font-style: italic;
+  font-size: 12px;
+}
+
+/* ── Action Cards ─────────────────────────────────────────────── */
+.ai-action-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #090d16;
+  border: 1px solid rgba(99, 102, 241, 0.4);
+  border-radius: 10px;
+  padding: 8px 12px;
+  margin-top: 8px;
+  gap: 8px;
+}
+.ai-card-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e0e7ff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 220px;
+}
+.ai-card-badge {
+  font-size: 10px;
+  background: #3b82f6;
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  text-transform: uppercase;
+}
+.ai-card-btn {
+  background: #4f46e5;
+  color: #fff;
+  border: none;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.ai-card-btn:hover {
+  background: #4338ca;
+}
+
+/* ── Quick Prompts ────────────────────────────────────────────── */
+.ai-quick-prompts {
+  display: flex;
+  gap: 6px;
+  padding: 6px 14px;
+  overflow-x: auto;
+  border-top: 1px solid rgba(255,255,255,0.06);
+  background: #090d16;
+}
+.ai-qchip {
+  white-space: nowrap;
+  font-size: 11px;
+  background: rgba(255,255,255,0.06);
+  color: #94a3b8;
+  padding: 4px 10px;
+  border-radius: 99px;
+  border: 1px solid rgba(255,255,255,0.08);
+  cursor: pointer;
+}
+.ai-qchip:hover {
+  color: #fff;
+  background: rgba(255,255,255,0.12);
+}
+
+/* ── Input Box ────────────────────────────────────────────────── */
+.ai-drw-input-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: #1e293b;
+  border-top: 1px solid rgba(255,255,255,0.08);
+}
+#aiChatInput {
+  flex: 1;
+  background: #0f172a;
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 12px;
+  color: #fff;
+  padding: 8px 12px;
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+}
+#aiChatInput:focus {
+  border-color: #6366f1;
+}
+#aiSendBtn {
+  background: #6366f1;
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 15px;
+}
+#aiSendBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+</style>
+
+<!-- Floating Assistant Trigger -->
+<div id="abhiAiLauncher" onclick="toggleAbhiAiDrawer()" title="AbhiHub AI Assistant">
+  <span class="ai-spark">✨</span>
+  <span>AbhiHub AI</span>
+</div>
+
+<!-- Sliding Assistant Drawer -->
+<div id="abhiAiDrawer">
+  <!-- Header -->
+  <div class="ai-drw-hdr">
+    <div class="ai-drw-title">
+      <span>🤖</span>
+      <span>AbhiHub AI</span>
+      <span class="ai-drw-badge" id="aiDrawerModelBadge">Assistant</span>
+    </div>
+    <div class="ai-drw-actions">
+      <a href="/settings" class="ai-drw-btn" title="AI Settings & Models">⚙️</a>
+      <button class="ai-drw-btn" onclick="toggleAbhiAiDrawer()" title="Close">✕</button>
+    </div>
+  </div>
+
+  <!-- Active Document Context Bar -->
+  <div id="aiContextBar">
+    <div class="ai-ctx-file" id="aiContextDocName">📄 Active Document</div>
+    <div class="ai-ctx-actions">
+      <button class="ai-ctx-chip" onclick="askAiAboutFile('Summarize this document and its main chapters/topics.')">⚡ Summarize</button>
+      <button class="ai-ctx-chip" onclick="askAiAboutFile('Explain the key concepts and formulas covered in this file.')">💡 Explain Concepts</button>
+      <button class="ai-ctx-chip" onclick="askAiAboutFile('Generate 3 exam practice questions based on this file.')">📝 Practice Questions</button>
+    </div>
+  </div>
+
+  <!-- Chat History -->
+  <div id="aiMsgList">
+    <div class="ai-bubble assistant">
+      👋 Hi! I'm <strong>AbhiHub AI</strong>, your single assistant for the whole app. Ask me to find PYQs, search notes, or explain any document you have open!
+    </div>
+  </div>
+
+  <!-- Quick Prompts -->
+  <div class="ai-quick-prompts">
+    <button class="ai-qchip" onclick="quickSend('Find PYQs for Engineering Mathematics')">🔍 Math PYQs</button>
+    <button class="ai-qchip" onclick="quickSend('Find notes for Data Structures')">📚 DSA Notes</button>
+    <button class="ai-qchip" onclick="quickSend('What materials are available for 2nd year?')">🎓 2nd Year</button>
+  </div>
+
+  <!-- Input Form -->
+  <div class="ai-drw-input-row">
+    <input type="text" id="aiChatInput" placeholder="Ask AI or find PYQs/notes..." onkeydown="if(event.key==='Enter') sendAiMessage()">
+    <button id="aiSendBtn" onclick="sendAiMessage()">➔</button>
+  </div>
+</div>
+
+<script>
+(function() {
+  let activeDocId = null;
+  let activeDocTitle = '';
+
+  // Detect open document across AbhiHub (p_pdf_reader, resource.html, or meta)
+  function detectOpenDocument() {
+    // Check global variables
+    if (window.VALID_DOC_ID) {
+      activeDocId = window.VALID_DOC_ID;
+    } else if (window.__CURRENT_DOC__ && window.__CURRENT_DOC__.id) {
+      activeDocId = window.__CURRENT_DOC__.id;
+      activeDocTitle = window.__CURRENT_DOC__.title || '';
+    } else {
+      // Check URL pathname for /resource/<id> or params
+      const match = window.location.pathname.match(/\/resource\/([a-zA-Z0-9_-]+)/);
+      if (match) {
+        activeDocId = match[1].replace('-view', '');
+      } else {
+        const urlParams = new URLSearchParams(window.location.search);
+        const rid = urlParams.get('record_id');
+        if (rid) activeDocId = rid;
+      }
+    }
+
+    if (!activeDocTitle) {
+      const heading = document.querySelector('h1') || document.querySelector('.reader-title');
+      if (heading && heading.textContent.trim()) {
+        activeDocTitle = heading.textContent.trim();
+      } else {
+        activeDocTitle = document.title.replace('— AbhiHub', '').trim();
+      }
+    }
+
+    const ctxBar = document.getElementById('aiContextBar');
+    const ctxDocName = document.getElementById('aiContextDocName');
+    if (activeDocId && ctxBar && ctxDocName) {
+      ctxDocName.textContent = '📄 ' + (activeDocTitle.slice(0, 45) || 'Current Document');
+      ctxBar.style.display = 'block';
+    }
+  }
+
+  window.toggleAbhiAiDrawer = function() {
+    const drw = document.getElementById('abhiAiDrawer');
+    if (!drw) return;
+    drw.classList.toggle('open');
+    if (drw.classList.contains('open')) {
+      detectOpenDocument();
+      const prefModel = localStorage.getItem('ai_preferred_model');
+      const badge = document.getElementById('aiDrawerModelBadge');
+      if (prefModel && badge) {
+        badge.textContent = prefModel.split('/')[1] || 'BYOK';
+      }
+      setTimeout(() => document.getElementById('aiChatInput')?.focus(), 150);
+    }
+  };
+
+  window.askAiAboutFile = function(promptText) {
+    const input = document.getElementById('aiChatInput');
+    if (input) input.value = promptText;
+    sendAiMessage();
+  };
+
+  window.quickSend = function(text) {
+    const input = document.getElementById('aiChatInput');
+    if (input) input.value = text;
+    sendAiMessage();
+  };
+
+  window.sendAiMessage = async function() {
+    const input = document.getElementById('aiChatInput');
+    const sendBtn = document.getElementById('aiSendBtn');
+    const msgList = document.getElementById('aiMsgList');
+    if (!input || !sendBtn || !msgList) return;
+
+    const query = input.value.trim();
+    if (!query) return;
+
+    // Add user message
+    const uBubble = document.createElement('div');
+    uBubble.className = 'ai-bubble user';
+    uBubble.textContent = query;
+    msgList.appendChild(uBubble);
+    input.value = '';
+
+    // Thinking indicator
+    const thinking = document.createElement('div');
+    thinking.className = 'ai-bubble thinking';
+    thinking.textContent = 'Thinking & checking AbhiHub catalog...';
+    msgList.appendChild(thinking);
+    msgList.scrollTop = msgList.scrollHeight;
+
+    sendBtn.disabled = true;
+
+    try {
+      const preferredModel = localStorage.getItem('ai_preferred_model') || null;
+      const res = await fetch('/api/ai/assistant', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: query,
+          doc_id: activeDocId,
+          model: preferredModel
+        })
+      });
+
+      thinking.remove();
+
+      if (res.status === 401 || res.redirected) {
+        const errBubble = document.createElement('div');
+        errBubble.className = 'ai-bubble assistant';
+        errBubble.innerHTML = '⚠️ Please <a href="/login" style="color:#60a5fa;">log in</a> to use the assistant.';
+        msgList.appendChild(errBubble);
+        return;
+      }
+
+      const data = await res.json();
+      const aBubble = document.createElement('div');
+      aBubble.className = 'ai-bubble assistant';
+
+      if (data.success) {
+        let replyHtml = (data.reply || '').replace(/\n/g, '<br>');
+        aBubble.innerHTML = replyHtml;
+
+        // Render Action Cards if documents were found
+        if (data.actions && data.actions.length > 0) {
+          data.actions.forEach(act => {
+            const card = document.createElement('div');
+            card.className = 'ai-action-card';
+            card.innerHTML = `
+              <div>
+                <span class="ai-card-badge">${act.category || 'DOC'}</span>
+                <div class="ai-card-title" title="${act.title}">${act.title}</div>
+              </div>
+              <a href="${act.url}" class="ai-card-btn" target="_self">Open In App ➔</a>
+            `;
+            aBubble.appendChild(card);
+          });
+        }
+
+        // Auto-navigate if requested
+        if (data.auto_open) {
+          const autoNotif = document.createElement('div');
+          autoNotif.style.fontSize = '11px';
+          autoNotif.style.color = '#34d399';
+          autoNotif.style.marginTop = '6px';
+          autoNotif.textContent = 'Opening document in 2 seconds...';
+          aBubble.appendChild(autoNotif);
+          setTimeout(() => { window.location.href = data.auto_open; }, 1800);
+        }
+
+      } else {
+        aBubble.innerHTML = '⚠️ ' + (data.message || 'Error processing request');
+      }
+
+      msgList.appendChild(aBubble);
+      msgList.scrollTop = msgList.scrollHeight;
+
+    } catch (err) {
+      thinking.remove();
+      const errBubble = document.createElement('div');
+      errBubble.className = 'ai-bubble assistant';
+      errBubble.textContent = '⚠️ Network error connecting to AI Assistant.';
+      msgList.appendChild(errBubble);
+    } finally {
+      sendBtn.disabled = false;
+      input.focus();
+    }
+  };
+
+  document.addEventListener('DOMContentLoaded', detectOpenDocument);
+})();
+</script>

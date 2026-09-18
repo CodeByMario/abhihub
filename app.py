@@ -6092,6 +6092,172 @@ def api_ai_usage(user_data=None):
     total_cost = sum(float(r.get('cost_usd') or 0) for r in rows)
     return jsonify({'success': True, 'rows': rows, 'total_cost_usd': round(total_cost, 6)}), 200
 
+# ─── Unified AI Assistant: Autonomous App Interaction & Context ──────────────
+
+@app.route('/api/ai/assistant', methods=['POST'])
+@auth_required
+def api_ai_assistant(user_data=None):
+    """Unified AbhiHub AI Assistant:
+    - Answers general questions & explains concepts
+    - Context-aware: explains/summarizes the currently open document
+    - Autonomous actions: searches PYQs, notes, and provides direct open links
+    - Supports BYOK keys and advanced models
+    """
+    import re
+    from methods.ai_provider import (
+        resolve_provider, KeyInvalidError, RateLimitError,
+        ContextLimitError, ProviderError,
+    )
+    from methods.ai_usage import check_ceiling, log_turn, CostCeilingError
+    from methods.ai_safety import check_input, check_output, clean_output
+    from methods.supabase_helper import get_ai_profile, search_file_records
+
+    user = user_data or session.get('user', {})
+    user_id = user.get('uid') or user.get('email')
+
+    # Cost ceiling check
+    if user_id:
+        try:
+            check_ceiling(user_id)
+        except CostCeilingError as exc:
+            return jsonify({'success': False, 'message': str(exc)}), 402
+
+    data = request.get_json(silent=True) or {}
+    message = (data.get('message') or data.get('question') or '').strip()
+    doc_id = (data.get('doc_id') or '').strip()
+    preferred_model = (data.get('model') or '').strip() or None
+
+    if not message:
+        return jsonify({'success': False, 'message': 'Message is required'}), 400
+
+    # Input safety
+    safety_in = check_input(message)
+    if not safety_in.passed:
+        return jsonify({
+            'success': False,
+            'message': 'Your request falls outside academic and study assistance guidelines.'
+        }), 400
+
+    # Check for document search intent (PYQs, Notes, Syllabus, Search)
+    is_search_intent = bool(re.search(r'\b(find|search|show|get|open|pyq|notes|question paper|syllabus|study material|exam)\b', message, re.IGNORECASE))
+    found_docs = []
+    actions = []
+
+    if is_search_intent:
+        # Determine category filter if specified
+        cat_filter = None
+        if re.search(r'\bpyq|question paper|previous year\b', message, re.IGNORECASE):
+            cat_filter = 'pyq'
+        elif re.search(r'\bnotes|handwritten|lecture\b', message, re.IGNORECASE):
+            cat_filter = 'notes'
+
+        # Clean search terms
+        clean_query = re.sub(r'\b(please|can you|find|search|for|me|the|open|show|get|give|all|some|pyq|pyqs|notes|questions?)\b', '', message, flags=re.IGNORECASE).strip()
+        search_kw = clean_query[:60].strip() or 'engineering'
+
+        try:
+            raw_docs = search_file_records(search_query=search_kw, document_type=cat_filter, limit=5)
+            if not raw_docs and cat_filter:
+                raw_docs = search_file_records(search_query=search_kw, limit=5)
+            found_docs = raw_docs or []
+            for d in found_docs:
+                actions.append({
+                    'action': 'open_resource',
+                    'id': d.get('id'),
+                    'title': d.get('title') or 'Document',
+                    'category': d.get('document_category') or 'material',
+                    'url': f"/resource/{d.get('id')}"
+                })
+        except Exception as err:
+            logging.warning(f"[AI Assistant] Search error: {err}")
+
+    # Document context if currently viewing a file
+    doc_context = ""
+    if doc_id:
+        try:
+            client = init_supabase()
+            if client:
+                res = client.table('documents').select('title, document_category, file_url').eq('id', doc_id).limit(1).execute()
+                if res.data:
+                    doc_meta = res.data[0]
+                    doc_context = f"\n\nCURRENTLY OPEN DOCUMENT:\nTitle: {doc_meta.get('title')}\nCategory: {doc_meta.get('document_category')}\nID: {doc_id}"
+                    # Try fetching text if user asks to explain/summarize
+                    if re.search(r'\b(summarize|summary|explain|what is this|about this|in this|overview)\b', message, re.IGNORECASE):
+                        file_url = _resolve_signed_url(doc_meta.get('file_url', ''), log_tag="AI")
+                        if file_url:
+                            resp = requests.get(file_url, timeout=15, headers={'User-Agent': 'AbhiHub-AI/1.0'})
+                            if resp.ok and _looks_like_pdf(resp.headers.get('Content-Type', ''), file_url, resp.content):
+                                text, _, _ = extract_pdf_info(resp.content)
+                                if text:
+                                    doc_context += f"\n\nDOCUMENT TEXT EXCERPT (first 2500 chars):\n{text[:2500]}"
+        except Exception as doc_err:
+            logging.warning(f"[AI Assistant] Doc context error: {doc_err}")
+
+    # Build assistant prompt
+    system_prompt = (
+        "You are AbhiHub AI — the intelligent, friendly study assistant for the AbhiHub engineering platform.\n"
+        "You have full awareness of the AbhiHub app and help students find materials, summarize & explain notes/PYQs, and study effectively.\n"
+        "Be concise, clear, and encouraging. Use bullet points or code blocks where appropriate.\n"
+        "If you found matching documents in the AbhiHub database, highlight them clearly and encourage the student to click to open them."
+    )
+    if doc_context:
+        system_prompt += doc_context
+
+    if found_docs:
+        docs_summary = "\n".join([f"- [{d.get('title')}] (Category: {d.get('document_category')}, URL: /resource/{d.get('id')})" for d in found_docs])
+        system_prompt += f"\n\nFOUND DOCUMENTS IN ABHIHUB DATABASE:\n{docs_summary}\nMention these relevant resources to the student."
+
+    ai_profile = get_ai_profile(user_id) if user_id else {}
+    try:
+        adapter, cost_ceiling = resolve_provider(ai_profile, preferred_model=preferred_model)
+    except Exception as exc:
+        return jsonify({'success': False, 'message': str(exc)}), 500
+
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": message}
+    ]
+
+    try:
+        resp = adapter.complete(messages, max_tokens=600, temperature=0.3)
+    except KeyInvalidError:
+        return jsonify({'success': False, 'message': 'API key was rejected. Please update your key in Settings.'}), 401
+    except RateLimitError:
+        return jsonify({'success': False, 'message': 'AI provider rate-limited. Please try again shortly.'}), 429
+    except Exception as exc:
+        logging.error(f"[AI Assistant] Provider error: {exc}")
+        return jsonify({'success': False, 'message': 'AI service temporarily unavailable.'}), 503
+
+    # Output safety & clean
+    scan = check_output(resp.text)
+    final_text = clean_output(resp.text) if scan.cleaned else resp.text
+
+    # Log usage
+    if user_id:
+        log_turn(
+            user_id=user_id,
+            model_used=resp.model_used,
+            tokens_in=resp.tokens_in,
+            tokens_out=resp.tokens_out,
+            cost_usd=resp.cost_usd,
+            turn_type='assistant',
+            error_type=None,
+            safety_flag='borderline' if safety_in.is_borderline else None
+        )
+
+    # Check if user asked to auto-open
+    auto_open = None
+    if actions and re.search(r'\b(open it|open the|open this|take me to|navigate)\b', message, re.IGNORECASE):
+        auto_open = actions[0]['url']
+
+    return jsonify({
+        'success': True,
+        'reply': final_text,
+        'actions': actions,
+        'auto_open': auto_open,
+        'model_used': resp.model_used
+    }), 200
+
 
 # ─── AI Paper Q&A & Unlimited OCR ───────────────────────────────────────────
 

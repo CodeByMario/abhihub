@@ -9,11 +9,12 @@
  * - Background sync
  */
 
-const CACHE_VERSION = 'v2.0.5';
+const CACHE_VERSION = 'v2.0.7';
 const CACHE_NAME = `abhihub-${CACHE_VERSION}`;
 const STATIC_CACHE = `abhihub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `abhihub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `abhihub-images-${CACHE_VERSION}`;
+const AI_MODEL_CACHE = 'abhihub-ai-models-v1'; // Permanent on-device WebLLM model weights cache
 
 // ==================== ENCRYPTED PDF CACHE ====================
 const PDF_IDB_NAME = 'abhihub-pdf-cache';
@@ -37,21 +38,33 @@ function openPdfDb() {
 
 /** Get or create a persistent AES-GCM CryptoKey stored in IDB */
 async function getOrCreateCryptoKey(db) {
-  const tx = db.transaction(PDF_IDB_STORE, 'readwrite');
-  const store = tx.objectStore(PDF_IDB_STORE);
   const existing = await new Promise((res) => {
-    const r = store.get('__cryptokey__');
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => res(null);
+    try {
+      const tx = db.transaction(PDF_IDB_STORE, 'readonly');
+      const store = tx.objectStore(PDF_IDB_STORE);
+      const r = store.get('__cryptokey__');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => res(null);
+    } catch {
+      res(null);
+    }
   });
-  if (existing) {
-    return crypto.subtle.importKey('raw', existing.keyData, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+  if (existing && existing.keyData) {
+    try {
+      return await crypto.subtle.importKey('raw', existing.keyData, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+    } catch (e) {}
   }
   const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
   const raw = await crypto.subtle.exportKey('raw', key);
   await new Promise((res, rej) => {
-    const r = store.put({ key: '__cryptokey__', keyData: raw });
-    r.onsuccess = res; r.onerror = rej;
+    try {
+      const tx = db.transaction(PDF_IDB_STORE, 'readwrite');
+      const store = tx.objectStore(PDF_IDB_STORE);
+      const r = store.put({ key: '__cryptokey__', keyData: raw });
+      r.onsuccess = res; r.onerror = rej;
+    } catch (err) {
+      rej(err);
+    }
   });
   return key;
 }
@@ -327,11 +340,13 @@ self.addEventListener('activate', (event) => {
         return Promise.all(
           cacheNames
             .filter((name) => {
-              // Delete old caches that don't match current version
+              // Delete old caches that don't match current version, preserving AI_MODEL_CACHE and WebLLM caches
               return name.startsWith('abhihub-') &&
                 name !== STATIC_CACHE &&
                 name !== DYNAMIC_CACHE &&
-                name !== IMAGE_CACHE;
+                name !== IMAGE_CACHE &&
+                name !== AI_MODEL_CACHE &&
+                !name.startsWith('webllm');
             })
             .map((name) => {
               console.log('[SW] Deleting old cache:', name);
@@ -346,6 +361,206 @@ self.addEventListener('activate', (event) => {
   );
 });
 
+/**
+ * Check if request is for WebLLM model weights, WASM, or MLC CDN
+ */
+function isAiModelAsset(url) {
+  const p = url.pathname.toLowerCase();
+  const host = url.hostname.toLowerCase();
+  return (
+    p.endsWith('.wasm') ||
+    p.endsWith('.bin') ||
+    p.endsWith('.safetensors') ||
+    p.includes('ndarray-cache') ||
+    p.includes('mlc-chat-config') ||
+    p.includes('tokenizer') ||
+    p.startsWith('/static/js/ai/') ||
+    host.includes('huggingface.co') ||
+    host.includes('mlc.ai') ||
+    host.includes('esm.run') ||
+    (host.includes('jsdelivr.net') && p.includes('web-llm'))
+  );
+}
+
+/**
+ * Handle WebLLM AI model asset caching (Cache-First strategy)
+ */
+async function handleAiModelFetch(request) {
+  // Check primary AI model cache and standard WebLLM cache
+  const aiCache = await caches.open(AI_MODEL_CACHE);
+  let cachedResponse = await aiCache.match(request);
+  if (cachedResponse) return cachedResponse;
+
+  try {
+    const webllmCache = await caches.open('webllm/model');
+    cachedResponse = await webllmCache.match(request);
+    if (cachedResponse) return cachedResponse;
+  } catch (e) {}
+
+  try {
+    const networkResponse = await fetch(request, { mode: 'cors' }).catch(() => fetch(request));
+    if (networkResponse && (networkResponse.ok || networkResponse.type === 'opaque')) {
+      aiCache.put(request, networkResponse.clone()).catch(() => {});
+      try {
+        const webllmCache = await caches.open('webllm/model');
+        webllmCache.put(request, networkResponse.clone()).catch(() => {});
+      } catch (e) {}
+    }
+    return networkResponse;
+  } catch (err) {
+    if (cachedResponse) return cachedResponse;
+    throw err;
+  }
+}
+
+// ==================== PERSISTENT BACKGROUND AI MODEL DOWNLOADER ====================
+let activeAiPrecache = null;
+
+async function broadcastToClients(msg) {
+  try {
+    const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of allClients) {
+      client.postMessage(msg);
+    }
+  } catch (e) {}
+}
+
+async function startAiModelPrecache(modelId, baseUrl) {
+  if (activeAiPrecache && activeAiPrecache.modelId === modelId && activeAiPrecache.status === 'downloading') {
+    broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+    return;
+  }
+
+  activeAiPrecache = {
+    modelId,
+    status: 'downloading',
+    progress: 0,
+    text: 'Connecting to model repository in background...'
+  };
+
+  broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+
+  try {
+    const cache = await caches.open(AI_MODEL_CACHE);
+    const webllmCache = await caches.open('webllm/model');
+
+    // 1. Fetch & Cache Manifest
+    const manifestUrl = `${baseUrl}/ndarray-cache.json`;
+    let manifestRes = await cache.match(manifestUrl);
+    if (!manifestRes) {
+      manifestRes = await fetch(manifestUrl, { mode: 'cors' });
+      if (manifestRes.ok) {
+        await cache.put(manifestUrl, manifestRes.clone());
+        await webllmCache.put(manifestUrl, manifestRes.clone());
+      }
+    }
+
+    if (!manifestRes || !manifestRes.ok) {
+      throw new Error('Unable to connect to model manifest');
+    }
+
+    const manifest = await manifestRes.json();
+    const records = manifest.records || [];
+    
+    // Additional ancillary files (config, tokenizers)
+    const ancillaryFiles = [
+      'mlc-chat-config.json',
+      'tokenizer.json',
+      'tokenizer_config.json',
+      'vocab.json',
+      'merges.txt',
+      'special_tokens_map.json'
+    ];
+
+    const totalRecords = records.length + ancillaryFiles.length;
+    let completed = 0;
+
+    // 2. Fetch ancillary files in parallel
+    await Promise.all(ancillaryFiles.map(async (file) => {
+      const fileUrl = `${baseUrl}/${file}`;
+      const existing = await cache.match(fileUrl);
+      if (!existing) {
+        try {
+          const res = await fetch(fileUrl, { mode: 'cors' });
+          if (res.ok) {
+            await cache.put(fileUrl, res.clone());
+            await webllmCache.put(fileUrl, res.clone());
+          }
+        } catch (e) {}
+      }
+      completed++;
+      const pct = Math.round((completed / totalRecords) * 100);
+      activeAiPrecache.progress = pct;
+      activeAiPrecache.text = `Caching model metadata (${completed}/${totalRecords})...`;
+      broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+    }));
+
+    // 3. Download shards in parallel batches (concurrency = 8) for maximum download speed
+    const CONCURRENCY = 8;
+    const shardUrls = [];
+    for (const rec of records) {
+      const shardPath = rec.dataPath || rec.name;
+      if (shardPath) shardUrls.push(`${baseUrl}/${shardPath}`);
+    }
+
+    let shardIndex = 0;
+    async function worker() {
+      while (shardIndex < shardUrls.length) {
+        const idx = shardIndex++;
+        const sUrl = shardUrls[idx];
+        const existing = await cache.match(sUrl);
+        if (!existing) {
+          try {
+            const shardRes = await fetch(sUrl, { mode: 'cors' });
+            if (shardRes.ok) {
+              await cache.put(sUrl, shardRes.clone());
+              await webllmCache.put(sUrl, shardRes.clone());
+            }
+          } catch (e) {}
+        }
+        completed++;
+        const pct = Math.round((completed / totalRecords) * 100);
+        activeAiPrecache.progress = pct;
+        activeAiPrecache.text = `Downloading model shard ${completed}/${totalRecords} (${pct}%)...`;
+        broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+      }
+    }
+
+    const workers = [];
+    for (let i = 0; i < CONCURRENCY; i++) {
+      workers.push(worker());
+    }
+    await Promise.all(workers);
+
+    activeAiPrecache.status = 'ready';
+    activeAiPrecache.progress = 100;
+    activeAiPrecache.text = 'Model cached permanently on device!';
+    broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+  } catch (err) {
+    activeAiPrecache.status = 'error';
+    activeAiPrecache.text = `Download notice: ${err.message}`;
+    broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+  }
+}
+
+self.addEventListener('message', async (event) => {
+  const { type, payload } = event.data || {};
+  if (type === 'START_AI_MODEL_PRECACHE') {
+    startAiModelPrecache(payload.modelId, payload.baseUrl);
+  } else if (type === 'GET_AI_MODEL_CACHE_STATUS') {
+    if (activeAiPrecache) {
+      event.source?.postMessage({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+    }
+  } else if (type === 'CLEAR_AI_MODEL_CACHE') {
+    await caches.delete(AI_MODEL_CACHE);
+    await caches.delete('webllm/model').catch(() => {});
+    await caches.delete('webllm/wasm').catch(() => {});
+    await caches.delete('webllm/config').catch(() => {});
+    activeAiPrecache = null;
+    event.source?.postMessage({ type: 'AI_MODEL_CACHE_CLEARED', success: true });
+  }
+});
+
 // ==================== FETCH EVENT ====================
 self.addEventListener('fetch', (event) => {
   const { request } = event;
@@ -353,6 +568,12 @@ self.addEventListener('fetch', (event) => {
 
   // Skip non-GET requests (POST, PUT, DELETE should never be cached)
   if (request.method !== 'GET') {
+    return;
+  }
+
+  // 1. Intercept AI Model Weights & WASM (Cache-First for permanent local device residency)
+  if (isAiModelAsset(url)) {
+    event.respondWith(handleAiModelFetch(request));
     return;
   }
 
@@ -381,10 +602,15 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // All same-origin user files (images, PDFs, docs) → encrypted IDB cache-first
+  // Static images and icons (app UI) -> standard image cache
+  if (url.pathname.startsWith('/static/images/') || url.pathname === '/favicon.ico' || (isImageUrl(url) && url.pathname.startsWith('/static/'))) {
+    event.respondWith(handleImageRequest(request));
+    return;
+  }
+
+  // All same-origin user files (uploaded PDFs, study docs) → encrypted IDB cache-first
   // EXCLUDE /api/view-doc/ — these are proxied through Flask and should not be cached by SW
-  // PDF.js viewer fetches them via fetch() and requires proper streaming + headers
-  if (isUserFile(url) && !url.pathname.startsWith('/api/view-doc/')) {
+  if (isUserFile(url) && !url.pathname.startsWith('/api/view-doc/') && !url.pathname.startsWith('/static/')) {
     event.respondWith(handleEncryptedFileFetch(request.url));
     return;
   }

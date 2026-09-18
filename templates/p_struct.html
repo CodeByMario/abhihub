@@ -36,6 +36,7 @@
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/overlay-system.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.min.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/ai/abhihub-ai-assistant.css') }}">
     {% block page_styles %}{% endblock %}
 
     <!-- Feature Tour: styles in css/pipeline/feature-tour.css -->
@@ -53,6 +54,12 @@
     <!-- Preconnect for improved performance -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link rel="preconnect" href="https://huggingface.co" crossorigin>
+    <link rel="preconnect" href="https://cdn-lfs.huggingface.co" crossorigin>
+    <link rel="dns-prefetch" href="https://huggingface.co">
+    <link rel="dns-prefetch" href="https://cdn-lfs.huggingface.co">
+    <link rel="dns-prefetch" href="https://raw.githubusercontent.com">
+    <link rel="dns-prefetch" href="https://esm.run">
     <link rel="dns-prefetch" href="https://cdn.jsdelivr.net">
     <link rel="dns-prefetch" href="https://www.abhihub.edu.eu.org">
 </head>
@@ -907,14 +914,24 @@
     <!-- Chat UI -->
     <script src="{{ url_for('static', filename='js/chat.js') }}" defer></script>
 
-    <!-- Security: expose current user to client-side security.js -->
+    <!-- Security & AI Assistant: expose current student profile to client -->
     <script>
+        {% set user_data = session.get('user', {}) %}
+        {% set profile_data = session.get('profile', {}) %}
         window.__CURRENT_USER__ = {
-            uid: "{{ session.get('user', {}).get('uid', '') | e }}",
-            email: "{{ session.get('user', {}).get('email', '') | e }}",
-            name: "{{ session.get('user', {}).get('name', '') | e }}"
+            uid: "{{ user_data.get('uid', '') | e }}",
+            email: "{{ user_data.get('email', '') | e }}",
+            name: "{{ (profile_data.get('student_name') or user_data.get('name', 'Student')) | e }}",
+            college: "{{ profile_data.get('college_id', '') | e }}",
+            branch: "{{ profile_data.get('branch_id', '') | e }}",
+            degree: "{{ profile_data.get('degree', '') | e }}",
+            year: "{{ profile_data.get('pursuing_year', '') | e }}",
+            role: "{{ profile_data.get('user_role', 'student') | e }}"
         };
     </script>
+
+    <!-- AbhiHub AI Assistant In-App Widget -->
+    <script src="{{ url_for('static', filename='js/ai/abhihub-ai-assistant.js') }}" defer></script>
 
     <!-- Ad placements are disabled by default until consent and AdSense approval are in place. -->
 
