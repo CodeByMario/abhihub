@@ -6098,139 +6098,217 @@ def api_ai_usage(user_data=None):
 @app.route('/api/ask-paper', methods=['POST'])
 @auth_required
 def api_ask_paper():
-    """Ask a question about a paper. Extracts text via pypdf/fitz or vision OCR first, then queries any LLM."""
-    try:
-        # --- Hour-based Rate Limiter (5 requests per hour) ---
-        user = session.get('user', {})
-        user_id = user.get('uid') or user.get('email')
-        if user_id:
-            import time
-            now = time.time()
-            one_hour_ago = now - 3600
-            # Clean up old timestamps and retrieve current user history
-            timestamps = [t for t in _chat_history.get(user_id, []) if t > one_hour_ago]
-            _chat_history[user_id] = timestamps
-            if len(timestamps) >= 5:
-                return jsonify({
-                    'success': False,
-                    'message': 'You have reached the limit of 5 chats per hour. Please try again later.'
-                }), 429
-            # Record this chat request
-            _chat_history[user_id].append(now)
+    """AI tutor: answer a question about a paper.
 
-        data = request.get_json(silent=True) or {}
-        doc_id = (data.get('doc_id') or data.get('document_id') or '').strip()
-        question = (data.get('question') or '').strip()
-        selected_model = _resolve_model(data.get('model'))
-        logging.info(f"[AI] ask-paper doc_id={doc_id!r} question_len={len(question)} model={selected_model} user_id={user_id}")
+    Pipeline:
+      1. Auth + cost ceiling check (replaces in-process rate limiter — fixes G1)
+      2. Input safety filter
+      3. Doc text extraction (unchanged)
+      4. Session: get/create + build context + compact if needed
+      5. Provider call via OpenRouterAdapter with typed error recovery
+      6. Output safety scan
+      7. Usage logging (every turn incl. failures)
+      8. Session update
 
-        if not doc_id or not question:
-            logging.warning(f"[AI] ask-paper 400: doc_id={doc_id!r} question={question!r} raw_body={request.data[:200]}")
-            return jsonify({'success': False, 'message': 'doc_id and question are required'}), 400
+    Deferred (out of this track — see final report):
+      G12: vision/OCR unification with /api/extract-ocr
+      G13: streaming responses
+    """
+    import time as _time
+    from methods.ai_provider import (
+        resolve_provider, KeyInvalidError, RateLimitError,
+        ContextLimitError, ProviderError,
+    )
+    from methods.ai_usage import check_ceiling, log_turn, CostCeilingError
+    from methods.ai_session import (
+        get_or_create_session, build_context, compact_if_needed,
+        record_turn, update_topic_map,
+    )
+    from methods.ai_safety import (
+        check_input, check_output, clean_output, SCAFFOLD_SYSTEM, DIRECT_SYSTEM,
+    )
+    from methods.supabase_helper import get_ai_profile
 
-        # Always fetch raw file_url from DB
-        client = init_supabase()
-        raw = client.table('documents').select('file_url, title, document_category').eq('id', doc_id).single().execute()
-        if not raw.data:
-            return jsonify({'success': False, 'message': 'Document not found'}), 404
+    user = session.get('user', {})
+    user_id = user.get('uid') or user.get('email')
 
-        file_url = raw.data.get('file_url', '')
-        doc_title = raw.data.get('title', 'Unknown')
-        doc_category = raw.data.get('document_category', '')
-
-        # Resolve Firebase storage paths to real HTTP URLs
-        file_url = _resolve_signed_url(file_url, log_tag="AI")
-
-        if not file_url:
-            return jsonify({'success': False, 'message': 'File URL not available'}), 400
-
-        # --- Step 1: Get document text (free, unlimited) ---
-        import base64
+    # ── 1. Cost ceiling check (replaces _chat_history in-process dict — G1 fix) ──
+    if user_id:
         try:
-            file_resp = requests.get(file_url, timeout=30, headers={'User-Agent': 'AbhiHub-AI/1.0'})
-        except Exception as e:
-            logging.warning(f"[AI] File fetch failed: {e}")
-            return jsonify({'success': False, 'message': 'Could not fetch document file'}), 502
-        if not file_resp.ok:
-            logging.warning(f"[AI] File fetch HTTP {file_resp.status_code} for {file_url[:80]}")
-            return jsonify({'success': False, 'message': f'Document fetch failed ({file_resp.status_code})'}), 502
+            check_ceiling(user_id)
+        except CostCeilingError as exc:
+            return jsonify({'success': False, 'message': str(exc)}), 402
 
-        content_bytes = file_resp.content
-        content_type = file_resp.headers.get('Content-Type', '').split(';')[0].lower()
-        is_pdf = 'pdf' in content_type or file_url.lower().endswith('.pdf') or content_bytes.startswith(b'%PDF')
+    data = request.get_json(silent=True) or {}
+    doc_id   = (data.get('doc_id') or data.get('document_id') or '').strip()
+    question = (data.get('question') or '').strip()
+    mode_req = (data.get('mode') or '').strip().lower()  # 'direct' to override scaffold
 
-        doc_text = ''
-        img_bytes = None
-        img_mime = None
+    logging.info(f"[AI] ask-paper doc_id={doc_id!r} q_len={len(question)} user_id={user_id}")
 
-        if is_pdf:
-            doc_text, img_bytes, img_mime = extract_pdf_info(content_bytes)
-        
-        # If no native text extracted, cannot proceed (OCR removed)
-        if not doc_text or len(doc_text.strip()) < 10:
-            return jsonify({'success': False, 'message': 'Could not extract text from this document.'}), 422
+    if not doc_id or not question:
+        return jsonify({'success': False, 'message': 'doc_id and question are required'}), 400
 
-        # --- Step 2: Answer question using extracted text ---
-        system_prompt = (
-            f"You are a helpful AI study assistant for AbhiHub students.\n"
-            f"CRITICAL RULE: Only answer questions directly related to AbhiHub, academic courses, or the provided document content.\n"
-            f"If the question is unrelated to the document, say so and guide the user to search the website.\n\n"
-            f"Document: {doc_title} ({doc_category})\n"
-            f"--- DOCUMENT CONTENT ---\n{doc_text[:4000]}\n--- END ---\n\n"
-            f"Give clear, accurate, well-formatted answers using Markdown."
-        )
+    # ── 2. Input safety ────────────────────────────────────────────────────────
+    safety_in = check_input(question)
+    if not safety_in.passed:
+        logging.info(f"[AI] input blocked: {safety_in.blocked_reason} user={user_id}")
+        return jsonify({
+            'success': False,
+            'message': "That request falls outside what I can help with as a study assistant. Please ask a question about your document or academic subject."
+        }), 400
 
-        openrouter_key = os.getenv('OPENROUTER_API_KEY', '').strip().strip("'\"")
-        answer = None
+    # ── 3. Doc text extraction (unchanged logic) ────────────────────────────────
+    client = init_supabase()
+    try:
+        raw = client.table('documents').select('file_url, title, document_category').eq('id', doc_id).single().execute()
+    except Exception as exc:
+        return jsonify({'success': False, 'message': 'Document not found'}), 404
+    if not raw.data:
+        return jsonify({'success': False, 'message': 'Document not found'}), 404
 
-        if openrouter_key:
-            # Try each free text model in order — stop at first success
-            for model_id in AI_MODELS:
-                try:
-                    resp = requests.post(
-                        'https://openrouter.ai/api/v1/chat/completions',
-                        headers={
-                            'Authorization': f'Bearer {openrouter_key}',
-                            'Content-Type': 'application/json',
-                            'HTTP-Referer': 'https://abhihub.com',
-                            'X-Title': 'AbhiHub'
-                        },
-                        json={
-                            'model': model_id,
-                            'messages': [
-                                {'role': 'system', 'content': system_prompt},
-                                {'role': 'user', 'content': question}
-                            ],
-                            'max_tokens': 600,
-                            'temperature': 0.2,
-                            'provider': {'allow_fallbacks': True, 'sort': 'throughput'}
-                        },
-                        timeout=30
+    file_url    = _resolve_signed_url(raw.data.get('file_url', ''), log_tag="AI")
+    doc_title   = raw.data.get('title', 'Unknown')
+    doc_category = raw.data.get('document_category', '')
+
+    if not file_url:
+        return jsonify({'success': False, 'message': 'File URL not available'}), 400
+
+    try:
+        file_resp = requests.get(file_url, timeout=30, headers={'User-Agent': 'AbhiHub-AI/1.0'})
+    except Exception as exc:
+        logging.warning(f"[AI] File fetch failed: {exc}")
+        return jsonify({'success': False, 'message': 'Could not fetch document file'}), 502
+    if not file_resp.ok:
+        return jsonify({'success': False, 'message': f'Document fetch failed ({file_resp.status_code})'}), 502
+
+    content_bytes = file_resp.content
+    content_type  = file_resp.headers.get('Content-Type', '').split(';')[0].lower()
+    is_pdf = _looks_like_pdf(content_type, file_url, content_bytes)
+
+    doc_text = ''
+    if is_pdf:
+        doc_text, _, _ = extract_pdf_info(content_bytes)
+    if not doc_text or len(doc_text.strip()) < 10:
+        return jsonify({'success': False, 'message': 'Could not extract text from this document.'}), 422
+
+    # ── 4. Session + context ──────────────────────────────────────────────────
+    tutor_session = {}
+    if user_id:
+        tutor_session = get_or_create_session(user_id, doc_id)
+
+    # Mode: request param > session stored mode > default scaffold
+    mode = mode_req if mode_req in ('scaffold', 'direct') else (tutor_session.get('mode') or 'scaffold')
+    override_used = (mode == 'direct')
+    base_prompt = DIRECT_SYSTEM if mode == 'direct' else SCAFFOLD_SYSTEM
+    system_prompt = (
+        base_prompt
+        + f"\n\nDocument: {doc_title} ({doc_category})"
+    )
+
+    messages = build_context(tutor_session, doc_text, system_prompt)
+    messages.append({"role": "user", "content": question})
+
+    # ── 5. Provider resolution + call with typed recovery ──────────────────────
+    ai_profile = get_ai_profile(user_id) if user_id else {}
+    t0 = _time.monotonic()
+    result = None
+    error_type = None
+    step = 0
+    max_steps = int(os.getenv("AI_MAX_STEPS_PER_TURN", "5"))
+
+    try:
+        adapter, _ceiling = resolve_provider(ai_profile)
+
+        while step < max_steps:
+            step += 1
+            try:
+                # Compact if needed before the call (writes its own usage row)
+                if step == 1 and tutor_session:
+                    messages, new_summary = compact_if_needed(tutor_session, messages, adapter)
+                    if new_summary:
+                        tutor_session['summary'] = new_summary
+
+                result = adapter.complete(messages, max_tokens=600, temperature=0.3)
+                break  # success
+
+            except RateLimitError:
+                # OpenRouterAdapter already cycles models internally; if it raises here,
+                # all models were rate-limited — surface to user
+                error_type = "RateLimitError"
+                raise ProviderError("All models are rate-limited. Please try again shortly.")
+
+            except ContextLimitError:
+                error_type = "ContextLimitError"
+                if step < max_steps:
+                    # Compact and retry once
+                    messages, new_summary = compact_if_needed(
+                        {**tutor_session, 'turn_count': 999},  # force compaction
+                        messages, adapter,
                     )
-                    if resp.ok:
-                        choices = resp.json().get('choices', [])
-                        if choices:
-                            answer = choices[0]['message']['content']
-                            logging.info(f"[AI] Q&A answered via {model_id}")
-                            break
-                    elif resp.status_code == 429:
-                        logging.warning(f"[AI] {model_id} rate-limited, trying next")
-                        continue
-                    else:
-                        logging.warning(f"[AI] {model_id} error {resp.status_code}: {resp.text[:100]}")
-                        break
-                except Exception as ex:
-                    logging.warning(f"[AI] {model_id} failed: {ex}")
+                    if new_summary:
+                        tutor_session['summary'] = new_summary
                     continue
+                raise
 
-        if answer:
-            return jsonify({'success': True, 'answer': answer.strip()}), 200
+    except KeyInvalidError as exc:
+        error_type = "KeyInvalidError"
+        duration_ms = int((_time.monotonic() - t0) * 1000)
+        log_turn(user_id=user_id, session_id=tutor_session.get('id'), provider='openrouter',
+                 model='unknown', tokens_in=0, tokens_out=0, cost_usd=0,
+                 duration_ms=duration_ms, mode=mode, override_used=override_used,
+                 error_type=error_type, safety_flag=safety_in.flag)
+        return jsonify({
+            'success': False,
+            'message': "Your API key was rejected by the provider. Check your key in Settings."
+        }), 401
 
-        return jsonify({'success': False, 'message': 'All AI models are currently busy. Please try again in a moment.'}), 502
+    except ProviderError as exc:
+        error_type = "ProviderError"
+        duration_ms = int((_time.monotonic() - t0) * 1000)
+        log_turn(user_id=user_id, session_id=tutor_session.get('id'), provider='openrouter',
+                 model='unknown', tokens_in=0, tokens_out=0, cost_usd=0,
+                 duration_ms=duration_ms, mode=mode, override_used=override_used,
+                 error_type=error_type, safety_flag=safety_in.flag)
+        return jsonify({'success': False, 'message': 'All AI models are currently busy. Please try again shortly.'}), 502
 
-    except Exception as e:
-        logging.error(f"[AI] ask-paper error: {e}")
-        return jsonify({'success': False, 'message': f'Server error: {str(e)}'}), 500
+    except Exception as exc:
+        error_type = "UnexpectedError"
+        logging.error(f"[AI] ask-paper unexpected error: {exc}")
+        duration_ms = int((_time.monotonic() - t0) * 1000)
+        log_turn(user_id=user_id, session_id=tutor_session.get('id'), provider='openrouter',
+                 model='unknown', tokens_in=0, tokens_out=0, cost_usd=0,
+                 duration_ms=duration_ms, mode=mode, override_used=override_used,
+                 error_type=error_type, safety_flag=safety_in.flag)
+        return jsonify({'success': False, 'message': 'An unexpected error occurred. Please try again.'}), 500
+
+    # ── 6. Output safety ───────────────────────────────────────────────────────
+    answer = clean_output(result.text)
+
+    # ── 7. Usage logging (success path) ────────────────────────────────────────
+    duration_ms = int((_time.monotonic() - t0) * 1000)
+    log_turn(
+        user_id=user_id,
+        session_id=tutor_session.get('id'),
+        provider=adapter.provider_name,
+        model=result.model_used,
+        tokens_in=result.tokens_in,
+        tokens_out=result.tokens_out,
+        cost_usd=result.cost_usd,
+        duration_ms=duration_ms,
+        mode=mode,
+        override_used=override_used,
+        error_type=None,
+        safety_flag=safety_in.flag,  # None for clean inputs; flag value for borderline (amendment 3)
+        finish_reason=result.finish_reason,
+    )
+
+    # ── 8. Session update ──────────────────────────────────────────────────────
+    if tutor_session.get('id'):
+        record_turn(tutor_session['id'])
+
+    logging.info(f"[AI] ask-paper answered via {result.model_used} mode={mode} tokens={result.tokens_in}+{result.tokens_out}")
+    return jsonify({'success': True, 'answer': answer, 'mode': mode}), 200
 
 
 @app.route('/api/extract-ocr', methods=['POST'])
