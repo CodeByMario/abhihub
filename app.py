@@ -435,6 +435,26 @@ def extract_pdf_info(pdf_bytes):
         except Exception as e:
             logging.warning(f"[extract_pdf_info] fitz error: {e}")
 
+    # Fallback: pure-python regex + zlib stream decompression for zero-dependency extraction
+    if not extracted_text:
+        try:
+            import zlib
+            text_chunks = []
+            for match in re.finditer(rb'stream[\r\n]+([\s\S]*?)[\r\n]+endstream', pdf_bytes):
+                raw_stream = match.group(1)
+                try:
+                    decomp = zlib.decompress(raw_stream)
+                except Exception:
+                    decomp = raw_stream
+                for tj in re.finditer(rb'\((.*?)\)\s*Tj', decomp):
+                    text_chunks.append(tj.group(1).decode('latin1', errors='ignore'))
+                for tj_arr in re.finditer(rb'\[(.*?)\]\s*TJ', decomp):
+                    for sub in re.finditer(rb'\((.*?)\)', tj_arr.group(1)):
+                        text_chunks.append(sub.group(1).decode('latin1', errors='ignore'))
+            extracted_text = re.sub(r'\s+', ' ', ' '.join(text_chunks)).strip()
+        except Exception as e:
+            logging.warning(f"[extract_pdf_info] raw stream extraction error: {e}")
+
     return extracted_text.strip(), img_bytes, mime_type
 
 
@@ -6013,17 +6033,40 @@ def internal_server_error(e):
 def offline_page():
     return render_template('offline.html')
 
-# ─── AI Tutor: BYOK Key Management ──────────────────────────────────────────
+# ─── AI Models Realtime Catalog & BYOK Management ───────────────────────────
+
+@app.route('/api/ai/models', methods=['GET'])
+def api_ai_models():
+    """Fetch live model catalog from provider in real-time."""
+    from methods.ai_provider import fetch_live_models, decrypt_key
+    from methods.supabase_helper import get_ai_profile
+
+    provider = request.args.get('provider', 'openrouter').strip().lower()
+    api_key = request.args.get('api_key', '').strip()
+
+    if not api_key:
+        user = session.get('user', {})
+        user_id = user.get('uid') or user.get('email')
+        if user_id:
+            profile = get_ai_profile(user_id)
+            if profile.get('ai_provider') == provider and profile.get('ai_key_enc'):
+                try:
+                    api_key = decrypt_key(profile['ai_key_enc'])
+                except Exception:
+                    pass
+
+    models = fetch_live_models(provider=provider, api_key=api_key)
+    return jsonify({'success': True, 'provider': provider, 'models': models}), 200
+
 
 @app.route('/api/ai/key', methods=['POST'])
 @auth_required
 def api_ai_key_set(user_data=None):
-    """Save a BYOK OpenRouter API key.
+    """Save a BYOK API key for any supported provider (Claude, Gemini, NVIDIA, OpenAI, Groq, OpenRouter).
 
-    Amendment 4: validates the key with one cheap test call before encrypting/persisting.
-    Returns 401 with a clear message if validation fails.
+    Validates key against the provider with a minimal test call before encrypting/persisting.
     """
-    from methods.ai_provider import OpenRouterAdapter, KeyInvalidError, encrypt_key
+    from methods.ai_provider import get_adapter, KeyInvalidError, encrypt_key
     from methods.supabase_helper import set_ai_key_enc
 
     user_id = (user_data or {}).get('uid') or session.get('user', {}).get('uid')
@@ -6032,20 +6075,21 @@ def api_ai_key_set(user_data=None):
 
     data = request.get_json(silent=True) or {}
     raw_key = (data.get('api_key') or '').strip()
+    provider = (data.get('provider') or 'openrouter').strip().lower()
+
     if not raw_key:
         return jsonify({'success': False, 'message': 'api_key is required'}), 400
 
-    # Validate the key with one cheap test call before persisting (amendment 4)
-    adapter = OpenRouterAdapter(api_key=raw_key, models=['meta-llama/llama-3.1-8b-instruct:free'])
+    # Validate the key with one cheap test call before persisting
     try:
+        adapter = get_adapter(provider=provider, api_key=raw_key)
         adapter.validate()
     except KeyInvalidError:
         return jsonify({
             'success': False,
-            'message': 'API key validation failed — the provider rejected it. Check that you copied the full key.'
+            'message': f'{provider.capitalize()} API key validation failed — provider rejected the key.'
         }), 401
     except Exception as exc:
-        # Network error during validation — don't block save, but warn
         logging.warning(f'[ai/key] Validation call error (saving anyway): {exc}')
 
     try:
@@ -6053,11 +6097,11 @@ def api_ai_key_set(user_data=None):
     except RuntimeError as exc:
         return jsonify({'success': False, 'message': str(exc)}), 500
 
-    if not set_ai_key_enc(user_id, key_enc):
+    if not set_ai_key_enc(user_id, key_enc, provider=provider):
         return jsonify({'success': False, 'message': 'Failed to save key — database error'}), 500
 
-    logging.info(f'[ai/key] BYOK key saved for user {user_id}')
-    return jsonify({'success': True, 'message': 'API key saved. You are now on the BYOK plan.'}), 200
+    logging.info(f'[ai/key] BYOK key saved for user {user_id} provider={provider}')
+    return jsonify({'success': True, 'message': f'{provider.capitalize()} API key verified & saved.', 'provider': provider}), 200
 
 
 @app.route('/api/ai/key', methods=['DELETE'])
@@ -6104,6 +6148,8 @@ def api_ai_assistant(user_data=None):
     - Supports BYOK keys and advanced models
     """
     import re
+    import time as _time
+    t0 = _time.monotonic()
     from methods.ai_provider import (
         resolve_provider, KeyInvalidError, RateLimitError,
         ContextLimitError, ProviderError,
@@ -6125,6 +6171,7 @@ def api_ai_assistant(user_data=None):
     data = request.get_json(silent=True) or {}
     message = (data.get('message') or data.get('question') or '').strip()
     doc_id = (data.get('doc_id') or '').strip()
+    doc_title_req = (data.get('doc_title') or '').strip()
     preferred_model = (data.get('model') or '').strip() or None
 
     if not message:
@@ -6171,34 +6218,78 @@ def api_ai_assistant(user_data=None):
         except Exception as err:
             logging.warning(f"[AI Assistant] Search error: {err}")
 
-    # Document context if currently viewing a file
+    # Document context if currently viewing a file or active document passed
     doc_context = ""
-    if doc_id:
+    if doc_id or doc_title_req:
         try:
             client = init_supabase()
             if client:
-                res = client.table('documents').select('title, document_category, file_url').eq('id', doc_id).limit(1).execute()
-                if res.data:
-                    doc_meta = res.data[0]
-                    doc_context = f"\n\nCURRENTLY OPEN DOCUMENT:\nTitle: {doc_meta.get('title')}\nCategory: {doc_meta.get('document_category')}\nID: {doc_id}"
-                    # Try fetching text if user asks to explain/summarize
-                    if re.search(r'\b(summarize|summary|explain|what is this|about this|in this|overview)\b', message, re.IGNORECASE):
-                        file_url = _resolve_signed_url(doc_meta.get('file_url', ''), log_tag="AI")
-                        if file_url:
-                            resp = requests.get(file_url, timeout=15, headers={'User-Agent': 'AbhiHub-AI/1.0'})
-                            if resp.ok and _looks_like_pdf(resp.headers.get('Content-Type', ''), file_url, resp.content):
-                                text, _, _ = extract_pdf_info(resp.content)
-                                if text:
-                                    doc_context += f"\n\nDOCUMENT TEXT EXCERPT (first 2500 chars):\n{text[:2500]}"
-        except Exception as doc_err:
-            logging.warning(f"[AI Assistant] Doc context error: {doc_err}")
+                target_uuid = None
+                if doc_id:
+                    uuid_match = re.search(r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}', doc_id, re.I)
+                    if uuid_match:
+                        target_uuid = uuid_match.group(0)
 
-    # Build assistant prompt
+                res = None
+                if target_uuid:
+                    res = client.table('documents').select('id, title, document_category, file_url, description, topics_covered, exam_type').eq('id', target_uuid).limit(1).execute()
+                
+                if (not res or not res.data) and (doc_title_req or doc_id):
+                    clean_kw = re.sub(r'[^a-zA-Z0-9\s]', ' ', doc_title_req or doc_id).strip()
+                    if clean_kw:
+                        res = client.table('documents').select('id, title, document_category, file_url, description, topics_covered, exam_type').ilike('title', f'%{clean_kw[:40]}%').limit(1).execute()
+
+                if res and res.data:
+                    doc_meta = res.data[0]
+                    doc_title = doc_meta.get('title')
+                    doc_cat = doc_meta.get('document_category') or ''
+                    doc_desc = doc_meta.get('description') or ''
+                    doc_exam = doc_meta.get('exam_type') or ''
+                    doc_topics = doc_meta.get('topics_covered') or ''
+                    doc_context = f"\n\nCURRENTLY OPEN DOCUMENT:\nTitle: {doc_title}\nCategory: {doc_cat}\nExam: {doc_exam}\nTopics: {doc_topics}\nDescription: {doc_desc}\nID: {doc_meta.get('id')}"
+
+                    file_url = _resolve_signed_url(doc_meta.get('file_url', ''), log_tag="AI")
+                    image_url = None
+                    if file_url:
+                        try:
+                            is_img_ext = any(file_url.lower().endswith(ext) for ext in ('.jpg', '.jpeg', '.png', '.webp'))
+                            if doc_meta.get('file_type') == 'image' or is_img_ext:
+                                image_url = file_url
+                                doc_context += f"\n\nNOTE: This paper is an uploaded exam paper photo/image. The image is provided visually in the user prompt below."
+                            else:
+                                resp = requests.get(file_url, timeout=15, headers={'User-Agent': 'AbhiHub-AI/1.0'})
+                                if resp.ok:
+                                    content_bytes = resp.content
+                                    content_type = resp.headers.get('Content-Type', '').lower()
+                                    is_pdf = _looks_like_pdf(content_type, file_url, content_bytes) or file_url.lower().endswith('.pdf') or content_bytes.startswith(b'%PDF')
+                                    text = ""
+                                    if is_pdf:
+                                        text, img_bytes, mime = extract_pdf_info(content_bytes)
+                                        if not text and img_bytes:
+                                            import base64
+                                            b64 = base64.b64encode(img_bytes).decode('ascii')
+                                            image_url = f"data:{mime or 'image/png'};base64,{b64}"
+                                            doc_context += f"\n\nNOTE: This paper is a scanned PDF image. The page is provided visually in the user prompt."
+                                    elif 'text/' in content_type or file_url.lower().endswith(('.txt', '.csv', '.json', '.md')):
+                                        text = content_bytes.decode('utf-8', errors='ignore')
+                                    elif content_type.startswith('image/'):
+                                        image_url = file_url
+                                        doc_context += f"\n\nNOTE: This paper is an uploaded photo/image. The image is provided visually in the user prompt."
+                                    if text:
+                                        doc_context += f"\n\nDOCUMENT CONTENT & QUESTIONS (Extracted text):\n{text[:5000]}"
+                        except Exception as fetch_err:
+                            logging.warning(f"[Tarika] File fetch error: {fetch_err}")
+        except Exception as doc_err:
+            logging.warning(f"[Tarika] Doc context error: {doc_err}")
+
+    # Build assistant prompt for Tarika
     system_prompt = (
-        "You are AbhiHub AI — the intelligent, friendly study assistant for the AbhiHub engineering platform.\n"
-        "You have full awareness of the AbhiHub app and help students find materials, summarize & explain notes/PYQs, and study effectively.\n"
-        "Be concise, clear, and encouraging. Use bullet points or code blocks where appropriate.\n"
-        "If you found matching documents in the AbhiHub database, highlight them clearly and encourage the student to click to open them."
+        "You are Tarika — the intelligent, friendly, and expert personal study assistant for the AbhiHub engineering education platform.\n"
+        "You have direct visibility into the student's currently open document on AbhiHub (either extracted text or visual paper image).\n"
+        "When the student asks you to solve the paper, explain questions, summarize, or create practice problems, "
+        "read the questions from the CURRENTLY OPEN DOCUMENT or attached paper image, and provide step-by-step solutions with clear explanations.\n"
+        "Be concise, encouraging, and format your response with clean Markdown.\n"
+        "If relevant documents from the catalog are listed below, encourage the student to click the provided action cards to open them in AbhiHub."
     )
     if doc_context:
         system_prompt += doc_context
@@ -6213,13 +6304,25 @@ def api_ai_assistant(user_data=None):
     except Exception as exc:
         return jsonify({'success': False, 'message': str(exc)}), 500
 
-    messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": message}
-    ]
+    # Multi-modal prompt if image is attached
+    if 'image_url' in locals() and image_url:
+        user_content = [
+            {"type": "text", "text": message},
+            {"type": "image_url", "image_url": {"url": image_url}}
+        ]
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": user_content}
+        ]
+    else:
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": message}
+        ]
 
     try:
-        resp = adapter.complete(messages, max_tokens=600, temperature=0.3)
+        max_tok = 1500 if ('image_url' in locals() and image_url) else 600
+        resp = adapter.complete(messages, max_tokens=max_tok, temperature=0.2)
     except KeyInvalidError:
         return jsonify({'success': False, 'message': 'API key was rejected. Please update your key in Settings.'}), 401
     except RateLimitError:
@@ -6229,21 +6332,28 @@ def api_ai_assistant(user_data=None):
         return jsonify({'success': False, 'message': 'AI service temporarily unavailable.'}), 503
 
     # Output safety & clean
-    scan = check_output(resp.text)
-    final_text = clean_output(resp.text) if scan.cleaned else resp.text
+    final_text = clean_output(resp.text)
 
     # Log usage
+    # Log usage safely
     if user_id:
-        log_turn(
-            user_id=user_id,
-            model_used=resp.model_used,
-            tokens_in=resp.tokens_in,
-            tokens_out=resp.tokens_out,
-            cost_usd=resp.cost_usd,
-            turn_type='assistant',
-            error_type=None,
-            safety_flag='borderline' if safety_in.is_borderline else None
-        )
+        try:
+            duration_ms = int((_time.monotonic() - t0) * 1000)
+            log_turn(
+                user_id=user_id,
+                session_id=None,
+                provider=getattr(adapter, 'provider_name', 'openrouter'),
+                model=resp.model_used,
+                tokens_in=resp.tokens_in,
+                tokens_out=resp.tokens_out,
+                cost_usd=resp.cost_usd,
+                duration_ms=duration_ms,
+                mode='assistant',
+                safety_flag='borderline' if getattr(safety_in, 'is_borderline', False) else None,
+                finish_reason=resp.finish_reason
+            )
+        except Exception as log_err:
+            logging.warning(f"[AI Assistant] log_turn error: {log_err}")
 
     # Check if user asked to auto-open
     auto_open = None

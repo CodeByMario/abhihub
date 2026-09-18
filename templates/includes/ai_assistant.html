@@ -292,9 +292,9 @@
 </style>
 
 <!-- Floating Assistant Trigger -->
-<div id="abhiAiLauncher" onclick="toggleAbhiAiDrawer()" title="AbhiHub AI Assistant">
+<div id="abhiAiLauncher" onclick="toggleAbhiAiDrawer()" title="Tarika — Personal Study Assistant">
   <span class="ai-spark">✨</span>
-  <span>AbhiHub AI</span>
+  <span>Tarika</span>
 </div>
 
 <!-- Sliding Assistant Drawer -->
@@ -302,8 +302,8 @@
   <!-- Header -->
   <div class="ai-drw-hdr">
     <div class="ai-drw-title">
-      <span>🤖</span>
-      <span>AbhiHub AI</span>
+      <span>✨</span>
+      <span>Tarika</span>
       <span class="ai-drw-badge" id="aiDrawerModelBadge">Assistant</span>
     </div>
     <div class="ai-drw-actions">
@@ -316,16 +316,16 @@
   <div id="aiContextBar">
     <div class="ai-ctx-file" id="aiContextDocName">📄 Active Document</div>
     <div class="ai-ctx-actions">
-      <button class="ai-ctx-chip" onclick="askAiAboutFile('Summarize this document and its main chapters/topics.')">⚡ Summarize</button>
-      <button class="ai-ctx-chip" onclick="askAiAboutFile('Explain the key concepts and formulas covered in this file.')">💡 Explain Concepts</button>
-      <button class="ai-ctx-chip" onclick="askAiAboutFile('Generate 3 exam practice questions based on this file.')">📝 Practice Questions</button>
+      <button class="ai-ctx-chip" onclick="askAiAboutFile('Solve the questions in this paper step-by-step with complete explanations.')">💡 Solve & Explain</button>
+      <button class="ai-ctx-chip" onclick="askAiAboutFile('Summarize this paper thoroughly and outline its main topics.')">⚡ Summarize</button>
+      <button class="ai-ctx-chip" onclick="askAiAboutFile('Generate 3 exam practice questions based on this file with solutions.')">📝 Practice Questions</button>
     </div>
   </div>
 
   <!-- Chat History -->
   <div id="aiMsgList">
     <div class="ai-bubble assistant">
-      👋 Hi! I'm <strong>AbhiHub AI</strong>, your single assistant for the whole app. Ask me to find PYQs, search notes, or explain any document you have open!
+      👋 Hi! I'm <strong>Tarika</strong>, your personal study assistant for AbhiHub. Ask me to find PYQs, search notes, or solve and explain any document you have open!
     </div>
   </div>
 
@@ -333,12 +333,12 @@
   <div class="ai-quick-prompts">
     <button class="ai-qchip" onclick="quickSend('Find PYQs for Engineering Mathematics')">🔍 Math PYQs</button>
     <button class="ai-qchip" onclick="quickSend('Find notes for Data Structures')">📚 DSA Notes</button>
-    <button class="ai-qchip" onclick="quickSend('What materials are available for 2nd year?')">🎓 2nd Year</button>
+    <button class="ai-qchip" onclick="quickSend('Solve the paper on this page')">📝 Solve This Paper</button>
   </div>
 
   <!-- Input Form -->
   <div class="ai-drw-input-row">
-    <input type="text" id="aiChatInput" placeholder="Ask AI or find PYQs/notes..." onkeydown="if(event.key==='Enter') sendAiMessage()">
+    <input type="text" id="aiChatInput" placeholder="Ask Tarika or find PYQs/notes..." onkeydown="if(event.key==='Enter') sendAiMessage()">
     <button id="aiSendBtn" onclick="sendAiMessage()">➔</button>
   </div>
 </div>
@@ -348,39 +348,56 @@
   let activeDocId = null;
   let activeDocTitle = '';
 
-  // Detect open document across AbhiHub (p_pdf_reader, resource.html, or meta)
+  // Detect open document across AbhiHub (p_pdf_reader, resource.html, viewer iframe, or URL)
   function detectOpenDocument() {
-    // Check global variables
-    if (window.VALID_DOC_ID) {
-      activeDocId = window.VALID_DOC_ID;
-    } else if (window.__CURRENT_DOC__ && window.__CURRENT_DOC__.id) {
+    // 1. Explicit window.__CURRENT_DOC__
+    if (window.__CURRENT_DOC__ && window.__CURRENT_DOC__.id) {
       activeDocId = window.__CURRENT_DOC__.id;
       activeDocTitle = window.__CURRENT_DOC__.title || '';
-    } else {
-      // Check URL pathname for /resource/<id> or params
-      const match = window.location.pathname.match(/\/resource\/([a-zA-Z0-9_-]+)/);
-      if (match) {
-        activeDocId = match[1].replace('-view', '');
-      } else {
-        const urlParams = new URLSearchParams(window.location.search);
-        const rid = urlParams.get('record_id');
-        if (rid) activeDocId = rid;
+    } else if (window.VALID_DOC_ID) {
+      activeDocId = window.VALID_DOC_ID;
+    }
+
+    // 2. Iframe src check (PDF viewer iframe: /api/view-doc/<uuid>/...)
+    if (!activeDocId) {
+      const viewerIframe = document.querySelector('iframe[src*="/api/view-doc/"], iframe[src*="viewer.html"]');
+      if (viewerIframe && viewerIframe.src) {
+        const m = viewerIframe.src.match(/\/api\/view-doc\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+        if (m) activeDocId = m[1];
       }
     }
 
+    // 3. UUID in current URL
+    if (!activeDocId) {
+      const uuidMatch = window.location.href.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+      if (uuidMatch) {
+        activeDocId = uuidMatch[0];
+      } else {
+        const match = window.location.pathname.match(/\/resource\/([^\/\?]+)/);
+        if (match) {
+          activeDocId = match[1].replace('-view', '');
+        } else {
+          const urlParams = new URLSearchParams(window.location.search);
+          const rid = urlParams.get('record_id') || urlParams.get('doc_id') || urlParams.get('pdf_name') || urlParams.get('id');
+          if (rid) activeDocId = rid;
+        }
+      }
+    }
+
+    // 4. Resolve document title from DOM
     if (!activeDocTitle) {
-      const heading = document.querySelector('h1') || document.querySelector('.reader-title');
+      const heading = document.querySelector('.resource-title, .reader-title, h1');
       if (heading && heading.textContent.trim()) {
         activeDocTitle = heading.textContent.trim();
       } else {
-        activeDocTitle = document.title.replace('— AbhiHub', '').trim();
+        activeDocTitle = document.title.replace('— AbhiHub', '').replace('— AbhiHub Reader', '').trim();
       }
     }
 
     const ctxBar = document.getElementById('aiContextBar');
     const ctxDocName = document.getElementById('aiContextDocName');
-    if (activeDocId && ctxBar && ctxDocName) {
-      ctxDocName.textContent = '📄 ' + (activeDocTitle.slice(0, 45) || 'Current Document');
+    if ((activeDocId || activeDocTitle) && ctxBar && ctxDocName) {
+      ctxDocName.textContent = '📄 ' + (activeDocTitle.slice(0, 42) || 'Active Document');
       ctxBar.style.display = 'block';
     }
   }
@@ -421,6 +438,9 @@
     const query = input.value.trim();
     if (!query) return;
 
+    // Refresh document context immediately prior to dispatch
+    detectOpenDocument();
+
     // Add user message
     const uBubble = document.createElement('div');
     uBubble.className = 'ai-bubble user';
@@ -431,7 +451,7 @@
     // Thinking indicator
     const thinking = document.createElement('div');
     thinking.className = 'ai-bubble thinking';
-    thinking.textContent = 'Thinking & checking AbhiHub catalog...';
+    thinking.textContent = activeDocId ? 'Analyzing open document & questions...' : 'Thinking & checking AbhiHub catalog...';
     msgList.appendChild(thinking);
     msgList.scrollTop = msgList.scrollHeight;
 
@@ -445,6 +465,7 @@
         body: JSON.stringify({
           message: query,
           doc_id: activeDocId,
+          doc_title: activeDocTitle,
           model: preferredModel
         })
       });
@@ -459,7 +480,12 @@
         return;
       }
 
-      const data = await res.json();
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = { success: false, message: `Server error (${res.status}). Please check your model or try again.` };
+      }
       const aBubble = document.createElement('div');
       aBubble.className = 'ai-bubble assistant';
 

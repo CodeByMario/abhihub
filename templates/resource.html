@@ -28,6 +28,13 @@ uploader_name %}
 
 {% extends 'p_struct.html' %}
 {% block page_head %}
+<script>
+  window.__CURRENT_DOC__ = {
+    id: "{{ document.id }}",
+    title: {{ (document.title or resource_title) | tojson }},
+    category: "{{ document.document_category or 'document' }}"
+  };
+</script>
 <!-- Dynamic Learning Resource & Educational Schema -->
 <script type="application/ld+json">
 {
@@ -1429,6 +1436,9 @@ uploader_name %}
       const DOC_ID = '{{ document.id }}' || '';
       // Guard: Jinja2 renders None as the string 'None'
       const VALID_DOC_ID = (DOC_ID && DOC_ID !== 'None' && DOC_ID !== 'undefined') ? DOC_ID : '';
+      if (VALID_DOC_ID) {
+        window.__CURRENT_DOC__ = { id: VALID_DOC_ID, title: {{ document.title | tojson }}, category: '{{ document.document_category }}' };
+      }
       const msgs = document.getElementById('aiMessages');
 
       if (!VALID_DOC_ID) {
@@ -1458,7 +1468,7 @@ uploader_name %}
       window.shareChatWhatsApp = function () {
         const chatElements = Array.from(document.getElementById('aiMessages').children);
         if (chatElements.length === 0) return alert('No chat to share.');
-        let chatText = "*AbhiHub AI Reference Chat*\n\n";
+        let chatText = "*Tarika Reference Chat*\n\n";
         chatElements.forEach(el => {
           const isUser = el.style.alignSelf.includes('flex-end');
           chatText += (isUser ? "*You*: " : "*AI*: ") + el.innerText + "\n\n";

@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AbhiHub AI — Your Personal Study Agent</title>
-    <meta name="description" content="AbhiHub AI: your personal study agent for engineering notes, PYQs, and subject help. Powered by WebGPU or external AI — fully AbhiHub-native.">
+    <title>Tarika — Your Personal Study Agent</title>
+    <meta name="description" content="Tarika: your personal study agent for engineering notes, PYQs, and subject help. Powered by WebGPU or external AI — fully AbhiHub-native.">
 
     <link rel="stylesheet" href="/static/css/pipeline/01_tokens.css">
     <link rel="stylesheet" href="/static/css/pipeline/02_base.css">
@@ -382,7 +382,7 @@
     <header class="agent-header">
         <div class="agent-logo">🤖</div>
         <div class="agent-title">
-            <h1>AbhiHub AI</h1>
+            <h1>Tarika</h1>
             <div class="agent-sub">Your personal study agent · AbhiHub exclusive</div>
         </div>
 
@@ -408,7 +408,7 @@
         <!-- Welcome card -->
         <div class="welcome-card" id="welcomeCard">
             <div class="wc-logo">🎓</div>
-            <h2 id="welcomeHeading">Hi! I'm AbhiHub AI</h2>
+            <h2 id="welcomeHeading">Hi! I'm Tarika</h2>
             <p>Your exclusive study agent for <strong>notes, PYQs, subjects, and engineering help</strong> — all powered by AbhiHub's resources.</p>
             <div class="chips">
                 <button class="chip" onclick="quickPrompt('Explain the Fourier Transform with a real engineering application.')">📐 Fourier Transform</button>
@@ -467,7 +467,7 @@
 
     <div class="modal-head">
         <div>
-            <h2>⚙ AbhiHub AI Settings</h2>
+            <h2>⚙ Tarika Settings</h2>
             <p>Choose your AI provider. All responses are AbhiHub-exclusive.</p>
         </div>
         <button class="modal-close" onclick="closeSettings()">✕</button>
@@ -549,7 +549,7 @@ window.toggleOnDevice    = toggleOnDevice;
 // Personalize welcome heading
 const user = window.__CURRENT_USER__ || {};
 if (user.name && user.name !== "Student") {
-    document.getElementById("welcomeHeading").textContent = `Hi ${user.name}! I'm AbhiHub AI 👋`;
+    document.getElementById("welcomeHeading").textContent = `Hi ${user.name}! I'm Tarika 👋`;
 }
 
 // Update pill + status bar + show nudge if no key

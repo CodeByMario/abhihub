@@ -1,5 +1,12 @@
 {% extends 'p_struct.html' %}
 {% block content %}
+<script>
+  window.__CURRENT_DOC__ = {
+    id: "{{ file_meta.get('id', '') or record_id or '' }}",
+    title: {{ file_meta.get('file-name', pdf_name) | tojson }},
+    category: "{{ file_meta.get('document_category', 'pdf') }}"
+  };
+</script>
 
 <title>{{ file_meta.get('file-name', pdf_name) }} — AbhiHub Reader</title>
 <meta name="referrer" content="same-origin">
@@ -840,7 +847,7 @@
   <div class="info-panel" id="aiPanel" style="max-width: 600px;">
 
     <div class="info-panel-header">
-      <span class="info-panel-title" id="aiPanelTitle">🤖 AbhiHub AI Paper Assistant</span>
+      <span class="info-panel-title" id="aiPanelTitle">🤖 Tarika — Paper Assistant</span>
       <button class="info-close-btn" type="button" data-action="closeAIModal" aria-label="Close AI panel">✕</button>
     </div>
 
@@ -952,6 +959,12 @@
   function closeAIModal() {
     document.getElementById('aiBackdrop').classList.remove('open');
   }
+  window.__CURRENT_DOC__ = {
+    id: "{{ file_meta.get('id', '') }}",
+    title: {{ file_meta.get('file-name', pdf_name) | tojson }},
+    category: "{{ file_meta.get('document_category', '') }}"
+  };
+
   function fillPdfQuestion(q) {
     document.getElementById('pdfAiQuestion').value = q;
     askPdfAI();

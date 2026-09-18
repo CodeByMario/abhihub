@@ -492,7 +492,7 @@ input:checked + .st-slide:before { transform: translateX(20px); }
         <div class="st-card">
           <h2><span class="st-card-icon">🤖</span> AI Tutor & Agent Configuration</h2>
           <p style="color:var(--text-secondary); margin-bottom:1.25rem; font-size:var(--text-sm); line-height:1.6;">
-            AbhiHub AI gives you instant help with notes, PYQs, summaries, and explanations. Bring Your Own Key (BYOK) from OpenRouter to unlock unlimited usage and advanced reasoning models.
+            Tarika gives you instant help with notes, PYQs, summaries, and explanations. Bring Your Own Key (BYOK) from supported AI providers to unlock unlimited usage and advanced reasoning models.
           </p>
 
           <div class="st-form-row">
@@ -503,28 +503,36 @@ input:checked + .st-slide:before { transform: translateX(20px); }
           </div>
 
           <div class="st-form-row">
-            <label class="st-form-label">OpenRouter API Key (BYOK)</label>
-            <input type="password" id="aiApiKeyInput" class="st-form-input" placeholder="sk-or-v1-...">
-            <div class="st-form-sublabel">Your key is Fernet-encrypted on the server and tested before saving. Never shared.</div>
+            <label class="st-form-label">AI Provider Platform</label>
+            <select id="aiProviderSelect" class="st-form-input" onchange="onAiProviderChanged()">
+              <option value="openrouter">OpenRouter (Multi-model & Free Pool)</option>
+              <option value="anthropic">Anthropic Claude (Direct API Key)</option>
+              <option value="gemini">Google Gemini (Direct API Key)</option>
+              <option value="nvidia">NVIDIA NIM (Direct API Key)</option>
+              <option value="openai">OpenAI (Direct API Key)</option>
+              <option value="groq">Groq (Direct API Key · Ultra Fast)</option>
+            </select>
+            <div class="st-form-sublabel">Select your platform provider. We connect directly to the chosen platform.</div>
           </div>
 
           <div class="st-form-row">
-            <label class="st-form-label">Model Selection</label>
+            <label class="st-form-label" id="aiKeyLabel">API Key (BYOK)</label>
+            <input type="password" id="aiApiKeyInput" class="st-form-input" placeholder="sk-or-v1-...">
+            <div class="st-form-sublabel" id="aiKeySublabel">Your key is Fernet-encrypted on the server and verified before saving. Never shared.</div>
+          </div>
+
+          <div class="st-form-row">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
+              <label class="st-form-label" style="margin-bottom:0;">Model Selection (Real-Time)</label>
+              <button type="button" class="st-btn st-btn-outline" style="padding:2px 8px; font-size:11px;" onclick="refreshLiveModels()">🔄 Fetch Live Models</button>
+            </div>
             <select id="aiModelSelect" class="st-form-input">
-              <optgroup label="Free Tier (Platform Managed)">
-                <option value="google/gemma-4-31b-it:free">Google Gemma 4 31B (Free)</option>
-                <option value="meta-llama/llama-3.1-8b-instruct:free">Llama 3.1 8B (Free)</option>
-                <option value="openai/gpt-oss-20b:free">GPT OSS 20B (Free)</option>
-              </optgroup>
-              <optgroup label="Advanced Models (BYOK Key Required)">
-                <option value="anthropic/claude-3.5-sonnet">Claude 3.5 Sonnet (Anthropic)</option>
-                <option value="openai/gpt-4o">GPT-4o (OpenAI)</option>
-                <option value="google/gemini-2.0-flash-001">Gemini 2.0 Flash (Google)</option>
-                <option value="meta-llama/llama-3.3-70b-instruct">Llama 3.3 70B Instruct (Meta)</option>
-                <option value="deepseek/deepseek-r1">DeepSeek R1 (Reasoning)</option>
-              </optgroup>
+              <option value="">Loading models...</option>
             </select>
-            <div class="st-form-sublabel">Pick which intelligence model powers the unified assistant across the app.</div>
+            <div class="st-form-sublabel" id="aiModelSublabel">Live models retrieved directly from provider API.</div>
+            <div style="margin-top:8px; padding:8px 12px; background:#ecfdf5; border:1px solid #a7f3d0; border-radius:10px; font-size:12px; color:#065f46; line-height:1.4;">
+              💡 <strong>Credits exhausted?</strong> Switch your model to any option under <strong>🎁 Free Tier / Included</strong> (such as OpenRouter <code>:free</code> models, Groq, or Gemini Flash) to continue chatting without requiring paid credits.
+            </div>
           </div>
 
           <div class="st-btn-row" style="display:flex; gap:0.75rem; margin-top:1.25rem;">
@@ -635,13 +643,16 @@ function forgotPassword() {
 // ── Cache size display ──
 (function() {
   if ('caches' in window) {
-    let total = 0;
-    caches.keys().then(keys => {
-      return Promise.all(keys.map(k => caches.matchAll(k))).then(matches => {
-        matches.forEach(m => m.forEach(r => { total += r.headers.get('content-length') || 0; }));
-        document.getElementById('cacheSize').textContent = (total / 1024 / 1024).toFixed(1) + ' MB';
-      });
-    });
+    try {
+      caches.keys().then(keys => {
+        return Promise.all(keys.map(k => caches.open(k).then(c => c.matchAll()))).then(matches => {
+          let total = 0;
+          matches.forEach(m => m.forEach(r => { total += parseInt(r.headers.get('content-length') || '0', 10); }));
+          const el = document.getElementById('cacheSize');
+          if (el) el.textContent = (total / 1024 / 1024).toFixed(1) + ' MB';
+        });
+      }).catch(() => {});
+    } catch(e) {}
   }
 })();
 
@@ -750,11 +761,87 @@ function sendTestNotification() {
       }
     });
 })();
-// ── AI Settings Handlers ──
+// ── AI Settings Handlers & Real-time Models ──
+const PROVIDER_PLACEHOLDERS = {
+  openrouter: 'sk-or-v1-...',
+  anthropic:  'sk-ant-api03-...',
+  gemini:     'AIzaSy...',
+  nvidia:     'nvapi-...',
+  openai:     'sk-proj-...',
+  groq:       'gsk_...'
+};
+
+function onAiProviderChanged() {
+  const pSelect = document.getElementById('aiProviderSelect');
+  const provider = pSelect ? pSelect.value : 'openrouter';
+  const kInput = document.getElementById('aiApiKeyInput');
+  if (kInput) {
+    kInput.placeholder = PROVIDER_PLACEHOLDERS[provider] || 'Enter API Key...';
+  }
+  refreshLiveModels();
+}
+
+function refreshLiveModels() {
+  const pSelect = document.getElementById('aiProviderSelect');
+  const provider = pSelect ? pSelect.value : 'openrouter';
+  const kInput = document.getElementById('aiApiKeyInput');
+  const key = (kInput ? kInput.value : '').trim();
+  const mSelect = document.getElementById('aiModelSelect');
+  const mSublabel = document.getElementById('aiModelSublabel');
+
+  if (mSelect) mSelect.innerHTML = '<option value="">Fetching realtime models...</option>';
+  if (mSublabel) mSublabel.textContent = `Connecting to ${provider.toUpperCase()} live models API...`;
+
+  const url = `/api/ai/models?provider=${encodeURIComponent(provider)}&api_key=${encodeURIComponent(key)}`;
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      if (mSelect && data.models && data.models.length > 0) {
+        mSelect.innerHTML = '';
+        const savedModel = localStorage.getItem('ai_preferred_model');
+
+        const freeGroup = document.createElement('optgroup');
+        freeGroup.label = '🎁 Free Tier / Included (Use when credits exhaust)';
+
+        const paidGroup = document.createElement('optgroup');
+        paidGroup.label = '💎 Premium / Paid Tier';
+
+        data.models.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = (m.is_free ? '🎁 ' : '⚡ ') + (m.name || m.id);
+          if (m.id === savedModel) opt.selected = true;
+
+          if (m.is_free) {
+            freeGroup.appendChild(opt);
+          } else {
+            paidGroup.appendChild(opt);
+          }
+        });
+
+        if (freeGroup.children.length > 0) mSelect.appendChild(freeGroup);
+        if (paidGroup.children.length > 0) mSelect.appendChild(paidGroup);
+
+        const freeCount = freeGroup.children.length;
+        if (mSublabel) {
+          mSublabel.innerHTML = `✅ <strong>${data.models.length} models</strong> retrieved (${freeCount} free-tier models ready if credits run out).`;
+        }
+      } else if (mSelect) {
+        mSelect.innerHTML = '<option value="">No models returned</option>';
+      }
+    })
+    .catch(() => {
+      if (mSublabel) mSublabel.textContent = 'Using cached standard models for ' + provider;
+    });
+}
+
 function loadAiSettings() {
-  const model = localStorage.getItem('ai_preferred_model');
-  const sel = document.getElementById('aiModelSelect');
-  if (model && sel) sel.value = model;
+  const savedProvider = localStorage.getItem('ai_provider') || 'openrouter';
+  const pSelect = document.getElementById('aiProviderSelect');
+  if (pSelect) {
+    pSelect.value = savedProvider;
+    onAiProviderChanged();
+  }
 
   fetch('/api/ai/usage')
     .then(r => r.json())
@@ -783,6 +870,8 @@ function loadAiSettings() {
 }
 
 function saveAiSettings() {
+  const pSelect = document.getElementById('aiProviderSelect');
+  const provider = pSelect ? pSelect.value : 'openrouter';
   const keyInput = document.getElementById('aiApiKeyInput');
   const modelSelect = document.getElementById('aiModelSelect');
   const statusEl = document.getElementById('aiSettingStatus');
@@ -791,26 +880,28 @@ function saveAiSettings() {
   const key = (keyInput ? keyInput.value : '').trim();
   const model = modelSelect ? modelSelect.value : '';
 
+  localStorage.setItem('ai_provider', provider);
   if (model) {
     localStorage.setItem('ai_preferred_model', model);
   }
 
   if (key) {
     if (btn) { btn.disabled = true; btn.textContent = 'Validating key...'; }
-    if (statusEl) { statusEl.textContent = 'Validating key with provider...'; statusEl.style.color = 'var(--text-secondary)'; }
+    if (statusEl) { statusEl.textContent = `Validating key with ${provider}...`; statusEl.style.color = 'var(--text-secondary)'; }
 
     fetch('/api/ai/key', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ api_key: key })
+      body: JSON.stringify({ api_key: key, provider: provider })
     })
     .then(r => r.json().then(data => ({ ok: r.ok, data })))
     .then(res => {
       if (btn) { btn.disabled = false; btn.textContent = '💾 Save Key & Model'; }
       if (res.ok && res.data.success) {
-        showStToast('✅ BYOK Key saved & activated!');
-        if (statusEl) { statusEl.textContent = '✅ Key validated & encrypted. BYOK plan active.'; statusEl.style.color = '#16a34a'; }
+        showStToast(`✅ ${provider.toUpperCase()} Key verified & activated!`);
+        if (statusEl) { statusEl.textContent = `✅ Key verified & encrypted. ${provider.toUpperCase()} BYOK plan active.`; statusEl.style.color = '#16a34a'; }
         if (keyInput) keyInput.value = '';
+        refreshLiveModels();
         loadAiSettings();
       } else {
         showStToast('❌ ' + (res.data.message || 'Key validation failed'));
@@ -822,8 +913,8 @@ function saveAiSettings() {
       showStToast('❌ Network error saving key');
     });
   } else {
-    showStToast('✅ Model preference saved');
-    if (statusEl) { statusEl.textContent = 'Model preference updated.'; statusEl.style.color = '#16a34a'; }
+    showStToast('✅ Provider & model preferences saved');
+    if (statusEl) { statusEl.textContent = 'Preferences updated.'; statusEl.style.color = '#16a34a'; }
   }
 }
 
