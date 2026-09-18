@@ -246,7 +246,16 @@ def apply_security_and_cache_headers(response):
     """Add security and cache control headers to all responses."""
     # Global Security Headers
     response.headers.setdefault('X-Content-Type-Options', 'nosniff')
-    response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+    
+    # Allow iframe embedding for /ai/embed across all AbhiHub subdomains
+    if request.path.startswith('/ai/embed'):
+        response.headers['Content-Security-Policy'] = "frame-ancestors 'self' https://*.abhihub.edu.eu.org https://abhihub.edu.eu.org http://localhost:* http://127.0.0.1:*"
+        response.headers['Cross-Origin-Resource-Policy'] = 'cross-origin'
+        if 'X-Frame-Options' in response.headers:
+            del response.headers['X-Frame-Options']
+    else:
+        response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
     response.headers.setdefault('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()')
     
@@ -257,12 +266,21 @@ def apply_security_and_cache_headers(response):
     # Performance / Cache-Control
     if request.path.startswith('/static/'):
         response.headers['Cache-Control'] = 'public, max-age=31536000, must-revalidate'
+        if request.path.startswith('/static/js/ai/'):
+            response.headers['Cross-Origin-Resource-Policy'] = 'cross-origin'
     elif request.path.startswith('/api/'):
         if 'Cache-Control' not in response.headers:
             response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
     elif request.path.endswith('.html') and not request.path.startswith('/dashboard'):
         response.headers.setdefault('Cache-Control', 'public, max-age=60, must-revalidate')
     return response
+
+# Subdomain router for ai.abhihub.edu.eu.org
+@app.before_request
+def handle_subdomain_routing():
+    host = (request.host or '').lower().split(':')[0]
+    if host.startswith('ai.') and request.path == '/':
+        return render_template('ai_hub.html', is_embed=False)
 
 # Add gzip compression for text responses
 try:
@@ -271,6 +289,21 @@ try:
     compress.init_app(app)
 except ImportError:
     pass
+
+@app.route('/ai')
+def ai_hub():
+    """Main WebLLM AI Hub portal (ai.abhihub.edu.eu.org / www.abhihub.edu.eu.org/ai)."""
+    return render_template('ai_hub.html', is_embed=False)
+
+@app.route('/ai/embed')
+def ai_embed():
+    """Embedded WebLLM runtime bridge for cross-subdomain postMessage RPC."""
+    return render_template('ai_hub.html', is_embed=True)
+
+@app.route('/ai/setup')
+def ai_setup():
+    """Dedicated Setup Guide page — pre-selects the Setup Guide tab."""
+    return render_template('ai_hub.html', is_embed=False, default_tab='setup')
 
 @app.route('/health')
 @app.route('/api/health')
@@ -5980,7 +6013,88 @@ def internal_server_error(e):
 def offline_page():
     return render_template('offline.html')
 
+# ─── AI Tutor: BYOK Key Management ──────────────────────────────────────────
+
+@app.route('/api/ai/key', methods=['POST'])
+@auth_required
+def api_ai_key_set(user_data=None):
+    """Save a BYOK OpenRouter API key.
+
+    Amendment 4: validates the key with one cheap test call before encrypting/persisting.
+    Returns 401 with a clear message if validation fails.
+    """
+    from methods.ai_provider import OpenRouterAdapter, KeyInvalidError, encrypt_key
+    from methods.supabase_helper import set_ai_key_enc
+
+    user_id = (user_data or {}).get('uid') or session.get('user', {}).get('uid')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+
+    data = request.get_json(silent=True) or {}
+    raw_key = (data.get('api_key') or '').strip()
+    if not raw_key:
+        return jsonify({'success': False, 'message': 'api_key is required'}), 400
+
+    # Validate the key with one cheap test call before persisting (amendment 4)
+    adapter = OpenRouterAdapter(api_key=raw_key, models=['meta-llama/llama-3.1-8b-instruct:free'])
+    try:
+        adapter.validate()
+    except KeyInvalidError:
+        return jsonify({
+            'success': False,
+            'message': 'API key validation failed — the provider rejected it. Check that you copied the full key.'
+        }), 401
+    except Exception as exc:
+        # Network error during validation — don't block save, but warn
+        logging.warning(f'[ai/key] Validation call error (saving anyway): {exc}')
+
+    try:
+        key_enc = encrypt_key(raw_key)
+    except RuntimeError as exc:
+        return jsonify({'success': False, 'message': str(exc)}), 500
+
+    if not set_ai_key_enc(user_id, key_enc):
+        return jsonify({'success': False, 'message': 'Failed to save key — database error'}), 500
+
+    logging.info(f'[ai/key] BYOK key saved for user {user_id}')
+    return jsonify({'success': True, 'message': 'API key saved. You are now on the BYOK plan.'}), 200
+
+
+@app.route('/api/ai/key', methods=['DELETE'])
+@auth_required
+def api_ai_key_delete(user_data=None):
+    """Remove stored BYOK key; revert to free tier."""
+    from methods.supabase_helper import clear_ai_key
+
+    user_id = (user_data or {}).get('uid') or session.get('user', {}).get('uid')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+
+    if not clear_ai_key(user_id):
+        return jsonify({'success': False, 'message': 'Failed to remove key'}), 500
+
+    logging.info(f'[ai/key] BYOK key removed for user {user_id}')
+    return jsonify({'success': True, 'message': 'API key removed. Reverted to free tier.'}), 200
+
+
+@app.route('/api/ai/usage', methods=['GET'])
+@auth_required
+def api_ai_usage(user_data=None):
+    """Return the authenticated user's AI usage for the last 7 days."""
+    from methods.ai_usage import get_user_usage
+
+    user_id = (user_data or {}).get('uid') or session.get('user', {}).get('uid')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+
+    days = min(int(request.args.get('days', 7)), 30)  # cap at 30 days
+    rows = get_user_usage(user_id, days=days)
+    total_cost = sum(float(r.get('cost_usd') or 0) for r in rows)
+    return jsonify({'success': True, 'rows': rows, 'total_cost_usd': round(total_cost, 6)}), 200
+
+
 # ─── AI Paper Q&A & Unlimited OCR ───────────────────────────────────────────
+
 @app.route('/api/ask-paper', methods=['POST'])
 @auth_required
 def api_ask_paper():

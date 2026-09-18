@@ -2536,3 +2536,62 @@ def upload_file_to_supabase(file_data: bytes, supabase_path: str, content_type: 
     except Exception as e:
         logging.error(f'[Supabase] Upload to storage failed: {e}')
         return {'success': False, 'message': str(e)}
+
+
+# ── AI Tutor: profile helpers (migration 028) ────────────────────────────────
+
+def get_ai_profile(user_id: str) -> dict:
+    """Return ai_plan, ai_key_enc, ai_provider for the given user.
+
+    Returns {'ai_plan': 'free', 'ai_key_enc': None, 'ai_provider': 'openrouter'}
+    on any error (fail-open: free tier with no key).
+    """
+    _default = {'ai_plan': 'free', 'ai_key_enc': None, 'ai_provider': 'openrouter'}
+    client = init_supabase()
+    if not client:
+        return _default
+    try:
+        res = (client.table('profiles')
+               .select('ai_plan, ai_key_enc, ai_provider')
+               .eq('id', user_id)
+               .single()
+               .execute())
+        return res.data or _default
+    except Exception as exc:
+        logging.warning(f'[supabase] get_ai_profile error: {exc}')
+        return _default
+
+
+def set_ai_key_enc(user_id: str, key_enc: str, provider: str = 'openrouter') -> bool:
+    """Persist encrypted BYOK key; set plan to 'byok'. Returns True on success."""
+    client = init_supabase()
+    if not client:
+        return False
+    try:
+        client.table('profiles').update({
+            'ai_key_enc': key_enc,
+            'ai_plan': 'byok',
+            'ai_provider': provider,
+        }).eq('id', user_id).execute()
+        return True
+    except Exception as exc:
+        logging.error(f'[supabase] set_ai_key_enc error: {exc}')
+        return False
+
+
+def clear_ai_key(user_id: str) -> bool:
+    """Remove BYOK key; revert plan to 'free'. Returns True on success."""
+    client = init_supabase()
+    if not client:
+        return False
+    try:
+        client.table('profiles').update({
+            'ai_key_enc': None,
+            'ai_plan': 'free',
+            'ai_provider': 'openrouter',
+        }).eq('id', user_id).execute()
+        return True
+    except Exception as exc:
+        logging.error(f'[supabase] clear_ai_key error: {exc}')
+        return False
+
