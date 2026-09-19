@@ -140,13 +140,198 @@ function showToast(msg, type) {
   setTimeout(() => d.remove(), 4000);
 }
 
+// Map of in-flight AbortControllers for AI extraction per file ID
+window._uploadAiControllers = window._uploadAiControllers || {};
+
+async function processFileMetadataAutofill(newItem, file) {
+  const form = document.getElementById(`meta-form-${newItem.id}`);
+  if (!form) return;
+
+  // Track user edits so AI never overwrites manually entered fields
+  form.addEventListener('input', (e) => { e.target.dataset.userModified = 'true'; });
+  form.addEventListener('change', (e) => { e.target.dataset.userModified = 'true'; });
+
+  const showAiPill = (field) => {
+    const pill = form.querySelector(`.field-ai-pill[data-field="${field}"]`);
+    if (pill) pill.style.display = 'inline-flex';
+  };
+
+  const setStatusBadge = (show, text) => {
+    const badge = form.querySelector('.meta-ai-status-badge');
+    if (badge) {
+      badge.style.display = show ? 'inline-flex' : 'none';
+      if (text) badge.textContent = text;
+    }
+  };
+
+  let known = { type: null, year: null, unit: null, subject_id: null, subject_name: null, qb_tags: null };
+
+  // Step 1: Fast & Free Heuristic Pass
+  try {
+    const hRes = await fetch('/api/ai/predict-metadata', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ filename: file.name })
+    }).then(r => r.json());
+
+    if (hRes && hRes.success && hRes.prediction) {
+      const p = hRes.prediction;
+      if (p.type) known.type = p.type;
+      if (p.year) known.year = p.year;
+      if (p.unit) known.unit = p.unit;
+      if (p.subject_id) known.subject_id = p.subject_id;
+
+      if (known.type) {
+        const typeEl = form.querySelector('.meta-type');
+        if (typeEl && !typeEl.dataset.userModified && !typeEl.value) {
+          typeEl.value = known.type;
+          updateDynamicFieldsForForm(form);
+        }
+      }
+      if (known.year) {
+        const yearEl = form.querySelector('.meta-year');
+        if (yearEl && !yearEl.dataset.userModified) yearEl.value = known.year;
+      }
+      if (known.unit) {
+        const unitEl = form.querySelector('.meta-unit');
+        if (unitEl && !unitEl.dataset.userModified && !unitEl.value) {
+          unitEl.innerHTML = `<option value="${known.unit}" selected>${known.unit}</option>`;
+          unitEl.value = known.unit;
+        }
+      }
+      if (known.subject_id) {
+        const subjEl = form.querySelector('.subject-select');
+        if (subjEl && !subjEl.dataset.userModified) {
+          const tsSubj = window.AbhiHubSelect?.instances[subjEl.id];
+          if (tsSubj) {
+            if (!tsSubj.options[known.subject_id]) tsSubj.addOption({ value: known.subject_id, text: p.subject || 'Loading...' });
+            tsSubj.setValue(known.subject_id, true);
+          } else {
+            subjEl.value = known.subject_id;
+          }
+        }
+      }
+    }
+  } catch (e) {
+    console.warn("[Autofill] Heuristic predict error:", e);
+  }
+
+  // Step 2: Check if all key fields are resolved
+  const isComplete = known.type && known.year && (known.type !== 'papers' || known.unit) && known.subject_id;
+  if (isComplete) {
+    return;
+  }
+
+  // Step 3: AI Document Extraction Pass (Async, Abortable)
+  const controller = new AbortController();
+  window._uploadAiControllers[newItem.id] = controller;
+  setStatusBadge(true, '🤖 Analyzing document…');
+
+  try {
+    const branchEl = form.querySelector('.branch-select');
+    const branch_id = branchEl
+      ? (window.AbhiHubSelect?.instances[branchEl.id]?.getValue() || branchEl.value || window.userBranchId || '')
+      : (window.userBranchId || '');
+
+    const fd = new FormData();
+    fd.append('upload_document', file);
+    fd.append('filename', file.name);
+    if (branch_id) fd.append('branch_id', branch_id);
+    fd.append('known_fields', JSON.stringify(known));
+
+    const aiRes = await fetch('/api/ai/extract-upload-metadata', {
+      method: 'POST',
+      body: fd,
+      signal: controller.signal
+    }).then(r => r.json());
+
+    if (aiRes && aiRes.success && aiRes.metadata) {
+      const m = aiRes.metadata;
+
+      // 1. Category / Type
+      if (m.type) {
+        const typeEl = form.querySelector('.meta-type');
+        if (typeEl && !typeEl.dataset.userModified) {
+          typeEl.value = m.type;
+          updateDynamicFieldsForForm(form);
+          showAiPill('type');
+        }
+      }
+
+      // 2. Year
+      if (m.year) {
+        const yearEl = form.querySelector('.meta-year');
+        if (yearEl && !yearEl.dataset.userModified) {
+          yearEl.value = m.year;
+          showAiPill('year');
+        }
+      }
+
+      // 3. Unit
+      if (m.unit) {
+        const unitEl = form.querySelector('.meta-unit');
+        if (unitEl && !unitEl.dataset.userModified) {
+          let opt = unitEl.querySelector(`option[value="${m.unit}"]`);
+          if (!opt) {
+            opt = document.createElement('option');
+            opt.value = m.unit;
+            opt.textContent = m.unit;
+            unitEl.appendChild(opt);
+          }
+          unitEl.value = m.unit;
+          showAiPill('unit');
+        }
+      }
+
+      // 4. Subject
+      const subjEl = form.querySelector('.subject-select');
+      if (subjEl && !subjEl.dataset.userModified) {
+        const tsSubj = window.AbhiHubSelect?.instances[subjEl.id];
+        if (m.subject_id) {
+          if (tsSubj) {
+            if (!tsSubj.options[m.subject_id]) {
+              tsSubj.addOption({ value: m.subject_id, text: m.subject_name || 'Loading...' });
+            }
+            tsSubj.setValue(m.subject_id, false);
+          } else {
+            subjEl.value = m.subject_id;
+          }
+          showAiPill('subject');
+        } else if (m.subject_name) {
+          // Pre-populate search query in TomSelect if subject_id wasn't resolved
+          if (tsSubj && typeof tsSubj.setTextboxValue === 'function') {
+            tsSubj.setTextboxValue(m.subject_name);
+          }
+        }
+      }
+
+      // 5. Question Bank Tags
+      if (m.qb_tags) {
+        const qbEl = form.querySelector('.qb-tags');
+        if (qbEl && !qbEl.dataset.userModified && !qbEl.value) {
+          qbEl.value = m.qb_tags;
+        }
+      }
+
+      if (aiRes.source && aiRes.source.startsWith('ai_') && (aiRes.fields_filled || []).length > 0) {
+        showToast('✨ AI auto-filled metadata for ' + newItem.name, 'info');
+      }
+    }
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      console.warn("[Autofill] AI extract failed (silent degradation):", err);
+    }
+  } finally {
+    setStatusBadge(false);
+    delete window._uploadAiControllers[newItem.id];
+  }
+}
+
 /* ── File selection ── */
 function handleFilesSelected(filesOrEvent) {
   const files = (filesOrEvent && filesOrEvent.type && filesOrEvent.type.startsWith('change') && filesOrEvent.target)
     ? filesOrEvent.target.files
     : filesOrEvent;
-  // Type is read from the most recent meta-form (per-file, not global)
-  // Detect camera captures (no lastModified or name starts with 'image')
   const fromCamera = Array.from(files).some(f =>
     !f.lastModified || f.name.toLowerCase().startsWith('image') || f.name.toLowerCase() === 'blob'
   );
@@ -154,7 +339,6 @@ function handleFilesSelected(filesOrEvent) {
     window.AbhiHubTracking.trackCameraUpload();
   }
   Array.from(files).forEach(file => {
-    // Per-file type from the most recent meta-form (if any)
     const activeForm = document.querySelector('.meta-form-wrap[style*="display: block"]');
     const typeEl = activeForm?.querySelector('.meta-type');
     const selType = typeEl ? typeEl.value : '';
@@ -201,61 +385,26 @@ function handleFilesSelected(filesOrEvent) {
         autofillMetaForm(addedWrap);
       }
 
-      // Wire dynamic fields for THIS file's category (notes/papers/practical)
+      // Wire dynamic fields for THIS file's category
       updateDynamicFieldsForForm(addedWrap);
     }
 
-    // Phase 5: AI Metadata Prediction (Async)
-    fetch('/api/ai/predict-metadata', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename: file.name })
-    }).then(r => r.json()).then(data => {
-      if (data.success && data.prediction) {
-        const p = data.prediction;
-        const form = document.getElementById(`meta-form-${newItem.id}`);
-        if (!form) return;
-
-        if (p.type) {
-          const typeEl = form.querySelector('.meta-type');
-          if (typeEl && !typeEl.value) typeEl.value = p.type;
-        }
-        if (p.unit) {
-          const unitEl = form.querySelector('.meta-unit');
-          if (unitEl && !unitEl.value) {
-            // simple assignment, may need updateMetaUnit call logic but skipping for brevity
-            unitEl.innerHTML = `<option value="${p.unit}">${p.unit}</option>`;
-            unitEl.value = p.unit;
-          }
-        }
-        if (p.year) {
-          const yearEl = form.querySelector('.meta-year');
-          if (yearEl) yearEl.value = p.year;
-        }
-        if (p.subject_id) {
-          const subjEl = form.querySelector('.subject-select');
-          const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
-          if (tsSubj) {
-            if (!tsSubj.options[p.subject_id]) tsSubj.addOption({ value: p.subject_id, text: p.subject || 'Loading...' });
-            tsSubj.setValue(p.subject_id, true); // silent set
-          } else if (subjEl) {
-            subjEl.value = p.subject_id;
-          }
-        }
-
-        showToast('🤖 AI auto-filled metadata for ' + newItem.name, 'info');
-      }
-    }).catch(e => console.warn("AI predict error:", e));
+    // Trigger tiered metadata prediction & AI content extraction
+    processFileMetadataAutofill(newItem, file);
   });
 
   if (selectedFiles.length > 0) {
     document.getElementById('uploadCarousel').style.display = 'flex';
     document.querySelector('.upload-defaults-toggle')?.remove();
-    renderCarousel(selectedFiles.length - 1); // Go to the newest file
+    renderCarousel(selectedFiles.length - 1);
   }
 }
 
 function removeFile(id) {
+  if (window._uploadAiControllers && window._uploadAiControllers[id]) {
+    window._uploadAiControllers[id].abort();
+    delete window._uploadAiControllers[id];
+  }
   selectedFiles = selectedFiles.filter(f => f.id !== id);
   if (selectedFiles.length === 0) {
     document.getElementById('uploadCarousel').style.display = 'none';

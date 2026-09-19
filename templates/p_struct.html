@@ -2,10 +2,63 @@
 <html lang="en">
 
 <head>
+    <!-- App Shell Embedded Detection & Standalone Mode Redirect (must run immediately before CSS) -->
+    <script>
+        (function() {
+            var isEmbedded = window.name === 'abhihub-shell' && window.self !== window.top;
+            if (isEmbedded) {
+                document.documentElement.classList.add('app-shell-embedded');
+            } else {
+                var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
+                var shellInMobileBrowser = {{ 'true' if config.get('SHELL_IN_MOBILE_BROWSER') else 'false' }};
+                var shellEnabled = {{ 'true' if config.get('APP_SHELL_ENABLED', True) else 'false' }};
+                if (shellEnabled && (isStandalone || shellInMobileBrowser)) {
+                    var path = window.location.pathname;
+                    var skipPatterns = [/^\/app-shell/, /^\/login/, /^\/signup/, /^\/logout/, /^\/auth/, /^\/reset-password/, /^\/offline/, /^\/api\//, /^\/(about|terms|privacy|contact)?$/];
+                    var shouldSkip = skipPatterns.some(function(re) { return re.test(path); });
+                    if (!shouldSkip) {
+                        var tabPatterns = [/^\/dashboard/, /^\/upload/, /^\/leaderboard/, /^\/rank/, /^\/profile/, /^\/account/, /^\/store-room/, /^\/admin/];
+                        var isTabOrChild = tabPatterns.some(function(re) { return re.test(path); });
+                        if (isTabOrChild) {
+                            var currentPath = window.location.pathname + window.location.search + window.location.hash;
+                            window.location.replace('/app-shell?p=' + encodeURIComponent(currentPath));
+                        }
+                    }
+                }
+            }
+        })();
+    </script>
+    <style>
+        /* Instant style overrides when running embedded in App Shell to prevent chrome flash */
+        html.app-shell-embedded {
+            --nav-bottom-height: 0px !important;
+            --strip-h: 0px !important;
+        }
+        html.app-shell-embedded body {
+            padding-top: 0 !important;
+            padding-bottom: 0 !important;
+            margin-top: 0 !important;
+        }
+        html.app-shell-embedded main {
+            padding-top: 0 !important;
+            margin-top: 0 !important;
+        }
+        html.app-shell-embedded header,
+        html.app-shell-embedded .navbar--bottom,
+        html.app-shell-embedded .bottom-nav,
+        html.app-shell-embedded .app-footer,
+        html.app-shell-embedded #main-footer,
+        html.app-shell-embedded footer,
+        html.app-shell-embedded #pwaInstallPopup {
+            display: none !important;
+        }
+    </style>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="language" content="en">
     <meta name="google" content="translate">
+
+    <script src="{{ url_for('static', filename='js/bridge.js') }}" defer></script>
 
     <!-- Central SEO Template -->
     {% include 'includes/seo_head.html' %}
@@ -830,9 +883,9 @@
     </script>
     {% endif %}
 
-    <!-- Service Worker Registration -->
+    <!-- Service Worker Registration (skipped when embedded in App Shell) -->
     <script>
-        if ('serviceWorker' in navigator) {
+        if (!document.documentElement.classList.contains('app-shell-embedded') && 'serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/sw.js', { scope: '/' })
                     .then(registration => {
@@ -843,10 +896,30 @@
                         console.error('Service Worker registration failed:', error);
                     });
             });
+
+            // Update toast on controllerchange (never reload mid-upload)
+            var swRefreshing = false;
+            navigator.serviceWorker.addEventListener('controllerchange', function() {
+                if (swRefreshing) return;
+                var isUploading = window.__ABHIHUB_IS_UPLOADING__ || document.querySelector('#uploadForm.uploading');
+                if (isUploading) return;
+                var existing = document.getElementById('swUpdateToast');
+                if (existing) return;
+
+                var toast = document.createElement('div');
+                toast.id = 'swUpdateToast';
+                toast.style.cssText = 'position:fixed;bottom:80px;left:50%;transform:translateX(-50%);background:#1e293b;color:#ffffff;padding:10px 18px;border-radius:10px;box-shadow:0 8px 24px rgba(0,0,0,0.28);z-index:99999;font-size:0.875rem;display:flex;align-items:center;gap:12px;font-family:inherit;';
+                toast.innerHTML = '<span>⚡ New version ready</span><button type="button" style="background:#2563eb;color:#ffffff;border:none;padding:5px 12px;border-radius:6px;font-weight:600;font-size:0.8rem;cursor:pointer;">Refresh</button>';
+                toast.querySelector('button').addEventListener('click', function() {
+                    swRefreshing = true;
+                    window.location.reload();
+                });
+                document.body.appendChild(toast);
+            });
         }
     </script>
 
-    <!-- PWA Install Popup Script -->
+    <!-- PWA Install Popup Script (skipped when embedded in App Shell) -->
     <script>
         // PWA Install Prompt Handler
         let deferredPrompt;
@@ -854,6 +927,7 @@
         const INSTALL_DISMISS_DURATION = 7 * 24 * 60 * 60 * 1000; // 7 days
 
         window.addEventListener('beforeinstallprompt', (e) => {
+            if (document.documentElement.classList.contains('app-shell-embedded')) return;
             e.preventDefault();
             deferredPrompt = e;
         });

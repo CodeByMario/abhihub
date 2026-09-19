@@ -1,5 +1,15 @@
 import { supabase } from "./supabase-config.js";
 
+function getNextRedirectUrl() {
+    try {
+        const nextParam = new URLSearchParams(window.location.search).get('next');
+        if (nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') && !nextParam.startsWith('/\\') && !nextParam.includes('\\')) {
+            return nextParam;
+        }
+    } catch (e) {}
+    return '/dashboard';
+}
+
 /* === Handle OAuth Callback === */
 // This handles the redirect from Google/OAuth providers
 async function handleOAuthCallback() {
@@ -23,16 +33,16 @@ async function handleOAuthCallback() {
             const data = await response.json();
 
             if (response.ok && data.success) {
-                console.log('Login successful, redirecting to dashboard');
+                console.log('Login successful, redirecting');
                 // Track login via GA
                 if (window.AbhiHubAnalytics) {
                     window.AbhiHubAnalytics.track('login', { method: 'google_oauth' });
                 } else if (window.AbhiHubTracking) {
                     window.AbhiHubTracking.trackLogin('google_oauth');
                 }
-                // Clear the hash and redirect
+                // Clear the hash and redirect to next parameter if valid
                 window.location.hash = '';
-                window.location.href = '/dashboard';
+                window.location.href = getNextRedirectUrl();
             } else {
                 console.error('Backend login failed:', data.message);
                 alert('Login failed: ' + (data.message || 'Unknown error'));
@@ -465,7 +475,7 @@ function loginUser(user, idToken) {
                 } else if (window.AbhiHubTracking) {
                     window.AbhiHubTracking.trackLogin('email');
                 }
-                window.location.href = '/dashboard';
+                window.location.href = getNextRedirectUrl();
             } else {
                 console.error('Backend authentication failed:', data.message);
                 alert('Login failed: ' + (data.message || 'Unable to create session'));

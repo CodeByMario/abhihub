@@ -1,4 +1,4 @@
-﻿{% set seo_description = "Welcome to AbhiHub! Download free engineering previous year question papers (PYQs), study
+{% set seo_description = "Welcome to AbhiHub! Download free engineering previous year question papers (PYQs), study
 {% include 'includes/_loading_spinner.html' %}
 
 notes, practicals, and exam resources for top colleges across India." %}
@@ -7,9 +7,6 @@ notes, practicals, and exam resources for top colleges across India." %}
 <meta name="keywords" content="{{ seo_keywords }}">
 <link rel="manifest" href="/static/manifest.json">
 <meta name="theme-color" content="#ffffff">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="AbhiHub">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='premium/icons/icon-192x192.png') }}">
 
 <script src="{{ url_for('static', filename='premium/js/interactions.js') }}"></script>
@@ -1715,7 +1712,7 @@ notes, practicals, and exam resources for top colleges across India." %}
       community. AbhiHub™ (AbhiHub Technologies) holds the exclusive platform rights to distribute,
       brand, and monetize this resource. The original contributor retains copyright of their
       submission. No third party may share or redistribute this file without explicit permission
-      from AbhiHub. <a href="mailto:abhihub.02@gmail.com">Contact</a>
+      from AbhiHub. <a href="mailto:info@abhihub.edu.eu.org">Contact</a>
     </div>`;
     const body = modal.querySelector('.file-info-modal-body');
     if (body) body.innerHTML = html;
@@ -1823,16 +1820,7 @@ notes, practicals, and exam resources for top colleges across India." %}
     });
   });
 
-  // Initialize skeleton loading states for content areas
-  document.addEventListener('DOMContentLoaded', function () {
-    // Add skeleton placeholders for content that might load dynamically
-    const statsContainer = document.querySelector('.welcome-mini-stats');
-    if (statsContainer) {
-      // Skeleton will be shown by CSS if content isn't ready
-      statsContainer.style.opacity = '0';
-      statsContainer.style.transition = 'opacity 0.3s ease';
-    }
-  });
+
 </script>
 {% endif %}
 

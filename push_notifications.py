@@ -34,7 +34,7 @@ except ImportError:
 VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
 VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
 VAPID_CLAIMS = {
-    "sub": os.environ.get('VAPID_CLAIMS_EMAIL', 'mailto:admin@abhihub.com')
+    "sub": os.environ.get('VAPID_CLAIMS_EMAIL', 'mailto:info@abhihub.edu.eu.org')
 }
 
 from methods.supabase_helper import (

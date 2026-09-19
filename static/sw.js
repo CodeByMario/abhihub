@@ -9,7 +9,7 @@
  * - Background sync
  */
 
-const CACHE_VERSION = 'v2.0.7';
+const CACHE_VERSION = 'v2.0.8';
 const CACHE_NAME = `abhihub-${CACHE_VERSION}`;
 const STATIC_CACHE = `abhihub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `abhihub-dynamic-${CACHE_VERSION}`;
@@ -201,6 +201,10 @@ const PRECACHE_URLS = [
   '/profile',
   '/settings',
   '/leaderboard',
+  // App Shell static assets (precache static bundle, HTML runtime-cached network-first)
+  '/static/js/app-shell.js',
+  '/static/js/bridge.js',
+  '/static/css/app-shell-frame.css',
 ];
 
 // Paths that should NEVER be cached (security-sensitive)
@@ -617,6 +621,10 @@ self.addEventListener('fetch', (event) => {
 
   // Handle navigation requests
   if (request.mode === 'navigate') {
+    if (url.pathname === '/app-shell') {
+      event.respondWith(handleAppShellRequest(request));
+      return;
+    }
     event.respondWith(
       (async () => {
         // Try navigation preload first
@@ -706,6 +714,33 @@ async function handlePdfRequest(request) {
       status: 503,
       statusText: 'Service Unavailable',
       headers: { 'Content-Type': 'text/plain' }
+    });
+  }
+}
+
+/**
+ * Handle App Shell navigation requests:
+ * Network-first runtime caching. Only caches 200 non-redirected responses.
+ * Offline fallback: cached shell HTML or /offline fallback page.
+ */
+async function handleAppShellRequest(request) {
+  const cache = await caches.open(DYNAMIC_CACHE);
+  try {
+    const networkResponse = await fetch(request);
+    // Runtime-cache only 200 non-redirected responses
+    if (networkResponse && networkResponse.status === 200 && !networkResponse.redirected) {
+      await cache.put(request, networkResponse.clone());
+      await cache.put('/app-shell', networkResponse.clone());
+    }
+    return networkResponse;
+  } catch (err) {
+    const cached = (await cache.match(request, { ignoreSearch: true })) || (await cache.match('/app-shell'));
+    if (cached) {
+      return cached;
+    }
+    const offlinePage = await caches.match('/offline');
+    return offlinePage || new Response('Offline — AbhiHub', {
+      headers: { 'Content-Type': 'text/html' }
     });
   }
 }

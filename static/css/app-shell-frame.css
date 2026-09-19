@@ -1,0 +1,346 @@
+/**
+ * AbhiHub App Shell Frame CSS (app-shell-frame.css)
+ * Used by templates/app_shell.html to create a seamless native-app container.
+ * Utilizes existing AbhiHub design tokens from 01_tokens.css.
+ */
+
+:root {
+    --shell-header-height: 58px;
+    --shell-bottom-height: 70px;
+    --shell-safe-top: env(safe-area-inset-top, 0px);
+    --shell-safe-bottom: env(safe-area-inset-bottom, 0px);
+}
+
+html, body.app-shell-body {
+    width: 100%;
+    height: 100%;
+    height: 100dvh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    position: fixed;
+    background-color: var(--bg-primary, #ffffff);
+    color: var(--text-primary, #1e293b);
+    font-family: var(--font-primary, system-ui, -apple-system, sans-serif);
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+/* ── Shell Layout Container ── */
+.app-shell-viewport {
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    height: 100dvh;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+}
+
+/* ── Top App Bar ── */
+.shell-header {
+    flex-shrink: 0;
+    width: 100%;
+    height: calc(var(--shell-header-height) + var(--shell-safe-top));
+    padding-top: var(--shell-safe-top);
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--border-light, #e2e8f0);
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-left: var(--space-4, 1rem);
+    padding-right: var(--space-4, 1rem);
+    box-sizing: border-box;
+    transition: background-color var(--transition-normal, 0.25s);
+}
+
+@media (prefers-color-scheme: dark) {
+    .shell-header {
+        background: rgba(15, 15, 35, 0.92);
+        border-bottom-color: var(--border-light, #334155);
+    }
+}
+
+.shell-header-left {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3, 0.75rem);
+    min-width: 0;
+}
+
+/* Back Button (shown on sub-pages) */
+.shell-back-btn {
+    display: none;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    border: none;
+    background: transparent;
+    color: var(--text-primary, #1e293b);
+    border-radius: var(--radius-lg, 0.75rem);
+    cursor: pointer;
+    transition: background-color var(--transition-fast, 0.15s);
+    padding: 0;
+}
+
+.shell-back-btn:hover {
+    background: rgba(0, 0, 0, 0.06);
+}
+
+.shell-back-btn:active {
+    transform: scale(0.94);
+}
+
+.has-back-nav .shell-back-btn {
+    display: inline-flex;
+}
+
+/* Title & Brand */
+.shell-brand-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2, 0.5rem);
+    text-decoration: none;
+}
+
+.shell-logo-text {
+    font-size: 1.35rem;
+    font-weight: 700;
+    background: var(--gradient-primary, linear-gradient(135deg, #2563eb, #1d4ed8));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    letter-spacing: -0.025em;
+    user-select: none;
+}
+
+.shell-page-title {
+    display: none;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--text-primary, #1e293b);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 180px;
+}
+
+.has-back-nav .shell-page-title {
+    display: inline-block;
+}
+
+.has-back-nav .shell-logo-text {
+    display: none;
+}
+
+.shell-header-right {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3, 0.75rem);
+}
+
+/* Notification Bell */
+.shell-notif-wrap {
+    position: relative;
+}
+
+.shell-notif-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 38px;
+    height: 38px;
+    border: none;
+    background: transparent;
+    border-radius: 50%;
+    cursor: pointer;
+    color: var(--text-primary, #334155);
+    position: relative;
+    transition: background-color var(--transition-fast, 0.15s);
+}
+
+.shell-notif-btn:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+.shell-notif-badge {
+    display: none;
+    position: absolute;
+    top: 4px;
+    right: 4px;
+    min-width: 17px;
+    height: 17px;
+    padding: 0 4px;
+    background: #ef4444;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 700;
+    border-radius: 9px;
+    line-height: 17px;
+    text-align: center;
+    border: 2px solid var(--surface, #ffffff);
+}
+
+/* Shell Iframe Content Area */
+.shell-main-area {
+    flex: 1 1 0%;
+    width: 100%;
+    height: 100%;
+    position: relative;
+    overflow: hidden;
+    background: var(--bg-primary, #ffffff);
+}
+
+.shell-iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+    display: block;
+    background: transparent;
+}
+
+/* ── Fullscreen Shell Loader ── */
+.shell-loader {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: var(--bg-primary, #ffffff);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 500;
+    transition: opacity 0.2s ease, visibility 0.2s ease;
+}
+
+@media (prefers-color-scheme: dark) {
+    .shell-loader {
+        background: var(--bg-primary, #0f0f23);
+    }
+}
+
+.shell-loader.is-hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+}
+
+.shell-loader-icon {
+    width: 68px;
+    height: 68px;
+    border-radius: 18px;
+    box-shadow: var(--shadow-md, 0 8px 24px rgba(37,99,235,0.2));
+    animation: shellPulse 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes shellPulse {
+    0% { transform: scale(0.92); opacity: 0.85; }
+    100% { transform: scale(1.05); opacity: 1; }
+}
+
+.shell-spinner {
+    width: 28px;
+    height: 28px;
+    margin-top: 18px;
+    border: 3px solid rgba(37, 99, 235, 0.18);
+    border-top-color: var(--primary-600, #2563eb);
+    border-radius: 50%;
+    animation: shellSpin 0.75s linear infinite;
+}
+
+@keyframes shellSpin {
+    to { transform: rotate(360deg); }
+}
+
+/* Slow network prompt */
+.shell-slow-msg {
+    display: none;
+    margin-top: 24px;
+    text-align: center;
+    font-size: 0.9rem;
+    color: var(--text-secondary, #64748b);
+    animation: fadeIn 0.3s ease;
+}
+
+.shell-slow-msg.is-visible {
+    display: block;
+}
+
+.shell-slow-actions {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    margin-top: 10px;
+}
+
+.shell-btn-sm {
+    padding: 6px 14px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 8px;
+    border: 1px solid var(--border-light, #e2e8f0);
+    background: var(--surface, #ffffff);
+    color: var(--text-primary, #1e293b);
+    cursor: pointer;
+}
+
+.shell-btn-sm.primary {
+    background: var(--primary-600, #2563eb);
+    color: #ffffff;
+    border-color: transparent;
+}
+
+/* ── Bottom Nav Integration ── */
+#shellBottomNav {
+    bottom: max(0.65rem, var(--shell-safe-bottom));
+    transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
+}
+
+/* Hide bottom nav when virtual keyboard or modal is active */
+.keyboard-active #shellBottomNav,
+.modal-active #shellBottomNav {
+    transform: translate(-50%, 120%) !important;
+    opacity: 0;
+    pointer-events: none;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    .navbar--bottom {
+        background: rgba(26, 26, 46, 0.88) !important;
+        border-color: rgba(51, 65, 85, 0.45);
+        box-shadow: 0 14px 34px rgba(0, 0, 0, 0.4) !important;
+    }
+    .navbar--bottom .navbar__item {
+        color: var(--text-secondary, #94a3b8) !important;
+    }
+    .navbar--bottom .navbar__item:hover {
+        background: rgba(37, 99, 235, 0.15);
+        color: #60a5fa !important;
+    }
+    .navbar--bottom .navbar__item--active {
+        color: #3b82f6 !important;
+    }
+    .shell-notif-btn {
+        color: var(--text-primary, #e2e8f0);
+    }
+    .shell-back-btn {
+        color: var(--text-primary, #e2e8f0);
+    }
+    .shell-btn-sm {
+        background: #1e293b;
+        color: #e2e8f0;
+        border-color: #334155;
+    }
+}

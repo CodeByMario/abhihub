@@ -156,8 +156,14 @@
   padding: 10px 14px;
   border-radius: 14px;
   font-size: 13px;
-  line-height: 1.5;
+  line-height: 1.55;
   word-wrap: break-word;
+  animation: aiBubblePop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  transition: border-color 0.25s, box-shadow 0.25s;
+}
+@keyframes aiBubblePop {
+  from { opacity: 0; transform: translateY(8px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
 }
 .ai-bubble.user {
   align-self: flex-end;
@@ -171,6 +177,165 @@
   color: #e2e8f0;
   border: 1px solid rgba(255,255,255,0.08);
   border-bottom-left-radius: 4px;
+  max-width: 95%;
+}
+.ai-bubble.assistant.streaming {
+  border-color: rgba(99, 102, 241, 0.55);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.22), inset 0 0 14px rgba(99, 102, 241, 0.06);
+  background: linear-gradient(180deg, #1e293b 0%, #162035 100%);
+}
+.ai-bubble.assistant h1,
+.ai-bubble.assistant h2,
+.ai-bubble.assistant h3,
+.ai-bubble.assistant h4 {
+  color: #f8fafc;
+  margin: 10px 0 6px 0;
+  font-weight: 700;
+  line-height: 1.35;
+}
+.ai-bubble.assistant h1 { font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.12); padding-bottom: 4px; }
+.ai-bubble.assistant h2 { font-size: 14px; }
+.ai-bubble.assistant h3 { font-size: 13px; color: #93c5fd; }
+.ai-bubble.assistant h4 { font-size: 12px; color: #a5b4fc; }
+.ai-bubble.assistant p {
+  margin: 6px 0;
+}
+.ai-bubble.assistant hr {
+  border: none;
+  border-top: 1px solid rgba(255,255,255,0.12);
+  margin: 10px 0;
+}
+.ai-bubble.assistant ul,
+.ai-bubble.assistant ol {
+  margin: 6px 0;
+  padding-left: 20px;
+}
+.ai-bubble.assistant li {
+  margin: 3px 0;
+}
+.ai-bubble.assistant blockquote {
+  border-left: 3px solid #6366f1;
+  background: rgba(99,102,241,0.08);
+  margin: 8px 0;
+  padding: 6px 10px;
+  border-radius: 0 8px 8px 0;
+  color: #cbd5e1;
+}
+.ai-bubble.assistant strong {
+  color: #f8fafc;
+}
+.ai-bubble.assistant a {
+  color: #60a5fa;
+  text-decoration: underline;
+}
+
+/* ── Markdown Tables in Chat ── */
+.ai-bubble.assistant .ai-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin: 10px 0;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.12);
+  background: #0f172a;
+  animation: aiBlockFade 0.28s ease-out;
+}
+.ai-bubble.assistant table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+.ai-bubble.assistant th {
+  background: #334155;
+  color: #f1f5f9;
+  font-weight: 700;
+  padding: 8px 10px;
+  border-bottom: 2px solid #475569;
+  border-right: 1px solid #475569;
+}
+.ai-bubble.assistant th:last-child {
+  border-right: none;
+}
+.ai-bubble.assistant td {
+  padding: 6px 10px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  border-right: 1px solid rgba(255,255,255,0.08);
+  color: #cbd5e1;
+  vertical-align: top;
+}
+.ai-bubble.assistant td:last-child {
+  border-right: none;
+}
+.ai-bubble.assistant tr:nth-child(even) td {
+  background: rgba(255,255,255,0.02);
+}
+.ai-bubble.assistant tr:hover td {
+  background: rgba(99,102,241,0.08);
+}
+
+/* ── Markdown Code Blocks in Chat ── */
+.ai-bubble.assistant pre {
+  position: relative;
+  background: #0b1120;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin: 10px 0;
+  overflow-x: auto;
+  font-family: 'Fira Code', Consolas, Monaco, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  animation: aiBlockFade 0.28s ease-out;
+}
+.ai-bubble.assistant pre code {
+  background: transparent;
+  padding: 0;
+  color: #e2e8f0;
+  border-radius: 0;
+  border: none;
+}
+.ai-bubble.assistant code {
+  font-family: 'Fira Code', Consolas, Monaco, monospace;
+  font-size: 11.5px;
+  background: rgba(255,255,255,0.1);
+  color: #38bdf8;
+  padding: 2px 6px;
+  border-radius: 5px;
+}
+.ai-code-copy-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.15);
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 3px 7px;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ai-code-copy-btn:hover {
+  background: #6366f1;
+  color: #fff;
+}
+.ai-stream-cursor {
+  display: inline-block;
+  color: #38bdf8;
+  text-shadow: 0 0 8px rgba(56, 189, 248, 0.8), 0 0 16px rgba(99, 102, 241, 0.6);
+  font-weight: 900;
+  animation: aiCursorPulse 0.55s ease-in-out infinite alternate;
+  margin-left: 3px;
+  vertical-align: baseline;
+}
+@keyframes aiCursorPulse {
+  0% { opacity: 0.25; transform: scaleY(0.85); }
+  100% { opacity: 1; transform: scaleY(1.08); }
+}
+@keyframes aiBlockFade {
+  from { opacity: 0; transform: translateY(5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .ai-bubble.thinking {
   align-self: flex-start;
@@ -343,10 +508,121 @@
   </div>
 </div>
 
+<!-- Load marked.min.js for rich markdown, tables & code styling -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 (function() {
   let activeDocId = null;
   let activeDocTitle = '';
+  const chatHistory = []; // Rolling conversation memory buffer
+
+  function formatAiMarkdown(text) {
+    if (!text) return '';
+    if (typeof marked !== 'undefined' && marked.parse) {
+      try {
+        marked.setOptions({ gfm: true, breaks: true });
+        return marked.parse(text);
+      } catch (e) {
+        console.warn('[Tarika Markdown Error]', e);
+      }
+    }
+    // Safe fallback markdown parsing
+    return text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.*?)\*/g, '<em>$1</em>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function postProcessAiBubble(bubble) {
+    // 1. Wrap tables for responsive horizontal scrolling
+    bubble.querySelectorAll('table').forEach(table => {
+      if (!table.parentElement.classList.contains('ai-table-wrap')) {
+        const wrap = document.createElement('div');
+        wrap.className = 'ai-table-wrap';
+        table.parentNode.insertBefore(wrap, table);
+        wrap.appendChild(table);
+      }
+    });
+
+    // 2. Add copy button to code blocks
+    bubble.querySelectorAll('pre').forEach(pre => {
+      if (pre.querySelector('.ai-code-copy-btn')) return;
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'ai-code-copy-btn';
+      copyBtn.type = 'button';
+      copyBtn.textContent = 'Copy';
+      copyBtn.onclick = (e) => {
+        e.stopPropagation();
+        const codeEl = pre.querySelector('code') || pre;
+        const textToCopy = codeEl.innerText.replace(/Copy$/, '').trim();
+        navigator.clipboard.writeText(textToCopy).then(() => {
+          copyBtn.textContent = 'Copied!';
+          setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+        }).catch(() => {
+          copyBtn.textContent = 'Failed';
+          setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+        });
+      };
+      pre.appendChild(copyBtn);
+    });
+
+    // 3. Open markdown links safely in new tab
+    bubble.querySelectorAll('a').forEach(a => {
+      if (!a.classList.contains('ai-card-btn')) {
+        a.target = '_blank';
+        a.rel = 'noopener noreferrer';
+      }
+    });
+  }
+
+  async function streamAiResponse(bubble, text, onComplete) {
+    if (!text) {
+      if (onComplete) onComplete();
+      return;
+    }
+    const msgList = document.getElementById('aiMsgList');
+    const tokens = text.match(/\S+|\s+/g) || [text];
+    let currentText = '';
+    let idx = 0;
+    const step = Math.max(1, Math.ceil(tokens.length / 50));
+    const intervalMs = 14;
+
+    bubble.classList.add('streaming');
+
+    return new Promise((resolve) => {
+      const timer = setInterval(() => {
+        const nextIdx = Math.min(idx + step, tokens.length);
+        for (let i = idx; i < nextIdx; i++) {
+          currentText += tokens[i];
+        }
+        idx = nextIdx;
+
+        bubble.innerHTML = formatAiMarkdown(currentText) + (idx < tokens.length ? '<span class="ai-stream-cursor">▌</span>' : '');
+        postProcessAiBubble(bubble);
+        if (msgList) {
+          msgList.scrollTo({ top: msgList.scrollHeight, behavior: 'smooth' });
+        }
+
+        if (idx >= tokens.length) {
+          clearInterval(timer);
+          bubble.classList.remove('streaming');
+          bubble.innerHTML = formatAiMarkdown(text);
+          postProcessAiBubble(bubble);
+          if (msgList) {
+            msgList.scrollTo({ top: msgList.scrollHeight, behavior: 'smooth' });
+          }
+          if (onComplete) onComplete();
+          resolve();
+        }
+      }, intervalMs);
+    });
+  }
 
   // Detect open document across AbhiHub (p_pdf_reader, resource.html, viewer iframe, or URL)
   function detectOpenDocument() {
@@ -457,6 +733,9 @@
 
     sendBtn.disabled = true;
 
+    const historySnapshot = chatHistory.slice(-6);
+    chatHistory.push({ role: 'user', content: query });
+
     try {
       const preferredModel = localStorage.getItem('ai_preferred_model') || null;
       const res = await fetch('/api/ai/assistant', {
@@ -466,7 +745,8 @@
           message: query,
           doc_id: activeDocId,
           doc_title: activeDocTitle,
-          model: preferredModel
+          model: preferredModel,
+          history: historySnapshot
         })
       });
 
@@ -490,42 +770,47 @@
       aBubble.className = 'ai-bubble assistant';
 
       if (data.success) {
-        let replyHtml = (data.reply || '').replace(/\n/g, '<br>');
-        aBubble.innerHTML = replyHtml;
+        chatHistory.push({ role: 'assistant', content: data.reply || '' });
+        if (chatHistory.length > 12) chatHistory.splice(0, chatHistory.length - 12);
 
-        // Render Action Cards if documents were found
-        if (data.actions && data.actions.length > 0) {
-          data.actions.forEach(act => {
-            const card = document.createElement('div');
-            card.className = 'ai-action-card';
-            card.innerHTML = `
-              <div>
-                <span class="ai-card-badge">${act.category || 'DOC'}</span>
-                <div class="ai-card-title" title="${act.title}">${act.title}</div>
-              </div>
-              <a href="${act.url}" class="ai-card-btn" target="_self">Open In App ➔</a>
-            `;
-            aBubble.appendChild(card);
-          });
-        }
+        msgList.appendChild(aBubble);
+        msgList.scrollTop = msgList.scrollHeight;
 
-        // Auto-navigate if requested
-        if (data.auto_open) {
-          const autoNotif = document.createElement('div');
-          autoNotif.style.fontSize = '11px';
-          autoNotif.style.color = '#34d399';
-          autoNotif.style.marginTop = '6px';
-          autoNotif.textContent = 'Opening document in 2 seconds...';
-          aBubble.appendChild(autoNotif);
-          setTimeout(() => { window.location.href = data.auto_open; }, 1800);
-        }
+        await streamAiResponse(aBubble, data.reply || '', () => {
+          // Render Action Cards if documents were found
+          if (data.actions && data.actions.length > 0) {
+            data.actions.forEach(act => {
+              const card = document.createElement('div');
+              card.className = 'ai-action-card';
+              card.innerHTML = `
+                <div>
+                  <span class="ai-card-badge">${act.category || 'DOC'}</span>
+                  <div class="ai-card-title" title="${act.title}">${act.title}</div>
+                </div>
+                <a href="${act.url}" class="ai-card-btn" target="_self">Open In App ➔</a>
+              `;
+              aBubble.appendChild(card);
+            });
+          }
+
+          // Auto-navigate if requested
+          if (data.auto_open) {
+            const autoNotif = document.createElement('div');
+            autoNotif.style.fontSize = '11px';
+            autoNotif.style.color = '#34d399';
+            autoNotif.style.marginTop = '6px';
+            autoNotif.textContent = 'Opening document in 2 seconds...';
+            aBubble.appendChild(autoNotif);
+            setTimeout(() => { window.location.href = data.auto_open; }, 1800);
+          }
+          msgList.scrollTop = msgList.scrollHeight;
+        });
 
       } else {
         aBubble.innerHTML = '⚠️ ' + (data.message || 'Error processing request');
+        msgList.appendChild(aBubble);
+        msgList.scrollTop = msgList.scrollHeight;
       }
-
-      msgList.appendChild(aBubble);
-      msgList.scrollTop = msgList.scrollHeight;
 
     } catch (err) {
       thinking.remove();

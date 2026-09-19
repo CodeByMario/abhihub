@@ -37,7 +37,7 @@
     <span class="navbar__label">Store Room</span>
   </a>
 
-  {% if session.get('user', {}).get('email', '').lower() == 'codebymario@gmail.com' %}
+  {% if session.get('user', {}).get('email', '').lower() in ['codebymario@gmail.com', 'info@abhihub.edu.eu.org', 'admin@abhihub.edu.eu.org'] %}
   <a href="{{ url_for('admin_control_panel') }}" class="navbar__item -red" title="Admin Panel" data-page="admin">
     <span class="navbar__icon" aria-hidden="true">
       <svg class="icon"><use xlink:href="#icon-settings"></use></svg>

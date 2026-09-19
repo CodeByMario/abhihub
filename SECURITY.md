@@ -9,7 +9,7 @@ Only the latest version on the `main` branch is supported with security updates.
 If you discover a security issue in AbhiHub, please report it responsibly:
 
 1. **Do not open a public issue** for security vulnerabilities.
-2. Email the maintainer at **abhihub.02@gmail.com** with subject line
+2. Email the maintainer at **info@abhihub.edu.eu.org** with subject line
    `[SECURITY] <brief description>`.
 3. Include:
    - A description of the vulnerability

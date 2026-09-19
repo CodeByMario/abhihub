@@ -245,7 +245,7 @@ body { background: var(--del-bg); }
     <div class="del-process">
       <div class="del-step">
         <div class="del-step-num">1</div>
-        <div class="del-step-text">Send an email to <strong>codebymario@gmail.com</strong> with subject: <strong>"Account Deletion Request"</strong></div>
+        <div class="del-step-text">Send an email to <strong>info@abhihub.edu.eu.org</strong> with subject: <strong>"Account Deletion Request"</strong></div>
       </div>
       <div class="del-step">
         <div class="del-step-num">2</div>
@@ -263,13 +263,13 @@ body { background: var(--del-bg); }
 
     <div class="del-email-box">
       <div class="del-email-label">Send deletion request to</div>
-      <div class="del-email-value">codebymario@gmail.com</div>
+      <div class="del-email-value">info@abhihub.edu.eu.org</div>
       <div class="del-email-hint">Use the button below to open your email app with the subject pre-filled</div>
     </div>
 
     <div class="del-btn-group">
       <a
-        href="mailto:codebymario@gmail.com?subject=Account%20Deletion%20Request&body=Hi%2C%0A%0AI%20would%20like%20to%20request%20the%20deletion%20of%20my%20AbhiHub%20account.%0A%0ARegistered%20Email%3A%20{{ session.get('user', {}).get('email', '[your-email]') }}%0A%0AReason%20(optional)%3A%20%0A%0AThank%20you."
+        href="mailto:info@abhihub.edu.eu.org?subject=Account%20Deletion%20Request&body=Hi%2C%0A%0AI%20would%20like%20to%20request%20the%20deletion%20of%20my%20AbhiHub%20account.%0A%0ARegistered%20Email%3A%20{{ session.get('user', {}).get('email', '[your-email]') }}%0A%0AReason%20(optional)%3A%20%0A%0AThank%20you."
         class="del-btn-primary"
         id="deleteRequestBtn"
       >

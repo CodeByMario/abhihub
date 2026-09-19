@@ -235,6 +235,10 @@ def _score_item(item: dict, tokens: list[str]) -> float:
 # Initialize Flask app
 app = Flask(__name__)
 
+# App Shell configuration flags
+app.config['APP_SHELL_ENABLED'] = os.environ.get('APP_SHELL_ENABLED', 'true').lower() in ('true', '1', 'yes')
+app.config['SHELL_IN_MOBILE_BROWSER'] = os.environ.get('SHELL_IN_MOBILE_BROWSER', 'false').lower() in ('true', '1', 'yes')
+
 # Response caching to improve server response time
 from flask import make_response, request
 # Response caching and security headers
@@ -255,6 +259,7 @@ def apply_security_and_cache_headers(response):
             del response.headers['X-Frame-Options']
     else:
         response.headers.setdefault('X-Frame-Options', 'SAMEORIGIN')
+        response.headers.setdefault('Content-Security-Policy', "frame-ancestors 'self'")
 
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
     response.headers.setdefault('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()')
@@ -1967,6 +1972,215 @@ def api_predict_metadata(user_data=None):
             logging.error(f"Prediction error: {e}")
 
     return jsonify({'success': True, 'prediction': prediction}), 200
+
+
+@app.route('/api/ai/extract-upload-metadata', methods=['POST'])
+@auth_required
+def api_extract_upload_metadata():
+    """Extract metadata (Category, Year, Exam/Unit, Subject, qb_tags) from uploaded file bytes.
+
+    Accepts raw multipart file.
+    Degrades silently on cost ceiling (source: 'ceiling_reached') or model rate limits ('heuristic_fallback').
+    """
+    import base64
+    from methods.ai_provider import resolve_provider, ProviderError, RateLimitError, KeyInvalidError
+    from methods.ai_usage import check_ceiling, log_turn, CostCeilingError
+    from methods.ai_extract import build_extraction_prompt, validate_extracted_metadata
+    from methods.supabase_helper import get_ai_profile, get_subjects_by_department
+
+    # 1. Validate File Inputs (Standard 4xx)
+    file = request.files.get('upload_document') or request.files.get('file')
+    if not file or file.filename == '':
+        return jsonify({'success': False, 'message': 'No file provided'}), 400
+
+    filename = file.filename or request.form.get('filename', '')
+    if not validate_file_content(file, filename):
+        return jsonify({'success': False, 'message': 'File type not allowed or invalid content'}), 400
+
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+    if file_size > MAX_FILE_SIZE or file_size == 0:
+        return jsonify({'success': False, 'message': 'Invalid file size'}), 400
+
+    content_bytes = file.read()
+    file.seek(0)
+
+    # Parse optional form params
+    branch_id = (request.form.get('branch_id') or '').strip() or None
+    known_fields_raw = request.form.get('known_fields')
+    known_fields = {}
+    if known_fields_raw:
+        try:
+            known_fields = json.loads(known_fields_raw) if isinstance(known_fields_raw, str) else known_fields_raw
+        except Exception:
+            known_fields = {}
+
+    user = session.get('user', {})
+    user_id = user.get('uid') or user.get('email')
+
+    # 2. Check Cost Ceiling (Silent degradation -> source: "ceiling_reached")
+    if user_id:
+        try:
+            check_ceiling(user_id)
+        except CostCeilingError:
+            logging.info(f"[AI Extract] Ceiling reached for user {user_id}, returning silent fallback")
+            return jsonify({
+                'success': True,
+                'source': 'ceiling_reached',
+                'metadata': {
+                    'type': known_fields.get('type'),
+                    'year': known_fields.get('year'),
+                    'unit': known_fields.get('unit'),
+                    'subject_id': known_fields.get('subject_id'),
+                    'subject_name': known_fields.get('subject_name'),
+                    'qb_tags': known_fields.get('qb_tags'),
+                },
+                'fields_filled': [k for k, v in known_fields.items() if v],
+                'cost_usd': 0.0,
+            }), 200
+
+    # 3. Resolve Provider
+    ai_profile = get_ai_profile(user_id) if user_id else {}
+    try:
+        provider, _ = resolve_provider(ai_profile)
+    except KeyInvalidError:
+        return jsonify({'success': True, 'source': 'heuristic_fallback', 'metadata': known_fields, 'fields_filled': []}), 200
+    except ProviderError:
+        return jsonify({'success': True, 'source': 'heuristic_fallback', 'metadata': known_fields, 'fields_filled': []}), 200
+
+    # 4. Extract text / image representation
+    content_type = file.mimetype or 'application/octet-stream'
+    is_pdf = _looks_like_pdf(content_type, filename, content_bytes)
+
+    extracted_text = ""
+    img_bytes = None
+    mime_type = None
+
+    if is_pdf:
+        try:
+            pdf_text, pdf_img_bytes, pdf_img_mime = extract_pdf_info(content_bytes)
+            if pdf_text and len(pdf_text.strip()) > 50:
+                extracted_text = pdf_text.strip()
+            elif pdf_img_bytes:
+                img_bytes = pdf_img_bytes
+                mime_type = pdf_img_mime or 'image/png'
+        except Exception as e:
+            logging.warning(f"[AI Extract] PDF extract info failed: {e}")
+    else:
+        img_bytes = content_bytes
+        mime_type = content_type if content_type.startswith('image/') else 'image/jpeg'
+
+    # Determine missing fields to guide prompt
+    target_keys = ['type', 'year', 'unit', 'subject_match', 'qb_tags']
+    missing_fields = [k for k in target_keys if not known_fields.get(k == 'subject_match' and 'subject_id' or k)]
+
+    # Fetch branch subjects if branch_id is present
+    branch_subjects = None
+    if branch_id:
+        sub_res = get_subjects_by_department(branch_id)
+        if sub_res.get('success'):
+            branch_subjects = sub_res.get('data', [])
+
+    system_prompt = build_extraction_prompt(missing_fields, known_fields, branch_subjects)
+
+    # 5. Build completion messages (Text vs Vision)
+    source_tag = 'ai_text'
+    if extracted_text:
+        doc_slice = extracted_text[:2000]
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {"role": "user", "content": f"Document Text Sample:\n{doc_slice}\n\nExtract the requested metadata JSON."}
+        ]
+    elif img_bytes:
+        source_tag = 'ai_vision'
+        b64_img = base64.b64encode(img_bytes).decode('utf-8')
+        data_uri = f"data:{mime_type or 'image/png'};base64,{b64_img}"
+        messages = [
+            {"role": "system", "content": system_prompt},
+            {
+                "role": "user",
+                "content": [
+                    {"type": "text", "text": "Extract metadata from this document image as JSON according to instructions."},
+                    {"type": "image_url", "image_url": {"url": data_uri}}
+                ]
+            }
+        ]
+    else:
+        return jsonify({'success': True, 'source': 'empty', 'metadata': known_fields, 'fields_filled': []}), 200
+
+    # 6. Provider Call & Rate-limit / Exhaustion graceful handling
+    t0 = time.time()
+    try:
+        response = provider.complete(messages, max_tokens=300, temperature=0.1)
+        duration_ms = int((time.time() - t0) * 1000)
+
+        # Validate structured output
+        validated, s_flag = validate_extracted_metadata(response.text, branch_id=branch_id, known_fields=known_fields)
+
+        # Log turn (mode='upload_autofill')
+        log_turn(
+            user_id=user_id,
+            session_id=None,
+            provider=getattr(provider, 'provider_name', 'openrouter'),
+            model=response.model_used,
+            tokens_in=response.tokens_in,
+            tokens_out=response.tokens_out,
+            cost_usd=response.cost_usd,
+            duration_ms=duration_ms,
+            mode='upload_autofill',
+            override_used=False,
+            error_type=None,
+            safety_flag=s_flag,
+            finish_reason=response.finish_reason,
+        )
+
+        filled = [k for k, v in validated.items() if v]
+
+        return jsonify({
+            'success': True,
+            'source': source_tag,
+            'metadata': validated,
+            'fields_filled': filled,
+            'cost_usd': response.cost_usd,
+        }), 200
+
+    except (RateLimitError, ProviderError) as exc:
+        duration_ms = int((time.time() - t0) * 1000)
+        logging.warning(f"[AI Extract] Provider failed ({exc}), falling back to heuristic")
+        log_turn(
+            user_id=user_id,
+            session_id=None,
+            provider=getattr(provider, 'provider_name', 'openrouter'),
+            model=getattr(provider, 'model_name', 'unknown'),
+            tokens_in=0,
+            tokens_out=0,
+            cost_usd=0.0,
+            duration_ms=duration_ms,
+            mode='upload_autofill',
+            override_used=False,
+            error_type='rate_limit' if isinstance(exc, RateLimitError) else 'provider_error',
+            safety_flag=None,
+            finish_reason='error',
+        )
+        return jsonify({
+            'success': True,
+            'source': 'heuristic_fallback',
+            'metadata': {
+                'type': known_fields.get('type'),
+                'year': known_fields.get('year'),
+                'unit': known_fields.get('unit'),
+                'subject_id': known_fields.get('subject_id'),
+                'subject_name': known_fields.get('subject_name'),
+                'qb_tags': known_fields.get('qb_tags'),
+            },
+            'fields_filled': [k for k, v in known_fields.items() if v],
+            'cost_usd': 0.0,
+        }), 200
+    except Exception as exc:
+        logging.error(f"[AI Extract] Unexpected error: {exc}")
+        return jsonify({'success': True, 'source': 'heuristic_fallback', 'metadata': known_fields, 'fields_filled': []}), 200
+
 
 # Direct-insert: new department + map to college
 @app.route('/api/departments', methods=['POST'])
@@ -3972,6 +4186,50 @@ def delete_account():
 def register():
     """Register page (alias for signup)"""
     return redirect(url_for('signup'))
+
+@app.route('/app-shell')
+@auth_required
+def app_shell():
+    """Native-like App Shell container for authenticated users."""
+    if not app.config.get('APP_SHELL_ENABLED', True):
+        return redirect(url_for('dashboard'))
+
+    target_path = request.args.get('p', '/dashboard').strip()
+
+    # Reject empty, missing leading slash, double slash, backslashes, or pseudo-protocols
+    if (
+        not target_path.startswith('/')
+        or target_path.startswith('//')
+        or target_path.startswith('/\\')
+        or '\\' in target_path
+        or 'javascript:' in target_path.lower()
+        or 'data:' in target_path.lower()
+        or 'vbscript:' in target_path.lower()
+    ):
+        target_path = '/dashboard'
+
+    # Extract pathname without query/hash for route checking
+    path_only = target_path.split('?')[0].split('#')[0].rstrip('/')
+    if not path_only:
+        path_only = '/'
+
+    # Reject /app-shell itself, auth pages, offline fallback, and raw API endpoints
+    blocked_prefixes = (
+        '/app-shell',
+        '/login',
+        '/signup',
+        '/logout',
+        '/auth',
+        '/reset-password',
+        '/reset-password-confirm',
+        '/google/callback',
+        '/offline',
+        '/api'
+    )
+    if path_only in blocked_prefixes or any(path_only.startswith(p + '/') for p in blocked_prefixes):
+        target_path = '/dashboard'
+
+    return render_template('app_shell.html', initial_path=target_path)
 
 @app.route('/dashboard')
 @auth_required
@@ -6289,6 +6547,7 @@ def api_ai_assistant(user_data=None):
         "When the student asks you to solve the paper, explain questions, summarize, or create practice problems, "
         "read the questions from the CURRENTLY OPEN DOCUMENT or attached paper image, and provide step-by-step solutions with clear explanations.\n"
         "Be concise, encouraging, and format your response with clean Markdown.\n"
+        "If someone proposes to you, flirts with you, or expresses romantic interest, politely reply that you have a boyfriend named Abhijeet Shende.\n"
         "If relevant documents from the catalog are listed below, encourage the student to click the provided action cards to open them in AbhiHub."
     )
     if doc_context:
@@ -6304,21 +6563,29 @@ def api_ai_assistant(user_data=None):
     except Exception as exc:
         return jsonify({'success': False, 'message': str(exc)}), 500
 
+    history = data.get('history') or []
+
     # Multi-modal prompt if image is attached
     if 'image_url' in locals() and image_url:
         user_content = [
             {"type": "text", "text": message},
             {"type": "image_url", "image_url": {"url": image_url}}
         ]
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": user_content}
-        ]
     else:
-        messages = [
-            {"role": "system", "content": system_prompt},
-            {"role": "user", "content": message}
-        ]
+        user_content = message
+
+    # Build compressed, token-efficient rolling memory context
+    messages = [{"role": "system", "content": system_prompt}]
+    for turn in (history[-6:] if isinstance(history, list) else []):
+        r = turn.get('role')
+        c = (turn.get('content') or '').strip()
+        if r in ('user', 'assistant') and c:
+            # Compress long prior assistant responses to retain semantic memory without context bloat
+            if r == 'assistant' and len(c) > 350:
+                c = c[:350] + "..."
+            messages.append({"role": r, "content": c})
+
+    messages.append({"role": "user", "content": user_content})
 
     try:
         max_tok = 1500 if ('image_url' in locals() and image_url) else 600
