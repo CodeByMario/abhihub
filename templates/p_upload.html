@@ -180,6 +180,14 @@
                       <option value="">Select Subject...</option>
                     </select>
                   </div>
+                  <div class="meta-field">
+                    <label>Resource Title *</label>
+                    <input type="text" class="modern-input meta-title" name="title" placeholder="e.g. Data Structures End-Sem PYQ 2025" required minlength="5" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:8px;" />
+                  </div>
+                  <div class="meta-field">
+                    <label>Study Description (Helps indexing & search)</label>
+                    <textarea class="modern-input meta-description" name="description" rows="2" placeholder="Brief summary of units, topics, or questions covered..." style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:8px; resize:vertical; font-family:inherit;"></textarea>
+                  </div>
                   <div class="meta-field upload-hidden-section qb-tags-wrap" style="display:none;">
                     <label>Subject Tags</label>
                     <input type="text" class="modern-input qb-tags" placeholder="e.g. AI, ML, Data Structures" />
@@ -197,7 +205,12 @@
             </div>
           </div>
 
-          <!-- Global fields section removed, all fields are now per-image -->
+          <div class="meta-field" style="margin: 1rem 0; font-size: 0.85rem; color: #475569;">
+            <label style="display: flex; align-items: flex-start; gap: 0.5rem; cursor: pointer; font-weight: normal;">
+              <input type="checkbox" required name="copyright_ack" style="margin-top: 0.2rem;" checked>
+              <span>I confirm this document is my own original study material or an open university resource, and complies with AbhiHub's <a href="{{ url_for('dmca') }}" target="_blank" style="color: #2563eb; text-decoration: underline;">DMCA &amp; Copyright Policy</a>.</span>
+            </label>
+          </div>
 
           <!-- Submit -->
           <button type="submit" class="upload-btn" id="submitBtn" data-action="trackUploadStart">Upload Files</button>

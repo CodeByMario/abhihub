@@ -1,0 +1,118 @@
+{% extends 'p_struct.html' %}
+
+{% block page_head %}
+<title>DMCA &amp; Copyright Policy | AbhiHub</title>
+<meta name="description" content="AbhiHub DMCA and Copyright Compliance Policy. Learn about intellectual property rights, uploader ownership declarations, and our takedown procedure.">
+<meta name="robots" content="index, follow">
+<link rel="canonical" href="{{ BASE_URL | default('https://www.abhihub.edu.eu.org') }}/dmca">
+
+<meta property="og:title" content="DMCA &amp; Copyright Policy | AbhiHub">
+<meta property="og:description" content="AbhiHub DMCA and Copyright Compliance Policy. Learn about intellectual property rights, uploader ownership declarations, and our takedown procedure.">
+<meta property="og:url" content="{{ BASE_URL | default('https://www.abhihub.edu.eu.org') }}/dmca">
+<meta property="og:type" content="website">
+{% endblock %}
+
+{% block content %}
+<style>
+  .legal-page {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 2.5rem 1.25rem 5rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    color: #1e293b;
+    line-height: 1.7;
+  }
+  .legal-header {
+    border-bottom: 1px solid #e2e8f0;
+    padding-bottom: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  .legal-header h1 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 0.5rem;
+  }
+  .legal-meta {
+    color: #64748b;
+    font-size: 0.95rem;
+  }
+  .legal-page h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 2rem 0 0.75rem;
+  }
+  .legal-page p, .legal-page li {
+    font-size: 1rem;
+    color: #334155;
+  }
+  .legal-page ul {
+    padding-left: 1.25rem;
+    margin-bottom: 1.25rem;
+  }
+  .legal-page li {
+    margin-bottom: 0.4rem;
+  }
+  .notice-box {
+    background: #f8fafc;
+    border-left: 4px solid #3b82f6;
+    padding: 1rem 1.25rem;
+    border-radius: 0 8px 8px 0;
+    margin: 1.5rem 0;
+  }
+  .disclaimer-box {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #991b1b;
+    padding: 1rem 1.25rem;
+    border-radius: 8px;
+    margin-top: 3rem;
+    font-size: 0.9rem;
+  }
+</style>
+
+<div class="legal-page">
+  <div class="legal-header">
+    <h1>DMCA &amp; Copyright Policy</h1>
+    <div class="legal-meta">Last Updated: September 2026 • AbhiHub Academic Platform</div>
+  </div>
+
+  <p>AbhiHub respects the intellectual property rights of creators, authors, publishers, and educators. This Digital Millennium Copyright Act (&ldquo;DMCA&rdquo;) and Academic Copyright Policy outlines our standards for uploaded materials and the procedures for copyright owners to request the removal of infringing content.</p>
+
+  <h2>1. Uploader Ownership &amp; Content Declarations</h2>
+  <p>AbhiHub is a community-driven academic repository for university students. By uploading any study material, notes, past examination papers, or lab practical manuals to AbhiHub, uploaders affirm and agree that:</p>
+  <ul>
+    <li>The document consists of their own original handwritten notes, study guides, or openly distributed university course documents.</li>
+    <li>They do not upload full copyrighted textbooks, commercial solution manuals, proprietary publisher question banks, or subscription-gated third-party materials.</li>
+    <li>They grant AbhiHub a non-exclusive license to index, render preview excerpts, and display the study material for educational purposes to students.</li>
+  </ul>
+
+  <h2>2. Notice and Takedown Procedure</h2>
+  <p>If you believe that your copyrighted work has been uploaded or made available on AbhiHub without authorization, please submit a written DMCA takedown notice to our designated copyright contact.</p>
+  
+  <div class="notice-box">
+    <strong>Required Information for a Takedown Notice:</strong>
+    <ul>
+      <li>Identification of the copyrighted work claimed to have been infringed.</li>
+      <li>The exact URL (e.g., <code>https://www.abhihub.edu.eu.org/resource/...</code>) of the infringing material on AbhiHub.</li>
+      <li>Your contact information (full name, mailing address, telephone number, and official/monitored email address).</li>
+      <li>A statement that you have a good-faith belief that use of the material in the manner complained of is not authorized by the copyright owner, its agent, or the law.</li>
+      <li>A statement, under penalty of perjury, that the information in your notice is accurate and that you are authorized to act on behalf of the copyright owner.</li>
+      <li>A physical or electronic signature of the copyright owner or authorized representative.</li>
+    </ul>
+  </div>
+
+  <h2>3. Designated Contact</h2>
+  <p>Please send all copyright notices and infringement reports through our official <a href="{{ url_for('contact') }}" style="color: #2563eb; font-weight: 600;">Contact Form</a> or via email to:</p>
+  <p><strong>Email:</strong> <code>contact@abhihub.edu.eu.org</code></p>
+  <p>Upon receipt of a complete and valid notice, AbhiHub will promptly investigate and remove or disable access to the contested material.</p>
+
+  <h2>4. Repeat Infringer Policy</h2>
+  <p>AbhiHub maintains a zero-tolerance policy for persistent copyright violations. Users who repeatedly upload infringing or copyrighted materials will have their upload privileges revoked and their accounts terminated.</p>
+
+  <div class="disclaimer-box">
+    <strong>Legal Notice:</strong> This policy document is provided for general informational purposes and operational transparency. It does not constitute formal legal advice and should be reviewed periodically by legal counsel.
+  </div>
+</div>
+{% endblock %}

@@ -1,6 +1,20 @@
-<!-- SEO FOUNDATION TEMPLATE -->
-{% set is_noindex = noindex | default(false) or request.path.startswith('/login') or request.path.startswith('/signup')
-or request.path.startswith('/settings') or request.path.startswith('/admin') %}
+{% set is_noindex = noindex | default(false) 
+   or request.path.startswith('/login') 
+   or request.path.startswith('/signup') 
+   or request.path.startswith('/settings') 
+   or request.path.startswith('/admin')
+   or request.path.startswith('/dashboard')
+   or request.path.startswith('/upload')
+   or request.path.startswith('/upload-gate')
+   or request.path.startswith('/account')
+   or request.path.startswith('/earnings')
+   or request.path.startswith('/delete-account')
+   or request.path.startswith('/reset-password')
+   or request.path.startswith('/auth-callback')
+   or request.path.startswith('/store-room')
+   or request.path.startswith('/dino-game')
+   or request.path.startswith('/offline')
+   or request.path.startswith('/api/') %}
 
 <!-- 1. Performance & Hints -->
 
@@ -41,7 +55,7 @@ or request.path.startswith('/settings') or request.path.startswith('/admin') %}
 {% endif %}
 
 <!-- 4. Canonical URLs -->
-{% set canonical_domain = request.url_root.rstrip('/') %}
+{% set canonical_domain = BASE_URL | default('https://www.abhihub.edu.eu.org') %}
 {% if not disable_canonical %}
 <link rel="canonical" href="{{ canonical_domain }}{{ request.path }}">
 

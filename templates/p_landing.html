@@ -442,6 +442,111 @@
   </div>
 </div>
 
+<!-- ── Crawlable Directory: Top Universities & Colleges ── -->
+{% if colleges %}
+<div class="features-section" style="padding-top: 2rem; padding-bottom: 2rem;">
+  <h2 class="section-title" style="margin-bottom: 1.5rem;">Explore Notes & PYQs by College</h2>
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1rem;">
+    {% for c in colleges %}
+    <a href="/college/{{ c.slug }}" class="glass-card" style="padding: 1.25rem; text-decoration: none;">
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: #1e293b; margin: 0 0 0.4rem 0;">{{ c.name }}</h3>
+      <p style="font-size: 0.85rem; color: #64748b; margin: 0;">{{ c.abbreviation or 'Engineering' }} · Previous Year Papers & Notes</p>
+      <span style="font-size: 0.85rem; font-weight: 600; color: #2563eb; margin-top: 0.75rem; display: inline-block;">Browse College PYQs →</span>
+    </a>
+    {% endfor %}
+  </div>
+  <div style="text-align: center; margin-top: 1.5rem;">
+    <a href="{{ url_for('pyq_landing') }}" class="btn btn-glass" style="font-size: 0.95rem; padding: 0.6rem 1.5rem;">View All Colleges & PYQs →</a>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Crawlable Directory: Latest Verified PYQs & Notes ── -->
+{% if recent_docs %}
+<div class="features-section" style="padding-top: 2rem; padding-bottom: 2rem;">
+  <h2 class="section-title" style="margin-bottom: 1.5rem;">Latest Study Material & Exam Papers</h2>
+  <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
+    {% for doc in recent_docs %}
+    <a href="/resource/{{ doc.canonical_slug }}" class="glass-card" style="padding: 1.25rem; text-decoration: none;">
+      <span style="font-size: 0.75rem; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 0.05em;">{{ doc.document_category or 'PYQ' }}</span>
+      <h3 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin: 0.3rem 0 0.5rem 0; line-height: 1.4;">{{ doc.title }}</h3>
+      <p style="font-size: 0.82rem; color: #64748b; margin: 0;">
+        {{ doc.subject.name if doc.subject else 'Engineering' }} · {{ doc.college.abbreviation or 'AbhiHub' }}
+      </p>
+      <span style="font-size: 0.85rem; font-weight: 600; color: #2563eb; margin-top: 0.75rem; display: inline-block;">View Document & Preview →</span>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── Contributor Community Section ── -->
+<div class="features-section" style="padding-top: 2rem; padding-bottom: 3rem;">
+  <div class="glass-card" style="background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%); color: #ffffff; padding: 2.5rem; text-align: center; align-items: center;">
+    <h2 style="font-size: 1.8rem; font-weight: 800; margin: 0 0 0.8rem 0; color: #ffffff;">Share Study Materials &amp; Level Up on AbhiHub</h2>
+    <p style="font-size: 1rem; color: rgba(255,255,255,0.9); max-width: 650px; margin: 0 auto 1.5rem auto; line-height: 1.6;">
+      Upload previous year papers, handwritten notes, and practical files. Help your peers ace their semester exams while unlocking higher upload quotas, search limits, and community rank perks.
+    </p>
+    <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
+      <a href="{{ url_for('contribute_page') }}" class="btn btn-primary" style="background: #ffffff; color: #1e3a8a; font-weight: 700;">How Contribution Perks Work →</a>
+      <a href="{{ url_for('upload') }}" class="btn btn-glass" style="color: #ffffff; border-color: rgba(255,255,255,0.4);">Start Uploading Now</a>
+    </div>
+  </div>
+</div>
+
+<!-- ── Frequently Asked Questions (FAQ) ── -->
+<div class="features-section" style="padding-top: 1rem; padding-bottom: 4rem;">
+  <h2 class="section-title">Frequently Asked Questions</h2>
+  <div style="max-width: 800px; margin: 0 auto; display: flex; flex-direction: column; gap: 1rem;">
+    <div class="glass-card" style="padding: 1.5rem;">
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: #1e293b; margin: 0 0 0.5rem 0;">What is AbhiHub?</h3>
+      <p style="font-size: 0.95rem; color: #64748b; margin: 0; line-height: 1.6;">AbhiHub is a student-driven academic platform designed for college and engineering students across India to access verified previous year question papers (PYQs), lecture notes, practical files, and syllabus guides.</p>
+    </div>
+    <div class="glass-card" style="padding: 1.5rem;">
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: #1e293b; margin: 0 0 0.5rem 0;">Are the study notes and PYQs free to access?</h3>
+      <p style="font-size: 0.95rem; color: #64748b; margin: 0; line-height: 1.6;">Yes, students can browse and study exam resources, PYQs, and class notes shared by the community for free on AbhiHub.</p>
+    </div>
+    <div class="glass-card" style="padding: 1.5rem;">
+      <h3 style="font-size: 1.1rem; font-weight: 700; color: #1e293b; margin: 0 0 0.5rem 0;">How does the contributor rank system work?</h3>
+      <p style="font-size: 0.95rem; color: #64748b; margin: 0; line-height: 1.6;">Students and creators upload original study materials. As uploads get approved and viewed, contributors advance through rank tiers (Explorer to Community Leader) unlocking higher daily upload limits, faster search quotas, reduced ads, and profile badges.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FAQPage Schema -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is AbhiHub?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "AbhiHub is a student-driven academic platform designed for college and engineering students across India to access verified previous year question papers (PYQs), lecture notes, practical files, and syllabus guides."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are the study notes and PYQs free to access?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes, students can browse and study exam resources, PYQs, and class notes shared by the community for free on AbhiHub."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How does the contributor rank system work?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Students and creators upload original study materials. As uploads get approved and viewed, contributors advance through rank tiers (Explorer to Community Leader) unlocking higher daily upload limits, faster search quotas, reduced ads, and profile badges."
+      }
+    }
+  ]
+}
+</script>
+
 <!-- Essential Popups (Retained) -->
 {% if show_notification %}
 <div class="notification-popup show" id="notificationPopup">

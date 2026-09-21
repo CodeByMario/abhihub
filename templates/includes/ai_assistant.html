@@ -302,6 +302,23 @@
   padding: 2px 6px;
   border-radius: 5px;
 }
+.ai-bubble.assistant .katex {
+  font-size: 1.05em;
+  color: #f8fafc;
+}
+.ai-bubble.assistant .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 6px 2px;
+  margin: 8px 0;
+  max-width: 100%;
+}
+.ai-bubble.assistant .katex-fallback {
+  font-family: 'Fira Code', monospace;
+  background: rgba(255,255,255,0.08);
+  padding: 2px 4px;
+  border-radius: 4px;
+}
 .ai-code-copy-btn {
   position: absolute;
   top: 6px;
@@ -388,6 +405,171 @@
 }
 .ai-card-btn:hover {
   background: #4338ca;
+}
+
+/* ── Exam Stimulus Component ─────────────────────────────────── */
+.ai-exam-container {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  margin: 10px 0;
+  overflow: hidden;
+  box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+}
+.ai-exam-hdr {
+  padding: 10px 14px 8px;
+  background: #1e293b;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+}
+.ai-exam-title {
+  font-size: 12px;
+  font-weight: 700;
+  color: #e2e8f0;
+  margin-bottom: 5px;
+}
+.ai-exam-meta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ai-exam-badge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(99,102,241,0.2);
+  color: #a5b4fc;
+  border: 1px solid rgba(99,102,241,0.3);
+}
+.ai-exam-badge.marks {
+  background: rgba(16,185,129,0.2);
+  color: #6ee7b7;
+  border-color: rgba(16,185,129,0.3);
+}
+.ai-exam-step {
+  margin-left: auto;
+  font-size: 10px;
+  color: #94a3b8;
+  font-weight: 600;
+}
+.ai-exam-prog-track {
+  height: 3px;
+  background: rgba(255,255,255,0.06);
+  width: 100%;
+}
+.ai-exam-prog-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #6366f1, #38bdf8);
+  transition: width 0.3s ease;
+}
+.ai-exam-qbox {
+  padding: 12px 14px;
+}
+.ai-exam-qtext {
+  font-size: 13px;
+  color: #f1f5f9;
+  line-height: 1.5;
+  margin-bottom: 12px;
+  font-weight: 500;
+}
+.ai-exam-ans-area {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.ai-exam-opt-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.03);
+  border: 1px solid rgba(255,255,255,0.08);
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #cbd5e1;
+  transition: all 0.15s;
+}
+.ai-exam-opt-label:hover {
+  background: rgba(99,102,241,0.1);
+  border-color: rgba(99,102,241,0.3);
+  color: #fff;
+}
+.ai-exam-opt-label.selected {
+  background: rgba(99,102,241,0.2);
+  border-color: #6366f1;
+  color: #fff;
+}
+.ai-exam-opt-label input {
+  margin-top: 3px;
+  accent-color: #6366f1;
+}
+.ai-exam-input {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #fff;
+  font-size: 12px;
+  outline: none;
+  font-family: inherit;
+}
+.ai-exam-input:focus {
+  border-color: #6366f1;
+}
+.ai-exam-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: rgba(0,0,0,0.25);
+  border: 1px solid rgba(255,255,255,0.15);
+  border-radius: 8px;
+  padding: 8px 10px;
+  color: #fff;
+  font-size: 12px;
+  outline: none;
+  font-family: inherit;
+  resize: vertical;
+}
+.ai-exam-textarea:focus {
+  border-color: #6366f1;
+}
+.ai-exam-ftr {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 14px;
+  background: #1e293b;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.ai-exam-btn {
+  border: none;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s;
+}
+.ai-exam-btn.pri {
+  background: #6366f1;
+  color: #fff;
+}
+.ai-exam-btn.pri:hover {
+  background: #4f46e5;
+}
+.ai-exam-btn.sec {
+  background: rgba(255,255,255,0.08);
+  color: #cbd5e1;
+}
+.ai-exam-btn.sec:hover {
+  background: rgba(255,255,255,0.14);
+}
+.ai-exam-completed {
+  padding: 20px;
+  text-align: center;
 }
 
 /* ── Quick Prompts ────────────────────────────────────────────── */
@@ -481,21 +663,22 @@
   <div id="aiContextBar">
     <div class="ai-ctx-file" id="aiContextDocName">📄 Active Document</div>
     <div class="ai-ctx-actions">
+      <button class="ai-ctx-chip" onclick="askAiAboutFile('Start a practice exam on this paper with MCQ, MSQ, Short, and Brief questions.')">🎯 Practice Exam</button>
       <button class="ai-ctx-chip" onclick="askAiAboutFile('Solve the questions in this paper step-by-step with complete explanations.')">💡 Solve & Explain</button>
       <button class="ai-ctx-chip" onclick="askAiAboutFile('Summarize this paper thoroughly and outline its main topics.')">⚡ Summarize</button>
-      <button class="ai-ctx-chip" onclick="askAiAboutFile('Generate 3 exam practice questions based on this file with solutions.')">📝 Practice Questions</button>
     </div>
   </div>
 
   <!-- Chat History -->
   <div id="aiMsgList">
     <div class="ai-bubble assistant">
-      👋 Hi! I'm <strong>Tarika</strong>, your personal study assistant for AbhiHub. Ask me to find PYQs, search notes, or solve and explain any document you have open!
+      👋 Hi! I'm <strong>Tarika</strong>, your personal study assistant for AbhiHub. Ask me to find PYQs, search notes, start a <strong>Practice Exam</strong>, or solve and explain any document you have open!
     </div>
   </div>
 
   <!-- Quick Prompts -->
   <div class="ai-quick-prompts">
+    <button class="ai-qchip" onclick="quickSend('Start a practice exam for me')">🎯 Practice Exam</button>
     <button class="ai-qchip" onclick="quickSend('Find PYQs for Engineering Mathematics')">🔍 Math PYQs</button>
     <button class="ai-qchip" onclick="quickSend('Find notes for Data Structures')">📚 DSA Notes</button>
     <button class="ai-qchip" onclick="quickSend('Solve the paper on this page')">📝 Solve This Paper</button>
@@ -503,12 +686,15 @@
 
   <!-- Input Form -->
   <div class="ai-drw-input-row">
-    <input type="text" id="aiChatInput" placeholder="Ask Tarika or find PYQs/notes..." onkeydown="if(event.key==='Enter') sendAiMessage()">
+    <input type="text" id="aiChatInput" placeholder="Ask Tarika, practice exams, PYQs..." onkeydown="if(event.key==='Enter') sendAiMessage()">
     <button id="aiSendBtn" onclick="sendAiMessage()">➔</button>
   </div>
 </div>
 
-<!-- Load marked.min.js for rich markdown, tables & code styling -->
+<!-- Load marked.min.js & KaTeX for rich markdown, mathematical equations & engineering symbols -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 <script>
 (function() {
@@ -518,25 +704,77 @@
 
   function formatAiMarkdown(text) {
     if (!text) return '';
+
+    // Protect LaTeX math expressions before markdown parsing to prevent markdown corruption
+    const mathTokens = [];
+
+    // 1. Block math: $$ ... $$ or \[ ... \]
+    let processed = text
+      .replace(/\$\$([\s\S]*?)\$\$/g, (match, expr) => {
+        const id = `@@MATH_BLOCK_${mathTokens.length}@@`;
+        mathTokens.push({ id, expr, display: true });
+        return id;
+      })
+      .replace(/\\\[([\s\S]*?)\\\]/g, (match, expr) => {
+        const id = `@@MATH_BLOCK_${mathTokens.length}@@`;
+        mathTokens.push({ id, expr, display: true });
+        return id;
+      })
+      // 2. Inline math: \( ... \) or $ ... $ (excluding empty or trailing currency)
+      .replace(/\\\(([\s\S]*?)\\\)/g, (match, expr) => {
+        const id = `@@MATH_INLINE_${mathTokens.length}@@`;
+        mathTokens.push({ id, expr, display: false });
+        return id;
+      })
+      .replace(/(^|[^\\])\$([^\$\n]+?)\$/g, (match, prefix, expr) => {
+        const id = `@@MATH_INLINE_${mathTokens.length}@@`;
+        mathTokens.push({ id, expr, display: false });
+        return prefix + id;
+      });
+
+    let html = '';
     if (typeof marked !== 'undefined' && marked.parse) {
       try {
         marked.setOptions({ gfm: true, breaks: true });
-        return marked.parse(text);
+        html = marked.parse(processed);
       } catch (e) {
         console.warn('[Tarika Markdown Error]', e);
       }
     }
-    // Safe fallback markdown parsing
-    return text
-      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
-      .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
-      .replace(/`([^`]+)`/g, '<code>$1</code>')
-      .replace(/^### (.*$)/gim, '<h3>$1</h3>')
-      .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-      .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
-      .replace(/\*(.*?)\*/g, '<em>$1</em>')
-      .replace(/\n/g, '<br>');
+
+    // Safe fallback markdown parsing if marked is unavailable
+    if (!html) {
+      html = processed
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+        .replace(/```([\s\S]*?)```/g, '<pre><code>$1</code></pre>')
+        .replace(/`([^`]+)`/g, '<code>$1</code>')
+        .replace(/^### (.*$)/gim, '<h3>$1</h3>')
+        .replace(/^## (.*$)/gim, '<h2>$1</h2>')
+        .replace(/^# (.*$)/gim, '<h1>$1</h1>')
+        .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+        .replace(/\*(.*?)\*/g, '<em>$1</em>')
+        .replace(/\n/g, '<br>');
+    }
+
+    // Replace math placeholders with KaTeX rendered HTML or fallback
+    mathTokens.forEach(({ id, expr, display }) => {
+      let renderedMath = '';
+      if (typeof katex !== 'undefined' && katex.renderToString) {
+        try {
+          renderedMath = katex.renderToString(expr.trim(), {
+            displayMode: display,
+            throwOnError: false
+          });
+        } catch (e) {
+          renderedMath = display ? `<div class="katex-fallback">$$${expr}$$</div>` : `<span class="katex-fallback">$${expr}$</span>`;
+        }
+      } else {
+        renderedMath = display ? `<div class="katex-fallback">$$${expr}$$</div>` : `<span class="katex-fallback">$${expr}$</span>`;
+      }
+      html = html.replace(id, renderedMath);
+    });
+
+    return html;
   }
 
   function postProcessAiBubble(bubble) {
@@ -579,6 +817,197 @@
         a.rel = 'noopener noreferrer';
       }
     });
+
+    // 4. Auto-render remaining math formulas if any
+    if (typeof renderMathInElement === 'function') {
+      try {
+        renderMathInElement(bubble, {
+          delimiters: [
+            {left: '$$', right: '$$', display: true},
+            {left: '\\[', right: '\\]', display: true},
+            {left: '$', right: '$', display: false},
+            {left: '\\(', right: '\\)', display: false}
+          ],
+          throwOnError: false
+        });
+      } catch (err) {
+        console.warn('[KaTeX Render in Element]', err);
+      }
+    }
+
+    // 5. Detect and mount Exam Stimulus interactive component
+    bubble.querySelectorAll('pre code').forEach(codeEl => {
+      const raw = codeEl.innerText.trim();
+      if ((codeEl.className.includes('exam_stimulus') || raw.startsWith('{')) && raw.includes('"questions"')) {
+        try {
+          const examData = JSON.parse(raw);
+          if (examData && Array.isArray(examData.questions) && examData.questions.length > 0) {
+            const pre = codeEl.closest('pre');
+            if (pre && !pre.dataset.examMounted) {
+              pre.dataset.examMounted = 'true';
+              const container = document.createElement('div');
+              container.className = 'ai-exam-container';
+              pre.parentNode.replaceChild(container, pre);
+              renderExamStimulus(container, examData);
+            }
+          }
+        } catch (e) {
+          // Incomplete JSON during stream or invalid syntax
+        }
+      }
+    });
+  }
+
+  function renderExamStimulus(container, examData) {
+    let curIdx = 0;
+    const answers = {};
+    const totalQ = examData.questions.length;
+
+    function renderCurQuestion() {
+      const q = examData.questions[curIdx];
+      const progressPct = Math.round(((curIdx + 1) / totalQ) * 100);
+      let typeLabel = 'MCQ (Single Choice)';
+      if (q.type === 'msq') typeLabel = 'MSQ (Multi-Select)';
+      else if (q.type === 'short') typeLabel = 'Short (1-Line Answer)';
+      else if (q.type === 'brief') typeLabel = 'Brief / Descriptive';
+
+      container.innerHTML = `
+        <div class="ai-exam-hdr">
+          <div class="ai-exam-title">🎯 ${examData.title || 'Practice Exam'}</div>
+          <div class="ai-exam-meta">
+            <span class="ai-exam-badge">${typeLabel}</span>
+            <span class="ai-exam-badge marks">${q.marks || 2} Marks</span>
+            <span class="ai-exam-step">Question ${curIdx + 1} of ${totalQ}</span>
+          </div>
+        </div>
+        <div class="ai-exam-prog-track"><div class="ai-exam-prog-fill" style="width: ${progressPct}%"></div></div>
+        <div class="ai-exam-qbox">
+          <div class="ai-exam-qtext" id="examQText"></div>
+          <div class="ai-exam-ans-area" id="examAnsArea"></div>
+        </div>
+        <div class="ai-exam-ftr">
+          ${curIdx > 0 ? `<button type="button" class="ai-exam-btn sec" id="examPrevBtn">← Prev</button>` : `<div></div>`}
+          <button type="button" class="ai-exam-btn pri" id="examNextBtn">${curIdx === totalQ - 1 ? 'Submit Exam for Grading 🚀' : 'Next Question ➔'}</button>
+        </div>
+      `;
+
+      // Set question text with markdown and math rendering
+      const qTextEl = container.querySelector('#examQText');
+      if (qTextEl) {
+        qTextEl.innerHTML = formatAiMarkdown(q.question);
+        postProcessAiBubble(qTextEl);
+      }
+
+      const ansArea = container.querySelector('#examAnsArea');
+      if (q.type === 'mcq' && Array.isArray(q.options)) {
+        q.options.forEach((opt) => {
+          const optEl = document.createElement('label');
+          optEl.className = 'ai-exam-opt-label' + (answers[q.id] === opt ? ' selected' : '');
+          optEl.innerHTML = `
+            <input type="radio" name="exam_q_${q.id}" value="${opt.replace(/"/g, '&quot;')}" ${answers[q.id] === opt ? 'checked' : ''}>
+            <div style="flex:1;">${formatAiMarkdown(opt)}</div>
+          `;
+          optEl.onclick = (e) => {
+            answers[q.id] = opt;
+            ansArea.querySelectorAll('.ai-exam-opt-label').forEach(l => l.classList.remove('selected'));
+            optEl.classList.add('selected');
+            const r = optEl.querySelector('input');
+            if (r) r.checked = true;
+          };
+          ansArea.appendChild(optEl);
+          postProcessAiBubble(optEl);
+        });
+      } else if (q.type === 'msq' && Array.isArray(q.options)) {
+        if (!Array.isArray(answers[q.id])) answers[q.id] = [];
+        q.options.forEach((opt) => {
+          const isChecked = answers[q.id].includes(opt);
+          const optEl = document.createElement('label');
+          optEl.className = 'ai-exam-opt-label' + (isChecked ? ' selected' : '');
+          optEl.innerHTML = `
+            <input type="checkbox" name="exam_q_${q.id}" value="${opt.replace(/"/g, '&quot;')}" ${isChecked ? 'checked' : ''}>
+            <div style="flex:1;">${formatAiMarkdown(opt)}</div>
+          `;
+          optEl.onclick = (e) => {
+            if (e.target.tagName !== 'INPUT') {
+              const cb = optEl.querySelector('input');
+              if (cb) cb.checked = !cb.checked;
+            }
+            const cb = optEl.querySelector('input');
+            if (cb && cb.checked) {
+              if (!answers[q.id].includes(opt)) answers[q.id].push(opt);
+              optEl.classList.add('selected');
+            } else {
+              answers[q.id] = answers[q.id].filter(x => x !== opt);
+              optEl.classList.remove('selected');
+            }
+          };
+          ansArea.appendChild(optEl);
+          postProcessAiBubble(optEl);
+        });
+      } else if (q.type === 'short') {
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'ai-exam-input';
+        inp.placeholder = 'Type your one-line answer here...';
+        inp.value = answers[q.id] || '';
+        inp.oninput = () => { answers[q.id] = inp.value; };
+        ansArea.appendChild(inp);
+        setTimeout(() => inp.focus(), 60);
+      } else { // brief
+        const ta = document.createElement('textarea');
+        ta.className = 'ai-exam-textarea';
+        ta.rows = 4;
+        ta.placeholder = 'Write your brief answer and key technical terms here...';
+        ta.value = answers[q.id] || '';
+        ta.oninput = () => { answers[q.id] = ta.value; };
+        ansArea.appendChild(ta);
+        setTimeout(() => ta.focus(), 60);
+      }
+
+      // Event handlers
+      const prevBtn = container.querySelector('#examPrevBtn');
+      if (prevBtn) {
+        prevBtn.onclick = () => {
+          if (curIdx > 0) {
+            curIdx--;
+            renderCurQuestion();
+          }
+        };
+      }
+      const nextBtn = container.querySelector('#examNextBtn');
+      if (nextBtn) {
+        nextBtn.onclick = () => {
+          if (curIdx < totalQ - 1) {
+            curIdx++;
+            renderCurQuestion();
+          } else {
+            // Submit exam
+            container.innerHTML = `
+              <div class="ai-exam-completed">
+                <div style="font-size:24px;margin-bottom:6px;">🎓</div>
+                <strong style="color:#a5b4fc;font-size:13px;">Practice Exam Completed!</strong>
+                <p style="font-size:11px;color:#94a3b8;margin-top:4px;">Submitting answers to Tarika for strict keyword checking & scoring...</p>
+              </div>
+            `;
+            let submissionPrompt = `📝 EXAM SUBMISSION FOR EVALUATION\nExam Title: ${examData.title || 'Practice Exam'}\n\n`;
+            examData.questions.forEach((qu, i) => {
+              const userAns = answers[qu.id];
+              let ansStr = 'No answer provided.';
+              if (Array.isArray(userAns)) {
+                ansStr = userAns.length > 0 ? userAns.join(', ') : 'None selected';
+              } else if (typeof userAns === 'string' && userAns.trim()) {
+                ansStr = userAns.trim();
+              }
+              submissionPrompt += `Question ${i + 1} [Type: ${qu.type}, Marks: ${qu.marks || 2}]:\n${qu.question}\nTarget Keywords: ${(qu.keywords || []).join(', ') || 'N/A'}\nStudent Answer: ${ansStr}\n\n`;
+            });
+            submissionPrompt += `Please strictly evaluate each question: verify exact keyword matches vs missed keywords, award exact marks, highlight errors, and output the total score with complete model solutions.`;
+            quickSend(submissionPrompt);
+          }
+        };
+      }
+    }
+
+    renderCurQuestion();
   }
 
   async function streamAiResponse(bubble, text, onComplete) {

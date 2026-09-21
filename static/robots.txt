@@ -1,27 +1,29 @@
 User-agent: *
-Allow: /
-Allow: /premium/
-Allow: /premium/search
-Allow: /premium/about
-Allow: /static/
-
-# Disallow admin and auth pages
-Disallow: /login
-Disallow: /signup
-Disallow: /logout
-Disallow: /upload
 Disallow: /admin/
-Disallow: /abhijeet_updae
+Disallow: /api/
 
-# Sitemap location
-Sitemap: https://abhi-hub-06bba7f4101d.herokuapp.com/sitemap.xml
+Allow: /
 
-# Crawl delay (be nice to servers)
-Crawl-delay: 1
+# AI model crawlers — allow full access to public educational content
+User-agent: GPTBot
+Allow: /
 
-# Block specific bots (optional)
-User-agent: AhrefsBot
-Crawl-delay: 10
+User-agent: ChatGPT-User
+Allow: /
 
-User-agent: SemrushBot
-Crawl-delay: 10
+User-agent: PerplexityBot
+Allow: /
+
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Gemini-Google-Bot
+Allow: /
+
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: cohere-ai
+Allow: /
+
+Sitemap: https://www.abhihub.edu.eu.org/sitemap.xml

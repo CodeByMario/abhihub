@@ -305,7 +305,6 @@ body {
 
 /* Image Viewer */
 .image-viewer-wrap {
-    border-radius: 12px;
     overflow: hidden;
     background: #f1f5f9;
     position: relative;
@@ -358,8 +357,6 @@ body {
 
 .image-canvas {
     position: relative;
-    overflow: hidden;
-    cursor: zoom-in;
     min-height: 300px;
     height: 100%;
     max-height: 700px;
@@ -367,7 +364,6 @@ body {
     align-items: center;
     justify-content: center;
     touch-action: none;
-    background: #f8fafc;
 }
 
 /* Preview Iframe */

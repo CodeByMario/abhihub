@@ -1,25 +1,10 @@
 User-agent: *
 Disallow: /admin/
 Disallow: /api/
-Disallow: /account
-Disallow: /settings
-Disallow: /login
-Disallow: /signup
-Disallow: /profile
-Disallow: /ranking
-Disallow: /delete-account
 
-Allow: /college/
-Allow: /dashboard
-Allow: /store-room
-Allow: /pyq
-Allow: /features-tour
-Allow: /upload
-Allow: /leaderboard
-Allow: /resource/
-Allow: /llms.txt
+Allow: /
 
-# AI model crawlers — allow full access to public content
+# AI model crawlers — allow full access to public educational content
 User-agent: GPTBot
 Allow: /
 
@@ -41,6 +26,4 @@ Allow: /
 User-agent: cohere-ai
 Allow: /
 
-
 Sitemap: https://www.abhihub.edu.eu.org/sitemap.xml
-

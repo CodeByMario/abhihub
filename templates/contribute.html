@@ -1,0 +1,352 @@
+{% extends 'p_struct.html' %}
+
+{% block page_head %}
+<title>Contribute Study Materials &amp; Unlock Creator Perks | AbhiHub</title>
+<meta name="description" content="Share university notes, question papers, and practical files on AbhiHub. Level up through community contributor tiers to unlock increased upload quotas and reduced ads.">
+<meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
+<link rel="canonical" href="{{ BASE_URL | default('https://www.abhihub.edu.eu.org') }}/contribute">
+
+<meta property="og:title" content="Contribute Study Materials &amp; Unlock Creator Perks | AbhiHub">
+<meta property="og:description" content="Share university notes, question papers, and practical files on AbhiHub. Level up through community contributor tiers to unlock increased upload quotas and reduced ads.">
+<meta property="og:url" content="{{ BASE_URL | default('https://www.abhihub.edu.eu.org') }}/contribute">
+<meta property="og:type" content="website">
+
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What academic materials can I upload to AbhiHub?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "You can upload university previous year question papers (PYQs), handwritten lecture notes, unit-wise study guides, practical manuals, and solved assignments in PDF or clear image format."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What benefits do I get for contributing on AbhiHub?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Active uploaders advance through rank tiers (Explorer, Member, Contributor, Power Contributor, Community Leader) to unlock higher daily upload limits, faster search quotas, reduced ad density, and contributor profile badges."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are there direct cash payouts for uploads?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "No. Currently, AbhiHub rewards contributors through gamified rank tiers, platform privileges, and community reputation. There are no cash payouts at this stage."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "What are the quality requirements for uploading study material?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Uploads must be original or open academic material with a clear title (min 5 characters), selected college and subject, accurate semester/year tags, and a helpful description of at least 50 words."
+      }
+    }
+  ]
+}
+</script>
+{% endblock %}
+
+{% block content %}
+<style>
+  .contrib-page {
+    max-width: 1080px;
+    margin: 0 auto;
+    padding: 2rem 1.25rem 5rem;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  .contrib-hero {
+    background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 60%, #3b82f6 100%);
+    border-radius: 20px;
+    padding: 3rem 2rem;
+    color: #ffffff;
+    text-align: center;
+    margin-bottom: 2.5rem;
+    box-shadow: 0 10px 25px -5px rgba(37, 99, 235, 0.25);
+  }
+  .contrib-hero h1 {
+    font-size: clamp(1.8rem, 4vw, 2.5rem);
+    font-weight: 800;
+    margin: 0 0 1rem;
+    line-height: 1.2;
+  }
+  .contrib-hero p {
+    font-size: 1.1rem;
+    color: #dbeafe;
+    max-width: 650px;
+    margin: 0 auto 1.75rem;
+    line-height: 1.6;
+  }
+  .contrib-cta-group {
+    display: flex;
+    justify-content: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .btn-hero-primary {
+    background: #ffffff;
+    color: #1e3a8a;
+    font-weight: 700;
+    padding: 0.8rem 1.75rem;
+    border-radius: 12px;
+    text-decoration: none;
+    transition: transform 0.15s ease, box-shadow 0.15s ease;
+  }
+  .btn-hero-primary:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  }
+  .btn-hero-secondary {
+    background: rgba(255, 255, 255, 0.15);
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.8rem 1.75rem;
+    border-radius: 12px;
+    text-decoration: none;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  .btn-hero-secondary:hover {
+    background: rgba(255, 255, 255, 0.25);
+  }
+
+  .section-title {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: #0f172a;
+    text-align: center;
+    margin: 3rem 0 0.5rem;
+  }
+  .section-subtitle {
+    text-align: center;
+    color: #64748b;
+    font-size: 1rem;
+    margin: 0 auto 2rem;
+    max-width: 600px;
+  }
+
+  /* How it works */
+  .grid-steps {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+  }
+  .step-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.5rem;
+    position: relative;
+  }
+  .step-badge {
+    width: 36px;
+    height: 36px;
+    background: #eff6ff;
+    color: #2563eb;
+    border-radius: 10px;
+    font-weight: 800;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 1rem;
+  }
+  .step-card h3 {
+    font-size: 1.1rem;
+    margin: 0 0 0.5rem;
+    color: #0f172a;
+  }
+  .step-card p {
+    font-size: 0.9rem;
+    color: #64748b;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  /* Rank Tiers */
+  .tier-box {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+  }
+  .tier-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+  }
+  .tier-item {
+    padding: 1rem;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+  }
+  .tier-item.active {
+    background: #eff6ff;
+    border-color: #93c5fd;
+  }
+  .tier-name {
+    font-weight: 700;
+    font-size: 1rem;
+    color: #0f172a;
+    margin-bottom: 0.35rem;
+  }
+  .tier-item.active .tier-name {
+    color: #1d4ed8;
+  }
+  .tier-perks {
+    font-size: 0.85rem;
+    color: #64748b;
+    line-height: 1.4;
+  }
+
+  /* FAQ */
+  .faq-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+  .faq-item {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+  }
+  .faq-item h4 {
+    margin: 0 0 0.5rem;
+    font-size: 1.05rem;
+    color: #0f172a;
+    font-weight: 700;
+  }
+  .faq-item p {
+    margin: 0;
+    font-size: 0.95rem;
+    color: #475569;
+    line-height: 1.55;
+  }
+
+  /* Bottom Banner */
+  .contrib-footer-cta {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    margin-top: 3.5rem;
+  }
+  .contrib-footer-cta h3 {
+    margin: 0 0 0.5rem;
+    color: #0f172a;
+    font-size: 1.3rem;
+  }
+  .contrib-footer-cta p {
+    color: #64748b;
+    margin: 0 0 1.25rem;
+  }
+</style>
+
+<div class="contrib-page">
+  <!-- Hero -->
+  <div class="contrib-hero">
+    <h1>Contribute Study Materials &amp; Level Up</h1>
+    <p>Help fellow engineering students across India by sharing high-quality lecture notes, PYQs, and lab practicals while unlocking platform perks and reputation badges.</p>
+    <div class="contrib-cta-group">
+      <a href="{{ url_for('upload') }}" class="btn-hero-primary">Start Uploading →</a>
+      <a href="#rank-tiers" class="btn-hero-secondary">View Rank Perks</a>
+    </div>
+  </div>
+
+  <!-- How It Works -->
+  <h2 class="section-title">How It Works</h2>
+  <p class="section-subtitle">Simple, transparent, and student-powered academic sharing.</p>
+  
+  <div class="grid-steps">
+    <div class="step-card">
+      <div class="step-badge">1</div>
+      <h3>Upload Material</h3>
+      <p>Submit original lecture notes, solved PYQs, or practical manuals with accurate subject and semester tags.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-badge">2</div>
+      <h3>Quality Review</h3>
+      <p>Documents with clear titles and rich descriptions get approved and indexed for your university.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-badge">3</div>
+      <h3>Help Students</h3>
+      <p>Thousands of students preparing for exams discover and study from your verified resources.</p>
+    </div>
+    <div class="step-card">
+      <div class="step-badge">4</div>
+      <h3>Earn Platform Perks</h3>
+      <p>Accumulate contribution points to unlock higher upload quotas, search limits, and reduced ad density.</p>
+    </div>
+  </div>
+
+  <!-- Rank Tiers -->
+  <div id="rank-tiers">
+    <h2 class="section-title">Contributor Rank Tiers &amp; Perks</h2>
+    <p class="section-subtitle">Progression is based on verified uploads and student engagement.</p>
+
+    <div class="tier-box">
+      <div class="tier-row">
+        <div class="tier-item">
+          <div class="tier-name">🌱 Explorer</div>
+          <div class="tier-perks">Default rank. 3 daily uploads, standard search limit.</div>
+        </div>
+        <div class="tier-item">
+          <div class="tier-name">📘 Member</div>
+          <div class="tier-perks">Active student. 5 daily uploads, 100 searches/day.</div>
+        </div>
+        <div class="tier-item active">
+          <div class="tier-name">⚡ Contributor</div>
+          <div class="tier-perks">15 daily uploads, 300 searches/day, reduced ad density &amp; early access.</div>
+        </div>
+        <div class="tier-item">
+          <div class="tier-name">🔥 Power Contributor</div>
+          <div class="tier-perks">40 daily uploads, 1000 searches/day, minimal ads.</div>
+        </div>
+        <div class="tier-item">
+          <div class="tier-name">👑 Community Leader</div>
+          <div class="tier-perks">100 daily uploads, 5000 searches/day, ad-free experience.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- FAQ -->
+  <h2 class="section-title">Frequently Asked Questions</h2>
+  <p class="section-subtitle">Everything you need to know about contributing study resources.</p>
+
+  <div class="faq-container">
+    <div class="faq-item">
+      <h4>What academic materials can I upload to AbhiHub?</h4>
+      <p>You can upload university previous year question papers (PYQs), handwritten lecture notes, unit-wise study guides, practical manuals, and solved assignments in PDF or clear image format.</p>
+    </div>
+    <div class="faq-item">
+      <h4>What benefits do I get for contributing on AbhiHub?</h4>
+      <p>Active uploaders advance through rank tiers (Explorer, Member, Contributor, Power Contributor, Community Leader) to unlock higher daily upload limits, faster search quotas, reduced ad density, and contributor profile badges.</p>
+    </div>
+    <div class="faq-item">
+      <h4>Are there direct cash payouts for uploads?</h4>
+      <p>No. Currently, AbhiHub rewards contributors through gamified rank tiers, platform privileges, and community reputation. There are no cash payouts at this stage.</p>
+    </div>
+    <div class="faq-item">
+      <h4>What are the quality requirements for uploading study material?</h4>
+      <p>Uploads must be original or open academic material with a clear title (min 5 characters), selected college and subject, accurate semester/year tags, and a helpful description of at least 50 words.</p>
+    </div>
+  </div>
+
+  <!-- Footer CTA -->
+  <div class="contrib-footer-cta">
+    <h3>Ready to Share Your Notes?</h3>
+    <p>Join student creators across engineering colleges and help build a free, open knowledge base.</p>
+    <a href="{{ url_for('upload') }}" class="btn-hero-primary" style="background: #2563eb; color: #ffffff; display: inline-block;">Upload Study Material →</a>
+  </div>
+</div>
+{% endblock %}
