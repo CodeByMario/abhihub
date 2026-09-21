@@ -148,3 +148,18 @@ def test_questions_rendered_when_present_and_omitted_when_absent(test_client, mo
         res = test_client.get("/resource/ghrce-cse-design-and-analysis-of-algorithms-daa-cae2-c0007903-5e53-4e06-95b1-5169e7a4dece?redesign=1")
         html = res.data.decode("utf-8")
         assert "Solve with Tarika" not in html
+
+
+def test_youtube_videos_rendered_for_topics_and_subject(test_client, mock_sample_doc):
+    """Verify YouTube video cards are dynamically generated based on subject and topics."""
+    with patch("app.get_document_by_id_rich", return_value=mock_sample_doc), \
+         patch("app.log_document_view"):
+        res = test_client.get("/resource/ghrce-cse-design-and-analysis-of-algorithms-daa-cae2-c0007903-5e53-4e06-95b1-5169e7a4dece?redesign=1")
+        assert res.status_code == 200
+        html = res.data.decode("utf-8")
+        # Check topic-based video queries
+        assert 'data-yt-query="Floyd-Warshall Design and Analysis of Algorithms' in html
+        assert 'data-yt-query="Graph Colouring Design and Analysis of Algorithms' in html
+        assert 'data-yt-query="Design and Analysis of Algorithms complete course revision pyq"' in html
+        assert 'YouTube • Design and Analysis of Algorithms' in html
+
