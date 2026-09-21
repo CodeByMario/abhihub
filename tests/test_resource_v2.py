@@ -113,3 +113,38 @@ def test_mock_study_kit_ignored_in_production(test_client, mock_sample_doc, monk
         kwargs = mock_render.call_args[1]
         assert kwargs.get("mock_study_kit") is False
 
+
+def test_pdf_viewer_disables_downloads(test_client, mock_sample_doc):
+    """When document is a PDF, the viewer iframe is loaded with download=false."""
+    pdf_doc = dict(mock_sample_doc)
+    pdf_doc["data"] = dict(mock_sample_doc["data"])
+    pdf_doc["data"]["file_type"] = "pdf"
+    pdf_doc["data"]["file_url"] = "https://example.com/sample-paper.pdf"
+
+    with patch("app.get_document_by_id_rich", return_value=pdf_doc), \
+         patch("app.log_document_view"):
+        res = test_client.get("/resource/ghrce-cse-design-and-analysis-of-algorithms-daa-cae2-c0007903-5e53-4e06-95b1-5169e7a4dece?redesign=1")
+        assert res.status_code == 200
+        html = res.data.decode("utf-8")
+        assert "&download=false" in html
+
+
+def test_questions_rendered_when_present_and_omitted_when_absent(test_client, mock_sample_doc):
+    """Question list and pins appear when topics_covered has items, and disappear when empty."""
+    # Present
+    with patch("app.get_document_by_id_rich", return_value=mock_sample_doc), \
+         patch("app.log_document_view"):
+        res = test_client.get("/resource/ghrce-cse-design-and-analysis-of-algorithms-daa-cae2-c0007903-5e53-4e06-95b1-5169e7a4dece?redesign=1")
+        html = res.data.decode("utf-8")
+        assert "Floyd-Warshall" in html
+        assert "Solve with Tarika" in html
+
+    # Absent
+    no_topics_doc = dict(mock_sample_doc)
+    no_topics_doc["data"] = dict(mock_sample_doc["data"])
+    no_topics_doc["data"]["topics_covered"] = []
+    with patch("app.get_document_by_id_rich", return_value=no_topics_doc), \
+         patch("app.log_document_view"):
+        res = test_client.get("/resource/ghrce-cse-design-and-analysis-of-algorithms-daa-cae2-c0007903-5e53-4e06-95b1-5169e7a4dece?redesign=1")
+        html = res.data.decode("utf-8")
+        assert "Solve with Tarika" not in html

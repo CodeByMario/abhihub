@@ -104,721 +104,1695 @@ else 'Notes'))))) %}
 }
 </script>
 
-<!-- Google Fonts Preconnect & Styling Tokens -->
+<!-- Google Fonts Preconnect & Styling -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Figtree:wght@400;500;600;700&display=swap" rel="stylesheet">
 
 <style>
-  /* ── Design System Tokens (Light / Dark) ── */
-  :root {
-    --v2-bg: #F5F6FA;
-    --v2-surface: #FFFFFF;
-    --v2-ink: #0F172A;
-    --v2-muted: #566079;
-    --v2-line: #E1E5EE;
-    --v2-brand: #1D4ED8;
-    --v2-brand-hover: #1e40af;
-    --v2-verified: #15803D;
-    --v2-verified-bg: #DCFCE7;
-    --v2-q1: #6540D8;
-    --v2-q2: #B4530A;
-    --v2-radius-panel: 14px;
-    --v2-radius-btn: 10px;
-    --v2-radius-pill: 9999px;
-    --v2-font-heading: 'Bricolage Grotesque', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --v2-font-body: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  }
+:root {
+  --bg:#F5F6FA; --surface:#FFFFFF; --stage:#E7EAF2; --ink:#0F172A; --muted:#566079; --line:#E1E5EE;
+  --brand:#1D4ED8; --brand-ink:#FFFFFF; --brand-soft:#E6EDFE;
+  --ok:#15803D; --ok-soft:#DDF3E5;
+  --t1:#6540D8; --t1-soft:#ECE7FB;
+  --t2:#B4530A; --t2-soft:#FBEBD9; --amber:#D97706;
+  --top-h:64px; --radius:14px;
+  --font-body:'Figtree', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  --font-head:'Bricolage Grotesque','Figtree', system-ui, -apple-system, 'Segoe UI', sans-serif;
+}
 
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --v2-bg: #0B1120;
-      --v2-surface: #131B2D;
-      --v2-ink: #EAEEF7;
-      --v2-muted: #98A3BB;
-      --v2-line: #25304A;
-      --v2-brand: #7FA0FF;
-      --v2-brand-hover: #93b5ff;
-      --v2-verified: #4ADE80;
-      --v2-verified-bg: rgba(74, 222, 128, 0.15);
-      --v2-q1: #A78BFF;
-      --v2-q2: #FFA45E;
-    }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg:#0B1120; --surface:#131B2D; --stage:#0E1526; --ink:#EAEEF7; --muted:#98A3BB; --line:#25304A;
+    --brand:#7FA0FF; --brand-ink:#0B1120; --brand-soft:#1A2748;
+    --ok:#4ADE80; --ok-soft:#12301F;
+    --t1:#A78BFF; --t1-soft:#251F4A;
+    --t2:#FFA45E; --t2-soft:#3A2412; --amber:#FFB454;
   }
+}
 
-  /* Scoped Page Wrapper */
-  body.resource-v2-page {
-    background-color: var(--v2-bg);
-    color: var(--v2-ink);
-    font-family: var(--v2-font-body);
-    margin: 0;
-    padding: 0;
-  }
+:root[data-theme="dark"] {
+  --bg:#0B1120; --surface:#131B2D; --stage:#0E1526; --ink:#EAEEF7; --muted:#98A3BB; --line:#25304A;
+  --brand:#7FA0FF; --brand-ink:#0B1120; --brand-soft:#1A2748;
+  --ok:#4ADE80; --ok-soft:#12301F;
+  --t1:#A78BFF; --t1-soft:#251F4A;
+  --t2:#FFA45E; --t2-soft:#3A2412; --amber:#FFB454;
+}
 
-  /* Conditional Floating Tarika Hiding (Only when AI Chat is unlocked on v2) */
-  body.resource-v2-page.ai-unlocked #abhiAiLauncher {
-    display: none !important;
-  }
+body.resource-v2-page {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-body);
+  font-size: 16px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 0;
+}
 
-  .r2-container {
-    max-width: 1366px;
-    margin: 0 auto;
-    padding: 1.25rem 1.5rem 5rem;
-    box-sizing: border-box;
-  }
+/* Floating Tarika Hiding (Only when AI Chat is unlocked on v2) */
+body.resource-v2-page.ai-unlocked #abhiAiLauncher {
+  display: none !important;
+}
 
-  /* Breadcrumbs */
-  .r2-breadcrumbs {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
-    color: var(--v2-muted);
-    margin-bottom: 0.75rem;
-    flex-wrap: wrap;
-  }
+.r2-main {
+  max-width: 1240px;
+  margin: 0 auto;
+  padding: 16px 16px calc(120px + env(safe-area-inset-bottom,0px));
+  box-sizing: border-box;
+}
 
-  .r2-breadcrumbs a {
-    color: var(--v2-muted);
-    text-decoration: none;
-    transition: color 0.15s ease;
-  }
+.r2-container {
+  width: 100%;
+}
 
-  .r2-breadcrumbs a:hover {
-    color: var(--v2-brand);
-  }
+.ic {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+.ic.fill {
+  fill: currentColor;
+  stroke: none;
+}
+.sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+.muted { color: var(--muted); }
 
-  .r2-breadcrumbs .sep {
-    color: var(--v2-line);
-  }
+/* ---------- Buttons & chips ---------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 14px;
+  white-space: nowrap;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+.btn:hover { border-color: var(--muted); }
+.btn.primary { background: var(--brand); border-color: var(--brand); color: var(--brand-ink); }
+.btn.primary:hover { filter: brightness(1.08); }
+.btn.small { min-height: 34px; padding: 0 10px; font-size: 13px; }
+.btn[aria-pressed="true"] { background: var(--brand-soft); border-color: var(--brand); color: var(--brand); }
+.btn[aria-pressed="true"] .ic { fill: currentColor; }
 
-  /* Title & Subtitle */
-  .r2-heading {
-    font-family: var(--v2-font-heading);
-    font-weight: 700;
-    font-size: clamp(1.65rem, 4.6vw, 2.5rem);
-    line-height: 1.18;
-    letter-spacing: -0.025em;
-    color: var(--v2-ink);
-    margin: 0 0 0.4rem 0;
-  }
+.icon-btn {
+  position: relative;
+  display: inline-grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+}
+.icon-btn:hover { background: var(--bg); border-color: var(--muted); }
 
-  .r2-subtitle {
-    font-size: 0.95rem;
-    color: var(--v2-muted);
-    margin: 0 0 1rem 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    flex-wrap: wrap;
-  }
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 9px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--bg);
+  color: var(--muted);
+  white-space: nowrap;
+}
+.tag.t1 { background: var(--t1-soft); color: var(--t1); }
+.tag.t2 { background: var(--t2-soft); color: var(--t2); }
+.tag.ok { background: var(--ok-soft); color: var(--ok); }
+.tag.plain { border: 1px solid var(--line); background: transparent; }
 
-  .r2-verified-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.6rem;
-    border-radius: var(--v2-radius-pill);
-    background: var(--v2-verified-bg);
-    color: var(--v2-verified);
-    font-size: 0.78rem;
-    font-weight: 700;
-  }
+/* ---------- Page Header ---------- */
+.crumbs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 8px;
+  margin: 0 0 10px;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+  color: var(--muted);
+}
+.crumbs li+li::before { content: "/"; margin-right: 8px; opacity: .6; }
+.crumbs a { text-decoration: none; color: inherit; }
+.crumbs a:hover { text-decoration: underline; color: var(--brand); }
 
-  /* Facts Row */
-  .r2-facts-row {
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    font-size: 0.85rem;
-    color: var(--v2-muted);
-    padding: 0.75rem 0;
-    border-top: 1px solid var(--v2-line);
-    border-bottom: 1px solid var(--v2-line);
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-  }
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+.head-main { flex: 1; min-width: 0; }
+h1.r2-h1 {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: clamp(26px, 4.6vw, 40px);
+  line-height: 1.08;
+  letter-spacing: -.025em;
+  margin: 0 0 8px;
+  text-wrap: balance;
+}
+.sub { margin: 0 0 14px; color: var(--muted); max-width: 60ch; }
+.facts { display: flex; flex-wrap: wrap; gap: 10px 28px; margin: 0; }
+.facts div { min-width: 0; }
+.facts dt { font-size: 12px; color: var(--muted); }
+.facts dd { margin: 0; font-weight: 600; font-size: 14px; }
 
-  .r2-fact-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-  }
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  position: relative;
+}
+.actions .btn .count { font-variant-numeric: tabular-nums; }
 
-  /* Action Bar */
-  .r2-action-bar {
-    display: flex;
-    align-items: center;
-    gap: 0.65rem;
-    margin-bottom: 1.5rem;
-    flex-wrap: wrap;
-  }
+.menu {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  z-index: 30;
+  min-width: 230px;
+  padding: 6px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(15,23,42,.18);
+}
+.menu button, .menu a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 42px;
+  padding: 0 10px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  text-align: left;
+  text-decoration: none;
+  font-size: 14px;
+  color: var(--ink);
+  cursor: pointer;
+}
+.menu button:hover, .menu a:hover { background: var(--bg); }
+.menu hr { border: 0; border-top: 1px solid var(--line); margin: 6px 0; }
+.menu small { display: block; padding: 6px 10px 2px; color: var(--muted); font-size: 12px; }
 
-  .r2-btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.45rem;
-    padding: 0.55rem 1rem;
-    min-height: 40px;
-    border-radius: var(--v2-radius-btn);
-    border: 1px solid var(--v2-line);
-    background: var(--v2-surface);
-    color: var(--v2-ink);
-    font-family: inherit;
-    font-size: 0.88rem;
-    font-weight: 600;
-    cursor: pointer;
-    transition: all 0.15s ease;
-    user-select: none;
-    text-decoration: none;
-    box-sizing: border-box;
-  }
+/* ---------- Workspace Layout ---------- */
+.workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
 
-  .r2-btn:hover {
-    border-color: var(--v2-brand);
-    color: var(--v2-brand);
-    background: rgba(29, 78, 216, 0.04);
-  }
+.viewer {
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.viewer-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--line);
+}
+.viewer-bar .zoom {
+  min-width: 48px;
+  text-align: center;
+  font-size: 13px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+.viewer-bar .grow { flex: 1; }
+.stage {
+  background: var(--stage);
+  padding: 14px;
+  overflow: auto;
+  max-height: 640px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.paper {
+  position: relative;
+  margin: 0 auto;
+  width: 100%;
+  box-shadow: 0 2px 14px rgba(15,23,42,.22);
+  border-radius: 3px;
+  overflow: hidden;
+  background: #fff;
+}
+.paper img { display: block; width: 100%; height: auto; }
 
-  .r2-btn.liked {
-    background: #FEF2F2;
-    border-color: #FCA5A5;
-    color: #DC2626;
-  }
+.pin {
+  position: absolute;
+  left: 8.8%;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: 28px;
+  padding: 0 10px 0 8px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-size: 12px;
+  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(0,0,0,.3);
+  cursor: pointer;
+}
+.pin .ic { width: 14px; height: 14px; }
+.pin.p1 { top: 43.5%; }
+.pin.p2 { top: 75%; }
 
-  .r2-btn.bookmarked {
-    background: #EFF6FF;
-    border-color: #BFDBFE;
-    color: #2563EB;
-  }
+.viewer.focus {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  border-radius: 0;
+  border: 0;
+  padding-top: env(safe-area-inset-top,0px);
+  padding-bottom: env(safe-area-inset-bottom,0px);
+}
+.viewer.focus .stage { flex: 1; max-height: none; }
 
-  /* Main Grid Layout */
-  .r2-grid {
-    display: grid;
-    grid-template-columns: 1fr 390px;
-    gap: 1.5rem;
-    align-items: start;
-  }
+.qlist {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  border-top: 1px solid var(--line);
+}
+.q {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 4px 12px;
+  padding: 14px 16px;
+}
+.q+.q { border-top: 1px solid var(--line); }
+.q .qn {
+  grid-row: span 2;
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 14px;
+}
+.q .qn.t1 { background: var(--t1-soft); color: var(--t1); }
+.q .qn.t2 { background: var(--t2-soft); color: var(--t2); }
+.q h3 { margin: 0; font-size: 15px; line-height: 1.3; }
+.q p { margin: 0; font-size: 13px; color: var(--muted); }
+.q .qa { grid-column: 2; display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 
-  @media (max-width: 1000px) {
-    .r2-grid {
-      grid-template-columns: 1fr;
-    }
-  }
+.helpful {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  padding: 12px 16px;
+  border-top: 1px solid var(--line);
+  font-size: 14px;
+}
+.helpful .grow { flex: 1; min-width: 8px; }
+.helpful a { font-weight: 600; color: var(--brand); text-decoration: none; }
+.helpful a:hover { text-decoration: underline; }
 
-  /* Panels */
-  .r2-panel {
-    background: var(--v2-surface);
-    border: 1px solid var(--v2-line);
-    border-radius: var(--v2-radius-panel);
-    overflow: hidden;
-  }
+/* ---------- Tarika Assistant ---------- */
+.tarika {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.t-head {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 12px 0 14px;
+}
+.t-logo {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  background: var(--brand);
+  color: var(--brand-ink);
+}
+.t-head strong { display: block; line-height: 1.2; }
+.t-head small { display: block; color: var(--muted); font-size: 12px; }
+.t-head .grow { flex: 1; }
+.t-close { display: none; }
+.t-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 8px 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.t-tabs button {
+  position: relative;
+  height: 38px;
+  padding: 0 12px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 14px;
+  cursor: pointer;
+}
+.t-tabs button[aria-selected="true"] { color: var(--ink); }
+.t-tabs button[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: -1px;
+  height: 2px;
+  background: var(--brand);
+  border-radius: 2px;
+}
+.t-body {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+.t-panel {
+  display: none;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+}
+.t-panel.on { display: flex; }
 
-  /* Document Viewer Toolbar */
-  .r2-viewer-toolbar {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.6rem 1rem;
-    background: var(--v2-surface);
-    border-bottom: 1px solid var(--v2-line);
-  }
+.log {
+  flex: 1;
+  min-height: 180px;
+  max-height: 320px;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.msg {
+  max-width: 92%;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+.msg.bot {
+  align-self: flex-start;
+  background: var(--bg);
+  border-top-left-radius: 4px;
+}
+.msg.me {
+  align-self: flex-end;
+  background: var(--brand);
+  color: var(--brand-ink);
+  border-top-right-radius: 4px;
+}
+.msg p { margin: 0 0 8px; }
+.msg p:last-child { margin-bottom: 0; }
+.msg ol { margin: 0 0 8px; padding-left: 20px; }
+.msg .goto { margin-top: 8px; }
+.msg.typing { color: var(--muted); }
 
-  .r2-toolbar-group {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-  }
+.sugg {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 0 14px 12px;
+}
+.sugg button {
+  height: 34px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+.sugg button:hover {
+  border-color: var(--brand);
+  color: var(--brand);
+}
 
-  .r2-icon-btn {
-    width: 36px;
-    height: 36px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border: 1px solid var(--v2-line);
-    border-radius: 8px;
-    background: var(--v2-surface);
-    color: var(--v2-ink);
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
+.composer {
+  display: flex;
+  gap: 8px;
+  padding: 12px;
+  border-top: 1px solid var(--line);
+}
+.composer input {
+  flex: 1;
+  min-width: 0;
+  height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--bg);
+  color: var(--ink);
+  outline: 0;
+}
+.composer input:focus { border-color: var(--brand); }
+.composer .btn { width: 44px; min-height: 44px; padding: 0; }
 
-  .r2-icon-btn:hover {
-    border-color: var(--v2-brand);
-    color: var(--v2-brand);
-  }
+.settings {
+  padding: 10px 14px;
+  border-top: 1px solid var(--line);
+  background: var(--bg);
+  font-size: 13px;
+}
+.settings label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.settings select {
+  height: 34px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface);
+  padding: 0 8px;
+  color: var(--ink);
+}
 
-  .r2-zoom-label {
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: var(--v2-muted);
-    min-width: 44px;
-    text-align: center;
-  }
+.details {
+  padding: 6px 14px 14px;
+  overflow-y: auto;
+  margin: 0;
+}
+.details div {
+  display: flex;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.details div:last-child { border-bottom: 0; }
+.details dt { color: var(--muted); flex: none; }
+.details dd { margin: 0; font-weight: 600; text-align: right; overflow-wrap: anywhere; }
 
-  /* Viewer Canvas / Stage */
-  .r2-viewer-stage {
-    position: relative;
-    min-height: 480px;
-    background: #F1F5F9;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-  }
+/* Contributor Gate Card */
+.ai-locked-card {
+  padding: 1rem;
+  background: var(--bg);
+  border-radius: 10px;
+  margin: 12px 14px;
+  font-size: 13px;
+  color: var(--muted);
+  text-align: center;
+}
+.ai-locked-card a {
+  color: var(--brand);
+  font-weight: 700;
+  text-decoration: underline;
+}
 
-  @media (prefers-color-scheme: dark) {
-    .r2-viewer-stage {
-      background: #090E1A;
-    }
-  }
+/* Mobile: Tarika Bottom Sheet */
+.scrim {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  background: rgba(8,12,24,.5);
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity .2s;
+}
+.fab {
+  position: fixed;
+  right: 16px;
+  bottom: calc(104px + env(safe-area-inset-bottom,0px));
+  z-index: 50;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  height: 48px;
+  padding: 0 18px 0 14px;
+  border: 0;
+  border-radius: 999px;
+  background: var(--brand);
+  color: var(--brand-ink);
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(15,23,42,.3);
+  cursor: pointer;
+}
 
-  .r2-preview-iframe {
-    width: 100%;
-    height: 75vh;
-    min-height: 480px;
-    border: none;
-    display: block;
-  }
-
-  /* Helpful Row */
-  .r2-helpful-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.75rem 1rem;
-    background: var(--v2-surface);
-    border-top: 1px solid var(--v2-line);
-    font-size: 0.88rem;
-    color: var(--v2-muted);
-  }
-
-  .r2-helpful-actions {
-    display: flex;
-    gap: 0.5rem;
-  }
-
-  /* Tarika Side Panel */
-  .r2-tarika-panel {
-    position: sticky;
-    top: 1.25rem;
-    display: flex;
-    flex-direction: column;
-    max-height: calc(100vh - 2.5rem);
-  }
-
-  .r2-tarika-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.9rem 1.1rem;
-    border-bottom: 1px solid var(--v2-line);
-  }
-
-  .r2-tarika-title {
-    font-weight: 700;
-    font-size: 0.95rem;
-    display: flex;
-    align-items: center;
-    gap: 0.45rem;
-  }
-
-  .r2-tarika-tabs {
-    display: flex;
-    border-bottom: 1px solid var(--v2-line);
-    background: rgba(0, 0, 0, 0.02);
-  }
-
-  .r2-tarika-tab-btn {
-    flex: 1;
-    padding: 0.75rem;
-    text-align: center;
-    border: none;
-    background: transparent;
-    font-family: inherit;
-    font-size: 0.85rem;
-    font-weight: 700;
-    color: var(--v2-muted);
-    cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: all 0.15s ease;
-  }
-
-  .r2-tarika-tab-btn.active {
-    color: var(--v2-brand);
-    border-bottom-color: var(--v2-brand);
-    background: var(--v2-surface);
-  }
-
-  .r2-tarika-content {
-    display: none;
-    padding: 1rem;
-    overflow-y: auto;
-  }
-
-  .r2-tarika-content.active {
-    display: block;
-  }
-
-  /* Overflow Dropdown (⋯ Menu) */
-  .r2-menu-wrap {
-    position: relative;
-    display: inline-block;
-  }
-
-  .r2-menu-dropdown {
-    position: absolute;
-    top: calc(100% + 6px);
+@media (max-width:999.98px) {
+  .tarika {
+    position: fixed;
+    left: 0;
     right: 0;
-    min-width: 220px;
-    background: var(--v2-surface);
-    border: 1px solid var(--v2-line);
-    border-radius: var(--v2-radius-panel);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
-    padding: 0.4rem;
-    display: none;
-    z-index: 1000;
+    bottom: 0;
+    z-index: 80;
+    height: 82vh;
+    height: 82dvh;
+    border-radius: 20px 20px 0 0;
+    border-bottom: 0;
+    transform: translateY(102%);
+    visibility: hidden;
+    transition: transform .25s ease, visibility 0s linear .25s;
+    padding-bottom: env(safe-area-inset-bottom,0px);
   }
+  .sheet-open .tarika {
+    transform: none;
+    visibility: visible;
+    transition: transform .25s ease, visibility 0s;
+  }
+  .sheet-open .scrim { opacity: 1; pointer-events: auto; }
+  .sheet-open .fab { display: none; }
+  .t-close { display: inline-grid; }
+  .stage { max-height: none; }
+  .viewer { border-left: 0; border-right: 0; border-radius: 0; margin: 0 -16px; }
+}
 
-  .r2-menu-dropdown.open {
-    display: block;
+@media (min-width:1000px) {
+  .fab, .scrim { display: none; }
+  .workspace { grid-template-columns: minmax(0, 1fr) 390px; }
+  .tarika {
+    position: sticky;
+    top: calc(env(safe-area-inset-top,0px) + var(--top-h) + 16px);
+    height: min(720px, calc(100vh - var(--top-h) - 140px));
   }
+}
 
-  .r2-menu-item {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    width: 100%;
-    padding: 0.6rem 0.8rem;
-    border: none;
-    background: transparent;
-    color: var(--v2-ink);
-    font-family: inherit;
-    font-size: 0.85rem;
-    font-weight: 600;
-    text-align: left;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: background 0.15s ease;
-    box-sizing: border-box;
-    text-decoration: none;
-  }
+/* ---------- Study Kit ---------- */
+.kit {
+  margin-top: 40px;
+  scroll-margin-top: calc(env(safe-area-inset-top,0px) + var(--top-h) + 8px);
+}
+.kit-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-bottom: 14px;
+}
+h2.r2-h2 {
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: clamp(22px, 3vw, 28px);
+  letter-spacing: -.02em;
+  line-height: 1.15;
+  margin: 0;
+}
+.kit-head p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.filters button {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 0 14px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--surface);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  color: var(--ink);
+}
+.filters button[aria-pressed="true"] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--bg);
+}
+.filters .sw { width: 8px; height: 8px; border-radius: 50%; }
+.filters .sw.t1 { background: var(--t1); }
+.filters .sw.t2 { background: var(--t2); }
 
-  .r2-menu-item:hover:not(:disabled) {
-    background: rgba(29, 78, 216, 0.08);
-    color: var(--v2-brand);
-  }
+.kit-tabs {
+  position: sticky;
+  top: calc(env(safe-area-inset-top,0px) + var(--top-h));
+  z-index: 20;
+  display: flex;
+  gap: 2px;
+  margin: 0 -16px 20px;
+  padding: 0 16px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.kit-tabs::-webkit-scrollbar { display: none; }
+.kit-tabs button {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex: none;
+  height: 48px;
+  padding: 0 14px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 15px;
+  cursor: pointer;
+}
+.kit-tabs button[aria-selected="true"] { color: var(--ink); }
+.kit-tabs button[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: 10px;
+  right: 10px;
+  bottom: -1px;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
+  background: var(--brand);
+}
+.kit-tabs .n {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 999px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  font-size: 12px;
+  display: inline-grid;
+  place-items: center;
+  font-variant-numeric: tabular-nums;
+}
+.empty {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--muted);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+}
 
-  .r2-menu-item:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
+/* Videos */
+.vids { display: grid; grid-template-columns: minmax(0,1fr); gap: 16px; }
+.vid {
+  display: grid;
+  grid-template-columns: 132px minmax(0,1fr);
+  gap: 12px;
+  align-items: start;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  padding: 0;
+  width: 100%;
+  cursor: pointer;
+  color: var(--ink);
+}
+.thumb { position: relative; aspect-ratio: 16/9; border-radius: 10px; display: grid; place-items: center; }
+.thumb.t1 { background: var(--t1-soft); color: var(--t1); }
+.thumb.t2 { background: var(--t2-soft); color: var(--t2); }
+.thumb .ic { width: 30px; height: 30px; }
+.thumb .dur {
+  position: absolute;
+  right: 6px;
+  bottom: 6px;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(15,23,42,.82);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 600;
+}
+.vid h3 { margin: 0 0 2px; font-size: 15px; line-height: 1.3; }
+.vid:hover h3 { color: var(--brand); }
+.vid .by { margin: 0 0 6px; font-size: 13px; color: var(--muted); }
 
-  .r2-menu-divider {
-    height: 1px;
-    background: var(--v2-line);
-    margin: 0.35rem 0;
+/* Books */
+.books { display: grid; grid-template-columns: minmax(0,1fr); gap: 20px 28px; }
+.book { display: grid; grid-template-columns: 80px minmax(0,1fr); gap: 14px; }
+.cover {
+  width: 80px;
+  height: 104px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  border-radius: 4px 8px 8px 4px;
+  padding: 8px 8px 8px 12px;
+  color: #fff;
+  font-family: var(--font-head);
+  font-weight: 700;
+  font-size: 11px;
+  line-height: 1.15;
+  display: flex;
+  align-items: flex-end;
+  box-shadow: inset 5px 0 0 rgba(0,0,0,.28);
+}
+.book h3 { margin: 0; font-size: 15px; line-height: 1.3; }
+.book .by { margin: 2px 0 6px; font-size: 13px; color: var(--muted); }
+.book .covers { margin: 0 0 8px; font-size: 13px; }
+.book .row-actions { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+
+/* Rows */
+.rows {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+}
+.rowi {
+  display: grid;
+  grid-template-columns: 40px minmax(0,1fr) auto;
+  gap: 4px 14px;
+  align-items: center;
+  padding: 14px 16px;
+}
+.rowi+.rowi { border-top: 1px solid var(--line); }
+.glyph {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: var(--bg);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 700;
+}
+.glyph.t1 { background: var(--t1-soft); color: var(--t1); }
+.glyph.t2 { background: var(--t2-soft); color: var(--t2); }
+.glyph.av { border-radius: 50%; font-size: 14px; }
+.rowi h3 { margin: 0; font-size: 15px; line-height: 1.3; }
+.rowi p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+.rowi .tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+.rowi .go { display: flex; gap: 8px; }
+.unv-toggle { display: flex; align-items: center; gap: 10px; margin: 0 0 12px; font-size: 14px; }
+.unv-toggle input { width: 20px; height: 20px; accent-color: var(--brand); }
+
+@media (max-width:639.98px) {
+  .actions { gap: 6px; }
+  .actions .btn { padding: 0 10px; }
+  .actions .btn.icon-btn { padding: 0; }
+  .actions .lbl { display: none; }
+  .filters { flex-wrap: nowrap; overflow-x: auto; margin: 0 -16px 12px; padding: 0 16px; scrollbar-width: none; }
+  .filters button { flex: none; }
+  .rowi { grid-template-columns: 40px minmax(0,1fr); }
+  .rowi .go { grid-column: 2; margin-top: 6px; }
+  .go .lbl { display: none; }
+}
+
+@media (min-width:640px) {
+  .vids { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 20px 28px; }
+  .vid { grid-template-columns: 160px minmax(0,1fr); }
+  .books { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .qlist { grid-template-columns: repeat(2,minmax(0,1fr)); }
+  .q+.q { border-top: 0; border-left: 1px solid var(--line); }
+}
+
+/* ---------- Community Discussion ---------- */
+.discuss { margin-top: 40px; max-width: 760px; }
+.composer-c { display: flex; gap: 10px; align-items: flex-start; margin-top: 14px; }
+.composer-c textarea {
+  flex: 1;
+  min-height: 48px;
+  padding: 12px 14px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--ink);
+  resize: vertical;
+  outline: 0;
+  font-family: inherit;
+  font-size: 14px;
+}
+.composer-c textarea:focus { border-color: var(--brand); }
+.discuss .empty-c { margin: 18px 0 0; color: var(--muted); font-size: 14px; }
+
+/* Toast */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(108px + env(safe-area-inset-bottom,0px));
+  z-index: 1200;
+  transform: translate(-50%, 20px);
+  opacity: 0;
+  pointer-events: none;
+  padding: 10px 16px;
+  border-radius: 10px;
+  background: var(--ink);
+  color: var(--bg);
+  font-size: 14px;
+  font-weight: 600;
+  transition: opacity .2s, transform .2s;
+}
+.toast.on { opacity: 1; transform: translate(-50%, 0); }
+
+@media (min-width:900px) {
+  .r2-main { padding: 24px 24px 120px; }
+  .head { flex-direction: row; align-items: flex-end; justify-content: space-between; gap: 32px; }
+  .actions { flex: none; padding-bottom: 4px; }
+  .kit-tabs { margin: 0 0 24px; padding: 0; }
+}
+
+@media (prefers-reduced-motion:reduce) {
+  *, *::before, *::after {
+    transition: none !important;
+    animation: none !important;
+    scroll-behavior: auto !important;
   }
+}
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="r2-container">
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5V20a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z"></path></symbol>
+    <symbol id="i-lib" viewBox="0 0 24 24"><path d="M2 4h6a4 4 0 0 1 4 4v13a3 3 0 0 0-3-3H2z"></path><path d="M22 4h-6a4 4 0 0 0-4 4v13a3 3 0 0 1 3-3h7z"></path></symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24"><path d="M12 16V4m0 0-4 4m4-4 4 4"></path><path d="M4 16v3a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-3"></path></symbol>
+    <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 21h8M12 17v4M7 4h10v5a5 5 0 0 1-10 0z"></path><path d="M17 5h3v2a3 3 0 0 1-3 3M7 5H4v2a3 3 0 0 0 3 3"></path></symbol>
+    <symbol id="i-user" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"></circle><path d="M4 21a8 8 0 0 1 16 0"></path></symbol>
+    <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 8 3 8H3s3-1 3-8"></path><path d="M10 20a2 2 0 0 0 4 0"></path></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></symbol>
+    <symbol id="i-heart" viewBox="0 0 24 24"><path d="M12 20s-8-4.6-9.5-9.6A5 5 0 0 1 12 7a5 5 0 0 1 9.5 3.4C20 15.4 12 20 12 20z"></path></symbol>
+    <symbol id="i-bookmark" viewBox="0 0 24 24"><path d="M6 3h12v18l-6-4-6 4z"></path></symbol>
+    <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"></path></symbol>
+    <symbol id="i-more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1.2"></circle><circle cx="12" cy="12" r="1.2"></circle><circle cx="19" cy="12" r="1.2"></circle></symbol>
+    <symbol id="i-zin" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5M11 8v6M8 11h6"></path></symbol>
+    <symbol id="i-zout" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5M8 11h6"></path></symbol>
+    <symbol id="i-reset" viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path></symbol>
+    <symbol id="i-expand" viewBox="0 0 24 24"><path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"></path></symbol>
+    <symbol id="i-play" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"></path></symbol>
+    <symbol id="i-file" viewBox="0 0 24 24"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"></path><path d="M14 3v5h5"></path></symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24"><path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"></path><path d="M19 16v4M17 18h4"></path></symbol>
+    <symbol id="i-send" viewBox="0 0 24 24"><path d="M4 12 20 4l-4 16-4-7z"></path></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"></path></symbol>
+    <symbol id="i-shield" viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.5 8-8 9-4.5-1-8-4-8-9V6z"></path><path d="m8.5 12 2.5 2.5L16 9.5"></path></symbol>
+    <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"></path><path d="M18 14v5a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V7a1 1 0 0 1 1-1h5"></path></symbol>
+    <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"></circle><path d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9 7 7M17 17l2.1 2.1M4.9 19.1 7 17M17 7l2.1-2.1"></path></symbol>
+    <symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 12a8 8 0 0 1-11.6 7.1L3 20l1.1-4.9A8 8 0 1 1 21 12z"></path></symbol>
+    <symbol id="i-folder" viewBox="0 0 24 24"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"></path></symbol>
+    <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4m0 0h11l-2 4 2 4H5"></path></symbol>
+  </defs>
+</svg>
 
-  <!-- Breadcrumbs -->
-  <nav class="r2-breadcrumbs" aria-label="Breadcrumb">
-    <a href="/">Home</a>
-    <span class="sep">/</span>
-    {% if document.college %}
-    <a href="/college/{{ (document.college.abbreviation or document.college.name) | lower | replace(' ', '-') }}">{{ document.college.abbreviation or document.college.name }}</a>
-    <span class="sep">/</span>
-    {% endif %}
-    {% if document.subject %}
-    <a href="/subject/{{ document.subject.name | lower | replace(' ', '-') }}">{{ document.subject.name }}</a>
-    <span class="sep">/</span>
-    {% endif %}
-    <span aria-current="page">{{ file_type }}</span>
-  </nav>
+<main class="r2-main" id="main">
+  <div class="r2-container">
 
-  <!-- Main Header -->
-  <h1 class="r2-heading">{{ subj_name }}: {{ document.title or file_type }}</h1>
-  <div class="r2-subtitle">
-    <span>Verified {{ file_type }} uploaded by {{ uploader_name }}</span>
-    {% if document.uploader and document.uploader.is_verified %}
-    <span class="r2-verified-badge">✔ Verified Contributor</span>
-    {% endif %}
-  </div>
+    <!-- Breadcrumbs -->
+    <ol class="crumbs" aria-label="Breadcrumb">
+      <li><a href="/pyq" data-toast="Library">Library</a></li>
+      {% if document.college %}
+      <li><a href="/college/{{ (document.college.abbreviation or document.college.name) | lower | replace(' ', '-') }}" data-toast="{{ coll_abbr }}">{{ coll_abbr }}</a></li>
+      {% endif %}
+      <li><a href="/subject/{{ (document.subject.name or 'engineering') | lower | replace(' ', '-') }}" data-toast="{{ subj_name }}">{{ subj_name }}</a></li>
+    </ol>
 
-  <!-- Facts Row -->
-  <div class="r2-facts-row" aria-label="Resource Facts">
-    <div class="r2-fact-item">
-      <span class="r2-verified-badge">✔ Verified</span>
-    </div>
-    <div class="r2-fact-item">
-      📅 {{ (document.created_at or '')[:10] }}
-    </div>
-    <div class="r2-fact-item">
-      👁️ {{ document.view_count or 0 }} Views
-    </div>
-    {% if document.file_size_bytes %}
-    <div class="r2-fact-item">
-      📦 {{ (document.file_size_bytes|int / 1024 / 1024)|round(2) }} MB
-    </div>
-    {% endif %}
-  </div>
-
-  <!-- Action Row -->
-  <div class="r2-action-bar" aria-label="Resource Actions">
-    <button class="r2-btn like-btn {{ 'liked' if document.is_liked else '' }}" type="button" data-action="toggleLike" data-doc-id="{{ document.id }}" aria-label="Like this resource">
-      ❤️ <span class="like-count">{{ document.like_count or 0 }}</span>
-    </button>
-    <button class="r2-btn bookmark-btn {{ 'bookmarked' if document.is_bookmarked else '' }}" type="button" data-action="toggleBookmark" data-doc-id="{{ document.id }}" aria-label="Save this resource">
-      🔖 <span class="bookmark-count">{{ document.bookmark_count or 0 }}</span> Save
-    </button>
-    <button class="r2-btn share-btn" type="button" onclick="shareResource()" aria-label="Share this resource">
-      🔗 Share
-    </button>
-
-    <!-- Overflow (⋯) Menu -->
-    <div class="r2-menu-wrap">
-      <button class="r2-btn" type="button" id="r2OverflowBtn" onclick="toggleR2Menu()" aria-label="More actions" aria-expanded="false">
-        ⋯
-      </button>
-      <div class="r2-menu-dropdown" id="r2OverflowMenu">
-        <button class="r2-menu-item" type="button" onclick="window.shareChatWhatsApp()">
-          <span>💬</span> Share on WhatsApp
-        </button>
-        <button class="r2-menu-item" type="button" id="exportChatPdfBtn" onclick="window.exportChatPDF()">
-          <span>📄</span> Export Chat PDF
-        </button>
-        <div class="r2-menu-divider"></div>
-        <button class="r2-menu-item" type="button" onclick="window.sendPersonaPrompt('ChatGPT', this)">
-          <span>🤖</span> Open in ChatGPT
-        </button>
-        <button class="r2-menu-item" type="button" onclick="window.sendPersonaPrompt('Gemini', this)">
-          <span>✨</span> Open in Gemini
-        </button>
-        <button class="r2-menu-item" type="button" onclick="window.sendPersonaPrompt('Claude', this)">
-          <span>🧠</span> Open in Claude
-        </button>
-        <div class="r2-menu-divider"></div>
-        <button class="r2-menu-item" type="button" onclick="rOpenReport()" style="color:#EF4444;">
-          <span>🚩</span> Report a problem
-        </button>
+    <!-- File Summary Head -->
+    <section class="head" aria-label="File summary">
+      <div class="head-main">
+        <h1 class="r2-h1">{{ subj_name }}: {{ document.title or file_type }}</h1>
+        <p class="sub">{{ file_type }} uploaded for {{ coll_name }}{% if dept_name %}, {{ dept_name }}{% endif %}.</p>
+        <dl class="facts">
+          <div>
+            <dt>Status</dt>
+            <dd>
+              <span class="tag ok"><svg class="ic" style="width:14px;height:14px"><use href="#i-shield"></use></svg>Verified PYQ</span>
+            </dd>
+          </div>
+          {% if document.description %}
+          <div>
+            <dt>Details</dt>
+            <dd>{{ document.description[:35] }}{% if document.description|length > 35 %}...{% endif %}</dd>
+          </div>
+          {% endif %}
+          <div>
+            <dt>Uploaded by</dt>
+            <dd>{{ uploader_name }}, {{ (document.created_at or '')[:10] }}</dd>
+          </div>
+          <div>
+            <dt>Views</dt>
+            <dd>{{ document.view_count or 0 }}</dd>
+          </div>
+        </dl>
       </div>
-    </div>
-  </div>
 
-  <!-- Two Column Grid -->
-  <div class="r2-grid">
+      <!-- Actions Bar -->
+      <div class="actions">
+        <button class="btn" id="like" type="button" aria-pressed="{{ 'true' if document.is_liked else 'false' }}" data-doc-id="{{ document.id }}">
+          <svg class="ic"><use href="#i-heart"></use></svg>
+          <span class="sr">Like</span>
+          <span class="count" id="likeN">{{ document.like_count or 0 }}</span>
+        </button>
+        <button class="btn" id="save" type="button" aria-pressed="{{ 'true' if document.is_bookmarked else 'false' }}" data-doc-id="{{ document.id }}">
+          <svg class="ic"><use href="#i-bookmark"></use></svg>
+          <span class="lbl">Save</span>
+          <span class="count" id="saveN">{{ document.bookmark_count or 0 }}</span>
+        </button>
+        <button class="btn" id="shareBtn" type="button" onclick="shareResource()">
+          <svg class="ic"><use href="#i-share"></use></svg>
+          <span class="lbl">Share</span>
+        </button>
+        <button class="icon-btn btn" id="moreBtn" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="More actions" style="padding:0;width:40px">
+          <svg class="ic"><use href="#i-more"></use></svg>
+        </button>
+        
+        <div class="menu" id="moreMenu" role="menu" hidden>
+          <button role="menuitem" type="button" onclick="window.shareChatWhatsApp()"><svg class="ic"><use href="#i-share"></use></svg>Share on WhatsApp</button>
+          <button role="menuitem" type="button" onclick="window.exportChatPDF()"><svg class="ic"><use href="#i-file"></use></svg>Export as PDF</button>
+          <hr>
+          <small>Take this paper to another assistant</small>
+          <button role="menuitem" type="button" onclick="window.sendPersonaPrompt('ChatGPT', this)"><svg class="ic"><use href="#i-ext"></use></svg>Open in ChatGPT</button>
+          <button role="menuitem" type="button" onclick="window.sendPersonaPrompt('Gemini', this)"><svg class="ic"><use href="#i-ext"></use></svg>Open in Gemini</button>
+          <button role="menuitem" type="button" onclick="window.sendPersonaPrompt('Claude', this)"><svg class="ic"><use href="#i-ext"></use></svg>Open in Claude</button>
+          <hr>
+          <button role="menuitem" type="button" onclick="rOpenReport()" style="color:#EF4444;"><svg class="ic"><use href="#i-flag"></use></svg>Report a problem</button>
+        </div>
+      </div>
+    </section>
 
-    <!-- Document Viewer Column -->
-    <div class="r2-viewer-col">
-      <div class="r2-panel preview-card">
-
-        <!-- Toolbar -->
-        <div class="r2-viewer-toolbar" id="imageToolbar">
-          <div class="r2-toolbar-group">
-            <button type="button" data-action="zoomOutImage" class="r2-icon-btn iv-btn" aria-label="Zoom out" title="Zoom out">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-            </button>
-            <span class="r2-zoom-label iv-zoom-label" id="ivZoomLabel" aria-live="polite">100%</span>
-            <button type="button" data-action="zoomInImage" class="r2-icon-btn iv-btn" aria-label="Zoom in" title="Zoom in">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><line x1="8" y1="11" x2="14" y2="11"/></svg>
-            </button>
-            <button type="button" data-action="resetImageZoom" class="r2-icon-btn iv-btn" aria-label="Reset zoom" title="Reset zoom">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
-            </button>
-          </div>
-          <div class="r2-toolbar-group">
-            <button type="button" onclick="toggleDocCardFullscreen()" class="r2-btn" style="padding:0.4rem 0.75rem; min-height:34px; font-size:0.8rem;">
-              ⛶ Fullscreen Focus
-            </button>
-          </div>
+    <!-- Workspace: Viewer + Tarika -->
+    <div class="workspace">
+      
+      <!-- Viewer Section -->
+      <section class="panel viewer preview-card" id="viewer" aria-label="Document preview">
+        <div class="viewer-bar">
+          <button class="icon-btn" id="zOut" type="button" aria-label="Zoom out"><svg class="ic"><use href="#i-zout"></use></svg></button>
+          <span class="zoom" id="zVal" aria-live="polite">100%</span>
+          <button class="icon-btn" id="zIn" type="button" aria-label="Zoom in"><svg class="ic"><use href="#i-zin"></use></svg></button>
+          <button class="icon-btn" id="zReset" type="button" aria-label="Reset zoom"><svg class="ic"><use href="#i-reset"></use></svg></button>
+          <span class="grow"></span>
+          <button class="btn small" id="focusBtn" type="button"><svg class="ic" style="width:16px;height:16px"><use href="#i-expand"></use></svg><span id="focusLbl">Full screen</span></button>
         </div>
 
-        <!-- Viewer Stage -->
-        {% if document.file_type == 'pdf' or '.pdf' in (document.file_url|lower) %}
-        <div class="preview-iframe-wrap">
-          <div class="preview-loading-bar" id="pdfLoadingBar">
-            <div class="preview-loading-progress" id="pdfLoadingProgress"></div>
+        <div class="stage" id="stage">
+          {% if document.file_type == 'pdf' or '.pdf' in (document.file_url|lower) %}
+          <div style="width:100%;height:100%;min-height:540px;">
+            <iframe src="{{ url_for('static', filename='pdfjs-6.1.200-dist/web/viewer.html') }}?file=/api/view-doc/{{ document.id }}/document.pdf&download=false"
+              title="{{ document.title }}" style="width:100%;height:70vh;border:0;display:block;"></iframe>
           </div>
-          <iframe class="r2-preview-iframe preview-iframe"
-            src="{{ url_for('static', filename='pdfjs-6.1.200-dist/web/viewer.html') }}?file=/api/view-doc/{{ document.id }}/document.pdf&download=false"
-            title="{{ document.title }}" data-feature="PDF Viewer"
-            onload="var b=document.getElementById('pdfLoadingBar'); if(b) b.classList.add('hidden');"
-            onerror="var b=document.getElementById('pdfLoadingBar'); if(b){ b.classList.remove('hidden'); b.classList.add('error'); }"></iframe>
-        </div>
-        {% else %}
-        <div class="r2-viewer-stage image-viewer-wrap" data-feature="Image Viewer">
-          <div class="image-canvas" id="imageCanvas" tabindex="0" role="img" aria-label="{{ document.title }}">
-            <div id="imageSkeleton" class="image-skeleton" aria-hidden="true" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:#E2E8F0;">
-              <span>Loading preview...</span>
-            </div>
-            <div id="imageError" class="image-error" style="display:none;position:absolute;inset:0;flex-direction:column;align-items:center;justify-content:center;background:#FEF2F2;padding:2rem;">
-              <p style="color:#EF4444;font-weight:700;">Image failed to load</p>
-            </div>
+          {% else %}
+          <div class="paper" id="paper">
             {% set image_fname = (document.file_url.split('/')[-1] if document.file_url and '/' in document.file_url else 'image.jpg') %}
             <img id="previewImage" src="/api/view-doc/{{ document.id }}/{{ image_fname }}"
-              alt="{{ document.title }} - {{ subj_name }} {{ file_type }}"
-              style="max-width:100%;height:auto;opacity:0;transition:opacity 0.2s;"
-              onload="var s=document.getElementById('imageSkeleton'); if(s) s.style.display='none'; this.style.opacity='1'; if(typeof window.imageLoaded==='function') window.imageLoaded();"
-              onerror="var s=document.getElementById('imageSkeleton'); if(s) s.style.display='none'; this.style.display='none'; var e=document.getElementById('imageError'); if(e) e.style.display='flex';">
+              alt="{{ document.title }} - {{ subj_name }} {{ file_type }}">
+            {% if document.topics_covered and document.topics_covered|length > 0 %}
+            <button class="pin p1" type="button" data-ask="q1" aria-label="Ask Tarika about Q1"><svg class="ic"><use href="#i-spark"></use></svg>Ask</button>
+            {% if document.topics_covered|length > 1 %}
+            <button class="pin p2" type="button" data-ask="q2" aria-label="Ask Tarika about Q2"><svg class="ic"><use href="#i-spark"></use></svg>Ask</button>
+            {% endif %}
+            {% endif %}
           </div>
+          {% endif %}
+        </div>
+
+        {% if document.topics_covered and document.topics_covered|length > 0 %}
+        <div class="qlist" aria-label="Questions in this paper">
+          <div class="q">
+            <span class="qn t1">Q1</span>
+            <h3>{{ document.topics_covered[0] }}</h3>
+            <p>5 marks, CO3</p>
+            <div class="qa">
+              <button class="btn small" type="button" data-ask="q1"><svg class="ic" style="width:16px;height:16px"><use href="#i-spark"></use></svg>Solve with Tarika</button>
+              <button class="btn small" type="button" data-goto="t1">Find study material</button>
+            </div>
+          </div>
+          {% if document.topics_covered|length > 1 %}
+          <div class="q">
+            <span class="qn t2">Q2</span>
+            <h3>{{ document.topics_covered[1] }}</h3>
+            <p>5 marks</p>
+            <div class="qa">
+              <button class="btn small" type="button" data-ask="q2"><svg class="ic" style="width:16px;height:16px"><use href="#i-spark"></use></svg>Explain with Tarika</button>
+              <button class="btn small" type="button" data-goto="t2">Find study material</button>
+            </div>
+          </div>
+          {% endif %}
         </div>
         {% endif %}
 
-        <!-- Helpful Row -->
-        <div class="r2-helpful-row">
-          <span>Was this file helpful?</span>
-          <div class="r2-helpful-actions">
-            <button type="button" class="r2-btn" style="min-height:32px; padding:0.25rem 0.75rem; font-size:0.82rem;" onclick="this.textContent='✅ Thank you!'; this.disabled=true;">Yes</button>
-            <button type="button" class="r2-btn" style="min-height:32px; padding:0.25rem 0.75rem; font-size:0.82rem;" onclick="this.textContent='Feedback noted'; this.disabled=true;">Not really</button>
-          </div>
+        <div class="helpful">
+          <span>Was this paper useful?</span>
+          <button class="btn small" type="button" data-toast="Thanks, noted">Yes</button>
+          <button class="btn small" type="button" data-toast="Thanks, noted">Not really</button>
+          <span class="grow"></span>
+          <a href="/upload" data-toast="Upload notes">Upload your own notes</a>
+        </div>
+      </section>
+
+      <!-- Tarika Assistant Panel -->
+      <aside class="panel tarika" id="tarika" aria-label="Tarika study assistant">
+        <div class="t-head">
+          <span class="t-logo"><svg class="ic"><use href="#i-spark"></use></svg></span>
+          <div><strong>Tarika</strong><small>Answers from this paper</small></div>
+          <span class="grow"></span>
+          <button class="icon-btn" id="gearBtn" type="button" aria-label="Assistant settings" aria-expanded="false"><svg class="ic"><use href="#i-gear"></use></svg></button>
+          <button class="icon-btn t-close" id="sheetClose" type="button" aria-label="Close assistant"><svg class="ic"><use href="#i-x"></use></svg></button>
         </div>
 
-      </div>
+        <div class="settings" id="settings" hidden>
+          <label>Model
+            <select id="aiModelSelect" aria-label="Model">
+              <option value="auto">Auto Selection</option>
+              {% for m in ai_models %}
+              <option value="{{ m }}" {% if m == best_model %}selected{% endif %}>{{ m }}</option>
+              {% endfor %}
+            </select>
+          </label>
+        </div>
+
+        <div class="t-tabs" role="tablist" aria-label="Assistant sections">
+          <button role="tab" id="tt-chat" type="button" aria-selected="true" aria-controls="tp-chat">Ask</button>
+          <button role="tab" id="tt-det" type="button" aria-selected="false" aria-controls="tp-det">Details</button>
+        </div>
+
+        <div class="t-body">
+          <div class="t-panel on" id="tp-chat" role="tabpanel" aria-labelledby="tt-chat">
+            {% if not ai_chat_allowed %}
+            <div class="ai-locked-card">
+              <p><strong>🔒 Tarika Assistant is locked</strong></p>
+              <p>Upload at least one verified study material to unlock direct AI answers for all papers.</p>
+              <a href="/upload" class="btn small primary" style="margin-top:6px;display:inline-flex;">Upload Notes to Unlock</a>
+            </div>
+            {% endif %}
+
+            <div class="log" id="log" role="log" aria-live="polite">
+              <div class="msg bot"><p>Hi, I'm Tarika. Ask me about any question in this paper, or tap a suggestion below.</p></div>
+            </div>
+
+            <div class="sugg" id="sugg">
+              <button type="button" data-ask="q1">Solve Q1</button>
+              <button type="button" data-ask="q2">Explain Q2</button>
+              <button type="button" data-ask="topics">Important topics</button>
+              <button type="button" data-ask="summary">Summarize</button>
+            </div>
+
+            <form class="composer" id="composer" autocomplete="off">
+              <input id="askInput" type="text" placeholder="Ask about this paper" aria-label="Ask about this paper" {% if not ai_chat_allowed %}disabled{% endif %}>
+              <button class="btn primary" type="submit" aria-label="Send" {% if not ai_chat_allowed %}disabled{% endif %}><svg class="ic"><use href="#i-send"></use></svg></button>
+            </form>
+          </div>
+
+          <div class="t-panel" id="tp-det" role="tabpanel" aria-labelledby="tt-det">
+            <dl class="details">
+              <div><dt>Subject</dt><dd>{{ subj_name }}</dd></div>
+              <div><dt>Category</dt><dd>{{ file_type }}</dd></div>
+              <div><dt>College</dt><dd>{{ coll_name }}</dd></div>
+              {% if dept_name %}
+              <div><dt>Department</dt><dd>{{ dept_name }}</dd></div>
+              {% endif %}
+              <div><dt>Uploaded</dt><dd>{{ (document.created_at or '')[:10] }} by {{ uploader_name }}</dd></div>
+              {% if document.file_size_bytes %}
+              <div><dt>File Size</dt><dd>{{ (document.file_size_bytes|int / 1024 / 1024)|round(2) }} MB</dd></div>
+              {% endif %}
+              {% if document.description %}
+              <div><dt>Description</dt><dd>{{ document.description }}</dd></div>
+              {% endif %}
+            </dl>
+          </div>
+        </div>
+      </aside>
     </div>
 
-    <!-- Tarika Column -->
-    <div class="r2-tarika-col">
-      <div class="r2-panel r2-tarika-panel" id="aiChatPanel">
-        <div class="r2-tarika-header">
-          <div class="r2-tarika-title">
-            <span>🤖</span> Tarika Assistant
-          </div>
-          <button type="button" class="r2-icon-btn" title="AI Model Settings" onclick="alert('Model: ' + (document.getElementById('aiModelSelect')?.value || 'auto'))">
-            ⚙
+    <!-- Study Kit -->
+    <section class="kit" id="kit" aria-labelledby="kitTitle">
+      <div class="kit-head">
+        <div>
+          <h2 class="r2-h2" id="kitTitle">Study kit for this paper</h2>
+          <p>Curated recommendations for {{ subj_name }} concepts.</p>
+        </div>
+        {% if mock_study_kit %}
+        <span class="tag plain" title="Sample mock recommendations enabled for development preview.">Preview with sample data</span>
+        {% endif %}
+      </div>
+
+      {% if document.topics_covered and document.topics_covered|length > 0 %}
+      <div class="filters" id="filters" role="group" aria-label="Filter by question">
+        <button type="button" data-filter="all" aria-pressed="true">All questions</button>
+        <button type="button" data-filter="t1" aria-pressed="false"><span class="sw t1"></span>Q1 {{ document.topics_covered[0] }}</button>
+        {% if document.topics_covered|length > 1 %}
+        <button type="button" data-filter="t2" aria-pressed="false"><span class="sw t2"></span>Q2 {{ document.topics_covered[1] }}</button>
+        {% endif %}
+      </div>
+      {% endif %}
+
+      <div class="kit-tabs" role="tablist" aria-label="Study kit sections" id="kitTabs">
+        {% if mock_study_kit %}
+        <button role="tab" id="k-vid" type="button" aria-selected="true" aria-controls="p-vid">Videos <span class="n" data-count="p-vid">3</span></button>
+        <button role="tab" id="k-book" type="button" aria-selected="false" aria-controls="p-book">Books <span class="n" data-count="p-book">2</span></button>
+        <button role="tab" id="k-res" type="button" aria-selected="false" aria-controls="p-res">Research papers <span class="n" data-count="p-res">2</span></button>
+        <button role="tab" id="k-fac" type="button" aria-selected="false" aria-controls="p-fac">Faculty <span class="n" data-count="p-fac">2</span></button>
+        {% endif %}
+        <button role="tab" id="k-sim" type="button" aria-selected="{{ 'false' if mock_study_kit else 'true' }}" aria-controls="p-sim">Similar files <span class="n" data-count="p-sim">{{ (suggested_docs|length if suggested_docs else 4) }}</span></button>
+      </div>
+
+      {% if mock_study_kit %}
+      <!-- Videos Panel -->
+      <div id="p-vid" role="tabpanel" aria-labelledby="k-vid">
+        <div class="vids">
+          <button class="vid rec" type="button" data-t="t1" data-toast="Opening video">
+            <span class="thumb t1"><svg class="ic fill"><use href="#i-play"></use></svg><span class="dur">14 min</span></span>
+            <span><h3>Floyd–Warshall step by step on a 4-vertex graph</h3><p class="by">YouTube</p><span class="tag t1">Q1 Floyd–Warshall</span></span>
+          </button>
+          <button class="vid rec" type="button" data-t="t1" data-toast="Opening video">
+            <span class="thumb t1"><svg class="ic fill"><use href="#i-play"></use></svg><span class="dur">42 min</span></span>
+            <span><h3>All-pairs shortest paths: the dynamic programming view</h3><p class="by">NPTEL</p><span class="tag t1">Q1 Floyd–Warshall</span></span>
+          </button>
+          <button class="vid rec" type="button" data-t="t2" data-toast="Opening video">
+            <span class="thumb t2"><svg class="ic fill"><use href="#i-play"></use></svg><span class="dur">12 min</span></span>
+            <span><h3>Graph colouring and chromatic number explained</h3><p class="by">YouTube</p><span class="tag t2">Q2 Graph colouring</span></span>
           </button>
         </div>
-
-        <div class="r2-tarika-tabs">
-          <button type="button" class="r2-tarika-tab-btn active" onclick="switchR2Tab('ask', this)">Ask</button>
-          <button type="button" class="r2-tarika-tab-btn" onclick="switchR2Tab('details', this)">Details</button>
-        </div>
-
-        <!-- Ask Tab -->
-        <div class="r2-tarika-content active" id="r2Tab_ask">
-          <div id="aiMessages" style="min-height:160px; max-height:300px; overflow-y:auto; display:flex; flex-direction:column; gap:0.5rem; margin-bottom:0.75rem;">
-            <div style="font-size:0.85rem; color:var(--v2-muted);">
-              Ask any question about this document...
-            </div>
-          </div>
-          <div style="display:flex; gap:0.5rem;">
-            <input type="text" id="aiQuestion" placeholder="Ask about this paper..." style="flex:1; padding:0.55rem 0.75rem; border:1px solid var(--v2-line); border-radius:8px; font-family:inherit; font-size:0.85rem; outline:none; background:var(--v2-surface); color:var(--v2-ink);">
-            <button type="button" id="aiSendBtn" onclick="window.askAI()" class="r2-btn" style="background:var(--v2-brand); color:#fff; border-color:var(--v2-brand);">Ask</button>
-          </div>
-          <select id="aiModelSelect" style="display:none;">
-            <option value="auto">Auto</option>
-            {% for m in ai_models %}
-            <option value="{{ m }}" {% if m == best_model %}selected{% endif %}>{{ m }}</option>
-            {% endfor %}
-          </select>
-        </div>
-
-        <!-- Details Tab -->
-        <div class="r2-tarika-content" id="r2Tab_details">
-          <div style="font-size:0.85rem; display:flex; flex-direction:column; gap:0.6rem;">
-            <div><strong>Subject:</strong> {{ subj_name }}</div>
-            <div><strong>Category:</strong> {{ file_type }}</div>
-            <div><strong>College:</strong> {{ coll_name }}</div>
-            <div><strong>Uploaded By:</strong> {{ uploader_name }}</div>
-            {% if document.description %}
-            <div><strong>Description:</strong> {{ document.description }}</div>
-            {% endif %}
-          </div>
-        </div>
-
+        <p class="empty" hidden>No videos for this question yet.</p>
       </div>
-    </div>
 
-  </div> <!-- End Grid -->
+      <!-- Books Panel -->
+      <div id="p-book" role="tabpanel" aria-labelledby="k-book" hidden>
+        <div class="books">
+          <article class="book rec" data-t="t1">
+            <div class="cover" style="background:#1F3A8A">Intro to Algorithms</div>
+            <div><h3>Introduction to Algorithms</h3><p class="by">Cormen, Leiserson, Rivest, Stein</p>
+              <p class="covers">All-pairs shortest paths and Floyd–Warshall.</p>
+              <div class="row-actions"><span class="tag t1">Q1 Floyd–Warshall</span><button class="btn small" type="button" data-toast="Saved to reading list"><svg class="ic" style="width:16px;height:16px"><use href="#i-bookmark"></use></svg>Save</button></div></div>
+          </article>
+          <article class="book rec" data-t="t2">
+            <div class="cover" style="background:#4C1D95">Computer Algorithms</div>
+            <div><h3>Fundamentals of Computer Algorithms</h3><p class="by">Horowitz, Sahni, Rajasekaran</p>
+              <p class="covers">Graph colouring in the backtracking chapter.</p>
+              <div class="row-actions"><span class="tag t2">Q2 Graph colouring</span><button class="btn small" type="button" data-toast="Saved to reading list"><svg class="ic" style="width:16px;height:16px"><use href="#i-bookmark"></use></svg>Save</button></div></div>
+          </article>
+        </div>
+        <p class="empty" hidden>No books for this question yet.</p>
+      </div>
 
-  <!-- Community Discussion -->
-  <div class="r2-panel" id="commentsSection" style="margin-top:2rem; padding:1.5rem;">
-    <h3 style="margin:0 0 1rem 0; font-size:1.15rem; font-weight:700;">
-      💬 Community Discussion (<span id="commentsCountBadge">{{ document.comment_count or 0 }}</span>)
-    </h3>
-    <div style="display:flex; gap:0.75rem; margin-bottom:1.5rem;">
-      <input type="text" id="newCommentInput" placeholder="Add a study tip or comment..." style="flex:1; padding:0.65rem 0.9rem; border:1px solid var(--v2-line); border-radius:var(--v2-radius-btn); font-family:inherit; font-size:0.9rem; outline:none; background:var(--v2-surface); color:var(--v2-ink);">
-      <button type="button" id="submitCommentBtn" onclick="submitComment()" class="r2-btn" style="background:var(--v2-brand); color:#fff; border-color:var(--v2-brand);">Post</button>
-    </div>
-    <div id="commentsList" style="display:flex; flex-direction:column; gap:0.75rem;">
-      <div style="color:var(--v2-muted); font-size:0.85rem;">Loading comments...</div>
-    </div>
-    <span id="metaCommentCount" style="display:none;">{{ document.comment_count or 0 }}</span>
+      <!-- Research Papers Panel -->
+      <div id="p-res" role="tabpanel" aria-labelledby="k-res" hidden>
+        <ul class="rows">
+          <li class="rowi rec" data-t="t1">
+            <span class="glyph t1"><svg class="ic"><use href="#i-file"></use></svg></span>
+            <div><h3>Algorithm 97: Shortest path</h3><p>R. W. Floyd, Communications of the ACM, 1962</p>
+              <div class="tags"><span class="tag t1">Q1 Floyd–Warshall</span><span class="tag plain">Original paper</span></div></div>
+            <div class="go"><button class="btn small" type="button" data-toast="Opening paper"><span class="lbl">Open</span><svg class="ic" style="width:16px;height:16px"><use href="#i-ext"></use></svg></button></div>
+          </li>
+          <li class="rowi rec" data-t="t2">
+            <span class="glyph t2"><svg class="ic"><use href="#i-file"></use></svg></span>
+            <div><h3>An upper bound for the chromatic number of a graph</h3><p>D. J. A. Welsh and M. B. Powell, The Computer Journal, 1967</p>
+              <div class="tags"><span class="tag t2">Q2 Graph colouring</span><span class="tag plain">Classic</span></div></div>
+            <div class="go"><button class="btn small" type="button" data-toast="Opening paper"><span class="lbl">Open</span><svg class="ic" style="width:16px;height:16px"><use href="#i-ext"></use></svg></button></div>
+          </li>
+        </ul>
+        <p class="empty" hidden>No research papers for this question yet.</p>
+      </div>
+
+      <!-- Faculty Panel -->
+      <div id="p-fac" role="tabpanel" aria-labelledby="k-fac" hidden>
+        <ul class="rows">
+          <li class="rowi rec" data-t="t1 t2">
+            <span class="glyph av t1">SD</span>
+            <div><h3>Prof. Sneha Deshmukh</h3><p>Computer Science and Engineering. Teaches {{ subj_name }}.</p>
+              <div class="tags"><span class="tag t1">Q1 Floyd–Warshall</span><span class="tag t2">Q2 Graph colouring</span></div></div>
+            <div class="go"><button class="btn small" type="button" data-toast="Doubt sent"><svg class="ic" style="width:16px;height:16px"><use href="#i-chat"></use></svg><span class="lbl">Ask a doubt</span></button></div>
+          </li>
+        </ul>
+        <p class="empty" hidden>No faculty matched this question yet.</p>
+      </div>
+      {% endif %}
+
+      <!-- Similar Files Panel -->
+      <div id="p-sim" role="tabpanel" aria-labelledby="k-sim" {% if mock_study_kit %}hidden{% endif %}>
+        {% if store_room_docs and store_room_docs|length > 0 %}
+        <label class="unv-toggle"><input type="checkbox" id="unvChk"> <span>Include unverified files from the Store Room ({{ store_room_docs|length }})</span></label>
+        {% endif %}
+        <ul class="rows" id="simRows">
+          {% if suggested_docs and suggested_docs|length > 0 %}
+            {% for sdoc in suggested_docs %}
+            <li class="rowi rec" data-t="all">
+              <span class="glyph">{{ (sdoc.file_type or 'PDF') | upper }}</span>
+              <div>
+                <h3><a href="/resource/{{ sdoc.slug or sdoc.id }}" style="text-decoration:none;color:inherit;">{{ sdoc.title }}</a></h3>
+                <p>{{ sdoc.subject.name if sdoc.subject else subj_name }} • {{ sdoc.view_count or 0 }} views</p>
+              </div>
+              <div class="go">
+                <a href="/resource/{{ sdoc.slug or sdoc.id }}" class="btn small"><span class="lbl">Open</span><svg class="ic" style="width:16px;height:16px"><use href="#i-ext"></use></svg></a>
+              </div>
+            </li>
+            {% endfor %}
+          {% else %}
+            <li class="rowi rec" data-t="all">
+              <span class="glyph">PYQ</span>
+              <div><h3>{{ subj_name }} - End Sem Exam</h3><p>Similar semester resource • 45 views</p></div>
+              <div class="go"><button class="btn small" type="button" data-toast="Opening file"><span class="lbl">Open</span><svg class="ic" style="width:16px;height:16px"><use href="#i-ext"></use></svg></button></div>
+            </li>
+            <li class="rowi rec" data-t="all">
+              <span class="glyph">PYQ</span>
+              <div><h3>{{ subj_name }} - Unit Test 1</h3><p>Similar assessment resource • 30 views</p></div>
+              <div class="go"><button class="btn small" type="button" data-toast="Opening file"><span class="lbl">Open</span><svg class="ic" style="width:16px;height:16px"><use href="#i-ext"></use></svg></button></div>
+            </li>
+          {% endif %}
+
+          {% if store_room_docs and store_room_docs|length > 0 %}
+            {% for udoc in store_room_docs %}
+            <li class="rowi rec" data-t="all" data-unv hidden>
+              <span class="glyph">?</span>
+              <div>
+                <h3><a href="/resource/{{ udoc.slug or udoc.id }}" style="text-decoration:none;color:inherit;">{{ udoc.title or 'Pending Upload' }}</a></h3>
+                <p>Waiting for a moderator to verify it.</p>
+                <div class="tags"><span class="tag plain">Pending verification</span></div>
+              </div>
+              <div class="go">
+                <a href="/resource/{{ udoc.slug or udoc.id }}" class="btn small"><span class="lbl">Open</span></a>
+              </div>
+            </li>
+            {% endfor %}
+          {% endif %}
+        </ul>
+      </div>
+    </section>
+
+    <!-- Discussion Section -->
+    <section class="discuss" aria-labelledby="disTitle">
+      <h2 class="r2-h2" id="disTitle">Discussion <span class="tag plain" id="commentsCountBadge" style="vertical-align:middle">{{ document.comment_count or 0 }}</span></h2>
+      <div class="composer-c">
+        <textarea id="cmt" rows="1" placeholder="Ask about a question or share how you solved it" aria-label="Write a comment"></textarea>
+        <button class="btn primary" id="postCmt" type="button" style="min-height:48px">Post</button>
+      </div>
+      <p class="empty-c" id="noCmt" style="display:none;">No comments yet. Be the first to share a tip.</p>
+      <ul class="rows" id="cmtList" style="margin-top:16px"></ul>
+      <span id="metaCommentCount" style="display:none;">{{ document.comment_count or 0 }}</span>
+    </section>
+
   </div>
+</main>
 
-</div>
+<button class="fab" id="fab" type="button" aria-label="Ask Tarika"><svg class="ic"><use href="#i-spark"></use></svg>Ask Tarika</button>
+<div class="scrim" id="scrim"></div>
 
-<!-- Report Issue Modal (Exposed via ⋯ menu only) -->
+<!-- Report Issue Modal -->
 <div class="r-report-backdrop" id="rReportBackdrop" onclick="rCloseOnBackdrop(event)" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:9000; align-items:center; justify-content:center;">
-  <div style="background:var(--v2-surface); padding:1.5rem; border-radius:var(--v2-radius-panel); max-width:440px; width:90%; box-sizing:border-box;">
+  <div style="background:var(--surface); padding:1.5rem; border-radius:var(--radius); max-width:440px; width:90%; box-sizing:border-box; border:1px solid var(--line);">
     <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1rem;">
       <h3 style="margin:0; font-size:1.1rem; font-weight:700;">🚩 Report an Issue</h3>
-      <button type="button" onclick="rCloseReport()" style="border:none; background:transparent; font-size:1.2rem; cursor:pointer;">✕</button>
+      <button type="button" onclick="rCloseReport()" style="border:none; background:transparent; font-size:1.2rem; cursor:pointer; color:var(--ink);">✕</button>
     </div>
-    <select id="rReportType" style="width:100%; padding:0.6rem; border:1px solid var(--v2-line); border-radius:8px; margin-bottom:0.75rem; font-family:inherit;">
+    <select id="rReportType" style="width:100%; padding:0.6rem; border:1px solid var(--line); border-radius:8px; margin-bottom:0.75rem; font-family:inherit; background:var(--bg); color:var(--ink);">
       <option value="Wrong content">Wrong content</option>
       <option value="Broken / unreadable file">Broken / unreadable file</option>
       <option value="Low quality scan">Low quality scan</option>
       <option value="Other">Other</option>
     </select>
-    <textarea id="rReportMsg" placeholder="Describe the issue..." style="width:100%; height:80px; padding:0.6rem; border:1px solid var(--v2-line); border-radius:8px; margin-bottom:0.75rem; font-family:inherit; box-sizing:border-box;"></textarea>
-    <button type="button" id="rReportBtn" onclick="rSubmitReport()" class="r2-btn" style="width:100%; background:#EF4444; color:#fff; border-color:#EF4444;">Submit Report</button>
+    <textarea id="rReportMsg" placeholder="Describe the issue..." style="width:100%; height:80px; padding:0.6rem; border:1px solid var(--line); border-radius:8px; margin-bottom:0.75rem; font-family:inherit; box-sizing:border-box; background:var(--bg); color:var(--ink);"></textarea>
+    <button type="button" id="rReportBtn" onclick="rSubmitReport()" class="btn primary" style="width:100%; background:#EF4444; color:#fff; border-color:#EF4444;">Submit Report</button>
     <div id="rReportStatus" style="margin-top:0.5rem; font-size:0.85rem; text-align:center;"></div>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
-  // Apply body class
-  document.body.classList.add('resource-v2-page');
-  {% if ai_chat_allowed %}
-  document.body.classList.add('ai-unlocked');
-  {% endif %}
+(function(){
+  var $ = function(s,c){return (c||document).querySelector(s)};
+  var $$ = function(s,c){return Array.prototype.slice.call((c||document).querySelectorAll(s))};
+  var reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  var isSheet = function(){return window.matchMedia('(max-width: 999.98px)').matches};
 
-  // Overflow dropdown toggle
-  function toggleR2Menu() {
-    var menu = document.getElementById('r2OverflowMenu');
-    if (menu) menu.classList.toggle('open');
+  // Toast helper
+  var toastEl=$('#toast'), toastT;
+  function toast(msg){
+    if(!toastEl) return;
+    toastEl.textContent=msg;
+    toastEl.classList.add('on');
+    clearTimeout(toastT);
+    toastT=setTimeout(function(){toastEl.classList.remove('on')},1800);
   }
+  window.showToast = toast;
 
-  document.addEventListener('click', function(e) {
-    if (!e.target.closest('.r2-menu-wrap')) {
-      var menu = document.getElementById('r2OverflowMenu');
-      if (menu) menu.classList.remove('open');
+  document.addEventListener('click',function(e){
+    var t=e.target.closest('[data-toast]');
+    if(t && !t.getAttribute('href')){
+      e.preventDefault();
+      toast(t.getAttribute('data-toast'));
     }
   });
 
-  // Tab switcher
-  function switchR2Tab(tabName, btn) {
-    document.querySelectorAll('.r2-tarika-tab-btn').forEach(function(b){ b.classList.remove('active'); });
-    document.querySelectorAll('.r2-tarika-content').forEach(function(c){ c.classList.remove('active'); });
-    if (btn) btn.classList.add('active');
-    var target = document.getElementById('r2Tab_' + tabName);
-    if (target) target.classList.add('active');
+  // Like & Save Toggles
+  const docId = "{{ document.id }}";
+  const likeBtn = $('#like');
+  const saveBtn = $('#save');
+
+  if(likeBtn){
+    likeBtn.addEventListener('click', async function(){
+      try {
+        const res = await fetch('/api/interactions/like/' + docId, { method: 'POST' });
+        const data = await res.json();
+        if(data.success){
+          likeBtn.setAttribute('aria-pressed', String(data.liked));
+          $('#likeN').textContent = data.like_count;
+          toast(data.liked ? 'Liked' : 'Like removed');
+        }
+      } catch(e) {
+        var on = likeBtn.getAttribute('aria-pressed') === 'true';
+        likeBtn.setAttribute('aria-pressed', String(!on));
+        var n = parseInt($('#likeN').textContent, 10) || 0;
+        $('#likeN').textContent = on ? n - 1 : n + 1;
+        toast(on ? 'Like removed' : 'Liked');
+      }
+    });
   }
 
-  // Report Modal Handlers
-  const _rDocId = "{{ document.id }}";
-  const _rDocTitle = "{{ (document.title or '') | replace('\"', '') }}";
-  function rOpenReport() {
-    var b = document.getElementById('rReportBackdrop');
-    if (b) { b.style.display = 'flex'; }
+  if(saveBtn){
+    saveBtn.addEventListener('click', async function(){
+      try {
+        const res = await fetch('/api/interactions/bookmark/' + docId, { method: 'POST' });
+        const data = await res.json();
+        if(data.success){
+          saveBtn.setAttribute('aria-pressed', String(data.bookmarked));
+          $('#saveN').textContent = data.bookmark_count;
+          toast(data.bookmarked ? 'Saved to your library' : 'Removed from saved');
+        }
+      } catch(e) {
+        var on = saveBtn.getAttribute('aria-pressed') === 'true';
+        saveBtn.setAttribute('aria-pressed', String(!on));
+        var n = parseInt($('#saveN').textContent, 10) || 0;
+        $('#saveN').textContent = on ? n - 1 : n + 1;
+        toast(on ? 'Removed from saved' : 'Saved to your library');
+      }
+    });
   }
-  function rCloseReport() {
-    var b = document.getElementById('rReportBackdrop');
-    if (b) { b.style.display = 'none'; }
+
+  // More Menu
+  var moreBtn=$('#moreBtn'), moreMenu=$('#moreMenu');
+  function closeMenu(){if(moreMenu){moreMenu.hidden=true;moreBtn.setAttribute('aria-expanded','false');}}
+  if(moreBtn && moreMenu){
+    moreBtn.addEventListener('click',function(e){
+      e.stopPropagation();
+      var open=moreMenu.hidden;
+      moreMenu.hidden=!open;
+      moreBtn.setAttribute('aria-expanded',String(open));
+    });
+    document.addEventListener('click',function(e){if(!moreMenu.contains(e.target))closeMenu();});
   }
-  function rCloseOnBackdrop(e) {
+
+  document.addEventListener('keydown',function(e){
+    if(e.key==='Escape'){closeMenu();exitFocus();closeSheet();rCloseReport();}
+  });
+
+  // Zoom & Fullscreen
+  var zooms=[50,75,100,125,150,200], zi=2, paper=$('#paper'), zVal=$('#zVal');
+  function applyZoom(){if(paper){paper.style.width=zooms[zi]+'%';if(zVal)zVal.textContent=zooms[zi]+'%';}}
+  if($('#zIn')) $('#zIn').addEventListener('click',function(){if(zi<zooms.length-1){zi++;applyZoom();}});
+  if($('#zOut')) $('#zOut').addEventListener('click',function(){if(zi>0){zi--;applyZoom();}});
+  if($('#zReset')) $('#zReset').addEventListener('click',function(){zi=2;applyZoom();});
+
+  var viewer=$('#viewer');
+  function exitFocus(){if(viewer){viewer.classList.remove('focus');$('#focusLbl').textContent='Full screen';}}
+  if($('#focusBtn')){
+    $('#focusBtn').addEventListener('click',function(){
+      var on=viewer.classList.toggle('focus');
+      $('#focusLbl').textContent=on?'Exit full screen':'Full screen';
+    });
+  }
+
+  // Tarika Sheet (Mobile)
+  var body=document.body;
+  function openSheet(){body.classList.add('sheet-open');}
+  function closeSheet(){body.classList.remove('sheet-open');}
+  if($('#fab')) $('#fab').addEventListener('click',openSheet);
+  if($('#sheetClose')) $('#sheetClose').addEventListener('click',closeSheet);
+  if($('#scrim')) $('#scrim').addEventListener('click',closeSheet);
+
+  // Tarika Tabs & Settings
+  function tTab(which){
+    var chat=which==='chat';
+    if($('#tt-chat')) $('#tt-chat').setAttribute('aria-selected',String(chat));
+    if($('#tt-det')) $('#tt-det').setAttribute('aria-selected',String(!chat));
+    if($('#tp-chat')) $('#tp-chat').classList.toggle('on',chat);
+    if($('#tp-det')) $('#tp-det').classList.toggle('on',!chat);
+  }
+  if($('#tt-chat')) $('#tt-chat').addEventListener('click',function(){tTab('chat');});
+  if($('#tt-det')) $('#tt-det').addEventListener('click',function(){tTab('det');});
+  if($('#gearBtn')){
+    $('#gearBtn').addEventListener('click',function(){
+      var s=$('#settings');
+      if(s){s.hidden=!s.hidden;this.setAttribute('aria-expanded',String(!s.hidden));}
+    });
+  }
+
+  // Tarika AI Chat Integration
+  var log=$('#log');
+  function addMsg(cls,html){
+    var d=document.createElement('div');
+    d.className='msg '+cls;
+    d.innerHTML=html;
+    log.appendChild(d);
+    log.scrollTop=log.scrollHeight;
+    return d;
+  }
+
+  async function askAI(questionText){
+    addMsg('me', '<p>' + questionText + '</p>');
+    var typing = addMsg('bot typing', 'Thinking…');
+
+    try {
+      const preferredModel = document.getElementById('aiModelSelect')?.value || 'auto';
+      const res = await fetch('/api/ask-paper', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ doc_id: docId, question: questionText, model: preferredModel })
+      });
+      const data = await res.json();
+      typing.remove();
+      if(data.success || data.answer){
+        addMsg('bot', '<p>' + (data.answer || data.message || 'Processed answer.') + '</p>');
+      } else {
+        addMsg('bot', '<p>' + (data.error || 'Failed to get answer. Please try again.') + '</p>');
+      }
+    } catch(e) {
+      typing.remove();
+      addMsg('bot', '<p>Network error while contacting Tarika assistant.</p>');
+    }
+  }
+
+  function openAndAsk(qText){
+    if(isSheet()) openSheet();
+    tTab('chat');
+    askAI(qText);
+  }
+
+  document.addEventListener('click',function(e){
+    var a=e.target.closest('[data-ask]');
+    if(a){
+      var key=a.getAttribute('data-ask');
+      var prompt = key === 'q1' ? 'Solve Question 1 from this paper step by step' :
+                   (key === 'q2' ? 'Explain Question 2 from this paper' :
+                   (key === 'topics' ? 'What are the most important topics covered in this paper?' :
+                   (key === 'summary' ? 'Provide a concise summary of this paper' : a.textContent)));
+      openAndAsk(prompt);
+    }
+  });
+
+  if($('#composer')){
+    $('#composer').addEventListener('submit',function(e){
+      e.preventDefault();
+      var v=$('#askInput').value.trim();
+      if(!v) return;
+      $('#askInput').value='';
+      askAI(v);
+    });
+  }
+
+  // Study Kit Filters & Tabs
+  var tabs=$$('#kitTabs [role=tab]');
+  function selectTab(btn){
+    tabs.forEach(function(t){
+      var on=t===btn;
+      t.setAttribute('aria-selected',String(on));
+      var panel=$('#'+t.getAttribute('aria-controls'));
+      if(panel) panel.hidden=!on;
+    });
+  }
+  tabs.forEach(function(t){
+    t.addEventListener('click',function(){selectTab(t);});
+  });
+
+  var state={filter:'all',unv:false};
+  function refreshKit(){
+    $$('.rec').forEach(function(el){
+      var t=(el.getAttribute('data-t')||'all').split(' ');
+      var match=state.filter==='all'||t.indexOf('all')>-1||t.indexOf(state.filter)>-1;
+      var unvOk=!el.hasAttribute('data-unv')||state.unv;
+      el.hidden=!(match&&unvOk);
+    });
+    $$('#kit [role=tabpanel]').forEach(function(p){
+      var n=$$('.rec',p).filter(function(x){return !x.hidden;}).length;
+      var badge=$('[data-count="'+p.id+'"]');
+      if(badge) badge.textContent=n;
+      var empty=$('.empty',p);
+      if(empty) empty.hidden=n>0;
+      var list=$('.vids,.books,.rows',p);
+      if(list&&empty) list.hidden=n===0;
+    });
+    $$('#filters button').forEach(function(b){
+      b.setAttribute('aria-pressed',String(b.getAttribute('data-filter')===state.filter));
+    });
+  }
+
+  $$('#filters button').forEach(function(b){
+    b.addEventListener('click',function(){
+      state.filter=b.getAttribute('data-filter');
+      refreshKit();
+    });
+  });
+
+  var unvChk = $('#unvChk');
+  if(unvChk){
+    unvChk.addEventListener('change',function(){
+      state.unv=this.checked;
+      refreshKit();
+    });
+  }
+
+  document.addEventListener('click',function(e){
+    var g=e.target.closest('[data-goto]');
+    if(!g) return;
+    state.filter=g.getAttribute('data-goto');
+    refreshKit();
+    var firstTab = $('#k-vid') || $('#k-sim');
+    if(firstTab) selectTab(firstTab);
+    closeSheet();
+    exitFocus();
+    var kitEl = $('#kit');
+    if(kitEl) kitEl.scrollIntoView({behavior:reduce?'auto':'smooth',block:'start'});
+  });
+
+  // Comments System
+  async function loadComments() {
+    const list = $('#cmtList');
+    const noCmt = $('#noCmt');
+    const badge = $('#commentsCountBadge');
+    if (!list || !docId) return;
+
+    try {
+      const res = await fetch('/api/interactions/comments/' + docId);
+      const data = await res.json();
+      if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        if(badge) badge.textContent = data.data.length;
+        if(noCmt) noCmt.style.display = 'none';
+        list.hidden = false;
+        list.innerHTML = data.data.map(function(c){
+          return `<li class="rowi">
+            <span class="glyph av">${(c.user_name || 'U').substring(0, 2).toUpperCase()}</span>
+            <div>
+              <h3>${c.user_name || 'Student'}</h3>
+              <p>${c.content || c.text || ''}</p>
+            </div>
+            <span></span>
+          </li>`;
+        }).join('');
+      } else {
+        if(badge) badge.textContent = '0';
+        list.hidden = true;
+        if(noCmt) noCmt.style.display = 'block';
+      }
+    } catch(e) {
+      if(noCmt) noCmt.style.display = 'block';
+    }
+  }
+
+  if($('#postCmt')){
+    $('#postCmt').addEventListener('click', async function(){
+      var v=$('#cmt').value.trim();
+      if(!v){ toast('Write a comment first'); return; }
+      try {
+        const res = await fetch('/api/interactions/comments/' + docId, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: v })
+        });
+        const data = await res.json();
+        if(data.success){
+          $('#cmt').value = '';
+          toast('Comment posted');
+          loadComments();
+        } else {
+          toast(data.message || 'Failed to post comment.');
+        }
+      } catch(e){
+        toast('Network error.');
+      }
+    });
+  }
+
+  // Sharing & Export Helpers
+  window.shareResource = function() {
+    const shareData = { title: '{{ resource_title | replace("\'", "\\\'") }}', url: window.location.href };
+    if (navigator.share) {
+      navigator.share(shareData).catch(function(){});
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(window.location.href).then(function(){ toast('Link copied to clipboard'); });
+    }
+  };
+
+  window.shareChatWhatsApp = function() {
+    const text = `*${document.title}*\nStudy on AbhiHub: ${window.location.href}`;
+    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
+  };
+
+  window.exportChatPDF = function() {
+    toast('Exporting PDF…');
+  };
+
+  window.sendPersonaPrompt = function(persona, btn) {
+    const prompt = `Solve this exam paper: ${window.location.href}`;
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(prompt).then(() => {
+        toast(`Opening ${persona} (Prompt copied)`);
+        let url = persona === 'ChatGPT' ? 'https://chatgpt.com/' : (persona === 'Gemini' ? 'https://gemini.google.com/' : 'https://claude.ai/');
+        window.open(url, '_blank');
+      });
+    }
+  };
+
+  // Report Modal
+  window.rOpenReport = function() {
+    var b = document.getElementById('rReportBackdrop');
+    if (b) b.style.display = 'flex';
+  };
+  window.rCloseReport = function() {
+    var b = document.getElementById('rReportBackdrop');
+    if (b) b.style.display = 'none';
+  };
+  window.rCloseOnBackdrop = function(e) {
     if (e.target === document.getElementById('rReportBackdrop')) rCloseReport();
-  }
-  async function rSubmitReport() {
+  };
+  window.rSubmitReport = async function() {
     const issueType = document.getElementById('rReportType').value;
     const message = document.getElementById('rReportMsg').value.trim();
     const btn = document.getElementById('rReportBtn');
@@ -829,7 +1803,7 @@ else 'Notes'))))) %}
       const res = await fetch('/api/report-issue', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ doc_id: _rDocId, doc_title: _rDocTitle, doc_url: window.location.href, issue_type: issueType, message })
+        body: JSON.stringify({ doc_id: docId, doc_title: {{ resource_title | tojson }}, doc_url: window.location.href, issue_type: issueType, message })
       });
       const data = await res.json();
       if (data.success) {
@@ -839,124 +1813,16 @@ else 'Notes'))))) %}
       } else { statusEl.style.color = '#ef4444'; statusEl.textContent = data.error || 'Failed to submit.'; }
     } catch(e) { statusEl.style.color = '#ef4444'; statusEl.textContent = 'Network error.'; }
     finally { btn.disabled = false; btn.textContent = 'Submit Report'; }
-  }
-
-  // Fullscreen Doc Toggle
-  window.toggleDocCardFullscreen = function () {
-    var card = document.querySelector('.preview-card');
-    if (!card) return;
-    var isFs = card.classList.toggle('fullscreen-doc-card');
-    document.body.style.overflow = isFs ? 'hidden' : '';
-    if (window.AbhiHubTracking && isFs) {
-      window.AbhiHubTracking.trackFeatureUsage('fullscreen_view', 'activated', 0, 'doc_viewer');
-    }
   };
 
-  // Share Resource
-  window.shareResource = function () {
-    const shareData = { title: '{{ resource_title | replace("\'", "\\\'") }}', url: window.location.href };
-    if (navigator.share) { navigator.share(shareData).catch(function(){}); }
-    else if (navigator.clipboard) {
-      navigator.clipboard.writeText(window.location.href).then(function(){ alert('Link copied to clipboard!'); });
-    }
-  };
+  // Initialize
+  document.body.classList.add('resource-v2-page');
+  {% if ai_chat_allowed %}
+  document.body.classList.add('ai-unlocked');
+  {% endif %}
 
-  // WhatsApp Share
-  window.shareChatWhatsApp = function () {
-    const text = `*${document.title}*\nStudy on AbhiHub: ${window.location.href}`;
-    window.open(`https://wa.me/?text=${encodeURIComponent(text)}`, '_blank');
-  };
-
-  // Export Chat PDF
-  window.exportChatPDF = function () {
-    const msgs = document.getElementById('aiMessages');
-    if (!msgs || msgs.children.length <= 1) {
-      alert('No chat messages to export.');
-      return;
-    }
-    // PDF export logic
-    alert('Exporting chat...');
-  };
-
-  // External Personas
-  window.sendPersonaPrompt = function(persona) {
-    const prompt = `Solve this exam paper: ${window.location.href}`;
-    navigator.clipboard.writeText(prompt).then(() => {
-      let url = persona === 'ChatGPT' ? 'https://chatgpt.com/' : (persona === 'Gemini' ? 'https://gemini.google.com/' : 'https://claude.ai/');
-      window.open(url, '_blank');
-    });
-  };
-
-  // Ask AI
-  window.askAI = async function () {
-    const inp = document.getElementById('aiQuestion');
-    const btn = document.getElementById('aiSendBtn');
-    const msgs = document.getElementById('aiMessages');
-    const q = inp.value.trim();
-    if (!q) return;
-    inp.value = '';
-    const uMsg = document.createElement('div');
-    uMsg.style.cssText = 'padding:0.4rem 0.6rem; background:#1D4ED8; color:#fff; border-radius:8px; align-self:flex-end; font-size:0.85rem;';
-    uMsg.textContent = q;
-    msgs.appendChild(uMsg);
-
-    try {
-      const res = await fetch('/api/ask-paper', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ doc_id: _rDocId, question: q, model: 'auto' })
-      });
-      const data = await res.json();
-      const aMsg = document.createElement('div');
-      aMsg.style.cssText = 'padding:0.4rem 0.6rem; background:rgba(0,0,0,0.05); border-radius:8px; align-self:flex-start; font-size:0.85rem;';
-      aMsg.textContent = data.answer || data.message || 'Response received.';
-      msgs.appendChild(aMsg);
-    } catch (e) {
-      const err = document.createElement('div');
-      err.style.color = '#ef4444';
-      err.textContent = 'Error connecting to assistant.';
-      msgs.appendChild(err);
-    }
-  };
-
-  // Load Comments
-  async function loadComments() {
-    const container = document.getElementById('commentsList');
-    if (!container || !_rDocId) return;
-    try {
-      const res = await fetch('/api/interactions/comments/' + _rDocId);
-      const data = await res.json();
-      if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-        document.getElementById('commentsCountBadge').textContent = data.data.length;
-        container.innerHTML = data.data.map(function (c) {
-          return `<div style="padding:0.75rem; border:1px solid var(--v2-line); border-radius:8px; font-size:0.88rem;">
-            <strong>${c.user_name || 'Student'}:</strong> ${c.content || c.text || ''}
-          </div>`;
-        }).join('');
-      } else {
-        container.innerHTML = '<div style="color:var(--v2-muted); font-size:0.85rem;">No comments yet.</div>';
-      }
-    } catch(e) {
-      container.innerHTML = '<div style="color:#ef4444; font-size:0.85rem;">Failed to load comments.</div>';
-    }
-  }
-
-  window.submitComment = async function () {
-    const inp = document.getElementById('newCommentInput');
-    const val = inp.value.trim();
-    if (!val) return;
-    try {
-      const res = await fetch('/api/interactions/comments/' + _rDocId, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: val })
-      });
-      const data = await res.json();
-      if (data.success) { inp.value = ''; loadComments(); }
-      else { alert(data.message || 'Failed to post comment.'); }
-    } catch(e) { alert('Network error.'); }
-  };
-
-  document.addEventListener('DOMContentLoaded', loadComments);
+  refreshKit();
+  loadComments();
+})();
 </script>
 {% endblock %}
