@@ -280,12 +280,39 @@ def apply_security_and_cache_headers(response):
         response.headers.setdefault('Cache-Control', 'public, max-age=60, must-revalidate')
     return response
 
-# Subdomain router for ai.abhihub.edu.eu.org
+# Subdomain router & Canonical Host 301 Redirection
 @app.before_request
-def handle_subdomain_routing():
+def handle_canonical_and_subdomain_routing():
     host = (request.host or '').lower().split(':')[0]
+    
+    # 1. AI Subdomain handling
     if host.startswith('ai.') and request.path == '/':
         return render_template('ai_hub.html', is_embed=False)
+        
+    # 2. Skip redirect for local development & internal health checks
+    if host in ('localhost', '127.0.0.1', '0.0.0.0') or host.startswith('192.168.') or host.startswith('10.'):
+        return None
+    if request.path in ('/health', '/api/health'):
+        return None
+
+    # 3. Protocol & Host Canonical Enforcement (301 Redirect)
+    # Redirect non-www, Heroku, run.place, and http:// requests to canonical https://www.abhihub.edu.eu.org
+    proto = request.headers.get('X-Forwarded-Proto', request.scheme or 'https').lower()
+    needs_host_redirect = host in ('abhihub.edu.eu.org', 'abhi-hub-06bba7f4101d.herokuapp.com', 'app.abhihub.run.place') or (host != BASE_DOMAIN and not host.startswith('ai.'))
+    needs_proto_redirect = proto == 'http'
+    
+    if needs_host_redirect or needs_proto_redirect:
+        full_query = f"?{request.query_string.decode('utf-8')}" if request.query_string else ""
+        target_url = f"https://{BASE_DOMAIN}{request.path}{full_query}"
+        return redirect(target_url, code=301)
+
+@app.context_processor
+def inject_seo_globals():
+    return {
+        'BASE_URL': f"https://{BASE_DOMAIN}",
+        'BASE_DOMAIN': BASE_DOMAIN,
+        'CANONICAL_DOMAIN': f"https://{BASE_DOMAIN}"
+    }
 
 # Add gzip compression for text responses
 try:
@@ -1386,9 +1413,32 @@ def reset_password_confirm():
         return redirect(url_for('reset_password'))
 
 @app.route('/terms')
-@sitemap_page()
+@sitemap_page(priority="0.80", changefreq="monthly")
 def terms():
     return render_template('terms.html')
+
+@app.route('/privacy')
+@sitemap_page(priority="0.80", changefreq="monthly")
+def privacy():
+    return render_template('privacy.html')
+
+@app.route('/contribute')
+@sitemap_page(priority="0.95", changefreq="weekly")
+def contribute_page():
+    """Public SEO-optimized contributor guide, rank progression & perks page."""
+    return render_template('contribute.html')
+
+@app.route('/earn-with-abhihub')
+def earn_with_abhihub_legacy_redirect():
+    """301 permanent redirect from deprecated /earn-with-abhihub to /contribute."""
+    return redirect(url_for('contribute_page'), code=301)
+
+@app.route('/dmca')
+@app.route('/copyright')
+@sitemap_page(priority="0.70", changefreq="monthly")
+def dmca():
+    """DMCA and Academic Copyright Policy page."""
+    return render_template('dmca.html')
 
 @app.route('/ads.txt')
 def ads_txt():
@@ -1396,12 +1446,12 @@ def ads_txt():
 
 @app.route('/robots.txt')
 def robots_txt():
-    """Expose crawler directives with a sitemap URL for the active host."""
+    """Expose crawler directives with a sitemap URL for the canonical host."""
     with open(os.path.join(app.root_path, 'robots.txt'), encoding='utf-8') as robots_file:
         robots_content = robots_file.read()
     robots_content = re.sub(
         r'^Sitemap:\s*.*$',
-        f"Sitemap: {url_for('sitemap', _external=True)}",
+        f"Sitemap: https://{BASE_DOMAIN}/sitemap.xml",
         robots_content,
         flags=re.MULTILINE,
     )
@@ -1423,7 +1473,7 @@ def index_now_key(key):
 @app.route('/sitemap.xml')
 def sitemap():
     """Return Sitemap Index pointing to modular sub-sitemaps for search engines."""
-    base_url = "https://www.abhihub.edu.eu.org"
+    base_url = f"https://{BASE_DOMAIN}"
     now_iso = datetime.utcnow().strftime('%Y-%m-%d')
     sitemaps = [
         {'loc': f"{base_url}/sitemap-pages.xml", 'lastmod': now_iso},
@@ -1438,10 +1488,10 @@ def sitemap():
 
 @app.route('/sitemap-pages.xml')
 def sitemap_pages():
-    """Sitemap module for core static routes."""
+    """Sitemap module for core static public routes."""
     urls = []
     seen = set()
-    base_url = "https://www.abhihub.edu.eu.org"
+    base_url = f"https://{BASE_DOMAIN}"
     for rule in app.url_map.iter_rules():
         if rule.endpoint not in _SITEMAP_REGISTRY:
             continue
@@ -1463,7 +1513,7 @@ def sitemap_colleges():
     """Sitemap module for colleges, departments, and subjects."""
     urls = []
     seen = set()
-    base_url = "https://www.abhihub.edu.eu.org"
+    base_url = f"https://{BASE_DOMAIN}"
 
     def add_u(path, lastmod=None, priority="0.85", changefreq="weekly"):
         loc = f"{base_url}{path}"
@@ -1522,16 +1572,18 @@ def sitemap_colleges():
 
 @app.route('/sitemap-documents.xml')
 def sitemap_documents():
-    """Sitemap module for documents and PYQs."""
+    """Sitemap module for approved documents and PYQs."""
     urls = []
     seen = set()
-    base_url = "https://www.abhihub.edu.eu.org"
+    base_url = f"https://{BASE_DOMAIN}"
 
     sitemap_res = get_sitemap_urls()
     data = sitemap_res.get('data', {}) if sitemap_res.get('success') else {}
     documents = data.get('documents', [])
-
+    from methods.seo_helper import is_resource_indexable
     for doc in documents:
+        if not is_resource_indexable(doc):
+            continue
         college_data = doc.get('college') or {}
         dept_data = doc.get('department') or {}
         subj_data = doc.get('subject') or {}
@@ -1570,11 +1622,6 @@ def sitemap_audit():
             continue
         missing.append(str(rule))
     return {'unclassified_get_routes': sorted(missing)}
-
-@app.route('/privacy')
-@sitemap_page()
-def privacy():
-    return render_template('privacy.html')
 
 @app.route('/help')
 @sitemap_page()
@@ -2828,25 +2875,82 @@ def upload():
             user_email = user_info.get('email', '')
             user_name = user_info.get('name', '')
             
-            subject = request.form.get('subject', '')
-            year = request.form.get('Year', '')
+            subject = request.form.get('subject', '').strip()
+            year = (request.form.get('Year') or request.form.get('year') or '').strip()
             doc_type = request.form.get('type', 'Other')
+            document_type = request.form.get('document_type') or request.form.get('type') or 'Other'
+            college_id = request.form.get('college_id', '').strip()
+            branch_id = request.form.get('branch_id', '').strip()
+            subject_id = request.form.get('subject_id', '').strip()
+            semester_raw = request.form.get('semester', '').strip()
+            semester = int(semester_raw) if semester_raw.isdigit() and 1 <= int(semester_raw) <= 8 else None
+            title_val = (request.form.get('title') or subject or '').strip()
+            description_val = request.form.get('description', '').strip()
+            program = request.form.get('program', 'b.tech').strip() or 'b.tech'
+            unit = request.form.get('unit', '')
+
+            # ── Server-Side Upload Quality Gate (Strict Validation) ──
+            if len(title_val) < 5:
+                return jsonify(success=False, message="Resource title must be at least 5 characters long."), 400
+
+            if not college_id:
+                return jsonify(success=False, message="College selection is required."), 400
+
+            if (not subject_id or subject_id == '__other__') and document_type.lower() != 'question_bank':
+                logging.warning(f"[UPLOAD REJECTED] Reason:Missing subject_id Uploader:{user_id}")
+                return jsonify(success=False, message="Subject selection is required. Please select a subject from the dropdown."), 400
+
+            if semester is None:
+                return jsonify(success=False, message="Please select a valid semester (1 to 8)."), 400
+
+            if not (year.isdigit() and len(year) == 4 and 1990 <= int(year) <= 2035):
+                return jsonify(success=False, message="Please provide a valid 4-digit academic year (e.g. 2025)."), 400
+
+            if len(description_val.split()) < 50:
+                return jsonify(success=False, message="Upload requires a study description of at least 50 words summarizing the topics or questions covered."), 400
 
             # Build metadata-aware filename:
             # stable pattern so files are easy to find/filter:
             # {year}_{dept/subject}_{type}_{unit}_{random}.{ext}
             _ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
-            _unit = request.form.get('unit', '')
-            _doc = (request.form.get('document_type') or doc_type or 'file').strip()
             _subject_part = (subject or '').strip()
-            if not _subject_part and _doc.lower() == 'question_bank':
+            if not _subject_part and document_type.lower() == 'question_bank':
                 _subject_part = (request.form.get('qb_tags') or '').strip() or 'question_bank'
             _safe = lambda s: re.sub(r'[^a-zA-Z0-9_-]+', '', s.replace(' ', '_')).lower()
-            _parts = [str(year), _safe(_subject_part), _safe(_doc)]
-            if _unit: _parts.append(_safe(_unit))
+            _parts = [str(year), _safe(_subject_part), _safe(document_type)]
+            if unit: _parts.append(_safe(unit))
             _parts.append(str(int(time.time()))[-6:])
             _base = '_'.join(p for p in _parts if p) or 'upload'
             original_filename = f"{_base}.{_ext}"
+
+            # ── PDF Text Preview Extraction (First 2-3 Pages, ~150 words) ──
+            extracted_preview = ""
+            if _ext == 'pdf':
+                try:
+                    file.seek(0)
+                    import io
+                    pdf_bytes = io.BytesIO(file.read())
+                    file.seek(0)
+                    try:
+                        import pypdf
+                        reader = pypdf.PdfReader(pdf_bytes)
+                        num_pages = len(reader.pages)
+                        pages_to_read = min(num_pages, 3)
+                        chunks = []
+                        for p in range(pages_to_read):
+                            txt = reader.pages[p].extract_text()
+                            if txt:
+                                chunks.append(txt)
+                        all_txt = ' '.join(chunks).strip()
+                        words = all_txt.split()
+                        if words:
+                            extracted_preview = ' '.join(words[:150])
+                    except Exception as p_err:
+                        logging.warning(f"[PDF_PREVIEW] pypdf preview extraction: {p_err}")
+                except Exception as e:
+                    logging.warning(f"[PDF_PREVIEW] File stream read failed: {e}")
+                finally:
+                    file.seek(0)
 
             # Determine file type for categorization
             ext = _ext
@@ -2887,36 +2991,12 @@ def upload():
                     success=False,
                     message=f"Upload failed: {upload_result.get('error', 'Unknown error')}"
                 ), 500
-            
-            # Resolve metadata from form
-            college_id = request.form.get('college_id', '').strip()
-            branch_id = request.form.get('branch_id', '').strip()
-            subject_id = request.form.get('subject_id', '').strip()
-            semester_raw = request.form.get('semester', '').strip()
-            semester = int(semester_raw) if semester_raw.isdigit() and 1 <= int(semester_raw) <= 8 else None
-            document_type = request.form.get('document_type') or request.form.get('type') or 'Other'
-            subject_name = subject.strip()
-            unit = request.form.get('unit', '')
-            practical_num = request.form.get('practical', '')
-            practical_type = request.form.get('practical-type', '')
-            program = request.form.get('program', 'b.tech').strip() or 'b.tech'
 
-            # Guard: reject uploads with no subject selected,
-            # except for question_bank which is tagged by batch/semester/dept
-            if (not subject_id or subject_id == '__other__') and document_type.lower() != 'question_bank':
-                logging.warning(f"[UPLOAD REJECTED] Reason:Missing subject_id Uploader:{user_id} File:{original_filename}")
-                return jsonify(
-                    success=False,
-                    message="Subject selection is required. Please select a subject from the dropdown."
-                ), 400
-
-
-            logging.info(f"[UPLOAD] Uploader:{user_id} College:{college_id} Branch:{branch_id} Semester:{semester} Subject:{subject_name!r} SubjectID:{subject_id}")
+            logging.info(f"[UPLOAD] Uploader:{user_id} College:{college_id} Branch:{branch_id} Semester:{semester} Subject:{subject!r} SubjectID:{subject_id}")
             
             # Save to file_records table (Supabase abhihub.documents)
             from methods.cloudinary_upload import delete_file_from_cloudinary
 
-            # Read optional fields the JS client sends
             file_hash = request.form.get('file_hash', '').strip() or None
             exam_type = request.form.get('exam_type', '').strip() or ''
             subject_code = request.form.get('subject_code', '').strip() or ''
@@ -2929,12 +3009,13 @@ def upload():
                 file_type=file_type_category,
                 file_size=upload_result.get('bytes') or file_size,
                 cloudinary_public_id=upload_result['public_id'],
-                subject_name=subject_name,
+                subject_name=subject,
                 document_type=document_type.lower(),
                 year=year,
                 college_id=college_id if college_id else None,
                 branch_id=branch_id if branch_id else None,
-                title=subject_name if subject_name else original_filename,
+                title=title_val,
+                description=description_val,
                 subject_id=subject_id if subject_id else None,
                 semester=semester,
                 program=program,
@@ -3678,15 +3759,50 @@ def open_source():
 @app.route('/')
 @sitemap_page(priority="1.00", changefreq="daily")
 def features():
-    """Root route - handles OAuth callbacks and home page"""
-    # If user is already authenticated, send to dashboard
+    """Root route - public landing page with crawlable university, subject, and resource hubs"""
     if 'user' in session:
         return redirect(url_for('dashboard'))
     
-    # If there's an OAuth token in the hash (from Supabase redirect),
-    # load the login page which will extract and process the token
-    # Otherwise show the features page
-    return render_template('p_landing.html')
+    colleges_res = get_all_colleges()
+    all_colleges = colleges_res.get('data', []) if colleges_res.get('success') else []
+    
+    for c in all_colleges:
+        c['slug'] = slugify(c.get('abbreviation') or c.get('name'))
+        
+    branches_res = get_all_branches()
+    branches = branches_res.get('data', []) if branches_res.get('success') else []
+    for b in branches:
+        b['slug'] = slugify(b.get('abbreviation') or b.get('name'))
+
+    recent_docs = []
+    try:
+        client = init_supabase()
+        if client:
+            res = client.table('documents')\
+                .select('id, title, document_category, created_at, view_count, college:colleges(name, abbreviation), department:departments(name, abbreviation), subject:subjects(name)')\
+                .eq('status', 'approved')\
+                .order('created_at', desc=True)\
+                .limit(12)\
+                .execute()
+            for doc in (res.data or []):
+                c_data = doc.get('college') or {}
+                d_data = doc.get('department') or {}
+                s_data = doc.get('subject') or {}
+                c_slug = slugify(c_data.get('abbreviation') or c_data.get('name') or 'college')
+                d_slug = slugify(d_data.get('abbreviation') or d_data.get('name') or 'dept')
+                s_slug = slugify(s_data.get('name') or 'subject')
+                t_slug = slugify(doc.get('title') or 'file')
+                doc['canonical_slug'] = f"{c_slug}-{d_slug}-{s_slug}-{t_slug}-{doc.get('id')}"
+                recent_docs.append(doc)
+    except Exception as e:
+        logging.warning(f"Error fetching landing page docs: {e}")
+
+    return render_template(
+        'p_landing.html',
+        colleges=all_colleges[:8],
+        branches=branches[:8],
+        recent_docs=recent_docs
+    )
 
 @app.route('/features-tour')
 @sitemap_page(priority="0.85")
@@ -3715,6 +3831,12 @@ def pyq_landing():
     except Exception:
         pass
     return render_template('pyq_landing.html', colleges=colleges)
+
+@app.route('/pyq_landing')
+def pyq_landing_legacy_redirect():
+    """301 permanent redirect from old /pyq_landing to /pyq."""
+    return redirect(url_for('pyq_landing'), code=301)
+
 
 
 @app.route('/search')
@@ -3975,9 +4097,12 @@ def resource_landing(slug):
     canonical_prefix = re.sub(r'[^a-z0-9]+', '-', raw_slug).strip('-')
     canonical_slug = f"{canonical_prefix}-{doc_id}"
     
-    # 301 Redirect to canonical if mismatch
+    # 301 Redirect to canonical if mismatch (preserving query string)
     if slug.lower() != canonical_slug:
-        return redirect(url_for('resource_landing', slug=canonical_slug), code=301)
+        target_url = url_for('resource_landing', slug=canonical_slug)
+        if request.query_string:
+            target_url = f"{target_url}?{request.query_string.decode('utf-8')}"
+        return redirect(target_url, code=301)
         
     document['is_liked'] = False
     document['is_bookmarked'] = False
@@ -4056,7 +4181,30 @@ def resource_landing(slug):
     except Exception as e:
         logging.error(f"[Supabase] Error fetching suggestions: {e}")
 
-    return render_template('resource.html', document=document, ai_models=AI_MODELS, best_model=get_best_ai_model(), suggested_docs=suggested_docs, store_room_docs=store_room_docs, ai_chat_allowed=ai_chat_allowed)
+    from methods.seo_helper import is_resource_indexable
+    is_thin = not is_resource_indexable(document)
+    
+    use_v2 = request.args.get('redesign') == '1' or app.config.get('FORCE_RESOURCE_V2', False)
+    template_name = 'resource_v2.html' if use_v2 else 'resource.html'
+    
+    # Flagged redesign preview must be noindex
+    render_noindex = is_thin or (use_v2 and request.args.get('redesign') == '1')
+
+    # Server-side mock study kit check (strictly non-production)
+    is_prod = os.environ.get('FLASK_ENV') == 'production' or app.config.get('ENV') == 'production' or app.config.get('PRODUCTION', False)
+    mock_study_kit = False if is_prod else bool(app.config.get('MOCK_STUDY_KIT', False) or os.environ.get('MOCK_STUDY_KIT') == '1')
+
+    return render_template(
+        template_name,
+        document=document,
+        ai_models=AI_MODELS,
+        best_model=get_best_ai_model(),
+        suggested_docs=suggested_docs,
+        store_room_docs=store_room_docs,
+        ai_chat_allowed=ai_chat_allowed,
+        noindex=render_noindex,
+        mock_study_kit=mock_study_kit
+    )
 
 @app.route('/join')
 @sitemap_page()
@@ -5789,6 +5937,7 @@ from methods.supabase_helper import (
     get_all_file_records_formatted,
     get_all_files_merged,
     get_college_by_slug,
+    get_college_stats,
     get_colleges_by_brand,
     get_comments,
     get_contribution_timeline,
@@ -5802,6 +5951,7 @@ from methods.supabase_helper import (
     get_papo_meter_data,
     get_pending_storage_assets,
     get_pending_verification_papers,
+    get_recent_college_files,
     get_recent_department_files,
     get_recent_subject_files,
     get_reputation_stats,
