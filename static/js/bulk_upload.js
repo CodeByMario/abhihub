@@ -625,10 +625,91 @@ function openFullPreview() {
   window.open(fileUrl, '_blank');
 }
 
+async function analyzeCurrentFileWithAi() {
+  if (selectedFiles.length === 0) {
+    showToast('Select a file first to analyze with Tarika', 'info');
+    return;
+  }
+  const curItem = selectedFiles[carouselIndex];
+  if (!curItem || !curItem.file) return;
+
+  const btn = document.getElementById('tarikaUploadAnalyzeBtn');
+  if (btn) {
+    btn.disabled = true;
+    btn.innerHTML = '<span>⏳ Tarika Analyzing…</span>';
+  }
+
+  try {
+    const res = await fetch('/api/ai/tool', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        tool_name: 'suggest_upload_metadata',
+        parameters: { filename: curItem.file.name }
+      })
+    }).then(r => r.json());
+
+    if (res && res.success && res.result && res.result.data) {
+      const d = res.result.data;
+      const form = document.getElementById(`meta-form-${curItem.id}`);
+      if (form) {
+        if (d.title) {
+          const tEl = form.querySelector('.meta-title');
+          if (tEl && !tEl.dataset.userModified) {
+            tEl.value = d.title;
+            const p = form.querySelector('.field-ai-pill[data-field="title"]');
+            if (p) p.style.display = 'inline-flex';
+          }
+        }
+        if (d.document_type) {
+          const catMap = { pyq: 'papers', notes: 'notes', practicals: 'practical', syllabus: 'syllabus' };
+          const targetType = catMap[d.document_type] || d.document_type;
+          const typeEl = form.querySelector('.meta-type');
+          if (typeEl && !typeEl.dataset.userModified) {
+            typeEl.value = targetType;
+            if (typeof updateDynamicFieldsForForm === 'function') updateDynamicFieldsForForm(form);
+            const p = form.querySelector('.field-ai-pill[data-field="type"]');
+            if (p) p.style.display = 'inline-flex';
+          }
+        }
+        if (d.year) {
+          const yearEl = form.querySelector('.meta-year');
+          if (yearEl && !yearEl.dataset.userModified) {
+            yearEl.value = String(d.year);
+            const p = form.querySelector('.field-ai-pill[data-field="year"]');
+            if (p) p.style.display = 'inline-flex';
+          }
+        }
+        if (d.semester) {
+          const semEl = form.querySelector('.semester-select');
+          if (semEl && !semEl.dataset.userModified) {
+            const tsSem = window.AbhiHubSelect?.instances[semEl.id];
+            if (tsSem) tsSem.setValue(String(d.semester), true);
+            else { semEl.value = String(d.semester); semEl.dispatchEvent(new Event('change')); }
+          }
+        }
+      }
+      showToast('✨ Tarika generated metadata suggestions!', 'success');
+    } else {
+      await processFileMetadataAutofill(curItem, curItem.file);
+    }
+  } catch (e) {
+    console.warn('[Tarika Upload Analysis]', e);
+    await processFileMetadataAutofill(curItem, curItem.file);
+  } finally {
+    if (btn) {
+      btn.disabled = false;
+      btn.innerHTML = '<span>✨ Analyze with Tarika</span>';
+    }
+  }
+}
+
 window.renderFilmstrip = renderFilmstrip;
 window.removeFileById = removeFileById;
 window.copyLabelsToAll = copyLabelsToAll;
 window.openFullPreview = openFullPreview;
+window.analyzeCurrentFileWithAi = analyzeCurrentFileWithAi;
+
 
 /**
  * Carousel image source: prefer a client-side preview compression

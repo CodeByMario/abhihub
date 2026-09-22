@@ -1,6 +1,34 @@
-<!-- Unified AbhiHub AI Assistant Component -->
+<!-- AbhiHub Native AI Assistant Component (Tarika) -->
 <style>
-/* ── Floating Launcher ────────────────────────────────────────── */
+/* ── Tarika Design Tokens & Shell (Native AbhiHub System) ───────── */
+:root {
+  --tarika-bg: var(--v2-surface, #ffffff);
+  --tarika-bg-subtle: var(--v2-bg, #f5f6fa);
+  --tarika-ink: var(--v2-ink, #0f172a);
+  --tarika-muted: var(--v2-muted, #566079);
+  --tarika-line: var(--v2-line, #e1e5ee);
+  --tarika-brand: var(--v2-brand, #1d4ed8);
+  --tarika-brand-hover: var(--v2-brand-hover, #1e40af);
+  --tarika-font-sans: var(--v2-font-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  --tarika-radius-panel: var(--v2-radius-panel, 14px);
+  --tarika-radius-pill: var(--v2-radius-pill, 9999px);
+  --tarika-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tarika-bg: var(--v2-surface, #131b2d);
+    --tarika-bg-subtle: var(--v2-bg, #0b1120);
+    --tarika-ink: var(--v2-ink, #eaeef7);
+    --tarika-muted: var(--v2-muted, #98a3bb);
+    --tarika-line: var(--v2-line, #25304a);
+    --tarika-brand: var(--v2-brand, #7fa0ff);
+    --tarika-brand-hover: var(--v2-brand-hover, #9bb7ff);
+    --tarika-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+}
+
+/* ── Launcher Pill Button ───────────────────────────────────────── */
 #abhiAiLauncher {
   position: fixed;
   bottom: 82px;
@@ -8,56 +36,54 @@
   z-index: 9998;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 16px;
-  background: linear-gradient(135deg, #4f46e5 0%, #7c3aed 100%);
-  color: #fff;
-  border-radius: 999px;
-  border: 1px solid rgba(255,255,255,0.25);
-  box-shadow: 0 4px 20px rgba(124, 58, 237, 0.4), 0 2px 6px rgba(0,0,0,0.2);
+  gap: 7px;
+  padding: 9px 15px;
+  background: var(--tarika-brand);
+  color: #ffffff;
+  border-radius: var(--tarika-radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 14px rgba(29, 78, 216, 0.28), 0 1px 3px rgba(0, 0, 0, 0.1);
   cursor: pointer;
-  font-family: inherit;
-  font-size: 14px;
-  font-weight: 700;
-  transition: transform 0.2s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.2s;
+  font-family: var(--tarika-font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
   user-select: none;
 }
 #abhiAiLauncher:hover {
-  transform: translateY(-3px) scale(1.03);
-  box-shadow: 0 8px 25px rgba(124, 58, 237, 0.5);
+  transform: translateY(-2px);
+  background: var(--tarika-brand-hover);
+  box-shadow: 0 6px 20px rgba(29, 78, 216, 0.38);
 }
 #abhiAiLauncher .ai-spark {
   display: inline-block;
-  animation: aiSpin 6s linear infinite;
-}
-@keyframes aiSpin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  font-size: 13px;
 }
 
-/* ── Assistant Drawer ─────────────────────────────────────────── */
+/* ── Native Drawer Panel ───────────────────────────────────────── */
 #abhiAiDrawer {
   position: fixed;
   bottom: 80px;
   right: 18px;
-  width: min(420px, calc(100vw - 36px));
-  height: min(600px, calc(100vh - 120px));
-  background: #0f172a;
-  color: #f8fafc;
-  border-radius: 20px;
-  border: 1px solid rgba(255,255,255,0.12);
-  box-shadow: 0 12px 40px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.05);
+  width: min(440px, calc(100vw - 32px));
+  height: min(620px, calc(100vh - 110px));
+  background: var(--tarika-bg);
+  color: var(--tarika-ink);
+  border-radius: var(--tarika-radius-panel);
+  border: 1px solid var(--tarika-line);
+  box-shadow: var(--tarika-shadow);
   display: none;
   flex-direction: column;
   z-index: 9999;
   overflow: hidden;
-  animation: aiDrawerIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  font-family: var(--tarika-font-sans);
+  animation: aiDrawerEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
 }
 #abhiAiDrawer.open {
   display: flex;
 }
-@keyframes aiDrawerIn {
-  from { opacity: 0; transform: translateY(16px) scale(0.96); }
+@keyframes aiDrawerEnter {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
 }
 
@@ -66,61 +92,82 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 18px;
-  background: #1e293b;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
+  padding: 12px 16px;
+  background: var(--tarika-bg-subtle);
+  border-bottom: 1px solid var(--tarika-line);
 }
 .ai-drw-title {
   display: flex;
   align-items: center;
-  gap: 8px;
-  font-weight: 800;
-  font-size: 15px;
+  gap: 7px;
+  font-weight: 700;
+  font-size: 14.5px;
+  color: var(--tarika-ink);
 }
 .ai-drw-badge {
-  font-size: 11px;
-  background: #3b82f6;
-  color: #fff;
-  padding: 2px 8px;
-  border-radius: 99px;
+  font-size: 10px;
+  background: rgba(29, 78, 216, 0.08);
+  color: var(--tarika-brand);
+  border: 1px solid rgba(29, 78, 216, 0.2);
+  padding: 2px 7px;
+  border-radius: var(--tarika-radius-pill);
   font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 .ai-drw-actions {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 .ai-drw-btn {
-  background: transparent;
-  border: none;
-  color: #94a3b8;
+  background: var(--tarika-bg);
+  border: 1px solid var(--tarika-line);
+  color: var(--tarika-muted);
   cursor: pointer;
-  padding: 4px 6px;
-  border-radius: 8px;
-  font-size: 16px;
-  transition: color 0.15s, background 0.15s;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: all 0.15s ease;
   text-decoration: none;
 }
 .ai-drw-btn:hover {
-  color: #fff;
-  background: rgba(255,255,255,0.08);
+  color: var(--tarika-ink);
+  background: var(--tarika-bg-subtle);
+  border-color: var(--tarika-brand);
 }
 
 /* ── Context Bar ──────────────────────────────────────────────── */
 #aiContextBar {
-  background: linear-gradient(90deg, #1e1b4b, #312e81);
-  padding: 10px 14px;
-  border-bottom: 1px solid rgba(124, 58, 237, 0.3);
+  background: #eff6ff;
+  padding: 9px 14px;
+  border-bottom: 1px solid #bfdbfe;
   font-size: 12px;
   display: none;
 }
+@media (prefers-color-scheme: dark) {
+  #aiContextBar {
+    background: rgba(29, 78, 216, 0.15);
+    border-bottom-color: rgba(127, 160, 255, 0.25);
+  }
+}
 .ai-ctx-file {
-  font-weight: 700;
-  color: #c7d2fe;
+  font-weight: 600;
+  color: #1e40af;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  margin-bottom: 6px;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+@media (prefers-color-scheme: dark) {
+  .ai-ctx-file { color: #bfdbfe; }
 }
 .ai-ctx-actions {
   display: flex;
@@ -128,116 +175,103 @@
   flex-wrap: wrap;
 }
 .ai-ctx-chip {
-  background: rgba(255,255,255,0.15);
-  border: 1px solid rgba(255,255,255,0.2);
-  color: #e0e7ff;
+  background: #ffffff;
+  border: 1px solid #bfdbfe;
+  color: var(--tarika-brand);
   font-size: 11px;
   font-weight: 600;
-  padding: 3px 8px;
-  border-radius: 99px;
+  padding: 3px 9px;
+  border-radius: var(--tarika-radius-pill);
   cursor: pointer;
+  transition: all 0.15s ease;
+}
+@media (prefers-color-scheme: dark) {
+  .ai-ctx-chip {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(127, 160, 255, 0.3);
+    color: #eaeef7;
+  }
 }
 .ai-ctx-chip:hover {
-  background: #4f46e5;
-  color: #fff;
+  background: var(--tarika-brand);
+  border-color: var(--tarika-brand);
+  color: #ffffff;
 }
 
-/* ── Messages List ────────────────────────────────────────────── */
+/* ── Messages Stream ──────────────────────────────────────────── */
 #aiMsgList {
   flex: 1;
   overflow-y: auto;
   padding: 14px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  background: var(--tarika-bg);
 }
+#aiMsgList::-webkit-scrollbar { width: 5px; }
+#aiMsgList::-webkit-scrollbar-thumb { background: var(--tarika-line); border-radius: 99px; }
+
 .ai-bubble {
   max-width: 88%;
-  padding: 10px 14px;
-  border-radius: 14px;
+  padding: 9px 13px;
+  border-radius: 12px;
   font-size: 13px;
   line-height: 1.55;
   word-wrap: break-word;
-  animation: aiBubblePop 0.22s cubic-bezier(0.16, 1, 0.3, 1) forwards;
-  transition: border-color 0.25s, box-shadow 0.25s;
+  animation: aiBubbleIn 0.18s ease forwards;
 }
-@keyframes aiBubblePop {
-  from { opacity: 0; transform: translateY(8px) scale(0.97); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+@keyframes aiBubbleIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .ai-bubble.user {
   align-self: flex-end;
-  background: #4f46e5;
-  color: #fff;
-  border-bottom-right-radius: 4px;
+  background: var(--tarika-brand);
+  color: #ffffff;
+  border-bottom-right-radius: 3px;
 }
 .ai-bubble.assistant {
   align-self: flex-start;
-  background: #1e293b;
-  color: #e2e8f0;
-  border: 1px solid rgba(255,255,255,0.08);
-  border-bottom-left-radius: 4px;
-  max-width: 95%;
+  background: var(--tarika-bg-subtle);
+  color: var(--tarika-ink);
+  border: 1px solid var(--tarika-line);
+  border-bottom-left-radius: 3px;
+  max-width: 96%;
 }
 .ai-bubble.assistant.streaming {
-  border-color: rgba(99, 102, 241, 0.55);
-  box-shadow: 0 0 20px rgba(99, 102, 241, 0.22), inset 0 0 14px rgba(99, 102, 241, 0.06);
-  background: linear-gradient(180deg, #1e293b 0%, #162035 100%);
+  border-color: var(--tarika-brand);
 }
-.ai-bubble.assistant h1,
-.ai-bubble.assistant h2,
-.ai-bubble.assistant h3,
-.ai-bubble.assistant h4 {
-  color: #f8fafc;
-  margin: 10px 0 6px 0;
-  font-weight: 700;
-  line-height: 1.35;
-}
-.ai-bubble.assistant h1 { font-size: 15px; border-bottom: 1px solid rgba(255,255,255,0.12); padding-bottom: 4px; }
-.ai-bubble.assistant h2 { font-size: 14px; }
-.ai-bubble.assistant h3 { font-size: 13px; color: #93c5fd; }
-.ai-bubble.assistant h4 { font-size: 12px; color: #a5b4fc; }
-.ai-bubble.assistant p {
-  margin: 6px 0;
-}
-.ai-bubble.assistant hr {
-  border: none;
-  border-top: 1px solid rgba(255,255,255,0.12);
-  margin: 10px 0;
-}
-.ai-bubble.assistant ul,
-.ai-bubble.assistant ol {
-  margin: 6px 0;
-  padding-left: 20px;
-}
-.ai-bubble.assistant li {
-  margin: 3px 0;
-}
-.ai-bubble.assistant blockquote {
-  border-left: 3px solid #6366f1;
-  background: rgba(99,102,241,0.08);
-  margin: 8px 0;
-  padding: 6px 10px;
-  border-radius: 0 8px 8px 0;
-  color: #cbd5e1;
-}
-.ai-bubble.assistant strong {
-  color: #f8fafc;
-}
-.ai-bubble.assistant a {
-  color: #60a5fa;
-  text-decoration: underline;
+.ai-bubble.thinking {
+  align-self: flex-start;
+  background: var(--tarika-bg-subtle);
+  color: var(--tarika-muted);
+  font-style: italic;
+  font-size: 12px;
 }
 
-/* ── Markdown Tables in Chat ── */
-.ai-bubble.assistant .ai-table-wrap {
+/* Typography in Assistant Bubbles */
+.ai-bubble.assistant h1, .ai-bubble.assistant h2, .ai-bubble.assistant h3, .ai-bubble.assistant h4 {
+  color: var(--tarika-ink);
+  margin: 7px 0 3px 0;
+  font-weight: 700;
+}
+.ai-bubble.assistant h1 { font-size: 14.5px; border-bottom: 1px solid var(--tarika-line); padding-bottom: 3px; }
+.ai-bubble.assistant h2 { font-size: 13.5px; }
+.ai-bubble.assistant h3 { font-size: 12.5px; color: var(--tarika-brand); }
+.ai-bubble.assistant p { margin: 5px 0; }
+.ai-bubble.assistant ul, .ai-bubble.assistant ol { margin: 5px 0; padding-left: 18px; }
+.ai-bubble.assistant li { margin: 2px 0; }
+.ai-bubble.assistant strong { color: var(--tarika-ink); font-weight: 600; }
+.ai-bubble.assistant a { color: var(--tarika-brand); text-decoration: underline; }
+
+/* Markdown Tables */
+.ai-table-wrap {
   width: 100%;
   overflow-x: auto;
-  margin: 10px 0;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.12);
-  background: #0f172a;
-  animation: aiBlockFade 0.28s ease-out;
+  margin: 8px 0;
+  border-radius: 7px;
+  border: 1px solid var(--tarika-line);
+  background: var(--tarika-bg);
 }
 .ai-bubble.assistant table {
   width: 100%;
@@ -246,626 +280,904 @@
   text-align: left;
 }
 .ai-bubble.assistant th {
-  background: #334155;
-  color: #f1f5f9;
-  font-weight: 700;
-  padding: 8px 10px;
-  border-bottom: 2px solid #475569;
-  border-right: 1px solid #475569;
-}
-.ai-bubble.assistant th:last-child {
-  border-right: none;
+  background: var(--tarika-bg-subtle);
+  color: var(--tarika-ink);
+  font-weight: 600;
+  padding: 6px 9px;
+  border-bottom: 2px solid var(--tarika-line);
 }
 .ai-bubble.assistant td {
-  padding: 6px 10px;
-  border-bottom: 1px solid rgba(255,255,255,0.08);
-  border-right: 1px solid rgba(255,255,255,0.08);
-  color: #cbd5e1;
-  vertical-align: top;
-}
-.ai-bubble.assistant td:last-child {
-  border-right: none;
-}
-.ai-bubble.assistant tr:nth-child(even) td {
-  background: rgba(255,255,255,0.02);
-}
-.ai-bubble.assistant tr:hover td {
-  background: rgba(99,102,241,0.08);
+  padding: 5px 9px;
+  border-bottom: 1px solid var(--tarika-line);
+  color: var(--tarika-ink);
 }
 
-/* ── Markdown Code Blocks in Chat ── */
+/* Code & Math Styling */
 .ai-bubble.assistant pre {
   position: relative;
-  background: #0b1120;
-  border: 1px solid rgba(255,255,255,0.12);
-  border-radius: 10px;
-  padding: 12px 14px;
-  margin: 10px 0;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 7px;
+  padding: 9px 11px;
+  margin: 7px 0;
   overflow-x: auto;
   font-family: 'Fira Code', Consolas, Monaco, monospace;
-  font-size: 12px;
+  font-size: 11.5px;
   line-height: 1.45;
-  animation: aiBlockFade 0.28s ease-out;
+  color: #f8fafc;
 }
 .ai-bubble.assistant pre code {
   background: transparent;
   padding: 0;
   color: #e2e8f0;
-  border-radius: 0;
   border: none;
 }
 .ai-bubble.assistant code {
   font-family: 'Fira Code', Consolas, Monaco, monospace;
   font-size: 11.5px;
-  background: rgba(255,255,255,0.1);
-  color: #38bdf8;
-  padding: 2px 6px;
-  border-radius: 5px;
+  background: rgba(29, 78, 216, 0.08);
+  color: var(--tarika-brand);
+  padding: 2px 5px;
+  border-radius: 4px;
 }
 .ai-bubble.assistant .katex {
   font-size: 1.05em;
-  color: #f8fafc;
+  color: var(--tarika-ink) !important;
 }
 .ai-bubble.assistant .katex-display {
   overflow-x: auto;
   overflow-y: hidden;
-  padding: 6px 2px;
-  margin: 8px 0;
-  max-width: 100%;
-}
-.ai-bubble.assistant .katex-fallback {
-  font-family: 'Fira Code', monospace;
-  background: rgba(255,255,255,0.08);
-  padding: 2px 4px;
-  border-radius: 4px;
+  padding: 4px 0;
+  margin: 5px 0;
 }
 .ai-code-copy-btn {
   position: absolute;
-  top: 6px;
-  right: 6px;
-  background: rgba(255,255,255,0.12);
-  border: 1px solid rgba(255,255,255,0.15);
+  top: 5px;
+  right: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
   color: #94a3b8;
   font-size: 10px;
   font-weight: 600;
-  padding: 3px 7px;
-  border-radius: 5px;
+  padding: 2px 6px;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.15s ease;
 }
 .ai-code-copy-btn:hover {
-  background: #6366f1;
+  background: var(--tarika-brand);
   color: #fff;
 }
 .ai-stream-cursor {
   display: inline-block;
-  color: #38bdf8;
-  text-shadow: 0 0 8px rgba(56, 189, 248, 0.8), 0 0 16px rgba(99, 102, 241, 0.6);
+  color: var(--tarika-brand);
   font-weight: 900;
   animation: aiCursorPulse 0.55s ease-in-out infinite alternate;
-  margin-left: 3px;
-  vertical-align: baseline;
+  margin-left: 2px;
 }
 @keyframes aiCursorPulse {
-  0% { opacity: 0.25; transform: scaleY(0.85); }
-  100% { opacity: 1; transform: scaleY(1.08); }
-}
-@keyframes aiBlockFade {
-  from { opacity: 0; transform: translateY(5px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-.ai-bubble.thinking {
-  align-self: flex-start;
-  background: #1e293b;
-  color: #94a3b8;
-  font-style: italic;
-  font-size: 12px;
+  0% { opacity: 0.3; }
+  100% { opacity: 1; }
 }
 
-/* ── Action Cards ─────────────────────────────────────────────── */
+/* Action Cards in Chat */
 .ai-action-card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  background: #090d16;
-  border: 1px solid rgba(99, 102, 241, 0.4);
-  border-radius: 10px;
-  padding: 8px 12px;
-  margin-top: 8px;
+  background: var(--tarika-bg);
+  border: 1px solid var(--tarika-line);
+  border-radius: 9px;
+  padding: 8px 11px;
+  margin-top: 7px;
   gap: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 .ai-card-title {
   font-size: 12px;
-  font-weight: 700;
-  color: #e0e7ff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 220px;
+  font-weight: 600;
+  color: var(--tarika-ink);
 }
 .ai-card-badge {
   font-size: 10px;
-  background: #3b82f6;
+  background: var(--tarika-brand);
   color: #fff;
   padding: 1px 6px;
   border-radius: 4px;
-  text-transform: uppercase;
 }
 .ai-card-btn {
-  background: #4f46e5;
+  background: var(--tarika-brand);
   color: #fff;
   border: none;
   font-size: 11px;
-  font-weight: 700;
-  padding: 5px 10px;
+  font-weight: 600;
+  padding: 5px 9px;
   border-radius: 6px;
   cursor: pointer;
   text-decoration: none;
-  white-space: nowrap;
 }
-.ai-card-btn:hover {
-  background: #4338ca;
+.ai-card-btn:hover { background: var(--tarika-brand-hover); }
+
+/* Quick Action Chips */
+.ai-quick-prompts {
+  display: flex;
+  gap: 6px;
+  padding: 7px 12px;
+  overflow-x: auto;
+  border-top: 1px solid var(--tarika-line);
+  background: var(--tarika-bg-subtle);
+}
+.ai-quick-prompts::-webkit-scrollbar { height: 0px; }
+.ai-qchip {
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--tarika-bg);
+  color: var(--tarika-muted);
+  padding: 4px 9px;
+  border-radius: var(--tarika-radius-pill);
+  border: 1px solid var(--tarika-line);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ai-qchip:hover {
+  color: var(--tarika-brand);
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+@media (prefers-color-scheme: dark) {
+  .ai-qchip:hover {
+    background: rgba(29, 78, 216, 0.2);
+    border-color: var(--tarika-brand);
+    color: #ffffff;
+  }
 }
 
-/* ── Exam Dialog Modal (Light Mode Theme) ──────────────────────── */
+/* Input Row */
+.ai-drw-input-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  background: var(--tarika-bg);
+  border-top: 1px solid var(--tarika-line);
+}
+#aiChatInput {
+  flex: 1;
+  background: var(--tarika-bg-subtle);
+  border: 1px solid var(--tarika-line);
+  border-radius: 10px;
+  color: var(--tarika-ink);
+  padding: 8px 11px;
+  font-size: 12.5px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+#aiChatInput:focus {
+  border-color: var(--tarika-brand);
+  background: var(--tarika-bg);
+}
+#aiSendBtn {
+  background: var(--tarika-brand);
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  width: 33px;
+  height: 33px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13.5px;
+  transition: all 0.15s ease;
+}
+#aiSendBtn:hover:not(:disabled) {
+  background: var(--tarika-brand-hover);
+}
+#aiSendBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Fullscreen Practice Exam Simulator ───────────────────────── */
 .ai-exam-modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 999999;
-  background: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 16px;
-  animation: aiFadeIn 0.2s ease;
-}
-@keyframes aiFadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes aiScaleUp { from { transform: scale(0.96); opacity: 0; } to { transform: scale(1); opacity: 1; } }
-
-.ai-exam-modal-box {
-  background: #ffffff;
-  border: 1px solid #e2e8f0;
-  border-radius: 18px;
-  width: 100%;
-  max-width: 680px;
-  max-height: 90vh;
+  background: var(--tarika-bg);
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(99, 102, 241, 0.15);
-  animation: aiScaleUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  width: 100vw;
+  height: 100vh;
   overflow: hidden;
-  color: #0f172a;
+  font-family: var(--tarika-font-sans);
+}
+.ai-exam-modal-box {
+  background: var(--tarika-bg);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--tarika-ink);
 }
 .ai-exam-modal-hdr {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
-  background: #f8fafc;
-  border-bottom: 1px solid #e2e8f0;
+  padding: 11px 20px;
+  background: var(--tarika-bg-subtle);
+  border-bottom: 1px solid var(--tarika-line);
+  gap: 14px;
 }
 .ai-exam-modal-title-wrap {
   display: flex;
   align-items: center;
-  gap: 10px;
+  gap: 8px;
 }
 .ai-exam-modal-title {
   font-size: 15px;
   font-weight: 700;
-  color: #0f172a;
+  color: var(--tarika-ink);
   margin: 0;
 }
+.ai-exam-timer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(29, 78, 216, 0.08);
+  border: 1px solid rgba(29, 78, 216, 0.25);
+  border-radius: var(--tarika-radius-pill);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--tarika-brand);
+  letter-spacing: 0.4px;
+}
+.ai-exam-timer.warning {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: #ef4444;
+  color: #dc2626;
+}
+.ai-exam-hdr-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ai-exam-hdr-btn {
+  background: var(--tarika-bg);
+  border: 1px solid var(--tarika-line);
+  color: var(--tarika-muted);
+  border-radius: 7px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.ai-exam-hdr-btn:hover { background: var(--tarika-bg-subtle); color: var(--tarika-ink); }
 .ai-exam-modal-close {
-  background: #f1f5f9;
-  border: 1px solid #e2e8f0;
-  color: #64748b;
-  border-radius: 8px;
-  width: 32px;
-  height: 32px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #dc2626;
+  border-radius: 7px;
+  width: 29px;
+  height: 29px;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  font-size: 15px;
-  transition: all 0.15s;
+  font-size: 14px;
 }
-.ai-exam-modal-close:hover {
-  background: #fee2e2;
-  color: #ef4444;
-  border-color: #fca5a5;
+.ai-exam-modal-close:hover { background: #ef4444; color: #fff; }
+
+.ai-exam-nav-strip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 20px;
+  background: var(--tarika-bg-subtle);
+  border-bottom: 1px solid var(--tarika-line);
+  overflow-x: auto;
 }
+.ai-exam-nav-pill {
+  min-width: 28px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--tarika-line);
+  background: var(--tarika-bg);
+  color: var(--tarika-muted);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ai-exam-nav-pill.active {
+  background: var(--tarika-brand) !important;
+  color: #fff !important;
+  border-color: var(--tarika-brand) !important;
+}
+.ai-exam-nav-pill.answered {
+  border-color: #10b981;
+  color: #059669;
+}
+
+.ai-exam-prog-track { height: 3px; background: var(--tarika-line); width: 100%; }
+.ai-exam-prog-fill { height: 100%; background: var(--tarika-brand); transition: width 0.3s ease; }
+
 .ai-exam-modal-body {
-  padding: 20px;
+  padding: 22px;
   overflow-y: auto;
   flex: 1;
-  background: #ffffff;
-  color: #0f172a;
+  background: var(--tarika-bg);
+  color: var(--tarika-ink);
+  display: flex;
+  justify-content: center;
 }
-.ai-exam-prog-track {
-  height: 4px;
-  background: #e2e8f0;
-  width: 100%;
-}
-.ai-exam-prog-fill {
-  height: 100%;
-  background: linear-gradient(90deg, #4f46e5, #0284c7);
-  transition: width 0.3s ease;
-}
+.ai-exam-content-wrap { width: 100%; max-width: 820px; }
 .ai-exam-meta-bar {
   display: flex;
   align-items: center;
   gap: 8px;
   margin-bottom: 14px;
-  flex-wrap: wrap;
 }
 .ai-exam-badge {
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 700;
-  padding: 3px 8px;
-  border-radius: 6px;
-  background: #eef2ff;
-  color: #4f46e5;
-  border: 1px solid #c7d2fe;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: rgba(29, 78, 216, 0.08);
+  color: var(--tarika-brand);
+  border: 1px solid rgba(29, 78, 216, 0.2);
 }
 .ai-exam-badge.marks {
-  background: #ecfdf5;
+  background: rgba(16, 185, 129, 0.08);
   color: #059669;
-  border-color: #a7f3d0;
+  border-color: rgba(16, 185, 129, 0.25);
 }
-.ai-exam-step {
-  margin-left: auto;
-  font-size: 11px;
-  color: #64748b;
-  font-weight: 700;
-}
-.ai-exam-qtext-lg {
-  font-size: 15px;
-  color: #0f172a;
-  line-height: 1.6;
-  font-weight: 600;
-  margin-bottom: 16px;
-}
+.ai-exam-step { margin-left: auto; font-size: 11.5px; color: var(--tarika-muted); font-weight: 600; }
+.ai-exam-qtext-lg { font-size: 15.5px; color: var(--tarika-ink); line-height: 1.6; font-weight: 600; margin-bottom: 16px; }
+
 .ai-exam-opt-card {
   display: flex;
   align-items: flex-start;
-  gap: 12px;
-  padding: 12px 16px;
-  background: #f8fafc;
-  border: 1.5px solid #e2e8f0;
-  border-radius: 12px;
+  gap: 10px;
+  padding: 11px 14px;
+  background: var(--tarika-bg);
+  border: 1.5px solid var(--tarika-line);
+  border-radius: 10px;
   cursor: pointer;
-  margin-bottom: 10px;
+  margin-bottom: 9px;
   font-size: 13px;
-  color: #1e293b;
-  transition: all 0.18s ease;
+  color: var(--tarika-ink);
+  transition: all 0.15s ease;
 }
-.ai-exam-opt-card:hover {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
-}
+.ai-exam-opt-card:hover { background: var(--tarika-bg-subtle); border-color: var(--tarika-brand); }
 .ai-exam-opt-card.selected {
-  background: #eef2ff !important;
-  border-color: #6366f1 !important;
-  color: #312e81 !important;
+  background: #eff6ff !important;
+  border-color: var(--tarika-brand) !important;
+  color: var(--tarika-brand) !important;
   font-weight: 600;
+}
+@media (prefers-color-scheme: dark) {
+  .ai-exam-opt-card.selected {
+    background: rgba(29, 78, 216, 0.2) !important;
+    border-color: var(--tarika-brand) !important;
+    color: #ffffff !important;
+  }
 }
 .ai-exam-opt-card.correct {
   background: #ecfdf5 !important;
   border-color: #10b981 !important;
   color: #065f46 !important;
-  font-weight: 600;
 }
 .ai-exam-opt-card.incorrect {
   background: #fef2f2 !important;
   border-color: #ef4444 !important;
   color: #991b1b !important;
 }
-.ai-exam-opt-card input {
-  margin-top: 3px;
-  accent-color: #4f46e5;
-}
-.ai-exam-input {
+
+.ai-exam-input, .ai-exam-textarea {
   width: 100%;
   box-sizing: border-box;
-  background: #f8fafc;
-  border: 1.5px solid #cbd5e1;
-  border-radius: 10px;
-  padding: 10px 14px;
-  color: #0f172a;
+  background: var(--tarika-bg-subtle);
+  border: 1.5px solid var(--tarika-line);
+  border-radius: 9px;
+  padding: 9px 12px;
+  color: var(--tarika-ink);
   font-size: 13px;
   outline: none;
   font-family: inherit;
 }
-.ai-exam-input:focus {
-  border-color: #4f46e5;
-  background: #ffffff;
-}
-.ai-exam-textarea {
-  width: 100%;
-  box-sizing: border-box;
-  background: #f8fafc;
-  border: 1.5px solid #cbd5e1;
-  border-radius: 10px;
-  padding: 10px 14px;
-  color: #0f172a;
-  font-size: 13px;
-  outline: none;
-  font-family: inherit;
-  resize: vertical;
-}
-.ai-exam-textarea:focus {
-  border-color: #4f46e5;
-  background: #ffffff;
-}
+.ai-exam-input:focus, .ai-exam-textarea:focus { border-color: var(--tarika-brand); background: var(--tarika-bg); }
+
 .ai-exam-exp-box {
   margin-top: 16px;
-  padding: 14px 16px;
-  background: #f0fdf4;
-  border: 1.5px solid #bbf7d0;
-  border-radius: 12px;
-  animation: aiFadeIn 0.2s ease;
+  padding: 12px 16px;
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
+  border-radius: 10px;
 }
-.ai-exam-exp-title {
-  font-size: 12px;
-  font-weight: 800;
-  color: #15803d;
-  margin-bottom: 6px;
+@media (prefers-color-scheme: dark) {
+  .ai-exam-exp-box {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+  }
 }
-.ai-exam-exp-content {
-  font-size: 13px;
-  color: #166534;
-  line-height: 1.5;
-}
-.ai-exam-keywords {
-  margin-top: 8px;
-  font-size: 11px;
-  color: #166534;
-}
+.ai-exam-exp-title { font-size: 12px; font-weight: 700; color: #059669; margin-bottom: 5px; }
+.ai-exam-exp-content { font-size: 13px; color: var(--tarika-ink); line-height: 1.55; }
+.ai-exam-keywords { margin-top: 6px; font-size: 11px; color: #047857; }
+
 .ai-exam-modal-ftr {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 14px 20px;
-  background: #f8fafc;
-  border-top: 1px solid #e2e8f0;
+  padding: 12px 20px;
+  background: var(--tarika-bg-subtle);
+  border-top: 1px solid var(--tarika-line);
 }
 .ai-exam-btn {
   border: none;
-  border-radius: 8px;
-  padding: 8px 16px;
+  border-radius: 7px;
+  padding: 7px 14px;
   font-size: 12px;
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition: all 0.15s;
 }
-.ai-exam-btn.pri {
-  background: #4f46e5;
-  color: #ffffff;
-  box-shadow: 0 2px 6px rgba(79, 70, 229, 0.3);
-}
-.ai-exam-btn.pri:hover {
-  background: #4338ca;
-}
-.ai-exam-btn.sec {
-  background: #f1f5f9;
-  color: #334155;
-  border: 1px solid #cbd5e1;
-}
-.ai-exam-btn.sec:hover {
-  background: #e2e8f0;
-}
+.ai-exam-btn.pri { background: var(--tarika-brand); color: #fff; }
+.ai-exam-btn.pri:hover { background: var(--tarika-brand-hover); }
+.ai-exam-btn.sec { background: var(--tarika-bg); color: var(--tarika-ink); border: 1px solid var(--tarika-line); }
+.ai-exam-btn.sec:hover { background: var(--tarika-bg-subtle); }
 
 /* In-Chat Launch Card */
 .ai-exam-launch-card {
   display: flex;
   align-items: center;
-  gap: 14px;
-  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(56, 189, 248, 0.1));
-  border: 1px solid rgba(99, 102, 241, 0.35);
-  border-radius: 14px;
-  padding: 14px 16px;
-  margin: 10px 0;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  gap: 10px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 7px 0;
 }
-.ai-exam-launch-icon {
-  font-size: 26px;
-  flex-shrink: 0;
+@media (prefers-color-scheme: dark) {
+  .ai-exam-launch-card {
+    background: rgba(29, 78, 216, 0.15);
+    border-color: rgba(127, 160, 255, 0.3);
+  }
 }
-.ai-exam-launch-info {
+.ai-exam-launch-icon { font-size: 22px; flex-shrink: 0; }
+.ai-exam-launch-info { flex: 1; min-width: 0; }
+.ai-exam-launch-title { font-size: 12.5px; font-weight: 700; color: var(--tarika-ink); }
+.ai-exam-launch-sub { font-size: 11px; color: var(--tarika-muted); margin-top: 2px; }
+.ai-exam-launch-btn {
+  background: var(--tarika-brand);
+  color: #fff;
+  border: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.ai-exam-launch-btn:hover { background: var(--tarika-brand-hover); }
+
+/* ── Conversation History Slide-Over Panel ─────────────────────── */
+.ai-history-panel {
+  position: absolute;
+  inset: 0;
+  background: var(--tarika-bg);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: aiHistorySlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes aiHistorySlide {
+  from { opacity: 0; transform: translateX(-100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.ai-history-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--tarika-bg-subtle);
+  border-bottom: 1px solid var(--tarika-line);
+}
+.ai-history-list {
   flex: 1;
-  min-width: 0;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
 }
-.ai-exam-launch-title {
-  font-size: 13px;
-  font-weight: 700;
-  color: #f1f5f9;
+.ai-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  background: var(--tarika-bg-subtle);
+  border: 1px solid var(--tarika-line);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+.ai-history-item:hover {
+  background: var(--tarika-bg);
+  border-color: var(--tarika-brand);
+}
+.ai-history-item.active {
+  border-color: var(--tarika-brand);
+  background: rgba(29, 78, 216, 0.08);
+}
+.ai-history-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--tarika-ink);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 250px;
 }
-.ai-exam-launch-sub {
-  font-size: 11px;
-  color: #94a3b8;
+.ai-history-date {
+  font-size: 10.5px;
+  color: var(--tarika-muted);
   margin-top: 2px;
 }
-.ai-exam-launch-btn {
-  background: #6366f1;
-  color: #fff;
+.ai-history-del-btn {
+  background: transparent;
   border: none;
+  color: var(--tarika-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
   font-size: 12px;
-  font-weight: 700;
-  padding: 7px 14px;
-  border-radius: 8px;
-  cursor: pointer;
-  white-space: nowrap;
-  transition: all 0.15s;
-  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.4);
+  line-height: 1;
+  transition: color 0.15s;
 }
-.ai-exam-launch-btn:hover {
-  background: #4f46e5;
-  transform: translateY(-1px);
-}
+.ai-history-del-btn:hover { color: #ef4444; }
 
-/* ── Quick Prompts ────────────────────────────────────────────── */
-.ai-quick-prompts {
-  display: flex;
-  gap: 6px;
-  padding: 6px 14px;
-  overflow-x: auto;
-  border-top: 1px solid rgba(255,255,255,0.06);
-  background: #090d16;
+/* Reduced Motion & Mobile */
+@media (prefers-reduced-motion: reduce) {
+  #abhiAiDrawer, #abhiAiLauncher, .ai-bubble, .ai-stream-cursor, .ai-spark, .ai-history-panel {
+    animation: none !important;
+    transition: none !important;
+  }
 }
-.ai-qchip {
-  white-space: nowrap;
-  font-size: 11px;
-  background: rgba(255,255,255,0.06);
-  color: #94a3b8;
-  padding: 4px 10px;
-  border-radius: 99px;
-  border: 1px solid rgba(255,255,255,0.08);
-  cursor: pointer;
-}
-.ai-qchip:hover {
-  color: #fff;
-  background: rgba(255,255,255,0.12);
-}
-
-/* ── Input Box ────────────────────────────────────────────────── */
-.ai-drw-input-row {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
-  background: #1e293b;
-  border-top: 1px solid rgba(255,255,255,0.08);
-}
-#aiChatInput {
-  flex: 1;
-  background: #0f172a;
-  border: 1px solid rgba(255,255,255,0.15);
-  border-radius: 12px;
-  color: #fff;
-  padding: 8px 12px;
-  font-size: 13px;
-  outline: none;
-  font-family: inherit;
-}
-#aiChatInput:focus {
-  border-color: #6366f1;
-}
-#aiSendBtn {
-  background: #6366f1;
-  color: #fff;
-  border: none;
-  border-radius: 12px;
-  width: 36px;
-  height: 36px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  font-size: 15px;
-}
-#aiSendBtn:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
+@media (max-width: 640px) {
+  #abhiAiDrawer {
+    bottom: 0;
+    right: 0;
+    left: 0;
+    width: 100vw;
+    height: 85vh;
+    border-radius: 16px 16px 0 0;
+  }
 }
 </style>
 
 <!-- Floating Assistant Trigger -->
-<div id="abhiAiLauncher" onclick="toggleAbhiAiDrawer()" title="Tarika — Personal Study Assistant">
-  <span class="ai-spark">✨</span>
+<button type="button" id="abhiAiLauncher" onclick="toggleAbhiAiDrawer()" aria-label="Open Tarika Study Assistant" title="Tarika — Personal Study Assistant">
+  <span class="ai-spark" aria-hidden="true">✨</span>
   <span>Tarika</span>
-</div>
+</button>
 
 <!-- Sliding Assistant Drawer -->
-<div id="abhiAiDrawer">
+<section id="abhiAiDrawer" role="dialog" aria-label="Tarika AI Study Assistant" aria-modal="true" aria-hidden="true" style="position:fixed;">
+  <!-- Conversation History Slide-Over Panel -->
+  <aside id="aiHistoryPanel" class="ai-history-panel" style="display:none;" aria-label="Chat History">
+    <div class="ai-history-hdr">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span aria-hidden="true">🕒</span>
+        <span style="font-weight:700; font-size:13.5px; color:var(--tarika-ink);">Chat History</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <button type="button" class="ai-drw-btn" onclick="startNewChat()" title="Start New Chat" style="font-size:12px;">➕</button>
+        <button type="button" class="ai-drw-btn" onclick="toggleHistoryPanel()" title="Close History" style="font-size:12px;">✕</button>
+      </div>
+    </div>
+    <div id="aiHistoryList" class="ai-history-list" role="list">
+      <div style="font-size:12px; color:var(--tarika-muted); padding:16px; text-align:center;">Loading conversation history...</div>
+    </div>
+  </aside>
+
   <!-- Header -->
-  <div class="ai-drw-hdr">
+  <header class="ai-drw-hdr">
     <div class="ai-drw-title">
-      <span>✨</span>
+      <span aria-hidden="true">✨</span>
       <span>Tarika</span>
       <span class="ai-drw-badge" id="aiDrawerModelBadge">Assistant</span>
     </div>
     <div class="ai-drw-actions">
-      <a href="/settings" class="ai-drw-btn" title="AI Settings & Models">⚙️</a>
-      <button class="ai-drw-btn" onclick="toggleAbhiAiDrawer()" title="Close">✕</button>
+      <button type="button" class="ai-drw-btn" onclick="startNewChat()" aria-label="Start New Chat" title="Start New Chat">➕</button>
+      <button type="button" class="ai-drw-btn" onclick="toggleHistoryPanel()" aria-label="Chat History" title="View Chat History">🕒</button>
+      <a href="/settings" class="ai-drw-btn" aria-label="AI Settings & Models" title="AI Settings & Models">⚙️</a>
+      <button type="button" class="ai-drw-btn" onclick="toggleAbhiAiDrawer()" aria-label="Close Assistant" title="Close">✕</button>
     </div>
-  </div>
+  </header>
 
   <!-- Active Document Context Bar -->
-  <div id="aiContextBar">
+  <aside id="aiContextBar" aria-label="Active Document Context">
     <div class="ai-ctx-file" id="aiContextDocName">📄 Active Document</div>
     <div class="ai-ctx-actions">
-      <button class="ai-ctx-chip" onclick="askAiAboutFile('Start a practice exam on this paper with MCQ, MSQ, Short, and Brief questions.')">🎯 Practice Exam</button>
-      <button class="ai-ctx-chip" onclick="askAiAboutFile('Solve the questions in this paper step-by-step with complete explanations.')">💡 Solve & Explain</button>
-      <button class="ai-ctx-chip" onclick="askAiAboutFile('Summarize this paper thoroughly and outline its main topics.')">⚡ Summarize</button>
+      <button type="button" class="ai-ctx-chip" data-action="prompt" data-prompt="Start a practice exam on this paper with MCQ, MSQ, Short, and Brief questions.">🎯 Practice Exam</button>
+      <button type="button" class="ai-ctx-chip" data-action="prompt" data-prompt="Solve the questions in this paper step-by-step with complete explanations.">💡 Solve & Explain</button>
+      <button type="button" class="ai-ctx-chip" data-action="prompt" data-prompt="Summarize this paper thoroughly and outline its main topics.">⚡ Summarize</button>
     </div>
-  </div>
+  </aside>
 
-  <!-- Chat History -->
-  <div id="aiMsgList">
+  <!-- Chat Messages Stream -->
+  <div id="aiMsgList" role="log" aria-live="polite">
     <div class="ai-bubble assistant">
       👋 Hi! I'm <strong>Tarika</strong>, your personal study assistant for AbhiHub. Ask me to find PYQs, search notes, start a <strong>Practice Exam</strong>, or solve and explain any document you have open!
     </div>
   </div>
 
-  <!-- Quick Prompts -->
-  <div class="ai-quick-prompts">
-    <button class="ai-qchip" onclick="quickSend('Start a practice exam for me')">🎯 Practice Exam</button>
-    <button class="ai-qchip" onclick="quickSend('Find PYQs for Engineering Mathematics')">🔍 Math PYQs</button>
-    <button class="ai-qchip" onclick="quickSend('Find notes for Data Structures')">📚 DSA Notes</button>
-    <button class="ai-qchip" onclick="quickSend('Solve the paper on this page')">📝 Solve This Paper</button>
-  </div>
+  <!-- Quick Prompts Strip -->
+  <nav class="ai-quick-prompts" aria-label="Quick Prompts">
+    <button type="button" class="ai-qchip" data-action="prompt" data-prompt="Start a practice exam for me">🎯 Practice Exam</button>
+    <button type="button" class="ai-qchip" data-action="prompt" data-prompt="Find PYQs for Engineering Mathematics">🔍 Math PYQs</button>
+    <button type="button" class="ai-qchip" data-action="prompt" data-prompt="Find notes for Data Structures">📚 DSA Notes</button>
+    <button type="button" class="ai-qchip" data-action="prompt" data-prompt="Solve the paper on this page">📝 Solve This Paper</button>
+  </nav>
 
-  <!-- Input Form -->
-  <div class="ai-drw-input-row">
-    <input type="text" id="aiChatInput" placeholder="Ask Tarika, practice exams, PYQs..." onkeydown="if(event.key==='Enter') sendAiMessage()">
-    <button id="aiSendBtn" onclick="sendAiMessage()">➔</button>
-  </div>
-</div>
+  <!-- Input Form Composer -->
+  <footer class="ai-drw-input-row">
+    <label for="aiChatInput" class="sr-only" style="position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0;">Ask Tarika</label>
+    <input type="text" id="aiChatInput" placeholder="Ask Tarika or tell it what you want to do..." autocomplete="off">
+    <button type="button" id="aiSendBtn" aria-label="Send message">➔</button>
+  </footer>
+</section>
 
-<!-- Interactive Exam Modal Dialog -->
-<div id="tarikaExamModal" class="ai-exam-modal-overlay" style="display:none;" onclick="if(event.target===this) closeExamModal()">
+<!-- Fullscreen Practice Exam Simulator Dialog -->
+<div id="tarikaExamModal" class="ai-exam-modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="examModalTitle">
   <div class="ai-exam-modal-box">
-    <div class="ai-exam-modal-hdr">
+    <header class="ai-exam-modal-hdr">
       <div class="ai-exam-modal-title-wrap">
-        <span style="font-size:20px;">🎯</span>
+        <span style="font-size:20px;" aria-hidden="true">🎯</span>
         <h3 id="examModalTitle" class="ai-exam-modal-title">Practice Exam Simulator</h3>
       </div>
-      <button type="button" class="ai-exam-modal-close" onclick="closeExamModal()" title="Close Exam">✕</button>
+      <div class="ai-exam-timer" id="aiExamTimerBadge" title="Time Remaining">
+        <span aria-hidden="true">⏱️</span>
+        <span id="aiExamTimerText">15:00</span>
+      </div>
+      <div class="ai-exam-hdr-actions">
+        <button type="button" class="ai-exam-hdr-btn" id="aiExamFullscreenBtn" onclick="toggleExamFullscreen()" aria-label="Toggle Fullscreen">⛶ Fullscreen</button>
+        <button type="button" class="ai-exam-modal-close" onclick="closeExamModal()" aria-label="Exit Exam">✕</button>
+      </div>
+    </header>
+    <div class="ai-exam-prog-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div id="examModalProgFill" class="ai-exam-prog-fill" style="width:0%;"></div>
     </div>
-    <div id="examModalBody" class="ai-exam-modal-body">
-      <!-- Injected per question or scorecard -->
-    </div>
-    <div id="examModalFtr" class="ai-exam-modal-ftr">
-      <!-- Injected buttons -->
-    </div>
+    <nav class="ai-exam-nav-strip" id="examNavStrip" aria-label="Question Navigation"></nav>
+    <main id="examModalBody" class="ai-exam-modal-body">
+      <div class="ai-exam-content-wrap" id="examContentWrap"></div>
+    </main>
+    <footer id="examModalFtr" class="ai-exam-modal-ftr"></footer>
   </div>
 </div>
 
-<!-- Load marked.min.js & KaTeX for rich markdown, mathematical equations & engineering symbols -->
+<!-- KaTeX & Marked Assets -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css">
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
 <script>
 (function() {
+  'use strict';
+
+  // ── Tarika State Store ─────────────────────────────────────────
   let activeDocId = null;
   let activeDocTitle = '';
-  const chatHistory = []; // Rolling conversation memory buffer
-
-  // Global Active Exam State
+  let activeConversationId = localStorage.getItem('ai_active_convo_id') || null;
+  const chatHistory = [];
   let currentExamData = null;
   let currentExamIdx = 0;
   const examUserAnswers = {};
   const examCheckedStatus = {};
+  let examTimerInterval = null;
+  let examTimeRemaining = 0;
 
+  // ── Conversation History Management ────────────────────────────
+  window.toggleHistoryPanel = function() {
+    const pnl = document.getElementById('aiHistoryPanel');
+    if (!pnl) return;
+    const isShown = pnl.style.display !== 'none';
+    if (isShown) {
+      pnl.style.display = 'none';
+    } else {
+      pnl.style.display = 'flex';
+      window.loadConversationHistory();
+    }
+  };
+
+  window.loadConversationHistory = async function() {
+    const listEl = document.getElementById('aiHistoryList');
+    if (!listEl) return;
+    listEl.innerHTML = '<div style="font-size:12px; color:var(--tarika-muted); padding:16px; text-align:center;">Loading conversation history...</div>';
+    try {
+      const res = await fetch('/api/ai/conversations?limit=30');
+      const data = await res.json();
+      if (data.success && data.conversations && data.conversations.length > 0) {
+        listEl.innerHTML = '';
+        data.conversations.forEach(c => {
+          const item = document.createElement('div');
+          item.className = 'ai-history-item' + (c.id === activeConversationId ? ' active' : '');
+          const dt = c.last_message_at ? new Date(c.last_message_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : '';
+          item.innerHTML = `
+            <div style="flex:1; min-width:0;" onclick="openConversation('${c.id}')">
+              <div class="ai-history-title">${c.title || 'Conversation'}</div>
+              <div class="ai-history-date">${dt} • ${c.current_context_type || 'chat'}</div>
+            </div>
+            <button type="button" class="ai-history-del-btn" onclick="deleteConversation('${c.id}', event)" title="Delete conversation">🗑️</button>
+          `;
+          listEl.appendChild(item);
+        });
+      } else {
+        listEl.innerHTML = '<div style="font-size:12px; color:var(--tarika-muted); padding:16px; text-align:center;">No saved conversations yet. Start a new chat!</div>';
+      }
+    } catch (err) {
+      listEl.innerHTML = '<div style="font-size:12px; color:#ef4444; padding:16px; text-align:center;">Failed to load history.</div>';
+    }
+  };
+
+  window.startNewChat = function() {
+    activeConversationId = null;
+    localStorage.removeItem('ai_active_convo_id');
+    chatHistory.length = 0;
+    const msgList = document.getElementById('aiMsgList');
+    if (msgList) {
+      msgList.innerHTML = `
+        <div class="ai-bubble assistant">
+          👋 Hi! I'm <strong>Tarika</strong>, your personal study assistant for AbhiHub. Started a fresh conversation for you. What would you like to study or find today?
+        </div>
+      `;
+    }
+    const pnl = document.getElementById('aiHistoryPanel');
+    if (pnl) pnl.style.display = 'none';
+    document.getElementById('aiChatInput')?.focus();
+  };
+
+  window.openConversation = async function(convoId) {
+    if (!convoId) return;
+    activeConversationId = convoId;
+    localStorage.setItem('ai_active_convo_id', convoId);
+    const pnl = document.getElementById('aiHistoryPanel');
+    if (pnl) pnl.style.display = 'none';
+
+    const msgList = document.getElementById('aiMsgList');
+    if (!msgList) return;
+    msgList.innerHTML = '<div class="ai-bubble thinking">Loading conversation...</div>';
+
+    try {
+      const res = await fetch(`/api/ai/conversations/${convoId}`);
+      const data = await res.json();
+      msgList.innerHTML = '';
+      chatHistory.length = 0;
+
+      if (data.success && data.messages && data.messages.length > 0) {
+        data.messages.forEach(m => {
+          chatHistory.push({ role: m.role, content: m.content });
+          const bub = document.createElement('div');
+          bub.className = `ai-bubble ${m.role === 'user' ? 'user' : 'assistant'}`;
+          if (m.role === 'user') {
+            bub.textContent = m.content;
+          } else {
+            bub.innerHTML = formatAiMarkdown(m.content);
+            postProcessAiBubble(bub);
+          }
+          msgList.appendChild(bub);
+        });
+        msgList.scrollTop = msgList.scrollHeight;
+      } else {
+        msgList.innerHTML = '<div class="ai-bubble assistant">👋 Conversation loaded. Ask anything to continue!</div>';
+      }
+    } catch (err) {
+      msgList.innerHTML = '<div class="ai-bubble assistant">⚠️ Could not load conversation messages.</div>';
+    }
+  };
+
+  window.deleteConversation = async function(convoId, e) {
+    if (e) e.stopPropagation();
+    if (!confirm('Are you sure you want to delete this conversation?')) return;
+    try {
+      await fetch(`/api/ai/conversations/${convoId}`, { method: 'DELETE' });
+      if (activeConversationId === convoId) {
+        window.startNewChat();
+      } else {
+        window.loadConversationHistory();
+      }
+    } catch (err) {
+      alert('Failed to delete conversation');
+    }
+  };
+
+  // ── Unified Event Delegation ───────────────────────────────────
+  function initEventDelegation() {
+    const drawer = document.getElementById('abhiAiDrawer');
+    if (!drawer) return;
+
+    // Delegated click handler for quick chips and context chips
+    drawer.addEventListener('click', (e) => {
+      const target = e.target.closest('[data-action="prompt"]');
+      if (target) {
+        const prompt = target.getAttribute('data-prompt');
+        if (prompt) window.quickSend(prompt);
+      }
+    });
+
+    // Send button & input Enter key
+    const sendBtn = document.getElementById('aiSendBtn');
+    const chatInput = document.getElementById('aiChatInput');
+    if (sendBtn) sendBtn.addEventListener('click', () => window.sendAiMessage());
+    if (chatInput) {
+      chatInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          window.sendAiMessage();
+        }
+      });
+    }
+  }
+
+  // ── Countdown Timer Logic ──────────────────────────────────────
+  function startExamTimer(seconds) {
+    stopExamTimer();
+    examTimeRemaining = seconds;
+    updateTimerDisplay();
+    examTimerInterval = setInterval(() => {
+      examTimeRemaining--;
+      updateTimerDisplay();
+      if (examTimeRemaining <= 0) {
+        stopExamTimer();
+        alert('⏱️ Time is up! Submitting your practice exam now.');
+        window.renderModalScorecard();
+      }
+    }, 1000);
+  }
+
+  function stopExamTimer() {
+    if (examTimerInterval) {
+      clearInterval(examTimerInterval);
+      examTimerInterval = null;
+    }
+  }
+
+  function updateTimerDisplay() {
+    const badge = document.getElementById('aiExamTimerBadge');
+    const txt = document.getElementById('aiExamTimerText');
+    if (!txt) return;
+    const m = Math.floor(Math.max(0, examTimeRemaining) / 60);
+    const s = Math.max(0, examTimeRemaining) % 60;
+    txt.textContent = `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+    if (badge) {
+      if (examTimeRemaining <= 120 && examTimeRemaining > 0) badge.classList.add('warning');
+      else badge.classList.remove('warning');
+    }
+  }
+
+  window.toggleExamFullscreen = function() {
+    const modal = document.getElementById('tarikaExamModal');
+    if (!document.fullscreenElement) {
+      if (modal && modal.requestFullscreen) modal.requestFullscreen().catch(() => {});
+      else if (document.documentElement.requestFullscreen) document.documentElement.requestFullscreen().catch(() => {});
+    } else {
+      if (document.exitFullscreen) document.exitFullscreen().catch(() => {});
+    }
+  };
+
+  document.addEventListener('fullscreenchange', () => {
+    const btn = document.getElementById('aiExamFullscreenBtn');
+    if (btn) btn.innerHTML = document.fullscreenElement ? '🗗 Exit Fullscreen' : '⛶ Fullscreen';
+  });
+
+  // ── Exam JSON Parser & Recovery ────────────────────────────────
   function extractExamData(text) {
     if (!text || typeof text !== 'string') return null;
-    // 1. Try matching complete JSON object first
     const fullMatch = text.match(/\{[\s\S]*?"questions"\s*:\s*\[[\s\S]*?\}\s*\]\s*\}/);
     if (fullMatch) {
       try {
@@ -884,16 +1196,12 @@
       }
     }
 
-    // 2. Resilient Partial / Truncated Recovery
     if (text.includes('"questions"')) {
       const jsonStartIdx = text.search(/\{[\s\S]*?"questions"/);
       if (jsonStartIdx !== -1) {
         const jsonSubstring = text.slice(jsonStartIdx);
-        // Extract title
         const titleMatch = jsonSubstring.match(/"title"\s*:\s*"([^"]+)"/);
         const title = titleMatch ? titleMatch[1] : 'Practice Exam Simulator';
-
-        // Extract each individual question block
         const questions = [];
         const qRegex = /\{\s*"id"\s*:\s*\d+[\s\S]*?"question"\s*:\s*"[^"]+"[\s\S]*?\}(?=\s*,|\s*\])/g;
         let qm;
@@ -908,19 +1216,15 @@
             } catch (err2) {}
           }
         }
-
         if (questions.length > 0) {
-          return {
-            data: { title, questions },
-            rawMatch: jsonSubstring
-          };
+          return { data: { title, questions }, rawMatch: jsonSubstring };
         }
       }
     }
-
     return null;
   }
 
+  // ── Public Exam Handlers ───────────────────────────────────────
   window.openExamModal = function(data) {
     if (!data || !Array.isArray(data.questions) || data.questions.length === 0) return;
     currentExamData = data;
@@ -933,14 +1237,37 @@
     if (titleEl) titleEl.textContent = data.title || 'Practice Exam Simulator';
     if (modal) {
       modal.style.display = 'flex';
+      if (modal.requestFullscreen) modal.requestFullscreen().catch(() => {});
+      const totalSeconds = data.time_limit_minutes ? (data.time_limit_minutes * 60) : Math.max(300, (data.questions.length || 5) * 90);
+      startExamTimer(totalSeconds);
       window.renderModalQuestion(0);
     }
   };
 
   window.closeExamModal = function() {
+    stopExamTimer();
+    if (document.fullscreenElement && document.exitFullscreen) document.exitFullscreen().catch(() => {});
     const modal = document.getElementById('tarikaExamModal');
     if (modal) modal.style.display = 'none';
   };
+
+  function updateExamNavStrip(total, currentIdx) {
+    const strip = document.getElementById('examNavStrip');
+    if (!strip || !currentExamData) return;
+    strip.innerHTML = '';
+    for (let i = 0; i < total; i++) {
+      const q = currentExamData.questions[i];
+      const pill = document.createElement('button');
+      pill.type = 'button';
+      pill.className = 'ai-exam-nav-pill';
+      if (i === currentIdx) pill.classList.add('active');
+      const isAns = examUserAnswers[q.id] !== undefined && examUserAnswers[q.id] !== '' && (!Array.isArray(examUserAnswers[q.id]) || examUserAnswers[q.id].length > 0);
+      if (isAns) pill.classList.add('answered');
+      pill.textContent = `Q${i + 1}`;
+      pill.onclick = () => renderModalQuestion(i);
+      strip.appendChild(pill);
+    }
+  }
 
   window.renderModalQuestion = function(idx) {
     if (!currentExamData || !currentExamData.questions[idx]) return;
@@ -952,9 +1279,11 @@
     const progFill = document.getElementById('examModalProgFill');
     if (progFill) progFill.style.width = `${progress}%`;
 
-    const body = document.getElementById('examModalBody');
+    updateExamNavStrip(total, idx);
+
+    const wrap = document.getElementById('examContentWrap') || document.getElementById('examModalBody');
     const ftr = document.getElementById('examModalFtr');
-    if (!body || !ftr) return;
+    if (!wrap || !ftr) return;
 
     let typeLabel = 'MCQ (Single Choice)';
     if (q.type === 'msq') typeLabel = 'MSQ (Multi-Select)';
@@ -963,7 +1292,7 @@
 
     const isChecked = !!examCheckedStatus[q.id];
 
-    body.innerHTML = `
+    wrap.innerHTML = `
       <div class="ai-exam-meta-bar">
         <span class="ai-exam-badge">${typeLabel}</span>
         <span class="ai-exam-badge marks">${q.marks || 2} Marks</span>
@@ -974,26 +1303,24 @@
       <div id="modalExpBox" style="display:${isChecked ? 'block' : 'none'};"></div>
     `;
 
-    const qTextEl = body.querySelector('#modalQText');
+    const qTextEl = wrap.querySelector('#modalQText');
     if (qTextEl) {
       qTextEl.innerHTML = formatAiMarkdown(q.question);
       postProcessAiBubble(qTextEl);
     }
 
-    const ansArea = body.querySelector('#modalAnsArea');
+    const ansArea = wrap.querySelector('#modalAnsArea');
 
     if (q.type === 'mcq' && Array.isArray(q.options)) {
       q.options.forEach((opt) => {
         const isSelected = examUserAnswers[q.id] === opt;
         const optCard = document.createElement('div');
         optCard.className = 'ai-exam-opt-card' + (isSelected ? ' selected' : '');
-        
         if (isChecked) {
           const isCorrect = isOptMatching(opt, q.correct_answer);
           if (isCorrect) optCard.classList.add('correct');
           else if (isSelected) optCard.classList.add('incorrect');
         }
-
         optCard.innerHTML = `
           <input type="radio" name="modal_q_${q.id}" value="${opt.replace(/"/g, '&quot;')}" ${isSelected ? 'checked' : ''} ${isChecked ? 'disabled' : ''}>
           <div style="flex:1;">${formatAiMarkdown(opt)}</div>
@@ -1005,6 +1332,7 @@
             optCard.classList.add('selected');
             const r = optCard.querySelector('input');
             if (r) r.checked = true;
+            updateExamNavStrip(total, idx);
           };
         }
         ansArea.appendChild(optCard);
@@ -1016,13 +1344,11 @@
         const isSelected = examUserAnswers[q.id].includes(opt);
         const optCard = document.createElement('div');
         optCard.className = 'ai-exam-opt-card' + (isSelected ? ' selected' : '');
-
         if (isChecked) {
           const isCorrect = Array.isArray(q.correct_options) ? q.correct_options.some(co => isOptMatching(opt, co)) : isOptMatching(opt, q.correct_answer);
           if (isCorrect) optCard.classList.add('correct');
           else if (isSelected) optCard.classList.add('incorrect');
         }
-
         optCard.innerHTML = `
           <input type="checkbox" name="modal_q_${q.id}" value="${opt.replace(/"/g, '&quot;')}" ${isSelected ? 'checked' : ''} ${isChecked ? 'disabled' : ''}>
           <div style="flex:1;">${formatAiMarkdown(opt)}</div>
@@ -1041,6 +1367,7 @@
               examUserAnswers[q.id] = examUserAnswers[q.id].filter(x => x !== opt);
               optCard.classList.remove('selected');
             }
+            updateExamNavStrip(total, idx);
           };
         }
         ansArea.appendChild(optCard);
@@ -1053,36 +1380,39 @@
       inp.placeholder = 'Type your one-line answer here...';
       inp.value = examUserAnswers[q.id] || '';
       inp.disabled = isChecked;
-      inp.oninput = () => { examUserAnswers[q.id] = inp.value; };
+      inp.oninput = () => {
+        examUserAnswers[q.id] = inp.value;
+        updateExamNavStrip(total, idx);
+      };
       ansArea.appendChild(inp);
       if (!isChecked) setTimeout(() => inp.focus(), 60);
-    } else { // brief
+    } else {
       const ta = document.createElement('textarea');
       ta.className = 'ai-exam-textarea';
       ta.rows = 4;
       ta.placeholder = 'Write your technical answer and core keywords here...';
       ta.value = examUserAnswers[q.id] || '';
       ta.disabled = isChecked;
-      ta.oninput = () => { examUserAnswers[q.id] = ta.value; };
+      ta.oninput = () => {
+        examUserAnswers[q.id] = ta.value;
+        updateExamNavStrip(total, idx);
+      };
       ansArea.appendChild(ta);
       if (!isChecked) setTimeout(() => ta.focus(), 60);
     }
 
-    if (isChecked) {
-      renderExplanationBox(body.querySelector('#modalExpBox'), q);
-    }
+    if (isChecked) renderExplanationBox(wrap.querySelector('#modalExpBox'), q);
 
-    // Footer actions
     ftr.innerHTML = `
       <div>
         ${idx > 0 ? `<button type="button" class="ai-exam-btn sec" onclick="renderModalQuestion(${idx - 1})">← Previous</button>` : ''}
       </div>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:10px;">
         ${!isChecked ? `<button type="button" class="ai-exam-btn sec" onclick="checkCurrentModalQuestion(${idx})">💡 Check Answer & Explanation</button>` : ''}
         ${idx < total - 1 ? `<button type="button" class="ai-exam-btn pri" onclick="renderModalQuestion(${idx + 1})">Next Question ➔</button>` : `<button type="button" class="ai-exam-btn pri" onclick="renderModalScorecard()">View Final Scorecard 🏆</button>`}
       </div>
     `;
-  }
+  };
 
   function isOptMatching(opt, target) {
     if (!opt || !target) return false;
@@ -1112,7 +1442,7 @@
     box.className = 'ai-exam-exp-box';
     box.innerHTML = `
       <div class="ai-exam-exp-title">💡 Correct Solution & Detailed Explanation</div>
-      ${correctAnsStr ? `<div style="font-size:12px;margin-bottom:6px;color:#34d399;"><strong>Correct Answer:</strong> ${formatAiMarkdown(correctAnsStr)}</div>` : ''}
+      ${correctAnsStr ? `<div style="font-size:13px;margin-bottom:8px;color:#34d399;"><strong>Correct Answer:</strong> ${formatAiMarkdown(correctAnsStr)}</div>` : ''}
       <div class="ai-exam-exp-content">${formatAiMarkdown(expText)}</div>
       ${keywordsText ? `<div class="ai-exam-keywords">🔑 <strong>Key Keywords:</strong> ${keywordsText}</div>` : ''}
     `;
@@ -1121,6 +1451,7 @@
 
   window.renderModalScorecard = function() {
     if (!currentExamData) return;
+    stopExamTimer();
     const total = currentExamData.questions.length;
     let score = 0;
     let totalPossible = 0;
@@ -1139,7 +1470,6 @@
           score += Math.round(marks / 2);
         }
       } else if (userAns && String(userAns).trim().length > 3) {
-        // Partial credit for short/brief on self-attempt
         score += Math.round(marks * 0.75);
       }
     });
@@ -1147,45 +1477,47 @@
     const pct = Math.round((score / totalPossible) * 100);
     const badge = pct >= 80 ? '🌟 Outstanding Performance' : (pct >= 50 ? '👍 Good Effort — Keep Practicing' : '📚 Needs Review');
 
-    const body = document.getElementById('examModalBody');
+    const wrap = document.getElementById('examContentWrap') || document.getElementById('examModalBody');
     const ftr = document.getElementById('examModalFtr');
     const progFill = document.getElementById('examModalProgFill');
     if (progFill) progFill.style.width = '100%';
 
-    body.innerHTML = `
-      <div style="text-align:center;padding:16px 0 20px;">
-        <div style="font-size:38px;margin-bottom:8px;">🏆</div>
-        <h2 style="font-size:20px;color:#fff;margin:0 0 6px;">Exam Completed!</h2>
-        <div style="font-size:24px;font-weight:800;color:#38bdf8;margin:8px 0;">${score} / ${totalPossible} <span style="font-size:14px;color:#94a3b8;">(${pct}%)</span></div>
-        <div class="ai-exam-badge marks" style="font-size:12px;padding:4px 12px;display:inline-block;">${badge}</div>
+    wrap.innerHTML = `
+      <div style="text-align:center;padding:16px 0 24px;">
+        <div style="font-size:42px;margin-bottom:8px;" aria-hidden="true">🏆</div>
+        <h2 style="font-size:22px;color:#fff;margin:0 0 8px;font-weight:800;">Exam Completed!</h2>
+        <div style="font-size:28px;font-weight:800;color:#38bdf8;margin:8px 0;">${score} / ${totalPossible} <span style="font-size:15px;color:#94a3b8;font-weight:600;">(${pct}%)</span></div>
+        <div class="ai-exam-badge marks" style="font-size:12px;padding:5px 14px;display:inline-block;margin-top:6px;">${badge}</div>
       </div>
-      <div style="font-size:13px;font-weight:700;color:#e2e8f0;margin-bottom:10px;">📋 Question Review:</div>
-      <div id="modalReviewList" style="display:flex;flex-direction:column;gap:10px;"></div>
+      <div style="font-size:14px;font-weight:700;color:#e2e8f0;margin-bottom:12px;">📋 Question Review & Solutions:</div>
+      <div id="modalReviewList" style="display:flex;flex-direction:column;gap:12px;"></div>
     `;
 
-    const reviewList = body.querySelector('#modalReviewList');
+    const reviewList = wrap.querySelector('#modalReviewList');
     currentExamData.questions.forEach((q, i) => {
       const item = document.createElement('div');
-      item.style.background = 'rgba(255,255,255,0.03)';
+      item.style.background = '#161f30';
       item.style.border = '1px solid rgba(255,255,255,0.08)';
-      item.style.borderRadius = '10px';
-      item.style.padding = '10px 14px';
+      item.style.borderRadius = '12px';
+      item.style.padding = '14px 18px';
       
       const userAns = examUserAnswers[q.id] || 'Not answered';
       const ansStr = Array.isArray(userAns) ? userAns.join(', ') : userAns;
       const correctStr = q.correct_answer || (Array.isArray(q.correct_options) ? q.correct_options.join(', ') : null) || q.model_answer;
 
       item.innerHTML = `
-        <div style="font-size:12px;font-weight:600;color:#cbd5e1;margin-bottom:4px;">Q${i+1}. ${q.question}</div>
-        <div style="font-size:11px;color:#94a3b8;">Your Answer: <span style="color:#fff;">${ansStr}</span></div>
-        ${correctStr ? `<div style="font-size:11px;color:#34d399;margin-top:2px;">Correct Solution: ${correctStr}</div>` : ''}
+        <div style="font-size:13px;font-weight:700;color:#f8fafc;margin-bottom:6px;">Q${i+1}. ${formatAiMarkdown(q.question)}</div>
+        <div style="font-size:12px;color:#94a3b8;margin-bottom:4px;">Your Answer: <span style="color:#fff;font-weight:600;">${formatAiMarkdown(ansStr)}</span></div>
+        ${correctStr ? `<div style="font-size:12px;color:#34d399;margin-top:6px;border-top:1px dashed rgba(255,255,255,0.08);padding-top:6px;"><strong>Correct Solution:</strong> ${formatAiMarkdown(correctStr)}</div>` : ''}
+        ${q.explanation ? `<div style="font-size:12px;color:#cbd5e1;margin-top:6px;"><strong>Explanation:</strong> ${formatAiMarkdown(q.explanation)}</div>` : ''}
       `;
       reviewList.appendChild(item);
     });
+    postProcessAiBubble(reviewList);
 
     ftr.innerHTML = `
       <button type="button" class="ai-exam-btn sec" onclick="openExamModal(currentExamData)">🔄 Retake Exam</button>
-      <div style="display:flex;gap:8px;">
+      <div style="display:flex;gap:10px;">
         <button type="button" class="ai-exam-btn pri" onclick="submitExamScoreToTarika()">📤 Send to Tarika for Strict Marking</button>
         <button type="button" class="ai-exam-btn sec" onclick="closeExamModal()">✕ Close</button>
       </div>
@@ -1202,22 +1534,19 @@
       prompt += `Question ${i + 1} [Type: ${q.type}, Marks: ${q.marks || 2}]:\n${q.question}\nKeywords: ${(q.keywords || []).join(', ') || 'N/A'}\nStudent Answer: ${ansStr}\n\n`;
     });
     prompt += `Please strictly evaluate each question: check for matching keywords vs missed keywords, award exact marks, highlight errors, and output the total score with complete model solutions.`;
-    quickSend(prompt);
+    window.quickSend(prompt);
   };
 
+  // ── Markdown & KaTeX Formatting ───────────────────────────────
   function formatAiMarkdown(text) {
     if (!text) return '';
 
-    // Intercept Exam JSON and replace with interactive Launch Card
     const examResult = extractExamData(text);
     let examCardHtml = '';
     if (examResult && examResult.data) {
       const ex = examResult.data;
       window.__LATEST_EXAM__ = ex;
-      // Strip raw JSON and any surrounding code block fences
-      if (examResult.rawMatch) {
-        text = text.replace(examResult.rawMatch, '');
-      }
+      if (examResult.rawMatch) text = text.replace(examResult.rawMatch, '');
       text = text
         .replace(/```(?:exam_stimulus|json)?[\s\S]*?"questions"[\s\S]*?(?:```|$)/gi, '')
         .replace(/\{[\s\S]*?"questions"[\s\S]*?(?:\}\s*\]\s*\}|$)/gi, '')
@@ -1226,7 +1555,7 @@
 
       const qCount = ex.questions.length;
       examCardHtml = `
-        <div class="ai-exam-launch-card" style="margin: 12px 0;">
+        <div class="ai-exam-launch-card">
           <div class="ai-exam-launch-icon">🎯</div>
           <div class="ai-exam-launch-info">
             <div class="ai-exam-launch-title">${ex.title || 'Practice Exam Simulator'}</div>
@@ -1237,9 +1566,7 @@
       `;
     }
 
-    // Protect LaTeX math expressions before markdown parsing to prevent markdown corruption
     const mathTokens = [];
-    // 1. Block math: $$ ... $$ or \[ ... \]
     let processed = text
       .replace(/\$\$([\s\S]*?)\$\$/g, (match, expr) => {
         const id = `@@MATH_BLOCK_${mathTokens.length}@@`;
@@ -1251,7 +1578,6 @@
         mathTokens.push({ id, expr, display: true });
         return id;
       })
-      // 2. Inline math: \( ... \) or $ ... $ (excluding empty or trailing currency)
       .replace(/\\\(([\s\S]*?)\\\)/g, (match, expr) => {
         const id = `@@MATH_INLINE_${mathTokens.length}@@`;
         mathTokens.push({ id, expr, display: false });
@@ -1273,7 +1599,6 @@
       }
     }
 
-    // Safe fallback markdown parsing if marked is unavailable
     if (!html) {
       html = processed
         .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -1287,7 +1612,6 @@
         .replace(/\n/g, '<br>');
     }
 
-    // Replace math placeholders with KaTeX rendered HTML or fallback
     mathTokens.forEach(({ id, expr, display }) => {
       let renderedMath = '';
       if (typeof katex !== 'undefined' && katex.renderToString) {
@@ -1305,15 +1629,11 @@
       html = html.replace(id, renderedMath);
     });
 
-    if (examCardHtml) {
-      html += examCardHtml;
-    }
-
+    if (examCardHtml) html += examCardHtml;
     return html;
   }
 
   function postProcessAiBubble(bubble) {
-    // 1. Wrap tables for responsive horizontal scrolling
     bubble.querySelectorAll('table').forEach(table => {
       if (!table.parentElement.classList.contains('ai-table-wrap')) {
         const wrap = document.createElement('div');
@@ -1323,7 +1643,6 @@
       }
     });
 
-    // 2. Add copy button to code blocks
     bubble.querySelectorAll('pre').forEach(pre => {
       if (pre.querySelector('.ai-code-copy-btn')) return;
       const copyBtn = document.createElement('button');
@@ -1345,7 +1664,6 @@
       pre.appendChild(copyBtn);
     });
 
-    // 3. Open markdown links safely in new tab
     bubble.querySelectorAll('a').forEach(a => {
       if (!a.classList.contains('ai-card-btn')) {
         a.target = '_blank';
@@ -1353,7 +1671,6 @@
       }
     });
 
-    // 4. Auto-render remaining math formulas if any
     if (typeof renderMathInElement === 'function') {
       try {
         renderMathInElement(bubble, {
@@ -1365,12 +1682,9 @@
           ],
           throwOnError: false
         });
-      } catch (err) {
-        console.warn('[KaTeX Render in Element]', err);
-      }
+      } catch (err) {}
     }
 
-    // 5. Auto-launch dialog modal if latest exam is ready
     if (window.__LATEST_EXAM__ && !bubble.dataset.examAutoOpened) {
       bubble.dataset.examAutoOpened = 'true';
       const modal = document.getElementById('tarikaExamModal');
@@ -1397,25 +1711,19 @@
     return new Promise((resolve) => {
       const timer = setInterval(() => {
         const nextIdx = Math.min(idx + step, tokens.length);
-        for (let i = idx; i < nextIdx; i++) {
-          currentText += tokens[i];
-        }
+        for (let i = idx; i < nextIdx; i++) currentText += tokens[i];
         idx = nextIdx;
 
         bubble.innerHTML = formatAiMarkdown(currentText) + (idx < tokens.length ? '<span class="ai-stream-cursor">▌</span>' : '');
         postProcessAiBubble(bubble);
-        if (msgList) {
-          msgList.scrollTo({ top: msgList.scrollHeight, behavior: 'smooth' });
-        }
+        if (msgList) msgList.scrollTo({ top: msgList.scrollHeight, behavior: 'smooth' });
 
         if (idx >= tokens.length) {
           clearInterval(timer);
           bubble.classList.remove('streaming');
           bubble.innerHTML = formatAiMarkdown(text);
           postProcessAiBubble(bubble);
-          if (msgList) {
-            msgList.scrollTo({ top: msgList.scrollHeight, behavior: 'smooth' });
-          }
+          if (msgList) msgList.scrollTo({ top: msgList.scrollHeight, behavior: 'smooth' });
           if (onComplete) onComplete();
           resolve();
         }
@@ -1423,9 +1731,11 @@
     });
   }
 
-  // Detect open document across AbhiHub (p_pdf_reader, resource.html, viewer iframe, or URL)
+  // ── Document & Context Detector ────────────────────────────────
   function detectOpenDocument() {
-    // 1. Explicit window.__CURRENT_DOC__
+    activeDocId = null;
+    activeDocTitle = '';
+
     if (window.__CURRENT_DOC__ && window.__CURRENT_DOC__.id) {
       activeDocId = window.__CURRENT_DOC__.id;
       activeDocTitle = window.__CURRENT_DOC__.title || '';
@@ -1433,7 +1743,6 @@
       activeDocId = window.VALID_DOC_ID;
     }
 
-    // 2. Iframe src check (PDF viewer iframe: /api/view-doc/<uuid>/...)
     if (!activeDocId) {
       const viewerIframe = document.querySelector('iframe[src*="/api/view-doc/"], iframe[src*="viewer.html"]');
       if (viewerIframe && viewerIframe.src) {
@@ -1442,16 +1751,14 @@
       }
     }
 
-    // 3. UUID in current URL
     if (!activeDocId) {
       const uuidMatch = window.location.href.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
       if (uuidMatch) {
         activeDocId = uuidMatch[0];
       } else {
         const match = window.location.pathname.match(/\/resource\/([^\/\?]+)/);
-        if (match) {
-          activeDocId = match[1].replace('-view', '');
-        } else {
+        if (match) activeDocId = match[1].replace('-view', '');
+        else {
           const urlParams = new URLSearchParams(window.location.search);
           const rid = urlParams.get('record_id') || urlParams.get('doc_id') || urlParams.get('pdf_name') || urlParams.get('id');
           if (rid) activeDocId = rid;
@@ -1459,7 +1766,6 @@
       }
     }
 
-    // 4. Resolve document title from DOM
     if (!activeDocTitle) {
       const heading = document.querySelector('.resource-title, .reader-title, h1');
       if (heading && heading.textContent.trim()) {
@@ -1471,23 +1777,37 @@
 
     const ctxBar = document.getElementById('aiContextBar');
     const ctxDocName = document.getElementById('aiContextDocName');
-    if ((activeDocId || activeDocTitle) && ctxBar && ctxDocName) {
-      ctxDocName.textContent = '📄 ' + (activeDocTitle.slice(0, 42) || 'Active Document');
-      ctxBar.style.display = 'block';
+    const isUploadPage = window.location.pathname.includes('/upload') || window.location.pathname.includes('/bulk-upload');
+    const isSubjectPage = window.location.pathname.includes('/subject') || window.location.pathname.includes('/branch');
+
+    if (ctxBar && ctxDocName) {
+      if (activeDocId || (activeDocTitle && activeDocTitle !== 'AbhiHub')) {
+        ctxDocName.textContent = '📄 ' + (activeDocTitle.slice(0, 40) || 'Active Document');
+        ctxBar.style.display = 'block';
+      } else if (isUploadPage) {
+        ctxDocName.textContent = '📤 Upload Assistant';
+        ctxBar.style.display = 'block';
+      } else if (isSubjectPage) {
+        const subTitle = document.querySelector('h1')?.textContent?.trim() || 'Subject';
+        ctxDocName.textContent = '📚 ' + subTitle.slice(0, 40);
+        ctxBar.style.display = 'block';
+      } else {
+        ctxBar.style.display = 'none';
+      }
     }
   }
 
+  // ── Public Interface Handlers ──────────────────────────────────
   window.toggleAbhiAiDrawer = function() {
     const drw = document.getElementById('abhiAiDrawer');
     if (!drw) return;
-    drw.classList.toggle('open');
-    if (drw.classList.contains('open')) {
+    const isOpen = drw.classList.toggle('open');
+    drw.setAttribute('aria-hidden', String(!isOpen));
+    if (isOpen) {
       detectOpenDocument();
       const prefModel = localStorage.getItem('ai_preferred_model');
       const badge = document.getElementById('aiDrawerModelBadge');
-      if (prefModel && badge) {
-        badge.textContent = prefModel.split('/')[1] || 'BYOK';
-      }
+      if (prefModel && badge) badge.textContent = prefModel.split('/')[1] || 'BYOK';
       setTimeout(() => document.getElementById('aiChatInput')?.focus(), 150);
     }
   };
@@ -1495,13 +1815,13 @@
   window.askAiAboutFile = function(promptText) {
     const input = document.getElementById('aiChatInput');
     if (input) input.value = promptText;
-    sendAiMessage();
+    window.sendAiMessage();
   };
 
   window.quickSend = function(text) {
     const input = document.getElementById('aiChatInput');
     if (input) input.value = text;
-    sendAiMessage();
+    window.sendAiMessage();
   };
 
   window.sendAiMessage = async function() {
@@ -1513,17 +1833,14 @@
     const query = input.value.trim();
     if (!query) return;
 
-    // Refresh document context immediately prior to dispatch
     detectOpenDocument();
 
-    // Add user message
     const uBubble = document.createElement('div');
     uBubble.className = 'ai-bubble user';
     uBubble.textContent = query;
     msgList.appendChild(uBubble);
     input.value = '';
 
-    // Thinking indicator
     const thinking = document.createElement('div');
     thinking.className = 'ai-bubble thinking';
     thinking.textContent = activeDocId ? 'Analyzing open document & questions...' : 'Thinking & checking AbhiHub catalog...';
@@ -1531,6 +1848,44 @@
     msgList.scrollTop = msgList.scrollHeight;
 
     sendBtn.disabled = true;
+
+    // Check for direct navigation commands
+    const navMatch = query.match(/^(?:go\s+to|open|navigate\s+to|take\s+me\s+to)\s+(upload|search|pyqs?|bookmarks?|saved|profile|settings|notifications|ranking|leaderboard|store\s*room|home)\b/i);
+    if (navMatch) {
+      const rawDest = navMatch[1].toLowerCase();
+      let destination = 'home';
+      if (rawDest.includes('upload')) destination = 'upload';
+      else if (rawDest.includes('search') || rawDest.includes('pyq')) destination = 'search';
+      else if (rawDest.includes('bookmark') || rawDest.includes('saved')) destination = 'bookmarks';
+      else if (rawDest.includes('profile')) destination = 'profile';
+      else if (rawDest.includes('setting')) destination = 'settings';
+      else if (rawDest.includes('notification')) destination = 'notifications';
+      else if (rawDest.includes('ranking') || rawDest.includes('leaderboard')) destination = 'ranking';
+      else if (rawDest.includes('store')) destination = 'store_room';
+
+      try {
+        const toolRes = await fetch('/api/ai/tool', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tool_name: 'navigate_page', arguments: { destination } })
+        });
+        const toolData = await toolRes.json();
+        thinking.remove();
+
+        const aBubble = document.createElement('div');
+        aBubble.className = 'ai-bubble assistant';
+        const card = toolData.card_payload || {};
+        aBubble.innerHTML = `🚀 <strong>${card.title || 'Navigating'}</strong><br><span style="font-size:12px; color:var(--tarika-muted);">${card.message || 'Redirecting...'}</span>`;
+        msgList.appendChild(aBubble);
+        msgList.scrollTop = msgList.scrollHeight;
+
+        if (card.url) setTimeout(() => { window.location.href = card.url; }, 1200);
+        sendBtn.disabled = false;
+        return;
+      } catch (err) {
+        // Fall back to assistant endpoint
+      }
+    }
 
     const historySnapshot = chatHistory.slice(-6);
     chatHistory.push({ role: 'user', content: query });
@@ -1542,6 +1897,7 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           message: query,
+          conversation_id: activeConversationId,
           doc_id: activeDocId,
           doc_title: activeDocTitle,
           model: preferredModel,
@@ -1565,10 +1921,16 @@
       } catch (e) {
         data = { success: false, message: `Server error (${res.status}). Please check your model or try again.` };
       }
+
       const aBubble = document.createElement('div');
       aBubble.className = 'ai-bubble assistant';
 
       if (data.success) {
+        if (data.conversation_id) {
+          activeConversationId = data.conversation_id;
+          localStorage.setItem('ai_active_convo_id', activeConversationId);
+        }
+
         chatHistory.push({ role: 'assistant', content: data.reply || '' });
         if (chatHistory.length > 12) chatHistory.splice(0, chatHistory.length - 12);
 
@@ -1576,23 +1938,51 @@
         msgList.scrollTop = msgList.scrollHeight;
 
         await streamAiResponse(aBubble, data.reply || '', () => {
-          // Render Action Cards if documents were found
           if (data.actions && data.actions.length > 0) {
             data.actions.forEach(act => {
               const card = document.createElement('div');
               card.className = 'ai-action-card';
               card.innerHTML = `
-                <div>
+                <div style="flex:1; min-width:0;">
                   <span class="ai-card-badge">${act.category || 'DOC'}</span>
-                  <div class="ai-card-title" title="${act.title}">${act.title}</div>
+                  <div class="ai-card-title" title="${act.title}" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${act.title}</div>
                 </div>
-                <a href="${act.url}" class="ai-card-btn" target="_self">Open In App ➔</a>
+                <div style="display:flex; gap:6px; flex-shrink:0;">
+                  <a href="${act.url}" class="ai-card-btn" target="_self">Open ➔</a>
+                  <button type="button" class="ai-card-btn tarika-bookmark-btn" data-doc-id="${act.id}" style="background:#334155; color:#f8fafc; border:none; cursor:pointer;">⭐ Save</button>
+                </div>
               `;
               aBubble.appendChild(card);
             });
+
+            aBubble.querySelectorAll('.tarika-bookmark-btn').forEach(btn => {
+              btn.addEventListener('click', async () => {
+                const docId = btn.getAttribute('data-doc-id');
+                if (!docId) return;
+                btn.disabled = true;
+                btn.textContent = 'Saving...';
+                try {
+                  const bResp = await fetch('/api/ai/tool', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ tool_name: 'bookmark_resource', arguments: { resource_id: docId } })
+                  });
+                  const bData = await bResp.json();
+                  if (bData.success) {
+                    btn.textContent = 'Saved ✓';
+                    btn.style.background = '#16a34a';
+                  } else {
+                    btn.textContent = 'Failed';
+                    btn.disabled = false;
+                  }
+                } catch (e) {
+                  btn.textContent = 'Failed';
+                  btn.disabled = false;
+                }
+              });
+            });
           }
 
-          // Auto-navigate if requested
           if (data.auto_open) {
             const autoNotif = document.createElement('div');
             autoNotif.style.fontSize = '11px';
@@ -1604,13 +1994,11 @@
           }
           msgList.scrollTop = msgList.scrollHeight;
         });
-
       } else {
         aBubble.innerHTML = '⚠️ ' + (data.message || 'Error processing request');
         msgList.appendChild(aBubble);
         msgList.scrollTop = msgList.scrollHeight;
       }
-
     } catch (err) {
       thinking.remove();
       const errBubble = document.createElement('div');
@@ -1623,6 +2011,9 @@
     }
   };
 
-  document.addEventListener('DOMContentLoaded', detectOpenDocument);
+  document.addEventListener('DOMContentLoaded', () => {
+    initEventDelegation();
+    detectOpenDocument();
+  });
 })();
 </script>

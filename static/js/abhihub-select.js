@@ -19,10 +19,37 @@ const AbhiHubSelect = {
                 return null;
             };
             
+            const isSubject = entity === 'subject';
             const ts = new TomSelect(el, {
                 valueField: 'value',
                 labelField: 'text',
-                searchField: ['text'],
+                searchField: ['text', 'code'],
+                maxOptions: 100,
+                loadThrottle: 200,
+                shouldLoad: function(query) {
+                    return isSubject && query.trim().length > 0;
+                },
+                load: isSubject ? function(query, callback) {
+                    if (!query || !query.trim().length) return callback();
+                    const url = `/api/subjects?q=${encodeURIComponent(query.trim())}`;
+                    fetch(url)
+                        .then(r => r.json())
+                        .then(json => {
+                            const items = json.subjects || json.data || [];
+                            const results = items.map(s => {
+                                const code = s.subject_code ? ` (${s.subject_code})` : '';
+                                return {
+                                    value: s.id,
+                                    text: `${s.name}${code}`,
+                                    code: s.subject_code || '',
+                                    department_id: s.department_id,
+                                    semester: s.semester
+                                };
+                            });
+                            callback(results);
+                        })
+                        .catch(() => callback());
+                } : null,
                 create: function(input, callback) {
                     const parentEl = getParentEl();
                     const parentVal = parentEl ? parentEl.value : null;
@@ -48,44 +75,55 @@ const AbhiHubSelect = {
             if (!el.id) el.id = 'abhihub_ts_' + Math.random().toString(36).substr(2, 9);
             this.instances[el.id] = ts;
             
-            // Handle dependency logic
+            // Auto-fetch independent entities immediately
+            if (entity === 'college') {
+                AbhiHubSelect.loadColleges(el.id);
+            } else if (entity === 'department' || entity === 'branch') {
+                AbhiHubSelect.loadDepartments(el.id);
+            } else if (entity === 'semester') {
+                AbhiHubSelect.loadSemesters(el.id);
+            } else if (entity === 'subject') {
+                AbhiHubSelect.loadSubjects(el.id);
+            }
+            
+            // Handle dependency logic only if explicitly bound via parentId
             const parentEl = getParentEl();
-            if (parentEl) {
+            if (parentEl && parentId) {
                 parentEl.addEventListener('change', () => {
                     AbhiHubSelect.handleParentChange(el.id, parentEl.value, parentEl);
                 });
-                
-                // Initial state
-                if (!parentEl.value) {
-                    ts.disable();
-                    ts.clearOptions();
-                }
-            } else if (entity === 'college') {
-                // Auto-fetch root entity
-                AbhiHubSelect.loadColleges(el.id);
             }
         });
     },
     
     async loadColleges(selectId) {
         const ts = this.instances[selectId];
+        const el = document.getElementById(selectId);
         if (!ts) return;
         ts.settings.placeholder = 'Loading colleges...';
         if (ts.control_input) ts.control_input.placeholder = 'Loading colleges...';
         try {
             let json;
-            if (this.apiCache['/api/colleges']) {
+            if (this.apiCache['/api/colleges'] && (this.apiCache['/api/colleges'].colleges || []).length > 0) {
                 json = this.apiCache['/api/colleges'];
             } else {
                 const res = await fetch('/api/colleges');
                 json = await res.json();
-                this.apiCache['/api/colleges'] = json;
+                if (json && (json.colleges || []).length > 0) {
+                    this.apiCache['/api/colleges'] = json;
+                }
             }
             const items = json.colleges || json.data || [];
             ts.clearOptions();
             items.forEach(c => {
                 const text = c.short_name ? `${c.name} (${c.short_name})` : c.name;
-                ts.addOption({ value: c.id, text: text });
+                ts.addOption({ value: String(c.id), text: text });
+                if (el && !el.querySelector(`option[value="${c.id}"]`)) {
+                    const opt = document.createElement('option');
+                    opt.value = String(c.id);
+                    opt.textContent = text;
+                    el.appendChild(opt);
+                }
             });
             ts.settings.placeholder = 'Select College';
             if (ts.control_input) ts.control_input.placeholder = 'Select College';
@@ -94,6 +132,105 @@ const AbhiHubSelect = {
         } catch (e) {
             console.error('Failed to load colleges', e);
             ts.settings.placeholder = 'Error loading options';
+        }
+    },
+
+    async loadDepartments(selectId) {
+        const ts = this.instances[selectId];
+        const el = document.getElementById(selectId);
+        if (!ts) return;
+        ts.settings.placeholder = 'Loading departments...';
+        if (ts.control_input) ts.control_input.placeholder = 'Loading departments...';
+        try {
+            let json;
+            if (this.apiCache['/api/departments'] && (this.apiCache['/api/departments'].departments || []).length > 0) {
+                json = this.apiCache['/api/departments'];
+            } else {
+                const res = await fetch('/api/departments');
+                json = await res.json();
+                if (json && (json.departments || []).length > 0) {
+                    this.apiCache['/api/departments'] = json;
+                }
+            }
+            const items = json.departments || json.branches || json.data || [];
+            ts.clearOptions();
+            items.forEach(d => {
+                const name = d.name || d.branch_name || '';
+                const abbr = d.abbreviation || d.short_name || '';
+                const text = abbr ? `${name} (${abbr})` : name;
+                const val = d.id || d.branch_id;
+                if (val && name) {
+                    ts.addOption({ value: String(val), text: text });
+                    if (el && !el.querySelector(`option[value="${val}"]`)) {
+                        const opt = document.createElement('option');
+                        opt.value = String(val);
+                        opt.textContent = text;
+                        el.appendChild(opt);
+                    }
+                }
+            });
+            ts.settings.placeholder = 'Select Department';
+            if (ts.control_input) ts.control_input.placeholder = 'Select Department';
+            ts.enable();
+            ts.refreshOptions(false);
+        } catch (e) {
+            console.error('Failed to load departments', e);
+            ts.settings.placeholder = 'Error loading options';
+        }
+    },
+
+    async loadSemesters(selectId) {
+        const ts = this.instances[selectId];
+        const el = document.getElementById(selectId);
+        if (!ts) return;
+        ts.clearOptions();
+        for (let i = 1; i <= 8; i++) {
+            ts.addOption({ value: String(i), text: `Semester ${i}` });
+            if (el && !el.querySelector(`option[value="${i}"]`)) {
+                const opt = document.createElement('option');
+                opt.value = String(i);
+                opt.textContent = `Semester ${i}`;
+                el.appendChild(opt);
+            }
+        }
+        ts.settings.placeholder = 'Select Semester';
+        if (ts.control_input) ts.control_input.placeholder = 'Select Semester';
+        ts.enable();
+        ts.refreshOptions(false);
+    },
+
+    async loadSubjects(selectId) {
+        const ts = this.instances[selectId];
+        const el = document.getElementById(selectId);
+        if (!ts) return;
+        ts.settings.placeholder = 'Search all subjects...';
+        if (ts.control_input) ts.control_input.placeholder = 'Search all subjects...';
+        try {
+            let json;
+            if (this.apiCache['/api/subjects:all'] && (this.apiCache['/api/subjects:all'].subjects || []).length > 0) {
+                json = this.apiCache['/api/subjects:all'];
+            } else {
+                const res = await fetch('/api/subjects');
+                json = await res.json();
+                if (json && (json.subjects || []).length > 0) {
+                    this.apiCache['/api/subjects:all'] = json;
+                }
+            }
+            const items = json.subjects || json.data || [];
+            items.forEach(s => {
+                const text = s.subject_code ? `${s.name} (${s.subject_code})` : s.name;
+                ts.addOption({ value: String(s.id), text: text });
+                if (el && !el.querySelector(`option[value="${s.id}"]`)) {
+                    const opt = document.createElement('option');
+                    opt.value = String(s.id);
+                    opt.textContent = text;
+                    el.appendChild(opt);
+                }
+            });
+            ts.enable();
+            ts.refreshOptions(false);
+        } catch (e) {
+            console.error('Failed to load initial subjects', e);
         }
     },
     

@@ -658,6 +658,37 @@ import { buildAbhiHubSystemPrompt } from "/static/js/ai/webllm-core.js";
                 });
 
                 let fullResponse = "";
+                let responseCards = [];
+
+                const isActionIntent = /\b(find|search|show|get|open|pyq|notes|question paper|syllabus|study material|exam|bookmark|save)\b/i.test(text);
+
+                // ── Server-side / Native Tool route for search & actions ─────────────
+                if (isActionIntent || (this.activeProvider === "server")) {
+                    try {
+                        const srvResp = await fetch('/api/ai/assistant', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                message: text,
+                                doc_id: ctx.docId || null,
+                                doc_title: ctx.title || null
+                            })
+                        });
+                        const srvData = await srvResp.json();
+                        if (srvData.success) {
+                            fullResponse = srvData.reply || "Here is what I found:";
+                            responseCards = srvData.cards || [];
+                            botBubble.innerHTML = `<p>${formatMarkdown(fullResponse)}</p>`;
+                            if (responseCards.length > 0) {
+                                this.appendMessage("bot", "", responseCards);
+                            }
+                            this.messages.push({ role: "assistant", content: fullResponse });
+                            return;
+                        }
+                    } catch (srvErr) {
+                        console.warn("[AbhiHub AI] Server assistant fallback:", srvErr);
+                    }
+                }
 
                 // ── External provider route ──────────────────────────────────────
                 if (this.activeProvider && this.activeProvider !== "webllm") {
@@ -703,7 +734,7 @@ import { buildAbhiHubSystemPrompt } from "/static/js/ai/webllm-core.js";
             }
         }
 
-        appendMessage(role, text) {
+        appendMessage(role, text, cards = []) {
             const msgDiv = document.createElement("div");
             msgDiv.className = `ai-msg ${role}`;
             
@@ -711,9 +742,73 @@ import { buildAbhiHubSystemPrompt } from "/static/js/ai/webllm-core.js";
             contentDiv.className = "ai-msg-content";
             contentDiv.innerHTML = `<p>${formatMarkdown(text)}</p>`;
 
+            if (cards && cards.length > 0) {
+                const cardsContainer = document.createElement("div");
+                cardsContainer.className = "ai-cards-container";
+                
+                cards.forEach(card => {
+                    if (card.type === "resource_cards" && Array.isArray(card.items)) {
+                        card.items.forEach(item => {
+                            const cardEl = document.createElement("div");
+                            cardEl.className = "ai-resource-card";
+                            const badgeClass = (item.document_type || "").toLowerCase() === "pyq" ? "ai-badge-pyq" : "ai-badge-notes";
+                            cardEl.innerHTML = `
+                                <div class="ai-card-header">
+                                    <span class="ai-badge ${badgeClass}">${item.document_type || "DOCUMENT"}</span>
+                                </div>
+                                <a href="${item.url || '#'}" class="ai-card-title">${item.title || "Academic Resource"}</a>
+                                <div class="ai-card-actions">
+                                    <a href="${item.url || '#'}" class="ai-card-btn primary">Open ↗</a>
+                                    <button type="button" class="ai-card-btn ai-bookmark-btn" data-doc-id="${item.id}">⭐ Save</button>
+                                </div>
+                            `;
+                            cardsContainer.appendChild(cardEl);
+                        });
+                    } else if (card.type === "action_confirmation") {
+                        const confEl = document.createElement("div");
+                        confEl.className = "ai-confirmation-card";
+                        confEl.innerHTML = `<span>✓</span> <span>${card.message || "Action completed."}</span>`;
+                        cardsContainer.appendChild(confEl);
+                    }
+                });
+                contentDiv.appendChild(cardsContainer);
+            }
+
             msgDiv.appendChild(contentDiv);
             this.messagesContainer.appendChild(msgDiv);
             this.messagesContainer.scrollTop = this.messagesContainer.scrollHeight;
+
+            // Bind bookmark action buttons
+            contentDiv.querySelectorAll(".ai-bookmark-btn").forEach(btn => {
+                btn.addEventListener("click", async () => {
+                    const docId = btn.getAttribute("data-doc-id");
+                    if (!docId) return;
+                    btn.disabled = true;
+                    btn.textContent = "Saving...";
+                    try {
+                        const resp = await fetch("/api/ai/tool", {
+                            method: "POST",
+                            headers: { "Content-Type": "application/json" },
+                            body: JSON.stringify({
+                                tool_name: "bookmark_resource",
+                                arguments: { resource_id: docId }
+                            })
+                        });
+                        const res = await resp.json();
+                        if (res.success) {
+                            btn.textContent = "Saved ✓";
+                            btn.style.color = "#16a34a";
+                        } else {
+                            btn.textContent = "Failed";
+                            btn.disabled = false;
+                        }
+                    } catch (e) {
+                        btn.textContent = "Failed";
+                        btn.disabled = false;
+                    }
+                });
+            });
+
             return contentDiv;
         }
 

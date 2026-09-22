@@ -93,6 +93,8 @@ def log_turn(
         log.warning("[ai_usage] DB unavailable — usage row not written")
         return
     try:
+        valid_modes = {"scaffold", "direct", "compaction"}
+        safe_mode = mode if mode in valid_modes else "direct"
         client.table("ai_usage_log").insert({
             "user_id": user_id,
             "session_id": session_id,
@@ -102,7 +104,7 @@ def log_turn(
             "tokens_out": tokens_out,
             "cost_usd": cost_usd,
             "duration_ms": duration_ms,
-            "mode": mode,
+            "mode": safe_mode,
             "override_used": override_used,
             "error_type": error_type,
             "safety_flag": safety_flag,

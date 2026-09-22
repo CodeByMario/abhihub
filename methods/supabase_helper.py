@@ -2595,3 +2595,182 @@ def clear_ai_key(user_id: str) -> bool:
         logging.error(f'[supabase] clear_ai_key error: {exc}')
         return False
 
+
+# ── Tarika Persistent Chat History Helpers ────────────────────────────────────
+
+# In-memory backup store for seamless fallback
+_AI_LOCAL_CONVOS = {}
+_AI_LOCAL_MSGS = {}
+
+
+def list_ai_conversations(user_id: str, limit: int = 20, offset: int = 0) -> List[Dict[str, Any]]:
+    """List conversations for an authenticated user, newest first."""
+    if not user_id:
+        return []
+    client = init_supabase_admin() or init_supabase()
+    if client:
+        try:
+            res = client.table('ai_conversations')\
+                .select('*')\
+                .eq('user_id', user_id)\
+                .eq('status', 'active')\
+                .order('last_message_at', desc=True)\
+                .range(offset, offset + limit - 1)\
+                .execute()
+            if res.data:
+                return res.data
+        except Exception as exc:
+            log.debug(f"ai_conversations query fallback: {exc}")
+
+    # Fallback to local memory
+    user_convos = [c for c in _AI_LOCAL_CONVOS.values() if c.get('user_id') == user_id and c.get('status') != 'deleted']
+    user_convos.sort(key=lambda x: x.get('last_message_at') or x.get('created_at') or '', reverse=True)
+    return user_convos[offset:offset + limit]
+
+
+def get_or_create_ai_conversation(user_id: str, conversation_id: Optional[str] = None, title: Optional[str] = None, context_type: Optional[str] = None, context_id: Optional[str] = None) -> Dict[str, Any]:
+    """Retrieve an existing conversation (with ownership check) or create a new one."""
+    if not user_id:
+        return {}
+    client = init_supabase_admin() or init_supabase()
+    now_iso = datetime.utcnow().isoformat()
+
+    if conversation_id:
+        if client:
+            try:
+                res = client.table('ai_conversations').select('*').eq('id', conversation_id).eq('user_id', user_id).single().execute()
+                if res.data:
+                    return res.data
+            except Exception:
+                pass
+        if conversation_id in _AI_LOCAL_CONVOS and _AI_LOCAL_CONVOS[conversation_id].get('user_id') == user_id:
+            return _AI_LOCAL_CONVOS[conversation_id]
+
+    # Create new conversation
+    import uuid
+    new_id = str(uuid.uuid4())
+    convo_title = (title or "New Conversation").strip()[:80]
+    payload = {
+        'id': new_id,
+        'user_id': user_id,
+        'title': convo_title,
+        'created_at': now_iso,
+        'updated_at': now_iso,
+        'last_message_at': now_iso,
+        'current_context_type': context_type or 'general',
+        'current_context_id': context_id or None,
+        'status': 'active'
+    }
+
+    if client:
+        try:
+            res = client.table('ai_conversations').insert(payload).execute()
+            if res.data and len(res.data) > 0:
+                _AI_LOCAL_CONVOS[new_id] = res.data[0]
+                return res.data[0]
+        except Exception as exc:
+            log.debug(f"ai_conversations insert fallback: {exc}")
+
+    _AI_LOCAL_CONVOS[new_id] = payload
+    return payload
+
+
+def get_ai_conversation_messages(user_id: str, conversation_id: str, limit: int = 50) -> List[Dict[str, Any]]:
+    """Retrieve ordered messages for a conversation after verifying user ownership."""
+    if not user_id or not conversation_id:
+        return []
+    client = init_supabase_admin() or init_supabase()
+    if client:
+        try:
+            # Verify ownership
+            convo = client.table('ai_conversations').select('id').eq('id', conversation_id).eq('user_id', user_id).execute()
+            if convo.data:
+                res = client.table('ai_messages')\
+                    .select('*')\
+                    .eq('conversation_id', conversation_id)\
+                    .order('created_at', desc=False)\
+                    .limit(limit)\
+                    .execute()
+                if res.data is not None:
+                    return res.data
+        except Exception as exc:
+            log.debug(f"ai_messages query fallback: {exc}")
+
+    if conversation_id in _AI_LOCAL_CONVOS and _AI_LOCAL_CONVOS[conversation_id].get('user_id') == user_id:
+        return _AI_LOCAL_MSGS.get(conversation_id, [])
+    return []
+
+
+def save_ai_message(conversation_id: str, user_id: str, role: str, content: str, model: Optional[str] = None, tool_actions: Optional[List] = None, context_snapshot: Optional[Dict] = None) -> Dict[str, Any]:
+    """Persist a message into the conversation."""
+    import uuid
+    msg_id = str(uuid.uuid4())
+    now_iso = datetime.utcnow().isoformat()
+    msg_payload = {
+        'id': msg_id,
+        'conversation_id': conversation_id,
+        'role': role,
+        'content': content,
+        'created_at': now_iso,
+        'message_status': 'sent',
+        'model': model or 'default',
+        'tool_calls': tool_actions or [],
+        'context_snapshot': context_snapshot or {}
+    }
+
+    client = init_supabase_admin() or init_supabase()
+    if client:
+        try:
+            client.table('ai_messages').insert(msg_payload).execute()
+            client.table('ai_conversations').update({
+                'last_message_at': now_iso,
+                'updated_at': now_iso
+            }).eq('id', conversation_id).eq('user_id', user_id).execute()
+        except Exception as exc:
+            log.debug(f"ai_messages insert fallback: {exc}")
+
+    if conversation_id not in _AI_LOCAL_MSGS:
+        _AI_LOCAL_MSGS[conversation_id] = []
+    _AI_LOCAL_MSGS[conversation_id].append(msg_payload)
+
+    if conversation_id in _AI_LOCAL_CONVOS:
+        _AI_LOCAL_CONVOS[conversation_id]['last_message_at'] = now_iso
+        _AI_LOCAL_CONVOS[conversation_id]['updated_at'] = now_iso
+
+    return msg_payload
+
+
+def update_ai_conversation_title(user_id: str, conversation_id: str, title: str) -> bool:
+    """Rename a conversation."""
+    new_title = (title or "").strip()[:80]
+    if not new_title or not user_id:
+        return False
+    client = init_supabase_admin() or init_supabase()
+    if client:
+        try:
+            client.table('ai_conversations').update({'title': new_title}).eq('id', conversation_id).eq('user_id', user_id).execute()
+        except Exception:
+            pass
+    if conversation_id in _AI_LOCAL_CONVOS and _AI_LOCAL_CONVOS[conversation_id].get('user_id') == user_id:
+        _AI_LOCAL_CONVOS[conversation_id]['title'] = new_title
+        return True
+    return True
+
+
+def delete_ai_conversation(user_id: str, conversation_id: str) -> bool:
+    """Soft/hard delete a conversation."""
+    if not user_id or not conversation_id:
+        return False
+    client = init_supabase_admin() or init_supabase()
+    if client:
+        try:
+            client.table('ai_conversations').update({'status': 'deleted'}).eq('id', conversation_id).eq('user_id', user_id).execute()
+        except Exception:
+            pass
+    if conversation_id in _AI_LOCAL_CONVOS and _AI_LOCAL_CONVOS[conversation_id].get('user_id') == user_id:
+        _AI_LOCAL_CONVOS[conversation_id]['status'] = 'deleted'
+        _AI_LOCAL_MSGS.pop(conversation_id, None)
+        return True
+    return True
+
+

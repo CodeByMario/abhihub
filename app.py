@@ -1805,41 +1805,84 @@ def api_get_branches():
     return response
 
 
-# T1 — Cascading dropdowns
+# Taxonomy endpoints (supports both independent and filtered requests)
 @app.route('/api/departments', methods=['GET'])
 def api_get_departments():
-    """Return departments for a college (cascading dropdown, T1/T8)."""
+    """Return departments for a college, or all departments if not filtered."""
     college_id = request.args.get('college_id', '').strip()
-    if not college_id:
-        return jsonify({'success': False, 'departments': [], 'message': 'college_id required'}), 400
-    result = get_departments_by_college(college_id)
-    return jsonify({'success': result.get('success', False), 'departments': result.get('data', [])}), 200
+    if college_id:
+        result = get_departments_by_college(college_id)
+        return jsonify({'success': result.get('success', False), 'departments': result.get('data', [])}), 200
+    
+    cache_key = "departments:all"
+    def fetch_all_depts():
+        res = get_all_branches()
+        return res.get('data', []) if res.get('success') else []
+    depts = cache.get_cached(cache_key, level=cache.L1, ttl=cache.LONG, fetcher=fetch_all_depts)
+    return jsonify({'success': True, 'departments': depts}), 200
 
 
 @app.route('/api/semesters', methods=['GET'])
 def api_get_semesters():
-    """Return semesters for a department (unified API)."""
-    department_id = request.args.get('department_id', '').strip()
-    if not department_id:
-        return jsonify({'success': False, 'semesters': [], 'message': 'department_id required'}), 400
-    
+    """Return all semesters 1-8."""
     semesters = [{'id': str(i), 'name': f'Semester {i}'} for i in range(1, 9)]
     semesters.append({'id': '0', 'name': 'All Semesters'})
     return jsonify({'success': True, 'semesters': semesters}), 200
 
 
+
 @app.route('/api/subjects', methods=['GET'])
 def api_get_subjects():
-    """Return subjects for a department, optionally filtered by semester — cached at L1 for 30min."""
+    """Return subjects for a department, or search through all subjects by keyword — cached at L1."""
     department_id = request.args.get('department_id', '').strip()
     semester = request.args.get('semester', type=int)  # optional
+    query = request.args.get('q', '').strip()
+
+    if query:
+        cache_key = f"subjects_search:{query.lower()}:{department_id or 'all'}:{semester or 0}"
+        def search_fetcher():
+            try:
+                q = supabase.table("subjects").select("id, name, subject_code, semester, department_id")
+                if department_id:
+                    q = q.eq("department_id", department_id)
+                if semester:
+                    q = q.or_(f"semester.eq.{semester},semester.is.null")
+                res = q.or_(f"name.ilike.%{query}%,subject_code.ilike.%{query}%").order("name").limit(60).execute()
+                return res.data or []
+            except Exception as e:
+                app.logger.warning(f"Failed searching subjects: {e}")
+                try:
+                    res = supabase.table("subjects").select("id, name, subject_code, semester, department_id").ilike("name", f"%{query}%").order("name").limit(60).execute()
+                    return res.data or []
+                except Exception:
+                    return []
+
+        subjects = cache.get_cached(cache_key, level=cache.L1, ttl=cache.SHORT, fetcher=search_fetcher)
+        return jsonify({'success': True, 'subjects': subjects}), 200
+
     if not department_id:
-        return jsonify({'success': False, 'subjects': [], 'message': 'department_id required'}), 400
+        cache_key = "subjects:all_popular"
+        def fetch_all():
+            try:
+                res = supabase.table("subjects").select("id, name, subject_code, semester, department_id").order("name").limit(200).execute()
+                return res.data or []
+            except Exception:
+                return []
+        subjects = cache.get_cached(cache_key, level=cache.L1, ttl=cache.LONG, fetcher=fetch_all)
+        return jsonify({'success': True, 'subjects': subjects}), 200
 
     cache_key = f"subjects:{department_id}:{semester or 0}"
     def fetch_subjects():
-        result = get_subjects_by_department(department_id, semester=semester)
-        return result.get('data', []) if result.get('success') else []
+        try:
+            q = supabase.table("subjects").select("id, name, subject_code, semester, department_id").eq("department_id", department_id)
+            if semester:
+                res = q.or_(f"semester.eq.{semester},semester.is.null").order("name").execute()
+            else:
+                res = q.order("name").execute()
+            return res.data or []
+        except Exception as e:
+            app.logger.warning(f"Failed fetching subjects for dept {department_id}: {e}")
+            return []
 
     subjects = cache.get_cached(cache_key, level=cache.L1, ttl=cache.LONG, fetcher=fetch_subjects)
     response = jsonify({
@@ -6545,9 +6588,33 @@ def api_ai_assistant(user_data=None):
     doc_id = (data.get('doc_id') or '').strip()
     doc_title_req = (data.get('doc_title') or '').strip()
     preferred_model = (data.get('model') or '').strip() or None
+    conversation_id = (data.get('conversation_id') or '').strip() or None
 
     if not message:
         return jsonify({'success': False, 'message': 'Message is required'}), 400
+
+    # Auto-initialize/retrieve conversation and persist user message
+    from methods.supabase_helper import get_or_create_ai_conversation, save_ai_message
+    if user_id:
+        try:
+            convo = get_or_create_ai_conversation(
+                user_id=user_id,
+                conversation_id=conversation_id,
+                title=doc_title_req or message[:50],
+                context_type='document' if doc_id else 'general',
+                context_id=doc_id or None
+            )
+            if convo:
+                conversation_id = convo.get('id')
+                save_ai_message(
+                    conversation_id=conversation_id,
+                    user_id=user_id,
+                    role='user',
+                    content=message,
+                    context_snapshot={'doc_id': doc_id, 'doc_title': doc_title_req}
+                )
+        except Exception as convo_err:
+            logging.debug(f"[AI Assistant] Convo init error: {convo_err}")
 
     # Input safety
     safety_in = check_input(message)
@@ -6767,13 +6834,64 @@ def api_ai_assistant(user_data=None):
     if actions and re.search(r'\b(open it|open the|open this|take me to|navigate)\b', message, re.IGNORECASE):
         auto_open = actions[0]['url']
 
+    # Structured UI payload from search or tools
+    cards = []
+    if found_docs:
+        cards.append({
+            "type": "resource_cards",
+            "title": f"Found {len(found_docs)} matching resources",
+            "items": [
+                {
+                    "id": d.get('id'),
+                    "title": d.get('title') or 'Document',
+                    "document_type": (d.get('document_category') or 'notes').upper(),
+                    "url": f"/document/{d.get('id')}",
+                    "download_url": d.get('file_url')
+                } for d in found_docs
+            ]
+        })
+
+    # Persist assistant message
+    if user_id and conversation_id:
+        try:
+            save_ai_message(
+                conversation_id=conversation_id,
+                user_id=user_id,
+                role='assistant',
+                content=final_text,
+                model=getattr(resp, 'model_used', 'default'),
+                tool_actions=actions or []
+            )
+        except Exception as save_err:
+            logging.debug(f"[AI Assistant] Save msg error: {save_err}")
+
     return jsonify({
         'success': True,
         'reply': final_text,
+        'conversation_id': conversation_id,
         'actions': actions,
+        'cards': cards,
         'auto_open': auto_open,
         'model_used': resp.model_used
     }), 200
+
+
+@app.route('/api/ai/tool', methods=['POST'])
+@auth_required
+def api_ai_tool(user_data=None):
+    """Direct, authorized tool execution endpoint for AbhiHub AI."""
+    from methods.ai_tools import dispatch_tool_call
+    user = user_data or session.get('user', {})
+    data = request.get_json(silent=True) or {}
+    tool_name = (data.get('tool_name') or '').strip()
+    arguments = data.get('arguments') or {}
+
+    if not tool_name:
+        return jsonify({'success': False, 'error': 'tool_name is required'}), 400
+
+    result = dispatch_tool_call(tool_name=tool_name, arguments=arguments, user_context=user)
+    status_code = 200 if result.get('success') else 400
+    return jsonify(result), status_code
 
 
 # ─── AI Paper Q&A & Unlimited OCR ───────────────────────────────────────────
@@ -7510,9 +7628,8 @@ def api_get_material_requests():
                 'created_at': str(r.get('created_at') or '')
             })
 
-        return jsonify({'success': True, 'requests': items}), 200
     except Exception as e:
-        logging.error(f"[MaterialRequests] Error: {e}")
+        logging.debug(f"[MaterialRequests] Notice: {e}")
         return jsonify({'success': True, 'requests': []}), 200
 
 
@@ -8264,7 +8381,106 @@ def chat_user_info(user_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/ai/tools', methods=['GET'])
+def get_ai_tools_schema():
+    """Returns approved AI tools schema for agent discovery."""
+    try:
+        from methods.ai_tools import AI_TOOLS_SCHEMA
+        return jsonify({'success': True, 'tools': AI_TOOLS_SCHEMA})
+    except Exception as exc:
+        logging.exception(f"Error fetching AI tools: {exc}")
+        return jsonify({'success': False, 'error': str(exc)}), 500
+
+
+@app.route('/api/ai/tool', methods=['POST'])
+def execute_ai_tool():
+    """Executes a strictly authorized AbhiHub AI application tool."""
+    try:
+        data = request.get_json() or {}
+        tool_name = (data.get('tool_name') or '').strip()
+        arguments = data.get('arguments') or {}
+
+        user_sess = session.get('user') or {}
+        user_context = {
+            'uid': user_sess.get('uid') or user_sess.get('id'),
+            'email': user_sess.get('email'),
+            'name': user_sess.get('name') or user_sess.get('full_name')
+        }
+
+        from methods.ai_tools import dispatch_tool_call
+        result = dispatch_tool_call(tool_name, arguments, user_context)
+        return jsonify(result)
+    except Exception as exc:
+        logging.exception(f"Error executing AI tool: {exc}")
+        return jsonify({'success': False, 'error': 'Tool execution failed', 'ui_type': 'error_card'}), 500
+
+
+@app.route('/api/ai/conversations', methods=['GET', 'POST'])
+def handle_ai_conversations():
+    """List or create AI conversations for the authenticated user."""
+    user_sess = session.get('user') or {}
+    user_id = user_sess.get('uid') or user_sess.get('id') or user_sess.get('email')
+
+    from methods.supabase_helper import list_ai_conversations, get_or_create_ai_conversation
+
+    if not user_id:
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
+
+    if request.method == 'GET':
+        limit = min(int(request.args.get('limit', 20)), 50)
+        offset = max(int(request.args.get('offset', 0)), 0)
+        convos = list_ai_conversations(user_id=user_id, limit=limit, offset=offset)
+        return jsonify({'success': True, 'conversations': convos})
+
+    # POST create new conversation
+    data = request.get_json(silent=True) or {}
+    title = data.get('title') or 'New Chat'
+    context_type = data.get('context_type') or 'general'
+    context_id = data.get('context_id')
+    convo = get_or_create_ai_conversation(
+        user_id=user_id,
+        conversation_id=None,
+        title=title,
+        context_type=context_type,
+        context_id=context_id
+    )
+    return jsonify({'success': True, 'conversation': convo}), 201
+
+
+@app.route('/api/ai/conversations/<convo_id>', methods=['GET', 'PATCH', 'DELETE'])
+def handle_ai_single_conversation(convo_id):
+    """Retrieve messages, rename, or delete a specific conversation."""
+    user_sess = session.get('user') or {}
+    user_id = user_sess.get('uid') or user_sess.get('id') or user_sess.get('email')
+
+    from methods.supabase_helper import (
+        get_ai_conversation_messages,
+        update_ai_conversation_title,
+        delete_ai_conversation
+    )
+
+    if not user_id:
+        return jsonify({'success': False, 'error': 'Authentication required'}), 401
+
+    if request.method == 'GET':
+        limit = min(int(request.args.get('limit', 50)), 100)
+        messages = get_ai_conversation_messages(user_id=user_id, conversation_id=convo_id, limit=limit)
+        return jsonify({'success': True, 'messages': messages, 'conversation_id': convo_id})
+
+    if request.method == 'PATCH':
+        data = request.get_json(silent=True) or {}
+        new_title = data.get('title') or ''
+        ok = update_ai_conversation_title(user_id=user_id, conversation_id=convo_id, title=new_title)
+        return jsonify({'success': ok})
+
+    if request.method == 'DELETE':
+        ok = delete_ai_conversation(user_id=user_id, conversation_id=convo_id)
+        return jsonify({'success': ok})
+
+
 if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV') != 'production'
     socketio.run(app, debug=debug_mode)
+
+
 

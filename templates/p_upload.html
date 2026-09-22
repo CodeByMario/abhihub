@@ -85,6 +85,9 @@
             <!-- Right: Meta Panel -->
             <div class="carousel-meta-panel">
               <div class="meta-panel-top-actions">
+                <button type="button" class="tarika-suggest-btn" data-action="analyzeCurrentFileWithAi" id="tarikaUploadAnalyzeBtn" title="Ask Tarika to extract title, semester, year, and subject suggestions from this file">
+                  <span>✨ Analyze with Tarika</span>
+                </button>
                 <button type="button" class="batch-apply-btn" data-action="copyLabelsToAll" title="Copy College, Department, Semester, and Subject to all other selected files">
                   ⚡ Copy details to all files
                 </button>
@@ -94,9 +97,9 @@
               <template id="metaFormTemplate">
                 <div class="meta-form-wrap">
 
-                  <!-- ── Profile-sourced fields (auto-filled) ── -->
+                  <!-- ── 1. Academic Hierarchy ── -->
                   <div class="meta-section-label">
-                    <span class="meta-section-icon">👤</span> From your profile
+                    <span class="meta-section-icon">🏛️</span> 1. Academic Location
                     <span class="meta-autofill-badge">Auto-filled</span>
                   </div>
 
@@ -114,7 +117,7 @@
                       Department *
                       <span class="field-autofill-pill" data-field="branch" style="display:none;">✓ saved</span>
                     </label>
-                    <select name="branch_id" class="abhihub-select branch-select" data-entity="branch" data-parent-class="college-select" required>
+                    <select name="branch_id" class="abhihub-select branch-select" data-entity="branch" required>
                       <option value="">Select Department...</option>
                     </select>
                   </div>
@@ -137,17 +140,40 @@
                       <option value="other">Other Course</option>
                     </select>
                   </div>
+                  <div class="meta-field">
+                    <label>Semester</label>
+                    <select name="semester" class="abhihub-select semester-select" data-entity="semester">
+                      <option value="">Select Semester...</option>
+                      <option value="1">Semester 1</option>
+                      <option value="2">Semester 2</option>
+                      <option value="3">Semester 3</option>
+                      <option value="4">Semester 4</option>
+                      <option value="5">Semester 5</option>
+                      <option value="6">Semester 6</option>
+                      <option value="7">Semester 7</option>
+                      <option value="8">Semester 8</option>
+                    </select>
+                  </div>
+                  <div class="meta-field">
+                    <label>
+                      Subject *
+                      <span class="field-autofill-pill field-ai-pill" data-field="subject" style="display:none;">✨ Suggested</span>
+                    </label>
+                    <select class="abhihub-select subject-select" data-entity="subject" required>
+                      <option value="">Search or select subject...</option>
+                    </select>
+                  </div>
 
-                  <!-- ── Document-extracted fields (AI auto-filled) ── -->
+                  <!-- ── 2. Resource Type & Timeline ── -->
                   <div class="meta-section-label" style="margin-top: 1rem; border-top: 1px dashed #e2e8f0; padding-top: 0.75rem;">
-                    <span class="meta-section-icon">📄</span> Document Content
+                    <span class="meta-section-icon">📑</span> 2. Resource Identification
                     <span class="meta-autofill-badge meta-ai-status-badge" style="display:none; background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe;">🤖 Analyzing…</span>
                   </div>
 
                   <div class="meta-field">
                     <label>
                       Category *
-                      <span class="field-autofill-pill field-ai-pill" data-field="type" style="display:none; background:#ecfdf5; color:#059669; border:1px solid #a7f3d0;">✨ AI</span>
+                      <span class="field-autofill-pill field-ai-pill" data-field="type" style="display:none;">✨ Suggested</span>
                     </label>
                     <select class="modern-select meta-type" required>
                       <option value="" disabled selected>Select type...</option>
@@ -163,7 +189,7 @@
                   <div class="meta-field">
                     <label>
                       Year *
-                      <span class="field-autofill-pill field-ai-pill" data-field="year" style="display:none; background:#ecfdf5; color:#059669; border:1px solid #a7f3d0;">✨ AI</span>
+                      <span class="field-autofill-pill field-ai-pill" data-field="year" style="display:none;">✨ Suggested</span>
                     </label>
                     <select class="modern-select meta-year">
                       <option value="2022">2022</option>
@@ -176,27 +202,21 @@
                   <div class="meta-field upload-hidden-section meta-unit-wrap">
                     <label>
                       Exam / Unit *
-                      <span class="field-autofill-pill field-ai-pill" data-field="unit" style="display:none; background:#ecfdf5; color:#059669; border:1px solid #a7f3d0;">✨ AI</span>
+                      <span class="field-autofill-pill field-ai-pill" data-field="unit" style="display:none;">✨ Suggested</span>
                     </label>
                     <select class="modern-select meta-unit"></select>
                   </div>
-                  <div class="meta-field">
-                    <label>Semester</label>
-                    <select name="semester" class="abhihub-select semester-select" data-entity="semester" data-parent-class="branch-select">
-                      <option value="">Select Semester...</option>
-                    </select>
+
+                  <!-- ── 3. Study Details & Indexing ── -->
+                  <div class="meta-section-label" style="margin-top: 1rem; border-top: 1px dashed #e2e8f0; padding-top: 0.75rem;">
+                    <span class="meta-section-icon">✍️</span> 3. Resource Details
                   </div>
+
                   <div class="meta-field">
                     <label>
-                      Subject *
-                      <span class="field-autofill-pill field-ai-pill" data-field="subject" style="display:none; background:#ecfdf5; color:#059669; border:1px solid #a7f3d0;">✨ AI</span>
+                      Resource Title *
+                      <span class="field-autofill-pill field-ai-pill" data-field="title" style="display:none;">✨ Suggested</span>
                     </label>
-                    <select class="abhihub-select subject-select" data-entity="subject" data-parent-class="semester-select" required>
-                      <option value="">Select Subject...</option>
-                    </select>
-                  </div>
-                  <div class="meta-field">
-                    <label>Resource Title *</label>
                     <input type="text" class="modern-input meta-title" name="title" placeholder="e.g. Data Structures End-Sem PYQ 2025" required minlength="3" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:8px;" />
                   </div>
                   <div class="meta-field">
@@ -217,6 +237,20 @@
                 <span class="nav-counter" id="cCounter">1 / 1</span>
                 <button type="button" class="nav-btn" id="cNextBtn" data-action="navigateCarousel" data-direction="1" disabled aria-label="Next image">❯</button>
               </div>
+            </div>
+          </div>
+
+          <!-- Review Summary Checklist -->
+          <div id="uploadReviewSummary" class="upload-review-summary" style="display:none;">
+            <div style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
+              <span>📋 Step 4: Verification Review</span>
+              <span id="reviewStatusPill" style="font-size:0.75rem; padding:2px 8px; border-radius:12px; background:#dcfce7; color:#166534; font-weight:600;">✓ Ready</span>
+            </div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.8rem; color: #475569;">
+              <div id="chkFile">✓ File Selected</div>
+              <div id="chkType">✓ Category Selected</div>
+              <div id="chkSubject">✓ Subject Verified</div>
+              <div id="chkTitle">✓ Title Formatted</div>
             </div>
           </div>
 
