@@ -195,7 +195,7 @@ async function viewPeerDetail(userId) {
       upEl.innerHTML = data.uploads.map(item => `
         <div class="peer-item-card">
           <div><strong>📄 ${item['file-name']}</strong> <br><small class="peer-item-sub">${item.subject} • ${item.type}</small></div>
-          <a href="/view_pdf?pdf_name=${encodeURIComponent(item['file-path'])}" target="_blank" class="peer-view-link">View 👁</a>
+          <a href="/resource/${encodeURIComponent(item.slug || item.id || item['file-path'])}" target="_blank" class="peer-view-link">View 👁</a>
         </div>
       `).join('');
     }
@@ -209,7 +209,7 @@ async function viewPeerDetail(userId) {
       refEl.innerHTML = data.referred.map(item => `
         <div class="peer-item-card">
           <div><strong>📖 ${item['file-name']}</strong> <br><small class="peer-item-sub">${item.subject} • ${item.type}</small></div>
-          <a href="/view_pdf?pdf_name=${encodeURIComponent(item['file-path'])}" target="_blank" class="peer-view-link">View 👁</a>
+          <a href="/resource/${encodeURIComponent(item.slug || item.id || item['file-path'])}" target="_blank" class="peer-view-link">View 👁</a>
         </div>
       `).join('');
     }

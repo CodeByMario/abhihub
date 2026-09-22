@@ -83,7 +83,7 @@ const CarouselPersonalization = {
             const timeAgo = this.getTimeAgo(file.time);
 
             return `
-                <a href="${file.recordId ? '/resource/' + encodeURIComponent(file.recordId) : '/view_pdf?pdf_name=' + encodeURIComponent(file.filePath)}" class="file-card" title="View ${file.fileType}">
+                <a href="${file.recordId ? '/resource/' + encodeURIComponent(file.recordId) : '/pdf-proxy/' + encodeURIComponent(file.filePath)}" class="file-card" title="View ${file.fileType}">
                     <img src="/static/premium/icon/${icon}" alt="${file.fileType}">
                     <span class="file-card-title">${file.subject}</span>
                     <span class="file-card-meta">${file.fileName}</span>

@@ -72,12 +72,14 @@ _OPENROUTER_URL = "https://openrouter.ai/api/v1/chat/completions"
 # Free models tried in order; adapter stops at first success.
 # Verified live free models on OpenRouter (Sept 2026)
 _FREE_MODELS = [
-    "deepseek/deepseek-v4-flash-0731:free",
+    "nex-agi/nex-n2.5-mini:free",
+    "google/gemma-4-26b-a4b-it:free",
+    "google/gemma-4-31b-it:free",
+    "nex-agi/nex-n2.5-pro:free",
+    "z-ai/glm-5.2:free",
+    "liquid/lfm-2.5-2.6b:free",
     "qwen/qwen3.8-27b:free",
     "nvidia/nemotron-3.5-lightning:free",
-    "liquid/lfm-2.5-2.6b:free",
-    "nex-agi/nex-n2.5-mini:free",
-    "nex-agi/nex-n2.5-pro:free",
 ]
 
 _FREE_VISION_MODELS = [
@@ -144,7 +146,7 @@ class OpenRouterAdapter:
                         "temperature": temperature,
                         "provider": {"allow_fallbacks": True, "sort": "throughput"},
                     },
-                    timeout=35,
+                    timeout=(5, 15),
                 )
 
                 if resp.status_code == 401:

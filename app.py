@@ -1013,30 +1013,6 @@ def indexnow_key_file(key):
         return INDEXNOW_KEY, 200, {'Content-Type': 'text/plain; charset=utf-8'}
     abort(404)
 
-@app.route('/api/indexnow/submit', methods=['POST'])
-@admin_required
-def submit_indexnow():
-    """Submit URLs to Bing IndexNow"""
-    if not INDEXNOW_KEY:
-        return jsonify({'success': False, 'message': 'INDEX_NOW_BING_API_KEY is not set.'}), 500
-        
-    data = request.json or {}
-    urls = data.get('urls', [])
-    if not urls:
-        return jsonify({'success': False, 'message': 'No urls provided.'}), 400
-        
-    payload = {
-        "host": BASE_DOMAIN,
-        "key": INDEXNOW_KEY,
-        "keyLocation": f"https://{BASE_DOMAIN}/{INDEXNOW_KEY}.txt",
-        "urlList": urls
-    }
-    
-    try:
-        resp = requests.post('https://api.indexnow.org/IndexNow', json=payload, timeout=10)
-        return jsonify({'success': resp.status_code == 200, 'status': resp.status_code, 'reason': resp.reason})
-    except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
 
 @app.route('/api/quota', methods=['GET'])
 @auth_required
@@ -1464,11 +1440,6 @@ def llms_txt():
     """GEO signal file for AI model crawlers (GPTBot, PerplexityBot, ClaudeBot, Gemini)."""
     return send_from_directory('static', 'llms.txt', mimetype='text/plain')
 
-@app.route('/<key>.txt')
-def index_now_key(key):
-    if INDEXNOW_KEY and key == INDEXNOW_KEY:
-        return INDEXNOW_KEY, 200, {'Content-Type': 'text/plain; charset=utf-8'}
-    return abort(404)
 
 @app.route('/sitemap.xml')
 def sitemap():
@@ -4611,58 +4582,6 @@ def abhijeet_updae():
     sorted_data = sorted(data, key=sort_key)
     return render_template('abhijeetupdate.html', data=sorted_data)
 
-@app.route('/view_pdf')
-@auth_required
-def view_pdf():
-    pdf_name = request.args.get('pdf_name', '')
-    if not pdf_name:
-        abort(400, description="PDF name is required")
-
-    try:
-        record_id = request.args.get('record_id')
-        if record_id:
-            # 301 redirect to the new SEO URL structure
-            return redirect(url_for('resource_landing', slug=f"legacy-redirect-{record_id}"), code=301)
-
-
-        # Log file access (shared helper — see log_document_view)
-        log_document_view(
-            file_name=os.path.basename(pdf_name),
-            file_url=url_for('pdf_proxy', pdf_name=pdf_name, _external=True),
-            record_id=record_id,
-            file_type='pdf',
-            file_path=pdf_name,
-        )
-        
-        # Use proxy URL — security is handled by @auth_required + Referer check
-        if pdf_name.startswith('http'):
-            proxy_url = pdf_name
-        else:
-            proxy_url = url_for('pdf_proxy', pdf_name=pdf_name, _external=True)
-
-        # Fetch document metadata for info panel
-        file_meta = {}
-        if record_id:
-            try:
-                if validate_uuid(record_id):
-                    client = init_supabase()
-                    if client:
-                        res = client.table('documents') \
-                            .select('*, profiles!documents_uploader_id_fkey(full_name, email), subjects(name, subject_code)') \
-                            .eq('id', record_id).limit(1).execute()
-                        if res.data:
-                            file_meta = _doc_to_json(res.data[0])
-            except Exception as meta_err:
-                logging.warning(f"Could not fetch metadata for {record_id}: {meta_err}")
-
-        return render_template('p_pdf_reader.html',
-                               pdf_name=pdf_name,
-                               pdf_url=proxy_url,
-                               file_meta=file_meta)
-
-    except Exception as e:
-        logging.error(f"Error generating proxy URL for {pdf_name}: {e}")
-        abort(404, description="PDF not found or error generating access URL")
 
 
 @app.route('/pdf-proxy/<path:pdf_name>')
@@ -6699,23 +6618,28 @@ def api_ai_assistant(user_data=None):
         "- Use $...$ for inline math (e.g. $E = mc^2$, $\\nabla \\cdot \\vec{E} = \\frac{\\rho}{\\varepsilon_0}$, $Z = R + j\\omega L$).\n"
         "- Use $$...$$ for display equations and multi-line derivations.\n"
         "- Accurately represent all engineering notation: Greek symbols ($\\alpha, \\beta, \\theta, \\lambda, \\omega, \\mu, \\sigma$), calculus ($\\frac{d}{dx}, \\int, \\partial$), matrices, units, and circuit/system equations.\n"
+        "DIAGRAM & AUTHENTIC SOURCE PROTOCOL:\n"
+        "- If an explanation requires or discusses a diagram, do NOT hallucinate or draw improvised ASCII diagrams.\n"
+        "- Refer directly to authentic academic sources (standard textbooks, authoritative engineering references, or the student's currently open document/notes).\n"
+        "- Explicitly cite the authentic reference and figure (e.g. 'Source: Standard Reference Textbook / Open Document Figure').\n"
+        "- If generating a structural, architectural, or flow diagram in the response, use only valid, renderable Mermaid syntax (```mermaid ... ```) faithfully derived from authentic academic specifications.\n"
         "When the student asks you to solve the paper, explain questions, summarize, or create practice problems, "
         "read the questions from the CURRENTLY OPEN DOCUMENT or attached paper image, and provide step-by-step solutions with clear explanations.\n"
         "PRACTICE EXAMS & STIMULUS PROTOCOL:\n"
-        "- When the student asks for a practice exam, test, quiz, or practice questions based on the paper, output an interactive exam stimulus enclosed in ```exam_stimulus ... ``` JSON block.\n"
+        "- When the student asks for a practice exam, test, quiz, MCQ, or practice questions based on the paper, output an interactive exam stimulus enclosed in ```exam_stimulus ... ``` JSON block.\n"
         "JSON Schema:\n"
         "```exam_stimulus\n"
         "{\n"
         "  \"title\": \"Practice Exam: <Subject / Paper Title>\",\n"
         "  \"questions\": [\n"
-        "    {\"id\": 1, \"type\": \"mcq\", \"question\": \"...\", \"options\": [\"A) ...\", \"B) ...\", \"C) ...\", \"D) ...\"], \"marks\": 2, \"keywords\": [\"key1\"]},\n"
-        "    {\"id\": 2, \"type\": \"msq\", \"question\": \"...\", \"options\": [\"A) ...\", \"B) ...\", \"C) ...\", \"D) ...\"], \"marks\": 2, \"keywords\": [\"key1\", \"key2\"]},\n"
-        "    {\"id\": 3, \"type\": \"short\", \"question\": \"...\", \"marks\": 2, \"keywords\": [\"key1\", \"key2\"]},\n"
-        "    {\"id\": 4, \"type\": \"brief\", \"question\": \"...\", \"marks\": 4, \"keywords\": [\"key1\", \"key2\", \"key3\"]}\n"
+        "    {\"id\": 1, \"type\": \"mcq\", \"question\": \"...\", \"options\": [\"A) ...\", \"B) ...\", \"C) ...\", \"D) ...\"], \"correct_answer\": \"B) ...\", \"explanation\": \"...\", \"marks\": 2, \"keywords\": [\"key1\"]},\n"
+        "    {\"id\": 2, \"type\": \"msq\", \"question\": \"...\", \"options\": [\"A) ...\", \"B) ...\", \"C) ...\", \"D) ...\"], \"correct_options\": [\"A) ...\", \"C) ...\"], \"explanation\": \"...\", \"marks\": 2, \"keywords\": [\"key1\", \"key2\"]},\n"
+        "    {\"id\": 3, \"type\": \"short\", \"question\": \"...\", \"correct_answer\": \"...\", \"explanation\": \"...\", \"marks\": 2, \"keywords\": [\"key1\", \"key2\"]},\n"
+        "    {\"id\": 4, \"type\": \"brief\", \"question\": \"...\", \"model_answer\": \"...\", \"explanation\": \"...\", \"marks\": 4, \"keywords\": [\"key1\", \"key2\", \"key3\"]}\n"
         "  ]\n"
         "}\n"
         "```\n"
-        "You can use questions as they are from the open paper or prepare new relevant practice questions. Mix question types: mcq, msq, short (1-line), and brief.\n"
+        "Always enclose the JSON with ```exam_stimulus or ```json. Mix question types (MCQ, MSQ, Short, Brief) or focus on MCQ if asked. Always provide clear step-by-step explanations and correct answers for every question.\n"
         "- When the student submits their exam answers for grading, act as a STRICT examiner: check strictly for key technical keywords/concepts, evaluate each answer, state keywords matched/missed, award exact marks, and provide model answers with clear LaTeX explanations.\n"
         "Be concise, encouraging, and format your response with clean Markdown.\n"
         "If someone proposes to you, flirts with you, or expresses romantic interest, politely reply that you have a boyfriend named Abhijeet Shende.\n"
@@ -6759,7 +6683,7 @@ def api_ai_assistant(user_data=None):
     messages.append({"role": "user", "content": user_content})
 
     try:
-        max_tok = 1500 if ('image_url' in locals() and image_url) else 600
+        max_tok = 2500 if ('image_url' in locals() and image_url) else 2000
         resp = adapter.complete(messages, max_tokens=max_tok, temperature=0.2)
     except KeyInvalidError:
         return jsonify({'success': False, 'message': 'API key was rejected. Please update your key in Settings.'}), 401

@@ -306,20 +306,33 @@ body {
 /* Image Viewer */
 .image-viewer-wrap {
     overflow: hidden;
-    background: #f1f5f9;
+    background: var(--admin-bg-light, #f1f5f9);
     position: relative;
+    border-radius: 12px;
 }
 
 .image-toolbar {
     display: flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.5rem;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(8px);
-    border-bottom: 1px solid var(--r-border);
+    gap: 0.35rem;
+    padding: 0.5rem 0.75rem;
+    background: var(--glass-surface, rgba(255, 255, 255, 0.92));
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--r-border, rgba(0, 0, 0, 0.08));
     flex-wrap: wrap;
     justify-content: center;
+    position: sticky;
+    top: 0;
+    z-index: 20;
+}
+
+@media (max-width: 640px) {
+    .image-toolbar {
+        padding: 0.35rem 0.5rem;
+        gap: 0.25rem;
+        justify-content: space-evenly;
+    }
 }
 
 .iv-btn {

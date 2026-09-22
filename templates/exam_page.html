@@ -11,7 +11,7 @@
                 <img src="{{ url_for('static', filename='/premium/images/6th_CAE1_2025_timetabel.jpg')}}"
                     alt="the Timetabel" class="styled-image">
             </li>
-            <li>6th Semester AI Syllabus: <a href="{{ url_for('view_pdf', pdf_name='premium/documents/syllabus.pdf') }}"
+            <li>6th Semester AI Syllabus: <a href="{{ url_for('static', filename='premium/documents/syllabus.pdf') }}"
                     class="link-highlight">View</a></li>
         </ul>
     </div>
@@ -26,7 +26,7 @@
             <div class="note-item">
                 <h3>{{ file['subject'] }}</h3>
                 <p>Shared by: {{ file['author'] }}</p>
-                <a href="{% if file.get('record_id') %}{{ url_for('resource_landing', slug=file['record_id']) }}{% else %}{{ url_for('view_pdf', pdf_name=file['file-path']) }}{% endif %}"
+                <a href="{% if file.get('record_id') %}{{ url_for('resource_landing', slug=file['record_id']) }}{% else %}{{ url_for('pdf_proxy', pdf_name=file['file-path']) }}{% endif %}"
                                     class="button-86">{{ file['file-name'] }}</a>
             </div>
             {% endif %}
@@ -44,7 +44,7 @@
             <div class="paper-item">
                 <h3>{{ file['subject'] }}</h3>
                 <p>Shared by: {{ file['author'] }}</p>
-                <a href="{% if file.get('record_id') %}{{ url_for('resource_landing', slug=file['record_id']) }}{% else %}{{ url_for('view_pdf', pdf_name=file['file-path']) }}{% endif %}"
+                <a href="{% if file.get('record_id') %}{{ url_for('resource_landing', slug=file['record_id']) }}{% else %}{{ url_for('pdf_proxy', pdf_name=file['file-path']) }}{% endif %}"
                                     class="button-86">{{ file['file-name'] }}</a>
             </div>
             {% endif %}
