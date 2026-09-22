@@ -594,9 +594,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Never cache security-sensitive endpoints
+  // Never cache security-sensitive endpoints - bypass SW directly
   if (shouldNeverCache(url)) {
-    event.respondWith(fetch(request));
     return;
   }
 

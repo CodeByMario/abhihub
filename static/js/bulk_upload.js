@@ -408,6 +408,9 @@ function removeFile(id) {
   selectedFiles = selectedFiles.filter(f => f.id !== id);
   if (selectedFiles.length === 0) {
     document.getElementById('uploadCarousel').style.display = 'none';
+    const strip = document.getElementById('uploadFilmstrip');
+    if (strip) strip.style.display = 'none';
+    resetUploadButton();
   } else {
     if (carouselIndex >= selectedFiles.length) carouselIndex = selectedFiles.length - 1;
     renderCarousel(carouselIndex);
@@ -477,7 +480,155 @@ function renderCarousel(index) {
   if (cPrevBtn) cPrevBtn.disabled = (index === 0);
   const cNextBtn = document.getElementById('cNextBtn');
   if (cNextBtn) cNextBtn.disabled = (index === selectedFiles.length - 1);
+
+  renderFilmstrip();
 }
+
+function renderFilmstrip() {
+  const strip = document.getElementById('uploadFilmstrip');
+  const list = document.getElementById('filmstripList');
+  const countEl = document.getElementById('filmstripCount');
+  if (!strip || !list) return;
+
+  if (selectedFiles.length === 0) {
+    strip.style.display = 'none';
+    return;
+  }
+
+  strip.style.display = 'block';
+  if (countEl) countEl.textContent = selectedFiles.length;
+
+  list.innerHTML = selectedFiles.map((item, idx) => {
+    const isCur = idx === carouselIndex;
+    const isPdf = item.file && (item.file.type === 'application/pdf' || item.name.toLowerCase().endsWith('.pdf'));
+    const form = document.getElementById(`meta-form-${item.id}`);
+    
+    let isLabeled = false;
+    if (form) {
+      const col = form.querySelector('.college-select')?.value;
+      const sub = form.querySelector('.subject-select')?.value;
+      const title = form.querySelector('.meta-title')?.value;
+      const type = form.querySelector('.meta-type')?.value;
+      if (col && sub && type && title && title.length >= 3) {
+        isLabeled = true;
+      }
+    }
+
+    const thumbSrc = isPdf ? '' : carouselImageSrc(item);
+    const thumbHtml = isPdf 
+      ? '<span class="film-pdf-icon">📄 PDF</span>'
+      : `<img src="${thumbSrc}" class="film-thumb-img" alt="thumb">`;
+
+    return `
+      <div class="filmstrip-card ${isCur ? 'active' : ''} ${isLabeled ? 'labeled' : 'unlabeled'}" onclick="renderCarousel(${idx})">
+        <div class="filmstrip-thumb-wrap">
+          ${thumbHtml}
+          <button type="button" class="filmstrip-del-btn" onclick="event.stopPropagation(); removeFileById('${item.id}');" title="Remove file">✕</button>
+        </div>
+        <div class="filmstrip-info">
+          <div class="filmstrip-name" title="${item.name}">${item.name}</div>
+          <div class="filmstrip-badge ${isLabeled ? 'badge-ok' : 'badge-warn'}">
+            ${isLabeled ? '✓ Ready' : '● Incomplete'}
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+function removeFileById(id) {
+  const form = document.getElementById(`meta-form-${id}`);
+  if (form) form.remove();
+  removeFile(id);
+}
+
+function copyLabelsToAll() {
+  if (selectedFiles.length <= 1) {
+    showToast('Add more files first to copy details across files', 'info');
+    return;
+  }
+  const curItem = selectedFiles[carouselIndex];
+  if (!curItem) return;
+  const sourceForm = document.getElementById(`meta-form-${curItem.id}`);
+  if (!sourceForm) return;
+
+  const colVal = sourceForm.querySelector('.college-select')?.value || '';
+  const branchVal = sourceForm.querySelector('.branch-select')?.value || '';
+  const progVal = sourceForm.querySelector('.program-select')?.value || '';
+  const semVal = sourceForm.querySelector('.semester-select')?.value || '';
+  const subVal = sourceForm.querySelector('.subject-select')?.value || '';
+  const typeVal = sourceForm.querySelector('.meta-type')?.value || '';
+  const yearVal = sourceForm.querySelector('.meta-year')?.value || '';
+  const unitVal = sourceForm.querySelector('.meta-unit')?.value || '';
+
+  let count = 0;
+  selectedFiles.forEach(item => {
+    if (item.id === curItem.id) return;
+    const targetForm = document.getElementById(`meta-form-${item.id}`);
+    if (!targetForm) return;
+
+    const progEl = targetForm.querySelector('.program-select');
+    if (progEl && progVal) progEl.value = progVal;
+
+    const typeEl = targetForm.querySelector('.meta-type');
+    if (typeEl && typeVal) {
+      typeEl.value = typeVal;
+      updateDynamicFieldsForForm(targetForm);
+    }
+
+    const yearEl = targetForm.querySelector('.meta-year');
+    if (yearEl && yearVal) yearEl.value = yearVal;
+
+    const unitEl = targetForm.querySelector('.meta-unit');
+    if (unitEl && unitVal) unitEl.value = unitVal;
+
+    const colEl = targetForm.querySelector('.college-select');
+    if (colEl && colVal) {
+      const tsCol = window.AbhiHubSelect?.instances[colEl.id];
+      if (tsCol) tsCol.setValue(colVal, false);
+      else { colEl.value = colVal; colEl.dispatchEvent(new Event('change')); }
+    }
+
+    const branchEl = targetForm.querySelector('.branch-select');
+    if (branchEl && branchVal) {
+      const tsBranch = window.AbhiHubSelect?.instances[branchEl.id];
+      if (tsBranch) tsBranch.setValue(branchVal, false);
+      else { branchEl.value = branchVal; branchEl.dispatchEvent(new Event('change')); }
+    }
+
+    const semEl = targetForm.querySelector('.semester-select');
+    if (semEl && semVal) {
+      const tsSem = window.AbhiHubSelect?.instances[semEl.id];
+      if (tsSem) tsSem.setValue(semVal, false);
+      else { semEl.value = semVal; semEl.dispatchEvent(new Event('change')); }
+    }
+
+    const subEl = targetForm.querySelector('.subject-select');
+    if (subEl && subVal) {
+      const tsSub = window.AbhiHubSelect?.instances[subEl.id];
+      if (tsSub) tsSub.setValue(subVal, false);
+      else { subEl.value = subVal; subEl.dispatchEvent(new Event('change')); }
+    }
+
+    count++;
+  });
+
+  showToast(`⚡ Copied labels to ${count} other file(s)!`, 'success');
+  renderFilmstrip();
+}
+
+function openFullPreview() {
+  if (selectedFiles.length === 0) return;
+  const item = selectedFiles[carouselIndex];
+  if (!item || !item.file) return;
+  const fileUrl = URL.createObjectURL(item.file);
+  window.open(fileUrl, '_blank');
+}
+
+window.renderFilmstrip = renderFilmstrip;
+window.removeFileById = removeFileById;
+window.copyLabelsToAll = copyLabelsToAll;
+window.openFullPreview = openFullPreview;
 
 /**
  * Carousel image source: prefer a client-side preview compression
@@ -700,6 +851,9 @@ function buildFormData(item) {
     const subjOpt = tsSubj ? tsSubj.options[subjId] : null;
     const subjText = subjOpt ? subjOpt.text : (subjEl && subjEl.selectedIndex >= 0 ? subjEl.options[subjEl.selectedIndex]?.text : '') || subjId || '';
 
+    const titleEl = form.querySelector('.meta-title') || form.querySelector('[name="title"]');
+    const descEl = form.querySelector('.meta-description') || form.querySelector('[name="description"]');
+
     m = {
       type: typeEl ? typeEl.value : '',
       year: yearEl ? yearEl.value : '2025',
@@ -709,13 +863,17 @@ function buildFormData(item) {
       semester: semEl ? semEl.value : '',
       subject_id: subjId,
       subject: subjText,
-      program: progEl ? progEl.value : 'b.tech'
+      program: progEl ? progEl.value : 'b.tech',
+      title: titleEl ? titleEl.value.trim() : '',
+      description: descEl ? descEl.value.trim() : ''
     };
   }
   if (item.meta) {
     m = Object.assign({}, item.meta, m);
   }
 
+  fd.append('title', m.title || '');
+  fd.append('description', m.description || '');
   fd.append('college_id', m.college_id || '');
   fd.append('branch_id', m.branch_id || '');
   fd.append('semester', m.semester || '');
@@ -761,13 +919,73 @@ function buildFormData(item) {
 }
 
 
+function setUploadButtonState(state, info) {
+  const btn = document.getElementById('submitBtn');
+  const btnText = document.getElementById('submitBtnText');
+  const spinner = document.getElementById('btnSpinner');
+  if (!btn) return;
+
+  info = info || {};
+  btn.classList.remove('uploading', 'is-done', 'is-error');
+
+  switch (state) {
+    case 'validating':
+      btn.disabled = true;
+      if (spinner) spinner.style.display = 'inline-block';
+      if (btnText) btnText.textContent = 'Checking files…';
+      btn.classList.add('uploading');
+      break;
+
+    case 'uploading':
+      btn.disabled = true;
+      if (spinner) spinner.style.display = 'inline-block';
+      const pct = typeof info.pct === 'number' ? `${info.pct}%` : '';
+      const count = info.total ? ` (${info.current || 1}/${info.total})` : '';
+      if (btnText) btnText.textContent = `Uploading ${pct}${count}…`;
+      btn.classList.add('uploading');
+      break;
+
+    case 'processing':
+      btn.disabled = true;
+      if (spinner) spinner.style.display = 'inline-block';
+      if (btnText) btnText.textContent = 'Processing & publishing…';
+      btn.classList.add('uploading');
+      break;
+
+    case 'completed':
+      btn.disabled = true;
+      if (spinner) spinner.style.display = 'none';
+      if (btnText) btnText.textContent = 'Contribution Published ✓';
+      btn.classList.add('is-done');
+      break;
+
+    case 'failed':
+      btn.disabled = false;
+      if (spinner) spinner.style.display = 'none';
+      if (btnText) btnText.textContent = 'Retry Failed Uploads';
+      btn.classList.add('is-error');
+      break;
+
+    case 'idle':
+    default:
+      btn.disabled = false;
+      if (spinner) spinner.style.display = 'none';
+      if (btnText) btnText.textContent = 'Upload Files';
+      break;
+  }
+}
+
+function resetUploadButton() {
+  setUploadButtonState('idle');
+}
+
 async function uploadOne(item, retries) {
   retries = (retries === undefined) ? 2 : retries;
 
   if (!item.meta || !item.meta.type || (item.meta.type.toLowerCase() !== 'question_bank' && !item.meta.subject)) {
     openStatusModal();
-    setItemStatus(item.id, 'error', 0, 'Fill metadata first');
-    showToast(item.name + ': fill metadata (📝) first', 'error');
+    setItemStatus(item.id, 'error', 0, 'Fill metadata first', true);
+    showToast(item.name + ': fill metadata first', 'error');
     return { ok: false, msg: 'Missing metadata' };
   }
 
@@ -776,16 +994,13 @@ async function uploadOne(item, retries) {
   if (uploadedFingerprints.has(fp)) {
     openStatusModal();
     setItemStatus(item.id, 'skipped', 100, 'Already uploaded in this session');
-    return { ok: true, xp: 0, score: 0 };
+    return { ok: true, xp: 0, score: 0, skipped: true };
   }
 
   openStatusModal();
   ensureStatusItem(item.id, item.name);
-  setItemStatus(item.id, 'checking', 0, 'Checking duplicates…');
-  // We NEVER modify item.file — that stays the original so the
-  // server (cloudinary_upload.py) is the single authority on
-  // compression + EXIF strip. We only produce a lighter preview
-  // blob for the carousel so large photos don't choke the tab.
+  setItemStatus(item.id, 'validating', 0, 'Checking file & integrity…');
+
   var rawFile = item.file;
   if (rawFile && rawFile.type && rawFile.type.startsWith('image/') && rawFile.size > 500 * 1024) {
     var preview = await compressImage(rawFile);
@@ -795,20 +1010,19 @@ async function uploadOne(item, retries) {
         label: `Preview ${((1 - preview.size / rawFile.size) * 100).toFixed(0)}%`,
         cls: 'compressed'
       };
-    } else if (preview && preview.size === 0) {
-      console.warn('[upload] Preview compression returned empty blob, skipping.');
     }
   }
 
-  // Zero-byte guard (on original, not preview)
+  // Zero-byte guard
   if (!rawFile || rawFile.size === 0) {
     setFileStatus(item.id, 'error', 0, 'File is empty');
+    setItemStatus(item.id, 'error', 0, 'File is empty, cannot upload', false);
     showToast((item.name || 'File') + ': empty file, cannot upload', 'error');
     return { ok: false, msg: 'Empty file' };
   }
 
-  // Phase 8: Duplicate Detection — hash the ORIGINAL file
-  setFloatStatus(true, `Checking duplicates for ${item.name}...`);
+  // Duplicate Detection
+  setFloatStatus(true, `Checking duplicates for ${item.name}…`);
   item.fileHash = await computeFileHash(rawFile);
   try {
     const dupCheck = await fetch('/api/check-duplicate', {
@@ -821,19 +1035,21 @@ async function uploadOne(item, retries) {
       setItemStatus(item.id, 'duplicate', 0, 'Duplicate detected');
       const choice = await showDuplicatePrompt(item, dupCheck.existing_file);
       if (choice === 'skip') {
+        setFloatStatus(false);
         setItemStatus(item.id, 'skipped', 100, 'Skipped by user');
         return { ok: true, xp: 0, score: 0, skipped: true };
       }
       if (choice === 'cancel') {
-        setItemStatus(item.id, 'error', 0, 'Cancelled by user');
+        setFloatStatus(false);
+        setItemStatus(item.id, 'error', 0, 'Cancelled by user', true);
         return { ok: false, msg: 'Cancelled by user' };
       }
-      // continue uploading anyway
-      setItemStatus(item.id, 'uploading', 0, 'Uploading anyway...');
+      setItemStatus(item.id, 'uploading', 0, 'Uploading anyway…');
     }
   } catch (e) {
-    console.warn("Duplicate check failed, continuing upload", e);
-    setItemStatus(item.id, 'uploading', 0, 'Duplicate check failed, uploading...');
+    console.warn("Duplicate check error, proceeding with upload", e);
+  } finally {
+    setFloatStatus(false);
   }
 
   return new Promise(async function (resolve) {
@@ -846,72 +1062,119 @@ async function uploadOne(item, retries) {
       });
       sigRes = await res.json();
     } catch (e) {
-      console.warn('Presigned URL fetch failed, falling back to app server route', e);
+      console.warn('Presigned URL fetch failed, routing via server', e);
     }
 
     var xhr = new XMLHttpRequest();
     var targetUrl = '/upload';
     xhr.open('POST', targetUrl, true);
     xhr.timeout = 180000;
+
+    // Real upload progress (network transmission)
     xhr.upload.onprogress = function (e) {
       if (e.lengthComputable) {
-        setFileStatus(item.id, 'uploading', Math.round(e.loaded / e.total * 100));
+        var pct = Math.round((e.loaded / e.total) * 100);
+        if (pct < 100) {
+          setItemStatus(item.id, 'uploading', pct, `Uploading ${pct}%`);
+          setFileStatus(item.id, 'uploading', pct);
+          setUploadButtonState('uploading', { pct: pct, current: _progDone + 1, total: _progTotal });
+        } else {
+          // Transmission reached 100%, now waiting for server processing
+          setItemStatus(item.id, 'processing', 100, 'Upload received. Processing & publishing…');
+          setFileStatus(item.id, 'uploading', 100);
+          setUploadButtonState('processing');
+        }
         if (_progCurrentFile !== item.name) {
           _progCurrentFile = item.name;
           _progCurrentPct = 0;
         }
-        _progCurrentPct = Math.round(e.loaded / e.total * 100);
+        _progCurrentPct = pct;
         updateProgressUI();
       }
     };
+
+    xhr.upload.onload = function () {
+      setItemStatus(item.id, 'processing', 100, 'Processing & publishing contribution…');
+      setUploadButtonState('processing');
+    };
+
     xhr.onload = function () {
       try {
         var r = JSON.parse(xhr.responseText);
-        if (xhr.status === 200 && (r.success || r.secure_url)) {
+        if (xhr.status === 200 && (r.success || r.document || r.secure_url)) {
           _progCurrentFile = '';
           _progCurrentPct = 0;
           uploadedFingerprints.add(fp);
           setFileStatus(item.id, 'done', 100);
-          setItemStatus(item.id, 'done', 100, 'Uploaded');
-          resolve({ ok: true, xp: (r.data && r.data.xp_gained) || 1, score: (r.data && r.data.new_score) || 0 });
+          setItemStatus(item.id, 'done', 100, 'Published');
+
+          var docData = r.document || (r.data ? {
+            id: r.data.resource_id || r.data.record_id,
+            title: r.data.title || item.name,
+            url: r.data.resource_url || r.data.url,
+            subject: r.data.subject,
+            semester: r.data.semester,
+            document_type: r.data.document_type
+          } : { id: null, title: item.name, url: null });
+
+          var contribData = r.contribution || (r.data ? {
+            xp_earned: r.data.xp_gained || 1,
+            total_xp: r.data.new_score || 0,
+            total_contributions: r.data.total_contributions || 1
+          } : { xp_earned: 1, total_xp: 0, total_contributions: 1 });
+
+          resolve({
+            ok: true,
+            item: item,
+            document: docData,
+            contribution: contribData,
+            xp: contribData.xp_earned,
+            score: contribData.total_xp
+          });
+
           if (typeof window.AbhiHubInvitePrompt === 'function') {
             try { window.AbhiHubInvitePrompt(); } catch (e) { }
           }
         } else {
           _progCurrentFile = '';
           _progCurrentPct = 0;
-          setFileStatus(item.id, 'error', 0, r.message || r.error || 'Failed');
-          setItemStatus(item.id, 'error', 0, r.message || r.error || 'Failed');
-          resolve({ ok: false, msg: r.message || r.error });
+          var errMsg = r.message || r.error || 'Upload failed';
+          setFileStatus(item.id, 'error', 0, errMsg);
+          setItemStatus(item.id, 'error', 0, errMsg, true);
+          resolve({ ok: false, msg: errMsg, item: item });
         }
       } catch (e) {
         _progCurrentFile = '';
         _progCurrentPct = 0;
-        setFileStatus(item.id, 'error', 0, 'Invalid response');
-        setItemStatus(item.id, 'error', 0, 'Invalid response');
-        resolve({ ok: false, msg: 'Invalid response' });
+        setFileStatus(item.id, 'error', 0, 'Invalid server response');
+        setItemStatus(item.id, 'error', 0, 'Invalid server response', true);
+        resolve({ ok: false, msg: 'Invalid response', item: item });
       }
     };
+
     xhr.onerror = function () {
       _progCurrentFile = '';
       _progCurrentPct = 0;
       if (retries > 0) {
-        showToast('Network error — retrying…', 'error');
+        showToast('Network issue — retrying…', 'error');
+        setItemStatus(item.id, 'validating', 0, 'Network issue — retrying…');
         setTimeout(function () { uploadOne(item, retries - 1).then(resolve); }, 1500);
       } else {
         setFileStatus(item.id, 'error', 0, 'Network error');
-        setItemStatus(item.id, 'error', 0, 'Network error');
-        resolve({ ok: false });
+        setItemStatus(item.id, 'error', 0, 'Network connection interrupted', true);
+        resolve({ ok: false, msg: 'Network error', item: item });
       }
     };
+
     xhr.ontimeout = function () {
       if (retries > 0) {
         showToast('Upload timed out — retrying…', 'error');
+        setItemStatus(item.id, 'validating', 0, 'Timeout — retrying…');
         setTimeout(function () { uploadOne(item, retries - 1).then(resolve); }, 2000);
       } else {
         setFileStatus(item.id, 'error', 0, 'Timed out');
-        setItemStatus(item.id, 'error', 0, 'Timed out');
-        resolve({ ok: false, msg: 'Upload timed out' });
+        setItemStatus(item.id, 'error', 0, 'Upload timed out. Check your connection.', true);
+        resolve({ ok: false, msg: 'Upload timed out', item: item });
       }
     };
 
@@ -937,10 +1200,18 @@ function handleBeforeUnload(e) {
 }
 
 async function startBulkUpload(event) {
-  event.preventDefault();
-  if (!selectedFiles.length) return showToast('Select at least one file', 'error');
+  if (event) event.preventDefault();
+  if (isUploading) return; // Immediate duplicate click prevention
 
-  // Validate all have required metadata (including college and branch now)
+  // Immediately lock submit button synchronously
+  setUploadButtonState('validating');
+
+  if (!selectedFiles.length) {
+    resetUploadButton();
+    return showToast('Select at least one file', 'error');
+  }
+
+  // Validate all files have required metadata
   const missing = selectedFiles.filter(f => {
     const form = document.getElementById(`meta-form-${f.id}`);
     if (!form) return true;
@@ -957,8 +1228,9 @@ async function startBulkUpload(event) {
   });
 
   if (missing.length) {
+    resetUploadButton();
     if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed('missing_metadata', 'validation_error', 'file');
-    showToast('Fill metadata (College, Department, Category, Subject) for all image(s) first', 'error');
+    showToast('Fill required metadata (College, Department, Category, Subject) first', 'error');
     return;
   }
 
@@ -992,50 +1264,18 @@ async function startBulkUpload(event) {
   });
 
   openStatusModal();
-
-  // Show floating progress pill offering the game
-  let overlay = document.getElementById('uploadOverlay');
-  if (!overlay) {
-    overlay = document.createElement('div');
-    overlay.id = 'uploadOverlay';
-    overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(15,23,42,0.95);z-index:99999;display:none;flex-direction:column;align-items:center;justify-content:center;color:white;font-family:system-ui, sans-serif;';
-    document.body.appendChild(overlay);
-  }
-  overlay.innerHTML = `
-    <button id="minimizeUploadBtn" data-action="minimizeUploadOverlay" class="upload-overlay-minimize-btn" aria-label="Minimize upload progress">&minus;</button>
-    <h2 id="uploadProgressText" style="margin-bottom:10px; font-weight:700;">Uploading 0 / ${uploadBatch.length}</h2>
-    <div style="width:300px;background:#334155;height:24px;border-radius:12px;overflow:hidden;margin-bottom:30px;box-shadow:inset 0 2px 4px rgba(0,0,0,0.5);">
-        <div id="uploadProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg, #ef4444, #f59e0b);transition:width 0.3s ease;"></div>
-    </div>
-    <div style="background:#1e293b; padding:20px; border-radius:16px; border:1px solid #334155; text-align:center;">
-        <p style="margin-bottom:15px;color:#cbd5e1;font-weight:600;">Play Super Abhi Bros while you wait! (Tap/Space to jump)</p>
-        <canvas id="marioCanvas" width="400" height="150" style="background:#87CEEB;border-radius:8px;box-shadow:0 10px 25px rgba(0,0,0,0.5);"></canvas>
-    </div>
-  `;
-
-  let floatingProgress = document.getElementById('floatingProgress');
-  if (!floatingProgress) {
-    floatingProgress = document.createElement('div');
-    floatingProgress.id = 'floatingProgress';
-    floatingProgress.style.cssText = 'position:fixed;bottom:20px;right:20px;background:#2563eb;color:white;padding:12px 20px;border-radius:30px;font-weight:bold;box-shadow:0 4px 15px rgba(0,0,0,0.3);z-index:99998;display:none;cursor:pointer;transition:transform 0.2s;';
-    floatingProgress.onmouseover = () => floatingProgress.style.transform = 'scale(1.05)';
-    floatingProgress.onmouseout = () => floatingProgress.style.transform = 'scale(1)';
-    floatingProgress.onclick = () => { overlay.style.display = 'flex'; floatingProgress.style.display = 'none'; startMarioGame(); };
-    document.body.appendChild(floatingProgress);
-  }
-
-  // Show the pill, keep the overlay hidden
-  overlay.style.display = 'none';
-  floatingProgress.style.display = 'block';
-  floatingProgress.innerHTML = `Uploading 0 / ${uploadBatch.length} &mdash; Play Game 🎮`;
-
   await processUploadBatch(uploadBatch);
 }
 
-window.minimizeUploadOverlay = function () {
-  document.getElementById('uploadOverlay').style.display = 'none';
-  const floating = document.getElementById('floatingProgress');
-  if (floating) floating.style.display = 'block';
+window.retrySingleUpload = async function(id) {
+  const item = selectedFiles.find(f => f.id === id);
+  if (!item) return showToast('File no longer in queue', 'error');
+
+  setItemStatus(id, 'validating', 0, 'Retrying…');
+  const res = await uploadOne(item);
+  if (res && res.ok) {
+    updateStatusSummary();
+  }
 };
 
 let activeUploads = 0;
@@ -1065,12 +1305,8 @@ async function processUploadBatch(batch) {
   _progBar = document.getElementById('uploadProgressBar');
   _progFloat = document.getElementById('floatingProgress');
   _progText = document.getElementById('uploadProgressText');
-  const pText = _progText;
   const pBar = _progBar;
-  const fProg = _progFloat;
 
-  // Bounded concurrency — upload up to 2 files simultaneously so the
-  // connection isn't saturated and each file still gets per-file progress.
   const CONCURRENCY = 2;
   const queue = [...batch];
   const running = new Set();
@@ -1083,19 +1319,24 @@ async function processUploadBatch(batch) {
       uploadOne(item).then(res => {
         results.push(res);
         if (res.skipped) {
-          // counted neither as success upload nor failure
-        } else if (res.ok) { done++; if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUpload(item.name, item.file.type || 'image/jpeg', Math.round((item.blob || item.file).size / 1024)); }
-        else { failed++; if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed(res.msg || 'network_error', 'system_error', _gaMethod); }
+          // Skipped item
+        } else if (res.ok) {
+          done++;
+          _progDone++;
+          if (window.AbhiHubTracking && typeof window.AbhiHubTracking.trackUpload === 'function') {
+            window.AbhiHubTracking.trackUpload(item.name, item.file?.type || 'image/jpeg', Math.round(((item.blob || item.file)?.size || 0) / 1024));
+          }
+        } else {
+          failed++;
+          if (window.AbhiHubTracking && typeof window.AbhiHubTracking.trackUploadFailed === 'function') {
+            window.AbhiHubTracking.trackUploadFailed(res.msg || 'network_error', 'system_error', _gaMethod);
+          }
+        }
         if (pBar) pBar.style.width = `${((done + failed) / batch.length) * 100}%`;
         running.delete(item.id);
         processNext();
       });
     }
-  }
-
-  for (const item of batch) {
-    if (pText) pText.innerText = `Uploading 0 / ${batch.length}`;
-    if (fProg) fProg.innerHTML = `Uploading 0 / ${batch.length} &mdash; Play Game 🎮`;
   }
 
   processNext();
@@ -1110,12 +1351,9 @@ async function processUploadBatch(batch) {
   isUploading = false;
   window.removeEventListener('beforeunload', handleBeforeUnload);
 
-  // Hide progress elements
-  if (fProg) fProg.style.display = 'none';
-  const ov = document.getElementById('uploadOverlay');
-  if (ov) ov.style.display = 'none';
-
   if (failed === 0 && done > 0) {
+    setUploadButtonState('completed');
+
     const firstCol = batch[0].meta.college_id;
     const firstBranch = batch[0].meta.branch_id;
     if (firstCol && firstBranch && firstCol !== '__other__' && firstBranch !== '__other__') {
@@ -1126,29 +1364,34 @@ async function processUploadBatch(batch) {
       }).catch(e => console.error(e));
     }
 
-    const totalXp = results.filter(r => r.ok).reduce((sum, r) => sum + (r.xp || 0), 0);
-    const lastScore = results.filter(r => r.ok).slice(-1)[0]?.score || 0;
+    const successfulResults = results.filter(r => r.ok && !r.skipped);
+    const totalXp = successfulResults.reduce((sum, r) => sum + (r.xp || 0), 0);
+    const lastScore = successfulResults.slice(-1)[0]?.score || 0;
+    const successfulDocs = successfulResults.map(r => r.document || { name: r.item?.name, title: r.item?.name });
 
-    if (typeof window.AbhiHubTracking !== 'undefined') {
-      const types = Array.from(new Set(batch.map(f => f.file.type || 'image/jpeg'))).join(',');
-      const totalSizeKb = Math.round(batch.reduce((sum, f) => sum + (f.blob || f.file).size, 0) / 1024);
-      window.AbhiHubTracking.trackUploadCompleted(done, _gaMethod, types, totalSizeKb);
-      if (totalXp > 0) window.AbhiHubTracking.trackXpEarned(totalXp, lastScore, done);
+    if (window.AbhiHubTracking) {
+      const types = Array.from(new Set(batch.map(f => f.file?.type || 'image/jpeg'))).join(',');
+      const totalSizeKb = Math.round(batch.reduce((sum, f) => sum + ((f.blob || f.file)?.size || 0), 0) / 1024);
+      if (typeof window.AbhiHubTracking.trackUploadCompleted === 'function') {
+        window.AbhiHubTracking.trackUploadCompleted(done, _gaMethod, types, totalSizeKb);
+      }
+      if (totalXp > 0 && typeof window.AbhiHubTracking.trackXpEarned === 'function') {
+        window.AbhiHubTracking.trackXpEarned(totalXp, lastScore, done);
+      }
     }
 
     if (typeof window.markUserUploaded === 'function') window.markUserUploaded();
-    if (typeof showXpModal === 'function') showXpModal(totalXp, lastScore, done);
-
-    // Clear the UI cards after a slight delay so user sees the checkmarks
-    setTimeout(() => {
-      selectedFiles.length = 0;
-      document.getElementById('uploadCarousel').style.display = 'none';
-    }, 2000);
+    closeStatusModal();
+    if (typeof showXpModal === 'function') {
+      showXpModal(totalXp, lastScore, done, successfulDocs);
+    }
 
   } else if (done > 0) {
-    showToast(`${done} succeeded, ${failed} failed.`, 'error');
+    setUploadButtonState('failed');
+    showToast(`${done} published, ${failed} failed. Click retry on failed items.`, 'error');
   } else {
-    showToast('Upload failed. Please try again.', 'error');
+    setUploadButtonState('failed');
+    showToast('Upload could not be completed. Please check errors and retry.', 'error');
   }
 }
 
@@ -1297,7 +1540,7 @@ function ensureStatusItem(id, name) {
   return el;
 }
 
-function setItemStatus(id, status, progress, msg) {
+function setItemStatus(id, status, progress, msg, allowRetry) {
   const item = (typeof selectedFiles !== 'undefined' ? selectedFiles : []).find(f => f.id === id);
   const name = item ? item.name : 'File';
   ensureStatusItem(id, name);
@@ -1312,28 +1555,45 @@ function setItemStatus(id, status, progress, msg) {
   if (pill) {
     pill.className = 'upload-status-pill ' + (status || 'pending');
     const map = {
-      pending: 'Pending',
-      checking: 'Checking…',
-      uploading: 'Uploading',
-      done: 'Done',
-      error: 'Failed',
-      skipped: 'Skipped',
-      duplicate: 'Duplicate',
-      waiting: 'Waiting'
+      pending: '○ Pending',
+      validating: '🔍 Checking…',
+      uploading: (typeof progress === 'number' && progress > 0 && progress < 100) ? `⟳ Uploading ${progress}%` : '⟳ Uploading',
+      processing: '⚡ Processing & publishing…',
+      done: '✓ Published',
+      error: '❌ Failed',
+      skipped: '⏭️ Skipped',
+      duplicate: '⚠️ Duplicate'
     };
-    if (pill.textContent !== (map[status] || status)) pill.textContent = map[status] || status;
+    pill.textContent = map[status] || status;
   }
 
   if (fill) {
     fill.style.width = (typeof progress === 'number' ? Math.max(0, Math.min(100, progress)) : 0) + '%';
   }
 
-  if (meta && typeof msg === 'string') meta.textContent = msg;
-  if (actions) actions.style.display = 'none';
+  if (meta && typeof msg === 'string') {
+    if (status === 'error') {
+      meta.innerHTML = `<span class="error-msg">${msg}</span>`;
+    } else {
+      meta.textContent = msg;
+    }
+  }
 
-  el.classList.remove('is-done', 'is-error', 'duplicate-prompt');
+  if (actions) {
+    if (status === 'error' && allowRetry) {
+      actions.innerHTML = `
+        <button type="button" class="btn-retry-upload" onclick="retrySingleUpload('${id}')">🔄 Retry</button>
+      `;
+      actions.style.display = 'flex';
+    } else if (status !== 'duplicate') {
+      actions.style.display = 'none';
+    }
+  }
+
+  el.classList.remove('is-done', 'is-error', 'is-processing', 'duplicate-prompt');
   if (status === 'done') el.classList.add('is-done');
   else if (status === 'error') el.classList.add('is-error');
+  else if (status === 'processing') el.classList.add('is-processing');
   else if (status === 'duplicate') el.classList.add('duplicate-prompt');
 
   updateStatusSummary();
@@ -1352,15 +1612,26 @@ function updateStatusSummary() {
   const error = entries.filter(x => x.classList.contains('is-error')).length;
   const skipped = entries.filter(x => querySelectorOne(x, '.upload-status-pill') && querySelectorOne(x, '.upload-status-pill').classList.contains('skipped')).length;
   const uploading = entries.filter(x => querySelectorOne(x, '.upload-status-pill') && querySelectorOne(x, '.upload-status-pill').classList.contains('uploading')).length;
+  const processing = entries.filter(x => querySelectorOne(x, '.upload-status-pill') && querySelectorOne(x, '.upload-status-pill').classList.contains('processing')).length;
 
-  summary.textContent = [uploading ? `Uploading ${uploading}` : '', done ? `Done ${done}` : '', error ? `Failed ${error}` : '', skipped ? `Skipped ${skipped}` : ''].filter(Boolean).join(' · ') || 'Preparing…';
+  const parts = [];
+  if (uploading) parts.push(`Uploading ${uploading}`);
+  if (processing) parts.push(`Processing ${processing}`);
+  if (done) parts.push(`${done} Published`);
+  if (error) parts.push(`${error} Need Attention`);
+  if (skipped) parts.push(`${skipped} Skipped`);
+
+  summary.textContent = parts.join(' · ') || 'Preparing resources…';
 
   if (title) {
-    if (error) title.textContent = 'Upload Issues';
-    else if (done && done === total) title.textContent = 'Upload Complete';
-    else title.textContent = 'Uploading…';
+    if (error > 0 && (done + error + skipped === total)) title.textContent = 'Upload Completed with Issues';
+    else if (done === total && total > 0) title.textContent = 'All Resources Published! 🎉';
+    else if (processing > 0) title.textContent = 'Processing Contributions…';
+    else title.textContent = 'Uploading Resources…';
   }
-  if (subtitle) subtitle.textContent = total ? `${done + error + skipped} of ${total} processed` : 'Please keep this window open';
+  if (subtitle) {
+    subtitle.textContent = total ? `${done + error + skipped} of ${total} resources processed` : 'Please keep this window open';
+  }
   if (closeBtn) closeBtn.style.display = (done + error + skipped) >= total && total > 0 ? 'inline-flex' : 'none';
 }
 

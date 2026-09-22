@@ -112,6 +112,7 @@ class CloudinaryUploadTests(unittest.TestCase):
         self.assertTrue(pdf_result["success"])
         self.assertTrue(image_result["success"])
         self.assertEqual(upload_mock.call_args_list[0].kwargs["resource_type"], "raw")
+        self.assertTrue(upload_mock.call_args_list[0].kwargs["public_id"].endswith(".txt"))
         self.assertEqual(upload_mock.call_args_list[1].kwargs["resource_type"], "image")
 
     def test_upload_form_accepts_pdf_and_image_and_records_cloudinary_url(self):
@@ -135,9 +136,9 @@ class CloudinaryUploadTests(unittest.TestCase):
                 }
                 save_result = {"success": True, "data": {"id": "test-document-id"}}
                 with patch("methods.cloudinary_upload.upload_file_to_cloudinary", return_value=upload_result), \
-                     patch("methods.supabase_helper.save_file_record", return_value=save_result) as save_mock, \
-                     patch("methods.supabase_helper.track_user_event"), \
-                     patch("methods.supabase_helper.recalculate_and_persist_user_rank", return_value={"score": 0}), \
+                     patch.object(application_module, "save_file_record", return_value=save_result) as save_mock, \
+                     patch.object(application_module, "track_user_event"), \
+                     patch.object(application_module, "recalculate_and_persist_user_rank", return_value={"score": 0}), \
                      patch.object(application_module, "_grant_upload_credits"), \
                      patch.object(application_module, "_get_quota", return_value={"credits": 0}), \
                      patch.object(application_module, "_trigger_indexnow"), \

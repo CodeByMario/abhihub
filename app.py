@@ -2860,25 +2860,22 @@ def upload():
             program = request.form.get('program', 'b.tech').strip() or 'b.tech'
             unit = request.form.get('unit', '')
 
-            # ── Server-Side Upload Quality Gate (Strict Validation) ──
-            if len(title_val) < 5:
-                return jsonify(success=False, message="Resource title must be at least 5 characters long."), 400
+            # ── Server-Side Upload Quality Gate ──
+            if not title_val or len(title_val) < 3:
+                title_val = f"{subject or 'Study Material'} {document_type.replace('_', ' ').title()} {year}".strip()
 
             if not college_id:
-                return jsonify(success=False, message="College selection is required."), 400
+                college_id = user_info.get('college_id') or (user_info.get('user_metadata') or {}).get('college_id', '')
 
             if (not subject_id or subject_id == '__other__') and document_type.lower() != 'question_bank':
                 logging.warning(f"[UPLOAD REJECTED] Reason:Missing subject_id Uploader:{user_id}")
                 return jsonify(success=False, message="Subject selection is required. Please select a subject from the dropdown."), 400
 
             if semester is None:
-                return jsonify(success=False, message="Please select a valid semester (1 to 8)."), 400
+                semester = 1  # Graceful default
 
             if not (year.isdigit() and len(year) == 4 and 1990 <= int(year) <= 2035):
                 return jsonify(success=False, message="Please provide a valid 4-digit academic year (e.g. 2025)."), 400
-
-            if len(description_val.split()) < 50:
-                return jsonify(success=False, message="Upload requires a study description of at least 50 words summarizing the topics or questions covered."), 400
 
             # Build metadata-aware filename:
             # stable pattern so files are easy to find/filter:
@@ -3010,95 +3007,142 @@ def upload():
                     message=f"File uploaded to Cloudinary, but database record creation failed: {file_record_result.get('message')}"
                 ), 500
             
-            # Persist Question Bank tags when provided
+            # Persist Question Bank tags when provided (Batched)
             try:
                 if document_type.lower() == 'question_bank':
                     raw_tags = (request.form.get('qb_tags') or '').strip()
-                    if raw_tags and file_record_result.get('data', {}).get('id'):
-                        doc_id = file_record_result['data']['id']
-                        tag_names = [t.strip() for t in re.split(r'[\,\;|]+', raw_tags) if t.strip()]
-                        tag_names = list(dict.fromkeys(tag_names))
-                        for tag_name in tag_names[:20]:
-                            try:
-                                tag_res = client.table('tags').select('id').eq('name', tag_name).limit(1).execute()
-                                tag_id = tag_res.data[0]['id'] if tag_res.data else None
-                                if not tag_id:
-                                    ins = client.table('tags').insert({'name': tag_name}).execute()
-                                    tag_id = ins.data[0]['id'] if ins.data else None
-                                if tag_id:
-                                    client.table('document_tags').insert({'document_id': doc_id, 'tag_id': tag_id}).execute()
-                            except Exception:
-                                pass
-            except Exception:
-                pass
+                    doc_id = file_record_result.get('data', {}).get('id')
+                    if raw_tags and doc_id:
+                        client = init_supabase()
+                        if client:
+                            tag_names = list(dict.fromkeys([t.strip() for t in re.split(r'[\,\;|]+', raw_tags) if t.strip()]))[:20]
+                            if tag_names:
+                                # Batch fetch existing tags in 1 query
+                                existing_tags_res = client.table('tags').select('id, name').in_('name', tag_names).execute()
+                                existing_map = {t['name']: t['id'] for t in (existing_tags_res.data or [])}
+                                missing_tags = [{'name': name} for name in tag_names if name not in existing_map]
+                                if missing_tags:
+                                    ins_res = client.table('tags').insert(missing_tags).execute()
+                                    for t in (ins_res.data or []):
+                                        existing_map[t['name']] = t['id']
+                                doc_tags = [{'document_id': doc_id, 'tag_id': tid} for name, tid in existing_map.items() if tid]
+                                if doc_tags:
+                                    client.table('document_tags').insert(doc_tags).execute()
+            except Exception as tag_err:
+                logging.debug(f"[UPLOAD] Batched tag insertion notice: {tag_err}")
             
             logging.info(f"[UPLOAD SUCCESS] Document ID: {file_record_result.get('data', {}).get('id')}")
 
-            # ── Track UPLOAD event (non-blocking) ───────────────────────
-            try:
-                track_user_event(user_id, 'UPLOAD', {
-                    'document_id': file_record_result.get('data', {}).get('id'),
-                    'subject_id': subject_id or None,
-                    'semester': semester,
-                    'document_type': document_type.lower()
-                })
-            except Exception:
-                pass
+            # ── Async Post-Upload Tasks ───────────────────────
+            doc_id = file_record_result.get('data', {}).get('id')
+            material_request_id = request.form.get('material_request_id')
 
-            # If this upload was in response to a material request, mark the request accepted
-            try:
-                material_request_id = request.form.get('material_request_id')
-                if material_request_id:
-                    client = init_supabase()
-                    if client:
-                        client.table('material_requests').update({
-                            'status': 'accepted',
-                            'responder_id': user_id,
-                            'responder_email': user_email,
-                            'response_message': f"Uploaded file {file_record_result.get('data', {}).get('id')}",
-                            'response_document_id': file_record_result.get('data', {}).get('id'),
-                            'responded_at': 'now()'
-                        }).eq('id', material_request_id).execute()
-            except Exception as _e:
-                logging.warning(f"[UPLOAD] Warning: could not mark material_request accepted: {_e}")
+            def _bg_post_upload(u_id, u_email, d_id, s_id, sem, d_type, m_req_id):
+                try:
+                    track_user_event(u_id, 'UPLOAD', {
+                        'document_id': d_id,
+                        'subject_id': s_id,
+                        'semester': sem,
+                        'document_type': d_type
+                    })
+                except Exception:
+                    pass
+                if m_req_id and d_id:
+                    try:
+                        c = init_supabase()
+                        if c:
+                            c.table('material_requests').update({
+                                'status': 'accepted',
+                                'responder_id': u_id,
+                                'responder_email': u_email,
+                                'response_message': f"Uploaded file {d_id}",
+                                'response_document_id': d_id,
+                                'responded_at': 'now()'
+                            }).eq('id', m_req_id).execute()
+                    except Exception as _e:
+                        logging.warning(f"[UPLOAD] Warning: could not mark material_request accepted: {_e}")
+                try:
+                    _trigger_indexnow([
+                        f"https://{BASE_DOMAIN}/pyq",
+                        f"https://{BASE_DOMAIN}/resource/{d_id}" if d_id else None,
+                    ])
+                except Exception:
+                    pass
+                try:
+                    recalculate_and_persist_user_rank(u_id)
+                except Exception as rank_err:
+                    logging.warning(f"[UPLOAD] Rank recalc failed (non-critical): {rank_err}")
+
+            import threading
+            threading.Thread(
+                target=_bg_post_upload,
+                args=(user_id, user_email, doc_id, subject_id or None, semester, document_type.lower(), material_request_id),
+                daemon=True
+            ).start()
 
             _grant_upload_credits()
 
-            # ── IndexNow: fast-track indexing of new resource ────────────
+            cat = document_type.lower()
+            raw_pts = POINTS_MAP.get(cat, DEFAULT_POINTS)
+            xp_gained = round(raw_pts * 0.5, 2)
+            new_score = 0.0
             try:
-                doc_id = file_record_result.get('data', {}).get('id', '')
-                _trigger_indexnow([
-                    f"https://{BASE_DOMAIN}/pyq",
-                    f"https://{BASE_DOMAIN}/resource/{doc_id}" if doc_id else None,
-                ])
+                profile_row = session.get('profile') or {}
+                new_score = round(float(profile_row.get('reputation_score') or 0.0) + xp_gained, 2)
             except Exception:
                 pass
 
-            # ── Recalculate & persist reputation score in DB ────────
-            xp_gained = 0.0
-            new_score = 0.0
+            # Invalidate cache layers on successful upload
             try:
-                # XP for this specific upload (before persist)
-                cat = document_type.lower()
-                raw_pts = POINTS_MAP.get(cat, DEFAULT_POINTS)
-                xp_gained = round(raw_pts * 0.5, 2)  # pending = half pts initially
-                result_rank = recalculate_and_persist_user_rank(user_id)
-                new_score = result_rank.get('score', 0.0)
-            except Exception as rank_err:
-                logging.warning(f"[UPLOAD] Rank recalc failed (non-critical): {rank_err}")
+                cache.invalidate_files()
+                cache.invalidate_dropdowns()
+                cache.bump_version()
+            except Exception:
+                pass
 
-            # ── Invalidate cache layers on successful upload ────────
-            # File list, search results, and dropdowns are now stale
-            cache.invalidate_files()
-            cache.invalidate_dropdowns()
-            cache.bump_version()
+            total_uploads = 1
+            try:
+                c = init_supabase()
+                if c and user_id:
+                    cnt_res = c.table('documents').select('id', count='exact').eq('uploader_id', user_id).execute()
+                    if cnt_res and cnt_res.count is not None:
+                        total_uploads = cnt_res.count
+            except Exception:
+                try:
+                    profile_row = session.get('profile') or {}
+                    total_uploads = int(profile_row.get('uploads_count') or 1)
+                except Exception:
+                    total_uploads = 1
+
+            document_payload = {
+                'id': doc_id,
+                'title': title_val,
+                'url': f"/resource/{doc_id}" if doc_id else upload_result['secure_url'],
+                'subject': subject,
+                'semester': semester,
+                'document_type': document_type.lower()
+            }
+
+            contribution_payload = {
+                'xp_earned': xp_gained,
+                'total_xp': new_score,
+                'total_contributions': total_uploads
+            }
 
             return jsonify(
                 success=True,
-                message="File uploaded and recorded successfully! 🎉",
+                message="Contribution uploaded and published successfully! 🎉",
+                document=document_payload,
+                contribution=contribution_payload,
                 data={
                     'url': upload_result['secure_url'],
-                    'record_id': file_record_result.get('data', {}).get('id'),
+                    'record_id': doc_id,
+                    'resource_id': doc_id,
+                    'resource_url': f"/resource/{doc_id}" if doc_id else None,
+                    'title': title_val,
+                    'subject': subject,
+                    'semester': semester,
+                    'document_type': document_type.lower(),
                     'public_id': upload_result['public_id'],
                     'file_size': upload_result['bytes'],
                     'file_type': file_type_category,
@@ -3106,7 +3150,8 @@ def upload():
                     'credits_granted': QUOTA_PER_UPLOAD,
                     'credits_remaining': _get_quota().get('credits', 0),
                     'xp_gained': xp_gained,
-                    'new_score': new_score
+                    'new_score': new_score,
+                    'total_contributions': total_uploads
                 }
             ), 200
             

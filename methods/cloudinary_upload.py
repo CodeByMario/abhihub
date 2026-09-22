@@ -9,7 +9,10 @@ import time
 import cloudinary
 import cloudinary.uploader
 from PIL import Image
-from pypdf import PdfReader, PdfWriter
+try:
+    from pypdf import PdfReader, PdfWriter
+except ImportError:
+    PdfReader = PdfWriter = None
 from typing import Dict, Optional, BinaryIO
 from dotenv import load_dotenv
 import logging
@@ -247,40 +250,32 @@ def upload_file_to_cloudinary(
         elif resource_type == 'raw':
             # For PDFs and documents
             upload_params['resource_type'] = 'raw'
+        upload_params['access_mode'] = 'public'
 
         logging.info(f"📤 Uploading to Cloudinary: {public_id}")
         result = cloudinary.uploader.upload(file_bytes, **upload_params)
 
-        # Ensure the resource is publicly accessible via admin API.
-        # The access_control param on upload doesn't always stick for raw resources
-        # on some account configurations; an explicit admin update guarantees it.
-        try:
-            import cloudinary.api as _cld_api
-            _cld_api.update(result.get('public_id'), resource_type=resource_type, access_mode='public')
-            logging.info(f"✓ Public access confirmed for {result.get('public_id')}")
-        except Exception as _e:
-            logging.warning(f"[cloudinary] Could not set public access on {public_id}: {_e}")
+        # Non-blocking async upload to Supabase Storage as a background fallback
+        def _bg_supabase_fallback(f_bytes, p_id, f_ext):
+            try:
+                from methods.supabase_helper import init_supabase, upload_file_to_supabase
+                client = init_supabase()
+                if client:
+                    c_type = 'application/pdf' if f_ext and f_ext.lower() == 'pdf' else 'application/octet-stream'
+                    upload_file_to_supabase(
+                        file_data=f_bytes,
+                        supabase_path=f"cloudinary_fallback/{p_id}{f_ext if f_ext else '.pdf'}",
+                        content_type=c_type
+                    )
+            except Exception as _e:
+                logging.debug(f"[cloudinary] Async Supabase fallback skipped: {_e}")
 
-        # Also upload to Supabase Storage as a fallback/public delivery layer.
-        # Cloudinary Free plan may block all access methods (signed URLs, admin API),
-        # but Supabase Storage with anon key provides reliable public access.
-        try:
-            from methods.supabase_helper import init_supabase, upload_file_to_supabase
-            client = init_supabase()
-            if client:
-                supabase_result = upload_file_to_supabase(
-                    file_data=file_bytes,
-                    supabase_path=f"cloudinary_fallback/{result['public_id']}{ext if ext else '.pdf'}",
-                    content_type='application/pdf' if ext and ext.lower() == 'pdf' else 'application/octet-stream'
-                )
-                if supabase_result.get('success'):
-                    result['supabase_url'] = supabase_result.get('url')
-                    result['supabase_public_id'] = supabase_result.get('public_path')
-                    logging.info(f"✓ Uploaded to Supabase fallback: {supabase_result.get('url')}")
-                else:
-                    logging.warning(f"[cloudinary] Supabase upload fallback skipped: {supabase_result.get('message')}")
-        except Exception as _e:
-            logging.warning(f"[cloudinary] Supabase fallback upload skipped: {_e}")
+        import threading
+        threading.Thread(
+            target=_bg_supabase_fallback,
+            args=(file_bytes, result['public_id'], ext),
+            daemon=True
+        ).start()
 
         logging.info(f"✅ Upload successful: {result.get('secure_url')}")
 

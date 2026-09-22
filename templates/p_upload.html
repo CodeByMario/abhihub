@@ -53,6 +53,15 @@
                  data-event-change="handleFilesSelected">
 
 
+          <!-- File Filmstrip / Quick Navigation Bar -->
+          <div id="uploadFilmstrip" class="upload-filmstrip" style="display: none;">
+            <div class="filmstrip-header">
+              <span class="filmstrip-title">📂 Selected Files (<span id="filmstripCount">0</span>)</span>
+              <button type="button" class="filmstrip-add-btn" data-action="openFileInput" title="Add more files">+ Add Files</button>
+            </div>
+            <div id="filmstripList" class="filmstrip-list"></div>
+          </div>
+
           <!-- Upload Carousel (Hidden by default) -->
           <div id="uploadCarousel" class="upload-carousel" style="display: none;">
             <!-- Left: Image Panel -->
@@ -69,11 +78,17 @@
                 <button type="button" class="img-ctrl-btn" data-action="rotateCarousel" data-direction="-90" title="Rotate Left" aria-label="Rotate Left">↺</button>
                 <button type="button" class="img-ctrl-btn" data-action="rotateCarousel" data-direction="90" title="Rotate Right" aria-label="Rotate Right">↻</button>
                 <button type="button" class="img-ctrl-btn" data-action="toggleCarouselCrop" id="cropToggleBtn" title="Crop" aria-label="Crop">✂️</button>
+                <button type="button" class="img-ctrl-btn" data-action="openFullPreview" id="fullPreviewBtn" title="Open Full Preview" aria-label="Full Preview">🔍 View</button>
               </div>
             </div>
 
             <!-- Right: Meta Panel -->
             <div class="carousel-meta-panel">
+              <div class="meta-panel-top-actions">
+                <button type="button" class="batch-apply-btn" data-action="copyLabelsToAll" title="Copy College, Department, Semester, and Subject to all other selected files">
+                  ⚡ Copy details to all files
+                </button>
+              </div>
               <div id="metaFormsContainer"></div>
               
               <template id="metaFormTemplate">
@@ -182,10 +197,10 @@
                   </div>
                   <div class="meta-field">
                     <label>Resource Title *</label>
-                    <input type="text" class="modern-input meta-title" name="title" placeholder="e.g. Data Structures End-Sem PYQ 2025" required minlength="5" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:8px;" />
+                    <input type="text" class="modern-input meta-title" name="title" placeholder="e.g. Data Structures End-Sem PYQ 2025" required minlength="3" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:8px;" />
                   </div>
                   <div class="meta-field">
-                    <label>Study Description (Helps indexing & search)</label>
+                    <label>Study Description <span style="font-size:0.75rem; color:#64748b; font-weight:normal;">(Optional - helps indexing & search)</span></label>
                     <textarea class="modern-input meta-description" name="description" rows="2" placeholder="Brief summary of units, topics, or questions covered..." style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:8px; resize:vertical; font-family:inherit;"></textarea>
                   </div>
                   <div class="meta-field upload-hidden-section qb-tags-wrap" style="display:none;">
@@ -213,7 +228,10 @@
           </div>
 
           <!-- Submit -->
-          <button type="submit" class="upload-btn" id="submitBtn" data-action="trackUploadStart">Upload Files</button>
+          <button type="submit" class="upload-btn" id="submitBtn" data-action="trackUploadStart" aria-live="polite">
+            <span class="btn-spinner" id="btnSpinner" style="display:none;" aria-hidden="true"></span>
+            <span id="submitBtnText">Upload Files</span>
+          </button>
 
           <!-- ── Material Requests (inline, below submit) ── -->
           <button id="showRequestsBtn" title="Show material requests" data-action="toggleRequestsPanel">📥 Respond to a material request</button>
@@ -231,18 +249,20 @@
 </div>
 
 <!-- ── Shared Popup Modal ── -->
-<div id="popupModal" class="popup-overlay" style="display:none;" data-action="dismissIfClicked">
+<div id="popupModal" class="popup-overlay" style="display:none;" data-action="dismissIfClicked" role="dialog" aria-modal="true" aria-labelledby="xpModalTitle">
   <div class="popup-card">
 
     <section id="popupXp" class="popup-section">
       <div id="xpCard">
         <div class="xp-card-header">
-          <div id="xpEmoji" class="xp-emoji">⚡</div>
-          <h2 class="xp-title">Upload Complete!</h2>
-          <p id="xpFilesMsg" class="xp-copy">Your file is now live</p>
+          <div id="xpEmoji" class="xp-emoji">🎉</div>
+          <h2 class="xp-title" id="xpModalTitle">Contribution Complete!</h2>
+          <p id="xpSubtitle" class="xp-copy" style="margin-bottom: 0.5rem;">Your resource is live and available to students.</p>
           <script>if(window.gtag){gtag('event', 'upload_funnel', {'funnel_step': '4_upload_completed'});}</script>
         </div>
         <div class="xp-card-body">
+          <div id="xpFilesMsg" class="xp-resource-list" style="margin-bottom: 1rem;"></div>
+
           <div class="xp-stats-row">
             <div class="xp-value-card">
               <div id="xpGainedVal" class="xp-value-number">+0</div>
@@ -254,9 +274,9 @@
             </div>
           </div>
 
-          <div class="xp-actions" style="margin-top: 15px;">
-            <a href="/dashboard" class="xp-action-link" style="margin-right:15px; color: var(--text-secondary);">Go to Dashboard</a>
-            <button type="button" class="xp-action-btn" data-action="closeXpModal">Upload More</button>
+          <div class="xp-actions" style="margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center;">
+            <a href="/profile" id="viewResourceBtn" class="xp-action-btn" style="text-decoration:none; background:#2563eb; color:#ffffff; padding:0.75rem 1.4rem; border-radius:14px; font-weight:700; box-shadow:0 10px 25px rgba(37,99,235,0.25);">🚀 View Live Resource</a>
+            <button type="button" class="xp-action-btn" data-action="closeXpModal" style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:0.75rem 1.4rem; border-radius:14px; font-weight:700; cursor:pointer;">Upload Another</button>
           </div>
         </div>
       </div>
@@ -398,65 +418,113 @@
   document.addEventListener('DOMContentLoaded', async () => {
     updateDynamicFields();
 
-    // Fetch and cache profile data once
-    try {
-      const p = await fetch('/api/profile').then(r => r.json());
-      if (p.success && p.user) {
-        window.userCollegeId = p.user.college_id || p.user.user_metadata?.college_id || null;
-        window.userBranchId  = p.user.department_id || p.user.user_metadata?.branch_id || null;
-        window.userProgram   = p.user.user_metadata?.program || null;
-        window.userSemester  = p.user.user_metadata?.semester || null;
+    // Fast-path: use embedded session profile if present
+    if (window.__CURRENT_USER__) {
+      window.userCollegeId = window.__CURRENT_USER__.college || null;
+      window.userBranchId  = window.__CURRENT_USER__.branch || null;
+      window.userProgram   = window.__CURRENT_USER__.degree || null;
+      window.userSemester  = window.__CURRENT_USER__.year || null;
+    }
+
+    if (!window.userCollegeId) {
+      try {
+        const p = await fetch('/api/profile').then(r => r.json());
+        if (p.success && p.user) {
+          window.userCollegeId = p.user.college_id || p.user.user_metadata?.college_id || null;
+          window.userBranchId  = p.user.department_id || p.user.user_metadata?.branch_id || null;
+          window.userProgram   = p.user.user_metadata?.program || null;
+          window.userSemester  = p.user.user_metadata?.semester || null;
+        }
+      } catch (err) {
+        console.warn('[Upload] Could not load profile defaults', err);
       }
-    } catch (err) {
-      console.warn('[Upload] Could not load profile defaults', err);
     }
   });
 
-  /* ── XP Modal / Contribution Story (Phase 15) ── */
-  async function showXpModal(xpGained, newScore, fileCount) {
+  /* ── Success Modal & Direct Resource Navigation ── */
+  let redirectTimer = null;
+
+  async function showXpModal(xpGained, newScore, fileCount, uploadedItems) {
     const overlay = document.getElementById('popupModal');
     const card    = document.getElementById('xpCard');
     if (!overlay) return;
     
-    // Set basic stats
+    // Set XP stats
     document.getElementById('xpGainedVal').textContent = '+' + (Math.round(xpGained * 100) / 100);
     document.getElementById('xpScoreVal').textContent  = Math.round(newScore * 100) / 100;
     
-    // Base message format for the "Contribution Story"
-    let msg = `
-      <div style="text-align:left; background: rgba(255,255,255,0.05); padding: 15px; border-radius: 8px; margin-bottom: 15px;">
-        <div style="margin-bottom:8px;">📄 <strong>${fileCount} document(s)</strong> added</div>
-        <div style="margin-bottom:8px;">❤️ Approximately <strong>${Math.floor(Math.random() * 50) + 10} students</strong> can now access these materials</div>
-        <div style="margin-bottom:8px;">🏅 You earned <strong>+${Math.round(xpGained)} XP</strong></div>
-      </div>
-      <p style="font-style: italic; color: var(--text-secondary); margin-bottom: 15px;">"Every upload helps the next batch of engineers succeed." ❤️</p>
-    `;
+    // Render list of verified uploaded resources
+    const items = Array.isArray(uploadedItems) ? uploadedItems : [];
+    const firstUrl = items[0]?.resource_url || (items[0]?.id ? '/resource/' + items[0].id : (items[0]?.resource_id ? '/resource/' + items[0].resource_id : '/profile'));
     
+    let resourcesHtml = '';
+    if (items.length > 0) {
+      resourcesHtml = `
+        <div style="text-align:left; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px; border-radius: 16px; margin-bottom: 14px;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+            <span style="font-size:0.82rem; color:#2563eb; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">✓ PUBLISHED ON ABHIHUB (${items.length})</span>
+            <span style="font-size:0.8rem; color:#64748b; font-weight:600;" id="countdownNotice">Redirecting in 3s…</span>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:8px; max-height:160px; overflow-y:auto;">
+            ${items.map(it => {
+              const u = it.resource_url || (it.id ? '/resource/' + it.id : (it.resource_id ? '/resource/' + it.resource_id : '/profile'));
+              return `
+                <a href="${u}" style="display:flex; align-items:center; justify-content:space-between; text-decoration:none; padding:10px 14px; background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; color:#1e293b; font-size:0.92rem; font-weight:700; box-shadow:0 1px 3px rgba(0,0,0,0.04); transition:all 0.2s;">
+                  <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:75%;">📄 ${it.title || it.name || 'Academic Resource'}</span>
+                  <span style="font-size:0.8rem; color:#2563eb; font-weight:700; white-space:nowrap; background:#eff6ff; padding:4px 10px; border-radius:8px; border:1px solid #bfdbfe;">View ➔</span>
+                </a>
+              `;
+            }).join('')}
+          </div>
+        </div>
+      `;
+    }
+
+    let userStatsHtml = '';
     try {
       const p = await fetch('/api/profile').then(r => r.json());
-      if (p.success && p.user) {
-        const studentsHelped = p.user.students_helped || 0;
-        const badges = p.user.badges || [];
+      if (p && p.success && p.user) {
+        const totalContribs = p.user.uploads_count || p.user.documents_uploaded || fileCount;
         const rank = p.user.rank_title || 'Contributor';
-        
-        // Enhance the message with user data if available
-        msg += `<p class="xp-champion-msg">🏆 You are a <strong>${rank}</strong>!</p>`;
-        
-        if (badges.length > 0) {
-          const latestBadge = badges[badges.length - 1];
-          if (window.AbhiHubTracking && typeof window.AbhiHubTracking.trackBadgeUnlocked === 'function') {
-            window.AbhiHubTracking.trackBadgeUnlocked(latestBadge);
-          }
-        }
+        userStatsHtml = `
+          <div style="text-align:center; margin-bottom: 12px; font-size: 0.92rem; color: #cbd5e1;">
+            🏅 You are a <strong style="color:#f59e0b;">${rank}</strong> &bull; Total Contributions: <strong>${totalContribs}</strong>
+          </div>
+        `;
       }
-    } catch(err) { console.error('Failed to fetch reputation stats', err); }
-    
-    document.getElementById('xpFilesMsg').innerHTML = msg;
+    } catch(err) {
+      console.warn('[Upload] Could not fetch profile summary:', err);
+    }
+
+    const viewBtn = document.getElementById('viewResourceBtn');
+    if (viewBtn) {
+      viewBtn.href = firstUrl;
+      viewBtn.innerHTML = `🚀 View Live Resource`;
+    }
+
+    document.getElementById('xpFilesMsg').innerHTML = resourcesHtml + userStatsHtml;
     document.getElementById('popupXp').style.display = 'block';
     overlay.style.display = 'flex';
+
+    // Auto-redirect countdown to recent resource
+    let timeLeft = 3;
+    const cdEl = document.getElementById('countdownNotice');
+    if (redirectTimer) clearInterval(redirectTimer);
+    redirectTimer = setInterval(() => {
+      timeLeft--;
+      if (cdEl) cdEl.textContent = `Redirecting in ${timeLeft}s…`;
+      if (timeLeft <= 0) {
+        clearInterval(redirectTimer);
+        window.location.href = firstUrl;
+      }
+    }, 1000);
   }
 
   function closeXpModal() {
+    if (redirectTimer) {
+      clearInterval(redirectTimer);
+      redirectTimer = null;
+    }
     const overlay = document.getElementById('popupModal');
     const card    = document.getElementById('xpCard');
     if (!overlay) return;
@@ -465,9 +533,14 @@
     const popupXp = document.getElementById('popupXp');
     if (popupXp) popupXp.style.display = 'none';
     setTimeout(() => {
-      // Reset form for next upload
+      // Reset form and upload state
       document.getElementById('uploadForm')?.reset();
       if (typeof selectedFiles !== 'undefined') { selectedFiles.length = 0; }
+      if (typeof resetUploadButton === 'function') { resetUploadButton(); }
+      const carousel = document.getElementById('uploadCarousel');
+      if (carousel) carousel.style.display = 'none';
+      const filmstrip = document.getElementById('uploadFilmstrip');
+      if (filmstrip) filmstrip.style.display = 'none';
     }, 250);
   }
 </script>
@@ -538,37 +611,3 @@
 </script>
 
 {% endblock %}
-<!-- Skeleton Loading States -->
-<style>
-.skeleton {
-  background: #f1f5f9;
-  background: linear-gradient(90deg, #e2e8f0 25%, #f1f5f9 50%, #e2e8f0 75%);
-  background-size: 200% 100%;
-  animation: loading 1.5s ease-in-out infinite;
-}
-
-@keyframes loading {
-  0% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
-  100% {
-    background-position: 0% 50%;
-  }
-}
-
-.skeleton-text {
-  width: 70%;
-  height: 1.2rem;
-  margin: 0.5rem 0;
-  border-radius: 0.25rem;
-}
-
-.skeleton-image {
-  width: 100%;
-  height: 180px;
-  border-radius: 0.5rem;
-}
-</style>
