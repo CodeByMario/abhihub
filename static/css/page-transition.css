@@ -1,0 +1,268 @@
+/**
+ * AbhiHub — Apple-Style Card Navigation & Loading Transition Styles
+ * Brand Palette: Deep Navy (#1B3A6B), Sky Blue (#4FA9E0), Primary Red (#E8262A)
+ */
+
+/* ── 1. Top Branded Progress Bar (Safari/Apple HIG Style) ── */
+#abhihub-progress-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 0%;
+  height: 3px;
+  background: linear-gradient(90deg, #1B3A6B 0%, #4FA9E0 50%, #E8262A 100%);
+  z-index: 100000;
+  pointer-events: none;
+  opacity: 0;
+  transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.2s ease;
+  box-shadow: 0 0 10px rgba(79, 169, 224, 0.6), 0 0 4px rgba(232, 38, 42, 0.4);
+}
+
+#abhihub-progress-bar.is-active {
+  opacity: 1;
+}
+
+#abhihub-progress-bar.is-finishing {
+  width: 100% !important;
+  opacity: 0;
+  transition: width 0.15s ease, opacity 0.25s 0.1s ease;
+}
+
+/* ── 2. Card Micro-Interaction Feedback ── */
+.pcard,
+[data-nav-card] {
+  transition: transform 0.2s cubic-bezier(0.2, 0, 0, 1), box-shadow 0.2s ease, opacity 0.2s ease;
+  position: relative;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Instant tap / active feedback */
+.pcard:active,
+[data-nav-card]:active {
+  transform: scale(0.985);
+}
+
+/* Loading state applied on click */
+.pcard.is-navigating,
+[data-nav-card].is-navigating {
+  transform: scale(0.985);
+  box-shadow: 0 0 0 2px #4FA9E0, 0 4px 14px rgba(27, 58, 107, 0.15) !important;
+  pointer-events: none !important; /* Prevents double-navigation clicks */
+  cursor: wait !important;
+}
+
+/* Subtle inline loading pulse badge */
+.pcard.is-navigating::after,
+[data-nav-card].is-navigating::after {
+  content: "";
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 18px;
+  height: 18px;
+  border: 2px solid rgba(79, 169, 224, 0.25);
+  border-top-color: #1B3A6B;
+  border-radius: 50%;
+  animation: abhihub-spin 0.6s linear infinite;
+  z-index: 10;
+  pointer-events: none;
+}
+
+:root[data-theme="dark"] .pcard.is-navigating::after,
+[data-theme="dark"] .pcard.is-navigating::after {
+  border-top-color: #4FA9E0;
+}
+
+@keyframes abhihub-spin {
+  to { transform: rotate(360deg); }
+}
+
+/* Dim sibling cards slightly to focus attention on selected card */
+.hscroll-row:has(.is-navigating) .pcard:not(.is-navigating),
+.card-grid:has(.is-navigating) .pcard:not(.is-navigating) {
+  opacity: 0.7;
+  transition: opacity 0.25s ease;
+}
+
+/* ── 3. Slow Network Escalation Banner (>5s) ── */
+#abhihub-nav-notice {
+  position: fixed;
+  bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(27, 58, 107, 0.95);
+  color: #FFFFFF;
+  padding: 0.625rem 1.25rem;
+  border-radius: 9999px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(79, 169, 224, 0.3);
+  z-index: 99999;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s ease, transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  white-space: nowrap;
+}
+
+#abhihub-nav-notice.is-visible {
+  opacity: 1;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0);
+}
+
+#abhihub-nav-notice .notice-cancel {
+  background: rgba(255, 255, 255, 0.2);
+  border: none;
+  color: #FFFFFF;
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  margin-left: 0.5rem;
+}
+
+/* ── 4. Full-Screen Branded Loading Overlay (Option 1) ── */
+#abhihub-loading-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+:root[data-theme="dark"] #abhihub-loading-overlay,
+[data-theme="dark"] #abhihub-loading-overlay {
+  background: rgba(11, 17, 32, 0.65);
+}
+
+#abhihub-loading-overlay.is-visible {
+  opacity: 1;
+  pointer-events: auto; /* Blocks duplicate taps during page transition */
+}
+
+.abhihub-overlay-card {
+  background: #FFFFFF;
+  border: 1px solid rgba(226, 232, 240, 0.8);
+  border-radius: 20px;
+  padding: 24px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  box-shadow: 0 20px 45px rgba(27, 58, 107, 0.18), 0 4px 12px rgba(0, 0, 0, 0.08);
+  transform: scale(0.92);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  max-width: 280px;
+  text-align: center;
+}
+
+:root[data-theme="dark"] .abhihub-overlay-card,
+[data-theme="dark"] .abhihub-overlay-card {
+  background: #1E293B;
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: 0 20px 45px rgba(0, 0, 0, 0.45);
+}
+
+#abhihub-loading-overlay.is-visible .abhihub-overlay-card {
+  transform: scale(1);
+}
+
+/* Branded Dual-Ring Spinner */
+.abhihub-branded-spinner {
+  position: relative;
+  width: 44px;
+  height: 44px;
+}
+
+.abhihub-branded-spinner::before,
+.abhihub-branded-spinner::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 3px solid transparent;
+}
+
+.abhihub-branded-spinner::before {
+  border-top-color: #1B3A6B;
+  border-right-color: #4FA9E0;
+  animation: abhihub-spin 0.75s cubic-bezier(0.5, 0, 0.5, 1) infinite;
+}
+
+:root[data-theme="dark"] .abhihub-branded-spinner::before,
+[data-theme="dark"] .abhihub-branded-spinner::before {
+  border-top-color: #4FA9E0;
+  border-right-color: #70BAE8;
+}
+
+.abhihub-branded-spinner::after {
+  inset: 5px;
+  border-top-color: #E8262A;
+  animation: abhihub-spin 1.1s linear infinite reverse;
+}
+
+.abhihub-overlay-text {
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: #1A1A1A;
+  letter-spacing: -0.01em;
+}
+
+:root[data-theme="dark"] .abhihub-overlay-text,
+[data-theme="dark"] .abhihub-overlay-text {
+  color: #F8FAFC;
+}
+
+.abhihub-overlay-subtext {
+  font-size: 0.75rem;
+  color: #64748B;
+  margin-top: -6px;
+}
+
+:root[data-theme="dark"] .abhihub-overlay-subtext,
+[data-theme="dark"] .abhihub-overlay-subtext {
+  color: #94A3B8;
+}
+
+/* ── 5. Accessibility (Screen Reader & Reduced Motion) ── */
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  #abhihub-loading-overlay,
+  .abhihub-overlay-card,
+  #abhihub-progress-bar,
+  .pcard,
+  [data-nav-card] {
+    transition: none !important;
+  }
+  .abhihub-branded-spinner::before,
+  .abhihub-branded-spinner::after,
+  .pcard.is-navigating::after,
+  [data-nav-card].is-navigating::after {
+    animation: none !important;
+    border: 3px solid #4FA9E0 !important;
+  }
+}

@@ -1,14 +1,26 @@
-<!-- Loading Spinner Overlay -->
-<div id="page-loading-overlay" class="page-loading-overlay" style="display:none;">
-  <div class="loading-spinner">
-    <div class="spinner-icon"></div>
-    <span class="loading-text">Loading...</span>
+<!-- AbhiHub Apple-Style Loading Transition Component -->
+<link rel="stylesheet" href="{{ url_for('static', filename='css/page-transition.css') }}">
+
+<!-- Full-Screen Branded Loading Overlay (Option 1) -->
+<div id="abhihub-loading-overlay" aria-hidden="true">
+  <div class="abhihub-overlay-card">
+    <div class="abhihub-branded-spinner"></div>
+    <div class="abhihub-overlay-text">Loading Resource…</div>
+    <div class="abhihub-overlay-subtext">Preparing document & details</div>
   </div>
 </div>
 
-<!-- Skeleton Loading States -->
-<div id="skeleton-loading" class="skeleton-loading" style="display:none;">
-  <div class="skeleton-row"></div>
-  <div class="skeleton-row skeleton-tall"></div>
-  <div class="skeleton-row"></div>
+<!-- Top Branded Progress Bar -->
+<div id="abhihub-progress-bar" aria-hidden="true"></div>
+
+<!-- Screen Reader Live Announcer -->
+<div id="abhihub-live-announcer" class="sr-only" role="status" aria-live="polite" aria-atomic="true"></div>
+
+<!-- Slow Network Fallback Notice (>5s) -->
+<div id="abhihub-nav-notice" role="alert">
+  <span>⏳ Taking longer than expected...</span>
+  <button type="button" class="notice-cancel" onclick="window.AbhiHubTransition && window.AbhiHubTransition.reset()">Dismiss</button>
 </div>
+
+<!-- Scripts -->
+<script src="{{ url_for('static', filename='js/page-transition.js') }}" defer></script>

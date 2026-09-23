@@ -1415,6 +1415,50 @@ def save_push_subscription(
     except Exception as e:
         return {'success': False, 'message': str(e)}
 
+def get_user_push_subscriptions(user_email_or_id: str) -> List[Dict]:
+    """Fetch all active push subscriptions for a specific user (supports UUID or email)."""
+    client = init_supabase()
+    if not client or not user_email_or_id:
+        return []
+    try:
+        user_id = None
+        if validate_uuid(user_email_or_id):
+            user_id = user_email_or_id
+        else:
+            p_res = client.table('profiles').select('id, email').eq('email', user_email_or_id).limit(1).execute()
+            if p_res.data:
+                user_id = p_res.data[0]['id']
+
+        if not user_id:
+            return []
+
+        res = client.table('push_subscriptions') \
+            .select('endpoint, p256dh, auth, device_type, platform, browser, created_at, enabled') \
+            .eq('user_id', user_id) \
+            .eq('enabled', True) \
+            .execute()
+
+        subs = []
+        for row in (res.data or []):
+            subs.append({
+                'subscription': {
+                    'endpoint': row['endpoint'],
+                    'keys': {
+                        'p256dh': row.get('p256dh', ''),
+                        'auth': row.get('auth', '')
+                    }
+                },
+                'user_id': user_id,
+                'device_type': row.get('device_type') or 'web',
+                'platform': row.get('platform') or 'unknown',
+                'browser': row.get('browser') or 'unknown',
+                'created_at': row.get('created_at')
+            })
+        return subs
+    except Exception as e:
+        logging.error(f"[get_user_push_subscriptions] Error: {e}")
+        return []
+
 def get_all_push_subscriptions() -> Dict:
     client = init_supabase()
     if not client: return {}

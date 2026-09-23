@@ -137,9 +137,15 @@
                 if (!key) throw { success: false, error: 'Push not configured on server' };
                 return registerServiceWorker().then(function (reg) {
                     if (!reg || !reg.pushManager) throw { success: false, error: 'Service worker push manager unavailable' };
-                    return reg.pushManager.subscribe({
-                        userVisibleOnly: true,
-                        applicationServerKey: urlBase64ToUint8Array(key)
+                    return reg.pushManager.getSubscription().then(function (existingSub) {
+                        // Unsubscribe any stale/mismatched subscription so new VAPID key takes effect cleanly
+                        var p = existingSub ? existingSub.unsubscribe().catch(function () {}) : Promise.resolve();
+                        return p.then(function () {
+                            return reg.pushManager.subscribe({
+                                userVisibleOnly: true,
+                                applicationServerKey: urlBase64ToUint8Array(key)
+                            });
+                        });
                     }).then(function (subscription) {
                         return sendSubscriptionToServer(subscription.toJSON(), permission);
                     });

@@ -305,6 +305,11 @@ def track_notification_opened(notif_id):
 
 
 def init_push_api(app):
-    """Initialize push API routes on the Flask app."""
+    """Initialize push API routes on the Flask app and validate VAPID env keys."""
     app.register_blueprint(push_api)
+    try:
+        from push_notifications import validate_push_config
+        validate_push_config(fail_fast=False)
+    except Exception as e:
+        logging.warning(f"[PUSH_API] Failed to run push config validation: {e}")
 

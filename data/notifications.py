@@ -134,6 +134,47 @@ class PushSubscription:
             return {"success": False, "message": str(e)}
 
     @staticmethod
+    def get_by_user(user_id: str = None, user_email: str = None) -> List[dict]:
+        client = get_client()
+        if not client:
+            return []
+        try:
+            uid = user_id
+            if not uid and user_email:
+                from data.profiles import Profile
+                uid = Profile.get_id_by_email(user_email)
+            if not uid:
+                return []
+            res = (
+                client.table(PushSubscription.TABLE)
+                .select("*")
+                .eq("user_id", uid)
+                .eq("enabled", True)
+                .execute()
+            )
+            subs = []
+            for row in (res.data or []):
+                subs.append({
+                    "subscription": {
+                        "endpoint": row.get("endpoint"),
+                        "keys": {
+                            "p256dh": row.get("p256dh"),
+                            "auth": row.get("auth"),
+                        },
+                    },
+                    "user_id": uid,
+                    "created_at": row.get("created_at"),
+                    "device_type": row.get("device_type") or "web",
+                    "platform": row.get("platform") or "unknown",
+                    "browser": row.get("browser") or "unknown",
+                    "enabled": row.get("enabled", True),
+                })
+            return subs
+        except Exception as e:
+            logging.error(f"Error fetching user subscriptions: {e}")
+            return []
+
+    @staticmethod
     def get_all() -> dict:
         client = get_client()
         if not client:

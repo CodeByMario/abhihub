@@ -30,7 +30,43 @@ try:
 except ImportError:
     pass
 
-# VAPID Configuration
+# Dynamic VAPID Configuration from environment (.env)
+def get_vapid_config() -> dict:
+    """Retrieve up-to-date VAPID configuration from environment."""
+    from dotenv import load_dotenv
+    load_dotenv()
+    pub = os.environ.get('VAPID_PUBLIC_KEY', '').strip()
+    priv = os.environ.get('VAPID_PRIVATE_KEY', '').strip()
+    claims_email = os.environ.get('VAPID_CLAIMS_EMAIL', 'mailto:info@abhihub.edu.eu.org').strip()
+    if claims_email and not (claims_email.startswith('mailto:') or claims_email.startswith('https://')):
+        claims_email = f"mailto:{claims_email}"
+    return {
+        'public_key': pub,
+        'private_key': priv,
+        'claims': {'sub': claims_email}
+    }
+
+def validate_push_config(fail_fast: bool = False) -> bool:
+    """
+    Validate that required VAPID environment variables are set.
+    Logs warning or raises RuntimeError if misconfigured.
+    """
+    cfg = get_vapid_config()
+    missing = []
+    if not cfg['public_key']:
+        missing.append('VAPID_PUBLIC_KEY')
+    if not cfg['private_key']:
+        missing.append('VAPID_PRIVATE_KEY')
+
+    if missing:
+        msg = f"[NOTIFICATION_SERVICE] Push notification keys missing in .env: {', '.join(missing)}. Multi-device push delivery will be disabled."
+        if fail_fast:
+            raise RuntimeError(msg)
+        logging.warning(msg)
+        return False
+    return True
+
+# Legacy module-level aliases for backwards compatibility
 VAPID_PUBLIC_KEY = os.environ.get('VAPID_PUBLIC_KEY', '')
 VAPID_PRIVATE_KEY = os.environ.get('VAPID_PRIVATE_KEY', '')
 VAPID_CLAIMS = {
@@ -40,6 +76,7 @@ VAPID_CLAIMS = {
 from methods.supabase_helper import (
     init_supabase,
     get_all_push_subscriptions,
+    get_user_push_subscriptions,
     save_push_subscription,
     remove_push_subscription_by_endpoint
 )
@@ -94,15 +131,21 @@ class WebPushAdapter(NotificationAdapter):
 
     @property
     def public_key(self) -> str:
-        return self._public_key or VAPID_PUBLIC_KEY
+        if self._public_key:
+            return self._public_key
+        return get_vapid_config().get('public_key') or VAPID_PUBLIC_KEY
 
     @property
     def private_key(self) -> str:
-        return self._private_key or VAPID_PRIVATE_KEY
+        if self._private_key:
+            return self._private_key
+        return get_vapid_config().get('private_key') or VAPID_PRIVATE_KEY
 
     @property
     def claims(self) -> dict:
-        return self._claims or VAPID_CLAIMS
+        if self._claims:
+            return self._claims
+        return get_vapid_config().get('claims') or VAPID_CLAIMS
 
     def is_configured(self) -> bool:
         return bool(self.public_key and self.private_key)
@@ -122,20 +165,31 @@ class WebPushAdapter(NotificationAdapter):
                 'p256dh': keys.get('p256dh', ''),
                 'auth': keys.get('auth', '')
             }
+        # Provider-specific headers: Microsoft WNS requires TTL > 0 and X-WNS-Type: wns/raw
+        headers = {
+            'TTL': '86400',
+            'Urgency': 'high'
         }
+        if 'notify.windows.com' in endpoint:
+            headers['X-WNS-Type'] = 'wns/raw'
 
         try:
+            # Pass a shallow copy so webpush doesn't mutate shared dictionary aud/exp
+            claims_copy = dict(self.claims) if isinstance(self.claims, dict) else {}
             webpush(
                 subscription_info=formatted_sub,
                 data=json.dumps(payload),
                 vapid_private_key=self.private_key,
-                vapid_claims=self.claims,
-                timeout=5
+                vapid_claims=claims_copy,
+                ttl=86400,
+                headers=headers,
+                timeout=8
             )
             return {'success': True, 'status_code': 201, 'expired': False, 'retryable': False}
         except WebPushException as e:
             status_code = getattr(getattr(e, 'response', None), 'status_code', None)
-            is_expired = status_code in (404, 410)
+            # 400 with invalid token, 401/403 key mismatch, or 404/410 expired/unregistered
+            is_expired = status_code in (400, 401, 403, 404, 410)
             is_retryable = bool(status_code and status_code >= 500)
             return {
                 'success': False,
@@ -208,7 +262,7 @@ class NotificationService:
         endpoint: Optional[str] = None
     ) -> bool:
         if endpoint:
-            return remove_subscription_by_endpoint(endpoint)
+            return remove_push_subscription_by_endpoint(endpoint)
         if user_id_or_email:
             client = init_supabase()
             if not client:
@@ -371,11 +425,21 @@ class NotificationService:
             logging.info(f"[NOTIFICATION_SERVICE] User opted out of category '{category}'")
             return {'success': True, 'suppressed': True, 'reason': 'category_preference_disabled'}
 
-        subscriptions = load_subscriptions()
-        if user_id not in subscriptions or not subscriptions[user_id]:
+        # Multi-device resolution: query active devices for user
+        sub_list = get_user_push_subscriptions(user_id)
+        if not sub_list:
+            # Fallback to load_subscriptions() for backward compatibility & testing mocks
+            subscriptions = load_subscriptions()
+            sub_list = subscriptions.get(user_id, [])
+            if not sub_list and '@' in str(user_id):
+                for uid, items in subscriptions.items():
+                    if isinstance(items, list) and any(i.get('email') == user_id for i in items):
+                        sub_list = items
+                        break
+
+        if not sub_list:
             return {'success': False, 'error': 'User not subscribed'}
 
-        sub_list = subscriptions[user_id]
         if not isinstance(sub_list, list):
             sub_list = [sub_list]
 
@@ -400,6 +464,8 @@ class NotificationService:
             sub_data = item.get('subscription', item)
             endpoint = sub_data.get('endpoint')
             keys = sub_data.get('keys', {})
+            device_type = item.get('device_type') or 'device'
+            platform = item.get('platform') or 'unknown'
             if not endpoint or not keys:
                 continue
 
@@ -419,18 +485,22 @@ class NotificationService:
                     sent_count += 1
                     delivered = True
                     self.record_delivery_attempt(endpoint, 'success')
+                    logging.info(f"[NOTIFICATION_SERVICE] Successfully delivered push to device={device_type} ({platform}) endpoint={endpoint[:45]}...")
                     break
                 elif res.get('expired'):
                     remove_subscription_by_endpoint(endpoint)
                     expired_count += 1
                     self.record_delivery_attempt(endpoint, 'failed', failure_code='expired_410')
+                    logging.info(f"[NOTIFICATION_SERVICE] Pruned expired token (404/410) for device={device_type} endpoint={endpoint[:45]}...")
                     break
                 elif res.get('retryable') and attempt == 0:
                     time.sleep(0.5)
                     continue
                 else:
                     failed_count += 1
-                    self.record_delivery_attempt(endpoint, 'failed', failure_code=res.get('error', 'send_error'))
+                    err_msg = res.get('error', 'send_error')
+                    self.record_delivery_attempt(endpoint, 'failed', failure_code=err_msg)
+                    logging.warning(f"[NOTIFICATION_SERVICE] Failed push delivery to endpoint={endpoint[:45]}...: {err_msg}")
                     break
 
         return {
@@ -555,13 +625,17 @@ def send_notification_to_all(
 
 
 def is_user_subscribed(user_id: str) -> bool:
-    """Check if user has at least one active push subscription endpoint."""
-    subscriptions = load_subscriptions()
-    subs = subscriptions.get(user_id)
-    if not subs:
-        return False
-    if isinstance(subs, list):
+    """Check if user has at least one active push subscription endpoint across all their devices."""
+    subs = get_user_push_subscriptions(user_id)
+    if subs:
         return len(subs) > 0
+    # Fallback to load_subscriptions for tests/mocks
+    subscriptions = load_subscriptions()
+    s = subscriptions.get(user_id)
+    if not s:
+        return False
+    if isinstance(s, list):
+        return len(s) > 0
     return True
 
 

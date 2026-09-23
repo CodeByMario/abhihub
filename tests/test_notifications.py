@@ -236,3 +236,75 @@ def test_notification_service_custom_adapter():
         assert len(mock_adapter.calls) == 1
         assert mock_adapter.calls[0][1]["title"] == "Test Title"
 
+
+# ==================== 6. MULTI-DEVICE & CREDENTIAL TESTS ====================
+
+def test_multi_device_fan_out_all_receive():
+    """Verify that multiple registered devices for the same user each receive push."""
+    from push_notifications import NotificationService, NotificationAdapter
+
+    class TrackingAdapter(NotificationAdapter):
+        def __init__(self):
+            self.delivered_endpoints = []
+        def send(self, subscription_info, payload):
+            self.delivered_endpoints.append(subscription_info['endpoint'])
+            return {"success": True, "status_code": 201, "expired": False, "retryable": False}
+
+    adapter = TrackingAdapter()
+    service = NotificationService(adapter=adapter)
+
+    devices = [
+        {"subscription": {"endpoint": "https://push.com/laptop", "keys": {"p256dh": "k1", "auth": "a1"}}, "device_type": "desktop"},
+        {"subscription": {"endpoint": "https://push.com/mobile", "keys": {"p256dh": "k2", "auth": "a2"}}, "device_type": "mobile"}
+    ]
+
+    with patch("push_notifications.get_user_push_subscriptions", return_value=devices), \
+         patch.object(service, "get_notification_preferences", return_value={"push": True}):
+        res = service.send_notification("user-multi-device", "Multi-Device Alert", "Hello Laptop and Phone!", dedupe_key="multi_dev_1")
+        assert res["success"] is True
+        assert res["sent"] == 2
+        assert "https://push.com/laptop" in adapter.delivered_endpoints
+        assert "https://push.com/mobile" in adapter.delivered_endpoints
+
+
+def test_multi_device_stale_token_does_not_block_second_device():
+    """Verify that when device 1 is expired (410), it is pruned and device 2 still receives push without crash."""
+    from push_notifications import NotificationService, NotificationAdapter
+
+    class PartialFailAdapter(NotificationAdapter):
+        def __init__(self):
+            self.delivered_endpoints = []
+        def send(self, subscription_info, payload):
+            if "stale" in subscription_info['endpoint']:
+                return {"success": False, "expired": True, "error": "410 Gone"}
+            self.delivered_endpoints.append(subscription_info['endpoint'])
+            return {"success": True, "status_code": 201, "expired": False, "retryable": False}
+
+    adapter = PartialFailAdapter()
+    service = NotificationService(adapter=adapter)
+
+    devices = [
+        {"subscription": {"endpoint": "https://push.com/stale-device", "keys": {"p256dh": "k1", "auth": "a1"}}, "device_type": "tablet"},
+        {"subscription": {"endpoint": "https://push.com/active-phone", "keys": {"p256dh": "k2", "auth": "a2"}}, "device_type": "mobile"}
+    ]
+
+    with patch("push_notifications.get_user_push_subscriptions", return_value=devices), \
+         patch("push_notifications.remove_subscription_by_endpoint") as mock_prune, \
+         patch.object(service, "get_notification_preferences", return_value={"push": True}):
+        res = service.send_notification("user-multi", "Alert", "Body", dedupe_key="prune_multi")
+        assert res["success"] is True
+        assert res["sent"] == 1
+        assert res["expired"] == 1
+        mock_prune.assert_called_once_with("https://push.com/stale-device")
+        assert "https://push.com/active-phone" in adapter.delivered_endpoints
+
+
+def test_validate_push_config_missing_keys():
+    """Verify validate_push_config logs warnings or fails when keys are missing."""
+    from push_notifications import validate_push_config
+    with patch("push_notifications.get_vapid_config", return_value={"public_key": "", "private_key": "", "claims": {}}):
+        assert validate_push_config(fail_fast=False) is False
+        with pytest.raises(RuntimeError):
+            validate_push_config(fail_fast=True)
+
+
