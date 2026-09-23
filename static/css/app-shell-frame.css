@@ -409,7 +409,7 @@ html, body.app-shell-body {
 
 /* ── Bottom Nav Integration ── */
 #shellBottomNav {
-    bottom: max(0.65rem, var(--shell-safe-bottom));
+    /* bottom: max(0.65rem, var(--shell-safe-bottom)); */
     transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.25s ease;
 }
 

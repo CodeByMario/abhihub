@@ -2125,9 +2125,87 @@ html.app-shell-embedded #abhiAiDrawer {
     }
   };
 
-  document.addEventListener('DOMContentLoaded', () => {
+  window.startNewChat = function() {
+    activeConversationId = 'convo_' + Date.now();
+    localStorage.setItem('ai_active_convo_id', activeConversationId);
+    chatHistory = [];
+    const msgList = document.getElementById('aiMsgList');
+    if (msgList) {
+      msgList.innerHTML = `
+        <div class="ai-bubble assistant">
+          👋 Started a new chat! Ask me anything about your notes, PYQs, exams, or syllabus.
+        </div>
+      `;
+    }
+    const historyPanel = document.getElementById('aiHistoryPanel');
+    if (historyPanel) historyPanel.style.display = 'none';
+  };
+
+  window.toggleHistoryPanel = async function() {
+    const p = document.getElementById('aiHistoryPanel');
+    if (!p) return;
+    const isHidden = p.style.display === 'none' || !p.style.display;
+    p.style.display = isHidden ? 'flex' : 'none';
+    if (isHidden) {
+      const listEl = document.getElementById('aiHistoryList');
+      if (listEl) {
+        listEl.innerHTML = '<div style="font-size:12px; color:var(--tarika-muted); padding:16px; text-align:center;">No previous saved chats.</div>';
+      }
+    }
+  };
+
+  function initEventDelegation() {
+    const drawer = document.getElementById('abhiAiDrawer');
+    if (drawer) {
+      // Intercept any link clicked inside Tarika drawer to route inside app shell
+      drawer.addEventListener('click', function(e) {
+        const anchor = e.target.closest('a');
+        if (anchor) {
+          const href = anchor.getAttribute('href');
+          if (href && !href.startsWith('javascript:') && !href.startsWith('#')) {
+            e.preventDefault();
+            routeAppUrl(href);
+            return;
+          }
+        }
+
+        // Quick prompt & Context chips
+        const promptBtn = e.target.closest('[data-action="prompt"]');
+        if (promptBtn) {
+          const promptText = promptBtn.getAttribute('data-prompt');
+          if (promptText) {
+            window.askAiAboutFile(promptText);
+          }
+        }
+      });
+    }
+
+    const chatInput = document.getElementById('aiChatInput');
+    if (chatInput) {
+      chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          window.sendAiMessage();
+        }
+      });
+    }
+
+    const sendBtn = document.getElementById('aiSendBtn');
+    if (sendBtn) {
+      sendBtn.addEventListener('click', function() {
+        window.sendAiMessage();
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      initEventDelegation();
+      detectOpenDocument();
+    });
+  } else {
     initEventDelegation();
     detectOpenDocument();
-  });
+  }
 })();
 </script>
