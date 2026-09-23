@@ -165,6 +165,7 @@ class WebPushAdapter(NotificationAdapter):
                 'p256dh': keys.get('p256dh', ''),
                 'auth': keys.get('auth', '')
             }
+        }
         # Provider-specific headers: Microsoft WNS requires TTL > 0 and X-WNS-Type: wns/raw
         headers = {
             'TTL': '86400',
