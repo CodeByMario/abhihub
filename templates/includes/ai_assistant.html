@@ -28,10 +28,22 @@
   }
 }
 
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  --tarika-bg: var(--v2-surface, #131b2d);
+  --tarika-bg-subtle: var(--v2-bg, #0b1120);
+  --tarika-ink: var(--v2-ink, #eaeef7);
+  --tarika-muted: var(--v2-muted, #98a3bb);
+  --tarika-line: var(--v2-line, #25304a);
+  --tarika-brand: var(--v2-brand, #7fa0ff);
+  --tarika-brand-hover: var(--v2-brand-hover, #9bb7ff);
+  --tarika-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
 /* ── Launcher Pill Button ───────────────────────────────────────── */
 #abhiAiLauncher {
   position: fixed;
-  bottom: 82px;
+  bottom: calc(var(--nav-bottom-height, 80px) + 8px);
   right: 18px;
   z-index: 9998;
   display: flex;
@@ -63,10 +75,12 @@
 /* ── Native Drawer Panel ───────────────────────────────────────── */
 #abhiAiDrawer {
   position: fixed;
-  bottom: 80px;
+  bottom: calc(var(--nav-bottom-height, 80px) + 8px);
   right: 18px;
   width: min(440px, calc(100vw - 32px));
-  height: min(620px, calc(100vh - 110px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100% - var(--nav-bottom-height, 80px) - 20px);
+  height: min(600px, calc(100% - var(--nav-bottom-height, 80px) - 20px));
   background: var(--tarika-bg);
   color: var(--tarika-ink);
   border-radius: var(--tarika-radius-panel);
@@ -85,6 +99,54 @@
 @keyframes aiDrawerEnter {
   from { opacity: 0; transform: translateY(12px) scale(0.98); }
   to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* App Shell Embedded mode adjustments (when rendered in PWA/App Shell iframe) */
+html.app-shell-embedded #abhiAiLauncher {
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+html.app-shell-embedded #abhiAiDrawer {
+  top: 10px !important;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+@media (min-width: 860px) {
+  html.app-shell-embedded #abhiAiLauncher {
+    bottom: 24px !important;
+  }
+  html.app-shell-embedded #abhiAiDrawer {
+    top: 16px !important;
+    bottom: 24px !important;
+    height: auto !important;
+  }
+}
+
+@media (max-width: 640px) {
+  #abhiAiLauncher {
+    bottom: calc(var(--nav-bottom-height, 80px) + 6px);
+    right: 14px;
+  }
+  #abhiAiDrawer {
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+    bottom: calc(var(--nav-bottom-height, 80px) + 6px);
+    max-height: calc(100% - var(--nav-bottom-height, 80px) - 14px);
+    height: min(560px, calc(100% - var(--nav-bottom-height, 80px) - 14px));
+  }
+  html.app-shell-embedded #abhiAiLauncher {
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  html.app-shell-embedded #abhiAiDrawer {
+    top: 8px !important;
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: none !important;
+    height: auto !important;
+  }
 }
 
 /* ── Drawer Header ────────────────────────────────────────────── */
@@ -154,6 +216,10 @@
     background: rgba(29, 78, 216, 0.15);
     border-bottom-color: rgba(127, 160, 255, 0.25);
   }
+}
+[data-theme="dark"] #aiContextBar {
+  background: rgba(29, 78, 216, 0.15);
+  border-bottom-color: rgba(127, 160, 255, 0.25);
 }
 .ai-ctx-file {
   font-weight: 600;
@@ -431,6 +497,11 @@
     border-color: var(--tarika-brand);
     color: #ffffff;
   }
+}
+[data-theme="dark"] .ai-qchip:hover {
+  background: rgba(29, 78, 216, 0.2);
+  border-color: var(--tarika-brand);
+  color: #ffffff;
 }
 
 /* Input Row */
@@ -849,12 +920,20 @@
 }
 @media (max-width: 640px) {
   #abhiAiDrawer {
-    bottom: 0;
-    right: 0;
-    left: 0;
-    width: 100vw;
-    height: 85vh;
-    border-radius: 16px 16px 0 0;
+    bottom: calc(var(--nav-bottom-height, 80px) + 6px);
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+    max-height: calc(100% - var(--nav-bottom-height, 80px) - 14px);
+    height: min(560px, calc(100% - var(--nav-bottom-height, 80px) - 14px));
+    border-radius: 16px;
+  }
+  html.app-shell-embedded #abhiAiDrawer {
+    top: 8px !important;
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: none !important;
+    height: auto !important;
   }
 }
 </style>
@@ -1798,6 +1877,31 @@
   }
 
   // ── Public Interface Handlers ──────────────────────────────────
+  window.setTarikaDocContext = function(docId, docTitle) {
+    if (docId) activeDocId = docId;
+    if (docTitle) activeDocTitle = docTitle;
+    const ctxBar = document.getElementById('aiContextBar');
+    const ctxDocName = document.getElementById('aiContextDocName');
+    if (ctxBar && ctxDocName) {
+      if (activeDocId || (activeDocTitle && activeDocTitle !== 'AbhiHub')) {
+        ctxDocName.textContent = '📄 ' + (activeDocTitle.slice(0, 40) || 'Active Document');
+        ctxBar.style.display = 'block';
+      } else {
+        ctxBar.style.display = 'none';
+      }
+    }
+  };
+
+  function routeAppUrl(url) {
+    if (typeof window.navigateTo === 'function') {
+      window.navigateTo(url);
+    } else if (window.parent && typeof window.parent.navigateTo === 'function') {
+      window.parent.navigateTo(url);
+    } else {
+      window.location.href = url;
+    }
+  }
+
   window.toggleAbhiAiDrawer = function() {
     const drw = document.getElementById('abhiAiDrawer');
     if (!drw) return;
@@ -1879,7 +1983,7 @@
         msgList.appendChild(aBubble);
         msgList.scrollTop = msgList.scrollHeight;
 
-        if (card.url) setTimeout(() => { window.location.href = card.url; }, 1200);
+        if (card.url) setTimeout(() => { routeAppUrl(card.url); }, 1200);
         sendBtn.disabled = false;
         return;
       } catch (err) {
@@ -1955,6 +2059,16 @@
               aBubble.appendChild(card);
             });
 
+            aBubble.querySelectorAll('.ai-card-btn[href]').forEach(btn => {
+              btn.addEventListener('click', (e) => {
+                const href = btn.getAttribute('href');
+                if (href && !href.startsWith('javascript:')) {
+                  e.preventDefault();
+                  routeAppUrl(href);
+                }
+              });
+            });
+
             aBubble.querySelectorAll('.tarika-bookmark-btn').forEach(btn => {
               btn.addEventListener('click', async () => {
                 const docId = btn.getAttribute('data-doc-id');
@@ -1990,7 +2104,7 @@
             autoNotif.style.marginTop = '6px';
             autoNotif.textContent = 'Opening document in 2 seconds...';
             aBubble.appendChild(autoNotif);
-            setTimeout(() => { window.location.href = data.auto_open; }, 1800);
+            setTimeout(() => { routeAppUrl(data.auto_open); }, 1800);
           }
           msgList.scrollTop = msgList.scrollHeight;
         });

@@ -92,11 +92,11 @@
 
 /* Toggle switch */
 .st-toggle {
-  position: relative; display: inline-block; width: 44px; height: 24px;
+  position: relative; display: inline-flex; align-items: center; width: 44px; min-height: 44px;
 }
 .st-toggle input { opacity: 0; width: 0; height: 0; }
 .st-slide {
-  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
+  position: absolute; cursor: pointer; top: 10px; left: 0; right: 0; bottom: 10px; height: 24px;
   background: var(--gray-300); border-radius: 24px; transition: .25s;
 }
 .st-slide:before {
@@ -212,33 +212,132 @@ input:checked + .st-slide:before { transform: translateX(20px); }
 
       <!-- My Account -->
       <div class="st-section active" id="section-my-account">
-        <div class="st-card">
-          <h2><span class="st-card-icon">👤</span> Profile Information</h2>
-          <div class="st-form-row">
-            <label class="st-form-label">Full Name</label>
-            <input type="text" class="st-form-input" value="{{ session.user.name if session.user else '' }}" readonly>
+        <form id="settingsAccountForm" onsubmit="handleAccountFormSubmit(event)">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+          <!-- Personal Information Card -->
+          <div class="st-card">
+            <h2><span class="st-card-icon">👤</span> Personal Information</h2>
+            
+            <div class="st-form-row">
+              <label for="st_student_name" class="st-form-label">Full Name <span style="color:#ef4444;">*</span></label>
+              <input type="text" id="st_student_name" name="student_name" class="st-form-input" 
+                value="{{ profile.student_name if (profile and profile.student_name) else (user.name if user else '') }}" 
+                placeholder="Enter full name" required>
+            </div>
+
+            <div class="st-form-row">
+              <label for="st_student_email" class="st-form-label">Email Address</label>
+              <input type="email" id="st_student_email" name="student_email" class="st-form-input" 
+                value="{{ profile.student_email if (profile and profile.student_email) else (user.email if user else '') }}" 
+                readonly style="opacity:0.8; cursor:not-allowed; background:var(--bg-secondary);">
+              <div class="st-form-sublabel">Your email is linked to your authentication provider.</div>
+            </div>
+
+            <div class="st-form-row">
+              <label for="st_student_mobile" class="st-form-label">Mobile Number <span style="color:#ef4444;">*</span></label>
+              <input type="tel" id="st_student_mobile" name="student_moblie_number" class="st-form-input" 
+                value="{{ profile.student_moblie_number if (profile and profile.student_moblie_number) else '' }}" 
+                placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10" required>
+            </div>
           </div>
-          <div class="st-form-row">
-            <label class="st-form-label">Email Address</label>
-            <input type="email" class="st-form-input" value="{{ session.user.email if session.user else '' }}" readonly>
+
+          <!-- Role Selection Card -->
+          <div class="st-card">
+            <h2><span class="st-card-icon">🎓</span> I am a…</h2>
+            <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:12px; margin-top:8px;">
+              <label style="display:flex; align-items:center; gap:10px; padding:12px 16px; border:1.5px solid var(--border-light); border-radius:var(--radius-lg); cursor:pointer; background:var(--surface);">
+                <input type="radio" name="user_role" value="student" id="st_role_student" {% if not profile or profile.user_role=='student' %}checked{% endif %} onchange="toggleSettingsStudentFields()">
+                <span style="font-weight:700; font-size:var(--text-sm);">👨‍🎓 Student</span>
+              </label>
+
+              <label style="display:flex; align-items:center; gap:10px; padding:12px 16px; border:1.5px solid var(--border-light); border-radius:var(--radius-lg); cursor:pointer; background:var(--surface);">
+                <input type="radio" name="user_role" value="teacher" id="st_role_teacher" {% if profile and profile.user_role=='teacher' %}checked{% endif %} onchange="toggleSettingsStudentFields()">
+                <span style="font-weight:700; font-size:var(--text-sm);">👨‍🏫 Teacher</span>
+              </label>
+            </div>
           </div>
-          <div class="st-form-row">
-            <label class="st-form-label">Auth Provider</label>
-            <input type="text" class="st-form-input" value="{{ session.user.provider if session.user else '' }}" readonly>
-            <div class="st-form-sublabel">Your account was created using {{ session.user.provider if session.user else 'email' }} authentication.</div>
+
+          <!-- Academic Details Card -->
+          <div class="st-card">
+            <h2><span class="st-card-icon">🏫</span> Academic Details</h2>
+
+            <div class="st-form-row">
+              <label for="st_college_id" class="st-form-label">College <span style="color:#ef4444;">*</span></label>
+              <select id="st_college_id" name="college_id" class="st-form-select" required>
+                <option value="">Select College</option>
+                {% for college in colleges %}
+                <option value="{{ college.id }}" {% if profile and profile.college_id|string==college.id|string %}selected{% endif %}>
+                  {{ college.name }}{% if college.short_name %} ({{ college.short_name }}){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="st-form-row">
+              <label for="st_branch_id" class="st-form-label">Branch <span style="color:#ef4444;">*</span></label>
+              <select id="st_branch_id" name="branch_id" class="st-form-select" required>
+                <option value="">Select Branch</option>
+                {% for branch in branches %}
+                <option value="{{ branch.branch_id }}" {% if profile and profile.branch_id|string==branch.branch_id|string %}selected{% endif %}>
+                  {{ branch.name }}{% if branch.short_name %} ({{ branch.short_name }}){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="st-form-row">
+              <label for="st_degree" class="st-form-label">Degree / Course <span style="color:#ef4444;">*</span></label>
+              <select id="st_degree" name="degree" class="st-form-select" required onchange="filterSettingsBranches()">
+                <option value="">Select Degree / Course</option>
+                {% set degrees = ['B.Tech', 'M.Tech', 'MBA', 'MCA', 'BCA', 'BBA', 'B.Sc', 'M.Sc', 'Diploma', 'Ph.D', 'Other'] %}
+                {% for d in degrees %}
+                <option value="{{ d }}" {% if profile and profile.degree==d %}selected{% endif %}>{{ d }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="st-form-row">
+              <label for="st_year_of_joining" class="st-form-label">Year of Joining <span style="color:#ef4444;">*</span></label>
+              <input type="number" id="st_year_of_joining" name="year_of_joining" class="st-form-input" 
+                value="{{ profile.year_of_joining if (profile and profile.year_of_joining) else '' }}" 
+                min="2000" max="2030" placeholder="e.g. 2024" required oninput="autoCalculateSettingsPursuingYear()">
+            </div>
+
+            <div class="st-form-row" id="st_pursuing_year_group">
+              <label for="st_pursuing_year" class="st-form-label">Current Year <span style="color:#ef4444;">*</span></label>
+              <select id="st_pursuing_year" name="pursuing_year" class="st-form-select">
+                <option value="">Select Year</option>
+                {% for year in [1,2,3,4,5] %}
+                <option value="{{ year }}" {% if profile and profile.pursuing_year==year %}selected{% endif %}>
+                  {{ year }}{% if year==1 %}st{% elif year==2 %}nd{% elif year==3 %}rd{% else %}th{% endif %} Year
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="st-form-row" id="st_registration_number_group">
+              <label for="st_registration_number" class="st-form-label">Registration / Enrollment Number</label>
+              <input type="text" id="st_registration_number" name="registration_number" class="st-form-input" 
+                value="{{ profile.registration_number if (profile and profile.registration_number) else '' }}" 
+                placeholder="Enrollment / Reg No. (Optional)">
+            </div>
+
+            <div class="st-btn-row" style="margin-top: 1.5rem;">
+              <button type="submit" id="stSaveAccountBtn" class="st-btn st-btn-primary" style="padding:0.75rem 2rem; font-size:0.95rem;">
+                💾 Save Account Details
+              </button>
+              <span id="stAccountSaveStatus" style="font-size:0.875rem; font-weight:600; align-self:center;"></span>
+            </div>
           </div>
-          <div class="st-btn-row">
-            <a href="/account" class="st-btn st-btn-primary">Edit Profile Info</a>
-            <button type="button" class="st-btn st-btn-outline" onclick="location.href='/account'">Go to Account Page</button>
-          </div>
-        </div>
+        </form>
 
         <div class="st-card">
           <h2><span class="st-card-icon">🔑</span> Password & Security</h2>
           <div class="st-form-row">
             <label class="st-form-label">Current Password</label>
-            <input type="password" class="st-form-input" placeholder="••••••••">
-            <div class="st-form-sublabel">Password management is handled automatically by your auth provider.</div>
+            <input type="password" class="st-form-input" placeholder="••••••••" readonly>
+            <div class="st-form-sublabel">Password management is handled securely via email verification.</div>
           </div>
           <div class="st-btn-row">
             <button type="button" class="st-btn st-btn-primary" onclick="forgotPassword()">Reset Password via Email</button>
@@ -554,7 +653,7 @@ input:checked + .st-slide:before { transform: translateX(20px); }
   </div>
 </div>
 
-<div id="st-toast"></div>
+<div id="st-toast" role="status" aria-live="polite"></div>
 
 <script>
 // ── Toast helper ──
@@ -612,7 +711,14 @@ function savePrivacySetting(key, value) {
   showStToast('✅ Preference saved');
 }
 function saveTheme(value) {
-  try { localStorage.setItem('abhihub_theme', value); } catch(e) {}
+  try {
+    localStorage.setItem('abhihub_theme', value);
+    var isDark = value === 'dark' || (value === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'THEME_CHANGE', theme: value }, '*');
+    }
+  } catch(e) {}
   showStToast('✅ Theme preference saved');
 }
 function saveLang(value) {
@@ -932,7 +1038,113 @@ function removeAiKey() {
     }).catch(() => showStToast('❌ Error removing key'));
 }
 
-document.addEventListener('DOMContentLoaded', loadAiSettings);
+function handleAccountFormSubmit(e) {
+  e.preventDefault();
+  const form = document.getElementById('settingsAccountForm');
+  const btn = document.getElementById('stSaveAccountBtn');
+  const statusEl = document.getElementById('stAccountSaveStatus');
+  if (!form) return;
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving details...'; }
+  if (statusEl) { statusEl.textContent = 'Updating account...'; statusEl.style.color = 'var(--text-secondary)'; }
+
+  const formData = new FormData(form);
+
+  fetch('/account/update', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Account Details'; }
+    if (response.ok || response.redirected) {
+      showStToast('🎉 Account details updated successfully!');
+      if (statusEl) { statusEl.textContent = '✅ Saved successfully!'; statusEl.style.color = '#16a34a'; setTimeout(() => { statusEl.textContent = ''; }, 3000); }
+    } else {
+      showStToast('⚠️ Failed to update account. Please try again.');
+      if (statusEl) { statusEl.textContent = '❌ Update failed.'; statusEl.style.color = '#ef4444'; }
+    }
+  })
+  .catch(err => {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Account Details'; }
+    showStToast('❌ Network error updating account.');
+    if (statusEl) { statusEl.textContent = '❌ Network error.'; statusEl.style.color = '#ef4444'; }
+  });
+}
+
+function filterSettingsBranches() {
+  const degSelect = document.getElementById('st_degree');
+  const branchSelect = document.getElementById('st_branch_id');
+  if (!degSelect || !branchSelect) return;
+
+  const deg = degSelect.value.toUpperCase();
+  Array.from(branchSelect.options).forEach(opt => {
+    if (!opt.value) return;
+    const txt = opt.textContent.toUpperCase();
+    if (!deg) {
+      opt.style.display = '';
+      return;
+    }
+    if (deg.includes('MBA') || deg.includes('BBA')) {
+      opt.style.display = (txt.includes('MBA') || txt.includes('MANAGEMENT') || txt.includes('BUSINESS') || txt.includes('FINANCE') || txt.includes('MARKETING')) ? '' : 'none';
+    } else if (deg.includes('MCA') || deg.includes('BCA')) {
+      opt.style.display = (txt.includes('COMPUTER') || txt.includes('CS') || txt.includes('IT') || txt.includes('APPLICATION') || txt.includes('MCA') || txt.includes('BCA')) ? '' : 'none';
+    } else if (deg.includes('TECH')) {
+      opt.style.display = (txt.includes('TECH') || txt.includes('ENGINEERING') || txt.includes('CSE') || txt.includes('ECE') || txt.includes('ME') || txt.includes('EE') || txt.includes('CIVIL') || txt.includes('AI') || txt.includes('DS') || !txt.includes('MANAGEMENT')) ? '' : 'none';
+    } else {
+      opt.style.display = '';
+    }
+  });
+}
+
+function autoCalculateSettingsPursuingYear() {
+  const currentYear = new Date().getFullYear();
+  const yojInput = document.getElementById('st_year_of_joining');
+  const degSelect = document.getElementById('st_degree');
+  const pySelect = document.getElementById('st_pursuing_year');
+  if (!yojInput || !pySelect) return;
+
+  const yoj = parseInt(yojInput.value);
+  const deg = degSelect ? degSelect.value.toUpperCase() : '';
+  if (!yoj || yoj > currentYear || yoj < 2000) return;
+
+  let maxYears = 4;
+  if (['MBA', 'M.TECH', 'M.SC'].includes(deg)) maxYears = 2;
+  else if (['MCA', 'BCA', 'BBA', 'B.SC', 'DIPLOMA'].includes(deg)) maxYears = 3;
+  else if (['B.TECH'].includes(deg)) maxYears = 4;
+
+  const calcYear = (currentYear - yoj) + 1;
+  if (calcYear >= 1 && calcYear <= maxYears) {
+    pySelect.value = String(calcYear);
+  } else if (calcYear > maxYears) {
+    pySelect.value = String(maxYears);
+  } else if (calcYear < 1) {
+    pySelect.value = '1';
+  }
+}
+
+function toggleSettingsStudentFields() {
+  const studentRadio = document.getElementById('st_role_student');
+  const isStudent = studentRadio ? studentRadio.checked : true;
+  const pyGroup = document.getElementById('st_pursuing_year_group');
+  const regGroup = document.getElementById('st_registration_number_group');
+  const pyInput = document.getElementById('st_pursuing_year');
+
+  if (isStudent) {
+    if (pyGroup) { pyGroup.style.display = ''; }
+    if (regGroup) { regGroup.style.display = ''; }
+    if (pyInput) { pyInput.disabled = false; pyInput.setAttribute('required', ''); }
+  } else {
+    if (pyGroup) { pyGroup.style.display = 'none'; }
+    if (regGroup) { regGroup.style.display = 'none'; }
+    if (pyInput) { pyInput.disabled = true; pyInput.removeAttribute('required'); }
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadAiSettings();
+  filterSettingsBranches();
+  toggleSettingsStudentFields();
+});
 </script>
 {% endblock %}
 

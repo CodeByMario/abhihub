@@ -1,8 +1,18 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    <!-- Instant Theme Detection & Application (prevents theme flash in PWA/Shell) -->
+    <script>
+        (function() {
+            try {
+                var savedTheme = localStorage.getItem('abhihub_theme') || 'system';
+                var isDark = savedTheme === 'dark' || (savedTheme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            } catch(e) {}
+        })();
+    </script>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta name="theme-color" content="#2563eb">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -18,11 +28,19 @@
     <!-- Fonts & Tokens -->
     <link rel="preconnect" href="https://fonts.googleapis.com" crossorigin>
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/01_tokens.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/02_base.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/navbar.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/notification-bell.css') }}">
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-shell-frame.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/01_tokens.css') }}?v=2026">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/02_base.css') }}?v=2026">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/navbar.css') }}?v=2026">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/notification-bell.css') }}?v=2026">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/app-shell-frame.css') }}?v=2026">
+    <style>
+        /* Critical responsive layout guards for Shell */
+        .shell-desktop-nav { display: none !important; }
+        @media (min-width: 860px) {
+            .shell-desktop-nav { display: flex !important; }
+            #shellBottomNav { display: none !important; }
+        }
+    </style>
 </head>
 <body class="app-shell-body">
 
@@ -48,7 +66,34 @@
                 <span id="shellPageTitle" class="shell-page-title kanit-medium">AbhiHub</span>
             </div>
 
+            <!-- Desktop Nav Items (visible on >= 860px) -->
+            <nav id="shellDesktopNav" class="shell-desktop-nav" aria-label="Primary Desktop Navigation">
+                <a href="/dashboard" class="shell-nav-link shell-nav-link--active" data-page="home">Home</a>
+                <a href="/upload" class="shell-nav-link" data-page="upload">Upload</a>
+                <a href="/leaderboard" class="shell-nav-link" data-page="ranking">Ranking</a>
+                <a href="/settings" class="shell-nav-link" data-page="settings">Settings</a>
+                <a href="/store-room" class="shell-nav-link" data-page="store-room">Store Room</a>
+            </nav>
+
             <div class="shell-header-right">
+                <!-- Theme Switcher Button -->
+                <button type="button" id="shellThemeToggle" class="shell-theme-btn" aria-label="Toggle theme" title="Switch dark/light mode">
+                    <svg class="theme-icon-sun" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="5"></circle>
+                        <line x1="12" y1="1" x2="12" y2="3"></line>
+                        <line x1="12" y1="21" x2="12" y2="23"></line>
+                        <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                        <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                        <line x1="1" y1="12" x2="3" y2="12"></line>
+                        <line x1="21" y1="12" x2="23" y2="12"></line>
+                        <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                        <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+                    </svg>
+                    <svg class="theme-icon-moon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none;">
+                        <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                    </svg>
+                </button>
+
                 <!-- Shell Notification Bell -->
                 <div id="shellNotifWrap" class="shell-notif-wrap">
                     <button type="button" id="shellNotifBell" class="shell-notif-btn" aria-label="Notifications" aria-expanded="false">
@@ -60,15 +105,15 @@
                     </button>
 
                     <!-- Notifications Dropdown Panel -->
-                    <div id="shellNotifPanel" id="notifPanel" style="display:none; position:absolute; right:0; top:46px; width:310px; max-width:calc(100vw - 32px); background:var(--surface, #ffffff); border-radius:12px; box-shadow:0 12px 30px rgba(0,0,0,0.18); border:1px solid var(--border-light, #e2e8f0); z-index:1100; overflow:hidden;">
-                        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-bottom:1px solid #f1f5f9; background:rgba(37,99,235,0.03);">
+                    <div id="shellNotifPanel" class="shell-notif-panel">
+                        <div style="display:flex; justify-content:space-between; align-items:center; padding:12px 14px; border-bottom:1px solid var(--border-light, #f1f5f9); background:rgba(37,99,235,0.03);">
                             <span style="font-weight:700; font-size:0.9rem;">🔔 Notifications</span>
                             <button type="button" data-action="markAllRead" style="background:none; border:none; color:#2563eb; font-size:0.8rem; font-weight:600; cursor:pointer;">Mark all read</button>
                         </div>
                         <div id="shellNotifList" style="max-height:360px; overflow-y:auto;">
                             <div class="notif-loading" style="padding:16px; text-align:center; color:#64748b;">Loading…</div>
                         </div>
-                        <div style="padding:8px 14px; text-align:center; border-top:1px solid #f1f5f9; background:#fafafa;">
+                        <div style="padding:8px 14px; text-align:center; border-top:1px solid var(--border-light, #f1f5f9); background:var(--bg-secondary, #fafafa);">
                             <a href="/notifications" class="navbar__item" style="font-size:0.8rem; color:#2563eb; font-weight:600; text-decoration:none;">View All Notifications</a>
                         </div>
                     </div>
@@ -123,11 +168,11 @@
                 <span class="navbar__label">Ranking</span>
             </a>
 
-            <a href="/profile" class="navbar__item -purple" data-page="profile">
+            <a href="/settings" class="navbar__item -purple" data-page="settings">
                 <span class="navbar__icon" aria-hidden="true">
-                    <svg class="icon"><use xlink:href="#icon-user"></use></svg>
+                    <svg class="icon"><use xlink:href="#icon-settings"></use></svg>
                 </span>
-                <span class="navbar__label">Account</span>
+                <span class="navbar__label">Settings</span>
             </a>
 
             <a href="/store-room" class="navbar__item -green" data-page="store-room">
@@ -177,7 +222,10 @@
         </defs>
     </svg>
 
+    <!-- Persistent Global Tarika AI Assistant (Lives outside iframe across all tab & document transitions) -->
+    {% include 'includes/ai_assistant.html' %}
+
     <!-- Shell Controller Script -->
-    <script src="{{ url_for('static', filename='js/app-shell.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/app-shell.js') }}?v=2026" defer></script>
 </body>
 </html>

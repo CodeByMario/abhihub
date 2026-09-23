@@ -22,12 +22,12 @@
     <span class="navbar__label">Ranking</span>
   </a>
 
-  <a href="{{ url_for('profile') }}" class="navbar__item -purple" data-page="profile" data-feature="Nav: Profile">
+  <a href="{{ url_for('settings') }}" class="navbar__item -purple" data-page="settings" data-feature="Nav: Settings">
     <span class="navbar__icon" aria-hidden="true">
-      <svg class="icon"><use xlink:href="#icon-user"></use></svg>
+      <svg class="icon"><use xlink:href="#icon-settings"></use></svg>
       <span id="accountRedDot" class="notification-dot"></span>
     </span>
-    <span class="navbar__label">Account</span>
+    <span class="navbar__label">Settings</span>
   </a>
 
   <a href="{{ url_for('store_room') }}" class="navbar__item -green" data-page="store-room" data-feature="Nav: Store Room">
@@ -127,7 +127,7 @@
       if (
         (page === 'home' && (currentPath === '/dashboard/' || currentPath === '/dashboard')) ||
         (page === 'ranking' && currentPath.includes('rank')) ||
-        (page === 'profile' && currentPath.includes('profile')) ||
+        (page === 'settings' && (currentPath.includes('setting') || currentPath.includes('profile') || currentPath.includes('account'))) ||
         (page === 'store-room' && currentPath.includes('store-room')) ||
         (page === 'upload' && (currentPath === '/upload' || currentPath === '/upload-gate')) ||
         (page === 'admin' && currentPath.includes('admin'))

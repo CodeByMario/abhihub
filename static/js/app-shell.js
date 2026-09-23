@@ -16,8 +16,10 @@
         '/upload': { id: 'upload', label: 'Upload', selector: '[data-page="upload"]', keepAlive: true },
         '/leaderboard': { id: 'ranking', label: 'Ranking', selector: '[data-page="ranking"]', keepAlive: false },
         '/rank': { id: 'ranking', label: 'Ranking', selector: '[data-page="ranking"]', keepAlive: false },
-        '/profile': { id: 'profile', label: 'Account', selector: '[data-page="profile"]', keepAlive: false },
-        '/account': { id: 'profile', label: 'Account', selector: '[data-page="profile"]', keepAlive: false },
+        '/settings': { id: 'settings', label: 'Settings', selector: '[data-page="settings"]', keepAlive: false },
+        '/setting': { id: 'settings', label: 'Settings', selector: '[data-page="settings"]', keepAlive: false },
+        '/profile': { id: 'settings', label: 'Settings', selector: '[data-page="settings"]', keepAlive: false },
+        '/account': { id: 'settings', label: 'Account', selector: '[data-page="settings"]', keepAlive: false },
         '/store-room': { id: 'store-room', label: 'Store Room', selector: '[data-page="store-room"]', keepAlive: false },
         '/admin/controle': { id: 'admin', label: 'Admin', selector: '[data-page="admin"]', keepAlive: false }
     };
@@ -96,10 +98,18 @@
         const navItems = bottomNav ? bottomNav.querySelectorAll('.navbar__item') : [];
         navItems.forEach(item => item.classList.remove('navbar__item--active'));
 
+        // Highlight active tab in desktop header nav
+        const desktopNav = document.getElementById('shellDesktopNav');
+        const desktopLinks = desktopNav ? desktopNav.querySelectorAll('.shell-nav-link') : [];
+        desktopLinks.forEach(link => link.classList.remove('shell-nav-link--active'));
+
         if (tab) {
             currentActiveTab = tab.id;
             const activeEl = bottomNav ? bottomNav.querySelector(tab.selector) : null;
             if (activeEl) activeEl.classList.add('navbar__item--active');
+
+            const activeDesktopEl = desktopNav ? desktopNav.querySelector(tab.selector) : null;
+            if (activeDesktopEl) activeDesktopEl.classList.add('shell-nav-link--active');
 
             // On a main tab: hide back button, show main logo
             if (headerEl) headerEl.classList.remove('has-back-nav');
@@ -238,6 +248,32 @@
         });
     }
 
+    // ── Desktop Header Navigation Click Handler ──
+    const desktopNav = document.getElementById('shellDesktopNav');
+    if (desktopNav) {
+        desktopNav.addEventListener('click', function (e) {
+            const anchor = e.target.closest('a');
+            if (!anchor) return;
+            const href = anchor.getAttribute('href');
+            if (!href || href.startsWith('javascript:') || href.startsWith('#')) return;
+            e.preventDefault();
+            navigateTo(href, true);
+        });
+    }
+
+    // ── Header Theme Toggle Button Handler ──
+    const themeToggleBtn = document.getElementById('shellThemeToggle');
+    if (themeToggleBtn) {
+        themeToggleBtn.addEventListener('click', function () {
+            const currentTheme = document.documentElement.getAttribute('data-theme') || 'light';
+            const nextTheme = currentTheme === 'dark' ? 'light' : 'dark';
+            try {
+                localStorage.setItem('abhihub_theme', nextTheme);
+            } catch (e) {}
+            applyShellTheme(nextTheme);
+        });
+    }
+
     // ── Back Button Handler ──
     if (backBtn) {
         backBtn.addEventListener('click', function () {
@@ -283,11 +319,16 @@
                 document.body.classList.remove('modal-active');
                 break;
 
+            case 'THEME_CHANGE':
+                applyShellTheme(msg.theme);
+                break;
+
             case 'PAGE_READY':
                 hideLoader();
                 if (msg.title) {
                     updateChrome(msg.path || '', msg.title);
                 }
+                applyShellTheme();
                 break;
 
             case 'TITLE_CHANGE':
@@ -298,8 +339,29 @@
                     document.title = msg.title + ' — AbhiHub';
                 }
                 break;
+
+            case 'TARIKA_TOGGLE':
+                if (typeof window.toggleAbhiAiDrawer === 'function') {
+                    window.toggleAbhiAiDrawer();
+                }
+                break;
+
+            case 'TARIKA_ASK':
+                if (typeof window.askAiAboutFile === 'function') {
+                    window.askAiAboutFile(msg.prompt || '');
+                }
+                break;
+
+            case 'TARIKA_SET_DOC':
+                if (typeof window.setTarikaDocContext === 'function') {
+                    window.setTarikaDocContext(msg.docId, msg.docTitle);
+                }
+                break;
         }
     });
+
+    // Expose navigateTo globally so persistent Tarika assistant can navigate active iframe
+    window.navigateTo = navigateTo;
 
     // ── Mobile Keyboard Viewport Resize Handler ──
     if (window.visualViewport) {
@@ -444,6 +506,50 @@
         if (wrap && !wrap.contains(e.target) && notifOpen) {
             notifOpen = false;
             if (notifPanel) notifPanel.style.display = 'none';
+        }
+    });
+
+    // ── Theme Synchronization ──
+    function applyShellTheme(themeValue) {
+        try {
+            const theme = themeValue || localStorage.getItem('abhihub_theme') || 'system';
+            const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+
+            // Update Header Theme Toggle Icons
+            const sunIcon = document.querySelector('.theme-icon-sun');
+            const moonIcon = document.querySelector('.theme-icon-moon');
+            if (sunIcon && moonIcon) {
+                if (isDark) {
+                    sunIcon.style.display = 'none';
+                    moonIcon.style.display = 'block';
+                } else {
+                    sunIcon.style.display = 'block';
+                    moonIcon.style.display = 'none';
+                }
+            }
+
+            [iframeMain, iframeUpload].forEach(function (iframe) {
+                try {
+                    if (iframe && iframe.contentDocument && iframe.contentDocument.documentElement) {
+                        iframe.contentDocument.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+                    }
+                } catch (e) {}
+            });
+        } catch (e) {}
+    }
+
+    applyShellTheme();
+
+    if (window.matchMedia) {
+        window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', function () {
+            applyShellTheme();
+        });
+    }
+
+    window.addEventListener('storage', function (e) {
+        if (e.key === 'abhihub_theme') {
+            applyShellTheme(e.newValue);
         }
     });
 

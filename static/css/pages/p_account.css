@@ -101,13 +101,27 @@
 
 /* Role Cards */
 .ac-role-grid { display:grid; grid-template-columns:repeat(2, minmax(0, 1fr)); gap:.75rem; max-width:440px; }
-.ac-role-input { display:none; }
+.ac-role-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+.ac-role-input:focus-visible + .ac-role-label .ac-role-card {
+  outline: 2px solid var(--primary-600);
+  outline-offset: 3px;
+}
 .ac-role-label { cursor:pointer; display:block; }
 .ac-role-card {
   display:flex; flex-direction:column; align-items:center; justify-content:center;
   min-height:124px; padding:1.15rem 1rem; border-radius:12px; text-align:center; position:relative;
   transition:all .25s; border: 2px solid var(--border-light) !important;
-  background:#fff;
+  background:var(--surface, #fff);
 }
 .ac-role-card:hover { border-color:var(--primary-300) !important; background:var(--primary-50); }
 .ac-role-emoji { font-size:2rem; margin-bottom:.5rem; transition:transform .25s; }

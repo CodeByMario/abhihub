@@ -212,6 +212,21 @@
             path: window.location.pathname + window.location.search + window.location.hash,
             title: document.title
         });
+
+        // Detect open document and sync with persistent parent Tarika assistant
+        try {
+            let docId = window.VALID_DOC_ID || (window.__CURRENT_DOC__ && window.__CURRENT_DOC__.id);
+            if (!docId) {
+                const uuidMatch = window.location.href.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+                if (uuidMatch) docId = uuidMatch[0];
+            }
+            const cleanTitle = document.title.replace('— AbhiHub', '').replace('— AbhiHub Reader', '').trim();
+            postToParent({
+                type: 'TARIKA_SET_DOC',
+                docId: docId || null,
+                docTitle: cleanTitle || ''
+            });
+        } catch (e) {}
     }
 
     if (document.readyState === 'loading') {
@@ -242,14 +257,31 @@
             window.scrollTo({ top: 0, behavior: 'smooth' });
         } else if (msg.type === 'RELOAD_PAGE') {
             window.location.reload();
+        } else if (msg.type === 'THEME_CHANGE') {
+            const theme = msg.theme || localStorage.getItem('abhihub_theme') || 'system';
+            const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+            document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
         }
     });
 
-    // 6. Expose global bridge helper
+    // 6. Delegate Tarika helper functions to top shell when embedded
+    window.toggleAbhiAiDrawer = function () {
+        postToParent({ type: 'TARIKA_TOGGLE' });
+    };
+    window.askAiAboutFile = function (prompt) {
+        postToParent({ type: 'TARIKA_ASK', prompt: prompt });
+    };
+    window.quickSend = function (text) {
+        postToParent({ type: 'TARIKA_ASK', prompt: text });
+    };
+
+    // 7. Expose global bridge helper
     window.AbhiHubBridge = {
         isEmbedded: true,
         notifyModalOpen: function () { postToParent({ type: 'MODAL_OPEN' }); },
         notifyModalClose: function () { postToParent({ type: 'MODAL_CLOSE' }); },
+        openTarika: function () { postToParent({ type: 'TARIKA_TOGGLE' }); },
+        askTarika: function (prompt) { postToParent({ type: 'TARIKA_ASK', prompt: prompt }); },
         notifyAuthExpired: function () {
             postToParent({
                 type: 'AUTH_EXPIRED',

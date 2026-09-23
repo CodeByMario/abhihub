@@ -2,6 +2,16 @@
 <html lang="en">
 
 <head>
+    <!-- Instant Theme Detection & Application (prevents theme flash) -->
+    <script>
+        (function() {
+            try {
+                var savedTheme = localStorage.getItem('abhihub_theme') || 'system';
+                var isDark = savedTheme === 'dark' || (savedTheme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+            } catch(e) {}
+        })();
+    </script>
     <!-- App Shell Embedded Detection & Standalone Mode Redirect (must run immediately before CSS) -->
     <script>
         (function() {
@@ -36,20 +46,31 @@
         }
         html.app-shell-embedded body {
             padding-top: 0 !important;
-            padding-bottom: 0 !important;
+            padding-bottom: calc(82px + env(safe-area-inset-bottom, 0px)) !important;
             margin-top: 0 !important;
+        }
+        @media (min-width: 860px) {
+            html.app-shell-embedded body {
+                padding-bottom: 24px !important;
+            }
         }
         html.app-shell-embedded main {
             padding-top: 0 !important;
             margin-top: 0 !important;
         }
-        html.app-shell-embedded header,
+        html.app-shell-embedded body > header,
+        html.app-shell-embedded #main-header,
+        html.app-shell-embedded .site-header,
+        html.app-shell-embedded .navbar--top,
         html.app-shell-embedded .navbar--bottom,
         html.app-shell-embedded .bottom-nav,
         html.app-shell-embedded .app-footer,
         html.app-shell-embedded #main-footer,
-        html.app-shell-embedded footer,
-        html.app-shell-embedded #pwaInstallPopup {
+        html.app-shell-embedded body > footer,
+        html.app-shell-embedded .site-footer,
+        html.app-shell-embedded #pwaInstallPopup,
+        html.app-shell-embedded #abhiAiLauncher,
+        html.app-shell-embedded #abhiAiDrawer {
             display: none !important;
         }
     </style>

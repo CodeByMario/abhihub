@@ -15,7 +15,7 @@
       "app.py"
     ],
     "handlers": [
-      "index_now_key"
+      "indexnow_key_file"
     ],
     "methods": [
       "GET"
@@ -49,17 +49,6 @@
     ],
     "handlers": [
       "about"
-    ],
-    "methods": [
-      "GET"
-    ]
-  },
-  "/open-source": {
-    "files": [
-      "app.py"
-    ],
-    "handlers": [
-      "open_source"
     ],
     "methods": [
       "GET"
@@ -109,12 +98,67 @@
       "GET"
     ]
   },
+  "/admin/economy": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "admin_economy_dashboard"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/admin/file-reports": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "admin_file_reports_page"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
   "/ads.txt": {
     "files": [
       "app.py"
     ],
     "handlers": [
       "ads_txt"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/ai": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "ai_hub"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/ai/embed": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "ai_embed"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/ai/setup": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "ai_setup"
     ],
     "methods": [
       "GET"
@@ -131,6 +175,17 @@
       "POST"
     ]
   },
+  "/api/admin/broadcast-stats": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "get_admin_broadcast_stats"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
   "/api/admin/contact-messages": {
     "files": [
       "app.py"
@@ -142,6 +197,41 @@
       "GET"
     ]
   },
+  "/api/admin/economy/config": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_admin_economy_get_config",
+      "api_admin_economy_update_config"
+    ],
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  "/api/admin/economy/overview": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_admin_economy_overview"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/admin/economy/user/<user_id>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_admin_economy_override_user"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
   "/api/admin/entity/add": {
     "files": [
       "app.py"
@@ -151,6 +241,17 @@
     ],
     "methods": [
       "POST"
+    ]
+  },
+  "/api/admin/file-reports": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "admin_file_reports"
+    ],
+    "methods": [
+      "GET"
     ]
   },
   "/api/admin/notification-history": {
@@ -219,6 +320,17 @@
       "GET"
     ]
   },
+  "/api/admin/system-health": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "get_system_health"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
   "/api/admin/users": {
     "files": [
       "app.py"
@@ -241,6 +353,77 @@
       "GET"
     ]
   },
+  "/api/ai/assistant": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_ai_assistant"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/ai/conversations": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "handle_ai_conversations"
+    ],
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  "/api/ai/conversations/<convo_id>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "handle_ai_single_conversation"
+    ],
+    "methods": [
+      "DELETE",
+      "GET",
+      "PATCH"
+    ]
+  },
+  "/api/ai/extract-upload-metadata": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_extract_upload_metadata"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/ai/key": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_ai_key_delete",
+      "api_ai_key_set"
+    ],
+    "methods": [
+      "DELETE",
+      "POST"
+    ]
+  },
+  "/api/ai/models": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_ai_models"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
   "/api/ai/predict-metadata": {
     "files": [
       "app.py"
@@ -250,6 +433,40 @@
     ],
     "methods": [
       "POST"
+    ]
+  },
+  "/api/ai/tool": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_ai_tool",
+      "execute_ai_tool"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/ai/tools": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "get_ai_tools_schema"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/ai/usage": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_ai_usage"
+    ],
+    "methods": [
+      "GET"
     ]
   },
   "/api/ask-paper": {
@@ -285,6 +502,17 @@
       "GET"
     ]
   },
+  "/api/buy-credits": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_buy_credits"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
   "/api/cache-health": {
     "files": [
       "app.py"
@@ -296,20 +524,50 @@
       "GET"
     ]
   },
+  "/api/chat/history/<peer_id>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_chat_history"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/chat/keys": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "chat_keys"
+    ],
+    "methods": [
+      "GET",
+      "POST"
+    ]
+  },
+  "/api/chat/messages": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_chat_send_message"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
   "/api/chat/online": {
-    "files": ["app.py"],
-    "handlers": ["chat_online_users"],
-    "methods": ["GET"]
-  },
-  "/api/crush/<target_id>": {
-    "files": ["app.py"],
-    "handlers": ["api_crush_toggle"],
-    "methods": ["POST"]
-  },
-  "/api/crush/status/<target_id>": {
-    "files": ["app.py"],
-    "handlers": ["api_crush_status"],
-    "methods": ["GET"]
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "chat_online_users"
+    ],
+    "methods": [
+      "GET"
+    ]
   },
   "/api/chat/peer/<target_user_id>/materials-summary": {
     "files": [
@@ -401,6 +659,39 @@
       "POST"
     ]
   },
+  "/api/credit-history": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_credit_history"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/crush/<target_id>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_crush_toggle"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/crush/status/<target_id>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_crush_status"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
   "/api/departments": {
     "files": [
       "app.py"
@@ -467,6 +758,39 @@
     ],
     "methods": [
       "GET"
+    ]
+  },
+  "/api/get-upload-signature": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "get_upload_signature"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/health": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "health_check"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/api/indexnow/submit": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_indexnow_submit"
+    ],
+    "methods": [
+      "POST"
     ]
   },
   "/api/interactions/bookmark": {
@@ -580,6 +904,17 @@
     ],
     "methods": [
       "POST"
+    ]
+  },
+  "/api/my-access": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_my_access"
+    ],
+    "methods": [
+      "GET"
     ]
   },
   "/api/my-notifications": {
@@ -725,6 +1060,28 @@
       "POST"
     ]
   },
+  "/api/report-broken-file": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "report_broken_file"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
+  "/api/report-issue": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "api_report_issue"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
   "/api/report-suspect": {
     "files": [
       "app.py"
@@ -815,6 +1172,17 @@
       "GET"
     ]
   },
+  "/api/version": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "version_info"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
   "/api/view-doc/<doc_id>": {
     "files": [
       "app.py"
@@ -848,12 +1216,34 @@
       "POST"
     ]
   },
+  "/api/webhooks/cloudinary-upload": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "webhook_cloudinary_upload"
+    ],
+    "methods": [
+      "POST"
+    ]
+  },
   "/api/widget-data": {
     "files": [
       "app.py"
     ],
     "handlers": [
       "widget_data"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/app-shell": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "app_shell"
     ],
     "methods": [
       "GET"
@@ -903,6 +1293,17 @@
       "GET"
     ]
   },
+  "/college/<college_slug>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "college_landing"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
   "/college/<college_slug>/<department_slug>": {
     "files": [
       "app.py"
@@ -914,12 +1315,45 @@
       "GET"
     ]
   },
+  "/college/<college_slug>/files": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "college_files"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
   "/contact": {
     "files": [
       "app.py"
     ],
     "handlers": [
       "contact"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/contribute": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "contribute_page"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/copyright": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "dmca"
     ],
     "methods": [
       "GET"
@@ -1071,6 +1505,39 @@
       "GET"
     ]
   },
+  "/dmca": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "dmca"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/earn-with-abhihub": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "earn_with_abhihub_legacy_redirect"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/earnings": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "earnings"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
   "/favicon.ico": {
     "files": [
       "app.py"
@@ -1102,6 +1569,17 @@
     ],
     "methods": [
       "POST"
+    ]
+  },
+  "/health": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "health_check"
+    ],
+    "methods": [
+      "GET"
     ]
   },
   "/help": {
@@ -1143,6 +1621,17 @@
     ],
     "handlers": [
       "leaderboard"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/llms.txt": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "llms_txt"
     ],
     "methods": [
       "GET"
@@ -1270,6 +1759,17 @@
       "GET"
     ]
   },
+  "/open-source": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "open_source"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
   "/pdf-proxy/<path:pdf_name>": {
     "files": [
       "app.py"
@@ -1287,17 +1787,6 @@
     ],
     "handlers": [
       "exam_prep"
-    ],
-    "methods": [
-      "GET"
-    ]
-  },
-  "/preview": {
-    "files": [
-      "app.py"
-    ],
-    "handlers": [
-      "preview"
     ],
     "methods": [
       "GET"
@@ -1342,6 +1831,50 @@
     ],
     "handlers": [
       "pyq_landing"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/pyq/<college_slug>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "college_landing"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/pyq/<college_slug>/<department_slug>": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "department_landing"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/pyq/<college_slug>/files": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "college_files"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/pyq_landing": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "pyq_landing_legacy_redirect"
     ],
     "methods": [
       "GET"
@@ -1402,6 +1935,17 @@
       "GET"
     ]
   },
+  "/resource/<path:slug>-view": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "resource_landing_redirect"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
   "/robots.txt": {
     "files": [
       "app.py"
@@ -1452,6 +1996,50 @@
     ],
     "handlers": [
       "signup"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/sitemap-audit": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "sitemap_audit"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/sitemap-colleges.xml": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "sitemap_colleges"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/sitemap-documents.xml": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "sitemap_documents"
+    ],
+    "methods": [
+      "GET"
+    ]
+  },
+  "/sitemap-pages.xml": {
+    "files": [
+      "app.py"
+    ],
+    "handlers": [
+      "sitemap_pages"
     ],
     "methods": [
       "GET"
@@ -1583,7 +2171,6 @@
       "app.py"
     ],
     "handlers": [
-      "service_worker",
       "service_worker_root"
     ],
     "methods": [
@@ -1666,17 +2253,6 @@
     ],
     "methods": [
       "POST"
-    ]
-  },
-  "/view_pdf": {
-    "files": [
-      "app.py"
-    ],
-    "handlers": [
-      "view_pdf"
-    ],
-    "methods": [
-      "GET"
     ]
   }
 }

@@ -14,10 +14,9 @@
     --r-border: #fef3c7;
 }
 
-/* Body */
-body {
+/* Resource Page Scoped Container */
+.resource-page {
     background-color: var(--r-bg);
-    overflow-x: hidden;
 }
 
 /* Resource Hero */

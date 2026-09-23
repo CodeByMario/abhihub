@@ -3633,10 +3633,7 @@ def get_all_files_unified():
 @app.route('/profile')
 @auth_required
 def profile():
-    
-    user_info = session['user']
-    user_id = user_info.get('uid')
-    user_email = user_info.get('email', '')
+    return redirect(url_for('settings'))
     
     # Get student profile info
     profile_result = get_student_profile(user_id)
@@ -3782,12 +3779,31 @@ def api_check_profile():
 
 
 
+@app.route('/setting')
 @app.route('/settings')
 @auth_required
 def settings():
     """Display user settings page with account, notification, credit, and privacy controls."""
-    user_data = session.get('user', {})
-    return render_template('settings.html', user_data=user_data)
+    user_info = session.get('user', {})
+    user_id = user_info.get('uid')
+    
+    # Get student profile
+    profile_result = get_student_profile(user_id)
+    profile = profile_result.get('data') if profile_result.get('success') else None
+    
+    # Get colleges and branches for dropdowns
+    colleges_result = get_all_colleges()
+    branches_result = get_all_branches()
+    
+    colleges = colleges_result.get('data', []) if colleges_result.get('success') else []
+    branches = branches_result.get('data', []) if branches_result.get('success') else []
+    
+    return render_template('settings.html', 
+                           user_data=user_info,
+                           user=user_info,
+                           profile=profile,
+                           colleges=colleges,
+                           branches=branches)
 
 
 @app.route('/earnings')

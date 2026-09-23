@@ -32,7 +32,7 @@
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
           <!-- Drop zone -->
-          <div class="drop-zone" id="dropArea" data-action="openFileInput">
+          <div class="drop-zone" id="dropArea" data-action="openFileInput" tabindex="0" role="button" aria-label="Select files or drag and drop to upload" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
             <span class="drop-icon">📂</span>
             <span class="drop-label">Select Files / Drag &amp; Drop</span>
             <span class="drop-hint" id="fileHint">Images accepted • Max 50 MB each</span>
