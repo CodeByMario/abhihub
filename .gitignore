@@ -40,6 +40,7 @@ Thumbs.db
 
 # Sensitive data files
 data/admin_users.json
+data/contact_messages.json
 data/push_subscriptions.json
 data/suspects.json
 data/notification_history.json

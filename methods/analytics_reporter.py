@@ -54,12 +54,8 @@ def get_overview_kpis(days=30):
         since = _safe_ts_days(days)
         
         # Total pageviews
-        pv_res = client.table('document_views').select('*', count='exact').gte('accessed_at', since).execute()
+        pv_res = client.table('document_views').select('id', count='exact').gte('accessed_at', since).execute()
         total_views = pv_res.count if hasattr(pv_res, 'count') and pv_res.count else len(pv_res.data or [])
-        
-        # Total file views (excluding pageviews)
-        fv_res = client.table('document_views').select('user_id', count='exact').gte('accessed_at', since).eq('view_type', 'view').execute()
-        file_views_count = fv_res.count if hasattr(fv_res, 'count') and fv_res.count else len(fv_res.data or [])
         
         # Unique users
         unique_res = client.table('document_views').select('user_id').gte('accessed_at', since).execute()
@@ -67,27 +63,24 @@ def get_overview_kpis(days=30):
         unique_users = len(unique_user_ids)
         
         # Total sessions from user_sessions
-        sess_res = client.table('user_sessions').select('*', count='exact').gte('login_time', since).execute()
-        total_sessions = sess_res.count if hasattr(sess_res, 'count') and sess_res.count else len(sess_res.data or [])
-        
-        # Average session duration
-        durations = [s.get('duration_minutes', 0) or 0 for s in (sess_res.data or [])]
-        avg_duration = round(sum(durations) / len(durations), 1) if durations else 0
-        
-        # Avg time on file (from document_views metadata)
-        time_res = client.table('document_views').select('time_spent_seconds').gte('accessed_at', since).execute()
-        times = [r.get('time_spent_seconds', 0) or 0 for r in (time_res.data or [])]
-        avg_time_on_file = round(sum(times) / len(times), 1) if times else 0
+        total_sessions = 0
+        avg_duration = 0
+        try:
+            sess_res = client.table('user_sessions').select('*', count='exact').gte('login_time', since).execute()
+            total_sessions = sess_res.count if hasattr(sess_res, 'count') and sess_res.count else len(sess_res.data or [])
+            durations = [s.get('duration_minutes', 0) or 0 for s in (sess_res.data or [])]
+            avg_duration = round(sum(durations) / len(durations), 1) if durations else 0
+        except Exception:
+            pass
         
         return {
             "success": True,
             "data": {
                 "total_views": total_views,
-                "file_views": file_views_count,
+                "file_views": total_views,
                 "unique_users": unique_users,
                 "total_sessions": total_sessions,
                 "avg_session_minutes": avg_duration,
-                "avg_time_on_file_seconds": avg_time_on_file,
                 "period_days": days,
                 "generated_at": datetime.utcnow().isoformat() + "Z"
             }
@@ -102,7 +95,7 @@ def get_overview_kpis(days=30):
 # ============================================================================
 
 def get_trending_files(days=30, limit=20):
-    """Return most viewed files with view count and avg time spent."""
+    """Return most viewed files with view count."""
     client = _client()
     if not client:
         return {"success": False, "data": []}
@@ -112,7 +105,7 @@ def get_trending_files(days=30, limit=20):
         
         # Get all file views in period
         res = client.table('document_views').select(
-            'document_id, time_spent_seconds, accessed_at, user_id, device_type'
+            'document_id, accessed_at, user_id, device_type'
         ).gte('accessed_at', since).execute()
         
         views = res.data or []
@@ -629,3 +622,149 @@ def get_daily_views(days=30):
     except Exception as e:
         logging.error(f"[Reporter] Daily views error: {e}")
         return {"success": False, "data": [], "message": str(e)}
+
+
+# ============================================================================
+# USER PREFERENCE & CONTENT SENTIMENT (LIKES / DISLIKES / UNMET DEMAND)
+# ============================================================================
+
+def get_content_sentiment_analysis(days=30, limit=20):
+    """
+    Return comprehensive real-time user preference analytics:
+    1. Top Liked / High Engagement Content
+    2. Underperforming / Low Engagement Content (High views, 0 likes)
+    3. Reported / Disliked Content
+    4. Unmet Search Demand (0-result search queries)
+    5. Real-time Live Interaction Feed
+    """
+    client = _client()
+    if not client:
+        return {"success": False, "data": {}}
+
+    try:
+        # 1. Top Liked & Bookmarked Content
+        top_docs_res = client.table('documents')\
+            .select('id, title, document_category, file_type, view_count, like_count, bookmark_count, created_at, subjects(name)')\
+            .eq('status', 'approved')\
+            .order('like_count', desc=True)\
+            .order('bookmark_count', desc=True)\
+            .limit(limit)\
+            .execute()
+        
+        top_liked = []
+        for d in (top_docs_res.data or []):
+            views = d.get('view_count') or 0
+            likes = d.get('like_count') or 0
+            bms = d.get('bookmark_count') or 0
+            ratio = round((likes / views * 100), 1) if views > 0 else 0
+            subj = d.get('subjects') or {}
+            top_liked.append({
+                'id': d.get('id'),
+                'title': d.get('title'),
+                'category': d.get('document_category') or 'Papers',
+                'file_type': d.get('file_type') or 'pdf',
+                'subject': subj.get('name') if isinstance(subj, dict) else '',
+                'views': views,
+                'likes': likes,
+                'bookmarks': bms,
+                'like_ratio': ratio,
+                'created_at': d.get('created_at')
+            })
+
+        # 2. Underperforming / High Bounce (High views >= 10, Zero likes)
+        low_docs_res = client.table('documents')\
+            .select('id, title, document_category, file_type, view_count, like_count, created_at, subjects(name)')\
+            .eq('status', 'approved')\
+            .eq('like_count', 0)\
+            .gte('view_count', 10)\
+            .order('view_count', desc=True)\
+            .limit(limit)\
+            .execute()
+
+        underperforming = []
+        for d in (low_docs_res.data or []):
+            subj = d.get('subjects') or {}
+            underperforming.append({
+                'id': d.get('id'),
+                'title': d.get('title'),
+                'category': d.get('document_category') or 'Papers',
+                'subject': subj.get('name') if isinstance(subj, dict) else '',
+                'views': d.get('view_count') or 0,
+                'likes': 0,
+                'created_at': d.get('created_at'),
+                'status_note': 'High views but 0 likes (possible content mismatch)'
+            })
+
+        # 3. Reported Content
+        reported_items = []
+        try:
+            reports_res = client.table('file_reports').select('*').order('created_at', desc=True).limit(limit).execute()
+            if reports_res.data:
+                for r in reports_res.data:
+                    reported_items.append({
+                        'doc_id': r.get('document_id') or r.get('file_id'),
+                        'reason': r.get('reason') or r.get('issue_type') or 'Problem reported',
+                        'comment': r.get('comment') or r.get('description') or '',
+                        'timestamp': r.get('created_at')
+                    })
+        except Exception:
+            pass
+
+        # 4. Unmet Search Demand
+        searches = []
+        try:
+            search_res = client.table('search_analytics')\
+                .select('query, results_count, created_at')\
+                .order('created_at', desc=True)\
+                .limit(50)\
+                .execute()
+            
+            zero_count = Counter()
+            for s in (search_res.data or []):
+                q = (s.get('query') or '').strip().lower()
+                if q and s.get('results_count', 0) == 0:
+                    zero_count[q] += 1
+            
+            for q, count in zero_count.most_common(10):
+                searches.append({'query': q, 'unmet_requests': count, 'status': 'Zero results returned'})
+        except Exception:
+            pass
+
+        # 5. Real-time Live Interaction Feed
+        live_feed = []
+        try:
+            votes_res = client.table('document_votes')\
+                .select('document_id, user_id, vote, created_at, documents(title)')\
+                .order('created_at', desc=True)\
+                .limit(15)\
+                .execute()
+            for v in (votes_res.data or []):
+                doc = v.get('documents') or {}
+                live_feed.append({
+                    'type': 'like' if v.get('vote') == 'like' else 'vote',
+                    'title': doc.get('title', 'Document'),
+                    'document_id': v.get('document_id'),
+                    'timestamp': v.get('created_at')
+                })
+        except Exception:
+            pass
+
+        return {
+            "success": True,
+            "data": {
+                "top_liked": top_liked,
+                "underperforming": underperforming,
+                "reported_content": reported_items,
+                "unmet_searches": searches,
+                "live_feed": live_feed,
+                "summary": {
+                    "top_liked_count": len(top_liked),
+                    "underperforming_count": len(underperforming),
+                    "reported_count": len(reported_items),
+                    "unmet_queries_count": len(searches)
+                }
+            }
+        }
+    except Exception as e:
+        logging.error(f"[Reporter] Sentiment analysis error: {e}")
+        return {"success": False, "data": {}, "message": str(e)}

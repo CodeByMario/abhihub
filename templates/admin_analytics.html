@@ -1,15 +1,16 @@
 {% extends 'p_struct.html' %}
 {% block page_head %}
-<title>Analytics Dashboard | AbhiHub Admin</title>
+<title>Admin Dashboard & Real-Time User Sentiment | AbhiHub</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   :root {
-    --dash-bg: #0f172a;
-    --dash-card: #1e293b;
-    --dash-border: #334155;
-    --dash-text: #f1f5f9;
+    --dash-bg: #0b0f19;
+    --dash-card: #151d30;
+    --dash-card-hover: #1c263e;
+    --dash-border: rgba(255, 255, 255, 0.08);
+    --dash-text: #f8fafc;
     --dash-muted: #94a3b8;
-    --dash-accent: #3b82f6;
+    --dash-accent: #6366f1;
     --dash-success: #10b981;
     --dash-warning: #f59e0b;
     --dash-danger: #ef4444;
@@ -17,39 +18,68 @@
   
   body { background: var(--dash-bg); color: var(--dash-text); }
   
-  .dash-container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
+  .dash-container { max-width: 1440px; margin: 0 auto; padding: 1.5rem; }
   
   .dash-header {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
+    padding-bottom: 1rem; border-bottom: 1px solid var(--dash-border);
   }
   
-  .dash-title { font-size: 1.5rem; font-weight: 700; }
+  .dash-title { font-size: 1.65rem; font-weight: 800; display: flex; align-items: center; gap: 0.5rem; }
   
-  .dash-controls { display: flex; gap: 0.5rem; align-items: center; }
+  .dash-controls { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
   
-  .dash-select {
+  .dash-select, .dash-btn {
     background: var(--dash-card); color: var(--dash-text);
     border: 1px solid var(--dash-border); border-radius: 8px;
     padding: 0.5rem 1rem; font-size: 0.875rem; cursor: pointer;
+    font-weight: 500; transition: all 0.15s ease;
+  }
+  .dash-btn:hover { background: var(--dash-card-hover); }
+  .dash-btn-primary { background: var(--dash-accent); border-color: var(--dash-accent); color: #fff; }
+  .dash-btn-primary:hover { opacity: 0.9; }
+
+  .live-indicator {
+    display: inline-flex; align-items: center; gap: 6px;
+    font-size: 0.8rem; font-weight: 600; color: var(--dash-success);
+    background: rgba(16, 185, 129, 0.12); padding: 4px 10px; border-radius: 20px;
+  }
+  .live-dot {
+    width: 8px; height: 8px; background: var(--dash-success);
+    border-radius: 50%; box-shadow: 0 0 8px var(--dash-success);
+    animation: pulseDot 1.8s infinite ease-in-out;
+  }
+  @keyframes pulseDot {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.8); }
   }
   
   .kpi-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem; margin-bottom: 1.5rem;
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(190px, 1fr));
+    gap: 1rem; margin-bottom: 1.75rem;
   }
   
   .kpi-card {
     background: var(--dash-card); border: 1px solid var(--dash-border);
-    border-radius: 12px; padding: 1.25rem;
+    border-radius: 12px; padding: 1.25rem; transition: transform 0.15s ease;
   }
+  .kpi-card:hover { transform: translateY(-2px); }
   
-  .kpi-label { font-size: 0.75rem; color: var(--dash-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-  .kpi-value { font-size: 1.75rem; font-weight: 700; margin-top: 0.25rem; }
-  .kpi-change { font-size: 0.75rem; margin-top: 0.25rem; }
-  .kpi-change.up { color: var(--dash-success); }
-  .kpi-change.down { color: var(--dash-danger); }
+  .kpi-label { font-size: 0.75rem; color: var(--dash-muted); text-transform: uppercase; letter-spacing: 0.05em; font-weight: 600; }
+  .kpi-value { font-size: 1.85rem; font-weight: 800; margin-top: 0.25rem; }
+  .kpi-sub { font-size: 0.75rem; margin-top: 0.25rem; color: var(--dash-muted); }
   
+  .section-title {
+    font-size: 1.15rem; font-weight: 700; margin: 2rem 0 1rem;
+    display: flex; align-items: center; justify-content: space-between;
+  }
+
+  .sentiment-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(480px, 1fr));
+    gap: 1.25rem; margin-bottom: 2rem;
+  }
+
   .chart-grid {
     display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
     gap: 1rem; margin-bottom: 1.5rem;
@@ -57,29 +87,38 @@
   
   .chart-card {
     background: var(--dash-card); border: 1px solid var(--dash-border);
-    border-radius: 12px; padding: 1.25rem;
+    border-radius: 14px; padding: 1.25rem;
   }
   
-  .chart-title { font-size: 0.875rem; font-weight: 600; margin-bottom: 1rem; color: var(--dash-muted); }
-  .chart-container { position: relative; height: 250px; }
+  .chart-title {
+    font-size: 0.95rem; font-weight: 700; margin-bottom: 1rem;
+    color: var(--dash-text); display: flex; align-items: center; justify-content: space-between;
+  }
+  .chart-container { position: relative; height: 260px; }
   
   .data-table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
   .data-table th { text-align: left; padding: 0.75rem; border-bottom: 1px solid var(--dash-border); color: var(--dash-muted); font-weight: 600; }
   .data-table td { padding: 0.75rem; border-bottom: 1px solid var(--dash-border); }
-  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+  .data-table tr:hover td { background: rgba(255,255,255,0.03); }
   
   .badge {
-    display: inline-block; padding: 0.15rem 0.5rem; border-radius: 99px;
-    font-size: 0.7rem; font-weight: 600;
+    display: inline-block; padding: 0.2rem 0.6rem; border-radius: 99px;
+    font-size: 0.75rem; font-weight: 600;
   }
-  .badge-pdf { background: #fef2f2; color: #b91c1c; }
-  .badge-notes { background: #dcfce7; color: #166534; }
-  .badge-pyq { background: #dbeafe; color: #1e40af; }
+  .badge-loved { background: rgba(16, 185, 129, 0.15); color: #34d399; }
+  .badge-disliked { background: rgba(239, 68, 68, 0.15); color: #f87171; }
+  .badge-warn { background: rgba(245, 158, 11, 0.15); color: #fbbf24; }
+  .badge-blue { background: rgba(59, 130, 246, 0.15); color: #60a5fa; }
   
   .loading { text-align: center; padding: 2rem; color: var(--dash-muted); }
-  .error-msg { background: #fef2f2; color: #b91c1c; padding: 1rem; border-radius: 8px; margin: 1rem 0; }
   
+  .action-link {
+    color: var(--dash-accent); text-decoration: none; font-weight: 600;
+  }
+  .action-link:hover { text-decoration: underline; }
+
   @media (max-width: 768px) {
+    .sentiment-grid { grid-template-columns: 1fr; }
     .chart-grid { grid-template-columns: 1fr; }
     .kpi-grid { grid-template-columns: repeat(2, 1fr); }
   }
@@ -90,147 +129,193 @@
 <div class="dash-container">
   <div class="dash-header">
     <div>
-      <h1 class="dash-title">📊 Analytics Dashboard</h1>
-      <p style="color: var(--dash-muted); font-size: 0.875rem;">Real-time insights into AbhiHub usage</p>
+      <h1 class="dash-title">📊 Real-Time Admin & Sentiment Intelligence</h1>
+      <p style="color: var(--dash-muted); font-size: 0.875rem;">Live tracking of content preferences, high-engagement materials, user friction, and demand.</p>
     </div>
     <div class="dash-controls">
+      <div class="live-indicator"><span class="live-dot"></span> LIVE STREAMING</div>
       <select class="dash-select" id="periodSelect" onchange="loadAllData()">
         <option value="7">Last 7 days</option>
         <option value="30" selected>Last 30 days</option>
         <option value="90">Last 90 days</option>
-        <option value="365">Last year</option>
       </select>
-      <button class="dash-select" onclick="loadAllData()" style="background: var(--dash-accent); border-color: var(--dash-accent);">🔄 Refresh</button>
+      <button class="dash-btn dash-btn-primary" onclick="loadAllData()">🔄 Refresh Now</button>
     </div>
   </div>
   
-  <!-- KPI Cards -->
+  <!-- Sentiment & Engagement KPIs -->
   <div class="kpi-grid" id="kpiGrid">
     <div class="kpi-card">
       <div class="kpi-label">Total Views</div>
-      <div class="kpi-value" id="kpiViews">—</div>
+      <div class="kpi-value" id="kpiViews" style="color: #60a5fa;">—</div>
+      <div class="kpi-sub">Across all documents</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Unique Users</div>
-      <div class="kpi-value" id="kpiUsers">—</div>
+      <div class="kpi-label">Active Users</div>
+      <div class="kpi-value" id="kpiUsers" style="color: #34d399;">—</div>
+      <div class="kpi-sub">Unique students</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">File Views</div>
-      <div class="kpi-value" id="kpiFileViews">—</div>
+      <div class="kpi-label">Loved Materials</div>
+      <div class="kpi-value" id="kpiLikedDocs" style="color: #10b981;">—</div>
+      <div class="kpi-sub">High like ratio (>15%)</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Avg Session</div>
-      <div class="kpi-value" id="kpiSession">—</div>
+      <div class="kpi-label">Underperforming Items</div>
+      <div class="kpi-value" id="kpiUnderperforming" style="color: #f59e0b;">—</div>
+      <div class="kpi-sub">High views, 0 likes</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Avg Time on File</div>
-      <div class="kpi-value" id="kpiTime">—</div>
+      <div class="kpi-label">Reported Issues</div>
+      <div class="kpi-value" id="kpiReported" style="color: #ef4444;">—</div>
+      <div class="kpi-sub">Student complaints</div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Total Sessions</div>
-      <div class="kpi-value" id="kpiTotalSessions">—</div>
+      <div class="kpi-label">Unmet Search Demand</div>
+      <div class="kpi-value" id="kpiUnmetSearches" style="color: #a855f7;">—</div>
+      <div class="kpi-sub">0-result searches</div>
     </div>
   </div>
-  
-  <!-- Charts Row 1 -->
+
+  <!-- Real-Time Sentiment Analysis Section -->
+  <div class="section-title">
+    <span>💡 User Sentiment: What Users Like vs. What They Avoid</span>
+  </div>
+
+  <div class="sentiment-grid">
+    <!-- What Users Like (Top Liked & Bookmarked) -->
+    <div class="chart-card">
+      <div class="chart-title">
+        <span>💚 What Users Love (Top Liked & Bookmarked)</span>
+        <span class="badge badge-loved" id="topLikedBadge">0 items</span>
+      </div>
+      <div style="overflow-x: auto; max-height: 380px;">
+        <table class="data-table" id="topLikedTable">
+          <thead>
+            <tr>
+              <th>Document Title</th>
+              <th>Subject</th>
+              <th>Views</th>
+              <th>Likes</th>
+              <th>Like Ratio</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="topLikedBody">
+            <tr><td colspan="6" class="loading">Loading user preferences...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- What Users Dislike / Avoid (High Bounce / 0 Likes) -->
+    <div class="chart-card">
+      <div class="chart-title">
+        <span>💔 What Users Dislike / Low Engagement</span>
+        <span class="badge badge-warn" id="underperformingBadge">0 items</span>
+      </div>
+      <div style="overflow-x: auto; max-height: 380px;">
+        <table class="data-table" id="underperformingTable">
+          <thead>
+            <tr>
+              <th>Document Title</th>
+              <th>Subject</th>
+              <th>Views</th>
+              <th>Likes</th>
+              <th>Quality Status</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="underperformingBody">
+            <tr><td colspan="6" class="loading">Loading underperforming content...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Real-Time Demand & Reported Issues Section -->
+  <div class="sentiment-grid">
+    <!-- Unmet User Demand (Zero-Result Searches) -->
+    <div class="chart-card">
+      <div class="chart-title">
+        <span>🔍 Unmet Demand (What Students Search But Can't Find)</span>
+        <span class="badge badge-blue" id="unmetBadge">0 queries</span>
+      </div>
+      <div style="overflow-x: auto; max-height: 340px;">
+        <table class="data-table" id="unmetTable">
+          <thead>
+            <tr>
+              <th>Search Query</th>
+              <th>Unmet Search Count</th>
+              <th>Recommended Action</th>
+            </tr>
+          </thead>
+          <tbody id="unmetBody">
+            <tr><td colspan="3" class="loading">Analyzing search demand...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Reported Content & User Complaints -->
+    <div class="chart-card">
+      <div class="chart-title">
+        <span>🚩 User Reports & Quality Complaints</span>
+        <span class="badge badge-disliked" id="reportsBadge">0 reports</span>
+      </div>
+      <div style="overflow-x: auto; max-height: 340px;">
+        <table class="data-table" id="reportsTable">
+          <thead>
+            <tr>
+              <th>Doc ID</th>
+              <th>Issue Type</th>
+              <th>Student Comment</th>
+              <th>Reported At</th>
+            </tr>
+          </thead>
+          <tbody id="reportsBody">
+            <tr><td colspan="4" class="loading">Loading reports...</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Live Activity Stream & Views Chart -->
   <div class="chart-grid">
     <div class="chart-card">
-      <div class="chart-title">📈 Daily Views Trend</div>
+      <div class="chart-title">📈 Daily Views & Engagement Trend</div>
       <div class="chart-container"><canvas id="dailyViewsChart"></canvas></div>
     </div>
     <div class="chart-card">
-      <div class="chart-title">⏰ Hourly Usage Pattern</div>
-      <div class="chart-container"><canvas id="hourlyChart"></canvas></div>
+      <div class="chart-title">⚡ Live Real-Time Interaction Feed</div>
+      <div style="overflow-x: auto; max-height: 260px;">
+        <table class="data-table" id="liveFeedTable">
+          <thead>
+            <tr>
+              <th>Action</th>
+              <th>Resource</th>
+              <th>Time</th>
+            </tr>
+          </thead>
+          <tbody id="liveFeedBody">
+            <tr><td colspan="3" class="loading">Listening for live interactions...</td></tr>
+          </tbody>
+        </table>
+      </div>
     </div>
   </div>
-  
+
   <!-- Charts Row 2 -->
   <div class="chart-grid">
     <div class="chart-card">
-      <div class="chart-title">🏫 Top Colleges</div>
+      <div class="chart-title">🏫 Top Colleges by Engagement</div>
       <div class="chart-container"><canvas id="collegesChart"></canvas></div>
     </div>
     <div class="chart-card">
-      <div class="chart-title">📱 Device Breakdown</div>
+      <div class="chart-title">📱 Device & Platform Breakdown</div>
       <div class="chart-container"><canvas id="devicesChart"></canvas></div>
-    </div>
-  </div>
-  
-  <!-- Trending Files Table -->
-  <div class="chart-card" style="margin-bottom: 1.5rem;">
-    <div class="chart-title">🔥 Trending Files</div>
-    <div style="overflow-x: auto;">
-      <table class="data-table" id="trendingTable">
-        <thead>
-          <tr>
-            <th>#</th>
-            <th>File Name</th>
-            <th>Type</th>
-            <th>Subject</th>
-            <th>College</th>
-            <th>Views</th>
-            <th>Unique Viewers</th>
-            <th>Avg Time</th>
-          </tr>
-        </thead>
-        <tbody id="trendingBody">
-          <tr><td colspan="8" class="loading">Loading...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-  
-  <!-- Charts Row 3 -->
-  <div class="chart-grid">
-    <div class="chart-card">
-      <div class="chart-title">📚 Trending Subjects</div>
-      <div class="chart-container"><canvas id="subjectsChart"></canvas></div>
-    </div>
-    <div class="chart-card">
-      <div class="chart-title">🔗 Traffic Sources</div>
-      <div class="chart-container"><canvas id="referrersChart"></canvas></div>
-    </div>
-  </div>
-  
-  <!-- Recent Activity -->
-  <div class="chart-card" style="margin-bottom: 1.5rem;">
-    <div class="chart-title">🕐 Recent Activity</div>
-    <div style="overflow-x: auto;">
-      <table class="data-table" id="activityTable">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>File</th>
-            <th>Type</th>
-            <th>Device</th>
-            <th>Time Spent</th>
-          </tr>
-        </thead>
-        <tbody id="activityBody">
-          <tr><td colspan="5" class="loading">Loading...</td></tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
-  
-  <!-- Errors -->
-  <div class="chart-card">
-    <div class="chart-title">⚠️ Recent Errors (7 days)</div>
-    <div style="overflow-x: auto;">
-      <table class="data-table" id="errorsTable">
-        <thead>
-          <tr>
-            <th>Time</th>
-            <th>Error Type</th>
-            <th>Message</th>
-            <th>Severity</th>
-            <th>Page</th>
-          </tr>
-        </thead>
-        <tbody id="errorsBody">
-          <tr><td colspan="5" class="loading">Loading...</td></tr>
-        </tbody>
-      </table>
     </div>
   </div>
 </div>
@@ -238,241 +323,224 @@
 <script>
   const COLORS = {
     blue: '#3b82f6', green: '#10b981', yellow: '#f59e0b', red: '#ef4444',
-    purple: '#8b5cf6', cyan: '#06b6d4', pink: '#ec4899', orange: '#f97316',
-    slate: '#64748b'
+    purple: '#8b5cf6', cyan: '#06b6d4', pink: '#ec4899', orange: '#f97316'
   };
   
   const CHART_DEFAULTS = {
     responsive: true, maintainAspectRatio: false,
     plugins: { legend: { labels: { color: '#94a3b8' } } },
     scales: {
-      x: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } },
-      y: { ticks: { color: '#94a3b8' }, grid: { color: '#334155' } }
+      x: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } },
+      y: { ticks: { color: '#94a3b8' }, grid: { color: 'rgba(255,255,255,0.06)' } }
     }
   };
   
-  let charts = {};
+  const charts = {};
+  function destroyChart(name) {
+    if (charts[name]) { charts[name].destroy(); delete charts[name]; }
+  }
   
-  function getPeriod() { return document.getElementById('periodSelect').value; }
-  
-  async function fetchData(endpoint) {
+  function formatNumber(n) {
+    if (n === null || n === undefined) return '—';
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+    if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+    return String(n);
+  }
+
+  function getDays() {
+    return document.getElementById('periodSelect').value || '30';
+  }
+
+  async function fetchEndpoint(url) {
     try {
-      const res = await fetch(`${endpoint}?days=${getPeriod()}`);
+      const res = await fetch(url);
       return await res.json();
-    } catch (e) {
-      console.error(`Failed to fetch ${endpoint}:`, e);
-      return { success: false, data: null };
+    } catch (err) {
+      return { success: false, error: err.message };
     }
   }
-  
-  function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
-  
-  function formatNumber(n) { return n?.toLocaleString() || '0'; }
-  function formatTime(seconds) {
-    if (!seconds) return '0s';
-    if (seconds < 60) return `${Math.round(seconds)}s`;
-    return `${Math.round(seconds / 60)}m ${Math.round(seconds % 60)}s`;
+
+  // === Load Sentiment & Real-time Content Preference Analytics ===
+  async function loadSentimentAnalytics() {
+    const days = getDays();
+    const res = await fetchEndpoint(`/api/admin/analytics/sentiment?days=${days}&limit=20`);
+    if (!res.success || !res.data) return;
+
+    const data = res.data;
+
+    // Badges & KPI counters
+    document.getElementById('kpiLikedDocs').textContent = formatNumber(data.summary?.top_liked_count || 0);
+    document.getElementById('kpiUnderperforming').textContent = formatNumber(data.summary?.underperforming_count || 0);
+    document.getElementById('kpiReported').textContent = formatNumber(data.summary?.reported_count || 0);
+    document.getElementById('kpiUnmetSearches').textContent = formatNumber(data.summary?.unmet_queries_count || 0);
+
+    document.getElementById('topLikedBadge').textContent = `${data.top_liked?.length || 0} items`;
+    document.getElementById('underperformingBadge').textContent = `${data.underperforming?.length || 0} items`;
+    document.getElementById('unmetBadge').textContent = `${data.unmet_searches?.length || 0} queries`;
+    document.getElementById('reportsBadge').textContent = `${data.reported_content?.length || 0} reports`;
+
+    // 1. What Users Like Table
+    const topBody = document.getElementById('topLikedBody');
+    if (data.top_liked && data.top_liked.length) {
+      topBody.innerHTML = data.top_liked.map(doc => `
+        <tr>
+          <td><strong>${doc.title || 'Untitled'}</strong></td>
+          <td><span class="badge badge-blue">${doc.subject || 'General'}</span></td>
+          <td>${formatNumber(doc.views)}</td>
+          <td><span style="color: #34d399; font-weight: bold;">❤️ ${doc.likes}</span></td>
+          <td><span class="badge badge-loved">${doc.like_ratio}%</span></td>
+          <td><a href="/resource/${doc.id}" target="_blank" class="action-link">View ↗</a></td>
+        </tr>
+      `).join('');
+    } else {
+      topBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--dash-muted)">No liked items recorded yet.</td></tr>';
+    }
+
+    // 2. What Users Dislike / Avoid Table
+    const underBody = document.getElementById('underperformingBody');
+    if (data.underperforming && data.underperforming.length) {
+      underBody.innerHTML = data.underperforming.map(doc => `
+        <tr>
+          <td><strong>${doc.title || 'Untitled'}</strong></td>
+          <td><span class="badge badge-blue">${doc.subject || 'General'}</span></td>
+          <td>${formatNumber(doc.views)}</td>
+          <td><span style="color: #f87171;">💔 0</span></td>
+          <td><span class="badge badge-warn">${doc.status_note}</span></td>
+          <td><a href="/resource/${doc.id}" target="_blank" class="action-link">Inspect ↗</a></td>
+        </tr>
+      `).join('');
+    } else {
+      underBody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--dash-muted)">No high-bounce content detected 🎉</td></tr>';
+    }
+
+    // 3. Unmet Demand Table
+    const unmetBody = document.getElementById('unmetBody');
+    if (data.unmet_searches && data.unmet_searches.length) {
+      unmetBody.innerHTML = data.unmet_searches.map(q => `
+        <tr>
+          <td><strong>"${q.query}"</strong></td>
+          <td><span class="badge badge-warn">${q.unmet_requests} searches</span></td>
+          <td><span style="color: #38bdf8;">Upload notes/PYQ for this topic</span></td>
+        </tr>
+      `).join('');
+    } else {
+      unmetBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--dash-muted)">All search queries found matches 🎉</td></tr>';
+    }
+
+    // 4. Reported Content Table
+    const repBody = document.getElementById('reportsBody');
+    if (data.reported_content && data.reported_content.length) {
+      repBody.innerHTML = data.reported_content.map(r => `
+        <tr>
+          <td><code>${(r.doc_id || '').slice(0, 8)}...</code></td>
+          <td><span class="badge badge-disliked">${r.reason}</span></td>
+          <td>${r.comment ? r.comment.slice(0, 45) : '—'}</td>
+          <td>${r.timestamp ? r.timestamp.slice(0, 10) : '—'}</td>
+        </tr>
+      `).join('');
+    } else {
+      repBody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--dash-muted)">Zero unresolved content reports 🎉</td></tr>';
+    }
+
+    // 5. Live Interaction Feed
+    const feedBody = document.getElementById('liveFeedBody');
+    if (data.live_feed && data.live_feed.length) {
+      feedBody.innerHTML = data.live_feed.map(f => `
+        <tr>
+          <td><span class="badge badge-loved">❤️ ${f.type}</span></td>
+          <td>${f.title ? f.title.slice(0, 30) : 'Document'}</td>
+          <td>${f.timestamp ? f.timestamp.slice(11, 16) : 'Just now'}</td>
+        </tr>
+      `).join('');
+    } else {
+      feedBody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--dash-muted)">No recent interactions recorded.</td></tr>';
+    }
   }
-  
-  // === Load KPIs ===
-  function loadKPIs() {
-    fetchData('/api/admin/analytics/overview').then(r => {
-      if (!r.success || !r.data) return;
-      const d = r.data;
-      document.getElementById('kpiViews').textContent = formatNumber(d.total_views);
-      document.getElementById('kpiUsers').textContent = formatNumber(d.unique_users);
-      document.getElementById('kpiFileViews').textContent = formatNumber(d.file_views);
-      document.getElementById('kpiSession').textContent = `${d.avg_session_minutes}m`;
-      document.getElementById('kpiTime').textContent = formatTime(d.avg_time_on_file_seconds);
-      document.getElementById('kpiTotalSessions').textContent = formatNumber(d.total_sessions);
-    });
+
+  // === Load KPI Overview ===
+  async function loadKPIs() {
+    const days = getDays();
+    const res = await fetchEndpoint(`/api/admin/analytics/overview?days=${days}`);
+    if (res.success && res.data) {
+      document.getElementById('kpiViews').textContent = formatNumber(res.data.total_views || 0);
+      document.getElementById('kpiUsers').textContent = formatNumber(res.data.unique_users || 0);
+    }
   }
-  
+
   // === Daily Views Chart ===
-  function loadDailyViews() {
-    fetchData('/api/admin/analytics/daily-views').then(r => {
-      if (!r.success) return;
-      destroyChart('daily');
-      const ctx = document.getElementById('dailyViewsChart').getContext('2d');
-      charts.daily = new Chart(ctx, {
-        type: 'line',
-        data: {
-          labels: r.data.map(d => d.date.slice(5)),
-          datasets: [{
-            label: 'Views', data: r.data.map(d => d.views),
-            borderColor: COLORS.blue, backgroundColor: 'rgba(59,130,246,0.1)',
-            fill: true, tension: 0.3
-          }]
-        },
-        options: CHART_DEFAULTS
-      });
+  async function loadDailyViews() {
+    const days = getDays();
+    const r = await fetchEndpoint(`/api/admin/analytics/daily-views?days=${days}`);
+    if (!r.success || !r.data) return;
+    destroyChart('dailyViews');
+    const ctx = document.getElementById('dailyViewsChart').getContext('2d');
+    charts.dailyViews = new Chart(ctx, {
+      type: 'line',
+      data: {
+        labels: r.data.map(d => d.date.slice(5)),
+        datasets: [{
+          label: 'Views', data: r.data.map(d => d.views),
+          borderColor: COLORS.blue, backgroundColor: 'rgba(59,130,246,0.15)',
+          fill: true, tension: 0.35, pointRadius: 3
+        }]
+      },
+      options: CHART_DEFAULTS
     });
   }
-  
-  // === Hourly Chart ===
-  function loadHourly() {
-    fetchData('/api/admin/analytics/usage-patterns').then(r => {
-      if (!r.success) return;
-      destroyChart('hourly');
-      const ctx = document.getElementById('hourlyChart').getContext('2d');
-      charts.hourly = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: r.data.hourly.map(h => h.hour),
-          datasets: [{
-            label: 'Views', data: r.data.hourly.map(h => h.views),
-            backgroundColor: COLORS.cyan
-          }]
-        },
-        options: CHART_DEFAULTS
-      });
-    });
-  }
-  
+
   // === Colleges Chart ===
-  function loadColleges() {
-    fetchData('/api/admin/analytics/demographics').then(r => {
-      if (!r.success) return;
-      destroyChart('colleges');
-      const colleges = r.data.colleges || [];
-      const ctx = document.getElementById('collegesChart').getContext('2d');
-      charts.colleges = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: colleges.map(c => c.name?.slice(0, 20) || 'Unknown'),
-          datasets: [{
-            label: 'Users', data: colleges.map(c => c.count),
-            backgroundColor: COLORS.green
-          }]
-        },
-        options: { ...CHART_DEFAULTS, indexAxis: 'y' }
-      });
+  async function loadColleges() {
+    const days = getDays();
+    const r = await fetchEndpoint(`/api/admin/analytics/demographics?days=${days}`);
+    if (!r.success || !r.data) return;
+    destroyChart('colleges');
+    const colleges = r.data.colleges || [];
+    const ctx = document.getElementById('collegesChart').getContext('2d');
+    charts.colleges = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: colleges.map(c => c.name ? c.name.slice(0, 18) : 'Unknown'),
+        datasets: [{
+          label: 'Active Users', data: colleges.map(c => c.count),
+          backgroundColor: COLORS.green
+        }]
+      },
+      options: { ...CHART_DEFAULTS, indexAxis: 'y' }
     });
   }
-  
+
   // === Devices Chart ===
-  function loadDevices() {
-    fetchData('/api/admin/analytics/devices').then(r => {
-      if (!r.success) return;
-      destroyChart('devices');
-      const devices = r.data.devices || [];
-      const ctx = document.getElementById('devicesChart').getContext('2d');
-      charts.devices = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: devices.map(d => d.type),
-          datasets: [{
-            data: devices.map(d => d.count),
-            backgroundColor: [COLORS.blue, COLORS.green, COLORS.yellow, COLORS.purple]
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } } }
-      });
+  async function loadDevices() {
+    const days = getDays();
+    const r = await fetchEndpoint(`/api/admin/analytics/devices?days=${days}`);
+    if (!r.success || !r.data) return;
+    destroyChart('devices');
+    const devices = r.data.devices || [];
+    const ctx = document.getElementById('devicesChart').getContext('2d');
+    charts.devices = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: devices.map(d => d.type),
+        datasets: [{
+          data: devices.map(d => d.count),
+          backgroundColor: [COLORS.blue, COLORS.green, COLORS.yellow, COLORS.purple]
+        }]
+      },
+      options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } } }
     });
   }
-  
-  // === Trending Files Table ===
-  function loadTrendingFiles() {
-    fetchData('/api/admin/analytics/trending-files').then(r => {
-      if (!r.success) return;
-      const tbody = document.getElementById('trendingBody');
-      tbody.innerHTML = r.data.map((f, i) => `
-        <tr>
-          <td>${i + 1}</td>
-          <td>${f.title?.slice(0, 40) || 'Unknown'}</td>
-          <td><span class="badge badge-${f.file_type}">${f.file_type || '—'}</span></td>
-          <td>${f.subject || '—'}</td>
-          <td>${f.college || '—'}</td>
-          <td><strong>${formatNumber(f.view_count)}</strong></td>
-          <td>${formatNumber(f.unique_viewers)}</td>
-          <td>${formatTime(f.avg_time_seconds)}</td>
-        </tr>
-      `).join('');
-    });
-  }
-  
-  // === Subjects Chart ===
-  function loadSubjects() {
-    fetchData('/api/admin/analytics/trending-subjects').then(r => {
-      if (!r.success) return;
-      destroyChart('subjects');
-      const subjects = r.data || [];
-      const ctx = document.getElementById('subjectsChart').getContext('2d');
-      charts.subjects = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: subjects.map(s => s.name?.slice(0, 15) || 'Unknown'),
-          datasets: [{
-            label: 'Views', data: subjects.map(s => s.view_count),
-            backgroundColor: COLORS.purple
-          }]
-        },
-        options: CHART_DEFAULTS
-      });
-    });
-  }
-  
-  // === Referrers Chart ===
-  function loadReferrers() {
-    fetchData('/api/admin/analytics/traffic-sources').then(r => {
-      if (!r.success) return;
-      destroyChart('referrers');
-      const refs = r.data || [];
-      const ctx = document.getElementById('referrersChart').getContext('2d');
-      charts.referrers = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-          labels: refs.map(r => r.source?.slice(0, 25) || 'Unknown'),
-          datasets: [{
-            data: refs.map(r => r.views),
-            backgroundColor: [COLORS.blue, COLORS.green, COLORS.yellow, COLORS.red, COLORS.purple, COLORS.cyan, COLORS.pink, COLORS.orange]
-          }]
-        },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } } }
-      });
-    });
-  }
-  
-  // === Recent Activity ===
-  function loadActivity() {
-    fetch('/api/admin/analytics/recent-activity?limit=20').then(r => r.json()).then(r => {
-      if (!r.success) return;
-      const tbody = document.getElementById('activityBody');
-      tbody.innerHTML = r.data.map(a => `
-        <tr>
-          <td>${a.accessed_at ? a.accessed_at.slice(0, 16).replace('T', ' ') : '—'}</td>
-          <td>${a.document_title?.slice(0, 35) || 'Unknown'}</td>
-          <td><span class="badge badge-${a.file_type}">${a.file_type || '—'}</span></td>
-          <td>${a.device_type || '—'}</td>
-          <td>${formatTime(a.time_spent_seconds)}</td>
-        </tr>
-      `).join('');
-    });
-  }
-  
-  // === Errors ===
-  function loadErrors() {
-    fetch('/api/admin/analytics/errors').then(r => r.json()).then(r => {
-      if (!r.success) return;
-      const tbody = document.getElementById('errorsBody');
-      tbody.innerHTML = r.data.length ? r.data.map(e => `
-        <tr>
-          <td>${e.timestamp ? e.timestamp.slice(0, 16).replace('T', ' ') : '—'}</td>
-          <td>${e.error_type || '—'}</td>
-          <td>${e.error_message?.slice(0, 60) || '—'}</td>
-          <td><span class="badge" style="background: ${e.severity === 'error' ? '#fef2f2' : '#fef9c3'}; color: ${e.severity === 'error' ? '#b91c1c' : '#854d0e'}">${e.severity || 'warning'}</span></td>
-          <td>${e.page_path || '—'}</td>
-        </tr>
-      `).join('') : '<tr><td colspan="5" style="text-align:center;color:var(--dash-muted)">No errors in this period 🎉</td></tr>';
-    });
-  }
-  
+
   function loadAllData() {
-    loadKPIs(); loadDailyViews(); loadHourly(); loadColleges(); loadDevices();
-    loadTrendingFiles(); loadSubjects(); loadReferrers(); loadActivity(); loadErrors();
+    loadSentimentAnalytics();
+    loadKPIs();
+    loadDailyViews();
+    loadColleges();
+    loadDevices();
   }
-  
-  // Initial load
+
+  // Auto-refresh every 20 seconds for real-time live monitoring
+  setInterval(loadSentimentAnalytics, 20000);
+
   document.addEventListener('DOMContentLoaded', loadAllData);
 </script>
 {% endblock %}

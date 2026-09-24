@@ -102,3 +102,13 @@ def register_reporter_routes(app):
         days = min(int(request.args.get('days', 30)), 365)
         result = get_daily_views(days=days)
         return jsonify(result), 200 if result.get('success') else 500
+
+    @app.route('/api/admin/analytics/sentiment', methods=['GET'])
+    def api_admin_sentiment_analytics():
+        """Return real-time content sentiment, likes, dislikes, and unmet demand."""
+        from methods.analytics_reporter import get_content_sentiment_analysis
+        
+        days = min(int(request.args.get('days', 30)), 365)
+        limit = min(int(request.args.get('limit', 20)), 100)
+        result = get_content_sentiment_analysis(days=days, limit=limit)
+        return jsonify(result), 200 if result.get('success') else 500
