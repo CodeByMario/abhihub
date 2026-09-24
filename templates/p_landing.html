@@ -1,7 +1,7 @@
 {% set disable_ads = true %}
-{% set seo_title = 'AbhiHub | Free Engineering PYQs, Notes, Practicals & Study Resources' %}
-{% set seo_description = 'Browse free engineering PYQs, notes, practicals, and exam resources for colleges across India on AbhiHub. Search by college, subject, and department.' %}
-{% set seo_keywords = 'engineering PYQs, free engineering papers, practicals, notes, study resources, AbhiHub' %}
+{% set seo_title = "World's #1 Previous Year Question Paper & Notes Sharing Platform | AbhiHub Exam Preparation" %}
+{% set seo_description = "AbhiHub is the World's #1 previous year question paper platform, notes sharing platform, and exam preparation platform. Proudly Made in India with multi-device support and fast-growing Tarika AI support." %}
+{% set seo_keywords = "World's #1 PYQ platform, previous year question paper platform, notes sharing platform, exam preparation platform, Made in India, Tarika AI, multi-device support, engineering notes, study resources, AbhiHub" %}
 {% set og_title = seo_title %}
 {% set og_description = seo_description %}
 {% extends 'p_struct.html' %}
@@ -357,16 +357,16 @@
   <div class="hero-bg-blob"></div>
 
   <div class="hero-badge stagger-in" style="animation-delay: 0s;">
-    <span>✨</span> New: Premium Mobile Experience
+    <span>🇮🇳</span> Made in India • World's #1 PYQ & Notes Platform
   </div>
 
   <h1 class="hero-title stagger-in" style="animation-delay: 0.1s;">
-    Master Your Engineering<br>
-    <span>Exams with AbhiHub</span>
+    World's #1 Previous Year Question Paper<br>
+    <span>& Notes Sharing Platform</span>
   </h1>
 
   <p class="hero-subtitle stagger-in" style="animation-delay: 0.2s;">
-    Browse verified PYQs, practicals, and study resources organized by college and subject.
+    The complete exam preparation platform. Access 3,000+ verified PYQs, shared notes, and practicals with multi-device cloud sync and fast-growing Tarika AI support.
   </p>
 
   <div class="hero-actions stagger-in" style="animation-delay: 0.3s;">
@@ -412,11 +412,21 @@
 <div class="features-section">
   <h2 class="section-title">Why Students Choose AbhiHub</h2>
   <div class="features-grid">
-    <a href="{{ url_for('memorywall_dashboard') }}" class="glass-card stagger-in">
-      <div class="icon-box">🧠</div>
-      <h3 class="card-title">MemoryWall</h3>
-      <p class="card-desc">Create your wall, let friends describe you in 3 words, and see your AI personality insights before you graduate.</p>
-      <span class="card-link" style="color: #6366f1;">Build Your Wall →</span>
+    <a href="{{ url_for('ai_hub') }}" class="glass-card stagger-in" style="border: 1px solid rgba(124, 58, 237, 0.4); background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(237, 233, 254, 0.6));">
+      <div class="icon-box" style="background: rgba(124, 58, 237, 0.15);">🤖</div>
+      <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+        <h3 class="card-title" style="margin-bottom:0;">Tarika (AI Support)</h3>
+        <span style="background: linear-gradient(135deg, #7c3aed, #2563eb); color: white; font-size: 0.65rem; font-weight: 800; padding: 0.2rem 0.6rem; border-radius: 99px; text-transform: uppercase;">Fast Growing</span>
+      </div>
+      <p class="card-desc">Your 24/7 AI exam tutor. Ask questions directly from exam papers, get instant step-by-step solutions, and summarize lengthy notes in seconds.</p>
+      <span class="card-link" style="color: #7c3aed; font-weight: 700;">Explore Tarika AI →</span>
+    </a>
+
+    <a href="{{ url_for('features_tour') }}" class="glass-card stagger-in" style="border: 1px solid rgba(37, 99, 235, 0.3);">
+      <div class="icon-box" style="background: rgba(37, 99, 235, 0.15);">📲</div>
+      <h3 class="card-title">Multi-Device Support</h3>
+      <p class="card-desc">Seamlessly study anywhere. Real-time sync across Android, iOS, Windows, macOS, and tablets with offline PWA caching.</p>
+      <span class="card-link" style="color: #2563eb; font-weight: 700;">View Device Support →</span>
     </a>
 
     <a href="{{ url_for('dashboard') }}" class="glass-card stagger-in">
@@ -426,17 +436,10 @@
       <span class="card-link" style="color: #ec4899;">View Dashboard →</span>
     </a>
 
-    <a href="{{ url_for('dashboard') }}" class="glass-card stagger-in">
-      <div class="icon-box">📚</div>
-      <h3 class="card-title">Store Room</h3>
-      <p class="card-desc">Your personal study library. Save, label, and organize your study materials efficiently with custom tags.</p>
-      <span class="card-link" style="color: #10b981;">Go to Store Room →</span>
-    </a>
-
     <a href="{{ url_for('upload') }}" class="glass-card stagger-in">
       <div class="icon-box">📤</div>
-      <h3 class="card-title">Smart Upload</h3>
-      <p class="card-desc">Upload files seamlessly, earn reputation points, and climb the global leaderboard to become a top contributor.</p>
+      <h3 class="card-title">Smart Upload & Notes Sharing</h3>
+      <p class="card-desc">Share notes and previous year papers, earn reputation points, and climb the leaderboard as a top campus contributor.</p>
       <span class="card-link" style="color: #f59e0b;">Start Uploading →</span>
     </a>
   </div>

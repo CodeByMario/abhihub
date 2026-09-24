@@ -1,6 +1,6 @@
-{% set seo_title = 'Free PYQ – Previous Year Question Papers | AbhiHub' %}
-{% set seo_description = 'Download free PYQ for engineering colleges in India — GHRCE, Raisoni, RCOEM, VIT and more. Browse by college, subject and semester on AbhiHub.' %}
-{% set seo_keywords = 'PYQ, PYQ previous year question papers, college PYQ, engineering PYQ, engineering papers, previous year papers abhihub, PYQ free download, PYQ PDF, GHRCE PYQ, Raisoni PYQ, RCOEM PYQ, VIT PYQ, engineering notes, exam preparation, AbhiHub PYQ' %}
+{% set seo_title = "World's #1 Previous Year Question Papers (PYQ) Platform | Free Exam Prep & Notes on AbhiHub" %}
+{% set seo_description = "Download free PYQs and engineering notes on AbhiHub — World's #1 previous year question paper platform. Featuring Tarika personalized AI assistant, multi-device sync, and 3000+ verified papers." %}
+{% set seo_keywords = "World's #1 PYQ platform, previous year question papers, college PYQ, engineering PYQ, engineering notes sharing, exam preparation platform, Tarika AI assistant, Made in India, GHRCE PYQ, Raisoni PYQ, RCOEM PYQ, VIT PYQ, AbhiHub" %}
 {% set og_title = seo_title %}
 {% set og_description = seo_description %}
 {% set og_type = 'website' %}
@@ -13,29 +13,34 @@
   "@graph": [
     {
       "@type": "CollectionPage",
-      "name": "Free PYQ - Previous Year Question Papers | AbhiHub",
+      "name": "World's #1 Previous Year Question Papers (PYQ) Platform | AbhiHub",
       "url": "{{ request.url_root.rstrip('/') }}/pyq",
-      "description": "Free previous year question papers for engineering colleges across India, organized by college, department and subject. Includes GHRCE, Raisoni, RCOEM, VIT Nagpur and more.",
+      "description": "Free previous year question papers for engineering colleges across India and worldwide, organized by college, department and subject. Features Tarika personalized AI exam assistant and multi-device sync.",
       "provider": { "@type": "Organization", "name": "AbhiHub", "url": "{{ request.url_root.rstrip('/') }}/" },
       "audience": { "@type": "EducationalAudience", "educationalRole": "student" }
     },
     {
       "@type": "SoftwareApplication",
-      "name": "AbhiHub",
+      "name": "AbhiHub PYQ & Notes Platform",
       "applicationCategory": "EducationalApplication",
-      "operatingSystem": "Web",
-      "url": "{{ request.url_root.rstrip('/') }}/",
-      "description": "Free web app for engineering students in India to find, download and share PYQ (Previous Year Question Papers) and study notes by college, department and subject.",
+      "operatingSystem": "All (Web, Android, iOS, Windows, macOS, PWA)",
+      "url": "{{ request.url_root.rstrip('/') }}/pyq",
+      "description": "World's #1 platform for engineering students to find, download and solve PYQs and study notes with Tarika personalized AI tutor.",
       "offers": { "@type": "Offer", "price": "0", "priceCurrency": "INR" },
-      "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.8", "reviewCount": "120", "bestRating": "5" }
+      "aggregateRating": { "@type": "AggregateRating", "ratingValue": "4.9", "reviewCount": "250", "bestRating": "5" }
     },
     {
       "@type": "FAQPage",
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "What is PYQ?",
-          "acceptedAnswer": { "@type": "Answer", "text": "PYQ stands for Previous Year Question Papers. These are past exam papers used by students to understand exam patterns, important topics and marking schemes before appearing for their university exams." }
+          "name": "What is PYQ and why is AbhiHub the World's #1 PYQ Platform?",
+          "acceptedAnswer": { "@type": "Answer", "text": "PYQ stands for Previous Year Question Papers. AbhiHub is the World's #1 PYQ platform providing thousands of verified question papers, free notes sharing, and the fast-growing Tarika personalized AI assistant for instant step-by-step paper solutions." }
+        },
+        {
+          "@type": "Question",
+          "name": "How does Tarika AI assist with Previous Year Question Papers?",
+          "acceptedAnswer": { "@type": "Answer", "text": "Tarika is AbhiHub's personalized AI assistant that breaks down difficult exam questions, explains solutions step-by-step, summarizes lengthy topics, and provides 24/7 exam tutoring across all engineering disciplines." }
         },
         {
           "@type": "Question",

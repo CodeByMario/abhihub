@@ -37,17 +37,19 @@ def get_files_needing_notification() -> List[Dict]:
         # Note: 'upload_notified' column might need to be added to abhihub.documents
         # For now, we query the new table to fulfill the "nothing relies on public" requirement.
         response = (client.table('documents')
-                   .select('id, uploader_id, title, document_category, created_at, profiles(email)')
+                   .select('id, uploader_id, title, document_category, created_at, profiles!documents_uploader_id_fkey(email)')
                    .gte('created_at', one_hour_ago_start.isoformat())
                    .lte('created_at', one_hour_ago_end.isoformat())
                    .execute())
         
         files = []
-        for d in response.data:
+        for d in response.data or []:
+            prof = d.get('profiles')
+            user_email = (prof.get('email') if isinstance(prof, dict) else (prof[0].get('email') if isinstance(prof, list) and prof else 'unknown')) or 'unknown'
             files.append({
                 'id': d['id'],
                 'user_id': d['uploader_id'],
-                'user_email': (d.get('profiles') or {}).get('email', 'unknown'),
+                'user_email': user_email,
                 'file_name': d['title'],
                 'document_type': d['document_category'],
                 'uploaded_at': d['created_at']
