@@ -1,0 +1,396 @@
+﻿{% extends 'p_struct.html' %}
+{% block page_head %}
+<title>Developer Panel | AbhiHub Admin</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #080c14; --card: #101827; --card2: #151f30;
+    --border: rgba(255,255,255,0.07); --accent: #6366f1;
+    --green: #10b981; --yellow: #f59e0b; --red: #ef4444;
+    --blue: #3b82f6; --cyan: #06b6d4; --text: #f1f5f9; --muted: #64748b; --radius: 14px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Inter', system-ui, sans-serif; min-height: 100vh; }
+  .dev-wrap { max-width: 1440px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+  .dev-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 2rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border); }
+  .dev-title { font-size: 1.6rem; font-weight: 800; display: flex; align-items: center; gap: .6rem; }
+  .dev-title span { color: var(--accent); }
+  .badge-admin { font-size: .72rem; font-weight: 700; letter-spacing: .06em; background: rgba(99,102,241,.18); color: var(--accent); border: 1px solid rgba(99,102,241,.3); border-radius: 20px; padding: 3px 10px; }
+  .dev-nav { display: flex; gap: .5rem; flex-wrap: wrap; }
+  .tab-btn { padding: .45rem 1.1rem; border-radius: 8px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: .85rem; font-weight: 600; cursor: pointer; transition: all .15s; }
+  .tab-btn:hover, .tab-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .tab-section { display: none; }
+  .tab-section.active { display: block; }
+  .sec-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 1.2rem; flex-wrap: wrap; gap: .75rem; }
+  .sec-title { font-size: 1.1rem; font-weight: 700; display: flex; align-items: center; gap: .4rem; }
+  .refresh-btn { padding: .4rem .9rem; border-radius: 8px; border: 1px solid var(--border); background: var(--card2); color: var(--text); font-size: .8rem; cursor: pointer; transition: background .15s; display: flex; align-items: center; gap: .4rem; }
+  .refresh-btn:hover { background: rgba(99,102,241,.2); }
+  .refresh-btn.spinning svg { animation: spin .8s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.4rem; }
+  .card-title { font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); margin-bottom: .75rem; }
+  .cloud-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.25rem; margin-bottom: 1.5rem; }
+  .cloud-chart-wrap { position: relative; width: 160px; height: 160px; margin: 0 auto 1rem; }
+  .chart-center-label { position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; pointer-events: none; }
+  .chart-center-label .val { font-size: 1.3rem; font-weight: 800; }
+  .chart-center-label .sub { font-size: .7rem; color: var(--muted); }
+  .stat-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: .5rem; }
+  .stat-label { font-size: .82rem; color: var(--muted); }
+  .stat-val { font-size: .88rem; font-weight: 700; }
+  .progress-bar-wrap { background: rgba(255,255,255,.07); border-radius: 99px; height: 6px; overflow: hidden; margin: .3rem 0 .8rem; }
+  .progress-bar-fill { height: 100%; border-radius: 99px; transition: width .6s cubic-bezier(.4,0,.2,1); }
+  .features-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 1rem; }
+  .feature-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem 1.25rem; display: flex; align-items: center; gap: 1rem; transition: border-color .2s; }
+  .feature-card.ok { border-color: rgba(16,185,129,.3); }
+  .feature-card.error { border-color: rgba(239,68,68,.35); }
+  .feat-status-dot { width: 36px; height: 36px; border-radius: 10px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+  .feat-status-dot.ok { background: rgba(16,185,129,.15); }
+  .feat-status-dot.error { background: rgba(239,68,68,.15); }
+  .feat-status-dot.loading { background: rgba(255,255,255,.06); }
+  .feat-info { flex: 1; min-width: 0; }
+  .feat-name { font-size: .88rem; font-weight: 700; margin-bottom: .2rem; }
+  .feat-meta { font-size: .75rem; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .feat-meta.err { color: var(--red); }
+  .feat-latency { font-size: .8rem; font-weight: 700; color: var(--green); white-space: nowrap; }
+  .feat-latency.slow { color: var(--yellow); }
+  .feat-latency.dead { color: var(--red); }
+  .lat-bar-wrap { width: 60px; height: 4px; background: rgba(255,255,255,.07); border-radius: 99px; overflow: hidden; }
+  .lat-bar-fill { height: 100%; border-radius: 99px; }
+  .log-controls { display: flex; gap: .6rem; flex-wrap: wrap; align-items: center; margin-bottom: 1rem; }
+  .log-level-btn { padding: .3rem .8rem; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--muted); font-size: .78rem; font-weight: 600; cursor: pointer; transition: all .15s; }
+  .log-level-btn:hover { border-color: var(--accent); color: var(--text); }
+  .log-level-btn.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .log-level-btn.L-ERROR.active { background: var(--red); border-color: var(--red); }
+  .log-level-btn.L-WARNING.active { background: var(--yellow); border-color: var(--yellow); color: #000; }
+  .log-level-btn.L-INFO.active { background: var(--green); border-color: var(--green); }
+  .log-search { flex: 1; min-width: 180px; padding: .38rem .85rem; border-radius: 8px; border: 1px solid var(--border); background: var(--card2); color: var(--text); font-size: .82rem; outline: none; }
+  .log-search:focus { border-color: var(--accent); }
+  .log-count { font-size: .78rem; color: var(--muted); margin-left: auto; }
+  .log-terminal { background: #050810; border: 1px solid var(--border); border-radius: 10px; padding: .75rem; height: 520px; overflow-y: auto; font-family: 'Fira Code', 'Cascadia Code', monospace; font-size: .76rem; line-height: 1.6; }
+  .log-terminal::-webkit-scrollbar { width: 5px; }
+  .log-terminal::-webkit-scrollbar-thumb { background: var(--border); border-radius: 99px; }
+  .log-row { display: flex; gap: .75rem; padding: .15rem .3rem; border-radius: 4px; }
+  .log-row:hover { background: rgba(255,255,255,.03); }
+  .log-ts { color: #475569; flex-shrink: 0; min-width: 130px; }
+  .log-lvl { flex-shrink: 0; min-width: 60px; font-weight: 700; }
+  .log-lvl.ERROR { color: var(--red); }
+  .log-lvl.WARNING { color: var(--yellow); }
+  .log-lvl.INFO { color: var(--cyan); }
+  .log-lvl.DEBUG { color: var(--muted); }
+  .log-msg { color: #cbd5e1; word-break: break-word; }
+  .log-msg.err-msg { color: #fca5a5; }
+  .log-msg.warn-msg { color: #fde68a; }
+  .error-alert { display: flex; align-items: flex-start; gap: .75rem; padding: .9rem 1.1rem; border-radius: 10px; margin-bottom: .8rem; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.25); font-size: .83rem; line-height: 1.5; }
+  .error-alert-icon { font-size: 1.1rem; flex-shrink: 0; }
+  .error-alert-msg { color: #fca5a5; }
+  .dev-toast { position: fixed; bottom: 1.5rem; right: 1.5rem; z-index: 9999; background: var(--card2); border: 1px solid var(--border); border-radius: 10px; padding: .7rem 1.2rem; font-size: .82rem; color: var(--text); opacity: 0; transform: translateY(8px); transition: all .2s; pointer-events: none; }
+  .dev-toast.show { opacity: 1; transform: translateY(0); }
+  .auto-refresh-label { display: flex; align-items: center; gap: .5rem; font-size: .8rem; color: var(--muted); cursor: pointer; }
+  .auto-refresh-label input { accent-color: var(--accent); }
+  @media (max-width: 640px) { .cloud-grid, .features-grid { grid-template-columns: 1fr; } }
+</style>
+{% endblock %}
+
+{% block page_content %}
+<div class="dev-wrap">
+  <div class="dev-header">
+    <div class="dev-title">
+      🛠️ Developer <span>Panel</span>
+      <div class="badge-admin">ADMIN ONLY</div>
+    </div>
+    <nav class="dev-nav">
+      <button class="tab-btn active" onclick="switchTab('cloud',this)">☁️ Cloud Usage</button>
+      <button class="tab-btn" onclick="switchTab('health',this)">🩺 Feature Health</button>
+      <button class="tab-btn" onclick="switchTab('logs',this)">📋 Logs</button>
+    </nav>
+  </div>
+
+  <!-- ═══ TAB 1: CLOUD ═══ -->
+  <section id="tab-cloud" class="tab-section active">
+    <div class="sec-head">
+      <div class="sec-title">☁️ Cloud Storage &amp; Bandwidth</div>
+      <div style="display:flex;gap:.75rem;align-items:center;">
+        <label class="auto-refresh-label"><input type="checkbox" id="cloud-auto-refresh" onchange="toggleCloudAuto()"> Auto (60s)</label>
+        <button class="refresh-btn" id="cloud-refresh-btn" onclick="loadCloudStats()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Refresh
+        </button>
+      </div>
+    </div>
+    <div id="cloud-errors"></div>
+    <div class="cloud-grid">
+      <div class="card">
+        <div class="card-title">📦 Cloudinary — Storage</div>
+        <div class="cloud-chart-wrap"><canvas id="storageDonut"></canvas>
+          <div class="chart-center-label"><div class="val" id="storageCenterVal">—</div><div class="sub">used</div></div>
+        </div>
+        <div class="stat-row"><span class="stat-label">Used</span><span class="stat-val" id="storageUsed">—</span></div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="storageBar" style="width:0%;background:var(--accent)"></div></div>
+        <div class="stat-row"><span class="stat-label">Limit</span><span class="stat-val" id="storageLimit">—</span></div>
+        <div class="stat-row"><span class="stat-label">Resources</span><span class="stat-val" id="storageRes">—</span></div>
+        <div class="stat-row"><span class="stat-label">Derived</span><span class="stat-val" id="storageDerived">—</span></div>
+        <div class="stat-row"><span class="stat-label">Plan</span><span class="stat-val" id="cloudPlan" style="color:var(--accent)">—</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">📡 Cloudinary — Bandwidth</div>
+        <div class="cloud-chart-wrap"><canvas id="bandwidthDonut"></canvas>
+          <div class="chart-center-label"><div class="val" id="bwCenterVal">—</div><div class="sub">used</div></div>
+        </div>
+        <div class="stat-row"><span class="stat-label">Used</span><span class="stat-val" id="bwUsed">—</span></div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="bwBar" style="width:0%;background:var(--cyan)"></div></div>
+        <div class="stat-row"><span class="stat-label">Limit</span><span class="stat-val" id="bwLimit">—</span></div>
+        <div class="stat-row"><span class="stat-label">Transforms</span><span class="stat-val" id="cloudTransforms">—</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">⚡ Cloudinary — Credits</div>
+        <div class="cloud-chart-wrap"><canvas id="creditsDonut"></canvas>
+          <div class="chart-center-label"><div class="val" id="creditsCenterVal">—</div><div class="sub">used</div></div>
+        </div>
+        <div class="stat-row"><span class="stat-label">Used</span><span class="stat-val" id="creditsUsed">—</span></div>
+        <div class="progress-bar-wrap"><div class="progress-bar-fill" id="creditsBar" style="width:0%;background:var(--yellow)"></div></div>
+        <div class="stat-row"><span class="stat-label">Limit</span><span class="stat-val" id="creditsLimit">—</span></div>
+      </div>
+      <div class="card">
+        <div class="card-title">🗄️ Supabase — DB Size</div>
+        <div class="cloud-chart-wrap"><canvas id="supabaseGauge"></canvas>
+          <div class="chart-center-label"><div class="val" id="sbSize">—</div><div class="sub">DB size</div></div>
+        </div>
+        <div class="stat-row"><span class="stat-label">Status</span><span class="stat-val" id="sbStatus">—</span></div>
+        <div class="stat-row"><span class="stat-label">Free tier limit</span><span class="stat-val" style="color:var(--muted)">512 MB</span></div>
+        <div class="stat-row"><span class="stat-label">Note</span><span class="stat-val" style="font-size:.72rem;color:var(--muted)">Needs get_db_size() RPC</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ TAB 2: HEALTH ═══ -->
+  <section id="tab-health" class="tab-section">
+    <div class="sec-head">
+      <div class="sec-title">🩺 Feature Health Checks</div>
+      <div style="display:flex;gap:.75rem;align-items:center;">
+        <span id="health-ts" style="font-size:.75rem;color:var(--muted)"></span>
+        <button class="refresh-btn" id="health-refresh-btn" onclick="loadFeatureHealth()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Run Checks
+        </button>
+      </div>
+    </div>
+    <div id="health-errors"></div>
+    <div class="features-grid" id="features-grid">
+      <div class="feature-card loading" style="grid-column:1/-1;color:var(--muted)">Click "Run Checks" to ping all features…</div>
+    </div>
+  </section>
+
+  <!-- ═══ TAB 3: LOGS ═══ -->
+  <section id="tab-logs" class="tab-section">
+    <div class="sec-head">
+      <div class="sec-title">📋 Application Logs</div>
+      <div style="display:flex;gap:.75rem;align-items:center;">
+        <label class="auto-refresh-label"><input type="checkbox" id="log-auto-refresh" onchange="toggleLogAuto()"> Auto (30s)</label>
+        <button class="refresh-btn" id="log-refresh-btn" onclick="loadLogs()">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M23 4v6h-6"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>Refresh
+        </button>
+        <button class="refresh-btn" onclick="copyLogs()">📋 Copy</button>
+      </div>
+    </div>
+    <div class="log-controls">
+      <button class="log-level-btn active" onclick="setLogLevel('all',this)">All</button>
+      <button class="log-level-btn L-ERROR" onclick="setLogLevel('error',this)">❌ ERROR</button>
+      <button class="log-level-btn L-WARNING" onclick="setLogLevel('warning',this)">⚠️ WARNING</button>
+      <button class="log-level-btn L-INFO" onclick="setLogLevel('info',this)">ℹ️ INFO</button>
+      <input type="search" class="log-search" id="log-search-input" placeholder="🔍 Filter messages…" oninput="filterLogs()">
+      <select id="log-n-select" onchange="loadLogs()" style="padding:.35rem .7rem;border-radius:7px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:.8rem;">
+        <option value="100">Last 100</option>
+        <option value="200" selected>Last 200</option>
+        <option value="500">Last 500</option>
+        <option value="1000">Last 1000</option>
+      </select>
+      <span class="log-count" id="log-count">0 entries</span>
+    </div>
+    <div id="log-file-info" style="font-size:.73rem;color:var(--muted);margin-bottom:.6rem;"></div>
+    <div id="log-errors"></div>
+    <div class="log-terminal" id="log-terminal"><span style="color:var(--muted)">Loading logs…</span></div>
+  </section>
+</div>
+<div class="dev-toast" id="dev-toast"></div>
+
+<script>
+// ── Utilities ──────────────────────────────────────────────────
+function fmtBytes(b){if(b==null)return'—';if(b>=1e9)return(b/1e9).toFixed(2)+' GB';if(b>=1e6)return(b/1e6).toFixed(1)+' MB';if(b>=1e3)return(b/1e3).toFixed(1)+' KB';return b+' B';}
+function pct(u,l){if(!u||!l)return 0;return Math.min(100,Math.round(u/l*100));}
+function pctColor(p){if(p>=90)return'#ef4444';if(p>=70)return'#f59e0b';return'#10b981';}
+function toast(m){const t=document.getElementById('dev-toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),2500);}
+function spin(id,on){const b=document.getElementById(id);if(b)on?b.classList.add('spinning'):b.classList.remove('spinning');}
+function showError(cid,msg){document.getElementById(cid).innerHTML+=`<div class="error-alert"><div class="error-alert-icon">🚨</div><div class="error-alert-msg">${msg}</div></div>`;}
+
+// ── Tabs ──────────────────────────────────────────────────────
+let _tabsLoaded={cloud:false,health:false,logs:false};
+function switchTab(name,el){
+  document.querySelectorAll('.tab-section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('tab-'+name).classList.add('active');
+  el.classList.add('active');
+  if(name==='cloud'&&!_tabsLoaded.cloud)loadCloudStats();
+  if(name==='health'&&!_tabsLoaded.health)loadFeatureHealth();
+  if(name==='logs'&&!_tabsLoaded.logs)loadLogs();
+}
+
+// ── Charts ────────────────────────────────────────────────────
+const _ch={};
+function makeDonut(id,usedPct,color){
+  const ctx=document.getElementById(id);if(!ctx)return;
+  if(_ch[id])_ch[id].destroy();
+  _ch[id]=new Chart(ctx,{type:'doughnut',data:{datasets:[{data:[usedPct,Math.max(0,100-usedPct)],backgroundColor:[color,'rgba(255,255,255,0.06)'],borderWidth:0,hoverOffset:4}]},options:{cutout:'72%',responsive:true,plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{animateRotate:true,duration:700}}});
+}
+function makeGauge(id,usedPct,color){
+  const ctx=document.getElementById(id);if(!ctx)return;
+  if(_ch[id])_ch[id].destroy();
+  _ch[id]=new Chart(ctx,{type:'doughnut',data:{datasets:[{data:[usedPct,Math.max(0,100-usedPct)],backgroundColor:[color,'rgba(255,255,255,0.06)'],borderWidth:0}]},options:{rotation:-90,circumference:180,cutout:'70%',responsive:true,plugins:{legend:{display:false},tooltip:{enabled:false}},animation:{animateRotate:true,duration:700}}});
+}
+
+// ── Cloud Stats ───────────────────────────────────────────────
+let _cloudTimer=null;
+async function loadCloudStats(){
+  spin('cloud-refresh-btn',true);
+  document.getElementById('cloud-errors').innerHTML='';
+  try{
+    const r=await fetch('/api/admin/cloud-stats');
+    const d=await r.json();
+    if(!d.success)throw new Error(d.error||'Failed');
+    const c=d.stats.cloudinary,s=d.stats.supabase;
+    if(c.error)showError('cloud-errors','Cloudinary API: '+c.error);
+    // Storage
+    const sp=pct(c.storage_bytes,c.storage_limit),sc=pctColor(sp);
+    makeDonut('storageDonut',sp,sc);
+    document.getElementById('storageCenterVal').textContent=sp+'%';
+    document.getElementById('storageCenterVal').style.color=sc;
+    document.getElementById('storageUsed').textContent=fmtBytes(c.storage_bytes);
+    document.getElementById('storageLimit').textContent=fmtBytes(c.storage_limit);
+    document.getElementById('storageBar').style.cssText=`width:${sp}%;background:${sc}`;
+    document.getElementById('storageRes').textContent=c.resources??'—';
+    document.getElementById('storageDerived').textContent=c.derived_resources??'—';
+    document.getElementById('cloudPlan').textContent=(c.plan||'—').toUpperCase();
+    // Bandwidth
+    const bp=pct(c.bandwidth_bytes,c.bandwidth_limit),bc=pctColor(bp);
+    makeDonut('bandwidthDonut',bp,bc);
+    document.getElementById('bwCenterVal').textContent=bp+'%';
+    document.getElementById('bwCenterVal').style.color=bc;
+    document.getElementById('bwUsed').textContent=fmtBytes(c.bandwidth_bytes);
+    document.getElementById('bwLimit').textContent=fmtBytes(c.bandwidth_limit);
+    document.getElementById('bwBar').style.cssText=`width:${bp}%;background:${bc}`;
+    document.getElementById('cloudTransforms').textContent=c.transformations??'—';
+    // Credits
+    const cp=pct(c.credits_usage,c.credits_limit),cc=pctColor(cp);
+    makeDonut('creditsDonut',cp,cc);
+    document.getElementById('creditsCenterVal').textContent=cp+'%';
+    document.getElementById('creditsCenterVal').style.color=cc;
+    document.getElementById('creditsUsed').textContent=c.credits_usage??'—';
+    document.getElementById('creditsLimit').textContent=c.credits_limit??'—';
+    document.getElementById('creditsBar').style.cssText=`width:${cp}%;background:${cc}`;
+    // Supabase
+    if(s.error)showError('cloud-errors','Supabase: '+s.error);
+    const sbB=typeof s.db_size_bytes==='number'?s.db_size_bytes:null;
+    const sbP=sbB?pct(sbB,512*1024*1024):0;
+    makeGauge('supabaseGauge',sbP,pctColor(sbP));
+    document.getElementById('sbSize').textContent=sbB?fmtBytes(sbB):'—';
+    document.getElementById('sbStatus').textContent=s.error?'⚠️ Error':'✅ Connected';
+    document.getElementById('sbStatus').style.color=s.error?'var(--red)':'var(--green)';
+    _tabsLoaded.cloud=true;
+    toast('☁️ Cloud stats refreshed');
+  }catch(e){showError('cloud-errors','Failed: '+e.message);}
+  finally{spin('cloud-refresh-btn',false);}
+}
+function toggleCloudAuto(){
+  if(_cloudTimer){clearInterval(_cloudTimer);_cloudTimer=null;}
+  if(document.getElementById('cloud-auto-refresh').checked)_cloudTimer=setInterval(loadCloudStats,60000);
+}
+
+// ── Feature Health ─────────────────────────────────────────────
+async function loadFeatureHealth(){
+  spin('health-refresh-btn',true);
+  document.getElementById('health-errors').innerHTML='';
+  const grid=document.getElementById('features-grid');
+  grid.innerHTML=Array(10).fill(0).map(()=>`<div class="feature-card loading"><div class="feat-status-dot loading">⏳</div><div class="feat-info"><div class="feat-name" style="color:var(--muted)">Checking…</div></div></div>`).join('');
+  try{
+    const r=await fetch('/api/admin/feature-health');
+    const d=await r.json();
+    if(!d.success)throw new Error(d.error||'Failed');
+    document.getElementById('health-ts').textContent='Last: '+new Date(d.timestamp).toLocaleTimeString();
+    const maxLat=Math.max(...d.checks.map(c=>c.latency_ms||0),1);
+    grid.innerHTML=d.checks.map(c=>{
+      const ok=c.status==='ok';
+      const latClass=!ok?'dead':c.latency_ms>800?'slow':'';
+      const latPct=Math.min(100,Math.round(c.latency_ms/maxLat*100));
+      const latColor=!ok?'var(--red)':c.latency_ms>800?'var(--yellow)':'var(--green)';
+      return `<div class="feature-card ${ok?'ok':'error'}">
+        <div class="feat-status-dot ${ok?'ok':'error'}">${ok?'✅':'❌'}</div>
+        <div class="feat-info">
+          <div class="feat-name">${c.name}</div>
+          <div class="feat-meta ${!ok?'err':''}">${!ok?(c.error||'Error'):'Operational'}</div>
+          <div class="lat-bar-wrap" style="margin-top:.4rem"><div class="lat-bar-fill" style="width:${latPct}%;background:${latColor}"></div></div>
+        </div>
+        <div class="feat-latency ${latClass}">${c.latency_ms}ms</div>
+      </div>`;
+    }).join('');
+    d.checks.filter(c=>c.status!=='ok').forEach(e=>showError('health-errors',`<strong>${e.name}</strong> — ${e.error||'failed'}`));
+    _tabsLoaded.health=true;
+    const errs=d.checks.filter(c=>c.status!=='ok').length;
+    toast(`🩺 ${d.checks.length} checks — ${errs} error(s)`);
+  }catch(e){
+    showError('health-errors','Health check failed: '+e.message);
+    grid.innerHTML=`<div style="color:var(--muted);padding:2rem;grid-column:1/-1">Could not run checks: ${e.message}</div>`;
+  }finally{spin('health-refresh-btn',false);}
+}
+
+// ── Logs ───────────────────────────────────────────────────────
+let _logLevel='all',_allLogs=[],_logTimer=null;
+async function loadLogs(){
+  spin('log-refresh-btn',true);
+  document.getElementById('log-errors').innerHTML='';
+  const n=document.getElementById('log-n-select').value;
+  try{
+    const r=await fetch(`/api/admin/logs?level=${_logLevel}&n=${n}`);
+    const d=await r.json();
+    if(!d.success)throw new Error('Failed');
+    _allLogs=d.logs||[];
+    document.getElementById('log-file-info').textContent=d.log_file?'📁 '+d.log_file:'📁 No log file — in-memory data only';
+    renderLogs();
+    _tabsLoaded.logs=true;
+    toast('📋 Logs: '+_allLogs.length+' entries');
+  }catch(e){
+    showError('log-errors','Log fetch failed: '+e.message);
+    document.getElementById('log-terminal').innerHTML=`<span style="color:var(--red)">Error: ${e.message}</span>`;
+  }finally{spin('log-refresh-btn',false);}
+}
+function renderLogs(){
+  const q=document.getElementById('log-search-input').value.toLowerCase();
+  let rows=_allLogs;
+  if(q)rows=rows.filter(l=>(l.msg||'').toLowerCase().includes(q));
+  document.getElementById('log-count').textContent=rows.length+' entries';
+  const html=rows.map(l=>{
+    const lvl=(l.level||'DEBUG').toUpperCase();
+    const mc=lvl==='ERROR'?'err-msg':lvl==='WARNING'?'warn-msg':'';
+    const msg=(l.msg||'').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    return `<div class="log-row"><span class="log-ts">${l.ts||'—'}</span><span class="log-lvl ${lvl}">${lvl}</span><span class="log-msg ${mc}">${msg}</span></div>`;
+  }).join('');
+  const t=document.getElementById('log-terminal');
+  t.innerHTML=html||'<span style="color:var(--muted)">No entries found.</span>';
+  t.scrollTop=t.scrollHeight;
+}
+function filterLogs(){renderLogs();}
+function setLogLevel(lvl,el){
+  _logLevel=lvl;
+  document.querySelectorAll('.log-level-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  loadLogs();
+}
+function copyLogs(){
+  const lines=_allLogs.map(l=>`[${l.ts||'—'}] ${l.level} ${l.msg}`).join('\n');
+  navigator.clipboard.writeText(lines).then(()=>toast('📋 Copied!'));
+}
+function toggleLogAuto(){
+  if(_logTimer){clearInterval(_logTimer);_logTimer=null;}
+  if(document.getElementById('log-auto-refresh').checked)_logTimer=setInterval(loadLogs,30000);
+}
+
+// Boot
+document.addEventListener('DOMContentLoaded',()=>loadCloudStats());
+</script>
+{% endblock %}

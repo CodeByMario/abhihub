@@ -3086,7 +3086,7 @@ def upload():
                 # Clean up the orphaned Cloudinary asset so we never leave
                 # uploaded files stranded when the DB write fails.
                 try:
-                    _cleanup = delete_file_from_cloudinary(upload_result['public_id'], 'raw' if upload_result.get('resource_type') == 'raw' else 'image')
+                    _cleanup = delete_file_from_cloudinary(upload_result['public_id'], upload_result.get('resource_type', 'raw'))
                     if not _cleanup.get('success'):
                         logging.warning(f"[UPLOAD] Cloudinary cleanup also failed for {upload_result['public_id']}: {_cleanup.get('error')}")
                 except Exception as _cu_err:
@@ -3233,9 +3233,9 @@ def upload():
                     'semester': semester,
                     'document_type': document_type.lower(),
                     'public_id': upload_result['public_id'],
-                    'file_size': upload_result['bytes'],
+                    'file_size': upload_result.get('bytes') or file_size,
                     'file_type': file_type_category,
-                    'compressed': upload_result.get('bytes', file_size) < file_size,
+                    'compressed': bool(upload_result.get('bytes') and upload_result['bytes'] < file_size),
                     'credits_granted': QUOTA_PER_UPLOAD,
                     'credits_remaining': _get_quota().get('credits', 0),
                     'xp_gained': xp_gained,
@@ -5875,6 +5875,180 @@ def reject_document():
         return jsonify({'success': True, 'message': 'Document rejected and deleted successfully'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+# ─── Admin Developer Panel: Cloud Stats, Feature Health, Logs ───────────────
+
+@app.route('/admin/developer')
+@auth_required
+@admin_required
+def admin_developer_panel():
+    """Admin Developer Panel: cloud stats, feature health, live logs."""
+    return render_template('admin_developer.html')
+
+
+@app.route('/api/admin/cloud-stats', methods=['GET'])
+@auth_required
+@admin_required
+def api_admin_cloud_stats():
+    """Fetch Cloudinary usage (storage + bandwidth) and Supabase DB size."""
+    import cloudinary
+    result = {
+        'cloudinary': {'storage_bytes': None, 'bandwidth_bytes': None, 'resources': None, 'error': None},
+        'supabase': {'db_size_bytes': None, 'error': None},
+    }
+    # Cloudinary usage
+    try:
+        usage = cloudinary.api.usage()
+        result['cloudinary'] = {
+            'storage_bytes': usage.get('storage', {}).get('usage'),
+            'storage_limit': usage.get('storage', {}).get('limit'),
+            'bandwidth_bytes': usage.get('bandwidth', {}).get('usage'),
+            'bandwidth_limit': usage.get('bandwidth', {}).get('limit'),
+            'resources': usage.get('resources'),
+            'derived_resources': usage.get('derived_resources'),
+            'transformations': usage.get('transformations', {}).get('usage'),
+            'plan': usage.get('plan', 'free'),
+            'credits_usage': usage.get('credits', {}).get('usage'),
+            'credits_limit': usage.get('credits', {}).get('limit'),
+        }
+    except Exception as e:
+        result['cloudinary']['error'] = str(e)
+    # Supabase DB size via pg_database_size
+    try:
+        client = init_supabase()
+        if client:
+            res = client.rpc('get_db_size').execute()
+            if res.data:
+                result['supabase']['db_size_bytes'] = res.data
+    except Exception as e:
+        result['supabase']['error'] = str(e)
+    return jsonify({'success': True, 'stats': result})
+
+
+@app.route('/api/admin/feature-health', methods=['GET'])
+@auth_required
+@admin_required
+def api_admin_feature_health():
+    """Ping every major feature and return pass/fail + latency."""
+    import time
+    import cloudinary.api
+    checks = []
+
+    def _check(name, fn):
+        t0 = time.time()
+        try:
+            fn()
+            return {'name': name, 'status': 'ok', 'latency_ms': round((time.time()-t0)*1000)}
+        except Exception as e:
+            return {'name': name, 'status': 'error', 'latency_ms': round((time.time()-t0)*1000), 'error': str(e)[:120]}
+
+    # Supabase DB
+    client = init_supabase()
+    checks.append(_check('Supabase DB', lambda: client.table('profiles').select('id').limit(1).execute()))
+
+    # Cloudinary ping
+    checks.append(_check('Cloudinary API', lambda: cloudinary.api.ping()))
+
+    # Upload signature generation
+    def _sig_check():
+        import cloudinary.utils
+        cloudinary.utils.api_sign_request({'timestamp': int(time.time()), 'folder': 'uploads'}, os.getenv('CLOUDINARY_API_SECRET', ''))
+    checks.append(_check('Upload Signature', _sig_check))
+
+    # Push notifications config
+    def _push_check():
+        from push_notifications import load_subscriptions
+        load_subscriptions()
+    checks.append(_check('Push Notifications', _push_check))
+
+    # Cache system
+    checks.append(_check('L1 Cache', lambda: cache.l1.set('__health__', 1, ttl=5)))
+
+    # Search API
+    def _search_check():
+        if client:
+            client.table('documents').select('id').limit(1).execute()
+    checks.append(_check('Search / Documents', _search_check))
+
+    # PDF extraction (pypdf import)
+    def _pdf_check():
+        import pypdf  # noqa
+    checks.append(_check('PDF Extract (pypdf)', _pdf_check))
+
+    # AI provider
+    def _ai_check():
+        from methods.ai_provider import get_ai_client
+        get_ai_client()
+    checks.append(_check('AI Provider', _ai_check))
+
+    # Firebase storage
+    def _firebase_check():
+        from methods.storage import _get_bucket
+        _get_bucket()
+    checks.append(_check('Firebase Storage', _firebase_check))
+
+    # Upload notifier scheduler
+    def _sched_check():
+        from methods.upload_notifier import get_files_needing_notification
+        get_files_needing_notification()
+    checks.append(_check('Upload Notifier', _sched_check))
+
+    return jsonify({'success': True, 'checks': checks, 'timestamp': __import__('datetime').datetime.utcnow().isoformat() + 'Z'})
+
+
+@app.route('/api/admin/logs', methods=['GET'])
+@auth_required
+@admin_required
+def api_admin_logs():
+    """Stream last N lines from the gunicorn/app log file, or in-memory error buffer."""
+    n = min(request.args.get('n', 200, type=int), 1000)
+    level = request.args.get('level', 'all').lower()  # all|error|warning|info
+
+    lines = []
+    # Try reading from gunicorn log file first
+    log_candidates = [
+        os.path.join(os.getcwd(), 'gunicorn.log'),
+        '/tmp/gunicorn.log',
+        os.path.join(os.getcwd(), 'app.log'),
+    ]
+    log_file_used = None
+    for lf in log_candidates:
+        if os.path.exists(lf):
+            try:
+                with open(lf, 'r', errors='replace') as f:
+                    all_lines = f.readlines()
+                lines = all_lines[-n:]
+                log_file_used = lf
+                break
+            except Exception:
+                pass
+
+    # Filter by level keyword
+    if level != 'all' and lines:
+        kw = level.upper()
+        lines = [l for l in lines if kw in l]
+
+    # Parse into structured entries
+    import re as _re
+    parsed = []
+    pat = _re.compile(r'\[(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})[^\]]*\]\s+(\w+)\s+(.*)', _re.DOTALL)
+    for raw in lines:
+        raw = raw.rstrip('\n\r')
+        m = pat.search(raw)
+        if m:
+            parsed.append({'ts': m.group(1), 'level': m.group(2), 'msg': m.group(3)[:300]})
+        else:
+            lvl = 'ERROR' if 'ERROR' in raw else ('WARNING' if 'WARNING' in raw else ('INFO' if 'INFO' in raw else 'DEBUG'))
+            parsed.append({'ts': None, 'level': lvl, 'msg': raw[:300]})
+
+    return jsonify({
+        'success': True,
+        'log_file': log_file_used,
+        'total': len(parsed),
+        'logs': parsed
+    })
+
+
 
 @app.route('/prepair/<subject>')
 def exam_prep(subject="HE"):

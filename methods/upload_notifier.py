@@ -40,6 +40,7 @@ def get_files_needing_notification() -> List[Dict]:
                    .select('id, uploader_id, title, document_category, created_at, profiles!documents_uploader_id_fkey(email)')
                    .gte('created_at', one_hour_ago_start.isoformat())
                    .lte('created_at', one_hour_ago_end.isoformat())
+                   .is_('upload_notified', 'null')
                    .execute())
         
         files = []
@@ -121,24 +122,20 @@ def mark_as_notified(file_record_id: str) -> bool:
         return False
     
     try:
-        # Update the record in abhihub.documents
-        # Note: If 'upload_notified' doesn't exist yet, this will be skipped or handled by schema update
-        # We target the new 'documents' table to fully migrate away from public schema.
         try:
             response = (client.table('documents')
                        .update({
-                           'status': 'approved' # Example: approving it implies we've processed it
-                           # 'upload_notified': True,
-                           # 'notified_at': datetime.utcnow().isoformat()
+                           'upload_notified': True,
+                           'notified_at': datetime.utcnow().isoformat()
                        })
                        .eq('id', file_record_id)
                        .execute())
             
             if response.data:
-                logging.info(f"✅ Processed document {file_record_id} status in abhihub schema")
+                logging.info(f"✅ Marked document {file_record_id} as notified")
                 return True
         except Exception as e:
-            logging.warning(f"Could not update status/notified columns for {file_record_id}: {e}")
+            logging.warning(f"Could not mark upload_notified for {file_record_id}: {e}")
             return True  # Return true so we don't spam errors in scheduler
             
         return False

@@ -100,8 +100,8 @@ def compress_image(file_data: bytes, format: str = 'JPEG', quality: int = 75) ->
         enhancer = ImageEnhance.Contrast(img)
         img = enhancer.enhance(1.15)
 
-        # Convert to RGB for JPEG save
-        if format.upper() in ('JPEG', 'WEBP'):
+        # Ensure RGB mode for watermarking and consistent saving
+        if img.mode != 'RGB':
             img = img.convert('RGB')
 
         # Add AbhiHub watermark to bottom right corner
@@ -264,7 +264,7 @@ def upload_file_to_cloudinary(
                     c_type = 'application/pdf' if f_ext and f_ext.lower() == 'pdf' else 'application/octet-stream'
                     upload_file_to_supabase(
                         file_data=f_bytes,
-                        supabase_path=f"cloudinary_fallback/{p_id}{f_ext if f_ext else '.pdf'}",
+                        supabase_path=f"cloudinary_fallback/{p_id}.{f_ext}" if f_ext else f"cloudinary_fallback/{p_id}.bin",
                         content_type=c_type
                     )
             except Exception as _e:
