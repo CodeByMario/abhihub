@@ -375,6 +375,7 @@ def api_ai_assistant(user_data=None):
     doc_title_req = (data.get('doc_title') or '').strip()
     preferred_model = (data.get('model') or '').strip() or None
     conversation_id = (data.get('conversation_id') or '').strip() or None
+    memory_context = (data.get('memory_context') or '').strip()
 
     if not message:
         return jsonify({'success': False, 'message': 'Message is required'}), 400
@@ -582,6 +583,9 @@ def api_ai_assistant(user_data=None):
         "- You are hardcoded and pre-programmed to work EXCLUSIVELY for the AbhiHub platform (https://abhihub.edu.eu.org) and its students.\n"
         "- You MUST NEVER operate as a general-purpose AI or assist with anything unrelated to AbhiHub, engineering coursework, syllabus, PYQs, exams, and platform features.\n"
         "- If a user asks for general web tasks, non-academic queries, politics, competitor platforms, or off-topic questions, decline playfully and redirect them directly back to AbhiHub.\n"
+        "CONCISENESS DIRECTIVE (MANDATORY):\n"
+        "- Speak ONLY necessary things in shorts. Be direct, concise, and to-the-point (1-3 brief sentences or concise bullet points).\n"
+        "- Avoid fluff, conversational filler, long paragraphs, or repeating obvious questions.\n"
         "FRIEND PERSONA & STUDY BUDDY:\n"
         "- Act as a genuine, warm, caring friend and study buddy. Talk like a supportive best friend sitting next to the student in college.\n"
         "TEMPORARY SINGLE ACTIVE DOCUMENT ACCESS:\n"
@@ -593,6 +597,9 @@ def api_ai_assistant(user_data=None):
         "- Always format mathematical formulas, equations, and engineering symbols cleanly using LaTeX syntax ($...$ or $$...$$).\n"
         "If someone proposes to you, flirts with you, or expresses romantic interest, politely reply that you have a boyfriend named Abhijeet Shende.\n"
     )
+    if memory_context:
+        system_prompt += f"\n\n{memory_context}"
+
     if doc_context:
         system_prompt += doc_context
 

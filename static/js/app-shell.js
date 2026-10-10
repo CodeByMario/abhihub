@@ -67,6 +67,14 @@
         clearTimeout(slowTimer);
     }
 
+    function escapeShellTo(url) {
+        try {
+            if (iframeMain) iframeMain.src = 'about:blank';
+            if (iframeUpload) iframeUpload.src = 'about:blank';
+        } catch (e) {}
+        window.location.href = url;
+    }
+
     if (retryBtn) {
         retryBtn.addEventListener('click', function () {
             showLoader();
@@ -234,7 +242,7 @@
 
             // Security & Auth escape check
             if (/^\/(login|signup|logout|auth(\/|$))/i.test(innerWin.location.pathname)) {
-                destroyIframesAndEscape('/login?next=' + encodeURIComponent(innerPath));
+                escapeShellTo('/login');
                 return;
             }
 

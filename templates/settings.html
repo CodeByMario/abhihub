@@ -1319,7 +1319,7 @@
             Sign out of your AbhiHub account on this device.
           </div>
           <div class="st-btn-row">
-            <a href="/logout" class="st-btn st-btn-outline">🔒 Sign Out</a>
+            <a href="/logout" target="_top" class="st-btn st-btn-outline">🔒 Sign Out</a>
           </div>
         </div>
       </div>
@@ -1349,7 +1349,7 @@
               <option value="openai">OpenAI (Direct API Key)</option>
               <option value="groq">Groq (Direct API Key · Ultra Fast)</option>
               <option value="ollama">🖥️ Local Model (Ollama · Private, Offline & 100% Free)</option>
-              <option value="webllm">🧠 On-Device WebLLM (In-Browser WebGPU · /ai Hub Engine · 100% Offline)</option>
+              <option value="webllm">🌸 Tarika &amp; Friends (AbhiHub Local AI · 100% Offline WebGPU)</option>
             </select>
             <div class="st-form-sublabel">Select your platform provider. We connect directly to the chosen platform.</div>
           </div>
@@ -1371,7 +1371,7 @@
             <div class="st-form-sublabel" id="aiModelSublabel">Live models retrieved directly from provider API.</div>
             
             <div class="st-banner st-banner-tip" style="margin-top:0.75rem; font-size:0.8125rem; line-height:1.45;">
-              💡 <strong>Credits exhausted?</strong> Switch your model to any option under <strong>🎁 Free Tier / Included</strong> (such as On-Device WebLLM, Local Ollama, OpenRouter <code>:free</code> models, Groq, or Gemini Flash) to continue chatting without requiring paid credits.
+              💡 <strong>Credits exhausted?</strong> Switch your model to any option under <strong>🎁 Free Tier / Included</strong> (such as Tarika Local Models, Local Ollama, OpenRouter <code>:free</code> models, Groq, or Gemini Flash) to continue chatting without requiring paid credits.
             </div>
 
             <div id="localOllamaPanel" style="display:none; background:rgba(99, 102, 241, 0.04); border:1px solid rgba(99, 102, 241, 0.2); border-radius:12px; padding:1rem; margin-top:1rem;">
@@ -1393,7 +1393,7 @@
             <div id="onDeviceWebLlmPanel" style="display:none; background:rgba(16, 185, 129, 0.05); border:1px solid rgba(16, 185, 129, 0.25); border-radius:12px; padding:1rem; margin-top:1rem;">
               <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
                 <div style="font-weight:600; font-size:0.9375rem; display:flex; align-items:center; gap:0.4rem; color:var(--st-navy, #0f172a);">
-                  <span>🧠</span> On-Device Browser Engine (/ai)
+                  <span>🌸</span> AbhiHub Local Engine (Tarika On-Device)
                 </div>
                 <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
                   <button type="button" class="st-btn st-btn-primary" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" id="downloadWebLlmBtn" onclick="downloadSelectedWebLlmModel()">⬇ Download to Device</button>

@@ -54,17 +54,105 @@
   function getActiveModelDisplayName(modelId) {
     const m = modelId || localStorage.getItem('ai_preferred_model') || '01-ai/yi-large';
     const opt = document.querySelector(`.ai-model-opt[data-model="${m}"]`);
-    if (opt) return opt.getAttribute('data-display') || opt.textContent.trim();
-    if (m.includes('Llama-3.2-1B')) return 'Llama 3.2 1B (Local)';
-    if (m.includes('Qwen2.5-0.5B')) return 'Qwen 0.5B (Local)';
-    if (m.includes('Qwen2.5-1.5B')) return 'Qwen 1.5B (Local)';
-    if (m.includes('SmolLM2')) return 'SmolLM2 360M (Local)';
+    if (opt && opt.getAttribute('data-display')) return opt.getAttribute('data-display');
+    if (m.includes('SmolLM2')) return 'Tara';
+    if (m.includes('Qwen2.5-0.5B') || m.includes('0.5B')) return 'Riya';
+    if (m.includes('DeepSeek-R1-Distill') || m.includes('1.5B-q4')) return 'Diya';
+    if (m.includes('Coder')) return 'Ananya';
+    if (m.includes('Llama-3.2-1B') || (m.includes('1B') && !m.includes('3B'))) return 'Tarika';
+    if (m.includes('Gemma-2-2b')) return 'Pooja';
+    if (m.includes('3B')) return 'Kavya';
     if (m.includes('yi-large')) return 'yi-large';
     if (m.includes('deepseek-r1')) return 'DeepSeek R1';
     if (m.includes('llama-3.3-70b')) return 'Llama 3.3 70B';
     if (m.includes('gemini')) return 'Gemini 2.0 Flash';
     if (m.includes('qwen-2.5-72b')) return 'Qwen 2.5 72B';
     return m.split('/').pop().replace(/:free/i, '');
+  }
+
+  // ── Common On-Device AI Memory Manager ──
+  const DEVICE_MEMORY_KEY = 'abhihub_ai_device_memory';
+
+  function getDeviceMemory() {
+    try {
+      const raw = localStorage.getItem(DEVICE_MEMORY_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return { profile: {}, key_facts: {}, recent_topics: [] };
+  }
+
+  function saveDeviceMemory(mem) {
+    try {
+      localStorage.setItem(DEVICE_MEMORY_KEY, JSON.stringify(mem));
+    } catch (e) {}
+  }
+
+  function updateDeviceMemoryFromInteraction(query, reply) {
+    if (!query) return;
+    const mem = getDeviceMemory();
+    const qLower = query.toLowerCase().trim();
+
+    // 1. Detect user name statements
+    const nameMatch = qLower.match(/(?:my name is|i am|call me)\s+([a-zA-Z]{2,20})\b/);
+    if (nameMatch && !['studying', 'learning', 'asking', 'solving', 'ready', 'here'].includes(nameMatch[1].toLowerCase())) {
+      mem.profile.name = nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1).toLowerCase();
+    }
+
+    // 2. Detect subject / branch / focus
+    const subjectMatch = qLower.match(/(?:studying|reading|learning|preparing for|exam in|subject is)\s+([a-zA-Z0-9\s]{2,30})\b/);
+    if (subjectMatch) {
+      const subj = subjectMatch[1].trim();
+      if (subj.length > 2 && subj.length < 30) {
+        mem.key_facts['active_subject'] = subj;
+      }
+    }
+
+    // 3. Track active document as study focus
+    if (window.TarikaState.activeDocTitle) {
+      mem.key_facts['current_document'] = window.TarikaState.activeDocTitle.slice(0, 50);
+    }
+
+    // 4. Track recent study topics (max 5)
+    const keywords = qLower.match(/\b(?:python|java|c\+\+|dsa|algorithms?|os|operating systems?|dbms|sql|maths?|calculus|physics|circuits?|signals?|mechanics?|networks?)\b/g);
+    if (keywords) {
+      keywords.forEach(kw => {
+        if (!mem.recent_topics.includes(kw)) {
+          mem.recent_topics.push(kw);
+        }
+      });
+      if (mem.recent_topics.length > 5) {
+        mem.recent_topics = mem.recent_topics.slice(-5);
+      }
+    }
+
+    saveDeviceMemory(mem);
+  }
+
+  function getRelevantMemorySnippet(query) {
+    const mem = getDeviceMemory();
+    const parts = [];
+    const qLower = (query || '').toLowerCase();
+
+    // Student identity
+    if (mem.profile && mem.profile.name) {
+      parts.push(`Student: ${mem.profile.name}`);
+    }
+
+    // Focus subject when relevant
+    if (mem.key_facts && mem.key_facts.active_subject) {
+      if (qLower.includes('exam') || qLower.includes('subject') || qLower.includes('test') || qLower.includes('notes') || qLower.includes('study') || qLower.includes(mem.key_facts.active_subject.toLowerCase())) {
+        parts.push(`Focus Subject: ${mem.key_facts.active_subject}`);
+      }
+    }
+
+    // Matching topic
+    if (mem.recent_topics && mem.recent_topics.length > 0) {
+      const matched = mem.recent_topics.find(t => qLower.includes(t));
+      if (matched) parts.push(`Topic: ${matched}`);
+    }
+
+    if (!parts.length) return '';
+    return ` [Device Memory: ${parts.join(' | ')}]`;
   }
 
   // ── Document & Context Detector ────────────────────────────────
@@ -223,12 +311,11 @@
     thinking.className = 'ai-bubble thinking';
     const docNote = window.TarikaState.activeDocId ? ' analyzing document &' : '';
     thinking.innerHTML = `
-      <span class="ai-thinking-badge" style="display:inline-flex; align-items:center; gap:5px; font-weight:600; font-style:normal; color:var(--tarika-brand, #2563eb);">
-        <span class="ai-thinking-dot" style="display:inline-block; width:7px; height:7px; border-radius:50%; background:currentColor; animation:pulse 1s infinite alternate;"></span>
-        <span>${activeModelName}</span>
-      </span>
-      <span class="ai-typing-indicator" title="Typing..."><span></span><span></span><span></span></span>
-      <span style="margin-left:4px;">is${docNote} typing response...</span>
+      <div style="display:inline-flex; align-items:center; gap:6px;">
+        <span class="ai-thinking-dot" style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; animation:pulse 1s infinite alternate;"></span>
+        <span>🌸 <strong>${activeModelName}</strong> is${docNote} typing...</span>
+        <span class="ai-typing-indicator" title="Typing response..."><span></span><span></span><span></span></span>
+      </div>
     `;
     msgList.appendChild(thinking);
     msgList.scrollTop = msgList.scrollHeight;
@@ -284,10 +371,10 @@
       thinking.innerHTML = `
         <span class="ai-thinking-badge" style="display:inline-flex; align-items:center; gap:5px; font-weight:600; font-style:normal; color:#10b981;">
           <span class="ai-thinking-dot" style="display:inline-block; width:7px; height:7px; border-radius:50%; background:currentColor; animation:pulse 1s infinite alternate;"></span>
-          <span>${modelLabel}</span>
+          <span>🌸 Connecting with ${modelLabel}...</span>
         </span>
-        <span class="ai-typing-indicator" title="Typing..."><span></span><span></span><span></span></span>
-        <span style="margin-left:4px;">${isFallback ? '(Fallback) is typing on-device...' : 'is typing on-device...'}</span>
+        <span class="ai-typing-indicator" title="Please wait..."><span></span><span></span><span></span></span>
+        <span style="margin-left:4px; font-size:12px; color:var(--tarika-muted);">Please wait while she gets ready</span>
       `;
 
       let core;
@@ -324,19 +411,36 @@
         await mgr.initEngine(targetModel, (report) => {
           if (window.TarikaState.currentAbortController?.signal?.aborted) throw new DOMException('User aborted', 'AbortError');
           const pct = Math.min(100, Math.max(0, Math.round((report.progress || 0) * 100)));
-          const txt = report.text || 'Preparing weights...';
+          const girlName = getActiveModelDisplayName(targetModel);
+          let waitMsg = 'Please stay on this page while she gets ready to chat...';
+          if (pct > 0 && pct < 100) {
+            waitMsg = `Setting up ${girlName} in browser memory (${pct}%)... Almost ready!`;
+          } else if (pct === 100) {
+            waitMsg = `${girlName} is ready! Generating response now...`;
+          }
           thinking.innerHTML = `
-            <div style="font-size:12px; font-weight:600; margin-bottom:4px;">⚡ ${isFallback ? 'Fallback Model:' : 'Loading local model:'} ${targetModel}</div>
-            <div style="font-size:11px; color:var(--tarika-muted);">${txt} ${pct > 0 ? `(${pct}%)` : ''}</div>
+            <div style="font-size:12.5px; font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:6px; color:var(--st-navy, #0f172a);">
+              <span>🌸</span> We are connecting you with <strong>${girlName}</strong>...
+            </div>
+            <div style="font-size:11px; color:var(--tarika-muted); margin-bottom:6px;">${waitMsg}</div>
             <div class="ai-download-progress"><div class="ai-download-progress-bar" style="width: ${pct}%;"></div></div>
           `;
         });
 
+        const girlName = getActiveModelDisplayName(targetModel);
         thinking.remove();
-        const aBubble = document.createElement('div');
+        let aBubble = document.createElement('div');
         aBubble.className = 'ai-bubble assistant';
         aBubble.setAttribute('dir', 'auto');
+        aBubble.innerHTML = `
+          <div style="display:inline-flex; align-items:center; gap:6px; color:var(--tarika-muted); font-size:12.5px;">
+            <span class="ai-thinking-dot" style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; animation:pulse 1s infinite alternate;"></span>
+            <span>🌸 <strong>${girlName}</strong> is typing...</span>
+            <span class="ai-typing-indicator" title="Typing response..."><span></span><span></span><span></span></span>
+          </div>
+        `;
         msgList.appendChild(aBubble);
+        msgList.scrollTop = msgList.scrollHeight;
 
         if (isFallback) {
           window.updateModelBadgeFallback('WebLLM (Fallback)');
@@ -344,8 +448,9 @@
         }
 
         let fullText = '';
-        const docPrompt = window.TarikaState.activeDocTitle ? ` Currently viewing document: "${window.TarikaState.activeDocTitle}".` : '';
-        const systemPrompt = `You are Tarika — the personal study assistant for AbhiHub.${docPrompt}\nAnswer clearly and concisely. Format math formulas with LaTeX ($...$).`;
+        const memorySnippet = getRelevantMemorySnippet(query);
+        const docPrompt = window.TarikaState.activeDocTitle ? ` Viewing document: "${window.TarikaState.activeDocTitle}".` : '';
+        const systemPrompt = `You are Tarika — study assistant for AbhiHub.${docPrompt}${memorySnippet}\nCRITICAL DIRECTIVE: Speak ONLY necessary things in shorts (1-3 brief sentences or concise bullet points). Be direct and concise without fluff or filler. Use LaTeX ($...$) for formulas.`;
 
         const msgs = [
           ...historySnapshot.filter(h => h && h.role && h.role !== 'system').map(h => ({ role: h.role, content: h.content })),
@@ -360,7 +465,12 @@
           msgList.scrollTop = msgList.scrollHeight;
         }, { systemPrompt });
 
-        aBubble.innerHTML = window.formatAiMarkdown ? window.formatAiMarkdown(fullText) : fullText;
+        if (fullText && fullText.trim()) {
+          aBubble.innerHTML = window.formatAiMarkdown ? window.formatAiMarkdown(fullText) : fullText;
+          updateDeviceMemoryFromInteraction(query, fullText);
+        } else {
+          aBubble.innerHTML = `🌸 <strong>${girlName}</strong> is ready. Please send your question again!`;
+        }
 
         if (window.TarikaState.currentAbortController?.signal?.aborted) {
           aBubble.innerHTML += ' <span style="font-size:11px; color:var(--tarika-muted);">[Generation stopped]</span>';
@@ -372,6 +482,9 @@
         window.abortCurrentGeneration();
         input.focus();
       } catch (localErr) {
+        if (aBubble && (!fullText || !fullText.trim())) {
+          aBubble.remove();
+        }
         if (localErr.name === 'AbortError') {
           thinking.remove();
           window.abortCurrentGeneration();
@@ -428,6 +541,7 @@
           conversation_id: window.TarikaState.activeConversationId,
           doc_id: window.TarikaState.activeDocId,
           doc_title: window.TarikaState.activeDocTitle,
+          memory_context: getRelevantMemorySnippet(query),
           model: preferredModel,
           history: historySnapshot
         })
@@ -451,10 +565,18 @@
       }
 
       if (data.success) {
+        updateDeviceMemoryFromInteraction(query, data.reply || '');
         thinking.remove();
         const aBubble = document.createElement('div');
         aBubble.className = 'ai-bubble assistant';
         aBubble.setAttribute('dir', 'auto');
+        aBubble.innerHTML = `
+          <div style="display:inline-flex; align-items:center; gap:6px; color:var(--tarika-muted); font-size:12.5px;">
+            <span class="ai-thinking-dot" style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; animation:pulse 1s infinite alternate;"></span>
+            <span>🌸 <strong>${activeModelName}</strong> is typing...</span>
+            <span class="ai-typing-indicator" title="Typing response..."><span></span><span></span><span></span></span>
+          </div>
+        `;
 
         if (data.conversation_id) {
           window.TarikaState.activeConversationId = data.conversation_id;
@@ -664,10 +786,13 @@
     const prefModel = localStorage.getItem('ai_preferred_model') || '01-ai/yi-large';
     let displayName = 'yi-large';
     if (prefProvider === 'webllm' || (prefModel && prefModel.includes('MLC'))) {
-      if (prefModel.includes('1B')) displayName = 'Llama 3.2 1B';
-      else if (prefModel.includes('0.5B')) displayName = 'Qwen 0.5B';
-      else if (prefModel.includes('1.5B')) displayName = 'Qwen 1.5B';
-      else displayName = 'WebLLM Local';
+      if (prefModel.includes('SmolLM2-360M')) displayName = 'Tara';
+      else if (prefModel.includes('0.5B')) displayName = 'Riya';
+      else if (prefModel.includes('DeepSeek-R1-Distill')) displayName = 'Diya';
+      else if (prefModel.includes('Coder')) displayName = 'Ananya';
+      else if (prefModel.includes('Gemma-2-2b')) displayName = 'Pooja';
+      else if (prefModel.includes('3B')) displayName = 'Kavya';
+      else displayName = 'Tarika';
     } else if (prefProvider === 'ollama' || prefModel.includes('llama3.2:latest')) {
       displayName = 'Ollama Local';
     } else if (prefModel) {

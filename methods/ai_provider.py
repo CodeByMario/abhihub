@@ -710,13 +710,13 @@ def fetch_live_models(provider: str, api_key: str | None = None) -> list[dict]:
     if not models:
         defaults = {
             "webllm": [
-                {"id": "SmolLM2-360M-Instruct-q4f16_1-MLC", "name": "SmolLM2 360M (On-Device WebGPU · Instant Offline · 240 MB)", "is_free": True},
-                {"id": "Qwen2.5-0.5B-Instruct-q4f16_1-MLC", "name": "Qwen 2.5 0.5B (On-Device WebGPU · Ultra-Fast · 350 MB)", "is_free": True},
-                {"id": "Llama-3.2-1B-Instruct-q4f16_1-MLC", "name": "Llama 3.2 1B (On-Device WebGPU · Balanced · 850 MB)", "is_free": True},
-                {"id": "DeepSeek-R1-Distill-Qwen-1.5B-q4f16_1-MLC", "name": "DeepSeek R1 Distill 1.5B (On-Device WebGPU · Reasoning & Math · 1.1 GB)", "is_free": True},
-                {"id": "Qwen2.5-Coder-1.5B-Instruct-q4f16_1-MLC", "name": "Qwen 2.5 Coder 1.5B (On-Device WebGPU · Code & Math · 1.1 GB)", "is_free": True},
-                {"id": "Gemma-2-2b-it-q4f16_1-MLC", "name": "Gemma 2 2B (On-Device WebGPU · High Precision · 1.5 GB)", "is_free": True},
-                {"id": "Llama-3.2-3B-Instruct-q4f16_1-MLC", "name": "Llama 3.2 3B (On-Device WebGPU · High Reasoning · 1.8 GB)", "is_free": True},
+                {"id": "Llama-3.2-1B-Instruct-q4f16_1-MLC", "name": "Tarika (Recommended)", "is_free": True},
+                {"id": "Qwen2.5-0.5B-Instruct-q4f16_1-MLC", "name": "Riya (Fast Mobile)", "is_free": True},
+                {"id": "DeepSeek-R1-Distill-Qwen-1.5B-q4f16_1-MLC", "name": "Diya (Reasoning & STEM)", "is_free": True},
+                {"id": "Qwen2.5-Coder-1.5B-Instruct-q4f16_1-MLC", "name": "Ananya (Coder)", "is_free": True},
+                {"id": "SmolLM2-360M-Instruct-q4f16_1-MLC", "name": "Tara (Ultra-Light)", "is_free": True},
+                {"id": "Gemma-2-2b-it-q4f16_1-MLC", "name": "Pooja (Precision)", "is_free": True},
+                {"id": "Llama-3.2-3B-Instruct-q4f16_1-MLC", "name": "Kavya (Pro)", "is_free": True},
             ],
             "ollama": [
                 {"id": "llama3.2", "name": "Llama 3.2 (Local · 3B Fast)", "is_free": True},

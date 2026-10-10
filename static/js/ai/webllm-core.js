@@ -8,32 +8,24 @@ import { CreateWebWorkerMLCEngine, CreateMLCEngine, prebuiltAppConfig } from "ht
 
 export const MODEL_CATALOG = [
     {
-        id: "SmolLM2-360M-Instruct-q4f16_1-MLC",
-        name: "SmolLM2 360M (Ultra-Light / Low RAM / Fast)",
-        size: "240 MB",
-        tier: "mobile",
-        vramRequired: "0.4 GB",
-        recommendedFor: "Ultra-low end devices, budget phones, fast instant load"
-    },
-    {
-        id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
-        name: "Qwen 2.5 0.5B (Ultra-Fast / Mobile / Low RAM)",
-        size: "350 MB",
-        tier: "mobile",
-        vramRequired: "0.5 GB",
-        recommendedFor: "Mobile phones, iOS Safari, Budget devices"
-    },
-    {
         id: "Llama-3.2-1B-Instruct-q4f16_1-MLC",
-        name: "Llama 3.2 1B (Balanced / Fast)",
+        name: "Tarika (Recommended)",
         size: "850 MB",
         tier: "balanced",
         vramRequired: "1.2 GB",
         recommendedFor: "Modern Android, Laptops, Mac"
     },
     {
+        id: "Qwen2.5-0.5B-Instruct-q4f16_1-MLC",
+        name: "Riya (Fast Mobile)",
+        size: "350 MB",
+        tier: "mobile",
+        vramRequired: "0.5 GB",
+        recommendedFor: "Mobile phones, iOS Safari, Budget devices"
+    },
+    {
         id: "DeepSeek-R1-Distill-Qwen-1.5B-q4f16_1-MLC",
-        name: "DeepSeek R1 Distill 1.5B (Local Reasoning & STEM)",
+        name: "Diya (Reasoning & STEM)",
         size: "1.1 GB",
         tier: "balanced",
         vramRequired: "1.5 GB",
@@ -41,15 +33,23 @@ export const MODEL_CATALOG = [
     },
     {
         id: "Qwen2.5-Coder-1.5B-Instruct-q4f16_1-MLC",
-        name: "Qwen 2.5 Coder 1.5B (Coding & Algorithms)",
+        name: "Ananya (Coder)",
         size: "1.1 GB",
         tier: "balanced",
         vramRequired: "1.5 GB",
         recommendedFor: "Coding, computer science, lab assignments"
     },
     {
+        id: "SmolLM2-360M-Instruct-q4f16_1-MLC",
+        name: "Tara (Ultra-Light)",
+        size: "240 MB",
+        tier: "mobile",
+        vramRequired: "0.4 GB",
+        recommendedFor: "Ultra-low end devices, budget phones, fast instant load"
+    },
+    {
         id: "Gemma-2-2b-it-q4f16_1-MLC",
-        name: "Gemma 2 2B (High Precision / Google Architecture)",
+        name: "Pooja (Precision)",
         size: "1.5 GB",
         tier: "high",
         vramRequired: "2.0 GB",
@@ -57,7 +57,7 @@ export const MODEL_CATALOG = [
     },
     {
         id: "Llama-3.2-3B-Instruct-q4f16_1-MLC",
-        name: "Llama 3.2 3B (Pro / Maximum Reasoning)",
+        name: "Kavya (Pro)",
         size: "1.8 GB",
         tier: "high",
         vramRequired: "2.5 GB",

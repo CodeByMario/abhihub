@@ -30,8 +30,12 @@
                 });
             }
 
-            // 4. Redirect to login page
-            window.location.href = "{{ url_for('auth.login') }}";
+            // 4. Redirect to login page (escape iframe if inside app shell)
+            if (window.top && window.top !== window.self) {
+                window.top.location.href = "{{ url_for('auth.login') }}";
+            } else {
+                window.location.href = "{{ url_for('auth.login') }}";
+            }
         })();
     </script>
 </head>

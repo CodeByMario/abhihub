@@ -23,6 +23,12 @@
                     window.location.replace(p);
                     return;
                 }
+                if (/^\/(login|signup|logout)(\/|$)/.test(window.location.pathname)) {
+                    if (window.top && window.top !== window.self) {
+                        window.top.location.href = window.location.href;
+                        return;
+                    }
+                }
                 window.addEventListener('beforeunload', function() {
                     try { window.parent.postMessage({ type: 'NAVIGATE_START' }, window.location.origin); } catch(e) {}
                 });
