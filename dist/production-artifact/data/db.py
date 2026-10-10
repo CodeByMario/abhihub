@@ -28,15 +28,15 @@ SUPABASE_KEY = (
     or os.getenv("SUPABASE_KEY")
 )
 
+import threading
+
+_local_context = threading.local()
 _client = None
 
 
 def get_client():
-    """Return (or create) the singleton Supabase client on the abhihub schema."""
+    """Return thread-local Supabase client on the abhihub schema."""
     global _client
-    if _client is not None:
-        return _client
-
     if not SUPABASE_AVAILABLE:
         logging.error("❌ data.db: supabase-py not available")
         return None
@@ -44,20 +44,24 @@ def get_client():
         logging.error("❌ data.db: SUPABASE_URL or SUPABASE_KEY missing")
         return None
 
+    client = getattr(_local_context, 'client', None)
+    if client is not None:
+        return client
+
     try:
-        _client = create_client(
+        client = create_client(
             SUPABASE_URL,
             SUPABASE_KEY,
             options=ClientOptions(schema="abhihub"),
         )
-        logging.info("✅ data.db: Supabase client initialised (abhihub schema)")
+        _local_context.client = client
+        _client = client
+        return client
     except Exception as e:
         import traceback
         traceback.print_exc()
         logging.error(f"❌ data.db: failed to create client – {e}")
         return None
-
-    return _client
 
 
 # ── Shared helpers ──────────────────────────────────────────────────

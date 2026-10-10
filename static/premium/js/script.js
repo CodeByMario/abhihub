@@ -569,10 +569,18 @@ const SearchManager = {
         const isBookmarked = file.is_bookmarked ? 'active' : '';
         const likeFill = file.is_liked ? 'currentColor' : 'none';
         const bookmarkFill = file.is_bookmarked ? 'currentColor' : 'none';
+        const isPaid = Boolean(file.is_paid && (parseFloat(file.price) > 0));
+        const priceNum = parseFloat(file.price) || 0;
+        const premiumBadge = isPaid
+            ? `<span class="ss-badge ss-badge-premium" style="background:linear-gradient(135deg, #fef3c7, #fde68a);color:#92400e;border:1px solid #f59e0b;font-weight:800;padding:2px 8px;border-radius:6px;font-size:0.74rem;display:inline-flex;align-items:center;gap:3px;">⭐ Premium ₹${priceNum}</span>`
+            : '';
 
         card.innerHTML = `
           <div class="ss-card-top">
-            <span class="ss-badge ${typeClass}">${s(file.type || 'File')}</span>
+            <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">
+              <span class="ss-badge ${typeClass}">${s(file.type || 'File')}</span>
+              ${premiumBadge}
+            </div>
             <span style="font-size:0.72rem;color:#94a3b8;">${s(file.year || '')}</span>
           </div>
           <div class="ss-title">${s(file.subject)}</div>
@@ -580,6 +588,7 @@ const SearchManager = {
           <div class="ss-footer">
             <span>👤 ${s(file.author)}</span>
             <span class="ss-stats">
+              ${isPaid ? `<span style="color:#d97706;font-weight:800;font-size:0.8rem;margin-right:6px;">🔒 ₹${priceNum}</span>` : ''}
               <span>👁 ${file.view_count || 0}</span>
               <span>❤ ${file.like_count || 0}</span>
             </span>

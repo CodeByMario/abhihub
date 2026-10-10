@@ -75,3 +75,14 @@ def test_tarika_concurrency_and_token_balancing():
     # Reset
     with _tarika_lock:
         app_module._tarika_active_count = initial_active
+
+
+def test_tarika_webllm_support():
+    """Q6: Verify Tarika gracefully resolves on-device WebLLM models and fallback adapter."""
+    from methods.ai_provider import resolve_provider
+    adapter, ceiling = resolve_provider({"ai_provider": "webllm"}, preferred_model="webllm:Llama-3.2-1B-Instruct-q4f16_1-MLC")
+    assert adapter is not None
+    assert ceiling is None
+    # Model name or adapter is present
+    assert hasattr(adapter, "complete")
+

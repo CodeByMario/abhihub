@@ -708,7 +708,7 @@ uploader_name %}
 
   <h1>{{ document.title }}</h1>
   <p>Verified {{ file_type }} uploaded by {{ uploader_name }} {% if document.uploader and document.uploader.is_verified
-    %}✅{% endif %}</p>
+    %}✅{% endif %}{% if pricing and pricing.is_paid and pricing.price %}<span style="background:linear-gradient(135deg, #fef3c7, #fde68a);color:#92400e;border:1px solid #f59e0b;font-weight:800;padding:2px 8px;border-radius:6px;font-size:0.8rem;margin-left:0.5rem;">⭐ Premium ₹{{ pricing.price }}</span>{% endif %}</p>
 </div>
 
 <div class="meta-bar">

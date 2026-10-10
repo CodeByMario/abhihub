@@ -1,188 +1,253 @@
 {% extends 'p_struct.html' %}
+{% block title %}Buy Me a Tea ☕ - Support AbhiHub{% endblock %}
 {% block content %}
 
-<div style="max-width:520px;margin:1.5rem auto;padding:0 1rem 5rem;">
-    <div style="background:#fff;border-radius:24px;box-shadow:0 8px 40px rgba(37,99,235,0.10),0 2px 8px rgba(0,0,0,0.06);overflow:hidden;border:1.5px solid #e5e7eb;">
+<div style="max-width:540px;margin:1.75rem auto 5rem;padding:0 1rem;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <div style="background:#ffffff;border-radius:24px;box-shadow:0 12px 35px -8px rgba(0,0,0,0.08);overflow:hidden;border:1.5px solid #e2e8f0;">
 
         <!-- Header Banner -->
-        <div style="background:linear-gradient(135deg,#2563eb 0%,#7c3aed 50%,#a855f7 100%);padding:2.2rem 1.5rem 2rem;text-align:center;position:relative;overflow:hidden;">
-            <div style="position:absolute;top:-40px;right:-40px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.08);pointer-events:none;"></div>
-            <div style="position:absolute;bottom:-30px;left:-30px;width:90px;height:90px;border-radius:50%;background:rgba(255,255,255,0.06);pointer-events:none;"></div>
-            <div style="font-size:2.8rem;margin-bottom:0.5rem;filter:drop-shadow(0 2px 6px rgba(0,0,0,0.15));animation:promoBounce 1.8s infinite;">💖</div>
-            <h1 style="color:#fff;font-size:1.6rem;font-weight:800;margin:0 0 0.4rem;letter-spacing:-0.02em;">Support AbhiHub</h1>
-            <p style="color:rgba(255,255,255,0.88);font-size:0.9rem;margin:0;max-width:320px;display:inline-block;line-height:1.5;">Your contributions help us keep the platform fast, secure, and free for all students.</p>
+        <div style="background:linear-gradient(135deg,#b45309 0%,#d97706 40%,#ea580c 100%);padding:2rem 1.5rem 1.75rem;text-align:center;position:relative;overflow:hidden;color:#ffffff;">
+            <div style="display:inline-flex;align-items:center;gap:0.4rem;background:rgba(255,255,255,0.2);padding:0.25rem 0.75rem;border-radius:999px;font-size:0.75rem;font-weight:700;letter-spacing:0.02em;margin-bottom:0.75rem;backdrop-filter:blur(4px);">
+                ☕ FUEL THE CREATOR
+            </div>
+            <h1 style="color:#ffffff;font-size:1.65rem;font-weight:800;margin:0 0 0.4rem;letter-spacing:-0.02em;">Buy Me a Tea</h1>
+            <p style="color:rgba(255,255,255,0.92);font-size:0.88rem;margin:0 auto;max-width:360px;line-height:1.5;">
+                Fuel the late-night coding sessions and keep past question papers &amp; notes 100% free for all students.
+            </p>
         </div>
 
         <!-- Body -->
-        <div style="padding:1.5rem 1.25rem 1.5rem;">
+        <div style="padding:1.5rem 1.35rem 1.5rem;">
 
-            <!-- QR Code -->
-            <div style="text-align:center;margin-bottom:1.5rem;">
-                <div style="display:inline-block;padding:8px;background:linear-gradient(135deg,#2563eb,#a855f7);border-radius:20px;box-shadow:0 6px 24px rgba(37,99,235,0.18);">
-                    <div style="background:#fff;padding:8px;border-radius:16px;width:240px;height:240px;display:flex;align-items:center;justify-content:center;">
-                        <img src="/static/payment/Samsungpay Upi.jpeg" alt="UPI QR Code" width="224" height="224" style="width:224px !important;height:224px !important;min-width:224px;min-height:224px;max-width:none;object-fit:contain;border-radius:10px;display:block;">
-                    </div>
+            <!-- Supporter Info Form -->
+            <div style="background:#fffbeb;border:1.5px solid #fef3c7;border-radius:16px;padding:1rem 1.15rem;margin-bottom:1.25rem;">
+                <label style="display:block;font-size:0.78rem;font-weight:700;color:#92400e;margin-bottom:0.35rem;text-transform:uppercase;letter-spacing:0.03em;">
+                    Your Name (Displayed on Wall)
+                </label>
+                <input type="text" id="supporterName" value="{{ default_name or '' }}" placeholder="e.g. Rahul, Sneha, or Anonymous Friend"
+                       style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border-radius:10px;border:1px solid #cbd5e1;font-size:0.9rem;outline:none;background:#ffffff;margin-bottom:0.75rem;" />
+
+                <label style="display:block;font-size:0.78rem;font-weight:700;color:#92400e;margin-bottom:0.35rem;text-transform:uppercase;letter-spacing:0.03em;">
+                    Short Message / Encouragement (Optional)
+                </label>
+                <input type="text" id="supporterMessage" placeholder="e.g. Thanks for the solved PYQs! Keep rocking 🚀" maxlength="150"
+                       style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem;border-radius:10px;border:1px solid #cbd5e1;font-size:0.9rem;outline:none;background:#ffffff;" />
+            </div>
+
+            <!-- Gateway Heading -->
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.85rem;">
+                <div style="display:flex;align-items:center;gap:0.4rem;">
+                    <span style="font-size:1.1rem;">🫖</span>
+                    <h2 style="margin:0;font-size:0.95rem;font-weight:700;color:#0f172a;">Select Your Chai Treat</h2>
                 </div>
-                <p style="margin:0.8rem 0 0;font-size:0.72rem;color:#9ca3af;text-transform:uppercase;letter-spacing:0.12em;font-weight:600;">Scan to Pay with any UPI App</p>
-            </div>
-
-            <!-- Trust Note -->
-            <div style="background:linear-gradient(135deg,#eff6ff,#f5f3ff);border:1px solid #dbeafe;border-radius:14px;padding:0.85rem 1rem;margin-bottom:1.5rem;text-align:center;">
-                <p style="margin:0;font-size:0.85rem;color:#4b5563;line-height:1.6;font-style:italic;font-weight:500;">AbhiHub is free for everyone. Contributions are completely optional and help cover hosting, storage, and future improvements.</p>
-            </div>
-
-            <!-- UPI ID Card -->
-            <div style="background:#f8fafc;border:1.5px solid #e5e7eb;border-radius:16px;padding:1rem 1.1rem;margin-bottom:1.5rem;display:flex;align-items:center;justify-content:space-between;gap:0.8rem;flex-wrap:wrap;">
-                <div style="flex:1;min-width:0;">
-                    <span style="font-size:0.68rem;font-weight:700;color:#9ca3af;text-transform:uppercase;letter-spacing:0.1em;display:block;margin-bottom:0.3rem;">UPI ID</span>
-                    <p style="margin:0;font-size:1rem;font-weight:700;color:#1f2937;word-break:break-all;">abhijeetshende@pingpay</p>
-                    <p style="margin:0.2rem 0 0;font-size:0.78rem;color:#6b7280;">Abhijeet Ashok Shende</p>
-                </div>
-                <button id="copyBtn" type="button" data-action="copyUPI" class="support-copy-btn" aria-label="Copy UPI ID">📋 Copy UPI</button>
-                    <span id="copyIcon">📋</span>
-                    <span id="copyText">Copy</span>
-                </button>
-            </div>
-
-            <!-- Amount Heading -->
-            <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:1rem;">
-                <span style="font-size:1.1rem;">⚡</span>
-                <h3 style="margin:0;font-size:1rem;font-weight:700;color:#1f2937;">Pay Directly</h3>
+                <span style="font-size:0.72rem;background:#fef3c7;color:#b45309;padding:0.2rem 0.55rem;border-radius:999px;font-weight:700;">
+                    PhonePe Instant UPI
+                </span>
             </div>
 
             <!-- Amount Buttons Grid -->
             <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:0.75rem;margin-bottom:0.75rem;">
-                <button type="button" data-action="pay" data-amount="29" class="support-amount-btn" aria-label="Pay ₹29 for Storage">
-                    <span class="amount-icon">💾</span>
-                    <span class="amount-value">₹29</span>
-                    <span class="amount-label">Storage</span>
+                <button type="button" data-action="pay" data-amount="29" class="support-amount-btn" aria-label="Buy 1 Cutting Chai for ₹29"
+                        style="border:1.5px solid #e2e8f0;background:#ffffff;padding:0.85rem 0.5rem;border-radius:14px;cursor:pointer;text-align:center;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;gap:0.25rem;">
+                    <span class="amount-icon" style="font-size:1.35rem;">🍵</span>
+                    <span class="amount-value" style="font-size:1.05rem;font-weight:800;color:#0f172a;">₹29</span>
+                    <span class="amount-label" style="font-size:0.72rem;color:#64748b;font-weight:600;">1 Cutting Chai</span>
                 </button>
-                <button type="button" data-action="pay" data-amount="49" class="support-amount-btn" aria-label="Pay ₹49 for Hosting">
-                    <span class="amount-icon">☁️</span>
-                    <span class="amount-value">₹49</span>
-                    <span class="amount-label">Hosting</span>
+                <button type="button" data-action="pay" data-amount="49" class="support-amount-btn" aria-label="Buy Masala Chai for ₹49"
+                        style="border:1.5px solid #d97706;background:#fffbeb;padding:0.85rem 0.5rem;border-radius:14px;cursor:pointer;text-align:center;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;gap:0.25rem;">
+                    <span class="amount-icon" style="font-size:1.35rem;">☕</span>
+                    <span class="amount-value" style="font-size:1.05rem;font-weight:800;color:#b45309;">₹49</span>
+                    <span class="amount-label" style="font-size:0.72rem;color:#92400e;font-weight:700;">Masala Chai (Popular)</span>
                 </button>
-                <button type="button" data-action="pay" data-amount="99" class="support-amount-btn" aria-label="Pay ₹99 for Development">
-                    <span class="amount-icon">🚀</span>
-                    <span class="amount-value">₹99</span>
-                    <span class="amount-label">Development</span>
+                <button type="button" data-action="pay" data-amount="99" class="support-amount-btn" aria-label="Buy Chai & Samosa for ₹99"
+                        style="border:1.5px solid #e2e8f0;background:#ffffff;padding:0.85rem 0.5rem;border-radius:14px;cursor:pointer;text-align:center;transition:all 0.15s;display:flex;flex-direction:column;align-items:center;gap:0.25rem;">
+                    <span class="amount-icon" style="font-size:1.35rem;">🫖</span>
+                    <span class="amount-value" style="font-size:1.05rem;font-weight:800;color:#0f172a;">₹99</span>
+                    <span class="amount-label" style="font-size:0.72rem;color:#64748b;font-weight:600;">Chai &amp; Samosa</span>
                 </button>
             </div>
 
-            <!-- Custom Amount -->
-            <button type="button" data-action="customPay" class="support-custom-btn" aria-label="Pay custom amount">✏️ Custom Amount</button>
+            <!-- Custom Amount Section with Proper UI -->
+            <div id="customAmountSection" style="margin-bottom: 1.25rem;">
+                <button type="button" data-action="toggleCustom" id="customToggleBtn" class="support-custom-btn" aria-label="Customize amount"
+                        style="width:100%;padding:0.75rem 1rem;border:1.5px dashed #cbd5e1;background:#f8fafc;border-radius:12px;font-weight:700;font-size:0.86rem;color:#334155;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.4rem;transition:all 0.15s ease;">
+                    <span>✏️ Enter Custom Cups / Amount</span>
+                    <span id="customChevron" style="font-size:0.7rem;transition:transform 0.2s;">▼</span>
+                </button>
 
-            <!-- Footer -->
-            <p style="text-align:center;font-size:0.72rem;color:#9ca3af;margin:0;padding-top:0.75rem;border-top:1px solid #f3f4f6;">🔒 Secure payment routing via UPI standard protocol</p>
+                <!-- Interactive Custom Card -->
+                <div id="customAmountCard" style="display:none;background:#fffdfa;border:1.5px solid #fed7aa;border-radius:16px;padding:1.15rem;margin-top:0.65rem;box-shadow:0 6px 18px rgba(217, 119, 6, 0.08);">
+                    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.65rem;">
+                        <span style="font-size:0.82rem;font-weight:700;color:#9a3412;text-transform:uppercase;letter-spacing:0.02em;">Edit Contribution Amount</span>
+                        <span id="cupsDisplayBadge" style="font-size:0.75rem;background:#ffedd5;color:#c2410c;padding:0.2rem 0.65rem;border-radius:999px;font-weight:800;border:1px solid #fed7aa;">
+                            ☕ 2 Cups of Chai
+                        </span>
+                    </div>
+
+                    <!-- Input Stepper Row -->
+                    <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.75rem;">
+                        <button type="button" data-action="stepAmount" data-delta="-25" aria-label="Decrease amount by 25"
+                                style="width:44px;height:44px;border-radius:12px;border:1.5px solid #fed7aa;background:#ffffff;font-size:1.3rem;font-weight:800;cursor:pointer;color:#b45309;display:flex;align-items:center;justify-content:center;transition:all 0.1s;">
+                            −
+                        </button>
+                        <div style="flex:1;position:relative;">
+                            <span style="position:absolute;left:14px;top:50%;transform:translateY(-50%);font-weight:800;color:#94a3b8;font-size:1.15rem;pointer-events:none;">₹</span>
+                            <input type="number" id="customAmountInput" value="50" min="10" max="10000" step="5"
+                                   style="width:100%;box-sizing:border-box;padding:0.65rem 0.85rem 0.65rem 2.2rem;border:1.5px solid #fdba74;border-radius:12px;font-size:1.2rem;font-weight:800;color:#0f172a;outline:none;background:#ffffff;" />
+                        </div>
+                        <button type="button" data-action="stepAmount" data-delta="25" aria-label="Increase amount by 25"
+                                style="width:44px;height:44px;border-radius:12px;border:1.5px solid #fed7aa;background:#ffffff;font-size:1.3rem;font-weight:800;cursor:pointer;color:#b45309;display:flex;align-items:center;justify-content:center;transition:all 0.1s;">
+                            +
+                        </button>
+                    </div>
+
+                    <!-- Quick Preset Chips -->
+                    <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-bottom:0.9rem;">
+                        <button type="button" data-action="setPreset" data-amt="25"
+                                style="border:1px solid #fed7aa;background:#ffffff;padding:0.25rem 0.6rem;border-radius:8px;font-size:0.76rem;font-weight:700;color:#9a3412;cursor:pointer;">₹25 (1 Cup)</button>
+                        <button type="button" data-action="setPreset" data-amt="50"
+                                style="border:1px solid #fed7aa;background:#ffffff;padding:0.25rem 0.6rem;border-radius:8px;font-size:0.76rem;font-weight:700;color:#9a3412;cursor:pointer;">₹50 (2 Cups)</button>
+                        <button type="button" data-action="setPreset" data-amt="100"
+                                style="border:1px solid #fed7aa;background:#ffffff;padding:0.25rem 0.6rem;border-radius:8px;font-size:0.76rem;font-weight:700;color:#9a3412;cursor:pointer;">₹100 (4 Cups)</button>
+                        <button type="button" data-action="setPreset" data-amt="250"
+                                style="border:1px solid #fed7aa;background:#ffffff;padding:0.25rem 0.6rem;border-radius:8px;font-size:0.76rem;font-weight:700;color:#9a3412;cursor:pointer;">₹250 (Chai Kettle)</button>
+                    </div>
+
+                    <!-- Direct Pay Button -->
+                    <button type="button" data-action="payCustom" id="payCustomSubmitBtn"
+                            style="width:100%;padding:0.8rem;background:linear-gradient(135deg,#d97706 0%,#ea580c 100%);color:#ffffff;border:none;border-radius:12px;font-weight:800;font-size:0.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.45rem;box-shadow:0 4px 14px rgba(234, 88, 12, 0.25);transition:transform 0.15s;">
+                        <span>Proceed with <strong id="customPayText">₹50</strong> via PhonePe ⚡</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- PhonePe Verified Merchant Badge -->
+            <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:16px;padding:0.9rem 1.1rem;margin-bottom:1.25rem;text-align:center;">
+                <div style="display:inline-flex;align-items:center;gap:0.45rem;background:#eff6ff;color:#1e40af;padding:0.25rem 0.75rem;border-radius:999px;font-size:0.72rem;font-weight:700;margin-bottom:0.45rem;">
+                    <span>🛡️ PhonePe Verified Business Gateway</span>
+                </div>
+                <p style="margin:0;font-size:0.8rem;color:#64748b;line-height:1.5;">
+                    Your payment is processed securely via official <strong>PhonePe Merchant Checkout</strong>. Upon payment, your name will appear on the AbhiHub Landing Page and Dashboard wall!
+                </p>
+            </div>
+
+            <!-- Footer Trust Badges -->
+            <div style="display:flex;justify-content:space-around;align-items:center;padding-top:0.75rem;border-top:1px solid #f1f5f9;font-size:0.72rem;color:#64748b;">
+                <span>🛡️ PhonePe Merchant</span>
+                <span>🌟 Shown on Wall</span>
+                <span>⚡ Instant Receipt</span>
+            </div>
         </div>
     </div>
 </div>
 
 <script>
-    var isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+(function() {
+    var customCard = document.getElementById('customAmountCard');
+    var customInput = document.getElementById('customAmountInput');
+    var cupsBadge = document.getElementById('cupsDisplayBadge');
+    var customPayText = document.getElementById('customPayText');
+    var customChevron = document.getElementById('customChevron');
 
-    function getUPILink(amount) {
-        var txRef = 'AH' + Date.now() + Math.floor(Math.random() * 1000);
-        return 'upi://pay?pa=abhijeetshende@pingpay' +
-            '&pn=Abhijeet%20Ashok%20Shende' +
-            '&am=' + amount +
-            '&cu=INR' +
-            '&tn=Support%20AbhiHub' +
-            '&tr=' + txRef;
-    }
-
-    function showDesktopToast() {
-        var existing = document.getElementById('desktopToast');
-        if (existing) existing.remove();
-
-        var toast = document.createElement('div');
-        toast.id = 'desktopToast';
-        toast.innerHTML = '📱 <strong>Open this page on your phone</strong> to pay via UPI app, or scan the QR code above.';
-        toast.style.cssText = 'position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%);background:#1e293b;color:#fff;padding:0.9rem 1.3rem;border-radius:14px;font-size:0.88rem;line-height:1.5;z-index:9999;max-width:380px;width:90%;text-align:center;box-shadow:0 8px 32px rgba(0,0,0,0.25);animation:toastIn 0.35s ease-out;';
-        document.body.appendChild(toast);
-
-        setTimeout(function() {
-            toast.style.opacity = '0';
-            toast.style.transition = 'opacity 0.3s';
-            setTimeout(function() { toast.remove(); }, 300);
-        }, 4000);
-    }
-
-    function pay(amount, el) {
-        if (!isMobile) {
-            showDesktopToast();
-            return;
+    function updateCups() {
+        if (!customInput) return;
+        var val = parseFloat(customInput.value) || 0;
+        if (val < 10) val = 10;
+        var cups = Math.max(1, Math.round(val / 25));
+        if (cupsBadge) {
+            cupsBadge.textContent = '☕ ' + cups + ' Cup' + (cups !== 1 ? 's' : '') + ' of Chai';
         }
-        var link = getUPILink(amount);
-        // Use intent fallback for Android Chrome to open the system UPI chooser
-        if (/Android/i.test(navigator.userAgent)) {
-            var txRef = 'AH' + Date.now() + Math.floor(Math.random() * 1000);
-            var intentLink = 'intent://pay?pa=abhijeetshende@pingpay' +
-                '&pn=Abhijeet%20Ashok%20Shende' +
-                '&am=' + amount +
-                '&cu=INR' +
-                '&tn=Support%20AbhiHub' +
-                '&tr=' + txRef +
-                '#Intent;scheme=upi;end';
-            window.location.href = intentLink;
-        } else {
-            window.location.href = link;
+        if (customPayText) {
+            customPayText.textContent = '₹' + Math.round(val);
         }
     }
 
-    function customPay() {
-        var amount = prompt('Enter custom amount (₹):');
-        if (!amount) return;
-
-        var num = parseFloat(amount);
-        if (isNaN(num) || num <= 0) {
-            alert('Please enter a valid amount.');
-            return;
-        }
-
-        if (!isMobile) {
-            showDesktopToast();
-            return;
-        }
-
-        pay(num.toFixed(2));
+    if (customInput) {
+        customInput.addEventListener('input', updateCups);
     }
 
-    function copyUPI() {
-        var upiId = 'abhijeetshende@pingpay';
-        navigator.clipboard.writeText(upiId).then(function() {
-            var btn = document.getElementById('copyBtn');
-            var txt = document.getElementById('copyText');
-            var ico = document.getElementById('copyIcon');
+    window.toggleCustom = function() {
+        if (!customCard) return;
+        var isHidden = (customCard.style.display === 'none' || !customCard.style.display);
+        customCard.style.display = isHidden ? 'block' : 'none';
+        if (customChevron) {
+            customChevron.style.transform = isHidden ? 'rotate(180deg)' : 'rotate(0deg)';
+        }
+        if (isHidden) {
+            updateCups();
+            if (customInput) customInput.focus();
+        }
+    };
 
-            txt.textContent = 'Copied!';
-            ico.textContent = '✅';
-            btn.style.borderColor = '#86efac';
-            btn.style.background = '#f0fdf4';
-            btn.style.color = '#15803d';
+    window.pay = function(amount, label, clickedBtn) {
+        var nameInput = document.getElementById('supporterName');
+        var messageInput = document.getElementById('supporterMessage');
+        var supporterName = nameInput ? nameInput.value.trim() : '';
+        var message = messageInput ? messageInput.value.trim() : '';
 
-            setTimeout(function() {
-                txt.textContent = 'Copy';
-                ico.textContent = '📋';
-                btn.style.borderColor = '#d1d5db';
-                btn.style.background = '#fff';
-                btn.style.color = '#374151';
-            }, 2000);
-        }).catch(function(err) {
-            /* Fallback for older browsers */
-            var ta = document.createElement('textarea');
-            ta.value = upiId;
-            ta.style.position = 'fixed';
-            ta.style.left = '-9999px';
-            document.body.appendChild(ta);
-            ta.select();
-            document.execCommand('copy');
-            document.body.removeChild(ta);
+        var purpose = 'Buy Me Tea' + (label ? (' - ' + label) : '');
+        if (clickedBtn) {
+            clickedBtn.style.pointerEvents = 'none';
+            clickedBtn.style.opacity = '0.6';
+        }
 
-            var txt = document.getElementById('copyText');
-            txt.textContent = 'Copied!';
-            setTimeout(function() { txt.textContent = 'Copy'; }, 2000);
+        fetch('/api/payment/phonepe/initiate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                amount: amount,
+                purpose: purpose,
+                supporter_name: supporterName,
+                message: message,
+                doc_id: ''
+            })
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            if (data.success && data.payment_url) {
+                window.location.href = data.payment_url;
+            } else {
+                window.location.href = '/payment?amount=' + encodeURIComponent(amount) + '&purpose=' + encodeURIComponent(purpose);
+            }
+        })
+        .catch(function() {
+            window.location.href = '/payment?amount=' + encodeURIComponent(amount) + '&purpose=' + encodeURIComponent(purpose);
         });
-    }
+    };
+
+    // Event delegation for action buttons
+    document.addEventListener('click', function(e) {
+        var btn = e.target.closest('[data-action]');
+        if (!btn) return;
+        var action = btn.getAttribute('data-action');
+
+        if (action === 'pay') {
+            var amt = btn.getAttribute('data-amount') || '49';
+            var labelEl = btn.querySelector('.amount-label');
+            var label = labelEl ? labelEl.textContent.trim() : '';
+            window.pay(amt, label, btn);
+        } else if (action === 'toggleCustom') {
+            window.toggleCustom();
+        } else if (action === 'stepAmount') {
+            var delta = parseFloat(btn.getAttribute('data-delta') || '25');
+            var current = parseFloat(customInput.value) || 25;
+            var next = Math.max(10, current + delta);
+            customInput.value = next;
+            updateCups();
+        } else if (action === 'setPreset') {
+            var preset = parseFloat(btn.getAttribute('data-amt') || '50');
+            customInput.value = preset;
+            updateCups();
+        } else if (action === 'payCustom') {
+            var customVal = parseFloat(customInput.value);
+            if (isNaN(customVal) || customVal < 10) {
+                alert('Please enter an amount of at least ₹10.');
+                return;
+            }
+            var cups = Math.max(1, Math.round(customVal / 25));
+            window.pay(customVal.toFixed(2), customVal + ' (' + cups + ' Cups)', btn);
+        }
+    });
+})();
 </script>
 {% endblock %}

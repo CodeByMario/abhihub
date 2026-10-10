@@ -287,7 +287,7 @@
       {% set is_pyq = cat in ['pyq', 'papers', 'paper'] %}
       {% set is_practical = cat in ['practical', 'practicals'] %}
       {% set _rid = file.get('record_id') or file.get('id') or '' %}
-      {% set furl = url_for('resource_landing', slug=_rid) if _rid else '#' %}
+      {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
       <a href="{{ furl }}" class="pcard {% if is_practical %}practical-card{% elif not is_pyq %}notes-card{% endif %}">
         {% if is_pyq %}
           <span class="pcard-badge">📄 PYQ</span>

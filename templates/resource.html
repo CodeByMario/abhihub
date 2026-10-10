@@ -625,10 +625,13 @@ uploader_name %}
 
   <!-- Main Header -->
   <h1 class="r2-heading">{{ subj_name }}: {{ document.title or file_type }}</h1>
-  <div class="r2-subtitle">
+  <div class="r2-subtitle" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
     <span>Verified {{ file_type }} uploaded by {{ uploader_name }}</span>
     {% if document.uploader and document.uploader.is_verified %}
     <span class="r2-verified-badge">✔ Verified Contributor</span>
+    {% endif %}
+    {% if pricing and pricing.is_paid and pricing.price %}
+    <span style="background:linear-gradient(135deg, #fef3c7, #fde68a);color:#92400e;border:1px solid #f59e0b;font-weight:800;padding:3px 10px;border-radius:8px;font-size:0.8rem;display:inline-flex;align-items:center;gap:4px;">⭐ Premium ₹{{ pricing.price }}</span>
     {% endif %}
   </div>
 
@@ -741,8 +744,70 @@ uploader_name %}
           </div>
         </div>
 
+        {% if pricing and pricing.is_paid and has_access %}
+        <div style="padding:0.5rem 1rem; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:8px; margin-bottom:0.75rem; font-size:0.85rem; color:#166534; font-weight:600; display:flex; align-items:center; gap:0.4rem;">
+          <span>✅ Premium Unlocked: You have full access to this document.</span>
+        </div>
+        {% endif %}
+
         <!-- Viewer Stage -->
-        {% if document.file_type == 'pdf' or '.pdf' in (document.file_url|lower) %}
+        {% if pricing and pricing.is_paid and not has_access %}
+        <!-- Paywall Preview Header -->
+        <div style="padding:0.75rem 1rem; background:linear-gradient(135deg, #eff6ff, #dbeafe); border:1.5px solid #93c5fd; border-radius:12px; margin-bottom:0.75rem; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+          <div style="display:flex; align-items:center; gap:0.5rem;">
+            <span style="font-size:1.25rem;">📖</span>
+            <div>
+              <span style="font-size:0.9rem; font-weight:800; color:#1e3a8a;">Free Sample: Showing First Page</span>
+              <span style="font-size:0.72rem; background:#2563eb; color:#fff; padding:2px 7px; border-radius:999px; font-weight:700; margin-left:0.35rem;">Sample Preview</span>
+              <div style="font-size:0.78rem; color:#2563eb; opacity:0.9;">Unlock complete notes below to read and download all remaining pages.</div>
+            </div>
+          </div>
+          <a href="/payment?amount={{ pricing.price }}&purpose=Document-{{ document.id }}" style="display:inline-flex; align-items:center; gap:0.35rem; padding:0.45rem 1.1rem; background:#2563eb; color:#fff; border-radius:8px; text-decoration:none; font-weight:700; font-size:0.85rem; box-shadow:0 2px 8px rgba(37,99,235,0.3);">
+            <span>⚡ Unlock Full Notes (₹{{ pricing.price }})</span>
+          </a>
+        </div>
+
+        <!-- PDF.js Viewer (Shows First Page Preview) -->
+        <div class="preview-iframe-wrap" style="position:relative;">
+          <div class="r2-watermark-overlay" aria-hidden="true">
+            <span class="r2-watermark-item">AbhiHub Preview</span>
+            <span class="r2-watermark-item">AbhiHub Preview</span>
+            <span class="r2-watermark-item">AbhiHub Preview</span>
+            <span class="r2-watermark-item">AbhiHub Preview</span>
+          </div>
+          <div class="preview-loading-bar" id="pdfLoadingBar">
+            <div class="preview-loading-progress" id="pdfLoadingProgress"></div>
+          </div>
+          <iframe class="r2-preview-iframe preview-iframe"
+            src="{{ url_for('static', filename='pdfjs-6.1.200-dist/web/viewer.html') }}?file=/api/view-doc/{{ document.id }}/document.pdf&download=false"
+            title="{{ document.title }} (Preview)" data-feature="PDF Viewer Preview"
+            onload="var b=document.getElementById('pdfLoadingBar'); if(b) b.classList.add('hidden');"
+            onerror="var b=document.getElementById('pdfLoadingBar'); if(b){ b.classList.remove('hidden'); b.classList.add('error'); }"></iframe>
+        </div>
+
+        <!-- Paywall Unlock Callout Below Preview -->
+        <div class="r2-panel preview-card" style="padding:1.75rem 1.5rem; text-align:center; background:linear-gradient(180deg, #f8fafc 0%, #eff6ff 100%); border:1.5px solid #bfdbfe; border-radius:16px; margin:1rem 0; box-shadow:0 8px 24px rgba(37,99,235,0.06);">
+          <div style="font-size:2rem; margin-bottom:0.35rem;">🔒</div>
+          <h3 style="font-size:1.2rem; font-weight:700; color:#1e293b; margin:0 0 0.35rem;">Unlock All Remaining Pages</h3>
+          <p style="color:#64748b; font-size:0.86rem; max-width:440px; margin:0 auto 1.25rem; line-height:1.5;">You are currently previewing the first page. Purchase this complete study guide to unlock full high-resolution viewing and download access.</p>
+          <div style="display:inline-flex; align-items:baseline; gap:0.5rem; background:#fff; padding:0.45rem 1.25rem; border-radius:12px; border:1px solid #cbd5e1; margin-bottom:1rem;">
+            <span style="font-size:1.6rem; font-weight:800; color:#2563eb;" id="lockedDisplayPrice">₹{{ pricing.price }}</span>
+            {% if pricing.has_coupon or pricing.coupon_code %}
+            <span style="font-size:0.75rem; color:#16a34a; font-weight:700; background:#dcfce7; padding:2px 7px; border-radius:6px;">Coupon Available</span>
+            {% endif %}
+          </div>
+          {% if pricing.has_coupon or pricing.coupon_code %}
+          <div style="display:flex; gap:0.5rem; max-width:320px; margin:0 auto 0.75rem;">
+            <input type="text" id="lockedCouponInput" placeholder="Coupon Code" maxlength="12" style="flex:1; padding:0.5rem 0.75rem; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.85rem; text-transform:uppercase;">
+            <button type="button" onclick="applyLockedCoupon('{{ document.id }}')" id="lockedApplyBtn" style="padding:0.5rem 1rem; background:#334155; color:#fff; border:none; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer;">Apply</button>
+          </div>
+          <div id="lockedCouponMsg" style="font-size:0.82rem; margin-bottom:0.75rem; display:none;"></div>
+          {% endif %}
+          <div>
+            <a href="/payment?amount={{ pricing.price }}&purpose=Document-{{ document.id }}" id="lockedPayBtn" style="display:inline-block; padding:0.8rem 2rem; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; font-weight:700; font-size:0.95rem; border-radius:12px; text-decoration:none; box-shadow:0 4px 14px rgba(37,99,235,0.35);">⚡ Unlock Complete Notes (All Pages)</a>
+          </div>
+        </div>
+        {% elif document.file_type == 'pdf' or '.pdf' in (document.file_url|lower) %}
         <div class="preview-iframe-wrap">
           <div class="r2-watermark-overlay" aria-hidden="true">
             <span class="r2-watermark-item">AbhiHub</span>
@@ -1119,10 +1184,10 @@ uploader_name %}
     if (!message) { statusEl.style.color = '#ef4444'; statusEl.textContent = 'Please describe the issue.'; return; }
     btn.disabled = true; btn.textContent = 'Submitting...';
     try {
-      const res = await fetch('/api/report-issue', {
+      const res = await fetch('/api/reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ doc_id: _rDocId, doc_title: _rDocTitle, doc_url: window.location.href, issue_type: issueType, message })
+        body: JSON.stringify({ type: 'issue', doc_id: _rDocId, doc_title: _rDocTitle, doc_url: window.location.href, issue_type: issueType, message })
       });
       const data = await res.json();
       if (data.success) {
@@ -1322,35 +1387,21 @@ uploader_name %}
     });
   };
 
-  // Ask AI
+  // Ask AI: Route to native Tarika drawer (Task 5.3)
   window.askAI = async function () {
     const inp = document.getElementById('aiQuestion');
-    const btn = document.getElementById('aiSendBtn');
-    const msgs = document.getElementById('aiMessages');
-    const q = inp.value.trim();
-    if (!q) return;
-    inp.value = '';
-    const uMsg = document.createElement('div');
-    uMsg.style.cssText = 'padding:0.4rem 0.6rem; background:#1D4ED8; color:#fff; border-radius:8px; align-self:flex-end; font-size:0.85rem;';
-    uMsg.textContent = q;
-    msgs.appendChild(uMsg);
+    const q = inp ? inp.value.trim() : '';
+    if (inp) inp.value = '';
 
-    try {
-      const res = await fetch('/api/ask-paper', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ doc_id: _rDocId, question: q, model: 'auto' })
-      });
-      const data = await res.json();
-      const aMsg = document.createElement('div');
-      aMsg.style.cssText = 'padding:0.4rem 0.6rem; background:rgba(0,0,0,0.05); border-radius:8px; align-self:flex-start; font-size:0.85rem;';
-      aMsg.textContent = data.answer || data.message || 'Response received.';
-      msgs.appendChild(aMsg);
-    } catch (e) {
-      const err = document.createElement('div');
-      err.style.color = '#ef4444';
-      err.textContent = 'Error connecting to assistant.';
-      msgs.appendChild(err);
+    const openFn = window.toggleAbhiAiDrawer || (window.parent && window.parent.toggleAbhiAiDrawer);
+    const sendFn = window.quickSend || (window.parent && window.parent.quickSend);
+    const drw = document.getElementById('abhiAiDrawer') || (window.parent && window.parent.document.getElementById('abhiAiDrawer'));
+
+    if (openFn && drw && !drw.classList.contains('open')) {
+      openFn();
+    }
+    if (q && sendFn) {
+      sendFn(q);
     }
   };
 
@@ -1390,6 +1441,37 @@ uploader_name %}
       if (data.success) { inp.value = ''; loadComments(); }
       else { alert(data.message || 'Failed to post comment.'); }
     } catch (e) { alert('Network error.'); }
+  };
+
+  window.applyLockedCoupon = function(docId) {
+    var code = (document.getElementById('lockedCouponInput').value || '').trim();
+    var msg = document.getElementById('lockedCouponMsg');
+    var payBtn = document.getElementById('lockedPayBtn');
+    var priceEl = document.getElementById('lockedDisplayPrice');
+    if (!code) return;
+    fetch('/api/document/' + encodeURIComponent(docId) + '/coupon', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ coupon_code: code })
+    })
+    .then(function(r) { return r.json(); })
+    .then(function(d) {
+      if (d.success && d.coupon_applied) {
+        msg.style.display = 'block';
+        msg.style.color = '#16a34a';
+        msg.innerText = '✅ Coupon applied! ₹' + d.discount_amount + ' discount.';
+        priceEl.innerText = '₹' + d.final_price;
+        payBtn.href = d.payment_url;
+      } else {
+        msg.style.display = 'block';
+        msg.style.color = '#dc2626';
+        msg.innerText = '❌ Invalid or expired coupon code';
+      }
+    }).catch(function() {
+      msg.style.display = 'block';
+      msg.style.color = '#dc2626';
+      msg.innerText = 'Error verifying coupon';
+    });
   };
 
   document.addEventListener('DOMContentLoaded', loadComments);

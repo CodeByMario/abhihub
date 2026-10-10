@@ -60,6 +60,12 @@ def get_files_needing_notification() -> List[Dict]:
         return files
     
     except Exception as e:
+        if "10035" in str(e) or "WinError" in str(e):
+            try:
+                from methods.supabase_helper import reset_thread_client
+                reset_thread_client()
+            except Exception:
+                pass
         logging.error(f"Error querying files for notification: {e}")
         return []
 

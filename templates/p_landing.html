@@ -370,21 +370,21 @@
   </p>
 
   <div class="hero-actions stagger-in" style="animation-delay: 0.3s;">
-    <a href="{{ url_for('upload') }}" class="btn btn-primary pulse-glow">
+    <a href="{{ url_for('app_pages.upload') }}" class="btn btn-primary pulse-glow">
       <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
       </svg>
       Upload File
     </a>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-glass">
+    <a href="{{ url_for('app_pages.dashboard') }}" class="btn btn-glass">
       <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
       </svg>
       Explore Files
     </a>
-    <a href="{{ url_for('features_tour') }}" class="btn btn-glass">
+    <a href="{{ url_for('site.features_tour') }}" class="btn btn-glass">
       ✨ View Features
     </a>
   </div>
@@ -412,7 +412,7 @@
 <div class="features-section">
   <h2 class="section-title">Why Students Choose AbhiHub</h2>
   <div class="features-grid">
-    <a href="{{ url_for('ai_hub') }}" class="glass-card stagger-in" style="border: 1px solid rgba(124, 58, 237, 0.4); background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(237, 233, 254, 0.6));">
+    <a href="{{ url_for('app_pages.chat_page') }}" class="glass-card stagger-in" style="border: 1px solid rgba(124, 58, 237, 0.4); background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(237, 233, 254, 0.6));">
       <div class="icon-box" style="background: rgba(124, 58, 237, 0.15);">🤖</div>
       <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
         <h3 class="card-title" style="margin-bottom:0;">Tarika (AI Support)</h3>
@@ -422,21 +422,21 @@
       <span class="card-link" style="color: #7c3aed; font-weight: 700;">Explore Tarika AI →</span>
     </a>
 
-    <a href="{{ url_for('features_tour') }}" class="glass-card stagger-in" style="border: 1px solid rgba(37, 99, 235, 0.3);">
+    <a href="{{ url_for('site.features_tour') }}" class="glass-card stagger-in" style="border: 1px solid rgba(37, 99, 235, 0.3);">
       <div class="icon-box" style="background: rgba(37, 99, 235, 0.15);">📲</div>
       <h3 class="card-title">Multi-Device Support</h3>
       <p class="card-desc">Seamlessly study anywhere. Real-time sync across Android, iOS, Windows, macOS, and tablets with offline PWA caching.</p>
       <span class="card-link" style="color: #2563eb; font-weight: 700;">View Device Support →</span>
     </a>
 
-    <a href="{{ url_for('dashboard') }}" class="glass-card stagger-in">
+    <a href="{{ url_for('app_pages.dashboard') }}" class="glass-card stagger-in">
       <div class="icon-box">🎯</div>
       <h3 class="card-title">Personalized Dashboard</h3>
       <p class="card-desc">A tailored feed based on your college and branch for lightning-fast access to your exact PYQs and notes.</p>
       <span class="card-link" style="color: #ec4899;">View Dashboard →</span>
     </a>
 
-    <a href="{{ url_for('upload') }}" class="glass-card stagger-in">
+    <a href="{{ url_for('app_pages.upload') }}" class="glass-card stagger-in">
       <div class="icon-box">📤</div>
       <h3 class="card-title">Smart Upload & Notes Sharing</h3>
       <p class="card-desc">Share notes and previous year papers, earn reputation points, and climb the leaderboard as a top campus contributor.</p>
@@ -459,7 +459,7 @@
     {% endfor %}
   </div>
   <div style="text-align: center; margin-top: 1.5rem;">
-    <a href="{{ url_for('pyq_landing') }}" class="btn btn-glass" style="font-size: 0.95rem; padding: 0.6rem 1.5rem;">View All Colleges & PYQs →</a>
+    <a href="{{ url_for('library.pyq_landing') }}" class="btn btn-glass" style="font-size: 0.95rem; padding: 0.6rem 1.5rem;">View All Colleges & PYQs →</a>
   </div>
 </div>
 {% endif %}
@@ -471,8 +471,14 @@
   <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 1rem;">
     {% for doc in recent_docs %}
     <a href="/resource/{{ doc.canonical_slug }}" class="glass-card" style="padding: 1.25rem; text-decoration: none;">
-      <span style="font-size: 0.75rem; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 0.05em;">{{ doc.document_category or 'PYQ' }}</span>
-      <h3 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin: 0.3rem 0 0.5rem 0; line-height: 1.4;">{{ doc.title }}</h3>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.3rem;">
+        <span style="font-size: 0.75rem; font-weight: 700; color: #2563eb; text-transform: uppercase; letter-spacing: 0.05em;">{{ doc.document_category or 'PYQ' }}</span>
+        {% set p = doc.pricing or {} %}
+        {% if p and p.is_paid and p.price %}
+        <span style="font-size:0.74rem; font-weight:800; background:linear-gradient(135deg, #fef3c7, #fde68a); color:#92400e; border:1px solid #f59e0b; padding:2px 8px; border-radius:6px;">⭐ Premium ₹{{ p.price }}</span>
+        {% endif %}
+      </div>
+      <h3 style="font-size: 1rem; font-weight: 700; color: #1e293b; margin: 0 0 0.5rem 0; line-height: 1.4;">{{ doc.title }}</h3>
       <p style="font-size: 0.82rem; color: #64748b; margin: 0;">
         {{ doc.subject.name if doc.subject else 'Engineering' }} · {{ doc.college.abbreviation or 'AbhiHub' }}
       </p>
@@ -491,8 +497,52 @@
       Upload previous year papers, handwritten notes, and practical files. Help your peers ace their semester exams while unlocking higher upload quotas, search limits, and community rank perks.
     </p>
     <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-      <a href="{{ url_for('contribute_page') }}" class="btn btn-primary" style="background: #ffffff; color: #1e3a8a; font-weight: 700;">How Contribution Perks Work →</a>
-      <a href="{{ url_for('upload') }}" class="btn btn-glass" style="color: #ffffff; border-color: rgba(255,255,255,0.4);">Start Uploading Now</a>
+      <a href="{{ url_for('site.contribute_page') }}" class="btn btn-primary" style="background: #ffffff; color: #1e3a8a; font-weight: 700;">How Contribution Perks Work →</a>
+      <a href="{{ url_for('app_pages.upload') }}" class="btn btn-glass" style="color: #ffffff; border-color: rgba(255,255,255,0.4);">Start Uploading Now</a>
+    </div>
+  </div>
+<!-- ── Tea Supporters Wall Section ── -->
+<div class="features-section" style="padding-top: 1rem; padding-bottom: 3rem;">
+  <div style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fed7aa 100%); border: 1.5px solid #fde68a; border-radius: 24px; padding: 2.25rem 1.75rem; box-shadow: 0 10px 25px -5px rgba(217, 119, 6, 0.1);">
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
+      <div>
+        <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: #ffffff; color: #b45309; padding: 0.3rem 0.8rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.03em; margin-bottom: 0.5rem; box-shadow: 0 2px 6px rgba(180, 83, 9, 0.1);">
+          ☕ FUELING FREE EDUCATION
+        </div>
+        <h2 style="font-size: 1.7rem; font-weight: 800; color: #78350f; margin: 0 0 0.4rem 0;">Recent Tea Supporters</h2>
+        <p style="font-size: 0.95rem; color: #92400e; margin: 0; max-width: 600px; line-height: 1.5;">
+          Every cup of chai directly supports high-speed servers, database storage, and free university exam resources for thousands of engineering students across India.
+        </p>
+      </div>
+      <a href="{{ url_for('site.support') }}" class="btn btn-primary" style="background: linear-gradient(135deg, #b45309 0%, #ea580c 100%); color: #ffffff; border: none; font-weight: 700; padding: 0.65rem 1.4rem; font-size: 0.95rem; text-decoration: none; border-radius: 12px; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 4px 14px rgba(234, 88, 12, 0.3);">
+        <span>☕ Buy Me a Tea</span>
+      </a>
+    </div>
+
+    <!-- Supporters Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;">
+      {% for s in tea_supporters %}
+      <div style="background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(253, 230, 138, 0.8); border-radius: 16px; padding: 1.1rem; box-shadow: 0 4px 12px rgba(180, 83, 9, 0.05); display: flex; flex-direction: column; justify-content: space-between; backdrop-filter: blur(8px);">
+        <div>
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+            <strong style="color: #78350f; font-size: 0.95rem; display: flex; align-items: center; gap: 0.35rem;">
+              <span>{{ "☕" * (s.cups if s.cups <= 3 else 3) }}</span>
+              <span>{{ s.name }}</span>
+            </strong>
+            <span style="font-size: 0.78rem; font-weight: 800; color: #b45309; background: #fef3c7; padding: 0.2rem 0.55rem; border-radius: 8px; border: 1px solid #fde68a;">
+              ₹{{ "%.0f"|format(s.amount) }}
+            </span>
+          </div>
+          <p style="margin: 0; font-size: 0.84rem; color: #475569; font-style: italic; line-height: 1.45;">
+            "{{ s.message or 'Bought tea to support AbhiHub!' }}"
+          </p>
+        </div>
+        <div style="margin-top: 0.75rem; font-size: 0.72rem; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(0,0,0,0.04); padding-top: 0.5rem;">
+          <span>{{ s.cups }} Cup{{ 's' if s.cups != 1 else '' }} of Tea</span>
+          <span>{{ s.date or 'Recently' }}</span>
+        </div>
+      </div>
+      {% endfor %}
     </div>
   </div>
 </div>

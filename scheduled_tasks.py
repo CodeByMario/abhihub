@@ -106,6 +106,24 @@ def setup_jobs(scheduler):
     )
     logging.info("📅 Scheduled job: Score Recalculator (every 24 hours)")
 
+    # Job 5: Reconcile 30-day mature wallet earnings
+    def _reconcile_wallets():
+        try:
+            from methods.wallet_service import unlock_eligible_entries
+            unlocked = unlock_eligible_entries()
+            logging.info(f"[WALLET] Daily unlock completed: {unlocked} entries matured")
+        except Exception as e:
+            logging.error(f"[WALLET] Daily unlock error: {e}")
+
+    scheduler.add_job(
+        func=_reconcile_wallets,
+        trigger=IntervalTrigger(hours=24),
+        id='wallet_unlock_reconciler',
+        name='Daily wallet 30-day maturity unlock',
+        replace_existing=True
+    )
+    logging.info("📅 Scheduled job: Wallet Maturity Unlocker (every 24 hours)")
+
 
 def shutdown_scheduler():
     """

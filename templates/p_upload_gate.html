@@ -33,7 +33,7 @@
       <span class="how-step"><span class="step-icon">📖</span> Read freely</span>
     </div>
 
-    <a href="{{ url_for('upload') }}?next={{ next_url | urlencode }}"
+    <a href="{{ url_for('app_pages.upload') }}?next={{ next_url | urlencode }}"
        class="gate-upload-btn"
        id="gateUploadBtn"
        data-action="handleGateUpload"

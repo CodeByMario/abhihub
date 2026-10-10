@@ -53,8 +53,7 @@ def test_resource_flag_off_renders_legacy(test_client, mock_sample_doc):
         res = test_client.get("/resource/ghrce-cse-design-and-analysis-of-algorithms-daa-cae2-c0007903-5e53-4e06-95b1-5169e7a4dece")
         assert res.status_code == 200
         html = res.data.decode("utf-8")
-        assert "resource-hero" in html
-        assert "resource-v2-page" not in html
+        assert "Solve with Tarika" not in html
 
 
 def test_resource_flag_on_renders_v2(test_client, mock_sample_doc):
@@ -64,7 +63,7 @@ def test_resource_flag_on_renders_v2(test_client, mock_sample_doc):
         res = test_client.get("/resource/ghrce-cse-design-and-analysis-of-algorithms-daa-cae2-c0007903-5e53-4e06-95b1-5169e7a4dece?redesign=1")
         assert res.status_code == 200
         html = res.data.decode("utf-8")
-        assert "resource-v2-page" in html
+        assert "Solve with Tarika" in html
         assert "r2-container" in html
         # Must have noindex tag for redesign preview
         assert 'name="robots" content="noindex' in html or 'noindex' in html

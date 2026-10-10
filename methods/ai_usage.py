@@ -139,6 +139,63 @@ def get_user_usage(user_id: str, days: int = 7) -> list[dict]:
         return []
 
 
+
+# ── AI Dashboard & Alerts (Tasks 6.8 & 6.9) ───────────────────────────────────
+
+def get_ai_metrics_dashboard(hours: int = 24) -> dict:
+    """Calculates requests, errors, latencies, cost, engine breakdown, and alerts (Tasks 6.8 & 6.9)."""
+    from methods.supabase_helper import init_supabase
+    from datetime import timedelta
+    client = init_supabase()
+    if not client:
+        return {"success": False, "message": "DB unavailable", "metrics": {}, "alerts": []}
+    try:
+        since = (datetime.now(timezone.utc) - timedelta(hours=hours)).isoformat()
+        rows = (
+            client.table("ai_usage_log")
+            .select("provider, model, cost_usd, duration_ms, error_type, mode, created_at")
+            .gte("created_at", since)
+            .execute()
+        ).data or []
+
+        total_requests = len(rows)
+        errors = [r for r in rows if r.get("error_type")]
+        total_errors = len(errors)
+        error_rate = round((total_errors / total_requests * 100), 2) if total_requests else 0.0
+        total_cost = round(sum(float(r.get("cost_usd") or 0) for r in rows), 4)
+        avg_latency = round(sum(int(r.get("duration_ms") or 0) for r in rows) / total_requests, 1) if total_requests else 0.0
+
+        engine_breakdown = {}
+        for r in rows:
+            p = r.get("provider") or "unknown"
+            engine_breakdown[p] = engine_breakdown.get(p, 0) + 1
+
+        alerts = []
+        if error_rate > 10.0 and total_requests >= 10:
+            alerts.append({"level": "warning", "code": "HIGH_ERROR_RATE", "message": f"AI error rate is {error_rate}% (>10% threshold)"})
+        if total_cost > float(os.getenv("AI_MAX_COST_USD_PER_DAY", "5.0")):
+            alerts.append({"level": "critical", "code": "COST_CEILING_EXCEEDED", "message": f"Daily AI spend (${total_cost}) has exceeded ceiling"})
+        if total_errors >= 5:
+            recent_errs = [e for e in errors if e.get("error_type") in ("provider_error", "timeout", "rate_limit")]
+            if len(recent_errs) >= 5:
+                alerts.append({"level": "warning", "code": "REPEATED_PROVIDER_FAILURES", "message": f"{len(recent_errs)} provider errors detected in the last {hours}h"})
+
+        return {
+            "success": True,
+            "period_hours": hours,
+            "total_requests": total_requests,
+            "total_errors": total_errors,
+            "error_rate_pct": error_rate,
+            "total_cost_usd": total_cost,
+            "avg_latency_ms": avg_latency,
+            "engine_breakdown": engine_breakdown,
+            "alerts": alerts
+        }
+    except Exception as exc:
+        log.warning("[ai_usage] get_ai_metrics_dashboard error: %s", exc)
+        return {"success": False, "error": str(exc), "metrics": {}, "alerts": []}
+
+
 # ── Ponytail self-check ───────────────────────────────────────────────────────
 
 if __name__ == "__main__":

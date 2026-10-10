@@ -52,7 +52,7 @@
   </div>
   {% endif %}
 
-  <form method="POST" action="{{ url_for('update_account') }}" id="accountForm" data-tracking-form="true">
+  <form method="POST" action="{{ url_for('app_pages.update_account') }}" id="accountForm" data-tracking-form="true">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
 
     <!-- 1. Personal Info -->
@@ -345,7 +345,7 @@
     <div class="ac-actions">
       <p class="ac-actions-note">Your changes are saved securely to your account.</p>
       <div class="ac-actions-buttons">
-        <a href="{{ url_for('profile') }}" class="ac-btn ac-btn-secondary">
+        <a href="{{ url_for('app_pages.profile') }}" class="ac-btn ac-btn-secondary">
           ← Cancel
         </a>
         <button type="submit" class="ac-btn ac-btn-primary">

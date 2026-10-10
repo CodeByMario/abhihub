@@ -21,16 +21,58 @@ class StoreRoomAPI {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload)
         });
-        return res.json();
+        const data = await res.json().catch(() => ({}));
+        return { response: res, data };
     }
 
-    static async extractAiSuggestions(filename) {
+    static async extractAiSuggestions(fileItem) {
+        let filename = fileItem.filename || fileItem.name;
+        const fileUrl = fileItem.url || fileItem.path;
+
+        // Attempt Vision / OCR extraction if file URL is accessible
+        if (fileUrl) {
+            try {
+                const blob = await fetch(fileUrl).then(r => r.ok ? r.blob() : null).catch(() => null);
+                if (blob) {
+                    const fd = new FormData();
+                    let ext = (filename.includes('.') ? filename.split('.').pop() : '').toLowerCase();
+                    if (!['pdf', 'jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
+                        ext = (blob.type === 'application/pdf') ? 'pdf' : (blob.type === 'image/png' ? 'png' : 'jpg');
+                        filename = filename ? `${filename.replace(/\.[^/.]+$/, '')}.${ext}` : `document.${ext}`;
+                    }
+                    const fileObj = new File([blob], filename, { type: blob.type || (ext === 'pdf' ? 'application/pdf' : 'image/jpeg') });
+                    fd.append('upload_document', fileObj, filename);
+                    fd.append('filename', filename);
+
+                    const branchEl = document.getElementById('branch');
+                    const branchId = window.AbhiHubSelect?.instances['branch']?.getValue() || branchEl?.value || '';
+                    if (branchId) fd.append('branch_id', branchId);
+
+                    const res = await fetch('/api/ai/extract-upload-metadata', {
+                        method: 'POST',
+                        body: fd
+                    });
+                    const data = await res.json().catch(() => null);
+                    if (data && data.success && data.metadata) {
+                        return {
+                            success: true,
+                            source: data.source || 'ai_vision',
+                            result: { data: data.metadata }
+                        };
+                    }
+                }
+            } catch (err) {
+                console.warn('[StoreRoom] Vision extraction attempt failed, falling back to filename regex', err);
+            }
+        }
+
+        // Fallback: heuristic filename parsing tool
         const res = await fetch('/api/ai/tool', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
                 tool_name: 'suggest_upload_metadata',
-                parameters: { filename }
+                arguments: { filename }
             })
         });
         return res.json();
@@ -438,7 +480,7 @@ class StoreRoomStudio {
         }
 
         try {
-            const res = await StoreRoomAPI.extractAiSuggestions(cur.filename || cur.name);
+            const res = await StoreRoomAPI.extractAiSuggestions(cur);
             if (res && res.success && res.result && res.result.data) {
                 const d = res.result.data;
 
@@ -458,13 +500,26 @@ class StoreRoomStudio {
                         else s.value = String(d.semester);
                     }
                 }
-                if (d.document_type) {
+                if (d.document_type || d.type) {
+                    const dt = d.document_type || d.type;
                     const catMap = { pyq: 'papers', notes: 'notes', practicals: 'practical', syllabus: 'syllabus' };
-                    const targetType = catMap[d.document_type] || d.document_type;
+                    const targetType = catMap[dt] || dt;
                     const catEl = document.getElementById('documentCategory');
                     if (catEl) catEl.value = targetType;
                 }
-                this.showToast('Tarika auto-suggested metadata from filename!', 'success');
+                if (d.subject_id) {
+                    const tsSubj = window.AbhiHubSelect?.instances['subjectName'];
+                    if (tsSubj) {
+                        if (!tsSubj.options[d.subject_id]) {
+                            tsSubj.addOption({ value: d.subject_id, text: d.subject_name || d.subject || 'Loading...' });
+                        }
+                        tsSubj.setValue(d.subject_id, true);
+                    }
+                }
+                const msg = res.source === 'ai_vision'
+                    ? 'Tarika extracted document details from image!'
+                    : 'Tarika auto-suggested metadata from filename!';
+                this.showToast(msg, 'success');
             } else {
                 this.showToast('Could not extract details automatically. Please enter manually.', 'info');
             }
@@ -510,20 +565,31 @@ class StoreRoomStudio {
             payload.url = cur.url || cur.path;
             payload.college_id = document.getElementById('collegeName')?.value;
             payload.branch_id = document.getElementById('branch')?.value;
-            payload.subject_id = document.getElementById('subjectName')?.value;
 
-            const subjSelect = document.getElementById('subjectName');
-            if (subjSelect && subjSelect.selectedIndex >= 0) {
-                const optText = subjSelect.options[subjSelect.selectedIndex]?.text || '';
-                if (optText && !optText.startsWith('Select')) {
-                    const match = optText.match(/^(.*?)(?:\s*\((.*?)\))?$/);
-                    payload.subject_name = match ? match[1].trim() : optText;
-                    payload.subject_code = match && match[2] ? match[2].trim() : '';
+            const tsSubj = window.AbhiHubSelect?.instances['subjectName'];
+            const subjId = tsSubj ? tsSubj.getValue() : (document.getElementById('subjectName')?.value || '');
+            payload.subject_id = subjId;
+
+            if (tsSubj && tsSubj.options[subjId]) {
+                const optText = tsSubj.options[subjId].text || '';
+                const match = optText.match(/^(.*?)(?:\s*\((.*?)\))?$/);
+                payload.subject_name = match ? match[1].trim() : optText;
+                payload.subject_code = match && match[2] ? match[2].trim() : '';
+            } else {
+                const subjSelect = document.getElementById('subjectName');
+                if (subjSelect && subjSelect.selectedIndex >= 0) {
+                    const optText = subjSelect.options[subjSelect.selectedIndex]?.text || '';
+                    if (optText && !optText.startsWith('Select')) {
+                        const match = optText.match(/^(.*?)(?:\s*\((.*?)\))?$/);
+                        payload.subject_name = match ? match[1].trim() : optText;
+                        payload.subject_code = match && match[2] ? match[2].trim() : '';
+                    }
                 }
             }
 
-            const data = await StoreRoomAPI.submitLabel(payload);
-            if (data.success) {
+            const res = await StoreRoomAPI.submitLabel(payload);
+            const data = res.data;
+            if (res.response && res.response.ok && data && data.success) {
                 this.showToast('File labeled and published to academic library!', 'success');
 
                 if (this.state.rememberLabels) {
@@ -553,11 +619,12 @@ class StoreRoomStudio {
                     document.getElementById('previewBadge').textContent = 'Queue Finished!';
                 }
             } else {
-                this.showToast(data.message || 'Error saving file label', 'error');
+                const errMsg = (data && data.message) ? data.message : `Failed to save label (${res.response ? res.response.status : 'Unknown error'})`;
+                this.showToast(errMsg, 'error');
             }
         } catch (err) {
             console.error('Save failed', err);
-            this.showToast('Network error while saving label', 'error');
+            this.showToast('Network error while saving label: ' + (err.message || 'Check connection'), 'error');
         } finally {
             if (btn) {
                 btn.disabled = false;

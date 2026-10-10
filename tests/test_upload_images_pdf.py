@@ -275,6 +275,7 @@ def _session_client():
 def _upload_patches(upload_rv, save_rv):
     return [
         patch("methods.cloudinary_upload.upload_file_to_cloudinary", return_value=upload_rv),
+        patch("methods.supabase_helper.save_file_record", return_value=save_rv),
         patch.object(app_module, "save_file_record", return_value=save_rv),
         patch.object(app_module, "track_user_event"),
         patch.object(app_module, "recalculate_and_persist_user_rank", return_value={}),

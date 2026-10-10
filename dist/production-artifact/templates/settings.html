@@ -3,187 +3,655 @@
 {% extends 'p_struct.html' %}
 {% block content %}
 <style>
+/* ── ABHIHUB Settings Design System (Apple HIG & Brand Aligned) ── */
+:root {
+  --st-navy: #1B3A6B;
+  --st-navy-hover: #152E56;
+  --st-sky: #4FA9E0;
+  --st-sky-tint: rgba(79, 169, 224, 0.12);
+  --st-red: #E8262A;
+  --st-red-tint: rgba(232, 38, 42, 0.08);
+  --st-red-border: rgba(232, 38, 42, 0.25);
+  --st-charcoal: #1A1A1A;
+  --st-bg: #F8FAFC;
+  --st-surface: #FFFFFF;
+  --st-surface-hover: #F1F5F9;
+  --st-surface-elevated: #FFFFFF;
+  --st-border: #E2E8F0;
+  --st-border-hover: #CBD5E1;
+  --st-text-main: #1A1A1A;
+  --st-text-muted: #64748B;
+  --st-text-sub: #94A3B8;
+  --st-success: #16A34A;
+  --st-success-tint: rgba(22, 163, 74, 0.1);
+  --st-success-border: rgba(22, 163, 74, 0.25);
+  --st-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+  --st-shadow-md: 0 4px 12px rgba(27, 58, 107, 0.06);
+}
+
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  --st-navy: #4FA9E0;
+  --st-navy-hover: #70BAE8;
+  --st-sky: #4FA9E0;
+  --st-sky-tint: rgba(79, 169, 224, 0.18);
+  --st-red: #F87171;
+  --st-red-tint: rgba(232, 38, 42, 0.15);
+  --st-red-border: rgba(232, 38, 42, 0.4);
+  --st-charcoal: #F8FAFC;
+  --st-bg: #0F172A;
+  --st-surface: #1E293B;
+  --st-surface-hover: #27354E;
+  --st-surface-elevated: #243049;
+  --st-border: #334155;
+  --st-border-hover: #475569;
+  --st-text-main: #F8FAFC;
+  --st-text-muted: #94A3B8;
+  --st-text-sub: #64748B;
+  --st-success: #4ADE80;
+  --st-success-tint: rgba(74, 222, 128, 0.15);
+  --st-success-border: rgba(74, 222, 128, 0.35);
+  --st-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --st-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --st-navy: #4FA9E0;
+    --st-navy-hover: #70BAE8;
+    --st-sky: #4FA9E0;
+    --st-sky-tint: rgba(79, 169, 224, 0.18);
+    --st-red: #F87171;
+    --st-red-tint: rgba(232, 38, 42, 0.15);
+    --st-red-border: rgba(232, 38, 42, 0.4);
+    --st-charcoal: #F8FAFC;
+    --st-bg: #0F172A;
+    --st-surface: #1E293B;
+    --st-surface-hover: #27354E;
+    --st-surface-elevated: #243049;
+    --st-border: #334155;
+    --st-border-hover: #475569;
+    --st-text-main: #F8FAFC;
+    --st-text-muted: #94A3B8;
+    --st-text-sub: #64748B;
+    --st-success: #4ADE80;
+    --st-success-tint: rgba(74, 222, 128, 0.15);
+    --st-success-border: rgba(74, 222, 128, 0.35);
+    --st-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --st-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.35);
+  }
+}
+
+/* ── Hero (Apple Large Title Presentation) ── */
 .st-hero {
-  padding: 4.5rem 1.5rem 3rem;
-  background: linear-gradient(135deg, #0f172a 0%, #1e3a5f 50%, #7c3aed 100%);
-  text-align: center; color: #fff; position: relative; overflow: hidden;
+  padding: clamp(2.5rem, 6vw, 4rem) 1.5rem clamp(2rem, 4vw, 3rem);
+  background: linear-gradient(145deg, #0F172A 0%, #1B3A6B 60%, #162C4E 100%);
+  text-align: center;
+  color: #FFFFFF;
+  position: relative;
+  overflow: hidden;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 .st-hero::before {
-  content: ''; position: absolute; inset: 0; pointer-events: none;
-  background: radial-gradient(circle at 20% 50%, rgba(37,99,235,.25), transparent 60%),
-              radial-gradient(circle at 80% 30%, rgba(124,58,237,.2), transparent 50%);
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(circle at 50% 20%, rgba(79, 169, 224, 0.18), transparent 70%),
+              radial-gradient(circle at 85% 80%, rgba(27, 58, 107, 0.25), transparent 60%);
+}
+.st-hero-inner {
+  position: relative;
+  max-width: 680px;
+  margin: 0 auto;
 }
 .st-hero-chip {
-  display: inline-flex; align-items: center; gap: .5rem;
-  background: rgba(255,255,255,.15); border: 1px solid rgba(255,255,255,.3);
-  backdrop-filter: blur(8px); padding: .35rem 1.1rem; border-radius: var(--radius-full);
-  font-size: var(--text-sm); font-weight: 700; letter-spacing: .06em;
-  text-transform: uppercase; margin-bottom: 1.25rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 0.35rem 1rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  margin-bottom: 1rem;
+  color: rgba(255, 255, 255, 0.95);
 }
 .st-hero h1 {
-  font-size: clamp(2rem, 4vw, 2.8rem); font-weight: 900; line-height: 1.1; margin: 0 0 .35rem;
+  font-size: clamp(1.85rem, 4vw, 2.5rem);
+  font-weight: 700;
+  letter-spacing: -0.025em;
+  line-height: 1.15;
+  margin: 0 0 0.5rem;
+  color: #FFFFFF;
 }
 .st-hero p {
-  font-size: clamp(.9rem, 2vw, 1rem); color: rgba(255,255,255,.75);
-  max-width: 540px; margin: 0 auto; line-height: 1.7; font-weight: 500;
+  font-size: clamp(0.9375rem, 2vw, 1.0625rem);
+  color: rgba(255, 255, 255, 0.8);
+  margin: 0 auto;
+  line-height: 1.5;
+  font-weight: 400;
+  max-width: 520px;
 }
 
-/* Layout */
-.st-container { max-width: 920px; margin: 0 auto; padding: 2.5rem 1.5rem 4rem; }
-
-/* Settings grid: sidebar nav + main content */
+/* ── Container & Grid Architecture ── */
+.st-container {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: clamp(1rem, 3vw, 2rem) clamp(1rem, 3vw, 1.5rem) 5rem;
+  box-sizing: border-box;
+}
 .st-grid {
-  display: grid; grid-template-columns: 280px 1fr; gap: 1.5rem;
+  display: grid;
+  grid-template-columns: 260px minmax(0, 1fr);
+  gap: 2rem;
+  align-items: start;
 }
+
+/* ── Apple HIG Inset Navigation ── */
 .st-nav {
-  background: var(--surface); border: 1px solid var(--border-light);
-  border-radius: var(--radius-2xl); padding: 1rem; box-shadow: var(--shadow-sm);
-  position: sticky; top: 1.5rem; align-self: start;
+  background: var(--st-surface);
+  border: 1px solid var(--st-border);
+  border-radius: 16px;
+  padding: 0.625rem;
+  box-shadow: var(--st-shadow-sm);
+  position: sticky;
+  top: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
 }
 .st-nav-item {
-  display: flex; align-items: center; gap: .6rem;
-  padding: .75rem 1rem; border-radius: var(--radius-lg);
-  font-size: var(--text-sm); font-weight: 600; color: var(--text-secondary);
-  text-decoration: none; cursor: pointer; transition: all var(--transition-normal);
-  border: none; background: transparent; text-align: left;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 0.875rem;
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  color: var(--st-text-muted);
+  text-decoration: none;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+  border: none;
+  background: transparent;
+  text-align: left;
+  width: 100%;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
 }
 .st-nav-item:hover {
-  background: var(--bg-secondary); color: var(--text-primary);
+  background: var(--st-surface-hover);
+  color: var(--st-text-main);
+}
+.st-nav-item:focus-visible {
+  outline: 2px solid var(--st-sky);
+  outline-offset: 2px;
 }
 .st-nav-item.active {
-  background: var(--primary-50); color: var(--primary-600);
-  border: 1px solid var(--primary-200);
-}
-.st-nav-item.active .st-nav-icon {
-  color: var(--primary-600);
+  background: var(--st-sky-tint);
+  color: var(--st-navy);
+  font-weight: 700;
 }
 .st-nav-icon {
-  font-size: 1.1rem; width: 1.4rem; text-align: center;
+  font-size: 1.125rem;
+  width: 1.5rem;
+  text-align: center;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
-/* Content sections */
-.st-section { display: none; }
-.st-section.active { display: block; animation: fadeIn .4s ease; }
-@keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+/* ── Content Sections ── */
+.st-content {
+  min-width: 0;
+}
+.st-section {
+  display: none;
+}
+.st-section.active {
+  display: block;
+  animation: stFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes stFadeIn {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
-/* Card */
+/* ── Section Header & Group Labels ── */
+.st-group-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--st-text-muted);
+  margin: 0 0 0.5rem 0.25rem;
+  display: block;
+}
+
+/* ── Apple Inset Grouped Card ── */
 .st-card {
-  background: var(--surface); border: 1px solid var(--border-light);
-  border-radius: var(--radius-2xl); padding: 1.75rem; margin-bottom: 1.5rem;
-  box-shadow: var(--shadow-sm);
+  background: var(--st-surface);
+  border: 1px solid var(--st-border);
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+  box-shadow: var(--st-shadow-sm);
+  box-sizing: border-box;
 }
 .st-card h2 {
-  font-size: var(--text-lg); font-weight: 800; color: var(--text-primary);
-  margin: 0 0 1rem; display: flex; align-items: center; gap: .5rem;
+  font-size: 1.125rem;
+  font-weight: 700;
+  letter-spacing: -0.015em;
+  color: var(--st-text-main);
+  margin: 0 0 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
 }
-.st-card h2 .st-card-icon { font-size: 1.2rem; }
-
-/* Stat row */
-.st-stat-row {
-  display: flex; justify-content: space-between; align-items: center;
-  padding: .85rem 1rem; background: var(--bg-secondary); border-radius: var(--radius-lg);
-  border: 1px solid var(--border-light);
-}
-.st-stat-label { font-size: var(--text-sm); color: var(--text-secondary); font-weight: 600; }
-.st-stat-value {
-  font-size: var(--text-lg); font-weight: 800; color: var(--primary-600);
-  background: var(--primary-50); padding: .25rem .75rem; border-radius: var(--radius-full);
+.st-card h2 .st-card-icon {
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
-/* Toggle switch */
-.st-toggle {
-  position: relative; display: inline-block; width: 44px; height: 24px;
-}
-.st-toggle input { opacity: 0; width: 0; height: 0; }
-.st-slide {
-  position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;
-  background: var(--gray-300); border-radius: 24px; transition: .25s;
-}
-.st-slide:before {
-  content: ""; position: absolute; bottom: 2px; left: 2px; width: 20px; height: 20px;
-  background: #fff; border-radius: 50%; transition: .25s;
-}
-input:checked + .st-slide { background: var(--primary-600); }
-input:checked + .st-slide:before { transform: translateX(20px); }
-
-/* Form rows */
+/* ── Form Rows & Controls ── */
 .st-form-row {
-  display: flex; flex-direction: column; gap: .5rem; margin-bottom: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+  margin-bottom: 1.25rem;
 }
-.st-form-row:last-child { margin-bottom: 0; }
+.st-form-row:last-child {
+  margin-bottom: 0;
+}
 .st-form-label {
-  font-size: var(--text-sm); font-weight: 700; color: var(--text-primary);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--st-text-main);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
 }
 .st-form-sublabel {
-  font-size: var(--text-xs); color: var(--text-tertiary); margin-top: .15rem;
+  font-size: 0.8125rem;
+  color: var(--st-text-muted);
+  line-height: 1.45;
+  margin-top: 0.125rem;
 }
-.st-form-input, .st-form-select {
-  padding: .6rem .85rem; border: 1.5px solid var(--border-light);
-  border-radius: var(--radius-lg); font-size: var(--text-sm);
-  background: var(--surface); color: var(--text-primary);
-  transition: border-color var(--transition-normal), box-shadow var(--transition-normal);
+.st-form-input,
+.st-form-select {
+  width: 100%;
+  min-height: 44px;
+  padding: 0.625rem 0.875rem;
+  border: 1.5px solid var(--st-border);
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  background: var(--st-surface);
+  color: var(--st-text-main);
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+  appearance: auto;
 }
-.st-form-input:focus, .st-form-select:focus {
-  outline: none; border-color: var(--primary-600);
-  box-shadow: 0 0 0 3px rgba(79,70,229,.12);
+.st-form-input:focus,
+.st-form-select:focus {
+  outline: none;
+  border-color: var(--st-navy);
+  box-shadow: 0 0 0 3px var(--st-sky-tint);
+}
+.st-form-input:disabled,
+.st-form-input[readonly] {
+  background: var(--st-surface-hover);
+  color: var(--st-text-muted);
+  cursor: not-allowed;
 }
 
-/* Action buttons */
-.st-btn-row { display: flex; gap: .75rem; margin-top: 1rem; flex-wrap: wrap; }
+/* ── Apple HIG Switch / Toggle (WCAG 44x44 Touch Target) ── */
+.st-toggle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.875rem 0;
+  border-bottom: 1px solid var(--st-border);
+}
+.st-toggle-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+.st-toggle-row:first-child {
+  padding-top: 0;
+}
+.st-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 51px;
+  height: 31px;
+  min-width: 51px;
+  min-height: 44px;
+  cursor: pointer;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  flex-shrink: 0;
+}
+.st-toggle input {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  margin: 0;
+}
+.st-slide {
+  position: absolute;
+  top: 6.5px;
+  left: 0;
+  right: 0;
+  height: 31px;
+  background: var(--st-border-hover);
+  border-radius: 31px;
+  transition: background-color 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: inset 0 0 1px rgba(0, 0, 0, 0.15);
+}
+.st-slide:before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 2px;
+  width: 27px;
+  height: 27px;
+  background: #FFFFFF;
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2), 0 0 1px rgba(0, 0, 0, 0.1);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.st-toggle input:checked + .st-slide {
+  background: #1B3A6B;
+}
+:root[data-theme="dark"] .st-toggle input:checked + .st-slide,
+[data-theme="dark"] .st-toggle input:checked + .st-slide {
+  background: #4FA9E0;
+}
+.st-toggle input:checked + .st-slide:before {
+  transform: translateX(20px);
+}
+.st-toggle input:focus-visible + .st-slide {
+  outline: 2px solid var(--st-sky);
+  outline-offset: 3px;
+}
+
+/* ── Segmented Role Selector ── */
+.st-role-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+.st-role-card {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  padding: 0.875rem 1rem;
+  min-height: 48px;
+  border: 1.5px solid var(--st-border);
+  border-radius: 12px;
+  cursor: pointer;
+  background: var(--st-surface);
+  transition: all 0.15s ease;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+.st-role-card:hover {
+  background: var(--st-surface-hover);
+  border-color: var(--st-border-hover);
+}
+.st-role-card:has(input:checked) {
+  border-color: var(--st-navy);
+  background: var(--st-sky-tint);
+}
+.st-role-card:has(input:focus-visible) {
+  outline: 2px solid var(--st-sky);
+  outline-offset: 2px;
+}
+.st-role-card input[type="radio"] {
+  accent-color: var(--st-navy);
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  cursor: pointer;
+}
+.st-role-label {
+  font-weight: 700;
+  font-size: 0.9375rem;
+  color: var(--st-text-main);
+}
+
+/* ── Stat Rows (Study Credits) ── */
+.st-stat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+}
+.st-stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.875rem 1rem;
+  background: var(--st-surface-hover);
+  border-radius: 12px;
+  border: 1px solid var(--st-border);
+  min-height: 44px;
+  box-sizing: border-box;
+}
+.st-stat-label {
+  font-size: 0.875rem;
+  color: var(--st-text-muted);
+  font-weight: 600;
+}
+.st-stat-value {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--st-navy);
+  background: var(--st-sky-tint);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  letter-spacing: -0.01em;
+}
+
+/* ── Buttons (Apple & Brand Hierarchy) ── */
+.st-btn-row {
+  display: flex;
+  gap: 0.75rem;
+  margin-top: 1.25rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
 .st-btn {
-  display: inline-flex; align-items: center; justify-content: center; gap: .4rem;
-  padding: .7rem 1.5rem; border-radius: var(--radius-full); font-size: var(--text-sm);
-  font-weight: 700; text-decoration: none; cursor: pointer; border: none;
-  transition: all var(--transition-normal);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.6875rem 1.375rem;
+  min-height: 44px;
+  border-radius: 10px;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  text-decoration: none;
+  cursor: pointer;
+  border: 1.5px solid transparent;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+.st-btn:focus-visible {
+  outline: 2px solid var(--st-sky);
+  outline-offset: 2px;
+}
+.st-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 .st-btn-primary {
-  background: linear-gradient(135deg, var(--primary-600), var(--accent-purple));
-  color: #fff; box-shadow: 0 6px 18px rgba(37,99,235,.25);
+  background: var(--st-navy);
+  color: #FFFFFF;
 }
-.st-btn-primary:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(37,99,235,.35); }
+.st-btn-primary:hover:not(:disabled) {
+  background: var(--st-navy-hover);
+  transform: translateY(-1px);
+}
 .st-btn-outline {
-  background: var(--surface); border: 2px solid var(--border-medium); color: var(--text-primary);
+  background: var(--st-surface);
+  border-color: var(--st-border-hover);
+  color: var(--st-text-main);
 }
-.st-btn-outline:hover { border-color: var(--primary-600); color: var(--primary-600); transform: translateY(-2px); }
+.st-btn-outline:hover:not(:disabled) {
+  background: var(--st-surface-hover);
+  border-color: var(--st-navy);
+  color: var(--st-navy);
+}
 .st-btn.danger {
-  background: linear-gradient(135deg, #ef4444, #dc2626); color: #fff;
+  background: var(--st-red);
+  color: #FFFFFF;
 }
-.st-btn.danger:hover { transform: translateY(-2px); box-shadow: 0 10px 24px rgba(239,68,68,.35); }
+.st-btn.danger:hover:not(:disabled) {
+  opacity: 0.92;
+  transform: translateY(-1px);
+}
 
-/* Danger zone */
+/* ── Semantic Alert & Info Banners ── */
+.st-banner {
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  box-sizing: border-box;
+}
+.st-banner-info {
+  background: var(--st-sky-tint);
+  border: 1px solid var(--st-border-hover);
+  color: var(--st-text-main);
+}
+.st-banner-tip {
+  background: var(--st-success-tint);
+  border: 1px solid var(--st-success-border);
+  color: var(--st-text-main);
+}
 .st-danger-zone {
-  border: 1px solid #fecaca; background: #fef2f2;
+  border: 1.5px solid var(--st-red-border);
+  background: var(--st-red-tint);
 }
-.st-danger-zone .st-card h2 { color: #b91c1c; }
+.st-danger-zone h2 {
+  color: var(--st-red);
+}
 
-/* Toast */
+/* ── Floating Capsule Toast (Apple HUD Style) ── */
 #st-toast {
-  position: fixed; bottom: 5.5rem; left: 50%; transform: translateX(-50%) translateY(20px);
-  background: var(--gray-900); color: #fff; padding: .6rem 1.25rem;
-  border-radius: var(--radius-full); font-size: var(--text-sm); font-weight: 700;
-  opacity: 0; transition: all .3s; pointer-events: none; z-index: 9999; white-space: nowrap;
+  position: fixed;
+  bottom: calc(5.5rem + env(safe-area-inset-bottom, 0px));
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: rgba(26, 26, 26, 0.92);
+  color: #FFFFFF;
+  padding: 0.625rem 1.25rem;
+  border-radius: 9999px;
+  font-size: 0.875rem;
+  font-weight: 600;
+  opacity: 0;
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.25s ease;
+  pointer-events: none;
+  z-index: 99999;
+  white-space: nowrap;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.25);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.15);
 }
-#st-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+:root[data-theme="dark"] #st-toast,
+[data-theme="dark"] #st-toast {
+  background: rgba(30, 41, 59, 0.95);
+  color: #F8FAFC;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+}
+#st-toast.show {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
 
-@media (max-width: 640px) {
-  .st-grid { grid-template-columns: 1fr; }
-  .st-nav { position: static; }
-  .st-stat-row { flex-direction: column; gap: .5rem; text-align: center; }
+/* ── Mobile & Tablet Responsiveness (< 768px) ── */
+@media (max-width: 767px) {
+  .st-grid {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+  }
+  /* Horizontally scrollable segmented nav strip on mobile */
+  .st-nav {
+    position: sticky;
+    top: 0;
+    z-index: 40;
+    flex-direction: row;
+    overflow-x: auto;
+    padding: 0.5rem;
+    gap: 0.5rem;
+    margin: 0 -0.5rem 1.25rem;
+    border-radius: 12px;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;
+  }
+  .st-nav::-webkit-scrollbar {
+    display: none;
+  }
+  .st-nav-item {
+    flex-shrink: 0;
+    width: auto;
+    scroll-snap-align: start;
+    padding: 0.625rem 1rem;
+    border-radius: 9999px;
+    font-size: 0.875rem;
+    white-space: nowrap;
+  }
+  .st-card {
+    padding: 1.25rem;
+    border-radius: 14px;
+    margin-bottom: 1.25rem;
+  }
+  /* Stop iOS auto-zoom on mobile inputs */
+  .st-form-input,
+  .st-form-select {
+    font-size: 16px !important;
+  }
+  .st-btn {
+    width: 100%;
+  }
+  .st-btn-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .st-btn-row .st-btn {
+    width: 100%;
+  }
 }
 </style>
 
 <!-- Hero -->
 <div class="st-hero">
-  <div class="st-hero-chip">⚙️ Account Settings</div>
-  <h1>Settings</h1>
-  <p>Manage your account, notifications, study credits, and privacy preferences.</p>
+  <div class="st-hero-inner">
+    <div class="st-hero-chip">⚙️ Account Settings</div>
+    <h1>Settings</h1>
+    <p>Manage your account, notification preferences, study credits, and privacy controls.</p>
+  </div>
 </div>
 
 <div class="st-container">
   <div class="st-grid">
 
-    <!-- Sidebar Navigation -->
-    <nav class="st-nav" id="settingsNav">
+    <!-- Sidebar Navigation / Mobile Segmented Strip -->
+    <nav class="st-nav" id="settingsNav" aria-label="Settings navigation">
       <button class="st-nav-item active" data-section="my-account">
         <span class="st-nav-icon">👤</span> My Account
       </button>
@@ -193,11 +661,20 @@ input:checked + .st-slide:before { transform: translateX(20px); }
       <button class="st-nav-item" data-section="study-credits">
         <span class="st-nav-icon">🎓</span> Study Credits
       </button>
+      <button class="st-nav-item" data-section="payout">
+        <span class="st-nav-icon">💼</span> Payouts & Earnings
+      </button>
+      <button class="st-nav-item" data-section="transactions">
+        <span class="st-nav-icon">🧾</span> Payment History
+      </button>
       <button class="st-nav-item" data-section="privacy">
         <span class="st-nav-icon">🔒</span> Privacy
       </button>
       <button class="st-nav-item" data-section="app">
         <span class="st-nav-icon">📱</span> App Settings
+      </button>
+      <button class="st-nav-item" data-section="ai-assistant">
+        <span class="st-nav-icon">🤖</span> AI Assistant & BYOK
       </button>
       <button class="st-nav-item" data-section="danger">
         <span class="st-nav-icon">⚠️</span> Danger Zone
@@ -209,33 +686,132 @@ input:checked + .st-slide:before { transform: translateX(20px); }
 
       <!-- My Account -->
       <div class="st-section active" id="section-my-account">
-        <div class="st-card">
-          <h2><span class="st-card-icon">👤</span> Profile Information</h2>
-          <div class="st-form-row">
-            <label class="st-form-label">Full Name</label>
-            <input type="text" class="st-form-input" value="{{ session.user.name if session.user else '' }}" readonly>
+        <form id="settingsAccountForm" onsubmit="handleAccountFormSubmit(event)">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+          <!-- Personal Information Card -->
+          <div class="st-card">
+            <h2><span class="st-card-icon">👤</span> Personal Information</h2>
+            
+            <div class="st-form-row">
+              <label for="st_student_name" class="st-form-label">Full Name <span style="color:var(--st-red);">*</span></label>
+              <input type="text" id="st_student_name" name="student_name" class="st-form-input" 
+                value="{{ profile.student_name if (profile and profile.student_name) else (user.name if user else '') }}" 
+                placeholder="Enter full name" required>
+            </div>
+
+            <div class="st-form-row">
+              <label for="st_student_email" class="st-form-label">Email Address</label>
+              <input type="email" id="st_student_email" name="student_email" class="st-form-input" 
+                value="{{ profile.student_email if (profile and profile.student_email) else (user.email if user else '') }}" 
+                readonly>
+              <div class="st-form-sublabel">Your email is linked to your authentication provider.</div>
+            </div>
+
+            <div class="st-form-row">
+              <label for="st_student_mobile" class="st-form-label">Mobile Number <span style="color:var(--st-red);">*</span></label>
+              <input type="tel" id="st_student_mobile" name="student_moblie_number" class="st-form-input" 
+                value="{{ profile.student_moblie_number if (profile and profile.student_moblie_number) else '' }}" 
+                placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10" required>
+            </div>
           </div>
-          <div class="st-form-row">
-            <label class="st-form-label">Email Address</label>
-            <input type="email" class="st-form-input" value="{{ session.user.email if session.user else '' }}" readonly>
+
+          <!-- Role Selection Card -->
+          <div class="st-card">
+            <h2><span class="st-card-icon">🎓</span> I am a…</h2>
+            <div class="st-role-grid">
+              <label class="st-role-card">
+                <input type="radio" name="user_role" value="student" id="st_role_student" {% if not profile or profile.user_role=='student' %}checked{% endif %} onchange="toggleSettingsStudentFields()">
+                <span class="st-role-label">👨‍🎓 Student</span>
+              </label>
+
+              <label class="st-role-card">
+                <input type="radio" name="user_role" value="teacher" id="st_role_teacher" {% if profile and profile.user_role=='teacher' %}checked{% endif %} onchange="toggleSettingsStudentFields()">
+                <span class="st-role-label">👨‍🏫 Teacher</span>
+              </label>
+            </div>
           </div>
-          <div class="st-form-row">
-            <label class="st-form-label">Auth Provider</label>
-            <input type="text" class="st-form-input" value="{{ session.user.provider if session.user else '' }}" readonly>
-            <div class="st-form-sublabel">Your account was created using {{ session.user.provider if session.user else 'email' }} authentication.</div>
+
+          <!-- Academic Details Card -->
+          <div class="st-card">
+            <h2><span class="st-card-icon">🏫</span> Academic Details</h2>
+
+            <div class="st-form-row">
+              <label for="st_college_id" class="st-form-label">College <span style="color:var(--st-red);">*</span></label>
+              <select id="st_college_id" name="college_id" class="st-form-select" required>
+                <option value="">Select College</option>
+                {% for college in colleges %}
+                <option value="{{ college.id }}" {% if profile and profile.college_id|string==college.id|string %}selected{% endif %}>
+                  {{ college.name }}{% if college.short_name %} ({{ college.short_name }}){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="st-form-row">
+              <label for="st_branch_id" class="st-form-label">Branch <span style="color:var(--st-red);">*</span></label>
+              <select id="st_branch_id" name="branch_id" class="st-form-select" required>
+                <option value="">Select Branch</option>
+                {% for branch in branches %}
+                <option value="{{ branch.branch_id }}" {% if profile and profile.branch_id|string==branch.branch_id|string %}selected{% endif %}>
+                  {{ branch.name }}{% if branch.short_name %} ({{ branch.short_name }}){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="st-form-row">
+              <label for="st_degree" class="st-form-label">Degree / Course <span style="color:var(--st-red);">*</span></label>
+              <select id="st_degree" name="degree" class="st-form-select" required onchange="filterSettingsBranches()">
+                <option value="">Select Degree / Course</option>
+                {% set degrees = ['B.Tech', 'M.Tech', 'MBA', 'MCA', 'BCA', 'BBA', 'B.Sc', 'M.Sc', 'Diploma', 'Ph.D', 'Other'] %}
+                {% for d in degrees %}
+                <option value="{{ d }}" {% if profile and profile.degree==d %}selected{% endif %}>{{ d }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="st-form-row">
+              <label for="st_year_of_joining" class="st-form-label">Year of Joining <span style="color:var(--st-red);">*</span></label>
+              <input type="number" id="st_year_of_joining" name="year_of_joining" class="st-form-input" 
+                value="{{ profile.year_of_joining if (profile and profile.year_of_joining) else '' }}" 
+                min="2000" max="2030" placeholder="e.g. 2024" required oninput="autoCalculateSettingsPursuingYear()">
+            </div>
+
+            <div class="st-form-row" id="st_pursuing_year_group">
+              <label for="st_pursuing_year" class="st-form-label">Current Year <span style="color:var(--st-red);">*</span></label>
+              <select id="st_pursuing_year" name="pursuing_year" class="st-form-select">
+                <option value="">Select Year</option>
+                {% for year in [1,2,3,4,5] %}
+                <option value="{{ year }}" {% if profile and profile.pursuing_year==year %}selected{% endif %}>
+                  {{ year }}{% if year==1 %}st{% elif year==2 %}nd{% elif year==3 %}rd{% else %}th{% endif %} Year
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="st-form-row" id="st_registration_number_group">
+              <label for="st_registration_number" class="st-form-label">Registration / Enrollment Number</label>
+              <input type="text" id="st_registration_number" name="registration_number" class="st-form-input" 
+                value="{{ profile.registration_number if (profile and profile.registration_number) else '' }}" 
+                placeholder="Enrollment / Reg No. (Optional)">
+            </div>
+
+            <div class="st-btn-row">
+              <button type="submit" id="stSaveAccountBtn" class="st-btn st-btn-primary">
+                💾 Save Account Details
+              </button>
+              <span id="stAccountSaveStatus" style="font-size:0.875rem; font-weight:600; align-self:center;"></span>
+            </div>
           </div>
-          <div class="st-btn-row">
-            <a href="/account" class="st-btn st-btn-primary">Edit Profile Info</a>
-            <button type="button" class="st-btn st-btn-outline" onclick="location.href='/account'">Go to Account Page</button>
-          </div>
-        </div>
+        </form>
 
         <div class="st-card">
           <h2><span class="st-card-icon">🔑</span> Password & Security</h2>
           <div class="st-form-row">
             <label class="st-form-label">Current Password</label>
-            <input type="password" class="st-form-input" placeholder="••••••••">
-            <div class="st-form-sublabel">Password management is handled automatically by your auth provider.</div>
+            <input type="password" class="st-form-input" placeholder="••••••••" readonly>
+            <div class="st-form-sublabel">Password management is handled securely via email verification.</div>
           </div>
           <div class="st-btn-row">
             <button type="button" class="st-btn st-btn-primary" onclick="forgotPassword()">Reset Password via Email</button>
@@ -245,13 +821,15 @@ input:checked + .st-slide:before { transform: translateX(20px); }
 
       <!-- Notifications -->
       <div class="st-section" id="section-notifications">
-        <!-- iOS PWA Guidance Banner (Shown dynamically on iOS Safari outside PWA) -->
-        <div id="iosPwaBanner" class="st-card" style="display:none;background:#f0f9ff;border-color:#bae6fd;">
-          <h2 style="color:#0369a1;"><span class="st-card-icon">🍎</span> iOS Notifications Setup</h2>
-          <div class="st-form-sublabel" style="color:#0c4a6e;line-height:1.6;">
+        <!-- iOS PWA Guidance Banner -->
+        <div id="iosPwaBanner" class="st-banner st-banner-info" style="display:none;">
+          <h3 style="margin:0 0 0.5rem; font-size:1rem; font-weight:700; color:var(--st-navy); display:flex; align-items:center; gap:0.5rem;">
+            🍎 iOS Notifications Setup
+          </h3>
+          <div class="st-form-sublabel" style="line-height:1.6;">
             On iPhone/iPad (iOS 16.4+), Apple requires web apps to be added to your Home Screen to deliver push notifications when the browser is closed.
-            <div style="margin-top:0.5rem;font-weight:600;">
-              1. Tap the <strong>Share</strong> button (square with arrow) at bottom of Safari.<br>
+            <div style="margin-top:0.5rem; font-weight:600;">
+              1. Tap the <strong>Share</strong> button (square with arrow) at the bottom of Safari.<br>
               2. Select <strong>"Add to Home Screen"</strong>.<br>
               3. Open AbhiHub from your Home Screen and enable push notifications!
             </div>
@@ -260,68 +838,63 @@ input:checked + .st-slide:before { transform: translateX(20px); }
 
         <div class="st-card">
           <h2><span class="st-card-icon">🔔</span> Notification Preferences</h2>
-          <div class="st-form-row">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <div>
-                <label class="st-form-label">Push Notifications</label>
-                <div class="st-form-sublabel">Receive real-time alerts on this browser/device</div>
-              </div>
-              <label class="st-toggle">
-                <input type="checkbox" id="togglePush" checked onchange="saveNotifSetting('push', this.checked)">
-                <span class="st-slide"></span>
-              </label>
+          
+          <div class="st-toggle-row">
+            <div>
+              <label for="togglePush" class="st-form-label">Push Notifications</label>
+              <div class="st-form-sublabel">Receive real-time alerts on this browser/device</div>
             </div>
-          </div>
-          <div class="st-form-row">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <div>
-                <label class="st-form-label">Upload & Material Alerts</label>
-                <div class="st-form-sublabel">Notifications when new notes, PYQs, or syllabus files are published</div>
-              </div>
-              <label class="st-toggle">
-                <input type="checkbox" id="toggleUploads" checked onchange="saveNotifSetting('uploads', this.checked)">
-                <span class="st-slide"></span>
-              </label>
-            </div>
-          </div>
-          <div class="st-form-row">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <div>
-                <label class="st-form-label">Chat & Direct Messages</label>
-                <div class="st-form-sublabel">Alerts for incoming chat messages and peer connections</div>
-              </div>
-              <label class="st-toggle">
-                <input type="checkbox" id="toggleChat" checked onchange="saveNotifSetting('chat', this.checked)">
-                <span class="st-slide"></span>
-              </label>
-            </div>
-          </div>
-          <div class="st-form-row">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <div>
-                <label class="st-form-label">Crush Match Alerts</label>
-                <div class="st-form-sublabel">Get notified when someone has a mutual crush with you</div>
-              </div>
-              <label class="st-toggle">
-                <input type="checkbox" id="toggleCrush" checked onchange="saveNotifSetting('crush', this.checked)">
-                <span class="st-slide"></span>
-              </label>
-            </div>
-          </div>
-          <div class="st-form-row">
-            <div style="display:flex;justify-content:space-between;align-items:center;">
-              <div>
-                <label class="st-form-label">Email Notifications</label>
-                <div class="st-form-sublabel">Weekly summary of your uploads and reputation</div>
-              </div>
-              <label class="st-toggle">
-                <input type="checkbox" id="toggleEmail" onchange="saveNotifSetting('email', this.checked)">
-                <span class="st-slide"></span>
-              </label>
-            </div>
+            <label class="st-toggle">
+              <input type="checkbox" id="togglePush" aria-label="Push Notifications" checked onchange="saveNotifSetting('push', this.checked)">
+              <span class="st-slide"></span>
+            </label>
           </div>
 
-          <div class="st-btn-row" style="margin-top:1.5rem;border-top:1px solid var(--border-light);padding-top:1rem;">
+          <div class="st-toggle-row">
+            <div>
+              <label for="toggleUploads" class="st-form-label">Upload & Material Alerts</label>
+              <div class="st-form-sublabel">Notifications when new notes, PYQs, or syllabus files are published</div>
+            </div>
+            <label class="st-toggle">
+              <input type="checkbox" id="toggleUploads" aria-label="Upload and Material Alerts" checked onchange="saveNotifSetting('uploads', this.checked)">
+              <span class="st-slide"></span>
+            </label>
+          </div>
+
+          <div class="st-toggle-row">
+            <div>
+              <label for="toggleChat" class="st-form-label">Chat & Direct Messages</label>
+              <div class="st-form-sublabel">Alerts for incoming chat messages and peer connections</div>
+            </div>
+            <label class="st-toggle">
+              <input type="checkbox" id="toggleChat" aria-label="Chat and Direct Messages" checked onchange="saveNotifSetting('chat', this.checked)">
+              <span class="st-slide"></span>
+            </label>
+          </div>
+
+          <div class="st-toggle-row">
+            <div>
+              <label for="toggleCrush" class="st-form-label">Crush Match Alerts</label>
+              <div class="st-form-sublabel">Get notified when someone has a mutual crush with you</div>
+            </div>
+            <label class="st-toggle">
+              <input type="checkbox" id="toggleCrush" aria-label="Crush Match Alerts" checked onchange="saveNotifSetting('crush', this.checked)">
+              <span class="st-slide"></span>
+            </label>
+          </div>
+
+          <div class="st-toggle-row">
+            <div>
+              <label for="toggleEmail" class="st-form-label">Email Notifications</label>
+              <div class="st-form-sublabel">Weekly summary of your uploads and reputation</div>
+            </div>
+            <label class="st-toggle">
+              <input type="checkbox" id="toggleEmail" aria-label="Email Notifications" onchange="saveNotifSetting('email', this.checked)">
+              <span class="st-slide"></span>
+            </label>
+          </div>
+
+          <div class="st-btn-row" style="margin-top:1.5rem; border-top:1px solid var(--st-border); padding-top:1rem;">
             <button type="button" class="st-btn st-btn-outline" id="sendTestNotifBtn" onclick="sendTestNotification()">
               🧪 Send Test Notification
             </button>
@@ -341,7 +914,6 @@ input:checked + .st-slide:before { transform: translateX(20px); }
         </div>
       </div>
 
-
       <!-- Study Credits -->
       <div class="st-section" id="section-study-credits">
         <div class="st-card">
@@ -350,12 +922,12 @@ input:checked + .st-slide:before { transform: translateX(20px); }
             <span class="st-stat-label">Credits Remaining Today</span>
             <span class="st-stat-value">{{ user_data.paper_quota_remaining if user_data and user_data.paper_quota_remaining is not none else 19 }}</span>
           </div>
-          <div class="st-form-sublabel" style="margin-top: .75rem;">Each document view costs 1 credit. Credits refill daily.</div>
+          <div class="st-form-sublabel" style="margin-top:0.75rem;">Each document view costs 1 credit. Credits refill daily.</div>
         </div>
 
         <div class="st-card">
           <h2><span class="st-card-icon">💎</span> Earn More Credits</h2>
-          <div style="display:flex;flex-direction:column;gap:.5rem;">
+          <div class="st-stat-list">
             <div class="st-stat-row">
               <span class="st-stat-label">Daily Login Bonus</span>
               <span class="st-stat-value">+5</span>
@@ -377,17 +949,285 @@ input:checked + .st-slide:before { transform: translateX(20px); }
 
         <div class="st-card">
           <h2><span class="st-card-icon">📊</span> Reputation</h2>
-          <div class="st-stat-row">
-            <span class="st-stat-label">Reputation Score</span>
-            <span class="st-stat-value">{{ user_data.reputation_score if user_data and user_data.reputation_score is not none else 0 }}</span>
+          <div class="st-stat-list">
+            <div class="st-stat-row">
+              <span class="st-stat-label">Reputation Score</span>
+              <span class="st-stat-value">{{ user_data.reputation_score if user_data and user_data.reputation_score is not none else 0 }}</span>
+            </div>
+            <div class="st-stat-row">
+              <span class="st-stat-label">Students Helped</span>
+              <span class="st-stat-value">{{ user_data.students_helped if user_data and user_data.students_helped is not none else 0 }}</span>
+            </div>
+            <div class="st-stat-row">
+              <span class="st-stat-label">Your Uploads</span>
+              <span class="st-stat-value">{{ user_data.uploads_count if user_data and user_data.uploads_count is not none else 0 }}</span>
+            </div>
           </div>
-          <div class="st-stat-row">
-            <span class="st-stat-label">Students Helped</span>
-            <span class="st-stat-value">{{ user_data.students_helped if user_data and user_data.students_helped is not none else 0 }}</span>
+        </div>
+      </div>
+
+      <!-- Payouts & Earnings -->
+      <div class="st-section" id="section-payout">
+        <!-- Card 1: Creator Monetization Eligibility -->
+        <div class="st-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
+            <h2 style="margin:0;"><span class="st-card-icon">⚡</span> Creator Eligibility</h2>
+            <span id="stPayoutEligibilityBadge" class="st-stat-value" style="background:#fef3c7;color:#92400e;">Checking...</span>
           </div>
-          <div class="st-stat-row">
-            <span class="st-stat-label">Your Uploads</span>
-            <span class="st-stat-value">{{ user_data.uploads_count if user_data and user_data.uploads_count is not none else 0 }}</span>
+          <div id="stPayoutEligibilityMsg" class="st-form-sublabel" style="line-height:1.5;">
+            Evaluating your current rank and monetization privileges...
+          </div>
+          <div id="stCreatorMetricsGrid" style="display:none;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-top:1rem;">
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.75rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-text-muted);font-weight:600;">Monetized Notes</div>
+              <div id="stPaidNotesCount" style="font-size:1.4rem;font-weight:800;color:var(--st-text-main);margin-top:0.25rem;">0</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.75rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-text-muted);font-weight:600;">Total Note Sales</div>
+              <div id="stTotalSalesCount" style="font-size:1.4rem;font-weight:800;color:var(--st-navy);margin-top:0.25rem;">0</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.75rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-text-muted);font-weight:600;">Total Revenue</div>
+              <div id="stTotalEarningsAmt" style="font-size:1.4rem;font-weight:800;color:var(--st-success);margin-top:0.25rem;">₹0.00</div>
+            </div>
+          </div>
+          <!-- Eligibility Roadmap: Tasks to Complete -->
+          <div id="stBoostRankBox" style="display:none;margin-top:1.25rem;border-radius:14px;background:var(--st-surface-hover);border:1.5px solid var(--st-border);padding:1.25rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
+              <div style="font-size:0.95rem;font-weight:700;color:var(--st-text-main);">
+                🎯 How to Become Eligible for Notes Selling & Payouts
+              </div>
+              <span id="stRankProgressText" style="font-size:0.78rem;font-weight:700;color:var(--st-navy);background:var(--st-sky-tint);padding:0.2rem 0.65rem;border-radius:999px;">
+                Target: Contributor Rank
+              </span>
+            </div>
+
+            <p style="margin:0 0 0.85rem;font-size:0.83rem;color:var(--st-text-muted);line-height:1.5;">
+              To maintain academic quality and prevent spam, selling notes and requesting cash payouts unlocks at <strong>Contributor</strong> rank. Complete the tasks below to earn XP and upgrade your tier:
+            </p>
+
+            <!-- Score Progress Bar -->
+            <div style="margin-bottom:1.25rem;">
+              <div style="display:flex;justify-content:space-between;font-size:0.75rem;font-weight:600;color:var(--st-text-muted);margin-bottom:0.35rem;">
+                <span>Current Tier: <strong id="stCurrentTierText" style="color:var(--st-text-main);">Explorer</strong></span>
+                <span>Score: <strong id="stCurrentScoreText" style="color:var(--st-navy);">0</strong> / <span id="stTargetScoreText">100</span> XP</span>
+              </div>
+              <div style="height:8px;background:var(--st-border);border-radius:999px;overflow:hidden;">
+                <div id="stRankProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg, #4FA9E0, #1B3A6B);border-radius:999px;transition:width 0.4s ease;"></div>
+              </div>
+            </div>
+
+            <!-- Task List -->
+            <div style="display:flex;flex-direction:column;gap:0.75rem;">
+              <!-- Task 1: Upload Notes -->
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
+                  <span style="font-size:1.3rem;">📤</span>
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">1. Upload Study Notes & PYQs</div>
+                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Share lecture notes, question papers, or practical manuals (+5 to +15 XP each)</div>
+                  </div>
+                </div>
+                <a href="/upload" class="st-btn st-btn-primary" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Upload Notes</a>
+              </div>
+
+              <!-- Task 2: Like, Comment & Bookmark -->
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
+                  <span style="font-size:1.3rem;">❤️</span>
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">2. Like, Bookmark & Comment on Resources</div>
+                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Bookmark study notes (+5 XP), leave helpful comments (+1 XP), and like papers (+2 XP)</div>
+                  </div>
+                </div>
+                <a href="/" class="st-btn st-btn-outline" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Explore Notes</a>
+              </div>
+
+              <!-- Task 3: Reach 50+ Views -->
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
+                  <span style="font-size:1.3rem;">👁️</span>
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">3. Reach 50+ Views on Your Uploads</div>
+                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Share note links with classmates to gain peer views (+0.1 XP per unique view)</div>
+                  </div>
+                </div>
+                <a href="/profile" class="st-btn st-btn-outline" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">My Uploads</a>
+              </div>
+
+              <!-- Task 4: Refer Classmates -->
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
+                  <span style="font-size:1.3rem;">🎁</span>
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">4. Invite Friends via Referral Link</div>
+                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Earn +50 bonus credits and instant reputation points for every student signup</div>
+                  </div>
+                </div>
+                <button type="button" onclick="copySettingsReferralLink()" id="stCopyRefBtn" class="st-btn st-btn-outline" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Copy Invite Link</button>
+              </div>
+
+              <!-- Task 5: Complete Profile -->
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
+                  <span style="font-size:1.3rem;">🎓</span>
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">5. Complete Student Academic Profile</div>
+                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Fill in your College, Branch, and Pursuing Year to establish verified student status</div>
+                  </div>
+                </div>
+                <button type="button" onclick="document.querySelector('#settingsNav [data-section=my-account]').click()" class="st-btn st-btn-outline" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Complete Profile</button>
+              </div>
+
+              <!-- Task 6: Setup AI Model with API Key -->
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
+                  <span style="font-size:1.3rem;">🤖</span>
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">6. Setup AI Model with BYOK API Key</div>
+                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Connect your free Google Gemini, Groq, or OpenAI API key for unlimited AI features</div>
+                  </div>
+                </div>
+                <button type="button" onclick="document.querySelector('#settingsNav [data-section=ai-assistant]').click()" class="st-btn st-btn-primary" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Setup AI Key</button>
+              </div>
+
+              <!-- Task 7: Use All Features of AI Model -->
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
+                  <span style="font-size:1.3rem;">⚡</span>
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">7. Use AI Study Features & PDF Chat</div>
+                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Generate automatic summaries, AI flashcards, practice quizzes, and chat with notes</div>
+                  </div>
+                </div>
+                <button type="button" onclick="document.querySelector('#settingsNav [data-section=ai-assistant]').click()" class="st-btn st-btn-outline" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Try AI Features</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Creator Wallet Balances -->
+        <div class="st-card">
+          <h2><span class="st-card-icon">💼</span> Creator Wallet Balances</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:0.5rem;">
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:#b45309;font-weight:700;text-transform:uppercase;">Pending (30-day Lock)</div>
+              <div id="stWalletPending" style="font-size:1.35rem;font-weight:800;color:#d97706;margin-top:0.25rem;">₹0.00</div>
+              <div style="font-size:0.7rem;color:var(--st-text-sub);margin-top:0.25rem;">Holding period for disputes</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-success);font-weight:700;text-transform:uppercase;">Withdrawable</div>
+              <div id="stWalletWithdrawable" style="font-size:1.35rem;font-weight:800;color:var(--st-success);margin-top:0.25rem;">₹0.00</div>
+              <div style="font-size:0.7rem;color:var(--st-text-sub);margin-top:0.25rem;">Ready for payout</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-text-muted);font-weight:700;text-transform:uppercase;">Total Withdrawn</div>
+              <div id="stWalletTotalWithdrawn" style="font-size:1.35rem;font-weight:800;color:var(--st-text-main);margin-top:0.25rem;">₹0.00</div>
+              <div style="font-size:0.7rem;color:var(--st-text-sub);margin-top:0.25rem;">Lifetime payout total</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Request Withdrawal -->
+        <div class="st-card">
+          <h2><span class="st-card-icon">💸</span> Request Payout</h2>
+          <div class="st-form-sublabel" style="margin-bottom:1rem;">
+            Minimum withdrawal amount is <strong>₹100</strong>. Payouts are reviewed and dispatched within 24-48 hours.
+          </div>
+          <div id="stWithdrawDisabledNote" style="display:none;padding:0.75rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;font-size:0.85rem;color:var(--st-text-muted);">
+            🔒 Insufficient withdrawable balance. You need at least ₹100 in matured balance to request a payout.
+          </div>
+          <form id="stWithdrawalForm" style="display:none;" onsubmit="handleWithdrawalSubmit(event)">
+            <div class="st-form-row">
+              <label for="stWithdrawAmt" class="st-form-label">Withdrawal Amount (₹)</label>
+              <input type="number" id="stWithdrawAmt" name="amount" class="st-form-input" min="100" step="1" required placeholder="Min 100">
+            </div>
+            <div class="st-form-row">
+              <label for="stWithdrawMethod" class="st-form-label">Payout Method</label>
+              <select id="stWithdrawMethod" name="payout_method" class="st-form-input" onchange="togglePayoutMethodPlaceholder()">
+                <option value="upi">UPI (Instant Transfer)</option>
+                <option value="bank">Bank Account (IMPS/NEFT)</option>
+              </select>
+            </div>
+            <div class="st-form-row">
+              <label for="stWithdrawDetails" class="st-form-label" id="stWithdrawDetailsLabel">UPI ID</label>
+              <input type="text" id="stWithdrawDetails" name="payout_details" class="st-form-input" required placeholder="e.g. yourname@okhdfcbank">
+            </div>
+            <div class="st-btn-row">
+              <button type="submit" id="stWithdrawBtn" class="st-btn st-btn-primary">
+                <span>Submit Payout Request</span>
+              </button>
+            </div>
+            <div id="stWithdrawFeedback" style="display:none;margin-top:0.75rem;font-size:0.88rem;font-weight:600;"></div>
+          </form>
+        </div>
+
+        <!-- Card 4: Recent Payout Requests & History -->
+        <div class="st-card">
+          <h2><span class="st-card-icon">📜</span> Payout History</h2>
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+              <thead>
+                <tr style="text-align:left;border-bottom:1px solid var(--st-border);color:var(--st-text-muted);">
+                  <th style="padding:0.5rem;">Date</th>
+                  <th style="padding:0.5rem;">Amount</th>
+                  <th style="padding:0.5rem;">Method</th>
+                  <th style="padding:0.5rem;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="stPayoutHistoryTbody">
+                <tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--st-text-muted);">Loading history...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment & Transaction History -->
+      <div class="st-section" id="section-transactions">
+        <div class="st-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
+            <h2 style="margin:0;"><span class="st-card-icon">🧾</span> Payment History</h2>
+            <button type="button" onclick="loadTransactionHistory(true)" class="st-btn st-btn-outline" style="padding:0.35rem 0.8rem;font-size:0.78rem;min-height:32px;">
+              🔄 Refresh
+            </button>
+          </div>
+          <div class="st-form-sublabel" style="margin-bottom:1.25rem;">
+            View all your past PhonePe purchases, document unlocks, support contributions, and official bank receipts.
+          </div>
+
+          <!-- Transaction Metrics Grid -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:1.25rem;">
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-text-muted);font-weight:700;text-transform:uppercase;">Total Orders</div>
+              <div id="stTxTotalOrders" style="font-size:1.35rem;font-weight:800;color:var(--st-text-main);margin-top:0.25rem;">0</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-success);font-weight:700;text-transform:uppercase;">Successful</div>
+              <div id="stTxSuccessOrders" style="font-size:1.35rem;font-weight:800;color:var(--st-success);margin-top:0.25rem;">0</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:#7c3aed;font-weight:700;text-transform:uppercase;">Gateway</div>
+              <div style="font-size:1.05rem;font-weight:800;color:#7c3aed;margin-top:0.35rem;">PhonePe Merchant</div>
+            </div>
+          </div>
+
+          <!-- Transaction Table Container -->
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+              <thead>
+                <tr style="text-align:left;border-bottom:1.5px solid var(--st-border);color:var(--st-text-muted);">
+                  <th style="padding:0.6rem 0.5rem;">Order Reference</th>
+                  <th style="padding:0.6rem 0.5rem;">Item / Purpose</th>
+                  <th style="padding:0.6rem 0.5rem;">Amount</th>
+                  <th style="padding:0.6rem 0.5rem;">Status</th>
+                  <th style="padding:0.6rem 0.5rem;text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="stTransactionsTbody">
+                <tr><td colspan="5" style="padding:1.5rem;text-align:center;color:var(--st-text-muted);">Loading payment history...</td></tr>
+              </tbody>
+            </table>
           </div>
         </div>
       </div>
@@ -397,13 +1237,13 @@ input:checked + .st-slide:before { transform: translateX(20px); }
         <div class="st-card">
           <h2><span class="st-card-icon">🔒</span> Privacy Controls</h2>
           {% if session.user %}
-          <div style="display:flex;justify-content:space-between;align-items:center;padding:.5rem 0;border-bottom:1px solid var(--border-light);">
+          <div class="st-toggle-row">
             <div>
-              <label class="st-form-label">Hide my profile from search engines</label>
+              <label for="toggleNoIndex" class="st-form-label">Hide profile from search engines</label>
               <div class="st-form-sublabel">Prevent Google/Bing from indexing your public profile</div>
             </div>
             <label class="st-toggle">
-              <input type="checkbox" id="toggleNoIndex" onchange="savePrivacySetting('no_index', this.checked)">
+              <input type="checkbox" id="toggleNoIndex" aria-label="Hide profile from search engines" onchange="savePrivacySetting('no_index', this.checked)">
               <span class="st-slide"></span>
             </label>
           </div>
@@ -414,10 +1254,10 @@ input:checked + .st-slide:before { transform: translateX(20px); }
 
         <div class="st-card">
           <h2><span class="st-card-icon">📄</span> Legal</h2>
-          <div style="display:flex;flex-direction:column;gap:.5rem;">
-            <a href="/privacy" class="st-nav-item" style="background:transparent;">📄 Privacy Policy</a>
-            <a href="/terms" class="st-nav-item" style="background:transparent;">📜 Terms of Service</a>
-            <a href="/open-source" class="st-nav-item" style="background:transparent;">🌍 Open Source</a>
+          <div style="display:flex; flex-direction:column; gap:0.5rem;">
+            <a href="/privacy" class="st-nav-item" style="background:var(--st-surface-hover);">📄 Privacy Policy</a>
+            <a href="/terms" class="st-nav-item" style="background:var(--st-surface-hover);">📜 Terms of Service</a>
+            <a href="/open-source" class="st-nav-item" style="background:var(--st-surface-hover);">🌍 Open Source</a>
           </div>
         </div>
       </div>
@@ -427,7 +1267,7 @@ input:checked + .st-slide:before { transform: translateX(20px); }
         <div class="st-card">
           <h2><span class="st-card-icon">🎨</span> Appearance</h2>
           <div class="st-form-row">
-            <label class="st-form-label">Theme</label>
+            <label for="selectTheme" class="st-form-label">Theme</label>
             <select class="st-form-select" id="selectTheme" onchange="saveTheme(this.value)">
               <option value="system">System Default (auto)</option>
               <option value="light">Light Mode</option>
@@ -440,7 +1280,7 @@ input:checked + .st-slide:before { transform: translateX(20px); }
         <div class="st-card">
           <h2><span class="st-card-icon">🌐</span> Language</h2>
           <div class="st-form-row">
-            <label class="st-form-label">Display Language</label>
+            <label for="selectLang" class="st-form-label">Display Language</label>
             <select class="st-form-select" id="selectLang" onchange="saveLang(this.value)">
               <option value="en">English</option>
               <option value="hi">हिंदी (Hindi)</option>
@@ -463,9 +1303,9 @@ input:checked + .st-slide:before { transform: translateX(20px); }
 
       <!-- Danger Zone -->
       <div class="st-section" id="section-danger">
-        <div class="st-danger-zone st-card">
+        <div class="st-card st-danger-zone">
           <h2><span class="st-card-icon">⚠️</span> Danger Zone</h2>
-          <div class="st-form-sublabel" style="margin-bottom: 1rem; color: #991b1b;">
+          <div class="st-form-sublabel" style="margin-bottom: 1rem; color: var(--st-red); font-weight: 500;">
             These actions are irreversible. Proceed with caution.
           </div>
           <div class="st-btn-row">
@@ -484,11 +1324,75 @@ input:checked + .st-slide:before { transform: translateX(20px); }
         </div>
       </div>
 
+      <!-- AI Assistant & BYOK Settings -->
+      <div class="st-section" id="section-ai-assistant">
+        <div class="st-card">
+          <h2><span class="st-card-icon">🤖</span> AI Tutor & Agent Configuration</h2>
+          <p style="color:var(--st-text-muted); margin-bottom:1.25rem; font-size:0.9375rem; line-height:1.5;">
+            Tarika gives you instant help with notes, PYQs, summaries, and explanations. Bring Your Own Key (BYOK) from supported AI providers to unlock unlimited usage and advanced reasoning models.
+          </p>
+
+          <div class="st-form-row">
+            <label class="st-form-label">Active Plan</label>
+            <div id="aiPlanBadge" style="display:inline-block; font-weight:600; padding:0.35rem 0.85rem; border-radius:10px; background:var(--st-sky-tint); color:var(--st-navy); font-size:0.875rem;">
+              Checking plan...
+            </div>
+          </div>
+
+          <div class="st-form-row">
+            <label for="aiProviderSelect" class="st-form-label">AI Provider Platform</label>
+            <select id="aiProviderSelect" class="st-form-select" onchange="onAiProviderChanged()">
+              <option value="openrouter">OpenRouter (Multi-model & Free Pool)</option>
+              <option value="anthropic">Anthropic Claude (Direct API Key)</option>
+              <option value="gemini">Google Gemini (Direct API Key)</option>
+              <option value="nvidia">NVIDIA NIM (Direct API Key)</option>
+              <option value="openai">OpenAI (Direct API Key)</option>
+              <option value="groq">Groq (Direct API Key · Ultra Fast)</option>
+            </select>
+            <div class="st-form-sublabel">Select your platform provider. We connect directly to the chosen platform.</div>
+          </div>
+
+          <div class="st-form-row">
+            <label for="aiApiKeyInput" class="st-form-label" id="aiKeyLabel">API Key (BYOK)</label>
+            <input type="password" id="aiApiKeyInput" class="st-form-input" placeholder="sk-or-v1-...">
+            <div class="st-form-sublabel" id="aiKeySublabel">Your key is Fernet-encrypted on the server and verified before saving. Never shared.</div>
+          </div>
+
+          <div class="st-form-row">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem; flex-wrap:wrap; gap:0.5rem;">
+              <label for="aiModelSelect" class="st-form-label" style="margin-bottom:0;">Model Selection (Real-Time)</label>
+              <button type="button" class="st-btn st-btn-outline" style="min-height:36px; padding:0.25rem 0.75rem; font-size:0.8125rem;" onclick="refreshLiveModels()">🔄 Fetch Live Models</button>
+            </div>
+            <select id="aiModelSelect" class="st-form-select">
+              <option value="">Loading models...</option>
+            </select>
+            <div class="st-form-sublabel" id="aiModelSublabel">Live models retrieved directly from provider API.</div>
+            
+            <div class="st-banner st-banner-tip" style="margin-top:0.75rem; font-size:0.8125rem; line-height:1.45;">
+              💡 <strong>Credits exhausted?</strong> Switch your model to any option under <strong>🎁 Free Tier / Included</strong> (such as OpenRouter <code>:free</code> models, Groq, or Gemini Flash) to continue chatting without requiring paid credits.
+            </div>
+          </div>
+
+          <div class="st-btn-row">
+            <button type="button" class="st-btn st-btn-primary" id="saveAiBtn" onclick="saveAiSettings()">💾 Save Key & Model</button>
+            <button type="button" class="st-btn st-btn-outline" id="deleteAiBtn" onclick="removeAiKey()" style="color:var(--st-red); border-color:var(--st-red-border);">🗑️ Remove Key</button>
+          </div>
+          <div id="aiSettingStatus" style="margin-top:0.75rem; font-size:0.875rem; font-weight:600;"></div>
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon">📊</span> Recent AI Usage (Last 7 Days)</h2>
+          <div id="aiUsageStats" style="font-size:0.875rem; color:var(--st-text-muted); line-height:1.6;">
+            Loading usage activity...
+          </div>
+        </div>
+      </div>
+
     </div>
   </div>
 </div>
 
-<div id="st-toast"></div>
+<div id="st-toast" role="status" aria-live="polite"></div>
 
 <script>
 // ── Toast helper ──
@@ -498,19 +1402,50 @@ function showStToast(msg, duration = 2500) {
   setTimeout(() => t.classList.remove('show'), duration);
 }
 
-// ── Sidebar navigation ──
+// ── Sidebar navigation & Mobile Pill Centering ──
 (function() {
   const navItems = document.querySelectorAll('#settingsNav .st-nav-item');
   const sections = document.querySelectorAll('.st-section');
+
+  function activateSection(sectionId, updateHash) {
+    if (updateHash === undefined) updateHash = true;
+    navItems.forEach(item => {
+      const isMatch = item.dataset.section === sectionId;
+      item.classList.toggle('active', isMatch);
+      if (isMatch && window.innerWidth < 768) {
+        try {
+          item.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+        } catch(e) {}
+      }
+    });
+    sections.forEach(section => {
+      section.classList.toggle('active', section.id === 'section-' + sectionId);
+    });
+    if (sectionId === 'payout' && typeof loadPayoutSettings === 'function') {
+      loadPayoutSettings();
+    }
+    if (sectionId === 'transactions' && typeof loadTransactionHistory === 'function') {
+      loadTransactionHistory();
+    }
+    if (updateHash && history.replaceState) {
+      try {
+        history.replaceState(null, '', '#' + sectionId);
+      } catch(e) {}
+    }
+  }
+
   navItems.forEach(item => {
     item.addEventListener('click', function() {
       const section = this.dataset.section;
-      navItems.forEach(i => i.classList.remove('active'));
-      sections.forEach(s => s.classList.remove('active'));
-      this.classList.add('active');
-      document.getElementById('section-' + section).classList.add('active');
+      activateSection(section, true);
     });
   });
+
+  // Support direct hash navigation on page load
+  const hash = (window.location.hash || '').replace('#', '');
+  if (hash && document.getElementById('section-' + hash)) {
+    activateSection(hash, false);
+  }
 })();
 
 // ── PWA Install ──
@@ -546,7 +1481,14 @@ function savePrivacySetting(key, value) {
   showStToast('✅ Preference saved');
 }
 function saveTheme(value) {
-  try { localStorage.setItem('abhihub_theme', value); } catch(e) {}
+  try {
+    localStorage.setItem('abhihub_theme', value);
+    var isDark = value === 'dark' || (value === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    document.documentElement.setAttribute('data-theme', isDark ? 'dark' : 'light');
+    if (window.parent && window.parent !== window) {
+      window.parent.postMessage({ type: 'THEME_CHANGE', theme: value }, '*');
+    }
+  } catch(e) {}
   showStToast('✅ Theme preference saved');
 }
 function saveLang(value) {
@@ -577,13 +1519,16 @@ function forgotPassword() {
 // ── Cache size display ──
 (function() {
   if ('caches' in window) {
-    let total = 0;
-    caches.keys().then(keys => {
-      return Promise.all(keys.map(k => caches.matchAll(k))).then(matches => {
-        matches.forEach(m => m.forEach(r => { total += r.headers.get('content-length') || 0; }));
-        document.getElementById('cacheSize').textContent = (total / 1024 / 1024).toFixed(1) + ' MB';
-      });
-    });
+    try {
+      caches.keys().then(keys => {
+        return Promise.all(keys.map(k => caches.open(k).then(c => c.matchAll()))).then(matches => {
+          let total = 0;
+          matches.forEach(m => m.forEach(r => { total += parseInt(r.headers.get('content-length') || '0', 10); }));
+          const el = document.getElementById('cacheSize');
+          if (el) el.textContent = (total / 1024 / 1024).toFixed(1) + ' MB';
+        });
+      }).catch(() => {});
+    } catch(e) {}
   }
 })();
 
@@ -692,6 +1637,614 @@ function sendTestNotification() {
       }
     });
 })();
+// ── AI Settings Handlers & Real-time Models ──
+const PROVIDER_PLACEHOLDERS = {
+  openrouter: 'sk-or-v1-...',
+  anthropic:  'sk-ant-api03-...',
+  gemini:     'AIzaSy...',
+  nvidia:     'nvapi-...',
+  openai:     'sk-proj-...',
+  groq:       'gsk_...',
+  ollama:     'http://localhost:11434 (Optional)',
+  webllm:     'In-Browser WebGPU (No API key needed)'
+};
+
+function onAiProviderChanged() {
+  const pSelect = document.getElementById('aiProviderSelect');
+  const provider = pSelect ? pSelect.value : 'openrouter';
+  const kInput = document.getElementById('aiApiKeyInput');
+  const kLabel = document.getElementById('aiKeyLabel');
+  const kSublabel = document.getElementById('aiKeySublabel');
+  const kRow = document.getElementById('aiKeyRow');
+  const saveBtn = document.getElementById('saveAiBtn');
+
+  if (kInput) {
+    kInput.placeholder = PROVIDER_PLACEHOLDERS[provider] || 'Enter API Key...';
+  }
+  if (provider === 'webllm') {
+    if (kRow) kRow.style.display = 'none';
+    if (saveBtn) saveBtn.textContent = '⚡ Activate On-Device Model';
+  } else if (provider === 'ollama') {
+    if (kRow) kRow.style.display = '';
+    if (saveBtn) saveBtn.textContent = '💾 Save Local Endpoint';
+    if (kLabel) kLabel.textContent = 'Local Ollama Host URL (Optional)';
+    if (kSublabel) kSublabel.textContent = 'Default: http://localhost:11434. No API key required.';
+  } else {
+    if (kRow) kRow.style.display = '';
+    if (saveBtn) saveBtn.textContent = '💾 Save Key & Model';
+    if (kLabel) kLabel.textContent = 'API Key (BYOK)';
+    if (kSublabel) kSublabel.textContent = 'Your key is Fernet-encrypted on the server and verified before saving. Never shared.';
+  }
+  refreshLiveModels();
+}
+
+function refreshLiveModels() {
+  const pSelect = document.getElementById('aiProviderSelect');
+  const provider = pSelect ? pSelect.value : 'openrouter';
+  const kInput = document.getElementById('aiApiKeyInput');
+  const key = (kInput ? kInput.value : '').trim();
+  const mSelect = document.getElementById('aiModelSelect');
+  const mSublabel = document.getElementById('aiModelSublabel');
+
+  if (mSelect) mSelect.innerHTML = '<option value="">Fetching realtime models...</option>';
+  if (mSublabel) mSublabel.textContent = `Connecting to ${provider.toUpperCase()} live models API...`;
+
+  const url = `/api/ai/models?provider=${encodeURIComponent(provider)}&api_key=${encodeURIComponent(key)}`;
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      if (mSelect && data.models && data.models.length > 0) {
+        mSelect.innerHTML = '';
+        const savedModel = localStorage.getItem('ai_preferred_model');
+
+        const freeGroup = document.createElement('optgroup');
+        freeGroup.label = '🎁 Free Tier / Included (Use when credits exhaust)';
+
+        const paidGroup = document.createElement('optgroup');
+        paidGroup.label = '💎 Premium / Paid Tier';
+
+        data.models.forEach(m => {
+          const opt = document.createElement('option');
+          opt.value = m.id;
+          opt.textContent = (m.is_free ? '🎁 ' : '⚡ ') + (m.name || m.id);
+          if (m.id === savedModel) opt.selected = true;
+
+          if (m.is_free) {
+            freeGroup.appendChild(opt);
+          } else {
+            paidGroup.appendChild(opt);
+          }
+        });
+
+        if (freeGroup.children.length > 0) mSelect.appendChild(freeGroup);
+        if (paidGroup.children.length > 0) mSelect.appendChild(paidGroup);
+
+        const freeCount = freeGroup.children.length;
+        if (mSublabel) {
+          mSublabel.innerHTML = `✅ <strong>${data.models.length} models</strong> retrieved (${freeCount} free-tier models ready if credits run out).`;
+        }
+      } else if (mSelect) {
+        mSelect.innerHTML = '<option value="">No models returned</option>';
+      }
+    })
+    .catch(() => {
+      if (mSublabel) mSublabel.textContent = 'Using cached standard models for ' + provider;
+    });
+}
+
+function loadAiSettings() {
+  const savedProvider = localStorage.getItem('ai_provider') || 'openrouter';
+  const pSelect = document.getElementById('aiProviderSelect');
+  if (pSelect) {
+    pSelect.value = savedProvider;
+    onAiProviderChanged();
+  }
+
+  fetch('/api/ai/usage')
+    .then(r => r.json())
+    .then(data => {
+      const badge = document.getElementById('aiPlanBadge');
+      const stats = document.getElementById('aiUsageStats');
+      if (data && data.success) {
+        const rows = data.rows || [];
+        const total = data.total_cost_usd || 0;
+        if (badge) {
+          badge.textContent = `Active · 7-day spend: $${total.toFixed(4)}`;
+        }
+        if (stats) {
+          if (rows.length === 0) {
+            stats.innerHTML = 'No AI queries in the last 7 days yet. Start chatting with the AI assistant anytime!';
+          } else {
+            stats.innerHTML = `<strong>${rows.length} requests logged</strong> (Total Cost: $${total.toFixed(4)})<br>` +
+              rows.slice(0, 5).map(r => `• ${new Date(r.created_at).toLocaleDateString()} — ${r.model_used || 'AI'} (${r.tokens_in || 0}+${r.tokens_out || 0} tokens)`).join('<br>');
+          }
+        }
+      }
+    }).catch(() => {
+      const badge = document.getElementById('aiPlanBadge');
+      if (badge) badge.textContent = 'Free Tier (Standard)';
+    });
+}
+
+function saveAiSettings() {
+  const pSelect = document.getElementById('aiProviderSelect');
+  const provider = pSelect ? pSelect.value : 'openrouter';
+  const keyInput = document.getElementById('aiApiKeyInput');
+  const modelSelect = document.getElementById('aiModelSelect');
+  const statusEl = document.getElementById('aiSettingStatus');
+  const btn = document.getElementById('saveAiBtn');
+
+  const model = modelSelect ? modelSelect.value : '';
+
+  if (provider === 'webllm') {
+    localStorage.setItem('ai_provider', 'webllm');
+    if (model) localStorage.setItem('ai_preferred_model', model);
+    showStToast('✅ On-Device WebLLM activated! No API key needed.');
+    if (statusEl) {
+      statusEl.textContent = '✅ On-Device WebLLM active (100% in-browser WebGPU • No API key required).';
+      statusEl.style.color = '#16a34a';
+    }
+    fetch('/api/ai/key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: 'browser_webgpu', provider: 'webllm' })
+    }).catch(() => {});
+    return;
+  }
+
+  let key = (keyInput ? keyInput.value : '').trim();
+  if (provider === 'ollama' && !key) {
+    key = 'http://localhost:11434';
+  }
+
+  localStorage.setItem('ai_provider', provider);
+  if (model) {
+    localStorage.setItem('ai_preferred_model', model);
+  }
+
+  if (key) {
+    if (btn) { btn.disabled = true; btn.textContent = 'Validating key...'; }
+    if (statusEl) { statusEl.textContent = `Validating key with ${provider}...`; statusEl.style.color = 'var(--text-secondary)'; }
+
+    fetch('/api/ai/key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: key, provider: provider })
+    })
+    .then(r => r.json().then(data => ({ ok: r.ok, data })))
+    .then(res => {
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save Key & Model'; }
+      if (res.ok && res.data.success) {
+        showStToast(`✅ ${provider.toUpperCase()} Key verified & activated!`);
+        if (statusEl) { statusEl.textContent = `✅ Key verified & encrypted. ${provider.toUpperCase()} BYOK plan active.`; statusEl.style.color = '#16a34a'; }
+        if (keyInput && provider !== 'ollama') keyInput.value = '';
+        refreshLiveModels();
+        loadAiSettings();
+      } else {
+        showStToast('❌ ' + (res.data.message || 'Key validation failed'));
+        if (statusEl) { statusEl.textContent = '❌ ' + (res.data.message || 'Validation failed'); statusEl.style.color = '#dc2626'; }
+      }
+    })
+    .catch(err => {
+      if (btn) { btn.disabled = false; btn.textContent = '💾 Save Key & Model'; }
+      showStToast('❌ Network error saving key');
+    });
+  } else {
+    showStToast('✅ Provider & model preferences saved');
+    if (statusEl) { statusEl.textContent = 'Preferences updated.'; statusEl.style.color = '#16a34a'; }
+  }
+}
+
+function removeAiKey() {
+  if (!confirm('Remove your custom API key and revert to the free tier?')) return;
+  fetch('/api/ai/key', { method: 'DELETE' })
+    .then(r => r.json())
+    .then(data => {
+      if (data.success) {
+        showStToast('✅ API key removed. Reverted to free tier.');
+        loadAiSettings();
+      } else {
+        showStToast('⚠️ ' + (data.message || 'Error removing key'));
+      }
+    }).catch(() => showStToast('❌ Error removing key'));
+}
+
+function handleAccountFormSubmit(e) {
+  e.preventDefault();
+  const form = document.getElementById('settingsAccountForm');
+  const btn = document.getElementById('stSaveAccountBtn');
+  const statusEl = document.getElementById('stAccountSaveStatus');
+  if (!form) return;
+
+  if (btn) { btn.disabled = true; btn.textContent = 'Saving details...'; }
+  if (statusEl) { statusEl.textContent = 'Updating account...'; statusEl.style.color = 'var(--text-secondary)'; }
+
+  const formData = new FormData(form);
+
+  fetch('/account/update', {
+    method: 'POST',
+    body: formData
+  })
+  .then(response => {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Account Details'; }
+    if (response.ok || response.redirected) {
+      showStToast('🎉 Account details updated successfully!');
+      if (statusEl) { statusEl.textContent = '✅ Saved successfully!'; statusEl.style.color = '#16a34a'; setTimeout(() => { statusEl.textContent = ''; }, 3000); }
+    } else {
+      showStToast('⚠️ Failed to update account. Please try again.');
+      if (statusEl) { statusEl.textContent = '❌ Update failed.'; statusEl.style.color = '#ef4444'; }
+    }
+  })
+  .catch(err => {
+    if (btn) { btn.disabled = false; btn.textContent = '💾 Save Account Details'; }
+    showStToast('❌ Network error updating account.');
+    if (statusEl) { statusEl.textContent = '❌ Network error.'; statusEl.style.color = '#ef4444'; }
+  });
+}
+
+function filterSettingsBranches() {
+  const degSelect = document.getElementById('st_degree');
+  const branchSelect = document.getElementById('st_branch_id');
+  if (!degSelect || !branchSelect) return;
+
+  const deg = degSelect.value.toUpperCase();
+  Array.from(branchSelect.options).forEach(opt => {
+    if (!opt.value) return;
+    const txt = opt.textContent.toUpperCase();
+    if (!deg) {
+      opt.style.display = '';
+      return;
+    }
+    if (deg.includes('MBA') || deg.includes('BBA')) {
+      opt.style.display = (txt.includes('MBA') || txt.includes('MANAGEMENT') || txt.includes('BUSINESS') || txt.includes('FINANCE') || txt.includes('MARKETING')) ? '' : 'none';
+    } else if (deg.includes('MCA') || deg.includes('BCA')) {
+      opt.style.display = (txt.includes('COMPUTER') || txt.includes('CS') || txt.includes('IT') || txt.includes('APPLICATION') || txt.includes('MCA') || txt.includes('BCA')) ? '' : 'none';
+    } else if (deg.includes('TECH')) {
+      opt.style.display = (txt.includes('TECH') || txt.includes('ENGINEERING') || txt.includes('CSE') || txt.includes('ECE') || txt.includes('ME') || txt.includes('EE') || txt.includes('CIVIL') || txt.includes('AI') || txt.includes('DS') || !txt.includes('MANAGEMENT')) ? '' : 'none';
+    } else {
+      opt.style.display = '';
+    }
+  });
+}
+
+function autoCalculateSettingsPursuingYear() {
+  const currentYear = new Date().getFullYear();
+  const yojInput = document.getElementById('st_year_of_joining');
+  const degSelect = document.getElementById('st_degree');
+  const pySelect = document.getElementById('st_pursuing_year');
+  if (!yojInput || !pySelect) return;
+
+  const yoj = parseInt(yojInput.value);
+  const deg = degSelect ? degSelect.value.toUpperCase() : '';
+  if (!yoj || yoj > currentYear || yoj < 2000) return;
+
+  let maxYears = 4;
+  if (['MBA', 'M.TECH', 'M.SC'].includes(deg)) maxYears = 2;
+  else if (['MCA', 'BCA', 'BBA', 'B.SC', 'DIPLOMA'].includes(deg)) maxYears = 3;
+  else if (['B.TECH'].includes(deg)) maxYears = 4;
+
+  const calcYear = (currentYear - yoj) + 1;
+  if (calcYear >= 1 && calcYear <= maxYears) {
+    pySelect.value = String(calcYear);
+  } else if (calcYear > maxYears) {
+    pySelect.value = String(maxYears);
+  } else if (calcYear < 1) {
+    pySelect.value = '1';
+  }
+}
+
+function toggleSettingsStudentFields() {
+  const studentRadio = document.getElementById('st_role_student');
+  const isStudent = studentRadio ? studentRadio.checked : true;
+  const pyGroup = document.getElementById('st_pursuing_year_group');
+  const regGroup = document.getElementById('st_registration_number_group');
+  const pyInput = document.getElementById('st_pursuing_year');
+
+  if (isStudent) {
+    if (pyGroup) { pyGroup.style.display = ''; }
+    if (regGroup) { regGroup.style.display = ''; }
+    if (pyInput) { pyInput.disabled = false; pyInput.setAttribute('required', ''); }
+  } else {
+    if (pyGroup) { pyGroup.style.display = 'none'; }
+    if (regGroup) { regGroup.style.display = 'none'; }
+    if (pyInput) { pyInput.disabled = true; pyInput.removeAttribute('required'); }
+  }
+}
+
+// ── Payouts & Earnings Management ──
+let _payoutLoaded = false;
+async function loadPayoutSettings(force = false) {
+  if (_payoutLoaded && !force) return;
+  _payoutLoaded = true;
+
+  try {
+    // 1. Check access level & eligibility
+    const accessRes = await fetch('/api/my-access');
+    const accessData = await accessRes.json();
+    const level = (accessData.level || 'explorer').toLowerCase();
+    const isEligible = ['contributor', 'power_contributor', 'community_leader'].includes(level);
+
+    const badge = document.getElementById('stPayoutEligibilityBadge');
+    const msg = document.getElementById('stPayoutEligibilityMsg');
+    const metricsGrid = document.getElementById('stCreatorMetricsGrid');
+    const boostBox = document.getElementById('stBoostRankBox');
+
+    if (badge) {
+      if (isEligible) {
+        badge.textContent = 'Eligible (' + (accessData.level || 'Contributor').replace('_', ' ').toUpperCase() + ')';
+        badge.style.background = 'var(--st-success-tint)';
+        badge.style.color = 'var(--st-success)';
+        if (msg) msg.textContent = '🎉 You have Contributor tier privileges enabled. You can monetize your study documents and earn directly.';
+        if (metricsGrid) metricsGrid.style.display = 'grid';
+        if (boostBox) boostBox.style.display = 'none';
+
+        try {
+          const earnRes = await fetch('/api/creator/earnings');
+          const earnData = await earnRes.json();
+          if (earnData.success) {
+            const pnc = document.getElementById('stPaidNotesCount');
+            const stc = document.getElementById('stTotalSalesCount');
+            const tea = document.getElementById('stTotalEarningsAmt');
+            if (pnc) pnc.textContent = earnData.paid_notes_count || 0;
+            if (stc) stc.textContent = earnData.total_sales || 0;
+            if (tea) tea.textContent = '₹' + parseFloat(earnData.total_earnings || 0).toFixed(2);
+          }
+        } catch(e) {}
+      } else {
+        badge.textContent = 'Locked (' + level.toUpperCase() + ')';
+        badge.style.background = 'rgba(239, 68, 68, 0.12)';
+        badge.style.color = '#dc2626';
+        if (msg) msg.textContent = '🔒 Notes monetization is locked for ' + level.toUpperCase() + ' rank. Reach Contributor rank to unlock notes selling & payouts.';
+        if (metricsGrid) metricsGrid.style.display = 'none';
+        if (boostBox) boostBox.style.display = 'block';
+
+        if (accessData.progress) {
+          const pr = accessData.progress;
+          const curScore = pr.score || 0;
+          const targetScore = pr.next_threshold || 100;
+          const pct = Math.min(Math.max(Math.round((pr.progress ? pr.progress * 100 : (curScore / targetScore) * 100)), 4), 100);
+
+          const curTierEl = document.getElementById('stCurrentTierText');
+          const curScoreEl = document.getElementById('stCurrentScoreText');
+          const targetScoreEl = document.getElementById('stTargetScoreText');
+          const barEl = document.getElementById('stRankProgressBar');
+          if (curTierEl) curTierEl.textContent = (level || 'explorer').toUpperCase();
+          if (curScoreEl) curScoreEl.textContent = curScore;
+          if (targetScoreEl) targetScoreEl.textContent = targetScore;
+          if (barEl) barEl.style.width = pct + '%';
+        }
+      }
+    }
+
+    // 2. Load Creator Wallet details
+    const walletRes = await fetch('/api/creator/wallet');
+    const walletData = await walletRes.json();
+    if (walletData.success && walletData.wallet) {
+      const w = walletData.wallet;
+      const pend = document.getElementById('stWalletPending');
+      const withdr = document.getElementById('stWalletWithdrawable');
+      const totw = document.getElementById('stWalletTotalWithdrawn');
+      if (pend) pend.textContent = '₹' + (w.pending_balance || 0).toFixed(2);
+      if (withdr) withdr.textContent = '₹' + (w.withdrawable_balance || 0).toFixed(2);
+      if (totw) totw.textContent = '₹' + (w.total_withdrawn || 0).toFixed(2);
+
+      const form = document.getElementById('stWithdrawalForm');
+      const disabledNote = document.getElementById('stWithdrawDisabledNote');
+      const amtInput = document.getElementById('stWithdrawAmt');
+
+      if (w.can_withdraw) {
+        if (form) form.style.display = 'block';
+        if (disabledNote) disabledNote.style.display = 'none';
+        if (amtInput) {
+          amtInput.max = w.withdrawable_balance;
+          amtInput.value = Math.min(w.withdrawable_balance, 500);
+        }
+      } else {
+        if (form) form.style.display = 'none';
+        if (disabledNote) {
+          disabledNote.style.display = 'block';
+          disabledNote.textContent = '🔒 Minimum ₹100 withdrawable balance required (Available: ₹' + (w.withdrawable_balance || 0).toFixed(2) + ').';
+        }
+      }
+
+      // Render Payouts History
+      const tbody = document.getElementById('stPayoutHistoryTbody');
+      if (tbody) {
+        const payouts = walletData.payouts || [];
+        if (payouts.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--st-text-muted);">No payout requests yet.</td></tr>';
+        } else {
+          tbody.innerHTML = payouts.map(p => {
+            const date = p.created_at ? new Date(p.created_at).toLocaleDateString('en-IN', {month:'short', day:'numeric', year:'numeric'}) : '-';
+            let statusColor = '#d97706';
+            if (p.status === 'completed') statusColor = 'var(--st-success)';
+            if (p.status === 'rejected') statusColor = '#dc2626';
+            return `
+              <tr style="border-bottom:1px solid var(--st-border);">
+                <td style="padding:0.6rem 0.5rem;">${date}</td>
+                <td style="padding:0.6rem 0.5rem;font-weight:700;color:var(--st-navy);">₹${parseFloat(p.amount || 0).toFixed(2)}</td>
+                <td style="padding:0.6rem 0.5rem;text-transform:uppercase;font-size:0.75rem;"><span style="background:var(--st-surface-hover);padding:2px 8px;border-radius:6px;border:1px solid var(--st-border);">${p.payout_method || 'UPI'}</span></td>
+                <td style="padding:0.6rem 0.5rem;font-weight:700;color:${statusColor};text-transform:capitalize;">${p.status || 'pending'}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[SETTINGS] Payout load error:', err);
+  }
+}
+
+async function copySettingsReferralLink() {
+  const btn = document.getElementById('stCopyRefBtn');
+  try {
+    const res = await fetch('/api/referral/my-code');
+    const data = await res.json();
+    const code = data.referral_code || data.code || '';
+    const shareUrl = window.location.origin + '/signup?ref=' + encodeURIComponent(code);
+    await navigator.clipboard.writeText(shareUrl);
+    if (btn) {
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => { btn.textContent = 'Copy Invite Link'; }, 2000);
+    }
+  } catch (err) {
+    if (btn) btn.textContent = 'Failed to copy';
+  }
+}
+
+function togglePayoutMethodPlaceholder() {
+  const method = document.getElementById('stWithdrawMethod').value;
+  const label = document.getElementById('stWithdrawDetailsLabel');
+  const input = document.getElementById('stWithdrawDetails');
+  if (method === 'upi') {
+    if (label) label.textContent = 'UPI ID';
+    if (input) input.placeholder = 'e.g. yourname@okhdfcbank';
+  } else {
+    if (label) label.textContent = 'Bank Account & IFSC';
+    if (input) input.placeholder = 'e.g. A/C: 1234567890, IFSC: HDFC0000123';
+  }
+}
+
+async function handleWithdrawalSubmit(e) {
+  e.preventDefault();
+  const btn = document.getElementById('stWithdrawBtn');
+  const fb = document.getElementById('stWithdrawFeedback');
+  const amt = parseFloat(document.getElementById('stWithdrawAmt').value);
+  const method = document.getElementById('stWithdrawMethod').value;
+  const details = (document.getElementById('stWithdrawDetails').value || '').trim();
+
+  if (!details) {
+    if (fb) {
+      fb.style.display = 'block';
+      fb.style.color = '#dc2626';
+      fb.textContent = 'Please enter payout account or UPI ID details.';
+    }
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerText = 'Submitting...';
+
+  try {
+    const res = await fetch('/api/creator/withdraw', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        amount: amt,
+        payout_method: method,
+        payout_details: method === 'upi' ? {upi_id: details} : {account_info: details}
+      })
+    });
+    const data = await res.json();
+    if (fb) fb.style.display = 'block';
+    if (data.success) {
+      if (fb) {
+        fb.style.color = 'var(--st-success)';
+        fb.textContent = '🎉 Withdrawal request submitted! Admin will review and process.';
+      }
+      setTimeout(() => loadPayoutSettings(true), 1200);
+    } else {
+      if (fb) {
+        fb.style.color = '#dc2626';
+        fb.textContent = data.error || 'Failed to submit withdrawal request.';
+      }
+    }
+  } catch (err) {
+    if (fb) {
+      fb.style.display = 'block';
+      fb.style.color = '#dc2626';
+      fb.textContent = 'Network error. Please try again.';
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerText = 'Submit Payout Request';
+  }
+}
+
+// ── Payment & Transaction History Management ──
+let _txHistoryLoaded = false;
+async function loadTransactionHistory(force = false) {
+  if (_txHistoryLoaded && !force) return;
+  _txHistoryLoaded = true;
+
+  const tbody = document.getElementById('stTransactionsTbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="padding:1.5rem;text-align:center;color:var(--st-text-muted);">⏳ Fetching your PhonePe transactions...</td></tr>';
+
+  try {
+    const res = await fetch('/api/user/transactions');
+    const data = await res.json();
+    const txs = (data && data.transactions) || [];
+
+    const totalEl = document.getElementById('stTxTotalOrders');
+    const successEl = document.getElementById('stTxSuccessOrders');
+    if (totalEl) totalEl.textContent = txs.length;
+    if (successEl) successEl.textContent = txs.filter(t => t.status === 'completed' || t.status === 'verified').length;
+
+    if (!txs.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:2.5rem 1rem;text-align:center;color:var(--st-text-muted);">' +
+        '<div style="font-size:2rem;margin-bottom:0.5rem;">🧾</div>' +
+        '<div style="font-weight:700;color:var(--st-text-main);font-size:0.95rem;margin-bottom:0.35rem;">No payment transactions found</div>' +
+        '<div style="font-size:0.8rem;max-width:360px;margin:0 auto;line-height:1.4;">When you unlock paid notes or contribute to AbhiHub via PhonePe, all verified receipts will be recorded here.</div>' +
+        '</td></tr>';
+      return;
+    }
+
+    let html = '';
+    txs.forEach(t => {
+      const isSuccess = (t.status === 'completed' || t.status === 'verified');
+      const statusBadge = isSuccess
+        ? '<span style="background:#dcfce7;color:#15803d;padding:0.2rem 0.6rem;border-radius:6px;font-size:0.75rem;font-weight:700;">✓ PAID</span>'
+        : '<span style="background:#fee2e2;color:#991b1b;padding:0.2rem 0.6rem;border-radius:6px;font-size:0.75rem;font-weight:700;">FAILED</span>';
+
+      const itemName = t.doc_title || (t.doc_id ? ('Document #' + t.doc_id.slice(0, 8)) : 'Community Support');
+      const dateStr = t.date ? new Date(t.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent';
+
+      html += '<tr style="border-bottom:1px solid var(--st-border);">';
+      html += '<td style="padding:0.75rem 0.5rem;">';
+      html += '<div style="font-family:monospace;font-weight:700;color:var(--st-text-main);font-size:0.82rem;">#' + (t.order_id || '') + '</div>';
+      html += '<div style="font-size:0.72rem;color:var(--st-text-muted);margin-top:0.15rem;">' + dateStr + '</div>';
+      html += '</td>';
+      html += '<td style="padding:0.75rem 0.5rem;">';
+      html += '<div style="font-weight:600;color:var(--st-text-main);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + itemName + '</div>';
+      html += '<div style="font-size:0.72rem;color:#7c3aed;font-weight:600;">PhonePe Merchant</div>';
+      html += '</td>';
+      html += '<td style="padding:0.75rem 0.5rem;font-weight:800;color:var(--st-text-main);">₹' + (parseFloat(t.amount || 0).toFixed(2)) + '</td>';
+      html += '<td style="padding:0.75rem 0.5rem;">' + statusBadge + '</td>';
+      html += '<td style="padding:0.75rem 0.5rem;text-align:right;">';
+      html += '<div style="display:inline-flex;gap:0.4rem;align-items:center;">';
+      if (t.receipt_url) {
+        html += '<a href="' + t.receipt_url + '" class="st-btn st-btn-outline" style="padding:0.25rem 0.65rem;font-size:0.75rem;min-height:28px;">Receipt</a>';
+      }
+      if (t.doc_id && isSuccess) {
+        html += '<a href="/resource/' + t.doc_id + '" class="st-btn st-btn-primary" style="padding:0.25rem 0.65rem;font-size:0.75rem;min-height:28px;">Open Doc</a>';
+      }
+      html += '</div>';
+      html += '</td>';
+      html += '</tr>';
+    });
+
+    tbody.innerHTML = html;
+    if (force && typeof showStToast === 'function') {
+      showStToast('✅ Payment history refreshed');
+    }
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:1.5rem;text-align:center;color:#ef4444;">Failed to load transactions. Please retry.</td></tr>';
+  }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  loadAiSettings();
+  filterSettingsBranches();
+  toggleSettingsStudentFields();
+  if (window.location.hash === '#payout') {
+    loadPayoutSettings();
+  }
+  if (window.location.hash === '#transactions') {
+    loadTransactionHistory();
+  }
+});
 </script>
 {% endblock %}
 

@@ -257,7 +257,7 @@ body { background-color: var(--c-bg); }
 <div class="college-section">
   <div class="section-header">
     <h2 class="section-title">Latest Uploads</h2>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-outline" style="font-weight:700; color:var(--c-primary);">Browse All →</a>
+    <a href="{{ url_for('app_pages.dashboard') }}" class="btn btn-outline" style="font-weight:700; color:var(--c-primary);">Browse All →</a>
   </div>
   
   <div class="file-grid">
@@ -265,7 +265,7 @@ body { background-color: var(--c-bg); }
       {% set cat = (file.get('document_category', '')|string|lower) %}
       {% set is_pyq = cat in ['pyq', 'papers', 'paper'] %}
       {% set is_practical = cat in ['practical', 'practicals'] %}
-      <a href="{{ url_for('resource_landing', slug='legacy-redirect-' ~ file.get('id', '')) }}" class="pcard {% if is_practical %}practical-card{% elif not is_pyq %}notes-card{% endif %}">
+      <a href="{{ url_for('library.resource_landing', slug='legacy-redirect-' ~ file.get('id', '')) }}" class="pcard {% if is_practical %}practical-card{% elif not is_pyq %}notes-card{% endif %}">
         {% if is_pyq %}
           <span class="pcard-badge">📄 PYQ</span>
         {% elif is_practical %}
@@ -296,7 +296,7 @@ body { background-color: var(--c-bg); }
 <div style="background: linear-gradient(135deg, #f8fafc 0%, #eff6ff 100%); padding: 5rem 1.5rem; text-align: center; margin-top: 4rem;">
   <h2 style="font-size: 2rem; font-weight: 800; margin-bottom: 1rem;">Are you a student at {{ college.abbreviation or 'this college' }}?</h2>
   <p style="color: #64748b; font-size: 1.1rem; max-width: 600px; margin: 0 auto 2rem;">Help your juniors by uploading your old notes and exam papers. Earn reputation points and rank up on the leaderboard!</p>
-  <a href="{{ url_for('upload') }}" style="display:inline-block; padding: 1rem 2rem; background: var(--c-primary); color: white; border-radius: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 20px rgba(37,99,235,0.2);">📤 Upload a File Now</a>
+  <a href="{{ url_for('app_pages.upload') }}" style="display:inline-block; padding: 1rem 2rem; background: var(--c-primary); color: white; border-radius: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 20px rgba(37,99,235,0.2);">📤 Upload a File Now</a>
 </div>
 
 {% endblock %}

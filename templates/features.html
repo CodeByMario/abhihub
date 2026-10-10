@@ -120,8 +120,8 @@ body { background: #f8fafc; font-family: 'Kanit',sans-serif; margin:0; overflow-
   </h1>
   <p class="fh-sub">AbhiHub combines 3,000+ verified previous year question papers, community notes sharing, and Tarika — your 24/7 personalized AI assistant for effortless exam preparation.</p>
   <div class="fh-cta">
-    <a href="{{ url_for('ai_hub') }}" class="fh-btn fh-btn--white">Try Tarika AI Free</a>
-    <a href="{{ url_for('signup') }}" class="fh-btn fh-btn--ghost">Join Platform</a>
+    <a href="{{ url_for('app_pages.chat_page') }}" class="fh-btn fh-btn--white">Try Tarika AI Free</a>
+    <a href="{{ url_for('auth.signup') }}" class="fh-btn fh-btn--ghost">Join Platform</a>
   </div>
   <div class="scroll-hint">
     <span>Scroll to explore all features</span>
@@ -392,8 +392,8 @@ body { background: #f8fafc; font-family: 'Kanit',sans-serif; margin:0; overflow-
   <h2>Ready to study smarter?</h2>
   <p>Join thousands of engineering students already using AbhiHub every day.</p>
   <div class="cta-btns">
-    <a href="{{ url_for('signup') }}" class="cta-btn cta-btn--main">🚀 Get Started Free</a>
-    <a href="{{ url_for('login') }}" class="cta-btn cta-btn--sec">Sign In</a>
+    <a href="{{ url_for('auth.signup') }}" class="cta-btn cta-btn--main">🚀 Get Started Free</a>
+    <a href="{{ url_for('auth.login') }}" class="cta-btn cta-btn--sec">Sign In</a>
   </div>
 </div>
 

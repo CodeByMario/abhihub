@@ -104,20 +104,26 @@
                   </div>
 
                   <div class="meta-field">
-                    <label>
-                      College *
-                      <span class="field-autofill-pill" data-field="college" style="display:none;">✓ saved</span>
+                    <label style="display:flex; justify-content:space-between; align-items:center;">
+                      <span>College *</span>
+                      <span style="display:flex; align-items:center; gap:6px;">
+                        <span class="field-autofill-pill" data-field="college" style="display:none;">✓ saved</span>
+                        <button type="button" class="btn-add-new-entity" data-entity="college" style="background:none; border:none; color:#2563eb; font-size:0.75rem; font-weight:600; cursor:pointer; padding:0;" title="Add new college">+ Add New</button>
+                      </span>
                     </label>
                     <select name="college_id" class="abhihub-select college-select" data-entity="college" required>
                       <option value="">Select College...</option>
                     </select>
                   </div>
                   <div class="meta-field">
-                    <label>
-                      Department *
-                      <span class="field-autofill-pill" data-field="branch" style="display:none;">✓ saved</span>
+                    <label style="display:flex; justify-content:space-between; align-items:center;">
+                      <span>Department *</span>
+                      <span style="display:flex; align-items:center; gap:6px;">
+                        <span class="field-autofill-pill" data-field="branch" style="display:none;">✓ saved</span>
+                        <button type="button" class="btn-add-new-entity" data-entity="branch" style="background:none; border:none; color:#2563eb; font-size:0.75rem; font-weight:600; cursor:pointer; padding:0;" title="Add new department">+ Add New</button>
+                      </span>
                     </label>
-                    <select name="branch_id" class="abhihub-select branch-select" data-entity="branch" required>
+                    <select name="branch_id" class="abhihub-select branch-select" data-entity="branch" data-parent-class="college-select" required>
                       <option value="">Select Department...</option>
                     </select>
                   </div>
@@ -142,7 +148,7 @@
                   </div>
                   <div class="meta-field">
                     <label>Semester</label>
-                    <select name="semester" class="abhihub-select semester-select" data-entity="semester">
+                    <select name="semester" class="abhihub-select semester-select" data-entity="semester" data-parent-class="branch-select">
                       <option value="">Select Semester...</option>
                       <option value="1">Semester 1</option>
                       <option value="2">Semester 2</option>
@@ -155,11 +161,14 @@
                     </select>
                   </div>
                   <div class="meta-field">
-                    <label>
-                      Subject *
-                      <span class="field-autofill-pill field-ai-pill" data-field="subject" style="display:none;">✨ Suggested</span>
+                    <label style="display:flex; justify-content:space-between; align-items:center;">
+                      <span>Subject *</span>
+                      <span style="display:flex; align-items:center; gap:6px;">
+                        <span class="field-autofill-pill field-ai-pill" data-field="subject" style="display:none;">✨ Suggested</span>
+                        <button type="button" class="btn-add-new-entity" data-entity="subject" style="background:none; border:none; color:#2563eb; font-size:0.75rem; font-weight:600; cursor:pointer; padding:0;" title="Add new subject">+ Add New</button>
+                      </span>
                     </label>
-                    <select class="abhihub-select subject-select" data-entity="subject" required>
+                    <select name="subject_id" class="abhihub-select subject-select" data-entity="subject" data-parent-class="semester-select" required>
                       <option value="">Search or select subject...</option>
                     </select>
                   </div>
@@ -229,6 +238,85 @@
                     <small style="color:#64748b;">Comma-separated tags for this question bank</small>
                   </div>
 
+                  <!-- ── 4. Document Access & Monetization ── -->
+                  <div class="meta-section-label" style="margin-top: 1rem; border-top: 1px dashed #e2e8f0; padding-top: 0.75rem;">
+                    <span class="meta-section-icon">💎</span> 4. Access &amp; Pricing
+                  </div>
+
+                  <div class="meta-field pricing-control-section" style="margin-top:0.4rem; padding:0.85rem; border:1.5px solid #e2e8f0; border-radius:12px; background:#f8fafc;">
+                    <label style="display:block; font-size:0.78rem; font-weight:700; color:#1e293b; margin-bottom:0.45rem;">
+                      Document Access Option *
+                    </label>
+
+                    <!-- Segmented Buttons -->
+                    <div class="pricing-toggle-group" style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.5rem;">
+                      <button type="button" class="access-choice-btn access-free-btn active" data-action="setAccessType" data-type="free"
+                              style="padding:0.6rem 0.75rem; border-radius:10px; border:1.5px solid #10b981; background:#ecfdf5; color:#065f46; font-weight:700; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.35rem; transition:all 0.15s;">
+                        <span>🟢 Free Access</span>
+                      </button>
+
+                      <button type="button" class="access-choice-btn access-paid-btn" data-action="setAccessType" data-type="paid"
+                              style="padding:0.6rem 0.75rem; border-radius:10px; border:1.5px solid #cbd5e1; background:#ffffff; color:#64748b; font-weight:700; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.35rem; transition:all 0.15s;">
+                        <span class="paid-btn-label">🔒 Paid (Locked)</span>
+                      </button>
+                    </div>
+
+                    <!-- Ineligibility Notice (Visible if not eligible) -->
+                    <div class="ineligibility-notice" style="display:none; padding:0.6rem 0.75rem; background:#fffbeb; border:1px solid #fef3c7; border-radius:8px; font-size:0.76rem; color:#92400e; line-height:1.45; margin-bottom:0.5rem;">
+                      <span>🔒 <strong>Monetization Locked:</strong> Creator pricing requires <strong>Contributor Rank</strong> (Score 30+). Share helpful notes to level up! <a href="/earnings" target="_blank" style="color:#b45309; font-weight:700; text-decoration:underline;">View Earnings &amp; Eligibility →</a></span>
+                    </div>
+
+                    <!-- Paid Details Panel (Revealed when Paid is selected) -->
+                    <div class="paid-details-panel" style="display:none; padding-top:0.65rem; border-top:1px dashed #cbd5e1;">
+                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
+                        <label style="font-size:0.78rem; font-weight:700; color:#1e293b;">Set Unlock Price (₹) *</label>
+                        <span class="earnings-estimate-badge" style="font-size:0.72rem; color:#166534; font-weight:700; background:#dcfce7; padding:2px 7px; border-radius:6px; border:1px solid #bbf7d0;">
+                          💰 You keep 80% (₹23.20)
+                        </span>
+                      </div>
+
+                      <div style="position:relative; margin-bottom:0.5rem;">
+                        <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); font-weight:800; color:#94a3b8; font-size:1.05rem; pointer-events:none;">₹</span>
+                        <input type="number" class="modern-input meta-price" name="price" min="0" max="5000" step="1" value="0" placeholder="e.g. 29"
+                               style="width:100%; box-sizing:border-box; padding:0.55rem 0.75rem 0.55rem 2.1rem; border:1.5px solid #3b82f6; border-radius:8px; font-weight:800; font-size:1.05rem; color:#0f172a; outline:none; background:#ffffff;">
+                      </div>
+
+                      <!-- Quick Price Presets -->
+                      <div style="display:flex; gap:0.35rem; margin-bottom:0.5rem; flex-wrap:wrap;">
+                        <button type="button" class="price-chip-btn" data-action="setPricePreset" data-price="19" style="border:1px solid #cbd5e1; background:#ffffff; padding:0.2rem 0.55rem; border-radius:6px; font-size:0.75rem; font-weight:700; color:#334155; cursor:pointer;">₹19</button>
+                        <button type="button" class="price-chip-btn" data-action="setPricePreset" data-price="29" style="border:1px solid #cbd5e1; background:#ffffff; padding:0.2rem 0.55rem; border-radius:6px; font-size:0.75rem; font-weight:700; color:#334155; cursor:pointer;">₹29</button>
+                        <button type="button" class="price-chip-btn" data-action="setPricePreset" data-price="49" style="border:1px solid #cbd5e1; background:#ffffff; padding:0.2rem 0.55rem; border-radius:6px; font-size:0.75rem; font-weight:700; color:#334155; cursor:pointer;">₹49</button>
+                        <button type="button" class="price-chip-btn" data-action="setPricePreset" data-price="99" style="border:1px solid #cbd5e1; background:#ffffff; padding:0.2rem 0.55rem; border-radius:6px; font-size:0.75rem; font-weight:700; color:#334155; cursor:pointer;">₹99</button>
+                      </div>
+
+                      <!-- Platform Expense Breakdown -->
+                      <div style="font-size:0.72rem; color:#475569; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:0.45rem 0.65rem; margin-bottom:0.65rem; line-height:1.45;">
+                        <span style="font-weight:700; color:#1e293b;">📊 Fee Breakdown:</span> You receive <strong>80%</strong> net payout. <strong>20%</strong> covers operational expenses:
+                        <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.25rem; font-size:0.7rem; color:#64748b;">
+                          <span>• 2% Payment Gateway</span>
+                          <span>• 4% Storage</span>
+                          <span>• 4% Hosting</span>
+                          <span>• 4% Advertisement</span>
+                          <span>• 6% Platform Revenue</span>
+                        </div>
+                      </div>
+
+                      <!-- Coupon Section -->
+                      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
+                        <div>
+                          <label style="font-size:0.75rem; color:#475569; font-weight:600;">Coupon Code (Optional)</label>
+                          <input type="text" class="modern-input meta-coupon-code" name="coupon_code" maxlength="12" placeholder="e.g. EXAM20"
+                                 style="width:100%; box-sizing:border-box; padding:0.45rem; border:1px solid #cbd5e1; border-radius:6px; text-transform:uppercase; font-size:0.82rem;">
+                        </div>
+                        <div>
+                          <label style="font-size:0.75rem; color:#475569; font-weight:600;">Discount (%)</label>
+                          <input type="number" class="modern-input meta-coupon-discount" name="coupon_discount" min="1" max="90" placeholder="20"
+                                 style="width:100%; box-sizing:border-box; padding:0.45rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.82rem;">
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                 </div>
               </template>
               
@@ -257,7 +345,7 @@
           <div class="meta-field" style="margin: 1rem 0; font-size: 0.85rem; color: #475569;">
             <label style="display: flex; align-items: flex-start; gap: 0.5rem; cursor: pointer; font-weight: normal;">
               <input type="checkbox" required name="copyright_ack" style="margin-top: 0.2rem;" checked>
-              <span>I confirm this document is my own original study material or an open university resource, and complies with AbhiHub's <a href="{{ url_for('dmca') }}" target="_blank" style="color: #2563eb; text-decoration: underline;">DMCA &amp; Copyright Policy</a>.</span>
+              <span>I confirm this document is my own original study material or an open university resource, and complies with AbhiHub's <a href="{{ url_for('site.dmca') }}" target="_blank" style="color: #2563eb; text-decoration: underline;">DMCA &amp; Copyright Policy</a>.</span>
             </label>
           </div>
 
@@ -609,8 +697,136 @@
     }
   }
 
-  // Check for pending requests on page load (silently)
-  document.addEventListener('DOMContentLoaded', () => { fetchMaterialRequests(); });
+  // ── Pricing & Creator Monetization Eligibility Logic ──
+  window.isEligibleCreator = true;
+
+  window.refreshPricingUI = function(root) {
+    const scope = root || document;
+    scope.querySelectorAll('.pricing-control-section').forEach(sec => {
+      const paidBtn = sec.querySelector('.access-paid-btn');
+      const paidLabel = sec.querySelector('.paid-btn-label');
+      const ineligibilityNotice = sec.querySelector('.ineligibility-notice');
+      const priceInput = sec.querySelector('.meta-price');
+      const earningsBadge = sec.querySelector('.earnings-estimate-badge');
+
+      if (paidLabel) paidLabel.textContent = '💰 Paid (Premium)';
+      if (paidBtn) {
+        paidBtn.style.opacity = '1';
+        paidBtn.style.cursor = 'pointer';
+      }
+      if (ineligibilityNotice) ineligibilityNotice.style.display = 'none';
+
+      if (priceInput && earningsBadge) {
+        const val = parseFloat(priceInput.value) || 0;
+        const net = Math.round(val * 0.8 * 100) / 100;
+        earningsBadge.textContent = `💰 You keep 80% (₹${net.toFixed(2)})`;
+      }
+    });
+  };
+
+  // Event delegation for Pricing & Access Controls
+  document.addEventListener('click', (e) => {
+    // 1. Access choice toggle (Free vs Paid)
+    const accessBtn = e.target.closest('[data-action="setAccessType"]');
+    if (accessBtn) {
+      const type = accessBtn.getAttribute('data-type');
+      const sec = accessBtn.closest('.pricing-control-section');
+      if (!sec) return;
+
+      const freeBtn = sec.querySelector('.access-free-btn');
+      const paidBtn = sec.querySelector('.access-paid-btn');
+      const paidPanel = sec.querySelector('.paid-details-panel');
+      const priceInput = sec.querySelector('.meta-price');
+
+      if (type === 'paid') {
+        // Active state for Paid
+        paidBtn.classList.add('active');
+        paidBtn.style.border = '1.5px solid #2563eb';
+        paidBtn.style.background = '#eff6ff';
+        paidBtn.style.color = '#1d4ed8';
+
+        freeBtn.classList.remove('active');
+        freeBtn.style.border = '1.5px solid #cbd5e1';
+        freeBtn.style.background = '#ffffff';
+        freeBtn.style.color = '#64748b';
+
+        if (paidPanel) paidPanel.style.display = 'block';
+        if (priceInput && (parseFloat(priceInput.value) <= 0 || !priceInput.value)) {
+          priceInput.value = '29';
+          priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      } else {
+        // Active state for Free
+        freeBtn.classList.add('active');
+        freeBtn.style.border = '1.5px solid #10b981';
+        freeBtn.style.background = '#ecfdf5';
+        freeBtn.style.color = '#065f46';
+
+        paidBtn.classList.remove('active');
+        paidBtn.style.border = '1.5px solid #cbd5e1';
+        paidBtn.style.background = '#ffffff';
+        paidBtn.style.color = '#64748b';
+
+        if (paidPanel) paidPanel.style.display = 'none';
+        if (priceInput) {
+          priceInput.value = '0';
+          priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+    }
+
+    // 2. Preset Price Chip Click
+    const chipBtn = e.target.closest('[data-action="setPricePreset"]');
+    if (chipBtn) {
+      const sec = chipBtn.closest('.pricing-control-section');
+      const price = chipBtn.getAttribute('data-price');
+      if (sec && price) {
+        const paidBtn = sec.querySelector('.access-paid-btn');
+        if (paidBtn && !paidBtn.classList.contains('active')) {
+          paidBtn.click();
+        }
+        const input = sec.querySelector('.meta-price');
+        if (input) {
+          input.value = price;
+          input.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+      }
+    }
+  });
+
+  // Live input update for earnings breakdown
+  document.addEventListener('input', (e) => {
+    if (e.target && e.target.classList.contains('meta-price')) {
+      const sec = e.target.closest('.pricing-control-section');
+      if (sec) {
+        const badge = sec.querySelector('.earnings-estimate-badge');
+        const val = parseFloat(e.target.value) || 0;
+        const net = Math.round(val * 0.8 * 100) / 100;
+        if (badge) {
+          badge.textContent = `💰 You keep 80% (₹${net.toFixed(2)})`;
+        }
+      }
+    }
+  });
+
+  // Check for pending requests & creator monetization eligibility on page load
+  document.addEventListener('DOMContentLoaded', () => {
+    fetchMaterialRequests();
+    fetch('/api/my-access')
+      .then(r => r.json())
+      .then(d => {
+        if (d.success && d.can_monetize) {
+          window.isEligibleCreator = true;
+        } else if (d.success && ['contributor', 'power_contributor', 'community_leader', 'admin'].includes((d.level || '').toLowerCase())) {
+          window.isEligibleCreator = true;
+        }
+        window.refreshPricingUI();
+        const tpl = document.getElementById('metaFormTemplate');
+        if (tpl) window.refreshPricingUI(tpl.content);
+      }).catch(() => {
+        window.refreshPricingUI();
+      });
+  });
 
   function toggleRequestsPanel(){
     const p = document.getElementById('materialRequestsPanel');

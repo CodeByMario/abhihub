@@ -330,7 +330,32 @@
       <span id="ov-msg" style="font-size:.88rem;font-weight:600;"></span>
     </div>
   </div>
+
+  <!-- Creator Payout Requests Panel -->
+  <div class="glass-panel" id="payouts-panel" style="margin-bottom: 2rem;">
+    <h2><i class="fas fa-hand-holding-dollar text-emerald-600"></i> Creator Payout Requests</h2>
+    <p class="section-subtitle">Review, approve (mark paid), or reject withdrawal requests from creators.</p>
+    <div style="overflow-x: auto;">
+      <table id="payouts-table" class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Creator ID</th>
+            <th>Amount</th>
+            <th>Method</th>
+            <th>Details</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody id="payouts-tbody">
+          <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:1.5rem;">Loading payout requests...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
+
 
 
 <script>
@@ -429,7 +454,74 @@
     msg.style.color = d.success ? 'green' : 'red';
   };
 
+  async function loadPayouts() {
+    try {
+      const r = await fetch('/api/admin/payouts');
+      const d = await r.json();
+      const tbody = document.getElementById('payouts-tbody');
+      if (!tbody) return;
+      if (!d.success || !d.payouts || d.payouts.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:1.5rem;">No payout requests found.</td></tr>';
+        return;
+      }
+      tbody.innerHTML = d.payouts.map(p => {
+        const details = p.payout_details ? (p.payout_details.upi_id || p.payout_details.account_info || JSON.stringify(p.payout_details)) : '-';
+        const date = p.created_at ? new Date(p.created_at).toLocaleDateString('en-IN', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
+        let badgeColor = '#d97706';
+        if (p.status === 'completed') badgeColor = '#059669';
+        if (p.status === 'rejected') badgeColor = '#dc2626';
+
+        let actionButtons = '-';
+        if (p.status === 'pending' || p.status === 'processing') {
+          actionButtons = `
+            <button onclick="handlePayoutAction('${p.id}', 'completed')" style="padding:4px 8px;background:#10b981;color:#fff;border:none;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;margin-right:4px;">Approve</button>
+            <button onclick="handlePayoutAction('${p.id}', 'rejected')" style="padding:4px 8px;background:#ef4444;color:#fff;border:none;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;">Reject</button>
+          `;
+        }
+        return `
+          <tr>
+            <td>${date}</td>
+            <td style="font-family:monospace;font-size:0.8rem;" title="${p.creator_id}">${p.creator_id ? p.creator_id.substring(0, 10) + '...' : '-'}</td>
+            <td style="font-weight:700;color:#16a34a;">₹${parseFloat(p.amount || 0).toFixed(2)}</td>
+            <td><span class="pill" style="font-size:0.75rem;padding:2px 8px;text-transform:uppercase;">${p.payout_method || 'UPI'}</span></td>
+            <td style="font-family:monospace;font-size:0.82rem;">${details}</td>
+            <td><span style="color:${badgeColor};font-weight:700;text-transform:capitalize;">${p.status}</span></td>
+            <td>${actionButtons}</td>
+          </tr>
+        `;
+      }).join('');
+    } catch(e) {
+      console.error(e);
+    }
+  }
+
+  window.handlePayoutAction = async function(payoutId, action) {
+    const confirmMsg = action === 'completed'
+      ? 'Mark this payout as Completed (Paid to creator)?'
+      : 'Reject this payout request? The amount will be refunded back to creator withdrawable balance.';
+    if (!confirm(confirmMsg)) return;
+
+    const notes = prompt('Optional admin notes/reference UTR:') || '';
+    try {
+      const res = await fetch('/api/admin/payout/action', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ payout_id: payoutId, action: action, admin_notes: notes })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('✅ ' + data.message);
+        loadPayouts();
+      } else {
+        alert('❌ ' + (data.error || 'Failed to process payout.'));
+      }
+    } catch(err) {
+      alert('❌ Network error processing payout.');
+    }
+  };
+
   loadOverview();
   loadConfig();
+  loadPayouts();
 </script>
 {% endblock %}

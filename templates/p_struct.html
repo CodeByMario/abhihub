@@ -18,6 +18,9 @@
             var isEmbedded = window.name === 'abhihub-shell' && window.self !== window.top;
             if (isEmbedded) {
                 document.documentElement.classList.add('app-shell-embedded');
+                window.addEventListener('beforeunload', function() {
+                    try { window.parent.postMessage({ type: 'NAVIGATE_START' }, window.location.origin); } catch(e) {}
+                });
             } else {
                 var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
                 var shellInMobileBrowser = {{ 'true' if config.get('SHELL_IN_MOBILE_BROWSER') else 'false' }};
@@ -306,8 +309,8 @@
         {% endblock %}
     </main>
 
-    {% include 'p_footer.html' %}
-    {% include 'p_nav.html' %}
+    {% include 'footer.html' ignore missing %}
+    {% include 'nav.html' ignore missing %}
 
     <!-- Global Entity Add Modal -->
     <div id="globalEntityModal" class="global-entity-modal">

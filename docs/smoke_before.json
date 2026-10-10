@@ -1,0 +1,62 @@
+{
+  "/": {
+    "status_code": 200,
+    "location": null
+  },
+  "/health": {
+    "status_code": 200,
+    "location": null
+  },
+  "/about": {
+    "status_code": 200,
+    "location": null
+  },
+  "/terms": {
+    "status_code": 200,
+    "location": null
+  },
+  "/privacy": {
+    "status_code": 200,
+    "location": null
+  },
+  "/dmca": {
+    "status_code": 200,
+    "location": null
+  },
+  "/contact": {
+    "status_code": 200,
+    "location": null
+  },
+  "/login": {
+    "status_code": 200,
+    "location": null
+  },
+  "/signup": {
+    "status_code": 200,
+    "location": null
+  },
+  "/offline": {
+    "status_code": 200,
+    "location": null
+  },
+  "/robots.txt": {
+    "status_code": 200,
+    "location": null
+  },
+  "/ads.txt": {
+    "status_code": 200,
+    "location": null
+  },
+  "/admin": {
+    "status_code": 302,
+    "location": "/login"
+  },
+  "/admin/controle": {
+    "status_code": 301,
+    "location": "/admin"
+  },
+  "/api/version": {
+    "status_code": 200,
+    "location": null
+  }
+}

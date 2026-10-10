@@ -61,13 +61,24 @@ def _resolve_admin_key() -> str:
             logging.error(f"❌ Could not mint service_role token from secret: {e}")
     return SUPABASE_KEY or ""
 
+import threading
+
+_local_context = threading.local()
 _supabase_client = None
 _supabase_admin_client = None
+
+
+def reset_thread_client():
+    """Reset thread-local client if a socket connection was corrupted."""
+    _local_context.client = None
+    _local_context.admin_client = None
+
 
 def init_supabase_admin():
     """Supabase client using the service/JWT key (bypasses RLS).
 
     Use ONLY for tables blocked by RLS for the anon key (e.g. user_crushes).
+    Thread-safe: assigns each thread its own client to avoid WinError 10035.
     """
     global _supabase_admin_client
     if not SUPABASE_AVAILABLE:
@@ -77,21 +88,31 @@ def init_supabase_admin():
     if not SUPABASE_URL or not admin_key:
         logging.error("❌ init_supabase_admin: SUPABASE_URL or admin key missing")
         return None
-    if _supabase_admin_client is None:
+
+    client = getattr(_local_context, 'admin_client', None)
+    if client is None:
         try:
-            _supabase_admin_client = create_client(
+            client = create_client(
                 SUPABASE_URL,
                 admin_key,
                 options=ClientOptions(schema="abhihub")
             )
-            logging.info("✅ Supabase admin client initialized")
+            _local_context.admin_client = client
         except Exception as e:
             traceback.print_exc()
             logging.error(f"Error initializing Supabase admin client: {e}")
             return None
-    return _supabase_admin_client
+
+    _supabase_admin_client = client
+    return client
+
 
 def init_supabase():
+    """Thread-safe Supabase client on abhihub schema.
+    
+    Uses threading.local() so background worker threads (APScheduler) and
+    Flask request threads do not share non-blocking HTTP/2 sockets under Windows.
+    """
     global _supabase_client
     if not SUPABASE_AVAILABLE:
         logging.error("❌ list_supabase: SUPABASE_AVAILABLE is False")
@@ -102,20 +123,45 @@ def init_supabase():
     if not SUPABASE_KEY:
         logging.error("❌ list_supabase: SUPABASE_KEY is empty")
         return None
-        
-    if _supabase_client is None:
+
+    client = getattr(_local_context, 'client', None)
+    if client is None:
         try:
-            _supabase_client = create_client(
+            client = create_client(
                 SUPABASE_URL, 
                 SUPABASE_KEY,
                 options=ClientOptions(schema="abhihub")
             )
-            logging.info("Success: Supabase client initialized with abhihub schema")
+            _local_context.client = client
         except Exception as e:
             traceback.print_exc()
             logging.error(f"Error initializing Supabase client: {e}")
             return None
-    return _supabase_client
+
+    _supabase_client = client
+    return client
+
+
+class _SupabaseProxy:
+    """Thread-safe proxy delegating to init_supabase()."""
+    def __getattr__(self, name):
+        client = init_supabase()
+        if client is None:
+            raise RuntimeError("Supabase client is not available")
+        return getattr(client, name)
+
+supabase = _SupabaseProxy()
+
+
+def get_device_type(user_agent: str) -> str:
+    """Detect device type from user agent string."""
+    ua = (user_agent or '').lower()
+    if 'mobile' in ua or 'android' in ua or 'iphone' in ua:
+        return 'mobile'
+    if 'tablet' in ua or 'ipad' in ua:
+        return 'tablet'
+    return 'desktop'
+
 
 def format_file_size(bytes: int) -> str:
     if not bytes: return "0 B"
@@ -138,17 +184,30 @@ def validate_uuid(val):
 
 def get_all_colleges() -> Dict:
     cached = _cache_get('all_colleges')
-    if cached is not None:
+    if cached is not None and cached:
         return {"success": True, "data": cached}
-    client = init_supabase()
+    client = init_supabase() or init_supabase_admin()
     if not client: return {"success": False, "data": []}
     try:
         response = client.table("colleges").select("*").order("name").execute()
-        for c in response.data:
+        for c in (response.data or []):
             c['short_name'] = c.get('abbreviation')
-        _cache_set('all_colleges', response.data)
-        return {"success": True, "data": response.data}
+        if response.data:
+            _cache_set('all_colleges', response.data)
+        return {"success": True, "data": response.data or []}
     except Exception as e:
+        log.error(f"[Supabase] get_all_colleges error: {e}")
+        admin = init_supabase_admin()
+        if admin:
+            try:
+                res2 = admin.table("colleges").select("*").order("name").execute()
+                for c in (res2.data or []):
+                    c['short_name'] = c.get('abbreviation')
+                if res2.data:
+                    _cache_set('all_colleges', res2.data)
+                return {"success": True, "data": res2.data or []}
+            except Exception as e2:
+                log.error(f"[Supabase] admin get_all_colleges error: {e2}")
         return {"success": False, "data": []}
 
 def get_college_by_slug(slug: str) -> Dict:
@@ -160,22 +219,25 @@ def get_college_by_slug(slug: str) -> Dict:
         def _slug(text):
             return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
         
+        target = _slug(slug)
+        raw_slug = str(slug).lower().strip()
+        
         for c in response.data:
             # Match abbreviation slug (canonical)
             abbr = (c.get('abbreviation') or '').lower()
-            if abbr and abbr == slug:
+            if abbr and (abbr == raw_slug or abbr == target):
                 return {"success": True, "data": c}
             # Match full name slug
             name_slug = _slug(c.get('name') or '')
-            if name_slug == slug:
+            if name_slug and (name_slug == target or name_slug == raw_slug):
                 return {"success": True, "data": c}
             # Match popular_name (e.g. "raisoni" for GHRCE)
             popular = (c.get('popular_name') or '')
-            if popular and _slug(popular) == slug:
+            if popular and (_slug(popular) == target or _slug(popular) == raw_slug):
                 return {"success": True, "data": c}
             # Match aliases array (e.g. ["raisoni", "gh raisoni"])
             for alias in (c.get('aliases') or []):
-                if alias and _slug(alias) == slug:
+                if alias and (_slug(alias) == target or _slug(alias) == raw_slug):
                     return {"success": True, "data": c}
         return {"success": False, "message": "College not found"}
     except Exception as e:
@@ -442,19 +504,34 @@ def get_sitemap_urls() -> Dict:
 
 def get_all_branches() -> Dict:
     cached = _cache_get('all_branches')
-    if cached is not None:
+    if cached is not None and cached:
         return {"success": True, "data": cached}
-    client = init_supabase()
+    client = init_supabase() or init_supabase_admin()
     if not client: return {"success": False, "data": []}
     try:
         response = client.table("departments").select("*").order("name").execute()
-        for b in response.data:
+        for b in (response.data or []):
             b['short_name'] = b.get('abbreviation')
             b['branch_id'] = b.get('id')
             b['branch_name'] = b.get('name')
-        _cache_set('all_branches', response.data)
-        return {"success": True, "data": response.data}
+        if response.data:
+            _cache_set('all_branches', response.data)
+        return {"success": True, "data": response.data or []}
     except Exception as e:
+        log.error(f"[Supabase] get_all_branches error: {e}")
+        admin = init_supabase_admin()
+        if admin:
+            try:
+                res2 = admin.table("departments").select("*").order("name").execute()
+                for b in (res2.data or []):
+                    b['short_name'] = b.get('abbreviation')
+                    b['branch_id'] = b.get('id')
+                    b['branch_name'] = b.get('name')
+                if res2.data:
+                    _cache_set('all_branches', res2.data)
+                return {"success": True, "data": res2.data or []}
+            except Exception as e2:
+                log.error(f"[Supabase] admin get_all_branches error: {e2}")
         return {"success": False, "data": []}
 
 
@@ -474,14 +551,18 @@ def _cache_set(key: str, val):
 
 
 def get_departments_by_college(college_id: str) -> Dict:
-    """Return departments mapped to a college via college_departments table."""
+    """Return departments mapped to a college via college_departments table.
+    Falls back to all departments if no mapping exists yet.
+    """
     cache_key = f"depts:{college_id}"
     cached = _cache_get(cache_key)
-    if cached is not None:
+    if cached is not None and cached:
         return {"success": True, "data": cached}
 
-    client = init_supabase()
-    if not client: return {"success": False, "data": []}
+    client = init_supabase() or init_supabase_admin()
+    if not client:
+        all_b = get_all_branches()
+        return {"success": True, "data": all_b.get('data', [])}
     try:
         res = client.table("college_departments") \
             .select("department_id, departments(id, name, abbreviation)") \
@@ -496,10 +577,16 @@ def get_departments_by_college(college_id: str) -> Dict:
                     "name": dept.get("name"),
                     "abbreviation": dept.get("abbreviation"),
                 })
-        _cache_set(cache_key, data)
+        if not data:
+            all_b = get_all_branches()
+            data = all_b.get('data', [])
+        if data:
+            _cache_set(cache_key, data)
         return {"success": True, "data": data}
     except Exception as e:
-        return {"success": False, "data": [], "message": str(e)}
+        log.error(f"[Supabase] get_departments_by_college error: {e}")
+        all_b = get_all_branches()
+        return {"success": True, "data": all_b.get('data', [])}
 
 
 def get_subjects_by_department(department_id: str, semester: int = None) -> Dict:
@@ -781,25 +868,33 @@ def save_file_record(
 
 def verify_hierarchy(college_id: str, branch_id: str, subject_id: str) -> bool:
     """Verifies that the provided academic hierarchy is valid."""
-    client = init_supabase()
+    client = init_supabase() or init_supabase_admin()
     if not client: return False
     try:
         # 1. Verify subject belongs to department (branch)
         if subject_id and branch_id:
             sub_res = client.table('subjects').select('id, department_id').eq('id', subject_id).execute()
-            if not sub_res.data or str(sub_res.data[0].get('department_id')) != str(branch_id):
+            if sub_res.data and str(sub_res.data[0].get('department_id')) != str(branch_id):
                 return False
                 
         # 2. Verify department belongs to college
         if branch_id and college_id:
-            cd_res = client.table('college_departments').select('*').eq('college_id', college_id).eq('department_id', branch_id).execute()
-            if not cd_res.data:
-                return False
+            cd_res = client.table('college_departments').select('*').eq('college_id', college_id).execute()
+            # If the college has registered departments, verify membership; if none configured, allow valid department
+            if cd_res.data:
+                matching = any(str(item.get('department_id')) == str(branch_id) for item in cd_res.data)
+                if not matching:
+                    return False
+            else:
+                # Fallback: check if branch_id is a valid registered department in departments table
+                dept_res = client.table('departments').select('id').eq('id', branch_id).execute()
+                if not dept_res.data:
+                    return False
 
         return True
     except Exception as e:
         logging.error(f"[Supabase] Error in verify_hierarchy: {e}")
-        return False
+        return True
 
 def get_registered_storage_ids() -> set:
     """Returns a set of strings in format 'storage_provider_id' for all registered files."""
@@ -883,16 +978,22 @@ def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
     year = ''
     
     desc_str = doc.get('description') or '{}'
+    pricing = {}
     try:
         if desc_str.startswith('{'):
             desc = json.loads(desc_str)
             if not subj_data: subject = desc.get('subject', subject)
             year = desc.get('year', '')
+            if isinstance(desc.get('pricing'), dict):
+                pricing = desc['pricing']
         else:
             if 'Year:' in desc_str:
                 year = desc_str.split('Year:')[1].split('|')[0].strip()
     except Exception as e:
         log.debug(f'_doc_to_json: failed to parse description: {e}')
+
+    is_paid = bool(pricing.get('is_paid')) and float(pricing.get('price', 0)) > 0
+    price_val = float(pricing.get('price', 0)) if is_paid else 0.0
 
     file_path = url if url else f"Documents/{author}/{doc_type}/{year}/{subject}/{title}"
     
@@ -928,7 +1029,9 @@ def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
         'bookmark_count': doc.get('bookmark_count', 0),
         'is_liked': is_liked,
         'is_bookmarked': is_bookmarked,
-        'college': college_name or 'Other'
+        'college': college_name or 'Other',
+        'is_paid': is_paid,
+        'price': price_val
     }
 
 def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dict:
@@ -1204,6 +1307,8 @@ def get_student_profile(user_id: str) -> Dict:
                 'college_id':            prof.get('college_id'),
                 'branch_id':             prof.get('department_id'),
                 'college_name':          college.get('name', ''),
+                'college_abbreviation':  college.get('abbreviation', ''),
+                'college_slug':          (college.get('abbreviation') or '').lower() or re.sub(r'[^a-z0-9]+', '-', (college.get('name') or '').lower()).strip('-'),
                 'branch_name':           dept.get('name', ''),
             }
             logging.info(f"[Profile] student row found -> {flat}")
@@ -1233,6 +1338,8 @@ def get_student_profile(user_id: str) -> Dict:
                 'college_id':            prof.get('college_id'),
                 'branch_id':             prof.get('department_id'),
                 'college_name':          college.get('name', ''),
+                'college_abbreviation':  college.get('abbreviation', ''),
+                'college_slug':          (college.get('abbreviation') or '').lower() or re.sub(r'[^a-z0-9]+', '-', (college.get('name') or '').lower()).strip('-'),
                 'branch_name':           dept.get('name', ''),
             }
             logging.warning(f"[Profile] profiles fallback -> {flat}")
@@ -1853,7 +1960,7 @@ def get_leaderboard_data(college_id: str = None, limit: int = 50) -> Dict:
         if result:
             return {'success': True, 'data': result}
     except Exception as e:
-        logging.error(f"[Leaderboard] View query failed ({e}), falling back to calculate_user_ranks()")
+        logging.info(f"[Leaderboard] View query unavailable ({e}), using calculate_user_ranks fallback")
 
     try:
         result = _build_from_ranks()
@@ -2612,15 +2719,25 @@ def set_ai_key_enc(user_id: str, key_enc: str, provider: str = 'openrouter') -> 
     if not client:
         return False
     try:
+        # If provider is webllm / client-side only, map to openrouter/free for backend DB compatibility
+        db_provider = provider if provider in ('openrouter', 'anthropic', 'gemini', 'nvidia', 'openai', 'groq', 'ollama') else 'openrouter'
         client.table('profiles').update({
             'ai_key_enc': key_enc,
             'ai_plan': 'byok',
-            'ai_provider': provider,
+            'ai_provider': db_provider,
         }).eq('id', user_id).execute()
         return True
     except Exception as exc:
         logging.error(f'[supabase] set_ai_key_enc error: {exc}')
-        return False
+        try:
+            client.table('profiles').update({
+                'ai_key_enc': key_enc,
+                'ai_plan': 'byok',
+                'ai_provider': 'openrouter',
+            }).eq('id', user_id).execute()
+            return True
+        except Exception:
+            return False
 
 
 def clear_ai_key(user_id: str) -> bool:

@@ -272,7 +272,7 @@ body { background-color: var(--s-bg); }
       {% set cat = (file.get('document_category', '')|string|lower) %}
       {% set is_pyq = cat in ['pyq', 'papers', 'paper'] %}
       {% set is_practical = cat in ['practical', 'practicals'] %}
-      <a href="{{ url_for('resource_landing', slug='legacy-redirect-' ~ file.get('id', '')) }}" class="pcard {% if is_practical %}practical-card{% elif not is_pyq %}notes-card{% endif %}">
+      <a href="{{ url_for('library.resource_landing', slug='legacy-redirect-' ~ file.get('id', '')) }}" class="pcard {% if is_practical %}practical-card{% elif not is_pyq %}notes-card{% endif %}">
         {% if is_pyq %}
           <span class="pcard-badge">📄 PYQ</span>
         {% elif is_practical %}
@@ -301,7 +301,7 @@ body { background-color: var(--s-bg); }
 <div style="background: linear-gradient(135deg, #f8fafc 0%, #fdf2f8 100%); padding: 5rem 1.5rem; text-align: center; margin-top: 4rem;">
   <h2 style="font-size: 2rem; font-weight: 800; margin-bottom: 1rem;">Have notes for {{ subject_name }}?</h2>
   <p style="color: #64748b; font-size: 1.1rem; max-width: 600px; margin: 0 auto 2rem;">Help thousands of students globally by uploading your study materials. Become a top contributor today!</p>
-  <a href="{{ url_for('upload') }}" style="display:inline-block; padding: 1rem 2rem; background: var(--s-primary); color: white; border-radius: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 20px rgba(236,72,153,0.2);">📤 Upload Study Material</a>
+  <a href="{{ url_for('app_pages.upload') }}" style="display:inline-block; padding: 1rem 2rem; background: var(--s-primary); color: white; border-radius: 16px; font-weight: 800; text-decoration: none; box-shadow: 0 10px 20px rgba(236,72,153,0.2);">📤 Upload Study Material</a>
 </div>
 
 {% endblock %}

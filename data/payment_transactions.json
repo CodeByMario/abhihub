@@ -1,0 +1,24 @@
+{
+  "AH17915403832BCE": {
+    "user_id": "3ee5f02a-e187-47a9-8119-4e8cddda2e91",
+    "amount": 99.0,
+    "status": "initiated",
+    "utr": "AH17915403832BCE",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "admin_notes": "purpose=Buy Me Tea - Chai & Samosa;doc_id=;name=wasudha;msg=",
+    "order_id": "AH17915403832BCE",
+    "updated_at": "2026-10-09T10:06:23.818821+00:00"
+  },
+  "AH17915403833597": {
+    "user_id": "3ee5f02a-e187-47a9-8119-4e8cddda2e91",
+    "amount": 99.0,
+    "status": "completed",
+    "utr": "AH17915403833597",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "admin_notes": "verified_via=redirect;verified_via=redirect",
+    "order_id": "AH17915403833597",
+    "updated_at": "2026-10-09T10:07:00.140057+00:00"
+  }
+}

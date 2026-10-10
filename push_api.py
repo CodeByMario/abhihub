@@ -173,10 +173,13 @@ def send():
         return jsonify({'error': str(e)}), 500
 
 
+_TEST_PUSH_RATE_LIMIT = {}
+
 @push_api.route('/api/push/test', methods=['POST'])
 def send_test_notification():
     """
     Send a test notification to the authenticated user's registered devices.
+    Rate limited to 1 request per 10 seconds per user.
     """
     try:
         user = session.get('user', {})
@@ -185,6 +188,13 @@ def send_test_notification():
 
         if not user_id and not user_email:
             return jsonify({'error': 'Authentication required'}), 401
+
+        now = time.time()
+        caller_key = str(user_id or user_email)
+        last_req = _TEST_PUSH_RATE_LIMIT.get(caller_key, 0)
+        if now - last_req < 10:
+            return jsonify({'error': 'Rate limit exceeded. Please wait 10 seconds between test notifications.'}), 429
+        _TEST_PUSH_RATE_LIMIT[caller_key] = now
 
         client = init_supabase()
         uuid = user_id

@@ -66,6 +66,19 @@ def execute_search(query: str, college_id: str = None, limit: int = 50):
                 subj = doc.get('subjects') or {}
                 col = doc.get('colleges') or {}
                 
+                desc_str = doc.get('description') or '{}'
+                is_paid = False
+                price_val = 0.0
+                try:
+                    if desc_str.startswith('{'):
+                        desc_json = json.loads(desc_str)
+                        pricing = desc_json.get('pricing', {})
+                        if isinstance(pricing, dict) and pricing.get('is_paid') and float(pricing.get('price', 0)) > 0:
+                            is_paid = True
+                            price_val = float(pricing.get('price', 0))
+                except Exception:
+                    pass
+
                 mapped_results.append({
                     'record_id': doc.get('id'),
                     'file-name': doc.get('title'),
@@ -81,7 +94,9 @@ def execute_search(query: str, college_id: str = None, limit: int = 50):
                     'bookmark_count': doc.get('bookmark_count') or 0,
                     'comment_count': 0,
                     'year': str(doc.get('created_at', ''))[:4] if doc.get('created_at') else '',
-                    'date': doc.get('created_at', '')
+                    'date': doc.get('created_at', ''),
+                    'is_paid': is_paid,
+                    'price': price_val
                 })
             
             return mapped_results

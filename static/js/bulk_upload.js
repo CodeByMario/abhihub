@@ -387,6 +387,9 @@ function handleFilesSelected(filesOrEvent) {
 
       // Wire dynamic fields for THIS file's category
       updateDynamicFieldsForForm(addedWrap);
+      if (typeof window.refreshPricingUI === 'function') {
+        window.refreshPricingUI(addedWrap);
+      }
     }
 
     // Trigger tiered metadata prediction & AI content extraction
@@ -975,6 +978,20 @@ function buildFormData(item) {
   const _qbForm = form || document.querySelector('.meta-form-wrap');
   const _qbTags = _qbForm ? _qbForm.querySelector('.qb-tags') : null;
   if (_qbTags && _qbTags.value) fd.append('qb_tags', _qbTags.value.trim());
+
+  const _priceEl = form ? form.querySelector('[name="price"]') : null;
+  const _paidActive = form ? form.querySelector('.access-paid-btn.active') : null;
+  const _rawPrice = _priceEl ? (parseFloat(_priceEl.value) || 0) : 0;
+  const _priceVal = (_paidActive || _rawPrice > 0) ? _rawPrice : 0;
+  if (_priceVal > 0) {
+    fd.append('price', _priceVal.toFixed(2));
+    const _couponEl = form ? form.querySelector('[name="coupon_code"]') : null;
+    if (_couponEl && _couponEl.value) fd.append('coupon_code', _couponEl.value.trim());
+    const _discEl = form ? form.querySelector('[name="coupon_discount"]') : null;
+    if (_discEl && _discEl.value) fd.append('coupon_discount', _discEl.value.trim());
+  } else {
+    fd.append('price', '0');
+  }
   const origName = item.name || (item.file && item.file.name) || `file_${Date.now()}`;
   const ext = origName.includes('.') ? origName.split('.').pop().toLowerCase() : 'jpg';
   const sanitize = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');

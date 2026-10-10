@@ -21,7 +21,7 @@
         '/profile': { id: 'settings', label: 'Settings', selector: '[data-page="settings"]', keepAlive: false },
         '/account': { id: 'settings', label: 'Account', selector: '[data-page="settings"]', keepAlive: false },
         '/store-room': { id: 'store-room', label: 'Store Room', selector: '[data-page="store-room"]', keepAlive: false },
-        '/admin/controle': { id: 'admin', label: 'Admin', selector: '[data-page="admin"]', keepAlive: false }
+        '/admin': { id: 'admin', label: 'Admin', selector: '[data-page="admin"]', keepAlive: false }
     };
 
     // DOM Elements
@@ -177,6 +177,7 @@
 
     // ── Safe Auth Escape & Iframe Destruction ──
     function destroyIframesAndEscape(redirectUrl) {
+        showLoader();
         try { iframeMain.src = 'about:blank'; } catch (e) {}
         try { if (iframeUpload) iframeUpload.src = 'about:blank'; } catch (e) {}
         window.location.href = redirectUrl;
@@ -194,6 +195,34 @@
             const innerWin = iframeEl.contentWindow;
             const innerDoc = iframeEl.contentDocument || innerWin.document;
             const innerPath = innerWin.location.pathname + innerWin.location.search + innerWin.location.hash;
+
+            // Trigger loader when iframe starts redirection or page transition
+            try {
+                innerWin.addEventListener('beforeunload', function () {
+                    showLoader();
+                });
+            } catch (err) {}
+
+            if (innerDoc) {
+                innerDoc.addEventListener('click', function (e) {
+                    const anchor = e.target.closest('a');
+                    if (!anchor) return;
+                    const href = anchor.getAttribute('href');
+                    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return;
+                    if (anchor.target && anchor.target !== '_self') return;
+                    // Do not intercept if click is inside or on a button/modal trigger
+                    if (e.target.closest('button, [data-action], .btn, input, select')) return;
+                    showLoader();
+                }, true);
+
+                innerDoc.addEventListener('submit', function (e) {
+                    // Only show shell loader for full-page standard GET/POST form submissions, not AJAX forms
+                    const form = e.target;
+                    if (!e.defaultPrevented && form && form.getAttribute('action') && !form.dataset.ajax) {
+                        showLoader();
+                    }
+                }, true);
+            }
 
             // Security & Auth escape check
             if (/^\/(login|signup|logout|auth(\/|$))/i.test(innerWin.location.pathname)) {
@@ -278,6 +307,7 @@
     if (backBtn) {
         backBtn.addEventListener('click', function () {
             try {
+                showLoader();
                 if (activeIframe.contentWindow.history.length > 1) {
                     activeIframe.contentWindow.history.back();
                 } else {
@@ -291,6 +321,7 @@
 
     // ── Handle Browser Back / Forward & Android Back Gesture ──
     window.addEventListener('popstate', function (event) {
+        showLoader();
         if (event.state && event.state.path) {
             navigateTo(event.state.path, true);
         } else {
@@ -307,6 +338,11 @@
         if (!msg || typeof msg !== 'object') return;
 
         switch (msg.type) {
+            case 'NAVIGATE_START':
+            case 'SHOW_LOADER':
+                showLoader();
+                break;
+
             case 'AUTH_EXPIRED':
                 destroyIframesAndEscape('/login?next=' + encodeURIComponent(msg.url || '/dashboard'));
                 break;

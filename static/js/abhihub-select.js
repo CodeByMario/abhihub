@@ -86,9 +86,9 @@ const AbhiHubSelect = {
                 AbhiHubSelect.loadSubjects(el.id);
             }
             
-            // Handle dependency logic only if explicitly bound via parentId
+            // Handle dependency logic if bound via parentId or parentClass
             const parentEl = getParentEl();
-            if (parentEl && parentId) {
+            if (parentEl) {
                 parentEl.addEventListener('change', () => {
                     AbhiHubSelect.handleParentChange(el.id, parentEl.value, parentEl);
                 });
@@ -282,12 +282,25 @@ const AbhiHubSelect = {
                 this.apiCache[url] = json;
             }
             
-            const dataKey = entity === 'branch' ? 'departments' : `${entity}s`;
-            const items = json[dataKey] || json.data || [];
+            const dataKey = (entity === 'branch' || entity === 'department') ? 'departments' : `${entity}s`;
+            let items = json[dataKey] || json.departments || json.branches || json.data || [];
             
+            if ((entity === 'department' || entity === 'branch') && items.length === 0) {
+                try {
+                    const fallbackRes = await fetch('/api/departments');
+                    const fallbackJson = await fallbackRes.json();
+                    items = fallbackJson.departments || fallbackJson.branches || fallbackJson.data || [];
+                } catch(_) {}
+            }
+
             items.forEach(item => {
-                const text = item.subject_code ? `${item.name} (${item.subject_code})` : item.name;
-                ts.addOption({ value: item.id, text: text });
+                const val = item.id || item.branch_id || item.department_id;
+                const name = item.name || item.branch_name || '';
+                const code = item.subject_code || item.abbreviation || item.short_name || '';
+                const text = code ? `${name} (${code})` : name;
+                if (val && name) {
+                    ts.addOption({ value: String(val), text: text, code: code });
+                }
             });
             
             ts.settings.placeholder = 'Select ' + entity;
@@ -321,7 +334,8 @@ function openEntityModal(entityType, targetSelectId, initialInput, parentValue, 
     
     if (isCarousel) {
         // Build inline form right below the select dropdown
-        const targetEl = document.getElementById(targetSelectId);
+        const targetEl = typeof targetSelectId === 'string' ? document.getElementById(targetSelectId) : targetSelectId;
+        if (!targetEl) return;
         const wrapper = targetEl.closest('.meta-field') || targetEl.parentElement;
         
         // Remove existing if any
@@ -385,6 +399,12 @@ function openEntityModal(entityType, targetSelectId, initialInput, parentValue, 
                 const data = await res.json();
                 if (data.success) {
                     if (tomSelectCallback) tomSelectCallback({ value: data.id, text: data.name });
+                    const ts = targetEl.tomselect || AbhiHubSelect.instances[targetEl.id];
+                    if (ts) {
+                        ts.addOption({ value: data.id, text: data.name });
+                        ts.addItem(data.id);
+                    }
+                    targetEl.dispatchEvent(new Event('change', { bubbles: true }));
                     inlineForm.remove();
                 } else {
                     alert(data.message || 'Error saving entity');
@@ -581,6 +601,38 @@ async function submitEntityModal(tomSelectCallback) {
         submitBtn.textContent = 'Save';
     }
 }
+
+// Global click handler for "+ Add New" buttons in forms
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-add-new-entity');
+    if (!btn) return;
+    e.preventDefault();
+    const entity = btn.dataset.entity;
+    const metaField = btn.closest('.meta-field');
+    const select = metaField ? metaField.querySelector('.abhihub-select') : null;
+    if (select) {
+        const parentId = select.dataset.parent;
+        const parentClass = select.dataset.parentClass;
+        let parentVal = null;
+        if (parentId) {
+            const p = document.getElementById(parentId);
+            if (p) parentVal = p.value;
+        } else if (parentClass) {
+            const p = select.closest('.meta-form-wrap')?.querySelector(`.${parentClass}`);
+            if (p) parentVal = p.value;
+        }
+        openEntityModal(entity, select.id || select, '', parentVal, (created) => {
+            if (created) {
+                const ts = select.tomselect || AbhiHubSelect.instances[select.id];
+                if (ts) {
+                    ts.addOption({ value: created.value, text: created.text });
+                    ts.addItem(created.value);
+                }
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+    }
+});
 
 // Auto init on DOM load
 document.addEventListener('DOMContentLoaded', () => {

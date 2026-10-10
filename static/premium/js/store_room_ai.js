@@ -57,7 +57,7 @@
         const res = await fetch(this.apiAskUrl, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ doc_id, question })
+          body: JSON.stringify({ doc_id, message: question, question })
         });
 
         const data = await res.json().catch(() => ({}));
@@ -67,7 +67,7 @@
           return;
         }
 
-        this.appendAssistant(data.answer || '(No answer)');
+        this.appendAssistant(data.reply || data.answer || '(No answer)');
       } catch (e) {
         this.renderError(e?.message || 'Network error');
       } finally {
@@ -131,7 +131,7 @@
     };
 
     new StoreRoomAI({
-      apiAskUrl: '/api/ask-paper',
+      apiAskUrl: '/api/ai/assistant',
       docIdGetter: getDocId
     });
   });

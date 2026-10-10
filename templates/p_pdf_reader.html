@@ -859,6 +859,12 @@
         <select id="pdfAiModelSelect"
           style="flex: 1; padding: 0.35rem 0.6rem; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 0.82rem; font-weight: 600; background: #ffffff; color: #1e293b;">
           <option value="auto" selected>✨ Auto (NVIDIA Llama 3.1 70B & Vision Fallback)</option>
+          <option value="webllm:SmolLM2-360M">🧠 On-Device /ai WebGPU (SmolLM2 360M · Instant Offline)</option>
+          <option value="webllm:Qwen2.5-0.5B">🧠 On-Device /ai WebGPU (Qwen 2.5 0.5B · Ultra-Fast)</option>
+          <option value="webllm:Llama-3.2-1B">🧠 On-Device /ai WebGPU (Llama 3.2 1B · Balanced Offline)</option>
+          <option value="webllm:DeepSeek-R1-1.5B">🧠 On-Device /ai WebGPU (DeepSeek R1 1.5B · Offline Reasoning)</option>
+          <option value="webllm:Qwen2.5-Coder-1.5B">🧠 On-Device /ai WebGPU (Qwen 2.5 Coder 1.5B · Code & Math)</option>
+          <option value="webllm:Gemma-2-2B">🧠 On-Device /ai WebGPU (Gemma 2 2B · High Precision)</option>
           <option value="google/gemini-2.0-flash-lite-preview-02-05:free">Google Gemini 2.0 Flash Lite (Free)</option>
           <option value="google/gemini-2.0-flash-exp:free">Google Gemini 2.0 Flash (Free)</option>
           <option value="qwen/qwen-2.5-vl-72b-instruct:free">Qwen 2.5 Vision 72B (Free)</option>
@@ -948,7 +954,7 @@
     if (document.referrer && document.referrer.indexOf(window.location.host) !== -1) {
       history.back();
     } else {
-      window.location.href = "{{ url_for('store_room') }}";
+      window.location.href = "{{ url_for('app_pages.store_room') }}";
     }
   }
 
@@ -988,8 +994,8 @@
     try {
       // If OCR explicitly requested, trigger OCR endpoint
       const isOcr = question.toLowerCase().includes('ocr') || question.toLowerCase().includes('extract all text');
-      const endpoint = isOcr ? '/api/extract-ocr' : '/api/ask-paper';
-      const bodyData = isOcr ? { doc_id: docId, model: model } : { doc_id: docId, question: question, model: model };
+      const endpoint = isOcr ? '/api/extract-ocr' : '/api/ai/assistant';
+      const bodyData = isOcr ? { doc_id: docId, model: model } : { doc_id: docId, message: question, question: question, model: model };
 
       const res = await fetch(endpoint, {
         method: 'POST',
@@ -999,7 +1005,7 @@
       const data = await res.json();
 
       if (data.success) {
-        resBox.innerText = data.answer || data.ocr_text || 'No text extracted.';
+        resBox.innerText = data.reply || data.answer || data.ocr_text || 'No text extracted.';
       } else {
         resBox.innerText = '⚠️ ' + (data.message || 'AI request failed. Please try again.');
       }
@@ -1125,10 +1131,11 @@
     btn.disabled = true;
     btn.textContent = 'Submitting...';
     try {
-      const res = await fetch('/api/report-broken-file', {
+      const res = await fetch('/api/reports', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          type: 'broken_file',
           file_id: _reportDocId,
           file_name: _reportDocTitle,
           file_type: 'pdf',

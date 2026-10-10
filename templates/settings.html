@@ -661,6 +661,12 @@
       <button class="st-nav-item" data-section="study-credits">
         <span class="st-nav-icon">🎓</span> Study Credits
       </button>
+      <button class="st-nav-item" data-section="payout">
+        <span class="st-nav-icon">💼</span> Payouts & Earnings
+      </button>
+      <button class="st-nav-item" data-section="transactions">
+        <span class="st-nav-icon">🧾</span> Payment History
+      </button>
       <button class="st-nav-item" data-section="privacy">
         <span class="st-nav-icon">🔒</span> Privacy
       </button>
@@ -960,6 +966,272 @@
         </div>
       </div>
 
+      <!-- Payouts & Earnings -->
+      <div class="st-section" id="section-payout">
+        <!-- Card 1: Creator Monetization Eligibility -->
+        <div class="st-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
+            <h2 style="margin:0;"><span class="st-card-icon">⚡</span> Creator Eligibility</h2>
+            <span id="stPayoutEligibilityBadge" class="st-stat-value" style="background:#fef3c7;color:#92400e;">Checking...</span>
+          </div>
+          <div id="stPayoutEligibilityMsg" class="st-form-sublabel" style="line-height:1.5;">
+            Evaluating your current rank and monetization privileges...
+          </div>
+          <div id="stCreatorMetricsGrid" style="display:none;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-top:1rem;">
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.75rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-text-muted);font-weight:600;">Monetized Notes</div>
+              <div id="stPaidNotesCount" style="font-size:1.4rem;font-weight:800;color:var(--st-text-main);margin-top:0.25rem;">0</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.75rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-text-muted);font-weight:600;">Total Note Sales</div>
+              <div id="stTotalSalesCount" style="font-size:1.4rem;font-weight:800;color:var(--st-navy);margin-top:0.25rem;">0</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.75rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-text-muted);font-weight:600;">Total Revenue</div>
+              <div id="stTotalEarningsAmt" style="font-size:1.4rem;font-weight:800;color:var(--st-success);margin-top:0.25rem;">₹0.00</div>
+            </div>
+          </div>
+          <!-- Eligibility Roadmap: Tasks to Complete -->
+          <div id="stBoostRankBox" style="display:none;margin-top:1.25rem;border-radius:14px;background:var(--st-surface-hover);border:1.5px solid var(--st-border);padding:1.25rem;">
+            <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
+              <div style="font-size:0.95rem;font-weight:700;color:var(--st-text-main);">
+                🎯 How to Become Eligible for Notes Selling & Payouts
+              </div>
+              <span id="stRankProgressText" style="font-size:0.78rem;font-weight:700;color:var(--st-navy);background:var(--st-sky-tint);padding:0.2rem 0.65rem;border-radius:999px;">
+                Target: Contributor Rank
+              </span>
+            </div>
+
+            <p style="margin:0 0 0.85rem;font-size:0.83rem;color:var(--st-text-muted);line-height:1.5;">
+              To maintain academic quality and prevent spam, selling notes and requesting cash payouts unlocks at <strong>Contributor</strong> rank. Complete the tasks below to earn XP and upgrade your tier:
+            </p>
+
+            <!-- Score Progress Bar -->
+            <div style="margin-bottom:1.25rem;">
+              <div style="display:flex;justify-content:space-between;font-size:0.75rem;font-weight:600;color:var(--st-text-muted);margin-bottom:0.35rem;">
+                <span>Current Tier: <strong id="stCurrentTierText" style="color:var(--st-text-main);">Explorer</strong></span>
+                <span>Score: <strong id="stCurrentScoreText" style="color:var(--st-navy);">0</strong> / <span id="stTargetScoreText">100</span> XP</span>
+              </div>
+              <div style="height:8px;background:var(--st-border);border-radius:999px;overflow:hidden;">
+                <div id="stRankProgressBar" style="width:0%;height:100%;background:linear-gradient(90deg, #4FA9E0, #1B3A6B);border-radius:999px;transition:width 0.4s ease;"></div>
+              </div>
+            </div>
+
+            <!-- Task List -->
+            <div style="display:flex;flex-direction:column;gap:0.75rem;">
+              <!-- Task 1: Upload Notes -->
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
+                  <span style="font-size:1.3rem;">📤</span>
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">1. Upload Study Notes & PYQs</div>
+                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Share lecture notes, question papers, or practical manuals (+5 to +15 XP each)</div>
+                  </div>
+                </div>
+                <a href="/upload" class="st-btn st-btn-primary" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Upload Notes</a>
+              </div>
+
+              <!-- Task 2: Like, Comment & Bookmark -->
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
+                  <span style="font-size:1.3rem;">❤️</span>
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">2. Like, Bookmark & Comment on Resources</div>
+                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Bookmark study notes (+5 XP), leave helpful comments (+1 XP), and like papers (+2 XP)</div>
+                  </div>
+                </div>
+                <a href="/" class="st-btn st-btn-outline" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Explore Notes</a>
+              </div>
+
+              <!-- Task 3: Reach 50+ Views -->
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
+                  <span style="font-size:1.3rem;">👁️</span>
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">3. Reach 50+ Views on Your Uploads</div>
+                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Share note links with classmates to gain peer views (+0.1 XP per unique view)</div>
+                  </div>
+                </div>
+                <a href="/profile" class="st-btn st-btn-outline" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">My Uploads</a>
+              </div>
+
+              <!-- Task 4: Refer Classmates -->
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
+                  <span style="font-size:1.3rem;">🎁</span>
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">4. Invite Friends via Referral Link</div>
+                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Earn +50 bonus credits and instant reputation points for every student signup</div>
+                  </div>
+                </div>
+                <button type="button" onclick="copySettingsReferralLink()" id="stCopyRefBtn" class="st-btn st-btn-outline" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Copy Invite Link</button>
+              </div>
+
+              <!-- Task 5: Complete Profile -->
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
+                  <span style="font-size:1.3rem;">🎓</span>
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">5. Complete Student Academic Profile</div>
+                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Fill in your College, Branch, and Pursuing Year to establish verified student status</div>
+                  </div>
+                </div>
+                <button type="button" onclick="document.querySelector('#settingsNav [data-section=my-account]').click()" class="st-btn st-btn-outline" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Complete Profile</button>
+              </div>
+
+              <!-- Task 6: Setup AI Model with API Key -->
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
+                  <span style="font-size:1.3rem;">🤖</span>
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">6. Setup AI Model with BYOK API Key</div>
+                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Connect your free Google Gemini, Groq, or OpenAI API key for unlimited AI features</div>
+                  </div>
+                </div>
+                <button type="button" onclick="document.querySelector('#settingsNav [data-section=ai-assistant]').click()" class="st-btn st-btn-primary" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Setup AI Key</button>
+              </div>
+
+              <!-- Task 7: Use All Features of AI Model -->
+              <div style="display:flex;align-items:center;justify-content:space-between;background:var(--st-surface);border:1px solid var(--st-border);border-radius:10px;padding:0.75rem 1rem;flex-wrap:wrap;gap:0.5rem;">
+                <div style="display:flex;align-items:center;gap:0.75rem;min-width:200px;flex:1;">
+                  <span style="font-size:1.3rem;">⚡</span>
+                  <div>
+                    <div style="font-size:0.88rem;font-weight:700;color:var(--st-text-main);">7. Use AI Study Features & PDF Chat</div>
+                    <div style="font-size:0.77rem;color:var(--st-text-muted);">Generate automatic summaries, AI flashcards, practice quizzes, and chat with notes</div>
+                  </div>
+                </div>
+                <button type="button" onclick="document.querySelector('#settingsNav [data-section=ai-assistant]').click()" class="st-btn st-btn-outline" style="padding:0.4rem 0.9rem;font-size:0.8rem;min-height:36px;">Try AI Features</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2: Creator Wallet Balances -->
+        <div class="st-card">
+          <h2><span class="st-card-icon">💼</span> Creator Wallet Balances</h2>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:0.5rem;">
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:#b45309;font-weight:700;text-transform:uppercase;">Pending (30-day Lock)</div>
+              <div id="stWalletPending" style="font-size:1.35rem;font-weight:800;color:#d97706;margin-top:0.25rem;">₹0.00</div>
+              <div style="font-size:0.7rem;color:var(--st-text-sub);margin-top:0.25rem;">Holding period for disputes</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-success);font-weight:700;text-transform:uppercase;">Withdrawable</div>
+              <div id="stWalletWithdrawable" style="font-size:1.35rem;font-weight:800;color:var(--st-success);margin-top:0.25rem;">₹0.00</div>
+              <div style="font-size:0.7rem;color:var(--st-text-sub);margin-top:0.25rem;">Ready for payout</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-text-muted);font-weight:700;text-transform:uppercase;">Total Withdrawn</div>
+              <div id="stWalletTotalWithdrawn" style="font-size:1.35rem;font-weight:800;color:var(--st-text-main);margin-top:0.25rem;">₹0.00</div>
+              <div style="font-size:0.7rem;color:var(--st-text-sub);margin-top:0.25rem;">Lifetime payout total</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 3: Request Withdrawal -->
+        <div class="st-card">
+          <h2><span class="st-card-icon">💸</span> Request Payout</h2>
+          <div class="st-form-sublabel" style="margin-bottom:1rem;">
+            Minimum withdrawal amount is <strong>₹100</strong>. Payouts are reviewed and dispatched within 24-48 hours.
+          </div>
+          <div id="stWithdrawDisabledNote" style="display:none;padding:0.75rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;font-size:0.85rem;color:var(--st-text-muted);">
+            🔒 Insufficient withdrawable balance. You need at least ₹100 in matured balance to request a payout.
+          </div>
+          <form id="stWithdrawalForm" style="display:none;" onsubmit="handleWithdrawalSubmit(event)">
+            <div class="st-form-row">
+              <label for="stWithdrawAmt" class="st-form-label">Withdrawal Amount (₹)</label>
+              <input type="number" id="stWithdrawAmt" name="amount" class="st-form-input" min="100" step="1" required placeholder="Min 100">
+            </div>
+            <div class="st-form-row">
+              <label for="stWithdrawMethod" class="st-form-label">Payout Method</label>
+              <select id="stWithdrawMethod" name="payout_method" class="st-form-input" onchange="togglePayoutMethodPlaceholder()">
+                <option value="upi">UPI (Instant Transfer)</option>
+                <option value="bank">Bank Account (IMPS/NEFT)</option>
+              </select>
+            </div>
+            <div class="st-form-row">
+              <label for="stWithdrawDetails" class="st-form-label" id="stWithdrawDetailsLabel">UPI ID</label>
+              <input type="text" id="stWithdrawDetails" name="payout_details" class="st-form-input" required placeholder="e.g. yourname@okhdfcbank">
+            </div>
+            <div class="st-btn-row">
+              <button type="submit" id="stWithdrawBtn" class="st-btn st-btn-primary">
+                <span>Submit Payout Request</span>
+              </button>
+            </div>
+            <div id="stWithdrawFeedback" style="display:none;margin-top:0.75rem;font-size:0.88rem;font-weight:600;"></div>
+          </form>
+        </div>
+
+        <!-- Card 4: Recent Payout Requests & History -->
+        <div class="st-card">
+          <h2><span class="st-card-icon">📜</span> Payout History</h2>
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+              <thead>
+                <tr style="text-align:left;border-bottom:1px solid var(--st-border);color:var(--st-text-muted);">
+                  <th style="padding:0.5rem;">Date</th>
+                  <th style="padding:0.5rem;">Amount</th>
+                  <th style="padding:0.5rem;">Method</th>
+                  <th style="padding:0.5rem;">Status</th>
+                </tr>
+              </thead>
+              <tbody id="stPayoutHistoryTbody">
+                <tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--st-text-muted);">Loading history...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Payment & Transaction History -->
+      <div class="st-section" id="section-transactions">
+        <div class="st-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
+            <h2 style="margin:0;"><span class="st-card-icon">🧾</span> Payment History</h2>
+            <button type="button" onclick="loadTransactionHistory(true)" class="st-btn st-btn-outline" style="padding:0.35rem 0.8rem;font-size:0.78rem;min-height:32px;">
+              🔄 Refresh
+            </button>
+          </div>
+          <div class="st-form-sublabel" style="margin-bottom:1.25rem;">
+            View all your past PhonePe purchases, document unlocks, support contributions, and official bank receipts.
+          </div>
+
+          <!-- Transaction Metrics Grid -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:1.25rem;">
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-text-muted);font-weight:700;text-transform:uppercase;">Total Orders</div>
+              <div id="stTxTotalOrders" style="font-size:1.35rem;font-weight:800;color:var(--st-text-main);margin-top:0.25rem;">0</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-success);font-weight:700;text-transform:uppercase;">Successful</div>
+              <div id="stTxSuccessOrders" style="font-size:1.35rem;font-weight:800;color:var(--st-success);margin-top:0.25rem;">0</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:#7c3aed;font-weight:700;text-transform:uppercase;">Gateway</div>
+              <div style="font-size:1.05rem;font-weight:800;color:#7c3aed;margin-top:0.35rem;">PhonePe Merchant</div>
+            </div>
+          </div>
+
+          <!-- Transaction Table Container -->
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+              <thead>
+                <tr style="text-align:left;border-bottom:1.5px solid var(--st-border);color:var(--st-text-muted);">
+                  <th style="padding:0.6rem 0.5rem;">Order Reference</th>
+                  <th style="padding:0.6rem 0.5rem;">Item / Purpose</th>
+                  <th style="padding:0.6rem 0.5rem;">Amount</th>
+                  <th style="padding:0.6rem 0.5rem;">Status</th>
+                  <th style="padding:0.6rem 0.5rem;text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="stTransactionsTbody">
+                <tr><td colspan="5" style="padding:1.5rem;text-align:center;color:var(--st-text-muted);">Loading payment history...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
       <!-- Privacy -->
       <div class="st-section" id="section-privacy">
         <div class="st-card">
@@ -1076,11 +1348,13 @@
               <option value="nvidia">NVIDIA NIM (Direct API Key)</option>
               <option value="openai">OpenAI (Direct API Key)</option>
               <option value="groq">Groq (Direct API Key · Ultra Fast)</option>
+              <option value="ollama">🖥️ Local Model (Ollama · Private, Offline & 100% Free)</option>
+              <option value="webllm">🧠 On-Device WebLLM (In-Browser WebGPU · /ai Hub Engine · 100% Offline)</option>
             </select>
             <div class="st-form-sublabel">Select your platform provider. We connect directly to the chosen platform.</div>
           </div>
 
-          <div class="st-form-row">
+          <div class="st-form-row" id="aiKeyRow">
             <label for="aiApiKeyInput" class="st-form-label" id="aiKeyLabel">API Key (BYOK)</label>
             <input type="password" id="aiApiKeyInput" class="st-form-input" placeholder="sk-or-v1-...">
             <div class="st-form-sublabel" id="aiKeySublabel">Your key is Fernet-encrypted on the server and verified before saving. Never shared.</div>
@@ -1097,7 +1371,49 @@
             <div class="st-form-sublabel" id="aiModelSublabel">Live models retrieved directly from provider API.</div>
             
             <div class="st-banner st-banner-tip" style="margin-top:0.75rem; font-size:0.8125rem; line-height:1.45;">
-              💡 <strong>Credits exhausted?</strong> Switch your model to any option under <strong>🎁 Free Tier / Included</strong> (such as OpenRouter <code>:free</code> models, Groq, or Gemini Flash) to continue chatting without requiring paid credits.
+              💡 <strong>Credits exhausted?</strong> Switch your model to any option under <strong>🎁 Free Tier / Included</strong> (such as On-Device WebLLM, Local Ollama, OpenRouter <code>:free</code> models, Groq, or Gemini Flash) to continue chatting without requiring paid credits.
+            </div>
+
+            <div id="localOllamaPanel" style="display:none; background:rgba(99, 102, 241, 0.04); border:1px solid rgba(99, 102, 241, 0.2); border-radius:12px; padding:1rem; margin-top:1rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+                <div style="font-weight:600; font-size:0.9375rem; display:flex; align-items:center; gap:0.4rem;">
+                  <span>🖥️</span> Local Model Engine (Ollama)
+                </div>
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                  <button type="button" class="st-btn st-btn-outline" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" onclick="checkLocalOllamaStatus()">🔍 Check Status</button>
+                  <button type="button" class="st-btn st-btn-primary" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" id="runLocalAiBtn" onclick="runLocalAiTest()">⚡ Run Local Model</button>
+                </div>
+              </div>
+              <div id="localOllamaStatus" style="font-size:0.8125rem; line-height:1.5; color:var(--st-text-muted);">
+                Checking local Ollama status...
+              </div>
+              <div id="localOllamaTestOutput" style="display:none; margin-top:0.75rem; padding:0.75rem; background:rgba(0,0,0,0.05); border-radius:8px; font-size:0.8125rem; font-family:monospace; white-space:pre-wrap;"></div>
+            </div>
+
+            <div id="onDeviceWebLlmPanel" style="display:none; background:rgba(16, 185, 129, 0.05); border:1px solid rgba(16, 185, 129, 0.25); border-radius:12px; padding:1rem; margin-top:1rem;">
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+                <div style="font-weight:600; font-size:0.9375rem; display:flex; align-items:center; gap:0.4rem; color:var(--st-navy, #0f172a);">
+                  <span>🧠</span> On-Device Browser Engine (/ai)
+                </div>
+                <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                  <button type="button" class="st-btn st-btn-primary" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" id="downloadWebLlmBtn" onclick="downloadSelectedWebLlmModel()">⬇ Download to Device</button>
+                  <button type="button" class="st-btn" style="display:none; min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem; background:#ef4444; color:#fff; border:none; border-radius:8px;" id="deleteWebLlmBtn" onclick="deleteSelectedWebLlmModel()">🗑️ Delete from Device</button>
+                  <a href="/ai" target="_blank" class="st-btn st-btn-outline" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem; text-decoration:none; display:inline-flex; align-items:center;">🚀 Open /ai Portal</a>
+                  <button type="button" class="st-btn st-btn-outline" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" onclick="checkWebGpuStatus()">⚡ Test WebGPU</button>
+                </div>
+              </div>
+              <div id="webGpuStatusMsg" style="font-size:0.8125rem; line-height:1.5; color:var(--st-text-muted);">
+                Runs WebLLM MLC models directly in your browser. Downloaded once into persistent IndexedDB storage, then works 100% offline with zero server calls.
+              </div>
+              <div id="webLlmProgressWrap" style="display:none; margin-top:0.75rem;">
+                <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; margin-bottom:0.25rem; color:#1e293b;">
+                  <span id="webLlmProgressText">Downloading model shards...</span>
+                  <span id="webLlmProgressPct">0%</span>
+                </div>
+                <div style="height:6px; background:#e2e8f0; border-radius:4px; overflow:hidden;">
+                  <div id="webLlmProgressBar" style="width:0%; height:100%; background:#10b981; transition:width 0.2s;"></div>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -1149,6 +1465,12 @@ function showStToast(msg, duration = 2500) {
     sections.forEach(section => {
       section.classList.toggle('active', section.id === 'section-' + sectionId);
     });
+    if (sectionId === 'payout' && typeof loadPayoutSettings === 'function') {
+      loadPayoutSettings();
+    }
+    if (sectionId === 'transactions' && typeof loadTransactionHistory === 'function') {
+      loadTransactionHistory();
+    }
     if (updateHash && history.replaceState) {
       try {
         history.replaceState(null, '', '#' + sectionId);
@@ -1366,17 +1688,224 @@ const PROVIDER_PLACEHOLDERS = {
   gemini:     'AIzaSy...',
   nvidia:     'nvapi-...',
   openai:     'sk-proj-...',
-  groq:       'gsk_...'
+  groq:       'gsk_...',
+  ollama:     'http://localhost:11434 (Optional)',
+  webllm:     'In-Browser WebGPU (No API key needed)'
 };
 
 function onAiProviderChanged() {
   const pSelect = document.getElementById('aiProviderSelect');
   const provider = pSelect ? pSelect.value : 'openrouter';
   const kInput = document.getElementById('aiApiKeyInput');
+  const kLabel = document.getElementById('aiKeyLabel');
+  const kSublabel = document.getElementById('aiKeySublabel');
+  const kRow = document.getElementById('aiKeyRow');
+  const saveBtn = document.getElementById('saveAiBtn');
+  const localPanel = document.getElementById('localOllamaPanel');
+  const onDevicePanel = document.getElementById('onDeviceWebLlmPanel');
+
   if (kInput) {
     kInput.placeholder = PROVIDER_PLACEHOLDERS[provider] || 'Enter API Key...';
   }
+  if (provider === 'webllm') {
+    if (kRow) kRow.style.display = 'none';
+    if (saveBtn) saveBtn.textContent = '⚡ Activate On-Device Model';
+    if (localPanel) localPanel.style.display = 'none';
+    if (onDevicePanel) {
+      onDevicePanel.style.display = 'block';
+      checkWebGpuStatus();
+    }
+  } else if (provider === 'ollama') {
+    if (kRow) kRow.style.display = '';
+    if (saveBtn) saveBtn.textContent = '💾 Save Local Endpoint';
+    if (kLabel) kLabel.textContent = 'Local Ollama Host URL (Optional)';
+    if (kSublabel) kSublabel.textContent = 'Default: http://localhost:11434. No API key required; runs locally on your machine.';
+    if (localPanel) {
+      localPanel.style.display = 'block';
+      checkLocalOllamaStatus();
+    }
+    if (onDevicePanel) onDevicePanel.style.display = 'none';
+  } else {
+    if (kRow) kRow.style.display = '';
+    if (saveBtn) saveBtn.textContent = '💾 Save Key & Model';
+    if (kLabel) kLabel.textContent = 'API Key (BYOK)';
+    if (kSublabel) kSublabel.textContent = 'Your key is Fernet-encrypted on the server and verified before saving. Never shared.';
+    if (localPanel) localPanel.style.display = 'none';
+    if (onDevicePanel) onDevicePanel.style.display = 'none';
+  }
   refreshLiveModels();
+}
+
+function checkWebGpuStatus() {
+  const el = document.getElementById('webGpuStatusMsg');
+  const mSelect = document.getElementById('aiModelSelect');
+  const downloadBtn = document.getElementById('downloadWebLlmBtn');
+  const deleteBtn = document.getElementById('deleteWebLlmBtn');
+  const selectedModel = (mSelect && mSelect.value) ? mSelect.value : (localStorage.getItem('ai_preferred_model') || 'Llama-3.2-1B-Instruct-q4f16_1-MLC');
+
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().catch(() => {});
+  }
+
+  const isCurrentCached = localStorage.getItem(`webllm_installed_${selectedModel}`) === 'true' || localStorage.getItem('webllm_last_cached') === selectedModel;
+
+  if (deleteBtn) {
+    deleteBtn.style.display = isCurrentCached ? 'inline-block' : 'none';
+  }
+  if (downloadBtn) {
+    downloadBtn.textContent = isCurrentCached ? '⚡ Re-Download / Verify' : '⬇ Download to Device';
+  }
+
+  if (!el) return;
+
+  if ('gpu' in navigator) {
+    navigator.gpu.requestAdapter().then(adapter => {
+      if (adapter) {
+        if (isCurrentCached) {
+          el.innerHTML = `<span style="color:#16a34a; font-weight:600;">🟢 Model Saved on Device! (${selectedModel})</span><br>Stored permanently in browser storage — works 100% offline with zero network re-downloads.`;
+        } else {
+          el.innerHTML = `<span style="color:#16a34a; font-weight:600;">🟢 WebGPU Hardware Ready</span><br>Click <strong>Download to Device</strong> to save <code>${selectedModel}</code> for offline use.`;
+        }
+      } else {
+        el.innerHTML = '<span style="color:#eab308; font-weight:600;">🟡 WebGPU supported, but adapter unavailable.</span> Enable hardware acceleration in your browser settings (<code>chrome://settings/system</code>).';
+      }
+    }).catch(() => {
+      el.innerHTML = '<span style="color:#eab308; font-weight:600;">🟡 WebGPU supported, but adapter query failed.</span>';
+    });
+  } else {
+    el.innerHTML = '<span style="color:#dc2626; font-weight:600;">🔴 WebGPU not detected in this browser.</span> Use Chrome, Edge 113+, or Arc, or use the <strong>Local Model (Ollama)</strong> option.';
+  }
+}
+
+async function downloadSelectedWebLlmModel() {
+  const mSelect = document.getElementById('aiModelSelect');
+  const modelId = (mSelect && mSelect.value) ? mSelect.value : 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+  const progressWrap = document.getElementById('webLlmProgressWrap');
+  const progressText = document.getElementById('webLlmProgressText');
+  const progressPct  = document.getElementById('webLlmProgressPct');
+  const progressBar  = document.getElementById('webLlmProgressBar');
+  const downloadBtn  = document.getElementById('downloadWebLlmBtn');
+
+  if (progressWrap) progressWrap.style.display = 'block';
+  if (downloadBtn) downloadBtn.disabled = true;
+
+  try {
+    if (navigator.storage && navigator.storage.persist) {
+      await navigator.storage.persist();
+    }
+    const core = await import('/static/js/ai/webllm-core.js');
+    const mgr = new core.AbhiHubWebLLMManager();
+    await mgr.prefetchModel(modelId, (report) => {
+      if (report.text && progressText) progressText.textContent = report.text;
+      if (typeof report.progress === 'number' && progressPct && progressBar) {
+        const pct = Math.round(report.progress * 100);
+        progressPct.textContent = `${pct}%`;
+        progressBar.style.width = `${pct}%`;
+      }
+    });
+    await core.markModelCached(modelId);
+    showStToast(`✓ ${modelId} successfully downloaded & saved!`);
+    checkWebGpuStatus();
+  } catch (err) {
+    showStToast(`Download failed: ${err.message || err}`, 4000);
+    if (progressText) progressText.textContent = `Error: ${err.message || err}`;
+  } finally {
+    if (downloadBtn) downloadBtn.disabled = false;
+  }
+}
+
+async function deleteSelectedWebLlmModel() {
+  const mSelect = document.getElementById('aiModelSelect');
+  const modelId = (mSelect && mSelect.value) ? mSelect.value : 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+  if (!confirm(`Are you sure you want to delete ${modelId} from this device to free disk space?`)) return;
+
+  try {
+    const core = await import('/static/js/ai/webllm-core.js');
+    await core.deleteModelFromStorage(modelId);
+    showStToast(`✓ ${modelId} deleted from device.`);
+    checkWebGpuStatus();
+  } catch (err) {
+    showStToast(`Delete failed: ${err.message || err}`, 4000);
+  }
+}
+
+function checkLocalOllamaStatus() {
+  const statusEl = document.getElementById('localOllamaStatus');
+  const kInput = document.getElementById('aiApiKeyInput');
+  const host = (kInput ? kInput.value : '').trim();
+  if (statusEl) statusEl.innerHTML = '🔄 Probing Ollama server...';
+
+  const url = '/api/ai/local/status' + (host ? `?host=${encodeURIComponent(host)}` : '');
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      if (!statusEl) return;
+      if (data.running) {
+        const modelList = (data.models && data.models.length > 0)
+          ? `<code>${data.models.join('</code>, <code>')}</code>`
+          : 'None installed yet (run <code>ollama pull llama3.2</code>)';
+        statusEl.innerHTML = `<span style="color:#16a34a; font-weight:600;">🟢 Ollama is Online</span> (${data.host})<br>` +
+          `Installed models (${data.count}): ${modelList}`;
+      } else {
+        statusEl.innerHTML = `<span style="color:#eab308; font-weight:600;">🟠 Ollama Offline</span> (${data.host})<br>` +
+          `To run AI locally, start Ollama in your terminal: <code>ollama serve</code> or launch Ollama Desktop.<br>` +
+          `<span style="margin-top:4px; display:inline-block;">💡 Get Ollama at <a href="https://ollama.com" target="_blank" style="color:var(--st-primary); font-weight:600;">ollama.com</a> & run <code>ollama run llama3.2</code></span>`;
+      }
+    })
+    .catch(() => {
+      if (statusEl) {
+        statusEl.innerHTML = '<span style="color:#dc2626;">❌ Unable to connect to local Ollama check endpoint.</span>';
+      }
+    });
+}
+
+function runLocalAiTest() {
+  const btn = document.getElementById('runLocalAiBtn');
+  const out = document.getElementById('localOllamaTestOutput');
+  const mSelect = document.getElementById('aiModelSelect');
+  const kInput = document.getElementById('aiApiKeyInput');
+  const model = mSelect ? mSelect.value : '';
+  const host = (kInput ? kInput.value : '').trim();
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Running...'; }
+  if (out) {
+    out.style.display = 'block';
+    out.textContent = `Sending test prompt to local model [${model || 'auto'}]...`;
+  }
+
+  fetch('/api/ai/local/status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: model,
+      host: host,
+      prompt: 'Hello! Please confirm in one short sentence that the local model is operational.'
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Local Model'; }
+    if (!out) return;
+    if (data.success) {
+      out.style.border = '1px solid #86efac';
+      out.style.background = '#f0fdf4';
+      out.textContent = `✅ Success (${data.latency_ms}ms) · Model: ${data.model_used}\n\n"${data.reply}"`;
+      showStToast('✅ Local model executed successfully!');
+    } else {
+      out.style.border = '1px solid #fca5a5';
+      out.style.background = '#fef2f2';
+      out.textContent = `❌ ${data.message || 'Execution failed'}`;
+      showStToast('⚠️ ' + (data.message || 'Local execution failed'));
+    }
+  })
+  .catch(err => {
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Local Model'; }
+    if (out) {
+      out.style.border = '1px solid #fca5a5';
+      out.style.background = '#fef2f2';
+      out.textContent = `❌ Network error connecting to local runner: ${err}`;
+    }
+  });
 }
 
 function refreshLiveModels() {
@@ -1399,7 +1928,9 @@ function refreshLiveModels() {
         const savedModel = localStorage.getItem('ai_preferred_model');
 
         const freeGroup = document.createElement('optgroup');
-        freeGroup.label = '🎁 Free Tier / Included (Use when credits exhaust)';
+        freeGroup.label = (provider === 'ollama' || provider === 'webllm')
+          ? '🖥️ Available On-Device / Local Models (100% Free & Offline)'
+          : '🎁 Free Tier / Included (Use when credits exhaust)';
 
         const paidGroup = document.createElement('optgroup');
         paidGroup.label = '💎 Premium / Paid Tier';
@@ -1407,7 +1938,7 @@ function refreshLiveModels() {
         data.models.forEach(m => {
           const opt = document.createElement('option');
           opt.value = m.id;
-          opt.textContent = (m.is_free ? '🎁 ' : '⚡ ') + (m.name || m.id);
+          opt.textContent = (m.is_free ? (provider === 'ollama' || provider === 'webllm' ? '🧠 ' : '🎁 ') : '⚡ ') + (m.name || m.id);
           if (m.id === savedModel) opt.selected = true;
 
           if (m.is_free) {
@@ -1422,7 +1953,16 @@ function refreshLiveModels() {
 
         const freeCount = freeGroup.children.length;
         if (mSublabel) {
-          mSublabel.innerHTML = `✅ <strong>${data.models.length} models</strong> retrieved (${freeCount} free-tier models ready if credits run out).`;
+          if (provider === 'webllm') {
+            mSublabel.innerHTML = `✅ <strong>${data.models.length} on-device WebGPU models</strong> ready to run offline in browser.`;
+          } else if (provider === 'ollama') {
+            mSublabel.innerHTML = `✅ <strong>${data.models.length} local models</strong> ready for offline execution.`;
+          } else {
+            mSublabel.innerHTML = `✅ <strong>${data.models.length} models</strong> retrieved (${freeCount} free-tier models ready if credits run out).`;
+          }
+        }
+        if (provider === 'webllm') {
+          checkWebGpuStatus();
         }
       } else if (mSelect) {
         mSelect.innerHTML = '<option value="">No models returned</option>';
@@ -1436,6 +1976,17 @@ function refreshLiveModels() {
 function loadAiSettings() {
   const savedProvider = localStorage.getItem('ai_provider') || 'openrouter';
   const pSelect = document.getElementById('aiProviderSelect');
+  const mSelect = document.getElementById('aiModelSelect');
+
+  if (mSelect && !mSelect.__webllmListenerAdded__) {
+    mSelect.__webllmListenerAdded__ = true;
+    mSelect.addEventListener('change', () => {
+      if (document.getElementById('aiProviderSelect')?.value === 'webllm') {
+        checkWebGpuStatus();
+      }
+    });
+  }
+
   if (pSelect) {
     pSelect.value = savedProvider;
     onAiProviderChanged();
@@ -1475,8 +2026,29 @@ function saveAiSettings() {
   const statusEl = document.getElementById('aiSettingStatus');
   const btn = document.getElementById('saveAiBtn');
 
-  const key = (keyInput ? keyInput.value : '').trim();
   const model = modelSelect ? modelSelect.value : '';
+
+  if (provider === 'webllm') {
+    localStorage.setItem('ai_provider', 'webllm');
+    if (model) localStorage.setItem('ai_preferred_model', model);
+    showStToast('✅ On-Device WebLLM activated! No API key needed.');
+    if (statusEl) {
+      statusEl.textContent = '✅ On-Device WebLLM active (100% in-browser WebGPU • No API key required).';
+      statusEl.style.color = '#16a34a';
+    }
+    // Background sync with server; never throws or shows errors
+    fetch('/api/ai/key', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ api_key: 'browser_webgpu', provider: 'webllm' })
+    }).catch(() => {});
+    return;
+  }
+
+  let key = (keyInput ? keyInput.value : '').trim();
+  if (provider === 'ollama' && !key) {
+    key = 'http://localhost:11434';
+  }
 
   localStorage.setItem('ai_provider', provider);
   if (model) {
@@ -1485,7 +2057,7 @@ function saveAiSettings() {
 
   if (key) {
     if (btn) { btn.disabled = true; btn.textContent = 'Validating key...'; }
-    if (statusEl) { statusEl.textContent = `Validating key with ${provider}...`; statusEl.style.color = 'var(--text-secondary)'; }
+    if (statusEl) { statusEl.textContent = `Saving settings for ${provider}...`; statusEl.style.color = 'var(--text-secondary)'; }
 
     fetch('/api/ai/key', {
       method: 'POST',
@@ -1496,19 +2068,19 @@ function saveAiSettings() {
     .then(res => {
       if (btn) { btn.disabled = false; btn.textContent = '💾 Save Key & Model'; }
       if (res.ok && res.data.success) {
-        showStToast(`✅ ${provider.toUpperCase()} Key verified & activated!`);
-        if (statusEl) { statusEl.textContent = `✅ Key verified & encrypted. ${provider.toUpperCase()} BYOK plan active.`; statusEl.style.color = '#16a34a'; }
-        if (keyInput) keyInput.value = '';
+        showStToast(`✅ ${provider.toUpperCase()} configured & activated!`);
+        if (statusEl) { statusEl.textContent = `✅ ${res.data.message || 'Configured & saved.'}`; statusEl.style.color = '#16a34a'; }
+        if (keyInput && provider !== 'ollama') keyInput.value = '';
         refreshLiveModels();
         loadAiSettings();
       } else {
-        showStToast('❌ ' + (res.data.message || 'Key validation failed'));
+        showStToast('❌ ' + (res.data.message || 'Validation failed'));
         if (statusEl) { statusEl.textContent = '❌ ' + (res.data.message || 'Validation failed'); statusEl.style.color = '#dc2626'; }
       }
     })
     .catch(err => {
       if (btn) { btn.disabled = false; btn.textContent = '💾 Save Key & Model'; }
-      showStToast('❌ Network error saving key');
+      showStToast('❌ Network error saving settings');
     });
   } else {
     showStToast('✅ Provider & model preferences saved');
@@ -1632,10 +2204,299 @@ function toggleSettingsStudentFields() {
   }
 }
 
+// ── Payouts & Earnings Management ──
+let _payoutLoaded = false;
+async function loadPayoutSettings(force = false) {
+  if (_payoutLoaded && !force) return;
+  _payoutLoaded = true;
+
+  try {
+    // 1. Check access level & eligibility
+    const accessRes = await fetch('/api/my-access');
+    const accessData = await accessRes.json();
+    const level = (accessData.level || 'explorer').toLowerCase();
+    const isEligible = ['contributor', 'power_contributor', 'community_leader'].includes(level);
+
+    const badge = document.getElementById('stPayoutEligibilityBadge');
+    const msg = document.getElementById('stPayoutEligibilityMsg');
+    const metricsGrid = document.getElementById('stCreatorMetricsGrid');
+    const boostBox = document.getElementById('stBoostRankBox');
+
+    if (badge) {
+      if (isEligible) {
+        badge.textContent = 'Eligible (' + (accessData.level || 'Contributor').replace('_', ' ').toUpperCase() + ')';
+        badge.style.background = 'var(--st-success-tint)';
+        badge.style.color = 'var(--st-success)';
+        if (msg) msg.textContent = '🎉 You have Contributor tier privileges enabled. You can monetize your study documents and earn directly.';
+        if (metricsGrid) metricsGrid.style.display = 'grid';
+        if (boostBox) boostBox.style.display = 'none';
+
+        try {
+          const earnRes = await fetch('/api/creator/earnings');
+          const earnData = await earnRes.json();
+          if (earnData.success) {
+            const pnc = document.getElementById('stPaidNotesCount');
+            const stc = document.getElementById('stTotalSalesCount');
+            const tea = document.getElementById('stTotalEarningsAmt');
+            if (pnc) pnc.textContent = earnData.paid_notes_count || 0;
+            if (stc) stc.textContent = earnData.total_sales || 0;
+            if (tea) tea.textContent = '₹' + parseFloat(earnData.total_earnings || 0).toFixed(2);
+          }
+        } catch(e) {}
+      } else {
+        badge.textContent = 'Locked (' + level.toUpperCase() + ')';
+        badge.style.background = 'rgba(239, 68, 68, 0.12)';
+        badge.style.color = '#dc2626';
+        if (msg) msg.textContent = '🔒 Notes monetization is locked for ' + level.toUpperCase() + ' rank. Reach Contributor rank to unlock notes selling & payouts.';
+        if (metricsGrid) metricsGrid.style.display = 'none';
+        if (boostBox) boostBox.style.display = 'block';
+
+        if (accessData.progress) {
+          const pr = accessData.progress;
+          const curScore = pr.score || 0;
+          const targetScore = pr.next_threshold || 100;
+          const pct = Math.min(Math.max(Math.round((pr.progress ? pr.progress * 100 : (curScore / targetScore) * 100)), 4), 100);
+
+          const curTierEl = document.getElementById('stCurrentTierText');
+          const curScoreEl = document.getElementById('stCurrentScoreText');
+          const targetScoreEl = document.getElementById('stTargetScoreText');
+          const barEl = document.getElementById('stRankProgressBar');
+          if (curTierEl) curTierEl.textContent = (level || 'explorer').toUpperCase();
+          if (curScoreEl) curScoreEl.textContent = curScore;
+          if (targetScoreEl) targetScoreEl.textContent = targetScore;
+          if (barEl) barEl.style.width = pct + '%';
+        }
+      }
+    }
+
+    // 2. Load Creator Wallet details
+    const walletRes = await fetch('/api/creator/wallet');
+    const walletData = await walletRes.json();
+    if (walletData.success && walletData.wallet) {
+      const w = walletData.wallet;
+      const pend = document.getElementById('stWalletPending');
+      const withdr = document.getElementById('stWalletWithdrawable');
+      const totw = document.getElementById('stWalletTotalWithdrawn');
+      if (pend) pend.textContent = '₹' + (w.pending_balance || 0).toFixed(2);
+      if (withdr) withdr.textContent = '₹' + (w.withdrawable_balance || 0).toFixed(2);
+      if (totw) totw.textContent = '₹' + (w.total_withdrawn || 0).toFixed(2);
+
+      const form = document.getElementById('stWithdrawalForm');
+      const disabledNote = document.getElementById('stWithdrawDisabledNote');
+      const amtInput = document.getElementById('stWithdrawAmt');
+
+      if (w.can_withdraw) {
+        if (form) form.style.display = 'block';
+        if (disabledNote) disabledNote.style.display = 'none';
+        if (amtInput) {
+          amtInput.max = w.withdrawable_balance;
+          amtInput.value = Math.min(w.withdrawable_balance, 500);
+        }
+      } else {
+        if (form) form.style.display = 'none';
+        if (disabledNote) {
+          disabledNote.style.display = 'block';
+          disabledNote.textContent = '🔒 Minimum ₹100 withdrawable balance required (Available: ₹' + (w.withdrawable_balance || 0).toFixed(2) + ').';
+        }
+      }
+
+      // Render Payouts History
+      const tbody = document.getElementById('stPayoutHistoryTbody');
+      if (tbody) {
+        const payouts = walletData.payouts || [];
+        if (payouts.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--st-text-muted);">No payout requests yet.</td></tr>';
+        } else {
+          tbody.innerHTML = payouts.map(p => {
+            const date = p.created_at ? new Date(p.created_at).toLocaleDateString('en-IN', {month:'short', day:'numeric', year:'numeric'}) : '-';
+            let statusColor = '#d97706';
+            if (p.status === 'completed') statusColor = 'var(--st-success)';
+            if (p.status === 'rejected') statusColor = '#dc2626';
+            return `
+              <tr style="border-bottom:1px solid var(--st-border);">
+                <td style="padding:0.6rem 0.5rem;">${date}</td>
+                <td style="padding:0.6rem 0.5rem;font-weight:700;color:var(--st-navy);">₹${parseFloat(p.amount || 0).toFixed(2)}</td>
+                <td style="padding:0.6rem 0.5rem;text-transform:uppercase;font-size:0.75rem;"><span style="background:var(--st-surface-hover);padding:2px 8px;border-radius:6px;border:1px solid var(--st-border);">${p.payout_method || 'UPI'}</span></td>
+                <td style="padding:0.6rem 0.5rem;font-weight:700;color:${statusColor};text-transform:capitalize;">${p.status || 'pending'}</td>
+              </tr>
+            `;
+          }).join('');
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[SETTINGS] Payout load error:', err);
+  }
+}
+
+async function copySettingsReferralLink() {
+  const btn = document.getElementById('stCopyRefBtn');
+  try {
+    const res = await fetch('/api/referral/my-code');
+    const data = await res.json();
+    const code = data.referral_code || data.code || '';
+    const shareUrl = window.location.origin + '/signup?ref=' + encodeURIComponent(code);
+    await navigator.clipboard.writeText(shareUrl);
+    if (btn) {
+      btn.textContent = '✅ Copied!';
+      setTimeout(() => { btn.textContent = 'Copy Invite Link'; }, 2000);
+    }
+  } catch (err) {
+    if (btn) btn.textContent = 'Failed to copy';
+  }
+}
+
+function togglePayoutMethodPlaceholder() {
+  const method = document.getElementById('stWithdrawMethod').value;
+  const label = document.getElementById('stWithdrawDetailsLabel');
+  const input = document.getElementById('stWithdrawDetails');
+  if (method === 'upi') {
+    if (label) label.textContent = 'UPI ID';
+    if (input) input.placeholder = 'e.g. yourname@okhdfcbank';
+  } else {
+    if (label) label.textContent = 'Bank Account & IFSC';
+    if (input) input.placeholder = 'e.g. A/C: 1234567890, IFSC: HDFC0000123';
+  }
+}
+
+async function handleWithdrawalSubmit(e) {
+  e.preventDefault();
+  const btn = document.getElementById('stWithdrawBtn');
+  const fb = document.getElementById('stWithdrawFeedback');
+  const amt = parseFloat(document.getElementById('stWithdrawAmt').value);
+  const method = document.getElementById('stWithdrawMethod').value;
+  const details = (document.getElementById('stWithdrawDetails').value || '').trim();
+
+  if (!details) {
+    if (fb) {
+      fb.style.display = 'block';
+      fb.style.color = '#dc2626';
+      fb.textContent = 'Please enter payout account or UPI ID details.';
+    }
+    return;
+  }
+
+  btn.disabled = true;
+  btn.innerText = 'Submitting...';
+
+  try {
+    const res = await fetch('/api/creator/withdraw', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        amount: amt,
+        payout_method: method,
+        payout_details: method === 'upi' ? {upi_id: details} : {account_info: details}
+      })
+    });
+    const data = await res.json();
+    if (fb) fb.style.display = 'block';
+    if (data.success) {
+      if (fb) {
+        fb.style.color = 'var(--st-success)';
+        fb.textContent = '🎉 Withdrawal request submitted! Admin will review and process.';
+      }
+      setTimeout(() => loadPayoutSettings(true), 1200);
+    } else {
+      if (fb) {
+        fb.style.color = '#dc2626';
+        fb.textContent = data.error || 'Failed to submit withdrawal request.';
+      }
+    }
+  } catch (err) {
+    if (fb) {
+      fb.style.display = 'block';
+      fb.style.color = '#dc2626';
+      fb.textContent = 'Network error. Please try again.';
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerText = 'Submit Payout Request';
+  }
+}
+
+// ── Payment & Transaction History Management ──
+let _txHistoryLoaded = false;
+async function loadTransactionHistory(force = false) {
+  if (_txHistoryLoaded && !force) return;
+  _txHistoryLoaded = true;
+
+  const tbody = document.getElementById('stTransactionsTbody');
+  if (!tbody) return;
+  tbody.innerHTML = '<tr><td colspan="5" style="padding:1.5rem;text-align:center;color:var(--st-text-muted);">⏳ Fetching your PhonePe transactions...</td></tr>';
+
+  try {
+    const res = await fetch('/api/user/transactions');
+    const data = await res.json();
+    const txs = (data && data.transactions) || [];
+
+    const totalEl = document.getElementById('stTxTotalOrders');
+    const successEl = document.getElementById('stTxSuccessOrders');
+    if (totalEl) totalEl.textContent = txs.length;
+    if (successEl) successEl.textContent = txs.filter(t => t.status === 'completed' || t.status === 'verified').length;
+
+    if (!txs.length) {
+      tbody.innerHTML = '<tr><td colspan="5" style="padding:2.5rem 1rem;text-align:center;color:var(--st-text-muted);">' +
+        '<div style="font-size:2rem;margin-bottom:0.5rem;">🧾</div>' +
+        '<div style="font-weight:700;color:var(--st-text-main);font-size:0.95rem;margin-bottom:0.35rem;">No payment transactions found</div>' +
+        '<div style="font-size:0.8rem;max-width:360px;margin:0 auto;line-height:1.4;">When you unlock paid notes or contribute to AbhiHub via PhonePe, all verified receipts will be recorded here.</div>' +
+        '</td></tr>';
+      return;
+    }
+
+    let html = '';
+    txs.forEach(t => {
+      const isSuccess = (t.status === 'completed' || t.status === 'verified');
+      const statusBadge = isSuccess
+        ? '<span style="background:#dcfce7;color:#15803d;padding:0.2rem 0.6rem;border-radius:6px;font-size:0.75rem;font-weight:700;">✓ PAID</span>'
+        : '<span style="background:#fee2e2;color:#991b1b;padding:0.2rem 0.6rem;border-radius:6px;font-size:0.75rem;font-weight:700;">FAILED</span>';
+
+      const itemName = t.doc_title || (t.doc_id ? ('Document #' + t.doc_id.slice(0, 8)) : 'Community Support');
+      const dateStr = t.date ? new Date(t.date).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' }) : 'Recent';
+
+      html += '<tr style="border-bottom:1px solid var(--st-border);">';
+      html += '<td style="padding:0.75rem 0.5rem;">';
+      html += '<div style="font-family:monospace;font-weight:700;color:var(--st-text-main);font-size:0.82rem;">#' + (t.order_id || '') + '</div>';
+      html += '<div style="font-size:0.72rem;color:var(--st-text-muted);margin-top:0.15rem;">' + dateStr + '</div>';
+      html += '</td>';
+      html += '<td style="padding:0.75rem 0.5rem;">';
+      html += '<div style="font-weight:600;color:var(--st-text-main);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + itemName + '</div>';
+      html += '<div style="font-size:0.72rem;color:#7c3aed;font-weight:600;">PhonePe Merchant</div>';
+      html += '</td>';
+      html += '<td style="padding:0.75rem 0.5rem;font-weight:800;color:var(--st-text-main);">₹' + (parseFloat(t.amount || 0).toFixed(2)) + '</td>';
+      html += '<td style="padding:0.75rem 0.5rem;">' + statusBadge + '</td>';
+      html += '<td style="padding:0.75rem 0.5rem;text-align:right;">';
+      html += '<div style="display:inline-flex;gap:0.4rem;align-items:center;">';
+      if (t.receipt_url) {
+        html += '<a href="' + t.receipt_url + '" class="st-btn st-btn-outline" style="padding:0.25rem 0.65rem;font-size:0.75rem;min-height:28px;">Receipt</a>';
+      }
+      if (t.doc_id && isSuccess) {
+        html += '<a href="/resource/' + t.doc_id + '" class="st-btn st-btn-primary" style="padding:0.25rem 0.65rem;font-size:0.75rem;min-height:28px;">Open Doc</a>';
+      }
+      html += '</div>';
+      html += '</td>';
+      html += '</tr>';
+    });
+
+    tbody.innerHTML = html;
+    if (force && typeof showStToast === 'function') {
+      showStToast('✅ Payment history refreshed');
+    }
+  } catch (err) {
+    tbody.innerHTML = '<tr><td colspan="5" style="padding:1.5rem;text-align:center;color:#ef4444;">Failed to load transactions. Please retry.</td></tr>';
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   loadAiSettings();
   filterSettingsBranches();
   toggleSettingsStudentFields();
+  if (window.location.hash === '#payout') {
+    loadPayoutSettings();
+  }
+  if (window.location.hash === '#transactions') {
+    loadTransactionHistory();
+  }
 });
 </script>
 {% endblock %}

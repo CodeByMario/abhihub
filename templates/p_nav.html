@@ -1,28 +1,28 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/navbar.css') }}">
 
 <div class="navbar navbar--bottom" role="navigation" aria-label="Main">
-  <a href="{{ url_for('dashboard') }}" class="navbar__item -blue" data-page="home" data-feature="Nav: Home">
+  <a href="{{ url_for('app_pages.dashboard') }}" class="navbar__item -blue" data-page="home" data-feature="Nav: Home">
     <span class="navbar__icon" aria-hidden="true">
       <svg class="icon"><use xlink:href="#icon-home"></use></svg>
     </span>
     <span class="navbar__label">Home</span>
   </a>
 
-  <a href="{{ url_for('upload') }}" class="navbar__item -yellow" data-page="upload" data-feature="Nav: Upload">
+  <a href="{{ url_for('app_pages.upload') }}" class="navbar__item -yellow" data-page="upload" data-feature="Nav: Upload">
     <span class="navbar__icon" aria-hidden="true">
       <svg class="icon"><use xlink:href="#icon-upload"></use></svg>
     </span>
     <span class="navbar__label">Upload</span>
   </a>
 
-  <a href="{{ url_for('leaderboard') }}" class="navbar__item -orange" data-page="ranking" data-feature="Nav: Ranking">
+  <a href="{{ url_for('library.leaderboard') }}" class="navbar__item -orange" data-page="ranking" data-feature="Nav: Ranking">
     <span class="navbar__icon" aria-hidden="true">
       <svg class="icon"><use xlink:href="#icon-cup"></use></svg>
     </span>
     <span class="navbar__label">Ranking</span>
   </a>
 
-  <a href="{{ url_for('settings') }}" class="navbar__item -purple" data-page="settings" data-feature="Nav: Settings">
+  <a href="{{ url_for('app_pages.settings') }}" class="navbar__item -purple" data-page="settings" data-feature="Nav: Settings">
     <span class="navbar__icon" aria-hidden="true">
       <svg class="icon"><use xlink:href="#icon-settings"></use></svg>
       <span id="accountRedDot" class="notification-dot"></span>
@@ -30,7 +30,7 @@
     <span class="navbar__label">Settings</span>
   </a>
 
-  <a href="{{ url_for('store_room') }}" class="navbar__item -green" data-page="store-room" data-feature="Nav: Store Room">
+  <a href="{{ url_for('app_pages.store_room') }}" class="navbar__item -green" data-page="store-room" data-feature="Nav: Store Room">
     <span class="navbar__icon" aria-hidden="true">
       <svg class="icon"><use xlink:href="#icon-folder"></use></svg>
     </span>
@@ -38,7 +38,7 @@
   </a>
 
   {% if session.get('user', {}).get('email', '').lower() in ['codebymario@gmail.com', 'info@abhihub.edu.eu.org', 'admin@abhihub.edu.eu.org'] %}
-  <a href="{{ url_for('admin_control_panel') }}" class="navbar__item -red" title="Admin Panel" data-page="admin">
+  <a href="{{ url_for('admin.admin_control_panel') }}" class="navbar__item -red" title="Admin Panel" data-page="admin">
     <span class="navbar__icon" aria-hidden="true">
       <svg class="icon"><use xlink:href="#icon-settings"></use></svg>
     </span>

@@ -30,7 +30,7 @@
       <div class="km-alert km-alert--error">{{ error }}</div>
       {% endif %}
 
-      <form method="POST" action="{{ url_for('memorywall_create') }}" id="km-create-form">
+      <form method="POST" action="{{ url_for('app_pages.memorywall_create') }}" id="km-create-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
         <div class="km-form-row">
@@ -68,7 +68,7 @@
       </form>
     </div>
 
-    <a href="{{ url_for('memorywall_dashboard') }}" class="km-btn km-btn--ghost"
+    <a href="{{ url_for('app_pages.memorywall_dashboard') }}" class="km-btn km-btn--ghost"
       style="display:block;text-align:center;margin-top:0.5rem;">
       ← Back
     </a>

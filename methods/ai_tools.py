@@ -164,6 +164,28 @@ AI_TOOLS_SCHEMA = [
         },
         "requires_auth": True,
         "is_mutation": False
+    },
+    {
+        "name": "get_my_access",
+        "description": "Check current user's access level tier, remaining daily uploads, and economy status.",
+        "parameters": {
+            "type": "object",
+            "properties": {}
+        },
+        "requires_auth": True,
+        "is_mutation": False
+    },
+    {
+        "name": "get_my_notifications",
+        "description": "Check user's recent unread notifications and alerts.",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "limit": {"type": "integer", "default": 5, "maximum": 20}
+            }
+        },
+        "requires_auth": True,
+        "is_mutation": False
     }
 ]
 
@@ -412,6 +434,69 @@ def execute_navigate_page(params: Dict[str, Any], user_context: Dict[str, Any]) 
     )
 
 
+def execute_get_my_access(params: Dict[str, Any], user_context: Dict[str, Any]) -> ToolExecutionResult:
+    user_id = user_context.get("uid") or user_context.get("id")
+    if not user_id:
+        return ToolExecutionResult(success=False, error="Authentication required to view your quota.")
+
+    try:
+        from methods.scoring_engine import get_feature_gate, check_upload_quota
+        gate = get_feature_gate(user_id)
+        quota = check_upload_quota(user_id)
+        level = (gate.get("level") or "explorer").capitalize()
+        remaining = quota.get("remaining")
+        daily_limit = gate.get("daily_uploads", 3)
+
+        info = {
+            "level": level,
+            "uploads_remaining": remaining if remaining is not None else daily_limit,
+            "daily_limit": daily_limit,
+            "can_monetize": level.lower() in ["contributor", "power_contributor", "community_leader"],
+            "title": f"Your Status: {level} Tier",
+            "message": f"You are on the {level} tier with {remaining if remaining is not None else daily_limit} uploads remaining today."
+        }
+        return ToolExecutionResult(
+            success=True,
+            data=info,
+            ui_type="quota_card",
+            card_payload=info
+        )
+    except Exception as exc:
+        log.exception(f"Error checking access/quota: {exc}")
+        return ToolExecutionResult(success=False, error=str(exc))
+
+
+def execute_get_my_notifications(params: Dict[str, Any], user_context: Dict[str, Any]) -> ToolExecutionResult:
+    user_id = user_context.get("uid") or user_context.get("id")
+    if not user_id:
+        return ToolExecutionResult(success=False, error="Authentication required to view notifications.")
+
+    limit = min(int(params.get("limit", 5)), 20)
+    try:
+        client = supabase_helper.init_supabase()
+        if not client:
+            return ToolExecutionResult(success=False, error="Database unavailable")
+        res = client.table("notifications").select("id, title, message, created_at, is_read").eq("user_id", user_id).order("created_at", desc=True).limit(limit).execute()
+        items = res.data or []
+        unread_count = sum(1 for n in items if not n.get("is_read"))
+        
+        info = {
+            "unread_count": unread_count,
+            "items": items,
+            "title": f"Notifications ({unread_count} Unread)",
+            "message": f"You have {unread_count} unread notifications." if unread_count else "You're all caught up with notifications!"
+        }
+        return ToolExecutionResult(
+            success=True,
+            data=info,
+            ui_type="notifications_card",
+            card_payload=info
+        )
+    except Exception as exc:
+        log.exception(f"Error fetching notifications: {exc}")
+        return ToolExecutionResult(success=False, error=str(exc))
+
+
 # ── Tool Dispatcher ──────────────────────────────────────────────────────────
 
 DISPATCH_MAP = {
@@ -422,7 +507,52 @@ DISPATCH_MAP = {
     "remove_bookmark": execute_bookmark_resource,
     "like_resource": execute_like_resource,
     "suggest_upload_metadata": execute_suggest_upload_metadata,
+    "get_my_access": execute_get_my_access,
+    "get_my_notifications": execute_get_my_notifications,
 }
+
+
+def validate_tool_arguments(tool_name: str, arguments: Dict[str, Any]) -> Optional[str]:
+    """Validate tool arguments against strict schema. Returns None if valid, or error string."""
+    tool_def = TOOL_LOOKUP.get(tool_name)
+    if not tool_def:
+        return f"Unknown tool: {tool_name}"
+
+    params_spec = tool_def.get("parameters", {})
+    required = params_spec.get("required", [])
+    props = params_spec.get("properties", {})
+
+    if not isinstance(arguments, dict):
+        return f"Arguments for {tool_name} must be a JSON object"
+
+    for req in required:
+        if req not in arguments or arguments[req] is None or (isinstance(arguments[req], str) and not arguments[req].strip()):
+            return f"Missing required parameter '{req}' for tool '{tool_name}'"
+
+    for key, val in arguments.items():
+        if key not in props:
+            continue
+        spec = props[key]
+        expected_type = spec.get("type")
+        if expected_type == "string":
+            if not isinstance(val, str):
+                return f"Parameter '{key}' must be a string"
+            if len(val) > 300:
+                return f"Parameter '{key}' exceeds maximum length of 300 characters"
+            if "enum" in spec and val not in spec["enum"]:
+                return f"Value '{val}' for parameter '{key}' not in allowed options: {spec['enum']}"
+        elif expected_type == "integer":
+            if not isinstance(val, int) or isinstance(val, bool):
+                return f"Parameter '{key}' must be an integer"
+            if "minimum" in spec and val < spec["minimum"]:
+                return f"Parameter '{key}' must be at least {spec['minimum']}"
+            if "maximum" in spec and val > spec["maximum"]:
+                return f"Parameter '{key}' must not exceed {spec['maximum']}"
+        elif expected_type == "boolean":
+            if not isinstance(val, bool):
+                return f"Parameter '{key}' must be a boolean"
+
+    return None
 
 
 def dispatch_tool_call(tool_name: str, arguments: Dict[str, Any], user_context: Dict[str, Any]) -> Dict[str, Any]:
@@ -442,6 +572,15 @@ def dispatch_tool_call(tool_name: str, arguments: Dict[str, Any], user_context: 
             "success": False,
             "error": f"You must be signed in to perform this action.",
             "ui_type": "auth_required_card"
+        }
+
+    # Argument validation check (Task 2.5)
+    val_err = validate_tool_arguments(tool_name, arguments)
+    if val_err:
+        return {
+            "success": False,
+            "error": val_err,
+            "ui_type": "error_card"
         }
 
     handler = DISPATCH_MAP.get(tool_name)

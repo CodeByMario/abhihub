@@ -1,0 +1,121 @@
+{% extends 'p_struct.html' %}
+{% block title %}{{ 'Payment Successful' if is_paid else 'Payment Failed' }} - AbhiHub{% endblock %}
+{% block content %}
+<div style="max-width:520px;margin:2.5rem auto 5rem;padding:0 1rem;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+    <div style="background:#ffffff;border-radius:24px;border:1.5px solid {{ '#bbf7d0' if is_paid else '#fecaca' }};box-shadow:0 14px 40px -10px rgba(0,0,0,0.08);overflow:hidden;text-align:center;">
+        
+        <!-- Status Header Banner -->
+        <div style="background:{{ 'linear-gradient(135deg,#16a34a,#15803d)' if is_paid else 'linear-gradient(135deg,#dc2626,#991b1b)' }};padding:2.25rem 1.5rem 2rem;color:#ffffff;position:relative;">
+            <div style="width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,0.22);display:inline-flex;align-items:center;justify-content:center;font-size:2.2rem;margin-bottom:0.75rem;backdrop-filter:blur(4px);border:2px solid rgba(255,255,255,0.35);">
+                {{ '✅' if is_paid else '❌' }}
+            </div>
+            <h1 style="color:#ffffff;font-size:1.45rem;font-weight:800;margin:0 0 0.35rem;letter-spacing:-0.02em;">
+                {{ 'Payment Verified & Confirmed!' if is_paid else 'Payment Not Completed' }}
+            </h1>
+            <p style="color:rgba(255,255,255,0.92);font-size:0.88rem;margin:0 auto;max-width:360px;line-height:1.45;">
+                {{ 'Official settlement confirmed by PhonePe Business Gateway.' if is_paid else (error_msg or 'Transaction was cancelled or declined by your bank.') }}
+            </p>
+        </div>
+
+        <!-- Receipt Body -->
+        <div style="padding:1.75rem 1.5rem 2rem;">
+            
+            <!-- Amount Card -->
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:18px;padding:1.15rem 1.25rem;margin-bottom:1.5rem;text-align:left;">
+                <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem;padding-bottom:0.6rem;border-bottom:1px dashed #cbd5e1;">
+                    <span style="font-size:0.75rem;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:0.04em;">Order Reference</span>
+                    <span style="font-size:0.82rem;color:#1e293b;font-family:monospace;font-weight:700;background:#e2e8f0;padding:0.15rem 0.5rem;border-radius:6px;">#{{ order_id }}</span>
+                </div>
+                
+                <div style="display:flex;justify-content:space-between;font-size:0.85rem;color:#64748b;margin-bottom:0.4rem;">
+                    <span>Amount:</span>
+                    <strong style="color:{{ '#15803d' if is_paid else '#991b1b' }};font-size:1.1rem;font-weight:800;">₹{{ amount }}</strong>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;">
+                    <span>Gateway:</span>
+                    <span style="color:#5f259f;font-weight:700;">PhonePe Business</span>
+                </div>
+
+                {% if doc_info and doc_info.title %}
+                <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;">
+                    <span>Item:</span>
+                    <strong style="color:#0f172a;max-width:240px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">{{ doc_info.title }}</strong>
+                </div>
+                {% elif purpose %}
+                <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;">
+                    <span>Purpose:</span>
+                    <strong style="color:#0f172a;">{{ purpose }}</strong>
+                </div>
+                {% endif %}
+
+                <div style="display:flex;justify-content:space-between;font-size:0.8rem;color:#64748b;">
+                    <span>Status:</span>
+                    <span style="font-weight:700;color:{{ '#16a34a' if is_paid else '#dc2626' }};">
+                        {{ 'COMPLETED / UNLOCKED' if is_paid else 'FAILED / CANCELLED' }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            {% if is_paid %}
+                {% if doc_id %}
+                <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                    <a href="/resource/{{ doc_id }}" 
+                       style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.95rem 1.5rem;background:linear-gradient(135deg,#16a34a,#15803d);color:#ffffff;font-weight:700;font-size:0.95rem;border-radius:14px;text-decoration:none;box-shadow:0 6px 18px rgba(22,163,74,0.35);">
+                        <span>📖 View Full Document (All Pages)</span>
+                    </a>
+                    <a href="/dashboard" 
+                       style="padding:0.75rem 1.25rem;background:#f8fafc;color:#334155;border:1.5px solid #cbd5e1;font-weight:600;font-size:0.85rem;border-radius:12px;text-decoration:none;">
+                        Return to Dashboard
+                    </a>
+                </div>
+                {% else %}
+                <!-- Community Contribution Feedback -->
+                <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:16px;padding:1rem;margin-bottom:1.25rem;color:#166534;font-size:0.88rem;line-height:1.5;">
+                    ☕ <strong>Thank you for buying me tea!</strong><br>
+                    Your chai treat directly powers our high-speed cloud servers and keeps study resources 100% free and accessible for engineering students. You're now on our Wall of Supporters!
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                    <a href="/support" 
+                       style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.95rem 1.5rem;background:linear-gradient(135deg,#5f259f,#7c3aed);color:#ffffff;font-weight:700;font-size:0.95rem;border-radius:14px;text-decoration:none;box-shadow:0 6px 18px rgba(95,37,159,0.35);">
+                        <span>☕ Back to Support & Tea</span>
+                    </a>
+                    <a href="/dashboard" 
+                       style="padding:0.75rem 1.25rem;background:#f8fafc;color:#334155;border:1.5px solid #cbd5e1;font-weight:600;font-size:0.85rem;border-radius:12px;text-decoration:none;">
+                        View Your Name on Dashboard Wall →
+                    </a>
+                </div>
+                {% endif %}
+            {% else %}
+                <!-- Failed / Cancelled Actions -->
+                <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                    {% if doc_id %}
+                    <a href="/payment?doc_id={{ doc_id }}&amount={{ amount }}&purpose=Document-{{ doc_id }}" 
+                       style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.95rem 1.5rem;background:linear-gradient(135deg,#5f259f,#7c3aed);color:#ffffff;font-weight:700;font-size:0.95rem;border-radius:14px;text-decoration:none;box-shadow:0 6px 18px rgba(95,37,159,0.35);">
+                        <span>🔄 Retry PhonePe Payment</span>
+                    </a>
+                    {% else %}
+                    <a href="/support" 
+                       style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.95rem 1.5rem;background:linear-gradient(135deg,#5f259f,#7c3aed);color:#ffffff;font-weight:700;font-size:0.95rem;border-radius:14px;text-decoration:none;">
+                        <span>🔄 Return to Support</span>
+                    </a>
+                    {% endif %}
+                    <a href="/dashboard" 
+                       style="padding:0.75rem 1.25rem;background:#f8fafc;color:#64748b;border:1.5px solid #cbd5e1;font-weight:600;font-size:0.85rem;border-radius:12px;text-decoration:none;">
+                        Cancel and Go to Home
+                    </a>
+                </div>
+            {% endif %}
+
+            <!-- Security Footnote -->
+            <div style="margin-top:1.75rem;padding-top:1rem;border-top:1px solid #f1f5f9;font-size:0.72rem;color:#94a3b8;display:flex;justify-content:center;gap:1rem;">
+                <span>🔒 PhonePe Verified</span>
+                <span>⚡ Instant Settlement</span>
+                <span>🛡️ NPCI PCI-DSS</span>
+            </div>
+
+        </div>
+    </div>
+</div>
+{% endblock %}
