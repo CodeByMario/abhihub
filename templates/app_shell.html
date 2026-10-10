@@ -1,9 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <!-- Instant Theme Detection & Application (prevents theme flash in PWA/Shell) -->
+    <!-- Frame-bust guard: never allow App Shell to render inside an iframe -->
     <script>
         (function() {
+            if (window.self !== window.top) {
+                var p = new URLSearchParams(window.location.search).get('p') || '/dashboard';
+                window.location.replace(p);
+                return;
+            }
             try {
                 var savedTheme = localStorage.getItem('abhihub_theme') || 'system';
                 var isDark = savedTheme === 'dark' || (savedTheme === 'system' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches);

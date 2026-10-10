@@ -181,9 +181,11 @@
         <label for="c-message">Message</label>
         <textarea id="c-message" placeholder="How can we help you?" required></textarea>
       </div>
+      {% if TURNSTILE_SITEKEY %}
       <div class="turnstile-wrap">
         <div class="cf-turnstile" data-sitekey="{{ TURNSTILE_SITEKEY }}" data-action="turnstile-spin-v2"></div>
       </div>
+      {% endif %}
       <button type="submit" class="btn-submit" id="contactSubmit">Send Message →</button>
       <div id="contactMsg"></div>
     </form>
@@ -212,7 +214,9 @@
 
 </div>
 
+{% if TURNSTILE_SITEKEY %}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{% endif %}
 <script>
 // FAQ accordion
 document.querySelectorAll('.faq-btn').forEach(btn => {

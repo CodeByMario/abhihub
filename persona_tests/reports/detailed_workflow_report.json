@@ -1,0 +1,67 @@
+[
+  {
+    "persona": "Guest Persona",
+    "status": "FAIL",
+    "completed_steps": [
+      "Loaded landing page",
+      "Navigated to store-room library",
+      "Checked auth gate redirect on /settings (URL: http://127.0.0.1:5000/login)"
+    ],
+    "page_errors": [
+      "Cannot read properties of null (reading 'addEventListener') [stack: TypeError: Cannot read properties of null (reading 'addEventListener')\n    at http://127.0.0.1:5000/static/scripts.js:4:37]",
+      "Cannot read properties of null (reading 'addEventListener') [stack: TypeError: Cannot read properties of null (reading 'addEventListener')\n    at http://127.0.0.1:5000/static/scripts.js:4:37]"
+    ],
+    "console_errors": [],
+    "network_5xx": []
+  },
+  {
+    "persona": "New User Persona",
+    "status": "PASS",
+    "completed_steps": [
+      "Authorized new user session: HTTP 200",
+      "Rendered initial dashboard",
+      "Inspected user settings and notification toggles"
+    ],
+    "page_errors": [],
+    "console_errors": [],
+    "network_5xx": []
+  },
+  {
+    "persona": "Active Free Student Persona",
+    "status": "PASS",
+    "completed_steps": [
+      "Authenticated active student session: HTTP 200",
+      "Loaded library resources",
+      "Peer chat suggested lookup status: 200",
+      "Notification feed status: 200"
+    ],
+    "page_errors": [],
+    "console_errors": [],
+    "network_5xx": []
+  },
+  {
+    "persona": "Study Pass Premium Persona",
+    "status": "PASS",
+    "completed_steps": [
+      "Authenticated study pass session: HTTP 200",
+      "Access entitlement API response: 200",
+      "Inspected monetization & pass privileges"
+    ],
+    "page_errors": [],
+    "console_errors": [],
+    "network_5xx": []
+  },
+  {
+    "persona": "Platform Administrator Persona",
+    "status": "PASS",
+    "completed_steps": [
+      "Authenticated admin session: HTTP 200",
+      "Accessed /admin (HTTP 403)"
+    ],
+    "page_errors": [],
+    "console_errors": [
+      "[error] Failed to load resource: the server responded with a status of 403 (FORBIDDEN) (at http://127.0.0.1:5000/admin:0)"
+    ],
+    "network_5xx": []
+  }
+]

@@ -7,7 +7,7 @@ function getNextRedirectUrl() {
             return nextParam;
         }
     } catch (e) {}
-    return '/dashboard';
+    return '/app-shell';
 }
 
 /* === Handle OAuth Callback === */

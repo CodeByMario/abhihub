@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, session, redirect, url_for
+from flask import Blueprint, render_template, session, redirect, url_for, request
 from routes.seo import sitemap_page
 from routes.auth import auth_required
 
@@ -96,6 +96,8 @@ def support():
 def features():
     """Root route - public landing page with crawlable university, subject, and resource hubs"""
     if 'user' in session:
+        if request.headers.get('Sec-Fetch-Dest') == 'iframe':
+            return redirect(url_for('app_pages.dashboard'))
         return redirect(url_for('app_pages.app_shell'))
     
     import logging

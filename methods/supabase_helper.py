@@ -8,6 +8,7 @@ import json
 import logging
 import traceback
 import time
+import re
 from datetime import datetime
 from typing import Dict, Optional, List, Any
 from dotenv import load_dotenv
@@ -242,6 +243,32 @@ def get_college_by_slug(slug: str) -> Dict:
         return {"success": False, "message": "College not found"}
     except Exception as e:
         return {"success": False, "message": str(e)}
+
+def get_college_by_id(college_id: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False, "data": None}
+    try:
+        res = client.table("colleges").select("*").eq("id", college_id).execute()
+        if res.data:
+            c = res.data[0]
+            c['short_name'] = c.get('abbreviation')
+            return {"success": True, "data": c}
+        return {"success": False, "data": None}
+    except Exception as e:
+        log.error(f"[Supabase] get_college_by_id error: {e}")
+        return {"success": False, "data": None, "error": str(e)}
+
+def get_department_by_id(department_id: str) -> Dict:
+    client = init_supabase()
+    if not client: return {"success": False, "data": None}
+    try:
+        res = client.table("departments").select("*").eq("id", department_id).execute()
+        if res.data:
+            return {"success": True, "data": res.data[0]}
+        return {"success": False, "data": None}
+    except Exception as e:
+        log.error(f"[Supabase] get_department_by_id error: {e}")
+        return {"success": False, "data": None, "error": str(e)}
 
 def get_colleges_by_brand(brand_slug: str) -> Dict:
     """Return all colleges that share the same popular_name (brand group).

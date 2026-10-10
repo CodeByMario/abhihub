@@ -224,6 +224,14 @@
                 }, true);
             }
 
+            // Prevent app-shell nested inside iframe
+            if (innerWin.location.pathname.startsWith('/app-shell')) {
+                const innerParams = new URLSearchParams(innerWin.location.search);
+                const redirectTarget = innerParams.get('p') || '/dashboard';
+                innerWin.location.replace(redirectTarget);
+                return;
+            }
+
             // Security & Auth escape check
             if (/^\/(login|signup|logout|auth(\/|$))/i.test(innerWin.location.pathname)) {
                 destroyIframesAndEscape('/login?next=' + encodeURIComponent(innerPath));

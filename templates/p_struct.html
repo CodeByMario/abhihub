@@ -15,22 +15,25 @@
     <!-- App Shell Embedded Detection & Standalone Mode Redirect (must run immediately before CSS) -->
     <script>
         (function() {
-            var isEmbedded = window.name === 'abhihub-shell' && window.self !== window.top;
+            var isEmbedded = window.name === 'abhihub-shell' || window.self !== window.top;
             if (isEmbedded) {
                 document.documentElement.classList.add('app-shell-embedded');
+                if (window.location.pathname.startsWith('/app-shell')) {
+                    var p = new URLSearchParams(window.location.search).get('p') || '/dashboard';
+                    window.location.replace(p);
+                    return;
+                }
                 window.addEventListener('beforeunload', function() {
                     try { window.parent.postMessage({ type: 'NAVIGATE_START' }, window.location.origin); } catch(e) {}
                 });
             } else {
-                var isStandalone = (window.matchMedia && window.matchMedia('(display-mode: standalone)').matches) || window.navigator.standalone === true;
-                var shellInMobileBrowser = {{ 'true' if config.get('SHELL_IN_MOBILE_BROWSER') else 'false' }};
                 var shellEnabled = {{ 'true' if config.get('APP_SHELL_ENABLED', True) else 'false' }};
-                if (shellEnabled && (isStandalone || shellInMobileBrowser)) {
+                if (shellEnabled) {
                     var path = window.location.pathname;
-                    var skipPatterns = [/^\/app-shell/, /^\/login/, /^\/signup/, /^\/logout/, /^\/auth/, /^\/reset-password/, /^\/offline/, /^\/api\//, /^\/(about|terms|privacy|contact)?$/];
+                    var skipPatterns = [/^\/app-shell/, /^\/login/, /^\/signup/, /^\/logout/, /^\/auth/, /^\/reset-password/, /^\/reset-password-confirm/, /^\/offline/, /^\/api\//, /^\/(about|terms|privacy|contact)?$/];
                     var shouldSkip = skipPatterns.some(function(re) { return re.test(path); });
                     if (!shouldSkip) {
-                        var tabPatterns = [/^\/dashboard/, /^\/upload/, /^\/leaderboard/, /^\/rank/, /^\/profile/, /^\/account/, /^\/store-room/, /^\/admin/];
+                        var tabPatterns = [/^\/dashboard/, /^\/upload/, /^\/leaderboard/, /^\/rank/, /^\/profile/, /^\/account/, /^\/store-room/, /^\/admin/, /^\/settings/, /^\/setting/, /^\/chat/, /^\/resource/, /^\/pdf-reader/, /^\/preview/, /^\/notifications/];
                         var isTabOrChild = tabPatterns.some(function(re) { return re.test(path); });
                         if (isTabOrChild) {
                             var currentPath = window.location.pathname + window.location.search + window.location.hash;

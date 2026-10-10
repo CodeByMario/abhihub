@@ -415,6 +415,9 @@ def app_shell():
     if path_only in blocked_prefixes or any(path_only.startswith(p + '/') for p in blocked_prefixes):
         target_path = '/dashboard'
 
+    if request.headers.get('Sec-Fetch-Dest') == 'iframe':
+        return redirect(target_path if target_path != '/app-shell' else url_for('app_pages.dashboard'))
+
     return render_template('app_shell.html', initial_path=target_path)
 
 

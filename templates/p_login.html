@@ -88,9 +88,11 @@
   <label for="password-input" class="sr-only">Password</label>
   <input type="password" id="password-input" class="p-input-field" placeholder="Password" required autocomplete="current-password">
 
+  {% if TURNSTILE_SITEKEY %}
   <div class="flex justify-center mb-1">
     <div class="cf-turnstile" data-sitekey="{{ TURNSTILE_SITEKEY }}" data-action="turnstile-spin-v2"></div>
   </div>
+  {% endif %}
   <button type="button" id="sign-in-btn" class="p-signin-btn">Sign In</button>
 
   <div class="p-divider">OR</div>
@@ -150,7 +152,9 @@
   });
 </script>
 
+{% if TURNSTILE_SITEKEY %}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{% endif %}
 <script src="{{ url_for('static', filename='login-auth.js') }}" type="module"></script>
 <script src="{{ url_for('static', filename='scripts.js') }}" type="module"></script>
 
