@@ -59,7 +59,24 @@
 
             <!-- Action Buttons -->
             {% if is_paid %}
-                {% if doc_id %}
+                {% if is_credits %}
+                <!-- View Credits Confirmation Feedback -->
+                <div style="background:#f0fdf4;border:1.5px solid #bbf7d0;border-radius:16px;padding:1.25rem 1rem;margin-bottom:1.25rem;color:#166534;font-size:0.9rem;line-height:1.5;text-align:center;">
+                    <div style="font-size:2.2rem;margin-bottom:0.25rem;">🎉</div>
+                    <strong style="font-size:1.15rem;display:block;margin-bottom:0.35rem;color:#15803d;">View Credits Added!</strong>
+                    Your account has been credited with <strong>{{ pack_size or 50 }} study views</strong>. You can now open, read, and download university exam papers and notes freely!
+                </div>
+                <div style="display:flex;flex-direction:column;gap:0.75rem;">
+                    <a href="/dashboard" 
+                       style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.95rem 1.5rem;background:linear-gradient(135deg,#2563eb,#1d4ed8);color:#ffffff;font-weight:700;font-size:0.95rem;border-radius:14px;text-decoration:none;box-shadow:0 6px 18px rgba(37,99,235,0.35);">
+                        <span>🚀 Go to Dashboard & Read Papers</span>
+                    </a>
+                    <a href="/store-room" 
+                       style="padding:0.75rem 1.25rem;background:#f8fafc;color:#334155;border:1.5px solid #cbd5e1;font-weight:600;font-size:0.85rem;border-radius:12px;text-decoration:none;text-align:center;">
+                        Open My Store Room
+                    </a>
+                </div>
+                {% elif doc_id %}
                 <div style="display:flex;flex-direction:column;gap:0.75rem;">
                     <a href="/resource/{{ doc_id }}" 
                        style="display:flex;align-items:center;justify-content:center;gap:0.5rem;padding:0.95rem 1.5rem;background:linear-gradient(135deg,#16a34a,#15803d);color:#ffffff;font-weight:700;font-size:0.95rem;border-radius:14px;text-decoration:none;box-shadow:0 6px 18px rgba(22,163,74,0.35);">

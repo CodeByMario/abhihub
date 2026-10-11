@@ -10,6 +10,32 @@ function getNextRedirectUrl() {
     return '/app-shell';
 }
 
+function getStoredReferralCode() {
+    try {
+        return (localStorage.getItem('abhihub_ref_code') || sessionStorage.getItem('abhihub_ref_code') || '').trim();
+    } catch (e) {
+        return '';
+    }
+}
+
+function clearStoredReferralCode() {
+    try {
+        localStorage.removeItem('abhihub_ref_code');
+        sessionStorage.removeItem('abhihub_ref_code');
+    } catch (e) {}
+}
+
+// Immediately capture referral code if present in current URL
+try {
+    const _urlParams = new URLSearchParams(window.location.search);
+    const _refParam = _urlParams.get('ref');
+    if (_refParam) {
+        const _cleanRef = _refParam.trim().toUpperCase();
+        localStorage.setItem('abhihub_ref_code', _cleanRef);
+        sessionStorage.setItem('abhihub_ref_code', _cleanRef);
+    }
+} catch (e) {}
+
 /* === Handle OAuth Callback === */
 // This handles the redirect from Google/OAuth providers
 async function handleOAuthCallback() {
@@ -46,12 +72,14 @@ async function handleOAuthCallback() {
 
         console.log('Auth callback detected, token found:', accessToken.substring(0, 20) + '...');
         try {
+            const refCode = getStoredReferralCode();
             const response = await fetch('/auth', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${accessToken}`
                 },
+                body: JSON.stringify({ ref: refCode }),
                 credentials: 'same-origin'
             });
 
@@ -59,6 +87,18 @@ async function handleOAuthCallback() {
 
             if (response.ok && data.success) {
                 console.log('Login successful, redirecting');
+                if (refCode) {
+                    try {
+                        await fetch('/api/referral/register', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'same-origin',
+                            keepalive: true,
+                            body: JSON.stringify({ code: refCode })
+                        });
+                    } catch (e) {}
+                    clearStoredReferralCode();
+                }
                 if (window.AbhiHubAnalytics) {
                     window.AbhiHubAnalytics.track('login', { method: type === 'signup' ? 'email_verification' : 'google_oauth' });
                 } else if (window.AbhiHubTracking) {
@@ -324,6 +364,7 @@ function authCreateAccountWithEmail() {
         email: email,
         password: password,
         options: {
+            emailRedirectTo: `${window.location.origin}/login`,
             data: {
                 name: email.split('@')[0] // Default name from email
             }
@@ -345,7 +386,10 @@ function authCreateAccountWithEmail() {
             // Capture referral code from the signup URL (?ref=ABHI-XXXXXX)
             const _refCode = new URLSearchParams(window.location.search).get('ref');
             if (_refCode) {
-                try { sessionStorage.setItem('abhihub_ref_code', _refCode); } catch (e) {}
+                try {
+                    localStorage.setItem('abhihub_ref_code', _refCode.trim().toUpperCase());
+                    sessionStorage.setItem('abhihub_ref_code', _refCode.trim().toUpperCase());
+                } catch (e) {}
             }
 
             // Try to create user profile
@@ -355,7 +399,7 @@ function authCreateAccountWithEmail() {
                     .insert([{
                         id: user.id,
                         email: user.email,
-                        name: user.user_metadata?.name || email.split('@')[0]
+                        full_name: user.user_metadata?.name || email.split('@')[0]
                     }])
                     .select();
 
@@ -514,6 +558,7 @@ function resetPassword() {
 
 function loginUser(user, idToken) {
     console.log('Sending auth token to backend');
+    const refCode = getStoredReferralCode();
 
     fetch('/auth', {
         method: 'POST',
@@ -521,32 +566,35 @@ function loginUser(user, idToken) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${idToken}`
         },
+        body: JSON.stringify({ ref: refCode }),
         credentials: 'same-origin'
     })
         .then(response => {
             console.log('Auth response status:', response.status);
             return response.json().then(data => ({ response, data }));
         })
-        .then(({ response, data }) => {
+        .then(async ({ response, data }) => {
             if (response.ok && data.success) {
                 console.log('Backend authentication successful');
                 // Apply any referral code captured at signup (after session exists)
-                try {
-                    const _rc = sessionStorage.getItem('abhihub_ref_code');
-                    if (_rc) {
-                        fetch('/api/referral/register', {
+                if (refCode) {
+                    try {
+                        const refRes = await fetch('/api/referral/register', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             credentials: 'same-origin',
-                            body: JSON.stringify({ code: _rc })
-                        }).then(r => r.json()).then(j => {
-                            if (j.success) {
-                                console.log('[Referral] credited invitee with', j.credit_invitee);
-                                sessionStorage.removeItem('abhihub_ref_code');
-                            }
-                        }).catch(() => {});
+                            keepalive: true,
+                            body: JSON.stringify({ code: refCode })
+                        });
+                        const j = await refRes.json();
+                        if (j && j.success) {
+                            console.log('[Referral] credited invitee with', j.credit_invitee);
+                        }
+                    } catch (e) {
+                        console.warn('[Referral] Registration request error:', e);
                     }
-                } catch (e) {}
+                    clearStoredReferralCode();
+                }
 
                 if (window.AbhiHubAnalytics) {
                     window.AbhiHubAnalytics.track('login', { method: 'email' });

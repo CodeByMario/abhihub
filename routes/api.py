@@ -339,6 +339,16 @@ def authorize():
     except Exception as sess_err:
         logging.warning(f"[AUTH] Logging login session failed: {sess_err}")
 
+    # Process referral reward if referral code was provided at authorization
+    payload = request.get_json(silent=True) or {}
+    ref_code = (payload.get('ref') or '').strip()
+    if ref_code:
+        try:
+            ensure_referral_code(user_data['id'])
+            register_referral(user_data['id'], ref_code)
+        except Exception as ref_err:
+            logging.warning(f"[AUTH] Referral crediting failed: {ref_err}")
+
     return jsonify({'success': True, 'message': 'Authenticated', 'user': session['user']}), 200
 
 
@@ -604,7 +614,7 @@ def api_referral_register():
         code = (payload.get('code') or '').strip()
         if not code:
             return jsonify({'success': False, 'message': 'No referral code provided'}), 400
-        new_user_id = session['user'].get('uid')
+        new_user_id = session['user'].get('uid') or session['user'].get('id')
         ensure_referral_code(new_user_id)
         result = register_referral(new_user_id, code)
         if result.get('success'):
@@ -651,57 +661,68 @@ def api_referral_my_code():
 @api_bp.route('/api/buy-credits', methods=['POST'])
 @auth_required
 def api_buy_credits():
-    """Endpoint to purchase credit packs (50, 100, 500 views @ ₹2/view)."""
+    """Endpoint to initiate purchase for credit packs (50, 100, 500 views @ ₹2/view)."""
     try:
+        import time
+        import secrets
         from cache_manager import get_cache
         from data.pricing import log_credit_transaction
-        cache = get_cache()
+        from methods.phonepe_service import initiate_phonepe_payment
+        from data.transactions import save_transaction_record
 
         user_info = session.get('user', {})
-        user_id = user_info.get('uid')
+        user_id = user_info.get('uid') or user_info.get('id')
         if not user_id:
             return jsonify({'success': False, 'message': 'Authentication required'}), 401
             
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         pack_size = int(data.get('pack', 0) or 0)
         
         valid_packs = {50: 100, 100: 200, 500: 1000}
         if pack_size not in valid_packs:
             return jsonify({'success': False, 'message': 'Invalid pack. Choose 50, 100, or 500 views.'}), 400
             
-        price_inr = valid_packs[pack_size]
-        
-        res = supabase.table('profiles').select('paper_quota_remaining').eq('id', user_id).execute()
-        curr_quota = 19
-        if res.data:
-            curr_quota = res.data[0].get('paper_quota_remaining')
-            if curr_quota is None:
-                curr_quota = 19
-                
-        new_quota = curr_quota + pack_size
-        supabase.table('profiles').update({
-            'paper_quota_remaining': new_quota
-        }).eq('id', user_id).execute()
-        
-        if 'paper_quota' in session and isinstance(session['paper_quota'], dict):
-            session['paper_quota']['credits'] = new_quota
-            session.modified = True
-            
-        if cache and hasattr(cache, 'l1'):
-            cache.l1.delete(f"user:quota:{user_id}")
-        log_credit_transaction(user_id, pack_size, 'earn', f"Bought {pack_size} Views Pack (₹{price_inr})")
-        logging.info(f"[BUY-CREDITS] User {user_info.get('email')} bought {pack_size} views for ₹{price_inr} -> new quota: {new_quota}")
-        
+        price_inr = float(valid_packs[pack_size])
+        order_id = f"AH{int(time.time())}{secrets.token_hex(2).upper()}"
+
+        base_url = request.host_url.rstrip('/')
+        redirect_url = f"{base_url}/payment/phonepe/redirect?order_id={order_id}&pack={pack_size}&user_id={user_id}"
+        callback_url = f"{base_url}/api/payment/phonepe/callback"
+
+        # Record initiated transaction in database
+        save_transaction_record(order_id, {
+            'user_id': user_id,
+            'amount': price_inr,
+            'status': 'initiated',
+            'utr': order_id,
+            'admin_notes': f"purpose=Credits-{pack_size};pack={pack_size};views={pack_size}"
+        })
+
+        phonepe_res = initiate_phonepe_payment(
+            order_id=order_id,
+            amount_inr=price_inr,
+            user_id=user_id,
+            redirect_url=redirect_url,
+            callback_url=callback_url
+        )
+
+        payment_url = None
+        if phonepe_res.get('success') and phonepe_res.get('payment_url'):
+            payment_url = phonepe_res['payment_url']
+        else:
+            # Fallback to checkout page with UPI QR & verification
+            payment_url = f"/payment?amount={price_inr:.2f}&purpose=Credits-{pack_size}-Views&order_id={order_id}"
+
         return jsonify({
             'success': True,
             'pack': pack_size,
             'price_inr': price_inr,
-            'added_views': pack_size,
-            'new_total_views': new_quota,
-            'message': f"Successfully added {pack_size} views to your account!"
+            'order_id': order_id,
+            'payment_url': payment_url,
+            'message': 'Payment initiated. Redirecting to payment gateway…'
         }), 200
     except Exception as e:
-        logging.error(f"[BUY-CREDITS] Error: {e}")
+        logging.error(f"[BUY-CREDITS] Error: {e}", exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -715,12 +736,14 @@ def api_credit_history():
         quota_info = _get_quota()
         remaining = quota_info.get('credits', 19)
         txs = []
-        try:
-            res = supabase.table('credit_transactions').select('*').eq('user_id', uid).order('created_at', desc=True).limit(50).execute()
-            if res.data:
-                txs = res.data
-        except Exception:
-            pass
+        client = init_supabase()
+        if client:
+            try:
+                res = client.table('credit_transactions').select('*').eq('user_id', uid).order('created_at', desc=True).limit(50).execute()
+                if res.data:
+                    txs = res.data
+            except Exception:
+                pass
         if not txs:
             txs = session.get('credit_history', [])
         return jsonify({

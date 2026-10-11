@@ -93,175 +93,261 @@
 
 <div class="earn-page">
   <div class="earn-hero">
-    <div class="earn-title">Earnings</div>
-    <p class="earn-sub">Rewards are coming soon. Boost your rank now to unlock benefits.</p>
-    <div class="earn-badge">🚧 Coming soon</div>
+    <div class="earn-title">Creator Earnings Wall</div>
+    <p class="earn-sub">Earn ₹0.20 for every unique view on your uploaded study notes and PYQs. Request direct payouts to UPI or Bank once eligible.</p>
+    <div class="earn-badge" style="background:rgba(16, 185, 129, 0.2); border-color:rgba(16, 185, 129, 0.4); color:#a7f3d0;">● Monetization Active</div>
   </div>
 
-  <div class="earn-card">
-    <h3>Check Eligibility</h3>
-    <p class="earn-muted">Current eligibility is based on your rank tier.</p>
-    <button id="eligibilityBtn" class="earn-btn" type="button">Check Eligibility</button>
-    <div id="eligibilityResult" class="earn-result"></div>
+  <!-- Creator Wall Summary Cards -->
+  <div class="earn-card" id="wallCard">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:1rem;">
+      <h3 style="margin:0; font-size:1.15rem; display:flex; align-items:center; gap:0.4rem;">
+        <span>💼</span> Your Creator Wall &amp; Balances
+      </h3>
+      <span id="rankBadge" class="earn-badge" style="background:#f1f5f9; color:#475569; border-color:#cbd5e1; font-size:0.78rem;">Loading rank...</span>
+    </div>
+
+    <!-- Live Metrics Grid -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:0.75rem; margin-bottom:1.25rem;">
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:1rem; text-align:center;">
+        <div style="font-size:0.74rem; color:#64748b; font-weight:700; text-transform:uppercase;">Upload Views</div>
+        <div id="wallTotalViews" style="font-size:1.5rem; font-weight:800; color:#1e293b; margin-top:0.25rem;">0</div>
+        <div style="font-size:0.72rem; color:#64748b; margin-top:0.2rem;">All uploaded docs</div>
+      </div>
+
+      <div style="background:#eff6ff; border:1px solid #bfdbfe; border-radius:14px; padding:1rem; text-align:center;">
+        <div style="font-size:0.74rem; color:#1d4ed8; font-weight:700; text-transform:uppercase;">Views Earnings</div>
+        <div id="wallViewEarnings" style="font-size:1.5rem; font-weight:800; color:#2563eb; margin-top:0.25rem;">₹0.00</div>
+        <div style="font-size:0.72rem; color:#2563eb; margin-top:0.2rem;">@ ₹0.20 per view</div>
+      </div>
+
+      <div style="background:#f0fdf4; border:1px solid #86efac; border-radius:14px; padding:1rem; text-align:center;">
+        <div style="font-size:0.74rem; color:#15803d; font-weight:700; text-transform:uppercase;">Withdrawable Balance</div>
+        <div id="wallWithdrawable" style="font-size:1.5rem; font-weight:800; color:#16a34a; margin-top:0.25rem;">₹0.00</div>
+        <div style="font-size:0.72rem; color:#15803d; margin-top:0.2rem;">Ready for payout</div>
+      </div>
+
+      <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:14px; padding:1rem; text-align:center;">
+        <div style="font-size:0.74rem; color:#b45309; font-weight:700; text-transform:uppercase;">Pending (30-day Lock)</div>
+        <div id="wallPending" style="font-size:1.5rem; font-weight:800; color:#d97706; margin-top:0.25rem;">₹0.00</div>
+        <div style="font-size:0.72rem; color:#b45309; margin-top:0.2rem;">Holding period (sales)</div>
+      </div>
+
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:14px; padding:1rem; text-align:center;">
+        <div style="font-size:0.74rem; color:#475569; font-weight:700; text-transform:uppercase;">Total Withdrawn</div>
+        <div id="wallTotalWithdrawn" style="font-size:1.5rem; font-weight:800; color:#334155; margin-top:0.25rem;">₹0.00</div>
+        <div style="font-size:0.72rem; color:#64748b; margin-top:0.2rem;">Lifetime payouts</div>
+      </div>
+    </div>
+
+    <!-- Payout Request Container -->
+    <div style="background:#f8fafc; border-radius:14px; padding:1.25rem; border:1px solid #e2e8f0; margin-top:1rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
+        <h4 style="margin:0; font-size:0.95rem; color:#1e293b;">💸 Request Withdrawal</h4>
+        <span id="payoutPolicyBadge" style="font-size:0.78rem; color:#64748b;">Policy: Minimum <strong>₹100</strong></span>
+      </div>
+
+      <div id="withdrawEligibleWrap" style="display:none;">
+        <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+          <input id="payoutAmount" type="number" min="100" step="1" style="width:120px; padding:0.6rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.9rem;" placeholder="Amount (₹)" />
+          <select id="payoutMethod" style="padding:0.6rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.9rem;">
+            <option value="upi">UPI ID</option>
+            <option value="bank">Bank Account</option>
+          </select>
+          <input id="payoutDetailVal" type="text" placeholder="e.g. name@okhdfcbank" style="flex:1; min-width:200px; padding:0.6rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.9rem;" />
+          <button type="button" id="submitWithdrawBtn" class="earn-btn" style="padding:0.65rem 1.25rem;">Submit Request</button>
+        </div>
+        <div id="withdrawMsg" style="margin-top:0.6rem; font-size:0.86rem; font-weight:600; display:none;"></div>
+      </div>
+
+      <div id="withdrawLockedWrap" style="display:none; font-size:0.86rem; color:#64748b; line-height:1.5;">
+        🔒 You need at least <strong>₹100.00</strong> in withdrawable balance to request a payout. Upload more notes or share links with friends to earn ₹0.20 per view!
+      </div>
+    </div>
   </div>
 
+  <!-- Note Sales Details (if applicable) -->
+  <div class="earn-card" id="noteSalesCard" style="display:none;">
+    <h3>📚 Paid Note Sales</h3>
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(140px, 1fr)); gap:0.75rem; margin-top:0.75rem;">
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:0.75rem; text-align:center;">
+        <div style="font-size:0.75rem; color:#64748b; font-weight:600;">Monetized Notes</div>
+        <div id="salesNoteCount" style="font-size:1.3rem; font-weight:800; color:#1e293b; margin-top:0.25rem;">0</div>
+      </div>
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:0.75rem; text-align:center;">
+        <div style="font-size:0.75rem; color:#64748b; font-weight:600;">Sales Orders</div>
+        <div id="salesOrderCount" style="font-size:1.3rem; font-weight:800; color:#2563eb; margin-top:0.25rem;">0</div>
+      </div>
+      <div style="background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:0.75rem; text-align:center;">
+        <div style="font-size:0.75rem; color:#166534; font-weight:600;">Note Sales Revenue</div>
+        <div id="salesRevenueAmt" style="font-size:1.3rem; font-weight:800; color:#16a34a; margin-top:0.25rem;">₹0.00</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- How to Boost Rank & Uploads -->
   <div class="earn-card">
-    <h3>How to Boost Rank</h3>
-    <p class="earn-muted">Rank tiers: Explorer → Member → Contributor → Power Contributor → Community Leader.</p>
+    <h3>🚀 How to Maximize Your Earnings</h3>
+    <p class="earn-muted">Every view on your public uploads adds ₹0.20 directly to your creator balance.</p>
     <ul class="earn-list">
-      <li>Refer friends using your referral link.</li>
-      <li>Share files publicly to get more views.</li>
-      <li>Aim for at least <strong>50 views</strong> on your uploads.</li>
-      <li>Keep uploading useful notes, papers, and practicals.</li>
+      <li>Upload high-demand lecture notes, semester PYQs, and lab manuals.</li>
+      <li>Share direct links with classmates and study groups.</li>
+      <li>Reach <strong>Contributor</strong> rank to also sell premium locked notes at your custom price (keep 80%).</li>
     </ul>
     <div class="earn-actions">
-      <a class="earn-btn" href="{{ url_for('app_pages.profile') }}">Open Profile</a>
-      <a class="earn-btn earn-btn-secondary" href="{{ url_for('app_pages.upload') }}">Upload Files</a>
+      <a class="earn-btn" href="{{ url_for('app_pages.upload') }}">📤 Upload Study Files</a>
+      <a class="earn-btn earn-btn-secondary" href="{{ url_for('app_pages.profile') }}">👤 View My Uploads</a>
+      <a class="earn-btn earn-btn-secondary" href="/settings#section-payout">⚙️ Payout Settings</a>
     </div>
   </div>
 </div>
 
 <script>
   (function () {
-    const btn = document.getElementById('eligibilityBtn');
-    const out = document.getElementById('eligibilityResult');
-    if (!btn || !out) return;
+    async function initWall() {
+      // 1. Fetch wallet data
+      try {
+        const wRes = await fetch('/api/creator/wallet');
+        const wData = await wRes.json();
+        if (wData.success && wData.wallet) {
+          const w = wData.wallet;
+          const tvEl = document.getElementById('wallTotalViews');
+          const veEl = document.getElementById('wallViewEarnings');
+          const wdEl = document.getElementById('wallWithdrawable');
+          const pdEl = document.getElementById('wallPending');
+          const twEl = document.getElementById('wallTotalWithdrawn');
 
-    async function show(eligible, level) {
-      out.style.display = 'block';
-      if (eligible) {
-        let statsHtml = '<div style="color:#059669;font-weight:700;margin-bottom:0.75rem;">🎉 You are an Eligible Creator (' + (level || 'Contributor').replace('_', ' ').toUpperCase() + ')! You can sell notes.</div>';
-        try {
-          const res = await fetch('/api/creator/earnings');
-          const data = await res.json();
-          if (data.success) {
-            statsHtml += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-top:0.75rem;">' +
-              '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:0.75rem;text-align:center;">' +
-                '<div style="font-size:0.75rem;color:#64748b;font-weight:600;">Monetized Notes</div>' +
-                '<div style="font-size:1.4rem;font-weight:800;color:#1e293b;margin-top:0.25rem;">' + data.paid_notes_count + '</div>' +
-              '</div>' +
-              '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:0.75rem;text-align:center;">' +
-                '<div style="font-size:0.75rem;color:#64748b;font-weight:600;">Total Note Sales</div>' +
-                '<div style="font-size:1.4rem;font-weight:800;color:#2563eb;margin-top:0.25rem;">' + data.total_sales + '</div>' +
-              '</div>' +
-              '<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:12px;padding:0.75rem;text-align:center;">' +
-                '<div style="font-size:0.75rem;color:#166534;font-weight:600;">Total Earnings</div>' +
-                '<div style="font-size:1.4rem;font-weight:800;color:#16a34a;margin-top:0.25rem;">₹' + data.total_earnings + '</div>' +
-              '</div>' +
-            '</div>';
-          }
-        } catch (e) {}
-        statsHtml += '<div style="margin-top:1rem;"><a href="/upload" class="earn-btn" style="display:inline-block;padding:0.6rem 1.25rem;font-size:0.88rem;">📤 Upload & Sell Notes</a></div>';
+          if (tvEl) tvEl.textContent = (w.total_views || 0).toLocaleString();
+          if (veEl) veEl.textContent = '₹' + (w.view_earnings || 0).toFixed(2);
+          if (wdEl) wdEl.textContent = '₹' + (w.withdrawable_balance || 0).toFixed(2);
+          if (pdEl) pdEl.textContent = '₹' + (w.pending_balance || 0).toFixed(2);
+          if (twEl) twEl.textContent = '₹' + (w.total_withdrawn || 0).toFixed(2);
 
-        // Load Creator Wallet
-        try {
-          const wRes = await fetch('/api/creator/wallet');
-          const wData = await wRes.json();
-          if (wData.success && wData.wallet) {
-            const w = wData.wallet;
-            statsHtml += '<div style="margin-top:1.5rem;padding-top:1.25rem;border-top:1px solid #e2e8f0;">' +
-              '<h4 style="margin:0 0 0.5rem;font-size:1rem;color:#1e293b;">💼 Creator Wallet & Payout</h4>' +
-              '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:1rem;">' +
-                '<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:12px;padding:0.75rem;text-align:center;">' +
-                  '<div style="font-size:0.72rem;color:#b45309;font-weight:700;text-transform:uppercase;">Pending (30-day Lock)</div>' +
-                  '<div style="font-size:1.3rem;font-weight:800;color:#d97706;margin-top:0.25rem;">₹' + w.pending_balance.toFixed(2) + '</div>' +
-                '</div>' +
-                '<div style="background:#f0fdf4;border:1px solid #86efac;border-radius:12px;padding:0.75rem;text-align:center;">' +
-                  '<div style="font-size:0.72rem;color:#166534;font-weight:700;text-transform:uppercase;">Withdrawable Balance</div>' +
-                  '<div style="font-size:1.3rem;font-weight:800;color:#15803d;margin-top:0.25rem;">₹' + w.withdrawable_balance.toFixed(2) + '</div>' +
-                '</div>' +
-                '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:0.75rem;text-align:center;">' +
-                  '<div style="font-size:0.72rem;color:#64748b;font-weight:700;text-transform:uppercase;">Total Paid Out</div>' +
-                  '<div style="font-size:1.3rem;font-weight:800;color:#334155;margin-top:0.25rem;">₹' + w.total_withdrawn.toFixed(2) + '</div>' +
-                '</div>' +
-              '</div>' +
-              '<div style="background:#f8fafc;border-radius:12px;padding:1rem;border:1px solid #e2e8f0;">' +
-                '<p style="margin:0 0 0.75rem;font-size:0.84rem;color:#64748b;">Withdrawal policy: Minimum <strong>₹100</strong> and funds must mature past <strong>30 days</strong>.</p>';
+          const eligWrap = document.getElementById('withdrawEligibleWrap');
+          const lockWrap = document.getElementById('withdrawLockedWrap');
+          const amtInput = document.getElementById('payoutAmount');
+          const policyBadge = document.getElementById('payoutPolicyBadge');
 
-            if (w.can_withdraw) {
-              statsHtml += '<div style="display:flex;gap:0.5rem;flex-wrap:wrap;align-items:center;">' +
-                '<input id="payoutAmount" type="number" min="100" max="' + w.withdrawable_balance + '" value="' + Math.min(w.withdrawable_balance, 500) + '" style="width:110px;padding:0.5rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;" placeholder="Amount" />' +
-                '<select id="payoutMethod" style="padding:0.5rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;"><option value="upi">UPI ID</option><option value="bank">Bank Account</option></select>' +
-                '<input id="payoutDetailVal" type="text" placeholder="e.g. name@okhdfcbank" style="flex:1;min-width:180px;padding:0.5rem;border:1px solid #cbd5e1;border-radius:8px;font-size:0.9rem;" />' +
-                '<button type="button" id="submitWithdrawBtn" class="earn-btn" style="padding:0.55rem 1rem;font-size:0.85rem;">Request Withdrawal</button>' +
-              '</div>' +
-              '<div id="withdrawMsg" style="margin-top:0.5rem;font-size:0.84rem;display:none;"></div>';
+          if (policyBadge) {
+            if (w.is_first_three_free) {
+              policyBadge.innerHTML = '🎉 <span style="color:#16a34a; font-weight:700;">No minimum limit</span> (First 3 withdrawals)';
             } else {
-              statsHtml += '<div style="font-size:0.84rem;color:#94a3b8;font-weight:600;">🔒 Minimum ₹100 withdrawable required to request payout (Available: ₹' + w.withdrawable_balance.toFixed(2) + ').</div>';
+              policyBadge.innerHTML = 'Policy: Minimum <strong>₹' + (w.min_withdrawal || 100).toFixed(0) + '</strong>';
             }
-            statsHtml += '</div></div>';
           }
-        } catch (e) {}
 
-        out.innerHTML = statsHtml;
-
-        const wBtn = document.getElementById('submitWithdrawBtn');
-        if (wBtn) {
-          wBtn.addEventListener('click', async () => {
-            const amt = parseFloat(document.getElementById('payoutAmount').value);
-            const method = document.getElementById('payoutMethod').value;
-            const detailVal = document.getElementById('payoutDetailVal').value.trim();
-            const msg = document.getElementById('withdrawMsg');
-            msg.style.display = 'block';
-            if (!detailVal) {
-              msg.style.color = '#dc2626';
-              msg.textContent = 'Please enter payout account / UPI ID.';
-              return;
+          if (w.can_withdraw) {
+            if (eligWrap) eligWrap.style.display = 'block';
+            if (lockWrap) lockWrap.style.display = 'none';
+            if (amtInput) {
+              amtInput.min = w.min_withdrawal || 1;
+              amtInput.max = w.withdrawable_balance;
+              amtInput.value = Math.min(w.withdrawable_balance, 500);
             }
-            wBtn.disabled = true;
-            wBtn.textContent = 'Submitting...';
-            try {
-              const res = await fetch('/api/creator/withdraw', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({
-                  amount: amt,
-                  payout_method: method,
-                  payout_details: method === 'upi' ? {upi_id: detailVal} : {account_info: detailVal}
-                })
-              });
-              const data = await res.json();
-              if (data.success) {
-                msg.style.color = '#16a34a';
-                msg.textContent = '🎉 Withdrawal requested successfully! Under admin review.';
-                setTimeout(() => show(eligible, level), 1500);
+          } else {
+            if (eligWrap) eligWrap.style.display = 'none';
+            if (lockWrap) {
+              lockWrap.style.display = 'block';
+              if (w.is_first_three_free) {
+                lockWrap.innerHTML = '🔒 Your withdrawable balance is <strong>₹0.00</strong>. Earn from views or sales to request a payout with <strong>no minimum limit</strong>!';
               } else {
-                msg.style.color = '#dc2626';
-                msg.textContent = data.error || 'Failed to submit request.';
+                lockWrap.innerHTML = '🔒 Minimum <strong>₹' + (w.min_withdrawal || 100).toFixed(2) + '</strong> required to request withdrawal (Your balance: <strong>₹' + (w.withdrawable_balance || 0).toFixed(2) + '</strong>). Upload more notes or share links to reach ₹100!';
               }
-            } catch (err) {
-              msg.style.color = '#dc2626';
-              msg.textContent = 'Request failed. Please try again.';
-            } finally {
-              wBtn.disabled = false;
-              wBtn.textContent = 'Request Withdrawal';
             }
-          });
+          }
         }
-      } else {
-        out.innerHTML = '<div style="color:#b45309;">❌ Not eligible yet — reach <strong>Contributor</strong> rank to unlock notes selling and monetization.</div>';
+      } catch (err) {
+        console.warn('Wallet fetch error:', err);
+      }
+
+      // 2. Fetch creator earnings & rank
+      try {
+        const eRes = await fetch('/api/creator/earnings');
+        const eData = await eRes.json();
+        if (eData.success) {
+          const rBadge = document.getElementById('rankBadge');
+          if (rBadge) {
+            const lvl = (eData.level || 'Explorer').replace('_', ' ').toUpperCase();
+            rBadge.textContent = 'Tier: ' + lvl;
+            if (eData.eligible) {
+              rBadge.style.background = '#dcfce7';
+              rBadge.style.color = '#15803d';
+              rBadge.style.borderColor = '#86efac';
+            }
+          }
+
+          if (eData.eligible && (eData.paid_notes_count > 0 || eData.total_sales > 0)) {
+            const sc = document.getElementById('noteSalesCard');
+            if (sc) sc.style.display = 'block';
+            const nc = document.getElementById('salesNoteCount');
+            const oc = document.getElementById('salesOrderCount');
+            const ra = document.getElementById('salesRevenueAmt');
+            if (nc) nc.textContent = eData.paid_notes_count || 0;
+            if (oc) oc.textContent = eData.total_sales || 0;
+            if (ra) ra.textContent = '₹' + (eData.total_earnings || 0).toFixed(2);
+          }
+        }
+      } catch (err) {}
+
+      // 3. Bind withdrawal request handler
+      const submitBtn = document.getElementById('submitWithdrawBtn');
+      if (submitBtn) {
+        submitBtn.addEventListener('click', async () => {
+          const amt = parseFloat(document.getElementById('payoutAmount').value);
+          const method = document.getElementById('payoutMethod').value;
+          const detailVal = document.getElementById('payoutDetailVal').value.trim();
+          const msg = document.getElementById('withdrawMsg');
+          if (!msg) return;
+          msg.style.display = 'block';
+
+          if (!detailVal) {
+            msg.style.color = '#dc2626';
+            msg.textContent = 'Please provide UPI ID or bank account details.';
+            return;
+          }
+          if (isNaN(amt) || amt < 100) {
+            msg.style.color = '#dc2626';
+            msg.textContent = 'Minimum payout amount is ₹100.';
+            return;
+          }
+
+          submitBtn.disabled = true;
+          submitBtn.textContent = 'Submitting...';
+          try {
+            const res = await fetch('/api/creator/withdraw', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                amount: amt,
+                payout_method: method,
+                payout_details: method === 'upi' ? { upi_id: detailVal } : { account_info: detailVal }
+              })
+            });
+            const data = await res.json();
+            if (data.success) {
+              msg.style.color = '#16a34a';
+              msg.textContent = '🎉 Payout request submitted successfully! Admin will process within 24-48 hours.';
+              setTimeout(initWall, 1500);
+            } else {
+              msg.style.color = '#dc2626';
+              msg.textContent = data.error || 'Withdrawal submission failed.';
+            }
+          } catch (e) {
+            msg.style.color = '#dc2626';
+            msg.textContent = 'Network error while submitting withdrawal.';
+          } finally {
+            submitBtn.disabled = false;
+            submitBtn.textContent = 'Submit Request';
+          }
+        });
       }
     }
 
-    btn.addEventListener('click', async () => {
-      out.style.display = 'none';
-      btn.disabled = true;
-      btn.textContent = 'Checking…';
-      try {
-        const r = await fetch('/api/my-access');
-        const d = await r.json();
-        if (!d.success) throw new Error('failed');
-        const level = (d.level || 'explorer').toLowerCase();
-        const eligible = ['contributor','power_contributor','community_leader'].includes(level);
-        await show(eligible, level);
-      } catch (e) {
-        out.style.display = 'block';
-        out.innerHTML = '<div style="color:#b45309;">Could not check eligibility right now.</div>';
-      } finally {
-        btn.disabled = false;
-        btn.textContent = 'Check Eligibility';
-      }
-    });
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initWall);
+    } else {
+      initWall();
+    }
   })();
 </script>
 

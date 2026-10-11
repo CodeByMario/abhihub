@@ -27,6 +27,7 @@ supabase = _SupabaseProxy()
 
 MIN_WITHDRAWAL_AMOUNT = 100.0
 HOLDING_DAYS = 30
+VIEW_EARNING_RATE_INR = 0.20
 
 
 def get_document_creator(doc_id):
@@ -178,30 +179,100 @@ def unlock_eligible_entries(creator_id=None):
         return 0
 
 
+def get_creator_views_and_earnings(creator_id):
+    """
+    Computes total unique views across all uploaded documents for a creator
+    excluding self-views and duplicates, calculating gross earnings at ₹0.20 per unique view.
+    """
+    if not creator_id:
+        return 0, 0.0
+    try:
+        # Check RPC function if deployed
+        try:
+            rpc_res = supabase.rpc('get_creator_unique_views', {'p_creator_id': str(creator_id)}).execute()
+            if rpc_res.data is not None:
+                unique_views = int(rpc_res.data)
+                return unique_views, round(unique_views * VIEW_EARNING_RATE_INR, 2)
+        except Exception:
+            pass
+
+        # Python fallback: distinct (document_id, viewer) excluding creator
+        docs_res = supabase.table('documents').select('id').eq('uploader_id', str(creator_id)).execute()
+        doc_ids = [d['id'] for d in (docs_res.data or []) if d.get('id')]
+        if not doc_ids:
+            return 0, 0.0
+
+        views_res = supabase.table('document_views').select('document_id, user_id, ip_address').in_('document_id', doc_ids).execute()
+        unique_keys = set()
+        for v in (views_res.data or []):
+            u_id = v.get('user_id')
+            ip = v.get('ip_address')
+            if u_id and str(u_id) == str(creator_id):
+                continue
+            viewer = str(u_id) if u_id else (str(ip) if ip else None)
+            if viewer and v.get('document_id'):
+                unique_keys.add((str(v['document_id']), viewer))
+
+        unique_views = len(unique_keys)
+        view_earnings = round(unique_views * VIEW_EARNING_RATE_INR, 2)
+        return unique_views, view_earnings
+    except Exception as e:
+        logging.error(f"[WALLET] Error calculating view earnings for {creator_id}: {e}")
+        return 0, 0.0
+
+
 def get_creator_wallet(creator_id):
     """
-    Reconciles locks and fetches creator wallet with ledger and payouts.
+    Reconciles locks and fetches creator wallet with view earnings, ledger, and payouts.
     """
     unlock_eligible_entries(creator_id)
 
     wallet = {'pending_balance': 0.0, 'withdrawable_balance': 0.0, 'total_withdrawn': 0.0}
     try:
-        w_res = supabase.table('creator_wallets').select('*').eq('user_id', creator_id).limit(1).execute()
+        w_res = supabase.table('creator_wallets').select('*').eq('user_id', str(creator_id)).limit(1).execute()
         if w_res.data:
             wallet = w_res.data[0]
 
-        ledger = supabase.table('wallet_ledger').select('*').eq('creator_id', creator_id).order('created_at', desc=True).limit(20).execute().data or []
-        payouts = supabase.table('creator_payout_requests').select('*').eq('creator_id', creator_id).order('created_at', desc=True).limit(10).execute().data or []
+        total_views, view_earnings = get_creator_views_and_earnings(creator_id)
+        sales_withdrawable = float(wallet.get('withdrawable_balance', 0))
+        total_withdrawn = float(wallet.get('total_withdrawn', 0))
+
+        # Reconcile lifetime sales credits vs view earnings to prevent double-deducting withdrawals
+        credits_res = supabase.table('wallet_ledger').select('amount, order_id').eq('creator_id', str(creator_id)).eq('type', 'credit').execute()
+        total_sales_credited = sum(
+            float(c.get('amount') or 0.0)
+            for c in (credits_res.data or [])
+            if not str(c.get('order_id') or '').startswith('REFUND-')
+        )
+        sales_withdrawn = max(0.0, total_sales_credited - sales_withdrawable)
+        view_withdrawn = max(0.0, total_withdrawn - sales_withdrawn)
+        remaining_views = max(0.0, round(view_earnings - view_withdrawn, 2))
+        effective_withdrawable = round(sales_withdrawable + remaining_views, 2)
+
+        ledger = supabase.table('wallet_ledger').select('*').eq('creator_id', str(creator_id)).order('created_at', desc=True).limit(20).execute().data or []
+        payouts = supabase.table('creator_payout_requests').select('*').eq('creator_id', str(creator_id)).order('created_at', desc=True).limit(10).execute().data or []
+
+        # Determine minimum withdrawal threshold (First 3 withdrawals have no limit, min ₹1.00)
+        payouts_completed = [p for p in (payouts or []) if p.get('status') == 'completed']
+        completed_count = len(payouts_completed)
+        min_limit = 1.0 if completed_count < 3 else MIN_WITHDRAWAL_AMOUNT
+        can_withdraw = (effective_withdrawable >= min_limit) and (effective_withdrawable > 0)
 
         return {
             'success': True,
             'wallet': {
                 'pending_balance': float(wallet.get('pending_balance', 0)),
-                'withdrawable_balance': float(wallet.get('withdrawable_balance', 0)),
-                'total_withdrawn': float(wallet.get('total_withdrawn', 0)),
-                'min_withdrawal': MIN_WITHDRAWAL_AMOUNT,
+                'withdrawable_balance': effective_withdrawable,
+                'sales_withdrawable': sales_withdrawable,
+                'total_views': total_views,
+                'view_earnings': view_earnings,
+                'view_rate': VIEW_EARNING_RATE_INR,
+                'total_withdrawn': total_withdrawn,
+                'min_withdrawal': min_limit,
                 'holding_days': HOLDING_DAYS,
-                'can_withdraw': float(wallet.get('withdrawable_balance', 0)) >= MIN_WITHDRAWAL_AMOUNT
+                'can_withdraw': can_withdraw,
+                'withdrawals_completed': completed_count,
+                'is_first_three_free': completed_count < 3
             },
             'ledger': ledger,
             'payouts': payouts
@@ -222,9 +293,6 @@ def request_withdrawal(creator_id, amount, payout_method, payout_details):
     except (ValueError, TypeError):
         return False, "Invalid withdrawal amount"
 
-    if amt < MIN_WITHDRAWAL_AMOUNT:
-        return False, f"Minimum withdrawal amount is ₹{MIN_WITHDRAWAL_AMOUNT:.0f}"
-
     if payout_method not in ['upi', 'bank']:
         return False, "Payout method must be 'upi' or 'bank'"
 
@@ -232,28 +300,64 @@ def request_withdrawal(creator_id, amount, payout_method, payout_details):
         return False, "Account or UPI details are required"
 
     try:
-        w_res = supabase.table('creator_wallets').select('*').eq('user_id', creator_id).limit(1).execute()
-        if not w_res.data:
-            return False, "Wallet not found"
+        # Prevent double-spending: disallow new payout if one is already pending/processing
+        pending_check = supabase.table('creator_payout_requests')\
+            .select('id')\
+            .eq('creator_id', str(creator_id))\
+            .in_('status', ['pending', 'processing'])\
+            .limit(1)\
+            .execute()
+        if pending_check.data:
+            return False, "You already have a payout request under review. Please wait until it is processed."
 
-        curr_withdrawable = float(w_res.data[0].get('withdrawable_balance', 0))
+        w_info = get_creator_wallet(creator_id)
+        if not w_info.get('success'):
+            return False, "Could not fetch wallet details"
+
+        min_limit = float(w_info['wallet'].get('min_withdrawal', MIN_WITHDRAWAL_AMOUNT))
+        if amt < min_limit or amt <= 0:
+            if min_limit <= 1.0:
+                return False, "Withdrawal amount must be at least ₹1.00"
+            return False, f"Minimum withdrawal amount is ₹{min_limit:.0f}"
+
+        curr_withdrawable = float(w_info['wallet'].get('withdrawable_balance', 0))
         if curr_withdrawable < amt:
             return False, f"Insufficient withdrawable balance (Available: ₹{curr_withdrawable:.2f})"
 
+        # Ensure wallet record exists in DB
+        w_res = supabase.table('creator_wallets').select('*').eq('user_id', str(creator_id)).limit(1).execute()
         now = datetime.now(timezone.utc)
-        new_withdrawable = round(curr_withdrawable - amt, 2)
-        total_withdrawn = round(float(w_res.data[0].get('total_withdrawn', 0)) + amt, 2)
+        if not w_res.data:
+            supabase.table('creator_wallets').insert({
+                'user_id': str(creator_id),
+                'pending_balance': 0.0,
+                'withdrawable_balance': 0.0,
+                'total_withdrawn': 0.0,
+                'updated_at': now.isoformat()
+            }).execute()
+            w_res = supabase.table('creator_wallets').select('*').eq('user_id', str(creator_id)).limit(1).execute()
+
+        w_row = w_res.data[0] if w_res.data else {}
+        db_sales_withdrawable = float(w_row.get('withdrawable_balance', 0))
+        deduct_from_sales = min(db_sales_withdrawable, amt)
+        deduct_from_views = round(amt - deduct_from_sales, 2)
+        new_sales_withdrawable = round(db_sales_withdrawable - deduct_from_sales, 2)
+        new_total_withdrawn = round(float(w_row.get('total_withdrawn', 0)) + amt, 2)
+
+        # Track deduction sources in payout_details for accurate refunds
+        payout_details['deducted_sales'] = deduct_from_sales
+        payout_details['deducted_views'] = deduct_from_views
 
         # Deduct from wallet
         supabase.table('creator_wallets').update({
-            'withdrawable_balance': new_withdrawable,
-            'total_withdrawn': total_withdrawn,
+            'withdrawable_balance': new_sales_withdrawable,
+            'total_withdrawn': new_total_withdrawn,
             'updated_at': now.isoformat()
-        }).eq('user_id', creator_id).execute()
+        }).eq('user_id', str(creator_id)).execute()
 
         # Insert payout request
         req = supabase.table('creator_payout_requests').insert({
-            'creator_id': creator_id,
+            'creator_id': str(creator_id),
             'amount': amt,
             'payout_method': payout_method,
             'payout_details': payout_details,
@@ -261,12 +365,16 @@ def request_withdrawal(creator_id, amount, payout_method, payout_details):
             'created_at': now.isoformat()
         }).execute()
 
-        # Record debit in ledger
+        payout_id = req.data[0]['id'] if (req.data and len(req.data) > 0) else None
+        payout_order_id = f"PAYOUT-{payout_id}" if payout_id else None
+
+        # Record debit in ledger linked to this payout
         supabase.table('wallet_ledger').insert({
-            'creator_id': creator_id,
+            'creator_id': str(creator_id),
             'amount': amt,
             'type': 'payout',
-            'status': 'paid',
+            'status': 'locked',
+            'order_id': payout_order_id,
             'unlock_at': now.isoformat(),
             'created_at': now.isoformat()
         }).execute()
@@ -275,6 +383,7 @@ def request_withdrawal(creator_id, amount, payout_method, payout_details):
     except Exception as e:
         logging.error(f"[WALLET] Withdrawal request error: {e}")
         return False, str(e)
+
 
 
 def get_all_payout_requests(status=None, limit=50):
@@ -293,7 +402,7 @@ def get_all_payout_requests(status=None, limit=50):
 def process_payout_request(payout_id, action, admin_notes=""):
     """
     Admin action to approve ('completed') or reject ('rejected') a withdrawal request.
-    If rejected, refunds the withdrawable amount back to the creator wallet and adds a ledger entry.
+    If rejected, accurately refunds funds back to the creator wallet and ledger without double-counting.
     """
     if action not in ['completed', 'rejected', 'processing']:
         return False, "Invalid action. Must be 'completed', 'rejected', or 'processing'."
@@ -311,25 +420,44 @@ def process_payout_request(payout_id, action, admin_notes=""):
 
         creator_id = payout.get('creator_id')
         amt = float(payout.get('amount', 0))
+        payout_order_id = f"PAYOUT-{payout_id}"
 
-        # If rejected, refund to creator wallet and ledger
+        # If completed, finalize ledger entry
+        if action == 'completed':
+            try:
+                supabase.table('wallet_ledger').update({'status': 'paid'}).eq('order_id', payout_order_id).execute()
+            except Exception:
+                pass
+
+        # If rejected, restore funds and cancel ledger debit
         if action == 'rejected':
+            p_details = payout.get('payout_details') or {}
+            deducted_sales = float(p_details.get('deducted_sales', 0.0))
+
             w_res = supabase.table('creator_wallets').select('*').eq('user_id', creator_id).limit(1).execute()
             if w_res.data:
                 curr_w = float(w_res.data[0].get('withdrawable_balance', 0))
                 curr_tot = float(w_res.data[0].get('total_withdrawn', 0))
+                # Only restore what was deducted from sales; view earnings automatically restore via total_withdrawn decrease
                 supabase.table('creator_wallets').update({
-                    'withdrawable_balance': round(curr_w + amt, 2),
+                    'withdrawable_balance': round(curr_w + deducted_sales, 2),
                     'total_withdrawn': round(max(0.0, curr_tot - amt), 2),
                     'updated_at': now.isoformat()
                 }).eq('user_id', creator_id).execute()
 
-            # Record refund in ledger
+            # Mark original payout ledger entry cancelled
+            try:
+                supabase.table('wallet_ledger').update({'status': 'cancelled'}).eq('order_id', payout_order_id).execute()
+            except Exception:
+                pass
+
+            # Record refund in ledger for audit with REFUND- prefix
             supabase.table('wallet_ledger').insert({
                 'creator_id': creator_id,
                 'amount': amt,
                 'type': 'credit',
                 'status': 'available',
+                'order_id': f"REFUND-{payout_id}",
                 'unlock_at': now.isoformat(),
                 'created_at': now.isoformat()
             }).execute()
@@ -344,5 +472,89 @@ def process_payout_request(payout_id, action, admin_notes=""):
         return True, f"Payout request marked as {action}"
     except Exception as e:
         logging.error(f"[WALLET] Error processing payout {payout_id}: {e}")
+        return False, str(e)
+
+
+def admin_adjust_creator_wallet(creator_id, amount: float, adjustment_type: str, reason: str = ""):
+    """
+    Allows admin to debit penalties/charges or credit bonuses/adjustments to a creator wallet.
+    Records audit entry in wallet_ledger.
+    """
+    if not creator_id:
+        return False, "Creator ID required"
+    try:
+        amt = round(abs(float(amount)), 2)
+        if amt <= 0:
+            return False, "Amount must be greater than zero"
+    except (ValueError, TypeError):
+        return False, "Invalid amount"
+
+    adjustment_type = str(adjustment_type).lower().strip()
+    if adjustment_type not in ['penalty', 'charge', 'debit', 'credit', 'bonus']:
+        return False, "Invalid adjustment type. Use penalty, charge, debit, credit, or bonus."
+
+    now = datetime.now(timezone.utc)
+    try:
+        w_res = supabase.table('creator_wallets').select('*').eq('user_id', str(creator_id)).limit(1).execute()
+        if not w_res.data:
+            supabase.table('creator_wallets').insert({
+                'user_id': str(creator_id),
+                'pending_balance': 0.0,
+                'withdrawable_balance': 0.0,
+                'total_withdrawn': 0.0,
+                'updated_at': now.isoformat()
+            }).execute()
+            w_res = supabase.table('creator_wallets').select('*').eq('user_id', str(creator_id)).limit(1).execute()
+
+        w_row = w_res.data[0] if w_res.data else {}
+        db_sales_withdrawable = float(w_row.get('withdrawable_balance', 0))
+        curr_total_withdrawn = float(w_row.get('total_withdrawn', 0))
+
+        w_info = get_creator_wallet(creator_id)
+        effective_bal = float(w_info.get('wallet', {}).get('withdrawable_balance', 0)) if w_info.get('success') else db_sales_withdrawable
+
+        is_debit = adjustment_type in ['penalty', 'charge', 'debit']
+        if is_debit:
+            deduct_from_sales = min(db_sales_withdrawable, amt)
+            new_sales_withdrawable = round(db_sales_withdrawable - deduct_from_sales, 2)
+            new_total_withdrawn = round(curr_total_withdrawn + amt, 2)
+            new_effective_bal = max(0.0, round(effective_bal - amt, 2))
+            ledger_type = 'debit'
+            ledger_status = 'paid'
+        else:
+            new_sales_withdrawable = round(db_sales_withdrawable + amt, 2)
+            new_total_withdrawn = curr_total_withdrawn
+            new_effective_bal = round(effective_bal + amt, 2)
+            ledger_type = 'credit'
+            ledger_status = 'available'
+
+        supabase.table('creator_wallets').update({
+            'withdrawable_balance': new_sales_withdrawable,
+            'total_withdrawn': new_total_withdrawn,
+            'updated_at': now.isoformat()
+        }).eq('user_id', str(creator_id)).execute()
+
+        # Insert audit record in wallet_ledger
+        supabase.table('wallet_ledger').insert({
+            'creator_id': str(creator_id),
+            'amount': amt,
+            'type': ledger_type,
+            'status': ledger_status,
+            'doc_id': None,
+            'order_id': f"ADMIN-{adjustment_type.upper()}-{int(now.timestamp())}",
+            'unlock_at': now.isoformat(),
+            'created_at': now.isoformat()
+        }).execute()
+
+        return True, {
+            'creator_id': creator_id,
+            'adjustment_type': adjustment_type,
+            'amount': amt,
+            'previous_balance': effective_bal,
+            'new_balance': new_effective_bal,
+            'message': f"Wallet successfully updated. New withdrawable balance: ₹{new_effective_bal:.2f}"
+        }
+    except Exception as e:
+        logging.error(f"[WALLET] Error adjusting wallet for {creator_id}: {e}")
         return False, str(e)
 

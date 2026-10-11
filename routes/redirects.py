@@ -40,7 +40,7 @@ STATIC_REDIRECTS = {
 
     # Phase 4.2 Naming cleanups
     '/UHV': '/uhv',
-    '/abhijeetupdate': '/admin/file-updates',
+    '/abhijeetupdate': '/admin',
 }
 
 def register_redirect_handlers(app):

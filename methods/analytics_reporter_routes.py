@@ -8,19 +8,7 @@ import logging
 from functools import wraps
 from flask import request, jsonify, session
 
-ADMIN_EMAILS = [e.strip().lower() for e in (os.getenv('ADMIN_EMAILS') or os.getenv('ADMIN_EMAIL') or '').split(',') if e.strip()]
-
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        user = session.get('user')
-        if not user:
-            return jsonify({'success': False, 'message': 'Unauthorized'}), 401
-        user_email = user.get('email', '').lower()
-        if not ADMIN_EMAILS or user_email not in ADMIN_EMAILS:
-            return jsonify({'success': False, 'message': 'Forbidden: Admin access required'}), 403
-        return f(*args, **kwargs)
-    return decorated_function
+from routes.auth import admin_required
 
 def register_reporter_routes(app):
     """Register admin analytics dashboard API endpoints."""

@@ -53,9 +53,13 @@ def get_overview_kpis(days=30):
     try:
         since = _safe_ts_days(days)
         
-        # Total pageviews
+        # Total pageviews for period
         pv_res = client.table('document_views').select('id', count='exact').gte('accessed_at', since).execute()
-        total_views = pv_res.count if hasattr(pv_res, 'count') and pv_res.count else len(pv_res.data or [])
+        total_views = pv_res.count if hasattr(pv_res, 'count') and pv_res.count is not None else len(pv_res.data or [])
+
+        # All-time live pageviews directly from document_views
+        all_time_res = client.table('document_views').select('id', count='exact').execute()
+        all_time_views = all_time_res.count if hasattr(all_time_res, 'count') and all_time_res.count is not None else len(all_time_res.data or [])
         
         # Unique users
         unique_res = client.table('document_views').select('user_id').gte('accessed_at', since).execute()
@@ -78,6 +82,7 @@ def get_overview_kpis(days=30):
             "data": {
                 "total_views": total_views,
                 "file_views": total_views,
+                "all_time_views": all_time_views,
                 "unique_users": unique_users,
                 "total_sessions": total_sessions,
                 "avg_session_minutes": avg_duration,

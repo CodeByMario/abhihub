@@ -1,11 +1,11 @@
-{% extends 'p_struct.html' %}
+{% extends 'admin_base.html' %}
 
-{% block page_head %}
-<title>Economy Dashboard | AbhiHub Admin</title>
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+{% block title %}Economy & Scoring Engine{% endblock %}
+
+{% block extra_head %}
 {% endblock %}
 
-{% block content %}
+{% block admin_content %}
 <style>
   :root {
     --admin-bg-light: #f8fafc;
@@ -244,25 +244,16 @@
     </div>
   </div>
 
-  <!-- Navigation Tabs -->
+  <!-- Economy Section Tabs -->
   <div class="tabs-bar">
-    <a href="/admin/notification-panel" class="tab-btn">
-      <i class="fas fa-chart-line"></i> Overview
+    <a href="#overview" class="tab-btn active">
+      <i class="fas fa-chart-pie"></i> Overview & Distribution
     </a>
-    <a href="/admin/notification-panel" class="tab-btn">
-      <i class="fas fa-circle-check"></i> Moderation Queue
+    <a href="#payouts-panel" class="tab-btn">
+      <i class="fas fa-hand-holding-dollar"></i> Creator Payouts
     </a>
-    <a href="/admin/notification-panel" class="tab-btn">
-      <i class="fas fa-users"></i> Users
-    </a>
-    <a href="/admin/notification-panel" class="tab-btn">
-      <i class="fas fa-paper-plane"></i> Broadcast
-    </a>
-    <a href="/admin/notification-panel" class="tab-btn">
-      <i class="fas fa-envelope"></i> Feedback
-    </a>
-    <a href="/admin/economy" class="tab-btn active">
-      <i class="fas fa-coins"></i> Economy
+    <a href="#config" class="tab-btn">
+      <i class="fas fa-sliders"></i> Scoring Config
     </a>
   </div>
 

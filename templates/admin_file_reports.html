@@ -1,155 +1,425 @@
-{% extends 'p_struct.html' %}
-{% block page_head %}
-<title>File Reports | AbhiHub Admin</title>
-<script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.umd.search.png"></script>
+{% extends 'admin_base.html' %}
+{% block title %}File Failure Reports & Access Logs — AbhiHub Admin{% endblock %}
+
+{% block extra_head %}
 <style>
-  :root {
-    --dash-bg: #0f172a;
-    --dash-card: #1e293b;
-    --dash-border: #334155;
-    --dash-text: #f1f5f9;
-    --dash-muted: #94a3b8;
-    --dash-accent: #3b82f6;
-    --dash-success: #10b981;
-    --dash-warning: #f59e0b;
-    --dash-danger: #ef4444;
+  .dash-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding-bottom: 3rem;
   }
-  body { background: var(--dash-bg); color: var(--dash-text); }
-  .dash-container { max-width: 1400px; margin: 0 auto; padding: 1.5rem; }
   .dash-header {
-    display: flex; justify-content: space-between; align-items: center;
-    margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.75rem;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--border-subtle);
   }
-  .dash-title { font-size: 1.5rem; font-weight: 700; }
+  .dash-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    letter-spacing: -0.4px;
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+  }
+  .dash-desc {
+    color: var(--text-secondary);
+    font-size: 0.9rem;
+    margin-top: 0.25rem;
+  }
   .kpi-grid {
-    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 1rem; margin-bottom: 1.5rem;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.75rem;
   }
   .kpi-card {
-    background: var(--dash-card); border: 1px solid var(--dash-border);
-    border-radius: 12px; padding: 1.25rem;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    padding: 1.25rem 1.4rem;
+    box-shadow: var(--card-shadow);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    transition: var(--transition-smooth);
   }
-  .kpi-label { font-size: 0.75rem; color: var(--dash-muted); text-transform: uppercase; letter-spacing: 0.05em; }
-  .kpi-value { font-size: 1.75rem; font-weight: 700; margin-top: 0.25rem; }
+  .kpi-card:hover {
+    border-color: var(--border-accent);
+    transform: translateY(-2px);
+  }
+  .kpi-label {
+    font-size: 0.78rem;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.5px;
+  }
+  .kpi-value {
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    line-height: 1.1;
+    margin-top: 0.3rem;
+  }
+  .kpi-icon-wrap {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-md);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+  }
   .dash-card {
-    background: var(--dash-card); border: 1px solid var(--dash-border);
-    border-radius: 12px; margin-bottom: 1.5rem; overflow: hidden;
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-md);
+    margin-bottom: 2rem;
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
   }
   .dash-card-header {
-    background: #0d172a; padding: 0.75rem 1rem; font-weight: 600;
-    border-bottom: 1px solid var(--dash-border); display: flex;
-    justify-content: space-between; align-items: center;
+    padding: 1rem 1.4rem;
+    font-weight: 700;
+    font-size: 1.05rem;
+    border-bottom: 1px solid var(--border-subtle);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--btn-topbar-bg);
+    flex-wrap: wrap;
+    gap: 0.75rem;
   }
-  .dash-card-body { padding: 1rem; }
-  table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-  th, td { padding: 0.75rem; text-align: left; border-bottom: 1px solid var(--dash-border); }
-  th { color: var(--dash-muted); font-weight: 600; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.05em; }
-  tr:hover td { background: rgba(59, 130, 246, 0.05); }
+  .dash-card-body {
+    padding: 1.25rem;
+  }
+  .filter-bar {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .filter-input {
+    background: var(--bg-surface);
+    color: var(--text-primary);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    padding: 0.55rem 0.95rem;
+    font-size: 0.88rem;
+    font-family: inherit;
+    transition: var(--transition-smooth);
+  }
+  .filter-input:focus {
+    outline: none;
+    border-color: var(--accent-indigo);
+    box-shadow: 0 0 0 3px var(--accent-indigo-glow);
+  }
+  table.admin-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+  }
+  table.admin-table th, table.admin-table td {
+    padding: 0.85rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-subtle);
+    vertical-align: middle;
+  }
+  table.admin-table th {
+    color: var(--text-secondary);
+    font-weight: 700;
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    background: var(--pill-bg);
+  }
+  table.admin-table tr:hover td {
+    background: var(--sidebar-link-hover);
+  }
   .badge {
-    display: inline-block; padding: 0.25rem 0.75rem; border-radius: 999px;
-    font-size: 0.75rem; font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-full);
+    font-size: 0.75rem;
+    font-weight: 700;
   }
-  .badge-open { background: rgba(245, 158, 11, 0.2); color: var(--dash-warning); }
-  .badge-resolved { background: rgba(16, 185, 135, 0.2); color: var(--dash-success); }
-  .badge-critical { background: rgba(239, 68, 68, 0.2); color: var(--dash-danger); }
-  .filter-bar { display: flex; gap: 0.5rem; margin-bottom: 1rem; flex-wrap: wrap; }
-  .filter-bar input, .filter-bar select {
-    background: var(--dash-card); color: var(--dash-text);
-    border: 1px solid var(--dash-border); border-radius: 8px;
-    padding: 0.5rem 1rem; font-size: 0.875rem;
+  .badge-open {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
   }
-  .text-muted { color: var(--dash-muted); }
-  .timestamp { color: var(--dash-muted); font-size: 0.75rem; }
-  .status-dot { display: inline-block; width: 8px; height: 8px; border-radius: 50%; margin-right: 0.5rem; }
-  .status-dot.open { background: var(--dash-warning); }
-  .status-dot.resolved { background: var(--dash-success); }
+  .badge-resolved {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+  .badge-closed {
+    background: rgba(100, 116, 139, 0.15);
+    color: #94a3b8;
+    border: 1px solid rgba(100, 116, 139, 0.3);
+  }
+  .badge-blue {
+    background: rgba(99, 102, 241, 0.15);
+    color: #818cf8;
+    border: 1px solid rgba(99, 102, 241, 0.3);
+  }
+  .btn-sm {
+    padding: 0.38rem 0.75rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.8rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    text-decoration: none;
+    transition: var(--transition-smooth);
+    line-height: 1.2;
+  }
+  .btn-sm:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+  }
+  .btn-indigo-sm {
+    background: var(--accent-indigo);
+    color: white;
+  }
+  .btn-indigo-sm:hover {
+    background: #4f46e5;
+    transform: translateY(-1px);
+  }
+  .btn-emerald-sm {
+    background: #10b981;
+    color: white;
+  }
+  .btn-emerald-sm:hover {
+    background: #059669;
+    transform: translateY(-1px);
+  }
+  .btn-slate-sm {
+    background: var(--btn-topbar-bg);
+    color: var(--text-secondary);
+    border: 1px solid var(--border-subtle);
+  }
+  .btn-slate-sm:hover {
+    background: var(--btn-topbar-hover);
+    color: var(--text-primary);
+  }
+  .btn-amber-sm {
+    background: #f59e0b;
+    color: white;
+  }
+  .btn-amber-sm:hover {
+    background: #d97706;
+  }
+  .timestamp {
+    color: var(--text-muted);
+    font-size: 0.78rem;
+  }
+  .action-group {
+    display: flex;
+    gap: 0.4rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .user-cell {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+  }
+  .user-name {
+    font-weight: 700;
+    color: var(--text-primary);
+  }
+  .user-email {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+  }
+  .doc-title-link {
+    color: var(--text-primary);
+    text-decoration: none;
+    font-weight: 600;
+    transition: var(--transition-smooth);
+  }
+  .doc-title-link:hover {
+    color: var(--accent-indigo);
+    text-decoration: underline;
+  }
+  .empty-state {
+    text-align: center;
+    padding: 3rem 1rem;
+    color: var(--text-secondary);
+  }
+  .empty-state i {
+    font-size: 2.2rem;
+    margin-bottom: 0.75rem;
+    color: var(--text-muted);
+  }
 </style>
 {% endblock %}
-{% block content %}
+
+{% block admin_content %}
 <div class="dash-container">
+  <!-- Page Header -->
   <div class="dash-header">
-    <h1 class="dash-title">📋 File Reports & Access Logs</h1>
+    <div>
+      <h1 class="dash-title">
+        <i class="fas fa-triangle-exclamation" style="color: #f59e0b;"></i>
+        File Failure Reports & Access Logs
+      </h1>
+      <p class="dash-desc">
+        Investigate user-reported viewer errors, preview affected resources in AbhiHub, resolve reports, and inspect detailed student access history.
+      </p>
+    </div>
+    <div style="display: flex; gap: 0.5rem; align-items: center;">
+      <button type="button" class="btn-sm btn-indigo-sm" onclick="loadReports(true)" id="btnRefreshAll" style="padding: 0.5rem 1rem;">
+        <i class="fas fa-sync-alt" id="refreshSpinner"></i> Refresh All Data
+      </button>
+    </div>
   </div>
 
-  <!-- KPIs -->
+  <!-- Real-time KPIs -->
   <div class="kpi-grid">
     <div class="kpi-card">
-      <div class="kpi-label">Total Reports</div>
-      <div class="kpi-value" id="kpi-total-reports">0</div>
+      <div>
+        <div class="kpi-label">Total Reports</div>
+        <div class="kpi-value" id="kpi-total-reports">0</div>
+      </div>
+      <div class="kpi-icon-wrap" style="background: rgba(99, 102, 241, 0.12); color: #818cf8;">
+        <i class="fas fa-flag"></i>
+      </div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Open Reports</div>
-      <div class="kpi-value" id="kpi-open-reports">0</div>
+      <div>
+        <div class="kpi-label">Open / Action Needed</div>
+        <div class="kpi-value" id="kpi-open-reports" style="color: #f59e0b;">0</div>
+      </div>
+      <div class="kpi-icon-wrap" style="background: rgba(245, 158, 11, 0.12); color: #f59e0b;">
+        <i class="fas fa-circle-exclamation"></i>
+      </div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Resolved</div>
-      <div class="kpi-value" id="kpi-resolved-reports">0</div>
+      <div>
+        <div class="kpi-label">Resolved Issues</div>
+        <div class="kpi-value" id="kpi-resolved-reports" style="color: #10b981;">0</div>
+      </div>
+      <div class="kpi-icon-wrap" style="background: rgba(16, 185, 129, 0.12); color: #10b981;">
+        <i class="fas fa-circle-check"></i>
+      </div>
     </div>
     <div class="kpi-card">
-      <div class="kpi-label">Access Logs (last 500)</div>
-      <div class="kpi-value" id="kpi-access-logs">0</div>
-    </div>
-  </div>
-
-  <!-- Report Filters -->
-  <div class="filter-bar">
-    <input type="text" id="report-search" placeholder="Search reports by file name or reporter..." style="flex:1; min-width: 250px;">
-    <select id="status-filter">
-      <option value="all">All Statuses</option>
-      <option value="open">Open</option>
-      <option value="resolved">Resolved</option>
-    </select>
-  </div>
-
-  <!-- Reports Table -->
-  <div class="dash-card">
-    <div class="dash-card-header">
-      File Failure Reports
-    </div>
-    <div class="dash-card-body">
-      <div style="overflow-x: auto;">
-      <table id="reports-table">
-        <thead>
-          <tr>
-            <th>Status</th>
-            <th>File / Doc ID</th>
-            <th>Issue Type</th>
-            <th>Error</th>
-            <th>Reporter</th>
-            <th>Page URL</th>
-            <th>Reported At</th>
-          </tr>
-        </thead>
-        <tbody id="reports-tbody">
-          <tr><td colspan="7" class="text-muted" style="text-align:center; padding:2rem;">Loading reports...</td></tr>
-        </tbody>
-      </table>
+      <div>
+        <div class="kpi-label">Recent File Accesses</div>
+        <div class="kpi-value" id="kpi-access-logs" style="color: #38bdf8;">0</div>
+      </div>
+      <div class="kpi-icon-wrap" style="background: rgba(14, 165, 233, 0.12); color: #38bdf8;">
+        <i class="fas fa-eye"></i>
       </div>
     </div>
   </div>
 
-  <!-- Access Logs Table -->
+  <!-- SECTION 1: File Failure Reports -->
   <div class="dash-card">
     <div class="dash-card-header">
-      File Access Logs
+      <div style="display: flex; align-items: center; gap: 0.6rem;">
+        <i class="fas fa-bug text-amber-500"></i>
+        <span>File Viewer & Delivery Failure Reports</span>
+        <span class="badge badge-open" id="openCountBadge">0 Open</span>
+      </div>
     </div>
     <div class="dash-card-body">
+      <!-- Filters -->
+      <div class="filter-bar">
+        <input type="text" id="report-search" class="filter-input" placeholder="Search by file name, doc ID, reporter email, or error..." style="flex: 1; min-width: 280px;">
+        <select id="status-filter" class="filter-input">
+          <option value="all">All Statuses</option>
+          <option value="open" selected>Open Only</option>
+          <option value="resolved">Resolved</option>
+          <option value="closed">Closed</option>
+        </select>
+        <button type="button" class="btn-sm btn-slate-sm" onclick="clearReportFilters()">
+          <i class="fas fa-filter-circle-xmark"></i> Reset Filter
+        </button>
+      </div>
+
+      <!-- Reports Table -->
       <div style="overflow-x: auto;">
-      <table id="access-logs-table">
-        <thead>
-          <tr>
-            <th>User</th>
-            <th>File Name</th>
-            <th>Type</th>
-            <th>Path</th>
-            <th>Status</th>
-            <th>Accessed At</th>
-          </tr>
-        </thead>
-        <tbody id="access-logs-tbody">
-          <tr><td colspan="6" class="text-muted" style="text-align:center; padding:2rem;">Loading access logs...</td></tr>
-        </tbody>
-      </table>
+        <table class="admin-table" id="reports-table">
+          <thead>
+            <tr>
+              <th style="width: 100px;">Status</th>
+              <th>Reported Material</th>
+              <th>Issue / Error Message</th>
+              <th>Reported By</th>
+              <th>Date & Page</th>
+              <th style="min-width: 250px; text-align: right;">Admin Resolution Actions</th>
+            </tr>
+          </thead>
+          <tbody id="reports-tbody">
+            <tr>
+              <td colspan="6" class="empty-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading file failure reports...</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- SECTION 2: File Access Logs -->
+  <div class="dash-card">
+    <div class="dash-card-header">
+      <div style="display: flex; align-items: center; gap: 0.6rem;">
+        <i class="fas fa-clock-rotate-left text-indigo-400"></i>
+        <span>Recent Student File Access Logs</span>
+        <span class="badge badge-blue">With Student Name & Email</span>
+      </div>
+    </div>
+    <div class="dash-card-body">
+      <!-- Access Logs Filter -->
+      <div class="filter-bar">
+        <input type="text" id="access-search" class="filter-input" placeholder="Search access logs by student name, email, or file title..." style="flex: 1; min-width: 280px;">
+        <select id="device-filter" class="filter-input">
+          <option value="all">All Devices</option>
+          <option value="desktop">Desktop</option>
+          <option value="mobile">Mobile</option>
+          <option value="tablet">Tablet</option>
+        </select>
+      </div>
+
+      <!-- Access Logs Table -->
+      <div style="overflow-x: auto;">
+        <table class="admin-table" id="access-logs-table">
+          <thead>
+            <tr>
+              <th>Student Identity (Name & Email)</th>
+              <th>Accessed Material</th>
+              <th>Format</th>
+              <th>Device</th>
+              <th>Accessed At</th>
+            </tr>
+          </thead>
+          <tbody id="access-logs-tbody">
+            <tr>
+              <td colspan="5" class="empty-state">
+                <i class="fas fa-spinner fa-spin"></i>
+                <p>Loading real-time access logs...</p>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -159,7 +429,26 @@
 let reportsData = [];
 let accessLogsData = [];
 
-async function loadReports() {
+// Determine open link for a given report
+function getAbhiHubDocLink(r) {
+  // If page_url points to a resource page
+  if (r.page_url && (r.page_url.includes('/resource/') || r.page_url.startsWith('http') || r.page_url.startsWith('/'))) {
+    return r.page_url;
+  }
+  // If doc_id looks like a valid UUID
+  if (r.doc_id && r.doc_id.length >= 8) {
+    return `/resource/view-${r.doc_id}`;
+  }
+  // Fallback to file_url
+  if (r.file_url) {
+    return r.file_url;
+  }
+  return null;
+}
+
+async function loadReports(showToastNotice = false) {
+  const spinner = document.getElementById('refreshSpinner');
+  if (spinner) spinner.classList.add('fa-spin');
   try {
     const res = await fetch('/api/admin/file-reports');
     const data = await res.json();
@@ -169,73 +458,263 @@ async function loadReports() {
       renderReports();
       renderAccessLogs();
       updateKPIs();
+      if (showToastNotice && typeof showAdminToast === 'function') {
+        showAdminToast(`Loaded ${reportsData.length} failure reports and ${accessLogsData.length} access logs!`, 'success');
+      }
+    } else {
+      if (typeof showAdminToast === 'function') {
+        showAdminToast(data.message || 'Failed to load file reports', 'error');
+      }
     }
   } catch(e) {
     console.error('Error loading reports:', e);
-    document.getElementById('reports-tbody').innerHTML = '<tr><td colspan="7" class="text-muted" style="text-align:center;">Error loading reports</td></tr>';
-    document.getElementById('access-logs-tbody').innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align:center;">Error loading logs</td></tr>';
+    document.getElementById('reports-tbody').innerHTML = '<tr><td colspan="6" class="empty-state" style="color:#ef4444;"><i class="fas fa-circle-exclamation"></i><p>Error connecting to database to load reports</p></td></tr>';
+    document.getElementById('access-logs-tbody').innerHTML = '<tr><td colspan="5" class="empty-state" style="color:#ef4444;"><i class="fas fa-circle-exclamation"></i><p>Error loading access logs</p></td></tr>';
+  } finally {
+    if (spinner) spinner.classList.remove('fa-spin');
   }
 }
 
 function updateKPIs() {
+  const openCount = reportsData.filter(r => r.status === 'open').length;
+  const resolvedCount = reportsData.filter(r => r.status === 'resolved').length;
   document.getElementById('kpi-total-reports').textContent = reportsData.length;
-  document.getElementById('kpi-open-reports').textContent = reportsData.filter(r => r.status === 'open').length;
-  document.getElementById('kpi-resolved-reports').textContent = reportsData.filter(r => r.status === 'resolved').length;
+  document.getElementById('kpi-open-reports').textContent = openCount;
+  document.getElementById('kpi-resolved-reports').textContent = resolvedCount;
   document.getElementById('kpi-access-logs').textContent = accessLogsData.length;
+  const openBadge = document.getElementById('openCountBadge');
+  if (openBadge) {
+    openBadge.textContent = `${openCount} Open`;
+  }
+}
+
+function clearReportFilters() {
+  document.getElementById('report-search').value = '';
+  document.getElementById('status-filter').value = 'all';
+  renderReports();
+}
+
+// Update report status (resolved, closed, open)
+async function changeReportStatus(reportId, newStatus) {
+  try {
+    const res = await fetch(`/api/admin/file-reports/${reportId}/status`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ status: newStatus })
+    });
+    const data = await res.json();
+    if (data.success) {
+      // Optimistic in-memory update
+      const r = reportsData.find(item => String(item.id) === String(reportId));
+      if (r) {
+        r.status = newStatus;
+      }
+      renderReports();
+      updateKPIs();
+      if (typeof showAdminToast === 'function') {
+        showAdminToast(`Report status updated to ${newStatus.toUpperCase()}!`, 'success');
+      }
+    } else {
+      alert(data.message || 'Failed to update report status');
+    }
+  } catch(e) {
+    console.error(e);
+    alert('Network error while updating status');
+  }
 }
 
 function renderReports() {
-  const search = document.getElementById('report-search').value.toLowerCase();
+  const search = document.getElementById('report-search').value.toLowerCase().trim();
   const statusFilter = document.getElementById('status-filter').value;
   
   let filtered = reportsData.filter(r => {
     const matchesSearch = !search || 
       (r.file_name && r.file_name.toLowerCase().includes(search)) ||
-      (r.doc_id && r.doc_id.toLowerCase().includes(search)) ||
+      (r.doc_id && String(r.doc_id).toLowerCase().includes(search)) ||
+      (r.issue_type && r.issue_type.toLowerCase().includes(search)) ||
+      (r.error_msg && r.error_msg.toLowerCase().includes(search)) ||
       (r.reporter_email && r.reporter_email.toLowerCase().includes(search));
     const matchesStatus = statusFilter === 'all' || (r.status === statusFilter);
     return matchesSearch && matchesStatus;
   });
   
+  const tbody = document.getElementById('reports-tbody');
   if (filtered.length === 0) {
-    document.getElementById('reports-tbody').innerHTML = '<tr><td colspan="7" class="text-muted" style="text-align:center; padding:2rem;">No reports match your filters</td></tr>';
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="6" class="empty-state">
+          <i class="far fa-circle-check" style="color:#10b981;"></i>
+          <p style="font-weight:700; color:var(--text-primary);">No reports match your filter criteria.</p>
+          <p style="font-size:0.85rem; color:var(--text-secondary);">Try changing the status dropdown or clearing your search query.</p>
+        </td>
+      </tr>`;
     return;
   }
   
-  document.getElementById('reports-tbody').innerHTML = filtered.map(r => {
-    const statusClass = r.status === 'resolved' ? 'badge-resolved' : 'badge-open';
-    const dotClass = r.status === 'resolved' ? 'resolved' : 'open';
+  tbody.innerHTML = filtered.map(r => {
+    let badgeHtml = '<span class="badge badge-open"><i class="fas fa-circle-dot"></i> Open</span>';
+    if (r.status === 'resolved') {
+      badgeHtml = '<span class="badge badge-resolved"><i class="fas fa-check-circle"></i> Resolved</span>';
+    } else if (r.status === 'closed') {
+      badgeHtml = '<span class="badge badge-closed"><i class="fas fa-xmark-circle"></i> Closed</span>';
+    }
+
     const createdAt = r.created_at ? new Date(r.created_at).toLocaleString() : '—';
-    const errorDisplay = r.error_msg ? `<div style="max-width:250px; overflow:hidden; text-overflow:ellipsis;">${escapeHtml(r.error_msg)}</div>` : '—';
+    const openUrl = getAbhiHubDocLink(r);
     
-    return `<tr>
-      <td><span class="status-dot ${dotClass}"></span><span class="badge ${statusClass}">${escapeHtml(r.status)}</span></td>
-      <td>${escapeHtml(r.file_name || r.doc_id || '—')}</td>
-      <td>${escapeHtml(r.issue_type || '—')}</td>
-      <td>${errorDisplay}</td>
-      <td>${escapeHtml(r.reporter_email || 'anonymous')}</td>
-      <td>${r.page_url ? `<a href="${escapeHtml(r.page_url)}" target="_blank" style="color:var(--dash-accent); font-size:0.75rem;">${escapeHtml(r.page_url.substring(0, 50))}</a>` : '—'}</td>
-      <td class="timestamp">${createdAt}</td>
-    </tr>`;
+    // Action buttons based on current status
+    let actionButtons = '';
+    
+    // Open in AbhiHub Button
+    if (openUrl) {
+      actionButtons += `
+        <a href="${escapeHtml(openUrl)}" target="_blank" class="btn-sm btn-indigo-sm" title="Open and test this material directly inside AbhiHub">
+          <i class="fas fa-up-right-from-square"></i> Open in AbhiHub
+        </a>`;
+    }
+    
+    // Direct raw file if distinct
+    if (r.file_url && r.file_url !== openUrl) {
+      actionButtons += `
+        <a href="${escapeHtml(r.file_url)}" target="_blank" class="btn-sm btn-slate-sm" title="Open raw uploaded file directly">
+          <i class="fas fa-file-arrow-down"></i> File
+        </a>`;
+    }
+
+    // Resolve / Close / Reopen buttons
+    if (r.status === 'open') {
+      actionButtons += `
+        <button type="button" class="btn-sm btn-emerald-sm" onclick="changeReportStatus('${r.id}', 'resolved')" title="Mark as solved and working">
+          <i class="fas fa-check"></i> Resolve
+        </button>
+        <button type="button" class="btn-sm btn-slate-sm" onclick="changeReportStatus('${r.id}', 'closed')" title="Close report without changes">
+          <i class="fas fa-xmark"></i> Close
+        </button>`;
+    } else {
+      actionButtons += `
+        <button type="button" class="btn-sm btn-amber-sm" onclick="changeReportStatus('${r.id}', 'open')" title="Reopen this issue for investigation">
+          <i class="fas fa-arrow-rotate-left"></i> Reopen
+        </button>`;
+    }
+
+    return `
+      <tr>
+        <td>${badgeHtml}</td>
+        <td>
+          <div style="font-weight:700; color:var(--text-primary); margin-bottom:2px;">
+            ${escapeHtml(r.file_name || 'Document')}
+          </div>
+          <div style="font-size:0.75rem; color:var(--text-muted); display:flex; align-items:center; gap:0.4rem;">
+            <code>${escapeHtml(String(r.doc_id || '').substring(0, 24))}</code>
+            <span class="badge badge-blue" style="font-size:0.65rem; padding:1px 5px;">${escapeHtml((r.file_type || 'PDF').toUpperCase())}</span>
+          </div>
+        </td>
+        <td>
+          <div style="font-weight:600; color:var(--text-primary); font-size:0.84rem;">
+            ${escapeHtml(r.issue_type || 'Viewer Issue')}
+          </div>
+          <div style="color:var(--text-secondary); font-size:0.8rem; margin-top:3px; max-width:320px; word-break:break-word;">
+            ${escapeHtml(r.error_msg || 'No specific error message provided.')}
+          </div>
+        </td>
+        <td>
+          <div class="user-cell">
+            <span class="user-name" style="font-size:0.84rem;">${escapeHtml(r.reporter_email || 'Anonymous')}</span>
+            ${r.reporter_id ? `<span class="user-email" style="font-size:0.7rem;">ID: ${escapeHtml(r.reporter_id.substring(0, 12))}...</span>` : ''}
+          </div>
+        </td>
+        <td>
+          <div class="timestamp">${createdAt}</div>
+          ${r.page_url ? `<div style="font-size:0.75rem; margin-top:2px; color:var(--text-muted); max-width:160px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${escapeHtml(r.page_url)}">${escapeHtml(r.page_url)}</div>` : ''}
+        </td>
+        <td style="text-align: right;">
+          <div class="action-group" style="justify-content: flex-end;">
+            ${actionButtons}
+          </div>
+        </td>
+      </tr>
+    `;
   }).join('');
 }
 
 function renderAccessLogs() {
-  if (accessLogsData.length === 0) {
-    document.getElementById('access-logs-tbody').innerHTML = '<tr><td colspan="6" class="text-muted" style="text-align:center; padding:2rem;">No access logs</td></tr>';
+  const search = document.getElementById('access-search').value.toLowerCase().trim();
+  const deviceFilter = document.getElementById('device-filter').value;
+  
+  let filtered = accessLogsData.filter(l => {
+    const matchesSearch = !search ||
+      (l.user_name && l.user_name.toLowerCase().includes(search)) ||
+      (l.user_email && l.user_email.toLowerCase().includes(search)) ||
+      (l.file_name && l.file_name.toLowerCase().includes(search));
+    const dev = (l.device_type || 'desktop').toLowerCase();
+    const matchesDevice = deviceFilter === 'all' || dev.includes(deviceFilter);
+    return matchesSearch && matchesDevice;
+  });
+
+  const tbody = document.getElementById('access-logs-tbody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = `
+      <tr>
+        <td colspan="5" class="empty-state">
+          <i class="far fa-eye-slash"></i>
+          <p style="font-weight:700; color:var(--text-primary);">No file access logs match your search.</p>
+        </td>
+      </tr>`;
     return;
   }
-  
-  document.getElementById('access-logs-tbody').innerHTML = accessLogsData.map(l => {
+
+  tbody.innerHTML = filtered.map(l => {
     const createdAt = l.created_at ? new Date(l.created_at).toLocaleString() : '—';
-    return `<tr>
-      <td>${escapeHtml(l.user_email || 'anonymous')}</td>
-      <td>${escapeHtml(l.file_name || '—')}</td>
-      <td>${escapeHtml(l.file_type || '—')}</td>
-      <td>${escapeHtml(l.file_path || '—')}</td>
-      <td>${escapeHtml(l.status || '—')}</td>
-      <td class="timestamp">${createdAt}</td>
-    </tr>`;
+    const dev = (l.device_type || 'desktop').toLowerCase();
+    let devIcon = 'fa-desktop';
+    if (dev.includes('mobile') || dev.includes('phone') || dev.includes('android') || dev.includes('iphone')) {
+      devIcon = 'fa-mobile-screen-button';
+    } else if (dev.includes('tablet') || dev.includes('ipad')) {
+      devIcon = 'fa-tablet-screen-button';
+    }
+
+    // Direct link to material in AbhiHub if doc_id or path exists
+    let docLink = null;
+    if (l.doc_id && l.doc_id.length >= 8) {
+      docLink = `/resource/view-${l.doc_id}`;
+    } else if (l.file_path && l.file_path.startsWith('http')) {
+      docLink = l.file_path;
+    }
+
+    const titleMarkup = docLink ? 
+      `<a href="${escapeHtml(docLink)}" target="_blank" class="doc-title-link" title="Open this resource directly in AbhiHub">${escapeHtml(l.file_name)} <i class="fas fa-up-right-from-square" style="font-size:0.7rem; opacity:0.7;"></i></a>` :
+      `<span style="font-weight:600; color:var(--text-primary);">${escapeHtml(l.file_name)}</span>`;
+
+    return `
+      <tr>
+        <td>
+          <div class="user-cell">
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+              <i class="fas ${l.user_id ? 'fa-user-graduate text-indigo-400' : 'fa-user-secret text-slate-400'}" style="font-size:0.85rem;"></i>
+              <span class="user-name">${escapeHtml(l.user_name || 'Anonymous Student')}</span>
+            </div>
+            <span class="user-email">${escapeHtml(l.user_email || '—')}</span>
+          </div>
+        </td>
+        <td>
+          ${titleMarkup}
+          ${l.doc_id ? `<div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">ID: <code>${escapeHtml(l.doc_id.substring(0, 16))}</code></div>` : ''}
+        </td>
+        <td>
+          <span class="badge badge-blue" style="font-size:0.7rem; padding:2px 7px;">
+            ${escapeHtml((l.file_type || 'PDF').toUpperCase())}
+          </span>
+        </td>
+        <td>
+          <span class="badge" style="background:var(--btn-topbar-bg); color:var(--text-secondary); border:1px solid var(--border-subtle);">
+            <i class="fas ${devIcon}"></i> ${escapeHtml(dev.toUpperCase())}
+          </span>
+        </td>
+        <td class="timestamp">
+          ${createdAt}
+        </td>
+      </tr>
+    `;
   }).join('');
 }
 
@@ -246,14 +725,20 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
-// Event listeners
+// Event Listeners
 document.getElementById('report-search').addEventListener('input', renderReports);
 document.getElementById('status-filter').addEventListener('change', renderReports);
+document.getElementById('access-search').addEventListener('input', renderAccessLogs);
+document.getElementById('device-filter').addEventListener('change', renderAccessLogs);
 
-// Load on page load
-loadReports();
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  loadReports();
+});
 
-// Refresh every 60 seconds
-setInterval(loadReports, 60000);
+// Auto-refresh every 45 seconds
+setInterval(() => {
+  loadReports();
+}, 45000);
 </script>
 {% endblock %}

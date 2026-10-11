@@ -124,6 +124,26 @@ def setup_jobs(scheduler):
     )
     logging.info("📅 Scheduled job: Wallet Maturity Unlocker (every 24 hours)")
 
+    # Job 6: Hourly Tarika model catalog sync
+    def _sync_model_catalog():
+        try:
+            import asyncio
+            from services.catalog_sync import sync_all
+            count = asyncio.run(sync_all())
+            logging.info(f"[CATALOG] Model catalog sync completed: {count} verified models")
+        except Exception as e:
+            logging.error(f"[CATALOG] Model catalog sync error: {e}")
+
+    scheduler.add_job(
+        func=_sync_model_catalog,
+        trigger=IntervalTrigger(hours=1),
+        id='tarika_catalog_sync',
+        name='Tarika AI model catalog sync',
+        replace_existing=True
+    )
+    logging.info("📅 Scheduled job: Tarika Catalog Sync (every 1 hour)")
+
+
 
 def shutdown_scheduler():
     """

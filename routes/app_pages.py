@@ -1,4 +1,5 @@
 import os
+import re
 import json
 import logging
 from datetime import datetime
@@ -10,7 +11,7 @@ from routes.auth import auth_required
 from methods.supabase_helper import (
     get_student_profile, get_all_colleges, get_all_branches,
     create_or_update_student_profile, get_user_file_history,
-    get_reputation_stats, get_user_notifications
+    get_reputation_stats, get_user_notifications, get_peer_recommended_files
 )
 
 app_pages_bp = Blueprint('app_pages', __name__)
@@ -59,7 +60,7 @@ def dashboard():
             if subj:
                 user_subjects.add(subj)
 
-        history_result = get_user_file_history(user_email, limit=10)
+        history_result = get_user_file_history(user_email=user_email, user_id=user_id, limit=12)
         file_history = history_result.get('data', []) if history_result.get('success') else []
 
         college_name = ''
@@ -70,14 +71,14 @@ def dashboard():
 
             if not profile_data or not profile_data.get('college_id'):
                 flash("Welcome to AbhiHub! Please complete your profile to access all personalized features.", "warning")
-                return redirect(url_for('app_pages.account'))
+                return redirect(url_for('app_pages.settings'))
 
             rank_list = app.calculate_user_ranks()
             _rank_lookup = {e['uploader_id']: (str(i + 1), e.get('points', 0)) for i, e in enumerate(rank_list)}
             global_rank = _rank_lookup.get(user_id, ('-', 0))[0]
             computed_score = _rank_lookup.get(user_id, ('-', 0))[1]
 
-            rep_stats = get_reputation_stats(user_id)
+            rep_stats = get_reputation_stats(user_id) or {}
             students_helped = rep_stats.get('students_helped', 0) if rep_stats.get('success') else 0
             badges = rep_stats.get('badges', []) if rep_stats.get('success') else []
         except Exception as e:
@@ -99,6 +100,8 @@ def dashboard():
             'user_files': user_files[:10],
             'role': profile_data.get('role', 'student') if profile_data else 'student',
             'reputation_score': max(computed_score, profile_data.get('reputation_score', 0)) if profile_data else computed_score,
+            'referral_credits': profile_data.get('referral_credits', 0) if profile_data else 0,
+            'referral_count': profile_data.get('referral_count', 0) if profile_data else 0,
             'rank_title': profile_data.get('rank_title', 'Beginner') if profile_data else 'Beginner',
             'is_verified': profile_data.get('is_verified', False) if profile_data else False,
             'subscription_tier': profile_data.get('subscription_tier', 'free') if profile_data else 'free',
@@ -107,7 +110,9 @@ def dashboard():
             'badges': badges,
             'college_name': college_name,
             'college_id': profile_data.get('college_id') or '',
-            'college_slug': profile_data.get('college_slug') or (profile_data.get('college_abbreviation') or '').lower() or re.sub(r'[^a-z0-9]+', '-', college_name.lower()).strip('-')
+            'college_slug': profile_data.get('college_slug') or (profile_data.get('college_abbreviation') or '').lower() or re.sub(r'[^a-z0-9]+', '-', college_name.lower()).strip('-'),
+            'branch_name': profile_data.get('branch_name') or '',
+            'branch_id': profile_data.get('branch_id') or ''
         }
     else:
         file_history = []
@@ -160,6 +165,47 @@ def dashboard():
     trending_notes = all_notes_by_views[:8]
     recent_notes = sorted(all_notes, key=lambda f: f.get('date', ''), reverse=True)[:8]
 
+    file_lookup = {f.get('record_id'): f for f in files if f.get('record_id')}
+    user_viewed_ids = set()
+    recently_viewed_files = []
+    for h in file_history:
+        did = h.get('document_id')
+        if did and did not in user_viewed_ids:
+            user_viewed_ids.add(did)
+            if did in file_lookup:
+                recently_viewed_files.append(file_lookup[did])
+            else:
+                recently_viewed_files.append({
+                    'record_id': did,
+                    'file-name': h.get('file_name', 'Document'),
+                    'type': h.get('document_category', 'papers'),
+                    'subject': 'Recent',
+                    'view_count': 0,
+                    'date': (h.get('accessed_at') or '')[:10],
+                    'file-type': h.get('file_type', 'pdf')
+                })
+
+    recommended_files = []
+    college_id = user_data.get('college_id') if user_data else ''
+    branch_id = user_data.get('branch_id') if user_data else ''
+    peer_doc_ids = get_peer_recommended_files(user_id=current_user_id, college_id=college_id, department_id=branch_id, limit=8) if current_user_id else []
+
+    for pid in peer_doc_ids:
+        if pid in file_lookup and pid not in user_viewed_ids:
+            recommended_files.append(file_lookup[pid])
+
+    # Fallback to same college or trending resources if peer view history is sparse
+    if len(recommended_files) < 6:
+        seen_rec_ids = {r.get('record_id') for r in recommended_files} | user_viewed_ids
+        pool = (relevant_papers if user_college else trending_papers) + (relevant_notes if user_college else trending_notes)
+        for item in pool:
+            rid = item.get('record_id')
+            if rid and rid not in seen_rec_ids:
+                seen_rec_ids.add(rid)
+                recommended_files.append(item)
+                if len(recommended_files) >= 8:
+                    break
+
     from data.tea_supporters import get_recent_tea_supporters
     tea_supporters = get_recent_tea_supporters(6)
 
@@ -172,6 +218,8 @@ def dashboard():
         notes_count=notes_count,
         user_data=user_data,
         file_history=file_history,
+        recently_viewed_files=recently_viewed_files,
+        recommended_files=recommended_files,
         now=datetime.now(),
         promo_context=promo_context,
         tea_supporters=tea_supporters,
@@ -187,33 +235,21 @@ def dashboard():
 @app_pages_bp.route('/profile')
 @auth_required
 def profile():
-    """Display user's own profile and account management."""
-    user_info = session.get('user', {})
-    user_id = user_info.get('uid')
-    profile_result = get_student_profile(user_id)
-    profile = profile_result.get('data') if profile_result.get('success') else None
-    colleges_result = get_all_colleges()
-    branches_result = get_all_branches()
-    colleges = colleges_result.get('data', []) if colleges_result.get('success') else []
-    branches = branches_result.get('data', []) if branches_result.get('success') else []
-    return render_template('app/account.html',
-                           user=user_info,
-                           profile=profile,
-                           colleges=colleges,
-                           branches=branches)
+    """Display user's own profile and account management in Settings."""
+    return redirect(url_for('app_pages.settings'), code=301)
 
 
 @app_pages_bp.route('/dashboard/profile')
 @auth_required
 def p_profile_redirect():
-    return redirect(url_for('app_pages.profile'), code=301)
+    return redirect(url_for('app_pages.settings'), code=301)
 
 
 @app_pages_bp.route('/account', methods=['GET'])
 @auth_required
 def account():
-    """Legacy account route — permanent 301 redirect to canonical /profile."""
-    return redirect(url_for('app_pages.profile'), code=301)
+    """Account route — redirect to canonical /settings."""
+    return redirect(url_for('app_pages.settings'), code=301)
 
 
 @app_pages_bp.route('/account/update', methods=['POST'])
@@ -237,23 +273,15 @@ def update_account():
         'registration_number': request.form.get('registration_number')
     }
 
-    colleges = get_all_colleges().get('data', [])
-    branches = get_all_branches().get('data', [])
     result = create_or_update_student_profile(user_id, profile_data)
-
-    profile_result = get_student_profile(user_id)
-    profile = profile_result.get('data') if profile_result.get('success') else None
-
     msg_type = 'success' if result.get('success') else 'error'
     msg = result.get('message') or ('Profile updated!' if result.get('success') else 'Failed to update profile')
 
-    return render_template('app/account.html',
-                           user=user_info,
-                           profile=profile,
-                           colleges=colleges,
-                           branches=branches,
-                           message=msg,
-                           message_type=msg_type)
+    if request.headers.get('X-Requested-With') == 'XMLHttpRequest' or (request.accept_mimetypes.accept_json and not request.accept_mimetypes.accept_html):
+        return jsonify(result), (200 if result.get('success') else 400)
+
+    flash(msg, msg_type)
+    return redirect(url_for('app_pages.settings'))
 
 
 @app_pages_bp.route('/settings')
@@ -269,8 +297,12 @@ def settings():
     colleges = colleges_result.get('data', []) if colleges_result.get('success') else []
     branches = branches_result.get('data', []) if branches_result.get('success') else []
 
+    merged_user_data = dict(user_info)
+    if profile:
+        merged_user_data.update(profile)
+
     return render_template('settings.html',
-                           user_data=user_info,
+                           user_data=merged_user_data,
                            user=user_info,
                            profile=profile,
                            colleges=colleges,

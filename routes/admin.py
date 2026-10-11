@@ -31,8 +31,8 @@ from methods.supabase_helper import (
     get_notification_history,
     get_admin_broadcast_delivery_stats,
     add_new_entity,
+    validate_uuid,
 )
-from methods.storage import list_files
 
 admin_bp = Blueprint('admin', __name__)
 
@@ -86,34 +86,14 @@ def _trigger_indexnow_helper(urls: list):
 @admin_required
 def admin_control_panel():
     """Unified Admin Control Hub - Overview, Moderation, Students, Sentiment, Broadcast."""
-    return render_template('admin/notification_panel.html')
+    return render_template('admin_notification_panel.html')
 
 
-@admin_bp.route('/admin/controle')
-def admin_controle_legacy_redirect():
-    """Legacy typo redirect to canonical /admin."""
-    return redirect(url_for('admin.admin_control_panel'), code=301)
-
-
+@admin_bp.route('/admin/notification-panel')
 @admin_bp.route('/admin/file-updates')
-@auth_required
-@admin_required
-def admin_file_updates():
-    """Legacy admin file updates review dashboard."""
-    data = list_files('Documents')
-
-    def sort_key(item):
-        verified = item.get('verified', False)
-        has_last_updated = bool(item.get('last_updated'))
-        if not has_last_updated:
-            return 0
-        elif not verified:
-            return 1
-        else:
-            return 2
-
-    sorted_data = sorted(data, key=sort_key)
-    return render_template('abhijeetupdate.html', data=sorted_data)
+def admin_legacy_redirects():
+    """Consolidated 301 redirects for legacy admin paths."""
+    return redirect(url_for('admin.admin_control_panel'), code=301)
 
 
 @admin_bp.route('/admin/analytics')
@@ -121,7 +101,7 @@ def admin_file_updates():
 @admin_required
 def admin_analytics_dashboard():
     """Admin analytics dashboard page."""
-    return render_template('admin/analytics.html')
+    return render_template('admin_analytics.html')
 
 
 @admin_bp.route('/admin/economy')
@@ -129,7 +109,7 @@ def admin_analytics_dashboard():
 @admin_required
 def admin_economy_dashboard():
     """Admin economy dashboard: edit scoring config, view level distribution."""
-    return render_template('admin/economy.html')
+    return render_template('admin_economy.html')
 
 
 @admin_bp.route('/admin/developer')
@@ -137,14 +117,22 @@ def admin_economy_dashboard():
 @admin_required
 def admin_developer_panel():
     """Admin Developer Panel: cloud stats, feature health, live logs."""
-    return render_template('admin/developer.html')
+    return render_template('admin_developer.html')
 
 
 @admin_bp.route('/admin/file-reports')
 @admin_required
 def admin_file_reports_page():
     """Admin page for viewing all file reports and logs."""
-    return render_template('admin/file_reports.html')
+    return render_template('admin_file_reports.html')
+
+
+@admin_bp.route('/admin/payments')
+@auth_required
+@admin_required
+def admin_payments_dashboard():
+    """Admin payments & payouts management dashboard."""
+    return render_template('admin_payments.html')
 
 
 # ─── Payment & Payout Admin Endpoints ────────────────────────────────────────
@@ -226,6 +214,105 @@ def admin_payout_action():
         return jsonify({'success': False, 'error': msg}), 400
     log_admin_action('payout_action', target=payout_id, details={'action': action, 'admin_notes': admin_notes})
     return jsonify({'success': True, 'message': f'Payout {action} successfully'})
+
+
+@admin_bp.route('/api/admin/creator/wallets', methods=['GET'])
+@auth_required
+@admin_required
+def admin_creator_wallets():
+    """Fetch creator wallets and balances for all users for admin management."""
+    try:
+        from concurrent.futures import ThreadPoolExecutor
+        from methods.supabase_helper import init_supabase_admin
+        from methods.wallet_service import get_creator_wallet
+
+        client = init_supabase_admin() or supabase
+
+        # Query creator wallets using service_role client to bypass RLS
+        w_res = client.table('creator_wallets').select('*').execute()
+        wallets_by_uid = {str(w.get('user_id', '')): w for w in (w_res.data or [])}
+
+        p_res = client.table('profiles').select('id, full_name, email, role, paper_quota_remaining, created_at').order('created_at', desc=True).limit(500).execute()
+        profiles = p_res.data or []
+        profiles_by_id = {str(p.get('id', '')): p for p in profiles}
+
+        # Query uploaders from documents table
+        docs_res = client.table('documents').select('uploader_id').execute()
+        uploader_ids = {str(d.get('uploader_id')) for d in (docs_res.data or []) if d.get('uploader_id')}
+
+        # Identify active creators with wallets or uploaded notes
+        active_creator_ids = list((set(wallets_by_uid.keys()) | uploader_ids) - {''})
+
+        # Ensure all users with a wallet record or uploaded files are included
+        all_user_ids = set(profiles_by_id.keys()) | set(active_creator_ids)
+        missing_ids = [uid for uid in active_creator_ids if uid and uid not in profiles_by_id]
+        if missing_ids:
+            try:
+                m_res = client.table('profiles').select('id, full_name, email, role, paper_quota_remaining, created_at').in_('id', missing_ids[:100]).execute()
+                for mp in (m_res.data or []):
+                    profiles_by_id[str(mp.get('id', ''))] = mp
+            except Exception:
+                pass
+
+        # Concurrently compute canonical creator wallet so admin panel exactly reflects user wallet
+        wallets_data = {}
+        if active_creator_ids:
+            with ThreadPoolExecutor(max_workers=10) as executor:
+                resolved = list(executor.map(get_creator_wallet, active_creator_ids))
+                for uid, res in zip(active_creator_ids, resolved):
+                    if res and res.get('success'):
+                        wallets_data[uid] = res.get('wallet', {})
+
+        merged_wallets = []
+        for uid in all_user_ids:
+            if not uid:
+                continue
+            p = profiles_by_id.get(uid, {})
+            w = wallets_by_uid.get(uid, {})
+            w_data = wallets_data.get(uid, {})
+
+            merged_wallets.append({
+                'user_id': uid,
+                'full_name': p.get('full_name') or 'Student',
+                'email': p.get('email') or '',
+                'role': p.get('role') or 'student',
+                'paper_quota_remaining': p.get('paper_quota_remaining', 19),
+                'total_views': w_data.get('total_views', 0),
+                'view_earnings': w_data.get('view_earnings', 0.0),
+                'sales_withdrawable': w_data.get('sales_withdrawable', float(w.get('withdrawable_balance', 0.0))),
+                'pending_balance': w_data.get('pending_balance', float(w.get('pending_balance', 0.0))),
+                'withdrawable_balance': w_data.get('withdrawable_balance', float(w.get('withdrawable_balance', 0.0))),
+                'total_withdrawn': w_data.get('total_withdrawn', float(w.get('total_withdrawn', 0.0))),
+                'updated_at': w.get('updated_at') or p.get('created_at')
+            })
+
+        merged_wallets.sort(key=lambda x: (x['withdrawable_balance'] + x['pending_balance'], x['total_views']), reverse=True)
+        return jsonify({'success': True, 'wallets': merged_wallets})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e), 'wallets': []}), 500
+
+
+@admin_bp.route('/api/admin/creator/wallet/adjust', methods=['POST'])
+@auth_required
+@admin_required
+def admin_adjust_wallet():
+    """Apply penalty, charge, or bonus credit to a creator's wallet."""
+    data = request.get_json(silent=True) or {}
+    creator_id = str(data.get('creator_id', '')).strip()
+    amount = data.get('amount')
+    adj_type = str(data.get('adjustment_type', 'penalty')).strip().lower()
+    reason = str(data.get('reason', '')).strip()
+
+    if not creator_id or amount is None:
+        return jsonify({'success': False, 'error': 'creator_id and amount are required'}), 400
+
+    from methods.wallet_service import admin_adjust_creator_wallet
+    ok, result = admin_adjust_creator_wallet(creator_id, amount, adj_type, reason)
+    if not ok:
+        return jsonify({'success': False, 'error': result}), 400
+
+    log_admin_action('wallet_adjustment', target=creator_id, details={'type': adj_type, 'amount': amount, 'reason': reason})
+    return jsonify({'success': True, 'result': result})
 
 
 # ─── Messaging, Subscribers & Broadcasts ─────────────────────────────────────
@@ -438,7 +525,12 @@ def api_admin_cloud_stats():
             if res.data:
                 result['supabase']['db_size_bytes'] = res.data
     except Exception as e:
-        result['supabase']['error'] = str(e)
+        err_str = str(e)
+        if 'PGRST202' in err_str or 'get_db_size' in err_str:
+            result['supabase']['db_size_bytes'] = None
+            result['supabase']['error'] = None
+        else:
+            result['supabase']['error'] = err_str
     return jsonify({'success': True, 'stats': result})
 
 
@@ -571,7 +663,7 @@ def api_admin_logs():
 @auth_required
 @admin_required
 def admin_get_users():
-    """Get list of users and top students breakdown for admin dashboard."""
+    """Get list of users with verification and academic details for admin dashboard."""
     try:
         client = init_supabase()
         sort_by = request.args.get('sort', 'recent')
@@ -579,7 +671,7 @@ def admin_get_users():
         search = request.args.get('q', '').strip()
         
         query = client.table('profiles')\
-            .select('id, full_name, email, created_at, role, reputation_score, abhihub_score, rank_title, access_level, degree, last_active_at, students_helped')
+            .select('id, full_name, email, created_at, role, is_verified, verified_at, verified_by, reputation_score, abhihub_score, rank_title, access_level, degree, last_active_at, students_helped, college_id, department_id, phone_number, paper_quota_remaining, referral_credits')
         
         if search:
             query = query.or_(f"full_name.ilike.%{search}%,email.ilike.%{search}%")
@@ -590,6 +682,8 @@ def admin_get_users():
             query = query.order('abhihub_score', desc=True).order('reputation_score', desc=True)
         elif sort_by == 'active':
             query = query.order('last_active_at', desc=True)
+        elif sort_by == 'unverified':
+            query = query.eq('is_verified', False).order('created_at', desc=True)
         else:
             query = query.order('created_at', desc=True)
             
@@ -613,6 +707,152 @@ def admin_get_users():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@admin_bp.route('/api/admin/verify-user', methods=['POST'])
+@auth_required
+@admin_required
+def admin_verify_user():
+    """Verify or unverify a user profile."""
+    try:
+        data = request.get_json() or {}
+        user_id = data.get('user_id')
+        is_verified = bool(data.get('is_verified', True))
+        if not user_id:
+            return jsonify({'success': False, 'error': 'User ID is required'}), 400
+
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
+
+        admin_user = session.get('user', {})
+        admin_uid = admin_user.get('uid') or admin_user.get('id')
+
+        update_payload = {
+            'is_verified': is_verified,
+            'verified_at': datetime.now(timezone.utc).isoformat() if is_verified else None,
+            'verified_by': admin_uid if (is_verified and validate_uuid(admin_uid)) else None
+        }
+
+        res = client.table('profiles').update(update_payload).eq('id', user_id).execute()
+        if not res.data:
+            return jsonify({'success': False, 'error': 'User not found or update failed'}), 404
+
+        if is_verified:
+            try:
+                log_notification(
+                    user_id,
+                    'system',
+                    'Profile Verified!',
+                    'Your profile has been officially verified by AbhiHub administration.',
+                    action_url='/account'
+                )
+            except Exception:
+                pass
+
+        log_admin_action('verify_user', target=user_id, details={'is_verified': is_verified})
+        return jsonify({
+            'success': True,
+            'message': f"User successfully {'verified' if is_verified else 'unverified'}.",
+            'profile': res.data[0]
+        })
+    except Exception as e:
+        logging.error(f"[admin_verify_user] {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/update-user-role', methods=['POST'])
+@auth_required
+@admin_required
+def admin_update_user_role():
+    """Update a user role (student, teacher, moderator, admin)."""
+    try:
+        data = request.get_json() or {}
+        user_id = data.get('user_id')
+        new_role = (data.get('role') or '').lower().strip()
+        valid_roles = {'student', 'teacher', 'moderator', 'admin'}
+        if not user_id or new_role not in valid_roles:
+            return jsonify({'success': False, 'error': f"Valid user_id and role ({', '.join(valid_roles)}) required"}), 400
+
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
+
+        res = client.table('profiles').update({'role': new_role}).eq('id', user_id).execute()
+        if not res.data:
+            return jsonify({'success': False, 'error': 'User not found or update failed'}), 404
+
+        log_admin_action('update_user_role', target=user_id, details={'new_role': new_role})
+        return jsonify({
+            'success': True,
+            'message': f"User role successfully updated to '{new_role}'.",
+            'profile': res.data[0]
+        })
+    except Exception as e:
+        logging.error(f"[admin_update_user_role] {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/update-user-level', methods=['POST'])
+@auth_required
+@admin_required
+def admin_update_user_level():
+    """Update a user's level (access_level and/or rank_title)."""
+    try:
+        data = request.get_json() or {}
+        user_id = data.get('user_id')
+        if not user_id or not validate_uuid(user_id):
+            return jsonify({'success': False, 'error': 'Valid user_id is required'}), 400
+
+        update_payload = {}
+        if 'access_level' in data:
+            update_payload['access_level'] = str(data['access_level']).lower().strip()
+        if 'rank_title' in data:
+            update_payload['rank_title'] = str(data['rank_title']).strip()
+        if 'reputation_score' in data:
+            try:
+                update_payload['reputation_score'] = float(data['reputation_score'])
+            except (ValueError, TypeError):
+                pass
+        if 'abhihub_score' in data:
+            try:
+                update_payload['abhihub_score'] = float(data['abhihub_score'])
+            except (ValueError, TypeError):
+                pass
+
+        if not update_payload:
+            return jsonify({'success': False, 'error': 'No level or rank values provided'}), 400
+
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
+
+        res = client.table('profiles').update(update_payload).eq('id', user_id).execute()
+        if not res.data:
+            return jsonify({'success': False, 'error': 'User not found or update failed'}), 404
+
+        if data.get('notify_user', True):
+            new_level = update_payload.get('access_level') or update_payload.get('rank_title')
+            try:
+                log_notification(
+                    user_id,
+                    'achievement',
+                    'Level & Status Updated!',
+                    f"Your account status/level was updated by an administrator to '{new_level}'.",
+                    url='/account'
+                )
+            except Exception:
+                pass
+
+        log_admin_action('update_user_level', target=user_id, details=update_payload)
+        return jsonify({
+            'success': True,
+            'message': 'User level and rank updated successfully.',
+            'profile': res.data[0]
+        })
+    except Exception as e:
+        logging.error(f"[admin_update_user_level] {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @admin_bp.route('/api/admin/users/<user_id>/stats', methods=['GET'])
 @auth_required
 @admin_required
@@ -629,14 +869,95 @@ def admin_get_user_stats(user_id):
         views_res = client.table('document_views').select('accessed_at, documents(title)').eq('user_id', user_id).order('accessed_at', desc=True).limit(20).execute()
         viewed_files = views_res.data or []
         
+        # Fetch user's view credits, referral balance, access_level, and rank_title
+        prof_res = client.table('profiles').select('paper_quota_remaining, referral_credits, access_level, rank_title, abhihub_score, reputation_score').eq('id', user_id).limit(1).execute()
+        prof_data = prof_res.data[0] if prof_res.data else {}
+        paper_quota = prof_data.get('paper_quota_remaining')
+        if paper_quota is None:
+            paper_quota = 19
+        referral_credits = prof_data.get('referral_credits', 0) or 0
+        access_level = prof_data.get('access_level') or 'explorer'
+        rank_title = prof_data.get('rank_title') or 'Beginner'
+
+        from methods.wallet_service import get_creator_wallet
+        w_data = get_creator_wallet(user_id)
+        wallet_info = w_data.get('wallet', {}) if w_data.get('success') else {}
+
         return jsonify({
             'success': True,
             'stats': {
                 'last_visit': last_visit,
                 'uploaded_files': uploaded_files,
-                'viewed_files': viewed_files
+                'viewed_files': viewed_files,
+                'paper_quota_remaining': paper_quota,
+                'referral_credits': referral_credits,
+                'access_level': access_level,
+                'rank_title': rank_title,
+                'wallet': wallet_info
             }
         })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/update-user-credits', methods=['POST'])
+@auth_required
+@admin_required
+def admin_update_user_credits():
+    """Update paper view quota and/or referral credits for a user."""
+    try:
+        data = request.get_json() or {}
+        user_id = data.get('user_id')
+        if not user_id or not validate_uuid(user_id):
+            return jsonify({'success': False, 'error': 'Valid user ID is required'}), 400
+
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
+
+        update_payload = {}
+        if 'paper_quota_remaining' in data:
+            try:
+                update_payload['paper_quota_remaining'] = int(data['paper_quota_remaining'])
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'error': 'Invalid paper quota count'}), 400
+
+        if 'referral_credits' in data:
+            try:
+                update_payload['referral_credits'] = int(data['referral_credits'])
+            except (ValueError, TypeError):
+                return jsonify({'success': False, 'error': 'Invalid referral credits count'}), 400
+
+        if not update_payload:
+            return jsonify({'success': False, 'error': 'No credit values provided to update'}), 400
+
+        client.table('profiles').update(update_payload).eq('id', user_id).execute()
+
+        # Invalidate L1 cache for user quota
+        try:
+            from app import cache
+            cache.l1.delete(f"user:quota:{user_id}")
+        except Exception:
+            pass
+
+        # Notify user of credit adjustment if requested
+        if data.get('notify_user', True):
+            quota_text = f"You now have {update_payload.get('paper_quota_remaining')} paper view credits." if 'paper_quota_remaining' in update_payload else ""
+            ref_text = f"Your referral credits: {update_payload.get('referral_credits')}." if 'referral_credits' in update_payload else ""
+            notif_msg = f"An administrator updated your account credits. {' '.join(filter(None, [quota_text, ref_text]))}"
+            try:
+                log_notification(
+                    user_id,
+                    'credit_update',
+                    'Credits Balance Updated',
+                    notif_msg,
+                    url='/'
+                )
+            except Exception as ne:
+                logging.warning(f"[CREDIT-NOTIF] {ne}")
+
+        log_admin_action('update_user_credits', target=user_id, details=update_payload)
+        return jsonify({'success': True, 'message': 'Credits updated successfully', 'updated': update_payload})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -652,13 +973,24 @@ def get_admin_stats():
             return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
         
         users_res = client.table('profiles').select('id', count='exact').execute()
-        total_users = users_res.count if hasattr(users_res, 'count') else len(users_res.data or [])
+        total_users = getattr(users_res, 'count', None)
+        if total_users is None:
+            total_users = len(users_res.data or [])
         
         approved_res = client.table('documents').select('id', count='exact').eq('status', 'approved').execute()
-        approved_docs = approved_res.count if hasattr(approved_res, 'count') else len(approved_res.data or [])
+        approved_docs = getattr(approved_res, 'count', None)
+        if approved_docs is None:
+            approved_docs = len(approved_res.data or [])
         
         pending_res = client.table('documents').select('id', count='exact').eq('status', 'pending').execute()
-        pending_docs = pending_res.count if hasattr(pending_res, 'count') else len(pending_res.data or [])
+        pending_docs = getattr(pending_res, 'count', None)
+        if pending_docs is None:
+            pending_docs = len(pending_res.data or [])
+
+        views_res = client.table('document_views').select('id', count='exact').execute()
+        total_views = getattr(views_res, 'count', None)
+        if total_views is None:
+            total_views = len(views_res.data or [])
         
         from push_notifications import load_subscriptions
         try:
@@ -676,6 +1008,7 @@ def get_admin_stats():
                 'total_users': total_users,
                 'approved_documents': approved_docs,
                 'pending_documents': pending_docs,
+                'total_views': total_views,
                 'total_subscribers': total_subs,
                 'total_messages': messages_count
             }
@@ -690,18 +1023,40 @@ def get_admin_stats():
 @auth_required
 @admin_required
 def get_pending_documents():
-    """List documents requiring review."""
+    """List documents requiring review with full academic hierarchy, pricing, and uploader info."""
     try:
         client = init_supabase()
         if not client:
             return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
-        res = client.table('documents')\
-            .select('id, title, document_category, file_type, file_url, created_at, uploader_id, profiles!documents_uploader_id_fkey(full_name, email)')\
-            .eq('status', 'pending')\
-            .order('created_at', desc=True)\
-            .execute()
-            
-        return jsonify({'success': True, 'documents': res.data or []})
+
+        docs = []
+        # Leverage high-performance unified view
+        try:
+            res = client.table('v_documents_catalog')\
+                .select('*')\
+                .eq('status', 'pending')\
+                .order('created_at', desc=True)\
+                .execute()
+            docs = res.data or []
+        except Exception as view_err:
+            logging.warning(f"[pending-documents] catalog view query failed, fallback to table: {view_err}")
+            res = client.table('documents')\
+                .select('*')\
+                .eq('status', 'pending')\
+                .order('created_at', desc=True)\
+                .execute()
+            docs = res.data or []
+
+        # Standardize uploader profile object for frontend display
+        for d in docs:
+            if 'profiles' not in d:
+                d['profiles'] = {
+                    'full_name': d.get('uploader_name') or 'Student',
+                    'email': '',
+                    'role': d.get('uploader_role') or 'student'
+                }
+
+        return jsonify({'success': True, 'documents': docs})
     except Exception as e:
         logging.error(f'[pending-documents] {e}')
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -711,7 +1066,7 @@ def get_pending_documents():
 @auth_required
 @admin_required
 def approve_document():
-    """Approve a pending document."""
+    """Approve a pending document, record admin verifier, award XP, and notify uploader."""
     try:
         data = request.get_json() or {}
         doc_id = data.get('document_id')
@@ -722,17 +1077,44 @@ def approve_document():
         if not client:
             return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
             
-        doc_res = client.table('documents').select('uploader_id').eq('id', doc_id).limit(1).execute()
+        doc_res = client.table('documents').select('uploader_id, title').eq('id', doc_id).limit(1).execute()
         if not doc_res.data:
             return jsonify({'success': False, 'error': 'Document not found'}), 404
             
         uploader_id = doc_res.data[0].get('uploader_id')
-        client.table('documents').update({'status': 'approved'}).eq('id', doc_id).execute()
+        doc_title = doc_res.data[0].get('title') or 'Document'
+        remark = (data.get('remark') or data.get('notes') or '').strip()
+
+        admin_user = session.get('user', {})
+        admin_uid = admin_user.get('uid') or admin_user.get('id')
+
+        update_payload = {
+            'status': 'approved',
+            'verified_by': admin_uid if validate_uuid(admin_uid) else None,
+            'verified_at': datetime.now(timezone.utc).isoformat()
+        }
+        if remark:
+            update_payload['verification_notes'] = remark
+
+        client.table('documents').update(update_payload).eq('id', doc_id).execute()
         
         if uploader_id:
             recalculate_and_persist_user_rank(uploader_id)
+            try:
+                notif_msg = f"Your upload '{doc_title}' has been reviewed, approved, and is now live on AbhiHub."
+                if remark:
+                    notif_msg += f"\nAdmin Remark: {remark}"
+                log_notification(
+                    uploader_id,
+                    'document_approved',
+                    f"Material Approved: {doc_title[:30]}",
+                    notif_msg,
+                    url=f"/view/{doc_id}"
+                )
+            except Exception:
+                pass
             
-        log_admin_action('approve_document', target=doc_id, details={'uploader_id': uploader_id})
+        log_admin_action('approve_document', target=doc_id, details={'uploader_id': uploader_id, 'remark': remark})
         return jsonify({'success': True, 'message': 'Document approved successfully'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -742,10 +1124,12 @@ def approve_document():
 @auth_required
 @admin_required
 def reject_document():
-    """Reject and delete a document."""
+    """Reject a document with verification notes and notify uploader."""
     try:
         data = request.get_json() or {}
         doc_id = data.get('document_id')
+        reason = (data.get('reason') or data.get('notes') or 'Does not meet content standards').strip()
+        hard_delete = bool(data.get('hard_delete', False))
         if not doc_id:
             return jsonify({'success': False, 'error': 'Document ID is required'}), 400
             
@@ -753,31 +1137,53 @@ def reject_document():
         if not client:
             return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
             
-        doc_res = client.table('documents').select('uploader_id').eq('id', doc_id).limit(1).execute()
+        doc_res = client.table('documents').select('uploader_id, title').eq('id', doc_id).limit(1).execute()
         uploader_id = doc_res.data[0].get('uploader_id') if doc_res.data else None
+        doc_title = doc_res.data[0].get('title') if doc_res.data else 'Document'
         
-        try:
-            client.table('search_documents').delete().eq('file_id', doc_id).execute()
-        except Exception:
-            pass
-            
-        client.table('documents').delete().eq('id', doc_id).execute()
+        admin_user = session.get('user', {})
+        admin_uid = admin_user.get('uid') or admin_user.get('id')
+
+        if hard_delete:
+            for table_name, col in [('search_documents', 'file_id'), ('document_views', 'document_id'), ('document_likes', 'document_id'), ('document_bookmarks', 'document_id'), ('viewer_failure_reports', 'doc_id')]:
+                try:
+                    client.table(table_name).delete().eq(col, doc_id).execute()
+                except Exception:
+                    pass
+            client.table('documents').delete().eq('id', doc_id).execute()
+        else:
+            client.table('documents').update({
+                'status': 'rejected',
+                'verified_by': admin_uid if validate_uuid(admin_uid) else None,
+                'verified_at': datetime.now(timezone.utc).isoformat(),
+                'verification_notes': reason
+            }).eq('id', doc_id).execute()
 
         if uploader_id:
             try:
                 from methods.scoring_engine import get_config
                 pts = get_config('points') or {}
-                penalty = float(pts.get('spam_penalty_min', -10))
+                penalty = float(pts.get('spam_penalty_min', -5))
                 award_contribution_xp(
                     uploader_id, 'content_removed', doc_id, 'document',
-                    'Document rejected/removed by moderation', base_xp=penalty
+                    f'Document rejected by moderation: {reason}', base_xp=penalty
                 )
             except Exception as pen_err:
                 logging.warning(f"[SCORING] removal penalty skipped: {pen_err}")
             recalculate_and_persist_user_rank(uploader_id)
+            try:
+                log_notification(
+                    uploader_id,
+                    'document_rejected',
+                    f"Upload Verification Rejected: {doc_title[:30]}",
+                    f"Your upload '{doc_title}' was rejected during moderation.\nReason: {reason}",
+                    url="/upload"
+                )
+            except Exception:
+                pass
 
-        log_admin_action('reject_document', target=doc_id, details={'uploader_id': uploader_id})
-        return jsonify({'success': True, 'message': 'Document rejected and deleted successfully'})
+        log_admin_action('reject_document', target=doc_id, details={'uploader_id': uploader_id, 'reason': reason})
+        return jsonify({'success': True, 'message': 'Document rejected successfully'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 
@@ -785,21 +1191,71 @@ def reject_document():
 @admin_bp.route('/api/admin/file-reports')
 @admin_required
 def admin_file_reports():
-    """API endpoint for admin to view all file reports and logs."""
+    """API endpoint for admin to view all file reports and logs with full student profiles."""
     try:
-        result = supabase.table('viewer_failure_reports').select(
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'message': 'Database not connected'}), 500
+        result = client.table('viewer_failure_reports').select(
             'id, doc_id, viewer_type, error_msg, page_url, reporter_email, reporter_id, file_name, file_url, file_type, issue_type, status, created_at'
         ).order('created_at', desc=True).execute()
         
         reports = result.data if result.data else []
         
         try:
-            access_result = supabase.table('file_access_history').select(
-                'id, user_email, file_name, file_type, file_path, file_url, status, created_at'
-            ).order('created_at', desc=True).limit(500).execute()
-            access_logs = access_result.data if access_result.data else []
+            views_result = client.table('document_views').select(
+                'id, user_id, accessed_at, device_type, documents(id, title, file_type, file_url)'
+            ).order('accessed_at', desc=True).limit(350).execute()
+            
+            raw_views = views_result.data or []
+            
+            # Batch fetch student profile details (name, email)
+            unique_uids = list({v.get('user_id') for v in raw_views if v.get('user_id')})
+            profiles_map = {}
+            if unique_uids:
+                try:
+                    p_res = client.table('profiles').select('id, full_name, email, role, degree').in_('id', unique_uids).execute()
+                    if p_res.data:
+                        profiles_map = {p['id']: p for p in p_res.data}
+                except Exception as p_err:
+                    logging.warning(f"Could not batch fetch profiles for access logs: {p_err}")
+
+            access_logs = []
+            for v in raw_views:
+                doc = v.get('documents') or {}
+                uid = v.get('user_id')
+                profile = profiles_map.get(uid) or {}
+                
+                user_name = profile.get('full_name') or ''
+                user_email = profile.get('email') or ''
+                
+                if not user_name and not user_email:
+                    if uid:
+                        user_display = f"User ({uid[:8]}...)"
+                    else:
+                        user_display = "Anonymous Student"
+                elif user_name and user_email:
+                    user_display = f"{user_name} ({user_email})"
+                else:
+                    user_display = user_name or user_email
+
+                access_logs.append({
+                    'id': v.get('id'),
+                    'user_id': uid or '',
+                    'user_name': user_name or 'Anonymous',
+                    'user_email': user_email or '—',
+                    'user_display': user_display,
+                    'user_role': profile.get('role', 'student'),
+                    'file_name': doc.get('title') or 'Document View',
+                    'file_type': doc.get('file_type') or 'document',
+                    'file_path': doc.get('file_url') or '—',
+                    'doc_id': doc.get('id') or '',
+                    'device_type': v.get('device_type') or 'desktop',
+                    'status': 'accessed',
+                    'created_at': v.get('accessed_at')
+                })
         except Exception as access_err:
-            logging.warning(f"Could not fetch file_access_history: {access_err}")
+            logging.warning(f"Could not fetch document_views: {access_err}")
             access_logs = []
         
         return jsonify({
@@ -812,6 +1268,40 @@ def admin_file_reports():
         
     except Exception as e:
         logging.error(f"Error fetching admin file reports: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/file-reports/<report_id>/status', methods=['POST'])
+@auth_required
+@admin_required
+def admin_update_file_report_status(report_id):
+    """Update a failure report status (open, resolved, closed)."""
+    try:
+        data = request.get_json() or {}
+        new_status = data.get('status', 'resolved').lower().strip()
+        if new_status not in ['open', 'resolved', 'closed']:
+            return jsonify({'success': False, 'message': 'Invalid status. Must be open, resolved, or closed'}), 400
+            
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'message': 'Database client not initialized'}), 500
+            
+        admin_user = session.get('user', {})
+        admin_email = admin_user.get('email', 'Admin')
+
+        res = client.table('viewer_failure_reports').update({
+            'status': new_status
+        }).eq('id', report_id).execute()
+
+        log_admin_action('update_file_report_status', target=report_id, details={'status': new_status, 'admin': admin_email})
+        return jsonify({
+            'success': True,
+            'report_id': report_id,
+            'status': new_status,
+            'message': f"Report successfully marked as {new_status}."
+        }), 200
+    except Exception as e:
+        logging.error(f"[admin_update_file_report_status] {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 

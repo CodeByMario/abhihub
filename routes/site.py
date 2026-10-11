@@ -235,7 +235,27 @@ def payment_receipt_page():
             pass
 
     is_paid = (status == 'success')
-    purpose = "Document Access" if doc_id else "Community Support Contribution"
+    admin_notes = (rec.get('admin_notes', '') if rec else '')
+    is_credits = (request.args.get('is_credits') == '1' or 'Credits-' in admin_notes or 'pack=' in admin_notes or 'credits' in admin_notes.lower())
+    pack_size = request.args.get('pack') or 0
+    if not pack_size and is_credits:
+        for part in admin_notes.split(';'):
+            if part.startswith('pack='):
+                try: pack_size = int(part.replace('pack=', '').strip())
+                except: pass
+            elif part.startswith('purpose=Credits-'):
+                try: pack_size = int(part.replace('purpose=Credits-', '').split('-')[0].strip())
+                except: pass
+        if not pack_size:
+            try: pack_size = int(float(amount) / 2)
+            except: pack_size = 50
+
+    if is_credits:
+        purpose = f"Study View Credits ({pack_size} Views)"
+    elif doc_id:
+        purpose = "Document Access"
+    else:
+        purpose = "Community Support Contribution"
 
     return render_template(
         'payment_receipt.html',
@@ -245,6 +265,8 @@ def payment_receipt_page():
         doc_info=doc_info,
         purpose=purpose,
         is_paid=is_paid,
+        is_credits=is_credits,
+        pack_size=pack_size,
         error_msg=error_msg
     )
 

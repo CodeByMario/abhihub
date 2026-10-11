@@ -1,0 +1,942 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Payments & Payouts Management{% endblock %}
+
+{% block admin_content %}
+<style>
+  .pay-container {
+    max-width: 1400px;
+    margin: 1.5rem auto;
+    font-family: 'Outfit', sans-serif;
+  }
+
+  .pay-header {
+    margin-bottom: 1.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .pay-header h1 {
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin: 0 0 0.25rem;
+  }
+
+  .pay-header p {
+    color: var(--text-secondary);
+    font-size: 0.92rem;
+    margin: 0;
+  }
+
+  /* Metrics Grid */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .metric-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    padding: 1.25rem;
+    box-shadow: var(--card-shadow);
+    transition: var(--transition-smooth);
+  }
+
+  .metric-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--border-accent);
+  }
+
+  .metric-label {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .metric-value {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-top: 0.4rem;
+    color: var(--text-primary);
+  }
+
+  .metric-sub {
+    font-size: 0.76rem;
+    color: var(--text-secondary);
+    margin-top: 0.25rem;
+  }
+
+  /* Tabs Bar */
+  .tabs-bar {
+    display: flex;
+    gap: 0.5rem;
+    padding: 0.35rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: 14px;
+    margin-bottom: 1.5rem;
+    width: fit-content;
+    flex-wrap: wrap;
+  }
+
+  .tab-btn {
+    padding: 0.65rem 1.25rem;
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    border: none;
+    background: transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: var(--transition-smooth);
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    text-decoration: none;
+  }
+
+  .tab-btn:hover {
+    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+  }
+
+  .tab-btn.active {
+    color: #ffffff;
+    background: var(--accent-indigo);
+    box-shadow: 0 4px 12px var(--accent-indigo-glow);
+  }
+
+  /* Panel styling */
+  .pay-panel {
+    background: var(--bg-card);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--card-shadow);
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+  }
+
+  .panel-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .panel-header h2 {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .search-filter-row {
+    display: flex;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .pay-input {
+    padding: 0.55rem 0.85rem;
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.85rem;
+    outline: none;
+  }
+
+  .pay-input:focus {
+    border-color: var(--accent-indigo);
+  }
+
+  .pay-btn {
+    padding: 0.55rem 1rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.84rem;
+    font-weight: 600;
+    cursor: pointer;
+    border: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: var(--transition-smooth);
+    text-decoration: none;
+  }
+
+  .pay-btn-primary {
+    background: var(--accent-indigo);
+    color: #ffffff;
+  }
+  .pay-btn-primary:hover {
+    background: #4338ca;
+  }
+
+  .pay-btn-success {
+    background: var(--accent-emerald);
+    color: #ffffff;
+  }
+  .pay-btn-success:hover {
+    background: #047857;
+  }
+
+  .pay-btn-danger {
+    background: var(--accent-rose);
+    color: #ffffff;
+  }
+  .pay-btn-danger:hover {
+    background: #be123c;
+  }
+
+  .pay-btn-outline {
+    background: var(--btn-topbar-bg);
+    border: 1px solid var(--border-subtle);
+    color: var(--text-secondary);
+  }
+  .pay-btn-outline:hover {
+    color: var(--text-primary);
+    border-color: var(--border-accent);
+  }
+
+  /* Table styling */
+  .pay-table-wrap {
+    overflow-x: auto;
+  }
+
+  .pay-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.86rem;
+  }
+
+  .pay-table th {
+    text-align: left;
+    padding: 0.75rem 0.85rem;
+    background: var(--pill-bg);
+    color: var(--text-muted);
+    font-weight: 700;
+    border-bottom: 1px solid var(--border-subtle);
+    white-space: nowrap;
+  }
+
+  .pay-table td {
+    padding: 0.75rem 0.85rem;
+    border-bottom: 1px solid var(--border-subtle);
+    color: var(--text-primary);
+    vertical-align: middle;
+  }
+
+  .pay-table tr:hover td {
+    background: var(--sidebar-link-hover);
+  }
+
+  .badge-status {
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+
+  .badge-verified, .badge-completed {
+    background: rgba(16, 185, 129, 0.15);
+    color: #10b981;
+    border: 1px solid rgba(16, 185, 129, 0.3);
+  }
+
+  .badge-pending {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.3);
+  }
+
+  .badge-failed, .badge-rejected {
+    background: rgba(244, 63, 94, 0.15);
+    color: #f43f5e;
+    border: 1px solid rgba(244, 63, 94, 0.3);
+  }
+
+  /* Modal */
+  .pay-modal-backdrop {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.65);
+    backdrop-filter: blur(4px);
+    z-index: 9999;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .pay-modal {
+    background: var(--bg-surface);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 520px;
+    padding: 1.5rem;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  }
+
+  .pay-modal h3 {
+    margin: 0 0 1rem;
+    font-size: 1.15rem;
+    color: var(--text-primary);
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 0.35rem;
+  }
+
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 0.6rem 0.85rem;
+    background: var(--bg-base);
+    border: 1px solid var(--border-subtle);
+    border-radius: var(--radius-sm);
+    color: var(--text-primary);
+    font-size: 0.88rem;
+    box-sizing: border-box;
+  }
+</style>
+
+<div class="pay-container">
+  <!-- Header -->
+  <div class="pay-header">
+    <div>
+      <h1><i class="fas fa-credit-card" style="color: var(--accent-indigo);"></i> Payments &amp; Payouts Hub</h1>
+      <p>Audit incoming transactions, manage PhonePe payment orders, and process creator withdrawal payouts.</p>
+    </div>
+    <div style="display:flex; gap:0.5rem;">
+      <button type="button" class="pay-btn pay-btn-outline" onclick="refreshAllPaymentData()">
+        <i class="fas fa-rotate"></i> Refresh
+      </button>
+    </div>
+  </div>
+
+  <!-- Real-Time Metrics -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-label"><i class="fas fa-wallet text-emerald-500"></i> Total Revenue</div>
+      <div class="metric-value" id="kpiTotalRevenue" style="color: var(--accent-emerald);">₹0.00</div>
+      <div class="metric-sub" id="kpiOrderCount">0 successful orders</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label"><i class="fas fa-clock text-amber-500"></i> Pending Payouts</div>
+      <div class="metric-value" id="kpiPendingPayouts" style="color: var(--accent-amber);">₹0.00</div>
+      <div class="metric-sub" id="kpiPendingCount">0 requests waiting</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label"><i class="fas fa-circle-check text-indigo-500"></i> Paid to Creators</div>
+      <div class="metric-value" id="kpiPaidPayouts" style="color: var(--accent-indigo);">₹0.00</div>
+      <div class="metric-sub" id="kpiPaidCount">0 payouts completed</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label"><i class="fas fa-users text-sky-500"></i> Creator Wallets</div>
+      <div class="metric-value" id="kpiCreatorWalletsCount">0</div>
+      <div class="metric-sub">Active monetized creators</div>
+    </div>
+  </div>
+
+  <!-- Navigation Tabs -->
+  <div class="tabs-bar">
+    <button type="button" class="tab-btn active" onclick="switchPayTab('payouts', this)">
+      <i class="fas fa-hand-holding-dollar"></i> Creator Payout Requests
+    </button>
+    <button type="button" class="tab-btn" onclick="switchPayTab('transactions', this)">
+      <i class="fas fa-receipt"></i> Customer Transactions
+    </button>
+    <button type="button" class="tab-btn" onclick="switchPayTab('wallets', this)">
+      <i class="fas fa-briefcase"></i> Creator Wallets
+    </button>
+  </div>
+
+  <!-- Tab 1: Creator Payout Requests -->
+  <div class="pay-panel" id="panel-payouts">
+    <div class="panel-header">
+      <h2><i class="fas fa-hand-holding-dollar text-emerald-500"></i> Creator Payout Requests</h2>
+      <div class="search-filter-row">
+        <select id="payoutStatusFilter" class="pay-input" onchange="loadPayoutRequests()">
+          <option value="">All Statuses</option>
+          <option value="pending" selected>Pending Review</option>
+          <option value="completed">Completed (Paid)</option>
+          <option value="rejected">Rejected (Refunded)</option>
+        </select>
+        <button type="button" class="pay-btn pay-btn-outline" onclick="loadPayoutRequests()">
+          <i class="fas fa-filter"></i> Apply Filter
+        </button>
+      </div>
+    </div>
+
+    <div class="pay-table-wrap">
+      <table class="pay-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Creator User ID</th>
+            <th>Amount</th>
+            <th>Method</th>
+            <th>Payout Details</th>
+            <th>Status</th>
+            <th>Admin Notes</th>
+            <th style="text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="payoutsTbody">
+          <tr><td colspan="8" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Loading payout requests...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab 2: Customer Transactions -->
+  <div class="pay-panel" id="panel-transactions" style="display:none;">
+    <div class="panel-header">
+      <h2><i class="fas fa-receipt text-indigo-500"></i> Customer Transactions &amp; Orders</h2>
+      <div class="search-filter-row">
+        <input type="text" id="txSearchInput" class="pay-input" placeholder="Search Order ID, UTR, User ID..." oninput="filterTransactionsLocal()" style="min-width:240px;" />
+        <select id="txStatusFilter" class="pay-input" onchange="filterTransactionsLocal()">
+          <option value="">All Statuses</option>
+          <option value="verified">Verified / Paid</option>
+          <option value="pending">Pending</option>
+          <option value="failed">Failed / Cancelled</option>
+        </select>
+        <button type="button" class="pay-btn pay-btn-outline" onclick="loadTransactions()">
+          <i class="fas fa-sync"></i> Refresh
+        </button>
+      </div>
+    </div>
+
+    <div class="pay-table-wrap">
+      <table class="pay-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Order ID</th>
+            <th>User ID</th>
+            <th>Amount</th>
+            <th>Purpose / Notes</th>
+            <th>Gateway UTR</th>
+            <th>Status</th>
+            <th style="text-align:right;">Action</th>
+          </tr>
+        </thead>
+        <tbody id="transactionsTbody">
+          <tr><td colspan="8" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Loading transactions...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Tab 3: All User Wallets & Balances -->
+  <div class="pay-panel" id="panel-wallets" style="display:none;">
+    <div class="panel-header">
+      <h2><i class="fas fa-briefcase text-sky-500"></i> All User Wallets &amp; Balances</h2>
+      <div class="search-filter-row">
+        <input type="text" id="walletSearchInput" class="pay-input" placeholder="Search user name, email, or UUID..." oninput="filterWalletsLocal()" style="min-width:240px;" />
+        <button type="button" class="pay-btn pay-btn-primary" onclick="openWalletAdjModal()">
+          <i class="fas fa-bolt"></i> Adjust Wallet / Penalty
+        </button>
+        <button type="button" class="pay-btn pay-btn-outline" onclick="loadCreatorWallets()">
+          <i class="fas fa-sync"></i> Refresh
+        </button>
+      </div>
+    </div>
+
+    <div class="pay-table-wrap">
+      <table class="pay-table">
+        <thead>
+          <tr>
+            <th>User</th>
+            <th>Quota (Credits)</th>
+            <th>Views Earned</th>
+            <th>Withdrawable Balance</th>
+            <th>Pending (30-day)</th>
+            <th>Total Withdrawn</th>
+            <th>Last Activity</th>
+            <th style="text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="walletsTbody">
+          <tr><td colspan="8" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Loading user wallets...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Edit / Verify Transaction -->
+<div class="pay-modal-backdrop" id="txModalBackdrop">
+  <div class="pay-modal">
+    <h3><i class="fas fa-pen-to-square"></i> Update Transaction Record</h3>
+    <form id="txEditForm" onsubmit="handleTxEditSubmit(event)">
+      <div class="form-group">
+        <label>Order ID</label>
+        <input type="text" id="modalOrderId" readonly style="opacity:0.75;" />
+      </div>
+      <div class="form-group">
+        <label>Status</label>
+        <select id="modalStatus" required>
+          <option value="verified">Verified (Approved)</option>
+          <option value="pending">Pending</option>
+          <option value="failed">Failed / Cancelled</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Gateway UTR / Reference</label>
+        <input type="text" id="modalUtr" placeholder="Bank or PhonePe UTR" />
+      </div>
+      <div class="form-group">
+        <label>Admin Notes</label>
+        <textarea id="modalNotes" rows="3" placeholder="Reason or audit details..."></textarea>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.25rem;">
+        <button type="button" class="pay-btn pay-btn-outline" onclick="closeTxModal()">Cancel</button>
+        <button type="submit" class="pay-btn pay-btn-primary" id="saveTxBtn">Save Changes</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Modal: Adjust Wallet (Penalty / Charges / Credit) -->
+<div class="pay-modal-backdrop" id="adjModalBackdrop">
+  <div class="pay-modal">
+    <h3><i class="fas fa-wallet text-amber-500"></i> Creator Wallet Adjustment</h3>
+    <form id="walletAdjForm" onsubmit="handleWalletAdjSubmit(event)">
+      <div class="form-group">
+        <label>Creator User ID (UUID)</label>
+        <input type="text" id="adjCreatorId" required placeholder="User UUID..." />
+      </div>
+      <div class="form-group">
+        <label>Adjustment Type</label>
+        <select id="adjType" required>
+          <option value="penalty">⚠️ Penalty (Deduct from withdrawable balance)</option>
+          <option value="charge">💸 Platform Charge (Deduct from withdrawable balance)</option>
+          <option value="credit">🎁 Admin Credit / Bonus (Add to withdrawable balance)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Amount (₹)</label>
+        <input type="number" id="adjAmount" min="0.01" step="0.01" required placeholder="e.g. 50.00" />
+      </div>
+      <div class="form-group">
+        <label>Reason / Audit Note</label>
+        <textarea id="adjReason" rows="3" required placeholder="e.g. Copyright infringement penalty, dispute fee, or event bonus..."></textarea>
+      </div>
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:1.25rem;">
+        <button type="button" class="pay-btn pay-btn-outline" onclick="closeWalletAdjModal()">Cancel</button>
+        <button type="submit" class="pay-btn pay-btn-primary" id="saveAdjBtn">Apply Adjustment</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+  let _allTransactions = [];
+
+  function switchPayTab(tabKey, btn) {
+    document.querySelectorAll('.tabs-bar .tab-btn').forEach(b => b.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    document.getElementById('panel-payouts').style.display = tabKey === 'payouts' ? 'block' : 'none';
+    document.getElementById('panel-transactions').style.display = tabKey === 'transactions' ? 'block' : 'none';
+    document.getElementById('panel-wallets').style.display = tabKey === 'wallets' ? 'block' : 'none';
+
+    if (tabKey === 'payouts') loadPayoutRequests();
+    else if (tabKey === 'transactions') loadTransactions();
+    else if (tabKey === 'wallets') loadCreatorWallets();
+  }
+
+  // ── 1. Payout Requests Management ──
+  async function loadPayoutRequests() {
+    const tbody = document.getElementById('payoutsTbody');
+    const status = document.getElementById('payoutStatusFilter').value;
+    try {
+      const url = status ? `/api/admin/payouts?status=${status}` : '/api/admin/payouts';
+      const res = await fetch(url);
+      const data = await res.json();
+      const list = data.payouts || [];
+
+      // Update KPI
+      let pendingSum = 0, pendingCount = 0, paidSum = 0, paidCount = 0;
+      list.forEach(p => {
+        const amt = parseFloat(p.amount || 0);
+        if (p.status === 'pending') { pendingSum += amt; pendingCount++; }
+        if (p.status === 'completed') { paidSum += amt; paidCount++; }
+      });
+      document.getElementById('kpiPendingPayouts').textContent = '₹' + pendingSum.toFixed(2);
+      document.getElementById('kpiPendingCount').textContent = `${pendingCount} requests waiting`;
+      document.getElementById('kpiPaidPayouts').textContent = '₹' + paidSum.toFixed(2);
+      document.getElementById('kpiPaidCount').textContent = `${paidCount} payouts completed`;
+
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No payout requests found for this filter.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map(p => {
+        const dateStr = p.created_at ? new Date(p.created_at).toLocaleDateString('en-IN', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '-';
+        const details = p.payout_details || {};
+        const detailStr = p.payout_method === 'upi' ? (details.upi_id || '-') : (details.account_info || JSON.stringify(details));
+        
+        let statusBadge = `<span class="badge-status badge-pending">Pending</span>`;
+        if (p.status === 'completed') statusBadge = `<span class="badge-status badge-completed">Paid</span>`;
+        if (p.status === 'rejected') statusBadge = `<span class="badge-status badge-rejected">Rejected</span>`;
+
+        let actionBtns = '-';
+        if (p.status === 'pending') {
+          actionBtns = `
+            <div style="display:flex; gap:0.4rem; justify-content:flex-end;">
+              <button type="button" class="pay-btn pay-btn-success" style="padding:0.35rem 0.65rem; font-size:0.78rem;" onclick="processPayout('${p.id}', 'completed')">
+                <i class="fas fa-check"></i> Pay
+              </button>
+              <button type="button" class="pay-btn pay-btn-danger" style="padding:0.35rem 0.65rem; font-size:0.78rem;" onclick="processPayout('${p.id}', 'rejected')">
+                <i class="fas fa-xmark"></i> Reject
+              </button>
+            </div>
+          `;
+        }
+
+        return `
+          <tr>
+            <td style="font-size:0.8rem; color:var(--text-muted);">${dateStr}</td>
+            <td style="font-family:monospace; font-size:0.8rem;">${p.creator_id}</td>
+            <td style="font-weight:700; color:var(--text-primary);">₹${parseFloat(p.amount).toFixed(2)}</td>
+            <td style="text-transform:uppercase; font-size:0.75rem; font-weight:700;">${p.payout_method}</td>
+            <td>
+              <div style="display:flex; align-items:center; gap:0.4rem;">
+                <code style="background:var(--pill-bg); padding:2px 6px; border-radius:4px; font-size:0.8rem;">${detailStr}</code>
+                <button type="button" class="pay-btn pay-btn-outline" style="padding:2px 6px; font-size:0.7rem;" onclick="navigator.clipboard.writeText('${detailStr}'); alert('Copied!');" title="Copy">
+                  <i class="fas fa-copy"></i>
+                </button>
+              </div>
+            </td>
+            <td>${statusBadge}</td>
+            <td style="font-size:0.8rem; color:var(--text-secondary);">${p.admin_notes || '-'}</td>
+            <td style="text-align:right;">${actionBtns}</td>
+          </tr>
+        `;
+      }).join('');
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:1.5rem; color:#ef4444;">Error loading payouts.</td></tr>';
+    }
+  }
+
+  async function processPayout(payoutId, action) {
+    const confirmPrompt = action === 'completed' 
+      ? 'Confirm marking this payout as COMPLETED / PAID?' 
+      : 'Reject this payout request? The amount will be refunded to the creator wallet.';
+    if (!confirm(confirmPrompt)) return;
+
+    const notes = prompt(`Optional admin note for this ${action} payout:`) || '';
+    try {
+      const res = await fetch('/api/admin/payout/action', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          payout_id: payoutId,
+          action: action,
+          admin_notes: notes
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(`Success: ${data.message}`);
+        loadPayoutRequests();
+      } else {
+        alert(`Failed: ${data.error}`);
+      }
+    } catch (err) {
+      alert('Network error updating payout.');
+    }
+  }
+
+  // ── 2. Customer Transactions ──
+  async function loadTransactions() {
+    const tbody = document.getElementById('transactionsTbody');
+    try {
+      const res = await fetch('/api/admin/payment/transactions');
+      const data = await res.json();
+      _allTransactions = data.transactions || [];
+      renderTransactionsTable(_allTransactions);
+
+      // Compute total revenue
+      let rev = 0, ordCount = 0;
+      _allTransactions.forEach(t => {
+        if (t.status === 'verified' || t.status === 'COMPLETED' || t.status === 'SUCCESS') {
+          rev += parseFloat(t.amount || 0);
+          ordCount++;
+        }
+      });
+      document.getElementById('kpiTotalRevenue').textContent = '₹' + rev.toFixed(2);
+      document.getElementById('kpiOrderCount').textContent = `${ordCount} verified orders`;
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:1.5rem; color:#ef4444;">Error loading transactions.</td></tr>';
+    }
+  }
+
+  function filterTransactionsLocal() {
+    const q = (document.getElementById('txSearchInput').value || '').toLowerCase().trim();
+    const st = document.getElementById('txStatusFilter').value.toLowerCase().trim();
+
+    const filtered = _allTransactions.filter(t => {
+      const oid = (t.order_id || '').toLowerCase();
+      const uid = (t.user_id || '').toLowerCase();
+      const utr = (t.utr || '').toLowerCase();
+      const matchesQ = !q || oid.includes(q) || uid.includes(q) || utr.includes(q);
+      const matchesSt = !st || (t.status || '').toLowerCase() === st;
+      return matchesQ && matchesSt;
+    });
+
+    renderTransactionsTable(filtered);
+  }
+
+  function renderTransactionsTable(list) {
+    const tbody = document.getElementById('transactionsTbody');
+    if (!list || list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No transactions match search criteria.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = list.map(t => {
+      const dateStr = t.created_at ? new Date(t.created_at).toLocaleDateString('en-IN', { month:'short', day:'numeric', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '-';
+      const st = (t.status || '').toLowerCase();
+      let statusBadge = `<span class="badge-status badge-pending">${t.status}</span>`;
+      if (['verified', 'completed', 'success'].includes(st)) statusBadge = `<span class="badge-status badge-verified">Verified</span>`;
+      if (['failed', 'cancelled'].includes(st)) statusBadge = `<span class="badge-status badge-failed">Failed</span>`;
+
+      return `
+        <tr>
+          <td style="font-size:0.8rem; color:var(--text-muted);">${dateStr}</td>
+          <td style="font-family:monospace; font-weight:700;">${t.order_id || '-'}</td>
+          <td style="font-family:monospace; font-size:0.8rem;">${t.user_id || '-'}</td>
+          <td style="font-weight:700; color:var(--accent-emerald);">₹${parseFloat(t.amount || 0).toFixed(2)}</td>
+          <td style="font-size:0.82rem; color:var(--text-secondary); max-width:200px; overflow:hidden; text-overflow:ellipsis;">${t.admin_notes || t.item_name || '-'}</td>
+          <td style="font-family:monospace; font-size:0.8rem;">${t.utr || '-'}</td>
+          <td>${statusBadge}</td>
+          <td style="text-align:right;">
+            <button type="button" class="pay-btn pay-btn-outline" style="padding:0.3rem 0.6rem; font-size:0.75rem;" onclick="openTxModal('${t.order_id}', '${t.status}', '${t.utr || ''}', '${(t.admin_notes || '').replace(/'/g, "\\'")}')">
+              <i class="fas fa-edit"></i> Edit
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // ── Modal Handlers ──
+  function openTxModal(orderId, status, utr, notes) {
+    document.getElementById('modalOrderId').value = orderId;
+    document.getElementById('modalStatus').value = status.toLowerCase() === 'completed' ? 'verified' : status.toLowerCase();
+    document.getElementById('modalUtr').value = utr;
+    document.getElementById('modalNotes').value = notes;
+    document.getElementById('txModalBackdrop').style.display = 'flex';
+  }
+
+  function closeTxModal() {
+    document.getElementById('txModalBackdrop').style.display = 'none';
+  }
+
+  async function handleTxEditSubmit(e) {
+    e.preventDefault();
+    const saveBtn = document.getElementById('saveTxBtn');
+    saveBtn.disabled = true;
+    saveBtn.textContent = 'Saving...';
+
+    const orderId = document.getElementById('modalOrderId').value;
+    const status = document.getElementById('modalStatus').value;
+    const utr = document.getElementById('modalUtr').value;
+    const notes = document.getElementById('modalNotes').value;
+
+    try {
+      const res = await fetch('/api/admin/payment/transaction', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          order_id: orderId,
+          status: status,
+          utr: utr,
+          notes: notes
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        closeTxModal();
+        loadTransactions();
+      } else {
+        alert(`Update failed: ${data.error}`);
+      }
+    } catch (err) {
+      alert('Network error saving transaction.');
+    } finally {
+      saveBtn.disabled = false;
+      saveBtn.textContent = 'Save Changes';
+    }
+  }
+
+  let _allWallets = [];
+
+  async function loadCreatorWallets() {
+    const tbody = document.getElementById('walletsTbody');
+    try {
+      const res = await fetch('/api/admin/creator/wallets');
+      const data = await res.json();
+      _allWallets = data.wallets || [];
+      document.getElementById('kpiCreatorWalletsCount').textContent = _allWallets.length;
+      renderWalletsTable(_allWallets);
+    } catch (err) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:1.5rem; color:#ef4444;">Error loading user wallets.</td></tr>';
+    }
+  }
+
+  function filterWalletsLocal() {
+    const q = (document.getElementById('walletSearchInput').value || '').toLowerCase().trim();
+    const filtered = _allWallets.filter(w => {
+      const name = (w.full_name || '').toLowerCase();
+      const email = (w.email || '').toLowerCase();
+      const uid = (w.user_id || '').toLowerCase();
+      return !q || name.includes(q) || email.includes(q) || uid.includes(q);
+    });
+    renderWalletsTable(filtered);
+  }
+
+  function renderWalletsTable(list) {
+    const tbody = document.getElementById('walletsTbody');
+    if (!list || list.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No users match search.</td></tr>';
+      return;
+    }
+
+    tbody.innerHTML = list.map(w => {
+      const dateStr = w.updated_at ? new Date(w.updated_at).toLocaleDateString('en-IN', { month:'short', day:'numeric', year:'numeric' }) : '-';
+      const quota = (w.paper_quota_remaining !== undefined && w.paper_quota_remaining !== null) ? w.paper_quota_remaining : 19;
+      const viewEarn = parseFloat(w.view_earnings || 0);
+      const totalViews = parseInt(w.total_views || 0, 10);
+      const salesBal = parseFloat(w.sales_withdrawable || 0);
+      const withBal = parseFloat(w.withdrawable_balance || 0);
+      return `
+        <tr>
+          <td>
+            <div style="font-weight:700; color:var(--text-primary); font-size:0.9rem;">${w.full_name || 'Student'}</div>
+            <div style="font-size:0.75rem; color:var(--text-muted); font-family:monospace;">${w.email || w.user_id}</div>
+          </td>
+          <td>
+            <span style="font-weight:700; color:#38bdf8;"><i class="far fa-eye"></i> ${quota}</span>
+          </td>
+          <td>
+            <div style="font-weight:700; color:#6366f1;">₹${viewEarn.toFixed(2)}</div>
+            <div style="font-size:0.72rem; color:var(--text-muted);">${totalViews.toLocaleString()} views</div>
+          </td>
+          <td>
+            <div style="color:var(--accent-emerald); font-weight:800; font-size:0.95rem;">₹${withBal.toFixed(2)}</div>
+            <div style="font-size:0.72rem; color:var(--text-muted);">Sales: ₹${salesBal.toFixed(2)}</div>
+          </td>
+          <td style="color:var(--accent-amber); font-weight:700;">₹${parseFloat(w.pending_balance || 0).toFixed(2)}</td>
+          <td style="color:var(--text-muted); font-weight:700;">₹${parseFloat(w.total_withdrawn || 0).toFixed(2)}</td>
+          <td style="font-size:0.8rem; color:var(--text-muted);">${dateStr}</td>
+          <td style="text-align:right;">
+            <button type="button" class="pay-btn pay-btn-outline" style="padding:0.3rem 0.65rem; font-size:0.75rem;" onclick="openWalletAdjModal('${w.user_id}')">
+              <i class="fas fa-bolt"></i> Adjust
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join('');
+  }
+
+  // ── Wallet Adjustment Handlers ──
+  function openWalletAdjModal(creatorId = '') {
+    document.getElementById('adjCreatorId').value = creatorId;
+    document.getElementById('adjType').value = 'penalty';
+    document.getElementById('adjAmount').value = '';
+    document.getElementById('adjReason').value = '';
+    document.getElementById('adjModalBackdrop').style.display = 'flex';
+  }
+
+  function closeWalletAdjModal() {
+    document.getElementById('adjModalBackdrop').style.display = 'none';
+  }
+
+  async function handleWalletAdjSubmit(e) {
+    e.preventDefault();
+    const btn = document.getElementById('saveAdjBtn');
+    const creatorId = document.getElementById('adjCreatorId').value.trim();
+    const adjType = document.getElementById('adjType').value;
+    const amount = parseFloat(document.getElementById('adjAmount').value);
+    const reason = document.getElementById('adjReason').value.trim();
+
+    if (!confirm(`Confirm applying ${adjType.toUpperCase()} of ₹${amount.toFixed(2)} to creator ${creatorId}?`)) {
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Applying...';
+    try {
+      const res = await fetch('/api/admin/creator/wallet/adjust', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          creator_id: creatorId,
+          adjustment_type: adjType,
+          amount: amount,
+          reason: reason
+        })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.result.message || 'Wallet adjusted successfully!');
+        closeWalletAdjModal();
+        loadCreatorWallets();
+      } else {
+        alert(`Adjustment failed: ${data.error}`);
+      }
+    } catch (err) {
+      alert('Network error applying adjustment.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Apply Adjustment';
+    }
+  }
+
+  function refreshAllPaymentData() {
+    loadPayoutRequests();
+    loadTransactions();
+    loadCreatorWallets();
+  }
+
+  document.addEventListener('DOMContentLoaded', refreshAllPaymentData);
+</script>
+{% endblock %}

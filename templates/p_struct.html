@@ -895,9 +895,132 @@
         });
     </script>
 
-    <!-- Phase 1: Soft Warning Toast -->
-    {% set user_credits = session.get('paper_quota', {}).get('credits', -1) %}
-    {% if user_credits == 1 %}
+    <!-- Global Buy Credits Modal (₹2 / view) -->
+    <div id="buyCreditsModal" class="buy-credits-modal-overlay" style="display: none;" onclick="if(event.target===this)closeBuyCreditsModal();">
+      <div class="buy-credits-modal" role="dialog" aria-modal="true" aria-labelledby="buyCreditsTitle">
+        <div class="buy-credits-header">
+          <h3 id="buyCreditsTitle" style="margin: 0; font-size: 1.2rem; color: inherit;">💎 Buy View Credits</h3>
+          <button type="button" onclick="closeBuyCreditsModal()" class="buy-credits-close" aria-label="Close">&times;</button>
+        </div>
+        <p id="buyCreditsSubtitle" style="font-size: 0.85rem; color: #64748b; margin: 0.3rem 0 1rem 0;">
+          Rate: <strong>₹2 / view</strong>. Get instant views to access and download exam resources.
+        </p>
+        <div class="buy-credits-grid">
+          <div class="buy-pack-card" onclick="selectCreditPack(50, 100)">
+            <div class="pack-badge">Standard</div>
+            <div class="pack-views">50 Views</div>
+            <div class="pack-price">₹100</div>
+            <div class="pack-unit">₹2.00 / view</div>
+            <button type="button" class="pack-buy-btn">Buy 50 Views</button>
+          </div>
+          <div class="buy-pack-card featured" onclick="selectCreditPack(100, 200)">
+            <div class="pack-badge featured-badge">Best Value</div>
+            <div class="pack-views">100 Views</div>
+            <div class="pack-price">₹200</div>
+            <div class="pack-unit">₹2.00 / view</div>
+            <button type="button" class="pack-buy-btn featured-btn">Buy 100 Views</button>
+          </div>
+          <div class="buy-pack-card" onclick="selectCreditPack(500, 1000)">
+            <div class="pack-badge">Pro Pack</div>
+            <div class="pack-views">500 Views</div>
+            <div class="pack-price">₹1000</div>
+            <div class="pack-unit">₹2.00 / view</div>
+            <button type="button" class="pack-buy-btn">Buy 500 Views</button>
+          </div>
+        </div>
+        <div id="buyCreditsStatus" style="margin-top: 1rem; font-size: 0.85rem; text-align: center; font-weight: 600;"></div>
+        <div id="buyCreditsAlt" style="margin-top: 0.85rem; text-align: center; font-size: 0.82rem; color: #64748b;">
+          Want views for free? <a href="/upload" style="color: #2563eb; font-weight: 600; text-decoration: none;">Upload a paper</a> to earn +3 views!
+        </div>
+      </div>
+    </div>
+
+    <script>
+      window.openBuyCreditsModal = function(isExhausted) {
+        var m = document.getElementById('buyCreditsModal');
+        if (!m) return;
+        var title = document.getElementById('buyCreditsTitle');
+        var sub = document.getElementById('buyCreditsSubtitle');
+        if (isExhausted) {
+          if (title) title.innerHTML = '⚠️ Views Exhausted — Top Up';
+          if (sub) sub.innerHTML = 'You have used all your free study views. Purchase view credits below (<strong>₹2 / view</strong>) to continue reading and downloading papers!';
+        } else {
+          if (title) title.innerHTML = '💎 Buy View Credits';
+          if (sub) sub.innerHTML = 'Rate: <strong>₹2 / view</strong>. Get instant views to access and download exam resources.';
+        }
+        m.style.display = 'flex';
+      };
+
+      window.closeBuyCreditsModal = function() {
+        var m = document.getElementById('buyCreditsModal');
+        if (m) m.style.display = 'none';
+        var s = document.getElementById('buyCreditsStatus');
+        if (s) s.textContent = '';
+      };
+
+      window.selectCreditPack = async function(packViews, priceInr) {
+        var statusEl = document.getElementById('buyCreditsStatus');
+        if (statusEl) {
+          statusEl.style.color = '#3b82f6';
+          statusEl.textContent = 'Connecting to payment gateway for ' + packViews + ' views (₹' + priceInr + ')…';
+        }
+        try {
+          var res = await fetch('/api/buy-credits', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ pack: packViews })
+          });
+          if (res.status === 401) {
+            window.location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+            return;
+          }
+          var data = await res.json();
+          if (data.success) {
+            if (data.payment_url) {
+              if (statusEl) {
+                statusEl.style.color = '#10b981';
+                statusEl.textContent = 'Redirecting to payment gateway…';
+              }
+              window.location.href = data.payment_url;
+              return;
+            }
+            if (statusEl) {
+              statusEl.style.color = '#10b981';
+              statusEl.textContent = '🎉 ' + data.message;
+            }
+            var viewsEl = document.getElementById('user-views-quota');
+            if (viewsEl && data.new_total_views !== undefined) {
+              viewsEl.textContent = data.new_total_views;
+            }
+            setTimeout(window.closeBuyCreditsModal, 1800);
+          } else {
+            if (statusEl) {
+              statusEl.style.color = '#ef4444';
+              statusEl.textContent = data.message || 'Payment initiation failed';
+            }
+          }
+        } catch (err) {
+          if (statusEl) {
+            statusEl.style.color = '#ef4444';
+            statusEl.textContent = 'Error connecting to payment gateway. Please try again.';
+          }
+        }
+      };
+    </script>
+
+    <!-- Phase 1: Soft Warning Toast & Exhaustion Trigger -->
+    {% set user_credits = session.get('paper_quota', {}).get('credits', (user_data.paper_quota_remaining if user_data and user_data.paper_quota_remaining is not none else -1)) %}
+    {% if user_credits == 0 %}
+    <script>
+      document.addEventListener('DOMContentLoaded', function () {
+        setTimeout(function () {
+          if (typeof window.openBuyCreditsModal === 'function') {
+            window.openBuyCreditsModal(true);
+          }
+        }, 700);
+      });
+    </script>
+    {% elif user_credits == 1 %}
     <div class="study-pass-toast" id="studyPassToast">
         <span class="study-pass-toast-icon">📚</span>
         <div>

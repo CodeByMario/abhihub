@@ -345,7 +345,7 @@ class AnthropicAdapter:
 class GeminiAdapter:
     provider_name = "gemini"
 
-    def __init__(self, api_key: str, model: str = "gemini-2.0-flash") -> None:
+    def __init__(self, api_key: str, model: str = "gemini-3.5-flash-lite") -> None:
         self._key = api_key
         self.model_name = model.replace("models/", "")
 
@@ -353,11 +353,34 @@ class GeminiAdapter:
         system_instruction = None
         contents = []
         for m in messages:
+            content = m.get("content", "")
             if m.get("role") == "system":
-                system_instruction = {"parts": [{"text": m.get("content", "")}]}
+                if isinstance(content, list):
+                    text = " ".join([p.get("text", "") for p in content if isinstance(p, dict)])
+                else:
+                    text = str(content or "")
+                system_instruction = {"parts": [{"text": text}]}
             else:
                 role = "user" if m.get("role") == "user" else "model"
-                contents.append({"role": role, "parts": [{"text": m.get("content", "")}]})
+                parts = []
+                if isinstance(content, list):
+                    for item in content:
+                        if isinstance(item, dict):
+                            if item.get("type") == "text":
+                                parts.append({"text": item.get("text", "")})
+                            elif item.get("type") == "image_url":
+                                img_url = item.get("image_url", {}).get("url", "")
+                                if img_url.startswith("data:"):
+                                    header, b64 = img_url.split(",", 1)
+                                    mime = header.split(";")[0].replace("data:", "")
+                                    parts.append({"inlineData": {"mimeType": mime, "data": b64}})
+                                else:
+                                    parts.append({"text": f"[Image: {img_url}]"})
+                        else:
+                            parts.append({"text": str(item)})
+                else:
+                    parts.append({"text": str(content or "")})
+                contents.append({"role": role, "parts": parts})
 
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{self.model_name}:generateContent?key={self._key}"
         payload = {
@@ -663,7 +686,7 @@ def fetch_live_models(provider: str, api_key: str | None = None) -> list[dict]:
                         "is_free": True  # 100% Free on console.groq.com
                     })
         elif p == "gemini":
-            key = api_key or os.getenv("GEMINI_API_KEY", "")
+            key = api_key or os.getenv("GEMINI_API", "").strip().strip("'\"") or os.getenv("GEMINI_API_KEY", "").strip().strip("'\"")
             if key:
                 resp = requests.get(f"https://generativelanguage.googleapis.com/v1beta/models?key={key}", timeout=8)
                 if resp.ok:
@@ -811,6 +834,18 @@ def resolve_provider(ai_profile: dict, preferred_model: str | None = None) -> tu
     plan = ai_profile.get("ai_plan", "free")
     key_enc = ai_profile.get("ai_key_enc")
     provider = ai_profile.get("ai_provider", "openrouter")
+    user_id = ai_profile.get("user_id") or ai_profile.get("id")
+
+    # Check per-user key store if key_enc not directly in profile
+    if not key_enc and user_id:
+        try:
+            from methods.supabase_helper import get_user_ai_key
+            user_key_record = get_user_ai_key(user_id, provider)
+            if user_key_record and user_key_record.get("key_ciphertext"):
+                key_enc = user_key_record["key_ciphertext"]
+                plan = "byok"
+        except Exception as err:
+            log.warning("[ai_provider] Failed to lookup user_ai_keys for %s: %s", user_id, err)
 
     if provider in ("webllm", "ondevice", "browser") or (preferred_model and ("webllm" in preferred_model.lower() or "mlc" in preferred_model.lower())):
         clean_model = preferred_model.replace("webllm:", "").strip() if preferred_model else None
@@ -824,9 +859,13 @@ def resolve_provider(ai_profile: dict, preferred_model: str | None = None) -> tu
             log.error("[ai_provider] BYOK decrypt failed: %s", exc)
             raise KeyInvalidError("Could not decrypt stored key — please re-enter it in Settings")
 
-    # Free tier: use platform OpenRouter key or NVIDIA fallback
+    # Free tier: use platform Gemini key, OpenRouter key, or NVIDIA fallback
+    gemini_key = os.getenv("GEMINI_API", "").strip().strip("'\"") or os.getenv("GEMINI_API_KEY", "").strip().strip("'\"")
     platform_key = os.getenv("OPENROUTER_API_KEY", "").strip().strip("'\"")
     nvidia_key = os.getenv("NVIDIA_API_KEY", "").strip().strip("'\"")
+
+    if gemini_key and (provider == "gemini" or (preferred_model and ("gemini" in preferred_model.lower() or "gemma" in preferred_model.lower()))):
+        return GeminiAdapter(api_key=gemini_key, model=preferred_model or "gemini-3.5-flash-lite"), None
 
     if not platform_key and nvidia_key:
         return OpenAICompatibleAdapter(
@@ -835,6 +874,9 @@ def resolve_provider(ai_profile: dict, preferred_model: str | None = None) -> tu
             provider_name="nvidia",
             model=preferred_model or "meta/llama-3.3-70b-instruct"
         ), None
+
+    if not platform_key and gemini_key:
+        return GeminiAdapter(api_key=gemini_key, model=preferred_model or "gemini-3.5-flash-lite"), None
 
     if not platform_key:
         # Last resort: try local Ollama before giving up
@@ -852,12 +894,24 @@ def resolve_provider(ai_profile: dict, preferred_model: str | None = None) -> tu
     return OpenRouterAdapter(api_key=platform_key, models=models), ceiling
 
 
+def get_ai_client(provider: str | None = None, api_key: str | None = None, model: str | None = None) -> LLMProvider:
+    """Convenience helper to obtain an active LLM provider instance with fallback."""
+    p = (provider or "openrouter").lower().strip()
+    try:
+        adapter, _ = resolve_provider({"ai_provider": p}, preferred_model=model)
+        return adapter
+    except ProviderError:
+        return get_adapter("webllm", "browser_webgpu", model or "Llama-3.2-1B-Instruct-q4f16_1-MLC")
+
+
 # ── Startup validation ────────────────────────────────────────────────────────
 
 def validate_startup() -> None:
     """Called once at app startup. Logs key presence; validates FERNET_KEY format."""
     platform_key = os.getenv("OPENROUTER_API_KEY", "")
+    gemini_key = os.getenv("GEMINI_API", "") or os.getenv("GEMINI_API_KEY", "")
     log.info("[ai_provider] OPENROUTER_API_KEY present: %s", bool(platform_key))
+    log.info("[ai_provider] GEMINI_API present: %s", bool(gemini_key))
 
     fernet_key = os.getenv("FERNET_KEY", "")
     if fernet_key:

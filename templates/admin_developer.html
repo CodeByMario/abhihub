@@ -1,6 +1,8 @@
-﻿{% extends 'p_struct.html' %}
-{% block page_head %}
-<title>Developer Panel | AbhiHub Admin</title>
+{% extends 'admin_base.html' %}
+
+{% block title %}Developer Panel & Cloud Telemetry{% endblock %}
+
+{% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   :root {
@@ -91,7 +93,7 @@
 </style>
 {% endblock %}
 
-{% block page_content %}
+{% block admin_content %}
 <div class="dev-wrap">
   <div class="dev-header">
     <div class="dev-title">

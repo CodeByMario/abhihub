@@ -10,11 +10,11 @@ else ('Syllabus' if 'syllabus' in cat_lower
 else ('Assignment' if ('assignment' in cat_lower or 'assisment' in cat_lower or 'submission' in cat_lower)
 else ('Timetable' if ('timetable' in cat_lower or 'datesheet' in cat_lower or 'schedule' in cat_lower)
 else 'Notes'))))) %}
-{% set subj_name = document.subject.name if document.subject else 'Uncategorized' %}
-{% set coll_name = document.college.name if document.college else 'AbhiHub' %}
-{% set coll_abbr = (document.college.abbreviation or document.college.name) if document.college else 'AbhiHub' %}
-{% set dept_name = document.department.name if document.department else '' %}
-{% set uploader_name = document.uploader.full_name if document.uploader else 'Anonymous' %}
+{% set subj_name = (document.subject.name if (document.subject and document.subject is mapping and document.subject.name) else (document.subject_name or document.subject or 'Uncategorized')) %}
+{% set coll_name = (document.college.name if (document.college and document.college is mapping and document.college.name) else (document.college_name or 'AbhiHub')) %}
+{% set coll_abbr = ((document.college.abbreviation or document.college.name) if (document.college and document.college is mapping and (document.college.abbreviation or document.college.name)) else (document.college_abbr or document.college_name or 'AbhiHub')) %}
+{% set dept_name = (document.department.name if (document.department and document.department is mapping and document.department.name) else (document.department_name or '')) %}
+{% set uploader_name = (document.uploader.full_name if (document.uploader and document.uploader is mapping and document.uploader.full_name) else (document.uploader_name or 'Anonymous')) %}
 {% set resource_title = document.title or (subj_name ~ ' ' ~ file_type) %}
 
 {% set seo_title = resource_title ~ ' | ' ~ subj_name ~ ' ' ~ file_type ~ ' | ' ~ coll_abbr ~ ' | AbhiHub' %}
@@ -60,7 +60,7 @@ uploader_name %}
           "@type": "ListItem",
           "position": 3,
           "name": {{ subj_name | tojson }},
-          "item": "{{ canonical_domain }}/subject/{{ (document.subject.name or 'engineering') | lower | replace(' ', '-') }}"
+          "item": "{{ canonical_domain }}/subject/{{ (subj_name or 'engineering') | lower | replace(' ', '-') }}"
         },
         {
           "@type": "ListItem",

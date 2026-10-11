@@ -10,11 +10,29 @@ from flask import session
 
 
 def extract_document_pricing(document):
-    """Safely extract pricing metadata from document dict, description string, or nested payload."""
+    """Safely extract pricing metadata from document dict, prioritizing relational columns with JSON fallback."""
     if not isinstance(document, dict):
         return {}
+    # Priority 1: Direct relational columns from Phase 2
+    if document.get('is_paid') is not None or document.get('price') is not None:
+        try:
+            p = float(document.get('price', 0) or 0)
+        except (ValueError, TypeError):
+            p = 0.0
+        if bool(document.get('is_paid')) and p > 0:
+            return {
+                'is_paid': True,
+                'price': p,
+                'seller_id': document.get('seller_id') or document.get('uploader_id'),
+                'coupon_code': document.get('coupon_code', ''),
+                'coupon_discount': document.get('coupon_discount', 0)
+            }
+
+    # Priority 2: Structured 'pricing' dictionary
     if isinstance(document.get('pricing'), dict):
         return document['pricing']
+
+    # Priority 3: Fallback parsing from JSON string in description
     desc_raw = document.get('description')
     if isinstance(desc_raw, dict):
         return desc_raw.get('pricing', {})
@@ -27,12 +45,6 @@ def extract_document_pricing(document):
                     return parsed['pricing']
             except Exception:
                 pass
-    if document.get('is_paid'):
-        try:
-            p = float(document.get('price', 0))
-        except (ValueError, TypeError):
-            p = 0.0
-        return {'is_paid': True, 'price': p, 'seller_id': document.get('uploader_id')}
     return {}
 
 
@@ -71,7 +83,18 @@ def has_document_access(user_id, doc_id, document=None):
         return True
 
     # Check 3: Session instant unlock (unlocked in current session after purchase)
-    if doc_id in session.get('purchased_documents', []):
+    purchased_docs = []
+    try:
+        purchased_docs = session.get('purchased_documents', []) or []
+    except Exception:
+        pass
+    if not purchased_docs:
+        try:
+            import app as app_mod
+            purchased_docs = getattr(app_mod, 'session', {}).get('purchased_documents', []) or []
+        except Exception:
+            pass
+    if doc_id in purchased_docs:
         return True
 
     # Check 4: Purchased (Transactions record in local store or Supabase)

@@ -1,6 +1,8 @@
-{% extends 'p_struct.html' %}
-{% block page_head %}
-<title>Admin Dashboard & Real-Time User Sentiment | AbhiHub</title>
+{% extends 'admin_base.html' %}
+
+{% block title %}Real-Time Intelligence & Demographics{% endblock %}
+
+{% block extra_head %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
   :root {
@@ -15,10 +17,6 @@
     --dash-warning: #f59e0b;
     --dash-danger: #ef4444;
   }
-  
-  body { background: var(--dash-bg); color: var(--dash-text); }
-  
-  .dash-container { max-width: 1440px; margin: 0 auto; padding: 1.5rem; }
   
   .dash-header {
     display: flex; justify-content: space-between; align-items: center;
@@ -125,8 +123,7 @@
 </style>
 {% endblock %}
 
-{% block content %}
-<div class="dash-container">
+{% block admin_content %}
   <div class="dash-header">
     <div>
       <h1 class="dash-title">📊 Real-Time Admin & Sentiment Intelligence</h1>

@@ -34,6 +34,18 @@ def auth_required(f):
     return decorated_function
 
 
+def is_admin_user(user: dict) -> bool:
+    """Check if session user has administrative privileges."""
+    if not user or not isinstance(user, dict):
+        return False
+    user_email = (user.get('email') or '').lower().strip()
+    user_role = (user.get('role') or '').lower().strip()
+    if user_role == 'admin' or bool(user.get('is_admin')):
+        return True
+    active_admin_emails = ADMIN_EMAILS or ['abhihub.02@gmail.com']
+    return bool(user_email and user_email in active_admin_emails)
+
+
 def admin_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
@@ -43,8 +55,7 @@ def admin_required(f):
                 return jsonify({'success': False, 'message': 'Unauthorized'}), 401
             return redirect(url_for('auth.login'))
 
-        user_email = user.get('email', '').lower()
-        if not ADMIN_EMAILS or user_email not in ADMIN_EMAILS:
+        if not is_admin_user(user):
             if request.path.startswith('/api/') or request.path.startswith('/store-room/api/'):
                 return jsonify({'success': False, 'message': 'Forbidden: Admin access required'}), 403
             abort(403)

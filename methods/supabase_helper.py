@@ -486,8 +486,30 @@ def get_document_by_id_rich(doc_id: str) -> Dict:
     client = init_supabase()
     if not client: return {"success": False}
     try:
+        # Use high-performance catalog view (Phase 4)
+        response = client.table('v_documents_catalog')\
+            .select('*')\
+            .eq('id', doc_id)\
+            .single()\
+            .execute()
+        if response.data:
+            doc = response.data
+            if 'subject' not in doc:
+                doc['subject'] = {'name': doc.get('subject_name'), 'subject_code': doc.get('subject_code')} if doc.get('subject_name') else None
+            if 'college' not in doc:
+                doc['college'] = {'name': doc.get('college_name'), 'abbreviation': doc.get('college_abbr')} if doc.get('college_name') else None
+            if 'department' not in doc:
+                doc['department'] = {'name': doc.get('department_name'), 'abbreviation': doc.get('department_abbr')} if doc.get('department_name') else None
+            if 'uploader' not in doc:
+                doc['uploader'] = {'full_name': doc.get('uploader_name'), 'role': doc.get('uploader_role'), 'reputation_score': doc.get('uploader_reputation')} if doc.get('uploader_name') else None
+            return {"success": True, "data": doc}
+    except Exception:
+        pass
+
+    try:
+        # Fallback to direct table query
         response = client.table('documents')\
-            .select('*, college:colleges(name, abbreviation), department:departments(name, abbreviation), subject:subjects(name), uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)')\
+            .select('*, college:colleges(name, abbreviation), department:departments(name, abbreviation), subject:subjects(name)')\
             .eq('id', doc_id)\
             .single()\
             .execute()
@@ -771,6 +793,25 @@ def save_file_record(
             }
             description = json.dumps(desc_data)
         
+        # Extract structured pricing for Phase 2 columns
+        is_paid = False
+        price = 0.0
+        seller_id = u_id
+        coupon_code = None
+        coupon_discount = 0
+
+        if description and description.strip().startswith('{'):
+            try:
+                _parsed = json.loads(description.strip())
+                _p = _parsed.get('pricing', {})
+                if _p and _p.get('is_paid'):
+                    is_paid = True
+                    price = float(_p.get('price', 0))
+                    coupon_code = _p.get('coupon_code')
+                    coupon_discount = int(_p.get('coupon_discount', 0))
+            except Exception:
+                pass
+
         storage_provider = 'cloudinary' if cloudinary_public_id else 'firebase'
 
         data = {
@@ -789,7 +830,12 @@ def save_file_record(
             'status': 'pending',  # All new uploads start as pending
             'exam_type': exam_type or None,
             'file_hash': file_hash,
-            'program': program
+            'program': program,
+            'is_paid': is_paid,
+            'price': price,
+            'seller_id': seller_id if is_paid else None,
+            'coupon_code': coupon_code,
+            'coupon_discount': coupon_discount
         }
 
         # A legacy/bulk upload can already have a document row for this URL
@@ -1637,23 +1683,48 @@ def log_notification(user_email: str, notification_type: str, title: str, messag
     if not client: return {'success': False, 'message': 'No client'}
     try:
         if user_email == 'all':
-            # Note: logging a system notification to a specific dummy table or leaving user_id null
-            # The schema states user_id is NOT NULL, so logging an 'all' broadcast must be done differently.
-            # We'll skip inserting into notifications table for 'all' broadcasts for now, 
-            # or we could iterate users, which is heavy.
             return {'success': True, 'message': 'Broadcast not logged per-user'}
             
-        p_res = client.table('profiles').select('id').eq('email', user_email).execute()
-        if not p_res.data: return {'success': False, 'message': 'User not found'}
-        user_id = p_res.data[0]['id']
+        user_id = None
+        if validate_uuid(user_email):
+            user_id = user_email
+        else:
+            p_res = client.table('profiles').select('id').eq('email', user_email).execute()
+            if p_res.data:
+                user_id = p_res.data[0]['id']
+            else:
+                p_res_id = client.table('profiles').select('id').eq('id', user_email).execute()
+                if p_res_id.data:
+                    user_id = p_res_id.data[0]['id']
+                    
+        if not user_id:
+            return {'success': False, 'message': 'User not found'}
         
-        client.table('notifications').insert({
+        insert_data = {
             'user_id': user_id,
             'type': notification_type,
             'title': title,
             'message': message,
-            'action_url': url
-        }).execute()
+        }
+        if url:
+            insert_data['action_url'] = url
+
+        client.table('notifications').insert(insert_data).execute()
+
+        # Attempt web push delivery if configured
+        try:
+            from push_notifications import NotificationService
+            ns = NotificationService()
+            ns.send_notification(
+                user_id=user_id,
+                title=title,
+                body=message,
+                url=url,
+                category=notification_type
+            )
+        except Exception:
+            pass
+
         return {'success': True}
     except Exception as e:
         return {'success': False, 'message': str(e)}
@@ -2168,16 +2239,6 @@ def save_file_access(user_email: str, file_name: str, file_type: str = 'pdf', fi
             if profile_res.data:
                 user_id = profile_res.data[0]['id']
 
-        # 3. Increment view_count in documents table
-        if doc_id:
-            try:
-                doc_res = client.table('documents').select('view_count').eq('id', doc_id).execute()
-                if doc_res.data:
-                    current_views = doc_res.data[0].get('view_count') or 0
-                    client.table('documents').update({'view_count': current_views + 1}).eq('id', doc_id).execute()
-            except Exception as view_err:
-                logging.error(f"Warning: Could not increment view count: {view_err}")
-
             # Fire-and-forget: notify uploader (non-blocking)
             import threading
             threading.Thread(
@@ -2211,7 +2272,7 @@ def save_file_access(user_email: str, file_name: str, file_type: str = 'pdf', fi
         logging.error(f"Error in save_file_access: {e}", exc_info=True)
         return {'success': False, 'message': str(e)}
 
-def get_user_file_history(user_email: str, limit: int = 10) -> Dict:
+def get_user_file_history(user_email: str = '', user_id: str = None, limit: int = 10) -> Dict:
     """
     Get file access history for a user using document_views table.
     """
@@ -2220,12 +2281,14 @@ def get_user_file_history(user_email: str, limit: int = 10) -> Dict:
         return {'success': False, 'data': []}
     
     try:
-        # Get user profile to find user_id
-        profile_res = client.table('profiles').select('id').eq('email', user_email).limit(1).execute()
-        if not profile_res.data:
-            return {'success': False, 'data': [], 'message': 'User not found'}
+        # Resolve user_id if not directly passed
+        if not user_id and user_email:
+            profile_res = client.table('profiles').select('id').eq('email', user_email).limit(1).execute()
+            if profile_res.data:
+                user_id = profile_res.data[0]['id']
         
-        user_id = profile_res.data[0]['id']
+        if not user_id:
+            return {'success': False, 'data': [], 'message': 'User not found'}
         
         # Query document_views with document details
         res = client.table('document_views') \
@@ -2258,6 +2321,52 @@ def get_user_file_history(user_email: str, limit: int = 10) -> Dict:
     except Exception as e:
         logging.error(f"Error in get_user_file_history: {e}", exc_info=True)
         return {'success': False, 'data': [], 'message': str(e)}
+
+def get_peer_recommended_files(user_id: str = None, college_id: str = None, department_id: str = None, limit: int = 8) -> List[str]:
+    """
+    Get document IDs recommended based on what other students from the same college or department viewed.
+    """
+    client = init_supabase()
+    if not client:
+        return []
+    try:
+        peer_ids = []
+        if college_id and validate_uuid(str(college_id)):
+            q = client.table('profiles').select('id').eq('college_id', college_id)
+            if department_id and validate_uuid(str(department_id)):
+                q = q.eq('department_id', department_id)
+            if user_id and validate_uuid(str(user_id)):
+                q = q.neq('id', user_id)
+            res = q.limit(50).execute()
+            peer_ids = [r['id'] for r in (res.data or []) if r.get('id')]
+
+            if not peer_ids and department_id:
+                # Fallback to entire college if specific department has few/no peers
+                q2 = client.table('profiles').select('id').eq('college_id', college_id)
+                if user_id and validate_uuid(str(user_id)):
+                    q2 = q2.neq('id', user_id)
+                res2 = q2.limit(50).execute()
+                peer_ids = [r['id'] for r in (res2.data or []) if r.get('id')]
+
+        if not peer_ids:
+            return []
+
+        views_res = client.table('document_views') \
+            .select('document_id') \
+            .in_('user_id', peer_ids) \
+            .order('accessed_at', desc=True) \
+            .limit(100) \
+            .execute()
+
+        if not views_res.data:
+            return []
+
+        from collections import Counter
+        counts = Counter(v['document_id'] for v in views_res.data if v.get('document_id'))
+        return [doc_id for doc_id, _ in counts.most_common(limit)]
+    except Exception as e:
+        logging.warning(f"[Recommendations] Error in get_peer_recommended_files: {e}")
+        return []
 
 def get_papo_meter_data(user_id: str) -> Dict:
     """
@@ -2637,9 +2746,12 @@ def register_referral(new_user_id: str, code: str, credit_inviter: int = 50, cre
         if not referrer_id or referrer_id == new_user_id:
             return {'success': False, 'message': 'No valid referrer for code'}
 
-        # Guard: don't overwrite an already-credited referral (idempotency).
-        # If already referred by the SAME code owner, treat as a safe repeat (no re-credit).
-        cur = client.table('profiles').select('referred_by').eq('id', new_user_id).limit(1).execute()
+        # Ensure new user profile exists in profiles
+        cur = client.table('profiles').select('referred_by, referral_credits, reputation_score').eq('id', new_user_id).limit(1).execute()
+        if not cur.data:
+            client.table('profiles').upsert({'id': new_user_id}).execute()
+            cur = client.table('profiles').select('referred_by, referral_credits, reputation_score').eq('id', new_user_id).limit(1).execute()
+
         existing = (cur.data or [{}])[0].get('referred_by')
         if existing == referrer_id:
             return {'success': True, 'referrer_id': referrer_id,
@@ -2647,20 +2759,23 @@ def register_referral(new_user_id: str, code: str, credit_inviter: int = 50, cre
         if existing and existing != referrer_id:
             return {'success': False, 'message': 'User already referred by another code'}
 
-        # Set referred_by on new user (idempotent no-op if already equal)
-        client.table('profiles').update({'referred_by': referrer_id}).eq('id', new_user_id).execute()
+        # Set referred_by and credit the invitee
+        cur_inv_row = (cur.data or [{}])[0]
+        client.table('profiles').update({
+            'referred_by': referrer_id,
+            'referral_credits': (cur_inv_row.get('referral_credits', 0) or 0) + credit_invitee,
+            'reputation_score': (cur_inv_row.get('reputation_score', 0) or 0) + credit_invitee,
+            'paper_quota_remaining': (cur_inv_row.get('paper_quota_remaining', 19) or 19) + credit_invitee,
+        }).eq('id', new_user_id).execute()
 
-        # Credit the invitee (read current, add, write)
-        inv_data = client.table('profiles').select('referral_credits').eq('id', new_user_id).limit(1).execute()
-        cur_credits = (inv_data.data or [{}])[0].get('referral_credits', 0) or 0
-        client.table('profiles').update({'referral_credits': cur_credits + credit_invitee}).eq('id', new_user_id).execute()
-
-        # Credit the inviter + bump count
-        ref_data = client.table('profiles').select('referral_credits, referral_count').eq('id', referrer_id).limit(1).execute()
+        # Credit the inviter + bump count + award reputation points & quota
+        ref_data = client.table('profiles').select('referral_credits, referral_count, reputation_score, paper_quota_remaining').eq('id', referrer_id).limit(1).execute()
         rd = (ref_data.data or [{}])[0]
         client.table('profiles').update({
             'referral_credits': (rd.get('referral_credits', 0) or 0) + credit_inviter,
             'referral_count': (rd.get('referral_count', 0) or 0) + 1,
+            'reputation_score': (rd.get('reputation_score', 0) or 0) + credit_inviter,
+            'paper_quota_remaining': (rd.get('paper_quota_remaining', 19) or 19) + credit_inviter,
         }).eq('id', referrer_id).execute()
 
         return {'success': True, 'referrer_id': referrer_id,
@@ -2782,6 +2897,80 @@ def clear_ai_key(user_id: str) -> bool:
     except Exception as exc:
         logging.error(f'[supabase] clear_ai_key error: {exc}')
         return False
+
+
+def get_user_ai_key(user_id: str, provider: str) -> Optional[dict]:
+    """Retrieve encrypted key for a specific provider belonging to user_id."""
+    client = init_supabase()
+    if not client or not user_id:
+        return None
+    try:
+        res = (client.table('user_ai_keys')
+               .select('id, provider, key_ciphertext, key_hint, is_active')
+               .eq('user_id', str(user_id))
+               .eq('provider', provider.lower().strip())
+               .eq('is_active', True)
+               .limit(1)
+               .execute())
+        return res.data[0] if res.data else None
+    except Exception as exc:
+        logging.warning(f'[supabase] get_user_ai_key error: {exc}')
+        return None
+
+
+def set_user_ai_key(user_id: str, provider: str, key_ciphertext: str, key_hint: str = "") -> bool:
+    """Upsert encrypted BYOK key for user_id and provider."""
+    client = init_supabase()
+    if not client or not user_id or not key_ciphertext:
+        return False
+    try:
+        clean_provider = provider.lower().strip()
+        row = {
+            'user_id': str(user_id),
+            'provider': clean_provider,
+            'key_ciphertext': key_ciphertext,
+            'key_hint': key_hint or (f"{clean_provider}_key"),
+            'is_active': True,
+            'updated_at': datetime.now(timezone.utc).isoformat()
+        }
+        client.table('user_ai_keys').upsert(row, on_conflict='user_id,provider').execute()
+        # Also update profile to indicate byok is enabled
+        client.table('profiles').update({'ai_plan': 'byok', 'ai_provider': clean_provider}).eq('id', user_id).execute()
+        return True
+    except Exception as exc:
+        logging.error(f'[supabase] set_user_ai_key error: {exc}')
+        return False
+
+
+def delete_user_ai_key(user_id: str, provider: str) -> bool:
+    """Delete a user's stored BYOK key for a given provider."""
+    client = init_supabase()
+    if not client or not user_id:
+        return False
+    try:
+        client.table('user_ai_keys').delete().eq('user_id', str(user_id)).eq('provider', provider.lower().strip()).execute()
+        return True
+    except Exception as exc:
+        logging.error(f'[supabase] delete_user_ai_key error: {exc}')
+        return False
+
+
+def list_user_ai_keys(user_id: str) -> list[dict]:
+    """List configured keys for user_id without exposing ciphertext."""
+    client = init_supabase()
+    if not client or not user_id:
+        return []
+    try:
+        res = (client.table('user_ai_keys')
+               .select('provider, key_hint, is_active, created_at, updated_at')
+               .eq('user_id', str(user_id))
+               .order('created_at', desc=True)
+               .execute())
+        return res.data or []
+    except Exception as exc:
+        logging.warning(f'[supabase] list_user_ai_keys error: {exc}')
+        return []
+
 
 
 # ── Tarika Persistent Chat History Helpers ────────────────────────────────────

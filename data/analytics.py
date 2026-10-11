@@ -19,21 +19,13 @@ class DocumentView:
         ip_address: str = None,
         device_type: str = None,
     ) -> Dict:
-        client = get_client()
-        if not client:
-            return {"success": False}
-        try:
-            data = {"document_id": document_id}
-            if user_id:
-                data["user_id"] = user_id
-            if ip_address:
-                data["ip_address"] = ip_address
-            if device_type:
-                data["device_type"] = device_type
-            client.table(DocumentView.TABLE).insert(data).execute()
-            return {"success": True}
-        except Exception as e:
-            return {"success": False, "message": str(e)}
+        from data.interactions import DocumentView as InteractionDocView
+        return InteractionDocView.log_view(
+            user_id=user_id or "",
+            document_id=document_id or "",
+            ip_address=ip_address or "",
+            device_type=device_type or ""
+        )
 
 
 class SecurityAuditLog:

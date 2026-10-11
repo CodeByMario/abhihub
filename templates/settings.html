@@ -962,6 +962,14 @@
               <span class="st-stat-label">Your Uploads</span>
               <span class="st-stat-value">{{ user_data.uploads_count if user_data and user_data.uploads_count is not none else 0 }}</span>
             </div>
+            <div class="st-stat-row">
+              <span class="st-stat-label">Referral Credits</span>
+              <span class="st-stat-value" style="color:#f59e0b;font-weight:700;">{{ user_data.referral_credits if user_data and user_data.referral_credits is not none else 0 }}</span>
+            </div>
+            <div class="st-stat-row">
+              <span class="st-stat-label">Friends Invited</span>
+              <span class="st-stat-value">{{ user_data.referral_count if user_data and user_data.referral_count is not none else 0 }}</span>
+            </div>
           </div>
         </div>
       </div>
@@ -1110,6 +1118,11 @@
         <div class="st-card">
           <h2><span class="st-card-icon">💼</span> Creator Wallet Balances</h2>
           <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:0.5rem;">
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-navy);font-weight:700;text-transform:uppercase;">Views Earnings</div>
+              <div id="stWalletViewsEarnings" style="font-size:1.35rem;font-weight:800;color:var(--st-navy);margin-top:0.25rem;">₹0.00</div>
+              <div id="stWalletViewsCount" style="font-size:0.7rem;color:var(--st-text-sub);margin-top:0.25rem;">0 views @ ₹0.20/view</div>
+            </div>
             <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
               <div style="font-size:0.75rem;color:#b45309;font-weight:700;text-transform:uppercase;">Pending (30-day Lock)</div>
               <div id="stWalletPending" style="font-size:1.35rem;font-weight:800;color:#d97706;margin-top:0.25rem;">₹0.00</div>
@@ -2277,9 +2290,13 @@ async function loadPayoutSettings(force = false) {
       const pend = document.getElementById('stWalletPending');
       const withdr = document.getElementById('stWalletWithdrawable');
       const totw = document.getElementById('stWalletTotalWithdrawn');
+      const vEarn = document.getElementById('stWalletViewsEarnings');
+      const vCount = document.getElementById('stWalletViewsCount');
       if (pend) pend.textContent = '₹' + (w.pending_balance || 0).toFixed(2);
       if (withdr) withdr.textContent = '₹' + (w.withdrawable_balance || 0).toFixed(2);
       if (totw) totw.textContent = '₹' + (w.total_withdrawn || 0).toFixed(2);
+      if (vEarn) vEarn.textContent = '₹' + (w.view_earnings || 0).toFixed(2);
+      if (vCount) vCount.textContent = (w.total_views || 0) + ' views @ ₹0.20/view';
 
       const form = document.getElementById('stWithdrawalForm');
       const disabledNote = document.getElementById('stWithdrawDisabledNote');

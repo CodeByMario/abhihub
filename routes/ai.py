@@ -45,7 +45,14 @@ _tarika_recent_requests = collections.deque(maxlen=100)
 
 
 def get_best_ai_model():
-    """Return primary text model."""
+    """Return primary verified free text model from catalog, or fallback."""
+    try:
+        from services.catalog_sync import get_active_catalog_models
+        active = get_active_catalog_models("openrouter")
+        if active:
+            return active[0]
+    except Exception:
+        pass
     return AI_MODELS[0]
 
 
@@ -56,16 +63,33 @@ def get_fallback_ai_model():
 
 def _resolve_model(selected_model):
     """Normalize model selection: 'auto' or unknown -> primary model."""
-    if not selected_model or selected_model == 'auto' or selected_model not in AI_MODELS:
+    if not selected_model or selected_model == 'auto':
         return get_best_ai_model()
-    return selected_model
+    try:
+        from services.catalog_sync import get_active_catalog_models
+        active = get_active_catalog_models("openrouter")
+        if selected_model in active or selected_model in AI_MODELS or str(selected_model).startswith("webllm:"):
+            return selected_model
+    except Exception:
+        pass
+    return get_best_ai_model()
 
 
-def _build_model_list(preferred, pool):
-    """Return pool with preferred first."""
+def _build_model_list(preferred, pool=None):
+    """Return active verified free pool with preferred first."""
+    try:
+        from services.catalog_sync import get_active_catalog_models
+        active = get_active_catalog_models("openrouter")
+        if active:
+            pool = active
+    except Exception:
+        pass
+    if not pool:
+        pool = AI_MODELS
     ordered = [preferred] if preferred in pool else []
     ordered += [m for m in pool if m != preferred]
     return ordered
+
 
 
 def _resolve_signed_url(file_url, log_tag="AI"):
@@ -277,13 +301,31 @@ def api_ai_key_set(user_data=None):
     except RuntimeError as exc:
         return jsonify({'success': False, 'message': str(exc)}), 500
 
+    from methods.supabase_helper import set_ai_key_enc, set_user_ai_key
+
     if not set_ai_key_enc(user_id, key_enc, provider=provider):
         return jsonify({'success': False, 'message': 'Failed to save key — database error'}), 500
 
+    masked_key = f"...{raw_key[-4:]}" if len(raw_key) >= 4 and not raw_key.startswith('http') and raw_key != 'browser_webgpu' else 'Configured'
+    set_user_ai_key(user_id, provider, key_enc, key_hint=masked_key)
+
     logging.info(f'[ai/key] BYOK key saved for user {user_id} provider={provider}')
     success_msg = validation_warning or f'{provider.capitalize()} API key verified & saved.'
-    masked_key = f"...{raw_key[-4:]}" if len(raw_key) >= 4 and not raw_key.startswith('http') and raw_key != 'browser_webgpu' else 'Configured'
     return jsonify({'success': True, 'message': success_msg, 'provider': provider, 'key_masked': masked_key}), 200
+
+
+@ai_bp.route('/api/ai/keys', methods=['GET'])
+@auth_required
+def api_ai_keys_list(user_data=None):
+    """List all configured BYOK provider keys for current authenticated user."""
+    from methods.supabase_helper import list_user_ai_keys
+
+    user_id = (user_data or {}).get('uid') or session.get('user', {}).get('uid')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+
+    keys = list_user_ai_keys(user_id)
+    return jsonify({'success': True, 'keys': keys}), 200
 
 
 @ai_bp.route('/api/ai/local/status', methods=['GET', 'POST'])
@@ -300,12 +342,18 @@ def api_ai_local_status():
 @ai_bp.route('/api/ai/key', methods=['DELETE'])
 @auth_required
 def api_ai_key_delete(user_data=None):
-    """Remove stored BYOK key; revert to free tier."""
-    from methods.supabase_helper import clear_ai_key
+    """Remove stored BYOK key; revert to free tier if none left."""
+    from methods.supabase_helper import clear_ai_key, delete_user_ai_key
 
     user_id = (user_data or {}).get('uid') or session.get('user', {}).get('uid')
     if not user_id:
         return jsonify({'success': False, 'message': 'Not authenticated'}), 401
+
+    provider = (request.args.get('provider') or (request.get_json(silent=True) or {}).get('provider') or '').strip().lower()
+    if provider:
+        delete_user_ai_key(user_id, provider)
+        logging.info(f'[ai/key] BYOK key removed for user {user_id} provider={provider}')
+        return jsonify({'success': True, 'message': f'{provider.capitalize()} key removed.'}), 200
 
     if not clear_ai_key(user_id):
         return jsonify({'success': False, 'message': 'Failed to remove key'}), 500
@@ -510,12 +558,12 @@ def api_ai_assistant(user_data=None):
 
                 res = None
                 if target_uuid:
-                    res = client.table('documents').select('id, title, document_category, file_url, description, topics_covered, exam_type').eq('id', target_uuid).limit(1).execute()
+                    res = client.table('documents').select('id, title, document_category, file_url, description, topics_covered, exam_type, image_alt').eq('id', target_uuid).limit(1).execute()
 
                 if (not res or not res.data) and (doc_title_req or doc_id):
                     clean_kw = re.sub(r'[^a-zA-Z0-9\s]', ' ', doc_title_req or doc_id).strip()
                     if clean_kw:
-                        res = client.table('documents').select('id, title, document_category, file_url, description, topics_covered, exam_type').ilike('title', f'%{clean_kw[:40]}%').limit(1).execute()
+                        res = client.table('documents').select('id, title, document_category, file_url, description, topics_covered, exam_type, image_alt').ilike('title', f'%{clean_kw[:40]}%').limit(1).execute()
 
                 if res and res.data:
                     doc_meta = res.data[0]
@@ -542,8 +590,14 @@ def api_ai_assistant(user_data=None):
                         try:
                             is_img_ext = any(file_url.lower().endswith(ext) for ext in ('.jpg', '.jpeg', '.png', '.webp'))
                             if doc_meta.get('file_type') == 'image' or is_img_ext:
-                                image_url = file_url
-                                doc_context += f"NOTE: This paper is an uploaded exam paper photo/image. The image is provided visually in the user prompt below.\n"
+                                from methods.ai_ocr import get_or_create_image_alt
+                                alt_text = get_or_create_image_alt(doc_meta.get('id'), file_url, doc_meta)
+                                if alt_text:
+                                    sanitized_alt = _sanitize_untrusted(alt_text)
+                                    doc_context += f"DOCUMENT CONTENT & QUESTIONS (Transcribed Image Alt Text):\n{sanitized_alt}\n"
+                                else:
+                                    image_url = file_url
+                                    doc_context += f"NOTE: This paper is an uploaded exam paper photo/image. The image is provided visually in the user prompt below.\n"
                             else:
                                 resp = requests.get(file_url, timeout=15, headers={'User-Agent': 'AbhiHub-AI/1.0'})
                                 if resp.ok:

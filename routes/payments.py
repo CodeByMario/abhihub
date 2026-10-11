@@ -12,7 +12,8 @@ from datetime import datetime, timezone
 from flask import Blueprint, request, jsonify, session
 
 from routes.auth import auth_required
-from data.pricing import has_document_access
+from data.pricing import has_document_access, extract_document_pricing
+from methods.supabase_helper import init_supabase
 
 payments_bp = Blueprint('payments', __name__)
 
@@ -38,6 +39,7 @@ def payment_status_api():
 
     admin_notes = f"purpose={purpose};doc_id={doc_id}" if (purpose or doc_id) else None
 
+    client = init_supabase()
     try:
         insert_payload = {
             'user_id': user_id,
@@ -51,9 +53,49 @@ def payment_status_api():
         }
         if admin_notes:
             insert_payload['admin_notes'] = admin_notes
-        supabase.table('credit_transactions').insert(insert_payload).execute()
+        if client:
+            client.table('credit_transactions').insert(insert_payload).execute()
     except Exception as e:
         logging.warning(f"[PAYMENT_STATUS] Failed logging transaction: {e}")
+
+    # Credit pack fulfillment
+    is_credits = 'Credits-' in purpose or 'pack=' in purpose or 'credits' in purpose.lower()
+    if is_credits and user_id and client:
+        pack_size = 0
+        for part in (purpose or '').split(';'):
+            if 'Credits-' in part:
+                try: pack_size = int(part.split('Credits-')[1].split('-')[0].strip())
+                except: pass
+            elif 'pack=' in part:
+                try: pack_size = int(part.replace('pack=', '').strip())
+                except: pass
+        if pack_size <= 0 and float(amount) > 0:
+            pack_size = int(float(amount) / 2)
+        if pack_size > 0:
+            try:
+                prof_res = client.table('profiles').select('paper_quota_remaining').eq('id', user_id).execute()
+                curr_q = 19
+                if prof_res.data:
+                    curr_q = prof_res.data[0].get('paper_quota_remaining') or 19
+                new_q = curr_q + pack_size
+                client.table('profiles').update({'paper_quota_remaining': new_q}).eq('id', user_id).execute()
+                if 'paper_quota' in session and isinstance(session['paper_quota'], dict):
+                    session['paper_quota']['credits'] = new_q
+                else:
+                    session['paper_quota'] = {'credits': new_q, 'total_views': 0}
+                session.modified = True
+                try:
+                    from cache_manager import get_cache
+                    cache = get_cache()
+                    if cache and hasattr(cache, 'l1'):
+                        cache.l1.delete(f"user:quota:{user_id}")
+                except Exception:
+                    pass
+                from data.pricing import log_credit_transaction
+                log_credit_transaction(user_id, pack_size, 'earn', f"Bought {pack_size} Views Pack (₹{amount})")
+                logging.info(f"[PAYMENT_STATUS] Added {pack_size} credits to user {user_id}. New quota: {new_q}")
+            except Exception as cred_err:
+                logging.warning(f"[PAYMENT_STATUS] Could not add credits: {cred_err}")
 
     # Instant access unlock in user session
     if doc_id:
@@ -98,18 +140,18 @@ def phonepe_initiate_api():
 
     if doc_id:
         try:
-            p_res = supabase.table('documents').select('description').eq('id', doc_id).limit(1).execute()
-            if p_res.data:
-                desc_raw = p_res.data[0].get('description') or ''
-                if desc_raw.startswith('{'):
-                    pricing_data = json.loads(desc_raw).get('pricing', {})
+            client = init_supabase()
+            if client:
+                p_res = client.table('documents').select('price, is_paid, description').eq('id', doc_id).limit(1).execute()
+                if p_res.data:
+                    pricing_data = extract_document_pricing(p_res.data[0])
                     expected_price = float(pricing_data.get('price', 0))
                     if expected_price > 0 and amount < 1.0:
                         amount = expected_price
         except Exception:
             pass
 
-    user_id = session.get('user', {}).get('uid', '')
+    user_id = session.get('user', {}).get('uid', '') or session.get('user', {}).get('id', '')
     client_ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
     user_agent = request.headers.get('User-Agent', '')[:255]
 
@@ -124,7 +166,7 @@ def phonepe_initiate_api():
     })
 
     base_url = request.host_url.rstrip('/')
-    redirect_url = f"{base_url}/payment/phonepe/redirect?order_id={order_id}&doc_id={doc_id}"
+    redirect_url = f"{base_url}/payment/phonepe/redirect?order_id={order_id}&doc_id={doc_id}&user_id={user_id}"
     callback_url = f"{base_url}/api/payment/phonepe/callback"
 
     res = initiate_phonepe_payment(
@@ -194,10 +236,26 @@ def api_creator_earnings():
     """Fetch earnings summary and monetized documents for eligible creators."""
     user_id = session.get('user', {}).get('uid')
     from methods.scoring_engine import get_feature_gate
+    from methods.wallet_service import get_creator_views_and_earnings, VIEW_EARNING_RATE_INR
     gate = get_feature_gate(user_id)
     is_eligible = (gate.get('level') or '').lower() in ['contributor', 'power_contributor', 'community_leader']
+    total_views, view_earnings = get_creator_views_and_earnings(user_id)
+
     if not is_eligible:
-        return jsonify({'success': False, 'eligible': False, 'message': 'Must reach Contributor rank to sell notes.'}), 403
+        return jsonify({
+            'success': True,
+            'eligible': False,
+            'level': gate.get('level'),
+            'message': 'Reach Contributor rank to sell paid notes. Upload view earnings are active.',
+            'total_views': total_views,
+            'view_rate': VIEW_EARNING_RATE_INR,
+            'view_earnings': view_earnings,
+            'paid_notes_count': 0,
+            'total_sales': 0,
+            'total_earnings': 0.0,
+            'combined_earnings': view_earnings,
+            'paid_notes': []
+        })
 
     try:
         docs_res = supabase.table('documents').select('id, title, description, created_at').eq('uploader_id', user_id).execute()
@@ -235,6 +293,8 @@ def api_creator_earnings():
                 d['gross_amount'] = 0
                 d['earnings'] = 0
 
+        combined_earnings = round(total_earnings + view_earnings, 2)
+
         return jsonify({
             'success': True,
             'eligible': True,
@@ -242,6 +302,10 @@ def api_creator_earnings():
             'paid_notes_count': len(paid_docs),
             'total_sales': total_sales,
             'total_earnings': round(total_earnings, 2),
+            'total_views': total_views,
+            'view_rate': VIEW_EARNING_RATE_INR,
+            'view_earnings': view_earnings,
+            'combined_earnings': combined_earnings,
             'paid_notes': paid_docs
         })
     except Exception as e:
@@ -279,7 +343,10 @@ def api_creator_withdraw():
 def get_document_pricing(doc_id):
     """Get document pricing and coupon availability."""
     try:
-        res = supabase.table('documents').select('id, uploader_id, description').eq('id', doc_id).limit(1).execute()
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'error': 'Database unavailable'}), 500
+        res = client.table('documents').select('id, uploader_id, description').eq('id', doc_id).limit(1).execute()
         if not res.data:
             return jsonify({'success': False, 'error': 'Document not found'}), 404
         doc = res.data[0]
@@ -308,17 +375,14 @@ def apply_document_coupon(doc_id):
     coupon_input = str(data.get('coupon_code', '')).strip().upper()
 
     try:
-        res = supabase.table('documents').select('id, description, title').eq('id', doc_id).limit(1).execute()
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'error': 'Database unavailable'}), 500
+        res = client.table('documents').select('id, price, is_paid, seller_id, coupon_code, coupon_discount, description, title').eq('id', doc_id).limit(1).execute()
         if not res.data:
             return jsonify({'success': False, 'error': 'Document not found'}), 404
         doc = res.data[0]
-        desc_raw = doc.get('description') or ''
-        pricing = {}
-        if desc_raw.startswith('{'):
-            try:
-                pricing = json.loads(desc_raw).get('pricing', {})
-            except Exception:
-                pass
+        pricing = extract_document_pricing(doc)
 
         base_price = float(pricing.get('price', 0))
         if not pricing.get('is_paid') or base_price <= 0:
