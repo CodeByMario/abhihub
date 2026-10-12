@@ -1,0 +1,366 @@
+{#
+  Psychological Queue & Retention Engine:
+  Turns 0-resource states, slow connections, and errors into high-anticipation waitlists,
+  gamified fast-pass upload hooks, and interactive retention moments.
+#}
+{% set _item_name = queue_target_name | default(department.name if department is defined else (subject_name if subject_name is defined else (college.name if college is defined else 'this semester catalog'))) %}
+{% set _is_error = queue_is_error | default(false) %}
+{% set _seed = (range(23, 79) | random) %}
+{% set _waiting_count = (range(118, 342) | random) %}
+
+<div class="psyco-queue-wrapper {% if _is_error %}psyco-error-mode{% endif %}">
+  <div class="psyco-queue-card">
+    <!-- Top Status Badge -->
+    <div class="psyco-status-strip">
+      <span class="psyco-live-dot"></span>
+      <span class="psyco-badge-text">
+        {% if _is_error %}
+          ⚡ HIGH EXAM TRAFFIC · RESERVING YOUR CONNECTION
+        {% else %}
+          🔥 CAMPUS PRIORITY PIPELINE · DIGITIZING NOW
+        {% endif %}
+      </span>
+      <span class="psyco-queue-position">
+        Ticket #{{ _seed }}
+      </span>
+    </div>
+
+    <!-- Hero Title & Context -->
+    <div class="psyco-hero-content">
+      <div class="psyco-avatar-icon">
+        {% if _is_error %}⏳{% else %}📂{% endif %}
+      </div>
+      <h3 class="psyco-title">
+        {% if _is_error %}
+          High Demand Peak: Serving Your Request Next
+        {% else %}
+          {{ _item_name }} is in the VIP Release Queue
+        {% endif %}
+      </h3>
+      <p class="psyco-subtitle">
+        {% if _is_error %}
+          Thousands of students are downloading papers simultaneously. Your spot is locked — stay on this page while we calibrate server bandwidth.
+        {% else %}
+          Our campus contributor squad is actively verifying notes & question papers for <strong>{{ _item_name }}</strong>. <strong>{{ _waiting_count }} students</strong> from your college are currently in line.
+        {% endif %}
+      </p>
+    </div>
+
+    <!-- Gamified Progress / Pipeline Bar -->
+    <div class="psyco-progress-panel">
+      <div class="psyco-progress-meta">
+        <span class="psyco-progress-label">
+          {% if _is_error %}Connection Rebalance Queue{% else %}Catalog Verification Progress{% endif %}
+        </span>
+        <span class="psyco-progress-val" id="psycoProgressPercent">84%</span>
+      </div>
+      <div class="psyco-bar-track">
+        <div class="psyco-bar-fill" id="psycoBarFill" style="width: 84%;"></div>
+      </div>
+      <div class="psyco-pipeline-steps">
+        <span class="psyco-step active">✓ Requested</span>
+        <span class="psyco-step active">✓ Indexing</span>
+        <span class="psyco-step active">● Scanners Active</span>
+        <span class="psyco-step">○ VIP Drop</span>
+      </div>
+    </div>
+
+    <!-- The Psychological Hook: Skip the Wait -->
+    <div class="psyco-fastpass-box">
+      <div class="psyco-fastpass-header">
+        <span class="psyco-bolt">⚡</span>
+        <div class="psyco-fastpass-title">
+          <strong>Skip the Line & Unlock Instant VIP Access</strong>
+        </div>
+      </div>
+      <p class="psyco-fastpass-desc">
+        {% if _is_error %}
+          Don't wait for auto-retry! Jump directly to the high-speed cache or test your skills on the campus runner.
+        {% else %}
+          Upload just <strong>1 question paper, syllabus, or lecture note</strong> for {{ _item_name }}. Your entire batch instantly unlocks at Priority #1, plus you earn <strong>+10 Study Credits</strong> and <strong>₹0.20/view</strong> creator royalties!
+        {% endif %}
+      </p>
+      <div class="psyco-actions-grid">
+        {% if _is_error %}
+          <button type="button" class="psyco-btn psyco-btn-primary" onclick="psycoTriggerFastRetry()">
+            ⚡ Reconnect Now (<span id="psycoCountdown">7</span>s)
+          </button>
+          <a href="/dashboard" class="psyco-btn psyco-btn-outline">
+            🏠 Return to Dashboard
+          </a>
+        {% else %}
+          <a href="/upload" class="psyco-btn psyco-btn-primary">
+            🚀 Upload 1 Paper & Skip Waitlist
+          </a>
+          <button type="button" class="psyco-btn psyco-btn-outline" id="psycoNotifyBtn" onclick="psycoReserveWaitlistSpot(this, '{{ _item_name }}')">
+            🔔 Reserve Free Alert Spot
+          </button>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- "While You Wait" Retentive Micro-Funnel -->
+    <div class="psyco-wait-funnel">
+      <div class="psyco-funnel-heading">🎮 While you're waiting, don't leave empty-handed:</div>
+      <div class="psyco-funnel-pills">
+        <a href="/store-room" class="psyco-pill">
+          🏷️ Label Uncategorized Files (+5 Pts each)
+        </a>
+        <a href="/settings#study-credits" class="psyco-pill">
+          💎 Check Daily Credits
+        </a>
+        <a href="/dashboard" class="psyco-pill">
+          📚 Browse Other Departments
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+.psyco-queue-wrapper {
+  margin: 2rem auto;
+  max-width: 720px;
+  width: 100%;
+  font-family: inherit;
+}
+.psyco-queue-card {
+  background: var(--st-surface, #ffffff);
+  border: 1px solid var(--st-border, #e2e8f0);
+  border-radius: 20px;
+  padding: 2rem;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.05);
+  text-align: left;
+  position: relative;
+  overflow: hidden;
+}
+.psyco-queue-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; height: 4px;
+  background: linear-gradient(90deg, #f59e0b, #ef4444, #8b5cf6, #3b82f6);
+}
+.psyco-status-strip {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  margin-bottom: 1.25rem;
+  color: #b45309;
+}
+.psyco-live-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #ef4444;
+  box-shadow: 0 0 0 rgba(239, 68, 68, 0.4);
+  animation: psycoPulse 1.5s infinite;
+}
+@keyframes psycoPulse {
+  0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+  70% { transform: scale(1.1); box-shadow: 0 0 0 8px rgba(239, 68, 68, 0); }
+  100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+.psyco-badge-text {
+  background: #fef3c7;
+  padding: 0.25rem 0.65rem;
+  border-radius: 999px;
+  color: #92400e;
+}
+.psyco-queue-position {
+  margin-left: auto;
+  background: #e0e7ff;
+  color: #3730a3;
+  padding: 0.25rem 0.65rem;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 0.8rem;
+}
+.psyco-hero-content {
+  margin-bottom: 1.5rem;
+}
+.psyco-avatar-icon {
+  font-size: 2.5rem;
+  margin-bottom: 0.5rem;
+}
+.psyco-title {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--st-text-main, #0f172a);
+  margin: 0 0 0.5rem;
+  line-height: 1.3;
+}
+.psyco-subtitle {
+  font-size: 0.95rem;
+  color: var(--st-text-muted, #64748b);
+  line-height: 1.6;
+  margin: 0;
+}
+.psyco-progress-panel {
+  background: var(--st-bg, #f8fafc);
+  border: 1px solid var(--st-border, #e2e8f0);
+  border-radius: 14px;
+  padding: 1.1rem;
+  margin-bottom: 1.5rem;
+}
+.psyco-progress-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.82rem;
+  font-weight: 700;
+  margin-bottom: 0.5rem;
+  color: var(--st-text-main, #334155);
+}
+.psyco-bar-track {
+  width: 100%;
+  height: 9px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+}
+.psyco-bar-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #3b82f6, #8b5cf6, #10b981);
+  border-radius: 999px;
+  transition: width 1s ease-in-out;
+}
+.psyco-pipeline-steps {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.72rem;
+  color: #94a3b8;
+  font-weight: 600;
+}
+.psyco-step.active {
+  color: #16a34a;
+  font-weight: 700;
+}
+.psyco-fastpass-box {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(239, 68, 68, 0.05) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 14px;
+  padding: 1.25rem;
+  margin-bottom: 1.5rem;
+}
+.psyco-fastpass-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 1rem;
+  color: #b45309;
+  margin-bottom: 0.5rem;
+}
+.psyco-fastpass-desc {
+  font-size: 0.88rem;
+  color: var(--st-text-main, #334155);
+  line-height: 1.55;
+  margin: 0 0 1rem;
+}
+.psyco-actions-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+.psyco-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.65rem 1.25rem;
+  border-radius: 10px;
+  font-weight: 700;
+  font-size: 0.88rem;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+}
+.psyco-btn-primary {
+  background: linear-gradient(135deg, #1B3A6B 0%, #2563eb 100%);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(37, 99, 235, 0.3);
+}
+.psyco-btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(37, 99, 235, 0.4);
+}
+.psyco-btn-outline {
+  background: var(--st-surface, #ffffff);
+  border: 1px solid var(--st-border, #cbd5e1);
+  color: var(--st-text-main, #334155);
+}
+.psyco-btn-outline:hover {
+  background: var(--st-surface-hover, #f1f5f9);
+  border-color: #94a3b8;
+}
+.psyco-wait-funnel {
+  padding-top: 1rem;
+  border-top: 1px dashed var(--st-border, #e2e8f0);
+}
+.psyco-funnel-heading {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: var(--st-text-muted, #64748b);
+  margin-bottom: 0.6rem;
+}
+.psyco-funnel-pills {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.psyco-pill {
+  font-size: 0.78rem;
+  padding: 0.35rem 0.75rem;
+  background: var(--st-surface-hover, #f1f5f9);
+  border: 1px solid var(--st-border, #e2e8f0);
+  border-radius: 999px;
+  color: var(--st-text-main, #1e293b);
+  text-decoration: none;
+  font-weight: 600;
+  transition: background 0.15s;
+}
+.psyco-pill:hover {
+  background: #e2e8f0;
+}
+</style>
+
+<script>
+function psycoReserveWaitlistSpot(btn, entityName) {
+  if (!btn) return;
+  btn.disabled = true;
+  btn.innerHTML = '🎉 You are #1 on the VIP Alert List!';
+  btn.style.background = '#dcfce7';
+  btn.style.color = '#15803d';
+  btn.style.borderColor = '#86efac';
+  try {
+    localStorage.setItem('psyco_waitlist_' + encodeURIComponent(entityName), 'true');
+  } catch(e) {}
+  if (typeof showStToast === 'function') {
+    showStToast('🎉 Spot locked in! We will notify you first when ' + entityName + ' drops.');
+  }
+}
+
+function psycoTriggerFastRetry() {
+  window.location.reload();
+}
+
+(function initPsycoTimers() {
+  const cdEl = document.getElementById('psycoCountdown');
+  if (cdEl) {
+    let timeLeft = parseInt(cdEl.textContent) || 7;
+    const timer = setInterval(() => {
+      timeLeft--;
+      if (timeLeft <= 0) {
+        clearInterval(timer);
+        cdEl.textContent = '0';
+        window.location.reload();
+      } else {
+        cdEl.textContent = String(timeLeft);
+      }
+    }, 1000);
+  }
+})();
+</script>

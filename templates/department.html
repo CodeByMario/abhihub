@@ -253,8 +253,9 @@ body { background-color: var(--d-bg); }
         </div>
       </a>
     {% else %}
-      <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: var(--d-card); border-radius: 20px; border: 1px dashed var(--d-border); color: var(--d-muted);">
-        No resources uploaded for this department yet. Be the first!
+      <div style="grid-column: 1/-1;">
+        {% set queue_target_name = department.name ~ ' (' ~ (college.abbreviation or college.name) ~ ')' %}
+        {% include 'includes/psychological_queue.html' %}
       </div>
     {% endfor %}
   </div>

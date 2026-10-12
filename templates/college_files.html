@@ -306,8 +306,9 @@
         </div>
       </a>
     {% else %}
-      <div class="empty-state">
-        No files found for the selected filters. Try changing branch or search term.
+      <div style="grid-column: 1/-1;">
+        {% set queue_target_name = (college.name ~ ' (' ~ _abbr ~ ')') if college is defined else 'this filter criteria' %}
+        {% include 'includes/psychological_queue.html' %}
       </div>
     {% endfor %}
   </div>

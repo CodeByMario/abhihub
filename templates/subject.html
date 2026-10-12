@@ -290,8 +290,9 @@ body { background-color: var(--s-bg); }
         </div>
       </a>
     {% else %}
-      <div style="grid-column: 1/-1; text-align: center; padding: 3rem; background: var(--s-card); border-radius: 20px; border: 1px dashed var(--s-border); color: var(--s-muted);">
-        No resources uploaded for this subject yet.
+      <div style="grid-column: 1/-1;">
+        {% set queue_target_name = subject_name %}
+        {% include 'includes/psychological_queue.html' %}
       </div>
     {% endfor %}
   </div>

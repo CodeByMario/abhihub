@@ -708,9 +708,24 @@
     <div id="searchResults" class="ss-results" aria-live="polite"></div>
     <div id="loadMoreContainer" class="ss-more-wrap"><button id="loadMoreBtn" class="ss-more-btn" type="button"
         data-action="loadMore">Load more results</button></div>
-    <div id="noResults" class="ss-empty" style="display:none;" role="status">
-      <div aria-hidden="true" style="font-size:2rem;margin-bottom:.5rem;">🔍</div><strong>No results found</strong>
-      <p style="margin:.5rem 0 0;font-size:.85rem;">Try different keywords or remove a filter.</p>
+    <div id="noResults" class="ss-empty" style="display:none;padding:1rem 0;" role="status">
+      {% set queue_target_name = "your requested subject/paper" %}
+      {% include 'includes/psychological_queue.html' %}
+      <script>
+        (function() {
+          const obs = new MutationObserver(() => {
+            const nr = document.getElementById('noResults');
+            const inp = document.getElementById('searchFileName');
+            if (nr && nr.style.display !== 'none' && inp && inp.value.trim()) {
+              const val = inp.value.trim();
+              const titleEl = nr.querySelector('.psyco-title');
+              if (titleEl) titleEl.textContent = `"${val}" is in the VIP Release Queue`;
+            }
+          });
+          const target = document.getElementById('noResults');
+          if (target) obs.observe(target, { attributes: true, attributeFilter: ['style'] });
+        })();
+      </script>
     </div>
   </div>
 </section>
