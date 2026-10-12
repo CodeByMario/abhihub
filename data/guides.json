@@ -1,0 +1,212 @@
+[
+  {
+    "id": "welcome-tour",
+    "name": "Welcome to AbhiHub",
+    "aim": "Get familiar with searching question papers, finding notes, and uploading materials in 3 easy steps.",
+    "version": 1,
+    "type": "welcome",
+    "priority": 200,
+    "trigger": { "event": "screen_viewed", "screen": "dashboard" },
+    "steps": [
+      {
+        "target": "#heroSearchInput",
+        "title": "Search Any Subject",
+        "body": "Find question papers, handwritten notes, and practicals for your college."
+      },
+      {
+        "target": ".hero-quick-actions a[href*='upload']",
+        "title": "Upload & Share",
+        "body": "Upload your exam papers or class notes to help peers and earn credits."
+      },
+      {
+        "target": ".hero-quick-actions button[data-action='openPeerSearchModal'], .hero-quick-actions button[aria-label*='Peer']",
+        "title": "Connect with Peers",
+        "body": "Discover classmates in your branch and study together."
+      }
+    ]
+  },
+  {
+    "id": "dashboard-hero-search",
+    "name": "Global Study Search",
+    "aim": "Instant access to exam papers, lecture notes, lab manuals, and syllabus across all departments.",
+    "version": 1,
+    "type": "feature",
+    "priority": 110,
+    "trigger": { "event": "screen_viewed", "screen": "dashboard" },
+    "steps": [
+      {
+        "target": "#heroSearchInput",
+        "title": "Type Subject or Topic",
+        "body": "Enter any subject name, course code (e.g. CS101), or topic keyword to filter papers immediately."
+      },
+      {
+        "target": ".hero-search-btn",
+        "title": "Filter Results",
+        "body": "Tap Search to jump directly to verified results matched with your university syllabus."
+      }
+    ]
+  },
+  {
+    "id": "dashboard-quick-actions",
+    "name": "Quick Action Hub",
+    "aim": "Fast-track access to uploading new materials, finding batchmates, and checking your campus stats.",
+    "version": 1,
+    "type": "feature",
+    "priority": 100,
+    "trigger": { "event": "screen_viewed", "screen": "dashboard" },
+    "steps": [
+      {
+        "target": ".hero-quick-actions a[href*='upload']",
+        "title": "Upload Resources",
+        "body": "Share question papers and handwritten notes to earn reputation credits."
+      },
+      {
+        "target": ".hero-quick-actions button[data-action='openPeerSearchModal'], .hero-quick-actions button[aria-label*='Peer']",
+        "title": "Find Peers & Classmates",
+        "body": "Search for students in your college branch to share notes and collaborate."
+      }
+    ]
+  },
+  {
+    "id": "dashboard-recently-viewed",
+    "name": "Recently Viewed Shelf",
+    "aim": "Resume reading your last opened question papers and notes without searching again.",
+    "version": 1,
+    "type": "feature",
+    "priority": 90,
+    "trigger": { "event": "screen_viewed", "screen": "dashboard" },
+    "steps": [
+      {
+        "target": ".home-section:has(.hscroll-row), .hscroll-row, .pcard",
+        "title": "Pick Up Where You Left Off",
+        "body": "Your recently opened resources appear here automatically for fast revision during study sessions."
+      }
+    ]
+  },
+  {
+    "id": "upload-dropzone",
+    "name": "File Intake & Scanner",
+    "aim": "Upload PDF notes, camera scans, and past papers with automatic format verification.",
+    "version": 1,
+    "type": "feature",
+    "priority": 110,
+    "trigger": { "event": "screen_viewed", "screen": "upload" },
+    "steps": [
+      {
+        "target": "#dropzone, .dropzone",
+        "title": "Drag & Drop Files",
+        "body": "Drop your PDF file or tap to select study documents from your device storage."
+      },
+      {
+        "target": ".scan-row, button[data-action='openCameraInput'], button[data-action='openFileInput']",
+        "title": "Scan Handwritten Pages",
+        "body": "Use the Camera button on mobile to snap notebook pages directly into a unified document."
+      }
+    ]
+  },
+  {
+    "id": "upload-ai-metadata",
+    "name": "Tarika AI Auto-Tagging",
+    "aim": "Automatically extract subject, semester, and year from document content using AI.",
+    "version": 1,
+    "type": "feature",
+    "priority": 100,
+    "trigger": { "event": "screen_viewed", "screen": "upload" },
+    "steps": [
+      {
+        "target": "#tarikaUploadAnalyzeBtn, button[data-action='analyzeCurrentFileWithAi']",
+        "title": "Analyze with AI",
+        "body": "Tap to let Tarika scan your first page and auto-fill college, branch, and subject tags."
+      },
+      {
+        "target": "button[data-action='copyLabelsToAll']",
+        "title": "Batch Apply Details",
+        "body": "Apply common branch and semester details across multiple uploaded documents with one click."
+      }
+    ]
+  },
+  {
+    "id": "storeroom-sync",
+    "name": "Cloud Storage Sync",
+    "aim": "Organize uncatalogued files and synchronize your offline study library.",
+    "version": 1,
+    "type": "feature",
+    "priority": 100,
+    "trigger": { "event": "screen_viewed", "screen": "store-room" },
+    "steps": [
+      {
+        "target": "#syncStorageBtn",
+        "title": "Sync Cloud Assets",
+        "body": "Fetch unorganized cloud papers and verify storage cache status."
+      },
+      {
+        "target": ".stats-container, .stat-card.total",
+        "title": "Monitor Asset Queues",
+        "body": "Track total cloud assets, sorted resources, and pending review counts in real time."
+      }
+    ]
+  },
+  {
+    "id": "leaderboard-podium",
+    "name": "Top Contributor Podium",
+    "aim": "Celebrate students who upload the highest-rated study guides and exam papers.",
+    "version": 1,
+    "type": "feature",
+    "priority": 100,
+    "trigger": { "event": "screen_viewed", "screen": "leaderboard" },
+    "steps": [
+      {
+        "target": ".podium, .podium-item",
+        "title": "Top 3 Campus Leaders",
+        "body": "See the highest-ranking students based on peer upvotes, downloads, and contributions."
+      },
+      {
+        "target": ".lb-list, .lb-row",
+        "title": "Check Your Rank",
+        "body": "Scroll down to see your rank, experience points (XP), and badges earned this semester."
+      }
+    ]
+  },
+  {
+    "id": "account-profile-completion",
+    "name": "Profile & Academic Settings",
+    "aim": "Keep your branch, year, and college details updated for personalized paper recommendations.",
+    "version": 1,
+    "type": "feature",
+    "priority": 100,
+    "trigger": { "event": "screen_viewed", "screen": "account" },
+    "steps": [
+      {
+        "target": ".ac-ring-wrap",
+        "title": "Profile Progress Ring",
+        "body": "Reach 100% completion by filling in your department, year of study, and degree."
+      },
+      {
+        "target": "#accountForm, .ac-card",
+        "title": "Update Details",
+        "body": "Ensure your academic department is accurate so your feed surfaces relevant exam questions."
+      }
+    ]
+  },
+  {
+    "id": "reader-document-controls",
+    "name": "Study Navigation Bar",
+    "aim": "Read notes distraction-free with page jumping, zoom controls, and instant return navigation.",
+    "version": 1,
+    "type": "feature",
+    "priority": 100,
+    "trigger": { "event": "screen_viewed", "screen": "pdf-reader" },
+    "steps": [
+      {
+        "target": ".reader-bar, .reader-title",
+        "title": "Document Title & Status",
+        "body": "Verify the document subject, semester, and verified exam category."
+      },
+      {
+        "target": ".reader-back",
+        "title": "Return to Dashboard",
+        "body": "Tap back anytime to return to your library shelf without losing your place."
+      }
+    ]
+  }
+]

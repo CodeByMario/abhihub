@@ -252,10 +252,19 @@ def get_creator_wallet(creator_id):
         ledger = supabase.table('wallet_ledger').select('*').eq('creator_id', str(creator_id)).order('created_at', desc=True).limit(20).execute().data or []
         payouts = supabase.table('creator_payout_requests').select('*').eq('creator_id', str(creator_id)).order('created_at', desc=True).limit(10).execute().data or []
 
-        # Determine minimum withdrawal threshold (First 3 withdrawals have no limit, min ₹1.00)
+        # Determine gamified minimum withdrawal threshold:
+        # 1st withdrawal: ₹5, 2nd withdrawal: ₹25, 3rd+ withdrawal: ₹100
         payouts_completed = [p for p in (payouts or []) if p.get('status') == 'completed']
         completed_count = len(payouts_completed)
-        min_limit = 1.0 if completed_count < 3 else MIN_WITHDRAWAL_AMOUNT
+        if completed_count == 0:
+            min_limit = 5.0
+            withdrawal_tier = 1
+        elif completed_count == 1:
+            min_limit = 25.0
+            withdrawal_tier = 2
+        else:
+            min_limit = MIN_WITHDRAWAL_AMOUNT
+            withdrawal_tier = 3
         can_withdraw = (effective_withdrawable >= min_limit) and (effective_withdrawable > 0)
 
         return {
@@ -269,6 +278,7 @@ def get_creator_wallet(creator_id):
                 'view_rate': VIEW_EARNING_RATE_INR,
                 'total_withdrawn': total_withdrawn,
                 'min_withdrawal': min_limit,
+                'withdrawal_tier': withdrawal_tier,
                 'holding_days': HOLDING_DAYS,
                 'can_withdraw': can_withdraw,
                 'withdrawals_completed': completed_count,
@@ -316,8 +326,6 @@ def request_withdrawal(creator_id, amount, payout_method, payout_details):
 
         min_limit = float(w_info['wallet'].get('min_withdrawal', MIN_WITHDRAWAL_AMOUNT))
         if amt < min_limit or amt <= 0:
-            if min_limit <= 1.0:
-                return False, "Withdrawal amount must be at least ₹1.00"
             return False, f"Minimum withdrawal amount is ₹{min_limit:.0f}"
 
         curr_withdrawable = float(w_info['wallet'].get('withdrawable_balance', 0))

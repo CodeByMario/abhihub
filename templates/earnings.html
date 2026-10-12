@@ -228,11 +228,16 @@
           const amtInput = document.getElementById('payoutAmount');
           const policyBadge = document.getElementById('payoutPolicyBadge');
 
+          const minAmt = w.min_withdrawal || 5;
+          const tier = w.withdrawal_tier || (w.withdrawals_completed === 0 ? 1 : (w.withdrawals_completed === 1 ? 2 : 3));
+
           if (policyBadge) {
-            if (w.is_first_three_free) {
-              policyBadge.innerHTML = '🎉 <span style="color:#16a34a; font-weight:700;">No minimum limit</span> (First 3 withdrawals)';
+            if (tier === 1) {
+              policyBadge.innerHTML = '🎯 <span style="color:#16a34a; font-weight:700;">Level 1 Payout: Min ₹5</span> (1st withdrawal)';
+            } else if (tier === 2) {
+              policyBadge.innerHTML = '🎯 <span style="color:#2563eb; font-weight:700;">Level 2 Payout: Min ₹25</span> (2nd withdrawal)';
             } else {
-              policyBadge.innerHTML = 'Policy: Minimum <strong>₹' + (w.min_withdrawal || 100).toFixed(0) + '</strong>';
+              policyBadge.innerHTML = '🎯 <span style="color:#475569; font-weight:700;">Level 3 Payout: Min ₹100</span> (Standard)';
             }
           }
 
@@ -240,19 +245,16 @@
             if (eligWrap) eligWrap.style.display = 'block';
             if (lockWrap) lockWrap.style.display = 'none';
             if (amtInput) {
-              amtInput.min = w.min_withdrawal || 1;
+              amtInput.min = minAmt;
               amtInput.max = w.withdrawable_balance;
-              amtInput.value = Math.min(w.withdrawable_balance, 500);
+              amtInput.placeholder = 'Min ' + minAmt.toFixed(0);
+              amtInput.value = Math.min(w.withdrawable_balance, Math.max(minAmt, 5));
             }
           } else {
             if (eligWrap) eligWrap.style.display = 'none';
             if (lockWrap) {
               lockWrap.style.display = 'block';
-              if (w.is_first_three_free) {
-                lockWrap.innerHTML = '🔒 Your withdrawable balance is <strong>₹0.00</strong>. Earn from views or sales to request a payout with <strong>no minimum limit</strong>!';
-              } else {
-                lockWrap.innerHTML = '🔒 Minimum <strong>₹' + (w.min_withdrawal || 100).toFixed(2) + '</strong> required to request withdrawal (Your balance: <strong>₹' + (w.withdrawable_balance || 0).toFixed(2) + '</strong>). Upload more notes or share links to reach ₹100!';
-              }
+              lockWrap.innerHTML = '🔒 Minimum <strong>₹' + minAmt.toFixed(2) + '</strong> required to request withdrawal (Your balance: <strong>₹' + (w.withdrawable_balance || 0).toFixed(2) + '</strong>). Earn more from views (@ ₹0.20/view) or note sales to unlock Level ' + tier + ' payout!';
             }
           }
         }

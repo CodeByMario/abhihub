@@ -669,6 +669,11 @@ uploader_name %}
     <button class="r2-btn share-btn" type="button" onclick="shareResource()" aria-label="Share this resource">
       🔗 Share
     </button>
+    {% if can_manage %}
+    <a href="#manageResourcePanel" class="r2-btn" style="background:rgba(99,102,241,0.12); color:#4f46e5; border:1px solid rgba(99,102,241,0.3); font-weight:700; text-decoration:none;">
+      ⚙️ Manage & Viewers ({{ viewers|length }})
+    </a>
+    {% endif %}
 
     <!-- Overflow (⋯) Menu -->
     <div class="r2-menu-wrap">
@@ -1076,6 +1081,146 @@ uploader_name %}
 
   </div> <!-- End Grid -->
 
+  <!-- Author & Admin Management Section -->
+  {% if can_manage %}
+  <div class="r2-panel" id="manageResourcePanel" style="margin-top:2rem; padding:1.5rem; border:2px solid rgba(99,102,241,0.25); background:linear-gradient(to bottom, rgba(238,242,255,0.4), var(--v2-surface)); border-radius:var(--v2-radius-panel);">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:1.25rem; border-bottom:1px solid var(--v2-line); padding-bottom:0.75rem;">
+      <div style="display:flex; align-items:center; gap:0.6rem;">
+        <span style="font-size:1.4rem;">⚙️</span>
+        <div>
+          <h2 style="margin:0; font-size:1.15rem; font-weight:800; color:var(--v2-ink);">Author & Admin Control Center</h2>
+          <div style="font-size:0.78rem; color:var(--v2-muted);">View student viewer access logs and modify resource details, pricing, & promo codes.</div>
+        </div>
+      </div>
+      <div>
+        {% if is_admin %}
+        <span style="background:#fef3c7; color:#92400e; border:1px solid #f59e0b; padding:3px 9px; border-radius:999px; font-size:0.75rem; font-weight:700;">🛡️ Admin Access</span>
+        {% else %}
+        <span style="background:#e0e7ff; color:#3730a3; border:1px solid #818cf8; padding:3px 9px; border-radius:999px; font-size:0.75rem; font-weight:700;">👤 Uploader / Author</span>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Management Tabs -->
+    <div class="r2-tarika-tabs" style="margin-bottom:1.25rem; border-radius:8px; overflow:hidden;">
+      <button type="button" class="r2-tarika-tab-btn active" id="tabBtn_viewers" onclick="switchManageTab('viewers')">
+        👥 People Who Viewed ({{ viewers|length }})
+      </button>
+      <button type="button" class="r2-tarika-tab-btn" id="tabBtn_edit" onclick="switchManageTab('edit')">
+        ✏️ Edit File Info, Price & Promo
+      </button>
+    </div>
+
+    <!-- Tab 1: People Who Viewed -->
+    <div id="manageTab_viewers" style="display:block;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+        <div style="font-size:0.85rem; font-weight:700; color:var(--v2-ink);">Recent Student Access History</div>
+        <div style="font-size:0.78rem; color:var(--v2-muted);">Total Views: <strong>{{ document.view_count or 0 }}</strong> | Recorded: <strong>{{ viewers|length }}</strong></div>
+      </div>
+      {% if viewers and viewers|length > 0 %}
+      <div style="overflow-x:auto; border:1px solid var(--v2-line); border-radius:8px; background:var(--v2-surface);">
+        <table style="width:100%; border-collapse:collapse; text-align:left; font-size:0.84rem;">
+          <thead>
+            <tr style="background:rgba(0,0,0,0.02); border-bottom:1px solid var(--v2-line);">
+              <th style="padding:0.65rem 0.85rem; font-weight:700; color:var(--v2-muted);">Student Name</th>
+              <th style="padding:0.65rem 0.85rem; font-weight:700; color:var(--v2-muted);">Email</th>
+              <th style="padding:0.65rem 0.85rem; font-weight:700; color:var(--v2-muted);">Role</th>
+              <th style="padding:0.65rem 0.85rem; font-weight:700; color:var(--v2-muted);">Device</th>
+              <th style="padding:0.65rem 0.85rem; font-weight:700; color:var(--v2-muted);">Accessed At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for v in viewers %}
+            <tr style="border-bottom:1px solid var(--v2-line);">
+              <td style="padding:0.65rem 0.85rem; font-weight:600; color:var(--v2-ink);">
+                <div style="display:flex; align-items:center; gap:0.4rem;">
+                  <span>👤</span>
+                  <span>{{ v.name }}</span>
+                </div>
+              </td>
+              <td style="padding:0.65rem 0.85rem; color:var(--v2-muted); font-size:0.8rem;">{{ v.email }}</td>
+              <td style="padding:0.65rem 0.85rem;">
+                <span style="background:rgba(99,102,241,0.1); color:#4f46e5; padding:2px 7px; border-radius:6px; font-size:0.72rem; font-weight:700;">
+                  {{ v.role | capitalize }}
+                </span>
+              </td>
+              <td style="padding:0.65rem 0.85rem; color:var(--v2-muted); font-size:0.8rem; text-transform:capitalize;">
+                {{ v.device }}
+              </td>
+              <td style="padding:0.65rem 0.85rem; color:var(--v2-muted); font-size:0.78rem;">
+                {{ v.accessed_at[:19] | replace('T', ' ') if v.accessed_at else 'Recent' }}
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      {% else %}
+      <div style="padding:2rem; text-align:center; border:1px dashed var(--v2-line); border-radius:8px; background:rgba(0,0,0,0.01);">
+        <div style="font-size:1.8rem; margin-bottom:0.5rem;">👁️</div>
+        <div style="font-weight:700; font-size:0.9rem; color:var(--v2-ink);">No recorded viewers yet</div>
+        <div style="font-size:0.8rem; color:var(--v2-muted); margin-top:0.25rem;">When students view this document, their names, email, and access times will appear here.</div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Tab 2: Edit File Info -->
+    <div id="manageTab_edit" style="display:none;">
+      <form id="editDocumentForm" onsubmit="saveDocumentChanges(event)" style="display:flex; flex-direction:column; gap:1rem;">
+        <div>
+          <label style="display:block; font-size:0.82rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.35rem;">File Title / Name</label>
+          <input type="text" id="editDocTitle" value="{{ document.title or '' }}" required
+            style="width:100%; padding:0.65rem 0.8rem; border:1px solid var(--v2-line); border-radius:8px; font-family:inherit; font-size:0.9rem; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;">
+        </div>
+
+        <div>
+          <label style="display:block; font-size:0.82rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.35rem;">Description</label>
+          <textarea id="editDocDescription" rows="3"
+            style="width:100%; padding:0.65rem 0.8rem; border:1px solid var(--v2-line); border-radius:8px; font-family:inherit; font-size:0.88rem; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;"
+            placeholder="Add a detailed description or key topics covered...">{{ document.display_description or '' }}</textarea>
+        </div>
+
+        <div style="background:rgba(0,0,0,0.02); padding:1rem; border-radius:8px; border:1px solid var(--v2-line);">
+          <div style="font-size:0.88rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.65rem;">💰 Monetization & Promo Code</div>
+
+          <label style="display:inline-flex; align-items:center; gap:0.5rem; font-size:0.85rem; font-weight:600; cursor:pointer; margin-bottom:0.75rem;">
+            <input type="checkbox" id="editDocIsPaid" {% if pricing and pricing.is_paid %}checked{% endif %} onchange="togglePricingFields(this.checked)">
+            <span>Require Payment to Unlock Full Notes (Premium Resource)</span>
+          </label>
+
+          <div id="pricingFieldsWrap" style="display:{% if pricing and pricing.is_paid %}flex{% else %}none{% endif %}; flex-wrap:wrap; gap:1rem; margin-top:0.5rem;">
+            <div style="flex:1; min-width:140px;">
+              <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-muted); margin-bottom:0.3rem;">Price (INR ₹)</label>
+              <input type="number" id="editDocPrice" min="0" step="1" value="{{ pricing.price if pricing and pricing.price else 0 }}"
+                style="width:100%; padding:0.55rem; border:1px solid var(--v2-line); border-radius:6px; font-family:inherit; font-size:0.88rem; box-sizing:border-box;">
+            </div>
+
+            <div style="flex:1; min-width:140px;">
+              <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-muted); margin-bottom:0.3rem;">Promo / Coupon Code</label>
+              <input type="text" id="editDocCoupon" placeholder="e.g. EXAM50" value="{{ pricing.coupon_code if pricing and pricing.coupon_code else '' }}"
+                style="width:100%; padding:0.55rem; border:1px solid var(--v2-line); border-radius:6px; font-family:inherit; font-size:0.88rem; text-transform:uppercase; box-sizing:border-box;">
+            </div>
+
+            <div style="flex:1; min-width:140px;">
+              <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-muted); margin-bottom:0.3rem;">Coupon Discount (%)</label>
+              <input type="number" id="editDocDiscount" min="0" max="100" value="{{ pricing.coupon_discount if pricing and pricing.coupon_discount else 0 }}"
+                style="width:100%; padding:0.55rem; border:1px solid var(--v2-line); border-radius:6px; font-family:inherit; font-size:0.88rem; box-sizing:border-box;">
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:1rem;">
+          <button type="submit" id="saveDocChangesBtn" class="r2-btn"
+            style="background:var(--v2-brand); color:#fff; border-color:var(--v2-brand); font-weight:700; padding:0.6rem 1.4rem;">
+            💾 Save Changes
+          </button>
+          <div id="editDocStatus" style="font-size:0.85rem;"></div>
+        </div>
+      </form>
+    </div>
+  </div>
+  {% endif %}
+
   <!-- Community Discussion -->
   <div class="r2-panel" id="commentsSection" style="margin-top:2rem; padding:1.5rem;">
     <h3 style="margin:0 0 1rem 0; font-size:1.15rem; font-weight:700;">
@@ -1473,6 +1618,79 @@ uploader_name %}
       msg.innerText = 'Error verifying coupon';
     });
   };
+
+  // Management Tabs switcher
+  function switchManageTab(tab) {
+    var vTab = document.getElementById('manageTab_viewers');
+    var eTab = document.getElementById('manageTab_edit');
+    var vBtn = document.getElementById('tabBtn_viewers');
+    var eBtn = document.getElementById('tabBtn_edit');
+    if (tab === 'viewers') {
+      if (vTab) vTab.style.display = 'block';
+      if (eTab) eTab.style.display = 'none';
+      if (vBtn) vBtn.classList.add('active');
+      if (eBtn) eBtn.classList.remove('active');
+    } else {
+      if (vTab) vTab.style.display = 'none';
+      if (eTab) eTab.style.display = 'block';
+      if (vBtn) vBtn.classList.remove('active');
+      if (eBtn) eBtn.classList.add('active');
+    }
+  }
+
+  function togglePricingFields(checked) {
+    var pWrap = document.getElementById('pricingFieldsWrap');
+    if (pWrap) pWrap.style.display = checked ? 'flex' : 'none';
+  }
+
+  async function saveDocumentChanges(e) {
+    if (e) e.preventDefault();
+    var btn = document.getElementById('saveDocChangesBtn');
+    var statusEl = document.getElementById('editDocStatus');
+    var title = document.getElementById('editDocTitle').value.trim();
+    var description = document.getElementById('editDocDescription').value.trim();
+    var isPaid = document.getElementById('editDocIsPaid').checked;
+    var price = parseFloat(document.getElementById('editDocPrice').value || '0');
+    var couponCode = document.getElementById('editDocCoupon').value.trim();
+    var couponDiscount = parseInt(document.getElementById('editDocDiscount').value || '0', 10);
+
+    if (!title) {
+      statusEl.innerHTML = '<span style="color:#ef4444;">Please provide a file title.</span>';
+      return;
+    }
+
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    statusEl.innerHTML = '';
+
+    try {
+      var res = await fetch(`/api/documents/{{ document.id }}/edit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: title,
+          description: description,
+          is_paid: isPaid,
+          price: price,
+          coupon_code: couponCode,
+          coupon_discount: couponDiscount
+        })
+      });
+      var data = await res.json();
+      if (res.ok && data.success) {
+        statusEl.innerHTML = '<span style="color:#10b981; font-weight:700;">✓ Saved! Refreshing...</span>';
+        setTimeout(function() { window.location.reload(); }, 1000);
+      } else {
+        statusEl.innerHTML = '<span style="color:#ef4444;">' + (data.message || 'Failed to update') + '</span>';
+        btn.disabled = false;
+        btn.textContent = '💾 Save Changes';
+      }
+    } catch(err) {
+      statusEl.innerHTML = '<span style="color:#ef4444;">Network error while updating.</span>';
+      btn.disabled = false;
+      btn.textContent = '💾 Save Changes';
+    }
+  }
 
   document.addEventListener('DOMContentLoaded', loadComments);
 </script>

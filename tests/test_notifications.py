@@ -308,3 +308,41 @@ def test_validate_push_config_missing_keys():
             validate_push_config(fail_fast=True)
 
 
+# ==================== 7. PSYCHOLOGICAL HOOKS & ANTI-SPAM ====================
+
+def test_psychological_hooks_transformation():
+    from push_notifications import psychologize_notification
+
+    # 1. Upload Success Hook
+    t1, b1 = psychologize_notification("Upload Successful! 🎉", "Your notes were saved.", tag="upload-success")
+    assert "👀" in t1 or "live" in t1.lower()
+    assert "views" in b1.lower()
+
+    # 2. Credit Deduction / Resource Unlock Hook
+    t2, b2 = psychologize_notification("1 Credit Deducted", "File unlocked", category="quota_deduction")
+    assert "⚡" in t2 or "unlocked" in t2.lower()
+
+    # 3. Chat Message Hook
+    t3, b3 = psychologize_notification("New message from Priya", "Hey", tag="chat-priya")
+    assert "Priya" in t3
+    assert "💬" in t3 or "note" in t3.lower()
+
+    # 4. Invariant test titles
+    t4, b4 = psychologize_notification("Test Title", "Test Body")
+    assert t4 == "Test Title"
+
+
+def test_google_antispam_frequency_capping():
+    from push_notifications import check_frequency_cap, record_user_delivery, _USER_DELIVERY_TIMESTAMPS
+    uid = "real-user-rate-test-12345"
+    _USER_DELIVERY_TIMESTAMPS[uid] = []
+
+    # First send is allowed
+    assert check_frequency_cap(uid, bypass_throttle=False) is True
+    record_user_delivery(uid)
+
+    # Immediate second general send is throttled (prevents Google spam blocks)
+    assert check_frequency_cap(uid, bypass_throttle=False) is False
+
+
+

@@ -771,8 +771,8 @@ def log_document_view(file_name, file_url, record_id=None,
                 # Send notification for credit deduction
                 try:
                     doc_title = file_name or "document"
-                    notif_title = "1 Credit Deducted"
-                    notif_msg = f"1 view credit was deducted for viewing '{doc_title}'."
+                    notif_title = "Resource unlocked! ⚡ Quick tip inside..."
+                    notif_msg = f"You unlocked '{doc_title}'. Your academic streak is active—see the key formulas inside!"
                     action_url = f"/resource/{record_id}" if record_id else None
 
                     if user_id:

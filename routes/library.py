@@ -4,8 +4,9 @@ import json
 import logging
 from flask import (
     Blueprint, request, session, redirect, url_for, render_template,
-    abort, make_response, current_app
+    abort, make_response, current_app, jsonify
 )
+from routes.auth import is_admin_user, auth_required
 from routes.seo import sitemap_page, slugify
 from methods.supabase_helper import (
     init_supabase, get_all_colleges, get_all_branches, get_college_by_slug,
@@ -329,7 +330,12 @@ def resource_landing(slug):
     document['is_liked'] = False
     document['is_bookmarked'] = False
 
-    current_user_id = session.get('user', {}).get('uid')
+    user_info = session.get('user', {})
+    current_user_id = user_info.get('uid') or user_info.get('id')
+    is_admin = is_admin_user(user_info)
+    is_uploader = bool(current_user_id and str(document.get('uploader_id') or '') == str(current_user_id))
+    can_manage = is_admin or is_uploader
+
     ai_chat_allowed = False
     if current_user_id:
         try:
@@ -350,6 +356,37 @@ def resource_landing(slug):
             document['is_bookmarked'] = bool(bm_check.data)
         except Exception:
             pass
+
+    viewers = []
+    if can_manage and client:
+        try:
+            v_res = client.table('document_views').select(
+                'id, user_id, accessed_at, device_type'
+            ).eq('document_id', doc_id).order('accessed_at', desc=True).limit(50).execute()
+            raw_views = v_res.data or []
+            u_ids = list({v['user_id'] for v in raw_views if v.get('user_id')})
+            profiles_map = {}
+            if u_ids:
+                try:
+                    p_res = client.table('profiles').select('id, full_name, email, role, degree').in_('id', u_ids).execute()
+                    if p_res.data:
+                        profiles_map = {p['id']: p for p in p_res.data}
+                except Exception as p_err:
+                    logging.warning(f"Could not batch fetch profiles for viewers: {p_err}")
+
+            for v in raw_views:
+                uid = v.get('user_id')
+                prof = profiles_map.get(uid) or {}
+                name = prof.get('full_name') or (f"User ({uid[:8]}...)" if uid else "Anonymous Student")
+                viewers.append({
+                    'name': name,
+                    'email': prof.get('email') or '—',
+                    'role': prof.get('role', 'student'),
+                    'device': v.get('device_type') or 'desktop',
+                    'accessed_at': v.get('accessed_at')
+                })
+        except Exception as v_err:
+            logging.warning(f"[resource_landing] Could not fetch viewers: {v_err}")
 
     log_document_view(
         file_name=title,
@@ -423,6 +460,10 @@ def resource_landing(slug):
         document=document,
         pricing=pricing,
         has_access=has_access,
+        can_manage=can_manage,
+        is_admin=is_admin,
+        is_uploader=is_uploader,
+        viewers=viewers,
         ai_models=AI_MODELS,
         best_model=get_best_ai_model(),
         suggested_docs=suggested_docs,
@@ -431,6 +472,87 @@ def resource_landing(slug):
         noindex=render_noindex,
         mock_study_kit=mock_study_kit
     )
+
+
+@library_bp.route('/api/documents/<doc_id>/edit', methods=['POST'])
+@auth_required
+def api_edit_document(doc_id):
+    """Edit document details (title, description, price, promo code) for uploader or admin."""
+    try:
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'message': 'Database client unavailable'}), 500
+
+        doc_res = client.table('documents').select('id, uploader_id, title, description, is_paid, price, coupon_code, coupon_discount').eq('id', doc_id).limit(1).execute()
+        if not doc_res.data:
+            return jsonify({'success': False, 'message': 'Document not found'}), 404
+
+        doc = doc_res.data[0]
+        user_info = session.get('user', {})
+        uid = user_info.get('uid') or user_info.get('id')
+        is_admin = is_admin_user(user_info)
+        is_uploader = bool(uid and str(doc.get('uploader_id') or '') == str(uid))
+
+        if not (is_admin or is_uploader):
+            return jsonify({'success': False, 'message': 'Unauthorized to modify this resource'}), 403
+
+        data = request.get_json(silent=True) or {}
+        new_title = (data.get('title') or '').strip()
+        new_text_desc = (data.get('description') or '').strip()
+        is_paid = bool(data.get('is_paid', False))
+
+        try:
+            price = max(0.0, float(data.get('price', 0) or 0))
+        except (ValueError, TypeError):
+            price = 0.0
+
+        coupon_code = str(data.get('coupon_code') or '').strip().upper() or None
+        try:
+            coupon_discount = max(0, min(100, int(data.get('coupon_discount', 0) or 0)))
+        except (ValueError, TypeError):
+            coupon_discount = 0
+
+        # Preserve / update structured JSON in description
+        desc_raw = doc.get('description') or ''
+        desc_obj = {}
+        if isinstance(desc_raw, str) and desc_raw.strip().startswith('{'):
+            try:
+                desc_obj = json.loads(desc_raw.strip())
+            except Exception:
+                desc_obj = {}
+        elif isinstance(desc_raw, dict):
+            desc_obj = dict(desc_raw)
+
+        desc_obj['text_description'] = new_text_desc
+        desc_obj['pricing'] = {
+            'is_paid': is_paid,
+            'price': price if is_paid else 0.0,
+            'coupon_code': coupon_code if is_paid else '',
+            'coupon_discount': coupon_discount if is_paid else 0,
+            'seller_id': doc.get('uploader_id')
+        }
+
+        updated_desc_str = json.dumps(desc_obj)
+        update_payload = {
+            'title': new_title or doc.get('title'),
+            'description': updated_desc_str,
+            'is_paid': is_paid,
+            'price': price if is_paid else 0.0,
+            'coupon_code': coupon_code if is_paid else None,
+            'coupon_discount': coupon_discount if is_paid else 0
+        }
+
+        client.table('documents').update(update_payload).eq('id', doc_id).execute()
+
+        return jsonify({
+            'success': True,
+            'message': 'Resource information updated successfully!',
+            'data': update_payload
+        }), 200
+
+    except Exception as e:
+        logging.error(f"[api_edit_document] {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 @library_bp.route('/prepare/<subject>')

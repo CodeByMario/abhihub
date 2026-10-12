@@ -1305,6 +1305,147 @@ def admin_update_file_report_status(report_id):
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@admin_bp.route('/api/admin/file-reports/<report_id>/delete-file', methods=['POST', 'DELETE'])
+@auth_required
+@admin_required
+def admin_delete_file_completely(report_id):
+    """Permanently delete a reported file from database, Cloudinary, and any cloud storage."""
+    try:
+        data = request.get_json(silent=True) or {}
+        doc_id = data.get('doc_id')
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'message': 'Database client not initialized'}), 500
+
+        # Retrieve report details
+        report_res = client.table('viewer_failure_reports').select('*').eq('id', report_id).limit(1).execute()
+        report = report_res.data[0] if report_res.data else {}
+
+        if not doc_id:
+            doc_id = report.get('doc_id')
+
+        file_url = report.get('file_url') or ''
+        provider_public_id = None
+        storage_provider = None
+        file_name = report.get('file_name') or 'Document'
+
+        # Look up document record if doc_id exists
+        if doc_id:
+            try:
+                doc_res = client.table('documents').select('*').eq('id', doc_id).limit(1).execute()
+                if doc_res.data:
+                    doc = doc_res.data[0]
+                    file_url = doc.get('file_url') or file_url
+                    provider_public_id = doc.get('provider_public_id')
+                    storage_provider = doc.get('storage_provider')
+                    file_name = doc.get('title') or file_name
+            except Exception as d_err:
+                logging.warning(f"[admin_delete_file_completely] Error reading document: {d_err}")
+
+        # 1. Cloudinary storage deletion
+        cld_id = provider_public_id
+        if not cld_id and 'cloudinary.com' in file_url:
+            m = re.search(r'/(?:image|raw|video)/upload/(?:v\d+/)?([^?#]+)', file_url)
+            if m:
+                cld_id = m.group(1)
+
+        if cld_id or storage_provider == 'cloudinary' or 'cloudinary.com' in file_url:
+            try:
+                from methods.cloudinary_upload import delete_file_from_cloudinary
+                if cld_id:
+                    res_raw = delete_file_from_cloudinary(cld_id, resource_type='raw')
+                    if not res_raw.get('success'):
+                        delete_file_from_cloudinary(cld_id, resource_type='image')
+            except Exception as cld_err:
+                logging.error(f"[admin_delete_file_completely] Cloudinary deletion error: {cld_err}")
+
+        # 2. Supabase storage fallback deletion
+        try:
+            if 'supabase.co/storage/v1/object/public/' in file_url:
+                path_part = file_url.split('/storage/v1/object/public/')[-1]
+                bucket = path_part.split('/')[0]
+                file_key = '/'.join(path_part.split('/')[1:])
+                client.storage.from_(bucket).remove([file_key])
+            if cld_id:
+                for ext in ['', '.pdf', '.txt', '.bin', '.jpg', '.png']:
+                    try:
+                        client.storage.from_('public').remove([f"cloudinary_fallback/{cld_id}{ext}"])
+                    except Exception:
+                        pass
+        except Exception as sb_err:
+            logging.debug(f"[admin_delete_file_completely] Supabase storage removal note: {sb_err}")
+
+        # 3. Firebase storage deletion
+        if 'firebasestorage.googleapis.com' in file_url or storage_provider == 'firebase':
+            try:
+                from methods.storage import delete_file
+                blob_name = provider_public_id
+                if not blob_name and '/o/' in file_url:
+                    import urllib.parse
+                    blob_name = urllib.parse.unquote(file_url.split('/o/')[1].split('?')[0])
+                if blob_name:
+                    delete_file(blob_name)
+            except Exception as fb_err:
+                logging.warning(f"[admin_delete_file_completely] Firebase storage deletion error: {fb_err}")
+
+        # 4. Database records deletion
+        if doc_id:
+            for tbl, col in [
+                ('search_documents', 'file_id'),
+                ('document_views', 'document_id'),
+                ('document_likes', 'document_id'),
+                ('document_bookmarks', 'document_id'),
+                ('document_votes', 'document_id'),
+                ('document_ratings', 'document_id'),
+            ]:
+                try:
+                    client.table(tbl).delete().eq(col, doc_id).execute()
+                except Exception:
+                    pass
+
+            try:
+                client.table('material_requests').update({'response_document_id': None}).eq('response_document_id', doc_id).execute()
+            except Exception:
+                pass
+
+            try:
+                client.table('viewer_failure_reports').delete().eq('doc_id', doc_id).execute()
+            except Exception:
+                pass
+
+            try:
+                client.table('documents').delete().eq('id', doc_id).execute()
+            except Exception as doc_del_err:
+                logging.error(f"[admin_delete_file_completely] documents table delete error: {doc_del_err}")
+
+        # Ensure the specific report is also cleaned up
+        try:
+            client.table('viewer_failure_reports').delete().eq('id', report_id).execute()
+        except Exception:
+            pass
+
+        admin_user = session.get('user', {})
+        admin_email = admin_user.get('email', 'Admin')
+        log_admin_action('delete_file_completely', target=doc_id or report_id, details={
+            'file_name': file_name,
+            'doc_id': doc_id,
+            'report_id': report_id,
+            'admin': admin_email
+        })
+
+        return jsonify({
+            'success': True,
+            'message': f"'{file_name}' was completely removed from database and cloud storage.",
+            'report_id': report_id,
+            'doc_id': doc_id
+        }), 200
+
+    except Exception as e:
+        logging.error(f"[admin_delete_file_completely] Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+
 @admin_bp.route('/api/admin/entity/add', methods=['POST'])
 @auth_required
 @admin_required

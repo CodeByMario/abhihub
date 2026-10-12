@@ -1145,6 +1145,22 @@
     <!-- Chat UI -->
     <script src="{{ url_for('static', filename='js/chat.js') }}" defer></script>
 
+    <!-- Interactive In-App Guide Engine -->
+    <script src="{{ url_for('static', filename='js/guide_engine.js') }}" defer></script>
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var rawPath = window.location.pathname;
+            if (rawPath.startsWith('/app-shell')) {
+                var p = new URLSearchParams(window.location.search).get('p');
+                if (p) rawPath = p.split('?')[0];
+            }
+            var screen = rawPath.replace(/^\/|\/$/g, '') || 'dashboard';
+            if (window.GuideEngine) {
+                window.GuideEngine.init(screen);
+            }
+        });
+    </script>
+
     <!-- Security & AI Assistant: expose current student profile to client -->
     <script>
         {% set user_data = session.get('user', {}) %}

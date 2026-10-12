@@ -107,14 +107,13 @@ class TestUniqueViewsAndWallet(unittest.TestCase):
 
     @patch('methods.wallet_service.get_creator_wallet')
     @patch('methods.wallet_service.supabase')
-    def test_first_three_withdrawals_no_minimum_limit(self, mock_supabase, mock_get_wallet):
-        # 0 past completed payouts -> min_withdrawal is 1.0, user can withdraw ₹15
+    def test_first_withdrawal_gamified_limit_5(self, mock_supabase, mock_get_wallet):
         mock_get_wallet.return_value = {
             'success': True,
             'wallet': {
                 'withdrawable_balance': 15.0,
-                'min_withdrawal': 1.0,
-                'is_first_three_free': True
+                'min_withdrawal': 5.0,
+                'withdrawal_tier': 1
             }
         }
         mock_supabase.table('creator_payout_requests').select().eq().in_().limit().execute.return_value.data = []
@@ -123,24 +122,56 @@ class TestUniqueViewsAndWallet(unittest.TestCase):
         }]
         mock_supabase.table('creator_payout_requests').insert().execute.return_value.data = [{'id': 'payout-1'}]
 
-        ok, msg = request_withdrawal('creator-1', 15.0, 'upi', {'vpa': 'test@upi'})
+        # ₹5 should succeed
+        ok, msg = request_withdrawal('creator-1', 5.0, 'upi', {'vpa': 'test@upi'})
         self.assertTrue(ok)
+
+        # ₹4 should fail
+        ok, msg = request_withdrawal('creator-1', 4.0, 'upi', {'vpa': 'test@upi'})
+        self.assertFalse(ok)
+        self.assertIn("5", msg)
 
     @patch('methods.wallet_service.get_creator_wallet')
     @patch('methods.wallet_service.supabase')
-    def test_fourth_withdrawal_enforces_100_minimum_limit(self, mock_supabase, mock_get_wallet):
-        # 3 past completed payouts -> min_withdrawal is 100.0, user trying ₹15 is blocked
+    def test_second_withdrawal_gamified_limit_25(self, mock_supabase, mock_get_wallet):
         mock_get_wallet.return_value = {
             'success': True,
             'wallet': {
-                'withdrawable_balance': 15.0,
+                'withdrawable_balance': 30.0,
+                'min_withdrawal': 25.0,
+                'withdrawal_tier': 2
+            }
+        }
+        mock_supabase.table('creator_payout_requests').select().eq().in_().limit().execute.return_value.data = []
+        mock_supabase.table('creator_wallets').select().eq().limit().execute.return_value.data = [{
+            'user_id': 'creator-1', 'withdrawable_balance': 0.0, 'total_withdrawn': 0.0
+        }]
+        mock_supabase.table('creator_payout_requests').insert().execute.return_value.data = [{'id': 'payout-2'}]
+
+        # ₹25 should succeed
+        ok, msg = request_withdrawal('creator-1', 25.0, 'upi', {'vpa': 'test@upi'})
+        self.assertTrue(ok)
+
+        # ₹20 should fail
+        ok, msg = request_withdrawal('creator-1', 20.0, 'upi', {'vpa': 'test@upi'})
+        self.assertFalse(ok)
+        self.assertIn("25", msg)
+
+    @patch('methods.wallet_service.get_creator_wallet')
+    @patch('methods.wallet_service.supabase')
+    def test_third_withdrawal_enforces_100_minimum_limit(self, mock_supabase, mock_get_wallet):
+        # 2 or more past completed payouts -> min_withdrawal is 100.0, user trying ₹25 is blocked
+        mock_get_wallet.return_value = {
+            'success': True,
+            'wallet': {
+                'withdrawable_balance': 150.0,
                 'min_withdrawal': 100.0,
-                'is_first_three_free': False
+                'withdrawal_tier': 3
             }
         }
         mock_supabase.table('creator_payout_requests').select().eq().in_().limit().execute.return_value.data = []
 
-        ok, msg = request_withdrawal('creator-1', 15.0, 'upi', {'vpa': 'test@upi'})
+        ok, msg = request_withdrawal('creator-1', 25.0, 'upi', {'vpa': 'test@upi'})
         self.assertFalse(ok)
         self.assertIn("100", msg)
 

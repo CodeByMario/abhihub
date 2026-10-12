@@ -1144,16 +1144,16 @@
         <!-- Card 3: Request Withdrawal -->
         <div class="st-card">
           <h2><span class="st-card-icon">💸</span> Request Payout</h2>
-          <div class="st-form-sublabel" style="margin-bottom:1rem;">
-            Minimum withdrawal amount is <strong>₹100</strong>. Payouts are reviewed and dispatched within 24-48 hours.
+          <div id="stWithdrawPolicySublabel" class="st-form-sublabel" style="margin-bottom:1rem;">
+            Minimum withdrawal amount: <strong>₹5 (1st)</strong>, <strong>₹25 (2nd)</strong>, <strong>₹100 (3rd+)</strong>. Payouts are reviewed and dispatched within 24-48 hours.
           </div>
           <div id="stWithdrawDisabledNote" style="display:none;padding:0.75rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;font-size:0.85rem;color:var(--st-text-muted);">
-            🔒 Insufficient withdrawable balance. You need at least ₹100 in matured balance to request a payout.
+            🔒 Insufficient withdrawable balance to request a payout.
           </div>
           <form id="stWithdrawalForm" style="display:none;" onsubmit="handleWithdrawalSubmit(event)">
             <div class="st-form-row">
               <label for="stWithdrawAmt" class="st-form-label">Withdrawal Amount (₹)</label>
-              <input type="number" id="stWithdrawAmt" name="amount" class="st-form-input" min="100" step="1" required placeholder="Min 100">
+              <input type="number" id="stWithdrawAmt" name="amount" class="st-form-input" min="5" step="1" required placeholder="Min 5">
             </div>
             <div class="st-form-row">
               <label for="stWithdrawMethod" class="st-form-label">Payout Method</label>
@@ -2301,19 +2301,30 @@ async function loadPayoutSettings(force = false) {
       const form = document.getElementById('stWithdrawalForm');
       const disabledNote = document.getElementById('stWithdrawDisabledNote');
       const amtInput = document.getElementById('stWithdrawAmt');
+      const policySublabel = document.getElementById('stWithdrawPolicySublabel');
+      const minAmt = w.min_withdrawal || 5;
+      const tier = w.withdrawal_tier || (w.withdrawals_completed === 0 ? 1 : (w.withdrawals_completed === 1 ? 2 : 3));
+
+      if (policySublabel) {
+        policySublabel.innerHTML = `🎯 <strong>Level ${tier} Payout: Minimum ₹${minAmt.toFixed(0)}</strong> (Gamified: 1st ₹5, 2nd ₹25, 3rd+ ₹100). Payouts are reviewed within 24-48 hours.`;
+      }
+      if (amtInput) {
+        amtInput.min = minAmt;
+        amtInput.placeholder = 'Min ' + minAmt.toFixed(0);
+      }
 
       if (w.can_withdraw) {
         if (form) form.style.display = 'block';
         if (disabledNote) disabledNote.style.display = 'none';
         if (amtInput) {
           amtInput.max = w.withdrawable_balance;
-          amtInput.value = Math.min(w.withdrawable_balance, 500);
+          amtInput.value = Math.min(w.withdrawable_balance, Math.max(minAmt, 5));
         }
       } else {
         if (form) form.style.display = 'none';
         if (disabledNote) {
           disabledNote.style.display = 'block';
-          disabledNote.textContent = '🔒 Minimum ₹100 withdrawable balance required (Available: ₹' + (w.withdrawable_balance || 0).toFixed(2) + ').';
+          disabledNote.textContent = `🔒 Minimum ₹${minAmt.toFixed(0)} withdrawable balance required for Level ${tier} (Available: ₹${(w.withdrawable_balance || 0).toFixed(2)}).`;
         }
       }
 

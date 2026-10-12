@@ -590,8 +590,18 @@ def api_reports():
             'status': 'open',
         }
 
+        client = None
         try:
-            result = supabase.table('viewer_failure_reports').insert(report_data).execute()
+            from methods.supabase_helper import init_supabase_admin
+            client = init_supabase_admin() or init_supabase()
+        except Exception:
+            client = init_supabase()
+
+        if not client:
+            return jsonify({'success': False, 'error': 'Database client unavailable'}), 500
+
+        try:
+            result = client.table('viewer_failure_reports').insert(report_data).execute()
             report_id = result.data[0].get('id') if result.data else None
         except Exception as e:
             return jsonify({'success': False, 'error': str(e)}), 500
@@ -2493,6 +2503,29 @@ def chat_user_info(user_id):
 from methods.search_api import search_v2_endpoint, search_analytics_endpoint
 api_bp.add_url_rule('/api/v2/search', view_func=search_v2_endpoint, methods=['GET'])
 api_bp.add_url_rule('/api/v2/search/analytics', view_func=search_analytics_endpoint, methods=['POST'])
+
+
+# ─── Interactive Guides API ───────────────────────────────────────────────
+@api_bp.route('/api/guides/eligible', methods=['GET'])
+def api_get_eligible_guides():
+    from methods.guide_service import get_eligible_guides
+    user_id = session.get('user', {}).get('uid') or session.get('user_id')
+    screen = request.args.get('screen')
+    eligible = get_eligible_guides(user_id=user_id, screen=screen)
+    return jsonify({'success': True, 'guides': eligible}), 200
+
+
+@api_bp.route('/api/guides/<guide_id>/progress', methods=['POST'])
+def api_update_guide_progress(guide_id):
+    from methods.guide_service import update_guide_progress
+    user_id = session.get('user', {}).get('uid') or session.get('user_id') or 'guest'
+    data = request.get_json(silent=True) or {}
+    status = data.get('status', 'in_progress')
+    current_step = data.get('current_step', 0)
+    version = data.get('version', 1)
+    ok = update_guide_progress(user_id, guide_id, status, current_step, version)
+    return jsonify({'success': ok}), 200
+
 
 
 

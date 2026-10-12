@@ -222,6 +222,14 @@
   .btn-amber-sm:hover {
     background: #d97706;
   }
+  .btn-rose-sm {
+    background: #ef4444;
+    color: white;
+  }
+  .btn-rose-sm:hover {
+    background: #dc2626;
+    transform: translateY(-1px);
+  }
   .timestamp {
     color: var(--text-muted);
     font-size: 0.78rem;
@@ -523,6 +531,40 @@ async function changeReportStatus(reportId, newStatus) {
   }
 }
 
+// Completely remove file from database and Cloudinary / cloud storage
+async function deleteReportFile(reportId) {
+  const r = reportsData.find(item => String(item.id) === String(reportId));
+  const fileName = (r && r.file_name) ? r.file_name : 'this file';
+  const docId = (r && r.doc_id) ? r.doc_id : '';
+
+  const confirmMsg = `Are you sure you want to completely delete "${fileName}"?\n\nThis will permanently delete the file from Cloudinary and all cloud storage, AND remove all matching records from the database.\n\nThis action cannot be undone!`;
+  if (!confirm(confirmMsg)) return;
+
+  try {
+    const res = await fetch(`/api/admin/file-reports/${reportId}/delete-file`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ doc_id: docId })
+    });
+    const data = await res.json();
+    if (res.ok && data.success) {
+      reportsData = reportsData.filter(item => String(item.id) !== String(reportId) && (!docId || String(item.doc_id) !== String(docId)));
+      renderReports();
+      updateKPIs();
+      if (typeof showAdminToast === 'function') {
+        showAdminToast(data.message || 'File permanently deleted from storage and database!', 'success');
+      } else {
+        alert(data.message || 'File permanently deleted!');
+      }
+    } else {
+      alert(data.message || 'Failed to completely delete file');
+    }
+  } catch (err) {
+    console.error('Error deleting file:', err);
+    alert('Network error while deleting file.');
+  }
+}
+
 function renderReports() {
   const search = document.getElementById('report-search').value.toLowerCase().trim();
   const statusFilter = document.getElementById('status-filter').value;
@@ -596,6 +638,12 @@ function renderReports() {
           <i class="fas fa-arrow-rotate-left"></i> Reopen
         </button>`;
     }
+
+    // Completely remove file from DB and Cloudinary
+    actionButtons += `
+      <button type="button" class="btn-sm btn-rose-sm" onclick="deleteReportFile('${r.id}')" title="Permanently delete file from DB & cloud storage">
+        <i class="fas fa-trash-can"></i> Delete File
+      </button>`;
 
     return `
       <tr>
