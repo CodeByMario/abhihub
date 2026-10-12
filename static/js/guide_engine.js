@@ -16,6 +16,10 @@
       this.spotlightSvg = null;
       this.tooltipEl = null;
       this.menuEl = null;
+      this._keyHandler = null;
+      this._resizeHandler = null;
+      this._currentTarget = null;
+      this._currentStep = null;
       this.initStyles();
     }
 
@@ -48,9 +52,13 @@
           backdrop-filter: none !important;
         }
 
+        body.guide-body-locked {
+          overflow: hidden !important;
+        }
+
         /* Tooltip styling */
         .guide-tooltip {
-          position: absolute;
+          position: fixed;
           z-index: 99990;
           background: #1e293b;
           color: #f8fafc;
@@ -58,8 +66,15 @@
           border-radius: 12px;
           padding: 16px;
           width: 300px;
+          max-width: calc(100vw - 32px);
           box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
           font-family: inherit;
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .guide-spotlight-svg, .guide-tooltip, .guide-menu-card, .guide-backdrop {
+            transition: none !important;
+            animation: none !important;
+          }
         }
         .guide-tooltip h4 {
           margin: 0 0 6px 0;
@@ -238,6 +253,7 @@
 
     showFeatureMenu(guides, title = 'Features on this Page', subtitle = 'Select a feature to explore its interactive guide, or skip.') {
       this.cleanup();
+      document.body.classList.add('guide-body-locked');
 
       const backdrop = document.createElement('div');
       backdrop.className = 'guide-backdrop';
@@ -247,6 +263,9 @@
 
       const card = document.createElement('div');
       card.className = 'guide-menu-card';
+      card.setAttribute('role', 'dialog');
+      card.setAttribute('aria-modal', 'true');
+      card.setAttribute('aria-labelledby', 'guide-menu-title');
       this.menuEl = card;
 
       let itemsHtml = '';
@@ -275,8 +294,8 @@
 
       card.innerHTML = `
         <div class="guide-menu-header">
-          <h3>${title}</h3>
-          <button class="guide-menu-close" id="guide-menu-close">&times;</button>
+          <h3 id="guide-menu-title">${title}</h3>
+          <button class="guide-menu-close" id="guide-menu-close" aria-label="Close guides menu">&times;</button>
         </div>
         <p class="guide-menu-desc">${subtitle}</p>
         <ul class="guide-menu-list">${itemsHtml}</ul>
@@ -286,6 +305,26 @@
       `;
 
       document.body.appendChild(card);
+      this._attachEscape();
+
+      // Focus trap and initial focus
+      const focusableEls = card.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+      if (focusableEls.length > 0) focusableEls[0].focus();
+
+      card.addEventListener('keydown', (e) => {
+        if (e.key !== 'Tab') return;
+        const focusables = card.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+        if (focusables.length === 0) return;
+        const first = focusables[0];
+        const last = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      });
 
       card.querySelector('#guide-menu-close').addEventListener('click', () => this.cleanup());
       card.querySelector('#guide-menu-dismiss-all').addEventListener('click', () => this.cleanup());
@@ -313,6 +352,10 @@
     }
 
     startGuide(guide) {
+      if (!guide || !guide.steps || guide.steps.length === 0) {
+        this.complete();
+        return;
+      }
       this.currentGuide = guide;
       this.currentStepIdx = guide.current_step || 0;
       this.showStep(this.currentStepIdx);
@@ -370,7 +413,8 @@
       const step = steps[idx];
       const target = document.querySelector(step.target);
 
-      if (!target) {
+      const isVisible = target && (target.offsetWidth > 0 || target.offsetHeight > 0 || target.getClientRects().length > 0);
+      if (!target || !isVisible) {
         if (idx + 1 < steps.length) {
           this.showStep(idx + 1);
         } else {
@@ -384,13 +428,34 @@
 
       target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
 
-      // Small delay to allow scroll position before calculating bounding rect
-      setTimeout(() => {
-        this.renderSpotlight(target);
-        target.classList.add('guide-highlight-target');
-        this.renderTooltip(target, step, idx, steps.length);
-        this.syncProgress('in_progress', idx);
-      }, 150);
+      // Wait until smooth scrolling settles before capturing rects
+      let lastTop = null;
+      let sameCount = 0;
+      const checkScrollSettled = () => {
+        const currentTop = target.getBoundingClientRect().top;
+        if (lastTop !== null && Math.abs(currentTop - lastTop) < 1) {
+          sameCount++;
+        } else {
+          sameCount = 0;
+        }
+        lastTop = currentTop;
+
+        if (sameCount >= 3) {
+          this._currentTarget = target;
+          this._currentStep = step;
+          this.renderSpotlight(target);
+          target.classList.add('guide-highlight-target');
+          this.renderTooltip(target, step, idx, steps.length);
+          this.syncProgress('in_progress', idx);
+          this._attachEscape();
+          this._attachResize();
+        } else {
+          requestAnimationFrame(checkScrollSettled);
+        }
+      };
+
+      // Start check with initial raf
+      requestAnimationFrame(checkScrollSettled);
     }
 
     renderTooltip(target, step, idx, total) {
@@ -399,6 +464,8 @@
       const rect = target.getBoundingClientRect();
       const tooltip = document.createElement('div');
       tooltip.className = 'guide-tooltip';
+      tooltip.setAttribute('role', 'region');
+      tooltip.setAttribute('aria-label', `Guide step: ${step.title}`);
 
       const isLast = idx === total - 1;
       const aimBadge = this.currentGuide?.aim ? `<div class="guide-aim-badge">🎯 Aim: ${this.currentGuide.aim}</div>` : '';
@@ -418,8 +485,17 @@
       document.body.appendChild(tooltip);
       this.tooltipEl = tooltip;
 
-      const top = window.scrollY + rect.bottom + 12;
-      const left = Math.max(16, Math.min(window.scrollX + rect.left, window.innerWidth - 320));
+      const tooltipH = tooltip.offsetHeight || 180;
+      const tooltipW = tooltip.offsetWidth || 300;
+      const margin = 12;
+
+      // Position: fixed uses viewport coordinates directly
+      const below = rect.bottom + margin;
+      const above = rect.top - tooltipH - margin;
+      const fitsBelow = below + tooltipH <= window.innerHeight - 8;
+      const top = fitsBelow ? below : Math.max(8, above);
+      const left = Math.max(12, Math.min(rect.left, window.innerWidth - tooltipW - 12));
+
       tooltip.style.top = `${top}px`;
       tooltip.style.left = `${left}px`;
 
@@ -436,7 +512,19 @@
     }
 
     cleanup() {
+      document.body.classList.remove('guide-body-locked');
       this.clearHighlight();
+      this._currentTarget = null;
+      this._currentStep = null;
+      if (this._keyHandler) {
+        document.removeEventListener('keydown', this._keyHandler);
+        this._keyHandler = null;
+      }
+      if (this._resizeHandler) {
+        window.removeEventListener('resize', this._resizeHandler);
+        window.removeEventListener('scroll', this._resizeHandler);
+        this._resizeHandler = null;
+      }
       if (this.overlayEl) {
         this.overlayEl.remove();
         this.overlayEl = null;
@@ -449,6 +537,31 @@
         this.menuEl.remove();
         this.menuEl = null;
       }
+    }
+
+    _attachEscape() {
+      if (this._keyHandler) {
+        document.removeEventListener('keydown', this._keyHandler);
+      }
+      this._keyHandler = (e) => {
+        if (e.key === 'Escape') this.cleanup();
+      };
+      document.addEventListener('keydown', this._keyHandler);
+    }
+
+    _attachResize() {
+      if (this._resizeHandler) return;
+      let rafId = null;
+      this._resizeHandler = () => {
+        if (rafId) cancelAnimationFrame(rafId);
+        rafId = requestAnimationFrame(() => {
+          if (!this._currentTarget || !this.tooltipEl) return;
+          this.renderSpotlight(this._currentTarget);
+          this.renderTooltip(this._currentTarget, this._currentStep, this.currentStepIdx, this.currentGuide?.steps?.length || 1);
+        });
+      };
+      window.addEventListener('resize', this._resizeHandler, { passive: true });
+      window.addEventListener('scroll', this._resizeHandler, { passive: true });
     }
 
     async syncProgressDirect(guideId, status, step = 0, version = 1) {

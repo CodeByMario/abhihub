@@ -144,6 +144,43 @@ class StudioImageViewer {
             this.isDragging = false;
             this.imgEl.style.cursor = this.scale > 1 ? 'grab' : 'default';
         });
+
+        // Touch Pinch-to-Zoom & Drag for Mobile
+        let initialDist = 0;
+        let initialScale = 1;
+        this.containerEl.addEventListener('touchstart', (e) => {
+            if (e.touches.length === 2) {
+                initialDist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                initialScale = this.scale;
+            } else if (e.touches.length === 1 && this.scale > 1) {
+                this.isDragging = true;
+                this.startX = e.touches[0].clientX - this.panX;
+                this.startY = e.touches[0].clientY - this.panY;
+            }
+        }, { passive: true });
+
+        this.containerEl.addEventListener('touchmove', (e) => {
+            if (e.touches.length === 2 && initialDist > 0) {
+                const dist = Math.hypot(
+                    e.touches[0].clientX - e.touches[1].clientX,
+                    e.touches[0].clientY - e.touches[1].clientY
+                );
+                this.scale = Math.min(Math.max(0.5, initialScale * (dist / initialDist)), 5);
+                this.update();
+            } else if (e.touches.length === 1 && this.isDragging) {
+                this.panX = e.touches[0].clientX - this.startX;
+                this.panY = e.touches[0].clientY - this.startY;
+                this.update();
+            }
+        }, { passive: true });
+
+        this.containerEl.addEventListener('touchend', () => {
+            this.isDragging = false;
+            initialDist = 0;
+        }, { passive: true });
     }
 
     update() {
@@ -248,6 +285,33 @@ class StoreRoomStudio {
         document.getElementById('labelForm')?.addEventListener('submit', (e) => this.handleFormSubmit(e));
         document.getElementById('saveBtn')?.addEventListener('click', () => this.triggerSave());
 
+        // Quick Add Subject Button Trigger
+        document.getElementById('triggerAddSubjectBtn')?.addEventListener('click', () => {
+            const semVal = document.getElementById('semester')?.value || '';
+            const deptVal = document.getElementById('branch')?.value || '';
+            if (window.AbhiHubSelect?.showAddEntityModal) {
+                window.AbhiHubSelect.showAddEntityModal('subject', 'subjectName', semVal, '');
+            } else {
+                const modal = document.getElementById('globalEntityModal');
+                if (modal) {
+                    modal.style.display = 'flex';
+                    const semSelect = document.getElementById('entitySemester');
+                    if (semSelect && semVal) semSelect.value = semVal;
+                    document.getElementById('entityModalTitle').textContent = 'Add New Subject';
+                    document.querySelectorAll('.entity-field-group').forEach(el => el.style.display = 'none');
+                    document.getElementById('entityNameField').style.display = 'block';
+                    document.getElementById('entityCodeField').style.display = 'block';
+                    document.getElementById('entitySemesterField').style.display = 'block';
+                    const form = document.getElementById('entityModalForm');
+                    if (form) {
+                        form.dataset.entity = 'subject';
+                        form.dataset.targetId = 'subjectName';
+                        form.dataset.parentVal = semVal;
+                    }
+                }
+            }
+        });
+
         // Subject change auto-populates code
         document.getElementById('subjectName')?.addEventListener('change', (e) => {
             const tsSubj = window.AbhiHubSelect?.instances['subjectName'];
@@ -340,6 +404,13 @@ class StoreRoomStudio {
         if (countSort) countSort.textContent = this.state.sortedCount;
         if (countTot) countTot.textContent = total;
         if (mobileQueueCount) mobileQueueCount.textContent = this.state.remainingCount;
+
+        // Gamified Points: Each labeled file gives potential 5 Points per unique viewer (₹0.05 / view)
+        const pointsBadge = document.getElementById('rewardPointsCount');
+        if (pointsBadge) {
+            const earnedPoints = this.state.sortedCount * 5;
+            pointsBadge.textContent = `${earnedPoints} Pts`;
+        }
     }
 
     renderQueue() {
@@ -590,7 +661,8 @@ class StoreRoomStudio {
             const res = await StoreRoomAPI.submitLabel(payload);
             const data = res.data;
             if (res.response && res.response.ok && data && data.success) {
-                this.showToast('File labeled and published to academic library!', 'success');
+                this.triggerGamifiedRewardPop(btn);
+                this.showToast('🎉 +5 Royalty Points unlocked! File published to academic library.', 'success');
 
                 if (this.state.rememberLabels) {
                     this.saveRememberedLabels();
@@ -630,6 +702,21 @@ class StoreRoomStudio {
                 btn.disabled = false;
                 btn.innerHTML = originalText;
             }
+        }
+    }
+
+    triggerGamifiedRewardPop(anchorEl) {
+        try {
+            const rect = anchorEl ? anchorEl.getBoundingClientRect() : { left: window.innerWidth / 2, top: window.innerHeight / 2 };
+            const pop = document.createElement('div');
+            pop.className = 'point-pop-badge';
+            pop.innerHTML = '✨ +5 Points Earned! (₹0.05/view)';
+            pop.style.left = `${Math.max(16, rect.left - 40)}px`;
+            pop.style.top = `${Math.max(16, rect.top - 20)}px`;
+            document.body.appendChild(pop);
+            setTimeout(() => pop.remove(), 1500);
+        } catch (e) {
+            console.warn('Pop animation error', e);
         }
     }
 

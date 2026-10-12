@@ -30,7 +30,7 @@
 </header>
 
 <main class="store-room-container studio-wrapper fade-in">
-    <!-- Top Stats & Progress Bar -->
+    <!-- Top Stats & Gamified Rewards Bar -->
     <section class="stats-container" aria-label="Storage Statistics">
         <div class="pcard stat-card total">
             <div class="stat-header">
@@ -52,6 +52,14 @@
                 <span class="stat-icon-badge orange" aria-hidden="true">⏳</span>
             </div>
             <div class="stat-number" id="remainingCount">{{ remaining_papers }}</div>
+        </div>
+        <div class="pcard stat-card points-card" title="Earn 5 Points per unique viewer on every labeled file! (1 Pt = ₹0.01)">
+            <div class="stat-header">
+                <span class="stat-label">Potential Royalty Points</span>
+                <span class="stat-icon-badge gold" aria-hidden="true">✨</span>
+            </div>
+            <div class="stat-number points-val" id="rewardPointsCount">0 Pts</div>
+            <div class="points-sub">5 Pts / unique view · ₹0.05</div>
         </div>
     </section>
 
@@ -242,7 +250,10 @@
                     </div>
 
                     <div class="meta-field">
-                        <label for="subjectName">Subject *</label>
+                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                            <label for="subjectName" style="margin-bottom:0;">Subject *</label>
+                            <button type="button" class="btn-text-action" id="triggerAddSubjectBtn" style="background:none; border:none; color:var(--brand-blue-accent, #4FA9E0); font-size:0.775rem; font-weight:600; cursor:pointer; padding:0;">+ Add New Subject</button>
+                        </div>
                         <select class="abhihub-select subject-select form-input" id="subjectName" name="subject_id"
                             data-entity="subject" data-parent="semester" data-allow-add="true" required>
                             <option value="">Search or select subject...</option>

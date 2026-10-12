@@ -81,7 +81,7 @@ def get_eligible_guides(user_id, screen=None):
         guide_copy['status'] = progress.get('status', 'not_started') if progress else 'not_started'
         eligible.append(guide_copy)
 
-    eligible.sort(key=lambda x: x.get('priority', 0), reverse=True)
+    eligible.sort(key=lambda x: (-x.get('priority', 0), str(x.get('id', ''))))
     return eligible
 
 

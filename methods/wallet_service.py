@@ -3,6 +3,7 @@ Creator Wallet and Withdrawal Management Service.
 Handles 30-day holding periods, ledger reconciliation, and minimum ₹100 payout requests.
 """
 
+import re
 from datetime import datetime, timezone, timedelta
 import logging
 from methods.supabase_helper import init_supabase, init_supabase_admin
@@ -140,7 +141,7 @@ def unlock_eligible_entries(creator_id=None):
     """
     now_iso = datetime.now(timezone.utc).isoformat()
     try:
-        query = supabase.table('wallet_ledger').select('*').eq('status', 'locked').lte('unlock_at', now_iso)
+        query = supabase.table('wallet_ledger').select('*').eq('type', 'credit').eq('status', 'locked').lte('unlock_at', now_iso)
         if creator_id:
             query = query.eq('creator_id', creator_id)
         entries = query.execute().data or []
@@ -234,20 +235,47 @@ def get_creator_wallet(creator_id):
             wallet = w_res.data[0]
 
         total_views, view_earnings = get_creator_views_and_earnings(creator_id)
-        sales_withdrawable = float(wallet.get('withdrawable_balance', 0))
-        total_withdrawn = float(wallet.get('total_withdrawn', 0))
 
-        # Reconcile lifetime sales credits vs view earnings to prevent double-deducting withdrawals
-        credits_res = supabase.table('wallet_ledger').select('amount, order_id').eq('creator_id', str(creator_id)).eq('type', 'credit').execute()
-        total_sales_credited = sum(
+        # 1. Calculate unlocked and pending note sales from ledger
+        credits_res = supabase.table('wallet_ledger').select('amount, order_id, status').eq('creator_id', str(creator_id)).eq('type', 'credit').execute()
+        unlocked_sales = sum(
             float(c.get('amount') or 0.0)
             for c in (credits_res.data or [])
-            if not str(c.get('order_id') or '').startswith('REFUND-')
+            if c.get('status') == 'available' and not str(c.get('order_id') or '').startswith('REFUND-')
         )
-        sales_withdrawn = max(0.0, total_sales_credited - sales_withdrawable)
-        view_withdrawn = max(0.0, total_withdrawn - sales_withdrawn)
-        remaining_views = max(0.0, round(view_earnings - view_withdrawn, 2))
-        effective_withdrawable = round(sales_withdrawable + remaining_views, 2)
+        pending_sales = sum(
+            float(c.get('amount') or 0.0)
+            for c in (credits_res.data or [])
+            if c.get('status') == 'locked'
+        )
+
+        # 2. Calculate active payout deductions (pending, processing, and completed)
+        all_payouts_res = supabase.table('creator_payout_requests').select('amount, status').eq('creator_id', str(creator_id)).execute()
+        all_payouts = all_payouts_res.data or []
+        active_payouts = [p for p in all_payouts if p.get('status') != 'rejected']
+        total_payouts_deducted = sum(float(p.get('amount') or 0.0) for p in active_payouts)
+        total_completed_withdrawn = sum(float(p.get('amount') or 0.0) for p in active_payouts if p.get('status') == 'completed')
+
+        # 3. Exact Lifetime Earned and Net Withdrawable Balance
+        total_lifetime_earned = round(view_earnings + unlocked_sales, 2)
+        effective_withdrawable = max(0.0, round(total_lifetime_earned - total_payouts_deducted, 2))
+
+        # Reconcile sales breakdown and total withdrawn
+        sales_withdrawn = min(unlocked_sales, total_payouts_deducted)
+        sales_withdrawable = max(0.0, round(unlocked_sales - sales_withdrawn, 2))
+        total_withdrawn = total_completed_withdrawn
+
+        # Sync reconciled values into creator_wallets table
+        try:
+            supabase.table('creator_wallets').upsert({
+                'user_id': str(creator_id),
+                'pending_balance': round(pending_sales, 2),
+                'withdrawable_balance': round(effective_withdrawable, 2),
+                'total_withdrawn': round(total_withdrawn, 2),
+                'updated_at': datetime.now(timezone.utc).isoformat()
+            }).execute()
+        except Exception:
+            pass
 
         ledger = supabase.table('wallet_ledger').select('*').eq('creator_id', str(creator_id)).order('created_at', desc=True).limit(20).execute().data or []
         payouts = supabase.table('creator_payout_requests').select('*').eq('creator_id', str(creator_id)).order('created_at', desc=True).limit(10).execute().data or []
@@ -308,6 +336,17 @@ def request_withdrawal(creator_id, amount, payout_method, payout_details):
 
     if not isinstance(payout_details, dict) or not payout_details:
         return False, "Account or UPI details are required"
+
+    if payout_method == 'upi':
+        upi_id = str(payout_details.get('upi_id', '') or payout_details.get('vpa', '')).strip()
+        if not upi_id:
+            return False, "UPI ID is required"
+        if not re.match(r'^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z0-9]{2,64}$', upi_id):
+            return False, "Invalid UPI ID format. Must be in format username@bank (e.g., yourname@okhdfcbank)"
+    elif payout_method == 'bank':
+        acc_info = str(payout_details.get('account_info', '')).strip()
+        if not acc_info or len(acc_info) < 6:
+            return False, "Please provide complete bank account details and IFSC code"
 
     try:
         # Prevent double-spending: disallow new payout if one is already pending/processing
@@ -381,9 +420,9 @@ def request_withdrawal(creator_id, amount, payout_method, payout_details):
             'creator_id': str(creator_id),
             'amount': amt,
             'type': 'payout',
-            'status': 'locked',
+            'status': 'pending',
             'order_id': payout_order_id,
-            'unlock_at': now.isoformat(),
+            'unlock_at': None,
             'created_at': now.isoformat()
         }).execute()
 

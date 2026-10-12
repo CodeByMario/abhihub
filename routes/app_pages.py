@@ -301,6 +301,14 @@ def settings():
     if profile:
         merged_user_data.update(profile)
 
+    try:
+        import app
+        quota = app._get_quota()
+        if quota and 'credits' in quota:
+            merged_user_data['paper_quota_remaining'] = quota['credits']
+    except Exception:
+        pass
+
     return render_template('settings.html',
                            user_data=merged_user_data,
                            user=user_info,

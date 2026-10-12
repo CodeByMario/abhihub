@@ -947,8 +947,29 @@ def verify_hierarchy(college_id: str, branch_id: str, subject_id: str) -> bool:
         # 1. Verify subject belongs to department (branch)
         if subject_id and branch_id:
             sub_res = client.table('subjects').select('id, department_id').eq('id', subject_id).execute()
-            if sub_res.data and str(sub_res.data[0].get('department_id')) != str(branch_id):
-                return False
+            if sub_res.data:
+                sub_dept_id = str(sub_res.data[0].get('department_id') or '')
+                if sub_dept_id and sub_dept_id != str(branch_id):
+                    is_allowed_cross = False
+                    # Allow if both departments belong to the same college (inter-departmental / shared curriculum)
+                    if college_id:
+                        cd_res = client.table('college_departments').select('department_id').eq('college_id', college_id).execute()
+                        if cd_res.data:
+                            c_depts = {str(item.get('department_id')) for item in cd_res.data}
+                            if sub_dept_id in c_depts and str(branch_id) in c_depts:
+                                is_allowed_cross = True
+
+                    # Allow if branch is First Year / General / Basic Sciences / Common
+                    if not is_allowed_cross:
+                        dept_res = client.table('departments').select('name').eq('id', branch_id).execute()
+                        if dept_res.data:
+                            dname = (dept_res.data[0].get('name') or '').lower()
+                            if any(k in dname for k in ['first year', 'basic science', 'general', 'humanities', 'common', 'applied science', 'fy']):
+                                is_allowed_cross = True
+
+                    if not is_allowed_cross:
+                        logging.warning(f"[verify_hierarchy] Subject {subject_id} belongs to dept {sub_dept_id}, mismatched with selected branch {branch_id}")
+                        return False
                 
         # 2. Verify department belongs to college
         if branch_id and college_id:

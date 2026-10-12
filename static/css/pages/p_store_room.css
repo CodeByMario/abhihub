@@ -125,6 +125,63 @@
   letter-spacing: -0.02em;
 }
 
+.stat-card.points-card {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.08) 0%, rgba(234, 88, 12, 0.04) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card.points-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.15) 0%, transparent 60%);
+  pointer-events: none;
+}
+
+.stat-number.points-val {
+  color: #D97706;
+  text-shadow: 0 0 16px rgba(245, 158, 11, 0.3);
+}
+
+[data-theme="dark"] .stat-number.points-val {
+  color: #FBBF24;
+}
+
+.points-sub {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--dash-text-muted, #64748B);
+  margin-top: 0.2rem;
+}
+
+/* Gamified Points Float-up Pop Animation */
+@keyframes pointEarnPop {
+  0% { transform: translateY(0) scale(0.8); opacity: 0; }
+  25% { transform: translateY(-12px) scale(1.25); opacity: 1; }
+  75% { transform: translateY(-32px) scale(1.1); opacity: 0.9; }
+  100% { transform: translateY(-48px) scale(0.9); opacity: 0; }
+}
+
+.point-pop-badge {
+  position: fixed;
+  z-index: 999999;
+  font-size: 1.1rem;
+  font-weight: 800;
+  color: #F59E0B;
+  background: rgba(15, 23, 42, 0.9);
+  border: 1.5px solid #F59E0B;
+  padding: 6px 14px;
+  border-radius: 99px;
+  box-shadow: 0 8px 24px rgba(245, 158, 11, 0.4);
+  pointer-events: none;
+  animation: pointEarnPop 1.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
 /* Progress banner */
 .progress-banner-card {
   padding: 0.85rem 1.25rem;
