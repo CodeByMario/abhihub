@@ -1064,7 +1064,20 @@ def api_extract_upload_metadata():
     from methods.supabase_helper import get_ai_profile, get_subjects_by_department
 
     file = request.files.get('upload_document') or request.files.get('file')
-    if not file or file.filename == '':
+    file_url = request.form.get('file_url') or (request.get_json(silent=True) or {}).get('file_url')
+    if not file and file_url:
+        import requests, io
+        try:
+            r = requests.get(file_url, timeout=12)
+            if r.status_code == 200:
+                file_name = request.form.get('filename') or (request.get_json(silent=True) or {}).get('filename') or file_url.split('/')[-1].split('?')[0]
+                file = io.BytesIO(r.content)
+                file.filename = file_name
+                file.mimetype = r.headers.get('content-type') or ('application/pdf' if file_name.endswith('.pdf') else 'image/jpeg')
+        except Exception as e:
+            logging.warning(f"[extract-upload-metadata] Download from url failed: {e}")
+
+    if not file or not getattr(file, 'filename', None):
         return jsonify({'success': False, 'message': 'No file provided'}), 400
 
     filename = file.filename or request.form.get('filename', '')
@@ -1463,7 +1476,7 @@ def _get_safe_cors_origin():
 def _secure_file_headers(extra=None):
     """Build common no-store and anti-embedding headers for proxied files."""
     headers = {
-        'Cache-Control': 'private, no-store, must-revalidate',
+        'Cache-Control': 'private, max-age=86400, stale-while-revalidate=604800',
         'Content-Disposition': 'inline',
         'Access-Control-Allow-Origin': _get_safe_cors_origin(),
         'X-Content-Type-Options': 'nosniff',
@@ -2527,5 +2540,52 @@ def api_update_guide_progress(guide_id):
     return jsonify({'success': ok}), 200
 
 
+@api_bp.route('/api/user/uploads', methods=['GET'])
+@auth_required
+def api_get_user_uploads():
+    """Fetch files uploaded by the authenticated user with tracking info."""
+    try:
+        user_info = session.get('user', {})
+        user_id = user_info.get('uid')
+        user_email = user_info.get('email', '')
 
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'data': [], 'message': 'Database unavailable'}), 500
 
+        u_id = user_id
+        if not u_id and user_email:
+            p_res = client.table('profiles').select('id').eq('email', user_email).limit(1).execute()
+            if p_res.data:
+                u_id = p_res.data[0]['id']
+
+        if not u_id:
+            return jsonify({'success': True, 'data': [], 'count': 0}), 200
+
+        res = client.table('documents').select(
+            'id, title, document_category, file_type, file_size_bytes, status, view_count, like_count, is_paid, price, created_at, subjects(name)'
+        ).eq('uploader_id', u_id).order('created_at', desc=True).limit(50).execute()
+
+        raw_data = res.data or []
+        items = []
+        for r in raw_data:
+            subj = (r.get('subjects') or {}).get('name') if isinstance(r.get('subjects'), dict) else ''
+            items.append({
+                'id': r.get('id'),
+                'title': r.get('title') or 'Untitled Document',
+                'category': (r.get('document_category') or 'notes').capitalize(),
+                'subject': subj or 'General',
+                'file_type': (r.get('file_type') or 'pdf').upper(),
+                'status': r.get('status') or 'pending',
+                'views': r.get('view_count') or 0,
+                'likes': r.get('like_count') or 0,
+                'is_paid': bool(r.get('is_paid')),
+                'price': float(r.get('price') or 0),
+                'created_at': r.get('created_at', '')
+            })
+
+        return jsonify({'success': True, 'data': items, 'count': len(items)}), 200
+    except Exception as e:
+        logging.error(f"[API /api/user/uploads] Error: {e}")
+        return jsonify({'success': False, 'data': [], 'message': str(e)}), 500

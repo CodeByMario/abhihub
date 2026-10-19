@@ -1,6 +1,35 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+    {% if IS_PRODUCTION %}
+    <!-- Production Mode: Prevent Opening DevTools & Inspect Elements -->
+    <script>
+        (function() {
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                return false;
+            }, { capture: true });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'F12' || e.keyCode === 123) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+                if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+            }, { capture: true });
+        })();
+    </script>
+    {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Admin Command Center{% endblock %} | AbhiHub</title>
@@ -517,10 +546,12 @@
                 <i class="fas fa-coins"></i>
                 <span>Economy & Scoring</span>
             </a>
+            {% if not IS_PRODUCTION %}
             <a href="/admin/developer" class="nav-link {% if request.path == '/admin/developer' %}active{% endif %}">
                 <i class="fas fa-terminal"></i>
                 <span>Developer & Logs</span>
             </a>
+            {% endif %}
         </nav>
 
         <div class="sidebar-footer">

@@ -52,9 +52,15 @@
   };
 
   function getActiveModelDisplayName(modelId) {
-    const m = modelId || localStorage.getItem('ai_preferred_model') || '01-ai/yi-large';
+    const m = modelId || localStorage.getItem('ai_preferred_model') || 'google/gemma-4-31b-it:free';
     const opt = document.querySelector(`.ai-model-opt[data-model="${m}"]`);
     if (opt && opt.getAttribute('data-display')) return opt.getAttribute('data-display');
+    if (m.includes('gemma-4') || m.includes('gemma')) return 'Gemma 4';
+    if (m.includes('llama-3.3-70b')) return 'Llama 3.3 70B';
+    if (m.includes('deepseek-r1')) return 'DeepSeek R1';
+    if (m.includes('gemini')) return 'Gemini 2.0 Flash';
+    if (m.includes('qwen-2.5-72b')) return 'Qwen 2.5 72B';
+    if (m.includes('mistral-small')) return 'Mistral Small';
     if (m.includes('SmolLM2')) return 'Tara';
     if (m.includes('Qwen2.5-0.5B') || m.includes('0.5B')) return 'Riya';
     if (m.includes('DeepSeek-R1-Distill') || m.includes('1.5B-q4')) return 'Diya';
@@ -63,10 +69,6 @@
     if (m.includes('Gemma-2-2b')) return 'Pooja';
     if (m.includes('3B')) return 'Kavya';
     if (m.includes('yi-large')) return 'yi-large';
-    if (m.includes('deepseek-r1')) return 'DeepSeek R1';
-    if (m.includes('llama-3.3-70b')) return 'Llama 3.3 70B';
-    if (m.includes('gemini')) return 'Gemini 2.0 Flash';
-    if (m.includes('qwen-2.5-72b')) return 'Qwen 2.5 72B';
     return m.split('/').pop().replace(/:free/i, '');
   }
 
@@ -245,6 +247,7 @@
       window.location.href = url;
     }
   }
+  window.routeAppUrl = routeAppUrl;
 
   window.toggleAbhiAiDrawer = function() {
     const drw = document.getElementById('abhiAiDrawer');
@@ -552,8 +555,56 @@
         const errBubble = document.createElement('div');
         errBubble.className = 'ai-bubble assistant';
         errBubble.setAttribute('dir', 'auto');
-        errBubble.innerHTML = '⚠️ Please <a href="/login" style="color:#60a5fa;">log in</a> to use the assistant.';
+        errBubble.innerHTML = `
+          <div style="line-height:1.5; padding:2px;">
+            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px;">
+              <div style="font-weight:700; color:var(--tarika-ink); font-size:13.5px; display:flex; align-items:center; gap:6px;">
+                <span>🔑</span> <span>OpenRouter Key Setup (Free Models)</span>
+              </div>
+              <span style="font-size:10px; font-weight:700; background:rgba(16, 185, 129, 0.12); color:#059669; padding:2px 7px; border-radius:9999px; border:1px solid rgba(16, 185, 129, 0.25);">100% Free</span>
+            </div>
+            <p style="margin:0 0 10px 0; font-size:12.5px; color:var(--tarika-muted); line-height:1.5;">
+              You are currently not logged in. You can chat with Tarika without an account by connecting a free <strong>OpenRouter API key</strong>:
+            </p>
+            <div style="background:var(--tarika-bg); border:1px solid var(--tarika-line); border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:12px; line-height:1.6;">
+              <div style="font-weight:700; color:var(--tarika-ink); margin-bottom:6px; font-size:12px; display:flex; align-items:center; gap:5px;">
+                <span>🧭</span> <span>Directions to set up your key in AbhiHub:</span>
+              </div>
+              <div style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px;">
+                <span style="font-weight:700; color:var(--tarika-brand);">1.</span>
+                <span>Get a free key from OpenRouter (opens in a new tab):</span>
+              </div>
+              <div style="margin:0 0 10px 18px;">
+                <button type="button" onclick="window.open('https://openrouter.ai/keys', '_blank', 'noopener,noreferrer')" class="ai-card-btn ai-card-btn-primary" style="background:#1d4ed8 !important; color:#ffffff !important; border:none; padding:5px 12px !important; font-size:11.5px !important; border-radius:7px; cursor:pointer; font-weight:600;">
+                  <span>🔑</span> <span style="color:#ffffff !important;">Open openrouter.ai/keys (New Tab) ↗</span>
+                </button>
+              </div>
+              <div style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px;">
+                <span style="font-weight:700; color:var(--tarika-brand);">2.</span>
+                <span>In AbhiHub, tap the <strong>⚙️ icon</strong> in the top header of this chat (or go to your <strong>Account → Settings</strong>).</span>
+              </div>
+              <div style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px;">
+                <span style="font-weight:700; color:var(--tarika-brand);">3.</span>
+                <span>Look for <strong>OpenRouter API Key (BYOK)</strong>, paste your copied key, and click <strong>💾 Save Key &amp; Model</strong>.</span>
+              </div>
+              <div style="display:flex; align-items:flex-start; gap:6px;">
+                <span style="font-weight:700; color:var(--tarika-brand);">4.</span>
+                <span>That's it! You can now chat unlimited with free models: <strong>Gemma 4</strong>, <strong>Llama 3.3</strong>, or <strong>DeepSeek R1</strong>!</span>
+              </div>
+            </div>
+            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+              <button type="button" onclick="if(window.routeAppUrl){window.routeAppUrl('/settings');}else{window.location.href='/settings';}" class="ai-card-btn ai-card-btn-secondary" style="background:var(--tarika-bg, #ffffff) !important; color:var(--tarika-ink, #0f172a) !important; border:1px solid var(--tarika-line, #cbd5e1) !important; font-weight:600 !important; cursor:pointer;">
+                <span>⚙️</span> <span style="color:var(--tarika-ink, #0f172a) !important;">Go to Settings</span>
+              </button>
+              <button type="button" onclick="if(window.routeAppUrl){window.routeAppUrl('/login');}else{window.location.href='/login';}" class="ai-card-btn ai-card-btn-outline" style="background:rgba(29, 78, 216, 0.08) !important; color:#1d4ed8 !important; border:1px solid rgba(29, 78, 216, 0.25) !important; font-weight:600 !important; cursor:pointer;">
+                <span>🔐</span> <span style="color:#1d4ed8 !important;">Log In Instead</span>
+              </button>
+            </div>
+          </div>
+        `;
         msgList.appendChild(errBubble);
+        msgList.scrollTop = msgList.scrollHeight;
+        window.abortCurrentGeneration();
         return;
       }
 
@@ -783,8 +834,8 @@
     const badge = document.getElementById('aiDrawerModelBadge');
     if (!badge) return;
     const prefProvider = localStorage.getItem('ai_provider');
-    const prefModel = localStorage.getItem('ai_preferred_model') || '01-ai/yi-large';
-    let displayName = 'yi-large';
+    const prefModel = localStorage.getItem('ai_preferred_model') || 'google/gemma-4-31b-it:free';
+    let displayName = 'Gemma 4';
     if (prefProvider === 'webllm' || (prefModel && prefModel.includes('MLC'))) {
       if (prefModel.includes('SmolLM2-360M')) displayName = 'Tara';
       else if (prefModel.includes('0.5B')) displayName = 'Riya';
@@ -796,8 +847,7 @@
     } else if (prefProvider === 'ollama' || prefModel.includes('llama3.2:latest')) {
       displayName = 'Ollama Local';
     } else if (prefModel) {
-      const raw = prefModel.includes('/') ? prefModel.split('/')[1] : prefModel;
-      displayName = raw.replace(':free', '');
+      displayName = getActiveModelDisplayName(prefModel);
     }
     badge.innerHTML = `${displayName} <span style="font-size:8px; opacity:0.75;">▼</span>`;
 
@@ -858,7 +908,7 @@
         const prefProvider = localStorage.getItem('ai_provider');
         if (prefProvider === 'webllm') {
           localStorage.setItem('ai_provider', 'openrouter');
-          localStorage.setItem('ai_preferred_model', '01-ai/yi-large');
+          localStorage.setItem('ai_preferred_model', 'google/gemma-4-31b-it:free');
           window.updateModelBadgeDisplay();
         }
       }

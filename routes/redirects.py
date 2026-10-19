@@ -9,9 +9,10 @@ redirects_bp = Blueprint('redirects', __name__)
 
 # Static exact-path 301 redirects map: old_path -> new_path
 STATIC_REDIRECTS = {
-    # 2.2 Support & Tea donations
-    '/buy-me-tea': '/support',
-    '/buy-tea': '/support',
+    # 2.2 Support & Tea donations (Redirected to dashboard)
+    '/buy-me-tea': '/dashboard',
+    '/buy-tea': '/dashboard',
+    '/support': '/dashboard',
     '/earn-with-abhihub': '/contribute',
 
     # 2.3 Legal / Copyright

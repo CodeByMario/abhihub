@@ -19,6 +19,7 @@ from methods.supabase_helper import (
     log_label_audit,
     add_paper_verification,
     get_pending_verification_papers,
+    validate_uuid,
 )
 from methods.cloudinary_helper import (
     search_files,
@@ -36,11 +37,10 @@ _unlabeled_cache = {
 }
 
 
-def _mark_labeled(storage_provider, cloudinary_public_id):
+def _mark_labeled(storage_provider, cloudinary_public_id, filename=None, file_url=None):
     """Mark a storage asset as labeled."""
     storage_provider = storage_provider or ('cloudinary' if cloudinary_public_id else 'firebase')
-    if cloudinary_public_id:
-        mark_storage_asset_labeled(storage_provider, cloudinary_public_id)
+    mark_storage_asset_labeled(storage_provider, cloudinary_public_id, filename=filename, url=file_url)
 
 
 def get_cached_unlabeled_files():
@@ -194,11 +194,13 @@ def label_store_room_paper():
         )
 
         if result.get('success'):
-            _mark_labeled(storage_provider, cloudinary_public_id)
-            doc_id = result.get('data', {}).get('id')
-            if doc_id:
+            _mark_labeled(storage_provider, cloudinary_public_id, filename=filename, file_url=file_url)
+            doc_data = result.get('data', {})
+            doc_id = doc_data.get('id')
+            uploader_uid = doc_data.get('uploader_id') or user_id
+            if doc_id and uploader_uid:
                 log_label_audit(
-                    user_id=user_id or user_email.split('@')[0],
+                    user_id=uploader_uid,
                     document_id=doc_id,
                     action='LABELED_FROM_QUEUE',
                     details={'subject_id': subject_id, 'branch_id': branch_id, 'college_id': college_id}
@@ -207,11 +209,11 @@ def label_store_room_paper():
             return jsonify({
                 'success': True,
                 'message': 'Paper labeled successfully',
-                'data': result.get('data', {})
+                'data': doc_data
             }), 200
         else:
             if result.get('conflict'):
-                _mark_labeled(storage_provider, cloudinary_public_id)
+                _mark_labeled(storage_provider, cloudinary_public_id, filename=filename, file_url=file_url)
                 _unlabeled_cache['data'] = None
                 return jsonify({
                     'success': True,
@@ -249,6 +251,78 @@ def store_room_api_sync():
             return jsonify({'success': False, 'message': result.get('message', 'Sync failed')}), 500
     except Exception as e:
         logging.error(f"Error syncing storage: {e}")
+@store_room_bp.route('/store-room/api/history', methods=['GET'])
+@auth_required
+def store_room_api_history():
+    """Fetch history of papers labeled/curated by current user."""
+    try:
+        user_info = session.get('user', {})
+        user_id = user_info.get('uid', '')
+        user_email = user_info.get('email', '')
+        if not user_id and not user_email:
+            return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'data': []})
+
+        history_list = []
+        seen_doc_ids = set()
+
+        try:
+            user_candidates = []
+            if user_id and validate_uuid(user_id):
+                user_candidates.append(user_id)
+            if user_email:
+                try:
+                    p_res = client.table('profiles').select('id').eq('email', user_email).limit(1).execute()
+                    if p_res.data and p_res.data[0].get('id'):
+                        p_id = p_res.data[0]['id']
+                        if validate_uuid(p_id) and p_id not in user_candidates:
+                            user_candidates.append(p_id)
+                except Exception:
+                    pass
+
+            if not user_candidates:
+                return jsonify({'success': True, 'count': 0, 'data': []}), 200
+
+            query = (
+                client.table('label_audit_logs')
+                .select('id, document_id, action, created_at, documents(id, title, document_category, file_url, view_count, status, created_at, colleges(name, abbreviation), subjects(name))')
+                .eq('action', 'LABELED_FROM_QUEUE')
+                .in_('user_id', user_candidates)
+                .order('created_at', desc=True)
+                .limit(100)
+            )
+            res = query.execute()
+            for row in (res.data or []):
+                doc = row.get('documents') or {}
+                doc_id = doc.get('id') or row.get('document_id')
+                if doc and doc.get('id') and doc_id not in seen_doc_ids:
+                    seen_doc_ids.add(doc_id)
+                    col = doc.get('colleges') or {}
+                    sub = doc.get('subjects') or {}
+                    history_list.append({
+                        'id': doc_id,
+                        'title': doc.get('title') or 'Cataloged Resource',
+                        'category': doc.get('document_category') or 'papers',
+                        'college': col.get('abbreviation') or col.get('name') or '',
+                        'subject': sub.get('name') or '',
+                        'file_url': doc.get('file_url') or '',
+                        'view_count': doc.get('view_count') or 0,
+                        'status': doc.get('status') or 'approved',
+                        'labeled_at': row.get('created_at') or doc.get('created_at') or ''
+                    })
+        except Exception as audit_err:
+            logging.warning(f"[STORE_ROOM_HISTORY] Audit log fetch failed: {audit_err}")
+
+        return jsonify({
+            'success': True,
+            'count': len(history_list),
+            'data': history_list
+        }), 200
+    except Exception as e:
+        logging.error(f"[STORE_ROOM_HISTORY] Error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 

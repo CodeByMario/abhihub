@@ -3,242 +3,1165 @@
 {% block content %}
 <style>
   :root {
-    --lb-primary: #7c3aed;
-    --lb-bg: #f8fafc;
-    --lb-card: #ffffff;
-    --lb-text: #0f172a;
-    --lb-muted: #64748b;
-    --lb-border: #e2e8f0;
-    --gold: #fbbf24;
-    --silver: #94a3b8;
-    --bronze: #b45309;
+    --apple-bg: #f5f5f7;
+    --apple-card: rgba(255, 255, 255, 0.82);
+    --apple-card-solid: #ffffff;
+    --apple-border: rgba(0, 0, 0, 0.07);
+    --apple-border-focus: rgba(0, 113, 227, 0.4);
+    --apple-text: #1d1d1f;
+    --apple-secondary: #6e6e73;
+    --apple-tertiary: #86868b;
+    --apple-blue: #0071e3;
+    --apple-blue-hover: #0077ed;
+    --apple-blue-tint: rgba(0, 113, 227, 0.08);
+    --apple-gold: #d4af37;
+    --apple-gold-tint: rgba(212, 175, 55, 0.12);
+    --apple-silver: #94a3b8;
+    --apple-silver-tint: rgba(148, 163, 184, 0.15);
+    --apple-bronze: #b45309;
+    --apple-bronze-tint: rgba(180, 83, 9, 0.12);
+    --apple-shadow: 0 4px 24px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+    --apple-shadow-hover: 0 14px 38px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.03);
+    --apple-radius: 20px;
+    --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
   }
-  
-  body { background-color: var(--lb-bg); }
-  
-  .lb-header {
-    text-align: center;
-    padding: 3rem 1.5rem 1rem;
+
+  [data-theme="dark"] {
+    --apple-bg: #000000;
+    --apple-card: rgba(24, 24, 27, 0.78);
+    --apple-card-solid: #18181b;
+    --apple-border: rgba(255, 255, 255, 0.09);
+    --apple-border-focus: rgba(41, 151, 255, 0.5);
+    --apple-text: #f5f5f7;
+    --apple-secondary: #a1a1a6;
+    --apple-tertiary: #71717a;
+    --apple-blue: #2997ff;
+    --apple-blue-hover: #0071e3;
+    --apple-blue-tint: rgba(41, 151, 255, 0.15);
+    --apple-gold: #fbbf24;
+    --apple-gold-tint: rgba(251, 191, 36, 0.16);
+    --apple-silver: #cbd5e1;
+    --apple-silver-tint: rgba(203, 213, 225, 0.14);
+    --apple-bronze: #f97316;
+    --apple-bronze-tint: rgba(249, 115, 22, 0.16);
+    --apple-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    --apple-shadow-hover: 0 16px 45px rgba(0, 0, 0, 0.7);
   }
-  .lb-header h1 {
-    font-size: 2.5rem;
-    font-weight: 900;
-    color: var(--lb-text);
-    margin-bottom: 0.5rem;
+
+  body {
+    background-color: var(--apple-bg);
+    color: var(--apple-text);
+    font-family: var(--apple-font);
+    -webkit-font-smoothing: antialiased;
+    letter-spacing: -0.011em;
   }
-  .lb-header p {
-    color: var(--lb-muted);
-    font-size: 1.1rem;
-    max-width: 600px;
-    margin: 0 auto;
-  }
-  
-  .lb-container {
-    max-width: 900px;
+
+  .apple-lb-wrap {
+    max-width: 1040px;
     margin: 0 auto 5rem;
-    padding: 0 1.5rem;
+    padding: 0 1.25rem;
   }
-  
-  /* Podium for Top 3 */
-  .podium {
+
+  /* Header Section */
+  .apple-header {
+    text-align: center;
+    padding: 3.5rem 1rem 1.5rem;
+    position: relative;
+  }
+
+  .apple-pill-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--apple-blue-tint);
+    color: var(--apple-blue);
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.35rem 0.9rem;
+    border-radius: 999px;
+    margin-bottom: 0.9rem;
+    border: 1px solid rgba(0, 113, 227, 0.18);
+  }
+
+  .apple-header h1 {
+    font-size: clamp(2rem, 4.5vw, 3.2rem);
+    font-weight: 800;
+    letter-spacing: -0.035em;
+    line-height: 1.08;
+    color: var(--apple-text);
+    margin: 0 0 0.8rem;
+  }
+
+  .apple-header h1 .gradient-text {
+    background: linear-gradient(135deg, var(--apple-text) 0%, var(--apple-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  [data-theme="dark"] .apple-header h1 .gradient-text {
+    background: linear-gradient(135deg, #ffffff 20%, #a1a1a6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .apple-header p {
+    font-size: 1.1rem;
+    color: var(--apple-secondary);
+    max-width: 620px;
+    margin: 0 auto 1.6rem;
+    line-height: 1.5;
+  }
+
+  .apple-action-bar {
+    display: flex;
+    gap: 0.65rem;
+    flex-wrap: wrap;
+    justify-content: center;
+    margin-bottom: 2rem;
+  }
+
+  .apple-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--apple-card-solid);
+    color: var(--apple-text);
+    border: 1px solid var(--apple-border);
+    padding: 0.65rem 1.25rem;
+    border-radius: 999px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  }
+
+  .apple-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    border-color: var(--apple-border-focus);
+  }
+
+  .apple-btn-primary {
+    background: var(--apple-blue);
+    color: #ffffff !important;
+    border: none;
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.28);
+  }
+
+  .apple-btn-primary:hover {
+    background: var(--apple-blue-hover);
+    box-shadow: 0 6px 20px rgba(0, 113, 227, 0.4);
+  }
+
+  /* Personal Standing Hero Card (Apple Dynamic Island style) */
+  .apple-standing-island {
+    background: var(--apple-card);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid var(--apple-border);
+    border-radius: 24px;
+    padding: 1.6rem 1.8rem;
+    margin-bottom: 2.2rem;
+    box-shadow: var(--apple-shadow);
+    transition: transform 0.25s ease, box-shadow 0.25s ease;
+  }
+
+  .apple-standing-island:hover {
+    box-shadow: var(--apple-shadow-hover);
+  }
+
+  .standing-grid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .standing-profile-col {
+    display: flex;
+    align-items: center;
+    gap: 1.2rem;
+  }
+
+  .standing-avatar-ring {
+    position: relative;
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    padding: 3px;
+    background: linear-gradient(135deg, var(--apple-blue), #8b5cf6);
+    flex-shrink: 0;
+  }
+
+  .standing-avatar-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--apple-card-solid);
+    border: 2px solid var(--apple-card-solid);
+  }
+
+  .standing-rank-badge {
+    position: absolute;
+    bottom: -4px;
+    right: -4px;
+    background: var(--apple-text);
+    color: var(--apple-bg);
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 999px;
+    border: 2px solid var(--apple-card-solid);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+  }
+
+  .standing-details {
+    min-width: 0;
+  }
+
+  .standing-name-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.2rem;
+    flex-wrap: wrap;
+  }
+
+  .standing-name {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--apple-text);
+    letter-spacing: -0.02em;
+  }
+
+  .standing-tier-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.65rem;
+    border-radius: 999px;
+    background: var(--apple-blue-tint);
+    color: var(--apple-blue);
+    border: 1px solid rgba(0, 113, 227, 0.15);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .standing-stats-row {
+    display: flex;
+    gap: 1.2rem;
+    font-size: 0.85rem;
+    color: var(--apple-secondary);
+    margin-top: 0.35rem;
+    flex-wrap: wrap;
+  }
+
+  .standing-stats-row strong {
+    color: var(--apple-text);
+  }
+
+  .standing-nudge-col {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    text-align: right;
+    gap: 0.7rem;
+  }
+
+  .standing-nudge-box {
+    background: var(--apple-blue-tint);
+    border: 1px solid rgba(0, 113, 227, 0.2);
+    border-radius: 16px;
+    padding: 0.75rem 1.1rem;
+    max-width: 360px;
+    text-align: left;
+  }
+
+  .standing-nudge-text {
+    font-size: 0.84rem;
+    line-height: 1.4;
+    color: var(--apple-text);
+    margin: 0;
+  }
+
+  .standing-nudge-text strong {
+    color: var(--apple-blue);
+  }
+
+  /* Standing Progress Bar */
+  .standing-progress-wrap {
+    margin-top: 1.1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--apple-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .progress-meta {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.82rem;
+    color: var(--apple-secondary);
+    font-weight: 500;
+  }
+
+  .progress-track {
+    width: 100%;
+    height: 8px;
+    background: var(--apple-border);
+    border-radius: 999px;
+    overflow: hidden;
+    position: relative;
+  }
+
+  .progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--apple-blue), #8b5cf6);
+    border-radius: 999px;
+    transition: width 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Guest Teaser Island */
+  .apple-guest-island {
+    background: var(--apple-card);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid var(--apple-border);
+    border-radius: 24px;
+    padding: 1.8rem 2rem;
+    margin-bottom: 2.2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1.5rem;
+    box-shadow: var(--apple-shadow);
+  }
+
+  .apple-guest-text h3 {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin: 0 0 0.3rem;
+  }
+
+  .apple-guest-text p {
+    margin: 0;
+    color: var(--apple-secondary);
+    font-size: 0.92rem;
+    max-width: 520px;
+  }
+
+  /* Gamification XP Mechanics Grid */
+  .apple-xp-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+    margin-bottom: 2.5rem;
+  }
+
+  .apple-xp-card {
+    background: var(--apple-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--apple-border);
+    border-radius: 18px;
+    padding: 1.25rem 1.3rem;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.9rem;
+    box-shadow: var(--apple-shadow);
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+
+  .apple-xp-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--apple-border-focus);
+  }
+
+  .xp-icon-bubble {
+    width: 44px;
+    height: 44px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+  }
+
+  .bubble-notes { background: rgba(0, 113, 227, 0.12); color: var(--apple-blue); }
+  .bubble-pyq { background: rgba(16, 185, 129, 0.12); color: #10b981; }
+  .bubble-impact { background: rgba(245, 158, 11, 0.14); color: #f59e0b; }
+
+  .xp-card-content h4 {
+    font-size: 0.95rem;
+    font-weight: 700;
+    margin: 0 0 0.15rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .xp-badge {
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    background: var(--apple-blue-tint);
+    color: var(--apple-blue);
+  }
+
+  .xp-card-content p {
+    font-size: 0.8rem;
+    color: var(--apple-secondary);
+    margin: 0;
+    line-height: 1.35;
+  }
+
+  /* Tier Progression Tracker */
+  .apple-tiers-section {
+    margin-bottom: 3rem;
+    background: var(--apple-card);
+    border: 1px solid var(--apple-border);
+    border-radius: 20px;
+    padding: 1.4rem 1.6rem;
+  }
+
+  .tiers-section-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: var(--apple-secondary);
+    margin: 0 0 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .tiers-flow {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 0.6rem;
+  }
+
+  .tier-flow-step {
+    background: var(--apple-card-solid);
+    border: 1px solid var(--apple-border);
+    border-radius: 14px;
+    padding: 0.8rem 0.9rem;
+    text-align: center;
+    position: relative;
+    transition: all 0.2s ease;
+  }
+
+  .tier-flow-step.active {
+    border-color: var(--apple-blue);
+    background: var(--apple-blue-tint);
+  }
+
+  .tier-flow-step .t-icon {
+    font-size: 1.3rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .tier-flow-step .t-name {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--apple-text);
+  }
+
+  .tier-flow-step .t-xp {
+    font-size: 0.72rem;
+    color: var(--apple-tertiary);
+    margin-top: 0.1rem;
+  }
+
+  .tier-flow-step .t-perk {
+    font-size: 0.68rem;
+    color: var(--apple-secondary);
+    margin-top: 0.3rem;
+    line-height: 1.25;
+  }
+
+  /* Apple Sculptural Top 3 Podium */
+  .apple-podium-wrap {
+    margin: 3.5rem 0 3.5rem;
+  }
+
+  .podium-stage {
     display: flex;
     justify-content: center;
     align-items: flex-end;
-    gap: 1.5rem;
-    margin: 4rem 0 3rem;
+    gap: 1.4rem;
+    padding-bottom: 0.5rem;
   }
-  
-  .podium-item {
+
+  .podium-column {
     display: flex;
     flex-direction: column;
     align-items: center;
-    text-align: center;
-    width: 140px;
+    width: 200px;
+    cursor: pointer;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  
+
+  .podium-column:hover {
+    transform: translateY(-5px);
+  }
+
+  .podium-avatar-box {
+    position: relative;
+    margin-bottom: -32px;
+    z-index: 3;
+  }
+
   .podium-avatar {
-    width: 80px;
-    height: 80px;
+    width: 82px;
+    height: 82px;
     border-radius: 50%;
     object-fit: cover;
-    margin-bottom: -40px;
-    z-index: 2;
-    border: 4px solid #fff;
-    box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    background: var(--apple-card-solid);
+    border: 4px solid var(--apple-card-solid);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.12);
   }
-  
-  .podium-item.rank-1 .podium-avatar { width: 100px; height: 100px; margin-bottom: -50px; border-color: var(--gold); }
-  .podium-item.rank-2 .podium-avatar { border-color: var(--silver); }
-  .podium-item.rank-3 .podium-avatar { border-color: var(--bronze); }
-  
-  .podium-base {
+
+  .podium-crown {
+    position: absolute;
+    top: -24px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 1.9rem;
+    filter: drop-shadow(0 4px 8px rgba(251, 191, 36, 0.5));
+  }
+
+  .podium-rank-tag {
+    position: absolute;
+    bottom: -2px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 0.72rem;
+    font-weight: 800;
+    padding: 2px 9px;
+    border-radius: 999px;
+    color: #ffffff;
+    border: 2px solid var(--apple-card-solid);
+    box-shadow: 0 3px 8px rgba(0, 0, 0, 0.15);
+  }
+
+  .rank-1 .podium-avatar {
+    width: 104px;
+    height: 104px;
+    border-color: var(--apple-gold);
+    box-shadow: 0 14px 34px rgba(212, 175, 55, 0.28);
+  }
+  .rank-1 .podium-rank-tag { background: linear-gradient(135deg, #d4af37, #f59e0b); }
+
+  .rank-2 .podium-avatar {
+    border-color: var(--apple-silver);
+    box-shadow: 0 10px 26px rgba(148, 163, 184, 0.25);
+  }
+  .rank-2 .podium-rank-tag { background: linear-gradient(135deg, #64748b, #94a3b8); }
+
+  .rank-3 .podium-avatar {
+    border-color: var(--apple-bronze);
+    box-shadow: 0 10px 26px rgba(180, 83, 9, 0.25);
+  }
+  .rank-3 .podium-rank-tag { background: linear-gradient(135deg, #b45309, #d97706); }
+
+  .podium-pedestal {
     width: 100%;
-    background: var(--lb-card);
-    border-radius: 16px 16px 0 0;
-    padding: 3rem 1rem 1rem;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+    border-radius: 24px 24px 14px 14px;
     display: flex;
     flex-direction: column;
     align-items: center;
+    padding: 2.4rem 1rem 1.4rem;
+    text-align: center;
+    box-shadow: var(--apple-shadow);
+    border: 1px solid var(--apple-border);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
   }
-  
-  .podium-item.rank-1 .podium-base { height: 180px; background: linear-gradient(135deg, #fef3c7, #fde68a); }
-  .podium-item.rank-2 .podium-base { height: 140px; background: linear-gradient(135deg, #f8fafc, #f1f5f9); }
-  .podium-item.rank-3 .podium-base { height: 120px; background: linear-gradient(135deg, #ffedd5, #fed7aa); }
-  
-  .podium-name { font-weight: 800; color: var(--lb-text); font-size: 0.95rem; margin-bottom: 0.2rem; }
-  .podium-xp { font-weight: 700; color: var(--lb-primary); font-size: 0.85rem; }
-  
-  /* List for Rank 4+ */
-  .lb-list {
-    background: var(--lb-card);
-    border-radius: 20px;
-    box-shadow: 0 10px 30px rgba(0,0,0,0.05);
+
+  .rank-1 .podium-pedestal {
+    height: 220px;
+    background: linear-gradient(180deg, var(--apple-gold-tint) 0%, var(--apple-card) 75%);
+    border-color: rgba(212, 175, 55, 0.35);
+  }
+
+  .rank-2 .podium-pedestal {
+    height: 175px;
+    background: linear-gradient(180deg, var(--apple-silver-tint) 0%, var(--apple-card) 75%);
+    border-color: rgba(148, 163, 184, 0.3);
+  }
+
+  .rank-3 .podium-pedestal {
+    height: 145px;
+    background: linear-gradient(180deg, var(--apple-bronze-tint) 0%, var(--apple-card) 75%);
+    border-color: rgba(180, 83, 9, 0.3);
+  }
+
+  .podium-user-name {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--apple-text);
+    margin-bottom: 0.15rem;
+    max-width: 170px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .podium-college-tag {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--apple-secondary);
+    background: var(--apple-border);
+    padding: 0.15rem 0.5rem;
+    border-radius: 999px;
+    margin-bottom: 0.45rem;
+    max-width: 140px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .podium-xp-pill {
+    font-size: 0.82rem;
+    font-weight: 800;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    background: var(--apple-card-solid);
+    border: 1px solid var(--apple-border);
+    color: var(--apple-text);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  }
+
+  .rank-1 .podium-xp-pill {
+    color: #b45309;
+    border-color: rgba(212, 175, 55, 0.4);
+    background: #fffbeb;
+  }
+  [data-theme="dark"] .rank-1 .podium-xp-pill {
+    background: rgba(251, 191, 36, 0.15);
+    color: #fde047;
+  }
+
+  /* Table / List View for Rank 4+ */
+  .apple-list-section {
+    background: var(--apple-card);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid var(--apple-border);
+    border-radius: 24px;
+    box-shadow: var(--apple-shadow);
     overflow: hidden;
   }
-  
-  .lb-row {
+
+  .apple-list-toolbar {
+    padding: 1.1rem 1.4rem;
+    border-bottom: 1px solid var(--apple-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .apple-search-input {
+    background: var(--apple-card-solid);
+    border: 1px solid var(--apple-border);
+    border-radius: 999px;
+    padding: 0.55rem 1.1rem 0.55rem 2.2rem;
+    font-size: 0.88rem;
+    color: var(--apple-text);
+    outline: none;
+    width: 280px;
+    max-width: 100%;
+    transition: all 0.2s ease;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%2386868b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z'%3E%3C/path%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-size: 15px;
+    background-position: 12px center;
+  }
+
+  .apple-search-input:focus {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px var(--apple-blue-tint);
+    width: 320px;
+  }
+
+  .apple-row-item {
     display: flex;
     align-items: center;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--lb-border);
-    transition: background 0.2s;
-  }
-  .lb-row:last-child { border-bottom: none; }
-  .lb-row:hover { background: #f8fafc; }
-  
-  .lb-rank {
-    width: 40px;
-    font-weight: 800;
-    color: var(--lb-muted);
-    font-size: 1.1rem;
-  }
-  
-  .lb-row-avatar {
-    width: 40px;
-    height: 40px;
-    border-radius: 50%;
-    margin-right: 1rem;
-  }
-  
-  .lb-row-info { flex: 1; }
-  .lb-row-name { font-weight: 700; color: var(--lb-text); font-size: 0.95rem; }
-  .lb-row-badges { font-size: 0.75rem; color: var(--lb-muted); margin-top: 2px; }
-  
-  .lb-row-xp {
-    font-weight: 800;
-    color: var(--lb-primary);
-    background: #ede9fe;
-    padding: 0.3rem 0.8rem;
-    border-radius: 99px;
-    font-size: 0.85rem;
-  }
-  
-  @media(max-width: 600px) {
-    .podium { gap: 0.5rem; }
-    .podium-item { width: 100px; }
-    .podium-item.rank-1 .podium-avatar { width: 80px; height: 80px; margin-bottom: -40px; }
-    .podium-avatar { width: 60px; height: 60px; margin-bottom: -30px; }
-  }
-
-  /* Leaderboard find button */
-  .lb-find-btn {
-    background: var(--lb-primary);
-    color: #fff;
-    border: none;
-    padding: 0.65rem 1.4rem;
-    border-radius: 99px;
-    font-weight: 700;
+    padding: 0.95rem 1.5rem;
+    border-bottom: 1px solid var(--apple-border);
+    transition: background 0.15s ease, transform 0.15s ease;
     cursor: pointer;
-    box-shadow: 0 4px 14px rgba(124, 58, 237, 0.3);
   }
 
-  /* "You" badge */
-  .lb-you-badge {
-    font-size: 0.75rem;
-    background: var(--lb-primary);
-    color: #fff;
-    padding: 2px 6px;
-    border-radius: 4px;
-    margin-left: 5px;
+  .apple-row-item:last-child {
+    border-bottom: none;
   }
 
-  .lb-empty-state {
-    padding: 3rem;
+  .apple-row-item:hover {
+    background: rgba(0, 0, 0, 0.02);
+  }
+  [data-theme="dark"] .apple-row-item:hover {
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .apple-row-item.highlight-user {
+    background: var(--apple-blue-tint) !important;
+    border-left: 3px solid var(--apple-blue);
+  }
+
+  .row-rank-num {
+    width: 44px;
+    font-weight: 800;
+    font-size: 0.98rem;
+    color: var(--apple-secondary);
+    flex-shrink: 0;
+  }
+
+  .row-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    object-fit: cover;
+    margin-right: 1.1rem;
+    flex-shrink: 0;
+    background: var(--apple-card-solid);
+    border: 1px solid var(--apple-border);
+  }
+
+  .row-user-info {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .row-title-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+
+  .row-user-name {
+    font-weight: 700;
+    font-size: 0.95rem;
+    color: var(--apple-text);
+  }
+
+  .row-you-pill {
+    font-size: 0.7rem;
+    font-weight: 800;
+    background: var(--apple-blue);
+    color: #ffffff;
+    padding: 1px 7px;
+    border-radius: 999px;
+  }
+
+  .row-college-badge {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: var(--apple-secondary);
+    background: var(--apple-border);
+    padding: 1px 6px;
+    border-radius: 6px;
+  }
+
+  .row-meta-line {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.76rem;
+    color: var(--apple-secondary);
+    margin-top: 0.15rem;
+    flex-wrap: wrap;
+  }
+
+  .row-xp-badge {
+    font-weight: 800;
+    font-size: 0.88rem;
+    color: var(--apple-blue);
+    background: var(--apple-blue-tint);
+    padding: 0.35rem 0.85rem;
+    border-radius: 999px;
+    border: 1px solid rgba(0, 113, 227, 0.15);
+    flex-shrink: 0;
+    margin-left: 1rem;
+  }
+
+  .apple-empty {
     text-align: center;
-    color: var(--lb-muted);
+    padding: 4rem 1.5rem;
+    color: var(--apple-secondary);
+  }
+
+  .apple-empty-icon {
+    font-size: 2.5rem;
+    margin-bottom: 0.8rem;
+  }
+
+  /* Responsive Adjustments */
+  @media (max-width: 860px) {
+    .standing-grid {
+      grid-template-columns: 1fr;
+      gap: 1.2rem;
+    }
+    .standing-nudge-col {
+      align-items: flex-start;
+      text-align: left;
+    }
+    .apple-xp-grid {
+      grid-template-columns: 1fr;
+    }
+    .tiers-flow {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .podium-stage {
+      gap: 0.6rem;
+    }
+    .podium-column {
+      width: 110px;
+    }
+    .rank-1 .podium-avatar { width: 80px; height: 80px; }
+    .podium-avatar { width: 62px; height: 62px; }
+    .podium-user-name { font-size: 0.85rem; max-width: 95px; }
+    .podium-college-tag { display: none; }
+    .rank-1 .podium-pedestal { height: 170px; }
+    .rank-2 .podium-pedestal { height: 135px; }
+    .rank-3 .podium-pedestal { height: 115px; }
+    .apple-guest-island {
+      flex-direction: column;
+      align-items: flex-start;
+    }
   }
 </style>
 
-<div class="lb-header">
-  <h1>🏆 AbhiHub Leaderboard</h1>
-  <p>Top student contributors helping peers ace their exams with notes, PYQs, and study resources.</p>
-  <div style="margin-top: 1.2rem; display:flex; gap:0.6rem; flex-wrap:wrap; justify-content:center;">
-    <button type="button" data-action="openPeerSearchModal" class="lb-find-btn">🔍 Find Students &amp; Notes</button>
-    <button type="button" id="lbShareBtn" class="lb-find-btn" style="background:#4f46e5;">📲 Invite peers &amp; climb faster</button>
-  </div>
-</div>
+<div class="apple-lb-wrap">
+  <!-- Apple Header -->
+  <header class="apple-header">
+    <div class="apple-pill-tag">
+      <span>✨</span> Academic Honors &amp; Leaderboard
+    </div>
+    <h1>
+      <span class="gradient-text">Where Ambition Meets Recognition.</span>
+    </h1>
+    <p>
+      Ascend the ranks by sharing authentic lecture notes, PYQs, and verified study resources. Help peers ace exams and earn your place in academic history.
+    </p>
 
-<div class="lb-container">
-  {% if leaderboard|length >= 3 %}
-  <div class="podium">
-  <!-- Rank 2 -->
-    <div class="podium-item rank-2" data-action="viewPeerDetail" data-user-id="{{ leaderboard[1].user_id }}" title="View {{ leaderboard[1].name }}'s materials">
-      {% set u2 = leaderboard[1] %}
-      <img src="{{ u2.avatar_url or 'https://ui-avatars.com/api/?name=' ~ u2.name|urlencode ~ '&background=cbd5e1&color=fff' }}" class="podium-avatar" alt="{{ u2.name }}">
-      <div class="podium-base">
-        <span class="podium-name">{{ u2.name }}</span>
-        <span class="podium-xp">{{ u2.total_xp }} XP</span>
+    <div class="apple-action-bar">
+      <a href="/upload" class="apple-btn apple-btn-primary">
+        ⚡ Upload &amp; Climb Ranks
+      </a>
+      <button type="button" data-action="openPeerSearchModal" class="apple-btn">
+        🔍 Find Students &amp; Notes
+      </button>
+      <button type="button" id="lbShareBtn" class="apple-btn">
+        📲 Invite Peers (+20 XP)
+      </button>
+      <button type="button" data-action="openAppGuide" class="apple-btn">
+        🧭 Contributor Guide
+      </button>
+    </div>
+  </header>
+
+  <!-- User Personal Standing Hero (Apple Dynamic Island) -->
+  {% if current_user and user_standing %}
+  <section class="apple-standing-island" aria-label="Your Standing">
+    <div class="standing-grid">
+      <!-- Left: Profile & Current Rank -->
+      <div class="standing-profile-col">
+        <div class="standing-avatar-ring">
+          <img
+            src="https://ui-avatars.com/api/?name={{ current_user.name|urlencode }}&background=0071e3&color=fff&bold=true"
+            class="standing-avatar-img"
+            alt="{{ current_user.name }}"
+          >
+          <div class="standing-rank-badge">
+            {% if user_standing.is_ranked %}#{{ user_standing.rank }}{% else %}—{% endif %}
+          </div>
+        </div>
+
+        <div class="standing-details">
+          <div class="standing-name-row">
+            <span class="standing-name">{{ current_user.name }}</span>
+            <span class="standing-tier-pill">
+              {{ user_standing.tier_icon }} {{ user_standing.tier_title }}
+            </span>
+          </div>
+          <div class="standing-stats-row">
+            <span><strong>{{ user_standing.total_xp }}</strong> Total XP</span>
+            <span>•</span>
+            <span><strong>{{ user_standing.upload_count }}</strong> Uploads</span>
+            {% if user_standing.students_helped > 0 %}
+            <span>•</span>
+            <span><strong>{{ user_standing.students_helped }}</strong> Students Helped</span>
+            {% endif %}
+          </div>
+        </div>
+      </div>
+
+      <!-- Right: Psychological Nudge & Instant CTA -->
+      <div class="standing-nudge-col">
+        <div class="standing-nudge-box">
+          <p class="standing-nudge-text">
+            <strong>⚡ Live Standing:</strong> {{ user_standing.nudge.message }}
+          </p>
+        </div>
+        <a href="/upload" class="apple-btn apple-btn-primary" style="padding: 0.55rem 1.1rem; font-size: 0.85rem;">
+          Upload Notes Now (+30 XP) →
+        </a>
       </div>
     </div>
-    
-    <!-- Rank 1 -->
-    <div class="podium-item rank-1" data-action="viewPeerDetail" data-user-id="{{ leaderboard[0].user_id }}" title="View {{ leaderboard[0].name }}'s materials">
-      {% set u1 = leaderboard[0] %}
-      <img src="{{ u1.avatar_url or 'https://ui-avatars.com/api/?name=' ~ u1.name|urlencode ~ '&background=fbbf24&color=fff' }}" class="podium-avatar" alt="{{ u1.name }}">
-      <div class="podium-base">
-        <div style="font-size:1.5rem; margin-bottom:0.5rem;">👑</div>
-        <span class="podium-name">{{ u1.name }}</span>
-        <span class="podium-xp">{{ u1.total_xp }} XP</span>
+
+    <!-- Progress to Next Tier -->
+    {% if user_standing.next_tier %}
+    <div class="standing-progress-wrap">
+      <div class="progress-meta">
+        <span>Progress to <strong>{{ user_standing.next_tier }}</strong></span>
+        <span><strong>{{ user_standing.total_xp }}</strong> / {{ user_standing.next_tier_target }} XP ({{ user_standing.progress_pct }}%)</span>
+      </div>
+      <div class="progress-track" role="progressbar" aria-valuenow="{{ user_standing.progress_pct }}" aria-valuemin="0" aria-valuemax="100">
+        <div class="progress-fill" style="width: {{ user_standing.progress_pct }}%;"></div>
       </div>
     </div>
-    
-    <!-- Rank 3 -->
-    <div class="podium-item rank-3" data-action="viewPeerDetail" data-user-id="{{ leaderboard[2].user_id }}" title="View {{ leaderboard[2].name }}'s materials">
-      {% set u3 = leaderboard[2] %}
-      <img src="{{ u3.avatar_url or 'https://ui-avatars.com/api/?name=' ~ u3.name|urlencode ~ '&background=b45309&color=fff' }}" class="podium-avatar" alt="{{ u3.name }}">
-      <div class="podium-base">
-        <span class="podium-name">{{ u3.name }}</span>
-        <span class="podium-xp">{{ u3.total_xp }} XP</span>
-      </div>
+    {% endif %}
+  </section>
+  {% elif not current_user %}
+  <!-- Guest Callout Island -->
+  <section class="apple-guest-island" aria-label="Join Leaderboard">
+    <div class="apple-guest-text">
+      <h3>Track where you stand among top university contributors</h3>
+      <p>Sign in to unlock your personal rank, view peer stats, and earn verified academic contributor badges with every upload.</p>
     </div>
-  </div>
+    <div style="display:flex; gap:0.6rem; flex-shrink:0;">
+      <a href="/login?next=/leaderboard" class="apple-btn apple-btn-primary">
+        Sign In to Check Rank
+      </a>
+      <a href="/upload" class="apple-btn">
+        Upload Materials
+      </a>
+    </div>
+  </section>
   {% endif %}
-  
-  <div class="lb-list">
-    {% for user in leaderboard %}
-      {% if loop.index > 3 or leaderboard|length < 3 %}
-        <div class="lb-row" data-action="viewPeerDetail" data-user-id="{{ user.user_id }}" title="Click to view {{ user.name }}'s materials">
-          <div class="lb-rank">#{{ user.rank }}</div>
-          <img src="{{ user.avatar_url or 'https://ui-avatars.com/api/?name=' ~ user.name|urlencode ~ '&background=e2e8f0&color=64748b' }}" class="lb-row-avatar" alt="{{ user.name }}">
-          <div class="lb-row-info">
-            <div class="lb-row-name">{{ user.name }} {% if current_user and current_user.uid == user.user_id %} <span class="lb-you-badge">You</span> {% endif %}</div>
-            <div class="lb-row-badges">
-              {% if user.students_helped > 0 %} Helped {{ user.students_helped }} students {% endif %}
+
+  <!-- Gamification Mechanics: How to Earn XP & Better Rank -->
+  <section class="apple-xp-grid" aria-label="XP Mechanics">
+    <div class="apple-xp-card">
+      <div class="xp-icon-bubble bubble-notes">📝</div>
+      <div class="xp-card-content">
+        <h4>Lecture Notes <span class="xp-badge">+30 XP</span></h4>
+        <p>Complete handwritten or digital subject notes. Jump 5-15 places with a single high-quality upload.</p>
+      </div>
+    </div>
+
+    <div class="apple-xp-card">
+      <div class="xp-icon-bubble bubble-pyq">📄</div>
+      <div class="xp-card-content">
+        <h4>Past Exam PYQs <span class="xp-badge">+10 XP</span></h4>
+        <p>Midterm and end-sem previous year question papers. Highly demanded by peers before exams.</p>
+      </div>
+    </div>
+
+    <div class="apple-xp-card">
+      <div class="xp-icon-bubble bubble-impact">👥</div>
+      <div class="xp-card-content">
+        <h4>Peer Impact <span class="xp-badge">+5 XP</span></h4>
+        <p>Earn continuous bonus XP each time a fellow student views, downloads, or rates your study material.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Tier Progression Ladder -->
+  <section class="apple-tiers-section" aria-label="Academic Tier Roadmap">
+    <div class="tiers-section-title">
+      <span>🎖️</span> Contributor Rank Progression &amp; Milestone Perks
+    </div>
+    <div class="tiers-flow">
+      <div class="tier-flow-step {% if user_standing and user_standing.tier_title == 'Beginner' %}active{% endif %}">
+        <div class="t-icon">🌱</div>
+        <div class="t-name">Beginner</div>
+        <div class="t-xp">0+ XP</div>
+        <div class="t-perk">Starter profile &amp; unlimited searches</div>
+      </div>
+
+      <div class="tier-flow-step {% if user_standing and user_standing.tier_title == 'Contributor' %}active{% endif %}">
+        <div class="t-icon">🥉</div>
+        <div class="t-name">Contributor</div>
+        <div class="t-xp">50+ XP</div>
+        <div class="t-perk">Verified Uploader badge &amp; ad-free notes</div>
+      </div>
+
+      <div class="tier-flow-step {% if user_standing and user_standing.tier_title == 'Scholar' %}active{% endif %}">
+        <div class="t-icon">🥈</div>
+        <div class="t-name">Scholar</div>
+        <div class="t-xp">250+ XP</div>
+        <div class="t-perk">2x Search boost &amp; seller eligibility</div>
+      </div>
+
+      <div class="tier-flow-step {% if user_standing and user_standing.tier_title == 'Hero' %}active{% endif %}">
+        <div class="t-icon">🥇</div>
+        <div class="t-name">Hero</div>
+        <div class="t-xp">500+ XP</div>
+        <div class="t-perk">Featured campus spotlight &amp; VIP perks</div>
+      </div>
+
+      <div class="tier-flow-step {% if user_standing and user_standing.tier_title == 'Legend' %}active{% endif %}">
+        <div class="t-icon">👑</div>
+        <div class="t-name">Legend</div>
+        <div class="t-xp">1000+ XP</div>
+        <div class="t-perk">Academic Hall of Fame &amp; honorary status</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Apple Sculptural Podium for Top 3 -->
+  {% if leaderboard|length >= 3 %}
+  <section class="apple-podium-wrap" aria-label="Top 3 Contributors">
+    <div class="podium-stage">
+      <!-- Rank 2: Silver -->
+      {% set u2 = leaderboard[1] %}
+      <div class="podium-column rank-2" data-action="viewPeerDetail" data-user-id="{{ u2.user_id }}" title="View {{ u2.name }}'s materials">
+        <div class="podium-avatar-box">
+          <img
+            src="https://ui-avatars.com/api/?name={{ u2.name|urlencode }}&background=cbd5e1&color=1e293b&bold=true"
+            class="podium-avatar"
+            alt="{{ u2.name }}"
+          >
+          <div class="podium-rank-tag">#2</div>
+        </div>
+        <div class="podium-pedestal">
+          <span class="podium-user-name">{{ u2.name }}</span>
+          {% if u2.college_name %}
+          <span class="podium-college-tag">{{ u2.college_name }}</span>
+          {% endif %}
+          <span class="podium-xp-pill">{{ u2.total_xp }} XP</span>
+        </div>
+      </div>
+
+      <!-- Rank 1: Gold Champion -->
+      {% set u1 = leaderboard[0] %}
+      <div class="podium-column rank-1" data-action="viewPeerDetail" data-user-id="{{ u1.user_id }}" title="View {{ u1.name }}'s materials">
+        <div class="podium-avatar-box">
+          <div class="podium-crown">👑</div>
+          <img
+            src="https://ui-avatars.com/api/?name={{ u1.name|urlencode }}&background=fbbf24&color=78350f&bold=true"
+            class="podium-avatar"
+            alt="{{ u1.name }}"
+          >
+          <div class="podium-rank-tag">#1</div>
+        </div>
+        <div class="podium-pedestal">
+          <span class="podium-user-name">{{ u1.name }}</span>
+          {% if u1.college_name %}
+          <span class="podium-college-tag">{{ u1.college_name }}</span>
+          {% endif %}
+          <span class="podium-xp-pill">🏆 {{ u1.total_xp }} XP</span>
+        </div>
+      </div>
+
+      <!-- Rank 3: Bronze -->
+      {% set u3 = leaderboard[2] %}
+      <div class="podium-column rank-3" data-action="viewPeerDetail" data-user-id="{{ u3.user_id }}" title="View {{ u3.name }}'s materials">
+        <div class="podium-avatar-box">
+          <img
+            src="https://ui-avatars.com/api/?name={{ u3.name|urlencode }}&background=fed7aa&color=9a3412&bold=true"
+            class="podium-avatar"
+            alt="{{ u3.name }}"
+          >
+          <div class="podium-rank-tag">#3</div>
+        </div>
+        <div class="podium-pedestal">
+          <span class="podium-user-name">{{ u3.name }}</span>
+          {% if u3.college_name %}
+          <span class="podium-college-tag">{{ u3.college_name }}</span>
+          {% endif %}
+          <span class="podium-xp-pill">{{ u3.total_xp }} XP</span>
+        </div>
+      </div>
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Leaderboard Table & Search -->
+  <section class="apple-list-section" aria-label="Leaderboard Rankings">
+    <div class="apple-list-toolbar">
+      <div style="font-size:0.95rem; font-weight:700;">
+        All Contributors (Top 50)
+      </div>
+      <input
+        type="search"
+        id="lbSearchInput"
+        class="apple-search-input"
+        placeholder="Search student or college..."
+        aria-label="Filter leaderboard"
+      >
+    </div>
+
+    <div id="lbListContainer">
+      {% for user in leaderboard %}
+        {% if loop.index > 3 or leaderboard|length < 3 %}
+        <div
+          class="apple-row-item {% if current_user and current_user.uid == user.user_id %}highlight-user{% endif %}"
+          data-name="{{ user.name|lower }}"
+          data-college="{{ (user.college_name or '')|lower }}"
+          data-action="viewPeerDetail"
+          data-user-id="{{ user.user_id }}"
+          title="Click to view {{ user.name }}'s materials"
+        >
+          <div class="row-rank-num">#{{ user.rank }}</div>
+          <img
+            src="https://ui-avatars.com/api/?name={{ user.name|urlencode }}&background=f1f5f9&color=475569&bold=true"
+            class="row-avatar"
+            alt="{{ user.name }}"
+            loading="lazy"
+          >
+          <div class="row-user-info">
+            <div class="row-title-line">
+              <span class="row-user-name">{{ user.name }}</span>
+              {% if current_user and current_user.uid == user.user_id %}
+              <span class="row-you-pill">You</span>
+              {% endif %}
+              {% if user.college_name %}
+              <span class="row-college-badge">{{ user.college_name }}</span>
+              {% endif %}
+            </div>
+            <div class="row-meta-line">
+              {% if user.upload_count and user.upload_count > 0 %}
+              <span>📂 {{ user.upload_count }} upload{{ 's' if user.upload_count != 1 else '' }}</span>
+              {% endif %}
+              {% if user.students_helped and user.students_helped > 0 %}
+              <span>• 👥 Helped {{ user.students_helped }} peers</span>
+              {% endif %}
               {% for badge in user.badges %}
-                • 🏅 {{ badge }}
+              <span>• 🎖️ {{ badge }}</span>
               {% endfor %}
             </div>
           </div>
-          <div class="lb-row-xp">{{ user.total_xp }} XP</div>
+          <div class="row-xp-badge">{{ user.total_xp }} XP</div>
         </div>
-      {% endif %}
-    {% else %}
-      <div class="lb-empty-state">
-        No data available yet. Be the first to earn XP by uploading study materials!
-      </div>
-    {% endfor %}
-  </div>
+        {% endif %}
+      {% else %}
+        <div class="apple-empty">
+          <div class="apple-empty-icon">🌱</div>
+          <h3>No rankings recorded yet</h3>
+          <p>Be the very first pioneer to share notes and claim the #1 spot!</p>
+          <a href="/upload" class="apple-btn apple-btn-primary" style="margin-top:1rem;">
+            Upload First Note
+          </a>
+        </div>
+      {% endfor %}
+    </div>
+  </section>
 </div>
 
 {% include 'includes/_peer_search_modal.html' %}
@@ -246,22 +1169,45 @@
 {% block scripts %}
 <script>
 (function(){
+  // Instant Vanilla JS search filter across table rows
+  var searchInput = document.getElementById('lbSearchInput');
+  var listContainer = document.getElementById('lbListContainer');
+  if (searchInput && listContainer) {
+    searchInput.addEventListener('input', function(e) {
+      var query = (e.target.value || '').trim().toLowerCase();
+      var rows = listContainer.querySelectorAll('.apple-row-item');
+      rows.forEach(function(row) {
+        var name = row.getAttribute('data-name') || '';
+        var college = row.getAttribute('data-college') || '';
+        if (!query || name.indexOf(query) !== -1 || college.indexOf(query) !== -1) {
+          row.style.display = 'flex';
+        } else {
+          row.style.display = 'none';
+        }
+      });
+    });
+  }
+
+  // Social share & WhatsApp invite button
   var btn = document.getElementById('lbShareBtn');
-  if (!btn) return;
-  btn.addEventListener('click', function(){
-    var url = '{{ request.url_root.rstrip("/") }}/signup';
-    var text = encodeURIComponent('Climb the AbhiHub leaderboard with me — upload PYQs & notes, earn XP, help peers: ' + url);
-    // If logged in, prefer the user's own referral link
-    try {
-      fetch('/api/referral/my-code', { credentials:'same-origin' })
-        .then(function(r){ return r.json(); })
-        .then(function(j){
-          if (j.success && j.share_url) { url = j.share_url; text = encodeURIComponent('Join me on AbhiHub and climb the leaderboard — invite link: ' + url); }
-          window.open('https://wa.me/?text=' + text, '_blank', 'noopener');
-        })
-        .catch(function(){ window.open('https://wa.me/?text=' + text, '_blank', 'noopener'); });
-    } catch(e) { window.open('https://wa.me/?text=' + text, '_blank', 'noopener'); }
-  });
+  if (btn) {
+    btn.addEventListener('click', function(){
+      var url = '{{ request.url_root.rstrip("/") }}/signup';
+      var text = encodeURIComponent('Climb the AbhiHub leaderboard with me — upload PYQs & notes, earn XP, help peers: ' + url);
+      try {
+        fetch('/api/referral/my-code', { credentials: 'same-origin' })
+          .then(function(r){ return r.json(); })
+          .then(function(j){
+            if (j.success && j.share_url) {
+              url = j.share_url;
+              text = encodeURIComponent('Join me on AbhiHub and climb the leaderboard — invite link: ' + url);
+            }
+            window.open('https://wa.me/?text=' + text, '_blank', 'noopener');
+          })
+          .catch(function(){ window.open('https://wa.me/?text=' + text, '_blank', 'noopener'); });
+      } catch(e) { window.open('https://wa.me/?text=' + text, '_blank', 'noopener'); }
+    });
+  }
 })();
 </script>
 {% endblock %}

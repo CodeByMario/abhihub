@@ -2,6 +2,36 @@
 <html lang="en">
 
 <head>
+    {% if IS_PRODUCTION %}
+    <!-- Production Mode: Prevent Opening DevTools & Inspect Elements -->
+    <script>
+        (function() {
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+                return false;
+            }, { capture: true });
+
+            document.addEventListener('keydown', function(e) {
+                if (e.key === 'F12' || e.keyCode === 123) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+                if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return false;
+                }
+            }, { capture: true });
+        })();
+    </script>
+    {% endif %}
+
     <!-- Instant Theme Detection & Application (prevents theme flash) -->
     <script>
         (function() {
@@ -95,9 +125,7 @@
 
     <!-- Central SEO Template -->
     {% include 'includes/seo_head.html' %}
-    <!-- Googel Ad sense -->
-    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8274846157272362"
-     crossorigin="anonymous"></script>
+    <!-- Google AdSense is loaded in seo_head.html (is_noindex + disable_ads gated). Removed duplicate here. -->
 
     <!-- PWA Manifest & App Icons -->
     <link rel="manifest" href="/static/manifest.json">
@@ -131,8 +159,8 @@
     <!-- Study Pass System Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/study-pass.css') }}">
 
-    <!-- TomSelect CSS -->
-    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet">
+    <!-- TomSelect CSS: non-render-blocking -->
+    <link href="https://cdn.jsdelivr.net/npm/tom-select@2.2.2/dist/css/tom-select.css" rel="stylesheet" media="print" onload="this.media='all'">
     <!-- AbhiHub Select Component Styles -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/abhihub-select.css') }}">
 
@@ -404,14 +432,15 @@
                     return;
                 }
                 list.innerHTML = items.map(n => `
-              <div class="notif-item ${n.is_read ? '' : 'unread'}" data-notif-id="${n.id}" data-read="${n.is_read}">
-                <div class="notif-item-icon ${n.type === 'file_view' ? 'view' : 'default'}">
-                  ${n.type === 'file_view' ? '👁' : '🔔'}
+              <div class="notif-item ${n.is_read ? '' : 'unread'}" data-notif-id="${n.id}" data-read="${n.is_read}" ${n.action_url ? `style="cursor:pointer;" onclick="if(window.markNotificationRead)markNotificationRead('${n.id}');window.location.href='${n.action_url}';"` : ''}>
+                <div class="notif-item-icon ${n.type === 'file_view' ? 'view' : (n.type === 'new_upload' ? 'upload' : 'default')}">
+                  ${n.type === 'file_view' ? '👁' : (n.type === 'new_upload' ? '📄' : '🔔')}
                 </div>
                 <div class="notif-item-content">
                   <div class="notif-item-title">${n.title}</div>
                   <div class="notif-item-message">${n.message}</div>
                   <div class="notif-item-time">${_timeAgo(n.created_at)}</div>
+                  ${n.action_url ? `<a href="${n.action_url}" class="notif-item-link" style="font-size:0.75rem; color:#2563eb; font-weight:600; text-decoration:none; margin-top:4px; display:inline-block;" onclick="event.stopPropagation();if(window.markNotificationRead)markNotificationRead('${n.id}');">Open File &rarr;</a>` : ''}
                 </div>
                 ${!n.is_read ? '<div class="notif-unread-dot"></div>' : ''}
               </div>`).join('');
@@ -821,47 +850,6 @@
 
     <!-- Global overlay helpers (make some common popup controls available on every page) -->
     <script>
-        window.openSupportModal = function () {
-            try {
-                var showFn = function () {
-                    var el = document.getElementById('supportModal');
-                    if (el) { el.classList.add('show'); el.style.display = ''; document.body.style.overflow = 'hidden'; }
-                };
-
-                if (window.OverlayManager && typeof window.OverlayManager.request === 'function') {
-                    window.OverlayManager.request({
-                        id: 'supportModal',
-                        priority: 60,
-                        show: showFn,
-                        immediate: true
-                    });
-                } else {
-                    showFn();
-                }
-            } catch (e) { }
-        };
-
-        window.closeSupportModal = function () {
-            try {
-                var el = document.getElementById('supportModal');
-                if (window.OverlayManager && typeof window.OverlayManager.dismiss === 'function') {
-                    window.OverlayManager.dismiss('supportModal', 6 * 60 * 60 * 1000); // 6h cooldown
-                }
-                if (el) { el.classList.remove('show'); el.style.display = ''; document.body.style.overflow = ''; }
-            } catch (e) { }
-        };
-        // Ensure clicking modal close buttons inside support modal always closes it
-        document.addEventListener('click', function (e) {
-            try {
-                var btn = e.target.closest('.dashboard-modal-close, .dashboard-modal-secondary-button');
-                if (!btn) return;
-                var support = document.getElementById('supportModal');
-                if (support && support.contains(btn)) {
-                    window.closeSupportModal();
-                }
-            } catch (e) { }
-        });
-        // Debug helper: force-close any overlay (use from browser console)
         window.forceCloseAllOverlays = function () {
             try {
                 var sels = ['.popup-overlay', '.dashboard-modal-body', '.profile-nudge-overlay', '.pwa-install-popup', '.mw-awareness-overlay'];
@@ -1148,17 +1136,38 @@
     <!-- Interactive In-App Guide Engine -->
     <script src="{{ url_for('static', filename='js/guide_engine.js') }}" defer></script>
     <script>
-        document.addEventListener('DOMContentLoaded', function() {
+        function initAppGuide() {
             var rawPath = window.location.pathname;
             if (rawPath.startsWith('/app-shell')) {
                 var p = new URLSearchParams(window.location.search).get('p');
                 if (p) rawPath = p.split('?')[0];
             }
-            var screen = rawPath.replace(/^\/|\/$/g, '') || 'dashboard';
+            var seg = rawPath.replace(/^\/|\/$/g, '').toLowerCase() || 'dashboard';
+            var aliases = {
+                'rank': 'leaderboard',
+                'ranking': 'leaderboard',
+                'home': 'dashboard',
+                'index': 'dashboard',
+                'profile': 'account',
+                'settings': 'account',
+                'dashboard/setting': 'account',
+                'dashboard/profile': 'account',
+                'view': 'pdf-reader',
+                'dashboard/view': 'pdf-reader',
+                'reader': 'pdf-reader',
+                'local-viewer': 'pdf-reader',
+                'storeroom': 'store-room'
+            };
+            var screen = aliases[seg] || seg;
             if (window.GuideEngine) {
                 window.GuideEngine.init(screen);
             }
-        });
+        }
+        if ('requestIdleCallback' in window) {
+            requestIdleCallback(initAppGuide, { timeout: 4000 });
+        } else {
+            setTimeout(initAppGuide, 3000);
+        }
     </script>
 
     <!-- Security & AI Assistant: expose current student profile to client -->

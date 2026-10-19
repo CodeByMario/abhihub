@@ -87,8 +87,9 @@ def contact():
 @site_bp.route('/support')
 @auth_required
 def support():
-    default_name = session.get('user', {}).get('name', '') if 'user' in session else ''
-    return render_template('site/support.html', default_name=default_name)
+    # Hidden till future notice
+    return redirect(url_for('app_pages.dashboard'))
+
 
 
 @site_bp.route('/')
@@ -140,15 +141,15 @@ def features():
     except Exception as e:
         logging.warning(f"Error fetching landing page docs: {e}")
 
-    from data.tea_supporters import get_recent_tea_supporters
-    tea_supporters = get_recent_tea_supporters(8)
-
     return render_template(
         'site/landing.html',
         colleges=all_colleges[:8],
         branches=branches[:8],
         recent_docs=recent_docs,
-        tea_supporters=tea_supporters
+        seo_title="AbhiHub — Buy & Sell Engineering Notes, PYQs & Study Materials",
+        seo_description="India's student-first peer academic marketplace. Download verified previous year question papers & high-scoring engineering notes, or upload handwritten notes to earn 85% royalties via UPI.",
+        og_title="AbhiHub — India's #1 Student Notes & PYQ Marketplace",
+        og_description="Download verified PYQs & engineering notes, or upload & earn 85% royalties. Started at GHRCE Nagpur by students, for students across India."
     )
 
 
@@ -161,6 +162,13 @@ def logo():
 @site_bp.route('/offline')
 def offline_page():
     return render_template('offline.html')
+
+
+@site_bp.route('/game')
+@sitemap_page(priority="0.75", changefreq="monthly")
+def game_page():
+    """5-minute student study break game (desktop & mobile responsive)."""
+    return render_template('game.html')
 
 
 @site_bp.route('/payment')

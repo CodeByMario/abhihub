@@ -501,51 +501,7 @@
       <a href="{{ url_for('app_pages.upload') }}" class="btn btn-glass" style="color: #ffffff; border-color: rgba(255,255,255,0.4);">Start Uploading Now</a>
     </div>
   </div>
-<!-- ── Tea Supporters Wall Section ── -->
-<div class="features-section" style="padding-top: 1rem; padding-bottom: 3rem;">
-  <div style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fed7aa 100%); border: 1.5px solid #fde68a; border-radius: 24px; padding: 2.25rem 1.75rem; box-shadow: 0 10px 25px -5px rgba(217, 119, 6, 0.1);">
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
-      <div>
-        <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: #ffffff; color: #b45309; padding: 0.3rem 0.8rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.03em; margin-bottom: 0.5rem; box-shadow: 0 2px 6px rgba(180, 83, 9, 0.1);">
-          ☕ FUELING FREE EDUCATION
-        </div>
-        <h2 style="font-size: 1.7rem; font-weight: 800; color: #78350f; margin: 0 0 0.4rem 0;">Recent Tea Supporters</h2>
-        <p style="font-size: 0.95rem; color: #92400e; margin: 0; max-width: 600px; line-height: 1.5;">
-          Every cup of chai directly supports high-speed servers, database storage, and free university exam resources for thousands of engineering students across India.
-        </p>
-      </div>
-      <a href="{{ url_for('site.support') }}" class="btn btn-primary" style="background: linear-gradient(135deg, #b45309 0%, #ea580c 100%); color: #ffffff; border: none; font-weight: 700; padding: 0.65rem 1.4rem; font-size: 0.95rem; text-decoration: none; border-radius: 12px; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 4px 14px rgba(234, 88, 12, 0.3);">
-        <span>☕ Buy Me a Tea</span>
-      </a>
-    </div>
 
-    <!-- Supporters Grid -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;">
-      {% for s in tea_supporters %}
-      <div style="background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(253, 230, 138, 0.8); border-radius: 16px; padding: 1.1rem; box-shadow: 0 4px 12px rgba(180, 83, 9, 0.05); display: flex; flex-direction: column; justify-content: space-between; backdrop-filter: blur(8px);">
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-            <strong style="color: #78350f; font-size: 0.95rem; display: flex; align-items: center; gap: 0.35rem;">
-              <span>{{ "☕" * (s.cups if s.cups <= 3 else 3) }}</span>
-              <span>{{ s.name }}</span>
-            </strong>
-            <span style="font-size: 0.78rem; font-weight: 800; color: #b45309; background: #fef3c7; padding: 0.2rem 0.55rem; border-radius: 8px; border: 1px solid #fde68a;">
-              ₹{{ "%.0f"|format(s.amount) }}
-            </span>
-          </div>
-          <p style="margin: 0; font-size: 0.84rem; color: #475569; font-style: italic; line-height: 1.45;">
-            "{{ s.message or 'Bought tea to support AbhiHub!' }}"
-          </p>
-        </div>
-        <div style="margin-top: 0.75rem; font-size: 0.72rem; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(0,0,0,0.04); padding-top: 0.5rem;">
-          <span>{{ s.cups }} Cup{{ 's' if s.cups != 1 else '' }} of Tea</span>
-          <span>{{ s.date or 'Recently' }}</span>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</div>
 
 <!-- ── Frequently Asked Questions (FAQ) ── -->
 <div class="features-section" style="padding-top: 1rem; padding-bottom: 4rem;">

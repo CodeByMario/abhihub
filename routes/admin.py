@@ -19,6 +19,7 @@ from flask import (
     url_for,
     session,
     current_app,
+    abort,
 )
 
 from routes.auth import auth_required, admin_required, log_admin_action
@@ -117,6 +118,9 @@ def admin_economy_dashboard():
 @admin_required
 def admin_developer_panel():
     """Admin Developer Panel: cloud stats, feature health, live logs."""
+    env_name = os.getenv('FLASK_ENV', os.getenv('APP_ENV', 'development')).lower()
+    if env_name in ('production', 'prod'):
+        abort(403, description="Developer panel is disabled in production mode.")
     return render_template('admin_developer.html')
 
 

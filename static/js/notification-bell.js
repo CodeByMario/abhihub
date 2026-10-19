@@ -51,6 +51,7 @@
         list.innerHTML = items.map(function (n) {
             var typeIcon = '🔔';
             if (n.type === 'file_view') typeIcon = '👁';
+            if (n.type === 'new_upload') typeIcon = '📄';
             if (n.type === 'chat_message') typeIcon = '💬';
             if (n.type === 'like') typeIcon = '❤️';
             if (n.type === 'bookmark') typeIcon = '🔖';
@@ -60,6 +61,7 @@
             var title = escapeHtml(n.title || '');
             var msg = escapeHtml(n.message || '');
             var actionUrl = n.action_url ? escapeHtml(n.action_url) : '';
+            var openLinkHtml = actionUrl ? '<div style="font-size:0.75rem; color:#2563eb; font-weight:600; margin-top:3px;">Open File &rarr;</div>' : '';
             return (
                 '<div class="notif-item ' + unreadClass + '" data-notif-id="' + n.id + '" data-action-url="' + actionUrl + '" style="cursor:pointer;">' +
                     '<div class="notif-item-icon default">' + typeIcon + '</div>' +
@@ -67,6 +69,7 @@
                         '<div class="notif-item-title">' + title + '</div>' +
                         '<div class="notif-item-message">' + msg + '</div>' +
                         '<div class="notif-item-time">' + timeAgo(n.created_at) + '</div>' +
+                        openLinkHtml +
                     '</div>' +
                     unreadDot +
                 '</div>'

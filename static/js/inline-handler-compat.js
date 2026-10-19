@@ -453,9 +453,6 @@
         copyLink: function (e, el) {
             if (typeof window.copyLink === 'function') window.copyLink();
         },
-        openSupportModal: function (e, el) {
-            if (typeof window.openSupportModal === 'function') window.openSupportModal();
-        },
         selectPeer: function (e, el) {
             var peerId = el.getAttribute('data-peer-id');
             if (peerId && typeof window.selectPeer === 'function') window.selectPeer(peerId);

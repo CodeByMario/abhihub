@@ -182,9 +182,21 @@ const SearchManager = {
         console.log('[SearchManager] Initializing...');
         this.loadSearchHistory();
         this.setupEventListeners();
-        await this.preloadData();
-        await this.performSearch();
-        console.log('[SearchManager] Init complete. Cache size:', this.cache?.length);
+
+        // Defer heavy files/colleges preloading until user touches search or idle time
+        const triggerPreload = () => {
+            if (!this.cache && !this._preloading) {
+                this._preloading = true;
+                this.preloadData().finally(() => { this._preloading = false; });
+            }
+        };
+
+        const fileInput = this.elements.fileName();
+        if (fileInput) {
+            fileInput.addEventListener('focus', triggerPreload, { once: true });
+        }
+        document.getElementById('navSearchOverlay')?.addEventListener('click', triggerPreload, { once: true });
+        document.getElementById('navbarSearchIcon')?.addEventListener('click', triggerPreload, { once: true });
     },
 
     loadSearchHistory() {

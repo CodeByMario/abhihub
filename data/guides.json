@@ -177,12 +177,12 @@
     "trigger": { "event": "screen_viewed", "screen": "account" },
     "steps": [
       {
-        "target": ".ac-ring-wrap",
+        "target": ".ac-ring-wrap, .st-user-avatar, .st-sidebar-user, #section-my-account .st-card:first-child",
         "title": "Profile Progress Ring",
         "body": "Reach 100% completion by filling in your department, year of study, and degree."
       },
       {
-        "target": "#accountForm, .ac-card",
+        "target": "#accountForm, #settingsAccountForm, .ac-card, .st-card",
         "title": "Update Details",
         "body": "Ensure your academic department is accurate so your feed surfaces relevant exam questions."
       }
@@ -198,12 +198,12 @@
     "trigger": { "event": "screen_viewed", "screen": "pdf-reader" },
     "steps": [
       {
-        "target": ".reader-bar, .reader-title",
+        "target": ".reader-bar, .viewer-bar, .reader-title, .viewer-title",
         "title": "Document Title & Status",
         "body": "Verify the document subject, semester, and verified exam category."
       },
       {
-        "target": ".reader-back",
+        "target": ".reader-back, .viewer-back",
         "title": "Return to Dashboard",
         "body": "Tap back anytime to return to your library shelf without losing your place."
       }

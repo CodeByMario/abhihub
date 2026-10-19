@@ -38,6 +38,8 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/navbar.css') }}?v=2026">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/notification-bell.css') }}?v=2026">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/app-shell-frame.css') }}?v=2026">
+    <!-- Security Module: Blocks default browser right-click & DevTools, renders AbhiHub custom context menu -->
+    <script src="{{ url_for('static', filename='js/security.js') }}"></script>
     <style>
         /* Critical responsive layout guards for Shell */
         .shell-desktop-nav { display: none !important; }
@@ -187,7 +189,9 @@
                 <span class="navbar__label">Store Room</span>
             </a>
 
-            <a href="/admin" id="shellAdminTab" class="navbar__item -red" data-page="admin" style="display: none;">
+            {% set shell_u = session.get('user', {}) %}
+            {% set is_shell_admin = (shell_u.get('email', '') | lower) in ['codebymario@gmail.com', 'info@abhihub.edu.eu.org', 'admin@abhihub.edu.eu.org'] or shell_u.get('role') == 'admin' %}
+            <a href="/admin" id="shellAdminTab" class="navbar__item -red" data-page="admin" style="display: {{ 'flex' if is_shell_admin else 'none' }};">
                 <span class="navbar__icon" aria-hidden="true">
                     <svg class="icon"><use xlink:href="#icon-settings"></use></svg>
                 </span>

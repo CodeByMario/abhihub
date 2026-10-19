@@ -19,9 +19,116 @@ from methods.supabase_helper import (
 library_bp = Blueprint('library', __name__)
 
 
+def _get_user_standing(user_id, leaderboard_data):
+    if not user_id:
+        return None
+    user_entry = None
+    user_rank = None
+    for entry in leaderboard_data:
+        if entry.get('user_id') == user_id:
+            user_entry = entry
+            user_rank = entry.get('rank')
+            break
+
+    if not user_entry:
+        try:
+            from methods.supabase_helper import calculate_user_ranks
+            all_ranks = calculate_user_ranks()
+            for idx, r in enumerate(all_ranks):
+                if r.get('uploader_id') == user_id:
+                    user_rank = idx + 1
+                    pts = r.get('points', 0)
+                    user_entry = {
+                        'rank': user_rank,
+                        'user_id': user_id,
+                        'name': r.get('author') or 'You',
+                        'total_xp': int(pts) if isinstance(pts, (int, float)) else 0,
+                        'upload_count': r.get('upload_count', 0),
+                        'students_helped': r.get('students_helped', 0),
+                    }
+                    break
+        except Exception:
+            pass
+
+    xp = float(user_entry.get('total_xp', 0)) if user_entry else 0.0
+    uploads_count = user_entry.get('upload_count', 0) if user_entry else 0
+    students_helped = user_entry.get('students_helped', 0) if user_entry else 0
+
+    tiers = [
+        {'title': 'Beginner', 'icon': '🌱', 'min': 0, 'next': 'Contributor', 'target': 50},
+        {'title': 'Contributor', 'icon': '🥉', 'min': 50, 'next': 'Scholar', 'target': 250},
+        {'title': 'Scholar', 'icon': '🥈', 'min': 250, 'next': 'Hero', 'target': 500},
+        {'title': 'Hero', 'icon': '🥇', 'min': 500, 'next': 'Legend', 'target': 1000},
+        {'title': 'Legend', 'icon': '👑', 'min': 1000, 'next': None, 'target': 1000}
+    ]
+
+    current_tier = tiers[0]
+    for t in tiers:
+        if xp >= t['min']:
+            current_tier = t
+
+    if current_tier['next']:
+        next_target = current_tier['target']
+        tier_span = next_target - current_tier['min']
+        progress_pct = min(100, max(0, int(((xp - current_tier['min']) / tier_span) * 100))) if tier_span > 0 else 100
+        xp_to_next = max(0, int(next_target - xp))
+    else:
+        progress_pct = 100
+        xp_to_next = 0
+
+    nudge = {}
+    if user_rank and user_rank > 1:
+        ahead_entry = next((item for item in leaderboard_data if item.get('rank') == user_rank - 1), None)
+        if ahead_entry:
+            diff = max(1, int(float(ahead_entry.get('total_xp', 0)) - xp + 1))
+            notes_needed = max(1, (diff + 29) // 30)
+            peer_name = ahead_entry.get('name', 'peer').split()[0]
+            nudge = {
+                'ahead_name': peer_name,
+                'ahead_rank': user_rank - 1,
+                'xp_gap': diff,
+                'notes_needed': notes_needed,
+                'message': f"You are only {diff} XP behind #{user_rank - 1} {peer_name}. Upload {notes_needed} note{'s' if notes_needed > 1 else ''} (+{notes_needed * 30} XP) to overtake them!"
+            }
+        else:
+            notes_needed = max(1, (xp_to_next + 29) // 30) if xp_to_next else 1
+            nudge = {
+                'xp_gap': xp_to_next,
+                'notes_needed': notes_needed,
+                'message': f"Upload {notes_needed} note{'s' if notes_needed > 1 else ''} to unlock {current_tier['next']} badge!" if current_tier['next'] else "You hold the pinnacle rank!"
+            }
+    elif user_rank == 1:
+        nudge = {
+            'xp_gap': 0,
+            'notes_needed': 0,
+            'message': "👑 You are leading at #1! Keep sharing to secure your legendary spot."
+        }
+    else:
+        nudge = {
+            'xp_gap': 30,
+            'notes_needed': 1,
+            'message': "You are unranked. Upload 1 study note or PYQ to earn instant XP and claim your place on the leaderboard!"
+        }
+
+    return {
+        'is_ranked': bool(user_rank),
+        'rank': user_rank,
+        'total_xp': int(xp) if xp.is_integer() else xp,
+        'upload_count': uploads_count,
+        'students_helped': students_helped,
+        'tier_title': current_tier['title'],
+        'tier_icon': current_tier['icon'],
+        'next_tier': current_tier['next'],
+        'next_tier_target': current_tier['target'],
+        'xp_to_next_tier': xp_to_next,
+        'progress_pct': progress_pct,
+        'nudge': nudge
+    }
+
+
 @library_bp.route('/leaderboard', methods=['GET'])
 def leaderboard():
-    """Global Gamification Leaderboard — cached at L1 for 10min."""
+    """Global Gamification Leaderboard — Apple UI/UX redesign with personal standing."""
     import app
     cache = app.cache
 
@@ -34,12 +141,23 @@ def leaderboard():
 
     leaderboard_data = cache.get_cached(cache_key, level=cache.L2, ttl=cache.LONG, fetcher=fetch_lb)
     user_info = session.get('user')
+    user_uid = (user_info.get('uid') or user_info.get('id')) if user_info else None
+    user_standing = _get_user_standing(user_uid, leaderboard_data) if user_uid else None
+
+    # Guarantee uid field exists for template checks
+    if user_info and user_uid and 'uid' not in user_info:
+        user_info['uid'] = user_uid
+
     response = make_response(render_template(
         'leaderboard.html',
         leaderboard=leaderboard_data,
-        current_user=user_info
+        current_user=user_info,
+        user_standing=user_standing
     ))
-    cache.set_cache_headers(response, max_age=cache.LONG, stale_while_revalidate=True)
+    if user_info:
+        response.headers['Cache-Control'] = 'private, no-cache, no-store, must-revalidate'
+    else:
+        cache.set_cache_headers(response, max_age=cache.LONG, stale_while_revalidate=True)
     return response
 
 
@@ -62,6 +180,7 @@ def pyq_landing():
                 c['doc_count'] = count_map.get(c.get('id'), 0)
     except Exception:
         pass
+    colleges.sort(key=lambda c: c.get('doc_count', 0), reverse=True)
     return render_template('pyq_landing.html', colleges=colleges)
 
 
@@ -293,11 +412,19 @@ def resource_landing(slug):
         abort(404)
 
     doc_id = match.group(0)
-    doc_res = get_document_by_id_rich(doc_id)
-    if not doc_res.get('success'):
+    cache = getattr(app, 'cache', None)
+    doc_res = None
+    if cache:
+        doc_res = cache.get_cached(f"doc_rich:{doc_id}", level=cache.L1, ttl=300)
+    if not doc_res:
+        doc_res = get_document_by_id_rich(doc_id)
+        if doc_res.get('success') and cache:
+            cache.set_cached(f"doc_rich:{doc_id}", doc_res, ttl=300)
+
+    if not doc_res or not doc_res.get('success'):
         abort(404)
 
-    document = doc_res.get('data')
+    document = dict(doc_res.get('data') or {})
 
     file_url = document.get('file_url', '')
     if file_url:
@@ -397,42 +524,22 @@ def resource_landing(slug):
 
     suggested_docs = []
     store_room_docs = []
-    try:
-        subj_id = document.get('subject_id')
-        subj_name = document.get('subject', {}).get('name', '') if document.get('subject') else ''
+    subj_id = document.get('subject_id')
+    sug_cache_key = f"sug_docs:{subj_id or 'none'}:{doc_id}"
+    if cache:
+        cached_sug = cache.get_cached(sug_cache_key, level=cache.L1, ttl=600)
+        if cached_sug is not None:
+            suggested_docs = cached_sug
 
-        if subj_id:
-            sug_res = client.table('documents').select('id, title, file_type, view_count, uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)').eq('subject_id', subj_id).neq('id', doc_id).limit(4).execute()
-            suggested_docs = sug_res.data or []
-
-        similar_subj_ids = []
-        if len(suggested_docs) < 4 and subj_name:
-            name_res = client.table('subjects').select('id').ilike('name', subj_name.strip()).execute()
-            similar_subj_ids = [s['id'] for s in name_res.data if s['id'] != subj_id] if name_res.data else []
-            if similar_subj_ids:
-                sug_res2 = client.table('documents').select('id, title, file_type, view_count, uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)').in_('subject_id', similar_subj_ids).neq('id', doc_id).limit(4 - len(suggested_docs)).execute()
-                if sug_res2.data:
-                    suggested_docs.extend(sug_res2.data)
-
-        if len(suggested_docs) < 4 and subj_name:
-            subj_kws = [w for w in subj_name.lower().split() if len(w) > 3]
-            if subj_kws:
-                or_cond = ','.join([f'name.ilike.*{kw}*' for kw in subj_kws[:2]])
-                fuzzy_name_res = client.table('subjects').select('id').or_(or_cond).execute()
-                fuzzy_subj_ids = [s['id'] for s in fuzzy_name_res.data if s['id'] != subj_id and s['id'] not in similar_subj_ids] if fuzzy_name_res.data else []
-                if fuzzy_subj_ids:
-                    sug_res3 = client.table('documents').select('id, title, file_type, view_count, uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)').in_('subject_id', fuzzy_subj_ids).neq('id', doc_id).limit(4 - len(suggested_docs)).execute()
-                    if sug_res3.data:
-                        suggested_docs.extend(sug_res3.data)
-
-        if title:
-            keywords = [w for w in title.split() if len(w) > 3]
-            if keywords:
-                or_cond = ",".join([f"filename.ilike.*{kw}*" for kw in keywords[:2]])
-                sr_res = client.table('storage_assets').select('id, provider_public_id, filename').eq('status', 'PENDING').or_(or_cond).limit(4).execute()
-                store_room_docs = sr_res.data or []
-    except Exception as e:
-        logging.error(f"[Supabase] Error fetching suggestions: {e}")
+    if not suggested_docs:
+        try:
+            if subj_id and client:
+                sug_res = client.table('documents').select('id, title, file_type, view_count, uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)').eq('subject_id', subj_id).neq('id', doc_id).limit(4).execute()
+                suggested_docs = sug_res.data or []
+            if cache and suggested_docs:
+                cache.set_cached(sug_cache_key, suggested_docs, ttl=600)
+        except Exception as e:
+            logging.error(f"[Supabase] Error fetching suggestions: {e}")
 
     from methods.seo_helper import is_resource_indexable
     is_thin = not is_resource_indexable(document)

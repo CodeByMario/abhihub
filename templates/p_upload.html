@@ -7,16 +7,73 @@
 {% block content %}
 
 <div class="page-container">
-  <div class="grid-layout">
 
-    <!-- Left: Branding -->
+  <!-- Apple-Style Segmented View Switcher -->
+  <div class="apple-segment-wrapper">
+    <div class="apple-segmented-control" role="tablist" aria-label="Upload view selector">
+      <button type="button" class="apple-segment-btn active" id="tabUploadBtn" data-tab-target="uploadWorkspaceTab" role="tab" aria-selected="true">
+        <span class="segment-icon">📤</span>
+        <span class="segment-text">Upload Workspace</span>
+      </button>
+      <button type="button" class="apple-segment-btn" id="tabHistoryBtn" data-tab-target="uploadHistorySection" role="tab" aria-selected="false">
+        <span class="segment-icon">📜</span>
+        <span class="segment-text">My Upload History</span>
+        <span class="apple-tab-badge" id="historyTabBadge">0</span>
+      </button>
+    </div>
+  </div>
+
+  <div class="grid-layout" id="uploadWorkspaceTab">
+
+    <!-- Left: Apple Bento Showcase -->
     <div class="visuals-col">
-      <h1 class="hero-title">Contribute to the<br>Community 🚀</h1>
-      <p class="hero-text">Thousands of students rely on AbhiHub. Upload your notes, papers, and practicals to help juniors and peers ace their exams.</p>
-      <div class="feature-list">
-        <div class="feature-item"><div class="feature-icon icon-blue">⚡</div><span>Bulk upload multiple images at once</span></div>
-        <div class="feature-item"><div class="feature-icon icon-purple">✂️</div><span>Crop &amp; rotate before uploading</span></div>
-        <div class="feature-item"><div class="feature-icon icon-green">📷</div><span>Scan directly from your camera</span></div>
+      <div class="apple-hero-badge">
+        <span class="apple-pulse-dot"></span>
+        <span>AbhiHub Creator Studio</span>
+      </div>
+      <h1 class="hero-title">Turn Your Study Notes Into<br><span class="hero-gradient-text">Impact &amp; Standing</span></h1>
+      <p class="hero-text">Share previous question papers, notes, and lab manuals. Help your college peers ace their exams while leveling up your contributor tier.</p>
+
+      <!-- Apple Bento Card 1: XP Progress -->
+      <div class="apple-bento-card xp-bento-card">
+        <div class="bento-card-header">
+          <div class="bento-ring-wrap">
+            <svg class="bento-ring-svg" viewBox="0 0 36 36">
+              <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+              <path class="ring-fill" stroke-dasharray="75, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
+            </svg>
+            <span class="bento-ring-emoji">⚡</span>
+          </div>
+          <div>
+            <div class="bento-badge-title">Contributor Standing</div>
+            <div class="bento-badge-subtitle">Earn <strong>+25 XP</strong> for every verified document</div>
+          </div>
+        </div>
+        <div class="bento-perk-row">
+          <span class="bento-perk">🎯 80% Creator Payouts</span>
+          <span class="bento-perk">🏆 Profile Hall of Fame</span>
+        </div>
+      </div>
+
+      <!-- Apple Bento Card 2: Student Demand Pulse -->
+      <div class="apple-bento-card demand-bento-card">
+        <div class="demand-header">
+          <span class="demand-flame">🔥</span>
+          <span class="demand-title">High Demand Right Now</span>
+        </div>
+        <div class="demand-chips">
+          <span class="demand-chip">Mid-Sem PYQ 2024-25</span>
+          <span class="demand-chip">Unit 3 &amp; 4 Notes</span>
+          <span class="demand-chip">Lab Practicals</span>
+        </div>
+        <div class="demand-caption">Juniors in your department are actively searching for these materials.</div>
+      </div>
+
+      <!-- Features Pill Row -->
+      <div class="apple-feature-pills">
+        <div class="apple-pill"><span class="pill-icon">✨</span> AI Auto-Detection</div>
+        <div class="apple-pill"><span class="pill-icon">🔒</span> Monetization Control</div>
+        <div class="apple-pill"><span class="pill-icon">📷</span> Mobile Cam Scanner</div>
       </div>
     </div>
 
@@ -28,14 +85,22 @@
           <span class="mobile-subtitle">Share resources with friends</span>
         </div>
 
+        <!-- Psychological Social Proof & Impact Banner -->
+        <div class="social-proof-strip">
+          <span class="social-proof-item">📚 <strong>2,840+</strong> students helped this week</span>
+          <span class="social-proof-dot">•</span>
+          <span class="social-proof-item">⚡ Earn <strong class="text-xp">+25 XP</strong></span>
+        </div>
+
         <form id="uploadForm" data-event-submit="startBulkUpload">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
           <!-- Drop zone -->
           <div class="drop-zone" id="dropArea" data-action="openFileInput" tabindex="0" role="button" aria-label="Select files or drag and drop to upload" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+            <div class="drop-reward-pill">✨ Instant +25 XP Reward</div>
             <span class="drop-icon">📂</span>
-            <span class="drop-label">Select Files / Drag &amp; Drop</span>
-            <span class="drop-hint" id="fileHint">Images accepted • Max 50 MB each</span>
+            <span class="drop-label">Drop files here or <span class="drop-browse-text">Browse</span></span>
+            <span class="drop-hint" id="fileHint">Images &amp; PDFs accepted • Max 50 MB each</span>
             <input type="file" id="fileInput" name="upload_document" hidden multiple accept="image/*,application/pdf"
                    data-event-change="handleFilesSelected">
           </div>
@@ -47,6 +112,9 @@
             </button>
             <button type="button" class="scan-btn" data-action="openFileInput">
               🗂 Browse Files
+            </button>
+            <button type="button" class="scan-btn" data-action="openAppGuide" title="Explore Upload Features">
+              🧭 Tour
             </button>
           </div>
           <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden
@@ -352,7 +420,9 @@
           <!-- Submit -->
           <button type="submit" class="upload-btn" id="submitBtn" data-action="trackUploadStart" aria-live="polite">
             <span class="btn-spinner" id="btnSpinner" style="display:none;" aria-hidden="true"></span>
-            <span id="submitBtnText">Upload Files</span>
+            <span class="btn-icon">🚀</span>
+            <span id="submitBtnText">Upload &amp; Earn XP</span>
+            <span class="btn-xp-badge">+25 XP</span>
           </button>
 
           <!-- ── Material Requests (inline, below submit) ── -->
@@ -366,8 +436,81 @@
         </form>
       </div>
     </div>
-
   </div>
+
+  <!-- ── Upload History Section (Apple Tab Pane) ── -->
+  <section class="upload-history-section apple-tab-pane" id="uploadHistorySection" style="display:none; width:100%; max-width:1120px; margin:1rem auto 3rem;">
+    <div class="apple-history-card">
+      <div class="apple-history-header">
+        <div>
+          <h2 class="apple-history-title">
+            <span>📜</span> Creator Insights &amp; Performance
+          </h2>
+          <p class="apple-history-subtitle">Track real-time student reach, engagement metrics, and approval status for all your uploads.</p>
+        </div>
+        <button type="button" id="refreshHistoryBtn" onclick="loadUploadHistory()" class="apple-refresh-btn">
+          🔄 Refresh
+        </button>
+      </div>
+
+      <!-- 🌟 Creator Engagement & Highlights Dashboard -->
+      <div id="historyAnalyticsDashboard" class="history-analytics-grid" style="display:none;">
+        <div class="analytics-card metric-card">
+          <div class="metric-icon">👁️</div>
+          <div class="metric-info">
+            <span class="metric-number" id="statTotalViews">0</span>
+            <span class="metric-label">Total Student Views</span>
+          </div>
+        </div>
+
+        <div class="analytics-card metric-card">
+          <div class="metric-icon">❤️</div>
+          <div class="metric-info">
+            <span class="metric-number" id="statTotalLikes">0</span>
+            <span class="metric-label">Helpful Upvotes</span>
+          </div>
+        </div>
+
+        <div class="analytics-card highlight-card" id="topViewedCard" style="display:none;">
+          <div class="highlight-badge">🏆 Most Popular Resource</div>
+          <div class="highlight-title" id="statTopTitle">—</div>
+          <div class="highlight-sub" id="statTopSub">0 views</div>
+        </div>
+      </div>
+
+      <!-- Filter & Sort Bar -->
+      <div class="history-filter-bar">
+        <div class="filter-pills" id="historyFilterPills">
+          <button type="button" class="history-filter-pill active" data-filter="all">All (<span id="uploadHistoryCount">0</span>)</button>
+          <button type="button" class="history-filter-pill" data-filter="most_viewed">🔥 Most Viewed</button>
+          <button type="button" class="history-filter-pill" data-filter="most_liked">❤️ Most Liked</button>
+          <button type="button" class="history-filter-pill" data-filter="approved">✓ Approved</button>
+          <button type="button" class="history-filter-pill" data-filter="pending">⏳ In Review</button>
+        </div>
+        <div class="history-search-box">
+          <span class="search-lens-icon">🔍</span>
+          <input type="text" id="historySearchInput" placeholder="Filter by title or subject..." class="history-search-field" />
+        </div>
+      </div>
+
+      <!-- History Loading State -->
+      <div id="historyLoading" style="text-align:center;padding:2.5rem 1rem;color:#64748b;font-size:0.9rem;">
+        <div class="btn-spinner" style="display:inline-block;border-color:#2563eb;border-top-color:transparent;width:24px;height:24px;border-width:2.5px;margin-bottom:0.6rem;"></div>
+        <div>Loading your creator analytics…</div>
+      </div>
+
+      <!-- History Empty State -->
+      <div id="historyEmpty" style="display:none;text-align:center;padding:3rem 1.5rem;color:#64748b;background:#f8fafc;border-radius:16px;border:1px dashed #cbd5e1;">
+        <div style="font-size:2.6rem;margin-bottom:0.5rem;">📂</div>
+        <div style="font-weight:700;font-size:1rem;color:#1e293b;margin-bottom:0.35rem;">No files uploaded yet</div>
+        <p style="font-size:0.85rem;max-width:380px;margin:0 auto;color:#64748b;">Upload your first document above. Once submitted, its review status, view metrics, and live access link will appear here!</p>
+      </div>
+
+      <!-- History Items Container -->
+      <div id="historyList" class="history-items-container" style="display:none;display:flex;flex-direction:column;gap:0.75rem;"></div>
+    </div>
+  </section>
+
 </div>
 
 <!-- ── Shared Popup Modal ── -->
@@ -398,7 +541,7 @@
 
           <div class="xp-actions" style="margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center;">
             <a href="/profile" id="viewResourceBtn" class="xp-action-btn" style="text-decoration:none; background:#2563eb; color:#ffffff; padding:0.75rem 1.4rem; border-radius:14px; font-weight:700; box-shadow:0 10px 25px rgba(37,99,235,0.25);">🚀 View Live Resource</a>
-            <button type="button" class="xp-action-btn" data-action="closeXpModal" style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:0.75rem 1.4rem; border-radius:14px; font-weight:700; cursor:pointer;">Upload Another</button>
+            <button type="button" class="xp-action-btn" data-action="closeXpModal" onclick="if(window.loadUploadHistory) window.loadUploadHistory();" style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:0.75rem 1.4rem; border-radius:14px; font-weight:700; cursor:pointer;">Upload Another</button>
           </div>
         </div>
       </div>
@@ -809,9 +952,10 @@
     }
   });
 
-  // Check for pending requests & creator monetization eligibility on page load
+  // Check for pending requests, creator eligibility & load upload history on page load
   document.addEventListener('DOMContentLoaded', () => {
     fetchMaterialRequests();
+    loadUploadHistory();
     fetch('/api/my-access')
       .then(r => r.json())
       .then(d => {
@@ -826,6 +970,204 @@
       }).catch(() => {
         window.refreshPricingUI();
       });
+  });
+
+  /* ── Creator Engagement & Upload History Engine ── */
+  window._userUploadsCache = [];
+  let _currentHistoryFilter = 'all';
+
+  function renderHistoryCards(items, topViewedId, topLikedId) {
+    const list = document.getElementById('historyList');
+    const empty = document.getElementById('historyEmpty');
+    if (!list) return;
+
+    list.innerHTML = '';
+    if (!items || items.length === 0) {
+      if (empty) {
+        empty.style.display = 'block';
+        empty.querySelector('p').textContent = 'No materials match your current search or filter.';
+      }
+      return;
+    }
+    if (empty) empty.style.display = 'none';
+
+    items.forEach(item => {
+      const isTopViewed = (item.id === topViewedId && (item.views || 0) > 0);
+      const isTopLiked = (item.id === topLikedId && (item.likes || 0) > 0);
+
+      const row = document.createElement('div');
+      row.className = 'history-item-row' + (isTopViewed ? ' is-top-performer' : '');
+
+      let statusBadge = '<span class="hist-badge status-in-review">⏳ In Review</span>';
+      if (item.status === 'approved') {
+        statusBadge = '<span class="hist-badge status-approved">✓ Approved</span>';
+      } else if (item.status === 'rejected') {
+        statusBadge = '<span class="hist-badge status-rejected">✕ Rejected</span>';
+      }
+
+      const priceBadge = item.is_paid && item.price > 0
+        ? `<span class="hist-badge price-paid">₹${item.price.toFixed(0)}</span>`
+        : '<span class="hist-badge price-free">Free</span>';
+
+      let topPill = '';
+      if (isTopViewed) {
+        topPill = `<span class="hist-badge top-viewed-pill">🏆 #1 Most Viewed</span>`;
+      } else if (isTopLiked) {
+        topPill = `<span class="hist-badge top-liked-pill">❤️ Community Choice</span>`;
+      }
+
+      // Icon by Category
+      let catIcon = '📄';
+      const catLower = (item.category || '').toLowerCase();
+      if (catLower.includes('note')) catIcon = '📝';
+      else if (catLower.includes('practical')) catIcon = '🧪';
+      else if (catLower.includes('syllabus')) catIcon = '📋';
+      else if (catLower.includes('assign')) catIcon = '✍️';
+      else if (catLower.includes('question')) catIcon = '🎯';
+
+      const uploadDate = item.created_at ? new Date(item.created_at).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'}) : '';
+
+      row.innerHTML = `
+        <div class="hist-main-col">
+          <div class="hist-title-row">
+            <span class="hist-type-icon">${catIcon}</span>
+            <a href="/resource/${item.id}" target="_blank" class="hist-title-link">${item.title}</a>
+            ${topPill}
+            ${statusBadge}
+            ${priceBadge}
+          </div>
+          <div class="hist-meta-row">
+            <span class="hist-meta-item">📚 <strong>${item.subject}</strong></span>
+            <span class="hist-meta-item">• ${item.category}</span>
+            <span class="hist-meta-item stat-view-pill">👁️ <strong>${item.views || 0}</strong> views</span>
+            ${(item.likes && item.likes > 0) ? `<span class="hist-meta-item stat-like-pill">❤️ <strong>${item.likes}</strong></span>` : ''}
+            ${uploadDate ? `<span class="hist-meta-item">• 📅 ${uploadDate}</span>` : ''}
+          </div>
+        </div>
+        <div class="hist-action-col">
+          <a href="/resource/${item.id}" target="_blank" class="hist-action-btn">
+            View Material ↗
+          </a>
+        </div>
+      `;
+      list.appendChild(row);
+    });
+    list.style.display = 'flex';
+  }
+
+  function applyHistoryFilter() {
+    let filtered = [...(window._userUploadsCache || [])];
+
+    // 1. Text Search
+    const searchVal = (document.getElementById('historySearchInput')?.value || '').toLowerCase().trim();
+    if (searchVal) {
+      filtered = filtered.filter(item => 
+        (item.title || '').toLowerCase().includes(searchVal) ||
+        (item.subject || '').toLowerCase().includes(searchVal) ||
+        (item.category || '').toLowerCase().includes(searchVal)
+      );
+    }
+
+    // 2. Tab Filter
+    if (_currentHistoryFilter === 'most_viewed') {
+      filtered.sort((a,b) => (b.views || 0) - (a.views || 0));
+    } else if (_currentHistoryFilter === 'most_liked') {
+      filtered.sort((a,b) => (b.likes || 0) - (a.likes || 0));
+    } else if (_currentHistoryFilter === 'approved') {
+      filtered = filtered.filter(item => item.status === 'approved');
+    } else if (_currentHistoryFilter === 'pending') {
+      filtered = filtered.filter(item => item.status === 'pending');
+    }
+
+    const topViewedId = (window._userUploadsCache && window._userUploadsCache.length > 0)
+      ? [...window._userUploadsCache].sort((a,b) => (b.views || 0) - (a.views || 0))[0]?.id
+      : null;
+    const topLikedId = (window._userUploadsCache && window._userUploadsCache.length > 0)
+      ? [...window._userUploadsCache].sort((a,b) => (b.likes || 0) - (a.likes || 0))[0]?.id
+      : null;
+
+    renderHistoryCards(filtered, topViewedId, topLikedId);
+  }
+
+  window.loadUploadHistory = async function() {
+    const loading = document.getElementById('historyLoading');
+    const empty = document.getElementById('historyEmpty');
+    const list = document.getElementById('historyList');
+    const countEl = document.getElementById('uploadHistoryCount');
+    const tabBadge = document.getElementById('historyTabBadge');
+    if (!loading || !empty || !list) return;
+
+    loading.style.display = 'block';
+    empty.style.display = 'none';
+    list.style.display = 'none';
+
+    try {
+      const res = await fetch('/api/user/uploads');
+      const data = await res.json();
+      loading.style.display = 'none';
+
+      if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+        window._userUploadsCache = data.data;
+        if (countEl) countEl.textContent = data.data.length;
+        if (tabBadge) tabBadge.textContent = data.data.length;
+
+        // Calculate Totals & Insights
+        const totalViews = data.data.reduce((acc, it) => acc + (it.views || 0), 0);
+        const totalLikes = data.data.reduce((acc, it) => acc + (it.likes || 0), 0);
+        const sortedByViews = [...data.data].sort((a,b) => (b.views || 0) - (a.views || 0));
+        const mostViewedItem = sortedByViews[0];
+
+        const statViews = document.getElementById('statTotalViews');
+        const statLikes = document.getElementById('statTotalLikes');
+        const dash = document.getElementById('historyAnalyticsDashboard');
+        const topCard = document.getElementById('topViewedCard');
+        const statTopTitle = document.getElementById('statTopTitle');
+        const statTopSub = document.getElementById('statTopSub');
+
+        if (statViews) statViews.textContent = totalViews.toLocaleString();
+        if (statLikes) statLikes.textContent = totalLikes.toLocaleString();
+
+        if (mostViewedItem && (mostViewedItem.views || 0) > 0 && topCard) {
+          topCard.style.display = 'flex';
+          if (statTopTitle) statTopTitle.textContent = mostViewedItem.title;
+          if (statTopSub) statTopSub.textContent = `🔥 ${mostViewedItem.views} total reads • ${mostViewedItem.subject}`;
+        }
+        if (dash) dash.style.display = 'grid';
+
+        applyHistoryFilter();
+      } else {
+        window._userUploadsCache = [];
+        if (countEl) countEl.textContent = '0';
+        if (tabBadge) tabBadge.textContent = '0';
+        empty.style.display = 'block';
+      }
+    } catch(err) {
+      console.warn('Error loading upload history:', err);
+      loading.style.display = 'none';
+      empty.style.display = 'block';
+    }
+  };
+
+  // Wire Filter Pills & Search
+  document.addEventListener('DOMContentLoaded', () => {
+    const pillContainer = document.getElementById('historyFilterPills');
+    if (pillContainer) {
+      pillContainer.addEventListener('click', (e) => {
+        const btn = e.target.closest('.history-filter-pill');
+        if (!btn) return;
+        pillContainer.querySelectorAll('.history-filter-pill').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        _currentHistoryFilter = btn.dataset.filter || 'all';
+        applyHistoryFilter();
+      });
+    }
+
+    const searchInput = document.getElementById('historySearchInput');
+    if (searchInput) {
+      searchInput.addEventListener('input', () => {
+        applyHistoryFilter();
+      });
+    }
   });
 
   function toggleRequestsPanel(){
@@ -858,6 +1200,36 @@
     // Show a toast to notify
     alert('Upload form prefilled for request: '+subject);
   }
+
+  /* ── Apple Segmented Tab Switcher ── */
+  document.addEventListener('DOMContentLoaded', () => {
+    const tabUploadBtn = document.getElementById('tabUploadBtn');
+    const tabHistoryBtn = document.getElementById('tabHistoryBtn');
+    const uploadWorkspace = document.getElementById('uploadWorkspaceTab');
+    const historySection = document.getElementById('uploadHistorySection');
+
+    function switchTab(activeTab) {
+      if (activeTab === 'upload') {
+        tabUploadBtn.classList.add('active');
+        tabUploadBtn.setAttribute('aria-selected', 'true');
+        tabHistoryBtn.classList.remove('active');
+        tabHistoryBtn.setAttribute('aria-selected', 'false');
+        if (uploadWorkspace) uploadWorkspace.style.display = 'grid';
+        if (historySection) historySection.style.display = 'none';
+      } else {
+        tabHistoryBtn.classList.add('active');
+        tabHistoryBtn.setAttribute('aria-selected', 'true');
+        tabUploadBtn.classList.remove('active');
+        tabUploadBtn.setAttribute('aria-selected', 'false');
+        if (uploadWorkspace) uploadWorkspace.style.display = 'none';
+        if (historySection) historySection.style.display = 'block';
+        if (window.loadUploadHistory) window.loadUploadHistory();
+      }
+    }
+
+    if (tabUploadBtn) tabUploadBtn.addEventListener('click', () => switchTab('upload'));
+    if (tabHistoryBtn) tabHistoryBtn.addEventListener('click', () => switchTab('history'));
+  });
 </script>
 
 {% endblock %}

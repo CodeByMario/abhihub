@@ -621,9 +621,11 @@
                         <button type="button" class="btn-action btn-indigo" style="padding: 0.3rem 0.75rem; font-size: 0.78rem;" onclick="loadAdminCloudAndFeatureHealth()">
                             <i class="fas fa-sync-alt"></i> Refresh
                         </button>
+                        {% if not IS_PRODUCTION %}
                         <a href="/admin/developer" class="btn-action btn-amber" style="padding: 0.3rem 0.75rem; font-size: 0.78rem; text-decoration: none;">
                             <i class="fas fa-terminal"></i> Dev Logs
                         </a>
+                        {% endif %}
                     </div>
                 </div>
 

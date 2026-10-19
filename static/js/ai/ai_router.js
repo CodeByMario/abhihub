@@ -176,7 +176,7 @@
         const gpuCheck = await this.checkWebGpuSupport();
         if (!gpuCheck.supported) {
           console.warn('[AIRouter] WebGPU not available, falling back to server:', gpuCheck.reason);
-          return this._executeServerCloud({ message, docContext, preferredModel: '01-ai/yi-large', history, isFallback: true, onComplete, onError });
+          return this._executeServerCloud({ message, docContext, preferredModel: 'google/gemma-4-31b-it:free', history, isFallback: true, onComplete, onError });
         }
 
         try {
@@ -193,7 +193,7 @@
         } catch (webllmErr) {
           console.warn('[AIRouter] WebLLM error, unloading and falling back to Cloud:', webllmErr);
           this.markWebGpuUnhealthy(webllmErr.message || 'Execution failed');
-          return this._executeServerCloud({ message, docContext, preferredModel: '01-ai/yi-large', history, isFallback: true, onComplete, onError });
+          return this._executeServerCloud({ message, docContext, preferredModel: 'google/gemma-4-31b-it:free', history, isFallback: true, onComplete, onError });
         }
       }
 
@@ -204,7 +204,7 @@
         if (!ollamaCheck.available) {
           if (global.showAiToast) global.showAiToast(ollamaCheck.message);
           console.warn('[AIRouter] Ollama unavailable, falling back to Cloud:', ollamaCheck.message);
-          return this._executeServerCloud({ message, docContext, preferredModel: '01-ai/yi-large', history, isFallback: true, onComplete, onError });
+          return this._executeServerCloud({ message, docContext, preferredModel: 'google/gemma-4-31b-it:free', history, isFallback: true, onComplete, onError });
         }
       }
 

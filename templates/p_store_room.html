@@ -6,309 +6,1385 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/p_upload.css') }}">
 <!-- 3. Store Room Studio Layout -->
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/p_store_room.css') }}">
+
+<style>
+  :root {
+    --apple-bg: #f5f5f7;
+    --apple-card: rgba(255, 255, 255, 0.85);
+    --apple-card-solid: #ffffff;
+    --apple-border: rgba(0, 0, 0, 0.08);
+    --apple-border-focus: rgba(0, 113, 227, 0.4);
+    --apple-text: #1d1d1f;
+    --apple-secondary: #6e6e73;
+    --apple-tertiary: #86868b;
+    --apple-blue: #0071e3;
+    --apple-blue-hover: #0077ed;
+    --apple-blue-tint: rgba(0, 113, 227, 0.08);
+    --apple-gold: #d4af37;
+    --apple-gold-tint: rgba(212, 175, 55, 0.12);
+    --apple-green: #10b981;
+    --apple-green-tint: rgba(16, 185, 129, 0.12);
+    --apple-orange: #f59e0b;
+    --apple-orange-tint: rgba(245, 158, 11, 0.12);
+    --apple-shadow: 0 4px 24px rgba(0, 0, 0, 0.04), 0 1px 2px rgba(0, 0, 0, 0.02);
+    --apple-shadow-hover: 0 14px 38px rgba(0, 0, 0, 0.08), 0 4px 12px rgba(0, 0, 0, 0.03);
+    --apple-radius: 20px;
+    --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  }
+
+  [data-theme="dark"] {
+    --apple-bg: #000000;
+    --apple-card: rgba(24, 24, 27, 0.82);
+    --apple-card-solid: #18181b;
+    --apple-border: rgba(255, 255, 255, 0.1);
+    --apple-border-focus: rgba(41, 151, 255, 0.5);
+    --apple-text: #f5f5f7;
+    --apple-secondary: #a1a1a6;
+    --apple-tertiary: #71717a;
+    --apple-blue: #2997ff;
+    --apple-blue-hover: #0071e3;
+    --apple-blue-tint: rgba(41, 151, 255, 0.15);
+    --apple-gold: #fbbf24;
+    --apple-gold-tint: rgba(251, 191, 36, 0.16);
+    --apple-green: #34d399;
+    --apple-green-tint: rgba(52, 211, 153, 0.16);
+    --apple-orange: #fbbf24;
+    --apple-orange-tint: rgba(251, 191, 36, 0.16);
+    --apple-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+    --apple-shadow-hover: 0 16px 45px rgba(0, 0, 0, 0.7);
+  }
+
+  body {
+    background-color: var(--apple-bg) !important;
+    color: var(--apple-text);
+    font-family: var(--apple-font);
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Apple Pro Header */
+  .apple-studio-header {
+    background: var(--apple-card);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border-bottom: 1px solid var(--apple-border);
+    padding: 2.2rem 0 1.6rem;
+    margin-bottom: 1.8rem;
+  }
+
+  .apple-pill-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--apple-blue-tint);
+    color: var(--apple-blue);
+    font-size: 0.76rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding: 0.3rem 0.85rem;
+    border-radius: 999px;
+    margin-bottom: 0.65rem;
+    border: 1px solid rgba(0, 113, 227, 0.18);
+  }
+
+  .apple-studio-title {
+    font-size: clamp(1.8rem, 3.2vw, 2.5rem);
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin: 0 0 0.4rem;
+    color: var(--apple-text);
+  }
+
+  .apple-studio-title .gradient-text {
+    background: linear-gradient(135deg, var(--apple-text) 0%, var(--apple-secondary) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  [data-theme="dark"] .apple-studio-title .gradient-text {
+    background: linear-gradient(135deg, #ffffff 20%, #a1a1a6 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .apple-studio-subtitle {
+    font-size: 0.98rem;
+    color: var(--apple-secondary);
+    max-width: 650px;
+    margin: 0;
+    line-height: 1.45;
+  }
+
+  .apple-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--apple-card-solid);
+    color: var(--apple-text);
+    border: 1px solid var(--apple-border);
+    padding: 0.6rem 1.15rem;
+    border-radius: 999px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  }
+
+  .apple-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+    border-color: var(--apple-border-focus);
+  }
+
+  .apple-btn-primary {
+    background: var(--apple-blue);
+    color: #ffffff !important;
+    border: none;
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.28);
+  }
+
+  .apple-btn-primary:hover {
+    background: var(--apple-blue-hover);
+    box-shadow: 0 6px 20px rgba(0, 113, 227, 0.4);
+  }
+
+  /* Personal Curator Dynamic Island */
+  .apple-curator-island {
+    background: var(--apple-card);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid var(--apple-border);
+    border-radius: 24px;
+    padding: 1.5rem 1.8rem;
+    margin-bottom: 1.8rem;
+    box-shadow: var(--apple-shadow);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .apple-curator-island:hover {
+    box-shadow: var(--apple-shadow-hover);
+  }
+
+  .curator-grid {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 1.5rem;
+    align-items: center;
+  }
+
+  .curator-profile {
+    display: flex;
+    align-items: center;
+    gap: 1.1rem;
+  }
+
+  .curator-avatar-halo {
+    position: relative;
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    padding: 3px;
+    background: linear-gradient(135deg, #0071e3, #8b5cf6, #ec4899);
+    flex-shrink: 0;
+  }
+
+  .curator-avatar-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--apple-card-solid);
+    border: 2px solid var(--apple-card-solid);
+  }
+
+  .curator-badge-pill {
+    position: absolute;
+    bottom: -3px;
+    right: -3px;
+    background: var(--apple-text);
+    color: var(--apple-bg);
+    font-size: 0.65rem;
+    font-weight: 800;
+    padding: 1px 6px;
+    border-radius: 999px;
+    border: 2px solid var(--apple-card-solid);
+  }
+
+  .curator-name-line {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .curator-name {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--apple-text);
+  }
+
+  .curator-title-tag {
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.15rem 0.6rem;
+    border-radius: 999px;
+    background: var(--apple-blue-tint);
+    color: var(--apple-blue);
+    border: 1px solid rgba(0, 113, 227, 0.15);
+  }
+
+  .curator-meta-line {
+    font-size: 0.8rem;
+    color: var(--apple-secondary);
+    display: flex;
+    gap: 0.8rem;
+  }
+
+  .curator-meta-line strong {
+    color: var(--apple-text);
+  }
+
+  /* Center: Live Session Streak & Quest */
+  .curator-streak-box {
+    background: var(--apple-card-solid);
+    border: 1px solid var(--apple-border);
+    border-radius: 16px;
+    padding: 0.85rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .streak-top-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .streak-badge {
+    background: rgba(245, 158, 11, 0.15);
+    color: #f59e0b;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+  }
+
+  .quest-track {
+    width: 100%;
+    height: 6px;
+    background: var(--apple-border);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .quest-fill {
+    height: 100%;
+    background: linear-gradient(90deg, #f59e0b, #10b981);
+    border-radius: 999px;
+    transition: width 0.4s ease;
+  }
+
+  .quest-note {
+    font-size: 0.72rem;
+    color: var(--apple-tertiary);
+    margin: 0;
+  }
+
+  /* Right: Impact Box */
+  .curator-impact-box {
+    background: var(--apple-blue-tint);
+    border: 1px solid rgba(0, 113, 227, 0.18);
+    border-radius: 16px;
+    padding: 0.85rem 1.1rem;
+  }
+
+  .impact-headline {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--apple-blue);
+    margin: 0 0 0.2rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .impact-body {
+    font-size: 0.75rem;
+    color: var(--apple-text);
+    margin: 0;
+    line-height: 1.4;
+  }
+
+  /* 4 Apple Trophy Badges Bar */
+  .apple-trophy-shelf {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.9rem;
+    margin-bottom: 1.8rem;
+  }
+
+  .trophy-card {
+    background: var(--apple-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--apple-border);
+    border-radius: 16px;
+    padding: 0.9rem 1rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    transition: transform 0.2s ease, border-color 0.2s ease;
+  }
+
+  .trophy-card:hover {
+    transform: translateY(-2px);
+    border-color: var(--apple-border-focus);
+  }
+
+  .trophy-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  .trophy-info h5 {
+    font-size: 0.85rem;
+    font-weight: 700;
+    margin: 0 0 0.1rem;
+    color: var(--apple-text);
+  }
+
+  .trophy-info p {
+    font-size: 0.72rem;
+    color: var(--apple-secondary);
+    margin: 0;
+    line-height: 1.25;
+  }
+
+  /* Overall Storage Stats Grid */
+  .stats-container {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.9rem;
+    margin-bottom: 1.4rem;
+  }
+
+  .stat-card {
+    background: var(--apple-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--apple-border);
+    border-radius: 18px;
+    padding: 1.1rem 1.25rem;
+    box-shadow: var(--apple-shadow);
+  }
+
+  .stat-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.4rem;
+  }
+
+  .stat-label {
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--apple-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .stat-number {
+    font-size: 1.65rem;
+    font-weight: 800;
+    color: var(--apple-text);
+    letter-spacing: -0.03em;
+  }
+
+  .points-val {
+    color: #f59e0b;
+  }
+
+  .points-sub {
+    font-size: 0.72rem;
+    color: var(--apple-tertiary);
+    margin-top: 0.2rem;
+  }
+
+  /* Progress Banner */
+  .progress-banner-card {
+    background: var(--apple-card);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--apple-border);
+    border-radius: 16px;
+    padding: 1rem 1.3rem;
+    margin-bottom: 1.8rem;
+    box-shadow: var(--apple-shadow);
+  }
+
+  .progress-info {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: var(--apple-secondary);
+    margin-bottom: 0.4rem;
+  }
+
+  .progress-info strong, .progress-info .progress-title {
+    color: var(--apple-text);
+    font-weight: 700;
+  }
+
+  .progress-bar-track {
+    width: 100%;
+    height: 8px;
+    background: var(--apple-border);
+    border-radius: 999px;
+    overflow: hidden;
+  }
+
+  .progress-bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--apple-blue), #8b5cf6);
+    border-radius: 999px;
+    transition: width 0.5s ease;
+  }
+
+  /* Studio Workspace 3-Pane Grid */
+  .studio-grid {
+    display: grid;
+    grid-template-columns: 310px 1fr 340px;
+    gap: 1.25rem;
+    min-height: 640px;
+    align-items: start;
+  }
+
+  .pcard {
+    background: var(--apple-card);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    border: 1px solid var(--apple-border);
+    border-radius: 22px;
+    box-shadow: var(--apple-shadow);
+  }
+
+  /* Left Column: Queue */
+  .studio-queue-col {
+    display: flex;
+    flex-direction: column;
+    max-height: 720px;
+    overflow: hidden;
+  }
+
+  .queue-mode-segmented {
+    display: flex;
+    background: var(--apple-border);
+    padding: 3px;
+    border-radius: 12px;
+    margin: 0.85rem 0.85rem 0;
+    gap: 3px;
+  }
+
+  .q-mode-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    border-radius: 9px;
+    padding: 0.45rem 0.5rem;
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--apple-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-align: center;
+  }
+
+  .q-mode-btn.active {
+    background: var(--apple-card-solid);
+    color: var(--apple-text);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+
+  .history-item-card {
+    background: var(--apple-card-solid);
+    border: 1px solid var(--apple-border);
+    border-radius: 14px;
+    padding: 0.8rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .history-item-card:hover {
+    border-color: var(--apple-blue);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+  }
+
+  .history-item-card.active-preview {
+    border-color: var(--apple-blue);
+    background: var(--apple-blue-tint);
+  }
+
+  .history-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .history-cat-badge {
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: var(--apple-blue-tint);
+    color: var(--apple-blue);
+  }
+
+  .history-status-pill {
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 6px;
+    border-radius: 6px;
+  }
+
+  .status-approved { background: rgba(16, 185, 129, 0.14); color: #10b981; }
+  .status-pending { background: rgba(245, 158, 11, 0.14); color: #f59e0b; }
+
+  .history-title {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--apple-text);
+    line-height: 1.35;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+  }
+
+  .history-meta {
+    font-size: 0.72rem;
+    color: var(--apple-secondary);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .queue-toolbar {
+    padding: 0.85rem 1rem 1rem;
+    border-bottom: 1px solid var(--apple-border);
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .search-box {
+    position: relative;
+    width: 100%;
+  }
+
+  .search-box input {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--apple-card-solid);
+    border: 1px solid var(--apple-border);
+    border-radius: 999px;
+    padding: 0.45rem 0.85rem 0.45rem 2rem;
+    font-size: 0.82rem;
+    color: var(--apple-text);
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+
+  .search-box input:focus {
+    border-color: var(--apple-blue);
+  }
+
+  .search-icon {
+    position: absolute;
+    left: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--apple-tertiary);
+  }
+
+  .queue-filters {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .control-select {
+    flex: 1;
+    background: var(--apple-card-solid);
+    border: 1px solid var(--apple-border);
+    border-radius: 8px;
+    padding: 0.35rem 0.5rem;
+    font-size: 0.78rem;
+    color: var(--apple-text);
+    outline: none;
+  }
+
+  .queue-list {
+    flex: 1;
+    overflow-y: auto;
+    padding: 0.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .queue-footer {
+    padding: 0.75rem;
+    border-top: 1px solid var(--apple-border);
+    text-align: center;
+  }
+
+  .queue-load-btn {
+    width: 100%;
+    background: var(--apple-card-solid);
+    border: 1px solid var(--apple-border);
+    border-radius: 8px;
+    padding: 0.45rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--apple-secondary);
+    cursor: pointer;
+  }
+
+  /* Center Column: Preview */
+  .studio-preview-col {
+    display: flex;
+    flex-direction: column;
+    height: 720px;
+    overflow: hidden;
+  }
+
+  .preview-header {
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--apple-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.8rem;
+    flex-wrap: wrap;
+  }
+
+  .preview-title-area {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: 0;
+  }
+
+  .preview-file-badge {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--apple-text);
+    max-width: 260px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .preview-format-pill {
+    font-size: 0.68rem;
+    font-weight: 800;
+    padding: 0.15rem 0.45rem;
+    border-radius: 6px;
+    background: var(--apple-border);
+    color: var(--apple-secondary);
+    text-transform: uppercase;
+  }
+
+  .tarika-suggest-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: linear-gradient(135deg, #7c3aed, #0071e3);
+    color: #ffffff !important;
+    border: none;
+    border-radius: 999px;
+    padding: 0.45rem 1rem;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 12px rgba(124, 58, 237, 0.25);
+    transition: all 0.2s ease;
+  }
+
+  .tarika-suggest-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(124, 58, 237, 0.35);
+  }
+
+  .preview-canvas {
+    flex: 1;
+    position: relative;
+    background: #000000;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .preview-img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+    transition: transform 0.15s ease-out;
+  }
+
+  .preview-frame {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background: #ffffff;
+  }
+
+  .empty-preview-prompt {
+    text-align: center;
+    color: var(--apple-tertiary);
+    padding: 2rem;
+  }
+
+  .empty-preview-prompt .empty-icon {
+    font-size: 3rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .image-controls {
+    position: absolute;
+    bottom: 16px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(24, 24, 27, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    padding: 4px 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    z-index: 10;
+  }
+
+  .img-ctrl-btn {
+    background: none;
+    border: none;
+    color: #ffffff;
+    padding: 4px 10px;
+    font-size: 0.82rem;
+    cursor: pointer;
+    border-radius: 999px;
+    transition: background 0.15s ease;
+  }
+
+  .img-ctrl-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+  }
+
+  .image-controls .divider {
+    width: 1px;
+    height: 14px;
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Right Column: Form */
+  .studio-form-col {
+    display: flex;
+    flex-direction: column;
+    height: 720px;
+    overflow: hidden;
+  }
+
+  .form-header {
+    padding: 0.85rem 1.25rem;
+    border-bottom: 1px solid var(--apple-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .form-main-title {
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 0;
+    color: var(--apple-text);
+  }
+
+  .nav-counter {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--apple-secondary);
+    background: var(--apple-border);
+    padding: 2px 7px;
+    border-radius: 999px;
+  }
+
+  .nav-actions {
+    display: flex;
+    gap: 0.35rem;
+  }
+
+  .nav-btn {
+    background: var(--apple-card-solid);
+    border: 1px solid var(--apple-border);
+    border-radius: 6px;
+    padding: 3px 8px;
+    cursor: pointer;
+    font-size: 0.82rem;
+    color: var(--apple-text);
+  }
+
+  .form-scrollable-body {
+    flex: 1;
+    overflow-y: auto;
+    padding: 1.1rem;
+  }
+
+  .meta-section-label {
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--apple-secondary);
+    margin-bottom: 0.6rem;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .meta-field {
+    margin-bottom: 0.85rem;
+  }
+
+  .meta-field label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--apple-text);
+    margin-bottom: 0.25rem;
+  }
+
+  .form-input, .modern-select, .modern-input {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--apple-card-solid);
+    border: 1px solid var(--apple-border);
+    border-radius: 10px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.84rem;
+    color: var(--apple-text);
+    outline: none;
+    transition: border-color 0.2s ease;
+  }
+
+  .form-input:focus, .modern-select:focus, .modern-input:focus {
+    border-color: var(--apple-blue);
+  }
+
+  /* Sticky Save Bar */
+  .studio-save-bar {
+    padding: 0.85rem 1.1rem;
+    border-top: 1px solid var(--apple-border);
+    background: var(--apple-card);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.8rem;
+  }
+
+  .remember-toggle-wrapper {
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+    cursor: pointer;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--apple-secondary);
+  }
+
+  .toggle-switch {
+    width: 36px;
+    height: 20px;
+    background: var(--apple-border);
+    border-radius: 999px;
+    position: relative;
+    transition: background 0.2s ease;
+  }
+
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffffff;
+    transition: transform 0.2s ease;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+  }
+
+  .toggle-switch.active {
+    background: var(--apple-green);
+  }
+
+  .toggle-switch.active::after {
+    transform: translateX(16px);
+  }
+
+  .save-btn {
+    flex: 1;
+    background: linear-gradient(135deg, var(--apple-blue), #8b5cf6);
+    color: #ffffff;
+    border: none;
+    border-radius: 999px;
+    padding: 0.65rem 1rem;
+    font-size: 0.88rem;
+    font-weight: 700;
+    cursor: pointer;
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.3);
+    transition: all 0.2s ease;
+    text-align: center;
+  }
+
+  .save-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(0, 113, 227, 0.4);
+  }
+
+  /* Responsive Adjustments */
+  @media (max-width: 1040px) {
+    .curator-grid {
+      grid-template-columns: 1fr;
+    }
+    .apple-trophy-shelf {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .stats-container {
+      grid-template-columns: repeat(2, 1fr);
+    }
+    .studio-grid {
+      grid-template-columns: 1fr;
+    }
+    .studio-queue-col, .studio-preview-col, .studio-form-col {
+      height: auto;
+      max-height: none;
+    }
+  }
+</style>
 {% endblock %}
 
 {% block content %}
-<!-- Studio Header & Summary Bar -->
-<header class="store-header-bg">
-    <div class="store-room-container header-inner">
-        <div class="header-text">
-            <h1 class="page-title">📦 Store Room Studio</h1>
-            <p class="page-subtitle">Label and organize uncatalogued cloud database assets into academic resources.</p>
-        </div>
-        <div class="header-actions">
-            <button id="syncStorageBtn" class="primary-btn sync-btn" type="button" data-action="syncStorage"
-                aria-label="Sync storage queue with Cloudinary">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-                    aria-hidden="true">
-                    <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.23-9.57l5.71 5.71"></path>
-                </svg>
-                <span>Sync Cloud Storage</span>
-            </button>
-        </div>
+<!-- Studio Header -->
+<header class="apple-studio-header">
+  <div class="store-room-container header-inner">
+    <div class="header-text">
+      <div class="apple-pill-tag">
+        <span>🏛️</span> Archive Vault &amp; Academic Reputation Studio
+      </div>
+      <h1 class="apple-studio-title">
+        <span class="gradient-text">Curate Knowledge. Power Generations of Students.</span>
+      </h1>
+      <p class="apple-studio-subtitle">
+        Every unlabeled exam paper or study guide you catalog unlocks instant Creator XP, builds your Academic Rank, and permanently credits you as the document's curator.
+      </p>
     </div>
+    <div class="header-actions" style="display:flex; gap:0.6rem; flex-wrap:wrap;">
+      <button id="syncStorageBtn" class="apple-btn apple-btn-primary" type="button" data-action="syncStorage" aria-label="Sync storage queue">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true">
+          <path d="M21.5 2v6h-6M21.34 15.57a10 10 0 1 1-.23-9.57l5.71 5.71"></path>
+        </svg>
+        <span>Sync Cloud Queue</span>
+      </button>
+      <a href="{{ url_for('library.leaderboard') }}" class="apple-btn">
+        🏆 Leaderboard Standing
+      </a>
+      <button class="apple-btn" type="button" data-action="openAppGuide" aria-label="Store room tour">
+        🧭 Guide
+      </button>
+    </div>
+  </div>
 </header>
 
 <main class="store-room-container studio-wrapper fade-in">
-    <!-- Top Stats & Gamified Rewards Bar -->
-    <section class="stats-container" aria-label="Storage Statistics">
-        <div class="pcard stat-card total">
-            <div class="stat-header">
-                <span class="stat-label">Total Cloud Assets</span>
-                <span class="stat-icon-badge blue" aria-hidden="true">📁</span>
-            </div>
-            <div class="stat-number" id="totalCount">{{ total_papers }}</div>
+  <!-- Personal Curator Dynamic Island -->
+  <section class="apple-curator-island" aria-label="Curator Identity">
+    <div class="curator-grid">
+      <!-- Left: Curator Halo & Title -->
+      <div class="curator-profile">
+        <div class="curator-avatar-halo">
+          <img
+            src="https://ui-avatars.com/api/?name={{ (curator_stats.name or (current_user.name if current_user else 'Curator'))|urlencode }}&background=0071e3&color=fff&bold=true"
+            class="curator-avatar-img"
+            alt="Curator"
+          >
+          <div class="curator-badge-pill">★</div>
         </div>
-        <div class="pcard stat-card sorted">
-            <div class="stat-header">
-                <span class="stat-label">Labeled &amp; Sorted</span>
-                <span class="stat-icon-badge green" aria-hidden="true">✅</span>
-            </div>
-            <div class="stat-number" id="sortedCount">{{ sorted_papers }}</div>
+        <div class="curator-info">
+          <div class="curator-name-line">
+            <span class="curator-name">{{ curator_stats.name or (current_user.name if current_user else 'Academic Curator') }}</span>
+            <span class="curator-title-tag">🎖️ Academic Archivist</span>
+          </div>
+          <div class="curator-meta-line">
+            <span><strong>{{ curator_stats.reputation_score or 0 }}</strong> Creator XP</span>
+            <span>•</span>
+            <span><strong>{{ curator_stats.uploads_count or 0 }}</strong> Published Papers</span>
+          </div>
         </div>
-        <div class="pcard stat-card remaining">
-            <div class="stat-header">
-                <span class="stat-label">Unlabeled Queue</span>
-                <span class="stat-icon-badge orange" aria-hidden="true">⏳</span>
-            </div>
-            <div class="stat-number" id="remainingCount">{{ remaining_papers }}</div>
+      </div>
+
+      <!-- Center: Session Streak & Quest Goal -->
+      <div class="curator-streak-box">
+        <div class="streak-top-row">
+          <span>Curator Sprint Quest</span>
+          <span class="streak-badge" id="curatorStreakVal">1x Streak 🔥</span>
         </div>
-        <div class="pcard stat-card points-card" title="Earn 5 Points per unique viewer on every labeled file! (1 Pt = ₹0.01)">
-            <div class="stat-header">
-                <span class="stat-label">Potential Royalty Points</span>
-                <span class="stat-icon-badge gold" aria-hidden="true">✨</span>
-            </div>
-            <div class="stat-number points-val" id="rewardPointsCount">0 Pts</div>
-            <div class="points-sub">5 Pts / unique view · ₹0.05</div>
+        <div class="quest-track" role="progressbar">
+          <div class="quest-fill" id="curatorQuestFill" style="width: 15%;"></div>
         </div>
+        <p class="quest-note" id="curatorQuestLabel">
+          Label 3 papers this session to unlock +50 XP bonus sprint!
+        </p>
+      </div>
+
+      <!-- Right: Real-World Social Impact -->
+      <div class="curator-impact-box">
+        <div class="impact-headline">
+          <span>💡</span> Social Impact Guarantee
+        </div>
+        <p class="impact-body">
+          Each cataloged paper saves an estimated <strong>4.5 hours of panic study</strong> for ~350 peers during exams, plus earns you <strong>5 Pts / view</strong>.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Curator Milestone Badges Shelf (Apple Fitness Style) -->
+  <section class="apple-trophy-shelf" aria-label="Curator Milestones">
+    <div class="trophy-card">
+      <div class="trophy-icon">🥉</div>
+      <div class="trophy-info">
+        <h5>Library Scout</h5>
+        <p>1st paper cataloged · +10 XP</p>
+      </div>
+    </div>
+    <div class="trophy-card">
+      <div class="trophy-icon">🥈</div>
+      <div class="trophy-info">
+        <h5>Master Archivist</h5>
+        <p>5 papers cataloged · +50 Bonus XP</p>
+      </div>
+    </div>
+    <div class="trophy-card">
+      <div class="trophy-icon">🥇</div>
+      <div class="trophy-info">
+        <h5>Academic Guardian</h5>
+        <p>20 papers · Featured spotlight</p>
+      </div>
+    </div>
+    <div class="trophy-card">
+      <div class="trophy-icon">👑</div>
+      <div class="trophy-info">
+        <h5>Curator Supreme</h5>
+        <p>50+ papers · Lifetime Royalties</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Top Storage Stats -->
+  <section class="stats-container" aria-label="Storage Statistics">
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Cloud Assets</span>
+        <span aria-hidden="true">📁</span>
+      </div>
+      <div class="stat-number" id="totalCount">{{ total_papers }}</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Cataloged</span>
+        <span aria-hidden="true">✅</span>
+      </div>
+      <div class="stat-number" id="sortedCount" style="color:var(--apple-green);">{{ sorted_papers }}</div>
+    </div>
+
+    <div class="stat-card">
+      <div class="stat-header">
+        <span class="stat-label">Unlabeled Queue</span>
+        <span aria-hidden="true">⏳</span>
+      </div>
+      <div class="stat-number" id="remainingCount" style="color:var(--apple-orange);">{{ remaining_papers }}</div>
+    </div>
+
+    <div class="stat-card" title="Earn 5 Points per unique viewer on every labeled file! (1 Pt = ₹0.01)">
+      <div class="stat-header">
+        <span class="stat-label">Royalty Value</span>
+        <span aria-hidden="true">✨</span>
+      </div>
+      <div class="stat-number points-val" id="rewardPointsCount">0 Pts</div>
+      <div class="points-sub">5 Pts / unique view · ₹0.05</div>
+    </div>
+  </section>
+
+  <!-- Studio Progress Bar -->
+  <div class="progress-banner-card">
+    <div class="progress-info">
+      <span class="progress-title">🎯 Studio Cataloging Progress</span>
+      <span class="progress-percent" id="progressPercent">0% Complete</span>
+    </div>
+    <div class="progress-bar-track">
+      <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;"></div>
+    </div>
+  </div>
+
+  <!-- Mobile View Tabs Switcher (< 900px) -->
+  <div class="studio-mobile-tabs" id="mobileTabNav" role="tablist" aria-label="Studio views">
+    <button type="button" class="studio-tab-btn active" data-tab="queue" role="tab" aria-selected="true">
+      📂 Queue (<span id="mobileQueueCount">{{ remaining_papers }}</span>)
+    </button>
+    <button type="button" class="studio-tab-btn" data-tab="preview" role="tab" aria-selected="false">
+      👁️ Preview
+    </button>
+    <button type="button" class="studio-tab-btn" data-tab="form" role="tab" aria-selected="false">
+      ✍️ Label Form
+    </button>
+  </div>
+
+  <!-- Main Studio 3-Pane Grid -->
+  <div class="studio-grid" id="studioGrid">
+
+    <!-- ── Left Column: Unlabeled Queue & Labeled History ── -->
+    <aside class="studio-queue-col pcard" id="studioQueueCol">
+      <!-- Queue vs Labeled History Segmented Switcher -->
+      <div class="queue-mode-segmented">
+        <button type="button" class="q-mode-btn active" id="btnQueueMode" aria-label="View Unlabeled Queue">
+          ⏳ Queue (<span id="queueBadgeCount">{{ remaining_papers }}</span>)
+        </button>
+        <button type="button" class="q-mode-btn" id="btnHistoryMode" aria-label="View Your Labeled History">
+          📜 Labeled History (<span id="historyBadgeCount">0</span>)
+        </button>
+      </div>
+
+      <div class="queue-toolbar" id="queueToolbarArea">
+        <div class="search-box">
+          <svg class="search-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+            <circle cx="11" cy="11" r="8"></circle>
+            <path d="M21 21l-4.35-4.35"></path>
+          </svg>
+          <input type="text" id="storeRoomSearchInput" placeholder="Filter queue files..." aria-label="Filter queue files" />
+        </div>
+        <div class="queue-filters">
+          <select class="control-select" id="formatFilter" aria-label="Filter by file format">
+            <option value="">All Formats</option>
+            {% for format in formats %}
+            <option value="{{ format }}">{{ format|upper }}</option>
+            {% endfor %}
+          </select>
+          <select class="control-select" id="sortSelect" aria-label="Sort queue">
+            <option value="date">📅 Newest</option>
+            <option value="name">🔤 A-Z</option>
+            <option value="size">📊 Size</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- List of Queue Cards -->
+      <div class="queue-list" id="filesGrid" role="listbox" aria-label="Unlabeled files queue">
+        <!-- Dynamically rendered via JS -->
+      </div>
+
+      <!-- List of Labeled History Cards -->
+      <div class="queue-list hidden" id="historyList" role="listbox" aria-label="Your labeled files history">
+        <!-- Dynamically rendered via JS -->
+      </div>
+
+      <!-- Load more trigger -->
+      <div class="queue-footer" id="viewMoreContainer">
+        <button class="queue-load-btn" id="viewMoreBtn" type="button" data-action="loadMoreFiles">
+          Load More Queue Files
+        </button>
+      </div>
+    </aside>
+
+    <!-- ── Middle Column: High-Res Document Preview & Vision AI ── -->
+    <section class="studio-preview-col pcard" id="studioPreviewCol" aria-label="Document Preview">
+      <div class="preview-header">
+        <div class="preview-title-area">
+          <span class="preview-file-badge" id="previewBadge">No File Selected</span>
+          <span class="preview-format-pill" id="previewFormatPill">NONE</span>
+        </div>
+
+        <!-- Tarika Multi-Modal Smart Match Button -->
+        <button type="button" class="tarika-suggest-btn" id="tarikaExtractBtn" data-action="tarikaExtract" title="Smart Fill: inspect filename + document image and fill matching boxes">
+          <span>⚡ Smart Auto-Fill (Image + Filename)</span>
+        </button>
+      </div>
+
+      <!-- Document Canvas -->
+      <div class="preview-canvas" id="imageContainer">
+        <div class="empty-preview-prompt" id="emptyPreviewPrompt">
+          <div class="empty-icon">📄</div>
+          <p>Select a document from the queue to inspect and catalog</p>
+        </div>
+        <img id="previewImg" class="preview-img hidden" src="" alt="Document preview" />
+        <iframe id="previewFrame" class="preview-frame hidden" frameborder="0" title="PDF document preview"></iframe>
+
+        <!-- Image Controls Toolbar -->
+        <div class="image-controls hidden" id="previewControls" role="toolbar" aria-label="Preview controls">
+          <button class="img-ctrl-btn" type="button" data-action="resetView" title="Reset View">↺</button>
+          <div class="divider" aria-hidden="true"></div>
+          <button class="img-ctrl-btn" type="button" data-action="zoomOut" title="Zoom Out">🔍 -</button>
+          <button class="img-ctrl-btn" type="button" data-action="zoomIn" title="Zoom In">🔍 +</button>
+          <button class="img-ctrl-btn" type="button" data-action="rotateImage" title="Rotate">↻</button>
+          <div class="divider" aria-hidden="true"></div>
+          <button class="img-ctrl-btn" type="button" data-action="openFullNewTab" title="Open Original in New Tab">↗</button>
+        </div>
+      </div>
     </section>
 
-    <!-- Labeling Progress Bar -->
-    <div class="progress-banner-card pcard">
-        <div class="progress-info">
-            <span class="progress-title">🎯 Studio Queue Progress</span>
-            <span class="progress-percent" id="progressPercent">0% Complete</span>
+    <!-- ── Right Column: Academic Metadata Form ── -->
+    <section class="studio-form-col pcard" id="studioFormCol" aria-label="Labeling Form">
+      <div class="form-header">
+        <div class="form-title-group" style="display:flex; align-items:center; gap:0.5rem;">
+          <h2 class="form-main-title">Catalog Resource</h2>
+          <span class="nav-counter" id="navCounter">0 / 0</span>
         </div>
-        <div class="progress-bar-track">
-            <div class="progress-bar-fill" id="progressBarFill" style="width: 0%;"></div>
+        <div class="nav-actions">
+          <button class="nav-btn" id="prevBtn" type="button" data-action="navigateFile" data-direction="-1" aria-label="Previous file" title="Previous file (Left Arrow)">❮</button>
+          <button class="nav-btn" id="nextBtn" type="button" data-action="navigateFile" data-direction="1" aria-label="Next file" title="Next file (Right Arrow)">❯</button>
         </div>
-    </div>
+      </div>
 
-    <!-- Mobile View Tabs Switcher (Shown on screens < 900px) -->
-    <div class="studio-mobile-tabs" id="mobileTabNav" role="tablist" aria-label="Studio views">
-        <button type="button" class="studio-tab-btn active" data-tab="queue" role="tab" aria-selected="true">
-            📂 Queue (<span id="mobileQueueCount">{{ remaining_papers }}</span>)
+      <div class="form-scrollable-body meta-form-wrap">
+        <form id="labelForm">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+          <!-- 1. Resource Type -->
+          <div class="meta-section-label">
+            <span>📑</span> 1. Resource Category
+          </div>
+          <div class="meta-field">
+            <label for="documentCategory">Category *</label>
+            <select class="modern-select form-input" id="documentCategory" name="document_category" required>
+              <option value="papers" selected>Previous Year Question Paper (PYQ) · +10 XP</option>
+              <option value="notes">Lecture Notes / Study Guide · +30 XP</option>
+              <option value="practical">Practical / Lab Manual · +10 XP</option>
+              <option value="syllabus">Syllabus · +5 XP</option>
+              <option value="question_bank">Question Bank · +20 XP</option>
+              <option value="timetable">Exam Timetable · +5 XP</option>
+            </select>
+          </div>
+
+          <!-- 2. Academic Location Cascade -->
+          <div class="meta-section-label" style="margin-top: 1rem; border-top: 1px dashed var(--apple-border); padding-top: 0.75rem;">
+            <span>🏛️</span> 2. Academic Location
+          </div>
+
+          <div class="meta-field">
+            <label for="collegeName">College *</label>
+            <select class="abhihub-select college-select form-input" id="collegeName" name="college_id" data-entity="college" data-allow-add="true" required>
+              <option value="">Select College...</option>
+            </select>
+          </div>
+
+          <div class="meta-field">
+            <label for="branch">Department / Branch *</label>
+            <select class="abhihub-select branch-select form-input" id="branch" name="branch_id" data-entity="branch" data-parent="collegeName" data-allow-add="true" required>
+              <option value="">Select Department...</option>
+            </select>
+          </div>
+
+          <div class="meta-row form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+            <div class="meta-field">
+              <label for="semester">Semester *</label>
+              <select class="abhihub-select semester-select form-input" id="semester" name="semester" data-entity="semester" data-parent="branch" required>
+                <option value="">Select Semester...</option>
+              </select>
+            </div>
+            <div class="meta-field">
+              <label for="year">Year *</label>
+              <select class="modern-select meta-year form-input" id="year" name="year" required>
+                <option value="2022">2022</option>
+                <option value="2023">2023</option>
+                <option value="2024">2024</option>
+                <option value="2025" selected>2025</option>
+                <option value="2026">2026</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- 3. Subject & Examination Details -->
+          <div class="meta-section-label" style="margin-top: 1rem; border-top: 1px dashed var(--apple-border); padding-top: 0.75rem;">
+            <span>📚</span> 3. Subject &amp; Details
+          </div>
+
+          <div class="meta-field">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+              <label for="subjectName" style="margin-bottom:0;">Subject *</label>
+              <button type="button" class="btn-text-action" id="triggerAddSubjectBtn" style="background:none; border:none; color:var(--apple-blue); font-size:0.75rem; font-weight:600; cursor:pointer; padding:0;">+ Add New Subject</button>
+            </div>
+            <select class="abhihub-select subject-select form-input" id="subjectName" name="subject_id" data-entity="subject" data-parent="semester" data-allow-add="true" required>
+              <option value="">Search or select subject...</option>
+            </select>
+          </div>
+
+          <div class="meta-row" style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
+            <div class="meta-field">
+              <label for="subjectCode">Subject Code</label>
+              <input type="text" class="modern-input form-input" id="subjectCode" name="subject_code" placeholder="Auto-filled">
+            </div>
+            <div class="meta-field" id="srUnitGroup">
+              <label for="examType">Exam / Unit</label>
+              <select class="modern-select form-input" id="examType" name="exam_type">
+                <option value="">Select…</option>
+                <option value="CAE1">CAE-1</option>
+                <option value="CAE2">CAE-2</option>
+                <option value="CAE3">CAE-3</option>
+                <option value="ESE">End Sem / Resit</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="meta-field" style="margin-top:0.5rem;">
+            <label for="docTitle">Resource Title (Optional)</label>
+            <input type="text" class="modern-input form-input" id="docTitle" name="title" placeholder="Auto-generated if left blank">
+          </div>
+        </form>
+      </div>
+
+      <!-- Sticky Save Bar -->
+      <div class="studio-save-bar">
+        <div class="remember-toggle-wrapper" title="Remember inputs for consecutive files">
+          <div class="toggle-switch" id="rememberToggle" role="switch" aria-checked="false" tabindex="0" aria-label="Remember labels across files"></div>
+          <span class="toggle-label">Remember</span>
+        </div>
+        <button type="button" class="save-btn idle" id="saveBtn" data-action="handleSave" aria-live="polite" aria-label="Publish and advance">
+          <span class="btn-text">Publish to Library (+XP) ↵</span>
         </button>
-        <button type="button" class="studio-tab-btn" data-tab="preview" role="tab" aria-selected="false">
-            👁️ Preview
-        </button>
-        <button type="button" class="studio-tab-btn" data-tab="form" role="tab" aria-selected="false">
-            ✍️ Label Form
-        </button>
-    </div>
+      </div>
+    </section>
 
-    <!-- ── Main Studio Split-Screen Workspace ── -->
-    <div class="studio-grid" id="studioGrid">
-
-        <!-- ── Left Column: Unlabeled Queue ── -->
-        <aside class="studio-queue-col pcard" id="studioQueueCol">
-            <div class="queue-toolbar">
-                <div class="search-box">
-                    <svg class="search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                        stroke-width="2" aria-hidden="true">
-                        <circle cx="11" cy="11" r="8"></circle>
-                        <path d="M21 21l-4.35-4.35"></path>
-                    </svg>
-                    <input type="text" id="storeRoomSearchInput" placeholder="Filter queue..."
-                        aria-label="Filter queue files" />
-                </div>
-                <div class="queue-filters">
-                    <select class="control-select" id="formatFilter" aria-label="Filter by file format">
-                        <option value="">All Formats</option>
-                        {% for format in formats %}
-                        <option value="{{ format }}">{{ format|upper }}</option>
-                        {% endfor %}
-                    </select>
-                    <select class="control-select" id="sortSelect" aria-label="Sort queue">
-                        <option value="date">📅 Newest</option>
-                        <option value="name">🔤 A-Z</option>
-                        <option value="size">📊 Size</option>
-                    </select>
-                </div>
-            </div>
-
-            <!-- List of Queue Cards -->
-            <div class="queue-list" id="filesGrid" role="listbox" aria-label="Unlabeled files queue">
-                <!-- Dynamically populated or rendered from INITIAL_STORE_ROOM_FILES -->
-            </div>
-
-            <!-- Load more trigger -->
-            <div class="queue-footer" id="viewMoreContainer">
-                <button class="queue-load-btn" id="viewMoreBtn" type="button" data-action="loadMoreFiles">
-                    Load More Queue Files
-                </button>
-            </div>
-        </aside>
-
-        <!-- ── Middle Column: High-Res Document Preview & AI Inspector ── -->
-        <section class="studio-preview-col pcard" id="studioPreviewCol" aria-label="Document Preview">
-            <div class="preview-header">
-                <div class="preview-title-area">
-                    <span class="preview-file-badge" id="previewBadge">No File Selected</span>
-                    <span class="preview-format-pill" id="previewFormatPill">NONE</span>
-                </div>
-
-                <!-- Tarika AI Extraction Button -->
-                <button type="button" class="tarika-suggest-btn" id="tarikaExtractBtn" data-action="tarikaExtract"
-                    title="Ask Tarika AI to automatically suggest title, semester, year, and subject">
-                    <span>✨ Tarika Auto-Suggest</span>
-                </button>
-            </div>
-
-            <!-- Document Stage / Canvas -->
-            <div class="preview-canvas" id="imageContainer">
-                <div class="empty-preview-prompt" id="emptyPreviewPrompt">
-                    <div class="empty-icon">📄</div>
-                    <p>Select a document from the queue to view and annotate</p>
-                </div>
-                <img id="previewImg" class="preview-img hidden" src="" alt="Document preview" />
-                <iframe id="previewFrame" class="preview-frame hidden" frameborder="0" title="PDF document preview"></iframe>
-
-                <!-- Image Controls Floating Toolbar -->
-                <div class="image-controls hidden" id="previewControls" role="toolbar" aria-label="Preview controls">
-                    <button class="img-ctrl-btn" type="button" data-action="resetView" title="Reset View">↺</button>
-                    <div class="divider" aria-hidden="true"></div>
-                    <button class="img-ctrl-btn" type="button" data-action="zoomOut" title="Zoom Out">🔍 -</button>
-                    <button class="img-ctrl-btn" type="button" data-action="zoomIn" title="Zoom In">🔍 +</button>
-                    <button class="img-ctrl-btn" type="button" data-action="rotateImage" title="Rotate">↻</button>
-                    <div class="divider" aria-hidden="true"></div>
-                    <button class="img-ctrl-btn" type="button" data-action="openFullNewTab" title="Open Original in New Tab">↗</button>
-                </div>
-            </div>
-        </section>
-
-        <!-- ── Right Column: Academic Metadata Form ── -->
-        <section class="studio-form-col pcard" id="studioFormCol" aria-label="Labeling Form">
-            <div class="form-header">
-                <div class="form-title-group">
-                    <h2 class="form-main-title">Academic Label</h2>
-                    <span class="nav-counter" id="navCounter">0 / 0</span>
-                </div>
-                <div class="nav-actions">
-                    <button class="nav-btn" id="prevBtn" type="button" data-action="navigateFile" data-direction="-1"
-                        aria-label="Previous file" title="Previous file (Left Arrow)">❮</button>
-                    <button class="nav-btn" id="nextBtn" type="button" data-action="navigateFile" data-direction="1"
-                        aria-label="Next file" title="Next file (Right Arrow)">❯</button>
-                </div>
-            </div>
-
-            <div class="form-scrollable-body meta-form-wrap">
-                <form id="labelForm">
-                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-
-                    <!-- 1. Resource Type -->
-                    <div class="meta-section-label">
-                        <span class="meta-section-icon">📑</span> 1. Resource Category
-                    </div>
-                    <div class="meta-field">
-                        <label for="documentCategory">Category *</label>
-                        <select class="modern-select form-input" id="documentCategory" name="document_category" required>
-                            <option value="papers" selected>Previous Year Question Paper (PYQ)</option>
-                            <option value="notes">Lecture Notes / Study Material</option>
-                            <option value="practical">Practical / Lab Manual</option>
-                            <option value="syllabus">Syllabus</option>
-                            <option value="question_bank">Question Bank</option>
-                            <option value="timetable">Exam Timetable</option>
-                        </select>
-                    </div>
-
-                    <!-- 2. Academic Location Cascade (Exact Upload Form structure) -->
-                    <div class="meta-section-label" style="margin-top: 1rem; border-top: 1px dashed var(--dash-border, #e2e8f0); padding-top: 0.75rem;">
-                        <span class="meta-section-icon">🏛️</span> 2. Academic Location
-                        <span class="meta-autofill-badge" style="margin-left: auto;">Auto-Cascade</span>
-                    </div>
-
-                    <div class="meta-field">
-                        <label for="collegeName">College *</label>
-                        <select class="abhihub-select college-select form-input" id="collegeName" name="college_id"
-                            data-entity="college" data-allow-add="true" required>
-                            <option value="">Select College...</option>
-                        </select>
-                    </div>
-
-                    <div class="meta-field">
-                        <label for="branch">Department / Branch *</label>
-                        <select class="abhihub-select branch-select form-input" id="branch" name="branch_id"
-                            data-entity="branch" data-parent="collegeName" data-allow-add="true" required>
-                            <option value="">Select Department...</option>
-                        </select>
-                    </div>
-
-                    <div class="meta-row form-grid" style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
-                        <div class="meta-field">
-                            <label for="semester">Semester *</label>
-                            <select class="abhihub-select semester-select form-input" id="semester" name="semester"
-                                data-entity="semester" data-parent="branch" required>
-                                <option value="">Select Semester...</option>
-                            </select>
-                        </div>
-                        <div class="meta-field">
-                            <label for="year">Year *</label>
-                            <select class="modern-select meta-year form-input" id="year" name="year" required>
-                                <option value="2022">2022</option>
-                                <option value="2023">2023</option>
-                                <option value="2024">2024</option>
-                                <option value="2025" selected>2025</option>
-                                <option value="2026">2026</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <!-- 3. Subject & Examination Details -->
-                    <div class="meta-section-label" style="margin-top: 1rem; border-top: 1px dashed var(--dash-border, #e2e8f0); padding-top: 0.75rem;">
-                        <span class="meta-section-icon">📚</span> 3. Subject &amp; Details
-                    </div>
-
-                    <div class="meta-field">
-                        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-                            <label for="subjectName" style="margin-bottom:0;">Subject *</label>
-                            <button type="button" class="btn-text-action" id="triggerAddSubjectBtn" style="background:none; border:none; color:var(--brand-blue-accent, #4FA9E0); font-size:0.775rem; font-weight:600; cursor:pointer; padding:0;">+ Add New Subject</button>
-                        </div>
-                        <select class="abhihub-select subject-select form-input" id="subjectName" name="subject_id"
-                            data-entity="subject" data-parent="semester" data-allow-add="true" required>
-                            <option value="">Search or select subject...</option>
-                        </select>
-                    </div>
-
-                    <div class="meta-row" style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem;">
-                        <div class="meta-field">
-                            <label for="subjectCode">Subject Code</label>
-                            <input type="text" class="modern-input form-input" id="subjectCode" name="subject_code"
-                                placeholder="Auto-filled">
-                        </div>
-                        <div class="meta-field" id="srUnitGroup">
-                            <label for="examType">Exam / Unit</label>
-                            <select class="modern-select form-input" id="examType" name="exam_type">
-                                <option value="">Select…</option>
-                                <option value="CAE1">CAE-1</option>
-                                <option value="CAE2">CAE-2</option>
-                                <option value="CAE3">CAE-3</option>
-                                <option value="ESE">End Sem/Resit</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div class="meta-field" style="margin-top:0.5rem;">
-                        <label for="docTitle">Resource Title (Optional)</label>
-                        <input type="text" class="modern-input form-input" id="docTitle" name="title"
-                            placeholder="Auto-generated if left blank">
-                    </div>
-                </form>
-            </div>
-
-            <!-- Sticky Save Bar -->
-            <div class="studio-save-bar">
-                <div class="remember-toggle-wrapper" title="Remember inputs for consecutive files">
-                    <div class="toggle-switch" id="rememberToggle" role="switch" aria-checked="false" tabindex="0"
-                        aria-label="Remember labels across files"></div>
-                    <span class="toggle-label">Remember</span>
-                </div>
-                <button type="button" class="upload-btn save-btn idle" id="saveBtn" data-action="handleSave"
-                    aria-live="polite" aria-label="Save and advance to next document">
-                    <span class="btn-text">Save &amp; Advance ↵</span>
-                </button>
-            </div>
-        </section>
-
-    </div>
+  </div>
 </main>
 
 <!-- Initial Data script -->
 <script>
-    window.INITIAL_STORE_ROOM_FILES = {{ files | tojson if files else '[]' }};
-    window.INITIAL_TOTAL_PAPERS = {{ total_papers | default(0) }};
-    window.INITIAL_SORTED_PAPERS = {{ sorted_papers | default(0) }};
-    window.INITIAL_REMAINING_PAPERS = {{ remaining_papers | default(0) }};
+  window.INITIAL_STORE_ROOM_FILES = {{ files | tojson if files else '[]' }};
+  window.INITIAL_TOTAL_PAPERS = {{ total_papers | default(0) }};
+  window.INITIAL_SORTED_PAPERS = {{ sorted_papers | default(0) }};
+  window.INITIAL_REMAINING_PAPERS = {{ remaining_papers | default(0) }};
 </script>
 
 <!-- Toast container -->

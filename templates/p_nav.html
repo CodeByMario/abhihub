@@ -47,8 +47,10 @@
   {% endif %}
 </div>
 
-<!-- Global Unified AbhiHub AI Assistant -->
+<!-- Global Unified AbhiHub AI Assistant (skipped when inside app-shell iframe) -->
+{% if request.headers.get('Sec-Fetch-Dest') != 'iframe' %}
 {% include 'includes/ai_assistant.html' %}
+{% endif %}
 
 <!-- SVG Icon Definitions -->
 <svg style="display:none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">

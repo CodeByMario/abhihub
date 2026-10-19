@@ -52,11 +52,32 @@ def get_user_guide_progress(user_id):
     return session_progress
 
 
+SCREEN_ALIASES = {
+    'rank': 'leaderboard',
+    'ranking': 'leaderboard',
+    'home': 'dashboard',
+    'index': 'dashboard',
+    'profile': 'account',
+    'settings': 'account',
+    'dashboard/setting': 'account',
+    'dashboard/profile': 'account',
+    'view': 'pdf-reader',
+    'dashboard/view': 'pdf-reader',
+    'reader': 'pdf-reader',
+    'local-viewer': 'pdf-reader',
+    'storeroom': 'store-room',
+}
+
+
 def get_eligible_guides(user_id, screen=None):
     """Filter guides eligible for display to the user."""
     guides = load_guides()
     if not guides:
         return []
+
+    if screen:
+        screen_clean = str(screen).strip().strip('/').lower()
+        screen = SCREEN_ALIASES.get(screen_clean, screen_clean)
 
     progress_map = get_user_guide_progress(user_id) if user_id else {}
     eligible = []
@@ -115,6 +136,15 @@ def update_guide_progress(user_id, guide_id, status, current_step=0, version=1):
         }
         tbl.upsert(payload, on_conflict='user_id,guide_id').execute()
     except Exception as e:
-        logging.warning(f"[GUIDE] Progress update DB notice (cached in session): {e}")
+        try:
+            tbl = _get_table(client)
+            existing = tbl.select('id').eq('user_id', str(user_id)).eq('guide_id', str(guide_id)).limit(1).execute()
+            if existing and existing.data:
+                tbl.update(payload).eq('id', existing.data[0]['id']).execute()
+            else:
+                tbl.insert(payload).execute()
+        except Exception as inner_e:
+            logging.warning(f"[GUIDE] Progress update DB notice (cached in session): {e} | fallback: {inner_e}")
     return True
+
 

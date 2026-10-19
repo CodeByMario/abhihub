@@ -1,0 +1,620 @@
+{% extends 'p_struct.html' %}
+
+{% block content %}
+<style>
+  :root {
+    --primary-blue: #2563eb;
+    --primary-dark: #1d4ed8;
+    --accent-purple: #7c3aed;
+    --accent-emerald: #10b981;
+    --text-slate: #0f172a;
+    --text-muted: #64748b;
+    --bg-card: rgba(255, 255, 255, 0.85);
+    --border-light: #e2e8f0;
+  }
+
+  .dark :root {
+    --bg-card: rgba(30, 41, 59, 0.85);
+    --border-light: #334155;
+    --text-slate: #f8fafc;
+    --text-muted: #94a3b8;
+  }
+
+  /* Base wrapper */
+  .landing-wrap {
+    font-family: 'Kanit', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--text-slate);
+    overflow-x: hidden;
+  }
+
+  /* Hero Section */
+  .hero-block {
+    position: relative;
+    padding: 4.5rem 1.25rem 3.5rem;
+    background: radial-gradient(circle at 15% 20%, rgba(37, 99, 235, 0.08), transparent 45%),
+                radial-gradient(circle at 85% 80%, rgba(124, 58, 237, 0.08), transparent 45%);
+    text-align: center;
+  }
+
+  .badge-dna {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 1rem;
+    border-radius: 9999px;
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--primary-blue);
+    font-size: 0.85rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    border: 1px solid rgba(37, 99, 235, 0.2);
+  }
+
+  .hero-headline {
+    font-size: clamp(2.2rem, 5.5vw, 3.8rem);
+    font-weight: 800;
+    line-height: 1.15;
+    max-width: 860px;
+    margin: 0 auto 1.25rem;
+    letter-spacing: -0.02em;
+  }
+
+  .hero-gradient-text {
+    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+  }
+
+  .hero-subhead {
+    font-size: 1.15rem;
+    color: var(--text-muted);
+    max-width: 660px;
+    margin: 0 auto 2.25rem;
+    line-height: 1.6;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 2.5rem;
+  }
+
+  .btn-primary-hero {
+    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+    color: #ffffff !important;
+    padding: 0.85rem 1.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-primary-hero:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 24px -5px rgba(37, 99, 235, 0.5);
+  }
+
+  .btn-secondary-hero {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    color: var(--text-slate) !important;
+    padding: 0.85rem 1.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 1rem;
+    transition: all 0.2s ease;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .btn-secondary-hero:hover {
+    background: #f1f5f9;
+    transform: translateY(-2px);
+  }
+
+  /* Trust Bar */
+  .trust-strip {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1.75rem;
+    flex-wrap: wrap;
+    font-size: 0.9rem;
+    color: var(--text-muted);
+  }
+
+  .trust-item {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  /* Card Grid */
+  .section-container {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 4rem 1.25rem;
+  }
+
+  .section-head {
+    text-align: center;
+    margin-bottom: 3rem;
+  }
+
+  .section-head h2 {
+    font-size: 2.2rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+  }
+
+  .section-head p {
+    color: var(--text-muted);
+    font-size: 1.05rem;
+  }
+
+  .grid-3 {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+  }
+
+  .glass-card {
+    background: var(--bg-card);
+    border: 1px solid var(--border-light);
+    border-radius: 16px;
+    padding: 1.75rem;
+    backdrop-filter: blur(8px);
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .glass-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.08);
+  }
+
+  /* Step Badges */
+  .step-number {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: rgba(37, 99, 235, 0.1);
+    color: var(--primary-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-size: 1.2rem;
+    margin-bottom: 1.25rem;
+  }
+
+  /* Calculator Box */
+  .calc-box {
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.04), rgba(124, 58, 237, 0.04));
+    border: 1px solid var(--border-light);
+    border-radius: 20px;
+    padding: 2.5rem;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2.5rem;
+    align-items: center;
+  }
+
+  @media (max-width: 768px) {
+    .calc-box {
+      grid-template-columns: 1fr;
+      padding: 1.5rem;
+    }
+  }
+
+  .calc-slider-group {
+    margin-bottom: 1.5rem;
+  }
+
+  .calc-slider-group label {
+    display: flex;
+    justify-content: space-between;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .calc-result-card {
+    background: linear-gradient(135deg, #1e293b, #0f172a);
+    color: #ffffff;
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
+  }
+
+  .calc-result-val {
+    font-size: 3rem;
+    font-weight: 900;
+    color: #10b981;
+    margin: 0.5rem 0;
+  }
+
+  /* Story Quote Box */
+  .founder-quote-box {
+    background: linear-gradient(135deg, #f8fafc, #edf2f7);
+    border-left: 5px solid var(--primary-blue);
+    border-radius: 12px;
+    padding: 2rem;
+    margin: 2rem 0;
+  }
+
+  .dark .founder-quote-box {
+    background: #1e293b;
+  }
+
+  /* Footer Links */
+  .landing-footer {
+    border-top: 1px solid var(--border-light);
+    padding: 3.5rem 1.25rem 2rem;
+    background: rgba(248, 250, 252, 0.5);
+  }
+
+  .dark .landing-footer {
+    background: #0f172a;
+  }
+
+  .footer-grid {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 2.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .footer-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+
+  .footer-col h4 {
+    font-weight: 700;
+    margin-bottom: 1rem;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .footer-col ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+
+  .footer-col li {
+    margin-bottom: 0.6rem;
+  }
+
+  .footer-col a {
+    color: var(--text-muted);
+    text-decoration: none;
+    font-size: 0.9rem;
+    transition: color 0.15s;
+  }
+
+  .footer-col a:hover {
+    color: var(--primary-blue);
+  }
+</style>
+
+<div class="landing-wrap">
+  <!-- SECTION 1 & 2: HERO -->
+  <section class="hero-block">
+    <div class="badge-dna">
+      <span>🎓 Started at GHRCEN</span>
+      <span>•</span>
+      <span>Founder Abhijeet Shende</span>
+      <span>•</span>
+      <span>🤖 AI Co-founder Tarika</span>
+    </div>
+
+    <h1 class="hero-headline">
+      Sell Your Handwritten Notes.<br/>
+      <span class="hero-gradient-text">Ace Exams with Real PYQs.</span>
+    </h1>
+
+    <p class="hero-subhead">
+      India's student-first peer study marketplace. Upload exam-tested notes to earn up to 85% royalties, or access verified previous year question papers instantly.
+    </p>
+
+    <div class="hero-actions">
+      <a href="{{ url_for('library.pyq_landing') }}" class="btn-primary-hero"
+         onclick="trackLandingEvent('landing_cta_click', {cta_name:'browse_pyqs', position:'hero'})">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        Browse Notes & PYQs
+      </a>
+      <a href="{{ url_for('site.contribute_page') }}" class="btn-secondary-hero"
+         onclick="trackLandingEvent('landing_cta_click', {cta_name:'upload_earn', position:'hero'})">
+        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+        Upload & Earn (Keep 85%)
+      </a>
+    </div>
+
+    <div class="trust-strip">
+      <div class="trust-item">
+        <svg width="18" height="18" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+        <span>100% Student Verified</span>
+      </div>
+      <div class="trust-item">
+        <svg width="18" height="18" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+        <span>Instant UPI Payouts</span>
+      </div>
+      <div class="trust-item">
+        <svg width="18" height="18" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+        <span>Preview First 3 Pages Free</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 3: HOW IT WORKS (3-STEP EXPLAINER) -->
+  <section class="section-container">
+    <div class="section-head">
+      <h2>How AbhiHub Works</h2>
+      <p>Simple, fair, and built directly for engineering & college students.</p>
+    </div>
+
+    <div class="grid-3">
+      <div class="glass-card">
+        <div class="step-number">1</div>
+        <h3 style="font-size:1.25rem; font-weight:700; margin-bottom:0.5rem;">Upload Your Notes</h3>
+        <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">
+          Scan clean handwritten notes, assignments, or university PYQ solutions from your phone or laptop.
+        </p>
+      </div>
+
+      <div class="glass-card">
+        <div class="step-number">2</div>
+        <h3 style="font-size:1.25rem; font-weight:700; margin-bottom:0.5rem;">Verified & Listed</h3>
+        <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">
+          AI co-founder Tarika + campus moderators review formatting and syllabus matching to ensure top quality.
+        </p>
+      </div>
+
+      <div class="glass-card">
+        <div class="step-number">3</div>
+        <h3 style="font-size:1.25rem; font-weight:700; margin-bottom:0.5rem;">Earn or Ace Exams</h3>
+        <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">
+          Keep 85% of each sale paid directly via UPI, or study with high-scoring resources before exam week.
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 4: INTERACTIVE EARNINGS CALCULATOR -->
+  <section class="section-container" style="padding-top: 0;">
+    <div class="calc-box">
+      <div>
+        <h2 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;">Creator Earnings Calculator</h2>
+        <p style="color: var(--text-muted); margin-bottom: 2rem;">
+          Estimate how much you can earn every semester from your semester notes.
+        </p>
+
+        <div class="calc-slider-group">
+          <label>
+            <span>Notes Uploaded:</span>
+            <span id="notesCountLabel" style="color:var(--primary-blue);">5 files</span>
+          </label>
+          <input type="range" id="notesRange" min="1" max="25" value="5" style="width:100%;" oninput="calculateEarnings()">
+        </div>
+
+        <div class="calc-slider-group">
+          <label>
+            <span>Price Per Note:</span>
+            <span id="priceLabel" style="color:var(--primary-blue);">₹49</span>
+          </label>
+          <input type="range" id="priceRange" min="19" max="199" step="10" value="49" style="width:100%;" oninput="calculateEarnings()">
+        </div>
+
+        <div class="calc-slider-group">
+          <label>
+            <span>Estimated Buyers Per Subject:</span>
+            <span id="buyersLabel" style="color:var(--primary-blue);">30 students</span>
+          </label>
+          <input type="range" id="buyersRange" min="10" max="150" step="5" value="30" style="width:100%;" oninput="calculateEarnings()">
+        </div>
+      </div>
+
+      <div class="calc-result-card">
+        <span style="font-size:0.85rem; text-transform:uppercase; letter-spacing:0.05em; opacity:0.8;">Estimated Earnings (85% Net)</span>
+        <div class="calc-result-val" id="calcEarningsDisplay">₹6,247</div>
+        <p style="font-size:0.85rem; opacity:0.75; margin-bottom:1.5rem;">Direct weekly UPI transfers to your bank account</p>
+        <a href="{{ url_for('site.contribute_page') }}" class="btn-primary-hero" style="justify-content:center; width:100%;"
+           onclick="trackLandingEvent('landing_cta_click', {cta_name:'calculator_start_earning', position:'calculator'})">
+          Start Earning Today
+        </a>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 5: CATEGORIES & UNIVERSITIES -->
+  <section class="section-container" style="padding-top: 0;">
+    <div class="section-head">
+      <h2>Explore by Engineering Branch & College</h2>
+      <p>Curated PYQs and subject materials tailored to your syllabus.</p>
+    </div>
+
+    <div style="display:flex; flex-wrap:wrap; gap:0.75rem; justify-content:center; margin-bottom:2rem;">
+      {% for branch in branches %}
+        <a href="{{ url_for('library.pyq_landing') }}" class="btn-secondary-hero"
+           style="padding:0.5rem 1rem; font-size:0.9rem;"
+           data-branch-track="{{ branch.abbreviation or branch.name }}">
+          {{ branch.abbreviation or branch.name }}
+        </a>
+      {% else %}
+        <span class="btn-secondary-hero" style="padding:0.5rem 1rem; font-size:0.9rem;">Computer Science</span>
+        <span class="btn-secondary-hero" style="padding:0.5rem 1rem; font-size:0.9rem;">Information Technology</span>
+        <span class="btn-secondary-hero" style="padding:0.5rem 1rem; font-size:0.9rem;">Electronics & Telecomm</span>
+        <span class="btn-secondary-hero" style="padding:0.5rem 1rem; font-size:0.9rem;">Mechanical</span>
+      {% endfor %}
+    </div>
+  </section>
+
+  <!-- SECTION 6: RECENT & FEATURED NOTES -->
+  {% if recent_docs %}
+  <section class="section-container" style="padding-top: 0;">
+    <div class="section-head">
+      <h2>Recently Added Study Notes</h2>
+      <p>Freshly uploaded and verified by university toppers.</p>
+    </div>
+
+    <div class="grid-3">
+      {% for doc in recent_docs[:6] %}
+      <div class="glass-card">
+        <span style="font-size:0.75rem; font-weight:700; color:var(--primary-blue); text-transform:uppercase;">
+          {{ doc.document_category or 'Notes' }}
+        </span>
+        <h3 style="font-size:1.1rem; font-weight:700; margin:0.4rem 0 0.5rem;">
+          {{ doc.title | truncate(45) }}
+        </h3>
+        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">
+          {{ doc.subject.name if doc.subject else 'General Subject' }}
+        </p>
+        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-light); padding-top:0.75rem;">
+          <span style="font-weight:700; color:#10b981;">
+            {% if doc.pricing and doc.pricing.get('price', 0) > 0 %}₹{{ doc.pricing.get('price')|int }}{% else %}FREE{% endif %}
+          </span>
+          <a href="/resource/{{ doc.canonical_slug }}" style="font-size:0.85rem; color:var(--primary-blue); font-weight:600; text-decoration:none;">
+            View Preview →
+          </a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- SECTION 7 & 9: ORIGIN STORY & CREATOR SPOTLIGHT -->
+  <section class="section-container" style="padding-top: 0;">
+    <div class="founder-quote-box">
+      <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
+        <div style="width:48px; height:48px; border-radius:50%; background:var(--primary-blue); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700;">
+          AS
+        </div>
+        <div>
+          <h4 style="margin:0; font-weight:700;">Abhijeet Shende</h4>
+          <span style="font-size:0.85rem; color:var(--text-muted);">Founder & CEO, AbhiHub (G.H. Raisoni College of Engineering, Nagpur)</span>
+        </div>
+      </div>
+      <p style="font-style:italic; line-height:1.7; color:var(--text-slate); margin:0;">
+        "I was a final year student at GHRCEN, and every exam season classmates were scrambling on WhatsApp for notes — blurry photos, wrong syllabus. I built AbhiHub to fix that — starting with just 100 classmates on our campus, now scaling for every student across India."
+      </p>
+    </div>
+  </section>
+
+  <!-- SECTION 10: PRE-FOOTER CTA -->
+  <section class="section-container" style="text-align:center; padding-top: 0;">
+    <div style="background:linear-gradient(135deg, #2563eb, #7c3aed); color:#fff; border-radius:24px; padding:3.5rem 1.5rem;">
+      <h2 style="font-size:2.4rem; font-weight:800; margin-bottom:0.75rem; color:#fff;">Ready to Ace Your Next Exam?</h2>
+      <p style="max-width:550px; margin:0 auto 2rem; opacity:0.9; font-size:1.1rem;">
+        Join students from GHRCEN and across India sharing quality notes and unlocking exam success.
+      </p>
+      <a href="{{ url_for('auth.signup') }}" class="btn-primary-hero" style="background:#fff; color:#2563eb !important; box-shadow:none;"
+         onclick="trackLandingEvent('signup_funnel_start', {source:'landing_bottom_cta'})">
+        Create Free Account
+      </a>
+    </div>
+  </section>
+
+  <!-- SECTION 11: GLOBAL FOOTER -->
+  <footer class="landing-footer">
+    <div class="footer-grid">
+      <div class="footer-col">
+        <h3 style="font-weight:800; font-size:1.3rem; margin-bottom:0.5rem; color:var(--primary-blue);">AbhiHub</h3>
+        <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.6; max-width:320px;">
+          Student-powered academic marketplace for handwritten notes and university previous year question papers. Started at GHRCEN.
+        </p>
+      </div>
+
+      <div class="footer-col">
+        <h4>Platform</h4>
+        <ul>
+          <li><a href="{{ url_for('library.pyq_landing') }}">Browse Library</a></li>
+          <li><a href="{{ url_for('site.contribute_page') }}">Upload & Earn</a></li>
+          <li><a href="{{ url_for('site.features_tour') }}">Features Tour</a></li>
+          <li><a href="{{ url_for('site.about') }}">About Us</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Support</h4>
+        <ul>
+          <li><a href="{{ url_for('site.help_center') }}">Help Center</a></li>
+          <li><a href="{{ url_for('site.contact') }}">Contact Us</a></li>
+          <li><a href="{{ url_for('site.join_team') }}">Campus Ambassador</a></li>
+        </ul>
+      </div>
+
+      <div class="footer-col">
+        <h4>Legal</h4>
+        <ul>
+          <li><a href="{{ url_for('site.terms') }}">Terms & Conditions</a></li>
+          <li><a href="{{ url_for('site.privacy') }}">Privacy Policy</a></li>
+          <li><a href="{{ url_for('site.dmca') }}">DMCA & Copyright</a></li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="border-top:1px solid var(--border-light); padding-top:1.5rem; text-align:center; font-size:0.8rem; color:var(--text-muted);">
+      © {{ 2026 }} AbhiHub. Built with pride by Abhijeet Shende & AI Co-founder Tarika.
+    </div>
+  </footer>
+</div>
+
+<script>
+  // ─── Landing Page Analytics Helper ─────────────────────────────────────────
+  function trackLandingEvent(eventName, params) {
+    try {
+      if (window.gtag) {
+        window.gtag('event', eventName, params);
+      }
+    } catch (e) { }
+  }
+
+  function calculateEarnings() {
+    const notes  = parseInt(document.getElementById('notesRange').value);
+    const price  = parseInt(document.getElementById('priceRange').value);
+    const buyers = parseInt(document.getElementById('buyersRange').value);
+
+    document.getElementById('notesCountLabel').innerText = notes + ' files';
+    document.getElementById('priceLabel').innerText = '₹' + price;
+    document.getElementById('buyersLabel').innerText = buyers + ' students';
+
+    const netPayout = Math.round(notes * price * buyers * 0.85);
+    document.getElementById('calcEarningsDisplay').innerText = '₹' + netPayout.toLocaleString('en-IN');
+
+    // Fire calculator_used event (debounced 800ms to avoid spam on drag)
+    clearTimeout(window._calcDebounce);
+    window._calcDebounce = setTimeout(function() {
+      trackLandingEvent('calculator_used', {
+        notes_count: notes,
+        price_per_note: price,
+        buyers_estimate: buyers,
+        est_payout: netPayout
+      });
+    }, 800);
+  }
+
+  // ─── Branch filter GA4 events ───────────────────────────────────────────────
+  document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('[data-branch-track]').forEach(function(el) {
+      el.addEventListener('click', function() {
+        trackLandingEvent('branch_selected', { branch_name: el.dataset.branchTrack });
+      });
+    });
+  });
+</script>
+{% endblock %}

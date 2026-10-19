@@ -526,18 +526,17 @@ def get_sitemap_urls() -> Dict:
         colleges = client.table('colleges').select('id, name, abbreviation, popular_name, created_at').execute().data
         
         # 2. Departments
-        # Keep the college_id so sitemap generation can include only real, content-backed department pages.
-        depts = client.table('departments').select('id, college_id, name, abbreviation, created_at').execute().data
+        depts = client.table('departments').select('id, name, abbreviation, created_at').execute().data or []
 
         # 3. Subjects
-        subjects = client.table('subjects').select('id, name, created_at').execute().data
+        subjects = client.table('subjects').select('id, name, created_at').execute().data or []
 
         # 4. Resources
-        # We need the relations to generate the canonical slug
+        # We need the relations and fields to evaluate indexability and generate canonical slugs
         docs = client.table('documents')\
-            .select('id, college_id, department_id, subject_id, title, updated_at, created_at, college:colleges(id, name, abbreviation, popular_name), department:departments(id, name, abbreviation), subject:subjects(id, name)')\
+            .select('id, college_id, department_id, subject_id, title, description, file_url, status, updated_at, created_at, college:colleges(id, name, abbreviation, popular_name), department:departments(id, name, abbreviation), subject:subjects(id, name)')\
             .eq('status', 'approved')\
-            .execute().data
+            .execute().data or []
             
         return {
             "success": True, 
@@ -1007,35 +1006,106 @@ def get_registered_storage_ids() -> set:
         logging.error(f"[Supabase] Error getting registered storage ids: {e}")
         return set()
 
+def _extract_location_keys(val) -> set:
+    if not val:
+        return set()
+    s = str(val).strip()
+    keys = {s}
+    s_clean = re.sub(r'^https?://[^/]+/', '', s)
+    keys.add(s_clean)
+    s_clean2 = re.sub(r'^(?:raw/|image/)?upload/(?:v\d+/)?', '', s_clean)
+    keys.add(s_clean2)
+    s_noext = re.sub(r'\.[a-zA-Z0-9]+$', '', s_clean2)
+    keys.add(s_noext)
+    base = s_noext.split('/')[-1]
+    if base and len(base) > 3:
+        keys.add(base)
+    return {k for k in keys if k}
+
 def get_pending_storage_assets() -> list:
-    """Fetch files that still need labeling from the storage index."""
+    """Fetch files present in cloud storage that have no entry connected to their location in documents."""
     client = init_supabase()
     if not client: return []
     try:
+        # 1. Fetch all registered document locations
+        docs_res = client.table('documents').select('provider_public_id, file_url').execute()
+        doc_location_keys = set()
+        for doc in (docs_res.data or []):
+            doc_location_keys.update(_extract_location_keys(doc.get('file_url')))
+            doc_location_keys.update(_extract_location_keys(doc.get('provider_public_id')))
+
+        # 2. Fetch storage assets marked PENDING
         res = client.table('storage_assets').select('*').eq('status', 'PENDING').execute()
-        return res.data or []
+        pending = res.data or []
+
+        truly_pending = []
+        already_labeled_ids = []
+
+        for asset in pending:
+            asset_keys = set()
+            asset_keys.update(_extract_location_keys(asset.get('public_url')))
+            asset_keys.update(_extract_location_keys(asset.get('provider_public_id')))
+            asset_keys.update(_extract_location_keys(asset.get('filename')))
+
+            if asset_keys.intersection(doc_location_keys):
+                already_labeled_ids.append(asset.get('id'))
+            else:
+                truly_pending.append(asset)
+
+        # 3. Auto-reconcile in background: update already registered storage assets to LABELED
+        if already_labeled_ids:
+            try:
+                for i in range(0, len(already_labeled_ids), 100):
+                    batch_ids = already_labeled_ids[i:i + 100]
+                    client.table('storage_assets').update({'status': 'LABELED'}).in_('id', batch_ids).execute()
+            except Exception as up_err:
+                logging.warning(f"[get_pending_storage_assets] Auto-reconcile error: {up_err}")
+
+        return truly_pending
     except Exception as e:
         logging.error(f"[Supabase] Error fetching pending assets: {e}")
         return []
 
-def mark_storage_asset_labeled(provider: str, provider_public_id: str) -> bool:
+def mark_storage_asset_labeled(provider: str, provider_public_id: str, filename: str = None, url: str = None) -> bool:
     """Mark an asset as LABELED in the storage_assets table."""
     client = init_supabase()
     if not client: return False
     try:
-        client.table('storage_assets').update({'status': 'LABELED'}).eq('provider', provider).eq('provider_public_id', provider_public_id).execute()
+        updated = False
+        if provider and provider_public_id:
+            res = client.table('storage_assets').update({'status': 'LABELED'}).eq('provider', provider).eq('provider_public_id', provider_public_id).execute()
+            if res.data and len(res.data) > 0:
+                updated = True
+        if not updated and filename:
+            res = client.table('storage_assets').update({'status': 'LABELED'}).eq('filename', filename).execute()
+            if res.data and len(res.data) > 0:
+                updated = True
+        if not updated and url:
+            client.table('storage_assets').update({'status': 'LABELED'}).eq('public_url', url).execute()
         return True
     except Exception as e:
         logging.error(f"[Supabase] Error updating asset status: {e}")
         return False
 
 def log_label_audit(user_id: str, document_id: str, action: str, details: dict) -> bool:
-    """Log an audit entry for labeling actions."""
+    """Log an audit entry for labeling actions with validated UUID."""
     client = init_supabase()
     if not client: return False
     try:
+        resolved_uid = user_id if validate_uuid(user_id) else None
+        if not resolved_uid and user_id:
+            try:
+                p_res = client.table('profiles').select('id').eq('email', user_id).limit(1).execute()
+                if p_res.data and validate_uuid(p_res.data[0].get('id')):
+                    resolved_uid = p_res.data[0]['id']
+            except Exception:
+                pass
+        if not resolved_uid:
+            logging.warning(f"[Supabase] log_label_audit skipped: No valid UUID for user {user_id}")
+            return False
+
         client.table('label_audit_logs').insert({
-            'user_id': user_id,
+            'user_id': resolved_uid,
             'document_id': document_id,
             'action': action,
             'details': json.dumps(details)
@@ -1251,21 +1321,18 @@ def toggle_like(user_email: str, document_id: str) -> Dict:
         u_id = p_res.data[0]['id']
         
         # Check if already voted
-        vote_res = client.table('document_votes').select('*').eq('document_id', document_id).eq('user_id', u_id).execute()
+        vote_res = client.table('document_votes').select('document_id').eq('document_id', document_id).eq('user_id', u_id).execute()
         if vote_res.data:
-            # Unlike
+            # Unlike: DB trigger trg_doc_vote_sync automatically decrements like_count
             client.table('document_votes').delete().eq('document_id', document_id).eq('user_id', u_id).execute()
-            # Decrement document count (could be done via trigger, doing manually if no trigger available)
             doc_res = client.table('documents').select('like_count').eq('id', document_id).execute()
-            count = max(0, (doc_res.data[0]['like_count'] or 0) - 1)
-            client.table('documents').update({'like_count': count}).eq('id', document_id).execute()
+            count = max(0, doc_res.data[0].get('like_count') or 0) if doc_res.data else 0
             return {'success': True, 'is_liked': False, 'like_count': count}
         else:
-            # Like
+            # Like: DB trigger trg_doc_vote_sync automatically increments like_count
             client.table('document_votes').insert({'document_id': document_id, 'user_id': u_id, 'vote': 'like'}).execute()
             doc_res = client.table('documents').select('like_count').eq('id', document_id).execute()
-            count = (doc_res.data[0]['like_count'] or 0) + 1
-            client.table('documents').update({'like_count': count}).eq('id', document_id).execute()
+            count = max(0, doc_res.data[0].get('like_count') or 0) if doc_res.data else 1
             # Scoring: reward receiving a like (skip self-likes)
             try:
                 from methods.scoring_engine import process_event
@@ -1287,21 +1354,18 @@ def toggle_bookmark(user_email: str, document_id: str) -> Dict:
         if not p_res.data: return {'success': False, 'message': 'User not found'}
         u_id = p_res.data[0]['id']
         
-        check_res = client.table('bookmarks').select('*').eq('document_id', document_id).eq('user_id', u_id).execute()
+        check_res = client.table('bookmarks').select('document_id').eq('document_id', document_id).eq('user_id', u_id).execute()
         if check_res.data:
-            # Remove bookmark
+            # Remove bookmark: DB trigger trg_doc_bookmark_sync automatically decrements bookmark_count
             client.table('bookmarks').delete().eq('document_id', document_id).eq('user_id', u_id).execute()
-            # Update Document Counter
             doc_res = client.table('documents').select('bookmark_count').eq('id', document_id).execute()
-            count = max(0, (doc_res.data[0]['bookmark_count'] or 0) - 1)
-            client.table('documents').update({'bookmark_count': count}).eq('id', document_id).execute()
+            count = max(0, doc_res.data[0].get('bookmark_count') or 0) if doc_res.data else 0
             return {'success': True, 'is_bookmarked': False, 'bookmark_count': count}
         else:
-            # Add bookmark
+            # Add bookmark: DB trigger trg_doc_bookmark_sync automatically increments bookmark_count
             client.table('bookmarks').insert({'document_id': document_id, 'user_id': u_id}).execute()
             doc_res = client.table('documents').select('bookmark_count').eq('id', document_id).execute()
-            count = (doc_res.data[0]['bookmark_count'] or 0) + 1
-            client.table('documents').update({'bookmark_count': count}).eq('id', document_id).execute()
+            count = max(0, doc_res.data[0].get('bookmark_count') or 0) if doc_res.data else 1
             # Scoring: reward receiving a bookmark (skip self-bookmarks)
             try:
                 from methods.scoring_engine import process_event
@@ -1845,40 +1909,38 @@ def _doc_points(doc_category: str) -> float:
     return POINTS_MAP.get((doc_category or '').lower(), DEFAULT_POINTS)
 
 
-def calculate_user_ranks() -> List[Dict]:
+_RANKS_CACHE = {'timestamp': 0, 'data': []}
+_RANKS_CACHE_TTL = 600  # 10 minutes cache
+
+def calculate_user_ranks(force_refresh: bool = False) -> List[Dict]:
     """
     Calculate the leaderboard by summing points per uploader across ALL
     their documents (both 'approved' and 'pending'), so new uploaders
-    appear in the list immediately after their first upload.
-
-    Returns a sorted list of dicts:
-        [
-          {
-            'uploader_id': '<uuid>',
-            'author':      '<full_name>',
-            'points':      <float>,
-            'upload_count': <int>
-          },
-          ...
-        ]
+    appear in the list immediately after their first upload. Cached for 10m.
     """
+    global _RANKS_CACHE
+    now = time.time()
+    if not force_refresh and _RANKS_CACHE['data'] and (now - _RANKS_CACHE['timestamp'] < _RANKS_CACHE_TTL):
+        return _RANKS_CACHE['data']
+
     client = init_supabase()
     if not client:
-        return []
+        return _RANKS_CACHE['data'] or []
     try:
         # Include BOTH approved and pending so new uploaders are visible
         res = (
             client.table('documents')
             .select(
-                'uploader_id, document_category, status, '
+                'uploader_id, document_category, status, view_count, '
                 'profiles!documents_uploader_id_fkey(full_name)'
             )
             .in_('status', ['approved', 'pending'])
+            .limit(10000)
             .execute()
         )
 
         # Key by uploader_id (UUID) — avoids name-collision bugs
-        data_map: Dict[str, Dict] = {}  # uploader_id -> {author, points, upload_count}
+        data_map: Dict[str, Dict] = {}  # uploader_id -> {author, points, upload_count, students_helped}
 
         for doc in (res.data or []):
             uid = doc.get('uploader_id')
@@ -1894,10 +1956,11 @@ def calculate_user_ranks() -> List[Dict]:
 
             if uid not in data_map:
                 data_map[uid] = {
-                    'uploader_id':  uid,
-                    'author':       author_name,
-                    'points':       0.0,
-                    'upload_count': 0,
+                    'uploader_id':     uid,
+                    'author':          author_name,
+                    'points':          0.0,
+                    'upload_count':    0,
+                    'students_helped': 0,
                 }
 
             # Always prefer a real name over 'Unknown'
@@ -1911,16 +1974,18 @@ def calculate_user_ranks() -> List[Dict]:
             if doc.get('status') == 'pending':
                 pts *= 0.5
 
-            data_map[uid]['points']       += pts
-            data_map[uid]['upload_count'] += 1
+            data_map[uid]['points']          += pts
+            data_map[uid]['upload_count']    += 1
+            data_map[uid]['students_helped'] += int(doc.get('view_count') or 0)
 
         rank_list = list(data_map.values())
         rank_list.sort(key=lambda x: x['points'], reverse=True)
+        _RANKS_CACHE = {'timestamp': time.time(), 'data': rank_list}
         return rank_list
 
     except Exception as e:
         logging.error(f"[Ranking] Error calculating ranks: {e}")
-        return []
+        return _RANKS_CACHE.get('data') or []
 
 
 def recalculate_and_persist_user_rank(user_id: str) -> Dict:
@@ -1930,7 +1995,8 @@ def recalculate_and_persist_user_rank(user_id: str) -> Dict:
 
     Call this after every successful upload so the DB stays in sync.
     """
-    client = init_supabase()
+    global _RANKS_CACHE
+    client = init_supabase_admin() or init_supabase()
     if not client:
         return {'success': False, 'message': 'No client'}
     try:
@@ -1952,14 +2018,15 @@ def recalculate_and_persist_user_rank(user_id: str) -> Dict:
 
         from decimal import Decimal, ROUND_HALF_UP
         precise = Decimal(str(total_points)).quantize(Decimal('0.01'), rounding=ROUND_HALF_UP)
-        # profiles.reputation_score is INTEGER in DB — store rounded int
-        # Run: ALTER COLUMN reputation_score TYPE numeric(10,2) to unlock decimals
         score_int = int(precise.to_integral_value(rounding=ROUND_HALF_UP))
         score = float(precise)  # returned in API response for XP display
 
         client.table('profiles').update(
             {'reputation_score': score_int}
         ).eq('id', user_id).execute()
+
+        # Invalidate in-memory ranks cache so leaderboard updates immediately
+        _RANKS_CACHE['timestamp'] = 0
 
         logging.info(f"[Ranking] Persisted reputation_score={score} for user {user_id}")
         return {'success': True, 'score': score}
@@ -2028,22 +2095,53 @@ def get_leaderboard_data(college_id: str = None, limit: int = 50) -> Dict:
 
     def _build_from_view():
         query = client.table('leaderboard_view').select('*').gt('total_xp', 0)
-        if college_id:
+        if college_id and str(college_id).strip().lower() != 'all':
             query = query.eq('college_id', college_id)
         res = query.order('total_xp', desc=True).limit(limit).execute()
         leaderboard = []
+
+        # Colleges lookup
+        colleges_dict = {}
+        try:
+            c_res = client.table('colleges').select('id, name, abbreviation').execute()
+            for c in (c_res.data or []):
+                colleges_dict[c['id']] = c.get('abbreviation') or c.get('name') or ''
+        except Exception:
+            pass
+
+        # Upload counts & views lookup
+        upload_counts = {}
+        views_counts = {}
+        try:
+            for r in calculate_user_ranks():
+                u_id = r.get('uploader_id')
+                upload_counts[u_id] = r.get('upload_count', 0)
+                views_counts[u_id] = r.get('students_helped', 0)
+        except Exception:
+            pass
+
         for i, row in enumerate(res.data or []):
+            xp = float(row.get('total_xp') or 0)
             badges = []
-            if row.get('total_xp') >= 1000: badges.append('Champion')
-            elif row.get('total_xp') >= 500: badges.append('Hero')
-            elif row.get('total_xp') >= 100: badges.append('Contributor')
+            if xp >= 1000: badges.append('Legend')
+            elif xp >= 500: badges.append('Hero')
+            elif xp >= 250: badges.append('Scholar')
+            elif xp >= 50: badges.append('Contributor')
+            else: badges.append('Pioneer')
+
+            uid = row.get('user_id')
+            cid = row.get('college_id')
+            helped = int(row.get('students_helped') or 0) or views_counts.get(uid, 0)
             leaderboard.append({
                 'rank': i + 1,
-                'user_id': row.get('user_id'),
+                'user_id': uid,
                 'name': row.get('full_name') or 'Anonymous Student',
                 'email': row.get('email', ''),
-                'total_xp': row.get('total_xp', 0),
-                'students_helped': row.get('students_helped', 0),
+                'total_xp': int(xp) if xp.is_integer() else xp,
+                'college_id': cid,
+                'college_name': colleges_dict.get(cid, ''),
+                'upload_count': upload_counts.get(uid, 0),
+                'students_helped': helped,
                 'badges': badges
             })
         return leaderboard
@@ -2055,19 +2153,22 @@ def get_leaderboard_data(college_id: str = None, limit: int = 50) -> Dict:
         for i, r in enumerate(ranks[:limit]):
             uid = r.get('uploader_id')
             pts = r.get('points', 0)
-            # Convert fractional points to XP (multiply by 10 for display)
             xp = int(pts * 10)
             badges = []
-            if xp >= 1000: badges.append('Champion')
+            if xp >= 1000: badges.append('Legend')
             elif xp >= 500: badges.append('Hero')
-            elif xp >= 100: badges.append('Contributor')
-            elif xp >= 10: badges.append('Starter')
+            elif xp >= 250: badges.append('Scholar')
+            elif xp >= 50: badges.append('Contributor')
+            elif xp >= 10: badges.append('Pioneer')
             leaderboard.append({
                 'rank': i + 1,
                 'user_id': uid,
                 'name': r.get('author') or 'Anonymous Student',
                 'email': '',
                 'total_xp': xp,
+                'college_id': '',
+                'college_name': '',
+                'upload_count': r.get('upload_count', 0),
                 'students_helped': r.get('upload_count', 0),
                 'badges': badges
             })
@@ -2225,6 +2326,68 @@ def mark_notifications_read(user_id: str) -> Dict:
     except Exception as e:
         logging.error(f'[NOTIFY] mark_notifications_read error: {e}')
         return {'success': False, 'message': str(e)}
+
+
+def notify_all_new_upload(doc_id: str, title: str, uploader_id: str = None, subject: str = None):
+    """
+    Broadcasts in-app notification and web push notification to all users when a new file is uploaded.
+    Includes direct link /resource/<doc_id>.
+    """
+    client = init_supabase()
+    if not client or not doc_id:
+        return
+    
+    clean_title = (title or "New Study Material").strip()
+    if len(clean_title) > 60:
+        clean_title = clean_title[:57] + "..."
+    
+    action_url = f"/resource/{doc_id}"
+    notif_title = "📄 New File Uploaded!"
+    notif_message = f'"{clean_title}" was just uploaded for {subject}. Tap to open and view.' if subject else f'"{clean_title}" was just uploaded. Tap to open and view.'
+
+    # 1. In-App Notifications: Insert for all registered profiles in batches
+    try:
+        p_res = client.table('profiles').select('id').execute()
+        users = p_res.data or []
+        records = []
+        for u in users:
+            uid = u.get('id')
+            if not uid or uid == uploader_id:
+                continue
+            records.append({
+                'user_id': uid,
+                'type': 'new_upload',
+                'title': notif_title,
+                'message': notif_message,
+                'action_url': action_url,
+                'is_read': False
+            })
+        
+        # Batch insert in chunks of 100
+        for i in range(0, len(records), 100):
+            chunk = records[i:i + 100]
+            try:
+                client.table('notifications').insert(chunk).execute()
+            except Exception as e:
+                logging.warning(f"[NOTIFY_UPLOAD] In-app batch insert failed chunk {i}: {e}")
+        logging.info(f"[NOTIFY_UPLOAD] Created in-app notifications for {len(records)} users for doc {doc_id}")
+    except Exception as e:
+        logging.error(f"[NOTIFY_UPLOAD] Failed to broadcast in-app notifications: {e}")
+
+    # 2. Web Push Notification: Send to all push subscribers
+    try:
+        from push_notifications import send_notification_to_all
+        send_notification_to_all(
+            title=notif_title,
+            body=notif_message,
+            url=action_url,
+            icon="/static/images/android-chrome-192x192.png",
+            tag=f"doc-{doc_id}"
+        )
+    except Exception as e:
+        logging.error(f"[NOTIFY_UPLOAD] Failed to send web push broadcast: {e}")
+
+
 def save_file_access(user_email: str, file_name: str, file_type: str = 'pdf', file_path: str = '', file_url: str = '', record_id: str = None) -> Dict:
     """
     Log a file access event and increment the view count for the document.

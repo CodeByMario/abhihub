@@ -20,6 +20,13 @@
 
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="dns-prefetch" href="https://fonts.googleapis.com">
+<link rel="dns-prefetch" href="https://www.googletagmanager.com">
+
+<!-- Search Engine Ownership Verification -->
+<!-- Google Search Console: Replace with your actual verification code from https://search.google.com/search-console -->
+<meta name="google-site-verification" content="{{ GOOGLE_SITE_VERIFICATION | default('') }}">
+<!-- Bing Webmaster Tools: Replace with your actual code from https://www.bing.com/webmasters -->
+<meta name="msvalidate.01" content="{{ BING_SITE_VERIFICATION | default('') }}">
 
 <!-- 2. Core Meta Tags -->
 <title>{{ seo_title | default("AbhiHub - World's #1 Previous Year Question Paper, Notes Sharing & Exam Preparation Platform") }}</title>
@@ -46,9 +53,8 @@
 <meta name="distribution" content="Global">
 <meta name="rating" content="General">
 
-<!-- Google AdSense Script: Loaded via Google Tag Manager (CMP-gated) for compliance -->
-<!-- CMP consent handling implemented in google_tag.html - analytics/ads load only after user consent -->
-{% if not is_noindex and not disable_ads %}
+<!-- Google AdSense: Single canonical load (IS_PRODUCTION + noindex safe). p_struct.html duplicate removed. -->
+{% if IS_PRODUCTION and not is_noindex and not disable_ads %}
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8274846157272362"
   crossorigin="anonymous"></script>
 {% endif %}
@@ -175,3 +181,55 @@
   ]
 }
 </script>
+
+{% if request.path == '/' %}
+<!-- FAQPage Schema: Enables expandable FAQ rich results in Google SERPs for the landing page -->
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "FAQPage",
+  "mainEntity": [
+    {
+      "@type": "Question",
+      "name": "What is AbhiHub?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "AbhiHub is India's student-first peer academic marketplace where you can download verified previous year question papers (PYQs) and high-scoring engineering notes, or upload your own handwritten notes to earn up to 85% royalties directly via UPI."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "How do I earn money by uploading notes on AbhiHub?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Upload your handwritten engineering notes or PYQ solutions to AbhiHub, set a price, and earn 85% of every sale directly via UPI. AbhiHub handles verification, payments, and student reach across India."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Are the PYQs and notes on AbhiHub verified?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Yes. Every resource on AbhiHub is reviewed by Tarika (our AI co-founder) and campus moderators for syllabus accuracy, formatting quality, and relevance before being listed."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Which engineering colleges and universities are covered?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "AbhiHub started at G.H. Raisoni College of Engineering, Nagpur (GHRCEN) and is rapidly expanding to cover universities and colleges across India — including AKTU, RTM Nagpur University, Pune University, VTU, RGPV, and more."
+      }
+    },
+    {
+      "@type": "Question",
+      "name": "Is AbhiHub free to use?",
+      "acceptedAnswer": {
+        "@type": "Answer",
+        "text": "Browsing and previewing the first 3 pages of any resource is completely free. Full document access uses a pay-per-download model starting from ₹19. Creating an account is always free."
+      }
+    }
+  ]
+}
+</script>
+{% endif %}

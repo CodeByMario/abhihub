@@ -25,16 +25,24 @@ class StoreRoomAPI {
         return { response: res, data };
     }
 
-    static async extractAiSuggestions(fileItem) {
-        let filename = fileItem.filename || fileItem.name;
-        const fileUrl = fileItem.url || fileItem.path;
+    static async extractAiSuggestions(fileItem, knownFields = {}) {
+        let filename = fileItem.filename || fileItem.name || '';
+        const fileUrl = fileItem.url || fileItem.path || '';
+
+        const branchEl = document.getElementById('branch');
+        const branchId = window.AbhiHubSelect?.instances['branch']?.getValue() || branchEl?.value || '';
 
         // Attempt Vision / OCR extraction if file URL is accessible
         if (fileUrl) {
             try {
+                const fd = new FormData();
+                fd.append('file_url', fileUrl);
+                fd.append('filename', filename);
+                if (branchId) fd.append('branch_id', branchId);
+                if (knownFields) fd.append('known_fields', JSON.stringify(knownFields));
+
                 const blob = await fetch(fileUrl).then(r => r.ok ? r.blob() : null).catch(() => null);
                 if (blob) {
-                    const fd = new FormData();
                     let ext = (filename.includes('.') ? filename.split('.').pop() : '').toLowerCase();
                     if (!['pdf', 'jpg', 'jpeg', 'png', 'webp'].includes(ext)) {
                         ext = (blob.type === 'application/pdf') ? 'pdf' : (blob.type === 'image/png' ? 'png' : 'jpg');
@@ -42,27 +50,22 @@ class StoreRoomAPI {
                     }
                     const fileObj = new File([blob], filename, { type: blob.type || (ext === 'pdf' ? 'application/pdf' : 'image/jpeg') });
                     fd.append('upload_document', fileObj, filename);
-                    fd.append('filename', filename);
+                }
 
-                    const branchEl = document.getElementById('branch');
-                    const branchId = window.AbhiHubSelect?.instances['branch']?.getValue() || branchEl?.value || '';
-                    if (branchId) fd.append('branch_id', branchId);
-
-                    const res = await fetch('/api/ai/extract-upload-metadata', {
-                        method: 'POST',
-                        body: fd
-                    });
-                    const data = await res.json().catch(() => null);
-                    if (data && data.success && data.metadata) {
-                        return {
-                            success: true,
-                            source: data.source || 'ai_vision',
-                            result: { data: data.metadata }
-                        };
-                    }
+                const res = await fetch('/api/ai/extract-upload-metadata', {
+                    method: 'POST',
+                    body: fd
+                });
+                const data = await res.json().catch(() => null);
+                if (data && data.success && data.metadata) {
+                    return {
+                        success: true,
+                        source: data.source || 'ai_vision',
+                        result: { data: data.metadata }
+                    };
                 }
             } catch (err) {
-                console.warn('[StoreRoom] Vision extraction attempt failed, falling back to filename regex', err);
+                console.warn('[StoreRoom] Vision extraction attempt failed, falling back to heuristic tools', err);
             }
         }
 
@@ -233,6 +236,7 @@ class StoreRoomStudio {
         this.initRememberToggle();
         this.initMobileTabs();
         this.initShortcuts();
+        this.initHistoryTab();
         this.updateProgress();
 
         if (this.state.files.length > 0) {
@@ -386,6 +390,139 @@ class StoreRoomStudio {
         });
     }
 
+    initHistoryTab() {
+        const btnQueue = document.getElementById('btnQueueMode');
+        const btnHistory = document.getElementById('btnHistoryMode');
+        const queueList = document.getElementById('filesGrid');
+        const historyList = document.getElementById('historyList');
+        const loadMore = document.getElementById('viewMoreContainer');
+        const filters = document.querySelector('.queue-filters');
+
+        if (!btnQueue || !btnHistory) return;
+
+        btnQueue.addEventListener('click', () => {
+            btnQueue.classList.add('active');
+            btnHistory.classList.remove('active');
+            queueList?.classList.remove('hidden');
+            loadMore?.classList.remove('hidden');
+            if (filters) filters.style.display = 'flex';
+            historyList?.classList.add('hidden');
+        });
+
+        btnHistory.addEventListener('click', async () => {
+            btnHistory.classList.add('active');
+            btnQueue.classList.remove('active');
+            queueList?.classList.add('hidden');
+            loadMore?.classList.add('hidden');
+            if (filters) filters.style.display = 'none';
+            historyList?.classList.remove('hidden');
+
+            await this.loadHistory(true);
+        });
+
+        // Pre-fetch count on initialization
+        this.loadHistory(false);
+    }
+
+    async loadHistory(render = true) {
+        try {
+            const res = await fetch('/store-room/api/history');
+            const data = await res.json();
+            if (data.success && Array.isArray(data.data)) {
+                this.state.historyList = data.data;
+                const countBadge = document.getElementById('historyBadgeCount');
+                if (countBadge) countBadge.textContent = data.data.length;
+
+                if (render) {
+                    this.renderHistory();
+                }
+            }
+        } catch (e) {
+            console.warn('Failed to fetch history', e);
+        }
+    }
+
+    renderHistory() {
+        const container = document.getElementById('historyList');
+        if (!container) return;
+        container.innerHTML = '';
+
+        if (!this.state.historyList || this.state.historyList.length === 0) {
+            container.innerHTML = `
+                <div class="empty-preview-prompt" style="padding: 2.5rem 1rem;">
+                    <div style="font-size: 2.2rem; margin-bottom: 0.5rem;">🌱</div>
+                    <p style="font-size: 0.82rem; color: var(--apple-secondary); margin: 0; line-height: 1.4;">
+                        You have not cataloged any files yet. Label a file from the queue to start building your permanent curator archive!
+                    </p>
+                </div>
+            `;
+            return;
+        }
+
+        this.state.historyList.forEach((item) => {
+            const card = document.createElement('div');
+            card.className = 'history-item-card';
+            const catMap = { papers: 'PYQ', notes: 'Notes', practical: 'Practical', syllabus: 'Syllabus' };
+            const catLabel = catMap[item.category] || (item.category || 'Paper').toUpperCase();
+            const statusClass = item.status === 'approved' ? 'status-approved' : 'status-pending';
+            const statusText = item.status === 'approved' ? 'Live ✅' : 'Reviewing ⏳';
+
+            card.innerHTML = `
+                <div class="history-card-top">
+                    <span class="history-cat-badge">${catLabel}</span>
+                    <span class="history-status-pill ${statusClass}">${statusText}</span>
+                </div>
+                <div class="history-title" title="${item.title || 'Untitled Resource'}">${item.title || 'Untitled Resource'}</div>
+                <div class="history-meta">
+                    <span>${item.college || item.subject || 'Verified'}</span>
+                    <span>👥 ${item.view_count || 0} views</span>
+                </div>
+            `;
+
+            card.addEventListener('click', () => {
+                document.querySelectorAll('.history-item-card').forEach(c => c.classList.remove('active-preview'));
+                card.classList.add('active-preview');
+                this.previewHistoryFile(item);
+            });
+
+            container.appendChild(card);
+        });
+    }
+
+    previewHistoryFile(item) {
+        const badge = document.getElementById('previewBadge');
+        if (badge) badge.textContent = item.title || 'Cataloged Document';
+        const pill = document.getElementById('previewFormatPill');
+        if (pill) pill.textContent = (item.category || 'Resource').toUpperCase();
+
+        const img = document.getElementById('previewImg');
+        const frame = document.getElementById('previewFrame');
+        const prompt = document.getElementById('emptyPreviewPrompt');
+        const controls = document.getElementById('previewControls');
+
+        if (prompt) prompt.classList.add('hidden');
+
+        const fileUrl = item.file_url;
+        const isPdf = (fileUrl && fileUrl.toLowerCase().includes('.pdf')) || (item.title && item.title.toLowerCase().endsWith('.pdf'));
+
+        if (isPdf) {
+            if (img) img.classList.add('hidden');
+            if (controls) controls.classList.add('hidden');
+            if (frame) {
+                frame.classList.remove('hidden');
+                frame.src = fileUrl;
+            }
+        } else {
+            if (frame) frame.classList.add('hidden');
+            if (img) {
+                img.classList.remove('hidden');
+                img.src = fileUrl;
+            }
+            if (controls) controls.classList.remove('hidden');
+            this.imageViewer?.reset();
+        }
+    }
+
     updateProgress() {
         const total = this.state.totalCount || (this.state.sortedCount + this.state.remainingCount);
         const sorted = this.state.sortedCount;
@@ -513,12 +650,276 @@ class StoreRoomStudio {
             docTitle.value = (file.filename || file.name || '').replace(/_/g, ' ').replace(/\.[^/.]+$/, '');
         }
 
-        // Apply remembered labels if active
+        // Auto-fill from local catalog match if not remembering previous labels
         if (this.state.rememberLabels) {
             this.applyRememberedLabels();
+        } else {
+            this.autoFillLocalMatch(file);
         }
 
         this.updateNavCounter();
+    }
+
+    autoFillLocalMatch(file) {
+        if (!file) return;
+        const match = this.matchFileLocally(file);
+        if (match) {
+            this.applyLocalMatch(match);
+        }
+    }
+
+    /**
+     * Local Zero-Cost Metadata Matcher
+     * Evaluates filename tokens against the cached college, department, and subject catalogs.
+     */
+    matchFileLocally(file) {
+        if (!file) return null;
+        const rawName = file.filename || file.name || '';
+        if (!rawName) return null;
+
+        // Clean name: remove UUID prefixes, hashes, timestamps, and extensions
+        let clean = rawName
+            .replace(/^[a-f0-9\-]{20,}_\d+_/i, '')
+            .replace(/_[a-z0-9]{5,8}(\.[a-z0-9]+)?$/i, '')
+            .replace(/\.[a-z0-9]+$/i, '')
+            .replace(/[_\-]+/g, ' ')
+            .trim();
+
+        const lowerClean = clean.toLowerCase();
+        const tokens = lowerClean.split(/\s+/).filter(Boolean);
+
+        const result = {
+            category: 'papers',
+            year: null,
+            examType: null,
+            semester: null,
+            subjectId: null,
+            subjectName: null,
+            subjectCode: null,
+            branchId: null,
+            collegeId: null,
+            title: null,
+            confidence: 0
+        };
+
+        // 1. Detect Category
+        if (/paper|pyq|exam|term|mid|ese|cie|question/i.test(lowerClean)) {
+            result.category = 'papers';
+        } else if (/note|unit|module|chapter|lecture|handwritten/i.test(lowerClean)) {
+            result.category = 'notes';
+        } else if (/lab|practical|manual|experiment|viva/i.test(lowerClean)) {
+            result.category = 'practical';
+        } else if (/syllabus|curriculum|scheme/i.test(lowerClean)) {
+            result.category = 'syllabus';
+        } else if (/qb|question[\s_]*bank|imp/i.test(lowerClean)) {
+            result.category = 'question_bank';
+        } else if (/timetable|date[\s_]*sheet|schedule/i.test(lowerClean)) {
+            result.category = 'timetable';
+        }
+
+        // 2. Detect Year (2018 - 2026)
+        const yearMatch = lowerClean.match(/\b(201\d|202\d)\b/);
+        result.year = yearMatch ? yearMatch[1] : String(new Date().getFullYear());
+
+        // 3. Detect Exam Type
+        if (/\b(cae[-_\s]?1|mt[-_\s]?1|ms[-_\s]?1|mid[-_\s]?1|test[-_\s]?1)\b/i.test(lowerClean)) {
+            result.examType = 'CAE1';
+        } else if (/\b(cae[-_\s]?2|mt[-_\s]?2|ms[-_\s]?2|mid[-_\s]?2|test[-_\s]?2)\b/i.test(lowerClean)) {
+            result.examType = 'CAE2';
+        } else if (/\b(cae[-_\s]?3|mt[-_\s]?3|ms[-_\s]?3|mid[-_\s]?3)\b/i.test(lowerClean)) {
+            result.examType = 'CAE3';
+        } else if (/\b(ese|end[\s_-]*sem|final|resit|regular)\b/i.test(lowerClean)) {
+            result.examType = 'ESE';
+        } else if (/\b(mid|mt|ms)\b/i.test(lowerClean)) {
+            result.examType = 'CAE1';
+        }
+
+        // 4. Detect Semester (1 - 8)
+        const semMatch = lowerClean.match(/\b(?:sem(?:ester)?[\s_-]*([1-8])|s([1-8])|([1-8])(?:st|nd|rd|th)?[\s_-]*sem)\b/i);
+        if (semMatch) {
+            result.semester = semMatch[1] || semMatch[2] || semMatch[3];
+        }
+
+        // 5. Subject Catalog Matching
+        const subjectsCache = window.AbhiHubSelect?.apiCache?.['/api/subjects:all']?.subjects ||
+                              window.AbhiHubSelect?.apiCache?.['/api/subjects']?.subjects || [];
+        
+        let bestSubject = null;
+        let maxSubScore = 0;
+
+        for (const s of subjectsCache) {
+            const sName = (s.name || '').toLowerCase().trim();
+            const sCode = (s.subject_code || '').toLowerCase().trim();
+            if (!sName) continue;
+
+            const sWords = sName.split(/\s+/).filter(w => w.length > 2 && !['and', 'for', 'the', 'with', 'intro', 'introduction', 'theory'].includes(w));
+            let score = 0;
+
+            // A. Exact subject name contained in filename
+            if (sName.length > 3 && lowerClean.includes(sName)) {
+                score = 150 + sName.length;
+            }
+            // B. Subject code match (e.g. UITL305, UCSL101, UDH, etc.)
+            else if (sCode && sCode.length >= 2 && new RegExp(`\\b${sCode}\\b`, 'i').test(lowerClean)) {
+                score = 120 + sCode.length;
+            }
+            // C. Multi-word overlap
+            else if (sWords.length > 0) {
+                let overlapCount = 0;
+                for (const w of sWords) {
+                    if (tokens.includes(w)) overlapCount++;
+                }
+                if (overlapCount === sWords.length) {
+                    score = 100 + overlapCount * 10;
+                } else if (overlapCount > 1) {
+                    score = overlapCount * 25;
+                }
+            }
+
+            // D. Acronym match (e.g. ML, NLP, DSA, DT, EM, AP)
+            if (score === 0 && sWords.length >= 2) {
+                const acronym = sWords.map(w => w[0]).join('');
+                if (acronym.length >= 2 && new RegExp(`\\b${acronym}\\b`, 'i').test(lowerClean)) {
+                    score = 80 + acronym.length * 5;
+                }
+            }
+
+            if (score > maxSubScore) {
+                maxSubScore = score;
+                bestSubject = s;
+            }
+        }
+
+        if (bestSubject && maxSubScore >= 20) {
+            result.subjectId = bestSubject.id;
+            result.subjectName = bestSubject.name;
+            result.subjectCode = bestSubject.subject_code || '';
+            result.branchId = bestSubject.department_id || null;
+            if (bestSubject.semester && !result.semester) {
+                result.semester = String(bestSubject.semester);
+            }
+            result.confidence = Math.min(100, Math.round((maxSubScore / 160) * 100));
+        }
+
+        // 6. Branch / Department fallback
+        if (!result.branchId) {
+            const deptsCache = window.AbhiHubSelect?.apiCache?.['/api/departments']?.departments || [];
+            for (const d of deptsCache) {
+                const dName = (d.name || '').toLowerCase();
+                const dAbbr = (d.abbreviation || d.short_name || '').toLowerCase();
+                if (dAbbr && new RegExp(`\\b${dAbbr}\\b`, 'i').test(lowerClean)) {
+                    result.branchId = d.id;
+                    break;
+                } else if (dName && lowerClean.includes(dName)) {
+                    result.branchId = d.id;
+                    break;
+                }
+            }
+        }
+
+        // 7. College detection
+        const collegesCache = window.AbhiHubSelect?.apiCache?.['/api/colleges']?.colleges || [];
+        for (const c of collegesCache) {
+            const cAbbr = (c.abbreviation || c.short_name || '').toLowerCase();
+            const cName = (c.name || '').toLowerCase();
+            if (cAbbr && new RegExp(`\\b${cAbbr}\\b`, 'i').test(lowerClean)) {
+                result.collegeId = c.id;
+                break;
+            } else if (cName && lowerClean.includes(cName)) {
+                result.collegeId = c.id;
+                break;
+            }
+        }
+
+        // 8. Clean Human Title
+        if (result.subjectName) {
+            const parts = [result.subjectName];
+            if (result.examType) parts.push(result.examType);
+            if (result.year) parts.push(result.year);
+            result.title = parts.join(' ');
+        } else {
+            result.title = clean.replace(/\b\w/g, l => l.toUpperCase());
+        }
+
+        return result;
+    }
+
+    applyLocalMatch(match) {
+        if (!match) return;
+
+        // 1. Category
+        if (match.category) {
+            const catEl = document.getElementById('documentCategory');
+            if (catEl) catEl.value = match.category;
+        }
+
+        // 2. Year
+        if (match.year) {
+            const yearEl = document.getElementById('year');
+            if (yearEl) yearEl.value = String(match.year);
+        }
+
+        // 3. Exam Type
+        if (match.examType) {
+            const examEl = document.getElementById('examType');
+            if (examEl) examEl.value = match.examType;
+        }
+
+        // 4. College
+        if (match.collegeId) {
+            const tsCol = window.AbhiHubSelect?.instances['collegeName'];
+            if (tsCol) tsCol.setValue(String(match.collegeId), true);
+            else {
+                const el = document.getElementById('collegeName');
+                if (el) el.value = String(match.collegeId);
+            }
+        }
+
+        // 5. Branch
+        if (match.branchId) {
+            const tsBr = window.AbhiHubSelect?.instances['branch'];
+            if (tsBr) tsBr.setValue(String(match.branchId), true);
+            else {
+                const el = document.getElementById('branch');
+                if (el) el.value = String(match.branchId);
+            }
+        }
+
+        // 6. Semester
+        if (match.semester) {
+            const tsSem = window.AbhiHubSelect?.instances['semester'];
+            if (tsSem) tsSem.setValue(String(match.semester), true);
+            else {
+                const el = document.getElementById('semester');
+                if (el) el.value = String(match.semester);
+            }
+        }
+
+        // 7. Subject
+        if (match.subjectId) {
+            const tsSubj = window.AbhiHubSelect?.instances['subjectName'];
+            if (tsSubj) {
+                if (!tsSubj.options[match.subjectId]) {
+                    tsSubj.addOption({ value: match.subjectId, text: match.subjectName });
+                }
+                tsSubj.setValue(match.subjectId, true);
+            } else {
+                const el = document.getElementById('subjectName');
+                if (el) el.value = match.subjectId;
+            }
+        }
+
+        // 8. Subject Code
+        if (match.subjectCode) {
+            const codeEl = document.getElementById('subjectCode');
+            if (codeEl) codeEl.value = match.subjectCode;
+        }
+
+        // 9. Document Title
+        if (match.title) {
+            const titleEl = document.getElementById('docTitle');
+            if (titleEl) titleEl.value = match.title;
+        }
     }
 
     navigate(direction) {
@@ -537,6 +938,54 @@ class StoreRoomStudio {
         }
     }
 
+    findSubjectInCatalog(text, code) {
+        if (!text && !code) return null;
+        const subjectsCache = window.AbhiHubSelect?.apiCache?.['/api/subjects:all']?.subjects ||
+                              window.AbhiHubSelect?.apiCache?.['/api/subjects']?.subjects || [];
+        const cleanT = (text || '').toLowerCase().trim();
+        const cleanC = (code || '').toLowerCase().trim();
+
+        for (const s of subjectsCache) {
+            const sName = (s.name || '').toLowerCase().trim();
+            const sCode = (s.subject_code || '').toLowerCase().trim();
+
+            if (cleanC && sCode && (cleanC === sCode || cleanC.includes(sCode) || sCode.includes(cleanC))) {
+                return s;
+            }
+            if (cleanT && sName && (cleanT === sName || cleanT.includes(sName) || sName.includes(cleanT))) {
+                return s;
+            }
+        }
+
+        if (cleanT.length > 3) {
+            for (const s of subjectsCache) {
+                const sName = (s.name || '').toLowerCase().trim();
+                const words = cleanT.split(/\s+/).filter(w => w.length > 2);
+                const sWords = sName.split(/\s+/).filter(w => w.length > 2);
+                const overlap = words.filter(w => sWords.includes(w));
+                if (overlap.length >= 2 && overlap.length >= sWords.length * 0.6) {
+                    return s;
+                }
+            }
+        }
+        return null;
+    }
+
+    findCollegeInCatalog(text) {
+        if (!text) return null;
+        const collegesCache = window.AbhiHubSelect?.apiCache?.['/api/colleges']?.colleges || [];
+        const cleanT = text.toLowerCase().trim();
+
+        for (const c of collegesCache) {
+            const cAbbr = (c.abbreviation || c.short_name || '').toLowerCase().trim();
+            const cName = (c.name || '').toLowerCase().trim();
+
+            if (cAbbr && (cleanT.includes(cAbbr) || cAbbr.includes(cleanT))) return c.id;
+            if (cName && (cleanT.includes(cName) || cName.includes(cleanT))) return c.id;
+        }
+        return null;
+    }
+
     async handleTarikaAutoSuggest() {
         const cur = this.state.activeFile;
         if (!cur) {
@@ -547,60 +996,136 @@ class StoreRoomStudio {
         const btn = document.getElementById('tarikaExtractBtn');
         if (btn) {
             btn.disabled = true;
-            btn.innerHTML = '<span>⏳ Tarika Analyzing…</span>';
+            btn.innerHTML = '<span>⏳ Scanning File & Document Image…</span>';
         }
 
-        try {
-            const res = await StoreRoomAPI.extractAiSuggestions(cur);
-            if (res && res.success && res.result && res.result.data) {
-                const d = res.result.data;
+        // 1. Extract metadata from filename
+        const fileMatch = this.matchFileLocally(cur) || {};
 
-                if (d.title) {
-                    const t = document.getElementById('docTitle');
-                    if (t) t.value = d.title;
-                }
-                if (d.year) {
-                    const y = document.getElementById('year');
-                    if (y) y.value = String(d.year);
-                }
-                if (d.semester) {
-                    const s = document.getElementById('semester');
-                    if (s) {
-                        const tsSem = window.AbhiHubSelect?.instances['semester'];
-                        if (tsSem) tsSem.setValue(String(d.semester));
-                        else s.value = String(d.semester);
-                    }
-                }
-                if (d.document_type || d.type) {
-                    const dt = d.document_type || d.type;
-                    const catMap = { pyq: 'papers', notes: 'notes', practicals: 'practical', syllabus: 'syllabus' };
-                    const targetType = catMap[dt] || dt;
-                    const catEl = document.getElementById('documentCategory');
-                    if (catEl) catEl.value = targetType;
-                }
-                if (d.subject_id) {
-                    const tsSubj = window.AbhiHubSelect?.instances['subjectName'];
-                    if (tsSubj) {
-                        if (!tsSubj.options[d.subject_id]) {
-                            tsSubj.addOption({ value: d.subject_id, text: d.subject_name || d.subject || 'Loading...' });
-                        }
-                        tsSubj.setValue(d.subject_id, true);
-                    }
-                }
-                const msg = res.source === 'ai_vision'
-                    ? 'Tarika extracted document details from image!'
-                    : 'Tarika auto-suggested metadata from filename!';
-                this.showToast(msg, 'success');
-            } else {
-                this.showToast('Could not extract details automatically. Please enter manually.', 'info');
+        try {
+            // 2. Extract text & visual metadata from document image
+            const res = await StoreRoomAPI.extractAiSuggestions(cur, fileMatch);
+            const imgData = (res && res.success && res.result && res.result.data) ? res.result.data : {};
+
+            const sources = [];
+
+            // 3. Smart Fusion across all form boxes
+
+            // Category
+            const catMap = { pyq: 'papers', notes: 'notes', practicals: 'practical', syllabus: 'syllabus', question_bank: 'question_bank', timetable: 'timetable' };
+            const resolvedCategory = (imgData.document_type || imgData.type) ? (catMap[imgData.document_type || imgData.type] || imgData.document_type || imgData.type) : fileMatch.category;
+            if (resolvedCategory) {
+                const catEl = document.getElementById('documentCategory');
+                if (catEl) catEl.value = resolvedCategory;
+                sources.push(imgData.type ? 'Category (image)' : 'Category (filename)');
             }
+
+            // Year
+            const resolvedYear = imgData.year || fileMatch.year;
+            if (resolvedYear) {
+                const yearEl = document.getElementById('year');
+                if (yearEl) yearEl.value = String(resolvedYear);
+                sources.push(imgData.year ? 'Year (image)' : 'Year (filename)');
+            }
+
+            // Exam Type / Unit
+            const resolvedExam = imgData.unit || fileMatch.examType;
+            if (resolvedExam) {
+                const examEl = document.getElementById('examType');
+                if (examEl) examEl.value = resolvedExam;
+                sources.push(imgData.unit ? 'Exam (image)' : 'Exam (filename)');
+            }
+
+            // Subject & Subject Code
+            let matchedSubject = null;
+            if (imgData.subject_id) {
+                matchedSubject = { id: imgData.subject_id, name: imgData.subject_name || imgData.subject };
+            } else if (imgData.subject_name || imgData.subject_match || imgData.subject_code) {
+                matchedSubject = this.findSubjectInCatalog(imgData.subject_name || imgData.subject_match, imgData.subject_code);
+            }
+            if (!matchedSubject && fileMatch.subjectId) {
+                matchedSubject = { id: fileMatch.subjectId, name: fileMatch.subjectName, subject_code: fileMatch.subjectCode, department_id: fileMatch.branchId };
+            }
+
+            if (matchedSubject) {
+                const tsSubj = window.AbhiHubSelect?.instances['subjectName'];
+                if (tsSubj) {
+                    if (!tsSubj.options[matchedSubject.id]) {
+                        tsSubj.addOption({ value: matchedSubject.id, text: matchedSubject.name || 'Subject' });
+                    }
+                    tsSubj.setValue(matchedSubject.id, true);
+                } else {
+                    const subjEl = document.getElementById('subjectName');
+                    if (subjEl) subjEl.value = matchedSubject.id;
+                }
+
+                // Code
+                const sCode = matchedSubject.subject_code || imgData.subject_code || fileMatch.subjectCode;
+                if (sCode) {
+                    const codeEl = document.getElementById('subjectCode');
+                    if (codeEl) codeEl.value = sCode;
+                }
+
+                sources.push(imgData.subject_name || imgData.subject_match ? 'Subject (image)' : 'Subject (filename)');
+            }
+
+            // Department / Branch
+            const resolvedBranchId = (matchedSubject && matchedSubject.department_id) || imgData.branch_id || fileMatch.branchId;
+            if (resolvedBranchId) {
+                const tsBr = window.AbhiHubSelect?.instances['branch'];
+                if (tsBr) tsBr.setValue(String(resolvedBranchId), true);
+                else {
+                    const brEl = document.getElementById('branch');
+                    if (brEl) brEl.value = String(resolvedBranchId);
+                }
+            }
+
+            // Semester
+            const resolvedSem = imgData.semester || fileMatch.semester;
+            if (resolvedSem) {
+                const tsSem = window.AbhiHubSelect?.instances['semester'];
+                if (tsSem) tsSem.setValue(String(resolvedSem), true);
+                else {
+                    const semEl = document.getElementById('semester');
+                    if (semEl) semEl.value = String(resolvedSem);
+                }
+                sources.push(imgData.semester ? 'Semester (image)' : 'Semester (filename)');
+            }
+
+            // College
+            const collegeFromImage = imgData.college ? this.findCollegeInCatalog(imgData.college) : null;
+            const resolvedCollegeId = collegeFromImage || fileMatch.collegeId;
+            if (resolvedCollegeId) {
+                const tsCol = window.AbhiHubSelect?.instances['collegeName'];
+                if (tsCol) tsCol.setValue(String(resolvedCollegeId), true);
+                else {
+                    const colEl = document.getElementById('collegeName');
+                    if (colEl) colEl.value = String(resolvedCollegeId);
+                }
+                if (collegeFromImage) sources.push('College (image)');
+            }
+
+            // Title
+            const cleanTitle = (matchedSubject ? matchedSubject.name : (imgData.title || fileMatch.title || '')) + (resolvedExam ? ` ${resolvedExam}` : '') + (resolvedYear ? ` ${resolvedYear}` : '');
+            const titleEl = document.getElementById('docTitle');
+            if (titleEl && cleanTitle) {
+                titleEl.value = cleanTitle.trim();
+            }
+
+            this.showToast(`✨ Smart Fill: Merged filename & image analysis (${sources.slice(0, 4).join(', ')})`, 'success');
+
         } catch (e) {
-            console.warn('Tarika suggestion failed', e);
-            this.showToast('AI suggestion unavailable', 'error');
+            console.warn('Smart Fill error', e);
+            if (fileMatch) {
+                this.applyLocalMatch(fileMatch);
+                this.showToast(`⚡ Filled from filename (${fileMatch.title})`, 'info');
+            } else {
+                this.showToast('Could not extract details. Please enter manually.', 'error');
+            }
         } finally {
             if (btn) {
                 btn.disabled = false;
-                btn.innerHTML = '<span>✨ Tarika Auto-Suggest</span>';
+                btn.innerHTML = '<span>⚡ Smart Auto-Fill (Image + Filename)</span>';
             }
         }
     }
@@ -634,6 +1159,8 @@ class StoreRoomStudio {
 
             payload.filename = cur.filename || cur.name;
             payload.url = cur.url || cur.path;
+            payload.storage_provider = cur.storage_provider || 'cloudinary';
+            payload.provider_public_id = cur.storage_id || '';
             payload.college_id = document.getElementById('collegeName')?.value;
             payload.branch_id = document.getElementById('branch')?.value;
 
@@ -662,7 +1189,24 @@ class StoreRoomStudio {
             const data = res.data;
             if (res.response && res.response.ok && data && data.success) {
                 this.triggerGamifiedRewardPop(btn);
-                this.showToast('🎉 +5 Royalty Points unlocked! File published to academic library.', 'success');
+                this.showToast('🎉 +10 XP & 5 Royalty Points unlocked! Document published to academic library.', 'success');
+
+                // Update live session gamification stats
+                window.sessionCuratorCount = (window.sessionCuratorCount || 0) + 1;
+                window.sessionStreak = (window.sessionStreak || 0) + 1;
+                const streakEl = document.getElementById('curatorStreakVal');
+                if (streakEl) streakEl.textContent = `${window.sessionStreak}x Streak 🔥`;
+                const questFill = document.getElementById('curatorQuestFill');
+                const questLabel = document.getElementById('curatorQuestLabel');
+                if (questFill) {
+                    const pct = Math.min(100, Math.round((window.sessionCuratorCount / 3) * 100));
+                    questFill.style.width = Math.max(15, pct) + '%';
+                    if (questLabel) {
+                        questLabel.textContent = window.sessionCuratorCount >= 3 
+                            ? `🎉 Quest Achieved! ${window.sessionCuratorCount} papers cataloged. You unlocked +50 Bonus XP!` 
+                            : `${window.sessionCuratorCount}/3 Complete · Catalog ${3 - window.sessionCuratorCount} more for +50 XP bonus!`;
+                    }
+                }
 
                 if (this.state.rememberLabels) {
                     this.saveRememberedLabels();
@@ -672,6 +1216,29 @@ class StoreRoomStudio {
                 this.state.sortedCount++;
                 this.state.remainingCount = Math.max(0, this.state.remainingCount - 1);
                 this.updateProgress();
+
+                // Prepend to history list in memory
+                if (!this.state.historyList) this.state.historyList = [];
+                const colSelect = document.getElementById('collegeName');
+                const colText = colSelect ? (colSelect.options[colSelect.selectedIndex]?.text || '') : '';
+                this.state.historyList.unshift({
+                    id: data.data?.id || String(Date.now()),
+                    title: data.data?.title || payload.title || payload.subject_name || cur.filename,
+                    category: data.data?.document_category || payload.document_category || 'papers',
+                    college: colText,
+                    subject: payload.subject_name || '',
+                    file_url: data.data?.file_url || cur.url || cur.path,
+                    view_count: 0,
+                    status: data.data?.status || 'pending',
+                    labeled_at: data.data?.created_at || new Date().toISOString()
+                });
+                const countBadge = document.getElementById('historyBadgeCount');
+                if (countBadge) countBadge.textContent = this.state.historyList.length;
+
+                const historyListEl = document.getElementById('historyList');
+                if (historyListEl && !historyListEl.classList.contains('hidden')) {
+                    this.renderHistory();
+                }
 
                 // Remove from local files list
                 const removedIdx = this.state.activeIndex;

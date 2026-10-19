@@ -1608,6 +1608,14 @@
             <button type="button" class="st-btn st-btn-outline" onclick="clearCache()">Clear Cache</button>
           </div>
         </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon">🧭</span> Interactive Feature Tours</h2>
+          <div class="st-form-sublabel" style="margin-bottom: 12px;">Explore or replay step-by-step interactive walk-throughs for study search, uploads, and profile features.</div>
+          <div class="st-btn-row">
+            <button type="button" class="st-btn st-btn-primary" data-action="openAppGuide">Explore Page Guides</button>
+          </div>
+        </div>
       </div>
 
       <!-- Danger Zone -->
@@ -1648,89 +1656,100 @@
             </div>
           </div>
 
-          <div class="st-form-row">
-            <label for="aiProviderSelect" class="st-form-label">AI Provider Platform</label>
-            <select id="aiProviderSelect" class="st-form-select" onchange="onAiProviderChanged()">
-              <option value="openrouter">OpenRouter (Multi-model & Free Pool)</option>
-              <option value="anthropic">Anthropic Claude (Direct API Key)</option>
-              <option value="gemini">Google Gemini (Direct API Key)</option>
-              <option value="nvidia">NVIDIA NIM (Direct API Key)</option>
-              <option value="openai">OpenAI (Direct API Key)</option>
-              <option value="groq">Groq (Direct API Key · Ultra Fast)</option>
-              <option value="ollama">🖥️ Local Model (Ollama · Private, Offline & 100% Free)</option>
-              <option value="webllm">🌸 Tarika &amp; Friends (AbhiHub Local AI · 100% Offline WebGPU)</option>
-            </select>
-            <div class="st-form-sublabel">Select your platform provider. We connect directly to the chosen platform.</div>
-          </div>
-
+          <!-- Minimal Standard OpenRouter Configuration -->
           <div class="st-form-row" id="aiKeyRow">
-            <label for="aiApiKeyInput" class="st-form-label" id="aiKeyLabel">API Key (BYOK)</label>
+            <label for="aiApiKeyInput" class="st-form-label" id="aiKeyLabel">OpenRouter API Key (BYOK)</label>
             <input type="password" id="aiApiKeyInput" class="st-form-input" placeholder="sk-or-v1-...">
-            <div class="st-form-sublabel" id="aiKeySublabel">Your key is Fernet-encrypted on the server and verified before saving. Never shared.</div>
+            <div class="st-form-sublabel" id="aiKeySublabel">Your key is Fernet-encrypted on the server and verified before saving. Free keys available at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" style="color:var(--st-blue, #2563eb); text-decoration:underline;">openrouter.ai/keys</a>.</div>
           </div>
 
           <div class="st-form-row">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem; flex-wrap:wrap; gap:0.5rem;">
-              <label for="aiModelSelect" class="st-form-label" style="margin-bottom:0;">Model Selection (Real-Time)</label>
-              <button type="button" class="st-btn st-btn-outline" style="min-height:36px; padding:0.25rem 0.75rem; font-size:0.8125rem;" onclick="refreshLiveModels()">🔄 Fetch Live Models</button>
-            </div>
+            <label for="aiModelSelect" class="st-form-label" style="margin-bottom:0.25rem;">Active AI Model</label>
             <select id="aiModelSelect" class="st-form-select">
               <option value="">Loading models...</option>
             </select>
-            <div class="st-form-sublabel" id="aiModelSublabel">Live models retrieved directly from provider API.</div>
-            
-            <div class="st-banner st-banner-tip" style="margin-top:0.75rem; font-size:0.8125rem; line-height:1.45;">
-              💡 <strong>Credits exhausted?</strong> Switch your model to any option under <strong>🎁 Free Tier / Included</strong> (such as Tarika Local Models, Local Ollama, OpenRouter <code>:free</code> models, Groq, or Gemini Flash) to continue chatting without requiring paid credits.
-            </div>
-
-            <div id="localOllamaPanel" style="display:none; background:rgba(99, 102, 241, 0.04); border:1px solid rgba(99, 102, 241, 0.2); border-radius:12px; padding:1rem; margin-top:1rem;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
-                <div style="font-weight:600; font-size:0.9375rem; display:flex; align-items:center; gap:0.4rem;">
-                  <span>🖥️</span> Local Model Engine (Ollama)
-                </div>
-                <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                  <button type="button" class="st-btn st-btn-outline" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" onclick="checkLocalOllamaStatus()">🔍 Check Status</button>
-                  <button type="button" class="st-btn st-btn-primary" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" id="runLocalAiBtn" onclick="runLocalAiTest()">⚡ Run Local Model</button>
-                </div>
-              </div>
-              <div id="localOllamaStatus" style="font-size:0.8125rem; line-height:1.5; color:var(--st-text-muted);">
-                Checking local Ollama status...
-              </div>
-              <div id="localOllamaTestOutput" style="display:none; margin-top:0.75rem; padding:0.75rem; background:rgba(0,0,0,0.05); border-radius:8px; font-size:0.8125rem; font-family:monospace; white-space:pre-wrap;"></div>
-            </div>
-
-            <div id="onDeviceWebLlmPanel" style="display:none; background:rgba(16, 185, 129, 0.05); border:1px solid rgba(16, 185, 129, 0.25); border-radius:12px; padding:1rem; margin-top:1rem;">
-              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
-                <div style="font-weight:600; font-size:0.9375rem; display:flex; align-items:center; gap:0.4rem; color:var(--st-navy, #0f172a);">
-                  <span>🌸</span> AbhiHub Local Engine (Tarika On-Device)
-                </div>
-                <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-                  <button type="button" class="st-btn st-btn-primary" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" id="downloadWebLlmBtn" onclick="downloadSelectedWebLlmModel()">⬇ Download to Device</button>
-                  <button type="button" class="st-btn" style="display:none; min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem; background:#ef4444; color:#fff; border:none; border-radius:8px;" id="deleteWebLlmBtn" onclick="deleteSelectedWebLlmModel()">🗑️ Delete from Device</button>
-                  <a href="/ai" target="_blank" class="st-btn st-btn-outline" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem; text-decoration:none; display:inline-flex; align-items:center;">🚀 Open /ai Portal</a>
-                  <button type="button" class="st-btn st-btn-outline" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" onclick="checkWebGpuStatus()">⚡ Test WebGPU</button>
-                </div>
-              </div>
-              <div id="webGpuStatusMsg" style="font-size:0.8125rem; line-height:1.5; color:var(--st-text-muted);">
-                Runs WebLLM MLC models directly in your browser. Downloaded once into persistent IndexedDB storage, then works 100% offline with zero server calls.
-              </div>
-              <div id="webLlmProgressWrap" style="display:none; margin-top:0.75rem;">
-                <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; margin-bottom:0.25rem; color:#1e293b;">
-                  <span id="webLlmProgressText">Downloading model shards...</span>
-                  <span id="webLlmProgressPct">0%</span>
-                </div>
-                <div style="height:6px; background:#e2e8f0; border-radius:4px; overflow:hidden;">
-                  <div id="webLlmProgressBar" style="width:0%; height:100%; background:#10b981; transition:width 0.2s;"></div>
-                </div>
-              </div>
-            </div>
+            <div class="st-form-sublabel" id="aiModelSublabel">Live models from OpenRouter API. Tarika uses verified free models by default.</div>
           </div>
 
-          <div class="st-btn-row">
-            <button type="button" class="st-btn st-btn-primary" id="saveAiBtn" onclick="saveAiSettings()">💾 Save Key & Model</button>
+          <div class="st-btn-row" style="margin-top:1.25rem;">
+            <button type="button" class="st-btn st-btn-primary" id="saveAiBtn" onclick="saveAiSettings()">💾 Save Key &amp; Model</button>
             <button type="button" class="st-btn st-btn-outline" id="deleteAiBtn" onclick="removeAiKey()" style="color:var(--st-red); border-color:var(--st-red-border);">🗑️ Remove Key</button>
           </div>
           <div id="aiSettingStatus" style="margin-top:0.75rem; font-size:0.875rem; font-weight:600;"></div>
+
+          <!-- Developer Options for Additional Engines & Providers -->
+          <details id="aiDevOptionsSection" class="st-dev-accordion" style="margin-top:1.5rem; border:1px dashed var(--st-border, #cbd5e1); border-radius:12px; padding:0.85rem 1.15rem; background:var(--st-bg-subtle, rgba(0,0,0,0.02));">
+            <summary style="font-weight:600; cursor:pointer; font-size:0.875rem; color:var(--st-navy, #1e293b); display:flex; align-items:center; gap:6px; user-select:none;">
+              <span>🛠️</span> <span>Developer Options (Alternative Providers, Ollama &amp; WebLLM)</span>
+            </summary>
+
+            <div style="margin-top:1rem; display:flex; flex-direction:column; gap:1rem;">
+              <div class="st-form-row" style="margin-bottom:0;">
+                <label for="aiProviderSelect" class="st-form-label">AI Provider Platform</label>
+                <select id="aiProviderSelect" class="st-form-select" onchange="onAiProviderChanged()">
+                  <option value="openrouter">OpenRouter (Default · Multi-model &amp; Free Pool)</option>
+                  <option value="anthropic">Anthropic Claude (Direct API Key)</option>
+                  <option value="gemini">Google Gemini (Direct API Key)</option>
+                  <option value="nvidia">NVIDIA NIM (Direct API Key)</option>
+                  <option value="openai">OpenAI (Direct API Key)</option>
+                  <option value="groq">Groq (Direct API Key · Ultra Fast)</option>
+                  <option value="ollama">🖥️ Local Model (Ollama · Private, Offline &amp; 100% Free)</option>
+                  <option value="webllm">🌸 Tarika &amp; Friends (AbhiHub Local AI · 100% Offline WebGPU)</option>
+                </select>
+                <div class="st-form-sublabel">Select an alternative provider. Defaults to OpenRouter.</div>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end;">
+                <button type="button" class="st-btn st-btn-outline" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" onclick="refreshLiveModels()">🔄 Refresh Provider Models</button>
+              </div>
+
+              <div id="localOllamaPanel" style="display:none; background:rgba(99, 102, 241, 0.04); border:1px solid rgba(99, 102, 241, 0.2); border-radius:12px; padding:1rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+                  <div style="font-weight:600; font-size:0.9375rem; display:flex; align-items:center; gap:0.4rem;">
+                    <span>🖥️</span> Local Model Engine (Ollama)
+                  </div>
+                  <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    <button type="button" class="st-btn st-btn-outline" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" onclick="checkLocalOllamaStatus()">🔍 Check Status</button>
+                    <button type="button" class="st-btn st-btn-primary" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" id="runLocalAiBtn" onclick="runLocalAiTest()">⚡ Run Local Model</button>
+                  </div>
+                </div>
+                <div id="localOllamaStatus" style="font-size:0.8125rem; line-height:1.5; color:var(--st-text-muted);">
+                  Checking local Ollama status...
+                </div>
+                <div id="localOllamaTestOutput" style="display:none; margin-top:0.75rem; padding:0.75rem; background:rgba(0,0,0,0.05); border-radius:8px; font-size:0.8125rem; font-family:monospace; white-space:pre-wrap;"></div>
+              </div>
+
+              <div id="onDeviceWebLlmPanel" style="display:none; background:rgba(16, 185, 129, 0.05); border:1px solid rgba(16, 185, 129, 0.25); border-radius:12px; padding:1rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+                  <div style="font-weight:600; font-size:0.9375rem; display:flex; align-items:center; gap:0.4rem; color:var(--st-navy, #0f172a);">
+                    <span>🌸</span> AbhiHub Local Engine (Tarika On-Device)
+                  </div>
+                  <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    <button type="button" class="st-btn st-btn-primary" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" id="downloadWebLlmBtn" onclick="downloadSelectedWebLlmModel()">⬇ Download to Device</button>
+                    <button type="button" class="st-btn" style="display:none; min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem; background:#ef4444; color:#fff; border:none; border-radius:8px;" id="deleteWebLlmBtn" onclick="deleteSelectedWebLlmModel()">🗑️ Delete from Device</button>
+                    <a href="/ai" target="_blank" class="st-btn st-btn-outline" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem; text-decoration:none; display:inline-flex; align-items:center;">🚀 Open /ai Portal</a>
+                    <button type="button" class="st-btn st-btn-outline" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" onclick="checkWebGpuStatus()">⚡ Test WebGPU</button>
+                  </div>
+                </div>
+                <div id="webGpuStatusMsg" style="font-size:0.8125rem; line-height:1.5; color:var(--st-text-muted);">
+                  Runs WebLLM MLC models directly in your browser. Downloaded once into persistent IndexedDB storage, then works 100% offline with zero server calls.
+                </div>
+                <div id="webLlmProgressWrap" style="display:none; margin-top:0.75rem;">
+                  <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; margin-bottom:0.25rem; color:#1e293b;">
+                    <span id="webLlmProgressText">Downloading model shards...</span>
+                    <span id="webLlmProgressPct">0%</span>
+                  </div>
+                  <div style="height:6px; background:#e2e8f0; border-radius:4px; overflow:hidden;">
+                    <div id="webLlmProgressBar" style="width:0%; height:100%; background:#10b981; transition:width 0.2s;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="st-banner st-banner-tip" style="margin-top:0.25rem; font-size:0.8125rem; line-height:1.45;">
+                💡 <strong>Credits exhausted?</strong> Switch your model to any option under <strong>🎁 Free Tier / Included</strong> (such as OpenRouter <code>:free</code> models, Groq, or Gemini Flash) to continue chatting without requiring paid credits.
+              </div>
+            </div>
+          </details>
         </div>
 
         <div class="st-card">
@@ -2034,10 +2053,17 @@ function onAiProviderChanged() {
       checkLocalOllamaStatus();
     }
     if (onDevicePanel) onDevicePanel.style.display = 'none';
+  } else if (provider === 'openrouter') {
+    if (kRow) kRow.style.display = '';
+    if (saveBtn) saveBtn.textContent = '💾 Save Key & Model';
+    if (kLabel) kLabel.textContent = 'OpenRouter API Key (BYOK)';
+    if (kSublabel) kSublabel.innerHTML = 'Your key is Fernet-encrypted on the server and verified before saving. Free keys available at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" style="color:var(--st-blue, #2563eb); text-decoration:underline;">openrouter.ai/keys</a>.';
+    if (localPanel) localPanel.style.display = 'none';
+    if (onDevicePanel) onDevicePanel.style.display = 'none';
   } else {
     if (kRow) kRow.style.display = '';
     if (saveBtn) saveBtn.textContent = '💾 Save Key & Model';
-    if (kLabel) kLabel.textContent = 'API Key (BYOK)';
+    if (kLabel) kLabel.textContent = `${provider.toUpperCase()} API Key (BYOK)`;
     if (kSublabel) kSublabel.textContent = 'Your key is Fernet-encrypted on the server and verified before saving. Never shared.';
     if (localPanel) localPanel.style.display = 'none';
     if (onDevicePanel) onDevicePanel.style.display = 'none';
@@ -2294,6 +2320,11 @@ function loadAiSettings() {
         checkWebGpuStatus();
       }
     });
+  }
+
+  const devDetails = document.getElementById('aiDevOptionsSection');
+  if (devDetails && savedProvider !== 'openrouter') {
+    devDetails.open = true;
   }
 
   if (pSelect) {

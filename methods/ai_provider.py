@@ -750,12 +750,12 @@ def fetch_live_models(provider: str, api_key: str | None = None) -> list[dict]:
                 {"id": "phi4:14b", "name": "Phi-4 14B (Local · Strong Logic)", "is_free": True},
             ],
             "openrouter": [
-                {"id": "google/gemma-4-31b-it:free", "name": "Google Gemma 4 31B", "is_free": True},
-                {"id": "meta-llama/llama-3.1-8b-instruct:free", "name": "Llama 3.1 8B Instruct", "is_free": True},
-                {"id": "openai/gpt-oss-20b:free", "name": "GPT OSS 20B", "is_free": True},
-                {"id": "anthropic/claude-3.5-sonnet", "name": "Claude 3.5 Sonnet", "is_free": False},
-                {"id": "openai/gpt-4o", "name": "GPT-4o", "is_free": False},
-                {"id": "google/gemini-2.0-flash-001", "name": "Gemini 2.0 Flash", "is_free": False},
+                {"id": "google/gemma-4-31b-it:free", "name": "Google Gemma 4 31B (Free)", "is_free": True},
+                {"id": "meta-llama/llama-3.3-70b-instruct:free", "name": "Llama 3.3 70B (Free)", "is_free": True},
+                {"id": "deepseek/deepseek-r1:free", "name": "DeepSeek R1 (Free Reasoning)", "is_free": True},
+                {"id": "google/gemini-2.0-flash-exp:free", "name": "Gemini 2.0 Flash (Free)", "is_free": True},
+                {"id": "qwen/qwen-2.5-72b-instruct:free", "name": "Qwen 2.5 72B (Free)", "is_free": True},
+                {"id": "mistralai/mistral-small-24b-instruct-2501:free", "name": "Mistral Small 24B (Free)", "is_free": True},
             ],
             "groq": [
                 {"id": "llama-3.1-8b-instant", "name": "Llama 3.1 8B Instant (Free Tier)", "is_free": True},

@@ -39,37 +39,23 @@ def submit_to_indexnow(url_list):
 def is_resource_indexable(doc: dict) -> bool:
     """
     Uniform quality gate for indexing resource URLs (meta robots + sitemap).
-    A resource is indexable only if:
+    A resource is indexable if:
     1. It has an active/approved file URL.
-    2. Title length is >= 5 characters.
-    3. Has either a meaningful description (>= 50 words) OR an extracted PDF text preview (>= 30 words).
+    2. Status is approved/active/published.
+    3. Title length is >= 3 characters.
     """
     if not isinstance(doc, dict):
         return False
     if not doc.get('file_url'):
         return False
     
-    status = doc.get('status')
-    if status and str(status).lower() not in ('approved', 'active', 'published'):
+    status = str(doc.get('status') or '').strip().lower()
+    if status and status not in ('approved', 'active', 'published'):
         return False
         
     title = str(doc.get('title') or '').strip()
-    if len(title) < 5:
+    if len(title) < 3:
         return False
         
-    raw_desc = str(doc.get('description') or '').strip()
-    desc_text = raw_desc
-    if raw_desc.startswith('{') and raw_desc.endswith('}'):
-        try:
-            import json
-            d_obj = json.loads(raw_desc)
-            desc_text = d_obj.get('user_description') or d_obj.get('summary') or ''
-        except Exception:
-            pass
-            
-    desc_words = len(desc_text.split())
-    preview_text = str(doc.get('extracted_text_preview') or doc.get('preview_text') or '').strip()
-    preview_words = len(preview_text.split())
-    
-    return desc_words >= 50 or preview_words >= 30
+    return True
 

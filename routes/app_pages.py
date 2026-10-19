@@ -65,8 +65,12 @@ def dashboard():
 
         college_name = ''
         try:
-            profile_res = get_student_profile(user_id)
-            profile_data = profile_res.get('data', {}) if profile_res.get('success') else {}
+            profile_data = session.get('profile')
+            if not profile_data or not profile_data.get('college_id'):
+                profile_res = get_student_profile(user_id)
+                profile_data = profile_res.get('data', {}) if profile_res.get('success') else {}
+                if profile_data:
+                    session['profile'] = profile_data
             college_name = profile_data.get('college_name') or ''
 
             if not profile_data or not profile_data.get('college_id'):
@@ -78,7 +82,11 @@ def dashboard():
             global_rank = _rank_lookup.get(user_id, ('-', 0))[0]
             computed_score = _rank_lookup.get(user_id, ('-', 0))[1]
 
-            rep_stats = get_reputation_stats(user_id) or {}
+            rep_stats = session.get('rep_stats')
+            if not rep_stats:
+                rep_stats = get_reputation_stats(user_id) or {}
+                if rep_stats.get('success'):
+                    session['rep_stats'] = rep_stats
             students_helped = rep_stats.get('students_helped', 0) if rep_stats.get('success') else 0
             badges = rep_stats.get('badges', []) if rep_stats.get('success') else []
         except Exception as e:
@@ -206,9 +214,6 @@ def dashboard():
                 if len(recommended_files) >= 8:
                     break
 
-    from data.tea_supporters import get_recent_tea_supporters
-    tea_supporters = get_recent_tea_supporters(6)
-
     return render_template(
         'app/dashboard.html',
         data=files,
@@ -222,7 +227,6 @@ def dashboard():
         recommended_files=recommended_files,
         now=datetime.now(),
         promo_context=promo_context,
-        tea_supporters=tea_supporters,
         relevant_papers=relevant_papers,
         trending_papers=trending_papers,
         recent_papers=recent_papers,
@@ -510,6 +514,26 @@ def store_room():
         initial_batch_size = 20
         initial_files = all_files[:initial_batch_size]
 
+        user_info = session.get('user', {})
+        user_id = user_info.get('uid', '')
+        curator_stats = {
+            'name': user_info.get('name', 'Academic Curator'),
+            'reputation_score': 0,
+            'uploads_count': 0,
+            'tier_title': 'Curator'
+        }
+        if user_id:
+            try:
+                from methods.supabase_helper import calculate_user_ranks
+                for r in calculate_user_ranks():
+                    if r.get('uploader_id') == user_id:
+                        curator_stats['uploads_count'] = r.get('upload_count', 0)
+                        pts = r.get('points', 0)
+                        curator_stats['reputation_score'] = int(pts * 10)
+                        break
+            except Exception:
+                pass
+
         return render_template('app/store_room.html',
                                files=initial_files,
                                total_papers=total_papers,
@@ -517,7 +541,9 @@ def store_room():
                                remaining_papers=remaining_papers,
                                formats=formats,
                                folders=folders,
-                               initial_batch_size=initial_batch_size)
+                               initial_batch_size=initial_batch_size,
+                               current_user=user_info,
+                               curator_stats=curator_stats)
     except Exception as e:
         logging.error(f"Error loading store room: {e}")
         return render_template('site/error.html', error=str(e)), 500
@@ -705,7 +731,7 @@ def upload():
             doc_id = file_record_result.get('data', {}).get('id')
             material_request_id = request.form.get('material_request_id')
 
-            def _bg_post_upload(u_id, u_email, d_id, s_id, sem, d_type, m_req_id):
+            def _bg_post_upload(u_id, u_email, d_id, s_id, sem, d_type, m_req_id, d_title, s_name):
                 try:
                     track_user_event(u_id, 'UPLOAD', {
                         'document_id': d_id,
@@ -740,11 +766,16 @@ def upload():
                     recalculate_and_persist_user_rank(u_id)
                 except Exception:
                     pass
+                try:
+                    from methods.supabase_helper import notify_all_new_upload
+                    notify_all_new_upload(doc_id=d_id, title=d_title, uploader_id=u_id, subject=s_name)
+                except Exception as ex:
+                    logging.warning(f"[UPLOAD NOTIFY] notify_all_new_upload failed: {ex}")
 
             import threading
             threading.Thread(
                 target=_bg_post_upload,
-                args=(user_id, user_email, doc_id, subject_id or None, semester, document_type.lower(), material_request_id),
+                args=(user_id, user_email, doc_id, subject_id or None, semester, document_type.lower(), material_request_id, title_val, subject),
                 daemon=True
             ).start()
 

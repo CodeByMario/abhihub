@@ -387,10 +387,16 @@ def handle_canonical_and_subdomain_routing():
 
 @app.context_processor
 def inject_seo_globals():
+    env_name = os.getenv('FLASK_ENV', os.getenv('APP_ENV', os.getenv('ENV', 'development'))).lower()
+    is_prod = env_name in ('production', 'prod')
     return {
         'BASE_URL': f"https://{BASE_DOMAIN}",
         'BASE_DOMAIN': BASE_DOMAIN,
-        'CANONICAL_DOMAIN': f"https://{BASE_DOMAIN}"
+        'CANONICAL_DOMAIN': f"https://{BASE_DOMAIN}",
+        'IS_PRODUCTION': is_prod,
+        'APP_ENV': env_name,
+        'GOOGLE_SITE_VERIFICATION': os.getenv('GOOGLE_SITE_VERIFICATION', ''),
+        'BING_SITE_VERIFICATION': os.getenv('BING_SITE_VERIFICATION', '')
     }
 
 # Add gzip compression for text responses

@@ -77,9 +77,12 @@ def build_extraction_prompt(
         "- unit (for 'papers'): 'CAE1' | 'CAE2' | 'CAE3' | 'ESE'\n"
         "- unit (for 'notes'): 'U1' | 'U2' | 'U3' | 'U4' | 'U5' | 'All'\n"
         "- subject_match: Name or code of the subject found in the document (or null if uncertain)\n"
+        "- subject_code: Subject / course code if printed on paper (e.g. 'UITL305') or null\n"
+        "- semester: integer semester between 1 and 8 or null\n"
+        "- college: name or acronym of college / university if visible in header or null\n"
         "- qb_tags: Short comma-separated topic tags if question bank\n\n"
         "Respond ONLY with a valid JSON object in this exact schema, with no markdown fences or other text:\n"
-        '{"type": "...", "year": "...", "unit": "...", "subject_match": "...", "qb_tags": "..."}'
+        '{"type": "...", "year": "...", "unit": "...", "subject_match": "...", "subject_code": "...", "semester": "...", "college": "...", "qb_tags": "..."}'
     )
 
 
@@ -219,6 +222,9 @@ def validate_extracted_metadata(
         'unit': None,
         'subject_id': None,
         'subject_name': None,
+        'subject_code': None,
+        'semester': None,
+        'college': None,
         'qb_tags': None,
     }
 
@@ -248,8 +254,19 @@ def validate_extracted_metadata(
     subj_id, subj_name = _match_subject(raw_subject, branch_id)
     result['subject_id'] = subj_id
     result['subject_name'] = subj_name
+    result['subject_code'] = clean_output(str(parsed.get('subject_code') or '')).strip() or None
 
-    # 6. Validate Question Bank Tags
+    # 6. Validate Semester
+    raw_sem = str(parsed.get('semester') or '').strip()
+    if raw_sem.isdigit() and 1 <= int(raw_sem) <= 8:
+        result['semester'] = int(raw_sem)
+
+    # 7. Validate College
+    raw_col = parsed.get('college')
+    if raw_col and isinstance(raw_col, str):
+        result['college'] = clean_output(raw_col).strip()[:100]
+
+    # 8. Validate Question Bank Tags
     raw_tags = parsed.get('qb_tags')
     if raw_tags and isinstance(raw_tags, str):
         cleaned_tags = re.sub(r'[^a-zA-Z0-9,\s\-_]', '', raw_tags)[:100].strip()

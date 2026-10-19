@@ -20,8 +20,52 @@
       this._resizeHandler = null;
       this._currentTarget = null;
       this._currentStep = null;
+      this._channel = null;
       this.initStyles();
+      this.initSyncChannel();
+      this.initAuthListeners();
+      this.initGlobalTriggers();
     }
+
+    initSyncChannel() {
+      if (typeof BroadcastChannel === 'undefined') return;
+      try {
+        this._channel = new BroadcastChannel('abhihub_guide_sync');
+        this._channel.onmessage = (event) => {
+          const { action, guideId, status, step } = event.data || {};
+          if (action === 'sync') {
+            const targetGuide = this.allScreenGuides.find(g => g.id === guideId);
+            if (targetGuide) {
+              targetGuide.status = status;
+              targetGuide.current_step = step;
+            }
+            if (this.currentGuide && this.currentGuide.id === guideId) {
+              if (status === 'completed' || status === 'dismissed') {
+                this.cleanup();
+              }
+            }
+          }
+        };
+      } catch (e) {
+        console.warn('[GuideEngine] BroadcastChannel error:', e);
+      }
+    }
+
+    initAuthListeners() {
+      window.addEventListener('user:logout', () => this.cleanup());
+      window.addEventListener('auth:logout', () => this.cleanup());
+    }
+
+    initGlobalTriggers() {
+      document.addEventListener('click', (e) => {
+        const trigger = e.target.closest('[data-action="openAppGuide"], [data-action="openTour"], .btn-open-guide');
+        if (trigger) {
+          e.preventDefault();
+          this.openMenu();
+        }
+      });
+    }
+
 
     initStyles() {
       if (document.getElementById('guide-engine-styles')) return;
@@ -222,6 +266,7 @@
     }
 
     async init(screenName) {
+      this.cleanup();
       this.screenName = screenName || '';
       const urlParams = new URLSearchParams(window.location.search);
       let isUrlTriggered = urlParams.has('guide') || urlParams.has('tour') || window.location.hash === '#guide';
@@ -244,7 +289,27 @@
           this.showFeatureMenu(this.allScreenGuides);
         } else {
           const pending = this.allScreenGuides.find(g => g.status !== 'completed' && g.status !== 'dismissed');
-          if (pending) this.startGuide(pending);
+          if (pending) {
+            const hasActiveModal = () => {
+              const el = document.querySelector(
+                '.popup-overlay:not([style*="display: none"]):not([style*="display:none"]), .file-info-modal-overlay.show, [role="dialog"].show, .modal.show'
+              );
+              return !!(el && (el.offsetWidth > 0 || el.offsetHeight > 0));
+            };
+
+            if (hasActiveModal()) {
+              const modalTimer = setInterval(() => {
+                if (!hasActiveModal()) {
+                  clearInterval(modalTimer);
+                  if (!this.currentGuide && !this.menuEl) {
+                    this.startGuide(pending);
+                  }
+                }
+              }, 1000);
+            } else {
+              this.startGuide(pending);
+            }
+          }
         }
       } catch (e) {
         console.warn('[GuideEngine] Init error:', e);
@@ -566,11 +631,20 @@
 
     async syncProgressDirect(guideId, status, step = 0, version = 1) {
       try {
-        await fetch(`/api/guides/${encodeURIComponent(guideId)}/progress`, {
+        const res = await fetch(`/api/guides/${encodeURIComponent(guideId)}/progress`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status, current_step: step, version })
         });
+        if (res.status === 401 || res.status === 403) {
+          this.cleanup();
+          return;
+        }
+        if (this._channel) {
+          try {
+            this._channel.postMessage({ action: 'sync', guideId, status, step });
+          } catch (_) {}
+        }
       } catch (e) {
         console.warn('[GuideEngine] Progress sync failed:', e);
       }
@@ -610,6 +684,22 @@
           'Features on this Page',
           'Choose another feature to explore, or tap Close.'
         );
+      }
+    }
+
+    openMenu() {
+      if (this.allScreenGuides && this.allScreenGuides.length > 0) {
+        this.showFeatureMenu(this.allScreenGuides);
+      } else {
+        this.init(this.screenName);
+      }
+    }
+
+    startGuideById(guideId) {
+      const guide = this.allScreenGuides.find(g => g.id === guideId);
+      if (guide) {
+        this.cleanup();
+        this.startGuide(guide);
       }
     }
   }

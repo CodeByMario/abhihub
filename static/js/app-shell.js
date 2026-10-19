@@ -102,6 +102,11 @@
     function updateChrome(path, title) {
         const tab = getTabForPath(path);
 
+        const cleanPath = path.split('?')[0].split('#')[0];
+        if (bottomNav) {
+            bottomNav.style.display = cleanPath.startsWith('/payment') ? 'none' : '';
+        }
+
         // Highlight active tab in bottom nav
         const navItems = bottomNav ? bottomNav.querySelectorAll('.navbar__item') : [];
         navItems.forEach(item => item.classList.remove('navbar__item--active'));
@@ -615,25 +620,13 @@
     // Highlight initial tab
     updateChrome(initialPath, 'AbhiHub');
 
-    // Dynamically check user profile for admin tab (keeps shell HTML 100% generic for precaching)
-    async function checkUserInfo() {
-        try {
-            const resp = await fetch('/api/profile', { signal: AbortSignal.timeout(6000) });
-            if (!resp.ok) return;
-            const data = await resp.json();
-            if (data.success && data.user) {
-                const adminTab = document.getElementById('shellAdminTab');
-                const userEmail = (data.user.email || '').toLowerCase();
-                if (adminTab && ['codebymario@gmail.com', 'info@abhihub.edu.eu.org', 'admin@abhihub.edu.eu.org'].includes(userEmail)) {
-                    adminTab.style.display = 'flex';
-                }
-            }
-        } catch (e) {
-            // non-fatal
-        }
+    // Defer initial notification polling so it never contends with dashboard render
+    if ('requestIdleCallback' in window) {
+        requestIdleCallback(function () { fetchNotifications(true); }, { timeout: 3000 });
+    } else {
+        setTimeout(function () { fetchNotifications(true); }, 2500);
     }
-    checkUserInfo();
 
-    // Initial notification check (subsequent polls scheduled dynamically with backoff)
-    fetchNotifications(true);
+    // Expose shell navigation to security module & custom context menu
+    window.navigateTo = navigateTo;
 })();

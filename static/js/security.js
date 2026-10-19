@@ -169,8 +169,8 @@
         <span>⚡ AbhiHub Menu</span>
       </div>
       <div class="cm-item" data-action="ai">
-        <span class="cm-icon">🤖</span>
-        <span>Ask Tarika AI</span>
+        <span class="cm-icon">✨</span>
+        <span>Tarika (AI Assistant)</span>
         <span class="cm-badge">AI</span>
       </div>
       <div class="cm-item" data-action="search">
@@ -215,25 +215,52 @@
   function handleMenuAction(action) {
     switch (action) {
       case 'ai':
-        if (typeof window.openAiModal === 'function') {
-          window.openAiModal();
+        if (typeof window.toggleAbhiAiDrawer === 'function') {
+          const drw = document.getElementById('abhiAiDrawer');
+          if (!drw || !drw.classList.contains('open')) {
+            window.toggleAbhiAiDrawer();
+          }
+        } else if (window.parent && typeof window.parent.toggleAbhiAiDrawer === 'function') {
+          const pDrw = window.parent.document.getElementById('abhiAiDrawer');
+          if (!pDrw || !pDrw.classList.contains('open')) {
+            window.parent.toggleAbhiAiDrawer();
+          }
+        } else if (window.AbhiHubBridge && typeof window.AbhiHubBridge.openTarika === 'function') {
+          window.AbhiHubBridge.openTarika();
         } else {
-          window.location.href = '/ai';
+          const launcher = document.getElementById('abhiAiLauncher') || (window.parent && window.parent.document.getElementById('abhiAiLauncher'));
+          if (launcher) {
+            launcher.click();
+          } else if (typeof window.openAiModal === 'function') {
+            window.openAiModal();
+          } else {
+            window.location.href = '/ai';
+          }
         }
         break;
       case 'search':
         const searchInput = document.getElementById('search-input') || document.querySelector('input[type="search"]');
         if (searchInput) {
           searchInput.focus();
+        } else if (typeof window.navigateTo === 'function') {
+          window.navigateTo('/dashboard');
         } else {
           window.location.href = '/dashboard';
         }
         break;
       case 'upload':
-        window.location.href = '/upload';
+        if (typeof window.navigateTo === 'function') {
+          window.navigateTo('/upload', true);
+        } else {
+          window.location.href = '/upload';
+        }
         break;
       case 'leaderboard':
-        window.location.href = '/leaderboard';
+        if (typeof window.navigateTo === 'function') {
+          window.navigateTo('/leaderboard', true);
+        } else {
+          window.location.href = '/leaderboard';
+        }
         break;
       case 'copylink':
         if (navigator.clipboard && navigator.clipboard.writeText) {

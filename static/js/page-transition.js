@@ -46,15 +46,15 @@
       if (bar) {
         bar.classList.remove('is-finishing');
         bar.classList.add('is-active');
-        bar.style.width = '20%';
+        bar.style.transform = 'scaleX(0.2)';
 
-        // Smooth physics-like progress simulation
-        let currentWidth = 20;
+        // Smooth physics-like progress simulation using GPU scaleX
+        let currentScale = 0.2;
         clearInterval(progressTimer);
         progressTimer = setInterval(() => {
-          if (currentWidth < 85) {
-            currentWidth += (90 - currentWidth) * 0.12;
-            bar.style.width = `${Math.min(currentWidth, 90)}%`;
+          if (currentScale < 0.85) {
+            currentScale += (0.9 - currentScale) * 0.12;
+            bar.style.transform = `scaleX(${Math.min(currentScale, 0.9)})`;
           }
         }, 180);
       }
@@ -88,9 +88,10 @@
       const bar = document.getElementById('abhihub-progress-bar');
       if (bar) {
         bar.classList.add('is-finishing');
+        bar.style.transform = 'scaleX(1)';
         setTimeout(() => {
           bar.classList.remove('is-active', 'is-finishing');
-          bar.style.width = '0%';
+          bar.style.transform = 'scaleX(0)';
         }, 400);
       }
 

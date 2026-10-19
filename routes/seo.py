@@ -163,16 +163,25 @@ def sitemap_colleges():
             continue
         college_slugs[c.get('id')] = c_slug
         add_u(f"/college/{c_slug}", c.get('created_at'), "0.90", "weekly")
+        add_u(f"/college/{c_slug}/files", c.get('created_at'), "0.85", "weekly")
 
-    for department in departments:
-        if department.get('college_id') not in populated_college_ids:
-            continue
-        if department.get('id') not in populated_department_ids:
-            continue
-        c_slug = college_slugs.get(department.get('college_id'))
-        d_slug = slugify(department.get('abbreviation') or department.get('name'))
+    dept_slugs = {
+        d.get('id'): slugify(d.get('abbreviation') or d.get('name'))
+        for d in departments
+        if d.get('id')
+    }
+
+    populated_pairs = {
+        (doc.get('college_id'), doc.get('department_id'))
+        for doc in documents
+        if doc.get('college_id') and doc.get('department_id')
+    }
+
+    for c_id, d_id in populated_pairs:
+        c_slug = college_slugs.get(c_id)
+        d_slug = dept_slugs.get(d_id)
         if c_slug and d_slug:
-            add_u(f"/college/{c_slug}/{d_slug}", department.get('created_at'), "0.85", "weekly")
+            add_u(f"/college/{c_slug}/{d_slug}", priority="0.85", changefreq="weekly")
 
     seen_subjects = set()
     for s in subjects:
