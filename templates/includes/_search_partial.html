@@ -145,8 +145,97 @@
 
   .ss-chips {
     display: grid;
-    grid-template-columns: repeat(5, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
     gap: .55rem;
+  }
+
+  .ss-suggestions {
+    margin-top: .4rem;
+    background: #fff;
+    border: 1px solid #d6dfeb;
+    border-radius: 12px;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, .08);
+    overflow: hidden;
+    z-index: 50;
+  }
+
+  .ss-suggestion-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .6rem 1rem;
+    cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background-color .15s;
+  }
+
+  .ss-suggestion-item:last-child {
+    border-bottom: 0;
+  }
+
+  .ss-suggestion-item:hover,
+  .ss-suggestion-item.active {
+    background-color: #f0f7ff;
+  }
+
+  .ss-sug-title {
+    font-weight: 700;
+    color: #1e293b;
+    font-size: .88rem;
+  }
+
+  .ss-sug-sub {
+    font-size: .75rem;
+    color: #64748b;
+  }
+
+  .ss-sug-tag {
+    font-size: .68rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: #e2e8f0;
+    color: #475569;
+    text-transform: uppercase;
+  }
+
+  .ss-active-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: .45rem;
+    margin-top: .65rem;
+  }
+
+  .ss-active-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: .35rem;
+    padding: .25rem .65rem;
+    border-radius: 999px;
+    background: #e0edff;
+    color: #1d4ed8;
+    font-size: .76rem;
+    font-weight: 700;
+  }
+
+  .ss-active-pill button {
+    border: 0;
+    background: transparent;
+    color: #1d4ed8;
+    font-weight: 800;
+    cursor: pointer;
+    padding: 0 2px;
+  }
+
+  .ss-relaxation-notice {
+    margin-top: .75rem;
+    padding: .65rem 1rem;
+    border-radius: 10px;
+    background: #fffbeb;
+    border: 1px solid #fde68a;
+    color: #92400e;
+    font-size: .84rem;
+    font-weight: 600;
   }
 
   .ss-chip {
@@ -662,27 +751,46 @@
         stroke-width="2" aria-hidden="true">
         <circle cx="11" cy="11" r="8" />
         <path d="m21 21-4.35-4.35" />
-      </svg><input type="text" id="searchFileName" class="ss-input" placeholder="Search subjects, papers, notes…"
+      </svg><input type="text" id="searchFileName" class="ss-input" placeholder="Search subjects (e.g. OS, DBMS, CSE2001), ITER, KIIT, PYQs…"
         value="{{ initial_query }}" autocomplete="off" aria-label="Search files"><button id="searchClearBtn"
         class="ss-clear" type="button" aria-label="Clear search" title="Clear search"><svg width="18" height="18"
           viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18" />
           <line x1="6" y1="6" x2="18" y2="18" />
         </svg></button></div>
+    <div id="searchSuggestions" class="ss-suggestions" style="display:none;" role="listbox"></div>
+    <div id="searchActivePills" class="ss-active-pills" style="display:none;"></div>
+    <div id="searchRelaxationBanner" class="ss-relaxation-notice" style="display:none;"></div>
     <div class="ss-filter-area">
       <div class="ss-filter-title">Filter and sort</div>
       <div class="ss-chips">
-        <label for="searchType" class="sr-only">Type</label><select id="searchType" class="ss-chip"
-          aria-label="Filter by type">
-          <option value="">All types</option>
-        </select>
         <label for="searchCollege" class="sr-only">College</label><select id="searchCollege" class="ss-chip"
           aria-label="Filter by college">
           <option value="">All colleges</option>
         </select>
+        <label for="searchBranch" class="sr-only">Branch</label><select id="searchBranch" class="ss-chip"
+          aria-label="Filter by branch">
+          <option value="">All branches</option>
+        </select>
+        <label for="searchSemester" class="sr-only">Semester</label><select id="searchSemester" class="ss-chip"
+          aria-label="Filter by semester">
+          <option value="">All semesters</option>
+          <option value="1">Semester 1</option>
+          <option value="2">Semester 2</option>
+          <option value="3">Semester 3</option>
+          <option value="4">Semester 4</option>
+          <option value="5">Semester 5</option>
+          <option value="6">Semester 6</option>
+          <option value="7">Semester 7</option>
+          <option value="8">Semester 8</option>
+        </select>
         <label for="searchSubject" class="sr-only">Subject</label><select id="searchSubject" class="ss-chip"
           aria-label="Filter by subject">
           <option value="">All subjects</option>
+        </select>
+        <label for="searchType" class="sr-only">Type</label><select id="searchType" class="ss-chip"
+          aria-label="Filter by type">
+          <option value="">All types</option>
         </select>
         <label for="searchYear" class="sr-only">Year</label><select id="searchYear" class="ss-chip"
           aria-label="Filter by year">
@@ -690,10 +798,10 @@
         </select>
         <label for="searchSort" class="sr-only">Sort by</label><select id="searchSort" class="ss-chip"
           aria-label="Sort by">
+          <option value="relevance">Top relevance</option>
           <option value="date_desc">Latest first</option>
           <option value="views_desc">Most viewed</option>
           <option value="likes_desc">Most liked</option>
-          <option value="bookmarks_desc">Most bookmarked</option>
         </select>
         <input type="hidden" id="searchAuthor" value=""><button id="searchBtn" hidden aria-hidden="true"
           type="button"></button>

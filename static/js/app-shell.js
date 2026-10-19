@@ -258,6 +258,18 @@
             // Replace state in shell history
             const cleanShellUrl = '/app-shell?p=' + encodeURIComponent(innerPath);
             history.replaceState({ path: innerPath }, '', cleanShellUrl);
+
+            // Handle #dashboardSearchSection or #search hash on iframe load
+            if (innerWin.location.hash === '#dashboardSearchSection' || innerWin.location.hash === '#search') {
+                setTimeout(function () {
+                    const sec = innerDoc.getElementById('dashboardSearchSection') || innerDoc.querySelector('.container_search') || innerDoc.querySelector('.ss-search');
+                    const inp = innerDoc.getElementById('searchFileName') || innerDoc.getElementById('heroSearchInput');
+                    if (sec) {
+                        sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        if (inp) inp.focus();
+                    }
+                }, 350);
+            }
         } catch (e) {
             console.warn('[AppShell] Cross-origin or restricted iframe access:', e);
         }
@@ -523,6 +535,29 @@
             if (notifPanel) notifPanel.style.display = notifOpen ? 'block' : 'none';
             if (notifOpen) {
                 fetchNotifications(false);
+            }
+        });
+    }
+
+    const shellSearchBtn = document.getElementById('shellSearchBtn');
+    if (shellSearchBtn) {
+        shellSearchBtn.addEventListener('click', function () {
+            let handled = false;
+            try {
+                const innerDoc = activeIframe.contentDocument || activeIframe.contentWindow.document;
+                const sec = innerDoc.getElementById('dashboardSearchSection') || innerDoc.querySelector('.container_search') || innerDoc.querySelector('.ss-search');
+                const inp = innerDoc.getElementById('searchFileName') || innerDoc.getElementById('heroSearchInput');
+                if (sec) {
+                    sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (inp) {
+                        setTimeout(() => inp.focus(), 350);
+                    }
+                    handled = true;
+                }
+            } catch (e) {}
+
+            if (!handled) {
+                navigateTo('/dashboard#dashboardSearchSection', true);
             }
         });
     }

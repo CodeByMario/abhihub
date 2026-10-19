@@ -308,6 +308,14 @@
             <div class="logo kanit-bold cursor-pointer" data-action="switchToEliteVersion">
                 <span class="logo-text">AbhiHub</span>
             </div>
+            <!-- Search Icon (Scrolls to Search Section on Dashboard) -->
+            <button id="headerSearchBtn" type="button" data-action="openSearchSection" aria-label="Search library" title="Search library & papers">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2"
+                    stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                </svg>
+            </button>
             <!-- Notification Bell: styles in css/pipeline/notification-bell.css -->
             <div id="notifBellWrap">
                 <button id="notifBell" type="button" data-action="toggleNotifPanel" aria-label="Notifications"
@@ -468,6 +476,19 @@
                         if (_notifOpen || !silent) _renderNotifs(d.data || []);
                     }
                 } catch (e) { /* non-critical */ }
+            };
+
+            window.openSearchSection = function () {
+                const sec = document.getElementById('dashboardSearchSection') || document.querySelector('.container_search') || document.querySelector('.ss-search');
+                const inp = document.getElementById('searchFileName') || document.getElementById('heroSearchInput');
+                if (sec) {
+                    sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    if (inp) {
+                        setTimeout(() => inp.focus(), 350);
+                    }
+                } else {
+                    window.location.href = '/dashboard#dashboardSearchSection';
+                }
             };
 
             window.toggleNotifPanel = function () {

@@ -225,7 +225,8 @@ html, body.app-shell-body {
     position: relative;
 }
 
-.shell-notif-btn {
+.shell-notif-btn,
+.shell-search-btn {
     display: flex;
     align-items: center;
     justify-content: center;
@@ -240,11 +241,13 @@ html, body.app-shell-body {
     transition: background-color var(--transition-fast, 0.15s);
 }
 
-.shell-notif-btn:hover {
+.shell-notif-btn:hover,
+.shell-search-btn:hover {
     background: rgba(0, 0, 0, 0.05);
 }
 
-[data-theme="dark"] .shell-notif-btn:hover {
+[data-theme="dark"] .shell-notif-btn:hover,
+[data-theme="dark"] .shell-search-btn:hover {
     background: rgba(255, 255, 255, 0.08);
 }
 
@@ -444,7 +447,8 @@ html, body.app-shell-body {
     .navbar--bottom .navbar__item--active {
         color: #3b82f6 !important;
     }
-    .shell-notif-btn {
+    .shell-notif-btn,
+    .shell-search-btn {
         color: var(--text-primary, #e2e8f0);
     }
     .shell-back-btn {
@@ -472,7 +476,8 @@ html, body.app-shell-body {
 [data-theme="dark"] .navbar--bottom .navbar__item--active {
     color: #3b82f6 !important;
 }
-[data-theme="dark"] .shell-notif-btn {
+[data-theme="dark"] .shell-notif-btn,
+[data-theme="dark"] .shell-search-btn {
     color: var(--text-primary, #e2e8f0);
 }
 [data-theme="dark"] .shell-back-btn {

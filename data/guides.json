@@ -9,7 +9,7 @@
     "trigger": { "event": "screen_viewed", "screen": "dashboard" },
     "steps": [
       {
-        "target": "#heroSearchInput",
+        "target": "#searchFileName, #headerSearchBtn, #shellSearchBtn",
         "title": "Search Any Subject",
         "body": "Find question papers, handwritten notes, and practicals for your college."
       },
@@ -35,12 +35,12 @@
     "trigger": { "event": "screen_viewed", "screen": "dashboard" },
     "steps": [
       {
-        "target": "#heroSearchInput",
+        "target": "#searchFileName, #headerSearchBtn",
         "title": "Type Subject or Topic",
         "body": "Enter any subject name, course code (e.g. CS101), or topic keyword to filter papers immediately."
       },
       {
-        "target": ".hero-search-btn",
+        "target": "#headerSearchBtn, #shellSearchBtn, #searchClearBtn",
         "title": "Filter Results",
         "body": "Tap Search to jump directly to verified results matched with your university syllabus."
       }

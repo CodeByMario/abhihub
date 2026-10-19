@@ -163,10 +163,16 @@ const SearchManager = {
     displayLimit: 12,
     currentResults: [],
 
+    searchAbortController: null,
+    suggestAbortController: null,
+    suggestDebounceTimer: null,
+
     elements: {
         fileName: () => document.getElementById("searchFileName"),
         author: () => document.getElementById("searchAuthor"),
         college: () => document.getElementById("searchCollege"),
+        branch: () => document.getElementById("searchBranch"),
+        semester: () => document.getElementById("searchSemester"),
         type: () => document.getElementById("searchType"),
         subject: () => document.getElementById("searchSubject"),
         year: () => document.getElementById("searchYear"),
@@ -175,28 +181,36 @@ const SearchManager = {
         noResults: () => document.getElementById("noResults"),
         loader: () => document.getElementById("loader"),
         error: () => document.getElementById("error"),
-        history: () => document.getElementById("searchHistory")
+        history: () => document.getElementById("searchHistory"),
+        suggestions: () => document.getElementById("searchSuggestions"),
+        pills: () => document.getElementById("searchActivePills"),
+        relaxationBanner: () => document.getElementById("searchRelaxationBanner")
     },
 
     async init() {
-        console.log('[SearchManager] Initializing...');
+        console.log('[SearchManager] Initializing v3 discovery engine...');
         this.loadSearchHistory();
         this.setupEventListeners();
 
-        // Defer heavy files/colleges preloading until user touches search or idle time
-        const triggerPreload = () => {
-            if (!this.cache && !this._preloading) {
-                this._preloading = true;
-                this.preloadData().finally(() => { this._preloading = false; });
+        // If search results container is on page, preload data and perform initial search
+        if (this.elements.results()) {
+            this.preloadData().then(() => {
+                this.performSearch();
+            });
+        } else {
+            const triggerPreload = () => {
+                if (!this.cache && !this._preloading) {
+                    this._preloading = true;
+                    this.preloadData().finally(() => { this._preloading = false; });
+                }
+            };
+            const fileInput = this.elements.fileName();
+            if (fileInput) {
+                fileInput.addEventListener('focus', triggerPreload, { once: true });
             }
-        };
-
-        const fileInput = this.elements.fileName();
-        if (fileInput) {
-            fileInput.addEventListener('focus', triggerPreload, { once: true });
+            document.getElementById('navSearchOverlay')?.addEventListener('click', triggerPreload, { once: true });
+            document.getElementById('navbarSearchIcon')?.addEventListener('click', triggerPreload, { once: true });
         }
-        document.getElementById('navSearchOverlay')?.addEventListener('click', triggerPreload, { once: true });
-        document.getElementById('navbarSearchIcon')?.addEventListener('click', triggerPreload, { once: true });
     },
 
     loadSearchHistory() {
@@ -253,32 +267,114 @@ const SearchManager = {
         // hidden btn still works for hero search form compatibility
         document.getElementById("searchBtn")?.addEventListener("click", () => this.performSearch());
 
-        // Clear button
+        // Search Input & Suggestions
         const clearBtn = document.getElementById('searchClearBtn');
         const fileInput = this.elements.fileName();
         if (fileInput && clearBtn) {
             fileInput.addEventListener('input', () => {
-                clearBtn.style.display = fileInput.value ? 'block' : 'none';
+                const val = fileInput.value.trim();
+                clearBtn.style.display = val ? 'block' : 'none';
+                this.fetchSuggestions(val);
                 this.debounceSearch();
             });
-            fileInput.addEventListener('keypress', e => {
-                if (e.key === 'Enter') this.performSearch();
+            fileInput.addEventListener('keydown', e => {
+                if (e.key === 'Enter') {
+                    this.closeSuggestions();
+                    this.performSearch();
+                } else if (e.key === 'Escape') {
+                    this.closeSuggestions();
+                }
             });
             clearBtn.addEventListener('click', () => {
                 fileInput.value = '';
                 clearBtn.style.display = 'none';
+                this.closeSuggestions();
                 fileInput.focus();
                 this.performSearch();
             });
         }
 
+        // Close suggestions on outside click
+        document.addEventListener('click', (e) => {
+            const sug = this.elements.suggestions();
+            const inp = this.elements.fileName();
+            if (sug && !sug.contains(e.target) && e.target !== inp) {
+                this.closeSuggestions();
+            }
+        });
+
         // Selects — instant search on change
-        ['searchCollege','searchType','searchSubject','searchYear','searchSort'].forEach(id => {
+        ['searchCollege','searchBranch','searchSemester','searchType','searchSubject','searchYear','searchSort'].forEach(id => {
             document.getElementById(id)?.addEventListener('change', (e) => {
                 e.target.classList.toggle('active', !!e.target.value);
                 this.performSearch();
             });
         });
+    },
+
+    async fetchSuggestions(query) {
+        clearTimeout(this.suggestDebounceTimer);
+        const sugBox = this.elements.suggestions();
+        if (!query || query.length < 2) {
+            if (sugBox) sugBox.style.display = 'none';
+            return;
+        }
+
+        this.suggestDebounceTimer = setTimeout(async () => {
+            if (this.suggestAbortController) {
+                this.suggestAbortController.abort();
+            }
+            this.suggestAbortController = new AbortController();
+
+            try {
+                const colVal = this.elements.college()?.value || '';
+                const res = await fetch(`/api/v2/suggest?q=${encodeURIComponent(query)}&college_id=${encodeURIComponent(colVal)}`, {
+                    signal: this.suggestAbortController.signal
+                });
+                const data = await res.json();
+                if (data.success && data.suggestions && data.suggestions.length) {
+                    this.renderSuggestions(data.suggestions);
+                } else {
+                    if (sugBox) sugBox.style.display = 'none';
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.warn('[SearchManager] Suggest error:', err);
+                }
+            }
+        }, 120);
+    },
+
+    renderSuggestions(items) {
+        const box = this.elements.suggestions();
+        if (!box) return;
+        box.innerHTML = '';
+
+        items.forEach(item => {
+            const row = document.createElement('div');
+            row.className = 'ss-suggestion-item';
+            row.innerHTML = `
+                <div>
+                    <span class="ss-sug-title">${item.title}</span>
+                    <span class="ss-sug-sub">${item.subtitle ? ' — ' + item.subtitle : ''}</span>
+                </div>
+                <span class="ss-sug-tag">${item.type}</span>
+            `;
+            row.addEventListener('click', () => {
+                const input = this.elements.fileName();
+                if (input) input.value = item.query || item.title;
+                this.closeSuggestions();
+                this.performSearch();
+            });
+            box.appendChild(row);
+        });
+
+        box.style.display = 'block';
+    },
+
+    closeSuggestions() {
+        const box = this.elements.suggestions();
+        if (box) box.style.display = 'none';
     },
 
     async preloadData() {
@@ -327,37 +423,48 @@ const SearchManager = {
 
     async loadColleges() {
         try {
-            const res = await fetch('/api/colleges');
-            const data = await res.json();
-            if (!data.success) return;
+            const [colRes, branchRes] = await Promise.all([
+                fetch('/api/colleges'),
+                fetch('/api/branches')
+            ]);
+            const colData = await colRes.json();
+            const branchData = await branchRes.json();
 
             const collegeSelect = document.getElementById('searchCollege');
-            if (!collegeSelect) return;
+            if (collegeSelect && colData.success) {
+                collegeSelect.innerHTML = '<option value="">🏫 All Colleges</option>';
+                colData.colleges.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id || c.name;
+                    opt.textContent = c.name;
+                    collegeSelect.appendChild(opt);
+                });
 
-            collegeSelect.innerHTML = '<option value="">🏫 All Colleges</option>';
-            data.colleges.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c.name;
-                opt.textContent = c.name;
-                collegeSelect.appendChild(opt);
-            });
-
-            // Auto-select user's college
-            const userCollege = window.ABHIHUB_USER_COLLEGE;
-            if (userCollege) {
-                const lc = userCollege.toLowerCase();
-                const options = Array.from(collegeSelect.options);
-                // Exact match first
-                let match = options.find(o => o.value.toLowerCase() === lc);
-                // Partial match fallback
-                if (!match) match = options.find(o => o.value && lc.includes(o.value.toLowerCase()));
-                if (match) {
-                    collegeSelect.value = match.value;
-                    console.log('[SearchManager] Auto-selected college:', match.value);
+                // Auto-select user's college if defined
+                const userCollege = window.ABHIHUB_USER_COLLEGE;
+                if (userCollege) {
+                    const lc = userCollege.toLowerCase();
+                    const options = Array.from(collegeSelect.options);
+                    let match = options.find(o => (o.textContent || '').toLowerCase() === lc || (o.value || '').toLowerCase() === lc);
+                    if (!match) match = options.find(o => o.textContent && lc.includes(o.textContent.toLowerCase()));
+                    if (match) {
+                        collegeSelect.value = match.value;
+                    }
                 }
             }
+
+            const branchSelect = document.getElementById('searchBranch');
+            if (branchSelect && branchData.success) {
+                branchSelect.innerHTML = '<option value="">🏛 All Branches</option>';
+                (branchData.branches || []).forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b.id || b.name;
+                    opt.textContent = b.name || b.abbreviation;
+                    branchSelect.appendChild(opt);
+                });
+            }
         } catch (e) {
-            console.warn('[SearchManager] Could not load colleges from API:', e);
+            console.warn('[SearchManager] Could not load colleges/branches from API:', e);
         }
     },
 
@@ -382,7 +489,57 @@ const SearchManager = {
 
     debounceSearch() {
         clearTimeout(this.searchDebounceTimer);
-        this.searchDebounceTimer = setTimeout(() => this.performSearch(), 300);
+        this.searchDebounceTimer = setTimeout(() => this.performSearch(), 200);
+    },
+
+    updateActivePills(params) {
+        const pillsContainer = this.elements.pills();
+        if (!pillsContainer) return;
+        pillsContainer.innerHTML = '';
+
+        const activeEntries = [];
+        if (params.college && params.college !== 'ALL') {
+            const colText = document.getElementById('searchCollege')?.selectedOptions[0]?.textContent || params.college;
+            activeEntries.push({ label: colText, key: 'college' });
+        }
+        if (params.branch) {
+            const branchText = document.getElementById('searchBranch')?.selectedOptions[0]?.textContent || params.branch;
+            activeEntries.push({ label: branchText, key: 'branch' });
+        }
+        if (params.semester) {
+            activeEntries.push({ label: `Sem ${params.semester}`, key: 'semester' });
+        }
+        if (params.type) {
+            activeEntries.push({ label: params.type, key: 'type' });
+        }
+        if (params.subject) {
+            activeEntries.push({ label: params.subject, key: 'subject' });
+        }
+        if (params.year) {
+            activeEntries.push({ label: params.year, key: 'year' });
+        }
+
+        if (!activeEntries.length) {
+            pillsContainer.style.display = 'none';
+            return;
+        }
+
+        activeEntries.forEach(entry => {
+            const pill = document.createElement('span');
+            pill.className = 'ss-active-pill';
+            pill.innerHTML = `<span>${entry.label}</span><button type="button" aria-label="Remove filter">✕</button>`;
+            pill.querySelector('button').addEventListener('click', () => {
+                if (entry.key === 'college') document.getElementById('searchCollege').value = '';
+                if (entry.key === 'branch') document.getElementById('searchBranch').value = '';
+                if (entry.key === 'semester') document.getElementById('searchSemester').value = '';
+                if (entry.key === 'type') document.getElementById('searchType').value = '';
+                if (entry.key === 'subject') document.getElementById('searchSubject').value = '';
+                if (entry.key === 'year') document.getElementById('searchYear').value = '';
+                this.performSearch();
+            });
+            pillsContainer.appendChild(pill);
+        });
+        pillsContainer.style.display = 'flex';
     },
 
     async performSearch() {
@@ -391,20 +548,12 @@ const SearchManager = {
         const fileName = this.elements.fileName()?.value.trim();
         const author = this.elements.author()?.value.trim();
         const college = this.elements.college()?.value;
+        const branch = this.elements.branch()?.value;
+        const semester = this.elements.semester()?.value;
         const type = this.elements.type()?.value;
         const subject = this.elements.subject()?.value;
         const year = this.elements.year()?.value;
-        const sort = this.elements.sort()?.value;
-
-        const searchTerms = {
-            fileName: fileName?.toLowerCase(),
-            author: author?.toLowerCase(),
-            college: college,
-            type: type,
-            subject: subject,
-            year: year,
-            sort: sort
-        };
+        const sort = this.elements.sort()?.value || 'relevance';
 
         if (fileName) {
             this.addToSearchHistory(fileName);
@@ -413,68 +562,70 @@ const SearchManager = {
         const loader = this.elements.loader();
         const noResults = this.elements.noResults();
         const resultsContainer = this.elements.results();
+        const relaxationNotice = this.elements.relaxationBanner();
 
         if (loader) loader.style.display = 'block';
         if (noResults) noResults.style.display = 'none';
-        if (resultsContainer) resultsContainer.innerHTML = '';
+        if (relaxationNotice) relaxationNotice.style.display = 'none';
+
+        this.updateActivePills({ college, branch, semester, type, subject, year });
+
+        // Cancel previous pending search query
+        if (this.searchAbortController) {
+            this.searchAbortController.abort();
+        }
+        this.searchAbortController = new AbortController();
 
         try {
             let filtered = [];
             
-            // If we have a specific keyword, use the fast V2 Search API
-            if (fileName && fileName.length > 0) {
-                try {
-                    const res = await fetch(`/api/v2/search?q=${encodeURIComponent(fileName)}&college_id=${encodeURIComponent(college || 'ALL')}`);
-                    const data = await res.json();
-                    let serverResults = data.results || [];
-                    
-                    // Apply the dropdown filters to the server results locally
-                    filtered = serverResults.filter(file => {
-                        const matchesType = !type || file.type === type;
-                        const matchesSubject = !subject || file.subject === subject;
-                        const matchesYear = !year || file.year === year;
-                        const matchesCollege = !college || college === 'ALL' || file.college === college;
-                        // Author filter is legacy but keep for compatibility
-                        const matchesAuthor = !author || (file.author && file.author.toLowerCase().includes(author));
-                        return matchesType && matchesSubject && matchesYear && matchesCollege && matchesAuthor;
-                    });
-                } catch(e) {
-                    console.error("V2 search API error, falling back to local cache", e);
-                    filtered = this.filterResults(searchTerms);
-                }
-            } else {
-                // If no keyword, just use local cache filtering
-                if (window.Worker) {
-                    const worker = new Worker('/static/premium/js/search-worker.js');
-                    filtered = await new Promise((resolve) => {
-                        worker.postMessage({ fileData: this.cache, filters: searchTerms });
-                        worker.onmessage = (e) => {
-                            worker.terminate();
-                            resolve(e.data);
-                        };
-                    });
-                } else {
-                    filtered = this.filterResults(searchTerms);
-                }
+            // Build API query URL
+            const urlParams = new URLSearchParams();
+            if (fileName) urlParams.set('q', fileName);
+            if (college) urlParams.set('college_id', college);
+            if (branch) urlParams.set('branch', branch);
+            if (semester) urlParams.set('sem', semester);
+            if (type) urlParams.set('type', type);
+            if (subject) urlParams.set('subject', subject);
+            if (year) urlParams.set('year', year);
+            if (sort) urlParams.set('sort', sort);
+
+            const res = await fetch(`/api/v2/search?${urlParams.toString()}`, {
+                signal: this.searchAbortController.signal
+            });
+            const data = await res.json();
+            filtered = data.results || [];
+
+            // Display graceful relaxation message if triggered by backend
+            if (relaxationNotice && data.meta && data.meta.relaxation_message) {
+                relaxationNotice.textContent = data.meta.relaxation_message;
+                relaxationNotice.style.display = 'block';
             }
 
             this.displayLimit = this.baseLimit;
             this.currentResults = filtered;
             this.displayResults(this.currentResults);
             
-            // Phase 4 Analytics Tracking: Log search query if provided
+            // Analytics Tracking
             if (fileName && fileName.length > 2) {
                 fetch('/api/v2/search/analytics', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         query: fileName,
-                        results_count: filtered.length
+                        results_count: filtered.length,
+                        relaxed: Boolean(data.meta && data.meta.relaxed)
                     })
                 }).catch(e => console.warn('Analytics logging failed', e));
             }
         } catch (error) {
-            console.error('Search error:', error);
+            if (error.name !== 'AbortError') {
+                console.error('Search error:', error);
+                // Fallback to local cache filtering if offline
+                filtered = this.filterResults({ fileName, author, college, type, subject, year, sort });
+                this.currentResults = filtered;
+                this.displayResults(this.currentResults);
+            }
         } finally {
             if (loader) loader.style.display = 'none';
         }
@@ -587,6 +738,10 @@ const SearchManager = {
             ? `<span class="ss-badge ss-badge-premium" style="background:linear-gradient(135deg, #fef3c7, #fde68a);color:#92400e;border:1px solid #f59e0b;font-weight:800;padding:2px 8px;border-radius:6px;font-size:0.74rem;display:inline-flex;align-items:center;gap:3px;">⭐ Premium ₹${priceNum}</span>`
             : '';
 
+        const matchBadge = file.match_reason
+            ? `<div class="ss-match-badge" style="font-size:0.73rem;color:#1d4ed8;background:#eff6ff;padding:3px 8px;border-radius:6px;font-weight:700;margin-top:0.4rem;display:inline-block;width:fit-content;border:1px solid #bfdbfe;">✓ ${s(file.match_reason)}</div>`
+            : '';
+
         card.innerHTML = `
           <div class="ss-card-top">
             <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">
@@ -597,6 +752,7 @@ const SearchManager = {
           </div>
           <div class="ss-title">${s(file.subject)}</div>
           <div class="ss-meta">${s(file['file-name'])}</div>
+          ${matchBadge}
           <div class="ss-footer">
             <span>👤 ${s(file.author)}</span>
             <span class="ss-stats">
@@ -628,14 +784,19 @@ const SearchManager = {
     },
 
     resetFilters() {
-        ['searchCollege','searchType','searchSubject','searchYear'].forEach(id => {
+        ['searchCollege','searchBranch','searchSemester','searchType','searchSubject','searchYear'].forEach(id => {
             const el = document.getElementById(id);
             if (el) { el.value = ''; el.classList.remove('active'); }
         });
         const sort = document.getElementById('searchSort');
-        if (sort) sort.value = 'date_desc';
+        if (sort) sort.value = 'relevance';
         const input = this.elements.fileName();
         if (input) { input.value = ''; document.getElementById('searchClearBtn').style.display = 'none'; }
+        const pills = this.elements.pills();
+        if (pills) { pills.innerHTML = ''; pills.style.display = 'none'; }
+        const banner = this.elements.relaxationBanner();
+        if (banner) { banner.style.display = 'none'; }
+        this.closeSuggestions();
         this.performSearch();
     },
 

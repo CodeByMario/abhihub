@@ -82,14 +82,6 @@
       </div>
     </div>
 
-    <!-- Hero Search -->
-    <form class="hero-search-wrap" action="/dashboard"
-      onsubmit="event.preventDefault(); const val=document.getElementById('heroSearchInput').value; const target=document.getElementById('searchFileName'); if(target){ target.value=val; target.dispatchEvent(new Event('input')); } const btn=document.getElementById('searchBtn'); if(btn){ btn.click(); } const sec=document.querySelector('.container_search'); if(sec){ sec.scrollIntoView({behavior:'smooth'}); }">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-      <input type="text" id="heroSearchInput" placeholder="Search subjects, PYQs, exam notes, departments…" autocomplete="off">
-      <button type="submit" class="hero-search-btn">🔍 Search</button>
-    </form>
-
     <!-- Quick Action Buttons -->
     <div class="hero-quick-actions">
       <a href="/upload" class="hero-action-btn primary" title="Upload Question Paper or Notes">📤 Upload Resource</a>
@@ -333,7 +325,7 @@
 {% endif %}
 
 <!-- ── 5. Advanced Search Filter Bar ──────────────────────────────────── -->
-<div class="home-section">
+<div class="home-section" id="dashboardSearchSection">
   <div class="home-section-header">
     <div>
       <div class="home-section-title">🔍 Filter & Search Library</div>

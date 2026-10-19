@@ -2512,10 +2512,11 @@ def chat_user_info(user_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
-# ─── Search API V2 (Phase 3 Migration) ────────────────────────────────────
-from methods.search_api import search_v2_endpoint, search_analytics_endpoint
+# ─── Search API V2 & V3 (In-Memory Discovery + Autocomplete) ───────────────
+from methods.search_api import search_v2_endpoint, search_analytics_endpoint, suggest_endpoint
 api_bp.add_url_rule('/api/v2/search', view_func=search_v2_endpoint, methods=['GET'])
 api_bp.add_url_rule('/api/v2/search/analytics', view_func=search_analytics_endpoint, methods=['POST'])
+api_bp.add_url_rule('/api/v2/suggest', view_func=suggest_endpoint, methods=['GET'])
 
 
 # ─── Interactive Guides API ───────────────────────────────────────────────
