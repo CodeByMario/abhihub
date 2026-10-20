@@ -87,6 +87,37 @@ def favicon():
     return send_file('static/images/favicon.ico', mimetype='image/vnd.microsoft.icon')
 
 
+import xml.etree.ElementTree as ET
+
+
+def _build_sitemap_index_xml(sitemaps):
+    """Generate well-formed XML sitemap index using ElementTree."""
+    root = ET.Element('sitemapindex', xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
+    for sm in sitemaps:
+        sm_elem = ET.SubElement(root, 'sitemap')
+        ET.SubElement(sm_elem, 'loc').text = sm['loc']
+        if sm.get('lastmod'):
+            ET.SubElement(sm_elem, 'lastmod').text = str(sm['lastmod'])[:10]
+    xml_body = ET.tostring(root, encoding='utf-8')
+    return b'<?xml version="1.0" encoding="UTF-8"?>\n' + xml_body
+
+
+def _build_urlset_xml(urls):
+    """Generate well-formed XML urlset sitemap using ElementTree."""
+    root = ET.Element('urlset', xmlns="http://www.sitemaps.org/schemas/sitemap/0.9")
+    for u in urls:
+        u_elem = ET.SubElement(root, 'url')
+        ET.SubElement(u_elem, 'loc').text = u['loc']
+        if u.get('lastmod'):
+            ET.SubElement(u_elem, 'lastmod').text = str(u['lastmod'])[:10]
+        if u.get('priority'):
+            ET.SubElement(u_elem, 'priority').text = str(u['priority'])
+        if u.get('changefreq'):
+            ET.SubElement(u_elem, 'changefreq').text = str(u['changefreq'])
+    xml_body = ET.tostring(root, encoding='utf-8')
+    return b'<?xml version="1.0" encoding="UTF-8"?>\n' + xml_body
+
+
 @seo_bp.route('/sitemap.xml')
 def sitemap():
     """Return Sitemap Index pointing to modular sub-sitemaps for search engines."""
@@ -97,7 +128,8 @@ def sitemap():
         {'loc': f"{base_url}/sitemap-colleges.xml", 'lastmod': now_iso},
         {'loc': f"{base_url}/sitemap-documents.xml", 'lastmod': now_iso},
     ]
-    response = make_response(render_template('sitemap_index.xml', sitemaps=sitemaps))
+    xml_content = _build_sitemap_index_xml(sitemaps)
+    response = make_response(xml_content)
     response.headers['Content-Type'] = 'application/xml; charset=utf-8'
     response.headers['Cache-Control'] = 'public, max-age=3600'
     return response
@@ -121,7 +153,8 @@ def sitemap_pages():
             seen.add(loc)
             metadata = _SITEMAP_REGISTRY.get(ep_name) or _SITEMAP_REGISTRY.get(rule.endpoint)
             urls.append({'loc': loc, 'priority': metadata['priority'], 'changefreq': metadata['changefreq']})
-    response = make_response(render_template('sitemap.xml', urls=urls))
+    xml_content = _build_urlset_xml(urls)
+    response = make_response(xml_content)
     response.headers['Content-Type'] = 'application/xml; charset=utf-8'
     response.headers['Cache-Control'] = 'public, max-age=3600'
     return response
@@ -192,7 +225,8 @@ def sitemap_colleges():
             seen_subjects.add(s_slug)
             add_u(f"/subject/{s_slug}", s.get('created_at'), "0.90", "weekly")
 
-    response = make_response(render_template('sitemap.xml', urls=urls))
+    xml_content = _build_urlset_xml(urls)
+    response = make_response(xml_content)
     response.headers['Content-Type'] = 'application/xml; charset=utf-8'
     response.headers['Cache-Control'] = 'public, max-age=3600'
     return response
@@ -230,7 +264,8 @@ def sitemap_documents():
                 entry['lastmod'] = str(lastmod)[:10]
             urls.append(entry)
 
-    response = make_response(render_template('sitemap.xml', urls=urls))
+    xml_content = _build_urlset_xml(urls)
+    response = make_response(xml_content)
     response.headers['Content-Type'] = 'application/xml; charset=utf-8'
     response.headers['Cache-Control'] = 'public, max-age=3600'
     return response
