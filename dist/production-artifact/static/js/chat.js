@@ -466,9 +466,12 @@ function connectChatSocket() {
       const list = LS.get(key, []);
       const targetMsg = list.find(m => (data.msg_id && m.msg_id === data.msg_id) || (data.ts && m.ts === data.ts));
       if (targetMsg) {
-        if (!targetMsg.file_req) targetMsg.file_req = {};
-        targetMsg.file_req.file_url = data.file_url;
+        const bestResourceUrl = data.resource_url || (data.doc_id ? `/resources/${data.doc_id}` : data.file_url);
+        targetMsg.file_req.file_url = bestResourceUrl;
         targetMsg.file_req.file_name = data.file_name;
+        if (data.title) targetMsg.file_req.title = data.title;
+        targetMsg.file_req.doc_id = data.doc_id;
+        targetMsg.file_req.resource_url = bestResourceUrl;
         targetMsg.file_req.status = 'fulfilled';
         LS.set(key, list);
       }
@@ -742,13 +745,25 @@ function openChat(peerId) {
   $('#chatInput')?.focus();
 }
 
+function filterActive3DayMessages(list) {
+  const cutoff = Date.now() - (3 * 24 * 60 * 60 * 1000);
+  return (list || []).filter(m => {
+    if (!m) return false;
+    if (!m.ts) return true;
+    const t = new Date(m.ts).getTime();
+    return isNaN(t) || t >= cutoff;
+  });
+}
+
 async function renderHistory(peerId) {
   const container = $('#chatMessages');
   if (!container) return;
 
   const myId = getMyId();
   const key = 'chat_history:' + [peerId, myId].sort().join('_');
-  const localMessages = LS.get(key, []);
+  const localMessages = filterActive3DayMessages(LS.get(key, []));
+  LS.set(key, localMessages);
+
   if (localMessages.length) {
     _renderMessageList(container, localMessages, myId, peerId);
     updateStudyStreakBadge(peerId, localMessages);
@@ -760,14 +775,15 @@ async function renderHistory(peerId) {
     const serverMessages = await loadHistory(peerId);
     if (serverMessages && serverMessages.length) {
       const seen = new Set();
-      const merged = [];
+      const rawMerged = [];
       for (const m of localMessages.concat(serverMessages)) {
         const idKey = m.msg_id || (m.ts + ':' + m.text);
         if (!seen.has(idKey)) {
           seen.add(idKey);
-          merged.push(m);
+          rawMerged.push(m);
         }
       }
+      const merged = filterActive3DayMessages(rawMerged);
       merged.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
       LS.set(key, merged);
       _renderMessageList(container, merged, myId, peerId);
@@ -815,22 +831,56 @@ function renderBubbleBody(bubble, msg, isMine) {
         </div>
       `;
     } else if (fileReq.status === 'fulfilled' || (fileReq.file_url && fileReq.file_url !== 'yet_to_add')) {
+      let resourceLink = fileReq.resource_url || (fileReq.doc_id ? `/resources/${fileReq.doc_id}` : (fileReq.file_url || '#'));
+      if (resourceLink.startsWith('/resource/')) {
+        resourceLink = resourceLink.replace('/resource/', '/resources/');
+      }
       contentDiv.innerHTML = `
         <div class="file-req-card fulfilled">
-          <div class="file-req-badge ready">✅ File Attached</div>
-          <div class="file-req-title">${escapeHtml(fileReq.title || fileReq.file_name || 'Attached Material')}</div>
+          <div class="file-req-badge ready">${fileReq.resource_url || fileReq.doc_id ? '🌐 Published to Library' : '✅ File Attached'}</div>
+          <div class="file-req-title">${escapeHtml(fileReq.title || fileReq.file_name || 'Study Material')}</div>
           ${fileReq.meta_info ? `<div class="file-req-meta">${escapeHtml(fileReq.meta_info)}</div>` : ''}
           <div class="file-req-info">
             <span class="file-icon">📄</span>
-            <span class="file-name">${escapeHtml(fileReq.file_name || 'Download File')}</span>
+            <span class="file-name">${escapeHtml(fileReq.file_name || 'Study Material')}</span>
           </div>
           <div class="file-req-actions">
-            <a href="${escapeHtml(fileReq.file_url)}" target="_blank" download="${escapeHtml(fileReq.file_name || 'file')}" class="btn-download-file">
-              ⬇ Download / View File
+            <a href="${escapeHtml(resourceLink)}" target="_blank" class="btn-open-material" title="Open in AbhiHub Viewer">
+              👁️ Open in AbhiHub Viewer
             </a>
           </div>
         </div>
       `;
+      // Auto-upgrade legacy /static/uploads/chat/ URLs to /resources/<doc_id>
+      if (!fileReq.doc_id && fileReq.file_url && fileReq.file_url.includes('/static/uploads/chat/')) {
+        const cleanFn = fileReq.file_url.split('/').pop();
+        fetch(`/api/chat/resolve-doc?filename=${encodeURIComponent(cleanFn)}`)
+          .then(r => r.json())
+          .then(res => {
+            if (res.success && res.resource_url) {
+              fileReq.doc_id = res.doc_id;
+              fileReq.resource_url = res.resource_url;
+              fileReq.file_url = res.resource_url;
+              const linkEl = contentDiv.querySelector('.btn-open-material');
+              if (linkEl) linkEl.href = res.resource_url;
+              const badgeEl = contentDiv.querySelector('.file-req-badge');
+              if (badgeEl) badgeEl.textContent = '🌐 Published to Library';
+              const peerId = LS.get('current_peer');
+              if (peerId) {
+                const myId = getMyId();
+                const key = 'chat_history:' + [peerId, myId].sort().join('_');
+                const list = LS.get(key, []);
+                const found = list.find(m => (msg.msg_id && m.msg_id === msg.msg_id) || (msg.ts && m.ts === msg.ts));
+                if (found && found.file_req) {
+                  found.file_req.doc_id = res.doc_id;
+                  found.file_req.resource_url = res.resource_url;
+                  found.file_req.file_url = res.resource_url;
+                  LS.set(key, list);
+                }
+              }
+            }
+          }).catch(() => {});
+      }
     } else if (isMine) {
       contentDiv.innerHTML = `
         <div class="file-req-card mine">
@@ -861,21 +911,42 @@ function renderBubbleBody(bubble, msg, isMine) {
     }
   } else if (msg.file_attachment) {
     const att = msg.file_attachment;
+    let viewUrl = att.resource_url || (att.doc_id ? `/resources/${att.doc_id}` : (att.file_url || '#'));
+    if (viewUrl.startsWith('/resource/')) {
+      viewUrl = viewUrl.replace('/resource/', '/resources/');
+    }
     contentDiv.innerHTML = `
       <div class="file-req-card fulfilled">
-        <div class="file-req-badge ready">📎 Shared File</div>
+        <div class="file-req-badge ready">${att.resource_url || att.doc_id ? '🌐 Published to Library' : '📎 Shared File'}</div>
         <div class="file-req-title">${escapeHtml(att.file_name || 'File Attachment')}</div>
         <div class="file-req-info">
           <span class="file-icon">📄</span>
-          <span class="file-name">${escapeHtml(att.file_name || 'Download File')}</span>
+          <span class="file-name">${escapeHtml(att.file_name || 'Study Material')}</span>
         </div>
         <div class="file-req-actions">
-          <a href="${escapeHtml(att.file_url)}" target="_blank" download="${escapeHtml(att.file_name || 'file')}" class="btn-download-file">
-            ⬇ Download / View File
+          <a href="${escapeHtml(viewUrl)}" target="_blank" class="btn-open-material" title="Open in AbhiHub Viewer">
+            👁️ Open in AbhiHub Viewer
           </a>
         </div>
       </div>
     `;
+    // Auto-upgrade legacy /static/uploads/chat/ URLs to /resources/<doc_id>
+    if (!att.doc_id && att.file_url && att.file_url.includes('/static/uploads/chat/')) {
+      const cleanFn = att.file_url.split('/').pop();
+      fetch(`/api/chat/resolve-doc?filename=${encodeURIComponent(cleanFn)}`)
+        .then(r => r.json())
+        .then(res => {
+          if (res.success && res.resource_url) {
+            att.doc_id = res.doc_id;
+            att.resource_url = res.resource_url;
+            att.file_url = res.resource_url;
+            const linkEl = contentDiv.querySelector('.btn-open-material');
+            if (linkEl) linkEl.href = res.resource_url;
+            const badgeEl = contentDiv.querySelector('.file-req-badge');
+            if (badgeEl) badgeEl.textContent = '🌐 Published to Library';
+          }
+        }).catch(() => {});
+    }
   } else {
     contentDiv.className = 'bubble-content bubble-text';
     contentDiv.innerHTML = linkifyAbhiHub(escapeHtml(msg.text));
@@ -1047,9 +1118,19 @@ async function uploadFulfillFile(file) {
   const formData = new FormData();
   formData.append('file', file);
   if (reqData.title) formData.append('title', reqData.title);
+  if (reqData.subject) formData.append('subject', reqData.subject);
+  if (reqData.subject_id) formData.append('subject_id', reqData.subject_id);
+  if (reqData.subject_abbr) formData.append('subject_abbr', reqData.subject_abbr);
+  if (reqData.subject_code) formData.append('subject_code', reqData.subject_code);
+  if (reqData.college_id) formData.append('college_id', reqData.college_id);
+  if (reqData.college_abbr) formData.append('college_abbr', reqData.college_abbr);
+  if (reqData.branch_id || reqData.department_id) formData.append('branch_id', reqData.branch_id || reqData.department_id);
+  if (reqData.branch_abbr) formData.append('branch_abbr', reqData.branch_abbr);
+  if (reqData.program) formData.append('program', reqData.program);
   if (reqData.category) formData.append('category', reqData.category);
   if (reqData.year) formData.append('year', reqData.year);
   if (reqData.semester) formData.append('semester', reqData.semester);
+  if (reqData.unit) formData.append('unit', reqData.unit);
   if (reqData.details || reqData.meta_info) formData.append('details', reqData.details || reqData.meta_info);
 
   try {
@@ -1069,8 +1150,12 @@ async function uploadFulfillFile(file) {
 
     if (targetMsg) {
       if (!targetMsg.file_req) targetMsg.file_req = {};
-      targetMsg.file_req.file_url = data.file_url;
+      const bestResourceUrl = data.resource_url || (data.doc_id ? `/resources/${data.doc_id}` : data.file_url);
+      targetMsg.file_req.file_url = bestResourceUrl;
       targetMsg.file_req.file_name = data.file_name;
+      if (data.title) targetMsg.file_req.title = data.title;
+      targetMsg.file_req.doc_id = data.doc_id;
+      targetMsg.file_req.resource_url = bestResourceUrl;
       targetMsg.file_req.status = 'fulfilled';
       LS.set(key, list);
     }
@@ -1082,13 +1167,17 @@ async function uploadFulfillFile(file) {
       if (bubble && targetMsg) renderBubbleBody(bubble, targetMsg, false);
     }
 
+    const emitUrl = data.resource_url || (data.doc_id ? `/resources/${data.doc_id}` : data.file_url);
     chatSocket?.emit('chat_file_fulfilled', {
       to: peerId,
       msg_id: msgId,
       ts: ts,
-      file_url: data.file_url,
+      file_url: emitUrl,
       file_name: data.file_name,
-      file_size: data.file_size
+      title: data.title || targetMsg?.file_req?.title,
+      file_size: data.file_size,
+      doc_id: data.doc_id,
+      resource_url: emitUrl
     });
 
     ChatSound.playReceive();
@@ -1122,6 +1211,16 @@ function submitFileRequest(title, details, metaInfo = '', extra = {}) {
     text: `📑 Requested File: ${title}`,
     file_req: {
       title,
+      subject: extra.subject || title,
+      subject_id: extra.subject_id || '',
+      subject_abbr: extra.subject_abbr || '',
+      subject_code: extra.subject_code || '',
+      college_id: extra.college_id || '',
+      college_abbr: extra.college_abbr || '',
+      branch_id: extra.branch_id || extra.department_id || '',
+      branch_abbr: extra.branch_abbr || '',
+      department_id: extra.department_id || extra.branch_id || '',
+      program: extra.program || 'b.tech',
       details,
       meta_info: metaInfo,
       category: extra.category || 'Notes',
@@ -1208,9 +1307,12 @@ async function uploadDirectFile(file) {
       return;
     }
 
+    const bestResourceUrl = data.resource_url || (data.doc_id ? `/resources/${data.doc_id}` : data.file_url);
     pendingMsg.text = `📎 Shared File: ${data.file_name}`;
-    pendingMsg.file_attachment.file_url = data.file_url;
+    pendingMsg.file_attachment.file_url = bestResourceUrl;
     pendingMsg.file_attachment.file_name = data.file_name;
+    pendingMsg.file_attachment.doc_id = data.doc_id;
+    pendingMsg.file_attachment.resource_url = bestResourceUrl;
     pendingMsg.status = 'sent';
 
     const key = 'chat_history:' + [peerId, myId].sort().join('_');
@@ -1251,15 +1353,86 @@ function escapeHtml(str) {
 }
 
 function linkifyAbhiHub(html) {
-  return html.replace(/(https?:\/\/)?(www\.)?abhihub\.edu\.eu\.org(\/[^\s)]*)?/gi, match => {
-    const href = /^https?:\/\//i.test(match) ? match : 'https://' + match.replace(/^www\./i, '');
-    return `<a class="abhihub-link" href="${href}" target="_blank" rel="noopener">${match}</a>`;
+  if (!html) return '';
+
+  const abhihubPattern = /(https?:\/\/(?:www\.)?(?:abhihub\.edu\.eu\.org|app\.abhihub\.run\.place|localhost(?::\d+)?|127\.0\.0\.1(?::\d+)?)[^\s<>"']*|(?:www\.)?abhihub\.edu\.eu\.org[^\s<>"']*|(?<=^|\s)(\/(?:resource|pyq|subject|notes|store-room|leaderboard)[^\s<>"']*))/gi;
+
+  let replaced = html.replace(abhihubPattern, (match) => {
+    let cleanHref = match.trim();
+    if (cleanHref.startsWith('/')) {
+      // relative path
+    } else if (!/^https?:\/\//i.test(cleanHref)) {
+      cleanHref = 'https://' + cleanHref.replace(/^www\./i, '');
+    }
+
+    let urlPath = cleanHref;
+    try {
+      if (cleanHref.startsWith('/')) {
+        urlPath = cleanHref;
+      } else {
+        const u = new URL(cleanHref);
+        urlPath = u.pathname + u.search;
+      }
+    } catch (_) {}
+
+    let icon = '🚀';
+    let title = 'AbhiHub Resource';
+    let actionText = 'Open in AbhiHub';
+
+    if (urlPath.includes('/resource/') || urlPath.includes('/resources/')) {
+      icon = '📄';
+      title = 'Study Material / Document';
+      actionText = 'View in AbhiHub Viewer';
+    } else if (urlPath.includes('/pyq')) {
+      icon = '📑';
+      title = 'Exam Papers & PYQs';
+      actionText = 'Browse Papers';
+    } else if (urlPath.includes('/notes')) {
+      icon = '📝';
+      title = 'Curated Study Notes';
+      actionText = 'Read Notes';
+    } else if (urlPath.includes('/subject/')) {
+      icon = '📚';
+      title = 'Subject Study Hub';
+      actionText = 'Explore Subject';
+    } else if (urlPath.includes('/leaderboard')) {
+      icon = '🏆';
+      title = 'Study Leaderboard';
+      actionText = 'Check Ranking';
+    } else if (urlPath.includes('/store-room')) {
+      icon = '📦';
+      title = 'Store Room';
+      actionText = 'Open Store Room';
+    }
+
+    const shortPath = urlPath.length > 30 ? urlPath.slice(0, 28) + '…' : urlPath;
+
+    return `
+      <div class="chat-abhihub-card-wrap">
+        <a href="${escapeHtml(cleanHref)}" target="_blank" rel="noopener" class="chat-abhihub-card">
+          <span class="chat-abhihub-card-icon">${icon}</span>
+          <span class="chat-abhihub-card-content">
+            <span class="chat-abhihub-card-title">${title}</span>
+            <span class="chat-abhihub-card-action">${actionText} • ${escapeHtml(shortPath)}</span>
+          </span>
+          <span class="chat-abhihub-card-arrow">↗</span>
+        </a>
+      </div>
+    `;
   });
+
+  const externalPattern = /(https?:\/\/[^\s<>"']+)/gi;
+  replaced = replaced.replace(externalPattern, (url) => {
+    if (url.includes('chat-abhihub-card') || url.includes('<a ')) return url;
+    return `<a href="${url}" target="_blank" rel="noopener" class="chat-ext-link">${url}</a>`;
+  });
+
+  return replaced;
 }
 
 function updateTimerText(timerEl, iso) {
   const sentAt = new Date(iso).getTime();
-  const expiresAt = sentAt + (7 * 24 * 60 * 60 * 1000);
+  const expiresAt = sentAt + (3 * 24 * 60 * 60 * 1000);
   const remaining = expiresAt - Date.now();
   if (remaining > 0) {
     timerEl.textContent = 'Disappears ' + new Intl.RelativeTimeFormat(navigator.language, { numeric: 'auto' }).format(Math.max(1, Math.round(remaining / 1000 / 60)), 'minute');
@@ -1512,6 +1685,294 @@ async function httpSendMessage(peerId, msg) {
   }
 }
 
+function getAcronym(str) {
+  if (!str) return '';
+  const stopWords = new Set(['and', 'of', 'the', 'in', 'for', 'to', 'with', 'on', 'at', '&']);
+  const words = str.replace(/[^a-zA-Z0-9\s]/g, ' ').split(/\s+/).filter(w => w && !stopWords.has(w.toLowerCase()));
+  if (words.length === 1 && words[0].length <= 6) return words[0].toUpperCase();
+  if (words.length > 1) {
+    const acronym = words.map(w => w[0]).join('').toUpperCase();
+    if (acronym.length >= 2) return acronym;
+  }
+  return str.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6).toUpperCase();
+}
+
+let academicTaxonomy = {
+  colleges: [],
+  departments: [],
+  initialized: false,
+  isCustomSubject: false
+};
+
+async function initChatAcademicTaxonomy() {
+  const colSelect = document.getElementById('chatReqCollege');
+  const branchSelect = document.getElementById('chatReqBranch');
+  const semSelect = document.getElementById('chatReqSem');
+  const subjSelect = document.getElementById('chatReqSubject');
+  const toggleSubjBtn = document.getElementById('chatToggleCustomSubjectBtn');
+  const customSubjWrap = document.getElementById('chatReqCustomSubjectWrap');
+  const customSubjName = document.getElementById('chatReqCustomSubjectName');
+  const customSubjCode = document.getElementById('chatReqCustomSubjectCode');
+  const newColInput = document.getElementById('chatReqNewCollege');
+  const newBranchInput = document.getElementById('chatReqNewBranch');
+  const typeSelect = document.getElementById('chatReqType');
+  const unitSelect = document.getElementById('chatReqUnit');
+  const yearSelect = document.getElementById('chatReqYear');
+  const titleInput = document.getElementById('chatReqTitle');
+
+  if (!colSelect || !branchSelect) return;
+
+  function updateAutoTitle() {
+    if (!titleInput) return;
+    const colObj = academicTaxonomy.colleges.find(c => c.id === colSelect?.value);
+    const colAbbr = (colObj?.abbreviation || getAcronym(colObj?.name || newColInput?.value || '')).trim().toUpperCase();
+
+    const deptObj = academicTaxonomy.departments.find(d => d.id === branchSelect?.value);
+    const deptAbbr = (deptObj?.abbreviation || getAcronym(deptObj?.name || newBranchInput?.value || '')).trim().toUpperCase();
+
+    let sName = '';
+    let sCode = '';
+    if (academicTaxonomy.isCustomSubject || subjSelect?.value === '__new__') {
+      sName = customSubjName?.value.trim() || '';
+      sCode = (customSubjCode?.value.trim() || '').toUpperCase();
+    } else if (subjSelect?.value) {
+      const selOpt = subjSelect.options[subjSelect.selectedIndex];
+      sName = selOpt?.dataset.name || '';
+      sCode = (selOpt?.dataset.code || '').toUpperCase();
+    }
+
+    const subjAbbr = getAcronym(sName);
+    const unitVal = unitSelect?.value || 'Full Syllabus';
+    const typeVal = (typeSelect?.value || 'Notes').replace(/[^a-zA-Z0-9]/g, '').trim();
+    const yearVal = yearSelect?.value || '2025';
+
+    const tags = [colAbbr, deptAbbr, subjAbbr].filter(Boolean);
+    let header = tags.join(' - ');
+    if (sCode && !header.includes(sCode)) {
+      header = header ? `${header} (${sCode})` : sCode;
+    }
+
+    const detailParts = [];
+    if (unitVal) detailParts.push(unitVal);
+    if (typeVal) detailParts.push(typeVal);
+    if (yearVal) detailParts.push(yearVal);
+
+    const autoTitle = header ? `${header} - ${detailParts.join(' · ')}` : detailParts.join(' · ');
+    titleInput.placeholder = autoTitle;
+    if (!titleInput.dataset.userEdited || titleInput.value === titleInput.dataset.lastAuto) {
+      titleInput.value = autoTitle;
+      titleInput.dataset.lastAuto = autoTitle;
+    }
+  }
+
+  function renderColleges(selectedId = '') {
+    colSelect.innerHTML = '<option value="" disabled selected>Select College / Institution</option>';
+    academicTaxonomy.colleges.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c.id;
+      opt.textContent = c.abbreviation ? `${c.name} (${c.abbreviation})` : c.name;
+      if (selectedId && c.id === selectedId) opt.selected = true;
+      colSelect.appendChild(opt);
+    });
+    const newOpt = document.createElement('option');
+    newOpt.value = '__new__';
+    newOpt.textContent = '➕ + Add New College...';
+    colSelect.appendChild(newOpt);
+  }
+
+  function renderBranches(branchesList, selectedId = '') {
+    const list = branchesList || academicTaxonomy.departments || [];
+    branchSelect.innerHTML = '<option value="" disabled selected>Select Branch / Department</option>';
+    list.forEach(d => {
+      const opt = document.createElement('option');
+      opt.value = d.id;
+      opt.textContent = d.abbreviation ? `${d.name} (${d.abbreviation})` : d.name;
+      if (selectedId && d.id === selectedId) opt.selected = true;
+      branchSelect.appendChild(opt);
+    });
+    const newOpt = document.createElement('option');
+    newOpt.value = '__new__';
+    newOpt.textContent = '➕ + Add New Branch...';
+    branchSelect.appendChild(newOpt);
+  }
+
+  async function loadSubjects() {
+    const branchId = branchSelect.value;
+    const semVal = semSelect?.value || '';
+    const semNum = semVal.replace(/\D/g, '');
+
+    if (!branchId || branchId === '__new__') {
+      subjSelect.innerHTML = '<option value="" disabled selected>Select branch first</option>';
+      const newOpt = document.createElement('option');
+      newOpt.value = '__new__';
+      newOpt.textContent = '➕ + Add New Subject...';
+      subjSelect.appendChild(newOpt);
+      updateAutoTitle();
+      return;
+    }
+
+    subjSelect.innerHTML = '<option value="" disabled selected>Loading subjects…</option>';
+    try {
+      const url = `/api/subjects?department_id=${encodeURIComponent(branchId)}${semNum ? '&semester=' + semNum : ''}`;
+      const res = await fetch(url);
+      const data = await res.json();
+      const subjects = data.subjects || [];
+
+      subjSelect.innerHTML = '<option value="" disabled selected>Select Subject</option>';
+      subjects.forEach(s => {
+        const opt = document.createElement('option');
+        opt.value = s.id;
+        opt.dataset.name = s.name;
+        opt.dataset.code = s.subject_code || '';
+        opt.textContent = s.subject_code ? `${s.name} (${s.subject_code})` : s.name;
+        subjSelect.appendChild(opt);
+      });
+
+      const newOpt = document.createElement('option');
+      newOpt.value = '__new__';
+      newOpt.textContent = '➕ + Add New Subject...';
+      subjSelect.appendChild(newOpt);
+    } catch (_) {
+      subjSelect.innerHTML = '<option value="" disabled selected>Failed to load subjects</option>';
+      const newOpt = document.createElement('option');
+      newOpt.value = '__new__';
+      newOpt.textContent = '➕ + Add New Subject...';
+      subjSelect.appendChild(newOpt);
+    }
+    updateAutoTitle();
+  }
+
+  function toggleCustomSubject(forceCustom = null) {
+    academicTaxonomy.isCustomSubject = forceCustom !== null ? forceCustom : !academicTaxonomy.isCustomSubject;
+    if (academicTaxonomy.isCustomSubject) {
+      if (customSubjWrap) customSubjWrap.style.display = 'block';
+      subjSelect.required = false;
+      if (customSubjName) {
+        customSubjName.required = true;
+        customSubjName.focus();
+      }
+      if (toggleSubjBtn) toggleSubjBtn.textContent = '← Choose Existing Subject';
+    } else {
+      if (customSubjWrap) customSubjWrap.style.display = 'none';
+      subjSelect.required = true;
+      if (customSubjName) {
+        customSubjName.required = false;
+        customSubjName.value = '';
+      }
+      if (toggleSubjBtn) toggleSubjBtn.textContent = '+ Add New Subject';
+    }
+    updateAutoTitle();
+  }
+
+  if (!academicTaxonomy.initialized) {
+    academicTaxonomy.initialized = true;
+
+    titleInput?.addEventListener('input', () => {
+      if (titleInput.value !== titleInput.dataset.lastAuto) {
+        titleInput.dataset.userEdited = 'true';
+      }
+    });
+
+    colSelect.addEventListener('change', async () => {
+      if (colSelect.value === '__new__') {
+        if (newColInput) {
+          newColInput.style.display = 'block';
+          newColInput.required = true;
+          newColInput.focus();
+        }
+        renderBranches(academicTaxonomy.departments);
+      } else {
+        if (newColInput) {
+          newColInput.style.display = 'none';
+          newColInput.required = false;
+          newColInput.value = '';
+        }
+        try {
+          const res = await fetch(`/api/departments?college_id=${encodeURIComponent(colSelect.value)}`);
+          const data = await res.json();
+          if (data.success && data.departments && data.departments.length > 0) {
+            renderBranches(data.departments);
+          } else {
+            renderBranches(academicTaxonomy.departments);
+          }
+        } catch (_) {
+          renderBranches(academicTaxonomy.departments);
+        }
+      }
+      loadSubjects();
+      updateAutoTitle();
+    });
+
+    newColInput?.addEventListener('input', updateAutoTitle);
+
+    branchSelect.addEventListener('change', () => {
+      if (branchSelect.value === '__new__') {
+        if (newBranchInput) {
+          newBranchInput.style.display = 'block';
+          newBranchInput.required = true;
+          newBranchInput.focus();
+        }
+      } else {
+        if (newBranchInput) {
+          newBranchInput.style.display = 'none';
+          newBranchInput.required = false;
+          newBranchInput.value = '';
+        }
+      }
+      loadSubjects();
+      updateAutoTitle();
+    });
+
+    newBranchInput?.addEventListener('input', updateAutoTitle);
+
+    semSelect?.addEventListener('change', () => {
+      loadSubjects();
+      updateAutoTitle();
+    });
+
+    typeSelect?.addEventListener('change', updateAutoTitle);
+    unitSelect?.addEventListener('change', updateAutoTitle);
+    yearSelect?.addEventListener('change', updateAutoTitle);
+
+    customSubjName?.addEventListener('input', updateAutoTitle);
+    customSubjCode?.addEventListener('input', updateAutoTitle);
+
+    toggleSubjBtn?.addEventListener('click', () => toggleCustomSubject());
+
+    subjSelect?.addEventListener('change', () => {
+      if (subjSelect.value === '__new__') {
+        toggleCustomSubject(true);
+      } else {
+        updateAutoTitle();
+      }
+    });
+
+    // Initial fetch of colleges, departments, and user profile
+    try {
+      const [colRes, deptRes, profRes] = await Promise.all([
+        fetch('/api/colleges').then(r => r.json()).catch(() => ({})),
+        fetch('/api/departments').then(r => r.json()).catch(() => ({})),
+        fetch('/api/profile').then(r => r.json()).catch(() => ({}))
+      ]);
+
+      academicTaxonomy.colleges = colRes.colleges || [];
+      academicTaxonomy.departments = deptRes.departments || [];
+
+      const userCollegeId = profRes.college_id || '';
+      const userBranchId = profRes.department_id || '';
+
+      renderColleges(userCollegeId);
+      renderBranches(academicTaxonomy.departments, userBranchId);
+
+      if (userCollegeId && userBranchId) {
+        loadSubjects();
+      }
+    } catch (e) {
+      console.warn('[chat] Taxonomy fetch error:', e);
+    }
+  }
+}
+
 document.addEventListener('DOMContentLoaded', () => {
   if (!document.querySelector('.chat-shell')) return;
 
@@ -1623,6 +2084,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (action === 'chatOpenRequestModal') {
       const modal = document.getElementById('chatRequestModal');
       if (modal) {
+        initChatAcademicTaxonomy();
         if (typeof modal.showModal === 'function') modal.showModal();
         else modal.style.display = 'block';
         document.getElementById('chatReqTitle')?.focus();
@@ -1652,42 +2114,191 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
 
-  document.getElementById('chatRequestForm')?.addEventListener('submit', (e) => {
+  initChatAcademicTaxonomy();
+
+  document.getElementById('chatRequestForm')?.addEventListener('submit', async (e) => {
     e.preventDefault();
     const submitBtn = e.target.querySelector('button[type="submit"]');
     if (submitBtn?.disabled) return;
     if (submitBtn) {
       submitBtn.disabled = true;
-      setTimeout(() => { if (submitBtn) submitBtn.disabled = false; }, 1500);
+      submitBtn.textContent = '⏳ Saving…';
     }
-    const type = document.getElementById('chatReqType')?.value || 'Notes 📝';
-    const year = document.getElementById('chatReqYear')?.value || '';
-    const title = document.getElementById('chatReqTitle')?.value.trim();
-    const sem = document.getElementById('chatReqSem')?.value || '';
-    const unit = document.getElementById('chatReqUnit')?.value || '';
-    const details = document.getElementById('chatReqDetails')?.value.trim() || '';
-    if (!title) return;
 
-    const metaParts = [type, sem, unit, year].filter(Boolean);
-    const metaInfo = metaParts.join(' · ');
-    const fullTitle = `${title} (${type})`;
+    try {
+      const colSelect = document.getElementById('chatReqCollege');
+      const branchSelect = document.getElementById('chatReqBranch');
+      const newColInput = document.getElementById('chatReqNewCollege');
+      const newBranchInput = document.getElementById('chatReqNewBranch');
+      const semSelect = document.getElementById('chatReqSem');
+      const subjSelect = document.getElementById('chatReqSubject');
+      const customSubjName = document.getElementById('chatReqCustomSubjectName');
+      const customSubjCode = document.getElementById('chatReqCustomSubjectCode');
 
-    submitFileRequest(fullTitle, details, metaInfo, {
-      category: type,
-      year: year,
-      semester: sem,
-      unit: unit
-    });
+      let collegeId = colSelect?.value || '';
+      let branchId = branchSelect?.value || '';
+      let subjectId = '';
+      let subjectName = '';
 
-    const modal = document.getElementById('chatRequestModal');
-    if (modal) {
-      if (typeof modal.close === 'function') modal.close();
-      else modal.style.display = 'none';
+      // 1. If new college entered, add to colleges table
+      if (collegeId === '__new__' && newColInput?.value.trim()) {
+        try {
+          const res = await fetch('/api/colleges', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name: newColInput.value.trim() })
+          });
+          const cdata = await res.json();
+          if (cdata.success && cdata.college?.id) {
+            collegeId = cdata.college.id;
+            academicTaxonomy.colleges.push(cdata.college);
+          }
+        } catch (err) {
+          console.error('[chat] Failed to add new college:', err);
+        }
+      }
+
+      // 2. If new branch entered, add to departments table
+      if (branchId === '__new__' && newBranchInput?.value.trim()) {
+        try {
+          const res = await fetch('/api/departments', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: newBranchInput.value.trim(),
+              college_id: collegeId && collegeId !== '__new__' ? collegeId : ''
+            })
+          });
+          const ddata = await res.json();
+          if (ddata.success && ddata.department?.id) {
+            branchId = ddata.department.id;
+            academicTaxonomy.departments.push(ddata.department);
+          }
+        } catch (err) {
+          console.error('[chat] Failed to add new branch:', err);
+        }
+      }
+
+      const semVal = semSelect?.value || 'Semester 5';
+      const semNum = parseInt(semVal.replace(/\D/g, '') || '5', 10);
+      const isCustomSubj = academicTaxonomy.isCustomSubject || subjSelect?.value === '__new__';
+
+      // 3. If new subject, add to subjects table
+      if (isCustomSubj && customSubjName?.value.trim()) {
+        const rawName = customSubjName.value.trim();
+        const rawCode = customSubjCode?.value.trim() || '';
+        try {
+          const res = await fetch('/api/subjects', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              name: rawName,
+              subject_code: rawCode,
+              department_id: branchId && branchId !== '__new__' ? branchId : '',
+              semester: semNum
+            })
+          });
+          const sdata = await res.json();
+          if (sdata.success && sdata.subject?.id) {
+            subjectId = sdata.subject.id;
+            subjectName = sdata.subject.name || rawName;
+          } else {
+            subjectName = rawName;
+          }
+        } catch (err) {
+          console.error('[chat] Failed to add new subject:', err);
+          subjectName = rawName;
+        }
+      } else if (subjSelect?.value && subjSelect.value !== '__new__') {
+        subjectId = subjSelect.value;
+        subjectName = subjSelect.options[subjSelect.selectedIndex]?.dataset.name || subjSelect.options[subjSelect.selectedIndex]?.textContent.trim();
+      }
+
+      // 4. Resolve abbreviations
+      const colObj = academicTaxonomy.colleges.find(c => c.id === collegeId);
+      const colAbbr = (colObj?.abbreviation || getAcronym(colObj?.name || newColInput?.value || '')).trim().toUpperCase();
+
+      const deptObj = academicTaxonomy.departments.find(d => d.id === branchId);
+      const deptAbbr = (deptObj?.abbreviation || getAcronym(deptObj?.name || newBranchInput?.value || '')).trim().toUpperCase();
+
+      let selectedSubjCode = '';
+      if (subjSelect?.value && subjSelect.value !== '__new__') {
+        const selOpt = subjSelect.options[subjSelect.selectedIndex];
+        selectedSubjCode = selOpt?.dataset?.code || '';
+      }
+      const rawCode = customSubjCode?.value.trim() || selectedSubjCode || '';
+      const subjCode = rawCode.toUpperCase();
+      const subjAbbr = getAcronym(subjectName);
+
+      const prog = document.getElementById('chatReqProgram')?.value || 'b.tech';
+      const type = document.getElementById('chatReqType')?.value || 'Notes 📝';
+      const year = document.getElementById('chatReqYear')?.value || '2025';
+      const unit = document.getElementById('chatReqUnit')?.value || 'Full Syllabus';
+      const title = document.getElementById('chatReqTitle')?.value.trim();
+      const details = document.getElementById('chatReqDetails')?.value.trim() || '';
+
+      if (!title && !subjectName) {
+        alert('Please select or enter a subject name');
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = 'Send Request';
+        }
+        return;
+      }
+
+      const prefixTags = [colAbbr, deptAbbr, subjAbbr].filter(Boolean);
+      let header = prefixTags.join(' - ');
+      if (subjCode && !header.includes(subjCode)) {
+        header = header ? `${header} (${subjCode})` : subjCode;
+      }
+
+      const cleanType = (type || 'Notes').replace(/[^a-zA-Z0-9]/g, '').trim();
+      let displayTitle = '';
+      if (title && title.startsWith(header)) {
+        displayTitle = title;
+      } else if (title && title.toLowerCase() !== subjectName.toLowerCase()) {
+        displayTitle = header ? `${header} - ${title} - ${unit} ${cleanType} ${year}` : `${title} - ${unit} ${cleanType} ${year}`;
+      } else {
+        displayTitle = header ? `${header} - ${unit} ${cleanType} ${year}` : `${subjectName} (${type})`;
+      }
+
+      const metaParts = [prog.toUpperCase(), semVal, unit, year].filter(Boolean);
+      const metaInfo = metaParts.join(' · ');
+
+      submitFileRequest(displayTitle, details, metaInfo, {
+        category: type,
+        year: year,
+        semester: semVal,
+        unit: unit,
+        subject: subjectName || title,
+        subject_id: subjectId,
+        subject_abbr: subjAbbr,
+        subject_code: subjCode,
+        college_id: collegeId && collegeId !== '__new__' ? collegeId : '',
+        college_abbr: colAbbr,
+        branch_id: branchId && branchId !== '__new__' ? branchId : '',
+        branch_abbr: deptAbbr,
+        program: prog
+      });
+
+      const modal = document.getElementById('chatRequestModal');
+      if (modal) {
+        if (typeof modal.close === 'function') modal.close();
+        else modal.style.display = 'none';
+      }
+
+      if (customSubjName) customSubjName.value = '';
+      if (customSubjCode) customSubjCode.value = '';
+      if (document.getElementById('chatReqTitle')) document.getElementById('chatReqTitle').value = '';
+      if (document.getElementById('chatReqDetails')) document.getElementById('chatReqDetails').value = '';
+    } catch (err) {
+      console.error('[chat] Submit error:', err);
+    } finally {
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Send Request';
+      }
     }
-    const titleInput = document.getElementById('chatReqTitle');
-    const descInput = document.getElementById('chatReqDetails');
-    if (titleInput) titleInput.value = '';
-    if (descInput) descInput.value = '';
   });
 
   document.getElementById('chatDirectFileInput')?.addEventListener('change', (e) => {

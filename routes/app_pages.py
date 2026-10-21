@@ -641,15 +641,64 @@ def upload():
             if not (year.isdigit() and len(year) == 4 and 1990 <= int(year) <= 2035):
                 return jsonify(success=False, message="Please provide a valid 4-digit academic year (e.g. 2025)."), 400
 
+            # Abbreviation resolution for College, Department, Subject, and Subject Code
+            col_abbr = (request.form.get('college_abbr') or '').strip().upper()
+            dept_abbr = (request.form.get('branch_abbr') or request.form.get('department_abbr') or '').strip().upper()
+            subj_abbr = (request.form.get('subject_abbr') or '').strip().upper()
+            subject_code = (request.form.get('subject_code') or '').strip().upper()
+
+            from methods.supabase_helper import init_supabase, make_acronym
+            client_sb = init_supabase()
+            if client_sb:
+                if not col_abbr and college_id:
+                    try:
+                        c_row = client_sb.table('colleges').select('name, abbreviation').eq('id', college_id).limit(1).execute()
+                        if c_row.data:
+                            col_abbr = (c_row.data[0].get('abbreviation') or make_acronym(c_row.data[0].get('name'))).strip().upper()
+                    except Exception:
+                        pass
+                if not dept_abbr and branch_id:
+                    try:
+                        d_row = client_sb.table('departments').select('name, abbreviation').eq('id', branch_id).limit(1).execute()
+                        if d_row.data:
+                            dept_abbr = (d_row.data[0].get('abbreviation') or make_acronym(d_row.data[0].get('name'))).strip().upper()
+                    except Exception:
+                        pass
+                if subject_id:
+                    try:
+                        s_row = client_sb.table('subjects').select('name, subject_code').eq('id', subject_id).limit(1).execute()
+                        if s_row.data:
+                            if not subject_code:
+                                subject_code = (s_row.data[0].get('subject_code') or '').strip().upper()
+                            if not subj_abbr:
+                                subj_abbr = make_acronym(s_row.data[0].get('name') or subject)
+                    except Exception:
+                        pass
+
+            if not subj_abbr and subject:
+                subj_abbr = make_acronym(subject)
+
+            # Build standardized descriptive title: CollegeAbbr - DeptAbbr - SubjAbbr (SubjectCode) - Topic/Unit/Category Year
+            prefix_tags = [p for p in [col_abbr, dept_abbr, subj_abbr] if p]
+            header = " - ".join(prefix_tags)
+            if subject_code and subject_code not in header:
+                header = f"{header} ({subject_code})" if header else subject_code
+
+            cat_title = document_type.replace('_', ' ').title()
+            unit_clean = re.sub(r'[^a-zA-Z0-9]', '', unit or '')
+
+            if not title_val or len(title_val) < 3 or title_val.lower() == (subject or '').lower():
+                detail_parts = [p for p in [unit, cat_title, year] if p]
+                title_val = f"{header} - {' · '.join(detail_parts)}" if header else " · ".join(detail_parts)
+            elif header and not title_val.startswith(col_abbr) and not title_val.startswith(header) and header not in title_val:
+                title_val = f"{header} - {title_val}"
+
             _ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
-            _subject_part = (subject or '').strip()
-            if not _subject_part and document_type.lower() == 'question_bank':
-                _subject_part = (request.form.get('qb_tags') or '').strip() or 'question_bank'
-            _safe = lambda s: re.sub(r'[^a-zA-Z0-9_-]+', '', s.replace(' ', '_')).lower()
-            _parts = [str(year), _safe(_subject_part), _safe(document_type)]
-            if unit: _parts.append(_safe(unit))
-            _parts.append(str(int(time.time()))[-6:])
-            _base = '_'.join(p for p in _parts if p) or 'upload'
+            fn_components = [p for p in [col_abbr, dept_abbr, subj_abbr, subject_code, unit_clean, cat_title.replace(' ', ''), str(year)] if p]
+            if fn_components:
+                _base = "_".join(re.sub(r'[^a-zA-Z0-9]', '', c) for c in fn_components)
+            else:
+                _base = f"upload_{int(time.time())}"
             original_filename = f"{_base}.{_ext}"
 
             ext = _ext

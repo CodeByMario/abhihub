@@ -171,10 +171,72 @@ def label_store_room_paper():
         file_ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else 'jpg'
         file_type = 'pdf' if file_ext == 'pdf' else 'image'
 
+        # Resolve abbreviations for College, Branch, Subject, Subject Code
+        col_abbr = (data.get('college_abbr') or '').strip().upper()
+        dept_abbr = (data.get('branch_abbr') or data.get('department_abbr') or '').strip().upper()
+        subj_abbr = (data.get('subject_abbr') or '').strip().upper()
+        subj_code = (subject_code or data.get('subject_code') or '').strip().upper()
+
+        from methods.supabase_helper import init_supabase, make_acronym
+        client_sb = init_supabase()
+        if client_sb:
+            if not col_abbr and college_id:
+                try:
+                    c_row = client_sb.table('colleges').select('name, abbreviation').eq('id', college_id).limit(1).execute()
+                    if c_row.data:
+                        col_abbr = (c_row.data[0].get('abbreviation') or make_acronym(c_row.data[0].get('name'))).strip().upper()
+                except Exception:
+                    pass
+            if not dept_abbr and branch_id:
+                try:
+                    d_row = client_sb.table('departments').select('name, abbreviation').eq('id', branch_id).limit(1).execute()
+                    if d_row.data:
+                        dept_abbr = (d_row.data[0].get('abbreviation') or make_acronym(d_row.data[0].get('name'))).strip().upper()
+                except Exception:
+                    pass
+            if subject_id:
+                try:
+                    s_row = client_sb.table('subjects').select('name, subject_code').eq('id', subject_id).limit(1).execute()
+                    if s_row.data:
+                        if not subj_code:
+                            subj_code = (s_row.data[0].get('subject_code') or '').strip().upper()
+                        if not subj_abbr:
+                            subj_abbr = make_acronym(s_row.data[0].get('name') or subject_name)
+                except Exception:
+                    pass
+
+        if not subj_abbr and subject_name:
+            subj_abbr = make_acronym(subject_name)
+
+        # Standardize title: CollegeAbbr - DeptAbbr - SubjAbbr (SubjectCode) - Details
+        prefix_tags = [p for p in [col_abbr, dept_abbr, subj_abbr] if p]
+        header = " - ".join(prefix_tags)
+        if subj_code and subj_code not in header:
+            header = f"{header} ({subj_code})" if header else subj_code
+
+        cat_title = document_category.replace('_', ' ').title()
+        exam_title = exam_type.upper() if exam_type else ''
+        details_list = [p for p in [exam_title, cat_title, str(year)] if p]
+        details_str = " · ".join(details_list)
+
+        if not custom_title or custom_title.lower() == subject_name.lower():
+            final_title = f"{header} - {details_str}" if header else (details_str or subject_name)
+        elif header and not custom_title.startswith(col_abbr) and not custom_title.startswith(header) and header not in custom_title:
+            final_title = f"{header} - {custom_title}"
+        else:
+            final_title = custom_title or subject_name
+
+        # Standardize filename: CollegeAbbr_DeptAbbr_SubjAbbr_SubjCode_Exam_Category_Year.ext
+        fn_components = [p for p in [col_abbr, dept_abbr, subj_abbr, subj_code, exam_title, cat_title.replace(' ', ''), str(year)] if p]
+        if fn_components:
+            clean_filename = "_".join(re.sub(r'[^a-zA-Z0-9]', '', c) for c in fn_components) + f".{file_ext}"
+        else:
+            clean_filename = filename
+
         result = save_file_record(
             user_id=user_id or user_email.split('@')[0],
             user_email=user_email,
-            file_name=filename,
+            file_name=clean_filename,
             file_url=file_url,
             file_type=file_type,
             file_size=0,
@@ -185,9 +247,9 @@ def label_store_room_paper():
             college_id=college_id,
             branch_id=branch_id,
             subject_id=subject_id,
-            subject_code=subject_code,
+            subject_code=subj_code,
             semester=semester,
-            title=custom_title or subject_name,
+            title=final_title,
             description=custom_description,
             exam_type=exam_type,
             program=program

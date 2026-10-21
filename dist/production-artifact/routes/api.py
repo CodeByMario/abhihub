@@ -1682,6 +1682,15 @@ def view_doc(doc_id, filename=None):
     if not file_url or not isinstance(file_url, str):
         abort(404)
 
+    # Support local static files (such as chat uploads) directly from disk
+    if file_url.startswith('/static/') or file_url.startswith('static/'):
+        clean_rel = file_url.lstrip('/')
+        local_disk_path = os.path.join(current_app.root_path, clean_rel)
+        if os.path.exists(local_disk_path):
+            from flask import send_file
+            mimetype = 'application/pdf' if local_disk_path.lower().endswith('.pdf') else None
+            return send_file(local_disk_path, mimetype=mimetype)
+
     if not file_url.startswith('http'):
         cache_key = f"signed-url:{doc_id}"
         try:
@@ -2409,7 +2418,146 @@ def api_chat_upload_file():
     if size > 25 * 1024 * 1024:
         return jsonify({'success': False, 'error': 'File exceeds 25MB limit'}), 400
 
-    safe_name = f"chat_{int(time.time())}_{_get_uid()[:8]}_{orig_name}"
+    title_raw = (request.form.get('title') or '').strip()
+    category_raw = (request.form.get('category') or 'notes').lower()
+
+    # Map category string to platform document categories
+    cat_clean = 'notes'
+    if 'paper' in category_raw or 'pyq' in category_raw:
+        cat_clean = 'papers'
+    elif 'practical' in category_raw or 'lab' in category_raw:
+        cat_clean = 'practical'
+    elif 'syllabus' in category_raw:
+        cat_clean = 'syllabus'
+    elif 'assignment' in category_raw or 'assisment' in category_raw:
+        cat_clean = 'assignment'
+    elif 'question' in category_raw:
+        cat_clean = 'question_bank'
+
+    year_val = (request.form.get('year') or '2025').strip()
+    if not (year_val.isdigit() and len(year_val) == 4):
+        year_val = '2025'
+
+    sem_raw = str(request.form.get('semester') or '').strip()
+    semester_val = None
+    import re
+    sem_match = re.search(r'\d+', sem_raw)
+    if sem_match:
+        try:
+            s_num = int(sem_match.group())
+            if 1 <= s_num <= 8:
+                semester_val = s_num
+        except Exception:
+            pass
+
+    details_val = request.form.get('details') or 'Shared via Peer Chat'
+    subject_val = (request.form.get('subject') or title_raw or 'General').strip()
+    program_val = (request.form.get('program') or 'b.tech').strip()
+    college_id_val = request.form.get('college_id') or session.get('user', {}).get('college_id')
+    branch_id_val = request.form.get('branch_id') or request.form.get('department_id') or session.get('user', {}).get('branch_id')
+    subject_id_val = request.form.get('subject_id')
+    doc_id = None
+    resource_url = None
+
+    from methods.supabase_helper import init_supabase, init_supabase_admin
+    client = init_supabase() or init_supabase_admin()
+
+    # If subject_id is not yet created in table, check or insert it into subjects table
+    try:
+        if client and not subject_id_val and subject_val:
+            s_check = client.table('subjects').select('id, name, subject_code').ilike('name', f"%{subject_val}%").limit(1).execute()
+            if s_check.data:
+                subject_id_val = s_check.data[0]['id']
+            elif branch_id_val:
+                ins_res = client.table('subjects').insert({
+                    'name': subject_val,
+                    'department_id': branch_id_val,
+                    'semester': semester_val
+                }).execute()
+                if ins_res.data:
+                    subject_id_val = ins_res.data[0]['id']
+    except Exception as s_err:
+        logging.info(f"[chat] Subject table lookup/insert notice: {s_err}")
+
+    # Acronym helper for college, branch, and subject abbreviations
+    def make_acronym(text):
+        if not text:
+            return ''
+        stop_words = {'and', 'of', 'the', 'in', 'for', 'to', 'with', 'on', 'at', '&'}
+        words = [w for w in re.split(r'[\s_\-]+', text.strip()) if w and w.lower() not in stop_words]
+        if len(words) == 1:
+            clean = re.sub(r'[^a-zA-Z0-9]', '', words[0])
+            return clean.upper() if len(clean) <= 6 else clean[:6].upper()
+        acr = "".join([re.sub(r'[^a-zA-Z0-9]', '', w)[:1] for w in words])
+        return acr.upper() if len(acr) >= 2 else re.sub(r'[^a-zA-Z0-9]', '', text)[:6].upper()
+
+    col_abbr = (request.form.get('college_abbr') or '').strip().upper()
+    dept_abbr = (request.form.get('branch_abbr') or request.form.get('department_abbr') or '').strip().upper()
+    subj_abbr = (request.form.get('subject_abbr') or '').strip().upper()
+    subj_code = (request.form.get('subject_code') or '').strip().upper()
+
+    if client:
+        if not col_abbr and college_id_val:
+            try:
+                c_row = client.table('colleges').select('name, abbreviation').eq('id', college_id_val).limit(1).execute()
+                if c_row.data:
+                    col_abbr = (c_row.data[0].get('abbreviation') or make_acronym(c_row.data[0].get('name'))).strip().upper()
+            except Exception:
+                pass
+        if not dept_abbr and branch_id_val:
+            try:
+                d_row = client.table('departments').select('name, abbreviation').eq('id', branch_id_val).limit(1).execute()
+                if d_row.data:
+                    dept_abbr = (d_row.data[0].get('abbreviation') or make_acronym(d_row.data[0].get('name'))).strip().upper()
+            except Exception:
+                pass
+        if subject_id_val:
+            try:
+                s_row = client.table('subjects').select('name, subject_code').eq('id', subject_id_val).limit(1).execute()
+                if s_row.data:
+                    if not subj_code:
+                        subj_code = (s_row.data[0].get('subject_code') or '').strip().upper()
+                    if not subj_abbr:
+                        subj_abbr = make_acronym(s_row.data[0].get('name') or subject_val)
+            except Exception:
+                pass
+
+    if not subj_abbr and subject_val:
+        subj_abbr = make_acronym(subject_val)
+
+    unit_val = (request.form.get('unit') or '').strip()
+    unit_clean = re.sub(r'[^a-zA-Z0-9]', '', unit_val) or 'Full'
+    cat_title = cat_clean.capitalize()
+
+    # Form descriptive title: CollegeAbbr - DeptAbbr - SubjAbbr (SubjectCode) - Topic/Unit/Category
+    prefix_tags = [p for p in [col_abbr, dept_abbr, subj_abbr] if p]
+    header = " - ".join(prefix_tags)
+    if subj_code and subj_code not in header:
+        header = f"{header} ({subj_code})" if header else subj_code
+
+    custom_topic = ''
+    if title_raw and title_raw.lower() != subject_val.lower() and not title_raw.startswith(header):
+        custom_topic = title_raw
+
+    desc_parts = []
+    if custom_topic:
+        desc_parts.append(custom_topic)
+    if unit_val and unit_val.lower() not in (custom_topic.lower() if custom_topic else ''):
+        desc_parts.append(unit_val)
+    desc_parts.append(cat_title)
+    if year_val:
+        desc_parts.append(year_val)
+
+    descriptive_title = f"{header} - {' · '.join(desc_parts)}" if header else " · ".join(desc_parts)
+
+    # Form descriptive filename: CollegeAbbr_DeptAbbr_SubjAbbr_SubjCode_Unit_Category_Year.ext
+    ext = os.path.splitext(orig_name)[1] or '.pdf'
+    fn_components = [p for p in [col_abbr, dept_abbr, subj_abbr, subj_code, unit_clean, cat_title, year_val] if p]
+    if not fn_components:
+        fn_components = [os.path.splitext(orig_name)[0] or 'study_material']
+    descriptive_filename = "_".join(re.sub(r'[^a-zA-Z0-9]', '', c) for c in fn_components) + ext
+
+    safe_name = f"chat_{int(time.time())}_{_get_uid()[:8]}_{descriptive_filename}"
     upload_dir = os.path.join(current_app.static_folder or 'static', 'uploads', 'chat')
     os.makedirs(upload_dir, exist_ok=True)
     save_path = os.path.join(upload_dir, safe_name)
@@ -2417,40 +2565,123 @@ def api_chat_upload_file():
 
     file_url = f"/static/uploads/chat/{safe_name}"
 
-    # Link with platform study library
-    title = request.form.get('title') or orig_name
-    category = request.form.get('category') or 'notes'
-    year = request.form.get('year') or '2025'
-    semester = request.form.get('semester') or None
     try:
-        from methods.supabase_helper import save_file_record
+        from methods.supabase_helper import save_file_record, recalculate_and_persist_user_rank, notify_all_new_upload, track_user_event
         user_info = session.get('user', {})
-        save_file_record(
-            user_id=_get_uid(),
+        uid = _get_uid()
+        res_rec = save_file_record(
+            user_id=uid,
             user_email=user_info.get('email', ''),
-            file_name=orig_name,
+            file_name=descriptive_filename,
             file_url=file_url,
             file_type='pdf' if orig_name.lower().endswith('.pdf') else 'file',
             file_size=size,
             cloudinary_public_id=f"local_{safe_name}",
-            subject_name=title,
-            document_type=category.lower(),
-            year=year,
-            college_id=user_info.get('college_id'),
-            branch_id=user_info.get('branch_id'),
-            title=title,
-            description=request.form.get('details', 'Shared via Peer Chat'),
-            semester=int(semester) if semester and str(semester).isdigit() else None
+            subject_name=subject_val,
+            document_type=cat_clean,
+            year=year_val,
+            college_id=college_id_val,
+            branch_id=branch_id_val,
+            title=descriptive_title,
+            description=details_val,
+            semester=semester_val,
+            program=program_val,
+            subject_id=subject_id_val
         )
+        if res_rec:
+            doc_data = res_rec.get('data') or {}
+            doc_id = doc_data.get('id')
+            if doc_id:
+                resource_url = f"/resources/{doc_id}"
+                try:
+                    client.table('documents').update({'status': 'approved'}).eq('id', doc_id).execute()
+                except Exception:
+                    pass
+
+                def _bg_notify(u_id, d_id, d_title, s_name, sem, d_type):
+                    try:
+                        track_user_event(u_id, 'UPLOAD', {
+                            'document_id': d_id,
+                            'semester': sem,
+                            'document_type': d_type
+                        })
+                    except Exception:
+                        pass
+                    try:
+                        recalculate_and_persist_user_rank(u_id)
+                    except Exception:
+                        pass
+                    try:
+                        notify_all_new_upload(doc_id=d_id, title=d_title, uploader_id=u_id, subject=s_name)
+                    except Exception:
+                        pass
+
+                import threading
+                threading.Thread(
+                    target=_bg_notify,
+                    args=(uid, doc_id, descriptive_title, subject_val, semester_val, cat_clean),
+                    daemon=True
+                ).start()
     except Exception as e:
         logging.info(f"[chat] Platform library record skipped: {e}")
 
+    final_resource_url = resource_url or (f"/resources/{doc_id}" if doc_id else file_url)
+
     return jsonify({
         'success': True,
-        'file_url': file_url,
-        'file_name': orig_name,
-        'file_size': size
+        'file_url': final_resource_url,
+        'direct_file_url': file_url,
+        'file_name': descriptive_filename,
+        'title': descriptive_title,
+        'file_size': size,
+        'doc_id': doc_id,
+        'resource_url': final_resource_url
     })
+
+
+@api_bp.route('/api/chat/resolve-doc')
+def api_resolve_chat_doc():
+    """Resolves a static chat file path to its canonical /resources/<doc_id> URL."""
+    filename = (request.args.get('filename') or request.args.get('url') or '').strip()
+    if not filename:
+        return jsonify({'success': False, 'error': 'Missing filename'}), 400
+    try:
+        from methods.supabase_helper import init_supabase, init_supabase_admin
+        client = init_supabase() or init_supabase_admin()
+        if client:
+            clean_name = os.path.basename(filename)
+            res = client.table('documents').select('id, title').ilike('file_url', f"%{clean_name}%").limit(1).execute()
+            if res.data:
+                d_id = res.data[0]['id']
+                return jsonify({
+                    'success': True,
+                    'doc_id': d_id,
+                    'resource_url': f"/resources/{d_id}"
+                })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    return jsonify({'success': False, 'error': 'Not found'}), 404
+
+
+@api_bp.route('/static/uploads/chat/<path:filename>')
+def serve_chat_uploaded_file(filename):
+    """Intercepts requests to chat upload PDFs and redirects to /resources/<doc_id> in AbhiHub viewer."""
+    try:
+        from methods.supabase_helper import init_supabase, init_supabase_admin
+        client = init_supabase() or init_supabase_admin()
+        if client:
+            clean_name = os.path.basename(filename)
+            res = client.table('documents').select('id').ilike('file_url', f"%{clean_name}%").limit(1).execute()
+            if res.data:
+                d_id = res.data[0]['id']
+                return redirect(f"/resources/{d_id}")
+    except Exception as e:
+        logging.warning(f"[chat] Failed to resolve static upload to resource: {e}")
+
+    # Fallback to direct static streaming if not found in documents table
+    static_folder = current_app.static_folder or 'static'
+    chat_dir = os.path.join(static_folder, 'uploads', 'chat')
+    return send_from_directory(chat_dir, filename)
 
 
 @api_bp.route('/api/chat/online')

@@ -400,6 +400,7 @@ def resource_landing_redirect(slug):
 
 
 @library_bp.route('/resource/<path:slug>')
+@library_bp.route('/resources/<path:slug>')
 def resource_landing(slug):
     """Dynamic SEO-optimized resource landing page"""
     import app

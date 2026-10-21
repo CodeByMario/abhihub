@@ -728,6 +728,18 @@ def track_user_event(user_id: str, event_type: str, metadata: dict = None) -> No
         log.debug(f"track_user_event: non-blocking insert failed: {e}")
         pass  # Non-blocking; never raise
 
+def make_acronym(text: str) -> str:
+    """Generates an uppercase abbreviation/acronym from an entity name."""
+    if not text:
+        return ''
+    stop_words = {'and', 'of', 'the', 'in', 'for', 'to', 'with', 'on', 'at', '&'}
+    words = [w for w in re.split(r'[\s_\-]+', str(text).strip()) if w and w.lower() not in stop_words]
+    if len(words) == 1:
+        clean = re.sub(r'[^a-zA-Z0-9]', '', words[0])
+        return clean.upper() if len(clean) <= 6 else clean[:6].upper()
+    acr = "".join([re.sub(r'[^a-zA-Z0-9]', '', w)[:1] for w in words])
+    return acr.upper() if len(acr) >= 2 else re.sub(r'[^a-zA-Z0-9]', '', str(text))[:6].upper()
+
 def save_file_record(
     user_id: str, user_email: str, file_name: str, file_url: str,
     file_type: str, file_size: int, cloudinary_public_id: str,
@@ -781,14 +793,79 @@ def save_file_record(
             sub_res = client.table("subjects").select("id").ilike("name", f"%{subject_name}%").limit(1).execute()
             if sub_res.data: sub_id = sub_res.data[0]['id']
 
+        # Abbreviation standardization for College, Department, Subject, and Subject Code
+        col_abbr = ''
+        dept_abbr = ''
+        subj_abbr = ''
+        resolved_code = (subject_code or '').strip().upper()
+
+        if c_id:
+            try:
+                c_data = client.table('colleges').select('name, abbreviation').eq('id', c_id).limit(1).execute()
+                if c_data.data:
+                    col_abbr = (c_data.data[0].get('abbreviation') or make_acronym(c_data.data[0].get('name') or '')).strip().upper()
+            except Exception:
+                pass
+
+        if d_id:
+            try:
+                d_data = client.table('departments').select('name, abbreviation').eq('id', d_id).limit(1).execute()
+                if d_data.data:
+                    dept_abbr = (d_data.data[0].get('abbreviation') or make_acronym(d_data.data[0].get('name') or '')).strip().upper()
+            except Exception:
+                pass
+
+        if sub_id:
+            try:
+                s_data = client.table('subjects').select('name, subject_code').eq('id', sub_id).limit(1).execute()
+                if s_data.data:
+                    if not resolved_code:
+                        resolved_code = (s_data.data[0].get('subject_code') or '').strip().upper()
+                    if not subj_abbr:
+                        subj_abbr = make_acronym(s_data.data[0].get('name') or subject_name or '')
+            except Exception:
+                pass
+
+        if not subj_abbr and subject_name:
+            subj_abbr = make_acronym(subject_name)
+
+        # Standardize Title: CollegeAbbr - DeptAbbr - SubjAbbr (SubjectCode) - Details
+        prefix_tags = [p for p in [col_abbr, dept_abbr, subj_abbr] if p]
+        header = " - ".join(prefix_tags)
+        if resolved_code and resolved_code not in header:
+            header = f"{header} ({resolved_code})" if header else resolved_code
+
+        final_title = (title or file_name or '').strip()
+        if header:
+            if not final_title or final_title.lower() == (subject_name or '').lower():
+                details = [p for p in [(document_type or 'notes').replace('_', ' ').title(), str(year) if year else ''] if p]
+                final_title = f"{header} - {' · '.join(details)}" if details else header
+            elif not final_title.startswith(col_abbr) and not final_title.startswith(header) and header not in final_title:
+                final_title = f"{header} - {final_title}"
+
+        # Standardize File Name: CollegeAbbr_DeptAbbr_SubjAbbr_SubjCode_Exam_Category_Year.ext
+        file_ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else (file_type or 'pdf')
+        fn_components = [p for p in [col_abbr, dept_abbr, subj_abbr, resolved_code, exam_type.upper() if exam_type else '', (document_type or 'notes').capitalize(), str(year) if year else ''] if p]
+        if fn_components and not any(file_name.upper().startswith(p) for p in [col_abbr, dept_abbr, subj_abbr] if p):
+            final_file_name = "_".join(re.sub(r'[^a-zA-Z0-9]', '', c) for c in fn_components) + f".{file_ext}"
+        else:
+            final_file_name = file_name
+
         # Construct description if not provided
         if not description:
             desc_data = {
                 "subject": subject_name,
                 "year": year,
-                "subject_code": subject_code,
+                "subject_code": resolved_code or subject_code,
                 "semesters": semesters or [],
-                "semester": semester  # new: integer semester from cascade
+                "semester": semester,  # new: integer semester from cascade
+                "original_filename": final_file_name,
+                "abbreviations": {
+                    "college": col_abbr,
+                    "department": dept_abbr,
+                    "subject": subj_abbr,
+                    "subject_code": resolved_code
+                }
             }
             description = json.dumps(desc_data)
         
@@ -818,7 +895,7 @@ def save_file_record(
             'college_id': c_id,
             'department_id': d_id,
             'subject_id': sub_id,
-            'title': title or file_name,
+            'title': final_title or title or file_name,
             'document_category': document_type or 'notes',
             'description': description,
             'file_url': file_url,

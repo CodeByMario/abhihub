@@ -100,7 +100,7 @@
         </div>
       </form>
 
-      <!-- Request File Modal Dialog with Full Academic Metadata -->
+      <!-- Request File Modal Dialog matching platform upload form structure -->
       <dialog id="chatRequestModal" class="chat-modal">
         <form method="dialog" class="chat-modal-box" id="chatRequestForm">
           <div class="chat-modal-header">
@@ -108,6 +108,71 @@
             <button type="button" class="modal-close-btn" data-action="chatCloseRequestModal" aria-label="Close">✕</button>
           </div>
           <div class="chat-modal-body">
+            <!-- 1. Academic Location -->
+            <div class="form-section-title">🏛️ 1. Academic Location</div>
+            <div class="form-row-2">
+              <div>
+                <label for="chatReqCollege">College / Institution *</label>
+                <select id="chatReqCollege" required>
+                  <option value="" disabled selected>Loading colleges…</option>
+                </select>
+                <input type="text" id="chatReqNewCollege" placeholder="Enter new college name" style="display:none; margin-top:0.35rem;" maxlength="150">
+              </div>
+              <div>
+                <label for="chatReqBranch">Branch / Department *</label>
+                <select id="chatReqBranch" required>
+                  <option value="" disabled selected>Select college first</option>
+                </select>
+                <input type="text" id="chatReqNewBranch" placeholder="Enter new branch name" style="display:none; margin-top:0.35rem;" maxlength="100">
+              </div>
+            </div>
+
+            <div class="form-row-2">
+              <div>
+                <label for="chatReqProgram">Program *</label>
+                <select id="chatReqProgram" required>
+                  <option value="b.tech" selected>B.Tech (Engineering)</option>
+                  <option value="m.tech">M.Tech</option>
+                  <option value="mba">MBA</option>
+                  <option value="bsc">B.Sc</option>
+                  <option value="msc">M.Sc</option>
+                  <option value="bca">BCA</option>
+                  <option value="mca">MCA</option>
+                  <option value="dip">Diploma</option>
+                  <option value="other">Other Course</option>
+                </select>
+              </div>
+              <div>
+                <label for="chatReqSem">Semester *</label>
+                <select id="chatReqSem" required>
+                  <option value="Semester 1">Semester 1</option>
+                  <option value="Semester 2">Semester 2</option>
+                  <option value="Semester 3">Semester 3</option>
+                  <option value="Semester 4">Semester 4</option>
+                  <option value="Semester 5" selected>Semester 5</option>
+                  <option value="Semester 6">Semester 6</option>
+                  <option value="Semester 7">Semester 7</option>
+                  <option value="Semester 8">Semester 8</option>
+                </select>
+              </div>
+            </div>
+
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
+                <label for="chatReqSubject" style="margin-bottom:0;">Subject / Course Name *</label>
+                <button type="button" id="chatToggleCustomSubjectBtn" style="background:none; border:none; color:#7c3aed; font-size:0.75rem; font-weight:600; cursor:pointer; padding:0;">+ Add New Subject</button>
+              </div>
+              <select id="chatReqSubject" required>
+                <option value="" disabled selected>Select branch & semester</option>
+              </select>
+              <div id="chatReqCustomSubjectWrap" style="display:none; margin-top:0.35rem;">
+                <input type="text" id="chatReqCustomSubjectName" placeholder="New subject name (will be added to table)" maxlength="100">
+                <input type="text" id="chatReqCustomSubjectCode" placeholder="Subject code (optional, e.g. CS501)" maxlength="20" style="margin-top:0.25rem;">
+              </div>
+            </div>
+
+            <!-- 2. Resource Identification -->
+            <div class="form-section-title">📑 2. Resource Identification</div>
             <div class="form-row-2">
               <div>
                 <label for="chatReqType">Category *</label>
@@ -118,11 +183,12 @@
                   <option value="Assignment 📝">Assignment 📝</option>
                   <option value="Question Bank 🎯">Question Bank 🎯</option>
                   <option value="Syllabus 📋">Syllabus 📋</option>
+                  <option value="Timetable 📅">Timetable 📅</option>
                 </select>
               </div>
               <div>
-                <label for="chatReqYear">Year</label>
-                <select id="chatReqYear">
+                <label for="chatReqYear">Year *</label>
+                <select id="chatReqYear" required>
                   <option value="2026">2026</option>
                   <option value="2025" selected>2025</option>
                   <option value="2024">2024</option>
@@ -132,41 +198,31 @@
               </div>
             </div>
 
-            <label for="chatReqTitle">Subject / Topic Name *</label>
-            <input type="text" id="chatReqTitle" placeholder="e.g. Operating Systems, Theory of Computation, DBMS" required maxlength="120">
-
-            <div class="form-row-2">
-              <div>
-                <label for="chatReqSem">Semester</label>
-                <select id="chatReqSem">
-                  <option value="" selected>Any / All Semesters</option>
-                  <option value="Semester 1">Semester 1</option>
-                  <option value="Semester 2">Semester 2</option>
-                  <option value="Semester 3">Semester 3</option>
-                  <option value="Semester 4">Semester 4</option>
-                  <option value="Semester 5">Semester 5</option>
-                  <option value="Semester 6">Semester 6</option>
-                  <option value="Semester 7">Semester 7</option>
-                  <option value="Semester 8">Semester 8</option>
-                </select>
-              </div>
-              <div>
-                <label for="chatReqUnit">Exam / Unit</label>
-                <select id="chatReqUnit">
-                  <option value="Full Syllabus" selected>Full Syllabus</option>
-                  <option value="Unit 1">Unit 1</option>
-                  <option value="Unit 2">Unit 2</option>
-                  <option value="Unit 3">Unit 3</option>
-                  <option value="Unit 4">Unit 4</option>
-                  <option value="Unit 5">Unit 5</option>
-                  <option value="Mid-Term">Mid-Term</option>
-                  <option value="End-Term">End-Term</option>
-                </select>
-              </div>
+            <div>
+              <label for="chatReqUnit">Exam / Unit *</label>
+              <select id="chatReqUnit" required>
+                <option value="Full Syllabus" selected>Full Syllabus</option>
+                <option value="Unit 1">Unit 1</option>
+                <option value="Unit 2">Unit 2</option>
+                <option value="Unit 3">Unit 3</option>
+                <option value="Unit 4">Unit 4</option>
+                <option value="Unit 5">Unit 5</option>
+                <option value="Mid-Term">Mid-Term</option>
+                <option value="End-Term">End-Term</option>
+              </select>
             </div>
 
-            <label for="chatReqDetails">Preferred format / requirement notes</label>
-            <textarea id="chatReqDetails" placeholder="e.g. PDF or clear handwritten scans, handwritten preferred" rows="2" maxlength="300"></textarea>
+            <!-- 3. Resource Details -->
+            <div class="form-section-title">✍️ 3. Resource Details</div>
+            <div>
+              <label for="chatReqTitle">Resource Title *</label>
+              <input type="text" id="chatReqTitle" placeholder="e.g. Operating Systems End-Sem Notes 2025" required maxlength="140">
+            </div>
+
+            <div>
+              <label for="chatReqDetails">Requirement Notes / Preferred Format</label>
+              <textarea id="chatReqDetails" placeholder="e.g. PDF or clear handwritten scans, cover unit 2 and 3 topics" rows="2" maxlength="300"></textarea>
+            </div>
           </div>
           <div class="chat-modal-actions">
             <button type="button" class="btn secondary" data-action="chatCloseRequestModal">Cancel</button>

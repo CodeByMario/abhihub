@@ -1423,19 +1423,24 @@ def _persist_chat_message(uid_a, uid_b, payload):
             'sender_meta': payload.get('sender_meta', {}),
             'status': 'sent',
             'msg_id': saved.get('id') if saved else '',
+            'msg_type': payload.get('msg_type', 'text'),
+            'file_req': payload.get('file_req'),
+            'file_attachment': payload.get('file_attachment')
         }
         history.append(item)
-        max_age = 7 * 24 * 60 * 60
+        max_age = 3 * 24 * 60 * 60  # 3 days ephemeral retention
         cache.l1.set(key, history, ttl=max_age)
     except Exception:
         pass
 
 def _get_chat_history(uid_a, uid_b):
-    """Load chat history — Supabase (encrypted) with in-memory cache fallback."""
+    """Load chat history (strictly within last 3 days) — Supabase (encrypted) with in-memory fallback."""
     from methods.encrypted_chat import load_conversation_supabase
+    from datetime import datetime, timedelta
+
+    cutoff_iso = (datetime.utcnow() - timedelta(days=3)).isoformat()
 
     try:
-        # Try to get the recipient's private key for decryption
         my_keys = {}
         try:
             from methods.encrypted_chat import get_user_keys
@@ -1444,14 +1449,13 @@ def _get_chat_history(uid_a, uid_b):
             pass
         my_privkey = my_keys.get('private_key')
 
-        # Try Supabase first
         messages = load_conversation_supabase(
             uid_a, uid_b,
             my_privkey=my_privkey,
             peer_pubkey=my_keys.get('public_key')
         )
         if messages:
-            return messages
+            return [m for m in messages if not m.get('ts') or m.get('ts') >= cutoff_iso]
     except Exception:
         pass
 
@@ -1462,6 +1466,9 @@ def _get_chat_history(uid_a, uid_b):
         raw = data[0] if data and data[0] and isinstance(data[0], list) else []
         out = []
         for m in raw:
+            m_ts = m.get('ts') or ''
+            if m_ts and m_ts < cutoff_iso:
+                continue
             out.append({
                 'text': _dec(m.get('text') or m.get('cipher') or ''),
                 'from': m.get('from'),
@@ -1469,6 +1476,9 @@ def _get_chat_history(uid_a, uid_b):
                 'ts': m.get('ts'),
                 'sender_meta': m.get('sender_meta', {}),
                 'status': m.get('status', 'sent'),
+                'msg_type': m.get('msg_type', 'text'),
+                'file_req': m.get('file_req'),
+                'file_attachment': m.get('file_attachment')
             })
         return out
     except Exception:
@@ -1714,7 +1724,9 @@ def chat_file_fulfilled(data):
         'ts': (data or {}).get('ts'),
         'file_url': (data or {}).get('file_url'),
         'file_name': (data or {}).get('file_name'),
-        'file_size': (data or {}).get('file_size')
+        'file_size': (data or {}).get('file_size'),
+        'doc_id': (data or {}).get('doc_id'),
+        'resource_url': (data or {}).get('resource_url')
     }
     socketio.emit('chat_peer_file_fulfilled', payload, to=peer_id)
 

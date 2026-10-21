@@ -390,6 +390,18 @@ function handleFilesSelected(filesOrEvent) {
       if (typeof window.refreshPricingUI === 'function') {
         window.refreshPricingUI(addedWrap);
       }
+
+      // Attach change listeners for real-time abbreviation title updates
+      ['.college-select', '.branch-select', '.semester-select', '.subject-select', '.meta-type', '.meta-year', '.meta-unit'].forEach(sel => {
+        addedWrap.querySelectorAll(sel).forEach(el => {
+          el.addEventListener('change', () => updateAutoTitleForForm(addedWrap));
+        });
+      });
+      const tEl = addedWrap.querySelector('.meta-title');
+      if (tEl) {
+        tEl.addEventListener('input', () => { tEl.dataset.userModified = 'true'; });
+      }
+      updateAutoTitleForForm(addedWrap);
     }
 
     // Trigger tiered metadata prediction & AI content extraction
@@ -758,6 +770,74 @@ function updateDynamicFieldsForForm(formWrap) {
   } else if (type === 'question_bank') {
     if (qbG) qbG.style.display = 'block';
   }
+
+  if (typeof updateAutoTitleForForm === 'function') {
+    updateAutoTitleForForm(formWrap);
+  }
+}
+
+function makeAcronym(str) {
+  if (!str) return '';
+  const stopWords = new Set(['and', 'of', 'the', 'in', 'for', 'to', 'with', 'on', 'at', '&']);
+  const words = str.trim().split(/[\s_\-]+/).filter(w => w && !stopWords.has(w.toLowerCase()));
+  if (words.length === 1) {
+    const clean = words[0].replace(/[^a-zA-Z0-9]/g, '');
+    return clean.length <= 6 ? clean.toUpperCase() : clean.slice(0, 6).toUpperCase();
+  }
+  const acr = words.map(w => w.replace(/[^a-zA-Z0-9]/g, '')[0] || '').join('');
+  return (acr.length >= 2 ? acr : str.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6)).toUpperCase();
+}
+
+function updateAutoTitleForForm(formWrap) {
+  if (!formWrap) return;
+  const titleEl = formWrap.querySelector('.meta-title');
+  if (!titleEl || titleEl.dataset.userModified === 'true') return;
+
+  const colEl = formWrap.querySelector('.college-select');
+  const branchEl = formWrap.querySelector('.branch-select');
+  const subjEl = formWrap.querySelector('.subject-select');
+  const typeEl = formWrap.querySelector('.meta-type');
+  const yearEl = formWrap.querySelector('.meta-year');
+  const unitEl = formWrap.querySelector('.meta-unit');
+
+  const tsCol = window.AbhiHubSelect?.instances[colEl?.id];
+  const colId = tsCol ? tsCol.getValue() : (colEl?.value || '');
+  const colText = (tsCol && tsCol.options[colId]?.text) || (colEl && colEl.selectedIndex >= 0 ? colEl.options[colEl.selectedIndex]?.text : '') || '';
+  const colAbbr = makeAcronym(colText);
+
+  const tsBr = window.AbhiHubSelect?.instances[branchEl?.id];
+  const brId = tsBr ? tsBr.getValue() : (branchEl?.value || '');
+  const brText = (tsBr && tsBr.options[brId]?.text) || (branchEl && branchEl.selectedIndex >= 0 ? branchEl.options[branchEl.selectedIndex]?.text : '') || '';
+  const deptAbbr = makeAcronym(brText);
+
+  const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
+  const subjId = tsSubj ? tsSubj.getValue() : (subjEl?.value || '');
+  const rawSubjText = (tsSubj && tsSubj.options[subjId]?.text) || (subjEl && subjEl.selectedIndex >= 0 ? subjEl.options[subjEl.selectedIndex]?.text : '') || '';
+
+  let subjName = rawSubjText;
+  let subjCode = '';
+  const codeMatch = rawSubjText.match(/^(.*?)(?:\s*\((.*?)\))?$/);
+  if (codeMatch) {
+    subjName = codeMatch[1].trim();
+    subjCode = (codeMatch[2] || '').trim();
+  }
+  const subjAbbr = makeAcronym(subjName);
+
+  const prefixTags = [colAbbr, deptAbbr, subjAbbr].filter(Boolean);
+  let header = prefixTags.join(' - ');
+  if (subjCode && !header.includes(subjCode)) {
+    header = header ? `${header} (${subjCode})` : subjCode;
+  }
+
+  const category = (typeEl?.value || '').replace(/_/g, ' ');
+  const catTitle = category ? category.charAt(0).toUpperCase() + category.slice(1) : '';
+  const year = yearEl?.value || '';
+  const unit = (unitEl && unitEl.offsetParent !== null && unitEl.value) ? unitEl.value : '';
+
+  const details = [unit, catTitle, year].filter(Boolean).join(' · ');
+  if (header || details) {
+    titleEl.value = header && details ? `${header} - ${details}` : (header || details);
+  }
 }
 
 function navigateCarousel(dir) {
@@ -935,8 +1015,24 @@ function buildFormData(item) {
     const subjOpt = tsSubj ? tsSubj.options[subjId] : null;
     const subjText = subjOpt ? subjOpt.text : (subjEl && subjEl.selectedIndex >= 0 ? subjEl.options[subjEl.selectedIndex]?.text : '') || subjId || '';
 
-    const titleEl = form.querySelector('.meta-title') || form.querySelector('[name="title"]');
-    const descEl = form.querySelector('.meta-description') || form.querySelector('[name="description"]');
+    const tsCol = window.AbhiHubSelect?.instances[colEl?.id];
+    const colId = tsCol ? tsCol.getValue() : (colEl ? colEl.value : '');
+    const colText = (tsCol && tsCol.options[colId]?.text) || (colEl && colEl.selectedIndex >= 0 ? colEl.options[colEl.selectedIndex]?.text : '') || '';
+    const colAbbr = makeAcronym(colText);
+
+    const tsBr = window.AbhiHubSelect?.instances[branchEl?.id];
+    const brId = tsBr ? tsBr.getValue() : (branchEl ? branchEl.value : '');
+    const brText = (tsBr && tsBr.options[brId]?.text) || (branchEl && branchEl.selectedIndex >= 0 ? branchEl.options[branchEl.selectedIndex]?.text : '') || '';
+    const deptAbbr = makeAcronym(brText);
+
+    let parsedSubjName = subjText;
+    let parsedSubjCode = '';
+    const codeMatch = subjText.match(/^(.*?)(?:\s*\((.*?)\))?$/);
+    if (codeMatch) {
+      parsedSubjName = codeMatch[1].trim();
+      parsedSubjCode = (codeMatch[2] || '').trim();
+    }
+    const subjAbbr = makeAcronym(parsedSubjName);
 
     m = {
       type: typeEl ? typeEl.value : '',
@@ -949,7 +1045,11 @@ function buildFormData(item) {
       subject: subjText,
       program: progEl ? progEl.value : 'b.tech',
       title: titleEl ? titleEl.value.trim() : '',
-      description: descEl ? descEl.value.trim() : ''
+      description: descEl ? descEl.value.trim() : '',
+      college_abbr: colAbbr,
+      branch_abbr: deptAbbr,
+      subject_abbr: subjAbbr,
+      subject_code: parsedSubjCode
     };
   }
   if (item.meta) {
@@ -968,13 +1068,20 @@ function buildFormData(item) {
   fd.append('type', m.type || '');
   fd.append('document_type', m.type || '');
   fd.append('unit', m.unit || '');
+  fd.append('college_abbr', m.college_abbr || '');
+  fd.append('branch_abbr', m.branch_abbr || '');
+  fd.append('subject_abbr', m.subject_abbr || '');
   const _csrfEl = document.querySelector('input[name="csrf_token"]');
   if (_csrfEl) fd.append('csrf_token', _csrfEl.value);
   if (item.fileHash) fd.append('file_hash', item.fileHash);
   const _examEl = form ? form.querySelector('[name="exam_type"]') : null;
   if (_examEl && _examEl.value) fd.append('exam_type', _examEl.value);
   const _codeEl = form ? form.querySelector('[name="subject_code"]') : null;
-  if (_codeEl && _codeEl.value) fd.append('subject_code', _codeEl.value);
+  if (_codeEl && _codeEl.value) {
+    fd.append('subject_code', _codeEl.value);
+  } else if (m.subject_code) {
+    fd.append('subject_code', m.subject_code);
+  }
   const _qbForm = form || document.querySelector('.meta-form-wrap');
   const _qbTags = _qbForm ? _qbForm.querySelector('.qb-tags') : null;
   if (_qbTags && _qbTags.value) fd.append('qb_tags', _qbTags.value.trim());

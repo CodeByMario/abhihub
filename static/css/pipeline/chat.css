@@ -83,14 +83,15 @@
 .highlight-chip{background:#ede9fe !important;color:#6d28d9 !important;border-color:#c4b5fd !important;font-weight:700 !important}
 
 /* Request File Modal Dialog */
-.chat-modal{padding:0;border:0;border-radius:18px;background:transparent;box-shadow:0 24px 60px rgba(15,23,42,.24);max-width:440px;width:92%}
+.chat-modal{padding:0;border:0;border-radius:18px;background:transparent;box-shadow:0 24px 60px rgba(15,23,42,.24);max-width:440px;width:92%;max-height:90vh}
 .chat-modal::backdrop{background:rgba(15,23,42,.45);backdrop-filter:blur(4px)}
-.chat-modal-box{background:#fff;border-radius:18px;padding:1.4rem;display:flex;flex-direction:column;gap:1rem;color:var(--ink)}
+.chat-modal-box{background:#fff;border-radius:18px;padding:1.4rem;display:flex;flex-direction:column;gap:1rem;color:var(--ink);max-height:88vh;overflow-y:auto}
 .chat-modal-header{display:flex;align-items:center;justify-content:space-between}
 .chat-modal-header h3{margin:0;font-size:1.05rem;font-weight:700}
 .modal-close-btn{background:transparent;border:0;font-size:1.2rem;cursor:pointer;color:var(--muted);padding:.2rem .4rem;border-radius:8px}
 .modal-close-btn:hover{background:#f1f5f9;color:var(--ink)}
 .chat-modal-body{display:flex;flex-direction:column;gap:.75rem}
+.form-section-title{font-size:.75rem;font-weight:800;color:#6366f1;text-transform:uppercase;letter-spacing:.5px;margin-top:.25rem;padding-bottom:.2rem;border-bottom:1px dashed #e2e8f0}
 .form-row-2{display:grid;grid-template-columns:1fr 1fr;gap:.65rem}
 .chat-modal-body label{font-size:.8rem;font-weight:700;color:var(--muted);display:block;margin-bottom:3px}
 .chat-modal-body input,.chat-modal-body textarea,.chat-modal-body select{width:100%;padding:.65rem .85rem;border:1px solid #cbd5e1;border-radius:10px;font:inherit;font-size:.88rem;color:var(--ink);background:#f8fafc;box-sizing:border-box}
@@ -125,6 +126,25 @@
 .btn-download-file{background:linear-gradient(135deg,#10b981,#059669);color:#fff;box-shadow:0 4px 12px rgba(16,185,129,.25)}
 .btn-download-file:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(16,185,129,.35)}
 .bubble.mine .btn-download-file{background:#fff;color:#065f46}
+.btn-open-material{display:inline-flex;align-items:center;justify-content:center;gap:.4rem;flex:1;min-width:140px;padding:.55rem .9rem;border-radius:10px;font-size:.82rem;font-weight:700;cursor:pointer;border:0;color:#fff;background:linear-gradient(135deg,#6366f1,#4f46e5);box-shadow:0 4px 12px rgba(79,70,229,.25);text-decoration:none;transition:all .15s}
+.btn-open-material:hover{transform:translateY(-1px);box-shadow:0 6px 16px rgba(79,70,229,.35)}
+.btn-download-secondary{display:inline-flex;align-items:center;justify-content:center;gap:.35rem;padding:.55rem .85rem;border-radius:10px;font-size:.8rem;font-weight:700;cursor:pointer;border:1px solid #cbd5e1;color:#334155;background:#fff;text-decoration:none;transition:all .15s}
+.btn-download-secondary:hover{background:#f8fafc;border-color:#94a3b8}
+.bubble.mine .btn-open-material{background:#fff;color:#4338ca}
+.bubble.mine .btn-download-secondary{background:rgba(255,255,255,.2);color:#fff;border-color:rgba(255,255,255,.4)}
 
-
-
+/* AbhiHub Link Button Card */
+.chat-abhihub-card-wrap{margin:.4rem 0}
+.chat-abhihub-card{display:flex;align-items:center;gap:.6rem;padding:.55rem .8rem;border-radius:12px;background:#fff;border:1.5px solid #e0e7ff;box-shadow:0 3px 10px rgba(99,102,241,.12);text-decoration:none;color:#1e293b;transition:all .18s ease-in-out;cursor:pointer}
+.chat-abhihub-card:hover{transform:translateY(-1px);border-color:#6366f1;box-shadow:0 6px 16px rgba(99,102,241,.22)}
+.chat-abhihub-card-icon{font-size:1.35rem;display:flex;align-items:center;justify-content:center;width:34px;height:34px;border-radius:9px;background:#eef2ff;flex-shrink:0}
+.chat-abhihub-card-content{display:flex;flex-direction:column;gap:.1rem;overflow:hidden;flex:1}
+.chat-abhihub-card-title{font-size:.82rem;font-weight:800;color:#3730a3;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-abhihub-card-action{font-size:.72rem;font-weight:600;color:#6366f1;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.chat-abhihub-card-arrow{font-size:.9rem;font-weight:800;color:#6366f1;margin-left:auto;padding-left:4px}
+.bubble.mine .chat-abhihub-card{background:rgba(255,255,255,.95);border-color:rgba(255,255,255,.6);color:#1e293b}
+.bubble.mine .chat-abhihub-card-title{color:#312e81}
+.bubble.mine .chat-abhihub-card-action{color:#4f46e5}
+.bubble.mine .chat-abhihub-card-arrow{color:#4f46e5}
+.chat-ext-link{color:#6366f1;text-decoration:underline;font-weight:600}
+.bubble.mine .chat-ext-link{color:#fff;text-decoration:underline}

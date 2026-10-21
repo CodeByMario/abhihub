@@ -329,7 +329,83 @@ class StoreRoomStudio {
                     if (match && match[2]) subjectCodeInput.value = match[2].trim();
                 }
             }
+            this.updateAutoTitle();
         });
+
+        // Track user manually modifying title
+        const docTitleEl = document.getElementById('docTitle');
+        if (docTitleEl) {
+            docTitleEl.addEventListener('input', () => {
+                docTitleEl.dataset.modifiedByUser = 'true';
+            });
+        }
+
+        // Real-time title auto-update on academic & metadata changes
+        ['collegeName', 'branch', 'semester', 'subjectCode', 'documentCategory', 'examType', 'year'].forEach(id => {
+            document.getElementById(id)?.addEventListener('change', () => this.updateAutoTitle());
+            document.getElementById(id)?.addEventListener('input', () => this.updateAutoTitle());
+        });
+    }
+
+    makeAcronym(str) {
+        if (!str) return '';
+        const stopWords = new Set(['and', 'of', 'the', 'in', 'for', 'to', 'with', 'on', 'at', '&']);
+        const words = str.trim().split(/[\s_\-]+/).filter(w => w && !stopWords.has(w.toLowerCase()));
+        if (words.length === 1) {
+            const clean = words[0].replace(/[^a-zA-Z0-9]/g, '');
+            return clean.length <= 6 ? clean.toUpperCase() : clean.slice(0, 6).toUpperCase();
+        }
+        const acr = words.map(w => w.replace(/[^a-zA-Z0-9]/g, '')[0] || '').join('');
+        return (acr.length >= 2 ? acr : str.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6)).toUpperCase();
+    }
+
+    updateAutoTitle() {
+        const titleEl = document.getElementById('docTitle');
+        if (!titleEl || titleEl.dataset.modifiedByUser === 'true') return;
+
+        const colSelect = document.getElementById('collegeName');
+        const tsCol = window.AbhiHubSelect?.instances['collegeName'];
+        const colId = tsCol ? tsCol.getValue() : (colSelect?.value || '');
+        const colText = (tsCol && tsCol.options[colId]?.text) || (colSelect && colSelect.selectedIndex >= 0 ? colSelect.options[colSelect.selectedIndex]?.text : '') || '';
+        const colAbbr = this.makeAcronym(colText);
+
+        const brSelect = document.getElementById('branch');
+        const tsBr = window.AbhiHubSelect?.instances['branch'];
+        const brId = tsBr ? tsBr.getValue() : (brSelect?.value || '');
+        const brText = (tsBr && tsBr.options[brId]?.text) || (brSelect && brSelect.selectedIndex >= 0 ? brSelect.options[brSelect.selectedIndex]?.text : '') || '';
+        const deptAbbr = this.makeAcronym(brText);
+
+        const subjSelect = document.getElementById('subjectName');
+        const tsSubj = window.AbhiHubSelect?.instances['subjectName'];
+        const subjId = tsSubj ? tsSubj.getValue() : (subjSelect?.value || '');
+        const rawSubj = (tsSubj && tsSubj.options[subjId]?.text) || (subjSelect && subjSelect.selectedIndex >= 0 ? subjSelect.options[subjSelect.selectedIndex]?.text : '') || '';
+
+        let subjName = rawSubj;
+        let subjCode = document.getElementById('subjectCode')?.value || '';
+        const match = rawSubj.match(/^(.*?)(?:\s*\((.*?)\))?$/);
+        if (match) {
+            subjName = match[1].trim();
+            if (!subjCode && match[2]) subjCode = match[2].trim();
+        }
+        const subjAbbr = this.makeAcronym(subjName);
+
+        const prefixTags = [colAbbr, deptAbbr, subjAbbr].filter(Boolean);
+        let header = prefixTags.join(' - ');
+        if (subjCode && !header.includes(subjCode)) {
+            header = header ? `${header} (${subjCode})` : subjCode;
+        }
+
+        const catEl = document.getElementById('documentCategory');
+        const catTitle = catEl?.value ? (catEl.value.charAt(0).toUpperCase() + catEl.value.slice(1)) : 'Papers';
+        const examEl = document.getElementById('examType');
+        const examType = examEl?.value || '';
+        const yearEl = document.getElementById('year');
+        const year = yearEl?.value || '';
+
+        const details = [examType, catTitle, year].filter(Boolean).join(' · ');
+        if (header || details) {
+            titleEl.value = header && details ? `${header} - ${details}` : (header || details);
+        }
     }
 
     initRememberToggle() {
@@ -657,6 +733,7 @@ class StoreRoomStudio {
             this.autoFillLocalMatch(file);
         }
 
+        this.updateAutoTitle();
         this.updateNavCounter();
     }
 
@@ -915,11 +992,8 @@ class StoreRoomStudio {
             if (codeEl) codeEl.value = match.subjectCode;
         }
 
-        // 9. Document Title
-        if (match.title) {
-            const titleEl = document.getElementById('docTitle');
-            if (titleEl) titleEl.value = match.title;
-        }
+        // 9. Document Title with standard abbreviations
+        this.updateAutoTitle();
     }
 
     navigate(direction) {
@@ -1184,6 +1258,20 @@ class StoreRoomStudio {
                     }
                 }
             }
+
+            const colSelect = document.getElementById('collegeName');
+            const tsCol = window.AbhiHubSelect?.instances['collegeName'];
+            const colId = tsCol ? tsCol.getValue() : (colSelect?.value || '');
+            const colText = (tsCol && tsCol.options[colId]?.text) || (colSelect && colSelect.selectedIndex >= 0 ? colSelect.options[colSelect.selectedIndex]?.text : '') || '';
+            payload.college_abbr = this.makeAcronym(colText);
+
+            const brSelect = document.getElementById('branch');
+            const tsBr = window.AbhiHubSelect?.instances['branch'];
+            const brId = tsBr ? tsBr.getValue() : (brSelect?.value || '');
+            const brText = (tsBr && tsBr.options[brId]?.text) || (brSelect && brSelect.selectedIndex >= 0 ? brSelect.options[brSelect.selectedIndex]?.text : '') || '';
+            payload.branch_abbr = this.makeAcronym(brText);
+
+            payload.subject_abbr = this.makeAcronym(payload.subject_name);
 
             const res = await StoreRoomAPI.submitLabel(payload);
             const data = res.data;
