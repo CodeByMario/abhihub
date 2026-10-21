@@ -1,20 +1,21 @@
 {% extends "p_struct.html" %}
 {% block page_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/chat.css') }}">
-<script src="/socket.io/socket.io.js" defer></script>
+<script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
 {% endblock %}
 
 {% block content %}
 <div class="chat-shell">
   <div class="chat-header">
     <div class="chat-header-left">
-      <a class="chat-back" href="{{ url_for('dashboard') }}" aria-label="Back">←</a>
+      <a class="chat-back" href="{{ url_for('app_pages.dashboard') }}" aria-label="Back">←</a>
       <div>
         <div class="chat-title">Chat</div>
         <div class="chat-subtitle" id="chatSubtitle">Open a conversation</div>
       </div>
     </div>
     <div class="chat-header-right">
+      <button type="button" class="sound-toggle-btn" id="chatSoundToggle" title="Toggle audio chime" aria-label="Toggle chat sounds">🔔</button>
       <button type="button" class="chip" data-action="chatEnableNotifications">Enable alerts</button>
       <button type="button" class="chip" data-action="chatNewConversation">New</button>
     </div>
@@ -57,20 +58,126 @@
         <div class="chat-room-meta" id="chatRoomMeta"></div>
       </div>
 
+      <!-- Gamified Study Momentum Bar (Dopamine & Loss Aversion) -->
+      <div class="chat-momentum-bar" id="chatMomentumBar">
+        <div class="momentum-left">
+          <span class="momentum-flame" aria-hidden="true">🔥</span>
+          <span class="momentum-streak" id="momentumStreakText">1-Day Streak</span>
+          <span class="momentum-dot">·</span>
+          <span class="momentum-level" id="momentumLevelText">Level 1 Exam Buddy</span>
+        </div>
+        <div class="momentum-right">
+          <span class="momentum-xp" id="momentumXpText">20 / 100 XP</span>
+          <div class="momentum-progress-track" title="Earn +10 XP per study message">
+            <div class="momentum-progress-fill" id="momentumProgressFill" style="width: 20%"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="chat-messages" id="chatMessages">
         <div class="empty">No messages yet</div>
       </div>
 
+      <div class="chat-icebreakers" id="chatIcebreakers">
+        <button type="button" class="icebreaker-chip highlight-chip" data-action="chatOpenRequestModal">📑 Request File / Notes</button>
+        <button type="button" class="icebreaker-chip" data-text="📚 Can you share the latest PYQ or class notes?">📚 Share PYQ / Notes</button>
+        <button type="button" class="icebreaker-chip" data-text="💡 Quick question on this module: ">💡 Quick question</button>
+        <button type="button" class="icebreaker-chip" data-text="⚡ Ready for a quick 5-min prep quiz?">⚡ Quick Quiz</button>
+      </div>
+
       <form class="chat-composer" id="chatComposer" autocomplete="off">
+        <label class="sr-only" for="chatDirectUploadBtn">Send File</label>
+        <button type="button" class="composer-icon" id="chatDirectUploadBtn" data-action="chatDirectUpload" title="Upload & Share File directly" aria-label="Upload File">📎</button>
+        <label class="sr-only" for="chatRequestFileBtn">Request File</label>
+        <button type="button" class="composer-icon" id="chatRequestFileBtn" data-action="chatOpenRequestModal" title="Request File / Notes from Peer" aria-label="Request File">📑</button>
         <label class="sr-only" for="chatEmojiBtn">Emoji</label>
         <button type="button" class="composer-icon" id="chatEmojiBtn" data-action="chatToggleEmoji" aria-label="Add emoji">😊</button>
         <label class="sr-only" for="chatInput">Message</label>
-        <input id="chatInput" type="text" placeholder="Message" maxlength="4000">
+        <input id="chatInput" type="text" placeholder="Message or request notes…" maxlength="4000">
         <button type="submit" class="btn send" aria-label="Send message"><span>Send</span><span aria-hidden="true">➤</span></button>
         <div class="emoji-picker" id="emojiPicker" hidden>
           <div class="emoji-grid" id="emojiGrid"></div>
         </div>
       </form>
+
+      <!-- Request File Modal Dialog with Full Academic Metadata -->
+      <dialog id="chatRequestModal" class="chat-modal">
+        <form method="dialog" class="chat-modal-box" id="chatRequestForm">
+          <div class="chat-modal-header">
+            <h3>📑 Request Study Material</h3>
+            <button type="button" class="modal-close-btn" data-action="chatCloseRequestModal" aria-label="Close">✕</button>
+          </div>
+          <div class="chat-modal-body">
+            <div class="form-row-2">
+              <div>
+                <label for="chatReqType">Category *</label>
+                <select id="chatReqType" required>
+                  <option value="Notes 📝" selected>Notes 📝</option>
+                  <option value="Papers (PYQ) 📄">Papers (PYQ) 📄</option>
+                  <option value="Practical / Lab 🧪">Practical / Lab 🧪</option>
+                  <option value="Assignment 📝">Assignment 📝</option>
+                  <option value="Question Bank 🎯">Question Bank 🎯</option>
+                  <option value="Syllabus 📋">Syllabus 📋</option>
+                </select>
+              </div>
+              <div>
+                <label for="chatReqYear">Year</label>
+                <select id="chatReqYear">
+                  <option value="2026">2026</option>
+                  <option value="2025" selected>2025</option>
+                  <option value="2024">2024</option>
+                  <option value="2023">2023</option>
+                  <option value="2022">2022</option>
+                </select>
+              </div>
+            </div>
+
+            <label for="chatReqTitle">Subject / Topic Name *</label>
+            <input type="text" id="chatReqTitle" placeholder="e.g. Operating Systems, Theory of Computation, DBMS" required maxlength="120">
+
+            <div class="form-row-2">
+              <div>
+                <label for="chatReqSem">Semester</label>
+                <select id="chatReqSem">
+                  <option value="" selected>Any / All Semesters</option>
+                  <option value="Semester 1">Semester 1</option>
+                  <option value="Semester 2">Semester 2</option>
+                  <option value="Semester 3">Semester 3</option>
+                  <option value="Semester 4">Semester 4</option>
+                  <option value="Semester 5">Semester 5</option>
+                  <option value="Semester 6">Semester 6</option>
+                  <option value="Semester 7">Semester 7</option>
+                  <option value="Semester 8">Semester 8</option>
+                </select>
+              </div>
+              <div>
+                <label for="chatReqUnit">Exam / Unit</label>
+                <select id="chatReqUnit">
+                  <option value="Full Syllabus" selected>Full Syllabus</option>
+                  <option value="Unit 1">Unit 1</option>
+                  <option value="Unit 2">Unit 2</option>
+                  <option value="Unit 3">Unit 3</option>
+                  <option value="Unit 4">Unit 4</option>
+                  <option value="Unit 5">Unit 5</option>
+                  <option value="Mid-Term">Mid-Term</option>
+                  <option value="End-Term">End-Term</option>
+                </select>
+              </div>
+            </div>
+
+            <label for="chatReqDetails">Preferred format / requirement notes</label>
+            <textarea id="chatReqDetails" placeholder="e.g. PDF or clear handwritten scans, handwritten preferred" rows="2" maxlength="300"></textarea>
+          </div>
+          <div class="chat-modal-actions">
+            <button type="button" class="btn secondary" data-action="chatCloseRequestModal">Cancel</button>
+            <button type="submit" class="btn primary">Send Request</button>
+          </div>
+        </form>
+      </dialog>
+
+      <!-- Hidden file inputs for direct upload and peer fulfillment -->
+      <input type="file" id="chatDirectFileInput" style="display:none" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.ppt,.pptx,.txt,.zip">
+      <input type="file" id="chatFulfillFileInput" style="display:none" accept=".pdf,.png,.jpg,.jpeg,.webp,.doc,.docx,.ppt,.pptx,.txt,.zip">
     </section>
     </main>
   </div>

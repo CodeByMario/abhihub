@@ -1081,6 +1081,7 @@ def memorywall_reveal(wall_id):
 
 
 @app_pages_bp.route('/profile/<user_id>')
+@app_pages_bp.route('/peer/<user_id>')
 def peer_profile(user_id):
     """Legacy peer profile route — permanent 301 redirect to canonical /u/<user_id>."""
     return redirect(url_for('app_pages.instagram_profile', user_id=user_id), code=301)

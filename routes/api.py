@@ -2389,6 +2389,70 @@ def api_chat_send_message():
     return jsonify({'success': True, 'message': payload})
 
 
+@api_bp.route('/api/chat/upload-file', methods=['POST'])
+@auth_required
+def api_chat_upload_file():
+    """Uploads a requested file in chat and returns its download URL."""
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file attached'}), 400
+    file = request.files['file']
+    if not file or not file.filename:
+        return jsonify({'success': False, 'error': 'No file selected'}), 400
+
+    import time
+    from werkzeug.utils import secure_filename
+    orig_name = secure_filename(file.filename) or f"file_{int(time.time())}.bin"
+
+    file.seek(0, os.SEEK_END)
+    size = file.tell()
+    file.seek(0)
+    if size > 25 * 1024 * 1024:
+        return jsonify({'success': False, 'error': 'File exceeds 25MB limit'}), 400
+
+    safe_name = f"chat_{int(time.time())}_{_get_uid()[:8]}_{orig_name}"
+    upload_dir = os.path.join(current_app.static_folder or 'static', 'uploads', 'chat')
+    os.makedirs(upload_dir, exist_ok=True)
+    save_path = os.path.join(upload_dir, safe_name)
+    file.save(save_path)
+
+    file_url = f"/static/uploads/chat/{safe_name}"
+
+    # Link with platform study library
+    title = request.form.get('title') or orig_name
+    category = request.form.get('category') or 'notes'
+    year = request.form.get('year') or '2025'
+    semester = request.form.get('semester') or None
+    try:
+        from methods.supabase_helper import save_file_record
+        user_info = session.get('user', {})
+        save_file_record(
+            user_id=_get_uid(),
+            user_email=user_info.get('email', ''),
+            file_name=orig_name,
+            file_url=file_url,
+            file_type='pdf' if orig_name.lower().endswith('.pdf') else 'file',
+            file_size=size,
+            cloudinary_public_id=f"local_{safe_name}",
+            subject_name=title,
+            document_type=category.lower(),
+            year=year,
+            college_id=user_info.get('college_id'),
+            branch_id=user_info.get('branch_id'),
+            title=title,
+            description=request.form.get('details', 'Shared via Peer Chat'),
+            semester=int(semester) if semester and str(semester).isdigit() else None
+        )
+    except Exception as e:
+        logging.info(f"[chat] Platform library record skipped: {e}")
+
+    return jsonify({
+        'success': True,
+        'file_url': file_url,
+        'file_name': orig_name,
+        'file_size': size
+    })
+
+
 @api_bp.route('/api/chat/online')
 @auth_required
 def chat_online_users():

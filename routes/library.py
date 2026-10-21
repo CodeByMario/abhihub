@@ -6,14 +6,15 @@ from flask import (
     Blueprint, request, session, redirect, url_for, render_template,
     abort, make_response, current_app, jsonify
 )
-from routes.auth import is_admin_user, auth_required
+from routes.auth import is_admin_user, auth_required, log_admin_action
 from routes.seo import sitemap_page, slugify
 from methods.supabase_helper import (
     init_supabase, get_all_colleges, get_all_branches, get_college_by_slug,
     get_colleges_by_brand, get_college_stats, get_waitlist_count,
     get_recent_college_files, get_department_by_slug, get_department_stats,
     get_recent_department_files, get_subjects_by_slug, get_subject_stats,
-    get_recent_subject_files, get_document_by_id_rich, get_leaderboard_data
+    get_recent_subject_files, get_document_by_id_rich, get_leaderboard_data,
+    log_notification
 )
 
 library_bp = Blueprint('library', __name__)
@@ -506,8 +507,9 @@ def resource_landing(slug):
                 prof = profiles_map.get(uid) or {}
                 name = prof.get('full_name') or (f"User ({uid[:8]}...)" if uid else "Anonymous Student")
                 viewers.append({
+                    'user_id': uid,
                     'name': name,
-                    'email': prof.get('email') or '—',
+                    'email': (prof.get('email') or '—') if is_admin else None,
                     'role': prof.get('role', 'student'),
                     'device': v.get('device_type') or 'desktop',
                     'accessed_at': v.get('accessed_at')
@@ -562,6 +564,20 @@ def resource_landing(slug):
 
     has_access = has_document_access(current_user_id, doc_id, document)
 
+    all_colleges = []
+    all_branches = []
+    if can_manage or is_admin:
+        try:
+            c_res = get_all_colleges()
+            b_res = get_all_branches()
+            all_colleges = c_res.get('data', []) if c_res.get('success') else []
+            all_branches = b_res.get('data', []) if b_res.get('success') else []
+        except Exception as err:
+            logging.warning(f"Error fetching dropdown lists for resource manager: {err}")
+
+    recorded_views = len(viewers) if viewers else 0
+    view_earnings = round(recorded_views * 0.20, 2)
+
     return render_template(
         'resource.html',
         document=document,
@@ -571,6 +587,10 @@ def resource_landing(slug):
         is_admin=is_admin,
         is_uploader=is_uploader,
         viewers=viewers,
+        recorded_views=recorded_views,
+        view_earnings=view_earnings,
+        all_colleges=all_colleges,
+        all_branches=all_branches,
         ai_models=AI_MODELS,
         best_model=get_best_ai_model(),
         suggested_docs=suggested_docs,
@@ -590,7 +610,7 @@ def api_edit_document(doc_id):
         if not client:
             return jsonify({'success': False, 'message': 'Database client unavailable'}), 500
 
-        doc_res = client.table('documents').select('id, uploader_id, title, description, is_paid, price, coupon_code, coupon_discount').eq('id', doc_id).limit(1).execute()
+        doc_res = client.table('documents').select('*').eq('id', doc_id).limit(1).execute()
         if not doc_res.data:
             return jsonify({'success': False, 'message': 'Document not found'}), 404
 
@@ -604,56 +624,328 @@ def api_edit_document(doc_id):
             return jsonify({'success': False, 'message': 'Unauthorized to modify this resource'}), 403
 
         data = request.get_json(silent=True) or {}
-        new_title = (data.get('title') or '').strip()
-        new_text_desc = (data.get('description') or '').strip()
-        is_paid = bool(data.get('is_paid', False))
+        admin_action = str(data.get('admin_action') or '').strip().lower()
+        reason_preset = str(data.get('reason_preset') or '').strip()
+        custom_note = str(data.get('custom_note') or '').strip()
+        notify_owner = bool(data.get('notify_owner', True))
+        status_action = str(data.get('status') or '').strip().lower()
 
-        try:
-            price = max(0.0, float(data.get('price', 0) or 0))
-        except (ValueError, TypeError):
-            price = 0.0
+        # Handle Admin Delete (Complete vs Partial)
+        if is_admin and admin_action == 'delete':
+            delete_mode = str(data.get('delete_mode') or 'complete').strip().lower()
+            old_title = doc.get('title') or 'Document'
+            file_url = doc.get('file_url') or ''
+            provider_public_id = doc.get('provider_public_id')
+            storage_provider = doc.get('storage_provider')
 
-        coupon_code = str(data.get('coupon_code') or '').strip().upper() or None
-        try:
-            coupon_discount = max(0, min(100, int(data.get('coupon_discount', 0) or 0)))
-        except (ValueError, TypeError):
-            coupon_discount = 0
+            # Complete Delete: purge physical asset from Cloud Storage
+            if delete_mode == 'complete':
+                # 1. Cloudinary
+                cld_id = provider_public_id
+                if not cld_id and 'cloudinary.com' in file_url:
+                    m = re.search(r'/(?:image|raw|video)/upload/(?:v\d+/)?([^?#]+)', file_url)
+                    if m:
+                        cld_id = m.group(1)
+                if cld_id or storage_provider == 'cloudinary' or 'cloudinary.com' in file_url:
+                    try:
+                        from methods.cloudinary_upload import delete_file_from_cloudinary
+                        if cld_id:
+                            res_raw = delete_file_from_cloudinary(cld_id, resource_type='raw')
+                            if not res_raw.get('success'):
+                                delete_file_from_cloudinary(cld_id, resource_type='image')
+                    except Exception as cld_err:
+                        logging.warning(f"[api_edit_document] Cloudinary deletion error: {cld_err}")
 
-        # Preserve / update structured JSON in description
-        desc_raw = doc.get('description') or ''
-        desc_obj = {}
-        if isinstance(desc_raw, str) and desc_raw.strip().startswith('{'):
+                # 2. Supabase Storage
+                try:
+                    if 'supabase.co/storage/v1/object/public/' in file_url:
+                        path_part = file_url.split('/storage/v1/object/public/')[-1]
+                        bucket = path_part.split('/')[0]
+                        file_key = '/'.join(path_part.split('/')[1:])
+                        client.storage.from_(bucket).remove([file_key])
+                    if cld_id:
+                        for ext in ['', '.pdf', '.txt', '.bin', '.jpg', '.png']:
+                            try:
+                                client.storage.from_('public').remove([f"cloudinary_fallback/{cld_id}{ext}"])
+                            except Exception:
+                                pass
+                except Exception as sb_err:
+                    logging.debug(f"[api_edit_document] Supabase storage removal note: {sb_err}")
+
+                # 3. Firebase Storage
+                if 'firebasestorage.googleapis.com' in file_url or storage_provider == 'firebase':
+                    try:
+                        from methods.storage import delete_file
+                        blob_name = provider_public_id
+                        if not blob_name and '/o/' in file_url:
+                            import urllib.parse
+                            blob_name = urllib.parse.unquote(file_url.split('/o/')[1].split('?')[0])
+                        if blob_name:
+                            delete_file(blob_name)
+                    except Exception as fb_err:
+                        logging.warning(f"[api_edit_document] Firebase storage deletion error: {fb_err}")
+
+            # Database Records Clean-up (for both Complete and Partial delete)
+            for tbl, col in [
+                ('search_documents', 'file_id'),
+                ('document_views', 'document_id'),
+                ('document_likes', 'document_id'),
+                ('document_bookmarks', 'document_id'),
+                ('document_votes', 'document_id'),
+                ('document_ratings', 'document_id'),
+            ]:
+                try:
+                    client.table(tbl).delete().eq(col, doc_id).execute()
+                except Exception:
+                    pass
+
             try:
-                desc_obj = json.loads(desc_raw.strip())
+                client.table('material_requests').update({'response_document_id': None}).eq('response_document_id', doc_id).execute()
             except Exception:
+                pass
+
+            try:
+                client.table('viewer_failure_reports').delete().eq('doc_id', doc_id).execute()
+            except Exception:
+                pass
+
+            client.table('documents').delete().eq('id', doc_id).execute()
+
+            try:
+                import app
+                c = getattr(app, 'cache', None)
+                if c: c.invalidate(f"doc_rich:{doc_id}")
+            except Exception: pass
+
+            if notify_owner and doc.get('uploader_id'):
+                try:
+                    mode_label = "permanently purged (cloud storage + database)" if delete_mode == 'complete' else "unregistered from catalog (database only, cloud file retained)"
+                    notif_body = f"Your uploaded file '{old_title}' was {mode_label} by an administrator."
+                    if reason_preset:
+                        notif_body += f"\nReason: {reason_preset}"
+                    if custom_note:
+                        notif_body += f"\nDetails: {custom_note}"
+                    log_notification(doc.get('uploader_id'), 'document_deleted', f"File Removed: {old_title[:30]}", notif_body)
+                except Exception as ne:
+                    logging.warning(f"Failed to notify owner of delete: {ne}")
+
+            log_admin_action('delete_document', target=doc_id, details={'title': old_title, 'mode': delete_mode, 'reason': reason_preset, 'note': custom_note})
+            return jsonify({
+                'success': True,
+                'deleted': True,
+                'mode': delete_mode,
+                'redirect': '/dashboard',
+                'message': f"Document {delete_mode} delete completed successfully."
+            }), 200
+
+        DOC_VALID_COLUMNS = {
+            'title', 'description', 'college_id', 'department_id', 'subject_id',
+            'document_category', 'exam_type', 'program', 'topics_covered',
+            'difficulty_level', 'uploader_note', 'image_alt', 'is_paid',
+            'price', 'coupon_code', 'coupon_discount', 'status'
+        }
+        valid_doc_cols = set(doc.keys()).intersection(DOC_VALID_COLUMNS)
+
+        # Build updates mapping
+        update_payload = {}
+        updates_dict = {}
+
+        if 'metadata_updates' in data and isinstance(data['metadata_updates'], dict):
+            updates_dict = data['metadata_updates']
+        elif 'field' in data:
+            updates_dict = {data['field']: data.get('value')}
+
+        target_subject_id = updates_dict.get('subject_id') or doc.get('subject_id')
+        target_college_id = updates_dict.get('college_id') or doc.get('college_id')
+        target_dept_id = updates_dict.get('department_id') or updates_dict.get('branch_id') or doc.get('department_id')
+
+        # Process all identifying and hidden metadata fields
+        for fld, val in updates_dict.items():
+            fld_lower = fld.strip().lower()
+
+            if fld_lower == 'title':
+                update_payload['title'] = str(val or '').strip() or doc.get('title')
+            elif fld_lower in ['document_category', 'category']:
+                update_payload['document_category'] = str(val or '').strip()
+            elif fld_lower == 'status' and is_admin:
+                val_status = str(val or '').strip().lower()
+                if val_status in ['approved', 'hidden', 'pending']:
+                    update_payload['status'] = val_status
+            elif fld_lower == 'price':
+                try:
+                    update_payload['price'] = max(0.0, float(val or 0))
+                except (ValueError, TypeError):
+                    update_payload['price'] = 0.0
+            elif fld_lower == 'is_paid':
+                update_payload['is_paid'] = bool(val)
+            elif fld_lower == 'coupon_code':
+                update_payload['coupon_code'] = str(val or '').strip().upper() or None
+            elif fld_lower == 'coupon_discount':
+                try:
+                    update_payload['coupon_discount'] = max(0, min(100, int(val or 0)))
+                except (ValueError, TypeError):
+                    update_payload['coupon_discount'] = 0
+            elif fld_lower == 'topics_covered' and is_admin:
+                if isinstance(val, str):
+                    t_list = [t.strip() for t in val.split(',') if t.strip()]
+                    update_payload['topics_covered'] = t_list if t_list else None
+                elif isinstance(val, list):
+                    update_payload['topics_covered'] = [str(t).strip() for t in val if str(t).strip()] if val else None
+                else:
+                    update_payload['topics_covered'] = None
+            elif fld_lower in ['exam_type', 'program', 'difficulty_level'] and is_admin:
+                update_payload[fld_lower] = str(val or '').strip() or None
+            elif fld_lower == 'semester' and is_admin:
+                try:
+                    s_int = int(val or 1)
+                    if target_subject_id:
+                        try: client.table('subjects').update({'semester': s_int}).eq('id', target_subject_id).execute()
+                        except Exception as se: logging.warning(f"Error updating subjects.semester: {se}")
+                except Exception: pass
+            elif fld_lower == 'college_id' and is_admin:
+                c_id_val = str(val or '').strip() or None
+                update_payload['college_id'] = c_id_val
+                target_college_id = c_id_val
+            elif fld_lower in ['department_id', 'branch_id'] and is_admin:
+                d_id_val = str(val or '').strip() or None
+                update_payload['department_id'] = d_id_val
+                target_dept_id = d_id_val
+            elif fld_lower == 'subject_id' and is_admin:
+                s_id_val = str(val or '').strip() or None
+                update_payload['subject_id'] = s_id_val
+                target_subject_id = s_id_val
+            elif fld_lower == 'subject_code' and is_admin:
+                s_code = str(val or '').strip().upper()
+                if target_subject_id:
+                    try: client.table('subjects').update({'subject_code': s_code}).eq('id', target_subject_id).execute()
+                    except Exception as sce: logging.warning(f"Error updating subjects.subject_code: {sce}")
+            elif fld_lower in ['subject_name', 'subject'] and is_admin:
+                s_name = str(val or '').strip()
+                if target_subject_id:
+                    try: client.table('subjects').update({'name': s_name}).eq('id', target_subject_id).execute()
+                    except Exception as sne: logging.warning(f"Error updating subjects.name: {sne}")
+            elif fld_lower in ['college_name', 'college'] and is_admin:
+                c_name = str(val or '').strip()
+                if target_college_id:
+                    try: client.table('colleges').update({'name': c_name}).eq('id', target_college_id).execute()
+                    except Exception: pass
+            elif fld_lower == 'college_abbr' and is_admin:
+                c_abbr = str(val or '').strip().upper()
+                if target_college_id:
+                    try: client.table('colleges').update({'abbreviation': c_abbr}).eq('id', target_college_id).execute()
+                    except Exception: pass
+            elif fld_lower in ['department_name', 'department', 'branch'] and is_admin:
+                d_name = str(val or '').strip()
+                if target_dept_id:
+                    try: client.table('departments').update({'name': d_name}).eq('id', target_dept_id).execute()
+                    except Exception: pass
+            elif fld_lower == 'department_abbr' and is_admin:
+                d_abbr = str(val or '').strip().upper()
+                if target_dept_id:
+                    try: client.table('departments').update({'abbreviation': d_abbr}).eq('id', target_dept_id).execute()
+                    except Exception: pass
+            elif fld_lower == 'description':
+                desc_raw = doc.get('description') or ''
                 desc_obj = {}
-        elif isinstance(desc_raw, dict):
-            desc_obj = dict(desc_raw)
+                if isinstance(desc_raw, str) and desc_raw.strip().startswith('{'):
+                    try: desc_obj = json.loads(desc_raw.strip())
+                    except Exception: desc_obj = {}
+                elif isinstance(desc_raw, dict):
+                    desc_obj = dict(desc_raw)
+                desc_obj['text_description'] = str(val or '').strip()
+                update_payload['description'] = json.dumps(desc_obj)
 
-        desc_obj['text_description'] = new_text_desc
-        desc_obj['pricing'] = {
-            'is_paid': is_paid,
-            'price': price if is_paid else 0.0,
-            'coupon_code': coupon_code if is_paid else '',
-            'coupon_discount': coupon_discount if is_paid else 0,
-            'seller_id': doc.get('uploader_id')
-        }
+        # Fallback if full form legacy submitted
+        if not update_payload and not updates_dict:
+            new_title = (data.get('title') or '').strip()
+            new_text_desc = (data.get('description') or '').strip()
+            is_paid = bool(data.get('is_paid', False))
 
-        updated_desc_str = json.dumps(desc_obj)
-        update_payload = {
-            'title': new_title or doc.get('title'),
-            'description': updated_desc_str,
-            'is_paid': is_paid,
-            'price': price if is_paid else 0.0,
-            'coupon_code': coupon_code if is_paid else None,
-            'coupon_discount': coupon_discount if is_paid else 0
-        }
+            try:
+                price = max(0.0, float(data.get('price', 0) or 0))
+            except (ValueError, TypeError):
+                price = 0.0
 
-        client.table('documents').update(update_payload).eq('id', doc_id).execute()
+            coupon_code = str(data.get('coupon_code') or '').strip().upper() or None
+            try:
+                coupon_discount = max(0, min(100, int(data.get('coupon_discount', 0) or 0)))
+            except (ValueError, TypeError):
+                coupon_discount = 0
+
+            desc_raw = doc.get('description') or ''
+            desc_obj = {}
+            if isinstance(desc_raw, str) and desc_raw.strip().startswith('{'):
+                try: desc_obj = json.loads(desc_raw.strip())
+                except Exception: desc_obj = {}
+            elif isinstance(desc_raw, dict):
+                desc_obj = dict(desc_raw)
+
+            desc_obj['text_description'] = new_text_desc
+            desc_obj['pricing'] = {
+                'is_paid': is_paid,
+                'price': price if is_paid else 0.0,
+                'coupon_code': coupon_code if is_paid else '',
+                'coupon_discount': coupon_discount if is_paid else 0,
+                'seller_id': doc.get('uploader_id')
+            }
+
+            update_payload = {
+                'title': new_title or doc.get('title'),
+                'description': json.dumps(desc_obj),
+                'is_paid': is_paid,
+                'price': price if is_paid else 0.0,
+                'coupon_code': coupon_code if is_paid else None,
+                'coupon_discount': coupon_discount if is_paid else 0
+            }
+            if is_admin and status_action in ['approved', 'hidden', 'pending']:
+                update_payload['status'] = status_action
+
+        # Apply updates to documents table (filtering only columns that exist in documents)
+        doc_update_clean = {k: v for k, v in update_payload.items() if k in valid_doc_cols}
+        if doc_update_clean:
+            try:
+                client.table('documents').update(doc_update_clean).eq('id', doc_id).execute()
+            except Exception as upd_err:
+                logging.error(f"[api_edit_document] Table update error: {upd_err}")
+                return jsonify({'success': False, 'message': f'Database update failed: {str(upd_err)}'}), 500
+
+        # Invalidate Cache immediately
+        try:
+            import app
+            c = getattr(app, 'cache', None)
+            if c:
+                c.invalidate(f"doc_rich:{doc_id}")
+        except Exception as ce:
+            logging.warning(f"Cache invalidate error: {ce}")
+
+        # Notify owner if edited by admin
+        if is_admin and notify_owner and doc.get('uploader_id'):
+            try:
+                note_preset = reason_preset or 'Name error fix'
+                fld_keys = list(updates_dict.keys())
+                field_label = (', '.join(fld_keys) if fld_keys else 'metadata details').replace('_', ' ')
+                notif_msg = f"An administrator updated your file '{update_payload.get('title') or doc.get('title')}' in real-time."
+                notif_msg += f"\nFields Changed: {field_label}"
+                notif_msg += f"\nReason: {note_preset}"
+                if custom_note:
+                    notif_msg += f"\nDetails: {custom_note}"
+
+                log_notification(
+                    doc.get('uploader_id'),
+                    'document_admin_edit',
+                    f"Admin Edit: {(update_payload.get('title') or doc.get('title') or 'Document')[:30]}",
+                    notif_msg,
+                    url=f"/resource/{doc_id}"
+                )
+            except Exception as ne:
+                logging.warning(f"Failed to notify owner of edit: {ne}")
+
+        if is_admin:
+            log_admin_action('edit_document', target=doc_id, details={'payload': update_payload, 'updates': updates_dict, 'reason': reason_preset, 'note': custom_note})
 
         return jsonify({
             'success': True,
-            'message': 'Resource information updated successfully!',
+            'message': 'Resource and metadata updated successfully in real time!',
             'data': update_payload
         }), 200
 

@@ -601,11 +601,79 @@ uploader_name %}
     user-select: none;
     -webkit-user-drag: none;
   }
+
+  /* Admin Real-Time Inline Editable Styles */
+  .admin-live-editable {
+    cursor: text;
+    border-radius: 4px;
+    padding: 1px 4px;
+    transition: all 0.2s ease;
+    border-bottom: 2px dashed rgba(37, 99, 235, 0.45);
+    display: inline-block;
+  }
+  .admin-live-editable:hover {
+    background: rgba(37, 99, 235, 0.08);
+    border-bottom-color: #2563eb;
+  }
+  .admin-live-editable:focus {
+    outline: none;
+    background: rgba(37, 99, 235, 0.14);
+    border-bottom: 2px solid #2563eb;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  }
+  .admin-live-select {
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 2px 6px;
+    font-size: 0.8rem;
+    font-family: inherit;
+    background: #fff;
+    color: #1e293b;
+    font-weight: 600;
+    cursor: pointer;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="r2-container">
+
+  {% if is_admin %}
+  <!-- Admin Real-Time Control & Notification Bar -->
+  <div id="adminStickyBar" style="position:sticky; top:12px; z-index:5000; margin-bottom:1rem; padding:0.65rem 1.1rem; background:#ffffff; border:1.5px solid #2563eb; border-radius:12px; box-shadow:0 8px 24px rgba(37,99,235,0.15); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.6rem;">
+    <div style="display:flex; align-items:center; gap:0.5rem;">
+      <span style="font-size:1.15rem;">🛡️</span>
+      <span style="font-size:0.85rem; font-weight:800; color:#1e293b;">Admin Live Mode</span>
+      <span style="font-size:0.75rem; color:#2563eb; background:#eff6ff; border:1px solid #bfdbfe; padding:2px 8px; border-radius:12px; font-weight:600;">Real-time inline & metadata editing active</span>
+    </div>
+    <div style="display:flex; align-items:center; gap:0.6rem; flex-wrap:wrap;">
+      <button type="button" onclick="openAdminMetadataModal()" style="padding:0.35rem 0.75rem; background:#eff6ff; color:#1d4ed8; border:1px solid #93c5fd; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+        🛠️ Edit All Details & Metadata
+      </button>
+      <div style="display:flex; align-items:center; gap:0.35rem;">
+        <label style="font-size:0.75rem; font-weight:700; color:#475569;">Owner Note Preset:</label>
+        <select id="adminLiveReasonPreset" style="padding:0.35rem 0.55rem; font-size:0.78rem; border:1px solid #cbd5e1; border-radius:6px; background:#f8fafc; font-family:inherit;">
+          <option value="1. Name error fix">1. Name error fix</option>
+          <option value="2. Subject or Category correction">2. Subject / Category correction</option>
+          <option value="3. Temporary hold for review">3. Temporary hold for review</option>
+          <option value="4. Formatting and quality enhancement">4. Formatting & quality fix</option>
+          <option value="5. Duplicate or superseded upload">5. Duplicate upload</option>
+          <option value="6. General maintenance">6. General maintenance</option>
+        </select>
+      </div>
+      <label style="display:inline-flex; align-items:center; gap:0.3rem; font-size:0.75rem; font-weight:600; color:#334155; cursor:pointer;">
+        <input type="checkbox" id="adminLiveNotifyOwner" checked>
+        <span>🔔 Alert Owner</span>
+      </label>
+      <button type="button" onclick="openAdminDeleteModal()" style="padding:0.35rem 0.75rem; background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; border-radius:6px; font-size:0.75rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:4px;">
+        🗑️ Delete File...
+      </button>
+      <div id="adminRealtimeToast" style="display:none; font-size:0.78rem; font-weight:700; color:#16a34a; background:#dcfce7; border:1px solid #86efac; padding:3px 10px; border-radius:8px;">
+        ✓ Saved in real-time
+      </div>
+    </div>
+  </div>
+  {% endif %}
 
   <!-- Breadcrumbs -->
   <nav class="r2-breadcrumbs" aria-label="Breadcrumb">
@@ -623,23 +691,75 @@ uploader_name %}
     <span aria-current="page">{{ file_type }}</span>
   </nav>
 
-  <!-- Main Header -->
-  <h1 class="r2-heading">{{ subj_name }}: {{ document.title or file_type }}</h1>
+  <!-- Main Header with Live Inline Editable Title -->
+  <h1 class="r2-heading" style="display:flex; align-items:baseline; flex-wrap:wrap; gap:0.4rem;">
+    <span>{{ subj_name }}: </span>
+    {% if is_admin %}
+    <span id="liveDocTitle"
+          class="admin-live-editable"
+          contenteditable="true"
+          spellcheck="false"
+          data-field="title"
+          title="Admin: Click here to rename file in real-time">{{ document.title or file_type }}</span>
+    <span style="font-size:0.85rem; opacity:0.6; cursor:pointer;" title="Click title to rename in real-time">✏️</span>
+    {% else %}
+    <span>{{ document.title or file_type }}</span>
+    {% endif %}
+  </h1>
+
   <div class="r2-subtitle" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-    <span>Verified {{ file_type }} uploaded by {{ uploader_name }}</span>
+    <span>Verified 
+      {% if is_admin %}
+      <select id="liveDocCategory" class="admin-live-select" data-field="document_category" title="Change Category in real time">
+        {% for cat in ['Notes', 'PYQ', 'Practical', 'Syllabus', 'Assignment', 'Question Bank', 'Timetable'] %}
+        <option value="{{ cat }}" {% if cat|lower == file_type|lower or cat|lower == (document.document_category or '')|lower %}selected{% endif %}>{{ cat }}</option>
+        {% endfor %}
+      </select>
+      {% else %}
+      {{ file_type }}
+      {% endif %}
+      uploaded by 
+      {% if document.uploader_id %}
+      <a href="/u/{{ document.uploader_id }}" target="_blank" style="color:var(--v2-brand, #4f46e5); font-weight:700; text-decoration:underline; text-underline-offset:2px; display:inline-flex; align-items:center; gap:3px;" title="View {{ uploader_name }}'s Peer Profile & Study Hub">
+        <span>👤</span> <span>{{ uploader_name }}</span>
+      </a>
+      {% else %}
+      <strong>{{ uploader_name }}</strong>
+      {% endif %}
+    </span>
     {% if document.uploader and document.uploader.is_verified %}
     <span class="r2-verified-badge">✔ Verified Contributor</span>
     {% endif %}
-    {% if pricing and pricing.is_paid and pricing.price %}
+    {% if is_admin %}
+    <span class="admin-price-pill" style="display:inline-flex; align-items:center; gap:4px; background:#fef3c7; border:1px solid #f59e0b; padding:2px 8px; border-radius:8px; font-size:0.8rem; font-weight:700; color:#92400e;">
+      <label style="cursor:pointer; display:inline-flex; align-items:center; gap:2px;">
+        <input type="checkbox" id="liveDocIsPaid" data-field="is_paid" {% if pricing and pricing.is_paid %}checked{% endif %}>
+        <span>Paid</span>
+      </label>
+      <span>₹</span>
+      <span id="liveDocPrice" class="admin-live-editable" contenteditable="true" data-field="price" title="Click to edit price in real time">{{ pricing.price if pricing and pricing.price else 0 }}</span>
+    </span>
+    {% elif pricing and pricing.is_paid and pricing.price %}
     <span style="background:linear-gradient(135deg, #fef3c7, #fde68a);color:#92400e;border:1px solid #f59e0b;font-weight:800;padding:3px 10px;border-radius:8px;font-size:0.8rem;display:inline-flex;align-items:center;gap:4px;">⭐ Premium ₹{{ pricing.price }}</span>
     {% endif %}
   </div>
 
-  <!-- Facts Row -->
+  <!-- Facts Row with Live Editable Status -->
   <div class="r2-facts-row" aria-label="Resource Facts">
+    {% if is_admin %}
+    <div class="r2-fact-item" style="padding: 2px 6px;">
+      <span style="font-weight:700; font-size:0.75rem; color:#475569;">Status:</span>
+      <select id="liveDocStatus" class="admin-live-select" data-field="status" title="Admin: Change status in real time">
+        <option value="approved" {% if document.status == 'approved' or not document.status %}selected{% endif %}>✅ Live / Approved</option>
+        <option value="hidden" {% if document.status == 'hidden' %}selected{% endif %}>⏸️ Hidden / Temporary Hold</option>
+        <option value="pending" {% if document.status == 'pending' %}selected{% endif %}>⏳ Pending Verification</option>
+      </select>
+    </div>
+    {% else %}
     <div class="r2-fact-item">
       <span class="r2-verified-badge">✔ Verified</span>
     </div>
+    {% endif %}
     <div class="r2-fact-item">
       📅 {{ (document.created_at or '')[:10] }}
     </div>
@@ -704,6 +824,17 @@ uploader_name %}
         </button>
       </div>
     </div>
+  </div>
+
+  <!-- Resource Description / Overview (Inline Real-time Editable for Admin) -->
+  <div class="r2-description-card" style="margin: 0.85rem 0 1.25rem; padding: 0.9rem 1.2rem; background: var(--v2-surface); border: 1px solid var(--v2-line); border-radius: var(--v2-radius-panel);">
+    <div style="font-size:0.75rem; font-weight:700; color:var(--v2-muted); text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.35rem; display:flex; justify-content:space-between; align-items:center;">
+      <span>📝 About this Resource / Topics Covered</span>
+      {% if is_admin %}<span style="color:#2563eb; font-size:0.75rem; font-weight:700;">✏️ Click below to edit description in real time</span>{% endif %}
+    </div>
+    <div id="liveDocDescription"
+         {% if is_admin %}contenteditable="true" spellcheck="false" data-field="description" class="admin-live-editable" title="Admin: Click here to edit description in real-time"{% endif %}
+         style="font-size:0.9rem; line-height:1.6; color:var(--v2-ink); outline:none; min-height: 24px;">{{ document.display_description or 'No description provided yet.' }}</div>
   </div>
 
   <!-- Two Column Grid -->
@@ -1101,10 +1232,106 @@ uploader_name %}
       </div>
     </div>
 
+    <!-- Earnings & Recorded Views Metric Strip -->
+    <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:1rem; margin-bottom:1.25rem;">
+      <div style="background:var(--v2-surface); border:1px solid var(--v2-line); border-radius:10px; padding:1rem; display:flex; align-items:center; gap:0.85rem; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="width:42px; height:42px; border-radius:8px; background:rgba(99,102,241,0.1); display:flex; align-items:center; justify-content:center; font-size:1.3rem;">👥</div>
+        <div>
+          <div style="font-size:0.72rem; font-weight:700; color:var(--v2-muted); text-transform:uppercase; letter-spacing:0.5px;">Recorded Unique Views</div>
+          <div style="font-size:1.35rem; font-weight:800; color:var(--v2-ink); line-height:1.2;">{{ recorded_views }}</div>
+          <div style="font-size:0.72rem; color:#4f46e5; font-weight:600;">Eligible for payouts</div>
+        </div>
+      </div>
+
+      <div style="background:linear-gradient(to right, rgba(240,253,244,0.7), var(--v2-surface)); border:1px solid rgba(22,163,74,0.3); border-radius:10px; padding:1rem; display:flex; align-items:center; gap:0.85rem; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="width:42px; height:42px; border-radius:8px; background:rgba(22,163,74,0.12); display:flex; align-items:center; justify-content:center; font-size:1.3rem;">💰</div>
+        <div>
+          <div style="font-size:0.72rem; font-weight:700; color:#15803d; text-transform:uppercase; letter-spacing:0.5px;">View Earnings (Real Cash)</div>
+          <div style="font-size:1.35rem; font-weight:800; color:#16a34a; line-height:1.2;">₹{{ "%.2f"|format(view_earnings) }}</div>
+          <div style="font-size:0.72rem; color:var(--v2-muted);">Earn <strong>₹0.20</strong> per recorded view</div>
+        </div>
+      </div>
+
+      <div style="background:var(--v2-surface); border:1px solid var(--v2-line); border-radius:10px; padding:1rem; display:flex; align-items:center; gap:0.85rem; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
+        <div style="width:42px; height:42px; border-radius:8px; background:rgba(0,0,0,0.04); display:flex; align-items:center; justify-content:center; font-size:1.3rem;">📊</div>
+        <div>
+          <div style="font-size:0.72rem; font-weight:700; color:var(--v2-muted); text-transform:uppercase; letter-spacing:0.5px;">Total Page Traffic</div>
+          <div style="font-size:1.35rem; font-weight:800; color:var(--v2-ink); line-height:1.2;">{{ document.view_count or 0 }}</div>
+          <div style="font-size:0.72rem; color:var(--v2-muted);">Total impressions & hits</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Psychological Viral Share & Growth Accelerator for File Owners -->
+    <div style="background:linear-gradient(135deg, #1e1b4b 0%, #312e81 55%, #4338ca 100%); border-radius:12px; padding:1.35rem; color:#ffffff; margin-bottom:1.5rem; box-shadow:0 10px 25px -5px rgba(49,46,129,0.35); position:relative; overflow:hidden;">
+      <div style="position:absolute; right:-25px; top:-25px; width:140px; height:140px; background:radial-gradient(circle, rgba(250,204,21,0.2) 0%, transparent 70%); border-radius:50%; pointer-events:none;"></div>
+
+      <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1rem; position:relative; z-index:1;">
+        <div style="flex:1; min-width:260px;">
+          <div style="display:inline-flex; align-items:center; gap:0.4rem; background:rgba(250,204,21,0.2); border:1px solid rgba(250,204,21,0.45); color:#fef08a; padding:3px 10px; border-radius:999px; font-size:0.72rem; font-weight:800; text-transform:uppercase; letter-spacing:0.5px; margin-bottom:0.5rem;">
+            ⚡ Share & Earn ₹0.20 Per View
+          </div>
+          <h3 style="margin:0 0 0.35rem 0; font-size:1.15rem; font-weight:800; color:#ffffff; line-height:1.3;">
+            Turn This File Into Instant Cash & Campus Fame! 🚀
+          </h3>
+          <p style="margin:0; font-size:0.84rem; color:#c7d2fe; max-width:620px; line-height:1.45;">
+            Exams are around the corner and your college batchmates need these notes right now. 
+            <strong>Every friend who opens your link adds ₹0.20 directly to your creator wallet</strong> and powers you to the top of the AbhiHub Leaderboard!
+          </p>
+        </div>
+
+        <!-- Next Payout Milestone Tracker -->
+        {% set next_milestone = 25 if recorded_views < 25 else (50 if recorded_views < 50 else (100 if recorded_views < 100 else 250)) %}
+        {% set progress_pct = [((recorded_views / next_milestone) * 100)|round|int, 100]|min %}
+        <div style="background:rgba(255,255,255,0.08); border:1px solid rgba(255,255,255,0.18); border-radius:10px; padding:0.85rem 1rem; min-width:210px; backdrop-filter:blur(6px);">
+          <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; color:#e0e7ff; margin-bottom:0.4rem;">
+            <span>Next Goal:</span>
+            <strong style="color:#fde047;">{{ next_milestone }} Views (₹{{ "%.2f"|format(next_milestone * 0.20) }})</strong>
+          </div>
+          <div style="width:100%; height:7px; background:rgba(255,255,255,0.2); border-radius:999px; overflow:hidden; margin-bottom:0.35rem;">
+            <div style="width:{{ progress_pct }}%; height:100%; background:linear-gradient(90deg, #38bdf8, #4ade80); border-radius:999px;"></div>
+          </div>
+          <div style="font-size:0.7rem; color:#a5b4fc; text-align:right;">
+            {{ recorded_views }} / {{ next_milestone }} views reached ({{ progress_pct }}%)
+          </div>
+        </div>
+      </div>
+
+      <!-- High-Conversion Ready-Made Message Hook -->
+      <div style="background:rgba(0,0,0,0.28); border:1px solid rgba(255,255,255,0.12); border-radius:8px; padding:0.65rem 0.9rem; margin-bottom:1rem; font-size:0.8rem; color:#e0e7ff; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; position:relative; z-index:1;">
+        <div style="display:flex; align-items:center; gap:0.5rem; overflow:hidden; text-overflow:ellipsis;">
+          <span style="font-size:1.1rem;">💬</span>
+          <span style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:540px;">
+            <em>"🔥 Found the verified notes & PYQs for <strong>{{ document.title[:38] }}...</strong> on AbhiHub!"</em>
+          </span>
+        </div>
+        <span style="font-size:0.72rem; color:#93c5fd; font-weight:700;">✨ Ready to blast in WhatsApp class groups</span>
+      </div>
+
+      <!-- Action Share Buttons -->
+      <div style="display:flex; align-items:center; flex-wrap:wrap; gap:0.65rem; position:relative; z-index:1;">
+        <button type="button" onclick="shareOnWhatsApp()" style="background:#25d366; color:#ffffff; border:none; padding:0.6rem 1.15rem; border-radius:8px; font-weight:800; font-size:0.84rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.45rem; box-shadow:0 4px 12px rgba(37,211,102,0.35); transition:transform 0.15s ease;">
+          <span>📱</span> Share on WhatsApp Group
+        </button>
+
+        <button type="button" onclick="shareOnTelegram()" style="background:#0088cc; color:#ffffff; border:none; padding:0.6rem 1rem; border-radius:8px; font-weight:700; font-size:0.84rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.45rem; box-shadow:0 4px 12px rgba(0,136,204,0.3);">
+          <span>✈️</span> Telegram
+        </button>
+
+        <button type="button" id="copyShareMsgBtn" onclick="copyShareMessage(this)" style="background:rgba(255,255,255,0.15); color:#ffffff; border:1px solid rgba(255,255,255,0.25); padding:0.6rem 1rem; border-radius:8px; font-weight:700; font-size:0.84rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.45rem; backdrop-filter:blur(4px);">
+          <span>📋</span> Copy Full WhatsApp Message
+        </button>
+
+        <button type="button" id="copyDirectLinkBtn" onclick="copyResourceUrl(this)" style="background:rgba(255,255,255,0.1); color:#ffffff; border:1px solid rgba(255,255,255,0.2); padding:0.6rem 0.9rem; border-radius:8px; font-weight:600; font-size:0.82rem; cursor:pointer; display:inline-flex; align-items:center; gap:0.4rem;">
+          <span>🔗</span> Copy Link
+        </button>
+      </div>
+    </div>
+
     <!-- Management Tabs -->
     <div class="r2-tarika-tabs" style="margin-bottom:1.25rem; border-radius:8px; overflow:hidden;">
       <button type="button" class="r2-tarika-tab-btn active" id="tabBtn_viewers" onclick="switchManageTab('viewers')">
-        👥 People Who Viewed ({{ viewers|length }})
+        👥 People Who Viewed ({{ recorded_views }})
       </button>
       <button type="button" class="r2-tarika-tab-btn" id="tabBtn_edit" onclick="switchManageTab('edit')">
         ✏️ Edit File Info, Price & Promo
@@ -1113,9 +1340,14 @@ uploader_name %}
 
     <!-- Tab 1: People Who Viewed -->
     <div id="manageTab_viewers" style="display:block;">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem;">
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
         <div style="font-size:0.85rem; font-weight:700; color:var(--v2-ink);">Recent Student Access History</div>
-        <div style="font-size:0.78rem; color:var(--v2-muted);">Total Views: <strong>{{ document.view_count or 0 }}</strong> | Recorded: <strong>{{ viewers|length }}</strong></div>
+        <div style="font-size:0.78rem; color:var(--v2-muted);">
+          Total Visits: <strong>{{ document.view_count or 0 }}</strong> | 
+          Recorded Views: <strong style="color:#4f46e5;">{{ recorded_views }}</strong> | 
+          Earnings from Views: <strong style="color:#16a34a; font-size:0.85rem;">₹{{ "%.2f"|format(view_earnings) }}</strong>
+          <span style="font-size:0.72rem; color:var(--v2-muted);">(₹0.20 / recorded view)</span>
+        </div>
       </div>
       {% if viewers and viewers|length > 0 %}
       <div style="overflow-x:auto; border:1px solid var(--v2-line); border-radius:8px; background:var(--v2-surface);">
@@ -1123,7 +1355,9 @@ uploader_name %}
           <thead>
             <tr style="background:rgba(0,0,0,0.02); border-bottom:1px solid var(--v2-line);">
               <th style="padding:0.65rem 0.85rem; font-weight:700; color:var(--v2-muted);">Student Name</th>
+              {% if is_admin %}
               <th style="padding:0.65rem 0.85rem; font-weight:700; color:var(--v2-muted);">Email</th>
+              {% endif %}
               <th style="padding:0.65rem 0.85rem; font-weight:700; color:var(--v2-muted);">Role</th>
               <th style="padding:0.65rem 0.85rem; font-weight:700; color:var(--v2-muted);">Device</th>
               <th style="padding:0.65rem 0.85rem; font-weight:700; color:var(--v2-muted);">Accessed At</th>
@@ -1135,10 +1369,18 @@ uploader_name %}
               <td style="padding:0.65rem 0.85rem; font-weight:600; color:var(--v2-ink);">
                 <div style="display:flex; align-items:center; gap:0.4rem;">
                   <span>👤</span>
+                  {% if v.user_id %}
+                  <a href="/u/{{ v.user_id }}" target="_blank" style="color:var(--v2-brand, #4f46e5); font-weight:700; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'" title="View {{ v.name }}'s Peer Profile">
+                    {{ v.name }}
+                  </a>
+                  {% else %}
                   <span>{{ v.name }}</span>
+                  {% endif %}
                 </div>
               </td>
+              {% if is_admin %}
               <td style="padding:0.65rem 0.85rem; color:var(--v2-muted); font-size:0.8rem;">{{ v.email }}</td>
+              {% endif %}
               <td style="padding:0.65rem 0.85rem;">
                 <span style="background:rgba(99,102,241,0.1); color:#4f46e5; padding:2px 7px; border-radius:6px; font-size:0.72rem; font-weight:700;">
                   {{ v.role | capitalize }}
@@ -1159,7 +1401,7 @@ uploader_name %}
       <div style="padding:2rem; text-align:center; border:1px dashed var(--v2-line); border-radius:8px; background:rgba(0,0,0,0.01);">
         <div style="font-size:1.8rem; margin-bottom:0.5rem;">👁️</div>
         <div style="font-weight:700; font-size:0.9rem; color:var(--v2-ink);">No recorded viewers yet</div>
-        <div style="font-size:0.8rem; color:var(--v2-muted); margin-top:0.25rem;">When students view this document, their names, email, and access times will appear here.</div>
+        <div style="font-size:0.8rem; color:var(--v2-muted); margin-top:0.25rem;">When students view this document, their names{% if is_admin %}, email,{% endif %} and access times will appear here.</div>
       </div>
       {% endif %}
     </div>
@@ -1208,6 +1450,59 @@ uploader_name %}
             </div>
           </div>
         </div>
+
+        {% if is_admin %}
+        <div style="background:rgba(239,68,68,0.03); border:1px solid rgba(239,68,68,0.25); border-radius:10px; padding:1.2rem; margin-top:0.5rem;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.85rem; flex-wrap:wrap; gap:0.5rem;">
+            <div style="font-size:0.95rem; font-weight:800; color:#b91c1c; display:flex; align-items:center; gap:0.4rem;">
+              <span>🛡️</span> Admin Moderation & Owner Notification
+            </div>
+            <span style="font-size:0.75rem; background:#fee2e2; color:#991b1b; padding:2px 8px; border-radius:12px; font-weight:700;">
+              Status: {{ (document.status or 'approved') | capitalize }}
+            </span>
+          </div>
+
+          <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:0.85rem; margin-bottom:0.85rem;">
+            <div>
+              <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Status Control</label>
+              <select id="adminStatusAction" style="width:100%; padding:0.55rem; border:1px solid var(--v2-line); border-radius:6px; font-family:inherit; font-size:0.85rem; background:var(--v2-surface); color:var(--v2-ink);">
+                <option value="approved" {% if document.status == 'approved' or not document.status %}selected{% endif %}>✅ Live & Approved</option>
+                <option value="hidden" {% if document.status == 'hidden' %}selected{% endif %}>⏸️ Temporary Hold / Hidden</option>
+                <option value="pending" {% if document.status == 'pending' %}selected{% endif %}>⏳ Pending Verification</option>
+              </select>
+            </div>
+
+            <div>
+              <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Predefined Reason for Owner</label>
+              <select id="adminReasonPreset" style="width:100%; padding:0.55rem; border:1px solid var(--v2-line); border-radius:6px; font-family:inherit; font-size:0.85rem; background:var(--v2-surface); color:var(--v2-ink);">
+                <option value="Name error fix">1. Name error fix</option>
+                <option value="Subject or Category correction">2. Subject or Category correction</option>
+                <option value="Temporary hold for review">3. Temporary hold for review</option>
+                <option value="Formatting and quality enhancement">4. Formatting and quality enhancement</option>
+                <option value="Duplicate or superseded upload">5. Duplicate or superseded upload</option>
+                <option value="Other / Custom update">6. Other / Custom update</option>
+              </select>
+            </div>
+          </div>
+
+          <div style="margin-bottom:0.85rem;">
+            <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Admin Note for File Owner (Predefined details)</label>
+            <input type="text" id="adminCustomNote" placeholder="e.g. Corrected typo in unit title and verified syllabus"
+              style="width:100%; padding:0.55rem 0.75rem; border:1px solid var(--v2-line); border-radius:6px; font-family:inherit; font-size:0.85rem; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;">
+          </div>
+
+          <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+            <label style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.82rem; font-weight:600; cursor:pointer;">
+              <input type="checkbox" id="adminNotifyOwner" checked>
+              <span>🔔 Send notification alert to file owner</span>
+            </label>
+
+            <button type="button" onclick="openAdminDeleteModal()" style="padding:0.45rem 0.9rem; background:#fee2e2; color:#b91c1c; border:1px solid #fca5a5; border-radius:6px; font-size:0.82rem; font-weight:700; cursor:pointer;">
+              🗑️ Delete File
+            </button>
+          </div>
+        </div>
+        {% endif %}
 
         <div style="display:flex; align-items:center; gap:1rem;">
           <button type="submit" id="saveDocChangesBtn" class="r2-btn"
@@ -1264,6 +1559,326 @@ uploader_name %}
     <div id="rReportStatus" style="margin-top:0.5rem; font-size:0.85rem; text-align:center;"></div>
   </div>
 </div>
+
+{% if is_admin %}
+<!-- Admin Delete Choice Modal (Complete vs Partial) -->
+<div id="adminDeleteChoiceModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.7); backdrop-filter:blur(3px); z-index:9999; align-items:center; justify-content:center; padding:1rem;">
+  <div style="background:var(--v2-surface); border:1px solid var(--v2-line); border-radius:16px; max-width:560px; width:100%; box-shadow:0 20px 40px rgba(0,0,0,0.25); overflow:hidden;">
+    <div style="padding:1.25rem 1.5rem; background:#fee2e2; border-bottom:1px solid #fecaca; display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; align-items:center; gap:0.5rem;">
+        <span style="font-size:1.3rem;">⚠️</span>
+        <h3 style="margin:0; font-size:1.1rem; font-weight:800; color:#991b1b;">Delete Resource: Choose Method</h3>
+      </div>
+      <button type="button" onclick="closeAdminDeleteModal()" style="border:none; background:transparent; font-size:1.3rem; color:#991b1b; cursor:pointer;">✕</button>
+    </div>
+
+    <div style="padding:1.5rem; display:flex; flex-direction:column; gap:1.1rem;">
+      <div style="font-size:0.88rem; color:var(--v2-muted);">
+        File: <strong style="color:var(--v2-ink);">{{ document.title or 'Document' }}</strong>
+      </div>
+
+      <!-- Delete Choice Cards -->
+      <div style="display:flex; flex-direction:column; gap:0.85rem;">
+        <!-- Option 1: Complete Delete -->
+        <div onclick="selectDeleteMode('complete')" id="cardDeleteComplete" style="cursor:pointer; border:2px solid #ef4444; background:#fff5f5; border-radius:12px; padding:1rem; transition:all 0.15s ease;">
+          <div style="display:flex; align-items:flex-start; gap:0.75rem;">
+            <input type="radio" name="adminDeleteModeRadio" id="radioDeleteComplete" value="complete" checked style="margin-top:3px; cursor:pointer;">
+            <div>
+              <div style="font-size:0.95rem; font-weight:800; color:#b91c1c;">🔥 Complete Delete (Cloud Storage + Supabase)</div>
+              <div style="font-size:0.8rem; color:#7f1d1d; margin-top:0.25rem; line-height:1.4;">
+                Permanently purges the physical file from <strong>Cloud Storage (Cloudinary / Supabase / Firebase)</strong> AND destroys all database records, interactions, and search indexing from Supabase.
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Option 2: Partial Delete -->
+        <div onclick="selectDeleteMode('partial')" id="cardDeletePartial" style="cursor:pointer; border:2px solid #e2e8f0; background:rgba(0,0,0,0.01); border-radius:12px; padding:1rem; transition:all 0.15s ease;">
+          <div style="display:flex; align-items:flex-start; gap:0.75rem;">
+            <input type="radio" name="adminDeleteModeRadio" id="radioDeletePartial" value="partial" style="margin-top:3px; cursor:pointer;">
+            <div>
+              <div style="font-size:0.95rem; font-weight:800; color:#b45309;">💾 Partial Delete (Supabase Database Only)</div>
+              <div style="font-size:0.8rem; color:#78350f; margin-top:0.25rem; line-height:1.4;">
+                Removes all listings and database records from Supabase, but <strong>the physical file remains preserved in Cloud Storage</strong> for archival, backup, or recovery.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Author Notification & Reason Preset -->
+      <div style="background:rgba(0,0,0,0.02); border:1px solid var(--v2-line); border-radius:10px; padding:0.9rem;">
+        <div style="font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.4rem;">Author Notification & Reason Preset:</div>
+        <div style="display:flex; flex-direction:column; gap:0.5rem;">
+          <select id="modalDeleteReasonPreset" style="width:100%; padding:0.5rem; font-size:0.82rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); font-family:inherit;">
+            <option value="1. Name error fix">1. Name error fix</option>
+            <option value="2. Subject or Category correction">2. Subject / Category correction</option>
+            <option value="3. Temporary hold for review">3. Temporary hold for review</option>
+            <option value="4. Formatting and quality enhancement">4. Formatting & quality fix</option>
+            <option value="5. Duplicate or superseded upload">5. Duplicate upload</option>
+            <option value="6. Violation of terms / copyright">6. Violation of terms / copyright</option>
+            <option value="7. Author requested removal">7. Author requested removal</option>
+            <option value="8. Administrative removal">8. Administrative removal</option>
+          </select>
+          <input type="text" id="modalDeleteCustomNote" placeholder="Additional details or custom message for author..." style="width:100%; padding:0.5rem; font-size:0.82rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); font-family:inherit; box-sizing:border-box;">
+          <label style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.8rem; font-weight:600; color:var(--v2-ink); cursor:pointer;">
+            <input type="checkbox" id="modalDeleteNotifyOwner" checked>
+            <span>🔔 Send notification alert to file author</span>
+          </label>
+        </div>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:0.75rem; margin-top:0.5rem;">
+        <button type="button" onclick="closeAdminDeleteModal()" class="r2-btn" style="padding:0.55rem 1rem;">Cancel</button>
+        <button type="button" id="confirmDeleteActionBtn" onclick="executeAdminDelete()" class="r2-btn" style="background:#dc2626; color:#fff; border-color:#dc2626; font-weight:800; padding:0.55rem 1.25rem;">
+          Confirm Delete
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Admin Full Metadata Inspector Modal -->
+<div id="adminMetadataModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.7); backdrop-filter:blur(3px); z-index:9999; align-items:center; justify-content:center; padding:1rem;">
+  <div style="background:var(--v2-surface); border:1px solid var(--v2-line); border-radius:16px; max-width:840px; width:100%; max-height:92vh; display:flex; flex-direction:column; box-shadow:0 20px 50px rgba(0,0,0,0.3); overflow:hidden;">
+    <div style="padding:1.1rem 1.5rem; background:linear-gradient(135deg, #1e40af, #2563eb); color:#fff; display:flex; justify-content:space-between; align-items:center;">
+      <div style="display:flex; align-items:center; gap:0.6rem;">
+        <span style="font-size:1.3rem;">🛠️</span>
+        <div>
+          <h3 style="margin:0; font-size:1.15rem; font-weight:800; color:#fff;">Full Metadata Inspector & Real-Time Editor</h3>
+          <div style="font-size:0.75rem; color:#bfdbfe; margin-top:2px;">Edit all identification, hierarchy, and hidden attributes stored in Supabase</div>
+        </div>
+      </div>
+      <button type="button" onclick="closeAdminMetadataModal()" style="border:none; background:transparent; font-size:1.3rem; color:#fff; cursor:pointer;">✕</button>
+    </div>
+
+    <div style="padding:1.5rem; overflow-y:auto; display:flex; flex-direction:column; gap:1.25rem;">
+      <!-- Section 1: Academic Hierarchy & Subject Identifying Details -->
+      <div>
+      <!-- Section 1: Academic Hierarchy & Subject Identifying Details -->
+      <div>
+        <div style="font-size:0.85rem; font-weight:800; color:#2563eb; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.75rem; border-bottom:1px solid var(--v2-line); padding-bottom:0.35rem; display:flex; justify-content:space-between; align-items:center;">
+          <span>🏛️ 1. Academic Location & Taxonomy</span>
+          <span style="font-size:0.72rem; color:var(--v2-muted); font-weight:600;">Pre-populated from upload catalog</span>
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:0.85rem;">
+          <!-- College Selection -->
+          <div style="grid-column: 1 / -1; background:rgba(0,0,0,0.015); border:1px solid var(--v2-line); border-radius:8px; padding:0.75rem;">
+            <div style="display:grid; grid-template-columns:2fr 1fr; gap:0.75rem;">
+              <div>
+                <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">College / University (Select or Search)</label>
+                <select id="metaCollegeSelect" data-field="college_id" onchange="syncMetaCollege(this)" style="width:100%; padding:0.5rem 0.7rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;">
+                  <option value="">-- Select from Known Colleges --</option>
+                  {% for c in all_colleges %}
+                  <option value="{{ c.id }}" data-name="{{ c.name }}" data-abbr="{{ c.abbreviation }}"
+                    {% if (document.college_id and c.id == document.college_id) or (document.college and c.id == document.college.id) or (c.name|lower == (document.college_name or '')|lower) or (c.abbreviation|lower == (document.college_abbr or '')|lower) %}selected{% endif %}>
+                    {{ c.name }} ({{ c.abbreviation }})
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">College Abbr</label>
+                <input type="text" id="metaCollegeAbbr" data-field="college_abbr" value="{{ (document.college.abbreviation if document.college and document.college.abbreviation else document.college_abbr) or '' }}" placeholder="e.g. GHRCE" style="width:100%; padding:0.5rem 0.7rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box; text-transform:uppercase;">
+              </div>
+            </div>
+            <div style="margin-top:0.5rem;">
+              <label style="display:block; font-size:0.75rem; font-weight:600; color:var(--v2-muted); margin-bottom:0.2rem;">Or Custom College Name override:</label>
+              <input type="text" id="metaCollegeName" data-field="college_name" value="{{ (document.college.name if document.college else document.college_name) or '' }}" placeholder="Type custom college name if not listed above" style="width:100%; padding:0.45rem 0.65rem; font-size:0.82rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;">
+            </div>
+          </div>
+
+          <!-- Department / Branch Selection -->
+          <div style="grid-column: 1 / -1; background:rgba(0,0,0,0.015); border:1px solid var(--v2-line); border-radius:8px; padding:0.75rem;">
+            <div style="display:grid; grid-template-columns:2fr 1fr; gap:0.75rem;">
+              <div>
+                <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Department / Branch (Select or Search)</label>
+                <select id="metaDepartmentSelect" data-field="department_id" onchange="syncMetaDepartment(this)" style="width:100%; padding:0.5rem 0.7rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;">
+                  <option value="">-- Select from Known Departments --</option>
+                  {% for b in all_branches %}
+                  <option value="{{ b.id }}" data-name="{{ b.name }}" data-abbr="{{ b.abbreviation }}"
+                    {% if (document.department_id and b.id == document.department_id) or (document.department and b.id == document.department.id) or (b.name|lower == (document.department_name or document.branch or '')|lower) or (b.abbreviation|lower == (document.department_abbr or '')|lower) %}selected{% endif %}>
+                    {{ b.name }} ({{ b.abbreviation }})
+                  </option>
+                  {% endfor %}
+                </select>
+              </div>
+              <div>
+                <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Branch Abbr</label>
+                <input type="text" id="metaDepartmentAbbr" data-field="department_abbr" value="{{ (document.department.abbreviation if document.department and document.department.abbreviation else document.department_abbr) or '' }}" placeholder="e.g. CSE" style="width:100%; padding:0.5rem 0.7rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box; text-transform:uppercase;">
+              </div>
+            </div>
+            <div style="margin-top:0.5rem;">
+              <label style="display:block; font-size:0.75rem; font-weight:600; color:var(--v2-muted); margin-bottom:0.2rem;">Or Custom Department Name override:</label>
+              <input type="text" id="metaDepartmentName" data-field="department_name" value="{{ (document.department.name if document.department else document.department_name or document.branch) or '' }}" placeholder="Type custom branch name if not listed above" style="width:100%; padding:0.45rem 0.65rem; font-size:0.82rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;">
+            </div>
+          </div>
+
+          <!-- Semester -->
+          <div>
+            <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Semester</label>
+            <select id="metaSemester" data-field="semester" onchange="fetchMetaSubjects()" style="width:100%; padding:0.5rem 0.7rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;">
+              {% for s in range(1, 9) %}
+              <option value="{{ s }}" {% if (document.semester|string == s|string) or (not document.semester and s == 1) %}selected{% endif %}>Semester {{ s }}</option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <!-- Program / Course Degree -->
+          <div>
+            <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Program / Degree</label>
+            <select id="metaProgram" data-field="program" style="width:100%; padding:0.5rem 0.7rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;">
+              {% set curr_prog = (document.program or 'b.tech')|lower %}
+              <option value="b.tech" {% if curr_prog == 'b.tech' %}selected{% endif %}>B.Tech (Engineering)</option>
+              <option value="m.tech" {% if curr_prog == 'm.tech' %}selected{% endif %}>M.Tech</option>
+              <option value="mba" {% if curr_prog == 'mba' %}selected{% endif %}>MBA</option>
+              <option value="bsc" {% if curr_prog == 'bsc' %}selected{% endif %}>B.Sc</option>
+              <option value="msc" {% if curr_prog == 'msc' %}selected{% endif %}>M.Sc</option>
+              <option value="bca" {% if curr_prog == 'bca' %}selected{% endif %}>BCA</option>
+              <option value="mca" {% if curr_prog == 'mca' %}selected{% endif %}>MCA</option>
+              <option value="dip" {% if curr_prog in ['dip', 'diploma'] %}selected{% endif %}>Diploma</option>
+              <option value="phd" {% if curr_prog == 'phd' %}selected{% endif %}>PhD</option>
+              <option value="other" {% if curr_prog not in ['b.tech','m.tech','mba','bsc','msc','bca','mca','dip','diploma','phd'] %}selected{% endif %}>Other Course</option>
+            </select>
+          </div>
+
+          <!-- Subject Name with Autocomplete Datalist -->
+          <div>
+            <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Subject Name (Search or Type)</label>
+            <input type="hidden" id="metaSubjectId" data-field="subject_id" value="{{ document.subject_id or '' }}">
+            <input type="text" id="metaSubjectName" data-field="subject_name" list="metaSubjectsDataList" oninput="matchMetaSubject(this.value)" value="{{ (document.subject.name if document.subject else document.subject_name) or '' }}" placeholder="Search subject catalog..." style="width:100%; padding:0.5rem 0.7rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;">
+            <datalist id="metaSubjectsDataList"></datalist>
+          </div>
+
+          <!-- Subject Code -->
+          <div>
+            <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Subject Code (Hidden Key)</label>
+            <input type="text" id="metaSubjectCode" data-field="subject_code" value="{{ (document.subject.subject_code if document.subject and document.subject.subject_code else document.subject_code) or '' }}" placeholder="e.g. CS201 / BT301" style="width:100%; padding:0.5rem 0.7rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box; text-transform:uppercase;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 2: Document Classification & Details -->
+      <div>
+        <div style="font-size:0.85rem; font-weight:800; color:#2563eb; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.75rem; border-bottom:1px solid var(--v2-line); padding-bottom:0.35rem;">
+          📄 2. File Classification & Details
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(220px, 1fr)); gap:0.85rem;">
+          <div style="grid-column: 1 / -1;">
+            <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">File Title</label>
+            <input type="text" id="metaTitle" data-field="title" value="{{ document.title or '' }}" style="width:100%; padding:0.55rem 0.7rem; font-size:0.9rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Document Category</label>
+            <select id="metaDocCategory" data-field="document_category" style="width:100%; padding:0.55rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink);">
+              {% for cat, icon in [('Notes', '📝'), ('PYQ', '📄'), ('Practical', '🧪'), ('Syllabus', '📋'), ('Assignment', '📑'), ('Question Bank', '❓'), ('Timetable', '📅')] %}
+              <option value="{{ cat }}" {% if cat|lower == file_type|lower or cat|lower == (document.document_category or '')|lower %}selected{% endif %}>{{ icon }} {{ cat }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div>
+            <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Exam Type</label>
+            <input type="text" id="metaExamType" data-field="exam_type" list="metaExamTypeList" value="{{ document.exam_type or '' }}" placeholder="Select or type exam type..." style="width:100%; padding:0.5rem 0.7rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;">
+            <datalist id="metaExamTypeList">
+              <option value="End-Sem">End-Sem Exam</option>
+              <option value="Mid-Sem">Mid-Sem Exam</option>
+              <option value="Unit Test 1">Unit Test 1</option>
+              <option value="Unit Test 2">Unit Test 2</option>
+              <option value="Quiz">Quiz / Class Test</option>
+              <option value="Practical">Practical / Viva</option>
+            </datalist>
+          </div>
+          <div>
+            <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Topics Covered</label>
+            <input type="text" id="metaTopicsCovered" data-field="topics_covered" value="{{ document.topics_covered or '' }}" placeholder="e.g. Unit 1, Unit 2, Sorting, Graphs" style="width:100%; padding:0.5rem 0.7rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Difficulty Level</label>
+            <select id="metaDifficultyLevel" data-field="difficulty_level" style="width:100%; padding:0.55rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink);">
+              <option value="easy" {% if document.difficulty_level == 'easy' %}selected{% endif %}>Easy</option>
+              <option value="medium" {% if document.difficulty_level == 'medium' or not document.difficulty_level %}selected{% endif %}>Medium</option>
+              <option value="hard" {% if document.difficulty_level == 'hard' %}selected{% endif %}>Hard</option>
+            </select>
+          </div>
+          <div>
+            <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Publication Status</label>
+            <select id="metaStatus" data-field="status" style="width:100%; padding:0.55rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink);">
+              <option value="approved" {% if document.status == 'approved' or not document.status %}selected{% endif %}>✅ Live / Approved</option>
+              <option value="hidden" {% if document.status == 'hidden' %}selected{% endif %}>⏸️ Temporary Hold / Hidden</option>
+              <option value="pending" {% if document.status == 'pending' %}selected{% endif %}>⏳ Pending Verification</option>
+            </select>
+          </div>
+          <div style="grid-column: 1 / -1;">
+            <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Description / Overview Text</label>
+            <textarea id="metaDescription" data-field="description" rows="3" style="width:100%; padding:0.55rem 0.7rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;">{{ document.display_description or '' }}</textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 3: Monetization & Pricing -->
+      <div>
+        <div style="font-size:0.85rem; font-weight:800; color:#2563eb; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.75rem; border-bottom:1px solid var(--v2-line); padding-bottom:0.35rem;">
+          💰 Monetization & Coupon Code
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:0.85rem;">
+          <div style="display:flex; align-items:center; gap:0.5rem; padding-top:1.2rem;">
+            <label style="display:inline-flex; align-items:center; gap:0.4rem; font-size:0.85rem; font-weight:700; cursor:pointer;">
+              <input type="checkbox" id="metaIsPaid" data-field="is_paid" {% if pricing and pricing.is_paid %}checked{% endif %}>
+              <span>Require Payment (Paid)</span>
+            </label>
+          </div>
+          <div>
+            <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Price (INR ₹)</label>
+            <input type="number" id="metaPrice" data-field="price" min="0" value="{{ pricing.price if pricing and pricing.price else 0 }}" style="width:100%; padding:0.5rem 0.7rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Coupon Code</label>
+            <input type="text" id="metaCouponCode" data-field="coupon_code" value="{{ pricing.coupon_code if pricing and pricing.coupon_code else '' }}" placeholder="e.g. SEM50" style="width:100%; padding:0.5rem 0.7rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box; text-transform:uppercase;">
+          </div>
+          <div>
+            <label style="display:block; font-size:0.78rem; font-weight:700; color:var(--v2-ink); margin-bottom:0.3rem;">Coupon Discount (%)</label>
+            <input type="number" id="metaCouponDiscount" data-field="coupon_discount" min="0" max="100" value="{{ pricing.coupon_discount if pricing and pricing.coupon_discount else 0 }}" style="width:100%; padding:0.5rem 0.7rem; font-size:0.85rem; border:1px solid var(--v2-line); border-radius:6px; background:var(--v2-surface); color:var(--v2-ink); box-sizing:border-box;">
+          </div>
+        </div>
+      </div>
+
+      <!-- Section 4: System & Storage IDs (Read-Only / Reference) -->
+      <div>
+        <div style="font-size:0.85rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.04em; margin-bottom:0.75rem; border-bottom:1px solid var(--v2-line); padding-bottom:0.35rem;">
+          ⚙️ Storage & Internal Supabase Identifiers (Read-Only)
+        </div>
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:0.6rem; font-size:0.78rem;">
+          <div style="background:rgba(0,0,0,0.02); padding:0.5rem 0.75rem; border-radius:6px; border:1px solid var(--v2-line);">
+            <strong style="color:var(--v2-muted);">Document UUID:</strong> <span style="font-family:monospace;">{{ document.id }}</span>
+          </div>
+          <div style="background:rgba(0,0,0,0.02); padding:0.5rem 0.75rem; border-radius:6px; border:1px solid var(--v2-line);">
+            <strong style="color:var(--v2-muted);">Uploader ID:</strong> <span style="font-family:monospace;">{{ document.uploader_id or '—' }}</span>
+          </div>
+          <div style="background:rgba(0,0,0,0.02); padding:0.5rem 0.75rem; border-radius:6px; border:1px solid var(--v2-line);">
+            <strong style="color:var(--v2-muted);">Storage Provider:</strong> <span>{{ document.storage_provider or 'Cloudinary' }}</span>
+          </div>
+          <div style="background:rgba(0,0,0,0.02); padding:0.5rem 0.75rem; border-radius:6px; border:1px solid var(--v2-line);">
+            <strong style="color:var(--v2-muted);">Provider Asset ID:</strong> <span style="font-family:monospace; word-break:break-all;">{{ document.provider_public_id or '—' }}</span>
+          </div>
+          <div style="background:rgba(0,0,0,0.02); padding:0.5rem 0.75rem; border-radius:6px; border:1px solid var(--v2-line); grid-column:1 / -1;">
+            <strong style="color:var(--v2-muted);">Physical Storage URL:</strong> <a href="{{ document.file_url }}" target="_blank" rel="noopener" style="color:#2563eb; word-break:break-all;">{{ document.file_url or '—' }}</a>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="padding:1rem 1.5rem; background:rgba(0,0,0,0.02); border-top:1px solid var(--v2-line); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+      <div id="adminModalSaveStatus" style="font-size:0.85rem; font-weight:700;"></div>
+      <div style="display:flex; gap:0.75rem;">
+        <button type="button" onclick="closeAdminMetadataModal()" class="r2-btn" style="padding:0.55rem 1rem;">Close</button>
+        <button type="button" onclick="saveAllAdminMetadata()" class="r2-btn" style="background:#2563eb; color:#fff; border-color:#2563eb; font-weight:700; padding:0.55rem 1.3rem;">
+          💾 Save All Metadata
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endif %}
 
 <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
@@ -1559,8 +2174,11 @@ uploader_name %}
       if (data.success && Array.isArray(data.data) && data.data.length > 0) {
         document.getElementById('commentsCountBadge').textContent = data.data.length;
         container.innerHTML = data.data.map(function (c) {
+          const authorLink = c.user_id 
+            ? `<a href="/u/${c.user_id}" target="_blank" style="color:var(--v2-brand, #4f46e5); font-weight:700; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">👤 ${c.user_name || 'Student'}</a>`
+            : `<strong>${c.user_name || 'Student'}</strong>`;
           return `<div style="padding:0.75rem; border:1px solid var(--v2-line); border-radius:8px; font-size:0.88rem;">
-            <strong>${c.user_name || 'Student'}:</strong> ${c.content || c.text || ''}
+            ${authorLink}: ${c.content || c.text || ''}
           </div>`;
         }).join('');
       } else {
@@ -1616,7 +2234,66 @@ uploader_name %}
       msg.style.color = '#dc2626';
       msg.innerText = 'Error verifying coupon';
     });
-  };
+  // Viral Sharing Handlers for Resource Owners
+  function shareOnWhatsApp() {
+    var title = {{ (document.title or 'Exam Notes') | tojson }};
+    var url = window.location.href;
+    var msg = '🔥 *Exam Notes Alert!* 📚\nHey everyone! I just shared the verified notes & PYQs for *' + title + '* on AbhiHub.\n\nCheck it out here before the exam:\n👉 ' + url + '\n\n(Super helpful for our tests — check it out and ace your exams! 🚀)';
+    window.open('https://api.whatsapp.com/send?text=' + encodeURIComponent(msg), '_blank');
+  }
+
+  function shareOnTelegram() {
+    var title = {{ (document.title or 'Exam Notes') | tojson }};
+    var url = window.location.href;
+    var msg = '🔥 Verified Notes & PYQs for ' + title + ' on AbhiHub:';
+    window.open('https://t.me/share/url?url=' + encodeURIComponent(url) + '&text=' + encodeURIComponent(msg), '_blank');
+  }
+
+  function copyShareMessage(btn) {
+    var title = {{ (document.title or 'Exam Notes') | tojson }};
+    var url = window.location.href;
+    var msg = '🔥 *Exam Notes Alert!* 📚\nHey everyone! I just shared the verified notes & PYQs for *' + title + '* on AbhiHub.\n\nCheck it out here before the exam:\n👉 ' + url + '\n\n(Super helpful for our tests — check it out and ace your exams! 🚀)';
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(msg).then(function() {
+        var orig = btn.innerHTML;
+        btn.innerHTML = '✅ Copied! Paste in WhatsApp';
+        btn.style.background = '#16a34a';
+        btn.style.color = '#ffffff';
+        setTimeout(function() {
+          btn.innerHTML = orig;
+          btn.style.background = 'rgba(255,255,255,0.15)';
+          btn.style.color = '#ffffff';
+        }, 3000);
+      });
+    } else {
+      var ta = document.createElement('textarea');
+      ta.value = msg;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand('copy');
+      document.body.removeChild(ta);
+      alert('Message copied to clipboard! Paste it into your class group.');
+    }
+  }
+
+  function copyResourceUrl(btn) {
+    var url = window.location.href;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(url).then(function() {
+        var orig = btn.innerHTML;
+        btn.innerHTML = '✅ Copied!';
+        btn.style.background = '#16a34a';
+        btn.style.color = '#ffffff';
+        setTimeout(function() {
+          btn.innerHTML = orig;
+          btn.style.background = 'rgba(255,255,255,0.1)';
+          btn.style.color = '#ffffff';
+        }, 2500);
+      });
+    } else {
+      prompt('Copy this link:', url);
+    }
+  }
 
   // Management Tabs switcher
   function switchManageTab(tab) {
@@ -1653,6 +2330,11 @@ uploader_name %}
     var couponCode = document.getElementById('editDocCoupon').value.trim();
     var couponDiscount = parseInt(document.getElementById('editDocDiscount').value || '0', 10);
 
+    var adminStatus = document.getElementById('adminStatusAction')?.value || '';
+    var adminReason = document.getElementById('adminReasonPreset')?.value || '';
+    var adminNote = document.getElementById('adminCustomNote')?.value?.trim() || '';
+    var adminNotify = document.getElementById('adminNotifyOwner')?.checked ?? true;
+
     if (!title) {
       statusEl.innerHTML = '<span style="color:#ef4444;">Please provide a file title.</span>';
       return;
@@ -1663,17 +2345,25 @@ uploader_name %}
     statusEl.innerHTML = '';
 
     try {
+      var payload = {
+        title: title,
+        description: description,
+        is_paid: isPaid,
+        price: price,
+        coupon_code: couponCode,
+        coupon_discount: couponDiscount
+      };
+      if (document.getElementById('adminStatusAction')) {
+        payload.status = adminStatus;
+        payload.reason_preset = adminReason;
+        payload.custom_note = adminNote;
+        payload.notify_owner = adminNotify;
+      }
+
       var res = await fetch(`/api/documents/{{ document.id }}/edit`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: title,
-          description: description,
-          is_paid: isPaid,
-          price: price,
-          coupon_code: couponCode,
-          coupon_discount: couponDiscount
-        })
+        body: JSON.stringify(payload)
       });
       var data = await res.json();
       if (res.ok && data.success) {
@@ -1691,6 +2381,409 @@ uploader_name %}
     }
   }
 
-  document.addEventListener('DOMContentLoaded', loadComments);
+  // ─── Admin Dual Delete (Complete vs Partial) Handlers ───
+  var _selectedDeleteMode = 'complete';
+
+  function openAdminDeleteModal() {
+    var modal = document.getElementById('adminDeleteChoiceModal');
+    if (modal) modal.style.display = 'flex';
+  }
+
+  function closeAdminDeleteModal() {
+    var modal = document.getElementById('adminDeleteChoiceModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function selectDeleteMode(mode) {
+    _selectedDeleteMode = mode;
+    var radioComplete = document.getElementById('radioDeleteComplete');
+    var radioPartial = document.getElementById('radioDeletePartial');
+    var cardComplete = document.getElementById('cardDeleteComplete');
+    var cardPartial = document.getElementById('cardDeletePartial');
+
+    if (mode === 'complete') {
+      if (radioComplete) radioComplete.checked = true;
+      if (cardComplete) {
+        cardComplete.style.borderColor = '#ef4444';
+        cardComplete.style.background = '#fff5f5';
+      }
+      if (cardPartial) {
+        cardPartial.style.borderColor = '#e2e8f0';
+        cardPartial.style.background = 'rgba(0,0,0,0.01)';
+      }
+    } else {
+      if (radioPartial) radioPartial.checked = true;
+      if (cardPartial) {
+        cardPartial.style.borderColor = '#f59e0b';
+        cardPartial.style.background = '#fffbeb';
+      }
+      if (cardComplete) {
+        cardComplete.style.borderColor = '#e2e8f0';
+        cardComplete.style.background = 'rgba(0,0,0,0.01)';
+      }
+    }
+  }
+
+  async function executeAdminDelete(modeOverride) {
+    var mode = modeOverride || _selectedDeleteMode || 'complete';
+    var reason = document.getElementById('modalDeleteReasonPreset')?.value || document.getElementById('adminLiveReasonPreset')?.value || '1. Name error fix';
+    var note = document.getElementById('modalDeleteCustomNote')?.value?.trim() || '';
+    var notify = document.getElementById('modalDeleteNotifyOwner')?.checked ?? true;
+    var btn = document.getElementById('confirmDeleteActionBtn');
+
+    var modeLabel = mode === 'complete' ? 'COMPLETE deletion (Cloud Storage + Supabase DB)' : 'PARTIAL deletion (Supabase DB only)';
+    if (!confirm(`Are you certain you want to proceed with ${modeLabel}?`)) {
+      return;
+    }
+
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = 'Deleting...';
+    }
+
+    try {
+      var res = await fetch(`/api/documents/{{ document.id }}/edit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          admin_action: 'delete',
+          delete_mode: mode,
+          reason_preset: reason,
+          custom_note: note,
+          notify_owner: notify
+        })
+      });
+      var d = await res.json();
+      if (d && d.success) {
+        alert(d.message || `File ${mode} deleted successfully.`);
+        window.location.href = d.redirect || '/dashboard';
+      } else {
+        alert("Failed to delete file: " + (d.message || 'Unknown error'));
+        if (btn) {
+          btn.disabled = false;
+          btn.textContent = 'Confirm Delete';
+        }
+      }
+    } catch(err) {
+      alert("Network error while deleting document.");
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = 'Confirm Delete';
+      }
+    }
+  }
+
+  // Legacy fallback
+  function confirmAdminDeleteDoc() {
+    openAdminDeleteModal();
+  }
+
+  // ─── Admin Full Metadata Inspector Modal ───
+  function openAdminMetadataModal() {
+    var modal = document.getElementById('adminMetadataModal');
+    if (modal) {
+      modal.style.display = 'flex';
+      fetchMetaSubjects();
+    }
+  }
+
+  function closeAdminMetadataModal() {
+    var modal = document.getElementById('adminMetadataModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  function syncMetaCollege(selectEl) {
+    var opt = selectEl.options[selectEl.selectedIndex];
+    var name = opt.getAttribute('data-name') || '';
+    var abbr = opt.getAttribute('data-abbr') || '';
+    var nameInput = document.getElementById('metaCollegeName');
+    var abbrInput = document.getElementById('metaCollegeAbbr');
+    if (nameInput && name) nameInput.value = name;
+    if (abbrInput && abbr) abbrInput.value = abbr;
+    saveInlineAdminField('college_id', selectEl.value);
+    if (name) saveInlineAdminField('college_name', name);
+    if (abbr) saveInlineAdminField('college_abbr', abbr);
+  }
+
+  function syncMetaDepartment(selectEl) {
+    var opt = selectEl.options[selectEl.selectedIndex];
+    var name = opt.getAttribute('data-name') || '';
+    var abbr = opt.getAttribute('data-abbr') || '';
+    var nameInput = document.getElementById('metaDepartmentName');
+    var abbrInput = document.getElementById('metaDepartmentAbbr');
+    if (nameInput && name) nameInput.value = name;
+    if (abbrInput && abbr) abbrInput.value = abbr;
+    saveInlineAdminField('department_id', selectEl.value);
+    if (name) saveInlineAdminField('department_name', name);
+    if (abbr) saveInlineAdminField('department_abbr', abbr);
+    fetchMetaSubjects();
+  }
+
+  var _loadedSubjectsList = [];
+  async function fetchMetaSubjects() {
+    var deptId = document.getElementById('metaDepartmentSelect')?.value || '';
+    var sem = document.getElementById('metaSemester')?.value || '';
+    var url = `/api/subjects?${deptId ? 'department_id=' + encodeURIComponent(deptId) + '&' : ''}${sem ? 'semester=' + encodeURIComponent(sem) : ''}`;
+    try {
+      var res = await fetch(url);
+      var d = await res.json();
+      var listEl = document.getElementById('metaSubjectsDataList');
+      if (listEl && d && d.subjects) {
+        _loadedSubjectsList = d.subjects;
+        listEl.innerHTML = d.subjects.map(function(s) {
+          return `<option value="${s.name}">${s.subject_code ? s.subject_code + ' — ' : ''}${s.name}</option>`;
+        }).join('');
+      }
+    } catch(err) {
+      console.warn("Could not fetch subjects for datalist:", err);
+    }
+  }
+
+  function matchMetaSubject(typedVal) {
+    if (!_loadedSubjectsList || !_loadedSubjectsList.length) return;
+    var match = _loadedSubjectsList.find(function(s) {
+      return s.name.toLowerCase() === typedVal.trim().toLowerCase();
+    });
+    if (match) {
+      var codeInp = document.getElementById('metaSubjectCode');
+      var idInp = document.getElementById('metaSubjectId');
+      if (codeInp && match.subject_code) {
+        codeInp.value = match.subject_code;
+        saveInlineAdminField('subject_code', match.subject_code);
+      }
+      if (idInp && match.id) {
+        idInp.value = match.id;
+        saveInlineAdminField('subject_id', match.id);
+      }
+      if (match.semester) {
+        var semEl = document.getElementById('metaSemester');
+        if (semEl) {
+          semEl.value = match.semester;
+          saveInlineAdminField('semester', match.semester);
+        }
+      }
+    }
+  }
+
+  async function saveAllAdminMetadata() {
+    var modal = document.getElementById('adminMetadataModal');
+    if (!modal) return;
+    var statusEl = document.getElementById('adminModalSaveStatus');
+    var inputs = modal.querySelectorAll('[data-field]');
+    var updates = {};
+
+    inputs.forEach(function(inp) {
+      var field = inp.getAttribute('data-field');
+      if (!field) return;
+      if (inp.type === 'checkbox') {
+        updates[field] = inp.checked;
+      } else {
+        updates[field] = inp.value;
+      }
+    });
+
+    if (statusEl) {
+      statusEl.style.color = '#2563eb';
+      statusEl.textContent = 'Saving all metadata...';
+    }
+
+    try {
+      var reason = document.getElementById('adminLiveReasonPreset')?.value || 'Subject or Category correction';
+      var notify = document.getElementById('adminLiveNotifyOwner')?.checked ?? true;
+
+      var res = await fetch(`/api/documents/{{ document.id }}/edit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          metadata_updates: updates,
+          reason_preset: reason,
+          notify_owner: notify
+        })
+      });
+      var d = await res.json();
+      if (res.ok && d.success) {
+        if (statusEl) {
+          statusEl.style.color = '#16a34a';
+          statusEl.textContent = '✓ All metadata saved to Supabase!';
+          setTimeout(function() {
+            statusEl.textContent = '';
+            closeAdminMetadataModal();
+            window.location.reload();
+          }, 800);
+        }
+      } else {
+        if (statusEl) {
+          statusEl.style.color = '#dc2626';
+          statusEl.textContent = '❌ ' + (d.message || 'Save failed');
+        }
+      }
+    } catch(err) {
+      if (statusEl) {
+        statusEl.style.color = '#dc2626';
+        statusEl.textContent = '❌ Network error';
+      }
+    }
+  }
+
+  // ─── Admin Real-Time Inline Editing Handlers ───
+  async function saveInlineAdminField(field, value) {
+    var reason = document.getElementById('adminLiveReasonPreset')?.value || '1. Name error fix';
+    var notify = document.getElementById('adminLiveNotifyOwner')?.checked ?? true;
+    var toast = document.getElementById('adminRealtimeToast');
+
+    if (toast) {
+      toast.style.display = 'inline-block';
+      toast.style.color = '#2563eb';
+      toast.style.background = '#eff6ff';
+      toast.style.borderColor = '#bfdbfe';
+      toast.textContent = 'Saving...';
+    }
+
+    try {
+      var res = await fetch(`/api/documents/{{ document.id }}/edit`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          field: field,
+          value: value,
+          reason_preset: reason,
+          notify_owner: notify
+        })
+      });
+      var d = await res.json();
+      if (res.ok && d.success) {
+        if (toast) {
+          toast.style.color = '#16a34a';
+          toast.style.background = '#dcfce7';
+          toast.style.borderColor = '#86efac';
+          toast.textContent = '✓ Saved in real-time';
+          setTimeout(function() { toast.style.display = 'none'; }, 2200);
+        }
+      } else {
+        if (toast) {
+          toast.style.color = '#dc2626';
+          toast.style.background = '#fee2e2';
+          toast.style.borderColor = '#fca5a5';
+          toast.textContent = '❌ ' + (d.message || 'Save failed');
+        }
+      }
+    } catch(err) {
+      if (toast) {
+        toast.style.color = '#dc2626';
+        toast.style.background = '#fee2e2';
+        toast.style.borderColor = '#fca5a5';
+        toast.textContent = '❌ Network error';
+      }
+    }
+  }
+
+  function initAdminRealtimeEditing() {
+    // 1. Title Rename
+    var titleEl = document.getElementById('liveDocTitle');
+    if (titleEl) {
+      var origTitle = titleEl.innerText.trim();
+      titleEl.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          titleEl.blur();
+        }
+      });
+      titleEl.addEventListener('blur', function() {
+        var val = titleEl.innerText.trim();
+        if (val && val !== origTitle) {
+          origTitle = val;
+          saveInlineAdminField('title', val);
+        }
+      });
+    }
+
+    // 2. Category Select
+    var catEl = document.getElementById('liveDocCategory');
+    if (catEl) {
+      catEl.addEventListener('change', function() {
+        saveInlineAdminField('document_category', catEl.value);
+      });
+    }
+
+    // 3. Status Select
+    var statusEl = document.getElementById('liveDocStatus');
+    if (statusEl) {
+      statusEl.addEventListener('change', function() {
+        saveInlineAdminField('status', statusEl.value);
+      });
+    }
+
+    // 4. Description
+    var descEl = document.getElementById('liveDocDescription');
+    if (descEl && descEl.getAttribute('contenteditable') === 'true') {
+      var origDesc = descEl.innerText.trim();
+      descEl.addEventListener('blur', function() {
+        var val = descEl.innerText.trim();
+        if (val !== origDesc) {
+          origDesc = val;
+          saveInlineAdminField('description', val);
+        }
+      });
+    }
+
+    // 5. Price & Paid
+    var priceEl = document.getElementById('liveDocPrice');
+    var isPaidEl = document.getElementById('liveDocIsPaid');
+    if (priceEl && priceEl.getAttribute('contenteditable') === 'true') {
+      var origPrice = priceEl.innerText.trim();
+      priceEl.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter') {
+          e.preventDefault();
+          priceEl.blur();
+        }
+      });
+      priceEl.addEventListener('blur', function() {
+        var val = parseFloat(priceEl.innerText.trim() || '0');
+        if (!isNaN(val) && val.toString() !== origPrice) {
+          origPrice = val.toString();
+          saveInlineAdminField('price', val);
+        }
+      });
+    }
+    if (isPaidEl) {
+      isPaidEl.addEventListener('change', function() {
+        saveInlineAdminField('is_paid', isPaidEl.checked);
+      });
+    }
+
+    // 6. Wire all inputs inside Metadata Inspector for real-time change/blur
+    var metaModal = document.getElementById('adminMetadataModal');
+    if (metaModal) {
+      var metaInputs = metaModal.querySelectorAll('[data-field]');
+      metaInputs.forEach(function(inp) {
+        var field = inp.getAttribute('data-field');
+        if (!field) return;
+
+        if (inp.type === 'checkbox') {
+          inp.addEventListener('change', function() {
+            saveInlineAdminField(field, inp.checked);
+          });
+        } else if (inp.tagName === 'SELECT') {
+          inp.addEventListener('change', function() {
+            saveInlineAdminField(field, inp.value);
+          });
+        } else {
+          inp.addEventListener('blur', function() {
+            saveInlineAdminField(field, inp.value);
+          });
+          inp.addEventListener('keydown', function(e) {
+            if (e.key === 'Enter' && inp.tagName !== 'TEXTAREA') {
+              inp.blur();
+            }
+          });
+        }
+      });
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', function() {
+    loadComments();
+    initAdminRealtimeEditing();
+  });
 </script>
 {% endblock %}

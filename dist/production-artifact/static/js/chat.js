@@ -3,6 +3,91 @@ const LS = {
   set: (k, v) => { localStorage.setItem(k, JSON.stringify(v)); }
 };
 
+const ChatSound = {
+  ctx: null,
+  get enabled() { return LS.get('chat_sound_enabled', true); },
+  set enabled(v) { LS.set('chat_sound_enabled', !!v); },
+  init() {
+    try {
+      if (!this.ctx && (window.AudioContext || window.webkitAudioContext)) {
+        this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+      }
+      if (this.ctx && this.ctx.state === 'suspended') {
+        this.ctx.resume().catch(() => {});
+      }
+    } catch (_) {}
+  },
+  playSend() {
+    if (!this.enabled) return;
+    try {
+      this.init();
+      if (!this.ctx || this.ctx.state !== 'running') return;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const now = this.ctx.currentTime;
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(480, now);
+      osc.frequency.exponentialRampToValueAtTime(740, now + 0.07);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.07);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.07);
+    } catch (_) {}
+  },
+  playReceive() {
+    if (!this.enabled) return;
+    try {
+      this.init();
+      if (!this.ctx || this.ctx.state !== 'running') return;
+      const now = this.ctx.currentTime;
+      const osc1 = this.ctx.createOscillator();
+      const gain1 = this.ctx.createGain();
+      osc1.frequency.setValueAtTime(659.25, now);
+      gain1.gain.setValueAtTime(0.08, now);
+      gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+      osc1.connect(gain1);
+      gain1.connect(this.ctx.destination);
+      osc1.start(now);
+      osc1.stop(now + 0.08);
+
+      const osc2 = this.ctx.createOscillator();
+      const gain2 = this.ctx.createGain();
+      osc2.frequency.setValueAtTime(880, now + 0.08);
+      gain2.gain.setValueAtTime(0.08, now + 0.08);
+      gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      osc2.connect(gain2);
+      gain2.connect(this.ctx.destination);
+      osc2.start(now + 0.08);
+      osc2.stop(now + 0.2);
+    } catch (_) {}
+  },
+  playReaction() {
+    if (!this.enabled) return;
+    try {
+      this.init();
+      if (!this.ctx || this.ctx.state !== 'running') return;
+      const now = this.ctx.currentTime;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(523.25, now);
+      osc.frequency.exponentialRampToValueAtTime(1046.50, now + 0.12);
+      gain.gain.setValueAtTime(0.08, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+      osc.connect(gain);
+      gain.connect(this.ctx.destination);
+      osc.start(now);
+      osc.stop(now + 0.12);
+    } catch (_) {}
+  }
+};
+
+['pointerdown', 'keydown', 'touchstart'].forEach(evt => {
+  document.addEventListener(evt, () => ChatSound.init(), { once: true });
+});
+
 const CHAT_CSS = `:root {
   --chat-bg: #f3f4f6;
   --panel: #ffffff;
@@ -280,17 +365,61 @@ function receiveMessage(msg) {
   const peerId = msg.from;
   const key = 'chat_history:' + [peerId, getMyId()].sort().join('_');
   const list = LS.get(key, []);
-  if (!list.some(m => m.ts === msg.ts && m.text === msg.text && m.from === msg.from)) {
-    list.push(msg);
-    LS.set(key, list);
+  const isDuplicate = list.some(m => (m.msg_id && m.msg_id === msg.msg_id) || (m.ts === msg.ts && m.text === msg.text));
+  if (isDuplicate) return;
+
+  list.push(msg);
+  LS.set(key, list);
+  showPeerTyping(false, peerId);
+  ChatSound.playReceive();
+
+  if (LS.get('current_peer') === peerId && !document.getElementById('chatRoom')?.hidden) {
+    appendMessageBubble(msg, false, peerId, 'delivered');
+    chatSocket?.emit('chat_read', { to: peerId, ts: msg.ts, msg_id: msg.msg_id || '' });
+    updateStudyStreakBadge(peerId, list);
+  } else {
+    chatSocket?.emit('chat_delivered', { to: peerId, ts: msg.ts, msg_id: msg.msg_id || '' });
+    showChatAlert(peerId, msg);
   }
-  if (LS.get('current_peer') === peerId) {
-    renderHistory(peerId);
-  }
-  chatSocket?.emit('chat_delivered', { to: peerId, ts: msg.ts, msg_id: msg.msg_id || '' });
-  showChatAlert(peerId, msg);
   window._fetchNotifications?.(true);
   loadPeers($('#peerSearch')?.value || '');
+}
+
+let typingTimeout = null;
+function handleTypingInput(peerId) {
+  if (!chatSocket?.connected || !peerId) return;
+  chatSocket.emit('chat_typing', { to: peerId, is_typing: true });
+  clearTimeout(typingTimeout);
+  typingTimeout = setTimeout(() => {
+    chatSocket.emit('chat_typing', { to: peerId, is_typing: false });
+  }, 2200);
+}
+
+function showPeerTyping(isTyping, peerId) {
+  const container = $('#chatMessages');
+  if (!container || LS.get('current_peer') !== peerId) return;
+  let bubble = document.getElementById('chatPeerTypingBubble');
+  if (isTyping) {
+    if (!bubble) {
+      bubble = document.createElement('div');
+      bubble.id = 'chatPeerTypingBubble';
+      bubble.className = 'bubble-wrap theirs';
+      const name = getPeerDisplayName(peerId);
+      bubble.innerHTML = `
+        <div class="peer-avatar" style="background:${safeColor(peerId)};color:#fff">${initials(name)}</div>
+        <div class="typing-indicator" aria-label="${escapeHtml(name)} is typing">
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span class="dot"></span>
+          <span style="font-size:0.75rem;color:#64748b;margin-left:5px;font-weight:600">${escapeHtml(name)} is typing…</span>
+        </div>
+      `;
+      container.appendChild(bubble);
+      container.scrollTop = container.scrollHeight;
+    }
+  } else if (bubble) {
+    bubble.remove();
+  }
 }
 
 function connectChatSocket() {
@@ -300,21 +429,82 @@ function connectChatSocket() {
     const peerId = LS.get('current_peer');
     if (peerId) chatSocket.emit('chat_join', { peer: peerId });
   });
+  chatSocket.on('chat_peer_typing', (data) => {
+    if (data?.from === LS.get('current_peer')) {
+      showPeerTyping(!!data.is_typing, data.from);
+    }
+  });
   chatSocket.on('chat_receive', receiveMessage);
   chatSocket.on('chat_received', (data) => {
-    // Reply to sender that their message was delivered
     updateMessageStatus(data.msg_id || data.ts, 'delivered');
   });
   chatSocket.on('chat_read_receipt', (data) => {
-    // Reply to sender that their message was read
     updateMessageStatus(data.msg_id || data.ts, 'read');
   });
   chatSocket.on('chat_message_ack', (data) => {
-    // Server ACK that message was saved and delivered to recipient room
     updateMessageStatus(data.msg_id || data.ts, 'sent');
-    if (data.error) {
-      // Message failed to save — retry UI
-      showSendError(data.error);
+    if (data.error) showSendError(data.error);
+  });
+  chatSocket.on('chat_peer_react', (data) => {
+    if (!data?.emoji) return;
+    const targetId = data.msg_id || data.ts;
+    let wrap = document.querySelector(`.bubble-wrap[data-msg-id="${CSS.escape(targetId)}"]`);
+    if (!wrap) wrap = document.querySelector(`.bubble-wrap[data-ts="${CSS.escape(targetId)}"]`);
+    if (wrap) {
+      renderReactionBadge(wrap, data.emoji);
+      ChatSound.playReaction();
+      popXpEffect(5, 'Study React');
+    }
+  });
+  chatSocket.on('chat_peer_file_fulfilled', (data) => {
+    if (!data?.file_url) return;
+    const targetId = data.msg_id || data.ts;
+    const peerId = LS.get('current_peer');
+    if (peerId) {
+      const myId = getMyId();
+      const key = 'chat_history:' + [peerId, myId].sort().join('_');
+      const list = LS.get(key, []);
+      const targetMsg = list.find(m => (data.msg_id && m.msg_id === data.msg_id) || (data.ts && m.ts === data.ts));
+      if (targetMsg) {
+        if (!targetMsg.file_req) targetMsg.file_req = {};
+        targetMsg.file_req.file_url = data.file_url;
+        targetMsg.file_req.file_name = data.file_name;
+        targetMsg.file_req.status = 'fulfilled';
+        LS.set(key, list);
+      }
+      let wrap = document.querySelector(`.bubble-wrap[data-msg-id="${CSS.escape(targetId)}"]`);
+      if (!wrap && data.ts) wrap = document.querySelector(`.bubble-wrap[data-ts="${CSS.escape(data.ts)}"]`);
+      if (wrap) {
+        const bubble = wrap.querySelector('.bubble');
+        if (bubble && targetMsg) renderBubbleBody(bubble, targetMsg, targetMsg.from === myId);
+        ChatSound.playReceive();
+        popXpEffect(15, 'File Received XP');
+      }
+    }
+  });
+  chatSocket.on('chat_peer_file_status', (data) => {
+    if (!data?.status) return;
+    const targetId = data.msg_id || data.ts;
+    const peerId = LS.get('current_peer');
+    if (peerId) {
+      const myId = getMyId();
+      const key = 'chat_history:' + [peerId, myId].sort().join('_');
+      const list = LS.get(key, []);
+      const targetMsg = list.find(m => (data.msg_id && m.msg_id === data.msg_id) || (data.ts && m.ts === data.ts));
+      if (targetMsg) {
+        if (!targetMsg.file_req) targetMsg.file_req = {};
+        targetMsg.file_req.status = data.status;
+        LS.set(key, list);
+      }
+      let wrap = document.querySelector(`.bubble-wrap[data-msg-id="${CSS.escape(targetId)}"]`);
+      if (!wrap && data.ts) wrap = document.querySelector(`.bubble-wrap[data-ts="${CSS.escape(data.ts)}"]`);
+      if (wrap) {
+        const bubble = wrap.querySelector('.bubble');
+        if (bubble && targetMsg) renderBubbleBody(bubble, targetMsg, targetMsg.from === myId);
+        if (data.status === 'rejected') {
+          ChatSound.playReceive();
+        }
+      }
     }
   });
 }
@@ -349,6 +539,167 @@ function setCrushBadge(peerId) {
   else if (crush.is_crush) wrap.classList.add('is-crush');
 }
 
+function popXpEffect(amount = 10, label = 'Study XP') {
+  const container = document.querySelector('.chat-main') || document.body;
+  const pop = document.createElement('div');
+  pop.className = 'xp-pop';
+  pop.textContent = `+${amount} ${label} ⚡`;
+  container.appendChild(pop);
+  setTimeout(() => pop.remove(), 1200);
+}
+
+function updateStudyMomentum(peerId, messages) {
+  const bar = document.getElementById('chatMomentumBar');
+  if (!bar) return;
+  const count = (messages || []).length;
+  const days = new Set();
+  (messages || []).forEach(m => {
+    if (m.ts) {
+      try { days.add(new Date(m.ts).toISOString().slice(0, 10)); } catch (_) {}
+    }
+  });
+  const streakDays = Math.max(1, days.size);
+  const totalXp = count * 10;
+  const level = Math.floor(totalXp / 100) + 1;
+  const currentLevelXp = totalXp % 100;
+  const titles = ['Exam Buddy', 'Study Partner', 'Scholar', 'Prep Master', 'Academic Elite'];
+  const rank = titles[Math.min(titles.length - 1, level - 1)];
+
+  const streakEl = document.getElementById('momentumStreakText');
+  if (streakEl) streakEl.textContent = `${streakDays}-Day Streak`;
+  const levelEl = document.getElementById('momentumLevelText');
+  if (levelEl) levelEl.textContent = `Level ${level} ${rank}`;
+  const xpEl = document.getElementById('momentumXpText');
+  if (xpEl) xpEl.textContent = `${currentLevelXp} / 100 XP`;
+  const fillEl = document.getElementById('momentumProgressFill');
+  if (fillEl) fillEl.style.width = `${Math.max(6, currentLevelXp)}%`;
+}
+
+function attachReactionBar(wrap, msg) {
+  if (!wrap || wrap.querySelector('.reaction-bar')) return;
+  const bar = document.createElement('div');
+  bar.className = 'reaction-bar';
+  const emojis = ['❤️', '💡', '🔥', '👏', '💯'];
+  bar.innerHTML = emojis.map(em => `<button type="button" class="reaction-btn" data-action="chatReact" data-emoji="${em}" title="React ${em}">${em}</button>`).join('');
+  wrap.appendChild(bar);
+  if (msg?.reaction) {
+    renderReactionBadge(wrap, msg.reaction);
+  }
+}
+
+function renderReactionBadge(wrap, emoji) {
+  if (!wrap || !emoji) return;
+  let badge = wrap.querySelector('.bubble-reaction-badge');
+  if (!badge) {
+    badge = document.createElement('div');
+    badge.className = 'bubble-reaction-badge';
+    wrap.appendChild(badge);
+  }
+  badge.textContent = emoji;
+}
+
+function updateStudyStreakBadge(peerId, messages) {
+  const meta = $('#chatRoomMeta');
+  if (meta) {
+    const existing = meta.querySelector('.chat-meta-badge.is-streak');
+    if (existing) existing.remove();
+  }
+
+  if (messages && messages.length) {
+    const days = new Set();
+    messages.forEach(m => {
+      if (m.ts) {
+        try { days.add(new Date(m.ts).toISOString().slice(0, 10)); } catch (_) {}
+      }
+    });
+    const count = days.size;
+    if (count > 0 && meta) {
+      const badge = document.createElement('span');
+      badge.className = 'chat-meta-badge is-streak';
+      badge.textContent = count > 1 ? `🔥 ${count}d Streak` : `⚡ Study Duo`;
+      badge.title = `${count} active study day(s) together`;
+      meta.appendChild(badge);
+    }
+  }
+  updateStudyMomentum(peerId, messages);
+}
+
+function getPeerDisplayName(peerId) {
+  const el = document.querySelector(`.peer-item[data-peer-id="${CSS.escape(peerId)}"] .peer-name`);
+  if (el) {
+    const n = el.textContent.replace('✅', '').trim();
+    if (n) return n;
+  }
+  return LS.get('peer_name_' + peerId, '');
+}
+
+async function updatePeerHeader(peerId) {
+  let name = getPeerDisplayName(peerId);
+  if (!name || name === 'Student') {
+    try {
+      const res = await fetchJson(`/api/chat/user-info/${encodeURIComponent(peerId)}`);
+      if (res?.success && res?.user?.name) {
+        name = res.user.name;
+        LS.set('peer_name_' + peerId, name);
+      }
+    } catch (_) {}
+  }
+  name = name || 'Student';
+  const titleEl = $('#chatRoomTitle');
+  if (titleEl) titleEl.textContent = name;
+  const avatarEl = $('#chatRoomAvatar');
+  if (avatarEl) {
+    avatarEl.textContent = initials(name);
+    avatarEl.style.background = `linear-gradient(145deg, ${safeColor(peerId)}, #4243b6)`;
+  }
+  const subEl = $('#chatSubtitle');
+  if (subEl) subEl.textContent = 'Active · ' + name;
+}
+
+let activePollTimer = null;
+function startActivePeerSync(peerId) {
+  clearInterval(activePollTimer);
+  activePollTimer = setInterval(async () => {
+    if (LS.get('current_peer') !== peerId || document.hidden) return;
+    try {
+      const serverMessages = await loadHistory(peerId);
+      if (serverMessages && serverMessages.length) {
+        syncNewMessages(peerId, serverMessages);
+      }
+    } catch (_) {}
+  }, 2500);
+}
+
+function syncNewMessages(peerId, serverMessages) {
+  const container = $('#chatMessages');
+  if (!container || LS.get('current_peer') !== peerId) return;
+  const myId = getMyId();
+  const key = 'chat_history:' + [peerId, myId].sort().join('_');
+  const localList = LS.get(key, []);
+  let hasNew = false;
+
+  serverMessages.forEach(sMsg => {
+    const exists = localList.some(l => (l.msg_id && l.msg_id === sMsg.msg_id) || (l.ts === sMsg.ts && l.text === sMsg.text));
+    if (!exists) {
+      localList.push(sMsg);
+      hasNew = true;
+      const isMine = sMsg.from === myId;
+      appendMessageBubble(sMsg, isMine, peerId, sMsg.status || 'delivered');
+      if (!isMine) {
+        ChatSound.playReceive();
+        chatSocket?.emit('chat_read', { to: peerId, ts: sMsg.ts, msg_id: sMsg.msg_id || '' });
+      }
+    } else if (sMsg.status) {
+      updateMessageStatus(sMsg.msg_id || sMsg.ts, sMsg.status);
+    }
+  });
+
+  if (hasNew) {
+    LS.set(key, localList);
+    updateStudyStreakBadge(peerId, localList);
+  }
+}
+
 function openChat(peerId) {
   LS.set('current_peer', peerId);
   document.querySelectorAll('.peer-item').forEach(el => el.classList.toggle('active', el.dataset.peerId === peerId));
@@ -358,16 +709,10 @@ function openChat(peerId) {
   room.hidden = false;
   room.classList.add('open');
 
-  const info = getUserInfo(peerId);
-  const name = info?.name || peerId;
-  $('#chatRoomTitle').textContent = name;
-  const avatar = $('#chatRoomAvatar');
-  if (avatar) {
-    avatar.textContent = initials(name);
-    avatar.style.background = `linear-gradient(145deg, ${safeColor(peerId)}, #4243b6)`;
-  }
+  updatePeerHeader(peerId);
+
   const meta = $('#chatRoomMeta');
-  meta.innerHTML = '';
+  if (meta) meta.innerHTML = '';
 
   const state = LS.get('chat_state:' + peerId, {});
   if (state.is_match) {
@@ -384,60 +729,525 @@ function openChat(peerId) {
 
   setCrushBadge(peerId);
   room.classList.toggle('is-match', !!(state.is_match));
-  $('#chatSubtitle').textContent = (state.is_match ? '💞 Matched — ' : '') + name;
 
-  if (chatSocket?.connected) chatSocket.emit('chat_join', { peer: peerId });
+  if (chatSocket?.connected) {
+    chatSocket.emit('chat_join', { peer: peerId });
+    chatSocket.emit('chat_read', { to: peerId, ts: new Date().toISOString() });
+  }
 
   renderHistory(peerId);
-  $('#chatInput').focus();
+  const myId = getMyId();
+  updateStudyMomentum(peerId, LS.get('chat_history:' + [peerId, myId].sort().join('_'), []));
+  startActivePeerSync(peerId);
+  $('#chatInput')?.focus();
 }
+
 async function renderHistory(peerId) {
   const container = $('#chatMessages');
-  const messages = await loadHistory(peerId);
-  if (!messages || !messages.length) { container.innerHTML = '<div class="chat-empty">No messages yet</div>'; return; }
+  if (!container) return;
+
   const myId = getMyId();
+  const key = 'chat_history:' + [peerId, myId].sort().join('_');
+  const localMessages = LS.get(key, []);
+  if (localMessages.length) {
+    _renderMessageList(container, localMessages, myId, peerId);
+    updateStudyStreakBadge(peerId, localMessages);
+  } else {
+    container.innerHTML = '<div class="chat-empty">Loading messages…</div>';
+  }
+
+  try {
+    const serverMessages = await loadHistory(peerId);
+    if (serverMessages && serverMessages.length) {
+      const seen = new Set();
+      const merged = [];
+      for (const m of localMessages.concat(serverMessages)) {
+        const idKey = m.msg_id || (m.ts + ':' + m.text);
+        if (!seen.has(idKey)) {
+          seen.add(idKey);
+          merged.push(m);
+        }
+      }
+      merged.sort((a, b) => new Date(a.ts).getTime() - new Date(b.ts).getTime());
+      LS.set(key, merged);
+      _renderMessageList(container, merged, myId, peerId);
+      updateStudyStreakBadge(peerId, merged);
+    } else if (!localMessages.length) {
+      container.innerHTML = '<div class="chat-empty">No messages yet. Send a message to start!</div>';
+    }
+  } catch (_) {
+    if (!localMessages.length) {
+      container.innerHTML = '<div class="chat-empty">No messages yet. Send a message to start!</div>';
+    }
+  }
+}
+
+function renderBubbleBody(bubble, msg, isMine) {
+  let contentDiv = bubble.querySelector('.bubble-content');
+  if (!contentDiv) {
+    contentDiv = document.createElement('div');
+    contentDiv.className = 'bubble-content';
+    const meta = bubble.querySelector('.meta');
+    if (meta) bubble.insertBefore(contentDiv, meta);
+    else bubble.appendChild(contentDiv);
+  }
+  contentDiv.innerHTML = '';
+
+  let fileReq = msg.file_req;
+  if (!fileReq && typeof msg.text === 'string' && (msg.text.includes('Requested File:') || msg.msg_type === 'file_request')) {
+    const rawTitle = msg.text.replace(/^[📑\s]*Requested File:\s*/i, '').trim();
+    fileReq = {
+      title: rawTitle,
+      details: '',
+      status: 'awaiting',
+      file_url: 'yet_to_add'
+    };
+  }
+
+  if (fileReq) {
+    if (fileReq.status === 'rejected') {
+      contentDiv.innerHTML = `
+        <div class="file-req-card rejected">
+          <div class="file-req-badge rejected">✕ Request Declined</div>
+          <div class="file-req-title">${escapeHtml(fileReq.title)}</div>
+          ${fileReq.meta_info ? `<div class="file-req-meta">${escapeHtml(fileReq.meta_info)}</div>` : ''}
+          <div class="file-req-status rejected">This study material request was declined.</div>
+        </div>
+      `;
+    } else if (fileReq.status === 'fulfilled' || (fileReq.file_url && fileReq.file_url !== 'yet_to_add')) {
+      contentDiv.innerHTML = `
+        <div class="file-req-card fulfilled">
+          <div class="file-req-badge ready">✅ File Attached</div>
+          <div class="file-req-title">${escapeHtml(fileReq.title || fileReq.file_name || 'Attached Material')}</div>
+          ${fileReq.meta_info ? `<div class="file-req-meta">${escapeHtml(fileReq.meta_info)}</div>` : ''}
+          <div class="file-req-info">
+            <span class="file-icon">📄</span>
+            <span class="file-name">${escapeHtml(fileReq.file_name || 'Download File')}</span>
+          </div>
+          <div class="file-req-actions">
+            <a href="${escapeHtml(fileReq.file_url)}" target="_blank" download="${escapeHtml(fileReq.file_name || 'file')}" class="btn-download-file">
+              ⬇ Download / View File
+            </a>
+          </div>
+        </div>
+      `;
+    } else if (isMine) {
+      contentDiv.innerHTML = `
+        <div class="file-req-card mine">
+          <div class="file-req-badge">📑 File Requested</div>
+          <div class="file-req-title">${escapeHtml(fileReq.title)}</div>
+          ${fileReq.meta_info ? `<div class="file-req-meta">${escapeHtml(fileReq.meta_info)}</div>` : ''}
+          ${fileReq.details ? `<div class="file-req-desc">${escapeHtml(fileReq.details)}</div>` : ''}
+          <div class="file-req-status awaiting">⏳ Awaiting peer response & attachment</div>
+        </div>
+      `;
+    } else {
+      contentDiv.innerHTML = `
+        <div class="file-req-card theirs">
+          <div class="file-req-badge">📑 File Requested from You</div>
+          <div class="file-req-title">${escapeHtml(fileReq.title)}</div>
+          ${fileReq.meta_info ? `<div class="file-req-meta">${escapeHtml(fileReq.meta_info)}</div>` : ''}
+          ${fileReq.details ? `<div class="file-req-desc">${escapeHtml(fileReq.details)}</div>` : ''}
+          <div class="file-req-actions">
+            <button type="button" class="btn-accept-file" data-action="chatAcceptFile" data-msg-id="${escapeHtml(msg.msg_id || '')}" data-ts="${escapeHtml(msg.ts || '')}">
+              ✓ Accept & Attach File
+            </button>
+            <button type="button" class="btn-reject-file" data-action="chatRejectFile" data-msg-id="${escapeHtml(msg.msg_id || '')}" data-ts="${escapeHtml(msg.ts || '')}">
+              ✕ Decline
+            </button>
+          </div>
+        </div>
+      `;
+    }
+  } else if (msg.file_attachment) {
+    const att = msg.file_attachment;
+    contentDiv.innerHTML = `
+      <div class="file-req-card fulfilled">
+        <div class="file-req-badge ready">📎 Shared File</div>
+        <div class="file-req-title">${escapeHtml(att.file_name || 'File Attachment')}</div>
+        <div class="file-req-info">
+          <span class="file-icon">📄</span>
+          <span class="file-name">${escapeHtml(att.file_name || 'Download File')}</span>
+        </div>
+        <div class="file-req-actions">
+          <a href="${escapeHtml(att.file_url)}" target="_blank" download="${escapeHtml(att.file_name || 'file')}" class="btn-download-file">
+            ⬇ Download / View File
+          </a>
+        </div>
+      </div>
+    `;
+  } else {
+    contentDiv.className = 'bubble-content bubble-text';
+    contentDiv.innerHTML = linkifyAbhiHub(escapeHtml(msg.text));
+  }
+}
+
+function _renderMessageList(container, messages, myId, peerId) {
   container.innerHTML = '';
   const frag = document.createDocumentFragment();
+  const peerName = getPeerDisplayName(peerId);
   messages.forEach(msg => {
     const isMine = msg.from === myId;
     const wrap = document.createElement('div');
     wrap.className = 'bubble-wrap ' + (isMine ? 'mine' : 'theirs');
     wrap.setAttribute('data-ts', msg.ts);
+    if (msg.msg_id) wrap.setAttribute('data-msg-id', msg.msg_id);
 
     const bubble = document.createElement('div');
     bubble.className = 'bubble ' + (isMine ? 'mine' : 'theirs');
 
-    const text = document.createElement('div');
-    text.className = 'bubble-text';
-    text.innerHTML = linkifyAbhiHub(escapeHtml(msg.text));
-    bubble.appendChild(text);
-
     const meta = document.createElement('div');
-    meta.className = 'bubble meta';
+    meta.className = 'meta';
     const left = document.createElement('span');
     left.textContent = formatTime(msg.ts) || '';
-    const timer = document.createElement('span');
-    timer.className = 'timer-pill';
-    updateTimerText(timer, msg.ts);
     meta.appendChild(left);
-    meta.appendChild(timer);
-    bubble.appendChild(meta);
 
-    const avatar = document.createElement('div');
-    avatar.className = 'peer-avatar';
-    avatar.style.background = isMine ? '#eef2ff' : safeColor(peerId);
-    avatar.style.color = isMine ? '#4f46e5' : '#fff';
-    avatar.textContent = isMine ? 'Me' : initials(getUserInfo(peerId)?.name || peerId);
-    wrap.appendChild(avatar);
+    if (isMine) {
+      const statusSpan = document.createElement('span');
+      statusSpan.className = 'msg-status ' + (msg.status || 'sent');
+      statusSpan.textContent = msg.status === 'read' ? '✓✓' : (msg.status === 'delivered' ? '✓✓' : (msg.status === 'pending' ? '⏱️' : '✓'));
+      meta.appendChild(statusSpan);
+    }
+
+    bubble.appendChild(meta);
+    renderBubbleBody(bubble, msg, isMine);
+
+    if (!isMine) {
+      const avatar = document.createElement('div');
+      avatar.className = 'peer-avatar';
+      avatar.style.background = safeColor(peerId);
+      avatar.style.color = '#fff';
+      avatar.textContent = initials(peerName);
+      wrap.appendChild(avatar);
+    }
     wrap.appendChild(bubble);
+    attachReactionBar(wrap, msg);
     frag.appendChild(wrap);
   });
   container.appendChild(frag);
   container.scrollTop = container.scrollHeight;
 }
 
+function appendMessageBubble(msg, isMine, peerId, status = 'sent') {
+  const container = $('#chatMessages');
+  if (!container) return;
+
+  if (msg.msg_id && container.querySelector(`.bubble-wrap[data-msg-id="${CSS.escape(msg.msg_id)}"]`)) {
+    return;
+  }
+  if (msg.ts && container.querySelector(`.bubble-wrap[data-ts="${CSS.escape(msg.ts)}"]`)) {
+    return;
+  }
+
+  const empty = container.querySelector('.chat-empty, .empty');
+  if (empty) empty.remove();
+
+  const wrap = document.createElement('div');
+  wrap.className = 'bubble-wrap ' + (isMine ? 'mine' : 'theirs');
+  wrap.setAttribute('data-ts', msg.ts);
+  if (msg.msg_id) wrap.setAttribute('data-msg-id', msg.msg_id);
+
+  const bubble = document.createElement('div');
+  bubble.className = 'bubble ' + (isMine ? 'mine' : 'theirs');
+
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  const left = document.createElement('span');
+  left.textContent = formatTime(msg.ts) || '';
+  meta.appendChild(left);
+
+  if (isMine) {
+    const statusSpan = document.createElement('span');
+    statusSpan.className = 'msg-status ' + status;
+    statusSpan.textContent = status === 'pending' ? '⏱️' : (status === 'delivered' ? '✓✓' : (status === 'read' ? '✓✓' : '✓'));
+    meta.appendChild(statusSpan);
+  }
+
+  bubble.appendChild(meta);
+  renderBubbleBody(bubble, msg, isMine);
+
+  if (!isMine) {
+    const avatar = document.createElement('div');
+    avatar.className = 'peer-avatar';
+    avatar.style.background = safeColor(peerId);
+    avatar.style.color = '#fff';
+    avatar.textContent = initials(getPeerDisplayName(peerId));
+    wrap.appendChild(avatar);
+  }
+  wrap.appendChild(bubble);
+  attachReactionBar(wrap, msg);
+
+  const typingBubble = document.getElementById('chatPeerTypingBubble');
+  if (typingBubble) {
+    container.insertBefore(wrap, typingBubble);
+  } else {
+    container.appendChild(wrap);
+  }
+  container.scrollTop = container.scrollHeight;
+}
+
+let currentFulfillTarget = null;
+function handleFulfillFileClick(btn) {
+  const msgId = btn.getAttribute('data-msg-id');
+  const ts = btn.getAttribute('data-ts');
+  currentFulfillTarget = { msgId, ts, btn };
+  const fileInput = document.getElementById('chatFulfillFileInput');
+  if (fileInput) {
+    fileInput.value = '';
+    fileInput.click();
+  }
+}
+
+function handleRejectFileClick(btn) {
+  const msgId = btn.getAttribute('data-msg-id');
+  const ts = btn.getAttribute('data-ts');
+  const peerId = LS.get('current_peer');
+  if (!peerId) return;
+
+  const myId = getMyId();
+  const key = 'chat_history:' + [peerId, myId].sort().join('_');
+  const list = LS.get(key, []);
+  const targetMsg = list.find(m => (msgId && m.msg_id === msgId) || (ts && m.ts === ts));
+  if (targetMsg) {
+    if (!targetMsg.file_req) targetMsg.file_req = {};
+    targetMsg.file_req.status = 'rejected';
+    LS.set(key, list);
+  }
+
+  let wrap = document.querySelector(`.bubble-wrap[data-msg-id="${CSS.escape(msgId)}"]`);
+  if (!wrap && ts) wrap = document.querySelector(`.bubble-wrap[data-ts="${CSS.escape(ts)}"]`);
+  if (wrap) {
+    const bubble = wrap.querySelector('.bubble');
+    if (bubble && targetMsg) renderBubbleBody(bubble, targetMsg, false);
+  }
+
+  chatSocket?.emit('chat_file_status', {
+    to: peerId,
+    msg_id: msgId,
+    ts: ts,
+    status: 'rejected'
+  });
+}
+
+async function uploadFulfillFile(file) {
+  if (!file || !currentFulfillTarget) return;
+  const { msgId, ts, btn } = currentFulfillTarget;
+  const peerId = LS.get('current_peer');
+  if (btn) {
+    btn.disabled = true;
+    btn.textContent = '⏳ Uploading…';
+  }
+
+  const myId = getMyId();
+  const key = 'chat_history:' + [peerId, myId].sort().join('_');
+  const list = LS.get(key, []);
+  const targetMsg = list.find(m => (msgId && m.msg_id === msgId) || (ts && m.ts === ts));
+  const reqData = targetMsg?.file_req || {};
+
+  const formData = new FormData();
+  formData.append('file', file);
+  if (reqData.title) formData.append('title', reqData.title);
+  if (reqData.category) formData.append('category', reqData.category);
+  if (reqData.year) formData.append('year', reqData.year);
+  if (reqData.semester) formData.append('semester', reqData.semester);
+  if (reqData.details || reqData.meta_info) formData.append('details', reqData.details || reqData.meta_info);
+
+  try {
+    const res = await fetch('/api/chat/upload-file', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      alert(data.error || 'Upload failed');
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = '✓ Accept & Attach File';
+      }
+      return;
+    }
+
+    if (targetMsg) {
+      if (!targetMsg.file_req) targetMsg.file_req = {};
+      targetMsg.file_req.file_url = data.file_url;
+      targetMsg.file_req.file_name = data.file_name;
+      targetMsg.file_req.status = 'fulfilled';
+      LS.set(key, list);
+    }
+
+    let wrap = document.querySelector(`.bubble-wrap[data-msg-id="${CSS.escape(msgId)}"]`);
+    if (!wrap && ts) wrap = document.querySelector(`.bubble-wrap[data-ts="${CSS.escape(ts)}"]`);
+    if (wrap) {
+      const bubble = wrap.querySelector('.bubble');
+      if (bubble && targetMsg) renderBubbleBody(bubble, targetMsg, false);
+    }
+
+    chatSocket?.emit('chat_file_fulfilled', {
+      to: peerId,
+      msg_id: msgId,
+      ts: ts,
+      file_url: data.file_url,
+      file_name: data.file_name,
+      file_size: data.file_size
+    });
+
+    ChatSound.playReceive();
+    popXpEffect(20, 'File Attached XP');
+  } catch (err) {
+    console.error('[chat] File upload error:', err);
+    alert('File upload failed. Please try again.');
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = '✓ Accept & Attach File';
+    }
+  }
+}
+
+let isSubmittingReq = false;
+function submitFileRequest(title, details, metaInfo = '', extra = {}) {
+  const peerId = LS.get('current_peer');
+  if (!peerId || !title || isSubmittingReq) return;
+  isSubmittingReq = true;
+  setTimeout(() => { isSubmittingReq = false; }, 1200);
+
+  const msgId = 'c_req_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+  const ts = new Date().toISOString();
+  const myId = getMyId();
+
+  const msg = {
+    msg_id: msgId,
+    from: myId,
+    to: peerId,
+    msg_type: 'file_request',
+    text: `📑 Requested File: ${title}`,
+    file_req: {
+      title,
+      details,
+      meta_info: metaInfo,
+      category: extra.category || 'Notes',
+      year: extra.year || '2025',
+      semester: extra.semester || '',
+      unit: extra.unit || '',
+      status: 'awaiting',
+      file_url: 'yet_to_add',
+      file_name: ''
+    },
+    ts,
+    status: 'pending',
+    sender_meta: { name: window.__CURRENT_USER__?.name || 'A student' }
+  };
+
+  ChatSound.playSend();
+  appendMessageBubble(msg, true, peerId, 'pending');
+  popXpEffect(10, 'Request XP');
+
+  const key = 'chat_history:' + [peerId, myId].sort().join('_');
+  const list = LS.get(key, []);
+  list.push(msg);
+  LS.set(key, list);
+  updateStudyStreakBadge(peerId, list);
+
+  if (chatSocket?.connected) {
+    chatSocket.emit('chat_send', {
+      to: peerId,
+      text: msg.text,
+      ts,
+      msg_id: msgId,
+      msg_type: 'file_request',
+      file_req: msg.file_req,
+      sender_meta: msg.sender_meta
+    });
+  } else {
+    httpSendMessage(peerId, msg);
+  }
+}
+
+async function uploadDirectFile(file) {
+  if (!file) return;
+  const peerId = LS.get('current_peer');
+  if (!peerId) {
+    alert('Please open a conversation first.');
+    return;
+  }
+  const myId = getMyId();
+  const msgId = 'c_att_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+  const ts = new Date().toISOString();
+
+  const pendingMsg = {
+    msg_id: msgId,
+    from: myId,
+    to: peerId,
+    msg_type: 'file_share',
+    text: `📎 Shared File: ${file.name}`,
+    file_attachment: {
+      file_url: '#',
+      file_name: file.name,
+      file_size: file.size
+    },
+    ts,
+    status: 'pending',
+    sender_meta: { name: window.__CURRENT_USER__?.name || 'A student' }
+  };
+
+  ChatSound.playSend();
+  appendMessageBubble(pendingMsg, true, peerId, 'pending');
+  popXpEffect(15, 'Upload XP');
+
+  const formData = new FormData();
+  formData.append('file', file);
+
+  try {
+    const res = await fetch('/api/chat/upload-file', {
+      method: 'POST',
+      body: formData
+    });
+    const data = await res.json();
+    if (!res.ok || !data.success) {
+      alert(data.error || 'Upload failed');
+      updateMessageStatus(msgId, 'failed');
+      return;
+    }
+
+    pendingMsg.text = `📎 Shared File: ${data.file_name}`;
+    pendingMsg.file_attachment.file_url = data.file_url;
+    pendingMsg.file_attachment.file_name = data.file_name;
+    pendingMsg.status = 'sent';
+
+    const key = 'chat_history:' + [peerId, myId].sort().join('_');
+    const list = LS.get(key, []);
+    list.push(pendingMsg);
+    LS.set(key, list);
+    updateStudyStreakBadge(peerId, list);
+
+    let wrap = document.querySelector(`.bubble-wrap[data-msg-id="${CSS.escape(msgId)}"]`);
+    if (wrap) {
+      const bubble = wrap.querySelector('.bubble');
+      if (bubble) renderBubbleBody(bubble, pendingMsg, true);
+      updateMessageStatus(msgId, 'sent');
+    }
+
+    if (chatSocket?.connected) {
+      chatSocket.emit('chat_send', {
+        to: peerId,
+        text: pendingMsg.text,
+        ts,
+        msg_id: msgId,
+        msg_type: 'file_share',
+        file_attachment: pendingMsg.file_attachment,
+        sender_meta: pendingMsg.sender_meta
+      });
+    } else {
+      httpSendMessage(peerId, pendingMsg);
+    }
+  } catch (err) {
+    console.error('[chat] Direct upload error:', err);
+    alert('File upload failed.');
+    updateMessageStatus(msgId, 'failed');
+  }
+}
+
 function escapeHtml(str) {
-  return str.replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch] || ch));
+  return (str || '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch] || ch));
 }
 
 function linkifyAbhiHub(html) {
@@ -464,15 +1274,17 @@ function updateTimerText(timerEl, iso) {
   }
 }
 
-function updateMessageStatus(ts, status) {
-  const bubbles = document.querySelectorAll(`.bubble-wrap[data-ts="${CSS.escape(ts)}"]`);
-  if (!bubbles.length) return;
-  const bubbleWarp = bubbles[0];
-  const bubble = bubbleWarp.querySelector('.bubble');
+function updateMessageStatus(idOrTs, status) {
+  if (!idOrTs) return;
+  let bubbleWrap = document.querySelector(`.bubble-wrap[data-msg-id="${CSS.escape(idOrTs)}"]`);
+  if (!bubbleWrap) {
+    bubbleWrap = document.querySelector(`.bubble-wrap[data-ts="${CSS.escape(idOrTs)}"]`);
+  }
+  if (!bubbleWrap) return;
+  const bubble = bubbleWrap.querySelector('.bubble');
   const metaDiv = bubble?.querySelector('.bubble.meta');
   if (!metaDiv) return;
 
-  // Update or add status indicator
   let statusEl = metaDiv.querySelector('.msg-status');
   if (!statusEl) {
     statusEl = document.createElement('span');
@@ -480,15 +1292,19 @@ function updateMessageStatus(ts, status) {
     metaDiv.appendChild(statusEl);
   }
 
+  statusEl.className = 'msg-status ' + status;
   if (status === 'sent') {
     statusEl.textContent = '✓';
-    statusEl.style.color = '#64748b';
+    statusEl.style.color = '#94a3b8';
   } else if (status === 'delivered') {
     statusEl.textContent = '✓✓';
     statusEl.style.color = '#64748b';
   } else if (status === 'read') {
     statusEl.textContent = '✓✓';
     statusEl.style.color = '#3b82f6';
+  } else if (status === 'pending') {
+    statusEl.textContent = '⏱️';
+    statusEl.style.color = '#cbd5e1';
   } else if (status === 'failed') {
     statusEl.textContent = '⚠️';
     statusEl.style.color = '#ef4444';
@@ -549,6 +1365,7 @@ startDisappearingCleanup._timers = new Map();
 
 async function loadPeers(q = '') {
   const list = $('#peerList');
+  if (!list) return;
   list.innerHTML = '<div class="empty">Loading…</div>';
   try {
     const url = q ? `/api/chat/search-peers?q=${encodeURIComponent(q)}` : `/api/chat/search-peers?q=__suggested__`;
@@ -556,7 +1373,15 @@ async function loadPeers(q = '') {
     const users = (data.users || []).concat(data.suggested || []);
     const seen = new Set();
     const unique = [];
-    for (const u of users) { const id = u.id || u.user_id; if (!id || seen.has(id)) continue; seen.add(id); unique.push(u); }
+    for (const u of users) {
+      const id = u.id || u.user_id;
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      unique.push(u);
+      if (u.full_name) {
+        LS.set('peer_name_' + id, u.full_name);
+      }
+    }
     if (!unique.length) { list.innerHTML = '<div class="empty">No peers found</div>'; return; }
 
     const current = LS.get('current_peer') || getPreloadPeer();
@@ -572,6 +1397,10 @@ async function loadPeers(q = '') {
         </div>
       </div>`;
     }).join('');
+
+    if (current) {
+      updatePeerHeader(current);
+    }
   } catch (e) {
     list.innerHTML = `<div class="empty">${e.message || 'Load failed'}</div>`;
   }
@@ -589,156 +1418,101 @@ async function loadCrushState(peerId) {
 
 async function sendMessage() {
   const input = $('#chatInput');
-  const composer = $('#chatComposer');
-  const statusBar = composer?.parentElement?.querySelector('#chatSendStatus') || (() => {
-    const div = document.createElement('div');
-    div.id = 'chatSendStatus';
-    div.style.cssText = 'color:#64748b; font-size:0.7rem; margin-top:0.25rem; font-weight:600; display:none; white-space:nowrap;';
-    composer?.parentElement?.appendChild(div);
-    return div;
-  })();
   const peerId = LS.get('current_peer');
-  const text = (input.value || '').trim();
+  const text = (input?.value || '').trim();
   if (!peerId || !text) return;
 
+  const msgId = 'c_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6);
+  const ts = new Date().toISOString();
+  const myId = getMyId();
+
   const msg = {
-    from: getMyId(), text, ts: new Date().toISOString(),
+    msg_id: msgId,
+    from: myId,
+    to: peerId,
+    text,
+    ts,
+    status: 'pending',
     sender_meta: { name: window.__CURRENT_USER__?.name || 'A student' }
   };
-  const myId = getMyId();
+
+  // 1. Optimistic instant visual render (0ms latency)
+  input.value = '';
+  ChatSound.playSend();
+  appendMessageBubble(msg, true, peerId, 'pending');
+  popXpEffect(10, 'Study XP');
+
+  // 2. Persist to local storage
   const key = 'chat_history:' + [peerId, myId].sort().join('_');
   const list = LS.get(key, []);
   list.push(msg);
   LS.set(key, list);
+  updateStudyStreakBadge(peerId, list);
 
-  // Show "sending" indicator
-  if (statusBar) {
-    statusBar.textContent = 'Sending...';
-    statusBar.style.color = '#64748b';
-    statusBar.style.display = 'block';
-  }
+  // 3. Inform peer typing ended
+  chatSocket?.emit('chat_typing', { to: peerId, is_typing: false });
 
-  let sent = false;
+  // 4. WebSocket transmission with ACK and HTTP fallback
   if (chatSocket?.connected) {
-    // Emit with retry: re-emit after 3s if no ACK received
     let ackReceived = false;
     const ackHandler = (data) => {
-      if (data.ts === msg.ts || data.msg_id === msg.msg_id) {
+      if (data.msg_id === msgId || data.ts === ts) {
         ackReceived = true;
-        if (statusBar) {
-          statusBar.textContent = '✓';
-          statusBar.style.color = '#16a34a';
-          setTimeout(() => { statusBar.style.display = 'none'; }, 2000);
-        }
+        updateMessageStatus(msgId, 'sent');
       }
     };
     chatSocket.once('chat_message_ack', ackHandler);
-
-    // Timeout for ACK: if no ACK in 5s, retry via HTTP
     setTimeout(() => {
       chatSocket.off('chat_message_ack', ackHandler);
       if (!ackReceived) {
-        // Retry via HTTP fallback
-        retryHttpSend(peerId, msg, statusBar);
+        httpSendMessage(peerId, msg);
       }
-    }, 5000);
+    }, 3500);
 
-    chatSocket.emit('chat_send', { to: peerId, text, ts: msg.ts, sender_meta: msg.sender_meta, msg_id: msg.ts });
+    chatSocket.emit('chat_send', {
+      to: peerId,
+      text,
+      ts,
+      msg_id: msgId,
+      msg_type: msg.msg_type || 'text',
+      file_req: msg.file_req || null,
+      file_attachment: msg.file_attachment || null,
+      sender_meta: msg.sender_meta
+    });
   } else {
-    // Socket not connected — try HTTP directly
-    await httpSendMessage(peerId, msg, statusBar);
+    await httpSendMessage(peerId, msg);
   }
-
-  input.value = '';
-  renderHistory(peerId);
 }
 
-async function httpSendMessage(peerId, msg, statusBar) {
+async function httpSendMessage(peerId, msg) {
   try {
     const res = await fetchJson('/api/chat/messages', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
-      body: JSON.stringify({ to: peerId, text: msg.text, ts: msg.ts, sender_meta: msg.sender_meta })
+      body: JSON.stringify({
+        to: peerId,
+        text: msg.text,
+        ts: msg.ts,
+        msg_id: msg.msg_id,
+        msg_type: msg.msg_type || 'text',
+        file_req: msg.file_req || null,
+        file_attachment: msg.file_attachment || null,
+        sender_meta: msg.sender_meta
+      })
     });
     if (res.success && res.message) {
-      // Update the message with server-assigned msg_id for tracking
-      const serverMsg = res.message;
-      const key = 'chat_history:' + [peerId, getMyId()].sort().join('_');
-      const list = LS.get(key, []);
-      const idx = list.findIndex(m => m.ts === msg.ts);
-      if (idx >= 0) {
-        list[idx].msg_id = serverMsg.msg_id || '';
-        list[idx].ts = serverMsg.ts || list[idx].ts;
-        LS.set(key, list);
-      }
-      if (statusBar) {
-        statusBar.textContent = '✓ Sent';
-        statusBar.style.color = '#16a34a';
-        setTimeout(() => { statusBar.style.display = 'none'; }, 2000);
-      }
+      updateMessageStatus(msg.msg_id || msg.ts, 'sent');
       return true;
     }
     return false;
   } catch (error) {
     console.error('[chat] HTTP send failed:', error);
+    updateMessageStatus(msg.msg_id || msg.ts, 'failed');
     return false;
   }
 }
 
-async function retryHttpSend(peerId, msg, statusBar) {
-  if (!statusBar) return;
-  statusBar.textContent = 'Retrying...';
-  statusBar.style.color = '#f59e0b';
-  const ok = await httpSendMessage(peerId, msg, statusBar);
-  if (!ok) {
-    statusBar.textContent = '⚠️ Not sent — check connection';
-    statusBar.style.color = '#ef4444';
-  }
-}
-
-function renderHistory(peerId) {
-  const container = $('#chatMessages');
-  const messages = LS.get('chat_history:' + [peerId, getMyId()].sort().join('_'), []);
-  if (!messages || !messages.length) { container.innerHTML = '<div class="chat-empty">No messages yet</div>'; return; }
-  const myId = getMyId();
-  container.innerHTML = '';
-  const frag = document.createDocumentFragment();
-  messages.forEach(msg => {
-    const isMine = msg.from === myId;
-    const wrap = document.createElement('div');
-    wrap.className = 'bubble-wrap ' + (isMine ? 'mine' : 'theirs');
-    wrap.setAttribute('data-ts', msg.ts);
-    const bubble = document.createElement('div');
-    bubble.className = 'bubble ' + (isMine ? 'mine' : 'theirs');
-    const text = document.createElement('div');
-    text.className = 'bubble-text';
-    text.innerHTML = linkifyAbhiHub(escapeHtml(msg.text));
-    bubble.appendChild(text);
-    const meta = document.createElement('div');
-    meta.className = 'bubble meta';
-    const left = document.createElement('span');
-    left.textContent = formatTime(msg.ts) || '';
-    const timer = document.createElement('span');
-    timer.className = 'timer-pill';
-    updateTimerText(timer, msg.ts);
-    meta.appendChild(left);
-    meta.appendChild(timer);
-    bubble.appendChild(meta);
-    const avatar = document.createElement('div');
-    avatar.className = 'peer-avatar';
-    avatar.style.background = isMine ? '#eef2ff' : safeColor(peerId);
-    avatar.style.color = isMine ? '#4f46e5' : '#fff';
-    avatar.textContent = isMine ? 'Me' : initials(getUserInfo(peerId)?.name || peerId);
-    wrap.appendChild(avatar);
-    wrap.appendChild(bubble);
-    frag.appendChild(wrap);
-  });
-  container.appendChild(frag);
-  container.scrollTop = container.scrollHeight;
-}
-
 document.addEventListener('DOMContentLoaded', () => {
-  // This file is loaded by the shared layout. Only initialise it on the chat page.
   if (!document.querySelector('.chat-shell')) return;
 
   buildEmojiPicker();
@@ -749,10 +1523,64 @@ document.addEventListener('DOMContentLoaded', () => {
 
   loadPeers();
 
+  // Audio chime toggle
+  const soundBtn = document.getElementById('chatSoundToggle');
+  if (soundBtn) {
+    soundBtn.textContent = ChatSound.enabled ? '🔔' : '🔕';
+    soundBtn.addEventListener('click', () => {
+      ChatSound.enabled = !ChatSound.enabled;
+      soundBtn.textContent = ChatSound.enabled ? '🔔' : '🔕';
+      if (ChatSound.enabled) ChatSound.playSend();
+    });
+  }
+
+  // Live typing indicator listener
+  const chatInput = document.getElementById('chatInput');
+  chatInput?.addEventListener('input', () => {
+    const peerId = LS.get('current_peer');
+    if (peerId) handleTypingInput(peerId);
+  });
+
+  // Frictionless academic icebreakers
+  document.getElementById('chatIcebreakers')?.addEventListener('click', (e) => {
+    const chip = e.target.closest('.icebreaker-chip');
+    if (!chip) return;
+    const text = chip.dataset.text || chip.textContent.trim();
+    if (chatInput) {
+      chatInput.value = text;
+      chatInput.focus();
+    }
+  });
+
   document.addEventListener('click', async (e) => {
     const actionEl = e.target.closest('[data-action]');
     if (!actionEl) return;
     const action = actionEl.getAttribute('data-action');
+
+    if (action === 'chatReact') {
+      const emoji = actionEl.getAttribute('data-emoji') || actionEl.textContent.trim();
+      const wrap = actionEl.closest('.bubble-wrap');
+      if (!wrap || !emoji) return;
+      renderReactionBadge(wrap, emoji);
+      ChatSound.playReaction();
+      popXpEffect(5, 'Reaction XP');
+      const peerId = LS.get('current_peer');
+      const msgId = wrap.getAttribute('data-msg-id');
+      const msgTs = wrap.getAttribute('data-ts');
+      if (peerId) {
+        const myId = getMyId();
+        const key = 'chat_history:' + [peerId, myId].sort().join('_');
+        const list = LS.get(key, []);
+        const target = list.find(m => (msgId && m.msg_id === msgId) || (msgTs && m.ts === msgTs));
+        if (target) {
+          target.reaction = emoji;
+          LS.set(key, list);
+          updateStudyMomentum(peerId, list);
+        }
+        chatSocket?.emit('chat_react', { to: peerId, msg_id: msgId, ts: msgTs, emoji });
+      }
+      return;
+    }
 
     if (action === 'chatOpenPeer') {
       const item = actionEl.closest('.peer-item');
@@ -784,11 +1612,92 @@ document.addEventListener('DOMContentLoaded', () => {
       loadPeers($('#peerSearch').value || '');
       return;
     }
+    if (action === 'chatDirectUpload') {
+      const input = document.getElementById('chatDirectFileInput');
+      if (input) {
+        input.value = '';
+        input.click();
+      }
+      return;
+    }
+    if (action === 'chatOpenRequestModal') {
+      const modal = document.getElementById('chatRequestModal');
+      if (modal) {
+        if (typeof modal.showModal === 'function') modal.showModal();
+        else modal.style.display = 'block';
+        document.getElementById('chatReqTitle')?.focus();
+      }
+      return;
+    }
+    if (action === 'chatCloseRequestModal') {
+      const modal = document.getElementById('chatRequestModal');
+      if (modal) {
+        if (typeof modal.close === 'function') modal.close();
+        else modal.style.display = 'none';
+      }
+      return;
+    }
+    if (action === 'chatAcceptFile' || action === 'chatFulfillFile') {
+      handleFulfillFileClick(actionEl);
+      return;
+    }
+    if (action === 'chatRejectFile') {
+      handleRejectFileClick(actionEl);
+      return;
+    }
     if (action === 'chatToggleEmoji') {
       const picker = document.getElementById('emojiPicker');
       picker.hidden = !picker.hidden;
       return;
     }
+  });
+
+  document.getElementById('chatRequestForm')?.addEventListener('submit', (e) => {
+    e.preventDefault();
+    const submitBtn = e.target.querySelector('button[type="submit"]');
+    if (submitBtn?.disabled) return;
+    if (submitBtn) {
+      submitBtn.disabled = true;
+      setTimeout(() => { if (submitBtn) submitBtn.disabled = false; }, 1500);
+    }
+    const type = document.getElementById('chatReqType')?.value || 'Notes 📝';
+    const year = document.getElementById('chatReqYear')?.value || '';
+    const title = document.getElementById('chatReqTitle')?.value.trim();
+    const sem = document.getElementById('chatReqSem')?.value || '';
+    const unit = document.getElementById('chatReqUnit')?.value || '';
+    const details = document.getElementById('chatReqDetails')?.value.trim() || '';
+    if (!title) return;
+
+    const metaParts = [type, sem, unit, year].filter(Boolean);
+    const metaInfo = metaParts.join(' · ');
+    const fullTitle = `${title} (${type})`;
+
+    submitFileRequest(fullTitle, details, metaInfo, {
+      category: type,
+      year: year,
+      semester: sem,
+      unit: unit
+    });
+
+    const modal = document.getElementById('chatRequestModal');
+    if (modal) {
+      if (typeof modal.close === 'function') modal.close();
+      else modal.style.display = 'none';
+    }
+    const titleInput = document.getElementById('chatReqTitle');
+    const descInput = document.getElementById('chatReqDetails');
+    if (titleInput) titleInput.value = '';
+    if (descInput) descInput.value = '';
+  });
+
+  document.getElementById('chatDirectFileInput')?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (file) uploadDirectFile(file);
+  });
+
+  document.getElementById('chatFulfillFileInput')?.addEventListener('change', (e) => {
+    const file = e.target.files?.[0];
+    if (file) uploadFulfillFile(file);
   });
 
   $('#peerSearch')?.addEventListener('input', (e) => loadPeers(e.target.value));
@@ -805,7 +1714,7 @@ document.addEventListener('DOMContentLoaded', () => {
     e.preventDefault();
     sendMessage();
   });
-
 });
 
 if (typeof window !== 'undefined') { window.ChatApp = { openChat, loadPeers, sendMessage }; }
+

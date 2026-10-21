@@ -1629,6 +1629,7 @@ def chat_join(data):
         return
     room = _pair_room(uid, peer_id)
     join_room(room)
+    join_room(uid)
     emit('chat_joined', {'room': room})
 
 
@@ -1643,10 +1644,14 @@ def _relay_chat_message(uid, data):
         'to': peer_id,
         'text': text,
         'ts': (data or {}).get('ts') or datetime.utcnow().isoformat() + 'Z',
+        'msg_id': (data or {}).get('msg_id') or '',
+        'msg_type': (data or {}).get('msg_type') or 'text',
+        'file_req': (data or {}).get('file_req') or None,
+        'file_attachment': (data or {}).get('file_attachment') or None,
         'sender_meta': (data or {}).get('sender_meta') or {}
     }
     _persist_chat_message(uid, peer_id, payload)
-    # A personal room is joined on every authenticated connection.
+    # Broadcast to recipient's personal room
     socketio.emit('chat_receive', payload, to=peer_id)
     # ACK back to sender that message was saved and queued for delivery
     sender_sid = _chat_online.get(uid, {}).get('sid')
@@ -1675,6 +1680,61 @@ def _relay_chat_message(uid, data):
 @socketio.on('chat_send')
 def chat_send(data):
     _relay_chat_message(_get_uid(), data)
+
+
+@socketio.on('chat_typing')
+def chat_typing(data):
+    uid = _get_uid()
+    peer_id = (data or {}).get('to')
+    is_typing = bool((data or {}).get('is_typing', True))
+    if not uid or not peer_id or uid == peer_id:
+        return
+    socketio.emit('chat_peer_typing', {'from': uid, 'is_typing': is_typing}, to=peer_id)
+
+
+@socketio.on('chat_react')
+def chat_react(data):
+    uid = _get_uid()
+    peer_id = (data or {}).get('to')
+    if not uid or not peer_id or uid == peer_id:
+        return
+    payload = {'from': uid, 'msg_id': (data or {}).get('msg_id'), 'ts': (data or {}).get('ts'), 'emoji': (data or {}).get('emoji')}
+    socketio.emit('chat_peer_react', payload, to=peer_id)
+
+
+@socketio.on('chat_file_fulfilled')
+def chat_file_fulfilled(data):
+    uid = _get_uid()
+    peer_id = (data or {}).get('to')
+    if not uid or not peer_id or uid == peer_id:
+        return
+    payload = {
+        'from': uid,
+        'msg_id': (data or {}).get('msg_id'),
+        'ts': (data or {}).get('ts'),
+        'file_url': (data or {}).get('file_url'),
+        'file_name': (data or {}).get('file_name'),
+        'file_size': (data or {}).get('file_size')
+    }
+    socketio.emit('chat_peer_file_fulfilled', payload, to=peer_id)
+
+
+@socketio.on('chat_file_status')
+def chat_file_status(data):
+    uid = _get_uid()
+    peer_id = (data or {}).get('to')
+    if not uid or not peer_id:
+        return
+    payload = {
+        'from': uid,
+        'msg_id': (data or {}).get('msg_id'),
+        'ts': (data or {}).get('ts'),
+        'status': (data or {}).get('status', 'rejected'),
+        'reason': (data or {}).get('reason', '')
+    }
+    socketio.emit('chat_peer_file_status', payload, to=peer_id)
+
+
 
 
 def _create_chat_notification(sender_id, recipient_id, payload):
@@ -1730,6 +1790,8 @@ try:
     register_redirect_handlers(app)
 except Exception as e:
     logging.warning(f"Failed to register centralized redirect handlers: {e}")
+
+
 
 if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV') != 'production'
