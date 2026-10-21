@@ -111,18 +111,30 @@
 
 <script type="module">
   function showLoading() {
-    const loadingPage = document.getElementById('loading-page');
-    if (loadingPage) {
-      loadingPage.style.display = 'flex';
-      loadingPage.setAttribute('aria-label', 'Signing in, please wait');
-    }
+    const overlay = document.getElementById('authLoadingOverlay');
+    if (overlay) overlay.style.display = 'flex';
   }
 
   function hideLoading() {
-    const loadingPage = document.getElementById('loading-page');
-    if (loadingPage) {
-      loadingPage.style.display = 'none';
-    }
+    const overlay = document.getElementById('authLoadingOverlay');
+    if (overlay) overlay.style.display = 'none';
+  }
+</script>
+
+<!-- Loading Overlay for OAuth -->
+<div id="authLoadingOverlay"
+  style="display: none; position: fixed; inset: 0; background: rgba(255,255,255,0.95); z-index: 5000; align-items: center; justify-content: center; flex-direction: column;">
+  <div
+    style="width: 50px; height: 50px; border: 4px solid #f3f3f3; border-top: 4px solid #2563eb; border-radius: 50%; animation: spin 1s linear infinite; margin-bottom: 20px;">
+  </div>
+  <h3 style="color: #1e293b; font-weight: 600; font-size: 1.2rem;">Verifying your account...</h3>
+  <p style="color: #64748b; margin-top: 8px;">Please wait while we log you in.</p>
+</div>
+
+<script type="module">
+  if ((window.location.hash && window.location.hash.includes('access_token')) || window.location.search.includes('access_token=')) {
+    const overlay = document.getElementById('authLoadingOverlay');
+    if (overlay) overlay.style.display = 'flex';
   }
 
   // Improved Google login handling

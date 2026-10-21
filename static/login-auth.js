@@ -36,9 +36,13 @@ try {
     }
 } catch (e) {}
 
+let _isProcessingAuth = !!(window.__IS_PROCESSING_OAUTH__);
+
 /* === Handle OAuth Callback === */
 // This handles the redirect from Google/OAuth providers
 async function handleOAuthCallback() {
+    if (_isProcessingAuth || window.__IS_PROCESSING_OAUTH__) return;
+
     const hash = window.location.hash ? window.location.hash.substring(1) : '';
     const hashParams = new URLSearchParams(hash);
     const searchParams = new URLSearchParams(window.location.search);
@@ -46,7 +50,7 @@ async function handleOAuthCallback() {
     const errorParam = hashParams.get('error') || searchParams.get('error');
     const errorDesc = hashParams.get('error_description') || searchParams.get('error_description') || hashParams.get('error_message');
     const type = hashParams.get('type') || searchParams.get('type');
-    const accessToken = hashParams.get('access_token');
+    let accessToken = hashParams.get('access_token') || searchParams.get('access_token');
 
     // Handle OAuth/Email callback errors (e.g., expired token, user cancel)
     if (errorParam) {
@@ -59,8 +63,26 @@ async function handleOAuthCallback() {
         }
         if (errorMsgGoogleSignIn) errorMsgGoogleSignIn.textContent = msg;
         else if (errorMsgEmail) errorMsgEmail.textContent = msg;
-        window.location.hash = '';
+        const overlay = document.getElementById('authLoadingOverlay');
+        if (overlay) overlay.style.display = 'none';
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, document.title, window.location.pathname);
+        } else {
+            window.location.hash = '';
+        }
         return;
+    }
+
+    // Fallback: If URL hash was already consumed/cleared by Supabase JS client
+    if (!accessToken && supabase && supabase.auth) {
+        try {
+            const { data } = await supabase.auth.getSession();
+            if (data && data.session && data.session.access_token) {
+                accessToken = data.session.access_token;
+            }
+        } catch (e) {
+            console.warn('Could not read session from Supabase:', e);
+        }
     }
 
     if (accessToken) {
@@ -71,6 +93,11 @@ async function handleOAuthCallback() {
         }
 
         console.log('Auth callback detected, token found:', accessToken.substring(0, 20) + '...');
+        _isProcessingAuth = true;
+
+        const overlay = document.getElementById('authLoadingOverlay');
+        if (overlay) overlay.style.display = 'flex';
+
         try {
             const refCode = getStoredReferralCode();
             const response = await fetch('/auth', {
@@ -104,29 +131,61 @@ async function handleOAuthCallback() {
                 } else if (window.AbhiHubTracking) {
                     window.AbhiHubTracking.trackLogin(type === 'signup' ? 'email_verification' : 'google_oauth');
                 }
-                window.location.hash = '';
-                window.location.href = getNextRedirectUrl();
+                // Clean the URL without triggering hash-navigation cancels
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState(null, document.title, window.location.pathname);
+                } else {
+                    window.location.hash = '';
+                }
+                window.location.replace(getNextRedirectUrl());
             } else {
                 console.error('Backend login failed:', data.message);
                 const failMsg = data.message || 'Authentication session could not be established.';
                 if (errorMsgGoogleSignIn) errorMsgGoogleSignIn.textContent = failMsg;
                 else if (errorMsgEmail) errorMsgEmail.textContent = failMsg;
-                window.location.hash = '';
+                if (overlay) overlay.style.display = 'none';
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState(null, document.title, window.location.pathname);
+                } else {
+                    window.location.hash = '';
+                }
+                _isProcessingAuth = false;
             }
         } catch (error) {
             console.error('Error during OAuth callback:', error);
             const errText = 'Network error during sign-in. Please try again.';
             if (errorMsgGoogleSignIn) errorMsgGoogleSignIn.textContent = errText;
             else if (errorMsgEmail) errorMsgEmail.textContent = errText;
-            window.location.hash = '';
+            const overlay = document.getElementById('authLoadingOverlay');
+            if (overlay) overlay.style.display = 'none';
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, document.title, window.location.pathname);
+            } else {
+                window.location.hash = '';
+            }
+            _isProcessingAuth = false;
         }
     }
 }
 
-// Run on page load
-if (window.location.hash || window.location.search.includes('error=')) {
+// Run on page load if auth params are in URL
+if (
+    (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('error='))) ||
+    window.location.search.includes('access_token=') ||
+    window.location.search.includes('error=')
+) {
     console.log('Auth params detected on page load');
     handleOAuthCallback();
+}
+
+// Also listen for Supabase auth state changes (catches OAuth when Supabase JS auto-consumes hash)
+if (supabase && supabase.auth) {
+    supabase.auth.onAuthStateChange(async (event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && session.access_token && !_isProcessingAuth) {
+            console.log('Supabase onAuthStateChange detected session, validating with backend');
+            handleOAuthCallback();
+        }
+    });
 }
 
 /* == UI - Elements == */
@@ -146,9 +205,11 @@ const errorMsgGoogleSignIn = document.getElementById("google-signin-error-messag
 
 
 /* == UI - Event Listeners == */
-if (signInWithGoogleButtonEl && signInButtonEl) {
-    signInWithGoogleButtonEl.addEventListener("click", authSignInWithGoogle)
-    signInButtonEl.addEventListener("click", authSignInWithEmail)
+if (signInWithGoogleButtonEl) {
+    signInWithGoogleButtonEl.addEventListener("click", authSignInWithGoogle);
+}
+if (signInButtonEl) {
+    signInButtonEl.addEventListener("click", authSignInWithEmail);
 }
 
 if (createAccountButtonEl) {
@@ -641,20 +702,20 @@ function clearAuthFields() {
     clearInputField(passwordInputEl);
 }
 
-function logoutUser() {
+async function logoutUser() {
     console.log('Logging out user');
-
+    if (supabase && supabase.auth) {
+        try {
+            await supabase.auth.signOut();
+        } catch (e) {
+            console.warn('Supabase signOut error:', e);
+        }
+    }
     fetch('/logout', {
         method: 'GET',
         credentials: 'same-origin'
     })
-        .then(response => {
-            console.log('Logout response:', response.status);
-            window.location.href = '/login';
-        })
-        .catch(error => {
-            console.error('Logout error:', error);
-            // Even if logout fails, clear frontend and redirect
+        .finally(() => {
             window.location.href = '/login';
         });
 }

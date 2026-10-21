@@ -280,12 +280,16 @@ def authorize():
             res = client.auth.get_user(token)
             if res and res.user:
                 u = res.user
+                u_meta = u.user_metadata or {}
+                app_meta = u.app_metadata or {}
+                user_email = u.email or u_meta.get('email', '')
+                user_name = u_meta.get('full_name') or u_meta.get('name') or (user_email.split('@')[0] if user_email else 'User')
                 user_data = {
                     'id': u.id,
-                    'email': u.email,
-                    'name': (u.user_metadata or {}).get('name', u.email.split('@')[0] if u.email else 'User'),
-                    'provider': (u.app_metadata or {}).get('provider', 'email'),
-                    'user_metadata': u.user_metadata or {}
+                    'email': user_email,
+                    'name': user_name,
+                    'provider': app_meta.get('provider', 'google'),
+                    'user_metadata': u_meta
                 }
         except Exception as e:
             logging.warning(f"[AUTH] client.auth.get_user failed: {e}")
@@ -296,15 +300,16 @@ def authorize():
             import jwt
             payload = jwt.decode(token, options={"verify_signature": False})
             uid = payload.get('sub') or payload.get('user_id')
-            email = payload.get('email', '')
+            user_meta = payload.get('user_metadata') or {}
+            email = payload.get('email') or user_meta.get('email', '')
             if uid and email:
-                user_meta = payload.get('user_metadata') or {}
                 app_meta = payload.get('app_metadata') or {}
+                user_name = user_meta.get('full_name') or user_meta.get('name') or (email.split('@')[0] if email else 'User')
                 user_data = {
                     'id': uid,
                     'email': email,
-                    'name': user_meta.get('name', email.split('@')[0]),
-                    'provider': app_meta.get('provider', 'email'),
+                    'name': user_name,
+                    'provider': app_meta.get('provider', 'google'),
                     'user_metadata': user_meta
                 }
         except Exception as jwt_err:

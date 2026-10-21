@@ -42,6 +42,87 @@
             } catch(e) {}
         })();
     </script>
+
+    <!-- Global Early OAuth Callback Interceptor -->
+    <script>
+        (function() {
+            try {
+                var hash = window.location.hash ? window.location.hash.substring(1) : '';
+                var search = window.location.search ? window.location.search.substring(1) : '';
+                var params = new URLSearchParams(hash || search);
+                var token = params.get('access_token');
+                var type = params.get('type');
+                var error = params.get('error') || params.get('error_description');
+
+                if (error) {
+                    if (window.history && window.history.replaceState) {
+                        window.history.replaceState(null, document.title, window.location.pathname);
+                    }
+                    window.location.replace('/login?error=' + encodeURIComponent(error));
+                    return;
+                }
+
+                if (token) {
+                    window.__IS_PROCESSING_OAUTH__ = true;
+                    if (type === 'recovery' && !window.location.pathname.includes('reset-password-confirm')) {
+                        window.location.replace('/reset-password-confirm' + window.location.hash);
+                        return;
+                    }
+
+                    // Show instant full-screen overlay before anything renders
+                    var showOverlay = function() {
+                        var overlay = document.getElementById('__oauth_global_overlay');
+                        if (!overlay) {
+                            overlay = document.createElement('div');
+                            overlay.id = '__oauth_global_overlay';
+                            overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;background:#ffffff;z-index:9999999;display:flex;flex-direction:column;align-items:center;justify-content:center;font-family:system-ui,-apple-system,sans-serif;';
+                            overlay.innerHTML = '<div style="width:44px;height:44px;border:3px solid #e2e8f0;border-top-color:#2563eb;border-radius:50%;animation:__spin 0.8s linear infinite;"></div><h3 style="margin-top:18px;color:#0f172a;font-size:17px;font-weight:600;">Signing you in...</h3><p style="color:#64748b;font-size:13px;margin-top:4px;">Verifying credentials with AbhiHub</p><style>@keyframes __spin{to{transform:rotate(360deg)}}</style>';
+                            (document.body || document.documentElement).appendChild(overlay);
+                        }
+                    };
+                    if (document.body || document.documentElement) showOverlay();
+                    else document.addEventListener('DOMContentLoaded', showOverlay);
+
+                    var refCode = '';
+                    try {
+                        refCode = (localStorage.getItem('abhihub_ref_code') || sessionStorage.getItem('abhihub_ref_code') || '').trim();
+                    } catch(e) {}
+
+                    fetch('/auth', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Authorization': 'Bearer ' + token
+                        },
+                        body: JSON.stringify({ ref: refCode }),
+                        credentials: 'same-origin'
+                    })
+                    .then(function(res) { return res.json(); })
+                    .then(function(data) {
+                        if (data && data.success) {
+                            try {
+                                localStorage.removeItem('abhihub_ref_code');
+                                sessionStorage.removeItem('abhihub_ref_code');
+                            } catch(e) {}
+                            if (window.history && window.history.replaceState) {
+                                window.history.replaceState(null, document.title, window.location.pathname);
+                            }
+                            window.location.replace('/app-shell');
+                        } else {
+                            var errMsg = (data && data.message) ? data.message : 'Sign-in failed. Please try again.';
+                            window.location.replace('/login?error=' + encodeURIComponent(errMsg));
+                        }
+                    })
+                    .catch(function(err) {
+                        console.error('OAuth network error:', err);
+                        window.location.replace('/login?error=' + encodeURIComponent('Network error during authentication'));
+                    });
+                }
+            } catch(e) {
+                console.error('OAuth interceptor error:', e);
+            }
+        })();
+    </script>
     <!-- App Shell Embedded Detection & Standalone Mode Redirect (must run immediately before CSS) -->
     <script>
         (function() {
@@ -1158,6 +1239,9 @@
     <script src="{{ url_for('static', filename='js/guide_engine.js') }}" defer></script>
     <script>
         function initAppGuide() {
+            if (window.__IS_PROCESSING_OAUTH__ || (window.location.hash && window.location.hash.includes('access_token')) || (window.location.search && window.location.search.includes('access_token='))) {
+                return;
+            }
             var rawPath = window.location.pathname;
             if (rawPath.startsWith('/app-shell')) {
                 var p = new URLSearchParams(window.location.search).get('p');

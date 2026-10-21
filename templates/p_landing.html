@@ -629,9 +629,10 @@
 </div>
 
 <script type="module">
-  // Show loading state if we have a hash (potential OAuth callback)
-  if (window.location.hash && window.location.hash.includes('access_token')) {
-    document.getElementById('authLoadingOverlay').style.display = 'flex';
+  // Show loading state if we have a hash or search param (potential OAuth callback)
+  if ((window.location.hash && window.location.hash.includes('access_token')) || window.location.search.includes('access_token=')) {
+    const overlay = document.getElementById('authLoadingOverlay');
+    if (overlay) overlay.style.display = 'flex';
   }
 </script>
 

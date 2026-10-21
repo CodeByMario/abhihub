@@ -591,8 +591,13 @@ else:
     app.secret_key = _configured_secret
 
 # Configure session cookie settings
-# SESSION_COOKIE_SECURE defaults to True for HTTPS unless FLASK_ENV is explicitly 'development'
-app.config['SESSION_COOKIE_SECURE'] = os.getenv('FLASK_ENV', 'production').lower() != 'development'
+# SESSION_COOKIE_SECURE defaults to True for HTTPS, False for local development / localhost
+_is_dev_env = (
+    os.getenv('FLASK_ENV', '').lower() in ('development', 'testing')
+    or os.getenv('BASE_DOMAIN', '').lower().startswith(('localhost', '127.0.0.1'))
+    or os.getenv('SESSION_COOKIE_SECURE', '').lower() in ('false', '0', 'no')
+)
+app.config['SESSION_COOKIE_SECURE'] = not _is_dev_env
 app.config['SESSION_COOKIE_HTTPONLY'] = True  # Prevent JavaScript access to cookies
 app.config['PERMANENT_SESSION_LIFETIME'] = timedelta(days=90)
 app.config['SESSION_REFRESH_EACH_REQUEST'] = True

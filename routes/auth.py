@@ -94,7 +94,7 @@ def auth_callback():
         if 'user' in session:
             return redirect(dest)
         else:
-            return redirect(url_for('auth.login'))
+            return render_template('site/login.html')
     except Exception as e:
         logging.debug(f"Auth callback failed: {e}")
         return redirect(url_for('auth.login'))
