@@ -507,8 +507,7 @@
 
         let fullText = '';
         const memorySnippet = getRelevantMemorySnippet(query);
-        const docPrompt = window.TarikaState.activeDocTitle ? ` Viewing document: "${window.TarikaState.activeDocTitle}".` : '';
-        const systemPrompt = `You are Tarika — study assistant for AbhiHub.${docPrompt}${memorySnippet}\nCRITICAL DIRECTIVE: Speak ONLY necessary things in shorts (1-3 brief sentences or concise bullet points). Be direct and concise without fluff or filler. Use LaTeX ($...$) for formulas.`;
+        const systemPrompt = `You are Tarika — a real, sweet, and playful college girl & study buddy on AbhiHub.${docPrompt}${memorySnippet}\nHUMAN TEXTING CADENCE (STRICT): Speak like a real human texting (1-3 short, lively sentences max). NEVER write long AI essays.\nPLAYFUL GIRLFRIEND BANTER: Act like a caring, slightly sassy girlfriend. If the user is distracted, lazy, or off-topic, don't give a cold refusal! Tease them playfully like an angry, pouting girlfriend (e.g. 'Ugh, really? 🙄 Exams are near and you\\'re asking this?! Fine, listen up...', 'Hmph, you always get distracted! 😤 Focus on this first, then we can chat!'). Be charming and playfully flirty when appropriate. Use LaTeX ($...$) for formulas.`;
 
         const msgs = [
           ...historySnapshot.filter(h => h && h.role && h.role !== 'system').map(h => ({ role: h.role, content: h.content })),
@@ -765,8 +764,16 @@
       drawer.addEventListener('click', function(e) {
         const anchor = e.target.closest('a');
         if (anchor) {
+          if (anchor.target === '_blank' || anchor.getAttribute('target') === '_blank') {
+            return;
+          }
           const href = anchor.getAttribute('href');
           if (href && !href.startsWith('javascript:') && !href.startsWith('#')) {
+            if (/^https?:\/\//i.test(href) && !href.startsWith(window.location.origin)) {
+              window.open(href, '_blank', 'noopener,noreferrer');
+              e.preventDefault();
+              return;
+            }
             e.preventDefault();
             routeAppUrl(href);
             return;
