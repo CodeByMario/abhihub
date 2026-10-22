@@ -2890,3 +2890,42 @@ def api_get_user_uploads():
     except Exception as e:
         logging.error(f"[API /api/user/uploads] Error: {e}")
         return jsonify({'success': False, 'data': [], 'message': str(e)}), 500
+
+
+@api_bp.route('/api/feedback', methods=['GET', 'POST'])
+def feedback_endpoint():
+    """Submit and retrieve student app feedback and ratings."""
+    from data.tea_supporters import add_app_feedback, get_recent_feedbacks
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or request.form or {}
+        try:
+            rating = int(data.get('rating', 5))
+        except (ValueError, TypeError):
+            rating = 5
+        rating = max(1, min(5, rating))
+
+        message = (data.get('message') or data.get('feedback') or '').strip()
+        if not message:
+            return jsonify({'success': False, 'message': 'Feedback message cannot be empty.'}), 400
+
+        user = session.get('user', {})
+        profile = session.get('profile', {})
+        name = (data.get('name') or user.get('name') or profile.get('full_name') or 'Student Contributor').strip()
+        college = (data.get('college') or profile.get('college_name') or user.get('college') or 'Engineering Scholar').strip()
+        branch = (data.get('branch') or profile.get('branch_name') or '').strip()
+        user_id = user.get('uid') or ''
+
+        record = add_app_feedback(
+            name=name,
+            rating=rating,
+            message=message,
+            college=college,
+            branch=branch,
+            user_id=user_id
+        )
+        return jsonify({'success': True, 'feedback': record, 'message': 'Thank you for your valuable feedback! ⭐'}), 200
+
+    limit = request.args.get('limit', default=10, type=int)
+    feedbacks = get_recent_feedbacks(limit=limit)
+    return jsonify({'success': True, 'feedbacks': feedbacks}), 200
+

@@ -668,10 +668,17 @@ def api_ai_assistant(user_data=None):
     ai_profile = get_ai_profile(user_id) if user_id else {}
     tier, is_excess_load = _get_tarika_load_tier(user_id, ai_profile)
 
-    try:
-        adapter, cost_ceiling = resolve_provider(ai_profile, preferred_model=preferred_model)
-    except Exception as exc:
-        return jsonify({'success': False, 'message': str(exc)}), 500
+    user_provided_key = (data.get('api_key') or request.headers.get('X-OpenRouter-Key') or '').strip()
+    if user_provided_key and user_provided_key.startswith('sk-or-'):
+        from methods.ai_provider import OpenRouterAdapter
+        models_list = [preferred_model] if preferred_model else ["google/gemma-4-31b-it:free"]
+        adapter = OpenRouterAdapter(api_key=user_provided_key, models=models_list)
+        cost_ceiling = None
+    else:
+        try:
+            adapter, cost_ceiling = resolve_provider(ai_profile, preferred_model=preferred_model)
+        except Exception as exc:
+            return jsonify({'success': False, 'message': str(exc)}), 500
 
     history = data.get('history') or []
     is_test_intent = bool(re.search(

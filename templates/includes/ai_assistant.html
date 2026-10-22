@@ -1142,6 +1142,127 @@ html.app-shell-embedded #abhiAiDrawer {
     height: auto !important;
   }
 }
+
+/* ── Tarika OpenRouter API Key Setup Modal ── */
+.ai-key-modal {
+  position: absolute;
+  inset: 0;
+  background: var(--tarika-bg);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: aiModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes aiModalFadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+.ai-key-modal-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--tarika-bg-subtle);
+  border-bottom: 1px solid var(--tarika-line);
+}
+.ai-key-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ai-key-step-card {
+  background: var(--tarika-bg-subtle);
+  border: 1px solid var(--tarika-line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ai-key-step-card:hover {
+  border-color: var(--tarika-brand);
+}
+.ai-key-step-num {
+  background: var(--tarika-brand);
+  color: #fff;
+  font-weight: 700;
+  font-size: 11px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ai-key-step-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--tarika-ink);
+  margin-bottom: 2px;
+}
+.ai-key-step-desc {
+  font-size: 11.5px;
+  color: var(--tarika-muted);
+  line-height: 1.45;
+}
+.ai-key-openrouter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #1d4ed8;
+  color: #ffffff !important;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 9px 14px;
+  border-radius: 9px;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.25);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.ai-key-openrouter-btn:hover {
+  background: #1e40af;
+  transform: translateY(-1px);
+}
+.ai-key-input-box {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.ai-key-input {
+  flex: 1;
+  background: var(--tarika-bg);
+  border: 1.5px solid var(--tarika-line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-family: monospace;
+  color: var(--tarika-ink);
+  outline: none;
+}
+.ai-key-input:focus {
+  border-color: var(--tarika-brand);
+}
+.ai-key-save-btn {
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.ai-key-save-btn:hover {
+  background: #059669;
+}
 </style>
 
 <!-- Floating Assistant Trigger -->
@@ -1152,6 +1273,70 @@ html.app-shell-embedded #abhiAiDrawer {
 
 <!-- Sliding Assistant Drawer -->
 <section id="abhiAiDrawer" role="dialog" aria-label="Tarika AI Study Assistant" aria-modal="true" aria-hidden="true" style="position:fixed;">
+  <!-- OpenRouter API Key Setup Modal -->
+  <aside id="tarikaApiKeyModal" class="ai-key-modal" style="display:none;" aria-label="Setup OpenRouter API Key">
+    <div class="ai-key-modal-hdr">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span aria-hidden="true">🔑</span>
+        <span style="font-weight:700; font-size:13.5px; color:var(--tarika-ink);">Setup Free OpenRouter Key</span>
+      </div>
+      <button type="button" class="ai-drw-btn" onclick="closeTarikaApiKeyModal()" title="Close Setup" style="font-size:12px;">✕</button>
+    </div>
+    <div class="ai-key-modal-body">
+      <p style="font-size:12px; color:var(--tarika-muted); margin:0; line-height:1.5;">
+        Tarika connects with <strong>OpenRouter</strong> to give you <strong>100% free</strong> access to top AI models like Gemma 4, Llama 3.3, and DeepSeek R1. Follow these 4 quick steps:
+      </p>
+
+      <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener" class="ai-key-openrouter-btn">
+        <span>⚡</span> <span>Open openrouter.ai/settings/keys ↗</span>
+      </a>
+
+      <!-- Step Card 1 -->
+      <div class="ai-key-step-card">
+        <div class="ai-key-step-num">1</div>
+        <div>
+          <div class="ai-key-step-title">Log in to OpenRouter</div>
+          <div class="ai-key-step-desc">Open <a href="https://openrouter.ai" target="_blank" rel="noopener" style="color:var(--tarika-brand);font-weight:600;">openrouter.ai</a> and sign in with Google or GitHub (free & takes 10 seconds).</div>
+        </div>
+      </div>
+
+      <!-- Step Card 2 -->
+      <div class="ai-key-step-card">
+        <div class="ai-key-step-num">2</div>
+        <div>
+          <div class="ai-key-step-title">Create New Key (Name: AbhiHub)</div>
+          <div class="ai-key-step-desc">Click <strong>+ Create Key</strong> and enter name: <code style="background:rgba(29,78,216,0.1);color:var(--tarika-brand);padding:2px 5px;border-radius:4px;font-weight:700;">AbhiHub</code>.</div>
+        </div>
+      </div>
+
+      <!-- Step Card 3 -->
+      <div class="ai-key-step-card">
+        <div class="ai-key-step-num">3</div>
+        <div>
+          <div class="ai-key-step-title">Set Budget: 0 &amp; Expiry: Never</div>
+          <div class="ai-key-step-desc">Keep <strong>Credit Limit: 0</strong> (uses free models only with zero charges) and <strong>Expiry: Never</strong>. Click Create.</div>
+        </div>
+      </div>
+
+      <!-- Step Card 4 -->
+      <div class="ai-key-step-card">
+        <div class="ai-key-step-num">4</div>
+        <div>
+          <div class="ai-key-step-title">Copy &amp; Paste in Tarika</div>
+          <div class="ai-key-step-desc">Copy your key starting with <code style="font-size:11px;">sk-or-v1-...</code> and paste it in the box below:</div>
+          <div class="ai-key-input-box">
+            <input type="password" id="tarikaApiKeyModalInput" class="ai-key-input" placeholder="sk-or-v1-xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+            <button type="button" class="ai-key-save-btn" onclick="saveTarikaApiKey()">Save 🚀</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:11px; color:var(--tarika-muted); text-align:center; margin-top:4px;">
+        🔒 Stored locally in your browser. Never shared or billed.
+      </div>
+    </div>
+  </aside>
+
   <!-- Conversation History Slide-Over Panel -->
   <aside id="aiHistoryPanel" class="ai-history-panel" style="display:none;" aria-label="Chat History">
     <div class="ai-history-hdr">
@@ -1177,26 +1362,33 @@ html.app-shell-embedded #abhiAiDrawer {
       <div class="ai-drw-model-wrap">
         <span class="ai-drw-badge" id="aiDrawerModelBadge" role="button" tabindex="0" title="Switch AI Model" aria-haspopup="true" aria-expanded="false">Gemma 4 ▾</span>
         <div class="ai-drw-model-menu" id="aiDrawerModelMenu" role="menu" aria-label="Select AI Model">
-          <div class="ai-menu-section-title">🎁 Free Models (100% Free Pool)</div>
-          <button type="button" class="ai-model-opt" data-model="google/gemma-4-31b-it:free" data-provider="openrouter" data-display="Gemma 4 31B">⚡ Gemma 4 31B (Default · Free)</button>
-          <button type="button" class="ai-model-opt" data-model="meta-llama/llama-3.3-70b-instruct:free" data-provider="openrouter" data-display="Llama 3.3 70B">🦙 Llama 3.3 70B (Free)</button>
-          <button type="button" class="ai-model-opt" data-model="deepseek/deepseek-r1:free" data-provider="openrouter" data-display="DeepSeek R1">🧠 DeepSeek R1 (Free Reasoning)</button>
-          <button type="button" class="ai-model-opt" data-model="google/gemini-2.0-flash-exp:free" data-provider="openrouter" data-display="Gemini 2.0 Flash">✨ Gemini 2.0 Flash (Free)</button>
-          <button type="button" class="ai-model-opt" data-model="qwen/qwen-2.5-72b-instruct:free" data-provider="openrouter" data-display="Qwen 2.5 72B">🌐 Qwen 2.5 72B (Free)</button>
-          <button type="button" class="ai-model-opt" data-model="mistralai/mistral-small-24b-instruct-2501:free" data-provider="openrouter" data-display="Mistral Small">💨 Mistral Small 24B (Free)</button>
+          <div class="ai-menu-section-title">🎁 Free Models on OpenRouter</div>
+          <div id="aiDrawerFreeModelsList">
+            <button type="button" class="ai-model-opt" data-model="google/gemma-4-31b-it:free" data-provider="openrouter" data-display="Gemma 4 31B">⚡ Gemma 4 31B (Default · Free)</button>
+            <button type="button" class="ai-model-opt" data-model="meta-llama/llama-3.3-70b-instruct:free" data-provider="openrouter" data-display="Llama 3.3 70B">🦙 Llama 3.3 70B (Free)</button>
+            <button type="button" class="ai-model-opt" data-model="deepseek/deepseek-r1:free" data-provider="openrouter" data-display="DeepSeek R1">🧠 DeepSeek R1 (Reasoning · Free)</button>
+            <button type="button" class="ai-model-opt" data-model="deepseek/deepseek-chat:free" data-provider="openrouter" data-display="DeepSeek V3">💬 DeepSeek V3 (Chat · Free)</button>
+            <button type="button" class="ai-model-opt" data-model="google/gemini-2.0-flash-exp:free" data-provider="openrouter" data-display="Gemini 2.0 Flash">✨ Gemini 2.0 Flash (Free)</button>
+            <button type="button" class="ai-model-opt" data-model="google/gemini-2.0-pro-exp-02-05:free" data-provider="openrouter" data-display="Gemini 2.0 Pro">🌟 Gemini 2.0 Pro (Free)</button>
+            <button type="button" class="ai-model-opt" data-model="qwen/qwen-2.5-72b-instruct:free" data-provider="openrouter" data-display="Qwen 2.5 72B">🌐 Qwen 2.5 72B (Free)</button>
+            <button type="button" class="ai-model-opt" data-model="mistralai/mistral-small-24b-instruct-2501:free" data-provider="openrouter" data-display="Mistral Small">💨 Mistral Small 24B (Free)</button>
+            <button type="button" class="ai-model-opt" data-model="meta-llama/llama-3.2-11b-vision-instruct:free" data-provider="openrouter" data-display="Llama 3.2 Vision">👁️ Llama 3.2 Vision (Free)</button>
+          </div>
           
-          <details class="ai-dev-menu-wrap" style="margin-top:6px; border-top:1px solid var(--tarika-line, #e2e8f0); padding-top:4px;">
+          <div class="ai-menu-divider"></div>
+          <button type="button" class="ai-model-opt" onclick="openTarikaApiKeyModal()" style="color:var(--tarika-brand); font-weight:700;">
+            🔑 Manage OpenRouter Key
+          </button>
+
+          <details class="ai-dev-menu-wrap" style="margin-top:4px; border-top:1px solid var(--tarika-line, #e2e8f0); padding-top:4px;">
             <summary style="font-size:10px; color:var(--tarika-muted, #64748b); padding:4px 6px; cursor:pointer; font-weight:600; list-style:none; display:flex; align-items:center; gap:4px;">
-              <span>🛠️</span> <span>Developer Options (Offline / Local)</span>
+              <span>🛠️</span> <span>Offline / Local Options</span>
             </summary>
             <div style="padding-top:4px;">
               <button type="button" class="ai-model-opt" data-model="Llama-3.2-1B-Instruct-q4f16_1-MLC" data-provider="webllm" data-display="Tarika WebGPU">🌸 Tarika (WebGPU Offline)</button>
               <button type="button" class="ai-model-opt" data-model="llama3.2:latest" data-provider="ollama" data-display="Ollama Local">💻 Ollama (Local Server)</button>
             </div>
           </details>
-
-          <div class="ai-menu-divider"></div>
-          <a href="/settings#section-ai-assistant" class="ai-model-manage-link">⚙️ OpenRouter Key &amp; Settings →</a>
         </div>
       </div>
     </div>

@@ -117,7 +117,7 @@
     {% set _ftype = file.get('type', 'papers')|lower %}
     {% set is_notes = _ftype in ['notes', 'note', 'imp questions', 'imp_questions'] %}
     {% set is_prac = _ftype in ['practical', 'practicals'] %}
-    {% set furl = url_for('library.resource_landing', slug=_rid ~ ('-view' if is_notes or is_prac else '')) if _rid else '#' %}
+    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
     <a href="{{ furl }}" class="pcard {% if is_notes %}notes-card{% elif is_prac %}practical-card{% endif %}">
       {% if is_notes %}
       <span class="pcard-badge notes">📝 Notes</span>
@@ -169,7 +169,7 @@
     {% set _ftype = file.get('type', 'papers')|lower %}
     {% set is_notes = _ftype in ['notes', 'note', 'imp questions', 'imp_questions'] %}
     {% set is_prac = _ftype in ['practical', 'practicals'] %}
-    {% set furl = url_for('library.resource_landing', slug=_rid ~ ('-view' if is_notes or is_prac else '')) if _rid else '#' %}
+    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
     <a href="{{ furl }}" class="pcard {% if is_notes %}notes-card{% elif is_prac %}practical-card{% endif %}">
       {% if is_notes %}
       <span class="pcard-badge notes">📝 Notes</span>
@@ -362,7 +362,7 @@
   <div class="hscroll-row">
     {% for file in relevant_notes %}
     {% set _rid = file.get('record_id') or file.get('id') or '' %}
-    {% set furl = url_for('library.resource_landing', slug=_rid ~ '-view') if _rid else '#' %}
+    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
     <a href="{{ furl }}" class="pcard notes-card">
       <span class="pcard-badge notes">📝 Notes</span>
       <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
@@ -399,7 +399,7 @@
   <div class="hscroll-row">
     {% for file in trending_notes %}
     {% set _rid = file.get('record_id') or file.get('id') or '' %}
-    {% set furl = url_for('library.resource_landing', slug=_rid ~ '-view') if _rid else '#' %}
+    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
     <a href="{{ furl }}" class="pcard notes-card">
       <span class="pcard-badge notes">📝 Notes</span>
       <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
@@ -445,7 +445,7 @@
   <div class="hscroll-row">
     {% for file in practicals_files[:8] %}
     {% set _rid = file.get('record_id') or file.get('id') or '' %}
-    {% set furl = url_for('library.resource_landing', slug=_rid ~ '-view') if _rid else '#' %}
+    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
     <a href="{{ furl }}" class="pcard practical-card">
       <span class="pcard-badge practical">🧪 Practical</span>
       <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
@@ -475,7 +475,7 @@
         <div class="exam-pack-banner-title">Semester Exam Pack Ready</div>
         <div class="exam-pack-banner-sub">Previous-year papers & toppers' notes for your branch, all organized in one place.</div>
         <div class="exam-pack-banner-actions">
-          <a href="/pyq" class="exam-pack-btn primary">Open Pack →</a>
+          <a href="/college" class="exam-pack-btn primary">Open Pack →</a>
           <button id="examPackInviteBtn" type="button" class="exam-pack-btn ghost">Invite Classmate</button>
           <button id="examPackWaBtn" type="button" class="exam-pack-btn wa" title="Share on WhatsApp">WhatsApp</button>
           <button id="examPackIgBtn" type="button" class="exam-pack-btn ig" title="Share on Instagram">Instagram</button>
@@ -527,8 +527,87 @@
 </div>
 {% endif %}
 
+<!-- ── 8.5 Student Reviews & App Feedback ────────────────────────── -->
+<div class="home-section feedback-section">
+  <div class="home-section-header">
+    <div>
+      <div class="home-section-title">
+        💬 Student Reviews & App Feedback
+      </div>
+      <div class="home-section-subtitle">
+        ⭐ 4.9 / 5 Rating · Real feedback from college students & diploma toppers
+      </div>
+    </div>
+    <div class="feedback-header-actions">
+      <button type="button" id="toggleFeedbackFormBtn" class="btn-leave-review">
+        ✍️ Give Feedback
+      </button>
+    </div>
+  </div>
 
+  <!-- Interactive Feedback Submission Box -->
+  <div id="feedbackFormBox" class="feedback-form-box">
+    <div class="feedback-form-title">Rate your AbhiHub Experience</div>
+    <div class="feedback-form-sub">Your feedback helps us expand past papers, question banks, and notes for all colleges.</div>
+    <form id="appFeedbackForm" onsubmit="submitAppFeedback(event)">
+      <div class="feedback-rating-select">
+        <span style="font-size:0.85rem;font-weight:600;color:#475569;margin-right:0.5rem;">Your Rating:</span>
+        <button type="button" class="rating-star-btn active" data-star="1">★</button>
+        <button type="button" class="rating-star-btn active" data-star="2">★</button>
+        <button type="button" class="rating-star-btn active" data-star="3">★</button>
+        <button type="button" class="rating-star-btn active" data-star="4">★</button>
+        <button type="button" class="rating-star-btn active" data-star="5">★</button>
+        <input type="hidden" id="feedbackRatingValue" name="rating" value="5">
+      </div>
+      <div class="feedback-input-row">
+        <input type="text" id="feedbackUserName" class="feedback-input" placeholder="Your Name" value="{{ user_data.name if user_data else '' }}" required maxlength="50">
+        <input type="text" id="feedbackUserCollege" class="feedback-input" placeholder="College / Branch (e.g. GHRCE · CSE)" value="{{ user_data.college_name if user_data else '' }}" maxlength="60">
+      </div>
+      <textarea id="feedbackMessage" class="feedback-textarea" placeholder="Tell us what you love or what new notes / features you'd like to see next..." required maxlength="300"></textarea>
+      <div class="feedback-form-actions">
+        <button type="button" id="cancelFeedbackBtn" class="feedback-btn-cancel">Cancel</button>
+        <button type="submit" id="submitFeedbackBtn" class="feedback-btn-submit">Submit Review 🚀</button>
+      </div>
+    </form>
+  </div>
 
+  <!-- Reviews Grid -->
+  <div id="feedbackCardsGrid" class="feedback-grid">
+    {% for fb in (community_feedbacks or []) %}
+    <div class="feedback-card">
+      <div>
+        <div class="feedback-card-header">
+          <div class="feedback-avatar">
+            {{ (fb.name or 'S')[0] | upper }}
+          </div>
+          <div class="feedback-author-info">
+            <div class="feedback-author-name">
+              {{ fb.name }}
+              <span class="feedback-badge-verified">✓ Verified Student</span>
+            </div>
+            <div class="feedback-author-meta">
+              {{ fb.college or 'Engineering Student' }}{% if fb.branch %} · {{ fb.branch }}{% endif %}
+            </div>
+          </div>
+        </div>
+        <div class="feedback-stars-row">
+          {% for i in range(fb.rating or 5) %}★{% endfor %}
+          {% for i in range(5 - (fb.rating or 5)) %}<span style="color:#cbd5e1;">★</span>{% endfor %}
+        </div>
+        <p class="feedback-text">"{{ fb.message }}"</p>
+      </div>
+      <div class="feedback-card-footer">
+        <span>AbhiHub Student Community</span>
+        <span>{{ fb.date or 'Recently' }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div id="feedbackToast" class="feedback-toast">
+  <span>✅ Thank you! Your review has been published.</span>
+</div>
 
 <!-- ── 9. Modals & Overlays ───────────────────────────────────────────── -->
 
@@ -817,7 +896,123 @@
       if (p) p.style.display = 'none';
     }
   };
-  document.addEventListener('DOMContentLoaded', () => PWAManager.init());
+  /* ── App Feedback & Ratings ─────────────────────────────────── */
+  function initFeedbackUI() {
+    const toggleBtn = document.getElementById('toggleFeedbackFormBtn');
+    const formBox = document.getElementById('feedbackFormBox');
+    const cancelBtn = document.getElementById('cancelFeedbackBtn');
+    const starBtns = document.querySelectorAll('.rating-star-btn');
+    const ratingInput = document.getElementById('feedbackRatingValue');
+
+    if (toggleBtn && formBox) {
+      toggleBtn.addEventListener('click', () => {
+        formBox.classList.toggle('is-open');
+        if (formBox.classList.contains('is-open')) {
+          const msg = document.getElementById('feedbackMessage');
+          if (msg) msg.focus();
+        }
+      });
+    }
+    if (cancelBtn && formBox) {
+      cancelBtn.addEventListener('click', () => {
+        formBox.classList.remove('is-open');
+      });
+    }
+
+    starBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const starVal = parseInt(btn.getAttribute('data-star') || '5', 10);
+        if (ratingInput) ratingInput.value = starVal;
+        starBtns.forEach(s => {
+          const sVal = parseInt(s.getAttribute('data-star') || '0', 10);
+          if (sVal <= starVal) {
+            s.classList.add('active');
+          } else {
+            s.classList.remove('active');
+          }
+        });
+      });
+    });
+  }
+
+  async function submitAppFeedback(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitFeedbackBtn');
+    const name = (document.getElementById('feedbackUserName')?.value || '').trim();
+    const college = (document.getElementById('feedbackUserCollege')?.value || '').trim();
+    const rating = parseInt(document.getElementById('feedbackRatingValue')?.value || '5', 10);
+    const message = (document.getElementById('feedbackMessage')?.value || '').trim();
+
+    if (!message) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, college, rating, message })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const toast = document.getElementById('feedbackToast');
+        if (toast) {
+          toast.style.display = 'flex';
+          setTimeout(() => { toast.style.display = 'none'; }, 3500);
+        }
+        const grid = document.getElementById('feedbackCardsGrid');
+        if (grid && data.feedback) {
+          const fb = data.feedback;
+          const starsHtml = '★'.repeat(fb.rating || 5) + (fb.rating < 5 ? `<span style="color:#cbd5e1;">${'★'.repeat(5 - fb.rating)}</span>` : '');
+          const cardHtml = `
+            <div class="feedback-card" style="border-color:#818cf8;animation:feedbackSlideDown 0.3s ease-out;">
+              <div>
+                <div class="feedback-card-header">
+                  <div class="feedback-avatar" style="background:#e0e7ff;color:#4338ca;">
+                    ${(fb.name || 'S')[0].toUpperCase()}
+                  </div>
+                  <div class="feedback-author-info">
+                    <div class="feedback-author-name">
+                      ${fb.name}
+                      <span class="feedback-badge-verified">✓ Verified Student</span>
+                    </div>
+                    <div class="feedback-author-meta">
+                      ${fb.college || 'Engineering Student'}
+                    </div>
+                  </div>
+                </div>
+                <div class="feedback-stars-row">
+                  ${starsHtml}
+                </div>
+                <p class="feedback-text">"${fb.message}"</p>
+              </div>
+              <div class="feedback-card-footer">
+                <span>AbhiHub Student Community</span>
+                <span>Just now</span>
+              </div>
+            </div>
+          `;
+          grid.insertAdjacentHTML('afterbegin', cardHtml);
+        }
+        const form = document.getElementById('appFeedbackForm');
+        if (form) form.reset();
+        const formBox = document.getElementById('feedbackFormBox');
+        if (formBox) formBox.classList.remove('is-open');
+      } else {
+        alert(data.error || 'Failed to submit review.');
+      }
+    } catch (err) {
+      console.error('Feedback submit error:', err);
+      alert('Could not submit feedback. Please check your connection.');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit Review 🚀'; }
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    PWAManager.init();
+    initFeedbackUI();
+  });
 </script>
 
+{% include 'includes/_peer_search_modal.html' ignore missing %}
 {% endblock %}

@@ -1,103 +1,305 @@
 {# 
-  Social Follow CTA Banner
-  Usage: Place this at the top of pages to drive follows on Instagram, WhatsApp, LinkedIn.
-  Goal: Grow community by asking users to follow AbhiHub on social platforms.
+  What's New on AbhiHub & Community Follow Carousel Banner
+  Auto-advancing interactive carousel presenting new features and community channels.
 #}
-<div class="ad-container ad-banner ad-social-follow">
-  <div class="ad-label">Follow AbhiHub</div>
-  <div class="social-cta">
-    <div class="cta-text">
-      <span class="cta-emoji">📲</span>
-      <strong>Stay Updated — Follow AbhiHub!</strong>
-      <span class="cta-sub">Get latest papers, exam alerts &amp; community updates</span>
-    </div>
-    <div class="social-links">
-      <a href="https://www.instagram.com/_abhihub_" target="_blank" rel="noopener noreferrer"
-         class="social-link instagram">
-        <span class="social-icon">📸</span>
-        <span class="social-name">Instagram</span>
-        <span class="social-handle">@_abhihub_</span>
-      </a>
-      <a href="https://whatsapp.com/channel/0029VbAixWgLCoWwQwX1D91I" target="_blank" rel="noopener noreferrer"
-         class="social-link whatsapp">
-        <span class="social-icon">💬</span>
-        <span class="social-name">WhatsApp</span>
-        <span class="social-handle">Channel</span>
-      </a>
-      <a href="https://www.linkedin.com/company/abhihub" target="_blank" rel="noopener noreferrer"
-         class="social-link linkedin">
-        <span class="social-icon">💼</span>
-        <span class="social-name">LinkedIn</span>
-        <span class="social-handle">AbhiHub</span>
-      </a>
+<div class="ad-container ad-banner ad-social-follow" id="abhihubBannerCarousel" aria-roledescription="carousel" aria-label="What's New on AbhiHub">
+  <div class="carousel-badge-strip">
+    <span class="carousel-kicker" id="carouselKicker">✨ WHAT'S NEW (1/5)</span>
+    <div class="carousel-indicators" id="carouselIndicators">
+      <button type="button" class="carousel-dot active" data-index="0" aria-label="Slide 1"></button>
+      <button type="button" class="carousel-dot" data-index="1" aria-label="Slide 2"></button>
+      <button type="button" class="carousel-dot" data-index="2" aria-label="Slide 3"></button>
+      <button type="button" class="carousel-dot" data-index="3" aria-label="Slide 4"></button>
+      <button type="button" class="carousel-dot" data-index="4" aria-label="Slide 5"></button>
     </div>
   </div>
+
+  <div class="carousel-track-wrapper">
+    <div class="carousel-track" id="carouselTrack">
+
+      <!-- Slide 1: P2P Chat & File Request -->
+      <div class="carousel-slide" data-kicker="💬 P2P STUDY CHAT (1/5)">
+        <div class="social-cta">
+          <div class="cta-text">
+            <span class="cta-emoji">⚡</span>
+            <strong>Direct Study Chat &amp; Instant File Requests</strong>
+            <span class="cta-sub">Message classmates with 0ms delivery, form study streaks &amp; request missing PYQs</span>
+          </div>
+          <div class="social-links">
+            <a href="/chat" class="banner-action-btn primary">
+              <span>Try Study Chat 💬</span>
+            </a>
+            <a href="/leaderboard" class="banner-action-btn secondary">
+              <span>👥 Find Peers</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 2: Social Follow (Original) -->
+      <div class="carousel-slide" data-kicker="📲 COMMUNITY CHANNELS (2/5)">
+        <div class="social-cta">
+          <div class="cta-text">
+            <span class="cta-emoji">📲</span>
+            <strong>Stay Updated — Follow AbhiHub!</strong>
+            <span class="cta-sub">Get latest papers, exam alerts &amp; university community updates</span>
+          </div>
+          <div class="social-links">
+            <a href="https://www.instagram.com/_abhihub_" target="_blank" rel="noopener noreferrer" class="social-link instagram">
+              <span class="social-icon">📸</span>
+              <span class="social-name">Instagram</span>
+              <span class="social-handle">@_abhihub_</span>
+            </a>
+            <a href="https://whatsapp.com/channel/0029VbAixWgLCoWwQwX1D91I" target="_blank" rel="noopener noreferrer" class="social-link whatsapp">
+              <span class="social-icon">💬</span>
+              <span class="social-name">WhatsApp</span>
+              <span class="social-handle">Channel</span>
+            </a>
+            <a href="https://www.linkedin.com/company/abhihub" target="_blank" rel="noopener noreferrer" class="social-link linkedin">
+              <span class="social-icon">💼</span>
+              <span class="social-name">LinkedIn</span>
+              <span class="social-handle">AbhiHub</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 3: Smart Library Search -->
+      <div class="carousel-slide" data-kicker="🔍 ACADEMIC EXPLORER (3/5)">
+        <div class="social-cta">
+          <div class="cta-text">
+            <span class="cta-emoji">📚</span>
+            <strong>Filter 5,000+ Exam Papers &amp; Notes</strong>
+            <span class="cta-sub">Find university question papers &amp; practicals by college, branch, semester &amp; year</span>
+          </div>
+          <div class="social-links">
+            <a href="/college" class="banner-action-btn primary">
+              <span>Browse by College 🏛️</span>
+            </a>
+            <a href="#dashboardSearchSection" class="banner-action-btn secondary">
+              <span>Instant Search 🔍</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 4: MemoryWall -->
+      <div class="carousel-slide" data-kicker="🎓 CAMPUS MEMORIES (4/5)">
+        <div class="social-cta">
+          <div class="cta-text">
+            <span class="cta-emoji">🧠</span>
+            <strong>MemoryWall: Batch Cheers &amp; Confessions</strong>
+            <span class="cta-sub">Create your digital wall, collect college memories &amp; share prompts with your batch</span>
+          </div>
+          <div class="social-links">
+            <a href="/memorywall" class="banner-action-btn primary">
+              <span>Open MemoryWall 🎓</span>
+            </a>
+            <a href="/memorywall/create" class="banner-action-btn secondary">
+              <span>Create Wall ✨</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <!-- Slide 5: Contributor Rewards -->
+      <div class="carousel-slide" data-kicker="🏆 REPUTATION XP (5/5)">
+        <div class="social-cta">
+          <div class="cta-text">
+            <span class="cta-emoji">🏅</span>
+            <strong>Upload Materials &amp; Climb the Leaderboard</strong>
+            <span class="cta-sub">Earn XP points for every verified PYQ or practical manual you upload to help peers</span>
+          </div>
+          <div class="social-links">
+            <a href="/upload" class="banner-action-btn primary">
+              <span>Upload Resource 📤</span>
+            </a>
+            <a href="/leaderboard" class="banner-action-btn secondary">
+              <span>View Rankings 🥇</span>
+            </a>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- Carousel Navigation Controls -->
+  <button type="button" class="carousel-nav-btn prev" id="carouselPrevBtn" aria-label="Previous Slide">‹</button>
+  <button type="button" class="carousel-nav-btn next" id="carouselNextBtn" aria-label="Next Slide">›</button>
 </div>
 
 <style>
 .ad-social-follow {
   width: 100%;
-  min-height: 100px;
+  min-height: 120px;
   background: linear-gradient(135deg, #FFFFFF 0%, #F8FAFC 50%, #EEF4FC 100%);
   border: 1px solid var(--dash-border, #E2E8F0);
-  border-radius: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin: var(--space-6, 1.5rem) 0;
+  border-radius: 18px;
+  margin: var(--space-6, 1.25rem) 0;
   overflow: hidden;
   position: relative;
   box-shadow: 0 10px 28px -10px rgba(15, 23, 42, 0.06);
+  padding: 1.8rem 1rem 1.1rem;
+  box-sizing: border-box;
 }
-.ad-social-follow .ad-label {
+
+.carousel-badge-strip {
   position: absolute;
-  top: 6px;
-  left: 10px;
+  top: 8px;
+  left: 14px;
+  right: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  z-index: 3;
+  pointer-events: none;
+}
+
+.carousel-kicker {
   font-size: 10px;
-  color: #64748b;
-  z-index: 2;
-  letter-spacing: 1px;
+  font-weight: 800;
+  color: var(--primary-600, #2563eb);
+  letter-spacing: 0.8px;
   text-transform: uppercase;
 }
+
+.carousel-indicators {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  pointer-events: auto;
+}
+
+.carousel-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: #cbd5e1;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  transition: all 0.25s ease;
+}
+
+.carousel-dot.active {
+  width: 18px;
+  background: var(--primary-600, #2563eb);
+}
+
+.carousel-track-wrapper {
+  width: 100%;
+  overflow: hidden;
+}
+
+.carousel-track {
+  display: flex;
+  width: 100%;
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.carousel-slide {
+  flex: 0 0 100%;
+  width: 100%;
+  box-sizing: border-box;
+  display: flex;
+  justify-content: center;
+}
+
 .ad-social-follow .social-cta {
   text-align: center;
-  padding: 0 1rem;
+  padding: 0 0.5rem;
+  max-width: 680px;
+  width: 100%;
 }
+
 .ad-social-follow .cta-text {
   display: flex;
   flex-direction: column;
   align-items: center;
   margin-bottom: 0.75rem;
 }
+
 .ad-social-follow .cta-emoji {
   font-size: 1.8rem;
   margin-bottom: 0.2rem;
+  animation: floatBounce 2.5s infinite ease-in-out;
 }
+
+@keyframes floatBounce {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-4px); }
+}
+
 .ad-social-follow .cta-text strong {
-  font-size: 1rem;
+  font-size: 1.05rem;
   color: var(--dash-text-primary, #0f172a);
-  font-weight: 700;
+  font-weight: 800;
   margin-bottom: 0.15rem;
+  letter-spacing: -0.015em;
 }
+
 .ad-social-follow .cta-sub {
-  font-size: 0.75rem;
+  font-size: 0.82rem;
   color: #64748b;
-  margin-top: 0.1rem;
+  margin-top: 0.15rem;
+  line-height: 1.4;
 }
+
 .ad-social-follow .social-links {
   display: flex;
-  gap: 0.75rem;
+  gap: 0.65rem;
   justify-content: center;
   flex-wrap: wrap;
+  align-items: center;
 }
+
+.banner-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 1.15rem;
+  border-radius: 10px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.05);
+}
+
+.banner-action-btn.primary {
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  color: #ffffff;
+  box-shadow: 0 3px 10px rgba(37, 99, 235, 0.25);
+}
+
+.banner-action-btn.primary:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 5px 14px rgba(37, 99, 235, 0.35);
+}
+
+.banner-action-btn.secondary {
+  background: #ffffff;
+  color: #1e293b;
+  border: 1.5px solid #cbd5e1;
+}
+
+.banner-action-btn.secondary:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
 .ad-social-follow .social-link {
   display: flex;
   align-items: center;
   gap: 0.4rem;
-  padding: 0.5rem 1rem;
+  padding: 0.48rem 0.95rem;
   background: #ffffff;
   border: 1.5px solid #cbd5e1;
-  border-radius: 8px;
+  border-radius: 9px;
   text-decoration: none;
   color: #1e293b;
   font-size: 0.82rem;
@@ -107,77 +309,156 @@
   white-space: nowrap;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
-.ad-social-follow .social-link .social-icon {
-  font-size: 1rem;
-}
-.ad-social-follow .social-link .social-name {
-  color: #64748b;
-  font-weight: 500;
-}
-.ad-social-follow .social-link .social-handle {
-  color: #0f172a;
-  font-weight: 700;
-}
+
+.ad-social-follow .social-link .social-icon { font-size: 1rem; }
+.ad-social-follow .social-link .social-name { color: #64748b; font-weight: 500; }
+.ad-social-follow .social-link .social-handle { color: #0f172a; font-weight: 700; }
+
 .ad-social-follow .social-link:hover {
   background: #f8fafc;
   border-color: #94a3b8;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
-.ad-social-follow .social-link.instagram:hover {
-  border-color: #e1306c;
-  box-shadow: 0 4px 12px rgba(225, 48, 108, 0.2);
-}
-.ad-social-follow .social-link.whatsapp:hover {
-  border-color: #25d366;
-  box-shadow: 0 4px 12px rgba(37, 211, 102, 0.2);
-}
-.ad-social-follow .social-link.linkedin:hover {
-  border-color: #0a66c2;
-  box-shadow: 0 4px 12px rgba(10, 102, 194, 0.2);
+
+.ad-social-follow .social-link.instagram:hover { border-color: #e1306c; box-shadow: 0 4px 12px rgba(225, 48, 108, 0.2); }
+.ad-social-follow .social-link.whatsapp:hover { border-color: #25d366; box-shadow: 0 4px 12px rgba(37, 211, 102, 0.2); }
+.ad-social-follow .social-link.linkedin:hover { border-color: #0a66c2; box-shadow: 0 4px 12px rgba(10, 102, 194, 0.2); }
+
+.carousel-nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  border: 1px solid #cbd5e1;
+  color: #1e293b;
+  font-size: 1.4rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+  transition: all 0.2s;
+  z-index: 4;
 }
 
+.carousel-nav-btn:hover {
+  background: #ffffff;
+  color: var(--primary-600, #2563eb);
+  border-color: var(--primary-600, #2563eb);
+  transform: translateY(-50%) scale(1.1);
+}
+
+.carousel-nav-btn.prev { left: 8px; }
+.carousel-nav-btn.next { right: 8px; }
+
+/* Dark Mode Tokens */
 [data-theme="dark"] .ad-social-follow {
-  background: linear-gradient(135deg, #1e293b 0%, #334155 50%, #0f172a 100%);
-  border-color: #475569;
+  background: linear-gradient(135deg, #13243F 0%, #0F1E36 100%);
+  border-color: #1E3559;
   box-shadow: none;
 }
-[data-theme="dark"] .ad-social-follow .ad-label {
-  color: #94a3b8;
-}
-[data-theme="dark"] .ad-social-follow .cta-text strong {
-  color: #f8fafc;
-}
-[data-theme="dark"] .ad-social-follow .cta-sub {
-  color: #94a3b8;
-}
-[data-theme="dark"] .ad-social-follow .social-link {
-  background: #1e293b;
-  border-color: #475569;
-  color: #e2e8f0;
-  box-shadow: none;
-}
-[data-theme="dark"] .ad-social-follow .social-link .social-name {
-  color: #94a3b8;
-}
-[data-theme="dark"] .ad-social-follow .social-link .social-handle {
-  color: #f8fafc;
-}
-[data-theme="dark"] .ad-social-follow .social-link:hover {
-  background: #334155;
-  border-color: #64748b;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-}
-@media (max-width: 480px) {
-  .ad-social-follow .cta-text strong {
-    font-size: 0.9rem;
-  }
-  .ad-social-follow .social-link {
-    font-size: 0.72rem;
-    padding: 0.4rem 0.7rem;
-  }
-  .ad-social-follow .social-icon {
-    font-size: 0.85rem;
-  }
+[data-theme="dark"] .carousel-kicker { color: #68B4EB; }
+[data-theme="dark"] .carousel-dot { background: #334155; }
+[data-theme="dark"] .carousel-dot.active { background: #68B4EB; }
+[data-theme="dark"] .ad-social-follow .cta-text strong { color: #F8FAFC; }
+[data-theme="dark"] .ad-social-follow .cta-sub { color: #94A3B8; }
+[data-theme="dark"] .banner-action-btn.secondary { background: #1E293B; border-color: #334155; color: #F8FAFC; }
+[data-theme="dark"] .ad-social-follow .social-link { background: #1E293B; border-color: #334155; color: #e2e8f0; }
+[data-theme="dark"] .ad-social-follow .social-link .social-name { color: #94a3b8; }
+[data-theme="dark"] .ad-social-follow .social-link .social-handle { color: #f8fafc; }
+[data-theme="dark"] .carousel-nav-btn { background: rgba(30, 41, 59, 0.9); border-color: #334155; color: #F8FAFC; }
+
+@media (max-width: 600px) {
+  .carousel-nav-btn { display: none; }
+  .ad-social-follow { padding: 1.8rem 0.6rem 1rem; }
+  .ad-social-follow .cta-text strong { font-size: 0.95rem; }
+  .ad-social-follow .cta-sub { font-size: 0.76rem; }
+  .ad-social-follow .social-link { font-size: 0.74rem; padding: 0.4rem 0.7rem; }
+  .banner-action-btn { font-size: 0.8rem; padding: 0.48rem 0.9rem; }
 }
 </style>
+
+<script>
+(function() {
+  const container = document.getElementById('abhihubBannerCarousel');
+  const track = document.getElementById('carouselTrack');
+  const kicker = document.getElementById('carouselKicker');
+  const dots = document.querySelectorAll('.carousel-dot');
+  const prevBtn = document.getElementById('carouselPrevBtn');
+  const nextBtn = document.getElementById('carouselNextBtn');
+  if (!container || !track) return;
+
+  const slides = track.querySelectorAll('.carousel-slide');
+  const totalSlides = slides.length;
+  let currentIndex = 0;
+  let timer = null;
+  const INTERVAL_MS = 5000;
+
+  function updateSlide(index) {
+    if (index < 0) index = totalSlides - 1;
+    if (index >= totalSlides) index = 0;
+    currentIndex = index;
+    track.style.transform = `translateX(-${currentIndex * 100}%)`;
+
+    dots.forEach((dot, idx) => {
+      dot.classList.toggle('active', idx === currentIndex);
+    });
+
+    const activeSlide = slides[currentIndex];
+    if (activeSlide && kicker) {
+      kicker.textContent = activeSlide.dataset.kicker || `✨ WHAT'S NEW (${currentIndex + 1}/${totalSlides})`;
+    }
+  }
+
+  function nextSlide() { updateSlide(currentIndex + 1); }
+  function prevSlide() { updateSlide(currentIndex - 1); }
+
+  function startAutoSlide() {
+    stopAutoSlide();
+    timer = setInterval(nextSlide, INTERVAL_MS);
+  }
+
+  function stopAutoSlide() {
+    if (timer) clearInterval(timer);
+  }
+
+  if (prevBtn) prevBtn.addEventListener('click', () => { prevSlide(); startAutoSlide(); });
+  if (nextBtn) nextBtn.addEventListener('click', () => { nextSlide(); startAutoSlide(); });
+
+  dots.forEach(dot => {
+    dot.addEventListener('click', (e) => {
+      const idx = parseInt(e.target.dataset.index, 10);
+      updateSlide(idx);
+      startAutoSlide();
+    });
+  });
+
+  container.addEventListener('mouseenter', stopAutoSlide);
+  container.addEventListener('mouseleave', startAutoSlide);
+
+  // Mobile Touch Swipe Handling
+  let touchStartX = 0;
+  let touchEndX = 0;
+  container.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+    stopAutoSlide();
+  }, { passive: true });
+
+  container.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    const diff = touchStartX - touchEndX;
+    if (Math.abs(diff) > 40) {
+      if (diff > 0) nextSlide();
+      else prevSlide();
+    }
+    startAutoSlide();
+  }, { passive: true });
+
+  startAutoSlide();
+})();
+</script>

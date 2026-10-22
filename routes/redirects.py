@@ -27,6 +27,7 @@ STATIC_REDIRECTS = {
     '/dashboard/profile': '/profile',
     '/dashboard/profile/old': '/profile',
     '/account': '/profile',
+    '/account/delete': '/delete-account',
 
     # 2.7 AI legacy routes
     '/ai': '/dashboard',
@@ -38,6 +39,7 @@ STATIC_REDIRECTS = {
     '/show_rank': '/leaderboard',
     '/dashboard/': '/dashboard',
     '/pyq_landing': '/college',
+    '/pyq': '/college',
 
     # Phase 4.2 Naming cleanups
     '/UHV': '/uhv',

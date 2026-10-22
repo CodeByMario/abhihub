@@ -52,24 +52,29 @@
   };
 
   function getActiveModelDisplayName(modelId) {
-    const m = modelId || localStorage.getItem('ai_preferred_model') || 'google/gemma-4-31b-it:free';
+    const m = (modelId || localStorage.getItem('ai_preferred_model') || 'google/gemma-4-31b-it:free').trim();
     const opt = document.querySelector(`.ai-model-opt[data-model="${m}"]`);
     if (opt && opt.getAttribute('data-display')) return opt.getAttribute('data-display');
-    if (m.includes('gemma-4') || m.includes('gemma')) return 'Gemma 4';
-    if (m.includes('llama-3.3-70b')) return 'Llama 3.3 70B';
-    if (m.includes('deepseek-r1')) return 'DeepSeek R1';
-    if (m.includes('gemini')) return 'Gemini 2.0 Flash';
-    if (m.includes('qwen-2.5-72b')) return 'Qwen 2.5 72B';
-    if (m.includes('mistral-small')) return 'Mistral Small';
-    if (m.includes('SmolLM2')) return 'Tara';
-    if (m.includes('Qwen2.5-0.5B') || m.includes('0.5B')) return 'Riya';
-    if (m.includes('DeepSeek-R1-Distill') || m.includes('1.5B-q4')) return 'Diya';
-    if (m.includes('Coder')) return 'Ananya';
-    if (m.includes('Llama-3.2-1B') || (m.includes('1B') && !m.includes('3B'))) return 'Tarika';
-    if (m.includes('Gemma-2-2b')) return 'Pooja';
-    if (m.includes('3B')) return 'Kavya';
-    if (m.includes('yi-large')) return 'yi-large';
-    return m.split('/').pop().replace(/:free/i, '');
+    const low = m.toLowerCase();
+    if (low.includes('gemma-4') || low.includes('gemma')) return 'Gemma 4 31B';
+    if (low.includes('llama-3.3-70b')) return 'Llama 3.3 70B';
+    if (low.includes('llama-3.2-11b') || low.includes('vision')) return 'Llama 3.2 Vision';
+    if (low.includes('deepseek-r1')) return 'DeepSeek R1';
+    if (low.includes('deepseek-chat') || low.includes('deepseek-v3')) return 'DeepSeek V3';
+    if (low.includes('gemini-2.0-pro')) return 'Gemini 2.0 Pro';
+    if (low.includes('gemini-2.0') || low.includes('gemini')) return 'Gemini 2.0 Flash';
+    if (low.includes('qwen-2.5-72b') || low.includes('qwen')) return 'Qwen 2.5 72B';
+    if (low.includes('mistral-small') || low.includes('mistral')) return 'Mistral Small';
+    if (low.includes('nemotron')) return 'Nemotron 12B';
+    if (low.includes('smollm2')) return 'Tara';
+    if (low.includes('qwen2.5-0.5b')) return 'Riya';
+    if (low.includes('deepseek-r1-distill')) return 'Diya';
+    if (low.includes('coder')) return 'Ananya';
+    if (low.includes('llama-3.2-1b')) return 'Tarika';
+    if (low.includes('gemma-2-2b')) return 'Pooja';
+    if (low.includes('3b')) return 'Kavya';
+    const clean = m.split('/').pop().replace(/:free/i, '').replace(/[-_]/g, ' ');
+    return clean.slice(0, 16);
   }
 
   // ── Common On-Device AI Memory Manager ──
@@ -249,6 +254,51 @@
   }
   window.routeAppUrl = routeAppUrl;
 
+  window.openTarikaApiKeyModal = function() {
+    const modal = document.getElementById('tarikaApiKeyModal');
+    if (modal) {
+      modal.style.display = 'flex';
+      const input = document.getElementById('tarikaApiKeyModalInput');
+      if (input) {
+        input.value = localStorage.getItem('openrouter_api_key') || '';
+        setTimeout(() => input.focus(), 150);
+      }
+    }
+  };
+
+  window.closeTarikaApiKeyModal = function() {
+    const modal = document.getElementById('tarikaApiKeyModal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  window.saveTarikaApiKey = async function() {
+    const input = document.getElementById('tarikaApiKeyModalInput');
+    const key = (input ? input.value : '').trim();
+    if (!key) {
+      alert('Please paste your OpenRouter API key starting with sk-or-');
+      return;
+    }
+    localStorage.setItem('openrouter_api_key', key);
+    localStorage.setItem('ai_provider', 'openrouter');
+
+    try {
+      await fetch('/api/ai/key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: key, provider: 'openrouter' })
+      });
+    } catch (e) {
+      console.debug('Backend key sync error:', e);
+    }
+
+    window.closeTarikaApiKeyModal();
+    if (window.showAiToast) {
+      window.showAiToast('OpenRouter API Key saved! Tarika is ready.');
+    }
+    const chatInput = document.getElementById('aiChatInput');
+    if (chatInput) chatInput.focus();
+  };
+
   window.toggleAbhiAiDrawer = function() {
     const drw = document.getElementById('abhiAiDrawer');
     if (!drw) return;
@@ -257,7 +307,12 @@
     if (isOpen) {
       detectOpenDocument();
       window.updateModelBadgeDisplay();
-      setTimeout(() => document.getElementById('aiChatInput')?.focus(), 150);
+      const savedKey = localStorage.getItem('openrouter_api_key');
+      if (!savedKey) {
+        window.openTarikaApiKeyModal();
+      } else {
+        setTimeout(() => document.getElementById('aiChatInput')?.focus(), 150);
+      }
     }
   };
 
@@ -534,10 +589,15 @@
     }
 
     // Server execution with automatic fallback to WebLLM
+    const userApiKey = localStorage.getItem('openrouter_api_key') || '';
     try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (userApiKey) {
+        headers['X-OpenRouter-Key'] = userApiKey;
+      }
       const res = await fetch('/api/ai/assistant', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: headers,
         signal: window.TarikaState.currentAbortController.signal,
         body: JSON.stringify({
           message: query,
@@ -546,64 +606,14 @@
           doc_title: window.TarikaState.activeDocTitle,
           memory_context: getRelevantMemorySnippet(query),
           model: preferredModel,
+          api_key: userApiKey,
           history: historySnapshot
         })
       });
 
       if (res.status === 401 || res.redirected) {
         thinking.remove();
-        const errBubble = document.createElement('div');
-        errBubble.className = 'ai-bubble assistant';
-        errBubble.setAttribute('dir', 'auto');
-        errBubble.innerHTML = `
-          <div style="line-height:1.5; padding:2px;">
-            <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; gap:8px;">
-              <div style="font-weight:700; color:var(--tarika-ink); font-size:13.5px; display:flex; align-items:center; gap:6px;">
-                <span>🔑</span> <span>OpenRouter Key Setup (Free Models)</span>
-              </div>
-              <span style="font-size:10px; font-weight:700; background:rgba(16, 185, 129, 0.12); color:#059669; padding:2px 7px; border-radius:9999px; border:1px solid rgba(16, 185, 129, 0.25);">100% Free</span>
-            </div>
-            <p style="margin:0 0 10px 0; font-size:12.5px; color:var(--tarika-muted); line-height:1.5;">
-              You are currently not logged in. You can chat with Tarika without an account by connecting a free <strong>OpenRouter API key</strong>:
-            </p>
-            <div style="background:var(--tarika-bg); border:1px solid var(--tarika-line); border-radius:10px; padding:10px 12px; margin-bottom:12px; font-size:12px; line-height:1.6;">
-              <div style="font-weight:700; color:var(--tarika-ink); margin-bottom:6px; font-size:12px; display:flex; align-items:center; gap:5px;">
-                <span>🧭</span> <span>Directions to set up your key in AbhiHub:</span>
-              </div>
-              <div style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px;">
-                <span style="font-weight:700; color:var(--tarika-brand);">1.</span>
-                <span>Get a free key from OpenRouter (opens in a new tab):</span>
-              </div>
-              <div style="margin:0 0 10px 18px;">
-                <button type="button" onclick="window.open('https://openrouter.ai/keys', '_blank', 'noopener,noreferrer')" class="ai-card-btn ai-card-btn-primary" style="background:#1d4ed8 !important; color:#ffffff !important; border:none; padding:5px 12px !important; font-size:11.5px !important; border-radius:7px; cursor:pointer; font-weight:600;">
-                  <span>🔑</span> <span style="color:#ffffff !important;">Open openrouter.ai/keys (New Tab) ↗</span>
-                </button>
-              </div>
-              <div style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px;">
-                <span style="font-weight:700; color:var(--tarika-brand);">2.</span>
-                <span>In AbhiHub, tap the <strong>⚙️ icon</strong> in the top header of this chat (or go to your <strong>Account → Settings</strong>).</span>
-              </div>
-              <div style="margin-bottom:6px; display:flex; align-items:flex-start; gap:6px;">
-                <span style="font-weight:700; color:var(--tarika-brand);">3.</span>
-                <span>Look for <strong>OpenRouter API Key (BYOK)</strong>, paste your copied key, and click <strong>💾 Save Key &amp; Model</strong>.</span>
-              </div>
-              <div style="display:flex; align-items:flex-start; gap:6px;">
-                <span style="font-weight:700; color:var(--tarika-brand);">4.</span>
-                <span>That's it! You can now chat unlimited with free models: <strong>Gemma 4</strong>, <strong>Llama 3.3</strong>, or <strong>DeepSeek R1</strong>!</span>
-              </div>
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-              <button type="button" onclick="if(window.routeAppUrl){window.routeAppUrl('/settings');}else{window.location.href='/settings';}" class="ai-card-btn ai-card-btn-secondary" style="background:var(--tarika-bg, #ffffff) !important; color:var(--tarika-ink, #0f172a) !important; border:1px solid var(--tarika-line, #cbd5e1) !important; font-weight:600 !important; cursor:pointer;">
-                <span>⚙️</span> <span style="color:var(--tarika-ink, #0f172a) !important;">Go to Settings</span>
-              </button>
-              <button type="button" onclick="if(window.routeAppUrl){window.routeAppUrl('/login');}else{window.location.href='/login';}" class="ai-card-btn ai-card-btn-outline" style="background:rgba(29, 78, 216, 0.08) !important; color:#1d4ed8 !important; border:1px solid rgba(29, 78, 216, 0.25) !important; font-weight:600 !important; cursor:pointer;">
-                <span>🔐</span> <span style="color:#1d4ed8 !important;">Log In Instead</span>
-              </button>
-            </div>
-          </div>
-        `;
-        msgList.appendChild(errBubble);
-        msgList.scrollTop = msgList.scrollHeight;
+        window.openTarikaApiKeyModal();
         window.abortCurrentGeneration();
         return;
       }
@@ -790,12 +800,18 @@
         e.stopPropagation();
         const isOpen = modelMenu.classList.toggle('show');
         modelBadge.setAttribute('aria-expanded', String(isOpen));
+        if (isOpen) {
+          window.loadDynamicFreeModels();
+        }
       });
       modelBadge.addEventListener('keydown', function(e) {
         if (e.key === 'Enter' || e.key === ' ') {
           e.preventDefault();
           const isOpen = modelMenu.classList.toggle('show');
           modelBadge.setAttribute('aria-expanded', String(isOpen));
+          if (isOpen) {
+            window.loadDynamicFreeModels();
+          }
         }
       });
       document.addEventListener('click', function(e) {
@@ -804,14 +820,18 @@
           modelBadge.setAttribute('aria-expanded', 'false');
         }
       });
-      modelMenu.querySelectorAll('.ai-model-opt').forEach(btn => {
-        btn.addEventListener('click', function(e) {
+
+      // Delegated click listener: immediately updates model in real-time
+      modelMenu.addEventListener('click', function(e) {
+        const btn = e.target.closest('.ai-model-opt');
+        if (!btn) return;
+        const mid = btn.getAttribute('data-model');
+        const p = btn.getAttribute('data-provider') || 'openrouter';
+        const d = btn.getAttribute('data-display') || btn.textContent.trim();
+        if (mid) {
           e.stopPropagation();
-          const mid = this.getAttribute('data-model');
-          const p = this.getAttribute('data-provider');
-          const d = this.getAttribute('data-display');
           window.switchAiModel(mid, p, d);
-        });
+        }
       });
     }
 
@@ -823,6 +843,46 @@
     }
   }
 
+  // ── Dynamic Live Models Loader ──────────────────────────────────
+  window.loadDynamicFreeModels = async function() {
+    try {
+      const userKey = localStorage.getItem('openrouter_api_key');
+      const url = userKey ? `/api/ai/models?provider=openrouter&api_key=${encodeURIComponent(userKey)}` : '/api/ai/models?provider=openrouter';
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.success || !Array.isArray(data.models)) return;
+
+      const freeList = data.models.filter(m => m.is_free || String(m.id).endsWith(':free'));
+      if (!freeList.length) return;
+
+      const container = document.getElementById('aiDrawerFreeModelsList');
+      if (!container) return;
+
+      const prefModel = localStorage.getItem('ai_preferred_model') || 'google/gemma-4-31b-it:free';
+      container.innerHTML = freeList.map(m => {
+        const cleanName = m.name || m.id;
+        const disp = cleanName.replace(/\(free[^)]*\)/i, '').replace(/:\s*free/i, '').trim();
+        const icon = m.id.includes('gemma') ? '⚡' :
+                     m.id.includes('llama') ? '🦙' :
+                     m.id.includes('deepseek-r1') ? '🧠' :
+                     m.id.includes('deepseek') ? '💬' :
+                     m.id.includes('gemini') ? '✨' :
+                     m.id.includes('qwen') ? '🌐' :
+                     m.id.includes('mistral') ? '💨' : '🤖';
+        const isAct = m.id === prefModel;
+        return `
+          <button type="button" class="ai-model-opt ${isAct ? 'active' : ''}" data-model="${m.id}" data-provider="openrouter" data-display="${disp}">
+            <span>${icon} ${cleanName}</span>
+            ${isAct ? '<span class="ai-model-check" style="margin-left:auto;color:#10b981;font-weight:bold;">✓</span>' : ''}
+          </button>
+        `;
+      }).join('');
+    } catch (e) {
+      console.debug('Dynamic model load skipped:', e);
+    }
+  };
+
   window.updateModelBadgeFallback = function(fallbackText) {
     const badge = document.getElementById('aiDrawerModelBadge');
     if (!badge) return;
@@ -833,7 +893,7 @@
   window.updateModelBadgeDisplay = function() {
     const badge = document.getElementById('aiDrawerModelBadge');
     if (!badge) return;
-    const prefProvider = localStorage.getItem('ai_provider');
+    const prefProvider = localStorage.getItem('ai_provider') || 'openrouter';
     const prefModel = localStorage.getItem('ai_preferred_model') || 'google/gemma-4-31b-it:free';
     let displayName = 'Gemma 4';
     if (prefProvider === 'webllm' || (prefModel && prefModel.includes('MLC'))) {
@@ -849,10 +909,17 @@
     } else if (prefModel) {
       displayName = getActiveModelDisplayName(prefModel);
     }
-    badge.innerHTML = `${displayName} <span style="font-size:8px; opacity:0.75;">▼</span>`;
+    badge.innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;">${displayName}</span> <span style="font-size:8px; opacity:0.75;">▼</span>`;
+    badge.setAttribute('title', `Active Model: ${displayName} (${prefModel})`);
 
     document.querySelectorAll('.ai-model-opt').forEach(opt => {
-      opt.classList.toggle('active', opt.dataset.model === prefModel);
+      const isAct = opt.dataset.model === prefModel;
+      opt.classList.toggle('active', isAct);
+      const existingCheck = opt.querySelector('.ai-model-check');
+      if (existingCheck) existingCheck.remove();
+      if (isAct) {
+        opt.insertAdjacentHTML('beforeend', '<span class="ai-model-check" style="margin-left:auto;color:#10b981;font-weight:bold;">✓</span>');
+      }
     });
   };
 
@@ -882,12 +949,17 @@
     }
 
     localStorage.setItem('ai_preferred_model', modelId);
-    localStorage.setItem('ai_provider', provider);
+    localStorage.setItem('ai_provider', provider || 'openrouter');
     localStorage.setItem('abhihub_ai_model', modelId);
     if (provider === 'webllm') {
       window.dispatchEvent(new CustomEvent('abhihub_ai_config_change', { detail: { modelId: modelId } }));
     }
     window.updateModelBadgeDisplay();
+
+    if (window.showAiToast) {
+      window.showAiToast(`✨ Switched to ${displayName || getActiveModelDisplayName(modelId)}`);
+    }
+
     const menu = document.getElementById('aiDrawerModelMenu');
     if (menu) {
       menu.classList.remove('show');

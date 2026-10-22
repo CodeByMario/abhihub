@@ -214,6 +214,9 @@ def dashboard():
                 if len(recommended_files) >= 8:
                     break
 
+    from data.tea_supporters import get_recent_feedbacks
+    community_feedbacks = get_recent_feedbacks(limit=8)
+
     return render_template(
         'app/dashboard.html',
         data=files,
@@ -232,7 +235,8 @@ def dashboard():
         recent_papers=recent_papers,
         relevant_notes=relevant_notes,
         trending_notes=trending_notes,
-        recent_notes=recent_notes
+        recent_notes=recent_notes,
+        community_feedbacks=community_feedbacks
     )
 
 

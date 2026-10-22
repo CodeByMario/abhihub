@@ -703,14 +703,37 @@ function syncNewMessages(peerId, serverMessages) {
   }
 }
 
+function closeChat() {
+  LS.set('current_peer', '');
+  const room = document.getElementById('chatRoom');
+  if (room) {
+    room.hidden = true;
+    room.classList.remove('open');
+  }
+  const shell = document.querySelector('.chat-shell');
+  if (shell) shell.classList.remove('room-open');
+  document.querySelectorAll('.peer-item').forEach(el => el.classList.remove('active'));
+  const placeholder = document.getElementById('chatPlaceholder');
+  if (placeholder && window.innerWidth > 760) {
+    placeholder.hidden = false;
+  }
+  const subEl = document.getElementById('chatSubtitle');
+  if (subEl) subEl.textContent = 'Open a conversation';
+}
+
 function openChat(peerId) {
   LS.set('current_peer', peerId);
   document.querySelectorAll('.peer-item').forEach(el => el.classList.toggle('active', el.dataset.peerId === peerId));
 
-  document.getElementById('chatPlaceholder').hidden = true;
+  const placeholder = document.getElementById('chatPlaceholder');
+  if (placeholder) placeholder.hidden = true;
   const room = document.getElementById('chatRoom');
-  room.hidden = false;
-  room.classList.add('open');
+  if (room) {
+    room.hidden = false;
+    room.classList.add('open');
+  }
+  const shell = document.querySelector('.chat-shell');
+  if (shell) shell.classList.add('room-open');
 
   updatePeerHeader(peerId);
 
@@ -2040,6 +2063,11 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         chatSocket?.emit('chat_react', { to: peerId, msg_id: msgId, ts: msgTs, emoji });
       }
+      return;
+    }
+
+    if (action === 'chatBackToPeers') {
+      closeChat();
       return;
     }
 

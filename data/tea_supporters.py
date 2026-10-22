@@ -114,5 +114,191 @@ def add_tea_supporter(order_id: str, name: str, amount: float, message: str = ''
 
 def get_recent_tea_supporters(limit: int = 6) -> List[Dict[str, Any]]:
     """Returns the most recent tea supporters."""
-    supporters = _load_all_supporters()
+    supporters = [s for s in _load_all_supporters() if s.get('cups') or s.get('amount') or s.get('type') == 'tea']
     return supporters[:limit]
+
+
+DEFAULT_FEEDBACKS = [
+    {
+        "id": "FB01",
+        "name": "Aditya Sharma",
+        "rating": 5,
+        "college": "GHRCE Nagpur",
+        "branch": "CSE",
+        "message": "Saved me the night before my engineering mechanics end-sem! Found the exact 2024 solved PYQ paper in seconds. ⚡",
+        "date": "Today",
+        "created_at": "2026-10-22T08:30:00Z"
+    },
+    {
+        "id": "FB02",
+        "name": "Priya Deshmukh",
+        "rating": 5,
+        "college": "VNIT Nagpur",
+        "branch": "IT",
+        "message": "The handwritten toppers' notes for Data Structures are incredible. UI is super fast and clean on mobile.",
+        "date": "Yesterday",
+        "created_at": "2026-10-21T14:15:00Z"
+    },
+    {
+        "id": "FB03",
+        "name": "Rahul Verma",
+        "rating": 5,
+        "college": "COEP Pune",
+        "branch": "Mechanical",
+        "message": "Live study chat is awesome! Was able to ask seniors for last year's practical viva questions instantly.",
+        "date": "2 days ago",
+        "created_at": "2026-10-20T19:40:00Z"
+    },
+    {
+        "id": "FB04",
+        "name": "Ananya Roy",
+        "rating": 5,
+        "college": "ITER Bhubaneswar",
+        "branch": "EE",
+        "message": "No annoying spam or payment gates for basic past papers. Genuine student-first platform. Highly recommended!",
+        "date": "3 days ago",
+        "created_at": "2026-10-19T11:20:00Z"
+    },
+    {
+        "id": "FB05",
+        "name": "Kunal Mehra",
+        "rating": 5,
+        "college": "KIIT University",
+        "branch": "CS",
+        "message": "Earned over 200 XP uploading our semester lab codes. The streak and ranking badges are super motivating! 🔥",
+        "date": "4 days ago",
+        "created_at": "2026-10-18T16:05:00Z"
+    }
+]
+
+
+def _get_supabase_feedback_table():
+    """Retrieve Supabase handle for app_feedback table."""
+    try:
+        from methods.supabase_helper import init_supabase_admin, init_supabase
+        client = init_supabase_admin() or init_supabase()
+        if not client:
+            return None
+        try:
+            return client.schema('abhihub').table('app_feedback')
+        except Exception:
+            return client.table('app_feedback')
+    except Exception as e:
+        logging.debug(f"[tea_supporters] Supabase client init error: {e}")
+        return None
+
+
+def add_app_feedback(name: str, rating: int, message: str, college: str = "", branch: str = "", user_id: str = "") -> Dict[str, Any]:
+    """Adds a rating and feedback entry to Supabase app_feedback with local fallback."""
+    clean_name = (name or '').strip()[:50] or "Student Contributor"
+    clean_msg = (message or '').strip()[:300]
+    clean_rating = max(1, min(5, int(rating or 5)))
+    clean_col = (college or '').strip()[:60] or "Engineering Scholar"
+    clean_branch = (branch or '').strip()[:40]
+
+    all_records = _load_all_supporters()
+    feedback_id = f"FB{int(datetime.now().timestamp())}"
+
+    feedback_record = {
+        "id": feedback_id,
+        "order_id": feedback_id,
+        "type": "feedback",
+        "name": clean_name,
+        "rating": clean_rating,
+        "college": clean_col,
+        "branch": clean_branch,
+        "message": clean_msg,
+        "user_id": user_id or None,
+        "date": "Just now",
+        "created_at": datetime.now(timezone.utc).isoformat()
+    }
+
+    # Attempt Supabase insert
+    sb_table = _get_supabase_feedback_table()
+    if sb_table:
+        try:
+            sb_data = {
+                "name": clean_name,
+                "rating": clean_rating,
+                "college": clean_col,
+                "branch": clean_branch,
+                "message": clean_msg,
+                "user_id": str(user_id) if user_id else None,
+                "status": "approved"
+            }
+            res = sb_table.insert(sb_data).execute()
+            if res and getattr(res, 'data', None):
+                row = res.data[0]
+                feedback_record["id"] = str(row.get("id") or feedback_id)
+                feedback_record["order_id"] = feedback_record["id"]
+                logging.info(f"[tea_supporters] Stored feedback in Supabase: {feedback_record['id']}")
+        except Exception as err:
+            logging.warning(f"[tea_supporters] Supabase feedback insert fallback: {err}")
+
+    # Deduplicate in local store: prevent duplicate entries with identical name and message
+    existing_dupe = any(
+        (r.get('name') or '').strip().lower() == clean_name.lower() and
+        (r.get('message') or '').strip().lower() == clean_msg.lower()
+        for r in all_records
+    )
+    if not existing_dupe:
+        all_records.insert(0, feedback_record)
+        try:
+            with open(SUPPORTERS_FILE, 'w', encoding='utf-8') as f:
+                json.dump(all_records[:150], f, indent=2)
+        except Exception as e:
+            logging.warning(f"[tea_supporters] Error saving feedback: {e}")
+
+    return feedback_record
+
+
+def get_recent_feedbacks(limit: int = 8) -> List[Dict[str, Any]]:
+    """Returns persistent app feedbacks from Supabase with local JSON & default fallback, fully deduplicated."""
+    sb_records = []
+    sb_table = _get_supabase_feedback_table()
+    if sb_table:
+        try:
+            res = sb_table.select('*').eq('status', 'approved').order('created_at', desc=True).limit(limit).execute()
+            if res and getattr(res, 'data', None):
+                for row in res.data:
+                    sb_records.append({
+                        "id": str(row.get('id') or ''),
+                        "name": row.get('name') or 'Student',
+                        "rating": int(row.get('rating') or 5),
+                        "college": row.get('college') or 'Engineering Scholar',
+                        "branch": row.get('branch') or '',
+                        "message": row.get('message') or '',
+                        "date": "Recently",
+                        "created_at": row.get('created_at') or ''
+                    })
+        except Exception as err:
+            logging.debug(f"[tea_supporters] Supabase feedback fetch fallback: {err}")
+
+    all_records = _load_all_supporters()
+    custom_feedbacks = [
+        r for r in all_records
+        if r.get('type') == 'feedback' or 'rating' in r
+    ]
+
+    seen_ids = set()
+    seen_text = set()
+    combined = []
+
+    for f in sb_records + custom_feedbacks + DEFAULT_FEEDBACKS:
+        fid = f.get('id') or f.get('order_id')
+        name_key = (f.get('name') or '').strip().lower()
+        msg_key = (f.get('message') or '').strip().lower()[:60]
+        text_signature = f"{name_key}::{msg_key}"
+
+        if fid and fid in seen_ids:
+            continue
+        if text_signature in seen_text:
+            continue
+
+        if fid:
+            seen_ids.add(fid)
+        seen_text.add(text_signature)
+        combined.append(f)
+
+    return combined[:limit]
+

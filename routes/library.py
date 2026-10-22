@@ -163,6 +163,7 @@ def leaderboard():
 
 
 @library_bp.route('/pyq')
+@library_bp.route('/college')
 @sitemap_page(priority="0.95", changefreq="daily")
 def pyq_landing():
     """SEO landing page targeting 'PYQ' and '[college] PYQ' searches"""
@@ -408,8 +409,9 @@ def resource_landing(slug):
     from data.pricing import has_document_access, extract_document_pricing
     from routes.ai import AI_MODELS, get_best_ai_model
 
-    uuid_pattern = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-    match = re.search(uuid_pattern, slug.lower())
+    clean_slug = re.sub(r'-view$', '', slug.lower().strip())
+    uuid_pattern = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+    match = re.search(uuid_pattern, clean_slug)
     if not match:
         abort(404)
 
