@@ -1258,7 +1258,7 @@
     <section class="studio-form-col pcard" id="studioFormCol" aria-label="Labeling Form">
       <div class="form-header">
         <div class="form-title-group" style="display:flex; align-items:center; gap:0.5rem;">
-          <h2 class="form-main-title">Catalog Resource</h2>
+          <h2 class="form-main-title" id="formHeaderTitle">Catalog Resource</h2>
           <span class="nav-counter" id="navCounter">0 / 0</span>
         </div>
         <div class="nav-actions">
@@ -1366,10 +1366,13 @@
 
       <!-- Sticky Save Bar -->
       <div class="studio-save-bar">
-        <div class="remember-toggle-wrapper" title="Remember inputs for consecutive files">
+        <div class="remember-toggle-wrapper" title="Remember inputs for consecutive files" id="rememberToggleWrapper">
           <div class="toggle-switch" id="rememberToggle" role="switch" aria-checked="false" tabindex="0" aria-label="Remember labels across files"></div>
           <span class="toggle-label">Remember</span>
         </div>
+        <button type="button" class="apple-btn hidden" id="cancelEditBtn" style="padding: 0.5rem 0.9rem; font-size: 0.8rem;">
+          ✕ Cancel
+        </button>
         <button type="button" class="save-btn idle" id="saveBtn" data-action="handleSave" aria-live="polite" aria-label="Publish and advance">
           <span class="btn-text">Publish to Library (+XP) ↵</span>
         </button>

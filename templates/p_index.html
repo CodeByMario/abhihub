@@ -200,6 +200,49 @@
   {% endif %}
 </div>
 
+<!-- ── 1.7 Recently Added Materials ─────────────────────────────────── -->
+{% if recently_added_files %}
+<div class="home-section" id="recentlyAddedSection">
+  <div class="home-section-header">
+    <div>
+      <div class="home-section-title">⏱️ Recently Added</div>
+      <div class="home-section-subtitle">Newly uploaded question papers, handwritten notes & manuals</div>
+    </div>
+    <a href="{{ url_for('library.pyq_landing') }}" class="home-see-all">Browse all →</a>
+  </div>
+  <div class="hscroll-row">
+    {% for file in recently_added_files %}
+    {% set _rid = file.get('record_id') or file.get('id') or '' %}
+    {% set _ftype = file.get('type', 'papers')|lower %}
+    {% set is_notes = _ftype in ['notes', 'note', 'imp questions', 'imp_questions'] %}
+    {% set is_prac = _ftype in ['practical', 'practicals'] %}
+    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
+    <a href="{{ furl }}" class="pcard {% if is_notes %}notes-card{% elif is_prac %}practical-card{% endif %}">
+      {% if is_notes %}
+      <span class="pcard-badge notes">📝 Notes</span>
+      {% elif is_prac %}
+      <span class="pcard-badge practical">🧪 Practical</span>
+      {% else %}
+      <span class="pcard-badge">📄 PYQ</span>
+      {% endif %}
+      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+        data-file-type="{{ 'Notes' if is_notes else ('Practical' if is_prac else 'PYQ') }}" data-file-subject="{{ file.get('subject', '') }}"
+        data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
+        data-file-author="{{ file.get('author','')[:15] }}"
+        data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}"
+        data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
+      <div class="pcard-subject">{{ file.get('subject', 'General') }}</div>
+      <div class="pcard-name">{{ file['file-name'] }}</div>
+      <div class="pcard-footer">
+        <span class="pcard-meta">📅 {{ file.get('date', '') or file.get('year', '') }}</span>
+        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <!-- ── 2. Academic Library: Personalized Papers ────────────────────────── -->
 {% if relevant_papers %}
 <div class="home-section">
@@ -311,6 +354,52 @@
   </div>
 </div>
 
+<!-- ── 3.5 Premium Resources Section ───────────────────────────────────── -->
+{% if premium_files %}
+<div class="home-section" id="premiumResourcesSection">
+  <div class="home-section-header">
+    <div>
+      <div class="home-section-title">💎 Premium & Topper Resources</div>
+      <div class="home-section-subtitle">High-yield exam banks, verified topper notes & premium blueprints</div>
+    </div>
+    <span class="home-see-all" style="color:#d97706;font-weight:600;">⭐ Pro Curated</span>
+  </div>
+  <div class="hscroll-row">
+    {% for file in premium_files %}
+    {% set _rid = file.get('record_id') or file.get('id') or '' %}
+    {% set _ftype = file.get('type', 'notes')|lower %}
+    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
+    <a href="{{ furl }}" class="pcard premium-card">
+      <span class="pcard-badge premium">
+        {% if file.get('is_paid') and file.get('price') %}
+        💎 ₹{{ file.price | int }} Premium
+        {% else %}
+        ⭐ Top Pick
+        {% endif %}
+      </span>
+      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+        data-file-type="Premium {{ file.get('type', 'Material')|title }}" data-file-subject="{{ file.get('subject', '') }}"
+        data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
+        data-file-author="{{ file.get('author','')[:15] }}"
+        data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
+      <div class="pcard-subject" style="color:#b45309;">{{ file.get('subject', 'Special Curated') }}</div>
+      <div class="pcard-name" style="font-weight:700;">{{ file['file-name'] }}</div>
+      <div class="pcard-footer">
+        <span class="pcard-price-tag">
+          {% if file.get('is_paid') and file.get('price') %}
+          💎 Instant Unlock
+          {% else %}
+          ✓ Verified
+          {% endif %}
+        </span>
+        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <!-- ── 4. Upload Contribution Banner ──────────────────────────────────── -->
 {% if user_data %}
 <div class="home-section">
@@ -336,6 +425,73 @@
     {% include 'includes/_search_partial.html' %}
   </div>
 </div>
+
+<!-- ── 5.5 Filter by Author & Contributor ─────────────────────────────── -->
+{% if top_authors %}
+<div class="home-section" id="filterByAuthorSection">
+  <div class="home-section-header">
+    <div>
+      <div class="home-section-title">👤 Filter by Author & Contributor</div>
+      <div class="home-section-subtitle">Explore notes and exam packs published by student toppers & verified contributors</div>
+    </div>
+  </div>
+  
+  <div class="author-filter-header">
+    <div class="author-search-box">
+      <span class="author-search-icon">🔍</span>
+      <input type="text" id="authorSearchFilter" class="author-search-input" placeholder="Search authors (e.g. Mario, Abhijeet)..." oninput="filterAuthorPills()">
+    </div>
+  </div>
+
+  <div class="author-chips-container" id="authorChipsList">
+    <button type="button" class="author-chip active" data-author="all" onclick="selectAuthorFilter('all', this)">
+      <span class="author-chip-avatar">★</span>
+      <span>All Authors</span>
+    </button>
+    {% for auth in top_authors %}
+    <button type="button" class="author-chip" data-author="{{ auth.name | lower }}" onclick="selectAuthorFilter('{{ auth.name }}', this)">
+      <span class="author-chip-avatar">{{ auth.name[0] | upper }}</span>
+      <span class="author-chip-name">{{ auth.name }}</span>
+      <span class="author-chip-count">{{ auth.count }}</span>
+    </button>
+    {% endfor %}
+  </div>
+
+  <div class="hscroll-row" id="authorFilteredRow">
+    {% for file in data[:30] %}
+    {% set _rid = file.get('record_id') or file.get('id') or '' %}
+    {% set _ftype = file.get('type', 'papers')|lower %}
+    {% set is_notes = _ftype in ['notes', 'note', 'imp questions', 'imp_questions'] %}
+    {% set is_prac = _ftype in ['practical', 'practicals'] %}
+    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
+    <a href="{{ furl }}" class="pcard {% if is_notes %}notes-card{% elif is_prac %}practical-card{% endif %}" data-file-author="{{ (file.get('author') or '') | lower }}">
+      {% if is_notes %}
+      <span class="pcard-badge notes">📝 Notes</span>
+      {% elif is_prac %}
+      <span class="pcard-badge practical">🧪 Practical</span>
+      {% else %}
+      <span class="pcard-badge">📄 PYQ</span>
+      {% endif %}
+      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+        data-file-type="{{ 'Notes' if is_notes else ('Practical' if is_prac else 'PYQ') }}" data-file-subject="{{ file.get('subject', '') }}"
+        data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
+        data-file-author="{{ file.get('author','') }}"
+        data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}"
+        data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
+      <div class="pcard-subject">{{ file.get('subject', 'General') }}</div>
+      <div class="pcard-name">{{ file['file-name'] }}</div>
+      <div class="pcard-footer">
+        <span class="pcard-meta">👤 {{ file.get('author','')[:14] or 'Contributor' }}</span>
+        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  <div id="authorFilteredEmpty" class="author-filtered-empty" style="display:none;">
+    <span>No documents found for this author yet. Check back soon or select another author!</span>
+  </div>
+</div>
+{% endif %}
 
 <!-- ── 6. Study Notes: Personalized & Trending ────────────────────────── -->
 {% if relevant_notes %}
@@ -676,6 +832,44 @@
     const panel = document.getElementById(tabId);
     if (panel) panel.classList.add('active');
   }
+
+  /* ── Author Filter Interactive Logic ───────────────────────── */
+  window.selectAuthorFilter = function (authorName, btn) {
+    document.querySelectorAll('#authorChipsList .author-chip').forEach(c => c.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const lowerAuth = (authorName || '').trim().toLowerCase();
+    const cards = document.querySelectorAll('#authorFilteredRow .pcard');
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+      const cardAuthor = (card.getAttribute('data-file-author') || '').trim().toLowerCase();
+      if (lowerAuth === 'all' || cardAuthor === lowerAuth || cardAuthor.includes(lowerAuth)) {
+        card.style.display = '';
+        visibleCount++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    const emptyMsg = document.getElementById('authorFilteredEmpty');
+    if (emptyMsg) {
+      emptyMsg.style.display = visibleCount === 0 ? 'block' : 'none';
+    }
+  };
+
+  window.filterAuthorPills = function () {
+    const q = (document.getElementById('authorSearchFilter')?.value || '').trim().toLowerCase();
+    const chips = document.querySelectorAll('#authorChipsList .author-chip');
+    chips.forEach(chip => {
+      const author = chip.getAttribute('data-author') || '';
+      if (author === 'all' || author.includes(q)) {
+        chip.style.display = '';
+      } else {
+        chip.style.display = 'none';
+      }
+    });
+  };
 
 
 

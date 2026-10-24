@@ -41,7 +41,7 @@ def dashboard():
         user_email = user_info.get('email', '')
         user_id = user_info.get('uid', '')
 
-        user_files = [f for f in files if f.get('author', '') == user_name or f.get('author_email', '') == user_email]
+        user_files = [f for f in files if (f.get('uploader_id') and str(f.get('uploader_id')) == str(user_id)) or f.get('author', '') == user_name or f.get('author_email', '') == user_email]
         user_uploads_count = len(user_files)
 
         user_notes_count = 0
@@ -214,6 +214,22 @@ def dashboard():
                 if len(recommended_files) >= 8:
                     break
 
+    from collections import Counter
+    recently_added_files = sorted(files, key=lambda f: f.get('date') or '', reverse=True)[:10]
+
+    premium_files = [f for f in files if f.get('is_paid') or (f.get('price') and float(f.get('price', 0)) > 0)]
+    if len(premium_files) < 8:
+        curated_extra = [f for f in sorted(files, key=lambda x: x.get('view_count', 0), reverse=True)
+                         if f.get('verified') and f.get('record_id') not in {p.get('record_id') for p in premium_files}]
+        premium_files.extend(curated_extra[:8 - len(premium_files)])
+
+    author_counts = Counter()
+    for f in files:
+        auth = (f.get('author') or '').strip()
+        if auth and auth.lower() not in ('unknown', 'contributor', 'none', ''):
+            author_counts[auth] += 1
+    top_authors = [{'name': name, 'count': count} for name, count in author_counts.most_common(20)]
+
     from data.tea_supporters import get_recent_feedbacks
     community_feedbacks = get_recent_feedbacks(limit=8)
 
@@ -228,6 +244,9 @@ def dashboard():
         file_history=file_history,
         recently_viewed_files=recently_viewed_files,
         recommended_files=recommended_files,
+        recently_added_files=recently_added_files,
+        premium_files=premium_files,
+        top_authors=top_authors,
         now=datetime.now(),
         promo_context=promo_context,
         relevant_papers=relevant_papers,

@@ -25,6 +25,16 @@ class StoreRoomAPI {
         return { response: res, data };
     }
 
+    static async updateLabel(payload) {
+        const res = await fetch('/store-room/api/edit-label', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        });
+        const data = await res.json().catch(() => ({}));
+        return { response: res, data };
+    }
+
     static async extractAiSuggestions(fileItem, knownFields = {}) {
         let filename = fileItem.filename || fileItem.name || '';
         const fileUrl = fileItem.url || fileItem.path || '';
@@ -94,6 +104,8 @@ class StoreRoomState {
         this.hasMore = this.remainingCount > this.files.length;
         this.rememberLabels = localStorage.getItem('storeroom_remember_labels') === 'true';
         this.lastLabels = JSON.parse(localStorage.getItem('storeroom_last_labels') || '{}');
+        this.isEditMode = false;
+        this.editingDoc = null;
     }
 
     get activeFile() {
@@ -288,6 +300,7 @@ class StoreRoomStudio {
         // Form Submit & Save Button
         document.getElementById('labelForm')?.addEventListener('submit', (e) => this.handleFormSubmit(e));
         document.getElementById('saveBtn')?.addEventListener('click', () => this.triggerSave());
+        document.getElementById('cancelEditBtn')?.addEventListener('click', () => this.cancelEdit());
 
         // Quick Add Subject Button Trigger
         document.getElementById('triggerAddSubjectBtn')?.addEventListener('click', () => {
@@ -546,7 +559,10 @@ class StoreRoomStudio {
             card.innerHTML = `
                 <div class="history-card-top">
                     <span class="history-cat-badge">${catLabel}</span>
-                    <span class="history-status-pill ${statusClass}">${statusText}</span>
+                    <div style="display:flex; align-items:center; gap:0.4rem;">
+                        <span class="history-status-pill ${statusClass}">${statusText}</span>
+                        <button type="button" class="btn-text-action edit-label-btn" style="background:none; border:none; color:var(--apple-blue); font-size:0.75rem; font-weight:700; cursor:pointer;" title="Edit this label">✏️ Edit</button>
+                    </div>
                 </div>
                 <div class="history-title" title="${item.title || 'Untitled Resource'}">${item.title || 'Untitled Resource'}</div>
                 <div class="history-meta">
@@ -554,6 +570,13 @@ class StoreRoomStudio {
                     <span>👥 ${item.view_count || 0} views</span>
                 </div>
             `;
+
+            card.querySelector('.edit-label-btn')?.addEventListener('click', (e) => {
+                e.stopPropagation();
+                document.querySelectorAll('.history-item-card').forEach(c => c.classList.remove('active-preview'));
+                card.classList.add('active-preview');
+                this.startEditHistoryFile(item);
+            });
 
             card.addEventListener('click', () => {
                 document.querySelectorAll('.history-item-card').forEach(c => c.classList.remove('active-preview'));
@@ -599,6 +622,120 @@ class StoreRoomStudio {
         }
     }
 
+    startEditHistoryFile(item) {
+        this.state.isEditMode = true;
+        this.state.editingDoc = item;
+
+        this.previewHistoryFile(item);
+
+        const headerTitle = document.getElementById('formHeaderTitle');
+        if (headerTitle) headerTitle.textContent = '✏️ Edit Catalog Record';
+        const navCounter = document.getElementById('navCounter');
+        if (navCounter) navCounter.textContent = 'Editing';
+        const cancelBtn = document.getElementById('cancelEditBtn');
+        if (cancelBtn) cancelBtn.classList.remove('hidden');
+        const saveBtn = document.getElementById('saveBtn');
+        if (saveBtn) {
+            const btnText = saveBtn.querySelector('.btn-text');
+            if (btnText) btnText.textContent = 'Update Record ↵';
+        }
+        const rememberWrapper = document.getElementById('rememberToggleWrapper');
+        if (rememberWrapper) rememberWrapper.style.display = 'none';
+
+        if (item.category) {
+            const catEl = document.getElementById('documentCategory');
+            if (catEl) catEl.value = item.category;
+        }
+        if (item.year) {
+            const yrEl = document.getElementById('year');
+            if (yrEl) yrEl.value = String(item.year);
+        }
+        if (item.exam_type) {
+            const examEl = document.getElementById('examType');
+            if (examEl) examEl.value = item.exam_type;
+        }
+        if (item.subject_code) {
+            const codeEl = document.getElementById('subjectCode');
+            if (codeEl) codeEl.value = item.subject_code;
+        }
+        const titleEl = document.getElementById('docTitle');
+        if (titleEl) {
+            titleEl.value = item.title || '';
+            titleEl.dataset.modifiedByUser = 'true';
+        }
+
+        if (item.college_id) {
+            const tsCol = window.AbhiHubSelect?.instances['collegeName'];
+            if (tsCol) tsCol.setValue(String(item.college_id));
+            else {
+                const colEl = document.getElementById('collegeName');
+                if (colEl) colEl.value = String(item.college_id);
+            }
+        }
+        if (item.branch_id) {
+            setTimeout(() => {
+                const tsBr = window.AbhiHubSelect?.instances['branch'];
+                if (tsBr) tsBr.setValue(String(item.branch_id));
+                else {
+                    const brEl = document.getElementById('branch');
+                    if (brEl) brEl.value = String(item.branch_id);
+                }
+                if (item.semester) {
+                    setTimeout(() => {
+                        const tsSem = window.AbhiHubSelect?.instances['semester'];
+                        if (tsSem) tsSem.setValue(String(item.semester));
+                        else {
+                            const semEl = document.getElementById('semester');
+                            if (semEl) semEl.value = String(item.semester);
+                        }
+                        if (item.subject_id) {
+                            setTimeout(() => {
+                                const tsSubj = window.AbhiHubSelect?.instances['subjectName'];
+                                if (tsSubj) {
+                                    if (!tsSubj.options[item.subject_id]) {
+                                        tsSubj.addOption({ value: item.subject_id, text: item.subject || 'Subject' });
+                                    }
+                                    tsSubj.setValue(String(item.subject_id));
+                                } else {
+                                    const subjEl = document.getElementById('subjectName');
+                                    if (subjEl) subjEl.value = String(item.subject_id);
+                                }
+                            }, 300);
+                        }
+                    }, 300);
+                }
+            }, 300);
+        }
+
+        this.showToast(`Editing label for "${item.title || 'document'}"`, 'info');
+
+        const formTab = document.querySelector('.studio-tab-btn[data-tab="form"]');
+        if (window.innerWidth <= 900 && formTab) formTab.click();
+    }
+
+    cancelEdit() {
+        this.state.isEditMode = false;
+        this.state.editingDoc = null;
+
+        const headerTitle = document.getElementById('formHeaderTitle');
+        if (headerTitle) headerTitle.textContent = 'Catalog Resource';
+        const cancelBtn = document.getElementById('cancelEditBtn');
+        if (cancelBtn) cancelBtn.classList.add('hidden');
+        const saveBtn = document.getElementById('saveBtn');
+        if (saveBtn) {
+            const btnText = saveBtn.querySelector('.btn-text');
+            if (btnText) btnText.textContent = 'Publish to Library (+XP) ↵';
+        }
+        const rememberWrapper = document.getElementById('rememberToggleWrapper');
+        if (rememberWrapper) rememberWrapper.style.display = 'flex';
+
+        if (this.state.files.length > 0 && this.state.activeIndex >= 0) {
+            this.selectFileByIndex(this.state.activeIndex);
+        } else {
+            this.updateNavCounter();
+        }
+    }
+
     updateProgress() {
         const total = this.state.totalCount || (this.state.sortedCount + this.state.remainingCount);
         const sorted = this.state.sortedCount;
@@ -631,11 +768,12 @@ class StoreRoomStudio {
         this.grid.innerHTML = '';
 
         if (this.state.files.length === 0) {
+            const hasFilter = document.getElementById('storeRoomSearchInput')?.value || document.getElementById('formatFilter')?.value;
             this.grid.innerHTML = `
                 <div style="padding:2rem 1rem; text-align:center; color:#64748b;">
-                    <div style="font-size:2rem; margin-bottom:0.5rem;">🎉</div>
-                    <div style="font-weight:700; color:#0f172a; margin-bottom:0.25rem;">Queue is Empty!</div>
-                    <div style="font-size:0.8rem;">All files in storage have been labeled.</div>
+                    <div style="font-size:2rem; margin-bottom:0.5rem;">${hasFilter ? '🔍' : '🎉'}</div>
+                    <div style="font-weight:700; color:#0f172a; margin-bottom:0.25rem;">${hasFilter ? 'No Matching Files' : 'Queue is Empty!'}</div>
+                    <div style="font-size:0.8rem;">${hasFilter ? 'Try adjusting your search query or format filter.' : 'All files in storage have been labeled.'}</div>
                 </div>
             `;
             return;
@@ -648,11 +786,12 @@ class StoreRoomStudio {
 
             const format = (file.format || file.filename?.split('.').pop() || 'file').toUpperCase();
             const dateStr = file.created_at ? new Date(file.created_at).toLocaleDateString() : 'Storage';
+            const sizeStr = file.size && file.size !== 'Unknown' ? ` · ${file.size}` : '';
 
             card.innerHTML = `
                 <div class="queue-card-top">
                     <span class="queue-badge">${format}</span>
-                    <span class="queue-date">${dateStr}</span>
+                    <span class="queue-date">${dateStr}${sizeStr}</span>
                 </div>
                 <div class="queue-card-name" title="${file.filename || file.name}">${file.filename || file.name}</div>
             `;
@@ -690,7 +829,10 @@ class StoreRoomStudio {
         const format = (file.format || file.filename?.split('.').pop() || 'file').toUpperCase();
 
         if (badge) badge.textContent = file.filename || file.name;
-        if (formatPill) formatPill.textContent = format;
+        if (formatPill) {
+            const sizePart = file.size && file.size !== 'Unknown' ? ` (${file.size})` : '';
+            formatPill.textContent = `${format}${sizePart}`;
+        }
 
         // Update Document Canvas
         const emptyPrompt = document.getElementById('emptyPreviewPrompt');
@@ -1214,7 +1356,7 @@ class StoreRoomStudio {
 
     async handleFormSubmit(e) {
         e.preventDefault();
-        const cur = this.state.activeFile;
+        const cur = this.state.isEditMode ? this.state.editingDoc : this.state.activeFile;
         if (!cur) {
             this.showToast('No active file selected', 'error');
             return;
@@ -1272,6 +1414,32 @@ class StoreRoomStudio {
             payload.branch_abbr = this.makeAcronym(brText);
 
             payload.subject_abbr = this.makeAcronym(payload.subject_name);
+
+            if (this.state.isEditMode && this.state.editingDoc) {
+                payload.document_id = this.state.editingDoc.id;
+                const res = await StoreRoomAPI.updateLabel(payload);
+                const data = res.data;
+                if (res.response && res.response.ok && data && data.success) {
+                    this.showToast('✅ Label updated successfully!', 'success');
+                    Object.assign(this.state.editingDoc, {
+                        title: data.data?.title || payload.title,
+                        category: data.data?.document_category || payload.document_category,
+                        college_id: payload.college_id,
+                        branch_id: payload.branch_id,
+                        subject_id: payload.subject_id,
+                        subject: payload.subject_name,
+                        subject_code: payload.subject_code,
+                        semester: payload.semester,
+                        year: payload.year,
+                        exam_type: payload.exam_type
+                    });
+                    this.renderHistory();
+                    this.cancelEdit();
+                } else {
+                    this.showToast((data && data.message) ? data.message : 'Failed to update label', 'error');
+                }
+                return;
+            }
 
             const res = await StoreRoomAPI.submitLabel(payload);
             const data = res.data;
@@ -1440,10 +1608,34 @@ class StoreRoomStudio {
                 }
                 this.state.currentOffset = this.state.files.length;
                 this.updateProgress();
+
+                const queueBadge = document.getElementById('queueBadgeCount');
+                if (queueBadge) {
+                    queueBadge.textContent = (search || format) ? (res.pagination?.total ?? this.state.files.length) : this.state.remainingCount;
+                }
+
                 this.renderQueue();
 
                 if (this.state.files.length > 0) {
                     this.selectFileByIndex(0);
+                } else {
+                    this.state.activeIndex = -1;
+                    document.getElementById('emptyPreviewPrompt')?.classList.remove('hidden');
+                    document.getElementById('previewImg')?.classList.add('hidden');
+                    document.getElementById('previewFrame')?.classList.add('hidden');
+                    document.getElementById('previewControls')?.classList.add('hidden');
+                    const badge = document.getElementById('previewBadge');
+                    if (badge) badge.textContent = search ? 'No Matching Files' : 'Queue Empty';
+                    const pill = document.getElementById('previewFormatPill');
+                    if (pill) pill.textContent = 'NONE';
+                    const navCounter = document.getElementById('navCounter');
+                    if (navCounter) navCounter.textContent = '0 / 0';
+                }
+
+                const loadMoreBtn = document.getElementById('viewMoreBtn');
+                if (loadMoreBtn) {
+                    loadMoreBtn.style.display = res.pagination?.has_more ? 'block' : 'none';
+                    loadMoreBtn.textContent = 'Load More Queue Files';
                 }
             }
         } catch (e) {
@@ -1455,8 +1647,16 @@ class StoreRoomStudio {
         const btn = document.getElementById('viewMoreBtn');
         if (btn) btn.textContent = 'Loading...';
 
+        const search = document.getElementById('storeRoomSearchInput')?.value || '';
+        const format = document.getElementById('formatFilter')?.value || '';
+        const sort = document.getElementById('sortSelect')?.value || 'date';
+
         try {
             const res = await StoreRoomAPI.fetchFiles({
+                search,
+                format,
+                sort_by: sort === 'name' ? 'filename' : 'created_at',
+                order: sort === 'name' ? 'asc' : 'desc',
                 offset: this.state.currentOffset,
                 limit: this.state.itemsPerPage
             });
@@ -1465,13 +1665,19 @@ class StoreRoomStudio {
                 this.state.files.push(...res.files);
                 this.state.currentOffset += res.files.length;
                 this.renderQueue();
-            } else {
-                if (btn) btn.textContent = 'All Files Loaded';
+            }
+            if (btn) {
+                if (!res.pagination?.has_more) {
+                    btn.textContent = 'All Files Loaded';
+                    btn.style.display = 'none';
+                } else {
+                    btn.textContent = 'Load More Queue Files';
+                    btn.style.display = 'block';
+                }
             }
         } catch (e) {
             console.error('Failed to load more files', e);
-        } finally {
-            if (btn && btn.textContent === 'Loading...') btn.textContent = 'Load More Queue Files';
+            if (btn) btn.textContent = 'Load More Queue Files';
         }
     }
 

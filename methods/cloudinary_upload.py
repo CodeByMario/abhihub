@@ -270,10 +270,31 @@ def upload_file_to_cloudinary(
             except Exception as _e:
                 logging.debug(f"[cloudinary] Async Supabase fallback skipped: {_e}")
 
+        def _bg_register_storage_asset(res_data, orig_filename):
+            try:
+                from methods.supabase_helper import init_supabase
+                client = init_supabase()
+                if client:
+                    client.table('storage_assets').upsert({
+                        'provider': 'cloudinary',
+                        'provider_public_id': res_data.get('public_id'),
+                        'filename': orig_filename or res_data.get('original_filename') or res_data.get('public_id'),
+                        'public_url': res_data.get('secure_url') or res_data.get('url'),
+                        'mime': res_data.get('format', 'unknown'),
+                        'status': 'PENDING'
+                    }, on_conflict='provider,provider_public_id', ignore_duplicates=True).execute()
+            except Exception as _e:
+                logging.debug(f"[cloudinary] Storage asset registration skipped: {_e}")
+
         import threading
         threading.Thread(
             target=_bg_supabase_fallback,
             args=(file_bytes, result['public_id'], ext),
+            daemon=True
+        ).start()
+        threading.Thread(
+            target=_bg_register_storage_asset,
+            args=(result, filename),
             daemon=True
         ).start()
 

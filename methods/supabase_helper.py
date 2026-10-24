@@ -939,6 +939,7 @@ def save_file_record(
 
             update_res = client.table('documents').update(data).eq('id', existing['id']).execute()
             if update_res.data:
+                invalidate_files_cache()
                 logging.info(f"[Supabase] Completed metadata for existing document: {existing['id']}")
                 return {'success': True, 'message': 'Existing file metadata updated', 'data': update_res.data[0]}
             return {'success': False, 'message': 'Failed to update existing file record'}
@@ -1004,7 +1005,7 @@ def save_file_record(
             
             res_data = res.data[0]
             res_data.update(xp_data)
-            
+            invalidate_files_cache()
             return {'success': True, 'message': 'Saved successfully', 'data': res_data}
         
         logging.error(f"[Supabase] Failed to save document record. Response empty.")
@@ -1087,16 +1088,16 @@ def _extract_location_keys(val) -> set:
     if not val:
         return set()
     s = str(val).strip()
-    keys = {s}
+    keys = {s, s.lower()}
     s_clean = re.sub(r'^https?://[^/]+/', '', s)
     keys.add(s_clean)
+    keys.add(s_clean.lower())
     s_clean2 = re.sub(r'^(?:raw/|image/)?upload/(?:v\d+/)?', '', s_clean)
     keys.add(s_clean2)
+    keys.add(s_clean2.lower())
     s_noext = re.sub(r'\.[a-zA-Z0-9]+$', '', s_clean2)
     keys.add(s_noext)
-    base = s_noext.split('/')[-1]
-    if base and len(base) > 3:
-        keys.add(base)
+    keys.add(s_noext.lower())
     return {k for k in keys if k}
 
 def get_pending_storage_assets() -> list:
@@ -1104,16 +1105,42 @@ def get_pending_storage_assets() -> list:
     client = init_supabase()
     if not client: return []
     try:
-        # 1. Fetch all registered document locations
-        docs_res = client.table('documents').select('provider_public_id, file_url').execute()
+        # 1. Fetch all registered document locations across all pages
         doc_location_keys = set()
-        for doc in (docs_res.data or []):
-            doc_location_keys.update(_extract_location_keys(doc.get('file_url')))
-            doc_location_keys.update(_extract_location_keys(doc.get('provider_public_id')))
+        page = 0
+        batch_limit = 1000
+        while True:
+            docs_res = client.table('documents').select('provider_public_id, file_url').range(page * batch_limit, (page + 1) * batch_limit - 1).execute()
+            rows = docs_res.data or []
+            for doc in rows:
+                doc_location_keys.update(_extract_location_keys(doc.get('file_url')))
+                doc_location_keys.update(_extract_location_keys(doc.get('provider_public_id')))
+            if len(rows) < batch_limit:
+                break
+            page += 1
 
-        # 2. Fetch storage assets marked PENDING
-        res = client.table('storage_assets').select('*').eq('status', 'PENDING').execute()
-        pending = res.data or []
+        # 2. Fetch storage assets marked PENDING across all pages
+        pending = []
+        page = 0
+        while True:
+            res = client.table('storage_assets').select('*').eq('status', 'PENDING').range(page * batch_limit, (page + 1) * batch_limit - 1).execute()
+            rows = res.data or []
+            pending.extend(rows)
+            if len(rows) < batch_limit:
+                break
+            page += 1
+
+        # 2b. Auto-seed fallback: if storage_assets table has 0 assets, sync once from Cloudinary
+        if not pending:
+            cnt_check = client.table('storage_assets').select('id', count='exact').limit(1).execute()
+            if (cnt_check.count or 0) == 0:
+                try:
+                    from methods.storage_providers import CloudinaryProvider
+                    CloudinaryProvider().sync()
+                    res = client.table('storage_assets').select('*').eq('status', 'PENDING').range(0, batch_limit - 1).execute()
+                    pending = res.data or []
+                except Exception as sync_e:
+                    logging.warning(f"[get_pending_storage_assets] Auto seed error: {sync_e}")
 
         truly_pending = []
         already_labeled_ids = []
@@ -1153,12 +1180,23 @@ def mark_storage_asset_labeled(provider: str, provider_public_id: str, filename:
             res = client.table('storage_assets').update({'status': 'LABELED'}).eq('provider', provider).eq('provider_public_id', provider_public_id).execute()
             if res.data and len(res.data) > 0:
                 updated = True
+            if not updated and '.' in provider_public_id:
+                no_ext = provider_public_id.rsplit('.', 1)[0]
+                res = client.table('storage_assets').update({'status': 'LABELED'}).eq('provider', provider).eq('provider_public_id', no_ext).execute()
+                if res.data and len(res.data) > 0:
+                    updated = True
         if not updated and filename:
             res = client.table('storage_assets').update({'status': 'LABELED'}).eq('filename', filename).execute()
             if res.data and len(res.data) > 0:
                 updated = True
         if not updated and url:
-            client.table('storage_assets').update({'status': 'LABELED'}).eq('public_url', url).execute()
+            res = client.table('storage_assets').update({'status': 'LABELED'}).eq('public_url', url).execute()
+            if res.data and len(res.data) > 0:
+                updated = True
+            if not updated:
+                clean_name = url.split('/')[-1].split('?')[0]
+                if clean_name:
+                    client.table('storage_assets').update({'status': 'LABELED'}).eq('filename', clean_name).execute()
         return True
     except Exception as e:
         logging.error(f"[Supabase] Error updating asset status: {e}")
@@ -1272,7 +1310,8 @@ def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
         'is_bookmarked': is_bookmarked,
         'college': college_name or 'Other',
         'is_paid': is_paid,
-        'price': price_val
+        'price': price_val,
+        'uploader_id': str(doc.get('uploader_id') or '')
     }
 
 def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dict:
@@ -1287,7 +1326,7 @@ def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dic
     try:
         res = client.table('documents') \
             .select('*, profiles!documents_uploader_id_fkey(full_name, email), subjects(name, subject_code), colleges(name, abbreviation), document_votes(user_id), bookmarks(user_id), document_comments(id)') \
-            .in_('status', ['approved', 'pending']) \
+            .neq('status', 'rejected') \
             .order('created_at', desc=True) \
             .execute()
         files = [_doc_to_json(d, current_user_id) for d in res.data] if res.data else []

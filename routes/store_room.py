@@ -20,6 +20,7 @@ from methods.supabase_helper import (
     add_paper_verification,
     get_pending_verification_papers,
     validate_uuid,
+    invalidate_files_cache,
 )
 from methods.cloudinary_helper import (
     search_files,
@@ -50,17 +51,40 @@ def get_cached_unlabeled_files():
 
     pending_assets = get_pending_storage_assets()
 
+    # Load fast in-memory lookup for original file size, bytes, format, and timestamp
+    extra_lookup = {}
+    try:
+        import os, json
+        cache_path = os.path.join("data", "cache", "cloudinary_files_cache.json")
+        if os.path.exists(cache_path):
+            with open(cache_path, 'r', encoding='utf-8') as cf_file:
+                cdata = json.load(cf_file)
+                for cf in cdata.get('files', []):
+                    pid = cf.get('public_id')
+                    if pid:
+                        extra_lookup[pid] = {
+                            'size': cf.get('size'),
+                            'bytes': cf.get('bytes'),
+                            'created_at': cf.get('created_at'),
+                            'format': cf.get('format')
+                        }
+    except Exception as c_err:
+        logging.debug(f"[STORE-ROOM] Cloudinary cache lookup note: {c_err}")
+
     unlabeled_files = []
     for f in pending_assets:
+        storage_id = f.get('provider_public_id')
+        extra = extra_lookup.get(storage_id) or {}
         unlabeled_files.append({
             'storage_provider': f.get('provider'),
-            'storage_id': f.get('provider_public_id'),
+            'storage_id': storage_id,
             'filename': f.get('filename'),
             'url': f.get('public_url'),
             'path': f.get('public_url'),
-            'created_at': f.get('uploaded_at'),
-            'size': 'Unknown',
-            'format': (f.get('mime') or 'unknown').split('/')[-1],
+            'created_at': extra.get('created_at') or f.get('uploaded_at') or f.get('created_at'),
+            'size': extra.get('size') or 'Unknown',
+            'bytes': extra.get('bytes') or 0,
+            'format': (extra.get('format') or (f.get('mime') or 'unknown').split('/')[-1]).lower(),
             'record_id': None,
             'verified': False,
             'verification_status': None,
@@ -268,6 +292,7 @@ def label_store_room_paper():
                     details={'subject_id': subject_id, 'branch_id': branch_id, 'college_id': college_id}
                 )
             _unlabeled_cache['data'] = None
+            invalidate_files_cache()
             return jsonify({
                 'success': True,
                 'message': 'Paper labeled successfully',
@@ -277,6 +302,7 @@ def label_store_room_paper():
             if result.get('conflict'):
                 _mark_labeled(storage_provider, cloudinary_public_id, filename=filename, file_url=file_url)
                 _unlabeled_cache['data'] = None
+                invalidate_files_cache()
                 return jsonify({
                     'success': True,
                     'message': 'File was already labeled and has been removed from the Store Room queue.',
@@ -350,7 +376,7 @@ def store_room_api_history():
 
             query = (
                 client.table('label_audit_logs')
-                .select('id, document_id, action, created_at, documents(id, title, document_category, file_url, view_count, status, created_at, colleges(name, abbreviation), subjects(name))')
+                .select('id, document_id, action, created_at, documents(id, title, document_category, file_url, view_count, status, created_at, college_id, department_id, subject_id, exam_type, semester, description, colleges(name, abbreviation), subjects(name, subject_code))')
                 .eq('action', 'LABELED_FROM_QUEUE')
                 .in_('user_id', user_candidates)
                 .order('created_at', desc=True)
@@ -364,12 +390,32 @@ def store_room_api_history():
                     seen_doc_ids.add(doc_id)
                     col = doc.get('colleges') or {}
                     sub = doc.get('subjects') or {}
+                    desc_str = doc.get('description') or ''
+                    year_val = ''
+                    if desc_str and desc_str.startswith('{'):
+                        try:
+                            import json
+                            desc_data = json.loads(desc_str)
+                            year_val = str(desc_data.get('year') or '')
+                        except Exception:
+                            pass
+                    if not year_val and doc.get('title'):
+                        ym = re.search(r'\b(201\d|202\d)\b', doc.get('title'))
+                        if ym: year_val = ym.group(1)
+
                     history_list.append({
                         'id': doc_id,
                         'title': doc.get('title') or 'Cataloged Resource',
                         'category': doc.get('document_category') or 'papers',
+                        'college_id': doc.get('college_id') or '',
+                        'branch_id': doc.get('department_id') or '',
+                        'subject_id': doc.get('subject_id') or '',
                         'college': col.get('abbreviation') or col.get('name') or '',
                         'subject': sub.get('name') or '',
+                        'subject_code': sub.get('subject_code') or '',
+                        'semester': doc.get('semester') or '',
+                        'year': year_val or '',
+                        'exam_type': doc.get('exam_type') or '',
                         'file_url': doc.get('file_url') or '',
                         'view_count': doc.get('view_count') or 0,
                         'status': doc.get('status') or 'approved',
@@ -385,6 +431,147 @@ def store_room_api_history():
         }), 200
     except Exception as e:
         logging.error(f"[STORE_ROOM_HISTORY] Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@store_room_bp.route('/store-room/api/edit-label', methods=['POST'])
+@auth_required
+def edit_store_room_label():
+    """Edit an existing labeled document record."""
+    try:
+        user_info = session.get('user', {})
+        user_id = user_info.get('uid', '')
+        user_email = user_info.get('email', '')
+        if not user_email:
+            return jsonify({'success': False, 'message': 'User not authenticated'}), 401
+
+        data = request.get_json() or {}
+        doc_id = data.get('document_id') or data.get('record_id')
+        if not doc_id:
+            return jsonify({'success': False, 'message': 'Document ID is required'}), 400
+
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'message': 'Database unavailable'}), 500
+
+        d_res = client.table('documents').select('*').eq('id', doc_id).limit(1).execute()
+        if not d_res.data:
+            return jsonify({'success': False, 'message': 'Document not found'}), 404
+        doc = d_res.data[0]
+
+        from routes.auth import is_admin_user
+        is_admin = is_admin_user(user_info)
+        is_uploader = bool(user_id and str(doc.get('uploader_id') or '') == str(user_id))
+        if not (is_admin or is_uploader):
+            return jsonify({'success': False, 'message': 'Unauthorized to modify this label'}), 403
+
+        college_id = (data.get('college_id') or '').strip() or None
+        branch_id = (data.get('branch_id') or '').strip() or None
+        subject_id = (data.get('subject_id') or '').strip() or None
+        subject_name = (data.get('subject_name') or '').strip()
+        subject_code = (data.get('subject_code') or '').strip()
+        year_raw = data.get('year', '')
+        year = str(year_raw).strip()
+        custom_title = (data.get('title') or '').strip()
+        document_category = data.get('document_category', 'papers')
+        exam_type = (data.get('exam_type') or '').strip()
+        semester_raw = data.get('semester')
+        semester = int(semester_raw) if semester_raw and str(semester_raw).isdigit() and 1 <= int(semester_raw) <= 8 else None
+
+        allowed_categories = ['papers', 'notes', 'practical', 'syllabus', 'assisment', 'timetable', 'question_bank']
+        if document_category not in allowed_categories:
+            document_category = 'papers'
+
+        from methods.supabase_helper import make_acronym
+        col_abbr = (data.get('college_abbr') or '').strip().upper()
+        dept_abbr = (data.get('branch_abbr') or data.get('department_abbr') or '').strip().upper()
+        subj_abbr = (data.get('subject_abbr') or '').strip().upper()
+        subj_code = (subject_code or '').strip().upper()
+
+        if not col_abbr and college_id:
+            try:
+                c_row = client.table('colleges').select('name, abbreviation').eq('id', college_id).limit(1).execute()
+                if c_row.data:
+                    col_abbr = (c_row.data[0].get('abbreviation') or make_acronym(c_row.data[0].get('name'))).strip().upper()
+            except Exception:
+                pass
+        if not dept_abbr and branch_id:
+            try:
+                d_row = client.table('departments').select('name, abbreviation').eq('id', branch_id).limit(1).execute()
+                if d_row.data:
+                    dept_abbr = (d_row.data[0].get('abbreviation') or make_acronym(d_row.data[0].get('name'))).strip().upper()
+            except Exception:
+                pass
+        if subject_id:
+            try:
+                s_row = client.table('subjects').select('name, subject_code').eq('id', subject_id).limit(1).execute()
+                if s_row.data:
+                    if not subj_code:
+                        subj_code = (s_row.data[0].get('subject_code') or '').strip().upper()
+                    if not subj_abbr:
+                        subj_abbr = make_acronym(s_row.data[0].get('name') or subject_name)
+            except Exception:
+                pass
+
+        if not subj_abbr and subject_name:
+            subj_abbr = make_acronym(subject_name)
+
+        prefix_tags = [p for p in [col_abbr, dept_abbr, subj_abbr] if p]
+        header = " - ".join(prefix_tags)
+        if subj_code and subj_code not in header:
+            header = f"{header} ({subj_code})" if header else subj_code
+
+        cat_title = document_category.replace('_', ' ').title()
+        exam_title = exam_type.upper() if exam_type else ''
+        details_list = [p for p in [exam_title, cat_title, str(year) if year else ''] if p]
+        details_str = " · ".join(details_list)
+
+        final_title = custom_title or (f"{header} - {details_str}" if header else (details_str or subject_name or doc.get('title')))
+
+        import json
+        desc_obj = {}
+        if doc.get('description'):
+            try:
+                desc_obj = json.loads(doc.get('description'))
+            except Exception:
+                pass
+        if not isinstance(desc_obj, dict):
+            desc_obj = {}
+        if subject_name: desc_obj['subject'] = subject_name
+        if year: desc_obj['year'] = year
+        if subj_code: desc_obj['subject_code'] = subj_code
+        if semester: desc_obj['semester'] = semester
+
+        update_data = {
+            'title': final_title,
+            'college_id': college_id,
+            'department_id': branch_id,
+            'subject_id': subject_id,
+            'document_category': document_category,
+            'exam_type': exam_type or None,
+            'semester': semester,
+            'description': json.dumps(desc_obj) if desc_obj else doc.get('description')
+        }
+
+        up_res = client.table('documents').update(update_data).eq('id', doc_id).execute()
+        if up_res.data:
+            log_label_audit(
+                user_id=user_id or doc.get('uploader_id'),
+                document_id=doc_id,
+                action='LABELED_EDITED',
+                details={'subject_id': subject_id, 'branch_id': branch_id, 'college_id': college_id}
+            )
+            invalidate_files_cache()
+            return jsonify({
+                'success': True,
+                'message': 'Document label updated successfully',
+                'data': up_res.data[0]
+            }), 200
+        else:
+            return jsonify({'success': False, 'message': 'Failed to update record in database'}), 500
+
+    except Exception as e:
+        logging.error(f"[STORE_ROOM_EDIT_LABEL] Exception: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
@@ -417,7 +604,7 @@ def store_room_api_unlabeled():
         remaining_papers = len(unlabeled_files)
 
         paginated_files = all_files[offset:offset + limit]
-        has_more = (offset + limit) < total_papers
+        has_more = (offset + limit) < len(all_files)
 
         return jsonify({
             'success': True,
@@ -425,13 +612,14 @@ def store_room_api_unlabeled():
             'statistics': {
                 'total': total_papers,
                 'sorted': sorted_papers,
-                'remaining': remaining_papers
+                'remaining': remaining_papers,
+                'filtered': len(all_files)
             },
             'pagination': {
                 'offset': offset,
                 'limit': limit,
                 'has_more': has_more,
-                'total': total_papers
+                'total': len(all_files)
             }
         })
     except Exception as e:
