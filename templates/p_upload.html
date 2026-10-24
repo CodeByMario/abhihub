@@ -92,7 +92,7 @@
           <span class="social-proof-item">⚡ Earn <strong class="text-xp">+25 XP</strong></span>
         </div>
 
-        <form id="uploadForm" data-event-submit="startBulkUpload">
+        <form id="uploadForm" data-event-submit="startBulkUpload" novalidate>
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
           <!-- Drop zone -->
@@ -547,6 +547,32 @@
       </div>
     </section>
    </div>
+</div>
+
+<!-- ── Top Sticky Background Upload Notification Banner ── -->
+<div id="uploadTopBanner" class="upload-top-banner" style="display:none;" role="status" aria-live="polite">
+  <div class="utb-content">
+    <div class="utb-left">
+      <div class="utb-spinner" id="utbSpinner"></div>
+      <div class="utb-text-wrap">
+        <div class="utb-title-row">
+          <span class="utb-title" id="utbTitle">Uploading in background…</span>
+          <span class="utb-badge" id="utbBadge">1 remaining</span>
+        </div>
+        <div class="utb-sub" id="utbSub">You can continue using the app while your files upload.</div>
+      </div>
+    </div>
+    <div class="utb-mid">
+      <div class="utb-progress-bar">
+        <div class="utb-progress-fill" id="utbProgressFill" style="width: 0%;"></div>
+      </div>
+      <span class="utb-percent" id="utbPercent">0%</span>
+    </div>
+    <div class="utb-right">
+      <button type="button" class="utb-btn utb-btn-secondary" id="utbDetailsBtn" onclick="openStatusModal()">Details</button>
+      <button type="button" class="utb-btn-icon" id="utbCloseBtn" onclick="dismissTopBanner()" title="Dismiss notification">✕</button>
+    </div>
+  </div>
 </div>
 
 <!-- ── Toast container ── -->

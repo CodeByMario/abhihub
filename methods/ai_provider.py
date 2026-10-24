@@ -578,7 +578,7 @@ def get_adapter(provider: str, api_key: str, model: str | None = None) -> LLMPro
     if p == "anthropic":
         return AnthropicAdapter(api_key=api_key, model=model or "claude-3-5-sonnet-20241022")
     elif p == "gemini":
-        return GeminiAdapter(api_key=api_key, model=model or "gemini-2.0-flash")
+        return GeminiAdapter(api_key=api_key, model=model or "gemini-2.5-flash")
     elif p == "nvidia":
         return OpenAICompatibleAdapter(
             api_key=api_key,
@@ -764,7 +764,7 @@ def fetch_live_models(provider: str, api_key: str | None = None) -> list[dict]:
                 {"id": "mixtral-8x7b-32768", "name": "Mixtral 8x7B (Free Tier)", "is_free": True},
             ],
             "gemini": [
-                {"id": "gemini-2.0-flash", "name": "Gemini 2.0 Flash (Free Tier Available)", "is_free": True},
+                {"id": "gemini-2.5-flash", "name": "Gemini 2.5 Flash (Free Tier Available)", "is_free": True},
                 {"id": "gemini-1.5-flash", "name": "Gemini 1.5 Flash (Free Tier Available)", "is_free": True},
                 {"id": "gemini-1.5-pro", "name": "Gemini 1.5 Pro (Pay-as-you-go)", "is_free": False},
             ],

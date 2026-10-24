@@ -449,16 +449,18 @@ def store_room_api_rename_file():
         if not original_filename:
             return jsonify({'success': False, 'message': 'Filename required'}), 400
 
-        college = data.get('college_name', '').strip()[:3].upper()
-        subject_code = data.get('subject_code', '').strip() or data.get('subject_name', '')[:4].upper()
-        exam_type = data.get('exam_type', 'unknown')[0].upper()
+        college = (data.get('college_name') or '').strip()[:3].upper()
+        subject_code = (data.get('subject_code') or '').strip() or (data.get('subject_name') or '')[:4].upper()
+        raw_exam = (data.get('exam_type') or 'unknown').strip()
+        exam_type = raw_exam[0].upper() if raw_exam else 'U'
         year = data.get('year', '')
         branch = data.get('branch', '').strip()[:3].upper()
         semesters = data.get('semesters', [])
         sem = '-'.join(str(s) for s in semesters) if semesters else 'UNK'
 
         file_ext = os.path.splitext(original_filename)[1]
-        new_filename = f"{college}_{subject_code}_{exam_type}_{year}_{branch}_{sem}{file_ext}"
+        parts = [p for p in [college, subject_code, exam_type, str(year) if year else '', branch, sem] if p]
+        new_filename = "_".join(parts) + file_ext
         new_filename = "".join(c for c in new_filename if c.isalnum() or c in ('_', '.'))
 
         return jsonify({

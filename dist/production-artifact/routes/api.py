@@ -1817,11 +1817,20 @@ def view_doc(doc_id, filename=None):
             abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
 
         content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
-        if document.get('file_type') == 'pdf' or '.pdf' in file_url.lower() or file_url.lower().endswith('.txt'):
+        is_pdf_doc = (
+            document.get('file_type') == 'pdf' or
+            '.pdf' in file_url.lower() or
+            file_url.lower().endswith('.txt') or
+            (filename and filename.lower().endswith('.pdf')) or
+            str(document.get('file_name', '')).lower().endswith('.pdf')
+        )
+        if is_pdf_doc:
             content_type = 'application/pdf'
-            filename_doc = document.get('title') or 'document.pdf'
+            filename_doc = document.get('title') or document.get('file_name') or 'document.pdf'
             filename_doc = re.sub(r'[^a-z0-9_\-\.]+', '_', filename_doc, flags=re.I)
-            if not filename_doc.lower().endswith('.pdf'):
+            if filename_doc.lower().endswith('.txt'):
+                filename_doc = filename_doc[:-4] + '.pdf'
+            elif not filename_doc.lower().endswith('.pdf'):
                 filename_doc = filename_doc.rsplit('.', 1)[0] + '.pdf'
 
         if is_preview_mode:
@@ -1866,7 +1875,7 @@ def view_doc(doc_id, filename=None):
                 logging.error(f"[VIEW-DOC] Stream interrupted: {e}")
 
         response_headers = _secure_file_headers()
-        if document.get('file_type') == 'pdf' or '.pdf' in file_url.lower() or file_url.lower().endswith('.txt'):
+        if is_pdf_doc:
             response_headers['Content-Disposition'] = f"inline; filename*=UTF-8''{filename_doc}"
         if 'Content-Length' in upstream.headers:
             response_headers['Content-Length'] = upstream.headers['Content-Length']

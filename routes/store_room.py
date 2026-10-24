@@ -201,6 +201,9 @@ def label_store_room_paper():
         subj_abbr = (data.get('subject_abbr') or '').strip().upper()
         subj_code = (subject_code or data.get('subject_code') or '').strip().upper()
 
+        if program and program.lower() != 'b.tech' and (not dept_abbr or dept_abbr in ('ALL', 'ABA')):
+            dept_abbr = re.sub(r'[^a-zA-Z0-9]', '', program).upper()
+
         from methods.supabase_helper import init_supabase, make_acronym
         client_sb = init_supabase()
         if client_sb:
@@ -229,6 +232,11 @@ def label_store_room_paper():
                 except Exception:
                     pass
 
+        if col_abbr == 'GHRCEG':
+            col_abbr = 'GHRCE'
+        if dept_abbr == 'ABA':
+            dept_abbr = 'MBA'
+
         if not subj_abbr and subject_name:
             subj_abbr = make_acronym(subject_name)
 
@@ -250,10 +258,13 @@ def label_store_room_paper():
         else:
             final_title = custom_title or subject_name
 
+        final_title = final_title.replace('GHRCEG', 'GHRCE').replace('ABA', 'MBA')
+
         # Standardize filename: CollegeAbbr_DeptAbbr_SubjAbbr_SubjCode_Exam_Category_Year.ext
         fn_components = [p for p in [col_abbr, dept_abbr, subj_abbr, subj_code, exam_title, cat_title.replace(' ', ''), str(year)] if p]
         if fn_components:
             clean_filename = "_".join(re.sub(r'[^a-zA-Z0-9]', '', c) for c in fn_components) + f".{file_ext}"
+            clean_filename = clean_filename.replace('GHRCEG', 'GHRCE').replace('ABA', 'MBA')
         else:
             clean_filename = filename
 
@@ -488,6 +499,10 @@ def edit_store_room_label():
         subj_abbr = (data.get('subject_abbr') or '').strip().upper()
         subj_code = (subject_code or '').strip().upper()
 
+        prog_val = (data.get('program') or doc.get('program') or '').strip()
+        if prog_val and prog_val.lower() != 'b.tech' and (not dept_abbr or dept_abbr in ('ALL', 'ABA')):
+            dept_abbr = re.sub(r'[^a-zA-Z0-9]', '', prog_val).upper()
+
         if not col_abbr and college_id:
             try:
                 c_row = client.table('colleges').select('name, abbreviation').eq('id', college_id).limit(1).execute()
@@ -513,6 +528,11 @@ def edit_store_room_label():
             except Exception:
                 pass
 
+        if col_abbr == 'GHRCEG':
+            col_abbr = 'GHRCE'
+        if dept_abbr == 'ABA':
+            dept_abbr = 'MBA'
+
         if not subj_abbr and subject_name:
             subj_abbr = make_acronym(subject_name)
 
@@ -527,6 +547,7 @@ def edit_store_room_label():
         details_str = " · ".join(details_list)
 
         final_title = custom_title or (f"{header} - {details_str}" if header else (details_str or subject_name or doc.get('title')))
+        final_title = final_title.replace('GHRCEG', 'GHRCE').replace('ABA', 'MBA')
 
         import json
         desc_obj = {}
@@ -637,16 +658,18 @@ def store_room_api_rename_file():
         if not original_filename:
             return jsonify({'success': False, 'message': 'Filename required'}), 400
 
-        college = data.get('college_name', '').strip()[:3].upper()
-        subject_code = data.get('subject_code', '').strip() or data.get('subject_name', '')[:4].upper()
-        exam_type = data.get('exam_type', 'unknown')[0].upper()
+        college = (data.get('college_name') or '').strip()[:3].upper()
+        subject_code = (data.get('subject_code') or '').strip() or (data.get('subject_name') or '')[:4].upper()
+        raw_exam = (data.get('exam_type') or 'unknown').strip()
+        exam_type = raw_exam[0].upper() if raw_exam else 'U'
         year = data.get('year', '')
         branch = data.get('branch', '').strip()[:3].upper()
         semesters = data.get('semesters', [])
         sem = '-'.join(str(s) for s in semesters) if semesters else 'UNK'
 
         file_ext = os.path.splitext(original_filename)[1]
-        new_filename = f"{college}_{subject_code}_{exam_type}_{year}_{branch}_{sem}{file_ext}"
+        parts = [p for p in [college, subject_code, exam_type, str(year) if year else '', branch, sem] if p]
+        new_filename = "_".join(parts) + file_ext
         new_filename = "".join(c for c in new_filename if c.isalnum() or c in ('_', '.'))
 
         return jsonify({

@@ -778,14 +778,22 @@ function updateDynamicFieldsForForm(formWrap) {
 
 function makeAcronym(str) {
   if (!str) return '';
+  const parenMatch = str.match(/\(([^)]+)\)/);
+  if (parenMatch) {
+    const inside = parenMatch[1].trim();
+    if (/^[a-zA-Z0-9&.\-_]{2,8}$/.test(inside)) {
+      return inside.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    }
+  }
+  const cleanStr = str.replace(/\([^)]*\)/g, '').trim();
   const stopWords = new Set(['and', 'of', 'the', 'in', 'for', 'to', 'with', 'on', 'at', '&']);
-  const words = str.trim().split(/[\s_\-]+/).filter(w => w && !stopWords.has(w.toLowerCase()));
+  const words = cleanStr.split(/[\s_\-]+/).filter(w => w && !stopWords.has(w.toLowerCase()));
   if (words.length === 1) {
     const clean = words[0].replace(/[^a-zA-Z0-9]/g, '');
     return clean.length <= 6 ? clean.toUpperCase() : clean.slice(0, 6).toUpperCase();
   }
   const acr = words.map(w => w.replace(/[^a-zA-Z0-9]/g, '')[0] || '').join('');
-  return (acr.length >= 2 ? acr : str.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6)).toUpperCase();
+  return (acr.length >= 2 ? acr : cleanStr.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6)).toUpperCase();
 }
 
 function updateAutoTitleForForm(formWrap) {
@@ -808,7 +816,13 @@ function updateAutoTitleForForm(formWrap) {
   const tsBr = window.AbhiHubSelect?.instances[branchEl?.id];
   const brId = tsBr ? tsBr.getValue() : (branchEl?.value || '');
   const brText = (tsBr && tsBr.options[brId]?.text) || (branchEl && branchEl.selectedIndex >= 0 ? branchEl.options[branchEl.selectedIndex]?.text : '') || '';
-  const deptAbbr = makeAcronym(brText);
+  let deptAbbr = makeAcronym(brText);
+  const progVal = (formWrap.querySelector('.program-select')?.value || '').trim();
+  if (progVal && progVal.toLowerCase() !== 'b.tech') {
+    if (!deptAbbr || deptAbbr === 'ALL' || deptAbbr === 'ABA' || /^(all|general)/i.test(brText)) {
+      deptAbbr = progVal.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    }
+  }
 
   const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
   const subjId = tsSubj ? tsSubj.getValue() : (subjEl?.value || '');
@@ -1009,6 +1023,8 @@ function buildFormData(item) {
     const semEl = form.querySelector('.semester-select');
     const subjEl = form.querySelector('.subject-select');
     const progEl = form.querySelector('.program-select');
+    const titleEl = form.querySelector('.meta-title') || form.querySelector('input[name="title"]');
+    const descEl = form.querySelector('.meta-description') || form.querySelector('.meta-desc') || form.querySelector('textarea[name="description"]');
 
     const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
     const subjId = tsSubj ? tsSubj.getValue() : (subjEl ? subjEl.value : '');
@@ -1023,7 +1039,13 @@ function buildFormData(item) {
     const tsBr = window.AbhiHubSelect?.instances[branchEl?.id];
     const brId = tsBr ? tsBr.getValue() : (branchEl ? branchEl.value : '');
     const brText = (tsBr && tsBr.options[brId]?.text) || (branchEl && branchEl.selectedIndex >= 0 ? branchEl.options[branchEl.selectedIndex]?.text : '') || '';
-    const deptAbbr = makeAcronym(brText);
+    let deptAbbr = makeAcronym(brText);
+    const progVal = (progEl?.value || '').trim();
+    if (progVal && progVal.toLowerCase() !== 'b.tech') {
+      if (!deptAbbr || deptAbbr === 'ALL' || deptAbbr === 'ABA' || /^(all|general)/i.test(brText)) {
+        deptAbbr = progVal.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      }
+    }
 
     let parsedSubjName = subjText;
     let parsedSubjCode = '';

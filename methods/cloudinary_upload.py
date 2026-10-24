@@ -227,8 +227,10 @@ def upload_file_to_cloudinary(
         # Keep the file bytes intact, but upload with a non-PDF extension
         # so Cloudinary does not apply PDF-specific delivery restrictions.
         # The app still serves it with Content-Type: application/pdf.
-        if resource_type == 'raw' and ext and ext.lower() == 'pdf':
+        is_pdf = (ext and ext.lower() == 'pdf') or (resource_type == 'raw' and filename.lower().endswith('.pdf'))
+        if is_pdf:
             public_id = f"{public_id}.txt"
+            resource_type = 'raw'
         elif resource_type == 'raw' and ext:
             public_id = f"{public_id}.{ext}"
 
@@ -239,7 +241,7 @@ def upload_file_to_cloudinary(
             'folder': folder,
             'overwrite': False,
             'use_filename': False,
-            'unique_filename': True,
+            'unique_filename': False,
             'access_control': [{'access_type': 'anonymous'}]  # Ensure public access for proxied delivery
         }
 

@@ -349,14 +349,22 @@ class StoreRoomStudio {
 
     makeAcronym(str) {
         if (!str) return '';
+        const parenMatch = str.match(/\(([^)]+)\)/);
+        if (parenMatch) {
+            const inside = parenMatch[1].trim();
+            if (/^[a-zA-Z0-9&.\-_]{2,8}$/.test(inside)) {
+                return inside.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            }
+        }
+        const cleanStr = str.replace(/\([^)]*\)/g, '').trim();
         const stopWords = new Set(['and', 'of', 'the', 'in', 'for', 'to', 'with', 'on', 'at', '&']);
-        const words = str.trim().split(/[\s_\-]+/).filter(w => w && !stopWords.has(w.toLowerCase()));
+        const words = cleanStr.split(/[\s_\-]+/).filter(w => w && !stopWords.has(w.toLowerCase()));
         if (words.length === 1) {
             const clean = words[0].replace(/[^a-zA-Z0-9]/g, '');
             return clean.length <= 6 ? clean.toUpperCase() : clean.slice(0, 6).toUpperCase();
         }
         const acr = words.map(w => w.replace(/[^a-zA-Z0-9]/g, '')[0] || '').join('');
-        return (acr.length >= 2 ? acr : str.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6)).toUpperCase();
+        return (acr.length >= 2 ? acr : cleanStr.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6)).toUpperCase();
     }
 
     updateAutoTitle() {
@@ -367,13 +375,23 @@ class StoreRoomStudio {
         const tsCol = window.AbhiHubSelect?.instances['collegeName'];
         const colId = tsCol ? tsCol.getValue() : (colSelect?.value || '');
         const colText = (tsCol && tsCol.options[colId]?.text) || (colSelect && colSelect.selectedIndex >= 0 ? colSelect.options[colSelect.selectedIndex]?.text : '') || '';
-        const colAbbr = this.makeAcronym(colText);
+        let colAbbr = this.makeAcronym(colText);
+        if (colAbbr === 'GHRCEG') colAbbr = 'GHRCE';
 
         const brSelect = document.getElementById('branch');
         const tsBr = window.AbhiHubSelect?.instances['branch'];
         const brId = tsBr ? tsBr.getValue() : (brSelect?.value || '');
         const brText = (tsBr && tsBr.options[brId]?.text) || (brSelect && brSelect.selectedIndex >= 0 ? brSelect.options[brSelect.selectedIndex]?.text : '') || '';
-        const deptAbbr = this.makeAcronym(brText);
+        let deptAbbr = this.makeAcronym(brText);
+
+        const progSelect = document.getElementById('program');
+        const progVal = (progSelect?.value || '').trim();
+        if (progVal && progVal.toLowerCase() !== 'b.tech') {
+            if (!deptAbbr || deptAbbr === 'ALL' || deptAbbr === 'ABA' || /^(all|general)/i.test(brText)) {
+                deptAbbr = progVal.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+            }
+        }
+        if (deptAbbr === 'ABA') deptAbbr = 'MBA';
 
         const subjSelect = document.getElementById('subjectName');
         const tsSubj = window.AbhiHubSelect?.instances['subjectName'];
@@ -1263,13 +1281,24 @@ class StoreRoomStudio {
             const tsCol = window.AbhiHubSelect?.instances['collegeName'];
             const colId = tsCol ? tsCol.getValue() : (colSelect?.value || '');
             const colText = (tsCol && tsCol.options[colId]?.text) || (colSelect && colSelect.selectedIndex >= 0 ? colSelect.options[colSelect.selectedIndex]?.text : '') || '';
-            payload.college_abbr = this.makeAcronym(colText);
+            let colAbbr = this.makeAcronym(colText);
+            if (colAbbr === 'GHRCEG') colAbbr = 'GHRCE';
+            payload.college_abbr = colAbbr;
 
             const brSelect = document.getElementById('branch');
             const tsBr = window.AbhiHubSelect?.instances['branch'];
             const brId = tsBr ? tsBr.getValue() : (brSelect?.value || '');
             const brText = (tsBr && tsBr.options[brId]?.text) || (brSelect && brSelect.selectedIndex >= 0 ? brSelect.options[brSelect.selectedIndex]?.text : '') || '';
-            payload.branch_abbr = this.makeAcronym(brText);
+            let deptAbbr = this.makeAcronym(brText);
+            const progSelect = document.getElementById('program');
+            const progVal = (progSelect?.value || '').trim();
+            if (progVal && progVal.toLowerCase() !== 'b.tech') {
+                if (!deptAbbr || deptAbbr === 'ALL' || deptAbbr === 'ABA' || /^(all|general)/i.test(brText)) {
+                    deptAbbr = progVal.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+                }
+            }
+            if (deptAbbr === 'ABA') deptAbbr = 'MBA';
+            payload.branch_abbr = deptAbbr;
 
             payload.subject_abbr = this.makeAcronym(payload.subject_name);
 

@@ -732,13 +732,19 @@ def make_acronym(text: str) -> str:
     """Generates an uppercase abbreviation/acronym from an entity name."""
     if not text:
         return ''
+    m = re.search(r'\(([^)]+)\)', str(text))
+    if m:
+        inside = m.group(1).strip()
+        if re.match(r'^[a-zA-Z0-9&.\-_]{2,8}$', inside):
+            return re.sub(r'[^a-zA-Z0-9]', '', inside).upper()
+    clean_text = re.sub(r'\([^)]*\)', '', str(text)).strip()
     stop_words = {'and', 'of', 'the', 'in', 'for', 'to', 'with', 'on', 'at', '&'}
-    words = [w for w in re.split(r'[\s_\-]+', str(text).strip()) if w and w.lower() not in stop_words]
+    words = [w for w in re.split(r'[\s_\-]+', clean_text) if w and w.lower() not in stop_words]
     if len(words) == 1:
         clean = re.sub(r'[^a-zA-Z0-9]', '', words[0])
         return clean.upper() if len(clean) <= 6 else clean[:6].upper()
     acr = "".join([re.sub(r'[^a-zA-Z0-9]', '', w)[:1] for w in words])
-    return acr.upper() if len(acr) >= 2 else re.sub(r'[^a-zA-Z0-9]', '', str(text))[:6].upper()
+    return acr.upper() if len(acr) >= 2 else re.sub(r'[^a-zA-Z0-9]', '', clean_text)[:6].upper()
 
 def save_file_record(
     user_id: str, user_email: str, file_name: str, file_url: str,
@@ -799,7 +805,40 @@ def save_file_record(
         subj_abbr = ''
         resolved_code = (subject_code or '').strip().upper()
 
-        if c_id:
+        # Only resolve acronyms from database if title is not already pre-formatted
+        needs_acronym_lookup = not title or title.strip().lower() == (subject_name or '').strip().lower()
+        if needs_acronym_lookup:
+            if c_id:
+                try:
+                    c_data = client.table('colleges').select('name, abbreviation').eq('id', c_id).limit(1).execute()
+                    if c_data.data:
+                        col_abbr = (c_data.data[0].get('abbreviation') or make_acronym(c_data.data[0].get('name') or '')).strip().upper()
+                except Exception:
+                    pass
+
+            if d_id:
+                try:
+                    d_data = client.table('departments').select('name, abbreviation').eq('id', d_id).limit(1).execute()
+                    if d_data.data:
+                        dept_abbr = (d_data.data[0].get('abbreviation') or make_acronym(d_data.data[0].get('name') or '')).strip().upper()
+                except Exception:
+                    pass
+
+            if sub_id:
+                try:
+                    s_data = client.table('subjects').select('name, subject_code').eq('id', sub_id).limit(1).execute()
+                    if s_data.data:
+                        if not resolved_code:
+                            resolved_code = (s_data.data[0].get('subject_code') or '').strip().upper()
+                        if not subj_abbr:
+                            subj_abbr = make_acronym(s_data.data[0].get('name') or subject_name or '')
+                except Exception:
+                    pass
+
+            if not subj_abbr and subject_name:
+                subj_abbr = make_acronym(subject_name)
+
+        if c_id and (not col_abbr or col_abbr == 'GHRCEG'):
             try:
                 c_data = client.table('colleges').select('name, abbreviation').eq('id', c_id).limit(1).execute()
                 if c_data.data:
@@ -807,27 +846,16 @@ def save_file_record(
             except Exception:
                 pass
 
-        if d_id:
-            try:
-                d_data = client.table('departments').select('name, abbreviation').eq('id', d_id).limit(1).execute()
-                if d_data.data:
-                    dept_abbr = (d_data.data[0].get('abbreviation') or make_acronym(d_data.data[0].get('name') or '')).strip().upper()
-            except Exception:
-                pass
+        if program and str(program).lower() != 'b.tech':
+            prog_clean = re.sub(r'[^a-zA-Z0-9]', '', str(program)).upper()
+            if not dept_abbr or dept_abbr in ('ALL', 'ABA', 'ALLBRANCHES'):
+                dept_abbr = prog_clean
 
-        if sub_id:
-            try:
-                s_data = client.table('subjects').select('name, subject_code').eq('id', sub_id).limit(1).execute()
-                if s_data.data:
-                    if not resolved_code:
-                        resolved_code = (s_data.data[0].get('subject_code') or '').strip().upper()
-                    if not subj_abbr:
-                        subj_abbr = make_acronym(s_data.data[0].get('name') or subject_name or '')
-            except Exception:
-                pass
-
-        if not subj_abbr and subject_name:
-            subj_abbr = make_acronym(subject_name)
+        # Fix known corrupted acronym artifacts
+        if col_abbr == 'GHRCEG':
+            col_abbr = 'GHRCE'
+        if dept_abbr == 'ABA' and program and str(program).lower() == 'mba':
+            dept_abbr = 'MBA'
 
         # Standardize Title: CollegeAbbr - DeptAbbr - SubjAbbr (SubjectCode) - Details
         prefix_tags = [p for p in [col_abbr, dept_abbr, subj_abbr] if p]
@@ -843,6 +871,11 @@ def save_file_record(
             elif not final_title.startswith(col_abbr) and not final_title.startswith(header) and header not in final_title:
                 final_title = f"{header} - {final_title}"
 
+        if final_title:
+            final_title = re.sub(r'\bGHRCEG\b', 'GHRCE', final_title)
+            if program and str(program).lower() == 'mba':
+                final_title = re.sub(r'\bABA\b', 'MBA', final_title)
+
         # Standardize File Name: CollegeAbbr_DeptAbbr_SubjAbbr_SubjCode_Exam_Category_Year.ext
         file_ext = file_name.rsplit('.', 1)[-1].lower() if '.' in file_name else (file_type or 'pdf')
         fn_components = [p for p in [col_abbr, dept_abbr, subj_abbr, resolved_code, exam_type.upper() if exam_type else '', (document_type or 'notes').capitalize(), str(year) if year else ''] if p]
@@ -850,6 +883,11 @@ def save_file_record(
             final_file_name = "_".join(re.sub(r'[^a-zA-Z0-9]', '', c) for c in fn_components) + f".{file_ext}"
         else:
             final_file_name = file_name
+
+        if final_file_name:
+            final_file_name = re.sub(r'\bGHRCEG\b', 'GHRCE', final_file_name)
+            if program and str(program).lower() == 'mba':
+                final_file_name = re.sub(r'\bABA\b', 'MBA', final_file_name)
 
         # Construct description if not provided
         if not description:

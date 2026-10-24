@@ -45,6 +45,70 @@ var _progCurrentPct = 0;
 var _statusModalOpen = false;
 var _duplicateDecisions = {};
 
+function showTopUploadBanner() {
+  const banner = document.getElementById('uploadTopBanner');
+  if (banner) {
+    banner.classList.remove('utb-success');
+    banner.style.display = 'block';
+  }
+}
+
+function dismissTopBanner() {
+  const banner = document.getElementById('uploadTopBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+function updateTopBanner(done, total, currentFile, pct, isSuccess) {
+  const banner = document.getElementById('uploadTopBanner');
+  if (!banner) return;
+  banner.style.display = 'block';
+
+  const titleEl = document.getElementById('utbTitle');
+  const badgeEl = document.getElementById('utbBadge');
+  const subEl = document.getElementById('utbSub');
+  const fillEl = document.getElementById('utbProgressFill');
+  const pctEl = document.getElementById('utbPercent');
+
+  if (isSuccess) {
+    banner.classList.add('utb-success');
+    if (titleEl) titleEl.textContent = `🎉 All ${total} document(s) published!`;
+    if (badgeEl) badgeEl.textContent = 'Done';
+    if (subEl) subEl.textContent = 'Upload complete • Contributions are live on AbhiHub.';
+    if (fillEl) fillEl.style.width = '100%';
+    if (pctEl) pctEl.textContent = '100%';
+    setTimeout(() => {
+      if (banner && banner.classList.contains('utb-success')) {
+        banner.style.opacity = '0';
+        setTimeout(() => { banner.style.display = 'none'; banner.style.opacity = '1'; }, 300);
+      }
+    }, 6000);
+    return;
+  }
+
+  const remaining = Math.max(0, total - done);
+  const overall = total > 0 ? Math.min(100, Math.round(((done + (pct / 100)) / total) * 100)) : 0;
+
+  if (titleEl) {
+    titleEl.textContent = currentFile 
+      ? `Uploading (${done + 1}/${total}): ${currentFile}`
+      : `Uploading ${done + 1} of ${total} files in background…`;
+  }
+  if (badgeEl) {
+    badgeEl.textContent = `${remaining} remaining`;
+  }
+  if (subEl) {
+    subEl.textContent = pct < 100 
+      ? `${pct}% transmitted • Keep browsing or use the app freely`
+      : `Processing & publishing on server…`;
+  }
+  if (fillEl) {
+    fillEl.style.width = overall + '%';
+  }
+  if (pctEl) {
+    pctEl.textContent = overall + '%';
+  }
+}
+
 function updateProgressUI() {
   if (_progBar) {
     var overall = _progTotal > 0
@@ -60,6 +124,7 @@ function updateProgressUI() {
   if (_progText) {
     _progText.innerText = 'Uploading ' + (_progDone + (_progCurrentPct > 0 ? 1 : 0)) + ' / ' + _progTotal;
   }
+  updateTopBanner(_progDone, _progTotal, _progCurrentFile, _progCurrentPct, false);
 }
 
 function setFileStatus(id, status, progress, msg) {
@@ -778,14 +843,22 @@ function updateDynamicFieldsForForm(formWrap) {
 
 function makeAcronym(str) {
   if (!str) return '';
+  const parenMatch = str.match(/\(([^)]+)\)/);
+  if (parenMatch) {
+    const inside = parenMatch[1].trim();
+    if (/^[a-zA-Z0-9&.\-_]{2,8}$/.test(inside)) {
+      return inside.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    }
+  }
+  const cleanStr = str.replace(/\([^)]*\)/g, '').trim();
   const stopWords = new Set(['and', 'of', 'the', 'in', 'for', 'to', 'with', 'on', 'at', '&']);
-  const words = str.trim().split(/[\s_\-]+/).filter(w => w && !stopWords.has(w.toLowerCase()));
+  const words = cleanStr.split(/[\s_\-]+/).filter(w => w && !stopWords.has(w.toLowerCase()));
   if (words.length === 1) {
     const clean = words[0].replace(/[^a-zA-Z0-9]/g, '');
     return clean.length <= 6 ? clean.toUpperCase() : clean.slice(0, 6).toUpperCase();
   }
   const acr = words.map(w => w.replace(/[^a-zA-Z0-9]/g, '')[0] || '').join('');
-  return (acr.length >= 2 ? acr : str.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6)).toUpperCase();
+  return (acr.length >= 2 ? acr : cleanStr.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6)).toUpperCase();
 }
 
 function updateAutoTitleForForm(formWrap) {
@@ -808,7 +881,13 @@ function updateAutoTitleForForm(formWrap) {
   const tsBr = window.AbhiHubSelect?.instances[branchEl?.id];
   const brId = tsBr ? tsBr.getValue() : (branchEl?.value || '');
   const brText = (tsBr && tsBr.options[brId]?.text) || (branchEl && branchEl.selectedIndex >= 0 ? branchEl.options[branchEl.selectedIndex]?.text : '') || '';
-  const deptAbbr = makeAcronym(brText);
+  let deptAbbr = makeAcronym(brText);
+  const progVal = (formWrap.querySelector('.program-select')?.value || '').trim();
+  if (progVal && progVal.toLowerCase() !== 'b.tech') {
+    if (!deptAbbr || deptAbbr === 'ALL' || deptAbbr === 'ABA' || /^(all|general)/i.test(brText)) {
+      deptAbbr = progVal.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+    }
+  }
 
   const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
   const subjId = tsSubj ? tsSubj.getValue() : (subjEl?.value || '');
@@ -1009,6 +1088,8 @@ function buildFormData(item) {
     const semEl = form.querySelector('.semester-select');
     const subjEl = form.querySelector('.subject-select');
     const progEl = form.querySelector('.program-select');
+    const titleEl = form.querySelector('.meta-title') || form.querySelector('input[name="title"]');
+    const descEl = form.querySelector('.meta-description') || form.querySelector('.meta-desc') || form.querySelector('textarea[name="description"]');
 
     const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
     const subjId = tsSubj ? tsSubj.getValue() : (subjEl ? subjEl.value : '');
@@ -1023,7 +1104,13 @@ function buildFormData(item) {
     const tsBr = window.AbhiHubSelect?.instances[branchEl?.id];
     const brId = tsBr ? tsBr.getValue() : (branchEl ? branchEl.value : '');
     const brText = (tsBr && tsBr.options[brId]?.text) || (branchEl && branchEl.selectedIndex >= 0 ? branchEl.options[branchEl.selectedIndex]?.text : '') || '';
-    const deptAbbr = makeAcronym(brText);
+    let deptAbbr = makeAcronym(brText);
+    const progVal = (progEl?.value || '').trim();
+    if (progVal && progVal.toLowerCase() !== 'b.tech') {
+      if (!deptAbbr || deptAbbr === 'ALL' || deptAbbr === 'ABA' || /^(all|general)/i.test(brText)) {
+        deptAbbr = progVal.replace(/[^a-zA-Z0-9]/g, '').toUpperCase();
+      }
+    }
 
     let parsedSubjName = subjText;
     let parsedSubjCode = '';
@@ -1383,15 +1470,22 @@ async function uploadOne(item, retries) {
       }
     };
 
-    var fd = buildFormData(item);
-    if (sigRes && sigRes.success) {
-      fd.append('api_key', sigRes.api_key);
-      fd.append('timestamp', sigRes.timestamp);
-      fd.append('signature', sigRes.signature);
-      fd.append('folder', sigRes.folder);
-      fd.append('file', item.file);
+    try {
+      var fd = buildFormData(item);
+      if (sigRes && sigRes.success) {
+        fd.append('api_key', sigRes.api_key);
+        fd.append('timestamp', sigRes.timestamp);
+        fd.append('signature', sigRes.signature);
+        fd.append('folder', sigRes.folder);
+        fd.append('file', item.file);
+      }
+      xhr.send(fd);
+    } catch (err) {
+      console.error("Upload preparation error:", err);
+      setFileStatus(item.id, 'error', 0, err.message);
+      setItemStatus(item.id, 'error', 0, 'Form error: ' + err.message, true);
+      resolve({ ok: false, msg: err.message, item: item });
     }
-    xhr.send(fd);
   });
 }
 
@@ -1416,27 +1510,76 @@ async function startBulkUpload(event) {
     return showToast('Select at least one file', 'error');
   }
 
-  // Validate all files have required metadata
-  const missing = selectedFiles.filter(f => {
+  // Validate all files have required metadata with specific error messages and field highlighting
+  for (let i = 0; i < selectedFiles.length; i++) {
+    const f = selectedFiles[i];
     const form = document.getElementById(`meta-form-${f.id}`);
-    if (!form) return true;
-    const type = form.querySelector('.meta-type')?.value;
-    const col = form.querySelector('.college-select')?.value;
-    const branch = form.querySelector('.branch-select')?.value;
+    if (!form) continue;
 
+    const colEl = form.querySelector('.college-select');
+    const branchEl = form.querySelector('.branch-select');
     const subjEl = form.querySelector('.subject-select');
+    const typeEl = form.querySelector('.meta-type');
+    const progEl = form.querySelector('.program-select');
+
+    const col = colEl?.value;
+    const branch = branchEl?.value;
     const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
     const subj = tsSubj ? tsSubj.getValue() : (subjEl ? subjEl.value : '');
+    let type = typeEl?.value;
+    const prog = progEl?.value || 'b.tech';
 
-    const prog = form.querySelector('.program-select')?.value;
-    return !type || !col || !branch || !subj || !prog;
-  });
+    // Auto-detect Category from Subject or Title if Category was left blank
+    if (!type) {
+      const subjOpt = tsSubj ? tsSubj.options[subj] : null;
+      const subjName = (subjOpt ? subjOpt.text : (subjEl && subjEl.selectedIndex >= 0 ? subjEl.options[subjEl.selectedIndex]?.text : '')) || '';
+      const titleVal = form.querySelector('.meta-title')?.value || '';
+      if (/question\s*bank|\bqb\b/i.test(subjName) || /question\s*bank|\bqb\b/i.test(titleVal)) {
+        type = 'question_bank';
+        if (typeEl) typeEl.value = 'question_bank';
+      } else if (/notes?|handwritten/i.test(titleVal)) {
+        type = 'notes';
+        if (typeEl) typeEl.value = 'notes';
+      } else if (/practical|lab\s*manual/i.test(titleVal)) {
+        type = 'practical';
+        if (typeEl) typeEl.value = 'practical';
+      } else if (/pyq|exam|paper/i.test(titleVal)) {
+        type = 'papers';
+        if (typeEl) typeEl.value = 'papers';
+      }
+    }
 
-  if (missing.length) {
-    resetUploadButton();
-    if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed('missing_metadata', 'validation_error', 'file');
-    showToast('Fill required metadata (College, Department, Category, Subject) first', 'error');
-    return;
+    function _highlightField(el, msg) {
+      resetUploadButton();
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+        el.style.borderColor = '#ef4444';
+        el.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.25)';
+        setTimeout(() => {
+          el.style.borderColor = '';
+          el.style.boxShadow = '';
+        }, 5000);
+      }
+      showToast(msg, 'error');
+    }
+
+    if (!col) {
+      _highlightField(colEl, `Please select a College for "${f.name}"`);
+      return;
+    }
+    if (!branch) {
+      _highlightField(branchEl, `Please select a Department / Branch for "${f.name}"`);
+      return;
+    }
+    if (!subj) {
+      _highlightField(subjEl, `Please select a Subject for "${f.name}"`);
+      return;
+    }
+    if (!type) {
+      _highlightField(typeEl, `Please select a Category (e.g. Question Bank, Papers, Notes, Practical) for "${f.name}"`);
+      return;
+    }
   }
 
   // Extract batch
@@ -1468,7 +1611,7 @@ async function startBulkUpload(event) {
     }
   });
 
-  openStatusModal();
+  showTopUploadBanner();
   await processUploadBatch(uploadBatch);
 }
 
@@ -1490,7 +1633,7 @@ async function processUploadBatch(batch) {
   isUploading = true;
   window.addEventListener('beforeunload', handleBeforeUnload);
 
-  openStatusModal();
+  showTopUploadBanner();
   const statusList = document.getElementById('uploadStatusList');
   if (statusList) statusList.innerHTML = '';
   batch.forEach(item => ensureStatusItem(item.id, item.name));
@@ -1587,6 +1730,7 @@ async function processUploadBatch(batch) {
 
     if (typeof window.markUserUploaded === 'function') window.markUserUploaded();
     closeStatusModal();
+    updateTopBanner(done, batch.length, '', 100, true);
     if (typeof showXpModal === 'function') {
       showXpModal(totalXp, lastScore, done, successfulDocs);
     }

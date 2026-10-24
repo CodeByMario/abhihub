@@ -648,21 +648,50 @@ def upload():
                 }
                 description_val = json.dumps(desc_payload)
 
-            if not title_val or len(title_val) < 3:
-                title_val = f"{subject or 'Study Material'} {document_type.replace('_', ' ').title()} {year}".strip()
+            _ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+            folder_map = {
+                'papers': 'pyq',
+                'notes': 'notes',
+                'practical': 'practical',
+                'syllabus': 'syllabus',
+                'assisment': 'other',
+                'timetable': 'other',
+                'question_bank': 'pyq'
+            }
+            cloudinary_folder = folder_map.get(doc_type, 'uploads')
 
-            if not college_id:
-                college_id = user_info.get('college_id') or (user_info.get('user_metadata') or {}).get('college_id', '')
+            # 1. FIRST: Upload file directly to Cloudinary
+            from methods.cloudinary_upload import upload_file_to_cloudinary
+            upload_result = upload_file_to_cloudinary(
+                file_data=file,
+                filename=file.filename,
+                user_id=user_id or user_name.replace(' ', '_'),
+                folder=cloudinary_folder,
+                compress=True
+            )
 
+            if not upload_result.get('success'):
+                return jsonify(
+                    success=False,
+                    message=f"Upload failed: {upload_result.get('error', 'Unknown error')}"
+                ), 500
+
+            # 2. NEXT: Verification of metadata and academic requirements
+            verification_issues = []
             if (not subject_id or subject_id == '__other__') and document_type.lower() != 'question_bank':
-                logging.warning(f"[UPLOAD REJECTED] Reason:Missing subject_id Uploader:{user_id}")
-                return jsonify(success=False, message="Subject selection is required. Please select a subject from the dropdown."), 400
+                verification_issues.append(f"Subject selection is required (provided subject: '{subject or 'None'}')")
 
             if semester is None:
                 semester = 1
 
             if not (year.isdigit() and len(year) == 4 and 1990 <= int(year) <= 2035):
-                return jsonify(success=False, message="Please provide a valid 4-digit academic year (e.g. 2025)."), 400
+                verification_issues.append(f"Academic year '{year}' invalid or requires verification")
+
+            if not title_val or len(title_val) < 3:
+                title_val = f"{subject or 'Study Material'} {document_type.replace('_', ' ').title()} {year}".strip()
+
+            if not college_id:
+                college_id = user_info.get('college_id') or (user_info.get('user_metadata') or {}).get('college_id', '')
 
             # Abbreviation resolution for College, Department, Subject, and Subject Code
             col_abbr = (request.form.get('college_abbr') or '').strip().upper()
@@ -670,36 +699,68 @@ def upload():
             subj_abbr = (request.form.get('subject_abbr') or '').strip().upper()
             subject_code = (request.form.get('subject_code') or '').strip().upper()
 
-            from methods.supabase_helper import init_supabase, make_acronym
-            client_sb = init_supabase()
-            if client_sb:
-                if not col_abbr and college_id:
-                    try:
-                        c_row = client_sb.table('colleges').select('name, abbreviation').eq('id', college_id).limit(1).execute()
-                        if c_row.data:
-                            col_abbr = (c_row.data[0].get('abbreviation') or make_acronym(c_row.data[0].get('name'))).strip().upper()
-                    except Exception:
-                        pass
-                if not dept_abbr and branch_id:
-                    try:
-                        d_row = client_sb.table('departments').select('name, abbreviation').eq('id', branch_id).limit(1).execute()
-                        if d_row.data:
-                            dept_abbr = (d_row.data[0].get('abbreviation') or make_acronym(d_row.data[0].get('name'))).strip().upper()
-                    except Exception:
-                        pass
-                if subject_id:
-                    try:
-                        s_row = client_sb.table('subjects').select('name, subject_code').eq('id', subject_id).limit(1).execute()
-                        if s_row.data:
-                            if not subject_code:
-                                subject_code = (s_row.data[0].get('subject_code') or '').strip().upper()
-                            if not subj_abbr:
-                                subj_abbr = make_acronym(s_row.data[0].get('name') or subject)
-                    except Exception:
-                        pass
+            # Fast cache lookup for College, Department, Subject abbreviations
+            global _ACRONYM_CACHE
+            if '_ACRONYM_CACHE' not in globals():
+                _ACRONYM_CACHE = {}
+
+            if not col_abbr and college_id:
+                col_abbr = _ACRONYM_CACHE.get(f"col:{college_id}", "")
+            if not dept_abbr and branch_id:
+                dept_abbr = _ACRONYM_CACHE.get(f"dept:{branch_id}", "")
+            if not subj_abbr and subject_id:
+                subj_abbr = _ACRONYM_CACHE.get(f"subj:{subject_id}", "")
+            if not subject_code and subject_id:
+                subject_code = _ACRONYM_CACHE.get(f"code:{subject_id}", "")
+
+            # Query DB only if any required abbreviation is not yet cached
+            if (not col_abbr and college_id) or (not dept_abbr and branch_id) or (subject_id and (not subj_abbr or not subject_code)):
+                from methods.supabase_helper import init_supabase, make_acronym
+                client_sb = init_supabase()
+                if client_sb:
+                    if not col_abbr and college_id:
+                        try:
+                            c_row = client_sb.table('colleges').select('name, abbreviation').eq('id', college_id).limit(1).execute()
+                            if c_row.data:
+                                col_abbr = (c_row.data[0].get('abbreviation') or make_acronym(c_row.data[0].get('name'))).strip().upper()
+                                _ACRONYM_CACHE[f"col:{college_id}"] = col_abbr
+                        except Exception:
+                            pass
+                    if not dept_abbr and branch_id:
+                        try:
+                            d_row = client_sb.table('departments').select('name, abbreviation').eq('id', branch_id).limit(1).execute()
+                            if d_row.data:
+                                dept_abbr = (d_row.data[0].get('abbreviation') or make_acronym(d_row.data[0].get('name'))).strip().upper()
+                                _ACRONYM_CACHE[f"dept:{branch_id}"] = dept_abbr
+                        except Exception:
+                            pass
+                    if subject_id and (not subj_abbr or not subject_code):
+                        try:
+                            s_row = client_sb.table('subjects').select('name, subject_code').eq('id', subject_id).limit(1).execute()
+                            if s_row.data:
+                                if not subject_code:
+                                    subject_code = (s_row.data[0].get('subject_code') or '').strip().upper()
+                                    _ACRONYM_CACHE[f"code:{subject_id}"] = subject_code
+                                if not subj_abbr:
+                                    subj_abbr = make_acronym(s_row.data[0].get('name') or subject)
+                                    _ACRONYM_CACHE[f"subj:{subject_id}"] = subj_abbr
+                        except Exception:
+                            pass
 
             if not subj_abbr and subject:
                 subj_abbr = make_acronym(subject)
+
+            # Program-aware department abbreviation override
+            if program and str(program).lower() != 'b.tech':
+                prog_clean = re.sub(r'[^a-zA-Z0-9]', '', str(program)).upper()
+                if not dept_abbr or dept_abbr in ('ALL', 'ABA', 'ALLBRANCHES'):
+                    dept_abbr = prog_clean
+
+            # Override known corrupted acronym artifacts
+            if col_abbr == 'GHRCEG':
+                col_abbr = 'GHRCE'
+            if dept_abbr == 'ABA' and program and str(program).lower() == 'mba':
+                dept_abbr = 'MBA'
 
             # Build standardized descriptive title: CollegeAbbr - DeptAbbr - SubjAbbr (SubjectCode) - Topic/Unit/Category Year
             prefix_tags = [p for p in [col_abbr, dept_abbr, subj_abbr] if p]
@@ -716,13 +777,20 @@ def upload():
             elif header and not title_val.startswith(col_abbr) and not title_val.startswith(header) and header not in title_val:
                 title_val = f"{header} - {title_val}"
 
-            _ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+            if title_val:
+                title_val = re.sub(r'\bGHRCEG\b', 'GHRCE', title_val)
+                if program and str(program).lower() == 'mba':
+                    title_val = re.sub(r'\bABA\b', 'MBA', title_val)
+
             fn_components = [p for p in [col_abbr, dept_abbr, subj_abbr, subject_code, unit_clean, cat_title.replace(' ', ''), str(year)] if p]
             if fn_components:
                 _base = "_".join(re.sub(r'[^a-zA-Z0-9]', '', c) for c in fn_components)
             else:
                 _base = f"upload_{int(time.time())}"
             original_filename = f"{_base}.{_ext}"
+            original_filename = re.sub(r'\bGHRCEG\b', 'GHRCE', original_filename)
+            if program and str(program).lower() == 'mba':
+                original_filename = re.sub(r'\bABA\b', 'MBA', original_filename)
 
             ext = _ext
             file_type_category = {
@@ -733,40 +801,15 @@ def upload():
                 'png': 'image', 'jpg': 'image', 'jpeg': 'image', 'gif': 'image', 'webp': 'image',
                 'zip': 'archive', 'rar': 'archive', '7z': 'archive'
             }.get(ext, 'file')
-            
-            folder_map = {
-                'papers': 'pyq',
-                'notes': 'notes',
-                'practical': 'practical',
-                'syllabus': 'syllabus',
-                'assisment': 'other',
-                'timetable': 'other',
-                'question_bank': 'pyq'
-            }
-            cloudinary_folder = folder_map.get(doc_type, 'uploads')
-            
-            from methods.cloudinary_upload import upload_file_to_cloudinary, delete_file_from_cloudinary
-            upload_result = upload_file_to_cloudinary(
-                file_data=file,
-                filename=original_filename,
-                user_id=user_id or user_name.replace(' ', '_'),
-                folder=cloudinary_folder,
-                compress=True
-            )
-            
-            if not upload_result.get('success'):
-                return jsonify(
-                    success=False,
-                    message=f"Upload failed: {upload_result.get('error', 'Unknown error')}"
-                ), 500
 
             logging.info(f"[UPLOAD] Uploader:{user_id} College:{college_id} Branch:{branch_id} Semester:{semester} Subject:{subject!r} SubjectID:{subject_id}")
-            
+
             file_hash = request.form.get('file_hash', '').strip() or None
             exam_type = request.form.get('exam_type', '').strip() or ''
             subject_code = request.form.get('subject_code', '').strip() or ''
 
-            file_record_result = save_file_record(
+            _save_fn = getattr(app, 'save_file_record', None) or save_file_record
+            file_record_result = _save_fn(
                 user_id=user_id,
                 user_email=user_email,
                 file_name=original_filename,
@@ -788,17 +831,52 @@ def upload():
                 subject_code=subject_code,
                 file_hash=file_hash
             )
-            
-            if not file_record_result.get('success'):
-                logging.error(f"[UPLOAD ERROR] Supabase record creation failed: {file_record_result.get('message')}")
+
+            # 3. IF ANY VERIFICATION ISSUES OR DB RECORD ERROR: Report to admin (Admin decides to keep or delete)
+            if not file_record_result.get('success') or verification_issues:
+                err_detail = '; '.join(verification_issues) if verification_issues else file_record_result.get('message', 'Database record creation deferred')
+                logging.warning(f"[UPLOAD FLAGGED FOR ADMIN] File: {upload_result['public_id']} Reason: {err_detail}")
                 try:
-                    delete_file_from_cloudinary(upload_result['public_id'], upload_result.get('resource_type', 'raw'))
-                except Exception:
-                    pass
+                    from methods.supabase_helper import init_supabase
+                    client_sb = init_supabase()
+                    if client_sb:
+                        client_sb.table('storage_assets').upsert({
+                            'provider': 'cloudinary',
+                            'provider_public_id': upload_result.get('public_id'),
+                            'filename': original_filename,
+                            'public_url': upload_result.get('secure_url'),
+                            'mime': upload_result.get('format', 'unknown'),
+                            'status': 'NEEDS_ADMIN_REVIEW',
+                            'notes': f"Verification note: {err_detail}"
+                        }, on_conflict='provider,provider_public_id').execute()
+
+                        client_sb.table('notifications').insert({
+                            'user_id': user_id,
+                            'type': 'upload_flagged_for_admin',
+                            'title': f"Upload needs verification: {original_filename[:35]}",
+                            'message': f"Uploaded file ({upload_result.get('secure_url')}) flagged: {err_detail}. Admin review to keep or delete.",
+                            'is_read': False
+                        }).execute()
+
+                        doc_id_flagged = file_record_result.get('data', {}).get('id') if file_record_result.get('success') else None
+                        if doc_id_flagged:
+                            client_sb.table('documents').update({
+                                'status': 'pending',
+                                'verification_notes': err_detail
+                            }).eq('id', doc_id_flagged).execute()
+                except Exception as admin_rep_err:
+                    logging.warning(f"[UPLOAD ADMIN REPORT NOTE] {admin_rep_err}")
+
+                doc_id = file_record_result.get('data', {}).get('id') if file_record_result.get('success') else None
                 return jsonify(
-                    success=False,
-                    message=f"File uploaded to Cloudinary, but database record creation failed: {file_record_result.get('message')}"
-                ), 500
+                    success=True,
+                    pending_admin=True,
+                    message=f"File uploaded to cloud storage successfully! Flagged for admin verification ({err_detail}).",
+                    file_url=upload_result['secure_url'],
+                    public_id=upload_result['public_id'],
+                    document={'id': doc_id, 'title': title_val, 'url': upload_result['secure_url']},
+                    data={'record_id': doc_id, 'url': upload_result['secure_url']}
+                ), 200
 
             doc_id = file_record_result.get('data', {}).get('id')
             material_request_id = request.form.get('material_request_id')
@@ -875,13 +953,11 @@ def upload():
 
             total_uploads = 1
             try:
-                c = init_supabase()
-                if c and user_id:
-                    cnt_res = c.table('documents').select('id', count='exact').eq('uploader_id', user_id).execute()
-                    if cnt_res and cnt_res.count is not None:
-                        total_uploads = cnt_res.count
+                prof = session.get('profile') or {}
+                cached_cnt = prof.get('total_contributions') or prof.get('total_uploads')
+                total_uploads = int(cached_cnt) + 1 if cached_cnt is not None else 1
             except Exception:
-                pass
+                total_uploads = 1
 
             document_payload = {
                 'id': doc_id,

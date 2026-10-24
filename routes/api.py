@@ -1198,21 +1198,22 @@ def api_extract_upload_metadata():
 
         validated, s_flag = validate_extracted_metadata(response.text, branch_id=branch_id, known_fields=known_fields)
 
-        log_turn(
-            user_id=user_id,
-            session_id=None,
-            provider=getattr(provider, 'provider_name', 'openrouter'),
-            model=response.model_used,
-            tokens_in=response.tokens_in,
-            tokens_out=response.tokens_out,
-            cost_usd=response.cost_usd,
-            duration_ms=duration_ms,
-            mode='upload_autofill',
-            override_used=False,
-            error_type=None,
-            safety_flag=s_flag,
-            finish_reason=response.finish_reason,
-        )
+        try:
+            log_turn(
+                user_id=user_id,
+                session_id=None,
+                provider=getattr(provider, 'provider_name', 'openrouter'),
+                model=response.model_used,
+                tokens_in=response.tokens_in,
+                tokens_out=response.tokens_out,
+                cost_usd=response.cost_usd,
+                duration_ms=duration_ms,
+                mode='direct',
+                status='ok',
+                route='/api/ai/extract-upload-metadata',
+            )
+        except Exception as l_err:
+            logging.debug(f"[ai_log] log_turn notice: {l_err}")
 
         filled = [k for k, v in validated.items() if v]
 
@@ -1226,21 +1227,22 @@ def api_extract_upload_metadata():
 
     except (RateLimitError, ProviderError) as exc:
         duration_ms = int((time.time() - t0) * 1000)
-        log_turn(
-            user_id=user_id,
-            session_id=None,
-            provider=getattr(provider, 'provider_name', 'openrouter'),
-            model=getattr(provider, 'model_name', 'unknown'),
-            tokens_in=0,
-            tokens_out=0,
-            cost_usd=0.0,
-            duration_ms=duration_ms,
-            mode='upload_autofill',
-            override_used=False,
-            error_type='rate_limit' if isinstance(exc, RateLimitError) else 'provider_error',
-            safety_flag=None,
-            finish_reason='error',
-        )
+        try:
+            log_turn(
+                user_id=user_id,
+                session_id=None,
+                provider=getattr(provider, 'provider_name', 'openrouter'),
+                model=getattr(provider, 'model_name', 'unknown'),
+                tokens_in=0,
+                tokens_out=0,
+                cost_usd=0.0,
+                duration_ms=duration_ms,
+                mode='direct',
+                status='error',
+                route='/api/ai/extract-upload-metadata',
+            )
+        except Exception as l_err:
+            logging.debug(f"[ai_log] log_turn error notice: {l_err}")
         return jsonify({
             'success': True,
             'source': 'heuristic_fallback',
@@ -1817,11 +1819,20 @@ def view_doc(doc_id, filename=None):
             abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
 
         content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
-        if document.get('file_type') == 'pdf' or '.pdf' in file_url.lower() or file_url.lower().endswith('.txt'):
+        is_pdf_doc = (
+            document.get('file_type') == 'pdf' or
+            '.pdf' in file_url.lower() or
+            file_url.lower().endswith('.txt') or
+            (filename and filename.lower().endswith('.pdf')) or
+            str(document.get('file_name', '')).lower().endswith('.pdf')
+        )
+        if is_pdf_doc:
             content_type = 'application/pdf'
-            filename_doc = document.get('title') or 'document.pdf'
+            filename_doc = document.get('title') or document.get('file_name') or 'document.pdf'
             filename_doc = re.sub(r'[^a-z0-9_\-\.]+', '_', filename_doc, flags=re.I)
-            if not filename_doc.lower().endswith('.pdf'):
+            if filename_doc.lower().endswith('.txt'):
+                filename_doc = filename_doc[:-4] + '.pdf'
+            elif not filename_doc.lower().endswith('.pdf'):
                 filename_doc = filename_doc.rsplit('.', 1)[0] + '.pdf'
 
         if is_preview_mode:
@@ -1866,7 +1877,7 @@ def view_doc(doc_id, filename=None):
                 logging.error(f"[VIEW-DOC] Stream interrupted: {e}")
 
         response_headers = _secure_file_headers()
-        if document.get('file_type') == 'pdf' or '.pdf' in file_url.lower() or file_url.lower().endswith('.txt'):
+        if is_pdf_doc:
             response_headers['Content-Disposition'] = f"inline; filename*=UTF-8''{filename_doc}"
         if 'Content-Length' in upstream.headers:
             response_headers['Content-Length'] = upstream.headers['Content-Length']

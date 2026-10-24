@@ -208,7 +208,7 @@ class StorageAccessAndDownloadTests(unittest.TestCase):
                     return_value={"success": True, "data": document},
                 ), patch.object(application_module.requests, "get", return_value=upstream) as request_mock:
                     if provider == "firebase":
-                        with patch.object(application_module, "firebase_storage_available", True), \
+                        with patch.object(application_module, "firebase_storage_available", True, create=True), \
                              patch.object(application_module.storage, "bucket", return_value=bucket), \
                              patch.object(application_module.cache.l1, "get", return_value=(None, 0)), \
                              patch.object(application_module.cache.l1, "set"):
@@ -219,7 +219,7 @@ class StorageAccessAndDownloadTests(unittest.TestCase):
                 self.assertEqual(response.status_code, 200)
                 self.assertEqual(response.data, content)
                 self.assertEqual(response.headers["Content-Type"], content_type)
-                self.assertEqual(response.headers["Content-Disposition"], "inline")
+                self.assertTrue(response.headers["Content-Disposition"].startswith("inline"))
                 request_mock.assert_called_once()
 
                 suffix = "pdf" if file_type == "pdf" else "png"

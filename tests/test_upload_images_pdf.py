@@ -412,8 +412,8 @@ class TestUploadRoutePDF(unittest.TestCase):
         resp = self._post_pdf()
         self.assertEqual(resp.get_json()["data"]["record_id"], "doc-uuid-123")
 
-    def test_pdf_db_failure_triggers_cloudinary_cleanup(self):
-        """If DB save fails, Cloudinary asset must be deleted (no orphans)."""
+    def test_pdf_db_failure_keeps_file_for_admin_decision(self):
+        """If DB save fails, Cloudinary asset is kept for admin decision and flagged."""
         client = _session_client()
         cld_rv = _fake_cld("paper.pdf", "raw")
         with patch("methods.cloudinary_upload.upload_file_to_cloudinary", return_value=cld_rv), \
@@ -427,9 +427,10 @@ class TestUploadRoutePDF(unittest.TestCase):
                 data={**BASE_FORM, "upload_document": (io.BytesIO(PDF_BYTES), "paper.pdf")},
                 content_type="multipart/form-data",
             )
-        self.assertEqual(resp.status_code, 500)
-        self.assertFalse(resp.get_json()["success"])
-        delete_mock.assert_called_once()
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.get_json()["success"])
+        self.assertTrue(resp.get_json()["pending_admin"])
+        delete_mock.assert_not_called()
 
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -485,7 +486,7 @@ class TestUploadSecurity(unittest.TestCase):
             )
         self.assertEqual(resp.status_code, 400)
 
-    def test_missing_year_returns_400(self):
+    def test_missing_year_flags_for_admin(self):
         form = {**BASE_FORM, "Year": ""}
         cld_rv = _fake_cld("img.png", "image")
         from contextlib import ExitStack
@@ -497,9 +498,11 @@ class TestUploadSecurity(unittest.TestCase):
                 data={**form, "upload_document": (io.BytesIO(PNG_BYTES), "img.png")},
                 content_type="multipart/form-data",
             )
-        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.get_json()["success"])
+        self.assertTrue(resp.get_json().get("pending_admin"))
 
-    def test_missing_subject_id_returns_400(self):
+    def test_missing_subject_id_flags_for_admin(self):
         form = {**BASE_FORM, "subject_id": ""}
         from contextlib import ExitStack
         with ExitStack() as stack:
@@ -510,7 +513,9 @@ class TestUploadSecurity(unittest.TestCase):
                 data={**form, "upload_document": (io.BytesIO(PNG_BYTES), "img.png")},
                 content_type="multipart/form-data",
             )
-        self.assertEqual(resp.status_code, 400)
+        self.assertEqual(resp.status_code, 200)
+        self.assertTrue(resp.get_json()["success"])
+        self.assertTrue(resp.get_json().get("pending_admin"))
 
     def test_unauthenticated_upload_redirects(self):
         """Unauthenticated POST must not reach Cloudinary."""
@@ -548,6 +553,36 @@ class TestSanitizeFilename(unittest.TestCase):
         result = cloudinary_upload.sanitize_filename("notes_2025.pdf")
         self.assertIn("notes", result)
         self.assertIn("2025", result)
+
+
+class TestPdfTxtRetrieval(unittest.TestCase):
+    """Confirm that PDFs stored in Cloudinary as .txt are retrieved as .pdf with application/pdf."""
+
+    def test_view_doc_converts_txt_to_pdf(self):
+        client = _session_client()
+        mock_doc = {
+            "id": "doc-txt-test",
+            "file_url": "https://res.cloudinary.com/demo/raw/upload/v1234/u1_lecture.txt",
+            "file_type": "pdf",
+            "title": "Data Structures Lecture.txt"
+        }
+        import requests
+        fake_upstream = requests.Response()
+        fake_upstream.status_code = 200
+        fake_upstream._content = PDF_BYTES
+        fake_upstream.headers = {"Content-Type": "text/plain", "Content-Length": str(len(PDF_BYTES))}
+
+        with patch("methods.supabase_helper.get_document_by_id_rich", return_value={"success": True, "data": mock_doc}), \
+             patch("routes.api.has_document_access", return_value=True), \
+             patch("routes.api.extract_document_pricing", return_value={"is_paid": False}), \
+             patch("requests.get", return_value=fake_upstream):
+            resp = client.get("/api/view-doc/doc-txt-test")
+
+        self.assertEqual(resp.status_code, 200)
+        self.assertEqual(resp.headers.get("Content-Type"), "application/pdf")
+        content_disp = resp.headers.get("Content-Disposition", "")
+        self.assertIn(".pdf", content_disp)
+        self.assertNotIn(".txt", content_disp)
 
 
 # ═════════════════════════════════════════════════════════════════════════════
