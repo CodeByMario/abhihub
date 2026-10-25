@@ -257,21 +257,6 @@ def upload_file_to_cloudinary(
         logging.info(f"📤 Uploading to Cloudinary: {public_id}")
         result = cloudinary.uploader.upload(file_bytes, **upload_params)
 
-        # Non-blocking async upload to Supabase Storage as a background fallback
-        def _bg_supabase_fallback(f_bytes, p_id, f_ext):
-            try:
-                from methods.supabase_helper import init_supabase, upload_file_to_supabase
-                client = init_supabase()
-                if client:
-                    c_type = 'application/pdf' if f_ext and f_ext.lower() == 'pdf' else 'application/octet-stream'
-                    upload_file_to_supabase(
-                        file_data=f_bytes,
-                        supabase_path=f"cloudinary_fallback/{p_id}.{f_ext}" if f_ext else f"cloudinary_fallback/{p_id}.bin",
-                        content_type=c_type
-                    )
-            except Exception as _e:
-                logging.debug(f"[cloudinary] Async Supabase fallback skipped: {_e}")
-
         def _bg_register_storage_asset(res_data, orig_filename):
             try:
                 from methods.supabase_helper import init_supabase
@@ -289,11 +274,6 @@ def upload_file_to_cloudinary(
                 logging.debug(f"[cloudinary] Storage asset registration skipped: {_e}")
 
         import threading
-        threading.Thread(
-            target=_bg_supabase_fallback,
-            args=(file_bytes, result['public_id'], ext),
-            daemon=True
-        ).start()
         threading.Thread(
             target=_bg_register_storage_asset,
             args=(result, filename),

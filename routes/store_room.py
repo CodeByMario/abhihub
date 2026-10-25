@@ -397,7 +397,7 @@ def store_room_api_history():
 
             query = (
                 client.table('label_audit_logs')
-                .select('id, document_id, action, created_at, documents(id, title, document_category, file_url, view_count, status, created_at, college_id, department_id, subject_id, exam_type, semester, description, colleges(name, abbreviation), subjects(name, subject_code))')
+                .select('id, document_id, action, created_at, documents(id, title, document_category, file_url, view_count, status, created_at, college_id, department_id, subject_id, exam_type, description, colleges(name, abbreviation), subjects(name, subject_code, semester))')
                 .eq('action', 'LABELED_FROM_QUEUE')
                 .in_('user_id', user_candidates)
                 .order('created_at', desc=True)
@@ -413,13 +413,17 @@ def store_room_api_history():
                     sub = doc.get('subjects') or {}
                     desc_str = doc.get('description') or ''
                     year_val = ''
+                    sem_val = ''
                     if desc_str and desc_str.startswith('{'):
                         try:
                             import json
                             desc_data = json.loads(desc_str)
                             year_val = str(desc_data.get('year') or '')
+                            sem_val = str(desc_data.get('semester') or '')
                         except Exception:
                             pass
+                    if not sem_val:
+                        sem_val = str(sub.get('semester') or '')
                     if not year_val and doc.get('title'):
                         ym = re.search(r'\b(201\d|202\d)\b', doc.get('title'))
                         if ym: year_val = ym.group(1)
@@ -434,7 +438,7 @@ def store_room_api_history():
                         'college': col.get('abbreviation') or col.get('name') or '',
                         'subject': sub.get('name') or '',
                         'subject_code': sub.get('subject_code') or '',
-                        'semester': doc.get('semester') or '',
+                        'semester': sem_val or '',
                         'year': year_val or '',
                         'exam_type': doc.get('exam_type') or '',
                         'file_url': doc.get('file_url') or '',
@@ -580,7 +584,6 @@ def edit_store_room_label():
             'subject_id': subject_id,
             'document_category': document_category,
             'exam_type': exam_type or None,
-            'semester': semester,
             'description': json.dumps(desc_obj) if desc_obj else doc.get('description')
         }
 

@@ -1501,54 +1501,62 @@ class StoreRoomStudio {
                     }
                 }
 
-                if (this.state.rememberLabels) {
-                    this.saveRememberedLabels();
-                }
+                // Post-save state & DOM updates
+                try {
+                    if (this.state.rememberLabels) {
+                        this.saveRememberedLabels();
+                    }
 
-                // Update state counts
-                this.state.sortedCount++;
-                this.state.remainingCount = Math.max(0, this.state.remainingCount - 1);
-                this.updateProgress();
+                    // Update state counts
+                    this.state.sortedCount++;
+                    this.state.remainingCount = Math.max(0, this.state.remainingCount - 1);
+                    this.updateProgress();
 
-                // Prepend to history list in memory
-                if (!this.state.historyList) this.state.historyList = [];
-                const colSelect = document.getElementById('collegeName');
-                const colText = colSelect ? (colSelect.options[colSelect.selectedIndex]?.text || '') : '';
-                this.state.historyList.unshift({
-                    id: data.data?.id || String(Date.now()),
-                    title: data.data?.title || payload.title || payload.subject_name || cur.filename,
-                    category: data.data?.document_category || payload.document_category || 'papers',
-                    college: colText,
-                    subject: payload.subject_name || '',
-                    file_url: data.data?.file_url || cur.url || cur.path,
-                    view_count: 0,
-                    status: data.data?.status || 'pending',
-                    labeled_at: data.data?.created_at || new Date().toISOString()
-                });
-                const countBadge = document.getElementById('historyBadgeCount');
-                if (countBadge) countBadge.textContent = this.state.historyList.length;
+                    // Prepend to history list in memory
+                    if (!this.state.historyList) this.state.historyList = [];
+                    const tsCol = window.AbhiHubSelect?.instances['collegeName'];
+                    const colSelect = document.getElementById('collegeName');
+                    const colId = tsCol ? tsCol.getValue() : (colSelect?.value || '');
+                    const colText = (tsCol && tsCol.options?.[colId]?.text) || (colSelect?.options && colSelect.selectedIndex >= 0 ? colSelect.options[colSelect.selectedIndex]?.text : '') || '';
+                    this.state.historyList.unshift({
+                        id: data.data?.id || String(Date.now()),
+                        title: data.data?.title || payload.title || payload.subject_name || cur.filename,
+                        category: data.data?.document_category || payload.document_category || 'papers',
+                        college: colText,
+                        subject: payload.subject_name || '',
+                        file_url: data.data?.file_url || cur.url || cur.path,
+                        view_count: 0,
+                        status: data.data?.status || 'pending',
+                        labeled_at: data.data?.created_at || new Date().toISOString()
+                    });
+                    const countBadge = document.getElementById('historyBadgeCount');
+                    if (countBadge) countBadge.textContent = this.state.historyList.length;
 
-                const historyListEl = document.getElementById('historyList');
-                if (historyListEl && !historyListEl.classList.contains('hidden')) {
-                    this.renderHistory();
-                }
+                    const historyListEl = document.getElementById('historyList');
+                    if (historyListEl && !historyListEl.classList.contains('hidden')) {
+                        this.renderHistory();
+                    }
 
-                // Remove from local files list
-                const removedIdx = this.state.activeIndex;
-                this.state.files.splice(removedIdx, 1);
+                    // Remove from local files list
+                    const removedIdx = this.state.activeIndex;
+                    this.state.files.splice(removedIdx, 1);
 
-                this.renderQueue();
+                    this.renderQueue();
 
-                // Advance to next file or stay on same index
-                if (this.state.files.length > 0) {
-                    const nextIdx = Math.min(removedIdx, this.state.files.length - 1);
-                    this.selectFileByIndex(nextIdx);
-                } else {
-                    this.state.activeIndex = -1;
-                    document.getElementById('emptyPreviewPrompt')?.classList.remove('hidden');
-                    document.getElementById('previewImg')?.classList.add('hidden');
-                    document.getElementById('previewFrame')?.classList.add('hidden');
-                    document.getElementById('previewBadge').textContent = 'Queue Finished!';
+                    // Advance to next file or stay on same index
+                    if (this.state.files.length > 0) {
+                        const nextIdx = Math.min(removedIdx, this.state.files.length - 1);
+                        this.selectFileByIndex(nextIdx);
+                    } else {
+                        this.state.activeIndex = -1;
+                        document.getElementById('emptyPreviewPrompt')?.classList.remove('hidden');
+                        document.getElementById('previewImg')?.classList.add('hidden');
+                        document.getElementById('previewFrame')?.classList.add('hidden');
+                        const pBadge = document.getElementById('previewBadge');
+                        if (pBadge) pBadge.textContent = 'Queue Finished!';
+                    }
+                } catch (domErr) {
+                    console.warn('[StoreRoom] Post-label UI refresh error:', domErr);
                 }
             } else {
                 const errMsg = (data && data.message) ? data.message : `Failed to save label (${res.response ? res.response.status : 'Unknown error'})`;
