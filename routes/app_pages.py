@@ -11,7 +11,8 @@ from routes.auth import auth_required
 from methods.supabase_helper import (
     get_student_profile, get_all_colleges, get_all_branches,
     create_or_update_student_profile, get_user_file_history,
-    get_reputation_stats, get_user_notifications, get_peer_recommended_files
+    get_reputation_stats, get_user_notifications, get_peer_recommended_files,
+    get_dashboard_summary_data, init_supabase
 )
 
 app_pages_bp = Blueprint('app_pages', __name__)
@@ -20,50 +21,62 @@ app_pages_bp = Blueprint('app_pages', __name__)
 @app_pages_bp.route('/dashboard')
 @auth_required
 def dashboard():
-    """Dashboard for authenticated users."""
+    """Dashboard for authenticated users (cached summary architecture)."""
     import app
 
     user_info = session.get('user', {})
     current_user_id = user_info.get('uid')
-    files = app.get_all_file_records_formatted(current_user_id=current_user_id)
 
-    all_subjects = list(set([f.get('subject', '') for f in files if f.get('subject', '').strip()]))
-    top_subjects = sorted(all_subjects)[:8]
-    paper_count = len([f for f in files if f.get('type', '').lower() in ('papers', 'paper', 'pyq')])
-    notes_count = len([f for f in files if f.get('type', '').lower() in ('notes', 'note', 'imp questions', 'imp_questions')])
-
-    seo_keywords = "AbhiHub, GHRCE papers, engineering papers, " + ", ".join(top_subjects) + ", exam resources, study materials"
-
+    # 1. Fetch user profile & college
     user_data = None
+    file_history = []
+    college_name = ''
+
     if 'user' in session:
-        user_info = session['user']
         user_name = user_info.get('name', '')
         user_email = user_info.get('email', '')
         user_id = user_info.get('uid', '')
 
-        user_files = [f for f in files if (f.get('uploader_id') and str(f.get('uploader_id')) == str(user_id)) or f.get('author', '') == user_name or f.get('author_email', '') == user_email]
-        user_uploads_count = len(user_files)
-
+        # Fast indexed query for user's own uploads
+        user_files = []
         user_notes_count = 0
         user_papers_count = 0
         user_practicals_count = 0
         user_subjects = set()
-        for f in user_files:
-            ft = f.get('type', '').lower()
-            if ft == 'notes':
-                user_notes_count += 1
-            elif ft in ('pyq', 'papers'):
-                user_papers_count += 1
-            elif ft == 'practical':
-                user_practicals_count += 1
-            subj = f.get('subject', '').strip()
-            if subj:
-                user_subjects.add(subj)
+        if user_id:
+            try:
+                client = init_supabase()
+                if client:
+                    u_res = client.table('documents').select(
+                        'id, title, document_category, file_type, created_at, view_count, status, subjects(name)'
+                    ).eq('uploader_id', user_id).order('created_at', desc=True).limit(50).execute()
+                    for d in (u_res.data or []):
+                        cat = (d.get('document_category') or '').lower()
+                        ft = (d.get('file_type') or '').lower()
+                        if cat in ('notes', 'note', 'imp questions', 'imp_questions') or ft == 'notes':
+                            user_notes_count += 1
+                        elif cat in ('pyq', 'papers', 'paper') or ft in ('pyq', 'papers'):
+                            user_papers_count += 1
+                        elif cat == 'practical' or ft == 'practical':
+                            user_practicals_count += 1
+                        subj = (d.get('subjects') or {}).get('name') if isinstance(d.get('subjects'), dict) else ''
+                        if subj:
+                            user_subjects.add(subj)
+                        user_files.append({
+                            'record_id': d.get('id'),
+                            'file-name': d.get('title') or 'Document',
+                            'type': cat or 'papers',
+                            'subject': subj or 'General',
+                            'view_count': d.get('view_count', 0),
+                            'date': (d.get('created_at') or '')[:10]
+                        })
+            except Exception as e:
+                logging.warning(f"[Dashboard] Error fetching user uploads: {e}")
+        user_uploads_count = len(user_files)
 
         history_result = get_user_file_history(user_email=user_email, user_id=user_id, limit=12)
         file_history = history_result.get('data', []) if history_result.get('success') else []
 
-        college_name = ''
         try:
             profile_data = session.get('profile')
             if not profile_data or not profile_data.get('college_id'):
@@ -122,8 +135,6 @@ def dashboard():
             'branch_name': profile_data.get('branch_name') or '',
             'branch_id': profile_data.get('branch_id') or ''
         }
-    else:
-        file_history = []
 
     if user_data is None:
         user_data = {}
@@ -145,35 +156,27 @@ def dashboard():
         'upload_goal_month': 'May'
     }
 
-    all_papers = [f for f in files if f.get('type', '').lower() in ('papers', 'paper', 'pyq')]
-    all_papers_by_views = sorted(all_papers, key=lambda f: f.get('view_count', 0), reverse=True)
+    # 2. Pre-computed, memory-cached dashboard summary (zero heavy DB query loops)
+    summary = get_dashboard_summary_data(college_name=college_name)
+    paper_count = summary.get('counts', {}).get('papers', 0)
+    notes_count = summary.get('counts', {}).get('notes', 0)
+    top_subjects = summary.get('top_subjects', [])
+    seo_keywords = "AbhiHub, GHRCE papers, engineering papers, " + ", ".join(top_subjects) + ", exam resources, study materials"
 
-    user_college = user_data.get('college_name', '') if user_data else ''
-    if user_college:
-        college_papers = [f for f in all_papers_by_views if f.get('college', '') == user_college]
-        relevant_papers = college_papers[:8]
-        paper_count = len(college_papers)
-    else:
-        relevant_papers = all_papers_by_views[:8]
+    relevant_papers = summary.get('relevant_papers', [])
+    trending_papers = summary.get('trending_papers', [])
+    recent_papers = summary.get('recent_papers', [])
+    relevant_notes = summary.get('relevant_notes', [])
+    trending_notes = summary.get('trending_notes', [])
+    recent_notes = summary.get('recent_notes', [])
+    recently_added_files = summary.get('recently_added_files', [])
+    premium_files = summary.get('premium_files', [])
+    top_authors = summary.get('top_authors', [])
+    preview_pool = summary.get('preview_pool', [])
 
-    trending_papers = all_papers_by_views[:8]
-    recent_papers = sorted(all_papers, key=lambda f: f.get('date', ''), reverse=True)[:8]
-
-    notes_type_values = ('notes', 'note', 'imp questions', 'imp_questions')
-    all_notes = [f for f in files if f.get('type', '').lower() in notes_type_values]
-    all_notes_by_views = sorted(all_notes, key=lambda f: f.get('view_count', 0), reverse=True)
-
-    if user_college:
-        college_notes = [f for f in all_notes_by_views if f.get('college', '') == user_college]
-        relevant_notes = college_notes[:8]
-        notes_count = len(college_notes)
-    else:
-        relevant_notes = all_notes_by_views[:8]
-
-    trending_notes = all_notes_by_views[:8]
-    recent_notes = sorted(all_notes, key=lambda f: f.get('date', ''), reverse=True)[:8]
-
-    file_lookup = {f.get('record_id'): f for f in files if f.get('record_id')}
+    # 3. Resolve recently viewed & peer recommended files
+    file_pool = preview_pool + relevant_papers + trending_papers + relevant_notes + trending_notes
+    file_lookup = {f.get('record_id'): f for f in file_pool if f.get('record_id')}
     user_viewed_ids = set()
     recently_viewed_files = []
     for h in file_history:
@@ -202,10 +205,9 @@ def dashboard():
         if pid in file_lookup and pid not in user_viewed_ids:
             recommended_files.append(file_lookup[pid])
 
-    # Fallback to same college or trending resources if peer view history is sparse
     if len(recommended_files) < 6:
         seen_rec_ids = {r.get('record_id') for r in recommended_files} | user_viewed_ids
-        pool = (relevant_papers if user_college else trending_papers) + (relevant_notes if user_college else trending_notes)
+        pool = relevant_papers + relevant_notes
         for item in pool:
             rid = item.get('record_id')
             if rid and rid not in seen_rec_ids:
@@ -213,22 +215,6 @@ def dashboard():
                 recommended_files.append(item)
                 if len(recommended_files) >= 8:
                     break
-
-    from collections import Counter
-    recently_added_files = sorted(files, key=lambda f: f.get('date') or '', reverse=True)[:10]
-
-    premium_files = [f for f in files if f.get('is_paid') or (f.get('price') and float(f.get('price', 0)) > 0)]
-    if len(premium_files) < 8:
-        curated_extra = [f for f in sorted(files, key=lambda x: x.get('view_count', 0), reverse=True)
-                         if f.get('verified') and f.get('record_id') not in {p.get('record_id') for p in premium_files}]
-        premium_files.extend(curated_extra[:8 - len(premium_files)])
-
-    author_counts = Counter()
-    for f in files:
-        auth = (f.get('author') or '').strip()
-        if auth and auth.lower() not in ('unknown', 'contributor', 'none', ''):
-            author_counts[auth] += 1
-    top_authors = [{'name': name, 'count': count} for name, count in author_counts.most_common(20)]
 
     from data.tea_supporters import get_recent_feedbacks
     community_feedbacks = get_recent_feedbacks(limit=8)
@@ -242,7 +228,7 @@ def dashboard():
 
     return render_template(
         'app/dashboard.html',
-        data=files,
+        data=preview_pool,
         seo_keywords=seo_keywords,
         top_subjects=top_subjects,
         paper_count=paper_count,
@@ -1023,28 +1009,20 @@ def upload():
 @app_pages_bp.route('/dashboard/suggest')
 @auth_required
 def suggest():
-    import app
-    q = request.args.get('q', '').strip().lower()
-    if not q or not getattr(app, 'data_cache', None):
+    """Deprecated: now forwards to V2 suggest (taxonomy + intent detection)."""
+    q = request.args.get('q', '').strip()
+    college_id = request.args.get('college_id', '').strip() or None
+    if not q:
         return jsonify({"subjects": [], "types": [], "authors": []})
-
-    subjects, types, authors = {}, {}, {}
-    for item in app.data_cache:
-        s = item.get("subject", "")
-        t = item.get("type", "")
-        a = item.get("author", "")
-        if q in app._normalize(s):
-            subjects[s] = subjects.get(s, 0) + 1
-        if q in app._normalize(t):
-            types[t] = types.get(t, 0) + 1
-        if q in app._normalize(a):
-            authors[a] = authors.get(a, 0) + 1
-
-    top_subjects = [k for k, _ in sorted(subjects.items(), key=lambda kv: kv[1], reverse=True)[:5]]
-    top_types    = [k for k, _ in sorted(types.items(), key=lambda kv: kv[1], reverse=True)[:5]]
-    top_authors  = [k for k, _ in sorted(authors.items(), key=lambda kv: kv[1], reverse=True)[:5]]
-
-    return jsonify({"subjects": top_subjects, "types": top_types, "authors": top_authors})
+    try:
+        from methods.search_api import get_suggestions_payload
+        payload = get_suggestions_payload(q, college_id=college_id)
+        subjects = [s['title'] for s in payload.get('groups', {}).get('subjects', [])]
+        branches = [b['title'] for b in payload.get('groups', {}).get('branches', [])]
+        return jsonify({"subjects": subjects, "types": branches, "authors": [], "v2": payload})
+    except Exception as e:
+        logging.warning(f"[suggest] V2 suggest error: {e}")
+        return jsonify({"subjects": [], "types": [], "authors": []})
 
 
 @app_pages_bp.route('/dashboard/')
@@ -1056,10 +1034,13 @@ def index():
 @app_pages_bp.route('/dashboard/search', methods=['POST', 'GET'])
 @auth_required
 def search():
+    """Search entry point — redirects to the SPA search page with query."""
     search_query = request.form.get('search') or request.args.get('search', '')
     if not search_query:
         return redirect(url_for('app_pages.dashboard'))
-    return redirect(url_for('app_pages.dashboard', search_query=search_query))
+    # Redirect to SPA search view (frontend reads ?q= and calls /api/v2/search)
+    from urllib.parse import quote_plus
+    return redirect(f"/app-shell?p=/search&q={quote_plus(search_query)}")
 
 
 @app_pages_bp.route('/dashboard/static/search.json')
@@ -1077,28 +1058,23 @@ def search_in():
 @app_pages_bp.route('/dashboard/save_search', methods=['POST'])
 @auth_required
 def save_search():
+    """Persist a search query — writes to search_analytics DB (not flat file)."""
     search_data = request.get_json()
     search_query = search_data.get('searchquery') if search_data else None
-    if search_query:
-        search_file = os.path.join(current_app.root_path, 'premium/static/search.json')
-        search_entry = {
-            'date': datetime.now().strftime('%Y-%m-%d'),
-            'time': datetime.now().strftime('%H:%M:%S'),
-            'searchquery': search_query
-        }
-        try:
-            if os.path.exists(search_file):
-                with open(search_file, 'r') as f:
-                    searches = json.load(f)
-            else:
-                searches = []
-            searches.append(search_entry)
-            with open(search_file, 'w') as f:
-                json.dump(searches, f, indent=4)
-            return jsonify({'status': 'success'}), 200
-        except Exception:
-            return jsonify({'status': 'error'}), 500
-    return jsonify({'status': 'error'}), 400
+    if not search_query:
+        return jsonify({'status': 'noop'}), 200
+    try:
+        from methods.supabase_helper import init_supabase
+        client = init_supabase()
+        if client:
+            client.table('search_analytics').insert({
+                'query': search_query,
+                'results_count': search_data.get('results_count', 0)
+            }).execute()
+        return jsonify({'status': 'success'}), 200
+    except Exception as e:
+        logging.warning(f"[save_search] DB insert failed (non-fatal): {e}")
+        return jsonify({'status': 'ok'}), 200  # non-fatal — never block UX
 
 
 @app_pages_bp.route('/memorywall')

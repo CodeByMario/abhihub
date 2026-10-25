@@ -26,7 +26,9 @@ from methods.cloudinary_helper import (
     search_files,
     filter_files,
     sort_files,
+    build_inverted_index,
 )
+
 
 store_room_bp = Blueprint('store_room', __name__)
 
@@ -36,6 +38,9 @@ _unlabeled_cache = {
     'timestamp': 0,
     'ttl': 60  # Cache for 60 seconds
 }
+
+# Cache the last sort result to avoid re-sorting on every API call
+_SORTED_CACHE: dict = {'key': None, 'data': []}
 
 
 def _mark_labeled(storage_provider, cloudinary_public_id, filename=None, file_url=None):
@@ -106,6 +111,11 @@ def get_cached_unlabeled_files():
     _unlabeled_cache['data'] = unlabeled_files
     _unlabeled_cache['labeled_count'] = labeled_count
     _unlabeled_cache['timestamp'] = now
+
+    # Build inverted index once on cache fill for O(1) search lookups
+    global _SORTED_CACHE
+    _SORTED_CACHE = {'key': None, 'data': []}  # invalidate stale sort cache
+    _unlabeled_cache['index'] = build_inverted_index(unlabeled_files)
 
     return unlabeled_files, labeled_count
 
@@ -614,12 +624,18 @@ def store_room_api_unlabeled():
         all_files = unlabeled_files
 
         if search_query:
-            all_files = search_files(all_files, search_query)
+            _idx = _unlabeled_cache.get('index')  # use pre-built inverted index
+            all_files = search_files(all_files, search_query, _index=_idx)
 
         if format_filter or folder_filter:
             all_files = filter_files(all_files, format_filter, folder_filter)
 
-        all_files = sort_files(all_files, sort_by, order)
+        # Only re-sort when params change — avoids O(n log n) on every request
+        sort_key = f"{sort_by}:{order}:{search_query}:{format_filter}:{folder_filter}"
+        if _SORTED_CACHE['key'] != sort_key:
+            _SORTED_CACHE['data'] = sort_files(all_files, sort_by, order)
+            _SORTED_CACHE['key'] = sort_key
+        all_files = _SORTED_CACHE['data']
 
         total_papers = len(unlabeled_files) + sorted_papers
         remaining_papers = len(unlabeled_files)

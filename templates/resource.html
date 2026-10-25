@@ -776,14 +776,14 @@ uploader_name %}
   <!-- Action Row -->
   <div class="r2-action-bar" aria-label="Resource Actions">
     <button class="r2-btn like-btn {{ 'liked' if document.is_liked else '' }}" type="button" data-action="toggleLike"
-      data-doc-id="{{ document.id }}" aria-label="Like this resource">
+      data-doc-id="{{ document.id }}" data-record-id="{{ document.id }}" aria-label="Like this resource">
       <svg class="like-heart-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
       </svg>
       <span class="like-count">{{ document.like_count or 0 }}</span>
     </button>
     <button class="r2-btn bookmark-btn {{ 'bookmarked' if document.is_bookmarked else '' }}" type="button"
-      data-action="toggleBookmark" data-doc-id="{{ document.id }}" aria-label="Save this resource">
+      data-action="toggleBookmark" data-doc-id="{{ document.id }}" data-record-id="{{ document.id }}" aria-label="Save this resource">
       🔖 <span class="bookmark-count">{{ document.bookmark_count or 0 }}</span> Save
     </button>
     <button class="r2-btn share-btn" type="button" onclick="shareResource()" aria-label="Share this resource">
@@ -1022,6 +1022,25 @@ uploader_name %}
             {% endif %}
           </div>
         </div>
+
+        <script>
+          function switchRecTab(tabName, btn) {
+            var panel = document.getElementById('recommendationsPanel') || document;
+            panel.querySelectorAll('.r2-tarika-tab-btn').forEach(function (b) { b.classList.remove('active'); });
+            panel.querySelectorAll('.r2-tarika-content').forEach(function (c) {
+              c.classList.remove('active');
+              c.style.display = 'none';
+            });
+            if (btn) btn.classList.add('active');
+            var target = document.getElementById('recTab_' + tabName);
+            if (target) {
+              target.classList.add('active');
+              target.style.display = 'block';
+            }
+          }
+          window.switchRecTab = switchRecTab;
+          window.switchR2Tab = switchRecTab;
+        </script>
 
         <div class="r2-tarika-tabs" style="overflow-x:auto; scrollbar-width:none; flex-wrap:nowrap;">
           <button type="button" class="r2-tarika-tab-btn active" onclick="switchRecTab('papers', this)">📄
@@ -2202,7 +2221,7 @@ uploader_name %}
 
   // Report Modal Handlers
   const _rDocId = "{{ document.id }}";
-  const _rDocTitle = "{{ (document.title or '') | replace('\"', '') }}";
+  const _rDocTitle = {{ (document.title or '') | tojson }};
   function rOpenReport() {
     var b = document.getElementById('rReportBackdrop');
     if (b) { b.style.display = 'flex'; }
@@ -2513,6 +2532,7 @@ uploader_name %}
       msg.style.color = '#dc2626';
       msg.innerText = 'Error verifying coupon';
     });
+  };
   // Viral Sharing Handlers for Resource Owners
   function shareOnWhatsApp() {
     var title = {{ (document.title or 'Exam Notes') | tojson }};

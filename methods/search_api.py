@@ -51,6 +51,27 @@ DEFAULT_COLLEGE_ALIASES = {
     'cet': {'name_pattern': r'college of engineering|cet|odisha university of technology', 'is_group': False},
 }
 
+DEFAULT_DEPARTMENT_ALIASES: Dict[str, List[str]] = {
+    'cse': ['computer science and engineering', 'computer science', 'computer technology'],
+    'cs': ['computer science and engineering', 'computer science'],
+    'it': ['information technology'],
+    'ai': ['artificial intelligence', 'artificial intelligence and data science', 'artificial intelligence and machine learning'],
+    'aiml': ['artificial intelligence and machine learning', 'ai & ml'],
+    'aids': ['artificial intelligence and data science', 'ai & ds'],
+    'ds': ['data science'],
+    'ece': ['electronics and communication engineering', 'electronics and telecommunication engineering', 'electronics engineering', 'etc'],
+    'etc': ['electronics and telecommunication engineering', 'electronics and communication engineering'],
+    'ee': ['electrical engineering'],
+    'eee': ['electrical and electronics engineering'],
+    'mech': ['mechanical engineering'],
+    'mechanical': ['mechanical engineering'],
+    'civil': ['civil engineering'],
+    'ce': ['civil engineering'],
+    'chem': ['chemical engineering'],
+    'aero': ['aerospace engineering', 'aeronautical engineering'],
+    'biotech': ['biotechnology']
+}
+
 DEFAULT_SUBJECT_ALIASES = {
     'os': ['operating system', 'operating systems'],
     'dbms': ['database management', 'database management systems'],
@@ -180,10 +201,20 @@ def get_taxonomy() -> Dict[str, Any]:
             # 1. Colleges
             col_res = client.table('colleges').select('id, name, abbreviation').execute()
             colleges = col_res.data or []
+            abbr_to_colleges: Dict[str, List[Dict[str, Any]]] = {}
+            for c in colleges:
+                c['name_norm'] = norm_text(c.get('name'))
+                c_abbr = norm_text(c.get('abbreviation'))
+                c['abbr_norm'] = c_abbr
+                if c_abbr:
+                    abbr_to_colleges.setdefault(c_abbr, []).append(c)
 
             # 2. Departments
             dept_res = client.table('departments').select('id, name, abbreviation').execute()
             departments = dept_res.data or []
+            for d in departments:
+                d['name_norm'] = norm_text(d.get('name'))
+                d['abbr_norm'] = norm_text(d.get('abbreviation'))
 
             # 3. Subjects
             subj_res = client.table('subjects').select('id, department_id, name, subject_code, semester').execute()
@@ -260,12 +291,22 @@ def get_taxonomy() -> Dict[str, Any]:
                             })
                             seen_ca.add((can, c['id']))
 
+            # 6. Search Vocabulary (instant suggestion & typo lookup)
+            search_vocab = []
+            try:
+                vocab_res = client.table('search_vocab').select('kind, term, label, ref_id, college_id, weight').execute()
+                search_vocab = vocab_res.data or []
+            except Exception as ve:
+                logger.debug(f"[Search Taxonomy] Vocab query note: {ve}")
+
             _TAXONOMY_CACHE = {
                 'colleges': colleges,
+                'abbr_to_colleges': abbr_to_colleges,
                 'departments': departments,
                 'subjects': subjects,
                 'subject_aliases': subject_aliases,
                 'college_aliases': college_aliases,
+                'vocab': search_vocab,
                 'last_updated': time.time()
             }
         except Exception as e:
@@ -274,11 +315,64 @@ def get_taxonomy() -> Dict[str, Any]:
     return _TAXONOMY_CACHE
 
 # -----------------------------------------------------------------------------
+# 3.1 In-Memory Document Store (< 2ms instantaneous search)
+# -----------------------------------------------------------------------------
+_DOCUMENTS_LOCK = threading.Lock()
+_DOCUMENTS_CACHE: Dict[str, Any] = {
+    'documents': [],
+    'last_updated': 0
+}
+_DOCUMENTS_TTL = 120  # 2 minutes TTL
+
+def invalidate_search_cache():
+    """Force refresh of search documents cache."""
+    global _DOCUMENTS_CACHE
+    with _DOCUMENTS_LOCK:
+        _DOCUMENTS_CACHE['last_updated'] = 0
+
+def get_cached_documents(force_refresh: bool = False) -> List[Dict[str, Any]]:
+    """Retrieve preloaded approved documents catalogue in memory for instantaneous search."""
+    global _DOCUMENTS_CACHE
+    now = time.time()
+    if not force_refresh and _DOCUMENTS_CACHE['last_updated'] > 0 and (now - _DOCUMENTS_CACHE['last_updated']) < _DOCUMENTS_TTL:
+        return _DOCUMENTS_CACHE['documents']
+
+    with _DOCUMENTS_LOCK:
+        if not force_refresh and _DOCUMENTS_CACHE['last_updated'] > 0 and (now - _DOCUMENTS_CACHE['last_updated']) < _DOCUMENTS_TTL:
+            return _DOCUMENTS_CACHE['documents']
+
+        client = init_supabase_admin() or init_supabase()
+        if not client:
+            return _DOCUMENTS_CACHE['documents']
+
+        try:
+            res = client.table('documents').select(
+                'id, title, file_url, document_category, file_type, '
+                'view_count, like_count, bookmark_count, created_at, description, '
+                'college_id, department_id, subject_id, search_text, '
+                'profiles!documents_uploader_id_fkey(full_name), '
+                'subjects(id, name, subject_code, semester), colleges(id, name)'
+            ).eq('status', 'approved').order('created_at', desc=True).limit(5000).execute()
+
+            docs = res.data or []
+            for d in docs:
+                d['title_norm'] = norm_text(d.get('title'))
+                st = d.get('search_text') or ''
+                d['search_text_norm'] = norm_text(st) if st else ''
+            _DOCUMENTS_CACHE['documents'] = docs
+            _DOCUMENTS_CACHE['last_updated'] = now
+            return docs
+        except Exception as e:
+            logger.warning(f"[Search API] Documents cache error: {e}")
+            return _DOCUMENTS_CACHE['documents']
+
+# -----------------------------------------------------------------------------
 # 4. In-Memory Query Parser (< 1ms)
 # -----------------------------------------------------------------------------
 _SEM_REGEX = re.compile(r'\b(?:sem(?:ester)?|s)\s*([1-8])\b|\b([1-8])(?:st|nd|rd|th)\s*sem(?:ester)?\b', re.IGNORECASE)
 _YEAR_REGEX = re.compile(r'\b(201[5-9]|202[0-9])\b')
 _CATEGORY_REGEX = re.compile(r'\b(pyqs?|previous year|question papers?|notes?|practicals?|lab manuals?|syllabus)\b', re.IGNORECASE)
+_AUTHOR_REGEX = re.compile(r'\b(?:by|author|prof|dr|uploaded\s+by)[:\s]+([a-zA-Z0-9_\.]{2,30}(?:\s+[a-zA-Z0-9_\.]{2,30})?)\b', re.IGNORECASE)
 
 def parse_search_intent(query: str, client_college_id: str = None) -> Dict[str, Any]:
     """Parse user query in memory to resolve entities, filters, and subject keywords."""
@@ -286,7 +380,13 @@ def parse_search_intent(query: str, client_college_id: str = None) -> Dict[str, 
     parsed: Dict[str, Any] = {
         'original_query': query,
         'college_ids': [],
+        'college_id': None,
         'college_name': None,
+        'college_abbr': None,
+        'department_id': None,
+        'department_name': None,
+        'department_abbr': None,
+        'author': None,
         'semester': None,
         'category': None,
         'year': None,
@@ -297,6 +397,7 @@ def parse_search_intent(query: str, client_college_id: str = None) -> Dict[str, 
 
     if client_college_id and client_college_id.upper() != 'ALL' and len(client_college_id) == 36:
         parsed['college_ids'].append(client_college_id)
+        parsed['college_id'] = client_college_id
 
     raw = query.strip()
     if not raw:
@@ -337,37 +438,122 @@ def parse_search_intent(query: str, client_college_id: str = None) -> Dict[str, 
         exam_term = norm_text(exam_match.group(1))
         raw = _EXAM_REGEX.sub(' ', raw)
 
-    # 5. Extract College Alias from query
-    norm_q = norm_text(raw)
-    words = norm_q.split()
-    remaining_words = []
+    # 5. Extract Department / Branch
+    norm_dept_raw = f" {norm_text(raw)} "
+    found_dept = None
+    matched_dept_alias = None
 
-    for word in words:
-        found_college = False
-        for ca in taxonomy['college_aliases']:
-            if word == ca['alias_norm']:
+    for dept_alias, dept_patterns in DEFAULT_DEPARTMENT_ALIASES.items():
+        if f" {dept_alias} " in norm_dept_raw:
+            matched_dept_alias = dept_alias
+            for d in taxonomy.get('departments', []):
+                d_abbr = d.get('abbr_norm') or ''
+                d_name = d.get('name_norm') or ''
+                if d_abbr == dept_alias or any(p in d_name for p in dept_patterns):
+                    found_dept = d
+                    break
+            raw = re.sub(r'\b' + re.escape(dept_alias) + r'\b', ' ', raw, flags=re.IGNORECASE)
+            break
+
+    if not found_dept:
+        for d in taxonomy.get('departments', []):
+            d_abbr = d.get('abbr_norm')
+            if d_abbr and len(d_abbr) >= 2 and f" {d_abbr} " in norm_dept_raw:
+                found_dept = d
+                raw = re.sub(r'\b' + re.escape(d_abbr) + r'\b', ' ', raw, flags=re.IGNORECASE)
+                break
+
+    if found_dept:
+        parsed['department_id'] = found_dept.get('id')
+        parsed['department_name'] = found_dept.get('name')
+        parsed['department_abbr'] = found_dept.get('abbreviation') or found_dept.get('name')
+    elif matched_dept_alias:
+        parsed['department_abbr'] = matched_dept_alias.upper()
+
+    # 6. Extract College by Real DB Abbreviation (Highest Priority & Supports Shared Abbreviations)
+    words_for_col = norm_text(raw).split()
+    non_col_words = []
+    matched_col_abbr = None
+    abbr_map = taxonomy.get('abbr_to_colleges', {})
+
+    for word in words_for_col:
+        if word in abbr_map:
+            matched_cols = abbr_map[word]
+            matched_col_abbr = word.upper()
+            for mc in matched_cols:
+                if mc['id'] not in parsed['college_ids']:
+                    parsed['college_ids'].append(mc['id'])
+
+            # If user has client_college_id that matches one of the colleges with this abbreviation, select it
+            if client_college_id and any(mc['id'] == client_college_id for mc in matched_cols):
+                user_c = next(mc for mc in matched_cols if mc['id'] == client_college_id)
+                parsed['college_name'] = user_c.get('name')
+                parsed['college_id'] = user_c.get('id')
+            elif len(matched_cols) == 1:
+                parsed['college_name'] = matched_cols[0].get('name')
+                parsed['college_id'] = matched_cols[0].get('id')
+            else:
+                # Multiple colleges have the exact same abbreviation!
+                parsed['college_name'] = f"{word.upper()} ({len(matched_cols)} colleges)"
+                parsed['college_id'] = matched_cols[0].get('id')
+        else:
+            non_col_words.append(word)
+
+    if matched_col_abbr:
+        parsed['college_abbr'] = matched_col_abbr
+
+    raw = ' '.join(non_col_words)
+
+    # 7. Extract College Multi-word Aliases & Single-word Aliases (Only if no real abbreviation matched)
+    if not parsed['college_ids']:
+        for ca in taxonomy.get('college_aliases', []):
+            ca_alias = ca.get('alias_norm') or ''
+            if ' ' in ca_alias and f" {ca_alias} " in f" {norm_text(raw)} ":
                 if ca['college_id'] not in parsed['college_ids']:
                     parsed['college_ids'].append(ca['college_id'])
                 if not parsed['college_name']:
-                    # Look up official name
-                    for c in taxonomy['colleges']:
+                    for c in taxonomy.get('colleges', []):
                         if c['id'] == ca['college_id']:
                             parsed['college_name'] = c.get('name')
+                            parsed['college_id'] = c.get('id')
                             break
-                found_college = True
-                break
-        if not found_college:
-            # Check college abbreviations directly (VNIT, GHRCE, PCE, etc.)
-            for c in taxonomy['colleges']:
-                if c.get('abbreviation') and word == norm_text(c.get('abbreviation')):
-                    if c['id'] not in parsed['college_ids']:
-                        parsed['college_ids'].append(c['id'])
-                    if not parsed['college_name']:
-                        parsed['college_name'] = c.get('name')
-                    found_college = True
-                    break
-        if not found_college:
-            remaining_words.append(word)
+                raw = re.sub(r'\b' + re.escape(ca_alias) + r'\b', ' ', raw, flags=re.IGNORECASE)
+
+        words_for_ca = norm_text(raw).split()
+        non_ca_words = []
+        for word in words_for_ca:
+            matched_ca_cols = [ca['college_id'] for ca in taxonomy.get('college_aliases', []) if word == ca.get('alias_norm')]
+            if matched_ca_cols:
+                for cid in matched_ca_cols:
+                    if cid not in parsed['college_ids']:
+                        parsed['college_ids'].append(cid)
+                if not parsed['college_name']:
+                    for c in taxonomy.get('colleges', []):
+                        if c['id'] in matched_ca_cols:
+                            parsed['college_name'] = c.get('name')
+                            parsed['college_id'] = c.get('id')
+                            break
+            else:
+                non_ca_words.append(word)
+        raw = ' '.join(non_ca_words)
+
+    # 8. Extract Author (e.g. 'by Rohit', 'author: John Doe')
+    author_match = _AUTHOR_REGEX.search(raw)
+    if author_match:
+        matched_auth = author_match.group(1).strip()
+        auth_words = matched_auth.split()
+        if len(auth_words) > 1:
+            second_word_norm = norm_text(auth_words[-1])
+            if (second_word_norm in DEFAULT_DEPARTMENT_ALIASES or 
+                any(second_word_norm == c.get('abbr_norm') for c in taxonomy.get('departments', [])) or 
+                any(second_word_norm == norm_text(c.get('abbreviation')) for c in taxonomy.get('colleges', [])) or 
+                any(second_word_norm == ca['alias_norm'] for ca in taxonomy.get('college_aliases', []))):
+                matched_auth = ' '.join(auth_words[:-1])
+        parsed['author'] = matched_auth
+        raw = _AUTHOR_REGEX.sub(' ', raw)
+
+    norm_q = norm_text(raw)
+    remaining_words = norm_q.split()
 
     subject_search_str = ' '.join(remaining_words).strip()
     code_search_str = norm_code(subject_search_str)
@@ -495,6 +681,7 @@ def execute_search_v3(
     document_type: str = None,
     subject: str = None,
     year: str = None,
+    author: str = None,
     sort: str = 'relevance',
     limit: int = 50
 ) -> Tuple[List[Dict[str, Any]], Dict[str, Any]]:
@@ -522,13 +709,23 @@ def execute_search_v3(
                     target_college_ids.append(c['id'])
                     break
 
+    # 2. Resolve Department
+    target_department_id = department_id or parsed.get('department_id')
+    if target_department_id and len(str(target_department_id)) != 36:
+        td_norm = norm_text(str(target_department_id))
+        for d in taxonomy.get('departments', []):
+            if d.get('abbr_norm') == td_norm or d.get('name_norm') == td_norm:
+                target_department_id = d.get('id')
+                break
+
     target_semester = semester or parsed['semester']
     target_category = document_type or parsed['category']
     target_year = year or parsed['year']
+    target_author = author or parsed.get('author')
 
     matched_subj_ids = [m['subject']['id'] for m in parsed['matched_subjects']]
 
-    # 2. Resolve Explicit Subject Filter (e.g. from dropdown)
+    # 3. Resolve Explicit Subject Filter (e.g. from dropdown)
     if subject and subject != 'All subjects':
         s_norm = norm_text(subject)
         for s in taxonomy['subjects']:
@@ -541,7 +738,7 @@ def execute_search_v3(
                         'reason': f"Selected Subject: {s.get('name')}"
                     })
 
-    # 3. If semester specified but no subject, constrain to subjects of that semester
+    # 4. If semester specified but no subject, constrain to subjects of that semester
     if not matched_subj_ids and target_semester:
         sem_subj_ids = [s['id'] for s in taxonomy['subjects'] if get_subj_semester(s) == target_semester]
         if sem_subj_ids:
@@ -551,57 +748,139 @@ def execute_search_v3(
     topic_tokens = parsed.get('topic_tokens', [])
     exam_term = parsed.get('exam_term')
 
+    # Build structured chips representation
+    chips = []
+    if parsed.get('matched_subjects'):
+        ms = parsed['matched_subjects'][0]['subject']
+        chips.append({'type': 'subject', 'label': f"{ms.get('subject_code', '')} - {ms.get('name', '')}".strip(' -'), 'value': ms.get('id')})
+    if parsed.get('college_name') or parsed.get('college_abbr'):
+        chips.append({'type': 'college', 'label': parsed.get('college_abbr') or parsed.get('college_name'), 'value': parsed.get('college_id')})
+    if parsed.get('department_abbr') or parsed.get('department_name'):
+        chips.append({'type': 'branch', 'label': parsed.get('department_abbr') or parsed.get('department_name'), 'value': parsed.get('department_id')})
+    if target_semester:
+        chips.append({'type': 'semester', 'label': f"Sem {target_semester}", 'value': target_semester})
+    if target_category and target_category != 'All types':
+        chips.append({'type': 'type', 'label': target_category.title(), 'value': target_category})
+    if target_year:
+        chips.append({'type': 'year', 'label': str(target_year), 'value': target_year})
+    if target_author:
+        chips.append({'type': 'author', 'label': f"by {target_author}", 'value': target_author})
+
+    residual_text = parsed.get('topic_str', '').strip()
+    if not residual_text and not chips and query:
+        residual_text = query.strip()
+
     meta: Dict[str, Any] = {
         'parsed': {
-            'college_name': parsed['college_name'],
+            'chips': chips,
+            'residual_text': residual_text,
+            'college_id': parsed.get('college_id') or (target_college_ids[0] if len(target_college_ids) == 1 else None),
+            'college_ids': target_college_ids,
+            'college_name': parsed.get('college_name'),
+            'college_abbr': parsed.get('college_abbr'),
+            'department_id': target_department_id,
+            'department_name': parsed.get('department_name'),
+            'department_abbr': parsed.get('department_abbr'),
             'semester': target_semester,
             'category': target_category,
             'year': target_year,
-            'match_reason': parsed['match_reason']
+            'author': target_author,
+            'subject': parsed['matched_subjects'][0]['subject']['name'] if parsed.get('matched_subjects') else None,
+            'match_reason': parsed.get('match_reason')
         },
+        'counts': {'exact': 0, 'close': 0, 'related': 0, 'total': 0},
+        'did_you_mean': None,
+        'fallback': None,
         'relaxed': False,
         'relaxation_message': None
     }
 
-    def fetch_documents_by_filter(c_ids, sub_ids, title_keyword=None):
-        q = client.table('documents').select(
-            'id, title, file_url, document_category, file_type, '
-            'view_count, like_count, bookmark_count, created_at, description, '
-            'profiles!documents_uploader_id_fkey(full_name), '
-            'subjects(id, name, subject_code, semester), colleges(id, name)'
-        ).eq('status', 'approved')
-
-        if c_ids:
-            if len(c_ids) == 1:
-                q = q.eq('college_id', c_ids[0])
+    # Typo correction & did_you_mean generation using search_vocab / rapidfuzz
+    did_you_mean_query = None
+    if fuzz and residual_text and len(residual_text) >= 4:
+        vocab_list = taxonomy.get('vocab', [])
+        corrected_words = []
+        changed = False
+        for word in residual_text.split():
+            w_low = word.lower()
+            if len(w_low) < 4 or w_low in {'for', 'and', 'the', 'iot', 'cse', 'it'}:
+                corrected_words.append(word)
+                continue
+            best_match = None
+            best_score = 0
+            for v in vocab_list:
+                v_term = v.get('term', '')
+                if abs(len(v_term) - len(w_low)) <= 2:
+                    score = fuzz.ratio(w_low, v_term)
+                    if score > best_score and score >= 80:
+                        best_score = score
+                        best_match = v_term
+            if best_match and best_match != w_low:
+                corrected_words.append(best_match)
+                changed = True
             else:
-                q = q.in_('college_id', c_ids)
+                corrected_words.append(word)
+        if changed:
+            did_you_mean_query = ' '.join(corrected_words)
+            meta['did_you_mean'] = did_you_mean_query
 
-        if department_id and len(department_id) == 36:
-            q = q.eq('department_id', department_id)
+    all_cached_docs = get_cached_documents()
 
-        # Robust case-insensitive category matching
-        if target_category and target_category != 'All types':
-            tc = target_category.lower()
-            if 'note' in tc:
-                q = q.eq('document_category', 'notes')
-            elif 'paper' in tc or 'pyq' in tc or 'question' in tc or 'exam' in tc:
-                q = q.in_('document_category', ['papers', 'question_bank'])
-            elif 'practical' in tc or 'lab' in tc:
-                q = q.eq('document_category', 'practical')
-            elif 'syllabus' in tc:
-                q = q.eq('document_category', 'syllabus')
-            elif 'timetable' in tc:
-                q = q.eq('document_category', 'timetable')
-            else:
-                q = q.ilike('document_category', f'%{tc}%')
+    def fetch_documents_by_filter(c_ids, sub_ids, title_keyword=None, cat_filter=target_category, yr_filter=target_year):
+        out = []
+        kw_norm = norm_text(title_keyword) if title_keyword else ''
+        for d in all_cached_docs:
+            # 1. College constraint
+            if c_ids:
+                doc_cid = d.get('college_id') or (d.get('colleges') or {}).get('id')
+                if doc_cid not in c_ids:
+                    continue
 
-        if sub_ids:
-            q = q.in_('subject_id', sub_ids)
-        elif title_keyword and len(title_keyword) >= 2:
-            q = q.ilike('title', f'%{title_keyword}%')
+            # 2. Department constraint
+            if target_department_id and str(d.get('department_id')) != str(target_department_id):
+                continue
 
-        return q.order('created_at', desc=True).limit(limit).execute().data or []
+            # 3. Category constraint
+            if cat_filter and cat_filter != 'All types':
+                tc = cat_filter.lower()
+                doc_cat = (d.get('document_category') or '').lower()
+                if 'note' in tc and doc_cat != 'notes':
+                    continue
+                elif ('paper' in tc or 'pyq' in tc or 'question' in tc or 'exam' in tc) and doc_cat not in ('papers', 'question_bank'):
+                    continue
+                elif ('practical' in tc or 'lab' in tc) and doc_cat != 'practical':
+                    continue
+                elif 'syllabus' in tc and doc_cat != 'syllabus':
+                    continue
+                elif 'timetable' in tc and doc_cat != 'timetable':
+                    continue
+
+            # 4. Year constraint
+            if yr_filter:
+                doc_yr = str(d.get('created_at', ''))[:4]
+                doc_desc = (d.get('description') or '')
+                if 'Year:' in doc_desc:
+                    try:
+                        doc_yr = doc_desc.split('Year:')[1].split('|')[0].strip()
+                    except Exception:
+                        pass
+                if str(yr_filter) not in doc_yr:
+                    continue
+
+            # 5. Subject or Title match
+            if sub_ids:
+                if d.get('subject_id') not in sub_ids:
+                    continue
+            elif kw_norm:
+                d_title_norm = d.get('title_norm') or norm_text(d.get('title'))
+                d_search_text = d.get('search_text_norm') or norm_text(d.get('search_text') or '')
+                if kw_norm not in d_title_norm and kw_norm not in d_search_text:
+                    continue
+
+            out.append(d)
+            if len(out) >= limit:
+                break
+        return out
 
     # 1. Dual Retrieval: by matched subjects AND by topic keywords in title
     docs_map = {}
@@ -614,7 +893,7 @@ def execute_search_v3(
     if topic_str and len(topic_str) >= 3:
         title_docs = fetch_documents_by_filter(target_college_ids, [], title_keyword=topic_str)
         for d in title_docs:
-            if d['id'] not in docs_map:
+            if d['id'] not in docs_map and len(docs_map) < limit * 2:
                 docs_map[d['id']] = d
 
     # Search individual topic tokens if compound title didn't catch everything
@@ -622,7 +901,7 @@ def execute_search_v3(
         if len(tok) >= 4 and len(docs_map) < limit:
             tok_docs = fetch_documents_by_filter(target_college_ids, [], title_keyword=tok)
             for d in tok_docs:
-                if d['id'] not in docs_map:
+                if d['id'] not in docs_map and len(docs_map) < limit * 2:
                     docs_map[d['id']] = d
 
     # Fallback to general query if no docs found yet
@@ -637,123 +916,191 @@ def execute_search_v3(
         for d in filter_docs:
             docs_map[d['id']] = d
 
-    # 2. Graceful Relaxation Step 1: Relax College Filter if empty
-    if not docs_map and target_college_ids:
-        relaxed_docs = fetch_documents_by_filter([], matched_subj_ids)
+    # --- Fallback Ladder ---
+    fallback_stage = 0
+    relaxed_filters = []
+    fallback_message = None
+
+    # Stage 1: Typo tolerance via did_you_mean
+    if not docs_map and did_you_mean_query:
+        fallback_stage = 1
+        relaxed_docs = fetch_documents_by_filter(target_college_ids, [], title_keyword=did_you_mean_query)
         for d in relaxed_docs:
             docs_map[d['id']] = d
-        if docs_map:
-            meta['relaxed'] = True
-            c_label = parsed['college_name'] or "your college"
-            meta['relaxation_message'] = f"No documents found at {c_label}. Showing matching resources from other universities."
 
-    # 3. Graceful Relaxation Step 2: Fallback to general title keywords if subject matching had no uploads
-    if not docs_map and query:
-        fallback_docs = fetch_documents_by_filter([], [], title_keyword=query)
-        for d in fallback_docs:
-            docs_map[d['id']] = d
-        if docs_map:
-            meta['relaxed'] = True
-            meta['relaxation_message'] = f"Showing documents matching keyword '{query}'."
+    # Stage 2: Relax weakest filter in order: year -> semester -> type -> branch (preserve college)
+    if not docs_map and (query or matched_subj_ids or target_year):
+        subj_label = parsed['matched_subjects'][0]['subject']['name'] if parsed.get('matched_subjects') else "selected criteria"
+        # 2a. Relax Year
+        if target_year:
+            relaxed_year_docs = fetch_documents_by_filter(target_college_ids, matched_subj_ids, yr_filter=None)
+            for d in relaxed_year_docs:
+                docs_map[d['id']] = d
+            if docs_map:
+                fallback_stage = 2
+                relaxed_filters.append('year')
+                fallback_message = f"No {target_year} files for {subj_label}. Showing other years."
 
-    # 4. Final Fallback: if filters returned 0, fetch latest approved docs so user never sees a broken blank page
+        # 2b. Relax Semester
+        if not docs_map and target_semester:
+            relaxed_sem_docs = fetch_documents_by_filter(target_college_ids, [], title_keyword=query or None)
+            for d in relaxed_sem_docs:
+                docs_map[d['id']] = d
+            if docs_map:
+                fallback_stage = 2
+                relaxed_filters.append('semester')
+                fallback_message = f"No Sem {target_semester} files found. Showing other semesters."
+
+        # 2c. Relax Resource Type
+        if not docs_map and target_category and target_category != 'All types':
+            relaxed_type_docs = fetch_documents_by_filter(target_college_ids, matched_subj_ids, title_keyword=query or None)
+            for d in relaxed_type_docs:
+                docs_map[d['id']] = d
+            if docs_map:
+                fallback_stage = 2
+                relaxed_filters.append('type')
+                fallback_message = f"No {target_category} files found. Showing all resource types."
+
+    # Stage 3: Related files from same department/branch
+    if not docs_map and target_department_id:
+        dept_docs = fetch_documents_by_filter(target_college_ids, [])
+        for d in dept_docs:
+            if d.get('department_id') == target_department_id:
+                docs_map[d['id']] = d
+        if docs_map:
+            fallback_stage = 3
+            relaxed_filters.append('subject')
+            fallback_message = "Related materials from your department."
+
+    # Stage 4: Zero-result state (NEVER show random recent uploads when user typed a query!)
     if not docs_map:
-        latest_docs = fetch_documents_by_filter([], [])
-        for d in latest_docs:
-            docs_map[d['id']] = d
-        if docs_map:
-            meta['relaxed'] = True
-            meta['relaxation_message'] = "No exact matches for chosen filters. Showing recent uploaded study material."
+        fallback_stage = 4
+        fallback_message = "No exact matches found for your search."
+
+    if fallback_stage > 0:
+        meta['fallback'] = {
+            'stage': fallback_stage,
+            'relaxed_filters': relaxed_filters,
+            'message': fallback_message
+        }
+        meta['relaxed'] = (fallback_stage == 2)
+        meta['relaxation_message'] = fallback_message
 
     docs = list(docs_map.values())
+    if target_author:
+        author_clean = target_author.strip().lower()
+        matched_author_docs = [
+            d for d in docs
+            if author_clean in ((d.get('profiles') or {}).get('full_name') or '').lower()
+        ]
+        if matched_author_docs:
+            docs = matched_author_docs
 
     # Map database docs into unified frontend card structures with Multi-Factor Relevance Scoring
     results = []
-    subject_tier_map = {m['subject']['id']: (m['tier'], m['reason']) for m in parsed['matched_subjects']}
+    counts = {'exact': 0, 'close': 0, 'related': 0, 'total': 0}
 
     for doc in docs:
         subj = doc.get('subjects') or {}
         col = doc.get('colleges') or {}
         s_id = subj.get('id')
         subj_name = subj.get('name') or 'General'
-
-        tier_info = subject_tier_map.get(s_id, (4, f"Keyword: {doc.get('title')}"))
-        doc_tier = tier_info[0]
-        match_reason = tier_info[1]
-
-        # Multi-factor relevance scoring
-        base_score = 100 - (doc_tier * 12)  # Tier 1=88, Tier 2=76, Tier 3=64, Tier 4=52
-
+        subj_code = (subj.get('subject_code') or '').strip()
         doc_title = doc.get('title') or ''
         doc_title_norm = norm_text(doc_title)
         doc_desc_raw = doc.get('description') or ''
-        doc_desc_norm = norm_text(doc_desc_raw)
+        uploader_name = ((doc.get('profiles') or {}).get('full_name') or 'Anonymous').strip()
 
-        # Topic & Sub-topic Bonus (with plural / stem support)
-        topic_bonus = 0.0
-        if topic_str and topic_str in doc_title_norm:
-            topic_bonus += 50.0
-            match_reason = f"Matched Topic: {doc_title}"
-        elif topic_tokens:
-            def matches_tok(t, text):
-                return t in text or (len(t) > 3 and (t[:-1] in text or (t + 's') in text))
+        score = 0.0
+        reasons = []
+        tier = 'related'
 
-            token_matches = [t for t in topic_tokens if matches_tok(t, doc_title_norm)]
-            if len(token_matches) == len(topic_tokens):
-                topic_bonus += 40.0
-                match_reason = f"Matched Topic: {doc_title}"
-            elif token_matches:
-                topic_bonus += 18.0 * len(token_matches)
-            else:
-                desc_matches = [t for t in topic_tokens if matches_tok(t, doc_desc_norm)]
-                if desc_matches:
-                    topic_bonus += 12.0 * len(desc_matches)
+        clean_q = norm_text(query)
+        code_q = norm_code(query)
 
-        # Exam Term Bonus (Midsem <-> CAE1/2/MST, Endsem <-> ESE)
-        exam_bonus = 0.0
-        if exam_term:
-            equivs = EXAM_EQUIVALENCES.get(exam_term, [exam_term])
-            matched_eq = next((eq for eq in equivs if eq in doc_title_norm), None)
-            if matched_eq:
-                exam_bonus += 35.0
-                match_reason = f"Matched Exam: {exam_term.upper()} -> {doc_title}"
-            else:
-                desc_eq = next((eq for eq in equivs if eq in doc_desc_norm), None)
-                if desc_eq:
-                    exam_bonus += 18.0
+        # 1. Exact subject code match (+100)
+        if subj_code and code_q and norm_code(subj_code) == code_q:
+            score += 100.0
+            reasons.append({'field': 'subject_code', 'kind': 'exact', 'matched': f"Code {subj_code} matched"})
+            tier = 'exact'
+        elif subj_code and any(norm_code(w) == norm_code(subj_code) for w in clean_q.split()):
+            score += 100.0
+            reasons.append({'field': 'subject_code', 'kind': 'exact', 'matched': f"Code {subj_code} matched"})
+            tier = 'exact'
 
-        # Semester Match Bonus
-        semester_bonus = 0.0
-        if target_semester:
-            subj_sem = get_subj_semester(subj)
-            if subj_sem and int(subj_sem) == int(target_semester):
-                semester_bonus += 35.0
-                match_reason += f" (Sem {target_semester})"
-            elif f"semester {target_semester}" in doc_desc_norm or f"sem {target_semester}" in doc_desc_norm:
-                semester_bonus += 20.0
+        # 2. Exact abbreviation or alias match (+90)
+        for a in taxonomy.get('subject_aliases', []):
+            if a['subject_id'] == s_id and (a['alias_norm'] == clean_q or a['alias_norm'] in clean_q.split()):
+                score += 90.0
+                reasons.append({'field': 'abbreviation', 'kind': 'alias', 'matched': f"Abbreviation {a['alias'].upper()} = {subj_name}"})
+                tier = 'exact'
+                break
 
-        # College Match Bonus
-        college_bonus = 0.0
-        if target_college_ids:
-            doc_col_id = doc.get('college_id') or col.get('id')
-            if doc_col_id in target_college_ids:
-                college_bonus += 20.0
+        # 3. Exact phrase in title or subject name (+80)
+        if clean_q and (clean_q == norm_text(subj_name) or clean_q in doc_title_norm):
+            score += 80.0
+            reasons.append({'field': 'title', 'kind': 'exact', 'matched': doc_title})
+            if tier != 'exact':
+                tier = 'exact'
 
-        # Subject Code in Title Bonus
-        code_bonus = 0.0
-        subj_code_clean = norm_code(subj.get('subject_code'))
-        if subj_code_clean and len(subj_code_clean) >= 4 and subj_code_clean in norm_code(doc_title):
-            code_bonus += 20.0
+        # 4. Word prefix match (+60)
+        q_words = [w for w in clean_q.split() if len(w) > 2]
+        if q_words and all(any(tw.startswith(qw) for tw in doc_title_norm.split()) for qw in q_words):
+            score += 60.0
+            reasons.append({'field': 'title', 'kind': 'prefix', 'matched': clean_q})
+            if tier != 'exact':
+                tier = 'close'
 
-        # Category Bonus
-        category_bonus = 0.0
-        doc_cat = (doc.get('document_category') or '').lower()
-        if target_category:
-            tc = target_category.lower()
-            if tc in doc_cat or (tc == 'papers' and 'bank' in doc_cat):
-                category_bonus += 25.0
+        # 5. Trigram / fuzzy similarity on title and subject name (up to +40)
+        sim = 0.0
+        if fuzz and clean_q:
+            sim = fuzz.token_set_ratio(clean_q, doc_title_norm) / 100.0
+            subj_sim = fuzz.token_set_ratio(clean_q, norm_text(subj_name)) / 100.0
+            sim = max(sim, subj_sim)
+            score += sim * 40.0
+            if sim >= 0.70:
+                if did_you_mean_query:
+                    reasons.append({'field': 'subject_name', 'kind': 'fuzzy', 'matched': f"{subj_name} (typo corrected)"})
+                else:
+                    reasons.append({'field': 'title', 'kind': 'fuzzy', 'matched': doc_title})
+                if tier not in ('exact',):
+                    tier = 'close'
+            elif sim >= 0.40:
+                reasons.append({'field': 'title', 'kind': 'fuzzy', 'matched': doc_title})
+                if tier not in ('exact', 'close'):
+                    tier = 'related'
 
-        # Parse year and price from description
+        # 6. Author match (+50)
+        if target_author and target_author.strip().lower() in uploader_name.lower():
+            score += 50.0
+            reasons.append({'field': 'uploader', 'kind': 'exact', 'matched': f"Uploaded by {uploader_name}"})
+            tier = 'exact'
+
+        # 7. College match (+10)
+        doc_col_id = doc.get('college_id') or col.get('id')
+        if target_college_ids and doc_col_id in target_college_ids:
+            score += 10.0
+            c_name = col.get('name') or parsed.get('college_abbr') or "college"
+            reasons.append({'field': 'college', 'kind': 'exact', 'matched': f"College {c_name}"})
+
+        # 8. Semester and branch bonus (+8)
+        if target_semester and get_subj_semester(subj) == target_semester:
+            score += 8.0
+
+        # 9. Popularity & Recency
+        views = doc.get('view_count') or 0
+        likes = doc.get('like_count') or 0
+        score += min(8.0, math.log1p(views + 5 * likes))
+
+        if not clean_q:
+            tier = 'exact'
+            score += 50.0
+
+        if clean_q and score < 40.0 and sim < 0.30 and not reasons:
+            continue
+
+        primary_reason = reasons[0]['matched'] if reasons else ""
+
         is_paid = False
         price_val = 0.0
         doc_year = str(doc.get('created_at', ''))[:4] if doc.get('created_at') else ''
@@ -771,18 +1118,8 @@ def execute_search_v3(
         except Exception:
             pass
 
-        # Year Bonus
-        year_bonus = 0.0
-        if target_year and str(target_year) == str(doc_year):
-            year_bonus += 30.0
-
-        # Popularity Tie-Breaker (strictly capped to max 5 pts)
-        views = doc.get('view_count') or 0
-        likes = doc.get('like_count') or 0
-        pop_bonus = min(5.0, 0.5 * math.log1p(views) + 1.0 * math.log1p(likes))
-
-        final_score = base_score + topic_bonus + exam_bonus + category_bonus + semester_bonus + college_bonus + code_bonus + year_bonus + pop_bonus
-
+        counts[tier] += 1
+        counts['total'] += 1
 
         results.append({
             'record_id': doc.get('id'),
@@ -791,9 +1128,9 @@ def execute_search_v3(
             'type': doc.get('document_category') or 'Papers',
             'file-type': doc.get('file_type') or 'pdf',
             'subject': subj_name,
-            'subject_code': subj.get('subject_code') or '',
+            'subject_code': subj_code,
             'college': col.get('name') or '',
-            'author': (doc.get('profiles') or {}).get('full_name') or 'Anonymous',
+            'author': uploader_name,
             'view_count': views,
             'like_count': likes,
             'bookmark_count': doc.get('bookmark_count') or 0,
@@ -801,12 +1138,18 @@ def execute_search_v3(
             'date': (doc.get('created_at') or '')[:10],
             'is_paid': is_paid,
             'price': price_val,
-            'score': round(final_score, 2),
-            'tier': doc_tier,
-            'match_reason': match_reason
+            'score': round(score, 2),
+            'tier': tier,
+            'match_reason': primary_reason,
+            'match': {
+                'tier': tier,
+                'score': round(score, 2),
+                'reasons': reasons
+            }
         })
 
-    # Sort results
+    meta['counts'] = counts
+
     if sort == 'views_desc':
         results.sort(key=lambda x: x['view_count'], reverse=True)
     elif sort == 'likes_desc':
@@ -814,90 +1157,237 @@ def execute_search_v3(
     elif sort == 'date_desc':
         results.sort(key=lambda x: x['date'], reverse=True)
     else:
-        # Relevance: strictly highest final_score first
-        results.sort(key=lambda x: -x['score'])
+        tier_weight = {'exact': 3, 'close': 2, 'related': 1}
+        results.sort(key=lambda x: (tier_weight.get(x['tier'], 0), x['score']), reverse=True)
 
     return results[:limit], meta
 
 # -----------------------------------------------------------------------------
 # 6. Autocomplete Suggestions API (< 5ms in-memory)
 # -----------------------------------------------------------------------------
-def get_suggestions(query: str, college_id: str = None, limit: int = 8) -> List[Dict[str, str]]:
-    """Instant in-memory suggestions for subject codes, aliases, names, and colleges."""
+def get_suggestions_payload(query: str, college_id: str = None) -> Dict[str, Any]:
+    """Return structured autocomplete suggestions: detected intent row, grouped suggestions, and flat list."""
     if not query or len(query.strip()) < 1:
-        return []
+        return {'detected': None, 'groups': {'subjects': [], 'colleges': [], 'branches': [], 'uploaders': []}, 'suggestions': []}
 
     taxonomy = get_taxonomy()
     clean_q = norm_text(query)
     clean_code = norm_code(query)
-    suggestions: List[Dict[str, str]] = []
+
+    detected = None
+    groups: Dict[str, List[Dict[str, Any]]] = {
+        'subjects': [],
+        'colleges': [],
+        'branches': [],
+        'uploaders': []
+    }
     seen = set()
 
-    # 1. Subject code matches
+    # 1. Detected Intent Row (Exact resolution of code, alias, college, branch, or type)
     if clean_code:
-        for s in taxonomy['subjects']:
+        for s in taxonomy.get('subjects', []):
+            if s['code_norm'] == clean_code:
+                detected = {
+                    'type': 'code',
+                    'label': f"{s.get('subject_code')} as subject code",
+                    'title': s.get('subject_code'),
+                    'subtitle': s.get('name'),
+                    'query': s.get('subject_code'),
+                    'chip': {'type': 'subject', 'value': s.get('subject_code'), 'label': s.get('subject_code')}
+                }
+                break
+
+    if not detected:
+        for a in taxonomy.get('subject_aliases', []):
+            if a['alias_norm'] == clean_q:
+                s = next((sub for sub in taxonomy.get('subjects', []) if sub['id'] == a['subject_id']), None)
+                if s:
+                    detected = {
+                        'type': 'alias',
+                        'label': f"{a['alias'].upper()} as subject alias ({s.get('name')})",
+                        'title': a['alias'].upper(),
+                        'subtitle': s.get('name'),
+                        'query': a['alias'].upper(),
+                        'chip': {'type': 'subject', 'value': s.get('name'), 'label': a['alias'].upper()}
+                    }
+                    break
+
+    if not detected:
+        for c in taxonomy.get('colleges', []):
+            c_abbr = norm_text(c.get('abbreviation'))
+            if c_abbr and c_abbr == clean_q:
+                detected = {
+                    'type': 'college',
+                    'label': f"{c.get('abbreviation')} as college",
+                    'title': c.get('abbreviation'),
+                    'subtitle': c.get('name'),
+                    'query': c.get('abbreviation'),
+                    'chip': {'type': 'college', 'value': c.get('id'), 'label': c.get('abbreviation')}
+                }
+                break
+
+    if not detected:
+        for d in taxonomy.get('departments', []):
+            d_abbr = d.get('abbr_norm')
+            if d_abbr and d_abbr == clean_q:
+                lbl = d.get('abbreviation') or d.get('name')
+                detected = {
+                    'type': 'branch',
+                    'label': f"{lbl} as branch",
+                    'title': lbl,
+                    'subtitle': d.get('name'),
+                    'query': lbl,
+                    'chip': {'type': 'branch', 'value': d.get('id'), 'label': lbl}
+                }
+                break
+
+    # 2. Populate Group: Subjects (Codes, Aliases, Names)
+    if clean_code:
+        for s in taxonomy.get('subjects', []):
             if s['code_norm'].startswith(clean_code):
                 val = f"{s.get('subject_code')} — {s.get('name')}"
                 if val not in seen:
-                    suggestions.append({'type': 'code', 'title': s.get('subject_code'), 'subtitle': s.get('name'), 'query': s.get('subject_code')})
+                    item = {
+                        'type': 'code',
+                        'title': s.get('subject_code'),
+                        'subtitle': s.get('name'),
+                        'query': s.get('subject_code'),
+                        'chip': {'type': 'subject', 'value': s.get('subject_code'), 'label': s.get('subject_code')}
+                    }
+                    groups['subjects'].append(item)
                     seen.add(val)
-                    if len(suggestions) >= limit: return suggestions
+                    if len(groups['subjects']) >= 4:
+                        break
 
-    # 2. Alias matches (OS, DBMS, etc.)
-    for a in taxonomy['subject_aliases']:
-        if a['alias_norm'].startswith(clean_q):
-            s = next((sub for sub in taxonomy['subjects'] if sub['id'] == a['subject_id']), None)
-            if s:
-                val = f"{a['alias'].upper()} — {s.get('name')}"
+    if len(groups['subjects']) < 4:
+        for a in taxonomy.get('subject_aliases', []):
+            if a['alias_norm'].startswith(clean_q):
+                s = next((sub for sub in taxonomy.get('subjects', []) if sub['id'] == a['subject_id']), None)
+                if s:
+                    val = f"{a['alias'].upper()} — {s.get('name')}"
+                    if val not in seen:
+                        item = {
+                            'type': 'alias',
+                            'title': a['alias'].upper(),
+                            'subtitle': s.get('name'),
+                            'query': a['alias'].upper(),
+                            'chip': {'type': 'subject', 'value': s.get('name'), 'label': a['alias'].upper()}
+                        }
+                        groups['subjects'].append(item)
+                        seen.add(val)
+                        if len(groups['subjects']) >= 4:
+                            break
+
+    if len(groups['subjects']) < 4:
+        for s in taxonomy.get('subjects', []):
+            if s['name_norm'].startswith(clean_q) or (len(clean_q) >= 3 and clean_q in s['name_norm']):
+                val = s.get('name')
                 if val not in seen:
-                    suggestions.append({'type': 'alias', 'title': a['alias'].upper(), 'subtitle': s.get('name'), 'query': a['alias'].upper()})
+                    code_sub = f" ({s.get('subject_code')})" if s.get('subject_code') else ""
+                    item = {
+                        'type': 'subject',
+                        'title': val,
+                        'subtitle': f"Subject{code_sub}",
+                        'query': val,
+                        'chip': {'type': 'subject', 'value': val, 'label': val}
+                    }
+                    groups['subjects'].append(item)
                     seen.add(val)
-                    if len(suggestions) >= limit: return suggestions
+                    if len(groups['subjects']) >= 4:
+                        break
 
-    # 3. Subject name prefix matches
-    for s in taxonomy['subjects']:
-        if s['name_norm'].startswith(clean_q) or clean_q in s['name_norm']:
-            val = s.get('name')
-            if val not in seen:
-                code_sub = f" ({s.get('subject_code')})" if s.get('subject_code') else ""
-                suggestions.append({'type': 'subject', 'title': val, 'subtitle': f"Subject{code_sub}", 'query': val})
-                seen.add(val)
-                if len(suggestions) >= limit: return suggestions
-
-    # 4. College matches
-    for ca in taxonomy['college_aliases']:
+    # Group: Colleges
+    for ca in taxonomy.get('college_aliases', []):
         if ca['alias_norm'].startswith(clean_q):
-            c = next((col for col in taxonomy['colleges'] if col['id'] == ca['college_id']), None)
+            c = next((col for col in taxonomy.get('colleges', []) if col['id'] == ca['college_id']), None)
             if c:
                 val = c.get('name')
                 if val not in seen:
-                    suggestions.append({'type': 'college', 'title': ca['alias'].upper(), 'subtitle': val, 'query': ca['alias'].upper()})
+                    item = {
+                        'type': 'college',
+                        'title': ca['alias'].upper(),
+                        'subtitle': val,
+                        'query': ca['alias'].upper(),
+                        'chip': {'type': 'college', 'value': c.get('id'), 'label': ca['alias'].upper()}
+                    }
+                    groups['colleges'].append(item)
                     seen.add(val)
-                    if len(suggestions) >= limit: return suggestions
+                    if len(groups['colleges']) >= 4:
+                        break
 
-    for col in taxonomy['colleges']:
-        c_abbr = norm_text(col.get('abbreviation'))
-        c_name = norm_text(col.get('name'))
-        if (c_abbr and c_abbr.startswith(clean_q)) or (len(clean_q) >= 3 and clean_q in c_name):
-            val = col.get('name')
+    if len(groups['colleges']) < 4:
+        for col in taxonomy.get('colleges', []):
+            c_abbr = norm_text(col.get('abbreviation'))
+            c_name = norm_text(col.get('name'))
+            if (c_abbr and c_abbr.startswith(clean_q)) or (len(clean_q) >= 3 and clean_q in c_name):
+                val = col.get('name')
+                if val not in seen:
+                    title_lbl = (col.get('abbreviation') or val).strip()
+                    item = {
+                        'type': 'college',
+                        'title': title_lbl,
+                        'subtitle': val.strip(),
+                        'query': title_lbl,
+                        'chip': {'type': 'college', 'value': col.get('id'), 'label': title_lbl}
+                    }
+                    groups['colleges'].append(item)
+                    seen.add(val)
+                    if len(groups['colleges']) >= 4:
+                        break
+
+    # Group: Branches / Departments
+    for d in taxonomy.get('departments', []):
+        d_abbr = d.get('abbr_norm') or ''
+        d_name = d.get('name_norm') or ''
+        if (d_abbr and d_abbr.startswith(clean_q)) or (len(clean_q) >= 3 and clean_q in d_name):
+            val = d.get('name')
             if val not in seen:
-                title_lbl = col.get('abbreviation') or val
-                suggestions.append({'type': 'college', 'title': title_lbl.strip(), 'subtitle': val.strip(), 'query': title_lbl.strip()})
+                lbl = (d.get('abbreviation') or val).strip()
+                item = {
+                    'type': 'branch',
+                    'title': lbl,
+                    'subtitle': val.strip(),
+                    'query': lbl,
+                    'chip': {'type': 'branch', 'value': d.get('id'), 'label': lbl}
+                }
+                groups['branches'].append(item)
                 seen.add(val)
-                if len(suggestions) >= limit: return suggestions
+                if len(groups['branches']) >= 4:
+                    break
 
-    return suggestions[:limit]
+    # Flattened suggestions list for dropdowns
+    all_suggestions: List[Dict[str, Any]] = []
+    if detected:
+        all_suggestions.append(detected)
+    for g in ['subjects', 'colleges', 'branches', 'uploaders']:
+        for it in groups[g]:
+            if it not in all_suggestions:
+                all_suggestions.append(it)
+
+    return {
+        'detected': detected,
+        'groups': groups,
+        'suggestions': all_suggestions
+    }
+
+def get_suggestions(query: str, college_id: str = None, limit: int = 8) -> List[Dict[str, Any]]:
+    """Instant in-memory suggestions for subject codes, aliases, names, and colleges."""
+    payload = get_suggestions_payload(query, college_id=college_id)
+    return payload.get('suggestions', [])[:limit]
 
 # -----------------------------------------------------------------------------
 # 7. Flask HTTP Endpoints
 # -----------------------------------------------------------------------------
 def suggest_endpoint():
-    """Fast, lightweight autocomplete endpoint."""
+    """Fast, lightweight autocomplete endpoint with detected intent & grouped categories."""
     q = request.args.get('q', '').strip()
     college_id = request.args.get('college_id')
+    payload = get_suggestions_payload(q, college_id=college_id)
     return jsonify({
         'success': True,
-        'suggestions': get_suggestions(q, college_id=college_id)
+        'detected': payload.get('detected'),
+        'groups': payload.get('groups', {}),
+        'suggestions': payload.get('suggestions', [])
     })
 
 def search_v2_endpoint():
@@ -909,6 +1399,7 @@ def search_v2_endpoint():
     document_type = request.args.get('document_type') or request.args.get('type')
     subject = request.args.get('subject')
     year = request.args.get('year')
+    author = request.args.get('author')
     sort = request.args.get('sort', 'relevance')
 
     try:
@@ -916,27 +1407,27 @@ def search_v2_endpoint():
     except Exception:
         sem_int = None
 
-    # Access-level search quota enforcement
+    # Quota enforcement via session counter (avoids synchronous DB hit on every search)
     try:
         from methods.scoring_engine import get_feature_gate
         from flask import session as _session
         uid = _session.get('user', {}).get('uid')
         if uid and q:
             gate = get_feature_gate(uid)
-            client = init_supabase()
-            from datetime import datetime, timedelta, timezone
-            since = (datetime.now(timezone.utc) - timedelta(days=1)).isoformat()
-            used = client.table('contribution_logs').select('id') \
-                .eq('user_id', uid).eq('action_type', 'search_performed') \
-                .gte('created_at', since).limit(gate['daily_searches'] + 1).execute()
-            if len(used.data or []) >= gate['daily_searches']:
+            daily_limit = gate.get('daily_searches', 100)
+            session_key = f'_sq_{uid}'
+            search_count = _session.get(session_key, 0)
+            if search_count >= daily_limit:
                 return jsonify({
                     'success': False,
-                    'message': f"Daily search limit reached ({gate['daily_searches']}/day for your level). Contribute to level up!",
+                    'message': f"Daily search limit reached ({daily_limit}/day for your level). Contribute to level up!",
                     'quota_exceeded': True
                 }), 429
+            _session[session_key] = search_count + 1
+            _session.modified = True
     except Exception as quota_err:
         logger.warning(f"[GATING] search quota check skipped: {quota_err}")
+
 
     results, meta = execute_search_v3(
         query=q,
@@ -946,6 +1437,7 @@ def search_v2_endpoint():
         document_type=document_type,
         subject=subject,
         year=year,
+        author=author,
         sort=sort
     )
 
@@ -959,18 +1451,21 @@ def search_v2_endpoint():
 def search_analytics_endpoint():
     """Log search analytics and zero-result queries for dictionary expansion."""
     try:
-        data = request.get_json() or {}
+        data = request.get_json(silent=True) or {}
         query = data.get('query', '').strip()
         results_count = data.get('results_count', 0)
-        relaxed = data.get('relaxed', False)
 
         if query:
-            client = init_supabase()
+            from methods.supabase_helper import init_supabase_admin
+            client = init_supabase_admin() or init_supabase()
             if client:
-                client.table('search_analytics').insert({
-                    'query': query,
-                    'results_count': results_count
-                }).execute()
+                try:
+                    client.table('search_analytics').insert({
+                        'query': query,
+                        'results_count': results_count
+                    }).execute()
+                except Exception as insert_err:
+                    logger.warning(f"[SEARCH_ANALYTICS] Insert skipped/suppressed: {insert_err}")
 
                 try:
                     from flask import session as _session
@@ -987,10 +1482,10 @@ def search_analytics_endpoint():
                 except Exception as se_err:
                     logger.warning(f"[SCORING] search event skipped: {se_err}")
 
-        return jsonify({'success': True})
+        return ('', 204)
     except Exception as e:
-        logger.error(f"Analytics error: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logger.warning(f"[SEARCH_ANALYTICS] Suppressed error: {e}")
+        return ('', 204)
 
 # Backward compatibility alias
 execute_search = lambda q, college_id=None, limit=50: execute_search_v3(q, college_id=college_id, limit=limit)[0]

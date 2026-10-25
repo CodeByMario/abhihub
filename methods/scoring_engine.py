@@ -419,7 +419,7 @@ def process_event(user_id: str, event_type: str, entity_id: Optional[str] = None
             return {"success": True, "scored": False,
                     "reason": "rate limit exceeded"}
 
-        base = float(point_map[event_type])
+        base = int(round(float(point_map[event_type])))
         if base <= 0:
             return {"success": True, "scored": False}
 

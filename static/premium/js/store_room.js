@@ -251,7 +251,15 @@ class StoreRoomStudio {
         this.initHistoryTab();
         this.updateProgress();
 
-        if (this.state.files.length > 0) {
+        // Auto-apply redirected search query from dashboard
+        const urlParams = new URLSearchParams(window.location.search);
+        const redirectedQuery = urlParams.get('search') || urlParams.get('q');
+        const searchInput = document.getElementById('storeRoomSearchInput');
+        if (redirectedQuery && searchInput) {
+            searchInput.value = redirectedQuery;
+        }
+
+        if (this.state.files.length > 0 && !redirectedQuery) {
             this.renderQueue();
             this.selectFileByIndex(0);
         } else {

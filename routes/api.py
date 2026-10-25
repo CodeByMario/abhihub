@@ -2922,3 +2922,28 @@ def feedback_endpoint():
     feedbacks = get_recent_feedbacks(limit=limit)
     return jsonify({'success': True, 'feedbacks': feedbacks}), 200
 
+
+@api_bp.route('/api/dashboard/summary', methods=['GET'])
+def dashboard_summary_api():
+    """Return pre-computed, memory-cached dashboard summary data for fast client retrieval."""
+    try:
+        college_name = request.args.get('college_name') or ''
+        if not college_name and 'profile' in session:
+            college_name = session['profile'].get('college_name') or ''
+
+        from methods.supabase_helper import get_dashboard_summary_data
+        summary = get_dashboard_summary_data(college_name=college_name)
+        return jsonify({
+            'success': True,
+            'counts': summary.get('counts', {}),
+            'trending_papers': summary.get('trending_papers', []),
+            'trending_notes': summary.get('trending_notes', []),
+            'recent_papers': summary.get('recent_papers', []),
+            'recent_notes': summary.get('recent_notes', []),
+            'recently_added': summary.get('recently_added_files', [])
+        }), 200
+    except Exception as e:
+        logging.error(f"[API /api/dashboard/summary] Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+

@@ -159,6 +159,47 @@
     z-index: 50;
   }
 
+  .ss-sug-detected {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: .75rem 1rem;
+    background: linear-gradient(135deg, #eff6ff, #f8fafc);
+    border-bottom: 2px solid #dbeafe;
+    cursor: pointer;
+    transition: background-color .15s;
+  }
+
+  .ss-sug-detected:hover,
+  .ss-sug-detected.active {
+    background: #dbeafe;
+  }
+
+  .ss-sug-detected-badge {
+    font-size: .68rem;
+    font-weight: 800;
+    text-transform: uppercase;
+    background: #2563eb;
+    color: #fff;
+    padding: 2px 7px;
+    border-radius: 999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    margin-right: 6px;
+  }
+
+  .ss-sug-group-header {
+    padding: .45rem 1rem .25rem;
+    font-size: .7rem;
+    font-weight: 800;
+    letter-spacing: .04em;
+    text-transform: uppercase;
+    color: #64748b;
+    background: #f8fafc;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
   .ss-suggestion-item {
     display: flex;
     align-items: center;
@@ -197,6 +238,77 @@
     background: #e2e8f0;
     color: #475569;
     text-transform: uppercase;
+  }
+
+  .ss-tier-divider {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin: 1.5rem 0 .75rem;
+    padding-bottom: .4rem;
+    border-bottom: 2px solid #e2e8f0;
+  }
+
+  .ss-tier-divider:first-child {
+    margin-top: 0;
+  }
+
+  .ss-tier-title {
+    font-size: .95rem;
+    font-weight: 800;
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+  }
+
+  .ss-tier-title.tier-exact { color: #15803d; }
+  .ss-tier-title.tier-close { color: #b45309; }
+  .ss-tier-title.tier-related { color: #1d4ed8; }
+
+  .ss-tier-count {
+    font-size: .75rem;
+    font-weight: 700;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 2px 8px;
+    border-radius: 999px;
+  }
+
+  .ss-typo-banner {
+    margin-top: .75rem;
+    padding: .65rem 1rem;
+    border-radius: 10px;
+    background: #eff6ff;
+    border: 1px solid #bfdbfe;
+    color: #1e40af;
+    font-size: .84rem;
+    font-weight: 600;
+  }
+
+  .ss-typo-banner a {
+    color: #2563eb;
+    font-weight: 700;
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  .ss-match-badge.tier-exact {
+    background: #ecfdf5 !important;
+    color: #047857 !important;
+    border-color: #a7f3d0 !important;
+  }
+
+  .ss-match-badge.tier-close {
+    background: #fffbeb !important;
+    color: #b45309 !important;
+    border-color: #fde68a !important;
+  }
+
+  .ss-match-badge.tier-related {
+    background: #f8fafc !important;
+    color: #475569 !important;
+    border-color: #e2e8f0 !important;
   }
 
   .ss-active-pills {
@@ -735,6 +847,71 @@
       animation: none;
     }
   }
+
+  .ss-storeroom-banner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: linear-gradient(135deg, rgba(37, 99, 235, 0.08) 0%, rgba(16, 185, 129, 0.08) 100%);
+    border: 1px solid rgba(37, 99, 235, 0.22);
+    border-radius: 16px;
+    padding: 1.1rem 1.35rem;
+    margin-bottom: 1.25rem;
+    text-align: left;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.04);
+  }
+  .ss-sr-content {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+  }
+  .ss-sr-icon {
+    font-size: 1.8rem;
+    flex-shrink: 0;
+  }
+  .ss-sr-title {
+    margin: 0 0 0.2rem;
+    font-size: 0.96rem;
+    font-weight: 700;
+    color: var(--ss-ink);
+  }
+  .ss-sr-desc {
+    margin: 0;
+    font-size: 0.82rem;
+    color: var(--ss-muted);
+    line-height: 1.35;
+  }
+  .ss-sr-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: #0071e3;
+    color: #fff !important;
+    font-size: 0.84rem;
+    font-weight: 700;
+    padding: 0.6rem 1.15rem;
+    border-radius: 999px;
+    text-decoration: none;
+    white-space: nowrap;
+    transition: transform 0.15s ease, background 0.15s ease;
+    flex-shrink: 0;
+  }
+  .ss-sr-btn:hover {
+    background: #0077ed;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35);
+  }
+  @media (max-width: 640px) {
+    .ss-storeroom-banner {
+      flex-direction: column;
+      align-items: stretch;
+      text-align: left;
+    }
+    .ss-sr-btn {
+      justify-content: center;
+    }
+  }
 </style>
 
 <section class="ss-search" aria-labelledby="smartSearchTitle">
@@ -761,6 +938,7 @@
     <div id="searchSuggestions" class="ss-suggestions" style="display:none;" role="listbox"></div>
     <div id="searchActivePills" class="ss-active-pills" style="display:none;"></div>
     <div id="searchRelaxationBanner" class="ss-relaxation-notice" style="display:none;"></div>
+    <div id="searchTypoBanner" class="ss-typo-banner" style="display:none;"></div>
     <div class="ss-filter-area">
       <div class="ss-filter-title">Filter and sort</div>
       <div class="ss-chips">
@@ -817,6 +995,22 @@
     <div id="loadMoreContainer" class="ss-more-wrap"><button id="loadMoreBtn" class="ss-more-btn" type="button"
         data-action="loadMore">Load more results</button></div>
     <div id="noResults" class="ss-empty" style="display:none;padding:1rem 0;" role="status">
+      <!-- Store Room Fallback Recommendation Banner -->
+      <div class="ss-storeroom-banner" id="searchStoreRoomFallback">
+        <div class="ss-sr-content">
+          <div class="ss-sr-icon">🏛️</div>
+          <div class="ss-sr-text">
+            <h4 class="ss-sr-title">Can't find this document in verified library?</h4>
+            <p class="ss-sr-desc">Search through newly uploaded and unsorted documents in the <strong>Store Room Archive</strong>.</p>
+          </div>
+        </div>
+        <a href="/store-room" id="searchStoreRoomBtn" class="ss-sr-btn" data-feature="Search: Store Room Fallback">
+          <span>Search in Store Room</span>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+            <path d="M5 12h14M12 5l7 7-7 7"/>
+          </svg>
+        </a>
+      </div>
       {% set queue_target_name = "your requested subject/paper" %}
       {% include 'includes/psychological_queue.html' %}
       <script>

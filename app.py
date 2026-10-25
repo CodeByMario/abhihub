@@ -750,7 +750,7 @@ def log_document_view(file_name, file_url, record_id=None,
                 pass
 
         # Check 2: Same-day deduplication (charge only once per day per file)
-        today_str = datetime.utcnow().strftime('%Y-%m-%d')
+        today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
         doc_key = str(record_id or file_name or file_url)
         cache_view_key = f"viewed:{user_id or user_email}:{doc_key}:{today_str}"
 
@@ -957,7 +957,7 @@ def log_credit_transaction(user_id, amount, tx_type, reason):
             'amount': amount,
             'type': tx_type,  # 'earn' or 'spend'
             'reason': reason,
-            'created_at': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            'created_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         }
         # Session storage for fast UI response
         history = session.get('credit_history', [])

@@ -1246,6 +1246,18 @@
   document.addEventListener('DOMContentLoaded', () => {
     PWAManager.init();
     initFeedbackUI();
+    // Progressive sync of dashboard live summary
+    fetch('/api/dashboard/summary')
+      .then(r => r.json())
+      .then(res => {
+        if (res.success && res.counts) {
+          const pEl = document.querySelector('.hero-stat-pill[title*="Papers"] .hero-stat-val');
+          const nEl = document.querySelector('.hero-stat-pill[title*="Notes"] .hero-stat-val');
+          if (pEl && res.counts.papers !== undefined) pEl.textContent = res.counts.papers;
+          if (nEl && res.counts.notes !== undefined) nEl.textContent = res.counts.notes;
+        }
+      })
+      .catch(() => {});
   });
 </script>
 

@@ -82,6 +82,10 @@ def log_turn(
     route: str | None = None,
     status: str = "ok",
     cost_equiv_usd: float | None = None,
+    override_used: bool = False,
+    error_type: str | None = None,
+    safety_flag: bool = False,
+    finish_reason: str | None = None,
 ) -> None:
     """Insert one structured row into ai_usage_log.
 

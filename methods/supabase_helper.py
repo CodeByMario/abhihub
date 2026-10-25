@@ -1353,9 +1353,9 @@ def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
     }
 
 def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dict:
-    # Cache key: anon gets shared cache; authed users get personal cache (for like/bookmark state)
-    _FILES_CACHE_TTL = 120  # 2 minutes
-    cache_key = f'all_files:{current_user_id or "anon"}'
+    # Use shared cache for document records across users (180s TTL)
+    _FILES_CACHE_TTL = 180  # 3 minutes
+    cache_key = 'all_files:shared'
     cached = _cache_get(cache_key)
     if cached is not None:
         return {'success': True, 'data': cached, 'count': len(cached)}
@@ -1366,12 +1366,88 @@ def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dic
             .select('*, profiles!documents_uploader_id_fkey(full_name, email), subjects(name, subject_code), colleges(name, abbreviation), document_votes(user_id), bookmarks(user_id), document_comments(id)') \
             .neq('status', 'rejected') \
             .order('created_at', desc=True) \
+            .limit(1000) \
             .execute()
-        files = [_doc_to_json(d, current_user_id) for d in res.data] if res.data else []
+        files = [_doc_to_json(d, None) for d in res.data] if res.data else []
         _cache[cache_key] = {'val': files, 'ts': _time.time() - (_CACHE_TTL - _FILES_CACHE_TTL)}
         return {'success': True, 'data': files, 'count': len(files)}
     except Exception as e:
         return {'success': False, 'data': [], 'count': 0, 'message': str(e)}
+
+_DASHBOARD_SUMMARY_CACHE = {}
+
+def get_dashboard_summary_data(college_name: str = None) -> Dict:
+    """Pre-computed, memory-cached dashboard summary data (counts, trending, recent)."""
+    cache_key = f"dash_summary:{college_name or 'all'}"
+    now_ts = _time.time()
+    cached = _DASHBOARD_SUMMARY_CACHE.get(cache_key)
+    if cached and (now_ts - cached['ts'] < 180):
+        return cached['data']
+
+    from collections import Counter
+    files = get_all_file_records_formatted()
+    
+    all_subjects = list(set([f.get('subject', '') for f in files if f.get('subject', '').strip()]))
+    top_subjects = sorted(all_subjects)[:8]
+    paper_count = len([f for f in files if f.get('type', '').lower() in ('papers', 'paper', 'pyq')])
+    notes_count = len([f for f in files if f.get('type', '').lower() in ('notes', 'note', 'imp questions', 'imp_questions')])
+
+    all_papers = [f for f in files if f.get('type', '').lower() in ('papers', 'paper', 'pyq')]
+    all_papers_by_views = sorted(all_papers, key=lambda f: f.get('view_count', 0), reverse=True)
+
+    if college_name:
+        college_papers = [f for f in all_papers_by_views if f.get('college', '').lower() == college_name.lower()]
+        relevant_papers = college_papers[:8] if college_papers else all_papers_by_views[:8]
+    else:
+        relevant_papers = all_papers_by_views[:8]
+
+    trending_papers = all_papers_by_views[:8]
+    recent_papers = sorted(all_papers, key=lambda f: f.get('date', ''), reverse=True)[:8]
+
+    notes_type_values = ('notes', 'note', 'imp questions', 'imp_questions')
+    all_notes = [f for f in files if f.get('type', '').lower() in notes_type_values]
+    all_notes_by_views = sorted(all_notes, key=lambda f: f.get('view_count', 0), reverse=True)
+
+    if college_name:
+        college_notes = [f for f in all_notes_by_views if f.get('college', '').lower() == college_name.lower()]
+        relevant_notes = college_notes[:8] if college_notes else all_notes_by_views[:8]
+    else:
+        relevant_notes = all_notes_by_views[:8]
+
+    trending_notes = all_notes_by_views[:8]
+    recent_notes = sorted(all_notes, key=lambda f: f.get('date', ''), reverse=True)[:8]
+
+    recently_added_files = sorted(files, key=lambda f: f.get('date') or '', reverse=True)[:10]
+
+    premium_files = [f for f in files if f.get('is_paid') or (f.get('price') and float(f.get('price', 0)) > 0)]
+    if len(premium_files) < 8:
+        curated_extra = [f for f in sorted(files, key=lambda x: x.get('view_count', 0), reverse=True)
+                         if f.get('verified') and f.get('record_id') not in {p.get('record_id') for p in premium_files}]
+        premium_files.extend(curated_extra[:8 - len(premium_files)])
+
+    author_counts = Counter()
+    for f in files:
+        auth = (f.get('author') or '').strip()
+        if auth and auth.lower() not in ('unknown', 'contributor', 'none', ''):
+            author_counts[auth] += 1
+    top_authors = [{'name': name, 'count': count} for name, count in author_counts.most_common(20)]
+
+    result = {
+        'counts': {'papers': paper_count, 'notes': notes_count, 'total': len(files)},
+        'top_subjects': top_subjects,
+        'relevant_papers': relevant_papers,
+        'trending_papers': trending_papers,
+        'recent_papers': recent_papers,
+        'relevant_notes': relevant_notes,
+        'trending_notes': trending_notes,
+        'recent_notes': recent_notes,
+        'recently_added_files': recently_added_files,
+        'premium_files': premium_files,
+        'top_authors': top_authors,
+        'preview_pool': files[:30]
+    }
+    _DASHBOARD_SUMMARY_CACHE[cache_key] = {'data': result, 'ts': now_ts}
+    return result
 
 def get_all_file_records_formatted(current_user_id=None) -> List[Dict]:
     return get_all_files_merged(current_user_id=current_user_id).get('data', [])
@@ -1381,6 +1457,7 @@ def invalidate_files_cache():
     keys_to_del = [k for k in _cache if k.startswith('all_files:')]
     for k in keys_to_del:
         del _cache[k]
+    _DASHBOARD_SUMMARY_CACHE.clear()
     log.debug(f'Invalidated {len(keys_to_del)} file cache entries')
 
 def get_related_documents(college_id: str = None, subject_id: str = None,
@@ -2523,6 +2600,14 @@ def notify_all_new_upload(doc_id: str, title: str, uploader_id: str = None, subj
             try:
                 client.table('notifications').insert(chunk).execute()
             except Exception as e:
+                # Fallback to supported 'system' type if 'new_upload' enum value is not yet in Postgres enum
+                if 'notification_type' in str(e) or '22P02' in str(e):
+                    try:
+                        fallback_chunk = [{**item, 'type': 'system'} for item in chunk]
+                        client.table('notifications').insert(fallback_chunk).execute()
+                        continue
+                    except Exception as fe:
+                        e = fe
                 logging.warning(f"[NOTIFY_UPLOAD] In-app batch insert failed chunk {i}: {e}")
         logging.info(f"[NOTIFY_UPLOAD] Created in-app notifications for {len(records)} users for doc {doc_id}")
     except Exception as e:
@@ -2756,19 +2841,20 @@ def award_contribution_xp(user_id: str, action_type: str, entity_id: str = None,
                 base_xp = float(pts.get(action_type, 0) or 0)
             except Exception:
                 base_xp = 0.0
-        if not base_xp or base_xp <= 0:
+        int_xp = int(round(base_xp))
+        if int_xp <= 0:
             return {'success': True, 'scored': False, 'reason': 'zero/unknown point value'}
         # 1. Log the contribution
         client.table('contribution_logs').insert({
             'user_id': user_id, 'action_type': action_type, 'entity_id': entity_id,
-            'entity_type': entity_type, 'xp_awarded': base_xp, 'description': description
+            'entity_type': entity_type, 'xp_awarded': int_xp, 'description': description
         }).execute()
         
         # 2. Update the profile XP
         p_res = client.table('profiles').select('reputation_score').eq('id', user_id).execute()
         if p_res.data:
-            current_xp = p_res.data[0].get('reputation_score') or 0
-            new_xp = current_xp + base_xp
+            current_xp = int(p_res.data[0].get('reputation_score') or 0)
+            new_xp = current_xp + int_xp
             
             # Simple rank calculation based on new_xp
             rank = "Beginner"
@@ -2793,7 +2879,7 @@ def award_contribution_xp(user_id: str, action_type: str, entity_id: str = None,
                     log.debug(f"add_xp_and_rank: badge insert failed (unique constraint?): {e}")
                     pass  # unique constraint handles duplicates
                     
-            return {'success': True, 'xp_gained': base_xp, 'new_score': new_xp, 'new_rank': rank}
+            return {'success': True, 'xp_gained': int_xp, 'new_score': new_xp, 'new_rank': rank}
     except Exception as e:
         logging.error(f"Error awarding XP: {e}")
     return {'success': False}
@@ -3146,8 +3232,8 @@ def upload_file_to_supabase(file_data: bytes, supabase_path: str, content_type: 
         return {'success': False, 'message': 'Supabase client not available'}
     
     try:
-        # Use the 'public' bucket which allows anon key access
-        bucket_name = 'public'
+        # Use the configured bucket (defaulting to 'public')
+        bucket_name = os.getenv('SUPABASE_STORAGE_BUCKET', 'public')
         
         # Upload the file
         response = client.storage.from_(bucket_name).upload(
