@@ -352,7 +352,7 @@ def get_cached_documents(force_refresh: bool = False) -> List[Dict[str, Any]]:
                 'college_id, department_id, subject_id, search_text, '
                 'profiles!documents_uploader_id_fkey(full_name), '
                 'subjects(id, name, subject_code, semester), colleges(id, name)'
-            ).eq('status', 'approved').order('created_at', desc=True).limit(5000).execute()
+            ).in_('status', ['approved', 'pending']).order('created_at', desc=True).limit(5000).execute()
 
             docs = res.data or []
             for d in docs:

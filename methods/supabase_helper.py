@@ -1458,6 +1458,11 @@ def invalidate_files_cache():
     for k in keys_to_del:
         del _cache[k]
     _DASHBOARD_SUMMARY_CACHE.clear()
+    try:
+        from methods.search_api import invalidate_search_cache
+        invalidate_search_cache()
+    except Exception:
+        pass
     log.debug(f'Invalidated {len(keys_to_del)} file cache entries')
 
 def get_related_documents(college_id: str = None, subject_id: str = None,
