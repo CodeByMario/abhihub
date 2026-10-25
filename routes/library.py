@@ -555,13 +555,17 @@ def resource_landing(slug):
 
     desc_raw = document.get('description') or ''
     pricing = extract_document_pricing(document)
+    custom_recommendations = {}
     if isinstance(desc_raw, str) and desc_raw.strip().startswith('{'):
         try:
-            document['display_description'] = json.loads(desc_raw.strip()).get('text_description', '')
+            parsed_d = json.loads(desc_raw.strip())
+            document['display_description'] = parsed_d.get('text_description', '')
+            custom_recommendations = parsed_d.get('recommendations') or {}
         except Exception:
             document['display_description'] = desc_raw
     elif isinstance(desc_raw, dict):
         document['display_description'] = desc_raw.get('text_description', '')
+        custom_recommendations = desc_raw.get('recommendations') or {}
     else:
         document['display_description'] = desc_raw
 
@@ -600,7 +604,8 @@ def resource_landing(slug):
         store_room_docs=store_room_docs,
         ai_chat_allowed=ai_chat_allowed,
         noindex=render_noindex,
-        mock_study_kit=mock_study_kit
+        mock_study_kit=mock_study_kit,
+        custom_recommendations=custom_recommendations
     )
 
 
@@ -988,4 +993,135 @@ def calculate_rank():
 def show_rank():
     """Legacy route: redirect to new leaderboard"""
     return redirect(url_for('library.leaderboard'))
+
+
+@library_bp.route('/api/document/<doc_id>/recommendations', methods=['POST'])
+@auth_required
+def api_save_document_recommendations(doc_id):
+    """
+    Allow uploader / owner / admin to customize the Recommended For You section:
+    - Videos: YouTube videos & playlists
+    - Papers / Notes: AbhiHub direct links
+    - Books: AbhiHub links OR verified bookstore affiliate links
+    - Faculty / Peers: AbhiHub creator channels & peer links
+    """
+    client = init_supabase()
+    if not client:
+        return jsonify({'success': False, 'message': 'Database unavailable'}), 500
+
+    doc_res = client.table('documents').select('id, uploader_id, description').eq('id', doc_id).limit(1).execute()
+    if not doc_res.data:
+        return jsonify({'success': False, 'message': 'Document not found'}), 404
+
+    doc = doc_res.data[0]
+    user_info = session.get('user', {})
+    current_user_id = user_info.get('uid') or user_info.get('id')
+    is_admin = is_admin_user(user_info)
+    is_uploader = bool(current_user_id and str(doc.get('uploader_id') or '') == str(current_user_id))
+
+    if not (is_admin or is_uploader):
+        return jsonify({'success': False, 'message': 'Permission denied. Only uploader or admin can edit recommendations.'}), 403
+
+    payload = request.get_json(silent=True) or {}
+    recommendations = payload.get('recommendations') or {}
+
+    clean_recs = {
+        'videos': [],
+        'papers': [],
+        'notes': [],
+        'books': [],
+        'faculty': []
+    }
+
+    # 1. Videos (YouTube links & playlists)
+    for v in recommendations.get('videos', []):
+        t = str(v.get('title', '')).strip()[:100]
+        u = str(v.get('url', '')).strip()
+        if t and u and ('youtube.com' in u.lower() or 'youtu.be' in u.lower()):
+            clean_recs['videos'].append({
+                'title': t,
+                'url': u,
+                'type': 'playlist' if ('list=' in u.lower() or 'playlist' in u.lower()) else 'video'
+            })
+
+    # 2. Papers (AbhiHub direct links)
+    for p in recommendations.get('papers', []):
+        t = str(p.get('title', '')).strip()[:100]
+        u = str(p.get('url', '')).strip()
+        if t and u:
+            clean_recs['papers'].append({
+                'title': t,
+                'url': u,
+                'badge': str(p.get('badge') or 'PYQ')[:30]
+            })
+
+    # 3. Notes (AbhiHub direct links)
+    for n in recommendations.get('notes', []):
+        t = str(n.get('title', '')).strip()[:100]
+        u = str(n.get('url', '')).strip()
+        if t and u:
+            clean_recs['notes'].append({
+                'title': t,
+                'url': u,
+                'badge': str(n.get('badge') or 'Notes')[:30]
+            })
+
+    # 4. Books (AbhiHub direct links OR verified bookstore affiliate links)
+    for b in recommendations.get('books', []):
+        t = str(b.get('title', '')).strip()[:100]
+        u = str(b.get('url', '')).strip()
+        store = str(b.get('store', '')).strip()[:50]
+        if t and u:
+            is_affiliate = any(store_key in u.lower() for store_key in ['amazon', 'flipkart', 'amzn', 'fkrt', 'bookswagon', 'sapna'])
+            clean_recs['books'].append({
+                'title': t,
+                'url': u,
+                'store': store or ('Bookstore' if is_affiliate else 'AbhiHub'),
+                'is_affiliate': is_affiliate
+            })
+
+    # 5. Faculty / Peers (AbhiHub peer/channel links)
+    for f in recommendations.get('faculty', []):
+        name = str(f.get('name', '')).strip()[:80]
+        u = str(f.get('url', '')).strip()
+        role = str(f.get('role', '')).strip()[:80]
+        if name and u:
+            clean_recs['faculty'].append({
+                'name': name,
+                'url': u,
+                'role': role or 'Faculty / Peer Mentor'
+            })
+
+    desc_raw = doc.get('description') or ''
+    desc_obj = {}
+    if isinstance(desc_raw, str) and desc_raw.strip().startswith('{'):
+        try:
+            desc_obj = json.loads(desc_raw.strip())
+        except Exception:
+            desc_obj = {'text_description': desc_raw}
+    elif isinstance(desc_raw, dict):
+        desc_obj = dict(desc_raw)
+    else:
+        desc_obj = {'text_description': desc_raw}
+
+    desc_obj['recommendations'] = clean_recs
+
+    try:
+        client.table('documents').update({
+            'description': json.dumps(desc_obj)
+        }).eq('id', doc_id).execute()
+    except Exception as e:
+        logging.error(f"[api_save_document_recommendations] DB Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+    try:
+        import app
+        c = getattr(app, 'cache', None)
+        if c:
+            c.invalidate(f"doc_rich:{doc_id}")
+    except Exception:
+        pass
+
+    return jsonify({'success': True, 'recommendations': clean_recs})
+
 

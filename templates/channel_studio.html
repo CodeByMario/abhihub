@@ -1,0 +1,354 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+<style>
+  .studio-container {
+    max-width: 1000px;
+    margin: 1.5rem auto 5rem;
+    padding: 0 1rem;
+    font-family: inherit;
+  }
+  .studio-header {
+    background: linear-gradient(135deg, #1e1b4b, #312e81 60%, #4338ca);
+    border-radius: 20px;
+    padding: 2rem;
+    color: #ffffff;
+    margin-bottom: 2rem;
+  }
+  .studio-header h1 {
+    font-size: 1.6rem;
+    font-weight: 800;
+    margin: 0 0 0.5rem;
+  }
+  .studio-header p {
+    margin: 0;
+    color: #c7d2fe;
+    font-size: 0.95rem;
+  }
+  
+  .studio-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+  }
+  @media (max-width: 768px) {
+    .studio-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .card-box {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  }
+  .card-box h2 {
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 1.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  .form-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.35rem;
+  }
+  .form-input {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    box-sizing: border-box;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus {
+    border-color: #4f46e5;
+    outline: none;
+  }
+  .form-textarea {
+    resize: vertical;
+    min-height: 80px;
+  }
+
+  .save-btn {
+    background: #4f46e5;
+    color: #ffffff;
+    font-weight: 700;
+    font-size: 0.9rem;
+    border: none;
+    border-radius: 8px;
+    padding: 0.75rem 1.5rem;
+    cursor: pointer;
+    width: 100%;
+    transition: background 0.2s;
+  }
+  .save-btn:hover {
+    background: #4338ca;
+  }
+
+  .link-copy-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.75rem 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+  }
+  .link-text {
+    font-family: monospace;
+    font-size: 0.85rem;
+    color: #0f172a;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 75%;
+  }
+  .copy-btn {
+    background: #e2e8f0;
+    color: #0f172a;
+    border: none;
+    border-radius: 6px;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .copy-btn:hover {
+    background: #cbd5e1;
+  }
+
+  /* Note list */
+  .note-item {
+    border-bottom: 1px solid #f1f5f9;
+    padding: 0.85rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .note-item:last-child {
+    border-bottom: none;
+  }
+  .note-item-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #0f172a;
+    margin: 0 0 0.2rem;
+  }
+  .note-item-meta {
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+
+  #status-msg {
+    padding: 0.75rem 1rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    margin-bottom: 1rem;
+    display: none;
+  }
+  .msg-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
+  .msg-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+</style>
+
+<div class="studio-container">
+  <div class="studio-header">
+    <h1>Creator Channel Studio</h1>
+    <p>Set up your branded hub, grab direct links for YouTube/Telegram, and sell notes on your terms.</p>
+  </div>
+
+  <div class="studio-grid">
+    <!-- Channel Settings Form -->
+    <div class="card-box">
+      <h2>⚙ Channel Settings (1 per Account)</h2>
+      <div id="status-msg"></div>
+
+      <form id="channel-form">
+        <div class="form-group">
+          <label class="form-label">Channel Handle (vanity slug)</label>
+          <div style="display: flex; align-items: center; gap: 0.25rem;">
+            <span style="font-weight: 700; color: #64748b; font-size: 0.9rem;">abhihub.com/c/</span>
+            <input type="text" id="handle" class="form-input" placeholder="e.g. physics_topper" value="{{ channel.handle if channel else '' }}" required>
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Channel Title / Brand Name</label>
+          <input type="text" id="title" class="form-input" placeholder="e.g. Physics With Rohit" value="{{ channel.title if channel else '' }}" required>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Bio / Tagline</label>
+          <textarea id="bio" class="form-input form-textarea" placeholder="Describe the subjects or exams your notes cover...">{{ channel.bio if channel else '' }}</textarea>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Avatar Image URL</label>
+          <input type="url" id="avatar_url" class="form-input" placeholder="https://..." value="{{ channel.avatar_url if channel else '' }}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Banner Image URL</label>
+          <input type="url" id="banner_url" class="form-input" placeholder="https://..." value="{{ channel.banner_url if channel else '' }}">
+        </div>
+
+        <h3 style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 1.25rem 0 0.75rem;">Social Media Links</h3>
+
+        <div class="form-group">
+          <label class="form-label">YouTube Channel Link</label>
+          <input type="url" id="youtube" class="form-input" placeholder="https://youtube.com/@channel" value="{{ channel.social_links.get('youtube', '') if channel and channel.social_links else '' }}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Telegram Channel Link</label>
+          <input type="url" id="telegram" class="form-input" placeholder="https://t.me/channel" value="{{ channel.social_links.get('telegram', '') if channel and channel.social_links else '' }}">
+        </div>
+
+        <div class="form-group">
+          <label class="form-label">Instagram Profile Link</label>
+          <input type="url" id="instagram" class="form-input" placeholder="https://instagram.com/profile" value="{{ channel.social_links.get('instagram', '') if channel and channel.social_links else '' }}">
+        </div>
+
+        <button type="submit" class="save-btn" id="save-btn">
+          {{ 'Save Changes' if channel else 'Launch My Channel' }}
+        </button>
+      </form>
+    </div>
+
+    <!-- Links & Content Area -->
+    <div>
+      {% if channel %}
+        <div class="card-box" style="margin-bottom: 1.5rem;">
+          <h2>🔗 Shareable Channel Link</h2>
+          <p style="font-size: 0.85rem; color: #64748b; margin-top: -0.5rem; margin-bottom: 0.75rem;">
+            Add this link to your YouTube video descriptions, Telegram channel bio, and Instagram bio:
+          </p>
+          <div class="link-copy-box">
+            <span class="link-text" id="channel-link-text">https://www.abhihub.edu.eu.org/c/{{ channel.handle }}</span>
+            <button class="copy-btn" onclick="copyToClipboard('https://www.abhihub.edu.eu.org/c/{{ channel.handle }}', this)">Copy</button>
+          </div>
+          <div style="display: flex; gap: 0.5rem;">
+            <a href="/c/{{ channel.handle }}" target="_blank" class="save-btn" style="text-align: center; text-decoration: none; background: #0f172a; font-size: 0.85rem; padding: 0.5rem 1rem;">
+              View Live Channel ↗
+            </a>
+          </div>
+        </div>
+      {% endif %}
+
+      <div class="card-box">
+        <h2>📚 Your Notes ({{ notes|length }})</h2>
+        <p style="font-size: 0.85rem; color: #64748b; margin-top: -0.5rem; margin-bottom: 1rem;">
+          Direct links to paste into specific YouTube video descriptions:
+        </p>
+
+        {% if not notes %}
+          <div style="text-align: center; color: #94a3b8; padding: 2rem 0; font-size: 0.9rem;">
+            You have not uploaded any notes yet.
+            <div style="margin-top: 0.75rem;">
+              <a href="/upload" style="color: #4f46e5; font-weight: 700; text-decoration: underline;">Upload Study Notes</a>
+            </div>
+          </div>
+        {% else %}
+          {% for note in notes %}
+            <div class="note-item">
+              <div style="max-width: 65%;">
+                <div class="note-item-title">{{ note.title }}</div>
+                <div class="note-item-meta">
+                  {{ note.category }} • {{ note.views }} views • 
+                  {% if note.is_paid and note.price > 0 %}
+                    <strong style="color: #ca8a04;">₹{{ '%.0f'|format(note.price) }}</strong>
+                  {% else %}
+                    <span style="color: #16a34a; font-weight: 700;">Free</span>
+                  {% endif %}
+                </div>
+              </div>
+              <div>
+                {% set direct_url = 'https://www.abhihub.edu.eu.org/resource/' ~ note.id %}
+                <button class="copy-btn" onclick="copyToClipboard('{{ direct_url }}', this)">Copy Link</button>
+              </div>
+            </div>
+          {% endfor %}
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  function copyToClipboard(text, btn) {
+    if (!text) return;
+    navigator.clipboard.writeText(text).then(function() {
+      const orig = btn.innerText;
+      btn.innerText = 'Copied!';
+      btn.style.background = '#86efac';
+      setTimeout(function() {
+        btn.innerText = orig;
+        btn.style.background = '';
+      }, 2000);
+    });
+  }
+
+  document.getElementById('channel-form').addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('save-btn');
+    const msg = document.getElementById('status-msg');
+    
+    btn.disabled = true;
+    btn.innerText = 'Saving...';
+    msg.style.display = 'none';
+
+    const payload = {
+      handle: document.getElementById('handle').value.trim(),
+      title: document.getElementById('title').value.trim(),
+      bio: document.getElementById('bio').value.trim(),
+      avatar_url: document.getElementById('avatar_url').value.trim(),
+      banner_url: document.getElementById('banner_url').value.trim(),
+      youtube: document.getElementById('youtube').value.trim(),
+      telegram: document.getElementById('telegram').value.trim(),
+      instagram: document.getElementById('instagram').value.trim()
+    };
+
+    try {
+      const res = await fetch('/api/channel/save', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        msg.className = 'msg-success';
+        msg.innerText = 'Channel saved successfully!';
+        msg.style.display = 'block';
+        setTimeout(() => { window.location.reload(); }, 1200);
+      } else {
+        msg.className = 'msg-error';
+        msg.innerText = data.error || 'Failed to save channel.';
+        msg.style.display = 'block';
+        btn.disabled = false;
+        btn.innerText = 'Save Changes';
+      }
+    } catch (err) {
+      msg.className = 'msg-error';
+      msg.innerText = 'Network error. Please try again.';
+      msg.style.display = 'block';
+      btn.disabled = false;
+      btn.innerText = 'Save Changes';
+    }
+  });
+</script>
+
+{% endblock %}

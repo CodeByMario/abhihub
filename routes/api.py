@@ -682,7 +682,6 @@ def api_buy_credits():
         import secrets
         from cache_manager import get_cache
         from data.pricing import log_credit_transaction
-        from methods.phonepe_service import initiate_phonepe_payment
         from data.transactions import save_transaction_record
 
         user_info = session.get('user', {})
@@ -700,10 +699,6 @@ def api_buy_credits():
         price_inr = float(valid_packs[pack_size])
         order_id = f"AH{int(time.time())}{secrets.token_hex(2).upper()}"
 
-        base_url = request.host_url.rstrip('/')
-        redirect_url = f"{base_url}/payment/phonepe/redirect?order_id={order_id}&pack={pack_size}&user_id={user_id}"
-        callback_url = f"{base_url}/api/payment/phonepe/callback"
-
         # Record initiated transaction in database
         save_transaction_record(order_id, {
             'user_id': user_id,
@@ -713,20 +708,7 @@ def api_buy_credits():
             'admin_notes': f"purpose=Credits-{pack_size};pack={pack_size};views={pack_size}"
         })
 
-        phonepe_res = initiate_phonepe_payment(
-            order_id=order_id,
-            amount_inr=price_inr,
-            user_id=user_id,
-            redirect_url=redirect_url,
-            callback_url=callback_url
-        )
-
-        payment_url = None
-        if phonepe_res.get('success') and phonepe_res.get('payment_url'):
-            payment_url = phonepe_res['payment_url']
-        else:
-            # Fallback to checkout page with UPI QR & verification
-            payment_url = f"/payment?amount={price_inr:.2f}&purpose=Credits-{pack_size}-Views&order_id={order_id}"
+        payment_url = f"/payment?amount={price_inr:.2f}&purpose=Credits-{pack_size}-Views&order_id={order_id}"
 
         return jsonify({
             'success': True,

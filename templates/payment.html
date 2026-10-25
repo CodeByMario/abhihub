@@ -23,10 +23,10 @@
 <div class="payment-page-container" style="max-width:500px;margin:2rem auto 4.5rem;padding:0 1rem;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
     <div style="background:#ffffff;border-radius:24px;border:1.5px solid #e2e8f0;box-shadow:0 12px 35px -8px rgba(0,0,0,0.08);overflow:hidden;">
         
-        <!-- Official PhonePe Checkout Header -->
-        <div style="background:linear-gradient(135deg,#5f259f,#7c3aed);padding:1.6rem 1.5rem 1.75rem;color:#ffffff;text-align:center;position:relative;">
+        <!-- Official Razorpay Checkout Header -->
+        <div style="background:linear-gradient(135deg,#0c2340,#1d4ed8);padding:1.6rem 1.5rem 1.75rem;color:#ffffff;text-align:center;position:relative;">
             <div style="display:inline-flex;align-items:center;gap:0.4rem;background:rgba(255,255,255,0.18);padding:0.25rem 0.8rem;border-radius:999px;font-size:0.75rem;font-weight:700;letter-spacing:0.02em;margin-bottom:0.75rem;backdrop-filter:blur(4px);">
-                🛡️ PHONEPE SECURE GATEWAY
+                🛡️ RAZORPAY SECURE GATEWAY
             </div>
             <h1 style="font-size:1.35rem;margin:0 0 0.35rem;font-weight:700;letter-spacing:-0.02em;">AbhiHub Checkout</h1>
             <div style="font-size:2.35rem;font-weight:800;letter-spacing:-0.03em;margin:0.25rem 0;">₹{{ amount }}</div>
@@ -51,7 +51,7 @@
 
                 {% if doc_info %}
                 <div style="display:flex;gap:0.85rem;align-items:flex-start;">
-                    <div style="width:42px;height:42px;border-radius:10px;background:#ede9fe;color:#6d28d9;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">
+                    <div style="width:42px;height:42px;border-radius:10px;background:#eff6ff;color:#1d4ed8;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">
                         📄
                     </div>
                     <div style="flex:1;min-width:0;">
@@ -68,9 +68,40 @@
                         </div>
                     </div>
                 </div>
+                {% elif 'Credits' in purpose or 'Views' in purpose or 'pack=' in purpose %}
+                <div style="display:flex;gap:0.85rem;align-items:flex-start;">
+                    <div style="width:42px;height:42px;border-radius:10px;background:#f0fdf4;color:#15803d;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">
+                        ⚡
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <h2 style="font-size:0.95rem;font-weight:700;color:#0f172a;margin:0 0 0.25rem;">
+                            Study Pass / View Credits Pack
+                        </h2>
+                        <div style="display:flex;flex-wrap:wrap;gap:0.4rem;font-size:0.75rem;color:#475569;">
+                            <span style="background:#dcfce7;color:#15803d;padding:0.1rem 0.4rem;border-radius:4px;font-weight:600;">{{ purpose.replace('-', ' ') }}</span>
+                            <span style="background:#f1f5f9;color:#334155;padding:0.1rem 0.4rem;border-radius:4px;font-weight:600;">Instant Quota Unlock</span>
+                        </div>
+                    </div>
+                </div>
+                {% elif 'Tea' in purpose or 'Support' in purpose or 'Chai' in purpose %}
+                <div style="display:flex;gap:0.85rem;align-items:flex-start;">
+                    <div style="width:42px;height:42px;border-radius:10px;background:#fef3c7;color:#b45309;display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">
+                        ☕
+                    </div>
+                    <div style="flex:1;min-width:0;">
+                        <h2 style="font-size:0.95rem;font-weight:700;color:#0f172a;margin:0 0 0.25rem;">
+                            Community Chai Support
+                        </h2>
+                        <div style="display:flex;flex-wrap:wrap;gap:0.4rem;font-size:0.75rem;color:#475569;">
+                            <span style="background:#ffedd5;color:#c2410c;padding:0.1rem 0.4rem;border-radius:4px;font-weight:600;">Wall of Supporters</span>
+                            <span style="background:#f1f5f9;color:#334155;padding:0.1rem 0.4rem;border-radius:4px;font-weight:600;">Server Contribution</span>
+                        </div>
+                    </div>
+                </div>
                 {% else %}
                 <div style="font-size:0.95rem;font-weight:700;color:#1e293b;">{{ purpose }}</div>
                 {% endif %}
+
 
                 <!-- Invoice Breakdown -->
                 <div style="border-top:1px dashed #cbd5e1;margin-top:0.85rem;padding-top:0.75rem;display:flex;flex-direction:column;gap:0.35rem;font-size:0.82rem;color:#64748b;">
@@ -80,37 +111,37 @@
                     </div>
                     <div style="display:flex;justify-content:space-between;">
                         <span>Payment Mode:</span>
-                        <span style="color:#5f259f;font-weight:700;">PhonePe Business</span>
+                        <span style="color:#1d4ed8;font-weight:700;">UPI / Cards / NetBanking</span>
                     </div>
                     <div style="display:flex;justify-content:space-between;border-top:1px solid #e2e8f0;padding-top:0.45rem;font-size:0.9rem;">
                         <span style="color:#0f172a;font-weight:700;">Total Amount:</span>
-                        <strong style="color:#5f259f;font-weight:800;font-size:1.15rem;">₹{{ amount }}</strong>
+                        <strong style="color:#1d4ed8;font-weight:800;font-size:1.15rem;">₹{{ amount }}</strong>
                     </div>
                 </div>
             </div>
 
-            <!-- Single Official PhonePe Payment Button -->
+            <!-- Single Official Razorpay Payment Button -->
             <button id="mainPayBtn" type="button"
-                    style="width:100%;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#5f259f,#7c3aed);color:#ffffff;padding:1.05rem 1.25rem;border-radius:16px;box-shadow:0 8px 24px -4px rgba(95,37,159,0.4);font-weight:700;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;">
+                    style="width:100%;border:none;display:flex;flex-direction:column;align-items:center;justify-content:center;background:linear-gradient(135deg,#0c2340,#1d4ed8);color:#ffffff;padding:1.05rem 1.25rem;border-radius:16px;box-shadow:0 8px 24px -4px rgba(29,78,216,0.35);font-weight:700;cursor:pointer;transition:transform 0.15s,box-shadow 0.15s;">
                 <span style="font-size:1.08rem;display:flex;align-items:center;gap:0.45rem;">
-                    ⚡ Pay ₹{{ amount }} with PhonePe
+                    ⚡ Pay ₹{{ amount }} Securely
                 </span>
                 <span style="font-size:0.75rem;font-weight:500;opacity:0.9;margin-top:0.3rem;">
-                    Official PhonePe Merchant Gateway
+                    Razorpay Standard Checkout (UPI, Card, NetBanking)
                 </span>
             </button>
 
-            <!-- PhonePe Merchant Badge -->
+            <!-- Razorpay Badge -->
             <div style="margin-top:1.5rem;text-align:center;">
-                <div style="display:inline-flex;align-items:center;gap:0.4rem;background:#f3e8ff;color:#5f259f;padding:0.4rem 1rem;border-radius:10px;font-size:0.82rem;font-weight:700;">
-                    <span>🟣 Powered Exclusively by PhonePe Merchant</span>
+                <div style="display:inline-flex;align-items:center;gap:0.4rem;background:#eff6ff;color:#1d4ed8;padding:0.4rem 1rem;border-radius:10px;font-size:0.82rem;font-weight:700;">
+                    <span>🛡️ Powered Exclusively by Razorpay</span>
                 </div>
             </div>
 
-            <!-- Official Security Footnote -->
+            <!-- Security Footnote -->
             <div style="display:flex;justify-content:space-around;align-items:center;margin-top:1.5rem;padding-top:1.15rem;border-top:1px solid #f1f5f9;font-size:0.72rem;color:#64748b;">
-                <span style="display:flex;align-items:center;gap:0.3rem;">🛡️ PCI-DSS Compliant</span>
-                <span style="display:flex;align-items:center;gap:0.3rem;">⚡ Instant Bank Unlock</span>
+                <span style="display:flex;align-items:center;gap:0.3rem;">🛡️ PCI-DSS Level 1</span>
+                <span style="display:flex;align-items:center;gap:0.3rem;">⚡ Instant Unlock</span>
                 <span style="display:flex;align-items:center;gap:0.3rem;">🔒 256-Bit SSL</span>
             </div>
 
@@ -125,9 +156,9 @@
     </div>
 </div>
 
+<script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
 <script>
 (function() {
-    // Hide parent app shell bottom navigation if inside iframe
     try {
         if (window.parent && window.parent !== window) {
             var shellBottom = window.parent.document.getElementById('shellBottomNav');
@@ -161,7 +192,6 @@
         statusBox.innerHTML = msg;
     }
 
-    // 10-Minute Active Countdown Timer
     var totalSeconds = 600;
     var timerInterval = setInterval(function() {
         totalSeconds--;
@@ -171,7 +201,7 @@
             mainPayBtn.disabled = true;
             mainPayBtn.style.opacity = '0.5';
             mainPayBtn.style.cursor = 'not-allowed';
-            setStatus('⚠️ <strong>Session Expired:</strong> This payment session has expired. Please refresh the page to generate a fresh order reference.', 'error');
+            setStatus('⚠️ <strong>Session Expired:</strong> This payment session has expired. Please refresh the page.', 'error');
             return;
         }
         var m = Math.floor(totalSeconds / 60);
@@ -179,41 +209,92 @@
         countdownEl.textContent = (m < 10 ? '0' : '') + m + ':' + (s < 10 ? '0' : '') + s;
     }, 1000);
 
-    function startPhonePePayment() {
+    async function startPayment() {
+        if (typeof Razorpay === 'undefined') {
+            setStatus('⏳ Loading Razorpay checkout library... Please try again in a moment.', 'info');
+            return;
+        }
         var origHtml = mainPayBtn.innerHTML;
         mainPayBtn.disabled = true;
-        mainPayBtn.innerHTML = '<span style="font-size:1.05rem;">⏳ Connecting to PhonePe...</span>';
-        setStatus('🔒 Connecting to official PhonePe Gateway... Please wait.', 'info');
+        mainPayBtn.innerHTML = '<span style="font-size:1.05rem;">⏳ Initializing Razorpay...</span>';
+        setStatus('🔒 Connecting to secure payment gateway...', 'info');
 
-        fetch('/api/payment/phonepe/initiate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                order_id: orderId,
-                amount: amount,
-                purpose: purpose,
-                doc_id: docId
-            })
-        })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            if (data.success && data.payment_url) {
-                setStatus('🚀 Redirecting to PhonePe Checkout...', 'success');
-                window.location.href = data.payment_url;
-            } else {
+        try {
+            const initRes = await fetch('/api/payment/initiate', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    doc_id: docId,
+                    amount: amount,
+                    purpose: purpose,
+                    order_id: orderId
+                })
+            });
+            const initData = await initRes.json();
+            if (!initData.success || !initData.order_id) {
                 mainPayBtn.disabled = false;
                 mainPayBtn.innerHTML = origHtml;
-                setStatus('❌ ' + (data.error || 'Failed to connect to PhonePe. Please try again.'), 'error');
+                setStatus('❌ ' + (initData.error || 'Failed to create payment order.'), 'error');
+                return;
             }
-        })
-        .catch(function(err) {
+
+            var options = {
+                key: initData.key_id,
+                amount: initData.amount,
+                currency: initData.currency || 'INR',
+                name: 'AbhiHub',
+                description: purpose || 'Document Access',
+                order_id: initData.order_id,
+                prefill: initData.prefill || {},
+                theme: { color: '#1d4ed8' },
+                handler: async function (response) {
+                    setStatus('🔒 Verifying payment signature...', 'info');
+                    try {
+                        const verifyRes = await fetch('/api/payment/verify', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                razorpay_order_id: response.razorpay_order_id,
+                                razorpay_payment_id: response.razorpay_payment_id,
+                                razorpay_signature: response.razorpay_signature
+                            })
+                        });
+                        const result = await verifyRes.json();
+                        if (result.success && result.redirect_url) {
+                            window.location.href = result.redirect_url;
+                        } else {
+                            setStatus('Payment received (ID: ' + response.razorpay_payment_id + '). Verification is processing.', 'info');
+                        }
+                    } catch (err) {
+                        setStatus('Network error confirming payment. Payment ID: ' + response.razorpay_payment_id, 'error');
+                    }
+                },
+                modal: {
+                    ondismiss: function () {
+                        mainPayBtn.disabled = false;
+                        mainPayBtn.innerHTML = origHtml;
+                        setStatus('Payment was closed. You can click to retry.', 'info');
+                    }
+                }
+            };
+
+            var rzp = new Razorpay(options);
+            rzp.on('payment.failed', function (response) {
+                mainPayBtn.disabled = false;
+                mainPayBtn.innerHTML = origHtml;
+                var errDetail = (response.error && response.error.description) ? response.error.description : 'Payment failed.';
+                setStatus('❌ ' + errDetail, 'error');
+            });
+            rzp.open();
+        } catch (err) {
             mainPayBtn.disabled = false;
             mainPayBtn.innerHTML = origHtml;
-            setStatus('❌ Network error while connecting to PhonePe gateway. Please try again.', 'error');
-        });
+            setStatus('❌ Network error while initiating payment.', 'error');
+        }
     }
 
-    mainPayBtn.addEventListener('click', startPhonePePayment);
+    mainPayBtn.addEventListener('click', startPayment);
 })();
 </script>
+
 {% endblock %}

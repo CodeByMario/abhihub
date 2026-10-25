@@ -243,6 +243,47 @@
 </div>
 {% endif %}
 
+<!-- ── 1.8 Creator Channels (Moving Cards) ────────────────────────── -->
+{% if featured_channels %}
+<div class="home-section" id="creatorChannelsSection">
+  <div class="home-section-header">
+    <div>
+      <div class="home-section-title">📺 Creator Channels</div>
+      <div class="home-section-subtitle">Branded notes hubs powered by top student creators & toppers</div>
+    </div>
+    <a href="/channel/studio" class="home-see-all">+ Create Your Channel →</a>
+  </div>
+  <div class="hscroll-row">
+    {% for ch in featured_channels %}
+    <a href="/c/{{ ch.handle }}" class="pcard" style="min-width: 240px; max-width: 260px; padding: 1.15rem; display: flex; flex-direction: column; justify-content: space-between; border-radius: 18px; text-decoration: none;">
+      <div>
+        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+          {% if ch.avatar_url %}
+            <img src="{{ ch.avatar_url }}" alt="{{ ch.title }}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e0e7ff;">
+          {% else %}
+            <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #6366f1); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.15rem; box-shadow: 0 4px 10px rgba(79,70,229,0.25);">
+              {{ ch.title[:1].upper() if ch.title else 'C' }}
+            </div>
+          {% endif %}
+          <div style="overflow: hidden;">
+            <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{ ch.title }}</div>
+            <div style="font-size: 0.8rem; color: #6366f1; font-weight: 600;">@{{ ch.handle }}</div>
+          </div>
+        </div>
+        <div style="font-size: 0.82rem; color: #475569; margin-bottom: 0.85rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
+          {{ ch.bio or 'Explore study notes, questions, and revision guides.' }}
+        </div>
+      </div>
+      <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.6rem; border-top: 1px solid rgba(226,232,240,0.8); font-size: 0.78rem;">
+        <span style="color: #64748b; font-weight: 600;">📚 {{ ch.notes_count or 0 }} Notes</span>
+        <span style="color: #4f46e5; font-weight: 700;">Visit Hub →</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
 <!-- ── 2. Academic Library: Personalized Papers ────────────────────────── -->
 {% if relevant_papers %}
 <div class="home-section">

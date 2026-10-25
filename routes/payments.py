@@ -116,73 +116,208 @@ def payment_status_api():
 
 @payments_bp.route('/api/payment/phonepe/initiate', methods=['POST'])
 def phonepe_initiate_api():
-    from methods.phonepe_service import validate_order_id, initiate_phonepe_payment
+    """Deprecated PhonePe endpoint — forwarded to Razorpay order creation."""
+    return initiate_payment()
+
+
+@payments_bp.route('/api/create-order', methods=['POST'])
+@payments_bp.route('/api/payment/initiate', methods=['POST'])
+@payments_bp.route('/api/payment/razorpay/initiate', methods=['POST'])
+def initiate_payment():
+    """Initiates a Razorpay standard checkout order."""
+    from methods.razorpay_service import create_order
     from data.transactions import save_transaction_record
 
     data = request.get_json(silent=True) or {}
-    order_id = str(data.get('order_id', '')).strip()
     doc_id = str(data.get('doc_id', '')).strip()
     purpose = str(data.get('purpose', '')).strip()
-    supporter_name = str(data.get('supporter_name', '')).strip()
-    message = str(data.get('message', '')).strip()
+    pack_size = int(data.get('pack', 0) or 0)
+    user = session.get('user', {})
+    user_id = user.get('uid') or user.get('id') or ''
 
-    if not order_id:
-        order_id = f"AH{int(time.time())}{secrets.token_hex(2).upper()}"
-    elif not validate_order_id(order_id):
-        return jsonify({'success': False, 'error': 'Invalid order ID format'}), 400
+    price = 0.0
+    admin_notes_parts = []
 
-    try:
-        amount = float(data.get('amount', 49.0))
-        if amount <= 0:
-            return jsonify({'success': False, 'error': 'Amount must be greater than zero'}), 400
-    except (ValueError, TypeError):
-        amount = 49.0
+    # Detect doc_id or credit pack from purpose string if not provided directly
+    if not doc_id and 'Document-' in purpose:
+        doc_id = purpose.split('Document-')[-1].strip()
 
-    if doc_id:
-        try:
+    # 1. Credit packs (prioritize pack purchases over doc_id)
+    if pack_size or 'credits-' in purpose.lower() or ('view' in purpose.lower() and 'document' not in purpose.lower()):
+        if not pack_size and 'Credits-' in purpose:
+            try: pack_size = int(purpose.split('Credits-')[1].split('-')[0].strip())
+            except Exception: pack_size = 50
+        elif not pack_size:
+            pack_size = 50
+
+        valid_packs = {50: 100.0, 100: 200.0, 500: 1000.0}
+        passed_amount = float(data.get('amount', 0) or 0)
+        if passed_amount > 0:
+            price = passed_amount
+        else:
+            price = float(valid_packs.get(pack_size, pack_size * 2))
+        admin_notes_parts.append(f"purpose=Credits-{pack_size};pack={pack_size};views={pack_size}")
+        currency = 'INR'
+    elif request.path.endswith('/create-order') and 'amount' in data and not doc_id and not pack_size:
+        raw_paise = float(data.get('amount', 0))
+        if raw_paise < 100:
+            return jsonify({'success': False, 'error': 'Minimum amount is 100 paise'}), 400
+        price = raw_paise / 100.0
+        currency = data.get('currency', 'INR')
+    elif doc_id:
+        passed_amount = float(data.get('amount', 0) or 0)
+        if passed_amount > 0:
+            price = passed_amount
+        else:
             client = init_supabase()
             if client:
-                p_res = client.table('documents').select('price, is_paid, description').eq('id', doc_id).limit(1).execute()
-                if p_res.data:
-                    pricing_data = extract_document_pricing(p_res.data[0])
-                    expected_price = float(pricing_data.get('price', 0))
-                    if expected_price > 0 and amount < 1.0:
-                        amount = expected_price
-        except Exception:
-            pass
+                try:
+                    p_res = client.table('documents').select('price, is_paid, description').eq('id', doc_id).limit(1).execute()
+                    if p_res.data:
+                        pricing_data = extract_document_pricing(p_res.data[0])
+                        price = float(pricing_data.get('price', 0))
+                except Exception:
+                    pass
+            if price <= 0:
+                price = 49.0
+        admin_notes_parts.append(f"doc_id={doc_id}")
+        if purpose:
+            admin_notes_parts.append(f"purpose={purpose}")
+        currency = 'INR'
+    else:
+        try:
+            price = float(data.get('amount', 49.0))
+        except (ValueError, TypeError):
+            price = 49.0
+        if purpose:
+            admin_notes_parts.append(f"purpose={purpose}")
+        currency = data.get('currency', 'INR')
 
-    user_id = session.get('user', {}).get('uid', '') or session.get('user', {}).get('id', '')
+
+    if price <= 0:
+        return jsonify({'success': False, 'error': 'Amount must be greater than zero'}), 400
+
+    receipt_param = str(data.get('receipt', '')).strip()
+    receipt_id = receipt_param[:40] if receipt_param else f"AH_{int(time.time())}_{secrets.token_hex(2).upper()}"[:40]
     client_ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
     user_agent = request.headers.get('User-Agent', '')[:255]
 
-    save_transaction_record(order_id, {
+    try:
+        order = create_order(
+            amount_inr=price,
+            receipt_id=receipt_id,
+            notes={
+                'doc_id': doc_id,
+                'user_id': user_id or 'guest',
+                'purpose': purpose or (f"Document {doc_id}" if doc_id else "Payment")
+            }
+        )
+    except Exception as e:
+        logging.error(f"[RZP] Order creation failed: {e}")
+        return jsonify({'success': False, 'error': f'Failed to create order: {str(e)}'}), 500
+
+    rzp_order_id = order['id']
+    save_transaction_record(rzp_order_id, {
         'user_id': user_id or None,
-        'amount': amount,
-        'status': 'initiated',
-        'utr': order_id,
+        'amount': price,
+        'status': 'pending',
+        'utr': rzp_order_id,
+        'doc_id': doc_id,
         'client_ip': client_ip,
         'user_agent': user_agent,
-        'admin_notes': f"purpose={purpose};doc_id={doc_id};name={supporter_name};msg={message}"
+        'admin_notes': ';'.join(admin_notes_parts)
     })
 
-    base_url = request.host_url.rstrip('/')
-    redirect_url = f"{base_url}/payment/phonepe/redirect?order_id={order_id}&doc_id={doc_id}&user_id={user_id}"
-    callback_url = f"{base_url}/api/payment/phonepe/callback"
+    return jsonify({
+        'success': True,
+        'key_id': os.getenv('RAZORPAY_KEY_ID', ''),
+        'order_id': rzp_order_id,
+        'amount': order['amount'],
+        'currency': order.get('currency', currency),
+        'prefill': {
+            'name': user.get('display_name') or user.get('name', ''),
+            'email': user.get('email', ''),
+            'contact': user.get('phone', '')
+        }
+    })
 
-    res = initiate_phonepe_payment(
-        order_id=order_id,
-        amount_inr=amount,
-        user_id=user_id,
-        redirect_url=redirect_url,
-        callback_url=callback_url
-    )
-    return jsonify(res)
+
+@payments_bp.route('/api/verify-payment', methods=['POST'])
+@payments_bp.route('/api/payment/verify', methods=['POST'])
+@payments_bp.route('/api/payment/razorpay/verify', methods=['POST'])
+def verify_payment():
+    """Verifies HMAC-SHA256 signature of Razorpay payment and fulfills order."""
+    from methods.razorpay_service import verify_payment_signature, hash_signature
+    from data.transactions import get_transaction_record, is_order_completed
+    from routes.webhooks import fulfill_order_transaction
+
+    data = request.get_json(silent=True) or {}
+    rzp_order_id = str(data.get('razorpay_order_id') or data.get('order_id') or '').strip()
+    rzp_payment_id = str(data.get('razorpay_payment_id') or data.get('payment_id') or '').strip()
+    rzp_signature = str(data.get('razorpay_signature') or data.get('signature') or '').strip()
+
+    if not all([rzp_order_id, rzp_payment_id, rzp_signature]):
+        return jsonify({'success': False, 'error': 'Missing required fields: order_id, payment_id, signature'}), 400
+
+    rec = get_transaction_record(rzp_order_id)
+    doc_id = rec.get('doc_id', '')
+    if not doc_id:
+        notes = rec.get('admin_notes', '')
+        for part in notes.split(';'):
+            if part.startswith('doc_id='):
+                doc_id = part.replace('doc_id=', '').strip()
+
+    if is_order_completed(rzp_order_id):
+        return jsonify({
+            'success': True,
+            'message': 'Payment already verified',
+            'redirect_url': f'/payment/receipt?order_id={rzp_order_id}&status=success&doc_id={doc_id}&amount={rec.get("amount", 0)}'
+        }), 200
+
+    if not verify_payment_signature(rzp_order_id, rzp_payment_id, rzp_signature):
+        logging.error(f"[RZP] Signature mismatch: order={rzp_order_id} pay={rzp_payment_id}")
+        try:
+            client = init_supabase()
+            if client:
+                client.table('payment_errors').insert({
+                    'user_id': rec.get('user_id'),
+                    'order_id': rzp_order_id,
+                    'payment_id': rzp_payment_id,
+                    'reason': 'signature_mismatch',
+                    'created_at': datetime.now(timezone.utc).isoformat()
+                }).execute()
+        except Exception as err_log:
+            logging.debug(f"[RZP] Could not log payment error to DB: {err_log}")
+        return jsonify({'success': False, 'error': 'Signature verification failed'}), 400
+
+    amount = float(rec.get('amount', 0))
+    user_id = rec.get('user_id') or session.get('user', {}).get('uid', '')
+    fulfill_order_transaction(rzp_order_id, amount, doc_id=doc_id, user_id=user_id, source='razorpay_verify')
+
+
+    try:
+        client = init_supabase()
+        if client:
+            client.table('credit_transactions').update({
+                'payment_id': rzp_payment_id,
+                'rzp_sig_hash': hash_signature(rzp_signature),
+                'captured_at': datetime.now(timezone.utc).isoformat()
+            }).eq('order_id', rzp_order_id).execute()
+    except Exception as db_err:
+        logging.debug(f"[RZP] credit_transactions sig update note: {db_err}")
+
+    return jsonify({
+        'success': True,
+        'message': 'Payment verified successfully',
+        'redirect_url': f'/payment/receipt?order_id={rzp_order_id}&status=success&doc_id={doc_id}&amount={amount}'
+    }), 200
+
 
 
 @payments_bp.route('/api/user/transactions', methods=['GET'])
 @auth_required
 def get_user_transactions_api():
-    """Fetches recent PhonePe payment and credit transactions for the logged-in user."""
+    """Fetches recent payment and credit transactions for the logged-in user."""
     from data.transactions import get_user_transactions
     user_info = session.get('user', {})
     user_id = user_info.get('uid', '')
@@ -206,8 +341,24 @@ def get_user_transactions_api():
                     doc_title = doc_res.get('data', {}).get('title', '')
             except Exception:
                 pass
+            if not doc_title:
+                doc_title = f"Document #{doc_id[:8]}"
+        elif 'Credits-' in notes or 'pack=' in notes or 'credits' in notes.lower():
+            pack = ''
+            for part in notes.split(';'):
+                if part.startswith('pack='):
+                    pack = part.replace('pack=', '').strip()
+                elif part.startswith('purpose=Credits-'):
+                    try: pack = part.replace('purpose=Credits-', '').split('-')[0].strip()
+                    except Exception: pass
+            doc_title = f"Study Pass ({pack or 50} Views)"
+        elif 'Tea' in notes or 'Chai' in notes or 'supporter' in notes.lower():
+            doc_title = "Community Chai Support"
+        else:
+            doc_title = "AbhiHub Resource Access"
 
         status_val = tx.get('status', 'completed')
+        is_success = status_val in ['completed', 'verified', 'captured']
         enriched.append({
             'order_id': tx.get('order_id'),
             'amount': tx.get('amount'),
@@ -215,10 +366,11 @@ def get_user_transactions_api():
             'doc_id': doc_id,
             'doc_title': doc_title,
             'date': tx.get('updated_at') or tx.get('created_at'),
-            'receipt_url': f"/payment/receipt?order_id={tx.get('order_id')}&status={'success' if status_val in ['completed', 'verified'] else 'failed'}&doc_id={doc_id}&amount={tx.get('amount')}"
+            'receipt_url': f"/payment/receipt?order_id={tx.get('order_id')}&status={'success' if is_success else 'failed'}&doc_id={doc_id}&amount={tx.get('amount')}"
         })
 
     return jsonify({'success': True, 'transactions': enriched})
+
 
 
 @payments_bp.route('/api/document/<doc_id>/access', methods=['GET'])

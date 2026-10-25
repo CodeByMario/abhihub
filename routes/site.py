@@ -181,7 +181,9 @@ def payment_page():
     raw_amount = request.args.get('amount', '49')
     purpose = request.args.get('purpose', 'AbhiHub Support / Credits')
     doc_id = request.args.get('doc_id', '').strip()
-    if not doc_id and 'Document-' in purpose:
+    if 'Credits-' in purpose:
+        doc_id = ''
+    elif not doc_id and 'Document-' in purpose:
         doc_id = purpose.split('Document-')[-1].strip()
 
     try:
@@ -191,7 +193,7 @@ def payment_page():
     except (ValueError, TypeError):
         amount = "49.00"
 
-    order_id = f"AH{int(time.time())}{secrets.token_hex(2).upper()}"
+    order_id = request.args.get('order_id', '').strip() or f"AH{int(time.time())}{secrets.token_hex(2).upper()}"
     purchase_date = datetime.now().strftime("%d %b %Y, %I:%M %p")
 
     doc_info = None
@@ -217,7 +219,7 @@ def payment_page():
 
 @site_bp.route('/payment/receipt', methods=['GET'])
 def payment_receipt_page():
-    """Valid feedback and receipt page for completed or failed PhonePe payments."""
+    """Valid feedback and receipt page for completed or failed payments."""
     from flask import request
     order_id = request.args.get('order_id', '').strip()
     status = request.args.get('status', 'success')

@@ -12,6 +12,7 @@ from .seo import seo_bp
 from .store_room import store_room_bp
 from .payments import payments_bp
 from .ai import ai_bp
+from .channels import channels_bp
 
 def register_blueprints(app):
     """Register all modular route blueprints."""
@@ -26,3 +27,4 @@ def register_blueprints(app):
     app.register_blueprint(store_room_bp)
     app.register_blueprint(payments_bp)
     app.register_blueprint(ai_bp)
+    app.register_blueprint(channels_bp)

@@ -233,6 +233,13 @@ def dashboard():
     from data.tea_supporters import get_recent_feedbacks
     community_feedbacks = get_recent_feedbacks(limit=8)
 
+    featured_channels = []
+    try:
+        from methods.channel_service import get_featured_channels
+        featured_channels = get_featured_channels(limit=10)
+    except Exception as e:
+        logging.warning(f"[Dashboard] Featured channels error: {e}")
+
     return render_template(
         'app/dashboard.html',
         data=files,
@@ -255,7 +262,8 @@ def dashboard():
         relevant_notes=relevant_notes,
         trending_notes=trending_notes,
         recent_notes=recent_notes,
-        community_feedbacks=community_feedbacks
+        community_feedbacks=community_feedbacks,
+        featured_channels=featured_channels
     )
 
 

@@ -1011,9 +1011,16 @@ uploader_name %}
           <div class="r2-tarika-title">
             <span>✨</span> Recommended For You
           </div>
-          <span
-            style="font-size:0.75rem; color:var(--v2-muted); background:rgba(0,0,0,0.05); padding:2px 8px; border-radius:12px;">{{
-            subj_name or 'Study Kit' }}</span>
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <span
+              style="font-size:0.75rem; color:var(--v2-muted); background:rgba(0,0,0,0.05); padding:2px 8px; border-radius:12px;">{{
+              subj_name or 'Study Kit' }}</span>
+            {% if can_manage %}
+            <button type="button" onclick="openRecModal()" style="background:#4f46e5; color:#fff; border:none; border-radius:6px; padding:3px 8px; font-size:0.72rem; font-weight:700; cursor:pointer;" title="Edit Recommendations">
+              ✏️ Edit
+            </button>
+            {% endif %}
+          </div>
         </div>
 
         <div class="r2-tarika-tabs" style="overflow-x:auto; scrollbar-width:none; flex-wrap:nowrap;">
@@ -1028,6 +1035,18 @@ uploader_name %}
         <!-- 1. Similar Papers -->
         <div class="r2-tarika-content active" id="recTab_papers">
           <div style="display:flex; flex-direction:column; gap:0.6rem;">
+            {% if custom_recommendations and custom_recommendations.get('papers') %}
+            {% for cp in custom_recommendations.papers %}
+            <a href="{{ cp.url }}" style="text-decoration:none; color:inherit; display:block; padding:0.65rem; border:1px solid #bfdbfe; border-radius:8px; background:#eff6ff;">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+                <div style="font-weight:700; font-size:0.85rem; color:#1e3a8a;">📄 {{ cp.title }}</div>
+                <span style="font-size:0.7rem; font-weight:700; background:#dbeafe; color:#1d4ed8; padding:2px 6px; border-radius:4px; white-space:nowrap;">{{ cp.badge or 'AbhiHub PYQ' }}</span>
+              </div>
+              <div style="font-size:0.72rem; color:#3b82f6; margin-top:0.25rem;">Direct AbhiHub Paper ↗</div>
+            </a>
+            {% endfor %}
+            {% endif %}
+
             {% if suggested_docs and suggested_docs|length > 0 %}
             {% for sdoc in suggested_docs %}
             <a href="/resource/{{ sdoc.slug or sdoc.id }}"
@@ -1046,15 +1065,13 @@ uploader_name %}
               </div>
             </a>
             {% endfor %}
-            {% else %}
-            <div style="font-size:0.82rem; color:var(--v2-muted); padding:0.5rem 0;">No directly linked papers found
-              yet.</div>
+            {% elif not (custom_recommendations and custom_recommendations.get('papers')) %}
+            <div style="font-size:0.82rem; color:var(--v2-muted); padding:0.5rem 0;">No directly linked papers found yet.</div>
             {% endif %}
 
             <a href="/search?q={{ subj_name | urlencode }}&category=PYQ"
               style="text-decoration:none; color:inherit; display:block; padding:0.65rem; border:1px dashed var(--v2-line); border-radius:8px; background:rgba(0,0,0,0.01); text-align:center;">
-              <div style="font-size:0.82rem; font-weight:600; color:var(--v2-brand);">🔍 Search all {{ subj_name }} PYQs
-                & Papers →</div>
+              <div style="font-size:0.82rem; font-weight:600; color:var(--v2-brand);">🔍 Search all {{ subj_name }} PYQs & Papers →</div>
             </a>
           </div>
         </div>
@@ -1062,6 +1079,18 @@ uploader_name %}
         <!-- 2. Similar Notes -->
         <div class="r2-tarika-content" id="recTab_notes" style="display:none;">
           <div style="display:flex; flex-direction:column; gap:0.6rem;">
+            {% if custom_recommendations and custom_recommendations.get('notes') %}
+            {% for cn in custom_recommendations.notes %}
+            <a href="{{ cn.url }}" style="text-decoration:none; color:inherit; display:block; padding:0.65rem; border:1px solid #bbf7d0; border-radius:8px; background:#f0fdf4;">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:0.5rem;">
+                <div style="font-weight:700; font-size:0.85rem; color:#14532d;">📝 {{ cn.title }}</div>
+                <span style="font-size:0.7rem; font-weight:700; background:#dcfce7; color:#15803d; padding:2px 6px; border-radius:4px; white-space:nowrap;">{{ cn.badge or 'AbhiHub Notes' }}</span>
+              </div>
+              <div style="font-size:0.72rem; color:#16a34a; margin-top:0.25rem;">Direct AbhiHub Notes ↗</div>
+            </a>
+            {% endfor %}
+            {% endif %}
+
             <div
               style="padding:0.65rem; border:1px solid var(--v2-line); border-radius:8px; background:var(--v2-surface);">
               <div style="font-weight:600; font-size:0.85rem; color:var(--v2-ink);">📑 {{ subj_name }} - Complete
@@ -1089,6 +1118,22 @@ uploader_name %}
         <!-- 3. Similar Books -->
         <div class="r2-tarika-content" id="recTab_books" style="display:none;">
           <div style="display:flex; flex-direction:column; gap:0.6rem;">
+            {% if custom_recommendations and custom_recommendations.get('books') %}
+            {% for cb in custom_recommendations.books %}
+            <a href="{{ cb.url }}" target="_blank" rel="noopener noreferrer" style="text-decoration:none; color:inherit; display:block; padding:0.65rem; border:1px solid {% if cb.is_affiliate %}#fed7aa; background:#fff7ed;{% else %}#e2e8f0; background:var(--v2-surface);{% endif %} border-radius:8px;">
+              <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
+                <div style="font-weight:700; font-size:0.85rem; color:var(--v2-ink);">📖 {{ cb.title }}</div>
+                <span style="font-size:0.7rem; font-weight:700; {% if cb.is_affiliate %}background:#ffedd5; color:#c2410c;{% else %}background:#f1f5f9; color:#475569;{% endif %} padding:2px 6px; border-radius:4px; white-space:nowrap;">
+                  {% if cb.is_affiliate %}🛒 Buy ({{ cb.store }}){% else %}📚 {{ cb.store or 'AbhiHub' }}{% endif %}
+                </span>
+              </div>
+              <div style="font-size:0.72rem; color:{% if cb.is_affiliate %}#ea580c{% else %}var(--v2-brand){% endif %}; margin-top:0.3rem;">
+                {% if cb.is_affiliate %}Verified Bookstore Link ↗{% else %}Open in AbhiHub ↗{% endif %}
+              </div>
+            </a>
+            {% endfor %}
+            {% endif %}
+
             <div
               style="padding:0.65rem; border:1px solid var(--v2-line); border-radius:8px; background:var(--v2-surface);">
               <div style="display:flex; justify-content:space-between; align-items:flex-start;">
@@ -1126,6 +1171,21 @@ uploader_name %}
         <!-- 4. YouTube / Topic Videos -->
         <div class="r2-tarika-content" id="recTab_videos" style="display:none;">
           <div style="display:flex; flex-direction:column; gap:0.6rem;">
+            {% if custom_recommendations and custom_recommendations.get('videos') %}
+            {% for cv in custom_recommendations.videos %}
+            <a href="{{ cv.url }}" target="_blank" rel="noopener noreferrer"
+              style="text-decoration:none; color:inherit; display:flex; gap:0.6rem; padding:0.65rem; border:1px solid #fecaca; border-radius:8px; background:#fef2f2; align-items:center;">
+              <div style="width:36px; height:36px; border-radius:6px; background:#dc2626; color:#fff; display:flex; align-items:center; justify-content:center; font-size:1.1rem; flex-shrink:0;">
+                ▶
+              </div>
+              <div style="flex:1;">
+                <div style="font-weight:700; font-size:0.85rem; color:#991b1b;">{{ cv.title }}</div>
+                <div style="font-size:0.75rem; color:#dc2626;">YouTube • {{ 'Playlist' if cv.type == 'playlist' else 'Video' }} ↗</div>
+              </div>
+            </a>
+            {% endfor %}
+            {% endif %}
+
             <a href="https://www.youtube.com/results?search_query={{ subj_name | urlencode }}+full+course+playlist"
               target="_blank" rel="noopener noreferrer"
               style="text-decoration:none; color:inherit; display:flex; gap:0.6rem; padding:0.65rem; border:1px solid var(--v2-line); border-radius:8px; background:var(--v2-surface); align-items:center;">
@@ -1150,25 +1210,29 @@ uploader_name %}
                 <div style="font-size:0.75rem; color:var(--v2-muted);">NPTEL / YouTube • Quick Concept Review</div>
               </div>
             </a>
-
-            <a href="https://www.youtube.com/results?search_query={{ subj_name | urlencode }}+one+shot+revision"
-              target="_blank" rel="noopener noreferrer"
-              style="text-decoration:none; color:inherit; display:flex; gap:0.6rem; padding:0.65rem; border:1px solid var(--v2-line); border-radius:8px; background:var(--v2-surface); align-items:center;">
-              <div
-                style="width:36px; height:36px; border-radius:6px; background:#991B1B; color:#fff; display:flex; align-items:center; justify-content:center; font-size:1rem; flex-shrink:0;">
-                ▶</div>
-              <div style="flex:1;">
-                <div style="font-weight:600; font-size:0.85rem; color:var(--v2-ink);">One-Shot {{ subj_name }} Revision
-                </div>
-                <div style="font-size:0.75rem; color:var(--v2-muted);">High-speed last-minute preparation</div>
-              </div>
-            </a>
           </div>
         </div>
 
         <!-- 5. Faculty Recommendations -->
         <div class="r2-tarika-content" id="recTab_faculty" style="display:none;">
           <div style="display:flex; flex-direction:column; gap:0.6rem;">
+            {% if custom_recommendations and custom_recommendations.get('faculty') %}
+            {% for cf in custom_recommendations.faculty %}
+            <a href="{{ cf.url }}" style="text-decoration:none; color:inherit; display:block; padding:0.75rem; border:1px solid #e9d5ff; border-radius:8px; background:#faf5ff;">
+              <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
+                <div style="width:28px; height:28px; border-radius:50%; background:#7e22ce; color:#fff; display:flex; align-items:center; justify-content:center; font-size:0.75rem; font-weight:700;">
+                  {{ cf.name[:2].upper() if cf.name else 'FC' }}
+                </div>
+                <div>
+                  <div style="font-weight:700; font-size:0.85rem; color:#581c87;">{{ cf.name }}</div>
+                  <div style="font-size:0.72rem; color:#7e22ce;">{{ cf.role or 'Faculty / Peer Mentor' }}</div>
+                </div>
+              </div>
+              <div style="font-size:0.75rem; color:#6b21a8;">View Channel / Connect ↗</div>
+            </a>
+            {% endfor %}
+            {% endif %}
+
             <div
               style="padding:0.75rem; border:1px solid var(--v2-line); border-radius:8px; background:var(--v2-surface);">
               <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.35rem;">
@@ -1208,6 +1272,221 @@ uploader_name %}
         </div>
 
       </div>
+
+      {% if can_manage %}
+      <!-- Recommendation Edit Modal for Owner/Uploader/Admin -->
+      <div id="recEditModal" style="display:none; position:fixed; inset:0; background:rgba(15,23,42,0.6); z-index:9999; align-items:center; justify-content:center; padding:1rem;">
+        <div style="background:#ffffff; border-radius:18px; max-width:620px; width:100%; max-height:90vh; overflow-y:auto; padding:1.75rem; box-shadow:0 20px 40px rgba(0,0,0,0.2); position:relative;">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+            <h3 style="margin:0; font-size:1.2rem; font-weight:800; color:#0f172a;">✏️ Edit Recommendations For You</h3>
+            <button type="button" onclick="closeRecModal()" style="border:none; background:transparent; font-size:1.4rem; cursor:pointer; color:#64748b;">✕</button>
+          </div>
+
+          <div style="font-size:0.85rem; color:#64748b; margin-bottom:1.2rem;">
+            Add YouTube playlists/videos, AbhiHub direct links for papers/notes, verified bookstore affiliate links for books, and faculty/peer links.
+          </div>
+
+          <div id="recModalAlert" style="display:none; padding:0.6rem 0.8rem; border-radius:8px; font-size:0.85rem; margin-bottom:1rem;"></div>
+
+          <!-- Section 1: Videos -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1rem; margin-bottom:1rem;">
+            <div style="font-weight:700; font-size:0.9rem; color:#0f172a; margin-bottom:0.6rem;">🎥 YouTube Video / Playlist</div>
+            <div id="videoRecList"></div>
+            <button type="button" onclick="addVideoField()" style="background:#fee2e2; color:#dc2626; border:none; border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:700; cursor:pointer;">+ Add YouTube Link</button>
+          </div>
+
+          <!-- Section 2: Papers -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1rem; margin-bottom:1rem;">
+            <div style="font-weight:700; font-size:0.9rem; color:#0f172a; margin-bottom:0.6rem;">📄 AbhiHub Papers (Direct Link)</div>
+            <div id="paperRecList"></div>
+            <button type="button" onclick="addPaperField()" style="background:#dbeafe; color:#1d4ed8; border:none; border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:700; cursor:pointer;">+ Add Paper Link</button>
+          </div>
+
+          <!-- Section 3: Notes -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1rem; margin-bottom:1rem;">
+            <div style="font-weight:700; font-size:0.9rem; color:#0f172a; margin-bottom:0.6rem;">📝 AbhiHub Notes (Direct Link)</div>
+            <div id="noteRecList"></div>
+            <button type="button" onclick="addNoteField()" style="background:#dcfce7; color:#15803d; border:none; border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:700; cursor:pointer;">+ Add Notes Link</button>
+          </div>
+
+          <!-- Section 4: Books -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1rem; margin-bottom:1rem;">
+            <div style="font-weight:700; font-size:0.9rem; color:#0f172a; margin-bottom:0.6rem;">📚 Books (AbhiHub Direct OR Bookstore Affiliate)</div>
+            <div id="bookRecList"></div>
+            <button type="button" onclick="addBookField()" style="background:#ffedd5; color:#c2410c; border:none; border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:700; cursor:pointer;">+ Add Book Link</button>
+          </div>
+
+          <!-- Section 5: Faculty & Peers -->
+          <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:1rem; margin-bottom:1.5rem;">
+            <div style="font-weight:700; font-size:0.9rem; color:#0f172a; margin-bottom:0.6rem;">👨‍🏫 Faculty / Peers (AbhiHub Link)</div>
+            <div id="facultyRecList"></div>
+            <button type="button" onclick="addFacultyField()" style="background:#f3e8ff; color:#7e22ce; border:none; border-radius:6px; padding:4px 10px; font-size:0.75rem; font-weight:700; cursor:pointer;">+ Add Faculty/Peer Link</button>
+          </div>
+
+          <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
+            <button type="button" onclick="closeRecModal()" style="background:#e2e8f0; color:#334155; border:none; border-radius:8px; padding:8px 16px; font-weight:600; cursor:pointer;">Cancel</button>
+            <button type="button" onclick="saveRecommendations()" id="saveRecsBtn" style="background:#4f46e5; color:#fff; border:none; border-radius:8px; padding:8px 20px; font-weight:700; cursor:pointer;">Save Changes</button>
+          </div>
+        </div>
+      </div>
+
+      <script>
+        const initialCustomRecs = {{ (custom_recommendations or {}) | tojson }};
+        const currentDocId = '{{ document.id }}';
+
+        function openRecModal() {
+          const modal = document.getElementById('recEditModal');
+          modal.style.display = 'flex';
+          populateRecFields();
+        }
+
+        function closeRecModal() {
+          document.getElementById('recEditModal').style.display = 'none';
+        }
+
+        function populateRecFields() {
+          document.getElementById('videoRecList').innerHTML = '';
+          document.getElementById('paperRecList').innerHTML = '';
+          document.getElementById('noteRecList').innerHTML = '';
+          document.getElementById('bookRecList').innerHTML = '';
+          document.getElementById('facultyRecList').innerHTML = '';
+
+          (initialCustomRecs.videos || []).forEach(v => addVideoField(v.title, v.url));
+          (initialCustomRecs.papers || []).forEach(p => addPaperField(p.title, p.url, p.badge));
+          (initialCustomRecs.notes || []).forEach(n => addNoteField(n.title, n.url, n.badge));
+          (initialCustomRecs.books || []).forEach(b => addBookField(b.title, b.url, b.store));
+          (initialCustomRecs.faculty || []).forEach(f => addFacultyField(f.name, f.url, f.role));
+        }
+
+        function addVideoField(title = '', url = '') {
+          const div = document.createElement('div');
+          div.style.cssText = 'display:flex; gap:0.4rem; margin-bottom:0.5rem; align-items:center;';
+          div.innerHTML = `
+            <input type="text" placeholder="Video Title / Course Name" value="${title}" class="rec-video-title" style="flex:1; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;">
+            <input type="url" placeholder="https://youtube.com/playlist?list=..." value="${url}" class="rec-video-url" style="flex:1.4; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;">
+            <button type="button" onclick="this.parentElement.remove()" style="background:#fee2e2; color:#ef4444; border:none; border-radius:6px; padding:4px 8px; cursor:pointer;">✕</button>
+          `;
+          document.getElementById('videoRecList').appendChild(div);
+        }
+
+        function addPaperField(title = '', url = '', badge = 'PYQ') {
+          const div = document.createElement('div');
+          div.style.cssText = 'display:flex; gap:0.4rem; margin-bottom:0.5rem; align-items:center;';
+          div.innerHTML = `
+            <input type="text" placeholder="Paper Title" value="${title}" class="rec-paper-title" style="flex:1.2; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;">
+            <input type="text" placeholder="/resource/... (AbhiHub Link)" value="${url}" class="rec-paper-url" style="flex:1.4; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;">
+            <input type="text" placeholder="PYQ" value="${badge}" class="rec-paper-badge" style="width:60px; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;">
+            <button type="button" onclick="this.parentElement.remove()" style="background:#fee2e2; color:#ef4444; border:none; border-radius:6px; padding:4px 8px; cursor:pointer;">✕</button>
+          `;
+          document.getElementById('paperRecList').appendChild(div);
+        }
+
+        function addNoteField(title = '', url = '', badge = 'Notes') {
+          const div = document.createElement('div');
+          div.style.cssText = 'display:flex; gap:0.4rem; margin-bottom:0.5rem; align-items:center;';
+          div.innerHTML = `
+            <input type="text" placeholder="Notes Title" value="${title}" class="rec-note-title" style="flex:1.2; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;">
+            <input type="text" placeholder="/resource/... (AbhiHub Link)" value="${url}" class="rec-note-url" style="flex:1.4; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;">
+            <input type="text" placeholder="Notes" value="${badge}" class="rec-note-badge" style="width:60px; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;">
+            <button type="button" onclick="this.parentElement.remove()" style="background:#fee2e2; color:#ef4444; border:none; border-radius:6px; padding:4px 8px; cursor:pointer;">✕</button>
+          `;
+          document.getElementById('noteRecList').appendChild(div);
+        }
+
+        function addBookField(title = '', url = '', store = '') {
+          const div = document.createElement('div');
+          div.style.cssText = 'display:flex; gap:0.4rem; margin-bottom:0.5rem; align-items:center;';
+          div.innerHTML = `
+            <input type="text" placeholder="Book Title" value="${title}" class="rec-book-title" style="flex:1.2; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;">
+            <input type="url" placeholder="https://amzn.to/... or /resource/..." value="${url}" class="rec-book-url" style="flex:1.4; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;">
+            <input type="text" placeholder="Amazon / Flipkart / AbhiHub" value="${store}" class="rec-book-store" style="width:100px; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;">
+            <button type="button" onclick="this.parentElement.remove()" style="background:#fee2e2; color:#ef4444; border:none; border-radius:6px; padding:4px 8px; cursor:pointer;">✕</button>
+          `;
+          document.getElementById('bookRecList').appendChild(div);
+        }
+
+        function addFacultyField(name = '', url = '', role = '') {
+          const div = document.createElement('div');
+          div.style.cssText = 'display:flex; gap:0.4rem; margin-bottom:0.5rem; align-items:center;';
+          div.innerHTML = `
+            <input type="text" placeholder="Faculty / Peer Name" value="${name}" class="rec-faculty-name" style="flex:1.2; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;">
+            <input type="text" placeholder="/c/channel or /account/..." value="${url}" class="rec-faculty-url" style="flex:1.4; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;">
+            <input type="text" placeholder="Professor / Subject Topper" value="${role}" class="rec-faculty-role" style="width:110px; padding:5px 8px; border:1px solid #cbd5e1; border-radius:6px; font-size:0.8rem;">
+            <button type="button" onclick="this.parentElement.remove()" style="background:#fee2e2; color:#ef4444; border:none; border-radius:6px; padding:4px 8px; cursor:pointer;">✕</button>
+          `;
+          document.getElementById('facultyRecList').appendChild(div);
+        }
+
+        async function saveRecommendations() {
+          const btn = document.getElementById('saveRecsBtn');
+          const alertBox = document.getElementById('recModalAlert');
+          btn.disabled = true;
+          btn.innerText = 'Saving...';
+          alertBox.style.display = 'none';
+
+          const recs = { videos: [], papers: [], notes: [], books: [], faculty: [] };
+
+          document.querySelectorAll('#videoRecList > div').forEach(row => {
+            const title = row.querySelector('.rec-video-title').value.trim();
+            const url = row.querySelector('.rec-video-url').value.trim();
+            if (title && url) recs.videos.push({ title, url });
+          });
+
+          document.querySelectorAll('#paperRecList > div').forEach(row => {
+            const title = row.querySelector('.rec-paper-title').value.trim();
+            const url = row.querySelector('.rec-paper-url').value.trim();
+            const badge = row.querySelector('.rec-paper-badge').value.trim();
+            if (title && url) recs.papers.push({ title, url, badge });
+          });
+
+          document.querySelectorAll('#noteRecList > div').forEach(row => {
+            const title = row.querySelector('.rec-note-title').value.trim();
+            const url = row.querySelector('.rec-note-url').value.trim();
+            const badge = row.querySelector('.rec-note-badge').value.trim();
+            if (title && url) recs.notes.push({ title, url, badge });
+          });
+
+          document.querySelectorAll('#bookRecList > div').forEach(row => {
+            const title = row.querySelector('.rec-book-title').value.trim();
+            const url = row.querySelector('.rec-book-url').value.trim();
+            const store = row.querySelector('.rec-book-store').value.trim();
+            if (title && url) recs.books.push({ title, url, store });
+          });
+
+          document.querySelectorAll('#facultyRecList > div').forEach(row => {
+            const name = row.querySelector('.rec-faculty-name').value.trim();
+            const url = row.querySelector('.rec-faculty-url').value.trim();
+            const role = row.querySelector('.rec-faculty-role').value.trim();
+            if (name && url) recs.faculty.push({ name, url, role });
+          });
+
+          try {
+            const res = await fetch(`/api/document/${currentDocId}/recommendations`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ recommendations: recs })
+            });
+            const data = await res.json();
+            if (data.success) {
+              alertBox.style.cssText = 'display:block; background:#dcfce7; color:#15803d; border:1px solid #bbf7d0; margin-bottom:1rem; padding:0.6rem 0.8rem; border-radius:8px;';
+              alertBox.innerText = 'Recommendations updated successfully! Refreshing...';
+              setTimeout(() => window.location.reload(), 1000);
+            } else {
+              alertBox.style.cssText = 'display:block; background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; margin-bottom:1rem; padding:0.6rem 0.8rem; border-radius:8px;';
+              alertBox.innerText = data.message || 'Failed to update recommendations.';
+              btn.disabled = false;
+              btn.innerText = 'Save Changes';
+            }
+          } catch (e) {
+            alertBox.style.cssText = 'display:block; background:#fee2e2; color:#b91c1c; border:1px solid #fecaca; margin-bottom:1rem; padding:0.6rem 0.8rem; border-radius:8px;';
+            alertBox.innerText = 'Network error while saving.';
+            btn.disabled = false;
+            btn.innerText = 'Save Changes';
+          }
+        }
+      </script>
+      {% endif %}
+
     </div>
 
   </div> <!-- End Grid -->

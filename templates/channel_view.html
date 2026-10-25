@@ -1,0 +1,370 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+<style>
+  .channel-container {
+    max-width: 1100px;
+    margin: 1.5rem auto 5rem;
+    padding: 0 1rem;
+    font-family: inherit;
+  }
+  .channel-banner {
+    height: 180px;
+    width: 100%;
+    border-radius: 20px 20px 0 0;
+    background: linear-gradient(135deg, #4f46e5, #06b6d4 50%, #3b82f6);
+    background-size: cover;
+    background-position: center;
+    position: relative;
+  }
+  .channel-header-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 0 0 20px 20px;
+    padding: 1.5rem 2rem 1.8rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.04);
+    position: relative;
+  }
+  .channel-avatar-wrapper {
+    position: absolute;
+    top: -55px;
+    left: 2rem;
+  }
+  .channel-avatar {
+    width: 100px;
+    height: 100px;
+    border-radius: 50%;
+    border: 4px solid #ffffff;
+    background: #e0e7ff;
+    object-fit: cover;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2.2rem;
+    font-weight: 800;
+    color: #4338ca;
+  }
+  .channel-meta-area {
+    margin-top: 50px;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .channel-title-group h1 {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #0f172a;
+    margin: 0 0 0.25rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .channel-handle {
+    color: #64748b;
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+  .channel-bio {
+    color: #334155;
+    font-size: 0.95rem;
+    line-height: 1.5;
+    max-width: 650px;
+    margin-bottom: 1rem;
+    white-space: pre-line;
+  }
+  .channel-stats-row {
+    display: flex;
+    gap: 1.5rem;
+    font-size: 0.9rem;
+    color: #475569;
+  }
+  .channel-stats-row strong {
+    color: #0f172a;
+  }
+  .social-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+    align-items: center;
+  }
+  .social-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.45rem 0.9rem;
+    border-radius: 9999px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s ease;
+  }
+  .social-pill-yt { background: #fee2e2; color: #dc2626; }
+  .social-pill-yt:hover { background: #fecaca; }
+  .social-pill-tg { background: #e0f2fe; color: #0284c7; }
+  .social-pill-tg:hover { background: #bae6fd; }
+  .social-pill-ig { background: #fce7f3; color: #db2777; }
+  .social-pill-ig:hover { background: #fbcfe8; }
+  .social-pill-edit { background: #f1f5f9; color: #334155; }
+  .social-pill-edit:hover { background: #e2e8f0; }
+
+  /* Section Title */
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+  }
+  .section-title {
+    font-size: 1.3rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+  }
+
+  /* Notes Grid */
+  .notes-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 3rem;
+  }
+  .note-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.03);
+    transition: transform 0.2s, box-shadow 0.2s;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+  .note-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+  }
+  .note-badge-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  .tag-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    background: #f1f5f9;
+    color: #475569;
+  }
+  .price-tag {
+    font-size: 0.85rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 9999px;
+  }
+  .price-free { background: #dcfce7; color: #15803d; }
+  .price-paid { background: #fef08a; color: #854d0e; }
+  
+  .note-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0 0 0.5rem;
+    line-height: 1.35;
+  }
+  .note-info {
+    font-size: 0.85rem;
+    color: #64748b;
+    margin-bottom: 1.2rem;
+    display: flex;
+    gap: 1rem;
+  }
+  .note-btn {
+    display: block;
+    text-align: center;
+    background: #4f46e5;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.9rem;
+    padding: 0.6rem 1rem;
+    border-radius: 10px;
+    text-decoration: none;
+    transition: background 0.2s;
+  }
+  .note-btn:hover {
+    background: #4338ca;
+    color: #ffffff;
+  }
+
+  /* Powered By Badge */
+  .powered-by-card {
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .powered-by-title {
+    font-size: 0.95rem;
+    color: #475569;
+    margin: 0;
+  }
+  .powered-by-title strong {
+    color: #4f46e5;
+  }
+  .start-channel-btn {
+    display: inline-block;
+    margin-top: 0.5rem;
+    background: #0f172a;
+    color: #ffffff;
+    font-weight: 600;
+    font-size: 0.85rem;
+    padding: 0.5rem 1.2rem;
+    border-radius: 8px;
+    text-decoration: none;
+  }
+  .start-channel-btn:hover {
+    background: #334155;
+    color: #ffffff;
+  }
+
+  /* Not Found */
+  .not-found-card {
+    text-align: center;
+    padding: 4rem 1rem;
+    background: #fff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+  }
+</style>
+
+<div class="channel-container">
+  {% if not channel %}
+    <div class="not-found-card">
+      <h2 style="font-size: 1.6rem; color: #0f172a; margin-bottom: 0.5rem;">Channel Not Found</h2>
+      <p style="color: #64748b; margin-bottom: 1.5rem;">The creator channel <strong>@{{ handle }}</strong> does not exist or has been removed.</p>
+      <a href="/channel/studio" class="start-channel-btn">Create this Channel</a>
+    </div>
+  {% else %}
+    <!-- Banner -->
+    <div class="channel-banner" style="{% if channel.banner_url %}background-image: url('{{ channel.banner_url }}');{% endif %}"></div>
+
+    <!-- Header Card -->
+    <div class="channel-header-card">
+      <div class="channel-avatar-wrapper">
+        {% if channel.avatar_url %}
+          <img src="{{ channel.avatar_url }}" alt="{{ channel.title }}" class="channel-avatar">
+        {% else %}
+          <div class="channel-avatar">
+            {{ channel.title[:1].upper() if channel.title else 'C' }}
+          </div>
+        {% endif %}
+      </div>
+
+      <div class="channel-meta-area">
+        <div class="channel-title-group">
+          <h1>
+            {{ channel.title }}
+            <svg style="width: 20px; height: 20px; color: #4f46e5;" fill="currentColor" viewBox="0 0 20 20">
+              <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"></path>
+            </svg>
+          </h1>
+          <div class="channel-handle">@{{ channel.handle }}</div>
+          {% if channel.bio %}
+            <div class="channel-bio">{{ channel.bio }}</div>
+          {% endif %}
+          <div class="channel-stats-row">
+            <div><strong>{{ total_notes }}</strong> Notes</div>
+            <div><strong>{{ channel.views_count or 0 }}</strong> Channel Views</div>
+          </div>
+        </div>
+
+        <!-- Social Links & Action -->
+        <div class="social-pills">
+          {% if channel.social_links.get('youtube') %}
+            <a href="{{ channel.social_links.youtube }}" target="_blank" rel="noopener noreferrer" class="social-pill social-pill-yt">
+              ▶ YouTube
+            </a>
+          {% endif %}
+          {% if channel.social_links.get('telegram') %}
+            <a href="{{ channel.social_links.telegram }}" target="_blank" rel="noopener noreferrer" class="social-pill social-pill-tg">
+              ✈ Telegram
+            </a>
+          {% endif %}
+          {% if channel.social_links.get('instagram') %}
+            <a href="{{ channel.social_links.instagram }}" target="_blank" rel="noopener noreferrer" class="social-pill social-pill-ig">
+              📷 Instagram
+            </a>
+          {% endif %}
+          {% if is_owner %}
+            <a href="/channel/studio" class="social-pill social-pill-edit">
+              ⚙ Manage Channel
+            </a>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Notes Section -->
+    <div class="section-header">
+      <h2 class="section-title">Study Material & Notes</h2>
+    </div>
+
+    {% if not notes %}
+      <div style="background: #ffffff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 3rem 1rem; text-align: center; color: #64748b; margin-bottom: 2.5rem;">
+        No public notes uploaded yet by this creator.
+      </div>
+    {% else %}
+      <div class="notes-grid">
+        {% for note in notes %}
+          <div class="note-card">
+            <div>
+              <div class="note-badge-row">
+                <span class="tag-pill">{{ note.category }}</span>
+                {% if note.is_paid and note.price > 0 %}
+                  <span class="price-tag price-paid">₹{{ '%.0f'|format(note.price) }}</span>
+                {% else %}
+                  <span class="price-tag price-free">Free</span>
+                {% endif %}
+              </div>
+              <h3 class="note-title">{{ note.title }}</h3>
+              <div class="note-info">
+                <span>📁 {{ note.file_type }}</span>
+                <span>👁 {{ note.views }} views</span>
+              </div>
+            </div>
+            <div>
+              <a href="/resource/{{ note.id }}" class="note-btn">
+                {% if note.is_paid and note.price > 0 %}
+                  View & Unlock (₹{{ '%.0f'|format(note.price) }})
+                {% else %}
+                  Open Notes
+                {% endif %}
+              </a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% endif %}
+
+    <!-- Powered by AbhiHub Card -->
+    <div class="powered-by-card">
+      <p class="powered-by-title">⚡ Powered by <strong>AbhiHub</strong> — The Free Creator & Study Platform</p>
+      <a href="/channel/studio" class="start-channel-btn">Create Your Own Channel & Sell Notes</a>
+    </div>
+
+  {% endif %}
+</div>
+
+{% endblock %}

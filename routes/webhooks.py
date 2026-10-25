@@ -108,11 +108,11 @@ def webhook_cloudinary_upload():
     return jsonify({'success': True, 'message': 'Async compression queued'}), 200
 
 
-# ─── PhonePe Webhook & Redirect Route ────────────────────────────────────────
+# ─── Razorpay & Order Fulfillment ──────────────────────────────────────────
 
-def _fulfill_phonepe_transaction(order_id: str, verified_amount: float, doc_id: str = '', user_id: str = '', source: str = 'redirect'):
+def fulfill_order_transaction(order_id: str, verified_amount: float, doc_id: str = '', user_id: str = '', source: str = 'razorpay'):
     """
-    Secure & Idempotent PhonePe Order Fulfillment:
+    Secure & Idempotent Order Fulfillment:
     1. Checks if transaction was already completed (prevents replay attacks & duplicate wallet credit).
     2. Persists transaction to safe local store + Supabase sync.
     3. Credits creator wallet via `credit_creator_for_purchase` (guaranteed once).
@@ -133,7 +133,8 @@ def _fulfill_phonepe_transaction(order_id: str, verified_amount: float, doc_id: 
         user_agent = request.headers.get('User-Agent', '')[:255]
     except Exception:
         client_ip = ''
-        user_agent = 'PhonePe Webhook'
+        user_agent = 'Razorpay Webhook'
+
 
     save_transaction_record(order_id, {
         'user_id': eff_uid or None,
@@ -226,78 +227,47 @@ def _fulfill_phonepe_transaction(order_id: str, verified_amount: float, doc_id: 
 
     return True
 
+_fulfill_phonepe_transaction = fulfill_order_transaction
 
-@webhooks_bp.route('/api/payment/phonepe/callback', methods=['POST'])
-def payment_phonepe_callback():
-    """Webhook callback endpoint for PhonePe server-to-server notifications."""
-    from methods.phonepe_service import parse_phonepe_callback_data, check_phonepe_status
-    from data.transactions import get_transaction_record
 
-    raw_data = request.get_json(silent=True) or request.form.to_dict() or {}
-    cb_data = parse_phonepe_callback_data(raw_data)
+@webhooks_bp.route('/api/webhooks/razorpay', methods=['POST'])
+def razorpay_webhook():
+    """Webhook callback endpoint for Razorpay server-to-server notifications."""
+    from methods.razorpay_service import verify_webhook_signature
+    from data.transactions import get_transaction_record, save_transaction_record
 
-    order_id = (
-        cb_data.get('data', {}).get('merchantOrderId')
-        or cb_data.get('data', {}).get('merchantTransactionId')
-        or cb_data.get('merchantOrderId')
-        or request.args.get('order_id', '')
-    )
+    signature = request.headers.get('X-Razorpay-Signature', '')
+    raw_payload = request.get_data().decode('utf-8', errors='replace')
 
-    if order_id:
-        status_res = check_phonepe_status(order_id)
-        if status_res.get('is_paid'):
-            amount = (status_res.get('data', {}).get('amount') or 0) / 100.0
-            doc_id = ''
-            rec = get_transaction_record(order_id)
-            notes = rec.get('admin_notes') or ''
+    if not verify_webhook_signature(raw_payload, signature):
+        logging.warning('[RZP WEBHOOK] Invalid signature — rejected')
+        return jsonify({'error': 'Invalid signature'}), 400
+
+    payload = request.get_json(silent=True) or {}
+    event = payload.get('event')
+    payment_entity = payload.get('payload', {}).get('payment', {}).get('entity', {})
+    order_id = payment_entity.get('order_id')
+    payment_id = payment_entity.get('id')
+
+    if event == 'payment.captured' and order_id:
+        amount = (payment_entity.get('amount') or 0) / 100.0
+        rec = get_transaction_record(order_id)
+        doc_id = rec.get('doc_id', '')
+        if not doc_id:
+            notes = rec.get('admin_notes', '')
             for part in notes.split(';'):
                 if part.startswith('doc_id='):
                     doc_id = part.replace('doc_id=', '').strip()
-            _fulfill_phonepe_transaction(order_id, amount, doc_id=doc_id, source="webhook_callback")
+        user_id = rec.get('user_id', '')
+        fulfill_order_transaction(order_id, amount, doc_id=doc_id, user_id=user_id, source="razorpay_webhook")
+        logging.info(f'[RZP WEBHOOK] Captured order: {order_id} (pay_id={payment_id})')
 
-    return jsonify({"status": "SUCCESS"}), 200
+    elif event == 'payment.failed' and order_id:
+        save_transaction_record(order_id, {
+            'status': 'failed',
+            'admin_notes': f"failed_payment_id={payment_id}"
+        })
+        logging.info(f'[RZP WEBHOOK] Payment failed for order: {order_id}')
 
+    return jsonify({'status': 'ok'}), 200
 
-@webhooks_bp.route('/payment/phonepe/redirect', methods=['GET', 'POST'])
-def payment_phonepe_redirect():
-    """User redirect destination upon returning from PhonePe payment gateway."""
-    order_id = (
-        request.args.get('order_id')
-        or request.args.get('merchantOrderId')
-        or request.form.get('merchantOrderId')
-        or request.form.get('transactionId')
-        or request.form.get('merchantTransactionId', '')
-    )
-    doc_id = request.args.get('doc_id', '').strip()
-    url_user_id = request.args.get('user_id', '').strip()
-    session_user_id = (session.get('user', {}).get('uid') or session.get('user', {}).get('id', '')) if session else ''
-    user_id = url_user_id or session_user_id
-
-    from methods.phonepe_service import check_phonepe_status
-    from data.transactions import save_transaction_record, get_transaction_record
-    status_res = check_phonepe_status(order_id)
-
-    if status_res.get('is_paid'):
-        amount = (status_res.get('data', {}).get('amount') or 0) / 100.0
-        _fulfill_phonepe_transaction(order_id, amount, doc_id=doc_id, user_id=user_id, source="redirect")
-        rec = get_transaction_record(order_id)
-        admin_notes = rec.get('admin_notes', '')
-        is_credits = 'Credits-' in admin_notes or 'pack=' in admin_notes or 'credits' in admin_notes.lower()
-        if is_credits:
-            pack_size = 0
-            for part in admin_notes.split(';'):
-                if part.startswith('pack='):
-                    try: pack_size = int(part.replace('pack=', '').strip())
-                    except: pass
-                elif part.startswith('purpose=Credits-'):
-                    try: pack_size = int(part.replace('purpose=Credits-', '').split('-')[0].strip())
-                    except: pass
-            return redirect(url_for('site.payment_receipt_page', order_id=order_id, status='success', is_credits=1, pack=pack_size, amount=f"{amount:.2f}"))
-        return redirect(url_for('site.payment_receipt_page', order_id=order_id, status='success', doc_id=doc_id, amount=f"{amount:.2f}"))
-
-    save_transaction_record(order_id, {
-        'status': 'failed',
-        'admin_notes': f"doc_id={doc_id};error={status_res.get('message')}"
-    })
-    error_msg = status_res.get('message') or "Payment was not completed."
-    return redirect(url_for('site.payment_receipt_page', order_id=order_id, status='failed', doc_id=doc_id, error=error_msg))
