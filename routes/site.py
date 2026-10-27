@@ -77,6 +77,13 @@ def team():
     return render_template('team.html')
 
 
+@site_bp.route('/careers')
+@sitemap_page(priority="0.80", changefreq="weekly")
+def careers():
+    """Careers and Open Positions page"""
+    return render_template('careers.html')
+
+
 @site_bp.route('/contact')
 @sitemap_page()
 def contact():

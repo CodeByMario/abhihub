@@ -448,12 +448,15 @@ def profile_status():
 def get_profile():
     """Get current user profile with reputation and badges."""
     try:
+        import re
         user_info = session.get('user', {})
         user_id = user_info.get('uid')
         students_helped = 0
         badges = []
         college_id = None
         department_id = None
+        degree = None
+        pursuing_year = None
 
         if user_id:
             rep_stats = get_reputation_stats(user_id)
@@ -463,15 +466,38 @@ def get_profile():
 
             try:
                 client = init_supabase()
-                pres = client.table('profiles').select('college_id, department_id').eq('id', user_id).single().execute()
+                pres = client.table('profiles').select('college_id, department_id, degree').eq('id', user_id).single().execute()
                 if pres.data:
                     college_id = pres.data.get('college_id')
                     department_id = pres.data.get('department_id')
+                    degree = pres.data.get('degree')
+
+                sres = client.table('students').select('pursuing_year, year_of_joining, degree').eq('profile_id', user_id).limit(1).execute()
+                if sres.data:
+                    pursuing_year = sres.data[0].get('pursuing_year')
+                    if not degree:
+                        degree = sres.data[0].get('degree')
+            except Exception:
+                pass
+
+        # Calculate estimated semester if pursuing_year (e.g. 1st year -> Sem 1, 3rd year -> Sem 5)
+        semester = None
+        if pursuing_year:
+            try:
+                yr_num = int(re.sub(r'\D', '', str(pursuing_year)) or '0')
+                if 1 <= yr_num <= 4:
+                    semester = f"Semester {yr_num * 2 - 1}"
             except Exception:
                 pass
 
         return jsonify({
             'success': True,
+            'college_id': college_id,
+            'department_id': department_id,
+            'degree': degree,
+            'program': degree,
+            'semester': semester,
+            'pursuing_year': pursuing_year,
             'user': {
                 'uid': user_info.get('uid'),
                 'email': user_info.get('email'),
@@ -480,6 +506,10 @@ def get_profile():
                 'user_metadata': user_info.get('user_metadata', {}),
                 'college_id': college_id,
                 'department_id': department_id,
+                'degree': degree,
+                'program': degree,
+                'semester': semester,
+                'pursuing_year': pursuing_year,
                 'students_helped': students_helped,
                 'badges': badges,
             }

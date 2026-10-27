@@ -488,3 +488,32 @@ html, body.app-shell-body {
     color: #e2e8f0;
     border-color: #334155;
 }
+
+/* ── Fullscreen Chat Mode in App Shell ── */
+body.in-chat-mode #shellBottomNav,
+body.in-chat-mode .navbar--bottom,
+body.in-chat-mode #abhiAiLauncher,
+body.in-chat-mode #abhiAiDrawer {
+    display: none !important;
+}
+
+@media (max-width: 768px) {
+    body.in-chat-mode #shellHeader,
+    body.in-chat-mode .shell-header {
+        display: none !important;
+    }
+    body.in-chat-mode .app-shell-viewport {
+        height: 100% !important;
+        height: 100dvh !important;
+    }
+    body.in-chat-mode .shell-main-area {
+        height: 100% !important;
+        height: 100dvh !important;
+        flex: 1 1 100% !important;
+    }
+    body.in-chat-mode .shell-iframe {
+        height: 100% !important;
+        height: 100dvh !important;
+    }
+}
+

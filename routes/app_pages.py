@@ -1343,6 +1343,68 @@ def instagram_profile(user_id):
             except Exception:
                 pass
 
+    campus_peers = []
+    try:
+        col_id = p.get('college_id')
+        dept_id = p.get('department_id')
+        seen_ids = {user_id}
+
+        def _format_cp(cp, tag):
+            c_name = ((cp.get('colleges') or {}).get('name') or '').strip()
+            d_obj = cp.get('departments') or {}
+            d_name = (d_obj.get('abbreviation') or d_obj.get('name') or '').strip()
+            return {
+                'id': cp.get('id'),
+                'name': cp.get('full_name') or 'Student',
+                'rank_title': cp.get('rank_title') or 'Student',
+                'reputation_score': int(cp.get('reputation_score') or 0),
+                'is_verified': bool(cp.get('is_verified', False)),
+                'college_name': c_name,
+                'department_name': d_name,
+                'network_tag': tag,
+            }
+
+        # 1. Classmates from same department
+        if dept_id:
+            try:
+                res_d = client.table('profiles').select(
+                    'id, full_name, rank_title, reputation_score, is_verified, college_id, colleges(name), department_id, departments(name, abbreviation)'
+                ).neq('id', user_id).eq('department_id', dept_id).order('reputation_score', desc=True).limit(6).execute()
+                for cp in (res_d.data or []):
+                    if cp.get('id') not in seen_ids:
+                        seen_ids.add(cp.get('id'))
+                        campus_peers.append(_format_cp(cp, 'Classmate'))
+            except Exception:
+                pass
+
+        # 2. Campus peers from same college
+        if col_id and len(campus_peers) < 6:
+            try:
+                res_c = client.table('profiles').select(
+                    'id, full_name, rank_title, reputation_score, is_verified, college_id, colleges(name), department_id, departments(name, abbreviation)'
+                ).neq('id', user_id).eq('college_id', col_id).order('reputation_score', desc=True).limit(6).execute()
+                for cp in (res_c.data or []):
+                    if cp.get('id') not in seen_ids:
+                        seen_ids.add(cp.get('id'))
+                        campus_peers.append(_format_cp(cp, 'Campus Peer'))
+            except Exception:
+                pass
+
+        # 3. Fill up to 6 with top platform study peers
+        if len(campus_peers) < 6:
+            try:
+                res_top = client.table('profiles').select(
+                    'id, full_name, rank_title, reputation_score, is_verified, college_id, colleges(name), department_id, departments(name, abbreviation)'
+                ).neq('id', user_id).order('reputation_score', desc=True).limit(10).execute()
+                for cp in (res_top.data or []):
+                    if cp.get('id') not in seen_ids and len(campus_peers) < 6:
+                        seen_ids.add(cp.get('id'))
+                        campus_peers.append(_format_cp(cp, 'Study Network'))
+            except Exception:
+                pass
+    except Exception as e:
+        logging.error(f"[campus_peers] {e}")
+
     og_title = f"{peer['name']} on AbhiHub"
     og_description = f"{peer['name']} has shared {len(uploads)} study materials on AbhiHub."
 
@@ -1352,6 +1414,7 @@ def instagram_profile(user_id):
                            referred=referred,
                            memory_wall=memory_wall,
                            crush_state=crush_state,
+                           campus_peers=campus_peers,
                            og_title=og_title,
                            og_description=og_description,
                            og_image=None)

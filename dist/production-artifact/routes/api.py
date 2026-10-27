@@ -448,12 +448,15 @@ def profile_status():
 def get_profile():
     """Get current user profile with reputation and badges."""
     try:
+        import re
         user_info = session.get('user', {})
         user_id = user_info.get('uid')
         students_helped = 0
         badges = []
         college_id = None
         department_id = None
+        degree = None
+        pursuing_year = None
 
         if user_id:
             rep_stats = get_reputation_stats(user_id)
@@ -463,15 +466,38 @@ def get_profile():
 
             try:
                 client = init_supabase()
-                pres = client.table('profiles').select('college_id, department_id').eq('id', user_id).single().execute()
+                pres = client.table('profiles').select('college_id, department_id, degree').eq('id', user_id).single().execute()
                 if pres.data:
                     college_id = pres.data.get('college_id')
                     department_id = pres.data.get('department_id')
+                    degree = pres.data.get('degree')
+
+                sres = client.table('students').select('pursuing_year, year_of_joining, degree').eq('profile_id', user_id).limit(1).execute()
+                if sres.data:
+                    pursuing_year = sres.data[0].get('pursuing_year')
+                    if not degree:
+                        degree = sres.data[0].get('degree')
+            except Exception:
+                pass
+
+        # Calculate estimated semester if pursuing_year (e.g. 1st year -> Sem 1, 3rd year -> Sem 5)
+        semester = None
+        if pursuing_year:
+            try:
+                yr_num = int(re.sub(r'\D', '', str(pursuing_year)) or '0')
+                if 1 <= yr_num <= 4:
+                    semester = f"Semester {yr_num * 2 - 1}"
             except Exception:
                 pass
 
         return jsonify({
             'success': True,
+            'college_id': college_id,
+            'department_id': department_id,
+            'degree': degree,
+            'program': degree,
+            'semester': semester,
+            'pursuing_year': pursuing_year,
             'user': {
                 'uid': user_info.get('uid'),
                 'email': user_info.get('email'),
@@ -480,6 +506,10 @@ def get_profile():
                 'user_metadata': user_info.get('user_metadata', {}),
                 'college_id': college_id,
                 'department_id': department_id,
+                'degree': degree,
+                'program': degree,
+                'semester': semester,
+                'pursuing_year': pursuing_year,
                 'students_helped': students_helped,
                 'badges': badges,
             }
@@ -682,7 +712,6 @@ def api_buy_credits():
         import secrets
         from cache_manager import get_cache
         from data.pricing import log_credit_transaction
-        from methods.phonepe_service import initiate_phonepe_payment
         from data.transactions import save_transaction_record
 
         user_info = session.get('user', {})
@@ -700,10 +729,6 @@ def api_buy_credits():
         price_inr = float(valid_packs[pack_size])
         order_id = f"AH{int(time.time())}{secrets.token_hex(2).upper()}"
 
-        base_url = request.host_url.rstrip('/')
-        redirect_url = f"{base_url}/payment/phonepe/redirect?order_id={order_id}&pack={pack_size}&user_id={user_id}"
-        callback_url = f"{base_url}/api/payment/phonepe/callback"
-
         # Record initiated transaction in database
         save_transaction_record(order_id, {
             'user_id': user_id,
@@ -713,20 +738,7 @@ def api_buy_credits():
             'admin_notes': f"purpose=Credits-{pack_size};pack={pack_size};views={pack_size}"
         })
 
-        phonepe_res = initiate_phonepe_payment(
-            order_id=order_id,
-            amount_inr=price_inr,
-            user_id=user_id,
-            redirect_url=redirect_url,
-            callback_url=callback_url
-        )
-
-        payment_url = None
-        if phonepe_res.get('success') and phonepe_res.get('payment_url'):
-            payment_url = phonepe_res['payment_url']
-        else:
-            # Fallback to checkout page with UPI QR & verification
-            payment_url = f"/payment?amount={price_inr:.2f}&purpose=Credits-{pack_size}-Views&order_id={order_id}"
+        payment_url = f"/payment?amount={price_inr:.2f}&purpose=Credits-{pack_size}-Views&order_id={order_id}"
 
         return jsonify({
             'success': True,
@@ -1198,21 +1210,22 @@ def api_extract_upload_metadata():
 
         validated, s_flag = validate_extracted_metadata(response.text, branch_id=branch_id, known_fields=known_fields)
 
-        log_turn(
-            user_id=user_id,
-            session_id=None,
-            provider=getattr(provider, 'provider_name', 'openrouter'),
-            model=response.model_used,
-            tokens_in=response.tokens_in,
-            tokens_out=response.tokens_out,
-            cost_usd=response.cost_usd,
-            duration_ms=duration_ms,
-            mode='upload_autofill',
-            override_used=False,
-            error_type=None,
-            safety_flag=s_flag,
-            finish_reason=response.finish_reason,
-        )
+        try:
+            log_turn(
+                user_id=user_id,
+                session_id=None,
+                provider=getattr(provider, 'provider_name', 'openrouter'),
+                model=response.model_used,
+                tokens_in=response.tokens_in,
+                tokens_out=response.tokens_out,
+                cost_usd=response.cost_usd,
+                duration_ms=duration_ms,
+                mode='direct',
+                status='ok',
+                route='/api/ai/extract-upload-metadata',
+            )
+        except Exception as l_err:
+            logging.debug(f"[ai_log] log_turn notice: {l_err}")
 
         filled = [k for k, v in validated.items() if v]
 
@@ -1226,21 +1239,22 @@ def api_extract_upload_metadata():
 
     except (RateLimitError, ProviderError) as exc:
         duration_ms = int((time.time() - t0) * 1000)
-        log_turn(
-            user_id=user_id,
-            session_id=None,
-            provider=getattr(provider, 'provider_name', 'openrouter'),
-            model=getattr(provider, 'model_name', 'unknown'),
-            tokens_in=0,
-            tokens_out=0,
-            cost_usd=0.0,
-            duration_ms=duration_ms,
-            mode='upload_autofill',
-            override_used=False,
-            error_type='rate_limit' if isinstance(exc, RateLimitError) else 'provider_error',
-            safety_flag=None,
-            finish_reason='error',
-        )
+        try:
+            log_turn(
+                user_id=user_id,
+                session_id=None,
+                provider=getattr(provider, 'provider_name', 'openrouter'),
+                model=getattr(provider, 'model_name', 'unknown'),
+                tokens_in=0,
+                tokens_out=0,
+                cost_usd=0.0,
+                duration_ms=duration_ms,
+                mode='direct',
+                status='error',
+                route='/api/ai/extract-upload-metadata',
+            )
+        except Exception as l_err:
+            logging.debug(f"[ai_log] log_turn error notice: {l_err}")
         return jsonify({
             'success': True,
             'source': 'heuristic_fallback',
@@ -2899,3 +2913,67 @@ def api_get_user_uploads():
     except Exception as e:
         logging.error(f"[API /api/user/uploads] Error: {e}")
         return jsonify({'success': False, 'data': [], 'message': str(e)}), 500
+
+
+@api_bp.route('/api/feedback', methods=['GET', 'POST'])
+def feedback_endpoint():
+    """Submit and retrieve student app feedback and ratings."""
+    from data.tea_supporters import add_app_feedback, get_recent_feedbacks
+    if request.method == 'POST':
+        data = request.get_json(silent=True) or request.form or {}
+        try:
+            rating = int(data.get('rating', 5))
+        except (ValueError, TypeError):
+            rating = 5
+        rating = max(1, min(5, rating))
+
+        message = (data.get('message') or data.get('feedback') or '').strip()
+        if not message:
+            return jsonify({'success': False, 'message': 'Feedback message cannot be empty.'}), 400
+
+        user = session.get('user', {})
+        profile = session.get('profile', {})
+        name = (data.get('name') or user.get('name') or profile.get('full_name') or 'Student Contributor').strip()
+        college = (data.get('college') or profile.get('college_name') or user.get('college') or 'Engineering Scholar').strip()
+        branch = (data.get('branch') or profile.get('branch_name') or '').strip()
+        user_id = user.get('uid') or ''
+
+        record = add_app_feedback(
+            name=name,
+            rating=rating,
+            message=message,
+            college=college,
+            branch=branch,
+            user_id=user_id
+        )
+        return jsonify({'success': True, 'feedback': record, 'message': 'Thank you for your valuable feedback! ⭐'}), 200
+
+    limit = request.args.get('limit', default=10, type=int)
+    feedbacks = get_recent_feedbacks(limit=limit)
+    return jsonify({'success': True, 'feedbacks': feedbacks}), 200
+
+
+@api_bp.route('/api/dashboard/summary', methods=['GET'])
+def dashboard_summary_api():
+    """Return pre-computed, memory-cached dashboard summary data for fast client retrieval."""
+    try:
+        college_name = request.args.get('college_name') or ''
+        if not college_name and 'profile' in session:
+            college_name = session['profile'].get('college_name') or ''
+
+        from methods.supabase_helper import get_dashboard_summary_data
+        summary = get_dashboard_summary_data(college_name=college_name)
+        return jsonify({
+            'success': True,
+            'counts': summary.get('counts', {}),
+            'trending_papers': summary.get('trending_papers', []),
+            'trending_notes': summary.get('trending_notes', []),
+            'recent_papers': summary.get('recent_papers', []),
+            'recent_notes': summary.get('recent_notes', []),
+            'recently_added': summary.get('recently_added_files', [])
+        }), 200
+    except Exception as e:
+        logging.error(f"[API /api/dashboard/summary] Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+

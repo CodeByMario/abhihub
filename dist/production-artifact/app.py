@@ -750,7 +750,7 @@ def log_document_view(file_name, file_url, record_id=None,
                 pass
 
         # Check 2: Same-day deduplication (charge only once per day per file)
-        today_str = datetime.utcnow().strftime('%Y-%m-%d')
+        today_str = datetime.now(timezone.utc).strftime('%Y-%m-%d')
         doc_key = str(record_id or file_name or file_url)
         cache_view_key = f"viewed:{user_id or user_email}:{doc_key}:{today_str}"
 
@@ -957,7 +957,7 @@ def log_credit_transaction(user_id, amount, tx_type, reason):
             'amount': amount,
             'type': tx_type,  # 'earn' or 'spend'
             'reason': reason,
-            'created_at': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
+            'created_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
         }
         # Session storage for fast UI response
         history = session.get('credit_history', [])
@@ -1410,19 +1410,19 @@ def _persist_chat_message(uid_a, uid_b, payload):
 
     # Also keep in in-memory cache for real-time delivery
     try:
-        key = 'chat_messages:' + '_'.join(sorted([uid_a, uid_b]))
+        key = 'chat_messages:' + '_'.join(sorted([str(uid_a), str(uid_b)]))
         data = cache.l1.get(key)
         history = data[0] if data and data[0] else []
         if not isinstance(history, list):
             history = []
         item = {
             'cipher': _enc(payload.get('text', '')) or payload.get('text', ''),
-            'from': payload.get('from'),
-            'to': payload.get('to'),
+            'from': str(payload.get('from', '')),
+            'to': str(payload.get('to', '')),
             'ts': payload.get('ts'),
             'sender_meta': payload.get('sender_meta', {}),
             'status': 'sent',
-            'msg_id': saved.get('id') if saved else '',
+            'msg_id': saved.get('id') if saved else payload.get('msg_id', ''),
             'msg_type': payload.get('msg_type', 'text'),
             'file_req': payload.get('file_req'),
             'file_attachment': payload.get('file_attachment')
@@ -1461,7 +1461,7 @@ def _get_chat_history(uid_a, uid_b):
 
     # Fallback: in-memory cache
     try:
-        key = 'chat_messages:' + '_'.join(sorted([uid_a, uid_b]))
+        key = 'chat_messages:' + '_'.join(sorted([str(uid_a), str(uid_b)]))
         data = cache.l1.get(key)
         raw = data[0] if data and data[0] and isinstance(data[0], list) else []
         out = []
@@ -1470,6 +1470,7 @@ def _get_chat_history(uid_a, uid_b):
             if m_ts and m_ts < cutoff_iso:
                 continue
             out.append({
+                'msg_id': m.get('msg_id') or '',
                 'text': _dec(m.get('text') or m.get('cipher') or ''),
                 'from': m.get('from'),
                 'to': m.get('to'),

@@ -389,6 +389,26 @@
             <div class="logo kanit-bold cursor-pointer" data-action="switchToEliteVersion">
                 <span class="logo-text">AbhiHub</span>
             </div>
+            {% if not session.get('user') %}
+            <!-- Unauthenticated Visitor Navigation: Careers, Log In, Sign Up -->
+            <div style="display:flex; align-items:center; gap:0.5rem; margin-left:auto; white-space:nowrap;">
+                <a href="{{ url_for('site.careers') }}" style="font-size:0.8rem; font-weight:700; color:#2563eb; text-decoration:none; padding:0.25rem 0.65rem; border-radius:9999px; background:rgba(37,99,235,0.08); border:1px solid rgba(37,99,235,0.2); display:inline-flex; align-items:center; gap:0.25rem;">
+                    <span>💼 Careers</span>
+                </a>
+                <a href="{{ url_for('auth.login') }}" style="font-size:0.82rem; font-weight:600; color:var(--text-secondary); text-decoration:none; padding:0.25rem 0.5rem;">
+                    Log In
+                </a>
+                <a href="{{ url_for('auth.signup') }}" style="font-size:0.8rem; font-weight:700; color:#ffffff !important; background:linear-gradient(135deg, #2563eb, #1d4ed8); text-decoration:none; padding:0.3rem 0.75rem; border-radius:8px; box-shadow:0 2px 6px rgba(37,99,235,0.25);">
+                    Sign Up
+                </a>
+            </div>
+            {% else %}
+            <!-- Authenticated User Header: Careers link + Search + Notification Bell -->
+            <div style="display:flex; align-items:center; margin-left:auto; margin-right:0.5rem;">
+                <a href="{{ url_for('site.careers') }}" style="font-size:0.8rem; font-weight:700; color:#2563eb; text-decoration:none; padding:0.25rem 0.65rem; border-radius:9999px; background:rgba(37,99,235,0.08); border:1px solid rgba(37,99,235,0.2); display:inline-flex; align-items:center; gap:0.25rem;">
+                    <span>💼 Careers</span>
+                </a>
+            </div>
             <!-- Search Icon (Scrolls to Search Section on Dashboard) -->
             <button id="headerSearchBtn" type="button" data-action="openSearchSection" aria-label="Search library" title="Search library & papers">
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#334155" stroke-width="2"
@@ -425,6 +445,7 @@
                     </div>
                 </div>
             </div>
+            {% endif %}
 
         </nav>
     </header>

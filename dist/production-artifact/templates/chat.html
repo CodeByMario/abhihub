@@ -2,22 +2,50 @@
 {% block page_head %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/chat.css') }}">
 <script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
+<script>
+  document.documentElement.classList.add('in-chat-page');
+  function notifyChatMode() {
+    try {
+      if (window.parent && window.parent !== window) {
+        window.parent.postMessage({ type: 'CHAT_MODE', active: true }, window.location.origin);
+        if (window.parent.document && window.parent.document.body) {
+          window.parent.document.body.classList.add('in-chat-mode');
+          var pNav = window.parent.document.getElementById('shellBottomNav');
+          if (pNav) pNav.style.display = 'none';
+          var pAi = window.parent.document.getElementById('abhiAiLauncher');
+          if (pAi) pAi.style.display = 'none';
+          if (window.innerWidth <= 768) {
+            var pHdr = window.parent.document.getElementById('shellHeader');
+            if (pHdr) pHdr.style.display = 'none';
+          }
+        }
+      }
+    } catch (e) {}
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', notifyChatMode);
+  } else {
+    notifyChatMode();
+  }
+</script>
 {% endblock %}
 
 {% block content %}
 <div class="chat-shell">
   <div class="chat-header">
     <div class="chat-header-left">
-      <a class="chat-back" href="{{ url_for('app_pages.dashboard') }}" aria-label="Back">←</a>
+      <a class="chat-back" href="{{ url_for('app_pages.dashboard') }}" aria-label="Back">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+      </a>
       <div>
-        <div class="chat-title">Chat</div>
+        <div class="chat-title">Chats</div>
         <div class="chat-subtitle" id="chatSubtitle">Open a conversation</div>
       </div>
     </div>
     <div class="chat-header-right">
       <button type="button" class="sound-toggle-btn" id="chatSoundToggle" title="Toggle audio chime" aria-label="Toggle chat sounds">🔔</button>
-      <button type="button" class="chip" data-action="chatEnableNotifications">Enable alerts</button>
-      <button type="button" class="chip" data-action="chatNewConversation">New</button>
+      <button type="button" class="chip" data-action="chatEnableNotifications">Alerts</button>
+      <button type="button" class="chip chip-new" data-action="chatNewConversation">+ New</button>
     </div>
   </div>
 
@@ -26,7 +54,7 @@
       <div class="chat-search">
         <label class="sr-only" for="peerSearch">Search conversations</label>
         <span class="search-icon" aria-hidden="true">⌕</span>
-        <input id="peerSearch" type="search" placeholder="Search conversations" autocomplete="off">
+        <input id="peerSearch" type="search" placeholder="Search or start new chat" autocomplete="off">
         <button type="button" class="icon-button" data-action="chatRefreshPeers" aria-label="Refresh conversations">↻</button>
       </div>
       <div class="chat-peers" id="peerList">
@@ -38,10 +66,10 @@
     <div class="chat-placeholder" id="chatPlaceholder">
       <div class="chat-placeholder-box">
         <div class="chat-placeholder-emoji">💬</div>
-        <h2>Messages</h2>
-        <p>Choose a peer or open a profile to start texting.</p>
+        <h2>WhatsApp Web for AbhiHub</h2>
+        <p>Send and receive study messages, PYQs, and class notes instantly.</p>
         <div class="chat-placeholder-actions">
-          <button type="button" class="btn primary" data-action="chatNewConversation">Start chat</button>
+          <button type="button" class="btn primary" data-action="chatNewConversation">Start new chat</button>
         </div>
       </div>
     </div>
@@ -49,10 +77,13 @@
     <section class="chat-room" id="chatRoom" hidden>
       <div class="chat-room-header" id="chatRoomHeader">
         <div class="chat-person">
+          <button type="button" class="chat-back-mobile" id="chatBackMobileBtn" data-action="chatBackToPeers" aria-label="Back to conversations">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+          </button>
           <div class="room-avatar" id="chatRoomAvatar" aria-hidden="true">C</div>
-          <div>
+          <div class="room-meta-info">
             <div class="chat-room-title" id="chatRoomTitle">Chat</div>
-            <div class="room-status">Conversation</div>
+            <div class="room-status" id="chatRoomStatus">online</div>
           </div>
         </div>
         <div class="chat-room-meta" id="chatRoomMeta"></div>
@@ -79,22 +110,23 @@
       </div>
 
       <div class="chat-icebreakers" id="chatIcebreakers">
-        <button type="button" class="icebreaker-chip highlight-chip" data-action="chatOpenRequestModal">📑 Request File / Notes</button>
+        <button type="button" class="icebreaker-chip highlight-chip" data-action="chatOpenRequestModal">📑 Request Notes</button>
         <button type="button" class="icebreaker-chip" data-text="📚 Can you share the latest PYQ or class notes?">📚 Share PYQ / Notes</button>
         <button type="button" class="icebreaker-chip" data-text="💡 Quick question on this module: ">💡 Quick question</button>
         <button type="button" class="icebreaker-chip" data-text="⚡ Ready for a quick 5-min prep quiz?">⚡ Quick Quiz</button>
       </div>
 
       <form class="chat-composer" id="chatComposer" autocomplete="off">
-        <label class="sr-only" for="chatDirectUploadBtn">Send File</label>
-        <button type="button" class="composer-icon" id="chatDirectUploadBtn" data-action="chatDirectUpload" title="Upload & Share File directly" aria-label="Upload File">📎</button>
-        <label class="sr-only" for="chatRequestFileBtn">Request File</label>
-        <button type="button" class="composer-icon" id="chatRequestFileBtn" data-action="chatOpenRequestModal" title="Request File / Notes from Peer" aria-label="Request File">📑</button>
-        <label class="sr-only" for="chatEmojiBtn">Emoji</label>
-        <button type="button" class="composer-icon" id="chatEmojiBtn" data-action="chatToggleEmoji" aria-label="Add emoji">😊</button>
-        <label class="sr-only" for="chatInput">Message</label>
-        <input id="chatInput" type="text" placeholder="Message or request notes…" maxlength="4000">
-        <button type="submit" class="btn send" aria-label="Send message"><span>Send</span><span aria-hidden="true">➤</span></button>
+        <div class="composer-capsule">
+          <button type="button" class="composer-icon emoji-btn" id="chatEmojiBtn" data-action="chatToggleEmoji" aria-label="Add emoji" title="Emoji">😊</button>
+          <label class="sr-only" for="chatInput">Message</label>
+          <input id="chatInput" type="text" placeholder="Message…" maxlength="4000" autocomplete="off">
+          <button type="button" class="composer-icon attach-btn" id="chatDirectUploadBtn" data-action="chatDirectUpload" title="Upload & Share File directly" aria-label="Upload File">📎</button>
+          <button type="button" class="composer-icon req-btn" id="chatRequestFileBtn" data-action="chatOpenRequestModal" title="Request File / Notes from Peer" aria-label="Request File">📑</button>
+        </div>
+        <button type="submit" class="btn send" aria-label="Send message" title="Send">
+          <svg class="send-svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+        </button>
         <div class="emoji-picker" id="emojiPicker" hidden>
           <div class="emoji-grid" id="emojiGrid"></div>
         </div>
@@ -103,9 +135,16 @@
       <!-- Request File Modal Dialog matching platform upload form structure -->
       <dialog id="chatRequestModal" class="chat-modal">
         <form method="dialog" class="chat-modal-box" id="chatRequestForm">
+          <div class="modal-handle-bar" aria-hidden="true"></div>
           <div class="chat-modal-header">
-            <h3>📑 Request Study Material</h3>
+            <div>
+              <h3>📑 Request Study Material</h3>
+              <div class="chat-modal-subtitle">Directly ask your peer for verified notes or PYQs</div>
+            </div>
             <button type="button" class="modal-close-btn" data-action="chatCloseRequestModal" aria-label="Close">✕</button>
+          </div>
+          <div class="profile-autofill-pill" id="chatProfileAutofillPill" style="display:none;">
+            ⚡ Auto-filled from your academic profile
           </div>
           <div class="chat-modal-body">
             <!-- 1. Academic Location -->

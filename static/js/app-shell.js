@@ -103,9 +103,15 @@
         const tab = getTabForPath(path);
 
         const cleanPath = path.split('?')[0].split('#')[0];
+        const isChat = cleanPath.startsWith('/chat');
         if (bottomNav) {
-            bottomNav.style.display = cleanPath.startsWith('/payment') ? 'none' : '';
+            bottomNav.style.display = (cleanPath.startsWith('/payment') || isChat) ? 'none' : '';
         }
+        const tarikaBtn = document.getElementById('abhiAiLauncher');
+        if (tarikaBtn) {
+            tarikaBtn.style.display = isChat ? 'none' : '';
+        }
+        document.body.classList.toggle('in-chat-mode', isChat);
 
         // Highlight active tab in bottom nav
         const navItems = bottomNav ? bottomNav.querySelectorAll('.navbar__item') : [];
@@ -386,6 +392,13 @@
 
             case 'MODAL_CLOSE':
                 document.body.classList.remove('modal-active');
+                break;
+
+            case 'CHAT_MODE':
+                document.body.classList.toggle('in-chat-mode', !!msg.active);
+                if (bottomNav) bottomNav.style.display = msg.active ? 'none' : '';
+                const aiLauncherEl = document.getElementById('abhiAiLauncher');
+                if (aiLauncherEl) aiLauncherEl.style.display = msg.active ? 'none' : '';
                 break;
 
             case 'THEME_CHANGE':

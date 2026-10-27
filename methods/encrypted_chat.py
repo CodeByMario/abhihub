@@ -185,9 +185,9 @@ def save_message_supabase(sender_id: str, recipient_id: str,
     if enc.get('ephemeral_pubkey'):
         msg_data['ephemeral_pubkey'] = enc['ephemeral_pubkey']
 
-    client = _get_supabase_admin()
+    client = _get_supabase_admin() or _get_supabase_user()
     if not client:
-        log.warning("No Supabase admin client — message not persisted to DB")
+        log.warning("No Supabase client — message not persisted to DB")
         return None
 
     try:
@@ -209,9 +209,9 @@ def load_conversation_supabase(user_a: str, user_b: str,
                                 my_privkey: Optional[str] = None,
                                 peer_pubkey: Optional[str] = None) -> List[Dict]:
     """Load and decrypt a conversation from Supabase."""
-    client = _get_supabase_admin()
+    client = _get_supabase_admin() or _get_supabase_user()
     if not client:
-        log.warning("No Supabase admin client — cannot load conversation from DB")
+        log.warning("No Supabase client — cannot load conversation from DB")
         return []
 
     try:

@@ -1,3 +1,4 @@
+{% set hide_header_tools = true %}
 {% extends 'p_struct.html' %}
 
 {% block content %}
@@ -319,7 +320,9 @@
       <span>•</span>
       <span>Founder Abhijeet Ashok Shende</span>
       <span>•</span>
-      <span>🤖 AI Co-founder Tarika</span>
+      <a href="{{ url_for('site.careers') }}" style="color:var(--primary-blue); text-decoration:none; font-weight:700; display:inline-flex; align-items:center; gap:0.25rem;">
+        <span>💼 We're Hiring (8 Roles) →</span>
+      </a>
     </div>
 
     <h1 class="hero-headline">
@@ -554,6 +557,7 @@
         <ul>
           <li><a href="{{ url_for('site.help_center') }}">Help Center</a></li>
           <li><a href="{{ url_for('site.contact') }}">Contact Us</a></li>
+          <li><a href="{{ url_for('site.careers') }}">Careers</a></li>
           <li><a href="{{ url_for('site.join_team') }}">Campus Ambassador</a></li>
         </ul>
       </div>

@@ -336,8 +336,8 @@ async function loadHistory(peerId) {
 function getMyId() {
   try {
     const u = JSON.parse(sessionStorage.getItem('user') || '{}');
-    return u.uid || u.id || u.user_id || window.__CURRENT_USER__?.uid || '';
-  } catch { return window.__CURRENT_USER__?.uid || ''; }
+    return u.uid || u.id || u.user_id || window.__CURRENT_USER__?.uid || window.__CURRENT_USER__?.id || window.parent?.__CURRENT_USER__?.uid || window.parent?.__CURRENT_USER__?.id || '';
+  } catch { return window.__CURRENT_USER__?.uid || window.__CURRENT_USER__?.id || ''; }
 }
 
 let chatSocket = null;
@@ -703,14 +703,43 @@ function syncNewMessages(peerId, serverMessages) {
   }
 }
 
+function closeChat() {
+  LS.set('current_peer', '');
+  const room = document.getElementById('chatRoom');
+  if (room) {
+    room.hidden = true;
+    room.style.display = 'none';
+    room.classList.remove('open');
+  }
+  const shell = document.querySelector('.chat-shell');
+  if (shell) shell.classList.remove('room-open');
+  document.querySelectorAll('.peer-item').forEach(el => el.classList.remove('active'));
+  const placeholder = document.getElementById('chatPlaceholder');
+  if (placeholder && window.innerWidth > 768) {
+    placeholder.hidden = false;
+    placeholder.style.display = 'grid';
+  }
+  const subEl = document.getElementById('chatSubtitle');
+  if (subEl) subEl.textContent = 'Open a conversation';
+}
+
 function openChat(peerId) {
   LS.set('current_peer', peerId);
   document.querySelectorAll('.peer-item').forEach(el => el.classList.toggle('active', el.dataset.peerId === peerId));
 
-  document.getElementById('chatPlaceholder').hidden = true;
+  const placeholder = document.getElementById('chatPlaceholder');
+  if (placeholder) {
+    placeholder.hidden = true;
+    placeholder.style.display = 'none';
+  }
   const room = document.getElementById('chatRoom');
-  room.hidden = false;
-  room.classList.add('open');
+  if (room) {
+    room.hidden = false;
+    room.style.display = 'flex';
+    room.classList.add('open');
+  }
+  const shell = document.querySelector('.chat-shell');
+  if (shell) shell.classList.add('room-open');
 
   updatePeerHeader(peerId);
 
@@ -1701,7 +1730,8 @@ let academicTaxonomy = {
   colleges: [],
   departments: [],
   initialized: false,
-  isCustomSubject: false
+  isCustomSubject: false,
+  senderProfile: null
 };
 
 async function initChatAcademicTaxonomy() {
@@ -1958,18 +1988,97 @@ async function initChatAcademicTaxonomy() {
       academicTaxonomy.colleges = colRes.colleges || [];
       academicTaxonomy.departments = deptRes.departments || [];
 
-      const userCollegeId = profRes.college_id || '';
-      const userBranchId = profRes.department_id || '';
+      const userData = profRes.user || profRes || {};
+      const userCollegeId = profRes.college_id || userData.college_id || userData.user_metadata?.college_id || '';
+      const userBranchId = profRes.department_id || userData.department_id || userData.user_metadata?.department_id || '';
+      const userProg = (profRes.program || profRes.degree || userData.program || userData.degree || userData.user_metadata?.program || userData.user_metadata?.degree || '').toLowerCase();
+      const userSem = profRes.semester || userData.semester || userData.user_metadata?.semester || '';
+
+      academicTaxonomy.senderProfile = {
+        college_id: userCollegeId,
+        department_id: userBranchId,
+        program: userProg,
+        semester: userSem
+      };
 
       renderColleges(userCollegeId);
       renderBranches(academicTaxonomy.departments, userBranchId);
 
-      if (userCollegeId && userBranchId) {
-        loadSubjects();
-      }
+      applyProfileAutofill();
     } catch (e) {
       console.warn('[chat] Taxonomy fetch error:', e);
     }
+  } else {
+    applyProfileAutofill();
+  }
+}
+
+function applyProfileAutofill() {
+  const p = academicTaxonomy.senderProfile;
+  if (!p) return;
+
+  const colSelect = document.getElementById('chatReqCollege');
+  const branchSelect = document.getElementById('chatReqBranch');
+  const progSelect = document.getElementById('chatReqProgram');
+  const semSelect = document.getElementById('chatReqSem');
+
+  if (colSelect && p.college_id && (!colSelect.value || colSelect.value === '__new__')) {
+    colSelect.value = p.college_id;
+  }
+  if (branchSelect && p.department_id && (!branchSelect.value || branchSelect.value === '__new__')) {
+    branchSelect.value = p.department_id;
+  }
+  if (progSelect && p.program) {
+    for (let i = 0; i < progSelect.options.length; i++) {
+      const v = progSelect.options[i].value.toLowerCase();
+      const t = progSelect.options[i].textContent.toLowerCase();
+      if (v.includes(p.program) || p.program.includes(v) || t.includes(p.program)) {
+        progSelect.selectedIndex = i;
+        break;
+      }
+    }
+  }
+  if (semSelect && p.semester) {
+    for (let i = 0; i < semSelect.options.length; i++) {
+      if (semSelect.options[i].value.toLowerCase().includes(p.semester.toLowerCase())) {
+        semSelect.selectedIndex = i;
+        break;
+      }
+    }
+  }
+
+  const pill = document.getElementById('chatProfileAutofillPill');
+  if (pill && (p.college_id || p.department_id || p.program)) {
+    const colObj = academicTaxonomy.colleges.find(c => c.id === p.college_id);
+    const deptObj = academicTaxonomy.departments.find(d => d.id === p.department_id);
+    const parts = [colObj?.abbreviation || colObj?.name, deptObj?.abbreviation || deptObj?.name, p.semester].filter(Boolean);
+    pill.style.display = 'inline-flex';
+    pill.innerHTML = `✓ Auto-filled from your profile: <strong>${escapeHtml(parts.join(' · ') || 'Academic details')}</strong>`;
+  }
+
+  const subjSelect = document.getElementById('chatReqSubject');
+  if (branchSelect?.value && (!subjSelect || subjSelect.options.length <= 1)) {
+    const semNum = semSelect?.value ? semSelect.value.replace(/\D/g, '') : '';
+    fetch(`/api/subjects?department_id=${encodeURIComponent(branchSelect.value)}${semNum ? '&semester=' + semNum : ''}`)
+      .then(r => r.json())
+      .then(data => {
+        if (!subjSelect) return;
+        const subjects = data.subjects || [];
+        subjSelect.innerHTML = '<option value="" disabled selected>Select Subject</option>';
+        subjects.forEach(s => {
+          const opt = document.createElement('option');
+          opt.value = s.id;
+          opt.dataset.name = s.name;
+          opt.dataset.code = s.subject_code || '';
+          opt.textContent = s.subject_code ? `${s.name} (${s.subject_code})` : s.name;
+          subjSelect.appendChild(opt);
+        });
+        const newOpt = document.createElement('option');
+        newOpt.value = '__new__';
+        newOpt.textContent = '➕ + Add New Subject...';
+        subjSelect.appendChild(newOpt);
+      })
+      .catch(() => {});
   }
 }
 
@@ -2043,6 +2152,11 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
+    if (action === 'chatBackToPeers') {
+      closeChat();
+      return;
+    }
+
     if (action === 'chatOpenPeer') {
       const item = actionEl.closest('.peer-item');
       const peerId = item?.dataset.peerId;
@@ -2087,7 +2201,9 @@ document.addEventListener('DOMContentLoaded', () => {
         initChatAcademicTaxonomy();
         if (typeof modal.showModal === 'function') modal.showModal();
         else modal.style.display = 'block';
-        document.getElementById('chatReqTitle')?.focus();
+        setTimeout(() => {
+          document.getElementById('chatReqSubject')?.focus();
+        }, 100);
       }
       return;
     }
