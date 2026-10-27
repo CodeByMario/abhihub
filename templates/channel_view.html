@@ -126,6 +126,107 @@
     margin: 0;
   }
 
+  /* Search & Controls Toolbar */
+  .channel-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+  .search-wrapper {
+    position: relative;
+    flex: 1;
+    min-width: 240px;
+    max-width: 450px;
+  }
+  .search-input {
+    width: 100%;
+    padding: 0.65rem 1rem 0.65rem 2.4rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    outline: none;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    box-sizing: border-box;
+  }
+  .search-input:focus {
+    border-color: #4f46e5;
+    box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.12);
+  }
+  .search-icon {
+    position: absolute;
+    left: 0.75rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: #94a3b8;
+    pointer-events: none;
+  }
+  .group-controls {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+  }
+  .group-label {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #64748b;
+  }
+  .group-btn {
+    border: 1px solid #e2e8f0;
+    background: #ffffff;
+    color: #475569;
+    padding: 0.45rem 0.85rem;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .group-btn:hover {
+    background: #f8fafc;
+    color: #0f172a;
+  }
+  .group-btn.active {
+    background: #4f46e5;
+    color: #ffffff;
+    border-color: #4f46e5;
+  }
+  .group-section {
+    margin-bottom: 2rem;
+  }
+  .group-heading {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin: 0 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  .group-count {
+    font-size: 0.8rem;
+    color: #64748b;
+    font-weight: 600;
+    background: #f1f5f9;
+    padding: 0.15rem 0.55rem;
+    border-radius: 9999px;
+  }
+  .subject-pill {
+    font-size: 0.75rem;
+    font-weight: 700;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    background: #eef2ff;
+    color: #4338ca;
+  }
+
   /* Notes Grid */
   .notes-grid {
     display: grid;
@@ -319,6 +420,7 @@
     <!-- Notes Section -->
     <div class="section-header">
       <h2 class="section-title">Study Material & Notes</h2>
+      <span id="notes-counter" style="font-size: 0.9rem; color: #64748b; font-weight: 600;">{{ total_notes }} notes</span>
     </div>
 
     {% if not notes %}
@@ -326,36 +428,154 @@
         No public notes uploaded yet by this creator.
       </div>
     {% else %}
-      <div class="notes-grid">
-        {% for note in notes %}
-          <div class="note-card">
-            <div>
-              <div class="note-badge-row">
-                <span class="tag-pill">{{ note.category }}</span>
-                {% if note.is_paid and note.price > 0 %}
-                  <span class="price-tag price-paid">₹{{ '%.0f'|format(note.price) }}</span>
-                {% else %}
-                  <span class="price-tag price-free">Free</span>
-                {% endif %}
-              </div>
-              <h3 class="note-title">{{ note.title }}</h3>
-              <div class="note-info">
-                <span>📁 {{ note.file_type }}</span>
-                <span>👁 {{ note.views }} views</span>
-              </div>
-            </div>
-            <div>
-              <a href="/resource/{{ note.id }}" class="note-btn">
-                {% if note.is_paid and note.price > 0 %}
-                  View & Unlock (₹{{ '%.0f'|format(note.price) }})
-                {% else %}
-                  Open Notes
-                {% endif %}
-              </a>
-            </div>
-          </div>
-        {% endfor %}
+      <!-- Toolbar: Search & Grouping -->
+      <div class="channel-toolbar">
+        <div class="search-wrapper">
+          <svg class="search-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path>
+          </svg>
+          <input type="text" id="channel-search-input" class="search-input" placeholder="Search title, subject, or category...">
+        </div>
+        <div class="group-controls">
+          <span class="group-label">Group By:</span>
+          <button type="button" class="group-btn active" data-group="none">All</button>
+          <button type="button" class="group-btn" data-group="subject">Subject</button>
+          <button type="button" class="group-btn" data-group="category">Category</button>
+        </div>
       </div>
+
+      <div id="notes-display-area">
+        <div class="notes-grid" id="default-notes-grid">
+          {% for note in notes %}
+            <div class="note-card"
+                 data-title="{{ note.title|lower }}"
+                 data-subject="{{ note.subject|default('General') }}"
+                 data-category="{{ note.category|default('Notes') }}">
+              <div>
+                <div class="note-badge-row">
+                  <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                    <span class="tag-pill">{{ note.category }}</span>
+                    {% if note.subject and note.subject != 'General' %}
+                      <span class="subject-pill">{{ note.subject }}</span>
+                    {% endif %}
+                  </div>
+                  {% if note.is_paid and note.price > 0 %}
+                    <span class="price-tag price-paid">₹{{ '%.0f'|format(note.price) }}</span>
+                  {% else %}
+                    <span class="price-tag price-free">Free</span>
+                  {% endif %}
+                </div>
+                <h3 class="note-title">{{ note.title }}</h3>
+                <div class="note-info">
+                  <span>📁 {{ note.file_type }}</span>
+                  <span>👁 {{ note.views }} views</span>
+                </div>
+              </div>
+              <div>
+                <a href="/resource/{{ note.id }}" class="note-btn">
+                  {% if note.is_paid and note.price > 0 %}
+                    View & Unlock (₹{{ '%.0f'|format(note.price) }})
+                  {% else %}
+                    Open Notes
+                  {% endif %}
+                </a>
+              </div>
+            </div>
+          {% endfor %}
+        </div>
+      </div>
+      <div id="no-search-results" style="display: none; background: #ffffff; border: 1px dashed #cbd5e1; border-radius: 16px; padding: 2.5rem 1rem; text-align: center; color: #64748b; margin-bottom: 2.5rem;">
+        No study material found matching "<span id="search-query-display"></span>".
+      </div>
+
+      <script>
+        (function() {
+          const searchInput = document.getElementById('channel-search-input');
+          const groupBtns = document.querySelectorAll('.group-btn');
+          const displayArea = document.getElementById('notes-display-area');
+          const defaultGrid = document.getElementById('default-notes-grid');
+          const noResults = document.getElementById('no-search-results');
+          const queryDisplay = document.getElementById('search-query-display');
+          const counter = document.getElementById('notes-counter');
+
+          if (!displayArea || !defaultGrid) return;
+
+          const allCards = Array.from(defaultGrid.querySelectorAll('.note-card'));
+          let currentGroup = 'none';
+
+          function render() {
+            const q = (searchInput ? searchInput.value : '').trim().toLowerCase();
+
+            const matched = allCards.filter(card => {
+              if (!q) return true;
+              const title = card.getAttribute('data-title') || '';
+              const subject = (card.getAttribute('data-subject') || '').toLowerCase();
+              const category = (card.getAttribute('data-category') || '').toLowerCase();
+              return title.includes(q) || subject.includes(q) || category.includes(q);
+            });
+
+            if (counter) {
+              counter.textContent = `${matched.length} note${matched.length === 1 ? '' : 's'}`;
+            }
+
+            if (matched.length === 0) {
+              displayArea.innerHTML = '';
+              if (noResults) {
+                noResults.style.display = 'block';
+                if (queryDisplay) queryDisplay.textContent = searchInput.value.trim();
+              }
+              return;
+            }
+
+            if (noResults) noResults.style.display = 'none';
+            displayArea.innerHTML = '';
+
+            if (currentGroup === 'none') {
+              const grid = document.createElement('div');
+              grid.className = 'notes-grid';
+              matched.forEach(c => grid.appendChild(c));
+              displayArea.appendChild(grid);
+            } else {
+              const groups = {};
+              matched.forEach(card => {
+                const key = card.getAttribute(`data-${currentGroup}`) || 'General';
+                if (!groups[key]) groups[key] = [];
+                groups[key].push(card);
+              });
+
+              Object.keys(groups).sort().forEach(groupName => {
+                const section = document.createElement('div');
+                section.className = 'group-section';
+
+                const heading = document.createElement('h3');
+                heading.className = 'group-heading';
+                heading.innerHTML = `<span>${groupName}</span> <span class="group-count">${groups[groupName].length}</span>`;
+
+                const grid = document.createElement('div');
+                grid.className = 'notes-grid';
+                groups[groupName].forEach(c => grid.appendChild(c));
+
+                section.appendChild(heading);
+                section.appendChild(grid);
+                displayArea.appendChild(section);
+              });
+            }
+          }
+
+          if (searchInput) {
+            searchInput.addEventListener('input', render);
+          }
+
+          groupBtns.forEach(btn => {
+            btn.addEventListener('click', () => {
+              groupBtns.forEach(b => b.classList.remove('active'));
+              btn.classList.add('active');
+              currentGroup = btn.getAttribute('data-group');
+              render();
+            });
+          });
+        })();
+      </script>
     {% endif %}
 
     <!-- Powered by AbhiHub Card -->
