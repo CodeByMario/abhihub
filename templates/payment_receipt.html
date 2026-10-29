@@ -27,6 +27,26 @@
                     <span style="font-size:0.82rem;color:#1e293b;font-family:monospace;font-weight:700;background:#e2e8f0;padding:0.15rem 0.5rem;border-radius:6px;">#{{ order_id }}</span>
                 </div>
                 
+                <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;">
+                    <span>App Name:</span>
+                    <strong style="color:#0f172a;">{{ app_name|default('AbhiHub') }}</strong>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;">
+                    <span>App ID:</span>
+                    <span style="color:#475569;font-family:monospace;font-size:0.76rem;">{{ app_id|default('com.abhihub.app') }}</span>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;">
+                    <span>Invoice ID:</span>
+                    <strong style="color:#0f172a;font-family:monospace;">#{{ invoice_id }}</strong>
+                </div>
+
+                <div style="display:flex;justify-content:space-between;font-size:0.82rem;color:#64748b;margin-bottom:0.4rem;">
+                    <span>Date:</span>
+                    <strong style="color:#1e293b;">{{ purchase_date }}</strong>
+                </div>
+
                 <div style="display:flex;justify-content:space-between;font-size:0.85rem;color:#64748b;margin-bottom:0.4rem;">
                     <span>Amount:</span>
                     <strong style="color:{{ '#15803d' if is_paid else '#991b1b' }};font-size:1.1rem;font-weight:800;">₹{{ amount }}</strong>

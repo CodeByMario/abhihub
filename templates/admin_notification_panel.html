@@ -541,11 +541,20 @@
         <button class="tab-btn" type="button" onclick="switchAdminTab('users')" id="tab-users">
             <i class="fas fa-user-graduate"></i> Students & Leaderboard
         </button>
+        <button class="tab-btn" type="button" onclick="switchAdminTab('files')" id="tab-files">
+            <i class="fas fa-folder-tree"></i> Files & Storage
+        </button>
+        <button class="tab-btn" type="button" onclick="switchAdminTab('audit')" id="tab-audit">
+            <i class="fas fa-shield-halved"></i> Audit Logs
+        </button>
         <button class="tab-btn" type="button" onclick="switchAdminTab('notifications')" id="tab-notifications">
             <i class="fas fa-paper-plane"></i> Broadcast
         </button>
         <button class="tab-btn" type="button" onclick="switchAdminTab('contact')" id="tab-contact">
             <i class="fas fa-envelope"></i> Feedback
+        </button>
+        <button class="tab-btn" type="button" onclick="switchAdminTab('settings')" id="tab-settings">
+            <i class="fas fa-sliders"></i> Site Settings
         </button>
     </div>
 
@@ -958,6 +967,27 @@
                                 </a>
                             </div>
 
+                            <!-- User Payout KYC Verification Details Card -->
+                            <div id="userStatKycCard" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.25); border-radius: 12px; padding: 0.9rem 1.1rem; margin-bottom: 1.5rem;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; flex-wrap: wrap; gap: 0.5rem;">
+                                    <div style="font-size: 0.74rem; font-weight: 700; color: #f59e0b; text-transform: uppercase; letter-spacing: 0.5px;">
+                                        <i class="fas fa-id-card"></i> Payout KYC Details
+                                    </div>
+                                    <span id="userStatKycStatusBadge" class="badge" style="background: rgba(245, 158, 11, 0.2); color: #f59e0b; font-size: 0.75rem;">Not Submitted</span>
+                                </div>
+                                <div id="userStatKycDetails" style="font-size: 0.84rem; color: var(--text-secondary); line-height: 1.6;">
+                                    Student has not submitted KYC details for payouts yet.
+                                </div>
+                                <div id="userStatKycActions" style="display: none; gap: 0.5rem; margin-top: 0.75rem; justify-content: flex-end;">
+                                    <button id="btnApproveKycUser" type="button" class="btn-action btn-emerald" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+                                        <i class="fas fa-check"></i> Approve KYC
+                                    </button>
+                                    <button id="btnRejectKycUser" type="button" class="btn-action btn-rose" style="padding: 0.35rem 0.75rem; font-size: 0.8rem;">
+                                        <i class="fas fa-times"></i> Reject KYC
+                                    </button>
+                                </div>
+                            </div>
+
                             <div style="margin-bottom: 1.5rem;">
                                 <h4 style="font-size: 0.92rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.75rem;">
                                     <i class="fas fa-file-arrow-up text-indigo-400"></i> Uploaded Documents (<span id="userStatUploadCount">0</span>)
@@ -1050,6 +1080,182 @@
             </h2>
             <div id="contactMsgContainer" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(360px, 1fr)); gap: 1rem;">
                 <!-- Loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 6. FILES & STORAGE MANAGEMENT VIEW -->
+    <div id="view-files" class="admin-view" style="display: none;">
+        <div class="glass-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h2 style="font-size: 1.35rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-folder-tree text-indigo-400"></i> Files & Multi-Provider Storage
+                    </h2>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 4px 0 0;">
+                        Inspect, quarantine, and permanently purge uploaded documents across Cloudinary, Firebase & Supabase.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                    <input type="text" id="adminFilesSearch" placeholder="Search file title..." class="form-input" style="width: 220px; padding: 0.5rem 0.85rem;" oninput="debounceFilesSearch()">
+                    <select id="adminFilesStatusFilter" class="form-input" style="width: auto; padding: 0.5rem 0.85rem;" onchange="loadAdminFiles(1)">
+                        <option value="">All Statuses</option>
+                        <option value="approved">Approved</option>
+                        <option value="pending">Pending</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="quarantined">Quarantined</option>
+                    </select>
+                    <button type="button" class="btn-action btn-indigo" onclick="loadAdminFiles(1)" style="padding: 0.5rem 1rem;">
+                        <i class="fas fa-rotate"></i> Refresh
+                    </button>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+                    <thead>
+                        <tr style="border-bottom: var(--card-item-border); text-align: left; color: var(--text-secondary); font-size: 0.78rem; text-transform: uppercase;">
+                            <th style="padding: 0.75rem;">Document</th>
+                            <th style="padding: 0.75rem;">Uploader</th>
+                            <th style="padding: 0.75rem;">Provider</th>
+                            <th style="padding: 0.75rem;">Size</th>
+                            <th style="padding: 0.75rem;">Status</th>
+                            <th style="padding: 0.75rem;">Date</th>
+                            <th style="padding: 0.75rem; text-align: right;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminFilesTbody">
+                        <tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading storage records...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Files Pagination -->
+            <div id="adminFilesPagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; font-size: 0.85rem; color: var(--text-secondary);">
+                <span id="adminFilesCountText">Showing 0 files</span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="adminFilesPrevBtn" type="button" class="btn-preset-chip" onclick="changeAdminFilesPage(-1)" disabled>&larr; Previous</button>
+                    <button id="adminFilesNextBtn" type="button" class="btn-preset-chip" onclick="changeAdminFilesPage(1)" disabled>Next &rarr;</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 7. AUDIT LOGS & COMPLIANCE VIEW -->
+    <div id="view-audit" class="admin-view" style="display: none;">
+        <div class="glass-panel">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; flex-wrap: wrap; gap: 1rem;">
+                <div>
+                    <h2 style="font-size: 1.35rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                        <i class="fas fa-shield-halved text-indigo-400"></i> Administrative Audit Logs
+                    </h2>
+                    <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 4px 0 0;">
+                        Append-only compliance trail recording administrative actions, moderation decisions, and user state mutations.
+                    </p>
+                </div>
+                <div style="display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap;">
+                    <select id="adminAuditActionFilter" class="form-input" style="width: auto; padding: 0.5rem 0.85rem;" onchange="loadAdminAuditLogs(1)">
+                        <option value="">All Actions</option>
+                        <option value="ban">User Ban / Unban</option>
+                        <option value="block">User Block / Unblock</option>
+                        <option value="verify_user">User Verification</option>
+                        <option value="delete_file">File Deletion</option>
+                        <option value="quarantine_file">File Quarantine</option>
+                        <option value="kyc_verify">KYC Verification</option>
+                    </select>
+                    <a href="/api/admin/audit/export/csv" class="btn-action btn-emerald" style="padding: 0.5rem 1rem; text-decoration: none; font-size: 0.85rem;">
+                        <i class="fas fa-file-csv"></i> Export CSV
+                    </a>
+                    <a href="/api/admin/audit/export" class="btn-action btn-indigo" style="padding: 0.5rem 1rem; text-decoration: none; font-size: 0.85rem;">
+                        <i class="fas fa-file-excel"></i> Export Excel (.xlsx)
+                    </a>
+                </div>
+            </div>
+
+            <div style="overflow-x: auto;">
+                <table style="width: 100%; border-collapse: collapse; font-size: 0.88rem;">
+                    <thead>
+                        <tr style="border-bottom: var(--card-item-border); text-align: left; color: var(--text-secondary); font-size: 0.78rem; text-transform: uppercase;">
+                            <th style="padding: 0.75rem;">Timestamp</th>
+                            <th style="padding: 0.75rem;">Admin Email</th>
+                            <th style="padding: 0.75rem;">Action</th>
+                            <th style="padding: 0.75rem;">Target</th>
+                            <th style="padding: 0.75rem;">Reason / Details</th>
+                            <th style="padding: 0.75rem;">IP Address</th>
+                        </tr>
+                    </thead>
+                    <tbody id="adminAuditTbody">
+                        <tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading audit trail...</td></tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Audit Pagination -->
+            <div id="adminAuditPagination" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem; font-size: 0.85rem; color: var(--text-secondary);">
+                <span id="adminAuditCountText">Showing 0 audit events</span>
+                <div style="display: flex; gap: 0.5rem;">
+                    <button id="adminAuditPrevBtn" type="button" class="btn-preset-chip" onclick="changeAdminAuditPage(-1)" disabled>&larr; Previous</button>
+                    <button id="adminAuditNextBtn" type="button" class="btn-preset-chip" onclick="changeAdminAuditPage(1)" disabled>Next &rarr;</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. SITE SETTINGS & OPERATIONAL CONTROLS VIEW -->
+    <div id="view-settings" class="admin-view" style="display: none;">
+        <div class="glass-panel" style="max-width: 900px; margin: 0 auto;">
+            <div style="margin-bottom: 1.5rem;">
+                <h2 style="font-size: 1.35rem; font-weight: 700; margin: 0; display: flex; align-items: center; gap: 0.5rem;">
+                    <i class="fas fa-sliders text-indigo-400"></i> Platform Site Settings & Feature Flags
+                </h2>
+                <p style="font-size: 0.85rem; color: var(--text-secondary); margin: 4px 0 0;">
+                    Manage platform runtime features, emergency maintenance mode, and global announcements.
+                </p>
+            </div>
+
+            <div style="display: flex; flex-direction: column; gap: 1.25rem;">
+                <div style="background: var(--card-item-bg); border: var(--card-item-border); border-radius: 12px; padding: 1.1rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 700; color: var(--text-primary);">Emergency Maintenance Mode</div>
+                        <div style="font-size: 0.82rem; color: var(--text-secondary);">Show maintenance screen to non-admin visitors.</div>
+                    </div>
+                    <input type="checkbox" id="setting_maintenance_mode" onchange="toggleSiteSetting('maintenance_mode', this.checked)" style="width: 20px; height: 20px; accent-color: #6366f1; cursor: pointer;">
+                </div>
+
+                <div style="background: var(--card-item-bg); border: var(--card-item-border); border-radius: 12px; padding: 1.1rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 700; color: var(--text-primary);">New Student Registration</div>
+                        <div style="font-size: 0.82rem; color: var(--text-secondary);">Allow new sign-ups and OAuth registrations.</div>
+                    </div>
+                    <input type="checkbox" id="setting_registration_enabled" onchange="toggleSiteSetting('registration_enabled', this.checked)" style="width: 20px; height: 20px; accent-color: #6366f1; cursor: pointer;">
+                </div>
+
+                <div style="background: var(--card-item-bg); border: var(--card-item-border); border-radius: 12px; padding: 1.1rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 700; color: var(--text-primary);">Document Uploads</div>
+                        <div style="font-size: 0.82rem; color: var(--text-secondary);">Allow students to upload study notes and question papers.</div>
+                    </div>
+                    <input type="checkbox" id="setting_uploads_enabled" onchange="toggleSiteSetting('uploads_enabled', this.checked)" style="width: 20px; height: 20px; accent-color: #6366f1; cursor: pointer;">
+                </div>
+
+                <div style="background: var(--card-item-bg); border: var(--card-item-border); border-radius: 12px; padding: 1.1rem; display: flex; justify-content: space-between; align-items: center;">
+                    <div>
+                        <div style="font-weight: 700; color: var(--text-primary);">Creator Cash Payouts</div>
+                        <div style="font-size: 0.82rem; color: var(--text-secondary);">Allow creator wallet withdrawals and payout requests.</div>
+                    </div>
+                    <input type="checkbox" id="setting_payouts_enabled" onchange="toggleSiteSetting('payouts_enabled', this.checked)" style="width: 20px; height: 20px; accent-color: #6366f1; cursor: pointer;">
+                </div>
+
+                <div style="background: var(--card-item-bg); border: var(--card-item-border); border-radius: 12px; padding: 1.1rem;">
+                    <div style="font-weight: 700; color: var(--text-primary); margin-bottom: 0.4rem;">Global Site Announcement Banner</div>
+                    <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 0.75rem;">Text displayed across public headers. Leave blank to disable.</div>
+                    <div style="display: flex; gap: 0.75rem;">
+                        <input type="text" id="setting_site_announcement" class="form-input" placeholder="e.g. Server maintenance scheduled tonight at 11 PM">
+                        <button type="button" class="btn-action btn-indigo" onclick="saveSiteAnnouncement()" style="padding: 0.6rem 1.25rem; white-space: nowrap;">
+                            <i class="fas fa-save"></i> Save Banner
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1219,7 +1425,9 @@
         if (view) view.style.display = "block";
         if (btn) btn.classList.add("active");
 
-        window.location.hash = tabId;
+        if (window.location.hash !== '#' + tabId) {
+            history.replaceState(null, null, '#' + tabId);
+        }
 
         if (tabId === 'overview') {
             loadDashboardStats();
@@ -1228,6 +1436,12 @@
             loadPendingDocuments();
         } else if (tabId === 'users') {
             loadAdminUsers();
+        } else if (tabId === 'files') {
+            loadAdminFiles(1);
+        } else if (tabId === 'audit') {
+            loadAdminAuditLogs(1);
+        } else if (tabId === 'settings') {
+            loadAdminSiteSettings();
         } else if (tabId === 'notifications') {
             loadSubscriberCheckboxList();
             loadPushHistory();
@@ -1848,6 +2062,59 @@
                     if (rs) rs.value = s.rank_title;
                 }
 
+                // Live sync KYC details from stats
+                const kycBadge = document.getElementById("userStatKycStatusBadge");
+                const kycDetails = document.getElementById("userStatKycDetails");
+                const kycActions = document.getElementById("userStatKycActions");
+                const btnApproveKyc = document.getElementById("btnApproveKycUser");
+                const btnRejectKyc = document.getElementById("btnRejectKycUser");
+
+                if (s.kyc) {
+                    const k = s.kyc;
+                    const pan = k.pan_number || '';
+                    const maskedPan = pan.length === 10 ? (pan.substring(0, 5) + '****' + pan.substring(9)) : (pan || 'N/A');
+                    const detailsStr = k.preferred_method === 'bank'
+                        ? `Bank: <strong>${adminEscapeHtml(k.bank_name || 'N/A')}</strong> | Acc: <code>****${adminEscapeHtml((k.account_number || '').slice(-4))}</code> | IFSC: <code>${adminEscapeHtml(k.ifsc_code || 'N/A')}</code>`
+                        : `UPI ID: <code>${adminEscapeHtml(k.upi_id || 'N/A')}</code>`;
+
+                    if (k.is_verified) {
+                        kycBadge.className = "badge badge-loved";
+                        kycBadge.style.background = "rgba(16, 185, 129, 0.2)";
+                        kycBadge.style.color = "#34d399";
+                        kycBadge.textContent = "✓ Verified";
+                        if (kycActions) kycActions.style.display = "none";
+                    } else if (k.rejection_reason) {
+                        kycBadge.className = "badge badge-warn";
+                        kycBadge.style.background = "rgba(244, 63, 94, 0.2)";
+                        kycBadge.style.color = "#f43f5e";
+                        kycBadge.textContent = "✕ Rejected: " + k.rejection_reason;
+                        if (kycActions) kycActions.style.display = "none";
+                    } else {
+                        kycBadge.className = "badge";
+                        kycBadge.style.background = "rgba(245, 158, 11, 0.2)";
+                        kycBadge.style.color = "#fbbf24";
+                        kycBadge.textContent = "⏳ Pending Review";
+                        if (kycActions) {
+                            kycActions.style.display = "flex";
+                            btnApproveKyc.onclick = () => submitKycUserAction(k.id, 'approve');
+                            btnRejectKyc.onclick = () => submitKycUserAction(k.id, 'reject');
+                        }
+                    }
+
+                    kycDetails.innerHTML = `
+                        <div>Name: <strong>${adminEscapeHtml(k.full_name || 'N/A')}</strong> | PAN: <code>${adminEscapeHtml(maskedPan)}</code></div>
+                        <div style="margin-top:2px;">Method: <strong style="text-transform:uppercase;">${adminEscapeHtml(k.preferred_method || 'UPI')}</strong> &bull; ${detailsStr}</div>
+                        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">Submitted: ${k.submitted_at ? new Date(k.submitted_at).toLocaleString() : 'N/A'}</div>
+                    `;
+                } else {
+                    kycBadge.className = "badge";
+                    kycBadge.style.background = "rgba(148, 163, 184, 0.15)";
+                    kycBadge.style.color = "var(--text-muted)";
+                    kycBadge.textContent = "Not Submitted";
+                    kycDetails.textContent = "Student has not submitted KYC details for payouts yet.";
+                    if (kycActions) kycActions.style.display = "none";
+                }
+
                 document.getElementById("userStatUploadCount").textContent = s.uploaded_files.length;
                 if (s.uploaded_files && s.uploaded_files.length > 0) {
                     uploadsBox.innerHTML = s.uploaded_files.map(f => `
@@ -2197,14 +2464,322 @@
         } catch (e) {}
     }
 
-    // Initialize Dashboard
-    document.addEventListener("DOMContentLoaded", function() {
+    // ── KYC Action from User Profile Panel ──
+    async function submitKycUserAction(kycId, action) {
+        let reason = '';
+        if (action === 'reject') {
+            reason = prompt('Enter the reason for rejecting this KYC application:');
+            if (!reason) return;
+        } else {
+            if (!confirm('Approve this user KYC application for automated payouts?')) return;
+        }
+        try {
+            const res = await adminFetch(`/api/admin/kyc/${kycId}/action`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ action, reason })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showAdminAlert(data.message || `KYC application ${action}d successfully`, 'success');
+                if (selectedAdminUserId) {
+                    selectAdminUser(selectedAdminUserId, selectedAdminUserObj.full_name, selectedAdminUserObj.email, selectedAdminUserObj.abhihub_score, selectedAdminUserObj.students_helped);
+                }
+            } else {
+                showAdminAlert(data.error || 'Failed to update KYC status', 'error');
+            }
+        } catch (e) {
+            showAdminAlert('Network error updating KYC status', 'error');
+        }
+    }
+
+    // ── 7. Files & Storage Management ──
+    let currentFilesPage = 1;
+    let filesSearchTimer = null;
+
+    function debounceFilesSearch() {
+        clearTimeout(filesSearchTimer);
+        filesSearchTimer = setTimeout(() => loadAdminFiles(1), 350);
+    }
+
+    function formatBytes(bytes) {
+        if (!bytes || bytes === 0) return '0 B';
+        const k = 1024;
+        const sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+    }
+
+    async function loadAdminFiles(page = 1) {
+        currentFilesPage = page;
+        const tbody = document.getElementById("adminFilesTbody");
+        const countText = document.getElementById("adminFilesCountText");
+        const prevBtn = document.getElementById("adminFilesPrevBtn");
+        const nextBtn = document.getElementById("adminFilesNextBtn");
+        if (!tbody) return;
+
+        const search = (document.getElementById("adminFilesSearch")?.value || '').trim();
+        const status = document.getElementById("adminFilesStatusFilter")?.value || '';
+
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading storage records...</td></tr>`;
+
+        try {
+            const params = new URLSearchParams({ page: page, limit: 25 });
+            if (search) params.append('q', search);
+            if (status) params.append('status', status);
+
+            const res = await adminFetch(`/api/admin/files?${params.toString()}`);
+            const data = await res.json();
+
+            if (!data.success || !data.files || data.files.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: var(--text-muted);">No documents found for this filter.</td></tr>`;
+                if (countText) countText.textContent = `Showing 0 of 0 files`;
+                if (prevBtn) prevBtn.disabled = true;
+                if (nextBtn) nextBtn.disabled = true;
+                return;
+            }
+
+            const total = data.total || data.files.length;
+            if (countText) countText.textContent = `Showing ${(page - 1) * 25 + 1}–${Math.min(page * 25, total)} of ${total} files`;
+            if (prevBtn) prevBtn.disabled = page <= 1;
+            if (nextBtn) nextBtn.disabled = page * 25 >= total;
+
+            tbody.innerHTML = data.files.map(f => {
+                const uploader = f.profiles ? (f.profiles.full_name || f.profiles.email || 'Anonymous') : 'Unknown';
+                const provider = f.storage_provider || (f.file_url && f.file_url.includes('cloudinary') ? 'cloudinary' : 'supabase');
+                const providerBadge = provider === 'cloudinary' ? 'badge-blue' : (provider === 'firebase' ? 'badge-warn' : 'badge-loved');
+                const statusColor = f.status === 'approved' ? '#10b981' : (f.status === 'quarantined' ? '#f43f5e' : (f.status === 'rejected' ? '#ef4444' : '#f59e0b'));
+                const sizeStr = formatBytes(f.file_size_bytes);
+                const dateStr = f.created_at ? new Date(f.created_at).toLocaleDateString() : '-';
+
+                return `
+                    <tr style="border-bottom: var(--card-item-border);">
+                        <td style="padding: 0.75rem; font-weight: 600; max-width: 240px;">
+                            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${adminEscapeHtml(f.title || 'Untitled')}">
+                                ${adminEscapeHtml(f.title || 'Untitled')}
+                            </div>
+                            ${f.file_url ? `<a href="${adminEscapeHtml(f.file_url)}" target="_blank" rel="noopener noreferrer" style="font-size: 0.75rem; color: #818cf8; text-decoration: none;"><i class="fas fa-arrow-up-right-from-square"></i> Open File</a>` : ''}
+                        </td>
+                        <td style="padding: 0.75rem; font-size: 0.82rem; color: var(--text-secondary);">
+                            ${adminEscapeHtml(uploader)}
+                        </td>
+                        <td style="padding: 0.75rem;">
+                            <span class="badge ${providerBadge}" style="text-transform: capitalize; font-size: 0.72rem;">${adminEscapeHtml(provider)}</span>
+                        </td>
+                        <td style="padding: 0.75rem; font-size: 0.82rem; color: var(--text-muted); font-family: monospace;">
+                            ${sizeStr}
+                        </td>
+                        <td style="padding: 0.75rem;">
+                            <span style="font-weight: 700; color: ${statusColor}; text-transform: capitalize; font-size: 0.8rem;">
+                                &bull; ${adminEscapeHtml(f.status || 'unknown')}
+                            </span>
+                        </td>
+                        <td style="padding: 0.75rem; font-size: 0.8rem; color: var(--text-muted);">
+                            ${dateStr}
+                        </td>
+                        <td style="padding: 0.75rem; text-align: right;">
+                            <div style="display: flex; gap: 0.35rem; justify-content: flex-end;">
+                                ${f.status !== 'quarantined' ? `
+                                    <button type="button" class="btn-preset-chip" style="color: #fbbf24;" onclick="handleQuarantineFile('${f.id}', '${adminEscapeHtml(f.title || '')}')" title="Flag as Quarantined">
+                                        <i class="fas fa-biohazard"></i>
+                                    </button>
+                                ` : ''}
+                                <button type="button" class="btn-preset-chip" style="color: #f87171;" onclick="handleDeleteFile('${f.id}', '${adminEscapeHtml(f.title || '')}')" title="Permanently Delete Across All Storage Providers">
+                                    <i class="fas fa-trash-can"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 2rem; color: #f87171;">Failed to load files: ${adminEscapeHtml(e.message || String(e))}</td></tr>`;
+        }
+    }
+
+    function changeAdminFilesPage(delta) {
+        loadAdminFiles(currentFilesPage + delta);
+    }
+
+    async function handleQuarantineFile(docId, title) {
+        const reason = prompt(`Reason for quarantining "${title}":`, "Suspicious content / DMCA notice");
+        if (!reason) return;
+        try {
+            const res = await adminFetch(`/api/admin/files/${docId}/quarantine`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showAdminAlert(`File "${title}" successfully quarantined.`, 'success');
+                loadAdminFiles(currentFilesPage);
+            } else {
+                showAdminAlert(data.error || 'Failed to quarantine file', 'error');
+            }
+        } catch (e) {
+            showAdminAlert('Network error quarantining file', 'error');
+        }
+    }
+
+    async function handleDeleteFile(docId, title) {
+        if (!confirm(`Are you SURE you want to permanently delete "${title}"?\nThis will purge it from Cloudinary, Firebase, Supabase, and the database.`)) return;
+        const reason = prompt("Enter deletion audit reason:", "Admin manual removal");
+        if (!reason) return;
+
+        try {
+            const res = await adminFetch(`/api/admin/files/${docId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showAdminAlert(`File permanently deleted across all providers.`, 'success');
+                loadAdminFiles(currentFilesPage);
+            } else {
+                showAdminAlert(data.error || 'Failed to delete file', 'error');
+            }
+        } catch (e) {
+            showAdminAlert('Network error deleting file', 'error');
+        }
+    }
+
+    // ── 8. Audit Logs View ──
+    let currentAuditPage = 1;
+
+    async function loadAdminAuditLogs(page = 1) {
+        currentAuditPage = page;
+        const tbody = document.getElementById("adminAuditTbody");
+        const countText = document.getElementById("adminAuditCountText");
+        const prevBtn = document.getElementById("adminAuditPrevBtn");
+        const nextBtn = document.getElementById("adminAuditNextBtn");
+        if (!tbody) return;
+
+        const action = document.getElementById("adminAuditActionFilter")?.value || '';
+
+        tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);"><i class="fas fa-spinner fa-spin"></i> Loading audit trail...</td></tr>`;
+
+        try {
+            const params = new URLSearchParams({ page: page, limit: 25 });
+            if (action) params.append('action', action);
+
+            const res = await adminFetch(`/api/admin/audit/logs?${params.toString()}`);
+            const data = await res.json();
+
+            if (!data.success || !data.logs || data.logs.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: var(--text-muted);">No audit records found.</td></tr>`;
+                if (countText) countText.textContent = `Showing 0 of 0 events`;
+                if (prevBtn) prevBtn.disabled = true;
+                if (nextBtn) nextBtn.disabled = true;
+                return;
+            }
+
+            const total = data.total || data.logs.length;
+            if (countText) countText.textContent = `Showing ${(page - 1) * 25 + 1}–${Math.min(page * 25, total)} of ${total} events`;
+            if (prevBtn) prevBtn.disabled = page <= 1;
+            if (nextBtn) nextBtn.disabled = page * 25 >= total;
+
+            tbody.innerHTML = data.logs.map(l => {
+                const dateStr = l.timestamp ? new Date(l.timestamp).toLocaleString() : '-';
+                const actionBadge = l.action && (l.action.includes('delete') || l.action.includes('ban') || l.action.includes('block')) ? 'badge-warn' : 'badge-blue';
+                const reasonStr = l.reason || l.new_value || '-';
+
+                return `
+                    <tr style="border-bottom: var(--card-item-border);">
+                        <td style="padding: 0.75rem; font-size: 0.8rem; color: var(--text-secondary); white-space: nowrap;">
+                            ${dateStr}
+                        </td>
+                        <td style="padding: 0.75rem; font-weight: 600; font-size: 0.82rem; color: #818cf8;">
+                            ${adminEscapeHtml(l.admin_email || 'system')}
+                        </td>
+                        <td style="padding: 0.75rem;">
+                            <span class="badge ${actionBadge}" style="font-size: 0.74rem;">${adminEscapeHtml(l.action || 'action')}</span>
+                        </td>
+                        <td style="padding: 0.75rem; font-size: 0.8rem;">
+                            <span style="color: var(--text-muted); text-transform: uppercase; font-size: 0.7rem;">${adminEscapeHtml(l.target_type || '')}</span>
+                            <code style="font-size: 0.72rem; color: var(--text-secondary); margin-left: 4px;">${adminEscapeHtml((l.target_id || '').slice(0, 16))}</code>
+                        </td>
+                        <td style="padding: 0.75rem; font-size: 0.82rem; color: var(--text-secondary); max-width: 250px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" title="${adminEscapeHtml(String(reasonStr))}">
+                            ${adminEscapeHtml(String(reasonStr))}
+                        </td>
+                        <td style="padding: 0.75rem; font-size: 0.78rem; color: var(--text-muted); font-family: monospace;">
+                            ${adminEscapeHtml(l.ip_address || '0.0.0.0')}
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        } catch (e) {
+            tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 2rem; color: #f87171;">Failed to load audit trail: ${adminEscapeHtml(e.message || String(e))}</td></tr>`;
+        }
+    }
+
+    function changeAdminAuditPage(delta) {
+        loadAdminAuditLogs(currentAuditPage + delta);
+    }
+
+    // ── 9. Site Settings & Controls ──
+    async function loadAdminSiteSettings() {
+        try {
+            const res = await adminFetch('/api/admin/settings');
+            const data = await res.json();
+            if (data.success && data.settings) {
+                const s = data.settings;
+                const setCheck = (id, val) => {
+                    const el = document.getElementById(id);
+                    if (el) el.checked = Boolean(val);
+                };
+                setCheck('setting_maintenance_mode', s.maintenance_mode);
+                setCheck('setting_registration_enabled', s.registration_enabled !== false);
+                setCheck('setting_uploads_enabled', s.uploads_enabled !== false);
+                setCheck('setting_payouts_enabled', s.payouts_enabled !== false);
+
+                const annEl = document.getElementById('setting_site_announcement');
+                if (annEl) annEl.value = s.site_announcement || '';
+            }
+        } catch (e) {
+            showAdminAlert('Failed to load site settings', 'error');
+        }
+    }
+
+    async function toggleSiteSetting(key, value) {
+        try {
+            const res = await adminFetch('/api/admin/settings', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ key, value })
+            });
+            const data = await res.json();
+            if (data.success) {
+                showAdminAlert(`Setting updated: ${key} = ${value}`, 'success');
+            } else {
+                showAdminAlert(data.error || 'Failed to update setting', 'error');
+            }
+        } catch (e) {
+            showAdminAlert('Network error saving setting', 'error');
+        }
+    }
+
+    async function saveSiteAnnouncement() {
+        const val = document.getElementById('setting_site_announcement')?.value || '';
+        await toggleSiteSetting('site_announcement', val);
+    }
+
+    // Initialize Dashboard & Hashchange Routing
+    function handleInitialOrHashRoute() {
         const hash = (window.location.hash || '').replace('#', '');
-        if (hash && ['overview', 'moderation', 'users', 'notifications', 'contact'].includes(hash)) {
+        const validTabs = ['overview', 'moderation', 'users', 'files', 'audit', 'notifications', 'contact', 'settings'];
+        if (hash && validTabs.includes(hash)) {
             switchAdminTab(hash);
         } else {
             switchAdminTab('overview');
         }
+    }
+
+    window.addEventListener("hashchange", handleInitialOrHashRoute);
+
+    document.addEventListener("DOMContentLoaded", function() {
+        handleInitialOrHashRoute();
 
         // Live polling every 25 seconds
         setInterval(function() {

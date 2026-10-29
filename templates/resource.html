@@ -113,44 +113,45 @@ uploader_name %}
 <!-- Google Fonts Preconnect & Styling Tokens -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link
-  href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap"
-  rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 
 <style>
-  /* ── Design System Tokens (Light / Dark) ── */
+  /* ── Design System Tokens: Architectural Engineering Station ── */
   :root {
-    --v2-bg: #F5F6FA;
-    --v2-surface: #FFFFFF;
-    --v2-ink: #0F172A;
-    --v2-muted: #566079;
-    --v2-line: #E1E5EE;
-    --v2-brand: #1D4ED8;
-    --v2-brand-hover: #1e40af;
-    --v2-verified: #15803D;
-    --v2-verified-bg: #DCFCE7;
-    --v2-q1: #6540D8;
-    --v2-q2: #B4530A;
-    --v2-radius-panel: 14px;
+    --v2-bg: #f8fafc;
+    --v2-surface: #ffffff;
+    --v2-ink: #0f172a;
+    --v2-muted: #64748b;
+    --v2-line: #e2e8f0;
+    --v2-line-subtle: #f1f5f9;
+    --v2-brand: #0284c7;
+    --v2-brand-hover: #0369a1;
+    --v2-verified: #059669;
+    --v2-verified-bg: #d1fae5;
+    --v2-amber: #d97706;
+    --v2-amber-bg: #fef3c7;
+    --v2-radius-panel: 16px;
     --v2-radius-btn: 10px;
     --v2-radius-pill: 9999px;
-    --v2-font-heading: 'Bricolage Grotesque', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-    --v2-font-body: 'Figtree', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --v2-font-heading: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    --v2-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --v2-font-mono: 'JetBrains Mono', monospace;
   }
 
   @media (prefers-color-scheme: dark) {
     :root {
-      --v2-bg: #0B1120;
-      --v2-surface: #131B2D;
-      --v2-ink: #EAEEF7;
-      --v2-muted: #98A3BB;
-      --v2-line: #25304A;
-      --v2-brand: #7FA0FF;
-      --v2-brand-hover: #93b5ff;
-      --v2-verified: #4ADE80;
-      --v2-verified-bg: rgba(74, 222, 128, 0.15);
-      --v2-q1: #A78BFF;
-      --v2-q2: #FFA45E;
+      --v2-bg: #090e1a;
+      --v2-surface: #0f172a;
+      --v2-ink: #f8fafc;
+      --v2-muted: #94a3b8;
+      --v2-line: #1e293b;
+      --v2-line-subtle: #151f32;
+      --v2-brand: #38bdf8;
+      --v2-brand-hover: #0ea5e9;
+      --v2-verified: #34d399;
+      --v2-verified-bg: rgba(5, 150, 105, 0.2);
+      --v2-amber: #f59e0b;
+      --v2-amber-bg: rgba(217, 119, 6, 0.2);
     }
   }
 
@@ -161,17 +162,14 @@ uploader_name %}
     font-family: var(--v2-font-body);
     margin: 0;
     padding: 0;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* Floating Tarika Launcher */
-  body.resource-v2-page #abhiAiLauncher {
-    display: flex !important;
-  }
-
+  /* Container */
   .r2-container {
     max-width: 1366px;
     margin: 0 auto;
-    padding: 1.25rem 1.5rem 5rem;
+    padding: 1.25rem 1.5rem 5.5rem;
     box-sizing: border-box;
   }
 
@@ -179,174 +177,256 @@ uploader_name %}
   .r2-breadcrumbs {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
-    font-size: 0.85rem;
+    gap: 0.45rem;
+    font-size: 0.82rem;
     color: var(--v2-muted);
-    margin-bottom: 0.75rem;
     flex-wrap: wrap;
+    font-weight: 500;
   }
-
   .r2-breadcrumbs a {
     color: var(--v2-muted);
     text-decoration: none;
     transition: color 0.15s ease;
   }
-
   .r2-breadcrumbs a:hover {
+    color: var(--v2-brand);
+    text-decoration: underline;
+  }
+  .r2-breadcrumbs .sep {
+    color: var(--v2-line);
+    font-size: 0.75rem;
+  }
+  .r2-breadcrumbs .curr-page {
+    color: var(--v2-ink);
+    font-weight: 700;
+  }
+
+  /* Document Dossier Header Ticket */
+  .r2-spec-ticket {
+    display: block !important;
+    position: static !important;
+    background: var(--v2-surface);
+    border: 1px solid var(--v2-line);
+    border-radius: var(--v2-radius-panel);
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.05);
+    position: relative;
+    overflow: hidden;
+    width: 100%;
+    box-sizing: border-box;
+  }
+  .r2-spec-ticket::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, #0284c7 0%, #38bdf8 50%, #059669 100%);
+  }
+
+  .r2-ticket-ribbon {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-bottom: 0.85rem;
+    width: 100%;
+  }
+
+  .r2-classification-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .r2-tag-stamp {
+    font-family: var(--v2-font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: 4px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    text-transform: uppercase;
+  }
+  .r2-tag-stamp.pyq {
+    background: #fffbeb;
+    color: #b45309;
+    border-color: #fde68a;
+  }
+  .r2-tag-stamp.practical {
+    background: #f5f3ff;
+    color: #6d28d9;
+    border-color: #ddd6fe;
+  }
+
+  .r2-title-block {
+    margin-bottom: 0.85rem;
+    width: 100%;
+  }
+
+  .r2-heading {
+    font-family: var(--v2-font-heading);
+    font-weight: 800;
+    font-size: clamp(1.4rem, 3.2vw, 2.1rem);
+    line-height: 1.28;
+    letter-spacing: -0.02em;
+    color: var(--v2-ink);
+    margin: 0;
+    word-break: break-word;
+  }
+
+  .r2-subj-prefix {
     color: var(--v2-brand);
   }
 
-  .r2-breadcrumbs .sep {
-    color: var(--v2-line);
-  }
-
-  /* Title & Subtitle */
-  .r2-heading {
-    font-family: var(--v2-font-heading);
-    font-weight: 700;
-    font-size: clamp(1.65rem, 4.6vw, 2.5rem);
-    line-height: 1.18;
-    letter-spacing: -0.025em;
-    color: var(--v2-ink);
-    margin: 0 0 0.4rem 0;
-  }
-
-  .r2-subtitle {
-    font-size: 0.95rem;
-    color: var(--v2-muted);
-    margin: 0 0 1rem 0;
+  /* Provenance & Author Strip */
+  .r2-provenance-row {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 0.85rem;
     flex-wrap: wrap;
+    font-size: 0.86rem;
+    color: var(--v2-muted);
+    padding: 0.75rem 0;
+    margin-bottom: 1.15rem;
+    border-top: 1px solid var(--v2-line);
+    border-bottom: 1px solid var(--v2-line);
+  }
+
+  .r2-author-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .r2-author-label {
+    color: var(--v2-muted);
+  }
+  .r2-uploader-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: var(--v2-brand);
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .r2-uploader-link:hover {
+    text-decoration: underline;
+  }
+
+  .r2-provenance-meta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    font-family: var(--v2-font-mono);
+    font-size: 0.8rem;
+  }
+  .r2-meta-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-weight: 500;
+  }
+
+  .r2-meta-divider {
+    color: var(--v2-line);
+    font-weight: 900;
+  }
+
+  .r2-free-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: #ecfdf5;
+    color: #065f46;
+    border: 1px solid #a7f3d0;
+  }
+  .r2-premium-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
   }
 
   .r2-verified-badge {
     display: inline-flex;
     align-items: center;
-    gap: 0.3rem;
-    padding: 0.2rem 0.6rem;
+    gap: 0.35rem;
+    padding: 0.25rem 0.65rem;
     border-radius: var(--v2-radius-pill);
     background: var(--v2-verified-bg);
     color: var(--v2-verified);
-    font-size: 0.78rem;
+    font-size: 0.75rem;
     font-weight: 700;
   }
 
-  /* Facts Row */
-  .r2-facts-row {
-    display: flex;
-    align-items: center;
-    gap: 1.25rem;
-    font-size: 0.85rem;
-    color: var(--v2-muted);
-    padding: 0.75rem 0;
-    border-top: 1px solid var(--v2-line);
-    border-bottom: 1px solid var(--v2-line);
-    margin-bottom: 1rem;
-    flex-wrap: wrap;
-  }
-
-  .r2-fact-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
-  }
-
-  /* Action Bar */
+  /* Action Bar: Tactile Desktop Controls */
   .r2-action-bar {
     display: flex;
     align-items: center;
     gap: 0.65rem;
-    margin-bottom: 1.5rem;
     flex-wrap: wrap;
   }
-
   .r2-btn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
     gap: 0.45rem;
-    padding: 0.55rem 1rem;
+    padding: 0.55rem 1.1rem;
     min-height: 40px;
     border-radius: var(--v2-radius-btn);
     border: 1px solid var(--v2-line);
     background: var(--v2-surface);
     color: var(--v2-ink);
     font-family: inherit;
-    font-size: 0.88rem;
+    font-size: 0.86rem;
     font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.18s cubic-bezier(0.16, 1, 0.3, 1);
     user-select: none;
     text-decoration: none;
     box-sizing: border-box;
   }
-
   .r2-btn:hover {
     border-color: var(--v2-brand);
     color: var(--v2-brand);
-    background: rgba(29, 78, 216, 0.04);
+    background: rgba(2, 132, 199, 0.05);
+    transform: translateY(-1px);
   }
 
-  .like-btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    transition: all 0.2s ease;
+  .like-btn.liked {
+    background: #fef2f2;
+    border-color: #fca5a5;
+    color: #dc2626;
   }
-
-  .like-btn .like-heart-icon {
-    width: 17px;
-    height: 17px;
-    fill: none;
-    stroke: currentColor;
-    stroke-width: 2;
-    transition: transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275), fill 0.2s ease, stroke 0.2s ease;
-  }
-
-  .like-btn:hover .like-heart-icon {
-    stroke: #EF4444;
-    transform: scale(1.15);
-  }
-
-  .like-btn.liked,
-  .r2-btn.liked {
-    background: #FEF2F2;
-    border-color: #FCA5A5;
-    color: #DC2626;
-  }
-
   .like-btn.liked .like-heart-icon {
-    fill: #EF4444;
-    stroke: #EF4444;
-    animation: heartPop 0.35s ease;
+    fill: #ef4444;
+    stroke: #ef4444;
   }
-
-  @keyframes heartPop {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.3); }
-    100% { transform: scale(1); }
-  }
-
-  .r2-btn.bookmarked {
-    background: #EFF6FF;
-    border-color: #BFDBFE;
-    color: #2563EB;
+  .bookmark-btn.bookmarked {
+    background: #e0f2fe;
+    border-color: #7dd3fc;
+    color: #0369a1;
   }
 
   /* Main Grid Layout */
   .r2-grid {
     display: grid;
-    grid-template-columns: 1fr 390px;
+    grid-template-columns: 1fr 380px;
     gap: 1.5rem;
     align-items: start;
-  }
-
-  @media (max-width: 1000px) {
-    .r2-grid {
-      grid-template-columns: 1fr;
-    }
   }
 
   /* Panels */
@@ -355,6 +435,7 @@ uploader_name %}
     border: 1px solid var(--v2-line);
     border-radius: var(--v2-radius-panel);
     overflow: hidden;
+    box-shadow: 0 4px 16px -4px rgba(15, 23, 42, 0.04);
   }
 
   /* Document Viewer Toolbar */
@@ -362,17 +443,17 @@ uploader_name %}
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.6rem 1rem;
+    padding: 0.65rem 1rem;
     background: var(--v2-surface);
     border-bottom: 1px solid var(--v2-line);
+    flex-wrap: wrap;
+    gap: 0.5rem;
   }
-
   .r2-toolbar-group {
     display: flex;
     align-items: center;
     gap: 0.4rem;
   }
-
   .r2-icon-btn {
     width: 36px;
     height: 36px;
@@ -386,51 +467,34 @@ uploader_name %}
     cursor: pointer;
     transition: all 0.15s ease;
   }
-
   .r2-icon-btn:hover {
     border-color: var(--v2-brand);
     color: var(--v2-brand);
   }
-
   .r2-zoom-label {
-    font-size: 0.82rem;
+    font-family: var(--v2-font-mono);
+    font-size: 0.78rem;
     font-weight: 700;
     color: var(--v2-muted);
     min-width: 44px;
     text-align: center;
   }
 
-  /* Viewer Canvas / Stage */
-  .r2-viewer-stage {
+  /* PDF Viewer Canvas Stage */
+  .preview-iframe-wrap {
     position: relative;
-    min-height: 480px;
-    background: #F1F5F9;
-    overflow: hidden;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    width: 100%;
+    background: #f1f5f9;
   }
-
-
-  @media (prefers-color-scheme: dark) {
-    .r2-viewer-stage {
-      background: #090E1A;
-    }
-  }
-
   .r2-preview-iframe {
     width: 100%;
     height: 75vh;
-    min-height: 480px;
+    min-height: 520px;
     border: none;
     display: block;
   }
 
   /* Watermark Overlay */
-  .preview-iframe-wrap {
-    position: relative;
-  }
-
   .r2-watermark-overlay {
     position: absolute;
     inset: 0;
@@ -442,37 +506,37 @@ uploader_name %}
     align-content: space-around;
     justify-content: space-around;
     overflow: hidden;
-    opacity: 0.12;
+    opacity: 0.08;
   }
-
   .r2-watermark-item {
-    font-size: 2rem;
+    font-family: var(--v2-font-heading);
+    font-size: 1.6rem;
     font-weight: 800;
     color: var(--v2-ink);
-    transform: rotate(-30deg);
+    transform: rotate(-25deg);
     letter-spacing: 2px;
     padding: 1.5rem;
     text-transform: uppercase;
   }
 
-  /* Helpful Row */
+  /* Helpful Feedback Row */
   .r2-helpful-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.75rem 1rem;
+    padding: 0.75rem 1.15rem;
     background: var(--v2-surface);
     border-top: 1px solid var(--v2-line);
-    font-size: 0.88rem;
+    font-size: 0.85rem;
     color: var(--v2-muted);
+    font-weight: 500;
   }
-
   .r2-helpful-actions {
     display: flex;
     gap: 0.5rem;
   }
 
-  /* Tarika Side Panel */
+  /* Recommendations & Tarika Rail */
   .r2-tarika-panel {
     position: sticky;
     top: 1.25rem;
@@ -480,66 +544,59 @@ uploader_name %}
     flex-direction: column;
     max-height: calc(100vh - 2.5rem);
   }
-
   .r2-tarika-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0.9rem 1.1rem;
+    padding: 0.85rem 1.15rem;
     border-bottom: 1px solid var(--v2-line);
   }
-
   .r2-tarika-title {
+    font-family: var(--v2-font-heading);
     font-weight: 700;
     font-size: 0.95rem;
     display: flex;
     align-items: center;
     gap: 0.45rem;
   }
-
   .r2-tarika-tabs {
     display: flex;
     border-bottom: 1px solid var(--v2-line);
-    background: rgba(0, 0, 0, 0.02);
+    background: var(--v2-line-subtle);
   }
-
   .r2-tarika-tab-btn {
     flex: 1;
-    padding: 0.75rem;
+    padding: 0.65rem 0.5rem;
     text-align: center;
     border: none;
     background: transparent;
-    font-family: inherit;
-    font-size: 0.85rem;
+    font-family: var(--v2-font-heading);
+    font-size: 0.8rem;
     font-weight: 700;
     color: var(--v2-muted);
     cursor: pointer;
     border-bottom: 2px solid transparent;
     transition: all 0.15s ease;
   }
-
   .r2-tarika-tab-btn.active {
     color: var(--v2-brand);
     border-bottom-color: var(--v2-brand);
     background: var(--v2-surface);
   }
-
   .r2-tarika-content {
     display: none;
     padding: 1rem;
     overflow-y: auto;
   }
-
   .r2-tarika-content.active {
     display: block;
   }
 
-  /* Overflow Dropdown (⋯ Menu) */
+  /* Overflow Dropdown */
   .r2-menu-wrap {
     position: relative;
     display: inline-block;
   }
-
   .r2-menu-dropdown {
     position: absolute;
     top: calc(100% + 6px);
@@ -548,16 +605,14 @@ uploader_name %}
     background: var(--v2-surface);
     border: 1px solid var(--v2-line);
     border-radius: var(--v2-radius-panel);
-    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 10px 25px rgba(0, 0, 0, 0.12);
     padding: 0.4rem;
     display: none;
     z-index: 1000;
   }
-
   .r2-menu-dropdown.open {
     display: block;
   }
-
   .r2-menu-item {
     display: flex;
     align-items: center;
@@ -577,49 +632,34 @@ uploader_name %}
     box-sizing: border-box;
     text-decoration: none;
   }
-
   .r2-menu-item:hover:not(:disabled) {
-    background: rgba(29, 78, 216, 0.08);
+    background: rgba(2, 132, 199, 0.08);
     color: var(--v2-brand);
   }
-
-  .r2-menu-item:disabled {
-    opacity: 0.5;
-    cursor: not-allowed;
-  }
-
   .r2-menu-divider {
     height: 1px;
     background: var(--v2-line);
     margin: 0.35rem 0;
   }
 
-  /* Fullscreen Focus & Zoom Styles */
-  #previewImage {
-    transition: transform 0.1s ease-out;
-    transform-origin: center center;
-    user-select: none;
-    -webkit-user-drag: none;
-  }
-
-  /* Admin Real-Time Inline Editable Styles */
+  /* Admin Inline Editing */
   .admin-live-editable {
     cursor: text;
     border-radius: 4px;
     padding: 1px 4px;
     transition: all 0.2s ease;
-    border-bottom: 2px dashed rgba(37, 99, 235, 0.45);
+    border-bottom: 2px dashed rgba(2, 132, 199, 0.45);
     display: inline-block;
   }
   .admin-live-editable:hover {
-    background: rgba(37, 99, 235, 0.08);
-    border-bottom-color: #2563eb;
+    background: rgba(2, 132, 199, 0.08);
+    border-bottom-color: var(--v2-brand);
   }
   .admin-live-editable:focus {
     outline: none;
-    background: rgba(37, 99, 235, 0.14);
-    border-bottom: 2px solid #2563eb;
-    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+    background: rgba(2, 132, 199, 0.14);
+    border-bottom: 2px solid var(--v2-brand);
+    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.2);
   }
   .admin-live-select {
     border: 1px solid #cbd5e1;
@@ -631,6 +671,104 @@ uploader_name %}
     color: #1e293b;
     font-weight: 600;
     cursor: pointer;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     MOBILE ERGONOMICS & RESPONSIVE TACTILE CONTROLS (<= 992px & <= 768px)
+     ───────────────────────────────────────────────────────────────────────── */
+  .r2-mobile-dock {
+    display: none;
+  }
+
+  @media (max-width: 992px) {
+    .r2-grid {
+      grid-template-columns: 1fr;
+    }
+    .r2-tarika-panel {
+      position: static;
+      max-height: none;
+      margin-top: 1.5rem;
+    }
+  }
+
+  @media (max-width: 768px) {
+    .r2-container {
+      padding: 0.85rem 0.85rem 6.5rem;
+    }
+    .r2-spec-ticket {
+      padding: 1.15rem 1rem;
+      border-radius: 14px;
+    }
+    .r2-heading {
+      font-size: 1.35rem;
+    }
+    .r2-preview-iframe {
+      height: clamp(440px, 68vh, 560px);
+      min-height: 420px;
+    }
+    .r2-watermark-overlay {
+      opacity: 0.05;
+    }
+    .r2-watermark-item {
+      font-size: 1.15rem;
+      padding: 1rem;
+    }
+    .r2-action-bar {
+      gap: 0.45rem;
+    }
+    .r2-action-bar .r2-btn {
+      padding: 0.45rem 0.8rem;
+      font-size: 0.8rem;
+      min-height: 36px;
+    }
+
+    /* Mobile Sticky Bottom Fast Utility Dock */
+    .r2-mobile-dock {
+      display: flex;
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      background: rgba(11, 19, 41, 0.94);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border-top: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 0.65rem 1rem calc(0.65rem + env(safe-area-inset-bottom, 0px));
+      z-index: 8000;
+      align-items: center;
+      justify-content: space-around;
+      gap: 0.5rem;
+      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25);
+    }
+    .r2-dock-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      border-radius: 10px;
+      color: #ffffff;
+      padding: 0.45rem 0.25rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      cursor: pointer;
+      text-decoration: none;
+      min-height: 44px;
+      touch-action: manipulation;
+    }
+    .r2-dock-btn:active {
+      background: rgba(255, 255, 255, 0.15);
+      transform: scale(0.97);
+    }
+    .r2-dock-btn.primary {
+      background: #0284c7;
+      border-color: #38bdf8;
+    }
+    .r2-dock-icon {
+      font-size: 1.05rem;
+      line-height: 1;
+    }
   }
 </style>
 {% endblock %}
@@ -675,156 +813,159 @@ uploader_name %}
   </div>
   {% endif %}
 
-  <!-- Breadcrumbs -->
-  <nav class="r2-breadcrumbs" aria-label="Breadcrumb">
-    <a href="/">Home</a>
-    <span class="sep">/</span>
-    {% if document.college %}
-    <a href="/college/{{ (document.college.abbreviation or document.college.name) | lower | replace(' ', '-') }}">{{
-      document.college.abbreviation or document.college.name }}</a>
-    <span class="sep">/</span>
-    {% endif %}
-    {% if document.subject %}
-    <a href="/subject/{{ document.subject.name | lower | replace(' ', '-') }}">{{ document.subject.name }}</a>
-    <span class="sep">/</span>
-    {% endif %}
-    <span aria-current="page">{{ file_type }}</span>
-  </nav>
+  <!-- Technical Dossier Spec Ticket Header -->
+  <section class="r2-spec-ticket">
+    <!-- Top Utility Ribbon: Breadcrumbs on left, Archival Classification stamp on right -->
+    <div class="r2-ticket-ribbon">
+      <nav class="r2-breadcrumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a>
+        <span class="sep">/</span>
+        {% if document.college %}
+        <a href="/college/{{ (document.college.abbreviation or document.college.name) | lower | replace(' ', '-') }}">{{
+          document.college.abbreviation or document.college.name }}</a>
+        <span class="sep">/</span>
+        {% endif %}
+        {% if document.subject %}
+        <a href="/subject/{{ document.subject.name | lower | replace(' ', '-') }}">{{ document.subject.name }}</a>
+        <span class="sep">/</span>
+        {% endif %}
+        <span class="curr-page" aria-current="page">{{ file_type }}</span>
+      </nav>
 
-  <!-- Main Header with Live Inline Editable Title -->
-  <h1 class="r2-heading" style="display:flex; align-items:baseline; flex-wrap:wrap; gap:0.4rem;">
-    <span>{{ subj_name }}: </span>
-    {% if is_admin %}
-    <span id="liveDocTitle"
-          class="admin-live-editable"
-          contenteditable="true"
-          spellcheck="false"
-          data-field="title"
-          title="Admin: Click here to rename file in real-time">{{ document.title or file_type }}</span>
-    <span style="font-size:0.85rem; opacity:0.6; cursor:pointer;" title="Click title to rename in real-time">✏️</span>
-    {% else %}
-    <span>{{ document.title or file_type }}</span>
-    {% endif %}
-  </h1>
-
-  <div class="r2-subtitle" style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
-    <span>Verified 
-      {% if is_admin %}
-      <select id="liveDocCategory" class="admin-live-select" data-field="document_category" title="Change Category in real time">
-        {% for cat in ['Notes', 'PYQ', 'Practical', 'Syllabus', 'Assignment', 'Question Bank', 'Timetable'] %}
-        <option value="{{ cat }}" {% if cat|lower == file_type|lower or cat|lower == (document.document_category or '')|lower %}selected{% endif %}>{{ cat }}</option>
-        {% endfor %}
-      </select>
-      {% else %}
-      {{ file_type }}
-      {% endif %}
-      uploaded by 
-      {% if document.uploader_id %}
-      <a href="/u/{{ document.uploader_id }}" target="_blank" style="color:var(--v2-brand, #4f46e5); font-weight:700; text-decoration:underline; text-underline-offset:2px; display:inline-flex; align-items:center; gap:3px;" title="View {{ uploader_name }}'s Peer Profile & Study Hub">
-        <span>👤</span> <span>{{ uploader_name }}</span>
-      </a>
-      {% else %}
-      <strong>{{ uploader_name }}</strong>
-      {% endif %}
-    </span>
-    {% if document.uploader and document.uploader.is_verified %}
-    <span class="r2-verified-badge">✔ Verified Contributor</span>
-    {% endif %}
-    {% if is_admin %}
-    <span class="admin-price-pill" style="display:inline-flex; align-items:center; gap:4px; background:#fef3c7; border:1px solid #f59e0b; padding:2px 8px; border-radius:8px; font-size:0.8rem; font-weight:700; color:#92400e;">
-      <label style="cursor:pointer; display:inline-flex; align-items:center; gap:2px;">
-        <input type="checkbox" id="liveDocIsPaid" data-field="is_paid" {% if pricing and pricing.is_paid %}checked{% endif %}>
-        <span>Paid</span>
-      </label>
-      <span>₹</span>
-      <span id="liveDocPrice" class="admin-live-editable" contenteditable="true" data-field="price" title="Click to edit price in real time">{{ pricing.price if pricing and pricing.price else 0 }}</span>
-    </span>
-    {% elif pricing and pricing.is_paid and pricing.price %}
-    <span style="background:linear-gradient(135deg, #fef3c7, #fde68a);color:#92400e;border:1px solid #f59e0b;font-weight:800;padding:3px 10px;border-radius:8px;font-size:0.8rem;display:inline-flex;align-items:center;gap:4px;">⭐ Premium ₹{{ pricing.price }}</span>
-    {% endif %}
-  </div>
-
-  <!-- Facts Row with Live Editable Status -->
-  <div class="r2-facts-row" aria-label="Resource Facts">
-    {% if is_admin %}
-    <div class="r2-fact-item" style="padding: 2px 6px;">
-      <span style="font-weight:700; font-size:0.75rem; color:#475569;">Status:</span>
-      <select id="liveDocStatus" class="admin-live-select" data-field="status" title="Admin: Change status in real time">
-        <option value="approved" {% if document.status == 'approved' or not document.status %}selected{% endif %}>✅ Live / Approved</option>
-        <option value="hidden" {% if document.status == 'hidden' %}selected{% endif %}>⏸️ Hidden / Temporary Hold</option>
-        <option value="pending" {% if document.status == 'pending' %}selected{% endif %}>⏳ Pending Verification</option>
-      </select>
-    </div>
-    {% else %}
-    <div class="r2-fact-item">
-      <span class="r2-verified-badge">✔ Verified</span>
-    </div>
-    {% endif %}
-    <div class="r2-fact-item">
-      📅 {{ (document.created_at or '')[:10] }}
-    </div>
-    <div class="r2-fact-item">
-      👁️ {{ document.view_count or 0 }} Views
-    </div>
-    {% if document.file_size_bytes %}
-    <div class="r2-fact-item">
-      📦 {{ (document.file_size_bytes|int / 1024 / 1024)|round(2) }} MB
-    </div>
-    {% endif %}
-  </div>
-
-  <!-- Action Row -->
-  <div class="r2-action-bar" aria-label="Resource Actions">
-    <button class="r2-btn like-btn {{ 'liked' if document.is_liked else '' }}" type="button" data-action="toggleLike"
-      data-doc-id="{{ document.id }}" data-record-id="{{ document.id }}" aria-label="Like this resource">
-      <svg class="like-heart-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-      </svg>
-      <span class="like-count">{{ document.like_count or 0 }}</span>
-    </button>
-    <button class="r2-btn bookmark-btn {{ 'bookmarked' if document.is_bookmarked else '' }}" type="button"
-      data-action="toggleBookmark" data-doc-id="{{ document.id }}" data-record-id="{{ document.id }}" aria-label="Save this resource">
-      🔖 <span class="bookmark-count">{{ document.bookmark_count or 0 }}</span> Save
-    </button>
-    <button class="r2-btn share-btn" type="button" onclick="shareResource()" aria-label="Share this resource">
-      🔗 Share
-    </button>
-    {% if can_manage %}
-    <a href="#manageResourcePanel" class="r2-btn" style="background:rgba(99,102,241,0.12); color:#4f46e5; border:1px solid rgba(99,102,241,0.3); font-weight:700; text-decoration:none;">
-      ⚙️ Manage & Viewers ({{ viewers|length }})
-    </a>
-    {% endif %}
-
-    <!-- Overflow (⋯) Menu -->
-    <div class="r2-menu-wrap">
-      <button class="r2-btn" type="button" id="r2OverflowBtn" onclick="toggleR2Menu()" aria-label="More actions"
-        aria-expanded="false">
-        ⋯
-      </button>
-      <div class="r2-menu-dropdown" id="r2OverflowMenu">
-        <button class="r2-menu-item" type="button" onclick="window.shareChatWhatsApp()">
-          <span>💬</span> Share on WhatsApp
-        </button>
-        <button class="r2-menu-item" type="button" id="exportChatPdfBtn" onclick="window.exportChatPDF()">
-          <span>📄</span> Export Chat PDF
-        </button>
-        <div class="r2-menu-divider"></div>
-        <button class="r2-menu-item" type="button" onclick="window.sendPersonaPrompt('ChatGPT', this)">
-          <span>🤖</span> Open in ChatGPT
-        </button>
-        <button class="r2-menu-item" type="button" onclick="window.sendPersonaPrompt('Gemini', this)">
-          <span>✨</span> Open in Gemini
-        </button>
-        <button class="r2-menu-item" type="button" onclick="window.sendPersonaPrompt('Claude', this)">
-          <span>🧠</span> Open in Claude
-        </button>
-        <div class="r2-menu-divider"></div>
-        <button class="r2-menu-item" type="button" onclick="rOpenReport()" style="color:#EF4444;">
-          <span>🚩</span> Report a problem
-        </button>
+      <div class="r2-classification-pill">
+        <span class="r2-tag-stamp {{ file_type | lower }}">[DOC·{{ file_type | upper }}]</span>
+        {% if document.uploader and document.uploader.is_verified %}
+        <span class="r2-verified-badge">✔ Verified</span>
+        {% endif %}
       </div>
     </div>
-  </div>
+
+    <!-- Main Title with Real-time Inline Edit for Admin -->
+    <div class="r2-title-block">
+      <h1 class="r2-heading">
+        <span class="r2-subj-prefix">{{ subj_name }}: </span>
+        {% if is_admin %}
+        <span id="liveDocTitle"
+              class="admin-live-editable"
+              contenteditable="true"
+              spellcheck="false"
+              data-field="title"
+              title="Admin: Click here to rename file in real-time">{{ document.title or file_type }}</span>
+        <span style="font-size:0.85rem; opacity:0.6; cursor:pointer;" title="Click title to rename in real-time">✏️</span>
+        {% else %}
+        <span class="r2-doc-title-text">{{ document.title or file_type }}</span>
+        {% endif %}
+      </h1>
+    </div>
+
+    <!-- Provenance & Author Strip -->
+    <div class="r2-provenance-row">
+      <div class="r2-author-item">
+        <span class="r2-author-label">Uploaded by</span>
+        {% if document.uploader_id %}
+        <a href="/u/{{ document.uploader_id }}" target="_blank" class="r2-uploader-link" title="View {{ uploader_name }}'s Peer Profile & Study Hub">
+          <span class="r2-avatar-dot">👤</span>
+          <span class="r2-uploader-name">{{ uploader_name }}</span>
+        </a>
+        {% else %}
+        <span class="r2-uploader-name"><strong>{{ uploader_name }}</strong></span>
+        {% endif %}
+      </div>
+
+      <div class="r2-meta-divider">·</div>
+
+      <div class="r2-provenance-meta">
+        <span class="r2-meta-tag">📅 {{ (document.created_at or '')[:10] }}</span>
+        <span class="r2-meta-tag">👁️ {{ document.view_count or 0 }} Views</span>
+        {% if document.file_size_bytes %}
+        <span class="r2-meta-tag">📦 {{ (document.file_size_bytes|int / 1024 / 1024)|round(2) }} MB</span>
+        {% endif %}
+      </div>
+
+      {% if is_admin %}
+      <div class="r2-admin-controls-inline" style="display:inline-flex; align-items:center; gap:0.4rem; flex-wrap:wrap; margin-left:auto;">
+        <select id="liveDocCategory" class="admin-live-select" data-field="document_category" title="Change Category">
+          {% for cat in ['Notes', 'PYQ', 'Practical', 'Syllabus', 'Assignment', 'Question Bank', 'Timetable'] %}
+          <option value="{{ cat }}" {% if cat|lower == file_type|lower or cat|lower == (document.document_category or '')|lower %}selected{% endif %}>{{ cat }}</option>
+          {% endfor %}
+        </select>
+        <select id="liveDocStatus" class="admin-live-select" data-field="status" title="Admin: Change status">
+          <option value="approved" {% if document.status == 'approved' or not document.status %}selected{% endif %}>✅ Live</option>
+          <option value="hidden" {% if document.status == 'hidden' %}selected{% endif %}>⏸️ Hidden</option>
+          <option value="pending" {% if document.status == 'pending' %}selected{% endif %}>⏳ Pending</option>
+        </select>
+        <span class="admin-price-pill" style="display:inline-flex; align-items:center; gap:4px; background:#fef3c7; border:1px solid #f59e0b; padding:2px 8px; border-radius:6px; font-size:0.78rem; font-weight:700; color:#92400e;">
+          <label style="cursor:pointer; display:inline-flex; align-items:center; gap:2px;">
+            <input type="checkbox" id="liveDocIsPaid" data-field="is_paid" {% if pricing and pricing.is_paid %}checked{% endif %}>
+            <span>Paid ₹</span>
+          </label>
+          <span id="liveDocPrice" class="admin-live-editable" contenteditable="true" data-field="price">{{ pricing.price if pricing and pricing.price else 0 }}</span>
+        </span>
+      </div>
+      {% elif pricing and pricing.is_paid and pricing.price %}
+      <span class="r2-premium-badge" style="margin-left:auto;">⭐ Premium ₹{{ pricing.price }}</span>
+      {% else %}
+      <span class="r2-free-badge" style="margin-left:auto;">✓ Free Access</span>
+      {% endif %}
+    </div>
+
+    <!-- Tactile Action Bar -->
+    <div class="r2-action-bar" aria-label="Resource Actions">
+      <button class="r2-btn like-btn {{ 'liked' if document.is_liked else '' }}" type="button" data-action="toggleLike"
+        data-doc-id="{{ document.id }}" data-record-id="{{ document.id }}" aria-label="Like this resource">
+        <svg class="like-heart-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+        </svg>
+        <span class="like-count">{{ document.like_count or 0 }}</span>
+        <span class="r2-btn-label">Like</span>
+      </button>
+
+      <button class="r2-btn bookmark-btn {{ 'bookmarked' if document.is_bookmarked else '' }}" type="button"
+        data-action="toggleBookmark" data-doc-id="{{ document.id }}" data-record-id="{{ document.id }}" aria-label="Save this resource">
+        🔖 <span class="bookmark-count">{{ document.bookmark_count or 0 }}</span> <span class="r2-btn-label">Save</span>
+      </button>
+
+      <button class="r2-btn share-btn" type="button" onclick="shareResource()" aria-label="Share this resource">
+        🔗 <span class="r2-btn-label">Share</span>
+      </button>
+
+      {% if can_manage %}
+      <a href="#manageResourcePanel" class="r2-btn" style="background:rgba(2,132,199,0.08); color:#0284c7; border:1px solid rgba(2,132,199,0.25); font-weight:700; text-decoration:none;">
+        ⚙️ Manage & Viewers ({{ viewers|length }})
+      </a>
+      {% endif %}
+
+      <!-- Overflow (⋯) Menu -->
+      <div class="r2-menu-wrap">
+        <button class="r2-btn" type="button" id="r2OverflowBtn" onclick="toggleR2Menu()" aria-label="More actions"
+          aria-expanded="false">
+          ⋯
+        </button>
+        <div class="r2-menu-dropdown" id="r2OverflowMenu">
+          <button class="r2-menu-item" type="button" onclick="window.shareChatWhatsApp()">
+            <span>💬</span> Share on WhatsApp
+          </button>
+          <button class="r2-menu-item" type="button" id="exportChatPdfBtn" onclick="window.exportChatPDF()">
+            <span>📄</span> Export Chat PDF
+          </button>
+          <div class="r2-menu-divider"></div>
+          <button class="r2-menu-item" type="button" onclick="window.sendPersonaPrompt('ChatGPT', this)">
+            <span>🤖</span> Open in ChatGPT
+          </button>
+          <button class="r2-menu-item" type="button" onclick="window.sendPersonaPrompt('Gemini', this)">
+            <span>✨</span> Open in Gemini
+          </button>
+          <button class="r2-menu-item" type="button" onclick="window.sendPersonaPrompt('Claude', this)">
+            <span>🧠</span> Open in Claude
+          </button>
+          <div class="r2-menu-divider"></div>
+          <button class="r2-menu-item" type="button" onclick="rOpenReport()" style="color:#EF4444;">
+            <span>🚩</span> Report a problem
+          </button>
+        </div>
+      </div>
+    </div>
+  </section>
 
   <!-- Resource Description / Overview (Inline Real-time Editable for Admin) -->
   <div class="r2-description-card" style="margin: 0.85rem 0 1.25rem; padding: 0.9rem 1.2rem; background: var(--v2-surface); border: 1px solid var(--v2-line); border-radius: var(--v2-radius-panel);">
@@ -1541,6 +1682,7 @@ uploader_name %}
         </div>
       </div>
 
+      {% if is_uploader_verified %}
       <div style="background:linear-gradient(to right, rgba(240,253,244,0.7), var(--v2-surface)); border:1px solid rgba(22,163,74,0.3); border-radius:10px; padding:1rem; display:flex; align-items:center; gap:0.85rem; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
         <div style="width:42px; height:42px; border-radius:8px; background:rgba(22,163,74,0.12); display:flex; align-items:center; justify-content:center; font-size:1.3rem;">💰</div>
         <div>
@@ -1549,6 +1691,7 @@ uploader_name %}
           <div style="font-size:0.72rem; color:var(--v2-muted);">Earn <strong>₹0.20</strong> per recorded view</div>
         </div>
       </div>
+      {% endif %}
 
       <div style="background:var(--v2-surface); border:1px solid var(--v2-line); border-radius:10px; padding:1rem; display:flex; align-items:center; gap:0.85rem; box-shadow:0 1px 3px rgba(0,0,0,0.04);">
         <div style="width:42px; height:42px; border-radius:8px; background:rgba(0,0,0,0.04); display:flex; align-items:center; justify-content:center; font-size:1.3rem;">📊</div>
@@ -1642,9 +1785,11 @@ uploader_name %}
         <div style="font-size:0.85rem; font-weight:700; color:var(--v2-ink);">Recent Student Access History</div>
         <div style="font-size:0.78rem; color:var(--v2-muted);">
           Total Visits: <strong>{{ document.view_count or 0 }}</strong> | 
-          Recorded Views: <strong style="color:#4f46e5;">{{ recorded_views }}</strong> | 
-          Earnings from Views: <strong style="color:#16a34a; font-size:0.85rem;">₹{{ "%.2f"|format(view_earnings) }}</strong>
+          Recorded Views: <strong style="color:#4f46e5;">{{ recorded_views }}</strong>
+          {% if is_uploader_verified %}
+          | Earnings from Views: <strong style="color:#16a34a; font-size:0.85rem;">₹{{ "%.2f"|format(view_earnings) }}</strong>
           <span style="font-size:0.72rem; color:var(--v2-muted);">(₹0.20 / recorded view)</span>
+          {% endif %}
         </div>
       </div>
       {% if viewers and viewers|length > 0 %}
@@ -1829,6 +1974,36 @@ uploader_name %}
       <div style="color:var(--v2-muted); font-size:0.85rem;">Loading comments...</div>
     </div>
     <span id="metaCommentCount" style="display:none;">{{ document.comment_count or 0 }}</span>
+  </div>
+
+  <!-- Mobile Fast-Action Sticky Dock -->
+  <div class="r2-mobile-dock" aria-label="Quick Actions">
+    <button class="r2-mobile-dock-btn {{ 'liked' if document.is_liked else '' }}" type="button" data-action="toggleLike"
+      data-doc-id="{{ document.id }}" data-record-id="{{ document.id }}" aria-label="Like resource">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="{{ '#ef4444' if document.is_liked else 'none' }}" stroke="{{ '#ef4444' if document.is_liked else 'currentColor' }}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+      </svg>
+      <span class="like-count">{{ document.like_count or 0 }}</span>
+    </button>
+    <button class="r2-mobile-dock-btn {{ 'bookmarked' if document.is_bookmarked else '' }}" type="button"
+      data-action="toggleBookmark" data-doc-id="{{ document.id }}" data-record-id="{{ document.id }}" aria-label="Bookmark resource">
+      <span>🔖</span>
+      <span>Save</span>
+    </button>
+    <button class="r2-mobile-dock-btn" type="button" onclick="shareResource()" aria-label="Share resource">
+      <span>🔗</span>
+      <span>Share</span>
+    </button>
+    <button class="r2-mobile-dock-btn" type="button" onclick="toggleDocCardFullscreen()" aria-label="Fullscreen view">
+      <span>⛶</span>
+      <span>Expand</span>
+    </button>
+    {% if document.file_url %}
+    <a href="{{ document.file_url }}" target="_blank" rel="noopener noreferrer" class="r2-mobile-dock-btn" style="color:var(--r2-cyan, #0284c7); text-decoration:none;" aria-label="Open original file">
+      <span>↗</span>
+      <span>Open</span>
+    </a>
+    {% endif %}
   </div>
 
 </div>

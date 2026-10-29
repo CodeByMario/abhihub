@@ -30,11 +30,11 @@
     <span class="navbar__label">Settings</span>
   </a>
 
-  <a href="{{ url_for('app_pages.store_room') }}" class="navbar__item -green" data-page="store-room" data-feature="Nav: Store Room">
+  <a href="{{ url_for('channels.creator_hub') }}" class="navbar__item -green" data-page="creator-hub" data-feature="Nav: Creator Hub">
     <span class="navbar__icon" aria-hidden="true">
-      <svg class="icon"><use xlink:href="#icon-folder"></use></svg>
+      <svg class="icon"><use xlink:href="#icon-user"></use></svg>
     </span>
-    <span class="navbar__label">Store Room</span>
+    <span class="navbar__label">Creator Hub</span>
   </a>
 
   {% if session.get('user', {}).get('email', '').lower() in ['codebymario@gmail.com', 'info@abhihub.edu.eu.org', 'admin@abhihub.edu.eu.org'] %}
@@ -130,7 +130,7 @@
         (page === 'home' && (currentPath === '/dashboard/' || currentPath === '/dashboard')) ||
         (page === 'ranking' && currentPath.includes('rank')) ||
         (page === 'settings' && (currentPath.includes('setting') || currentPath.includes('profile') || currentPath.includes('account'))) ||
-        (page === 'store-room' && currentPath.includes('store-room')) ||
+        (page === 'creator-hub' && (currentPath.includes('creator') || currentPath.includes('channel'))) ||
         (page === 'upload' && (currentPath === '/upload' || currentPath === '/upload-gate')) ||
         (page === 'admin' && currentPath.includes('admin'))
       ) {

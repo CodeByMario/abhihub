@@ -1,585 +1,1309 @@
 {% set hide_header_tools = true %}
 {% extends 'p_struct.html' %}
 
+{% block page_head %}
+<!-- Google Fonts: Plus Jakarta Sans for crisp architectural precision typography -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+{% endblock %}
+
 {% block content %}
 <style>
   :root {
-    --primary-blue: #2563eb;
-    --primary-dark: #1d4ed8;
-    --accent-purple: #7c3aed;
-    --accent-emerald: #10b981;
-    --text-slate: #0f172a;
-    --text-muted: #64748b;
-    --bg-card: rgba(255, 255, 255, 0.85);
-    --border-light: #e2e8f0;
+    --ink-solid: #090e1a;
+    --ink-title: #0f172a;
+    --ink-body: #334155;
+    --ink-muted: #64748b;
+    --ink-faint: #94a3b8;
+    --surface-pure: #ffffff;
+    --surface-soft: #f8fafc;
+    --surface-subtle: #f1f5f9;
+    --border-hairline: #e2e8f0;
+    --border-mid: #cbd5e1;
+    --cobalt-ink: #1d4ed8;
+    --cobalt-deep: #1e40af;
+    --cobalt-wash: rgba(29, 78, 216, 0.06);
+    --deal-crimson: #dc2626;
+    --deal-wash: #fef2f2;
+    --deal-border: #fecaca;
+    --mint-emerald: #047857;
+    --mint-wash: #ecfdf5;
+    --mint-border: #a7f3d0;
   }
 
-  .dark :root {
-    --bg-card: rgba(30, 41, 59, 0.85);
-    --border-light: #334155;
-    --text-slate: #f8fafc;
-    --text-muted: #94a3b8;
+  [data-theme="dark"], .dark {
+    --ink-solid: #f8fafc;
+    --ink-title: #f1f5f9;
+    --ink-body: #cbd5e1;
+    --ink-muted: #94a3b8;
+    --ink-faint: #64748b;
+    --surface-pure: #0f172a;
+    --surface-soft: #111c33;
+    --surface-subtle: #1e293b;
+    --border-hairline: #22324f;
+    --border-mid: #334566;
+    --cobalt-ink: #3b82f6;
+    --cobalt-deep: #60a5fa;
+    --cobalt-wash: rgba(59, 130, 246, 0.12);
+    --deal-crimson: #f87171;
+    --deal-wash: rgba(220, 38, 38, 0.12);
+    --deal-border: rgba(248, 113, 113, 0.25);
+    --mint-emerald: #34d399;
+    --mint-wash: rgba(4, 120, 87, 0.12);
+    --mint-border: rgba(52, 211, 153, 0.25);
   }
 
-  /* Base wrapper */
-  .landing-wrap {
-    font-family: 'Kanit', -apple-system, BlinkMacSystemFont, sans-serif;
-    color: var(--text-slate);
+  .exchange-shell {
+    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    color: var(--ink-body);
+    background: var(--surface-soft);
+    line-height: 1.55;
     overflow-x: hidden;
   }
 
-  /* Hero Section */
-  .hero-block {
+  /* Structural rules */
+  .ledger-wrap {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.25rem;
+  }
+
+  /* ─── Hero Section ────────────────────────────────────────────── */
+  .hero-exchange {
+    padding: 3.5rem 0 3rem;
     position: relative;
-    padding: 4.5rem 1.25rem 3.5rem;
-    background: radial-gradient(circle at 15% 20%, rgba(37, 99, 235, 0.08), transparent 45%),
-                radial-gradient(circle at 85% 80%, rgba(124, 58, 237, 0.08), transparent 45%);
-    text-align: center;
+    border-bottom: 1px solid var(--border-hairline);
+    background: radial-gradient(circle at 10% 10%, var(--cobalt-wash), transparent 40%),
+                radial-gradient(circle at 90% 90%, rgba(124, 58, 237, 0.04), transparent 45%),
+                var(--surface-pure);
   }
 
-  .badge-dna {
+  .hero-grid {
+    display: grid;
+    grid-template-columns: 1.15fr 0.95fr;
+    gap: 2.75rem;
+    align-items: center;
+  }
+
+  @media (max-width: 960px) {
+    .hero-grid {
+      grid-template-columns: 1fr;
+      gap: 2.5rem;
+    }
+  }
+
+  /* Left Hero Content */
+  .dispatch-badge {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.4rem 1rem;
-    border-radius: 9999px;
-    background: rgba(37, 99, 235, 0.1);
-    color: var(--primary-blue);
-    font-size: 0.85rem;
+    padding: 0.35rem 0.85rem;
+    background: var(--surface-soft);
+    border: 1px solid var(--border-hairline);
+    border-radius: 999px;
+    font-size: 0.82rem;
     font-weight: 600;
-    margin-bottom: 1.5rem;
-    border: 1px solid rgba(37, 99, 235, 0.2);
+    color: var(--ink-muted);
+    margin-bottom: 1.25rem;
   }
 
-  .hero-headline {
-    font-size: clamp(2.2rem, 5.5vw, 3.8rem);
+  .dispatch-dot {
+    width: 7px;
+    height: 7px;
+    background: var(--mint-emerald);
+    border-radius: 50%;
+  }
+
+  .hero-lead-title {
+    font-size: clamp(2.3rem, 4.4vw, 3.4rem);
     font-weight: 800;
-    line-height: 1.15;
-    max-width: 860px;
-    margin: 0 auto 1.25rem;
-    letter-spacing: -0.02em;
+    color: var(--ink-title);
+    letter-spacing: -0.035em;
+    line-height: 1.12;
+    margin: 0 0 1.25rem;
+    max-width: 640px;
   }
 
-  .hero-gradient-text {
-    background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-  }
-
-  .hero-subhead {
-    font-size: 1.15rem;
-    color: var(--text-muted);
-    max-width: 660px;
-    margin: 0 auto 2.25rem;
+  .hero-lead-sub {
+    font-size: 1.1rem;
+    color: var(--ink-muted);
     line-height: 1.6;
+    margin: 0 0 2rem;
+    max-width: 580px;
   }
 
-  .hero-actions {
+  .hero-actions-row {
     display: flex;
-    gap: 1rem;
-    justify-content: center;
+    gap: 0.85rem;
+    align-items: center;
     flex-wrap: wrap;
-    margin-bottom: 2.5rem;
+    margin-bottom: 2.25rem;
   }
 
-  .btn-primary-hero {
-    background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  .btn-exchange-primary {
+    background: var(--cobalt-ink);
     color: #ffffff !important;
-    padding: 0.85rem 1.75rem;
+    padding: 0.85rem 1.6rem;
     border-radius: 12px;
-    font-weight: 600;
-    font-size: 1rem;
-    box-shadow: 0 10px 20px -5px rgba(37, 99, 235, 0.4);
-    transition: all 0.2s ease;
+    font-weight: 700;
+    font-size: 0.95rem;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    transition: transform 0.15s ease, background-color 0.15s ease;
+    border: none;
+    cursor: pointer;
   }
 
-  .btn-primary-hero:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 14px 24px -5px rgba(37, 99, 235, 0.5);
+  .btn-exchange-primary:hover {
+    background: var(--cobalt-deep);
+    transform: translateY(-1px);
   }
 
-  .btn-secondary-hero {
-    background: var(--bg-card);
-    border: 1px solid var(--border-light);
-    color: var(--text-slate) !important;
-    padding: 0.85rem 1.75rem;
+  .btn-exchange-outline {
+    background: var(--surface-pure);
+    color: var(--ink-title) !important;
+    padding: 0.85rem 1.6rem;
     border-radius: 12px;
-    font-weight: 600;
-    font-size: 1rem;
-    transition: all 0.2s ease;
+    font-weight: 700;
+    font-size: 0.95rem;
     text-decoration: none;
+    border: 1px solid var(--border-mid);
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
+    transition: all 0.15s ease;
   }
 
-  .btn-secondary-hero:hover {
-    background: #f1f5f9;
-    transform: translateY(-2px);
+  .btn-exchange-outline:hover {
+    background: var(--surface-subtle);
+    border-color: var(--ink-muted);
+    transform: translateY(-1px);
   }
 
-  /* Trust Bar */
-  .trust-strip {
+  /* Live Domain Quota Calculator Strip */
+  .domain-quota-box {
+    background: var(--surface-soft);
+    border: 1px solid var(--border-hairline);
+    border-radius: 14px;
+    padding: 1.1rem 1.25rem;
+    max-width: 580px;
+  }
+
+  .domain-quota-header {
     display: flex;
-    justify-content: center;
+    justify-content: space-between;
     align-items: center;
-    gap: 1.75rem;
+    margin-bottom: 0.65rem;
+  }
+
+  .domain-quota-label {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--ink-muted);
+    letter-spacing: 0.02em;
+  }
+
+  .domain-selector-group {
+    display: flex;
+    gap: 0.5rem;
     flex-wrap: wrap;
-    font-size: 0.9rem;
-    color: var(--text-muted);
+    margin-bottom: 0.65rem;
   }
 
-  .trust-item {
+  .btn-domain-chip {
+    background: var(--surface-pure);
+    border: 1px solid var(--border-hairline);
+    border-radius: 8px;
+    padding: 0.35rem 0.65rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--ink-title);
+    cursor: pointer;
+    transition: all 0.15s;
+  }
+
+  .btn-domain-chip.active {
+    background: var(--cobalt-wash);
+    border-color: var(--cobalt-ink);
+    color: var(--cobalt-ink);
+  }
+
+  .domain-quota-result {
     display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    padding-top: 0.55rem;
+    border-top: 1px solid var(--border-hairline);
+  }
+
+  .domain-quota-stat {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--mint-emerald);
+  }
+
+  .domain-quota-note {
+    font-size: 0.76rem;
+    color: var(--ink-muted);
+  }
+
+  /* ─── Right: The Official Launch Deal Ticket ───────────────────── */
+  .deal-ticket {
+    background: var(--surface-pure);
+    border: 2px solid var(--cobalt-ink);
+    border-radius: 20px;
+    box-shadow: 0 16px 36px -8px rgba(15, 23, 42, 0.12);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .deal-ticket-header {
+    background: linear-gradient(135deg, var(--surface-pure) 0%, var(--surface-soft) 100%);
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px dashed var(--border-mid);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+  }
+
+  /* Countdown Urgency Cluster */
+  .countdown-urgency-block {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .urgency-fire-label {
+    display: inline-flex;
     align-items: center;
     gap: 0.4rem;
   }
 
-  /* Card Grid */
-  .section-container {
-    max-width: 1180px;
-    margin: 0 auto;
-    padding: 4rem 1.25rem;
+  .fire-pulse-dot {
+    width: 8px;
+    height: 8px;
+    background: #dc2626;
+    border-radius: 50%;
+    animation: urgentPulse 1.2s infinite ease-in-out;
   }
 
-  .section-head {
-    text-align: center;
-    margin-bottom: 3rem;
+  @keyframes urgentPulse {
+    0% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(220, 38, 38, 0.7); }
+    70% { transform: scale(1.2); opacity: 1; box-shadow: 0 0 0 6px rgba(220, 38, 38, 0); }
+    100% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 0 0 rgba(220, 38, 38, 0); }
   }
 
-  .section-head h2 {
-    font-size: 2.2rem;
+  .urgency-text {
+    font-size: 0.74rem;
     font-weight: 800;
-    margin-bottom: 0.5rem;
+    color: #dc2626;
+    letter-spacing: 0.05em;
   }
 
-  .section-head p {
-    color: var(--text-muted);
-    font-size: 1.05rem;
+  .countdown-board {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
   }
 
-  .grid-3 {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-    gap: 1.5rem;
+  .board-segment {
+    background: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 8px;
+    padding: 0.35rem 0.55rem;
+    text-align: center;
+    min-width: 44px;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
   }
 
-  .glass-card {
-    background: var(--bg-card);
-    border: 1px solid var(--border-light);
-    border-radius: 16px;
-    padding: 1.75rem;
-    backdrop-filter: blur(8px);
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  .segment-digits {
+    font-family: 'Plus Jakarta Sans', monospace;
+    font-size: 1.2rem;
+    font-weight: 800;
+    line-height: 1;
+    color: #ffffff;
+    font-variant-numeric: tabular-nums;
+    display: block;
   }
 
-  .glass-card:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 24px -6px rgba(0, 0, 0, 0.08);
+  .urgency-sec .segment-digits {
+    color: #f87171;
   }
 
-  /* Step Badges */
-  .step-number {
-    width: 44px;
-    height: 44px;
+  .segment-tag {
+    font-size: 0.55rem;
+    font-weight: 700;
+    color: #94a3b8;
+    letter-spacing: 0.04em;
+    display: block;
+    margin-top: 0.15rem;
+  }
+
+  .segment-colon {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: #dc2626;
+  }
+
+  .deal-lock-notice {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--cobalt-ink);
+  }
+
+  .countdown-badge-timer {
+    color: #dc2626;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Ticket Tab Controls */
+  .ticket-tabs {
+    display: flex;
+    background: var(--surface-subtle);
+    padding: 0.35rem;
+    margin: 1.25rem 1.5rem 0.75rem;
+    border-radius: 10px;
+    gap: 0.35rem;
+  }
+
+  .ticket-tab-btn {
+    flex: 1;
+    padding: 0.5rem 0.75rem;
+    border: none;
+    border-radius: 7px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--ink-muted);
+    background: transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .ticket-tab-btn.active {
+    background: var(--surface-pure);
+    color: var(--ink-title);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+  }
+
+  .ticket-body {
+    padding: 0.75rem 1.5rem 1.5rem;
+  }
+
+  /* Price Pack Table in Ticket */
+  .pack-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .pack-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 0.95rem;
+    background: var(--surface-soft);
+    border: 1px solid var(--border-hairline);
+    border-radius: 10px;
+    transition: border-color 0.15s;
+  }
+
+  .pack-item:hover {
+    border-color: var(--cobalt-ink);
+  }
+
+  .pack-name {
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--ink-title);
+  }
+
+  .pack-perview {
+    font-size: 0.74rem;
+    color: var(--ink-muted);
+  }
+
+  .pack-pricing {
+    text-align: right;
+  }
+
+  .pack-old-price {
+    font-size: 0.76rem;
+    text-decoration: line-through;
+    color: var(--ink-faint);
+    margin-right: 0.4rem;
+  }
+
+  .pack-new-price {
+    font-size: 1.1rem;
+    font-weight: 800;
+    color: var(--mint-emerald);
+  }
+
+  /* Creator Tab Contents */
+  .creator-deal-highlights {
+    background: var(--mint-wash);
+    border: 1px solid var(--mint-border);
     border-radius: 12px;
-    background: rgba(37, 99, 235, 0.1);
-    color: var(--primary-blue);
+    padding: 1rem 1.15rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .creator-deal-stat {
+    font-size: 1.6rem;
+    font-weight: 800;
+    color: var(--mint-emerald);
+    line-height: 1.1;
+    margin-bottom: 0.25rem;
+  }
+
+  .creator-deal-sub {
+    font-size: 0.82rem;
+    color: var(--ink-body);
+    line-height: 1.45;
+  }
+
+  .creator-specs-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.65rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .creator-spec-item {
+    background: var(--surface-soft);
+    border: 1px solid var(--border-hairline);
+    border-radius: 8px;
+    padding: 0.65rem 0.75rem;
+  }
+
+  .creator-spec-title {
+    font-size: 0.72rem;
+    color: var(--ink-muted);
+    font-weight: 600;
+  }
+
+  .creator-spec-val {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--ink-title);
+  }
+
+  .ticket-footer-action {
+    border-top: 1px dashed var(--border-mid);
+    padding-top: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .ticket-rule-faint {
+    font-size: 0.74rem;
+    color: var(--ink-muted);
+    max-width: 250px;
+    line-height: 1.35;
+  }
+
+  /* ─── Section: Comparison Ledger (The Protocol) ─────────────────── */
+  .ledger-section {
+    padding: 4rem 0;
+    border-bottom: 1px solid var(--border-hairline);
+  }
+
+  .section-headline-wrap {
+    margin-bottom: 2.25rem;
+    max-width: 680px;
+  }
+
+  .section-pretitle {
+    font-size: 0.78rem;
+    font-weight: 700;
+    color: var(--cobalt-ink);
+    letter-spacing: 0.04em;
+    margin-bottom: 0.35rem;
+  }
+
+  .section-main-title {
+    font-size: clamp(1.6rem, 2.8vw, 2.1rem);
+    font-weight: 800;
+    color: var(--ink-title);
+    letter-spacing: -0.025em;
+    line-height: 1.2;
+    margin: 0 0 0.5rem;
+  }
+
+  .section-desc {
+    font-size: 0.98rem;
+    color: var(--ink-muted);
+    margin: 0;
+  }
+
+  .ledger-table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border-hairline);
+    border-radius: 14px;
+    background: var(--surface-pure);
+  }
+
+  .ledger-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.88rem;
+    text-align: left;
+  }
+
+  .ledger-table th {
+    background: var(--surface-soft);
+    padding: 0.9rem 1.1rem;
+    font-weight: 700;
+    color: var(--ink-title);
+    border-bottom: 1px solid var(--border-hairline);
+  }
+
+  .ledger-table td {
+    padding: 0.9rem 1.1rem;
+    border-bottom: 1px solid var(--border-hairline);
+    color: var(--ink-body);
+  }
+
+  .ledger-table tr:last-child td {
+    border-bottom: none;
+  }
+
+  .ledger-col-highlight {
+    background: var(--cobalt-wash);
+    font-weight: 600;
+  }
+
+  /* ─── Section: Interactive ROI Terminal ────────────────────────── */
+  .calculator-section {
+    padding: 4rem 0;
+    border-bottom: 1px solid var(--border-hairline);
+  }
+
+  .terminal-box {
+    background: var(--surface-pure);
+    border: 1px solid var(--border-hairline);
+    border-radius: 18px;
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    overflow: hidden;
+  }
+
+  @media (max-width: 860px) {
+    .terminal-box {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .terminal-controls {
+    padding: 2.25rem;
+  }
+
+  .terminal-slider-row {
+    margin-bottom: 1.6rem;
+  }
+
+  .terminal-slider-label {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--ink-title);
+    margin-bottom: 0.45rem;
+  }
+
+  .terminal-slider-val {
+    color: var(--cobalt-ink);
+  }
+
+  .terminal-range {
+    width: 100%;
+    accent-color: var(--cobalt-ink);
+    cursor: pointer;
+  }
+
+  .terminal-display-card {
+    background: linear-gradient(135deg, var(--surface-soft) 0%, var(--surface-subtle) 100%);
+    border-left: 1px solid var(--border-hairline);
+    padding: 2.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+  }
+
+  .terminal-stat-box {
+    margin-bottom: 1.25rem;
+  }
+
+  .terminal-stat-label {
+    font-size: 0.76rem;
+    font-weight: 700;
+    color: var(--ink-muted);
+    letter-spacing: 0.03em;
+    margin-bottom: 0.25rem;
+  }
+
+  .terminal-stat-number {
+    font-size: 2.6rem;
+    font-weight: 800;
+    color: var(--mint-emerald);
+    line-height: 1.05;
+  }
+
+  .terminal-guarantee-note {
+    font-size: 0.8rem;
+    color: var(--ink-muted);
+    line-height: 1.45;
+  }
+
+  /* ─── Section: Branch Directory ─────────────────────────────────── */
+  .branches-section {
+    padding: 3.5rem 0;
+    border-bottom: 1px solid var(--border-hairline);
+  }
+
+  .branch-pills-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+  }
+
+  .branch-pill {
+    background: var(--surface-pure);
+    border: 1px solid var(--border-hairline);
+    border-radius: 10px;
+    padding: 0.6rem 1.1rem;
+    font-size: 0.88rem;
+    font-weight: 600;
+    color: var(--ink-title);
+    text-decoration: none;
+    transition: all 0.15s ease;
+  }
+
+  .branch-pill:hover {
+    border-color: var(--cobalt-ink);
+    background: var(--cobalt-wash);
+    color: var(--cobalt-ink);
+  }
+
+  /* ─── Section: Recent Study Releases ────────────────────────────── */
+  .recent-section {
+    padding: 4rem 0;
+    border-bottom: 1px solid var(--border-hairline);
+  }
+
+  .recent-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .note-record-card {
+    background: var(--surface-pure);
+    border: 1px solid var(--border-hairline);
+    border-radius: 14px;
+    padding: 1.25rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: border-color 0.15s;
+  }
+
+  .note-record-card:hover {
+    border-color: var(--cobalt-ink);
+  }
+
+  .note-record-category {
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: var(--cobalt-ink);
+    margin-bottom: 0.35rem;
+  }
+
+  .note-record-title {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--ink-title);
+    line-height: 1.35;
+    margin: 0 0 0.4rem;
+  }
+
+  .note-record-subject {
+    font-size: 0.82rem;
+    color: var(--ink-muted);
+    margin: 0 0 1rem;
+  }
+
+  .note-record-bottom {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border-hairline);
+    padding-top: 0.75rem;
+  }
+
+  .note-record-price {
+    font-weight: 800;
+    font-size: 0.95rem;
+    color: var(--mint-emerald);
+  }
+
+  /* ─── Section: Origin & Verified Proof ──────────────────────────── */
+  .origin-section {
+    padding: 3.5rem 0;
+    border-bottom: 1px solid var(--border-hairline);
+  }
+
+  .origin-card {
+    background: var(--surface-pure);
+    border: 1px solid var(--border-hairline);
+    border-left: 4px solid var(--cobalt-ink);
+    border-radius: 12px;
+    padding: 1.75rem;
+  }
+
+  .origin-author {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    margin-bottom: 0.85rem;
+  }
+
+  .author-badge {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--cobalt-wash);
+    color: var(--cobalt-ink);
     display: flex;
     align-items: center;
     justify-content: center;
     font-weight: 800;
-    font-size: 1.2rem;
-    margin-bottom: 1.25rem;
+    font-size: 0.9rem;
   }
 
-  /* Calculator Box */
-  .calc-box {
-    background: linear-gradient(135deg, rgba(37, 99, 235, 0.04), rgba(124, 58, 237, 0.04));
-    border: 1px solid var(--border-light);
-    border-radius: 20px;
-    padding: 2.5rem;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 2.5rem;
-    align-items: center;
+  .origin-quote {
+    font-size: 0.95rem;
+    line-height: 1.6;
+    color: var(--ink-body);
+    margin: 0;
   }
 
-  @media (max-width: 768px) {
-    .calc-box {
-      grid-template-columns: 1fr;
-      padding: 1.5rem;
-    }
+  /* ─── Footer Enrollment Strip ───────────────────────────────────── */
+  .enrollment-strip {
+    background: var(--ink-solid);
+    color: #ffffff;
+    padding: 3.5rem 0;
   }
 
-  .calc-slider-group {
-    margin-bottom: 1.5rem;
-  }
-
-  .calc-slider-group label {
+  .enrollment-content {
     display: flex;
     justify-content: space-between;
-    font-weight: 600;
-    margin-bottom: 0.5rem;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
   }
 
-  .calc-result-card {
-    background: linear-gradient(135deg, #1e293b, #0f172a);
+  .enrollment-title {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin: 0 0 0.4rem;
     color: #ffffff;
-    border-radius: 16px;
-    padding: 2rem;
-    text-align: center;
-    box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
   }
 
-  .calc-result-val {
-    font-size: 3rem;
-    font-weight: 900;
-    color: #10b981;
-    margin: 0.5rem 0;
-  }
-
-  /* Story Quote Box */
-  .founder-quote-box {
-    background: linear-gradient(135deg, #f8fafc, #edf2f7);
-    border-left: 5px solid var(--primary-blue);
-    border-radius: 12px;
-    padding: 2rem;
-    margin: 2rem 0;
-  }
-
-  .dark .founder-quote-box {
-    background: #1e293b;
-  }
-
-  /* Footer Links */
-  .landing-footer {
-    border-top: 1px solid var(--border-light);
-    padding: 3.5rem 1.25rem 2rem;
-    background: rgba(248, 250, 252, 0.5);
-  }
-
-  .dark .landing-footer {
-    background: #0f172a;
-  }
-
-  .footer-grid {
-    max-width: 1180px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 2fr 1fr 1fr 1fr;
-    gap: 2rem;
-    margin-bottom: 2.5rem;
-  }
-
-  @media (max-width: 768px) {
-    .footer-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  .footer-col h4 {
-    font-weight: 700;
-    margin-bottom: 1rem;
+  .enrollment-desc {
+    color: #94a3b8;
+    margin: 0;
+    max-width: 520px;
     font-size: 0.95rem;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
   }
 
-  .footer-col ul {
+  /* Footer Navigation */
+  .exchange-footer {
+    padding: 2.5rem 0;
+    background: var(--surface-pure);
+    border-top: 1px solid var(--border-hairline);
+    font-size: 0.82rem;
+    color: var(--ink-muted);
+  }
+
+  .footer-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .footer-nav-links {
+    display: flex;
+    gap: 1.25rem;
     list-style: none;
     padding: 0;
     margin: 0;
   }
 
-  .footer-col li {
-    margin-bottom: 0.6rem;
-  }
-
-  .footer-col a {
-    color: var(--text-muted);
+  .footer-nav-links a {
+    color: var(--ink-muted);
     text-decoration: none;
-    font-size: 0.9rem;
-    transition: color 0.15s;
   }
 
-  .footer-col a:hover {
-    color: var(--primary-blue);
+  .footer-nav-links a:hover {
+    color: var(--cobalt-ink);
   }
 </style>
 
-<div class="landing-wrap">
-  <!-- SECTION 1 & 2: HERO -->
-  <section class="hero-block">
-    <div class="badge-dna">
-      <span>🎓 Started at GHRCEN</span>
-      <span>•</span>
-      <span>Founder Abhijeet Ashok Shende</span>
-      <span>•</span>
-      <a href="{{ url_for('site.careers') }}" style="color:var(--primary-blue); text-decoration:none; font-weight:700; display:inline-flex; align-items:center; gap:0.25rem;">
-        <span>💼 We're Hiring (8 Roles) →</span>
-      </a>
-    </div>
+<div class="exchange-shell">
+  <!-- ─── HERO: The Engineering Exam Exchange & Launch Covenant ─── -->
+  <section class="hero-exchange">
+    <div class="ledger-wrap">
+      <div class="hero-grid">
+        <!-- Left: Proposition & Domain Checker -->
+        <div>
+          <div class="dispatch-badge">
+            <span class="dispatch-dot" style="background:#dc2626; animation: urgentPulse 1.2s infinite ease-in-out;"></span>
+            <span>Launch Offer Closes In:</span>
+            <span id="heroCountdownBadge" class="countdown-badge-timer">00d 00h 00m 00s</span>
+          </div>
 
-    <h1 class="hero-headline">
-      Sell Your Handwritten Notes.<br/>
-      <span class="hero-gradient-text">Ace Exams with Real PYQs.</span>
-    </h1>
+          <h1 class="hero-lead-title">
+            The engineering exam exchange where notes pay rent and verified papers end all-nighters.
+          </h1>
 
-    <p class="hero-subhead">
-      India's student-first peer study marketplace. Upload exam-tested notes to earn up to 85% royalties, or access verified previous year question papers instantly.
-    </p>
+          <p class="hero-lead-sub">
+            Verified autonomous university PYQs, semester solution sets, and student-shared practicals. Register before the countdown timer hits zero to permanently lock in 90% view pack discounts and 90% creator earnings for your first 90 days.
+          </p>
 
-    <div class="hero-actions">
-      <a href="{{ url_for('library.pyq_landing') }}" class="btn-primary-hero"
-         onclick="trackLandingEvent('landing_cta_click', {cta_name:'browse_pyqs', position:'hero'})">
-        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-        Browse Notes & PYQs
-      </a>
-      <a href="{{ url_for('site.contribute_page') }}" class="btn-secondary-hero"
-         onclick="trackLandingEvent('landing_cta_click', {cta_name:'upload_earn', position:'hero'})">
-        <svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
-        Upload & Earn (Keep 85%)
-      </a>
-    </div>
+          <div class="hero-actions-row">
+            <a href="{{ url_for('library.pyq_landing') }}" class="btn-exchange-primary"
+               onclick="trackLandingEvent('landing_cta_click', {cta_name:'browse_pyqs', position:'hero'})">
+              Browse Semester Papers
+            </a>
+            <a href="{{ url_for('site.contribute_page') }}" class="btn-exchange-outline"
+               onclick="trackLandingEvent('landing_cta_click', {cta_name:'upload_earn', position:'hero'})">
+              Sell Course Notes
+            </a>
+          </div>
 
-    <div class="trust-strip">
-      <div class="trust-item">
-        <svg width="18" height="18" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-        <span>100% Student Verified</span>
-      </div>
-      <div class="trust-item">
-        <svg width="18" height="18" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-        <span>Instant UPI Payouts</span>
-      </div>
-      <div class="trust-item">
-        <svg width="18" height="18" fill="none" stroke="#10b981" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
-        <span>Preview First 3 Pages Free</span>
-      </div>
-    </div>
-  </section>
+          <!-- Interactive College Email Quota Validator -->
+          <div class="domain-quota-box">
+            <div class="domain-quota-header">
+              <span class="domain-quota-label">Instant View Quota Allocation</span>
+              <span id="domainQuotaTag" style="font-size:0.75rem; font-weight:700; color:var(--mint-emerald); background:var(--mint-wash); padding:0.15rem 0.5rem; border-radius:4px;">
+                20 Free Views
+              </span>
+            </div>
 
-  <!-- SECTION 3: HOW IT WORKS (3-STEP EXPLAINER) -->
-  <section class="section-container">
-    <div class="section-head">
-      <h2>How AbhiHub Works</h2>
-      <p>Simple, fair, and built directly for engineering & college students.</p>
-    </div>
+            <div class="domain-selector-group">
+              <button type="button" class="btn-domain-chip active" onclick="setDomainTest('@ghrce.raisoni.net', 20, true)">
+                @ghrce.raisoni.net
+              </button>
+              <button type="button" class="btn-domain-chip" onclick="setDomainTest('@*.ac.in (Approved College)', 20, true)">
+                @college.ac.in
+              </button>
+              <button type="button" class="btn-domain-chip" onclick="setDomainTest('@gmail.com', 5, false)">
+                @gmail.com
+              </button>
+              <button type="button" class="btn-domain-chip" onclick="setDomainTest('Temporary / Disposable', 0, false)">
+                Temp Mail
+              </button>
+            </div>
 
-    <div class="grid-3">
-      <div class="glass-card">
-        <div class="step-number">1</div>
-        <h3 style="font-size:1.25rem; font-weight:700; margin-bottom:0.5rem;">Upload Your Notes</h3>
-        <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">
-          Scan clean handwritten notes, assignments, or university PYQ solutions from your phone or laptop.
-        </p>
-      </div>
-
-      <div class="glass-card">
-        <div class="step-number">2</div>
-        <h3 style="font-size:1.25rem; font-weight:700; margin-bottom:0.5rem;">Verified & Listed</h3>
-        <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">
-          AI co-founder Tarika + campus moderators review formatting and syllabus matching to ensure top quality.
-        </p>
-      </div>
-
-      <div class="glass-card">
-        <div class="step-number">3</div>
-        <h3 style="font-size:1.25rem; font-weight:700; margin-bottom:0.5rem;">Earn or Ace Exams</h3>
-        <p style="color:var(--text-muted); font-size:0.95rem; line-height:1.6;">
-          Keep 85% of each sale paid directly via UPI, or study with high-scoring resources before exam week.
-        </p>
-      </div>
-    </div>
-  </section>
-
-  <!-- SECTION 4: INTERACTIVE EARNINGS CALCULATOR -->
-  <section class="section-container" style="padding-top: 0;">
-    <div class="calc-box">
-      <div>
-        <h2 style="font-size: 2rem; font-weight: 800; margin-bottom: 0.5rem;">Creator Earnings Calculator</h2>
-        <p style="color: var(--text-muted); margin-bottom: 2rem;">
-          Estimate how much you can earn every semester from your semester notes.
-        </p>
-
-        <div class="calc-slider-group">
-          <label>
-            <span>Notes Uploaded:</span>
-            <span id="notesCountLabel" style="color:var(--primary-blue);">5 files</span>
-          </label>
-          <input type="range" id="notesRange" min="1" max="25" value="5" style="width:100%;" oninput="calculateEarnings()">
+            <div class="domain-quota-result">
+              <div>
+                <span class="domain-quota-stat" id="domainQuotaNumber">20 Free Views</span>
+                <span style="font-size: 0.82rem; color: var(--ink-muted); margin-left: 0.35rem;">granted at signup</span>
+              </div>
+              <div class="domain-quota-note">
+                ✓ Free materials consume views. Paid notes never cost credits.
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div class="calc-slider-group">
-          <label>
-            <span>Price Per Note:</span>
-            <span id="priceLabel" style="color:var(--primary-blue);">₹49</span>
-          </label>
-          <input type="range" id="priceRange" min="19" max="199" step="10" value="49" style="width:100%;" oninput="calculateEarnings()">
-        </div>
+        <!-- Right: The Official Launch Deal Ticket -->
+        <div>
+          <div class="deal-ticket">
+            <div class="deal-ticket-header">
+              <div class="countdown-urgency-block">
+                <div class="urgency-fire-label">
+                  <span class="fire-pulse-dot"></span>
+                  <span class="urgency-text">90% LAUNCH DEAL EXPIRES IN</span>
+                </div>
+                <div class="countdown-board" id="mainCountdownBoard">
+                  <div class="board-segment">
+                    <span class="segment-digits" id="cdDays">00</span>
+                    <span class="segment-tag">DAYS</span>
+                  </div>
+                  <span class="segment-colon">:</span>
+                  <div class="board-segment">
+                    <span class="segment-digits" id="cdHours">00</span>
+                    <span class="segment-tag">HOURS</span>
+                  </div>
+                  <span class="segment-colon">:</span>
+                  <div class="board-segment">
+                    <span class="segment-digits" id="cdMins">00</span>
+                    <span class="segment-tag">MINS</span>
+                  </div>
+                  <span class="segment-colon">:</span>
+                  <div class="board-segment urgency-sec">
+                    <span class="segment-digits" id="cdSecs">00</span>
+                    <span class="segment-tag">SECS</span>
+                  </div>
+                </div>
+              </div>
+              <div class="deal-lock-notice">
+                <span style="background:var(--cobalt-wash); color:var(--cobalt-ink); padding:0.25rem 0.6rem; border-radius:6px; border:1px solid var(--border-hairline);">
+                  90-Day Rate Guarantee
+                </span>
+              </div>
+            </div>
 
-        <div class="calc-slider-group">
-          <label>
-            <span>Estimated Buyers Per Subject:</span>
-            <span id="buyersLabel" style="color:var(--primary-blue);">30 students</span>
-          </label>
-          <input type="range" id="buyersRange" min="10" max="150" step="5" value="30" style="width:100%;" oninput="calculateEarnings()">
-        </div>
-      </div>
+            <!-- Tab Switcher -->
+            <div class="ticket-tabs">
+              <button type="button" class="ticket-tab-btn active" id="tabStudyBtn" onclick="switchTicketTab('study')">
+                Study Pass (90% Off)
+              </button>
+              <button type="button" class="ticket-tab-btn" id="tabCreatorBtn" onclick="switchTicketTab('creator')">
+                Creator Covenant (Keep 90%)
+              </button>
+            </div>
 
-      <div class="calc-result-card">
-        <span style="font-size:0.85rem; text-transform:uppercase; letter-spacing:0.05em; opacity:0.8;">Estimated Earnings (85% Net)</span>
-        <div class="calc-result-val" id="calcEarningsDisplay">₹6,247</div>
-        <p style="font-size:0.85rem; opacity:0.75; margin-bottom:1.5rem;">Direct weekly UPI transfers to your bank account</p>
-        <a href="{{ url_for('site.contribute_page') }}" class="btn-primary-hero" style="justify-content:center; width:100%;"
-           onclick="trackLandingEvent('landing_cta_click', {cta_name:'calculator_start_earning', position:'calculator'})">
-          Start Earning Today
-        </a>
+            <div class="ticket-body">
+              <!-- Pane 1: Study Pass Rates -->
+              <div id="paneStudy" style="display: block;">
+                <p style="font-size: 0.84rem; color: var(--ink-muted); margin: 0 0 0.85rem; line-height: 1.45;">
+                  New accounts created between <strong>29 Oct and 8 Nov 2026</strong> lock in 90% discount on all view credit packs for 90 days:
+                </p>
+
+                <div class="pack-list">
+                  <div class="pack-item">
+                    <div>
+                      <div class="pack-name">10 Views Chai Top-up</div>
+                      <div class="pack-perview">40 paise per paper</div>
+                    </div>
+                    <div class="pack-pricing">
+                      <span class="pack-old-price">₹39</span>
+                      <span class="pack-new-price">₹4</span>
+                    </div>
+                  </div>
+
+                  <div class="pack-item">
+                    <div>
+                      <div class="pack-name">65 Views Pro Pack</div>
+                      <div class="pack-perview">Complete exam week coverage</div>
+                    </div>
+                    <div class="pack-pricing">
+                      <span class="pack-old-price">₹129</span>
+                      <span class="pack-new-price">₹13</span>
+                    </div>
+                  </div>
+
+                  <div class="pack-item">
+                    <div>
+                      <div class="pack-name">160 Views Semester Pass</div>
+                      <div class="pack-perview">Full year access across subjects</div>
+                    </div>
+                    <div class="pack-pricing">
+                      <span class="pack-old-price">₹299</span>
+                      <span class="pack-new-price">₹30</span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Pane 2: Creator Covenant -->
+              <div id="paneCreator" style="display: none;">
+                <div class="creator-deal-highlights">
+                  <div class="creator-deal-stat">Keep 90% of Every Sale</div>
+                  <div class="creator-deal-sub">
+                    Pay only 10% platform commission (standard 30%) for your first 90 days if registered before 8 Nov 2026.
+                  </div>
+                </div>
+
+                <div class="creator-specs-grid">
+                  <div class="creator-spec-item">
+                    <div class="creator-spec-title">Settlement Window</div>
+                    <div class="creator-spec-val" style="color:var(--cobalt-ink);">T+9 Days or Earlier</div>
+                  </div>
+                  <div class="creator-spec-item">
+                    <div class="creator-spec-title">Payout Channel</div>
+                    <div class="creator-spec-val">Direct UPI / Bank</div>
+                  </div>
+                  <div class="creator-spec-item">
+                    <div class="creator-spec-title">Listing Fee</div>
+                    <div class="creator-spec-val">₹0 Forever</div>
+                  </div>
+                  <div class="creator-spec-item">
+                    <div class="creator-spec-title">Standard Royalty</div>
+                    <div class="creator-spec-val">70% Post-Promo</div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Ticket Action -->
+              <div class="ticket-footer-action">
+                <span class="ticket-rule-faint">
+                  Active immediately upon account registration. No coupon required.
+                </span>
+                <a href="{{ url_for('auth.signup') }}" class="btn-exchange-primary" style="padding: 0.65rem 1.25rem; font-size: 0.88rem;">
+                  Claim 90% Deal
+                </a>
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </div>
   </section>
 
-  <!-- SECTION 5: CATEGORIES & UNIVERSITIES -->
-  <section class="section-container" style="padding-top: 0;">
-    <div class="section-head">
-      <h2>Explore by Engineering Branch & College</h2>
-      <p>Curated PYQs and subject materials tailored to your syllabus.</p>
-    </div>
-
-    <div style="display:flex; flex-wrap:wrap; gap:0.75rem; justify-content:center; margin-bottom:2rem;">
-      {% for branch in branches %}
-        <a href="{{ url_for('library.pyq_landing') }}" class="btn-secondary-hero"
-           style="padding:0.5rem 1rem; font-size:0.9rem;"
-           data-branch-track="{{ branch.abbreviation or branch.name }}">
-          {{ branch.abbreviation or branch.name }}
-        </a>
-      {% else %}
-        <span class="btn-secondary-hero" style="padding:0.5rem 1rem; font-size:0.9rem;">Computer Science</span>
-        <span class="btn-secondary-hero" style="padding:0.5rem 1rem; font-size:0.9rem;">Information Technology</span>
-        <span class="btn-secondary-hero" style="padding:0.5rem 1rem; font-size:0.9rem;">Electronics & Telecomm</span>
-        <span class="btn-secondary-hero" style="padding:0.5rem 1rem; font-size:0.9rem;">Mechanical</span>
-      {% endfor %}
-    </div>
-  </section>
-
-  <!-- SECTION 6: RECENT & FEATURED NOTES -->
-  {% if recent_docs %}
-  <section class="section-container" style="padding-top: 0;">
-    <div class="section-head">
-      <h2>Recently Added Study Notes</h2>
-      <p>Freshly uploaded and verified by university toppers.</p>
-    </div>
-
-    <div class="grid-3">
-      {% for doc in recent_docs[:6] %}
-      <div class="glass-card">
-        <span style="font-size:0.75rem; font-weight:700; color:var(--primary-blue); text-transform:uppercase;">
-          {{ doc.document_category or 'Notes' }}
-        </span>
-        <h3 style="font-size:1.1rem; font-weight:700; margin:0.4rem 0 0.5rem;">
-          {{ doc.title | truncate(45) }}
-        </h3>
-        <p style="color:var(--text-muted); font-size:0.85rem; margin-bottom:1rem;">
-          {{ doc.subject.name if doc.subject else 'General Subject' }}
+  <!-- ─── SECTION: The Deal Ledger (Protocol Comparison Table) ─── -->
+  <section class="ledger-section">
+    <div class="ledger-wrap">
+      <div class="section-headline-wrap">
+        <div class="section-pretitle">Fair Protocol</div>
+        <h2 class="section-main-title">Transparent terms for students and creators.</h2>
+        <p class="section-desc">
+          Compare access tiers and commission splits before registering. No hidden subscription traps.
         </p>
-        <div style="display:flex; justify-content:space-between; align-items:center; border-top:1px solid var(--border-light); padding-top:0.75rem;">
-          <span style="font-weight:700; color:#10b981;">
-            {% if doc.pricing and doc.pricing.get('price', 0) > 0 %}₹{{ doc.pricing.get('price')|int }}{% else %}FREE{% endif %}
-          </span>
-          <a href="/resource/{{ doc.canonical_slug }}" style="font-size:0.85rem; color:var(--primary-blue); font-weight:600; text-decoration:none;">
-            View Preview →
+      </div>
+
+      <div class="ledger-table-wrap">
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th>Account Policy</th>
+              <th class="ledger-col-highlight">Approved College (@*.ac.in / @*.raisoni.net)</th>
+              <th>Personal Email (@gmail.com)</th>
+              <th>Temporary / Disposable Domain</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td><strong>Instant Free Views</strong></td>
+              <td class="ledger-col-highlight" style="color:var(--mint-emerald); font-weight:800;">20 Free Views</td>
+              <td style="color:var(--mint-emerald); font-weight:700;">5 Free Views</td>
+              <td style="color:var(--deal-crimson);">0 Views (Must Pay)</td>
+            </tr>
+            <tr>
+              <td><strong>Launch View Pack Rate</strong></td>
+              <td class="ledger-col-highlight">90% Off (10 Views for ₹4)</td>
+              <td>90% Off (10 Views for ₹4)</td>
+              <td>Full Price · No Discount</td>
+            </tr>
+            <tr>
+              <td><strong>Creator Sales Commission</strong></td>
+              <td class="ledger-col-highlight" style="color:var(--mint-emerald); font-weight:700;">10% Fee (Keep 90% for 90 Days)</td>
+              <td>10% Fee (Keep 90% for 90 Days)</td>
+              <td>Seller Features Restricted</td>
+            </tr>
+            <tr>
+              <td><strong>Payout Settlement</strong></td>
+              <td class="ledger-col-highlight">T+9 Days or Earlier</td>
+              <td>T+9 Days or Earlier</td>
+              <td>Not Applicable</td>
+            </tr>
+            <tr>
+              <td><strong>Credit Deduction Rule</strong></td>
+              <td class="ledger-col-highlight">Deducted on Free Notes only</td>
+              <td>Deducted on Free Notes only</td>
+              <td>Paid Notes never consume credits</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── SECTION: Interactive Semester ROI Terminal ───────────── -->
+  <section class="calculator-section">
+    <div class="ledger-wrap">
+      <div class="section-headline-wrap">
+        <div class="section-pretitle">Semester Economics</div>
+        <h2 class="section-main-title">Calculate your semester earnings as a note creator.</h2>
+        <p class="section-desc">
+          See what happens when you publish lecture summaries, solved PYQs, and lab handbooks with the 90% launch covenant.
+        </p>
+      </div>
+
+      <div class="terminal-box">
+        <!-- Controls -->
+        <div class="terminal-controls">
+          <div class="terminal-slider-row">
+            <div class="terminal-slider-label">
+              <span>Course Notes Published:</span>
+              <span class="terminal-slider-val" id="notesVal">5 bundles</span>
+            </div>
+            <input type="range" class="terminal-range" id="notesSlider" min="1" max="20" value="5" oninput="runTerminalMath()">
+          </div>
+
+          <div class="terminal-slider-row">
+            <div class="terminal-slider-label">
+              <span>Price per Study Bundle:</span>
+              <span class="terminal-slider-val" id="priceVal">₹49</span>
+            </div>
+            <input type="range" class="terminal-range" id="priceSlider" min="19" max="199" step="10" value="49" oninput="runTerminalMath()">
+          </div>
+
+          <div class="terminal-slider-row">
+            <div class="terminal-slider-label">
+              <span>Buyers per Subject (Classmates & Juniors):</span>
+              <span class="terminal-slider-val" id="buyersVal">30 students</span>
+            </div>
+            <input type="range" class="terminal-range" id="buyersSlider" min="10" max="150" step="5" value="30" oninput="runTerminalMath()">
+          </div>
+        </div>
+
+        <!-- Live Display Card -->
+        <div class="terminal-display-card">
+          <div>
+            <div class="terminal-stat-box">
+              <div class="terminal-stat-label">Launch Covenant Earnings (Keep 90%)</div>
+              <div class="terminal-stat-number" id="calcNetDisplay">₹6,615</div>
+              <div style="font-size:0.8rem; color:var(--ink-muted); margin-top:0.35rem;">
+                Standard 70% return: <span id="calcStandardDisplay" style="color:var(--ink-body); font-weight:700;">₹5,145</span>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <p class="terminal-guarantee-note">
+              Direct UPI transfers released in <strong>T+9 days or earlier</strong>. Zero listing fees, automated copyright watermarking on every download.
+            </p>
+            <a href="{{ url_for('site.contribute_page') }}" class="btn-exchange-primary" style="width:100%; justify-content:center;">
+              Start Uploading Notes
+            </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─── SECTION: Branch & University Directory ─────────────────── -->
+  <section class="branches-section">
+    <div class="ledger-wrap">
+      <div class="section-headline-wrap">
+        <div class="section-pretitle">Curated Disciplines</div>
+        <h2 class="section-main-title">Engineering branches with verified syllabi.</h2>
+      </div>
+
+      <div class="branch-pills-row">
+        {% for branch in branches %}
+          <a href="{{ url_for('library.pyq_landing') }}" class="branch-pill" data-branch-track="{{ branch.abbreviation or branch.name }}">
+            {{ branch.abbreviation or branch.name }}
           </a>
-        </div>
+        {% else %}
+          <a href="{{ url_for('library.pyq_landing') }}" class="branch-pill">Computer Science & Engineering</a>
+          <a href="{{ url_for('library.pyq_landing') }}" class="branch-pill">Artificial Intelligence & ML</a>
+          <a href="{{ url_for('library.pyq_landing') }}" class="branch-pill">Information Technology</a>
+          <a href="{{ url_for('library.pyq_landing') }}" class="branch-pill">Electronics & Telecommunication</a>
+          <a href="{{ url_for('library.pyq_landing') }}" class="branch-pill">Mechanical Engineering</a>
+          <a href="{{ url_for('library.pyq_landing') }}" class="branch-pill">Civil Engineering</a>
+        {% endfor %}
       </div>
-      {% endfor %}
+    </div>
+  </section>
+
+  <!-- ─── SECTION: Recent Releases ──────────────────────────────── -->
+  {% if recent_docs %}
+  <section class="recent-section">
+    <div class="ledger-wrap">
+      <div class="section-headline-wrap">
+        <div class="section-pretitle">Verified Releases</div>
+        <h2 class="section-main-title">Freshly shared notes from university toppers.</h2>
+      </div>
+
+      <div class="recent-grid">
+        {% for doc in recent_docs[:6] %}
+        <div class="note-record-card">
+          <div>
+            <div class="note-record-category">{{ doc.document_category or 'Semester Notes' }}</div>
+            <h3 class="note-record-title">{{ doc.title | truncate(45) }}</h3>
+            <p class="note-record-subject">{{ doc.subject.name if doc.subject else 'Engineering Core' }}</p>
+          </div>
+          <div class="note-record-bottom">
+            <span class="note-record-price">
+              {% if doc.pricing and doc.pricing.get('price', 0) > 0 %}₹{{ doc.pricing.get('price')|int }}{% else %}Free with credits{% endif %}
+            </span>
+            <a href="/resource/{{ doc.canonical_slug }}" style="font-size:0.85rem; color:var(--cobalt-ink); font-weight:700; text-decoration:none;">
+              View Preview
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
     </div>
   </section>
   {% endif %}
 
-  <!-- SECTION 7 & 9: ORIGIN STORY & CREATOR SPOTLIGHT -->
-  <section class="section-container" style="padding-top: 0;">
-    <div class="founder-quote-box">
-      <div style="display:flex; align-items:center; gap:1rem; margin-bottom:1rem;">
-        <div style="width:48px; height:48px; border-radius:50%; background:var(--primary-blue); color:#fff; display:flex; align-items:center; justify-content:center; font-weight:700;">
-          AS
+  <!-- ─── SECTION: Origin Dispatch & Guarantees ─────────────────── -->
+  <section class="origin-section">
+    <div class="ledger-wrap">
+      <div class="origin-card">
+        <div class="origin-author">
+          <div class="author-badge">AS</div>
+          <div>
+            <div style="font-weight:800; color:var(--ink-title); font-size:0.95rem;">Abhijeet Ashok Shende</div>
+            <div style="font-size:0.8rem; color:var(--ink-muted);">Founder, AbhiHub · G.H. Raisoni College of Engineering, Nagpur</div>
+          </div>
         </div>
-        <div>
-          <h4 style="margin:0; font-weight:700;">Abhijeet Ashok Shende</h4>
-          <span style="font-size:0.85rem; color:var(--text-muted);">Founder & CEO, AbhiHub (G.H. Raisoni College of Engineering, Nagpur)</span>
-        </div>
-      </div>
-      <p style="font-style:italic; line-height:1.7; color:var(--text-slate); margin:0;">
-        "I was a final year student at GHRCEN, and every exam season classmates were scrambling on WhatsApp for notes — blurry photos, wrong syllabus. I built AbhiHub to fix that — starting with just 100 classmates on our campus, now scaling for every student across India."
-      </p>
-    </div>
-  </section>
-
-  <!-- SECTION 10: PRE-FOOTER CTA -->
-  <section class="section-container" style="text-align:center; padding-top: 0;">
-    <div style="background:linear-gradient(135deg, #2563eb, #7c3aed); color:#fff; border-radius:24px; padding:3.5rem 1.5rem;">
-      <h2 style="font-size:2.4rem; font-weight:800; margin-bottom:0.75rem; color:#fff;">Ready to Ace Your Next Exam?</h2>
-      <p style="max-width:550px; margin:0 auto 2rem; opacity:0.9; font-size:1.1rem;">
-        Join students from GHRCEN and across India sharing quality notes and unlocking exam success.
-      </p>
-      <a href="{{ url_for('auth.signup') }}" class="btn-primary-hero" style="background:#fff; color:#2563eb !important; box-shadow:none;"
-         onclick="trackLandingEvent('signup_funnel_start', {source:'landing_bottom_cta'})">
-        Create Free Account
-      </a>
-    </div>
-  </section>
-
-  <!-- SECTION 11: GLOBAL FOOTER -->
-  <footer class="landing-footer">
-    <div class="footer-grid">
-      <div class="footer-col">
-        <h3 style="font-weight:800; font-size:1.3rem; margin-bottom:0.5rem; color:var(--primary-blue);">AbhiHub</h3>
-        <p style="font-size:0.85rem; color:var(--text-muted); line-height:1.6; max-width:320px;">
-          Student-powered academic marketplace for handwritten notes and university previous year question papers. Started at GHRCEN.
+        <p class="origin-quote">
+          "During final year engineering at GHRCEN, every exam season classmates were scrambling across WhatsApp groups for handwritten solutions, lab manuals, and authentic PYQs. We built AbhiHub as a dignified exchange: juniors get verified papers instantly at fair rates, and meticulous note-makers keep 90% of their earnings with fast T+9 settlements."
         </p>
       </div>
+    </div>
+  </section>
 
-      <div class="footer-col">
-        <h4>Platform</h4>
-        <ul>
-          <li><a href="{{ url_for('library.pyq_landing') }}">Browse Library</a></li>
-          <li><a href="{{ url_for('site.contribute_page') }}">Upload & Earn</a></li>
-          <li><a href="{{ url_for('site.features_tour') }}">Features Tour</a></li>
-          <li><a href="{{ url_for('site.about') }}">About Us</a></li>
-        </ul>
-      </div>
-
-      <div class="footer-col">
-        <h4>Support</h4>
-        <ul>
-          <li><a href="{{ url_for('site.help_center') }}">Help Center</a></li>
-          <li><a href="{{ url_for('site.contact') }}">Contact Us</a></li>
-          <li><a href="{{ url_for('site.careers') }}">Careers</a></li>
-          <li><a href="{{ url_for('site.join_team') }}">Campus Ambassador</a></li>
-        </ul>
-      </div>
-
-      <div class="footer-col">
-        <h4>Legal</h4>
-        <ul>
-          <li><a href="{{ url_for('site.terms') }}">Terms & Conditions</a></li>
-          <li><a href="{{ url_for('site.privacy') }}">Privacy Policy</a></li>
-          <li><a href="{{ url_for('site.dmca') }}">DMCA & Copyright</a></li>
-        </ul>
+  <!-- ─── BOTTOM ENROLLMENT ANCHOR ──────────────────────────────── -->
+  <section class="enrollment-strip">
+    <div class="ledger-wrap">
+      <div class="enrollment-content">
+        <div>
+          <h2 class="enrollment-title">
+            Offer closes in: <span id="footerCountdown" style="color:#f87171; font-family:'Plus Jakarta Sans', monospace; font-variant-numeric:tabular-nums; font-weight:800;">00d 00h 00m 00s</span>
+          </h2>
+          <p class="enrollment-desc">
+            Sign up now before the countdown runs out to lock in 90% view pack discounts and keep 90% of your note sales.
+          </p>
+        </div>
+        <a href="{{ url_for('auth.signup') }}" class="btn-exchange-primary" style="background:#ffffff; color:#0f172a !important; font-weight:800; padding:0.95rem 1.85rem;">
+          Create Free Account
+        </a>
       </div>
     </div>
+  </section>
 
-    <div style="border-top:1px solid var(--border-light); padding-top:1.5rem; text-align:center; font-size:0.8rem; color:var(--text-muted);">
-      © {{ 2026 }} AbhiHub. Built with pride by Abhijeet Ashok Shende & AI Co-founder Tarika.
+  <!-- ─── FOOTER ─────────────────────────────────────────────────── -->
+  <footer class="exchange-footer">
+    <div class="ledger-wrap">
+      <div class="footer-row">
+        <div>
+          © {{ 2026 }} AbhiHub. Built with pride by Abhijeet Ashok Shende. Started at GHRCEN.
+        </div>
+        <ul class="footer-nav-links">
+          <li><a href="{{ url_for('library.pyq_landing') }}">Library</a></li>
+          <li><a href="{{ url_for('site.contribute_page') }}">Upload & Earn</a></li>
+          <li><a href="{{ url_for('site.about') }}">About</a></li>
+          <li><a href="{{ url_for('site.help_center') }}">Help Center</a></li>
+          <li><a href="{{ url_for('site.terms') }}">Terms</a></li>
+          <li><a href="{{ url_for('site.privacy') }}">Privacy</a></li>
+        </ul>
+      </div>
     </div>
   </footer>
 </div>
 
 <script>
-  // ─── Landing Page Analytics Helper ─────────────────────────────────────────
+  // ─── Analytics Helper ───────────────────────────────────────────
   function trackLandingEvent(eventName, params) {
     try {
       if (window.gtag) {
@@ -588,37 +1312,127 @@
     } catch (e) { }
   }
 
-  function calculateEarnings() {
-    const notes  = parseInt(document.getElementById('notesRange').value);
-    const price  = parseInt(document.getElementById('priceRange').value);
-    const buyers = parseInt(document.getElementById('buyersRange').value);
+  // ─── Ticket Tab Switcher ────────────────────────────────────────
+  function switchTicketTab(tab) {
+    var paneStudy = document.getElementById('paneStudy');
+    var paneCreator = document.getElementById('paneCreator');
+    var tabStudyBtn = document.getElementById('tabStudyBtn');
+    var tabCreatorBtn = document.getElementById('tabCreatorBtn');
 
-    document.getElementById('notesCountLabel').innerText = notes + ' files';
-    document.getElementById('priceLabel').innerText = '₹' + price;
-    document.getElementById('buyersLabel').innerText = buyers + ' students';
+    if (tab === 'study') {
+      paneStudy.style.display = 'block';
+      paneCreator.style.display = 'none';
+      tabStudyBtn.classList.add('active');
+      tabCreatorBtn.classList.remove('active');
+    } else {
+      paneStudy.style.display = 'none';
+      paneCreator.style.display = 'block';
+      tabStudyBtn.classList.remove('active');
+      tabCreatorBtn.classList.add('active');
+    }
+  }
 
-    const netPayout = Math.round(notes * price * buyers * 0.85);
-    document.getElementById('calcEarningsDisplay').innerText = '₹' + netPayout.toLocaleString('en-IN');
+  // ─── Interactive Domain Quota Tester ────────────────────────────
+  function setDomainTest(domainLabel, views, isCollege) {
+    var tag = document.getElementById('domainQuotaTag');
+    var num = document.getElementById('domainQuotaNumber');
+    var chips = document.querySelectorAll('.btn-domain-chip');
 
-    // Fire calculator_used event (debounced 800ms to avoid spam on drag)
+    chips.forEach(function(c) {
+      if (c.textContent.indexOf(domainLabel) !== -1 || (domainLabel.includes('ac.in') && c.textContent.includes('ac.in'))) {
+        c.classList.add('active');
+      } else {
+        c.classList.remove('active');
+      }
+    });
+
+    if (views > 0) {
+      tag.textContent = views + ' Free Views';
+      tag.style.color = 'var(--mint-emerald)';
+      tag.style.background = 'var(--mint-wash)';
+      num.textContent = views + ' Free Views';
+      num.style.color = 'var(--mint-emerald)';
+    } else {
+      tag.textContent = 'No Free Views';
+      tag.style.color = 'var(--deal-crimson)';
+      tag.style.background = 'var(--deal-wash)';
+      num.textContent = '0 Views';
+      num.style.color = 'var(--deal-crimson)';
+    }
+  }
+
+  // ─── Interactive ROI Terminal ───────────────────────────────────
+  function runTerminalMath() {
+    var notes = parseInt(document.getElementById('notesSlider').value);
+    var price = parseInt(document.getElementById('priceSlider').value);
+    var buyers = parseInt(document.getElementById('buyersSlider').value);
+
+    document.getElementById('notesVal').textContent = notes + ' bundles';
+    document.getElementById('priceVal').textContent = '₹' + price;
+    document.getElementById('buyersVal').textContent = buyers + ' students';
+
+    var gross = notes * price * buyers;
+    var netPromo = Math.round(gross * 0.90);
+    var netStd = Math.round(gross * 0.70);
+
+    document.getElementById('calcNetDisplay').textContent = '₹' + netPromo.toLocaleString('en-IN');
+    document.getElementById('calcStandardDisplay').textContent = '₹' + netStd.toLocaleString('en-IN');
+
     clearTimeout(window._calcDebounce);
     window._calcDebounce = setTimeout(function() {
       trackLandingEvent('calculator_used', {
         notes_count: notes,
         price_per_note: price,
         buyers_estimate: buyers,
-        est_payout: netPayout
+        est_payout: netPromo
       });
     }, 800);
   }
 
-  // ─── Branch filter GA4 events ───────────────────────────────────────────────
+  // ─── Desperation Countdown Timer ──────────────────────────────
+  function startDesperationCountdown() {
+    // Official Launch cut-off: 8 Nov 2026 23:59:59 UTC
+    var targetTime = new Date('2026-11-08T23:59:59Z').getTime();
+
+    function update() {
+      var now = new Date().getTime();
+      var delta = Math.max(0, targetTime - now);
+
+      var days = Math.floor(delta / (1000 * 60 * 60 * 24));
+      var hours = Math.floor((delta % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      var mins = Math.floor((delta % (1000 * 60 * 60)) / (1000 * 60));
+      var secs = Math.floor((delta % (1000 * 60)) / 1000);
+
+      var dStr = String(days).padStart(2, '0');
+      var hStr = String(hours).padStart(2, '0');
+      var mStr = String(mins).padStart(2, '0');
+      var sStr = String(secs).padStart(2, '0');
+
+      var elDays = document.getElementById('cdDays');
+      var elHours = document.getElementById('cdHours');
+      var elMins = document.getElementById('cdMins');
+      var elSecs = document.getElementById('cdSecs');
+      var heroBadge = document.getElementById('heroCountdownBadge');
+      var footerCd = document.getElementById('footerCountdown');
+
+      if (elDays) elDays.textContent = dStr;
+      if (elHours) elHours.textContent = hStr;
+      if (elMins) elMins.textContent = mStr;
+      if (elSecs) elSecs.textContent = sStr;
+
+      var formatted = dStr + 'd ' + hStr + 'h ' + mStr + 'm ' + sStr + 's';
+      if (heroBadge) heroBadge.textContent = formatted;
+      if (footerCd) footerCd.textContent = formatted;
+    }
+
+    update();
+    setInterval(update, 1000);
+  }
+
+  // Initialize on load
   document.addEventListener('DOMContentLoaded', function() {
-    document.querySelectorAll('[data-branch-track]').forEach(function(el) {
-      el.addEventListener('click', function() {
-        trackLandingEvent('branch_selected', { branch_name: el.dataset.branchTrack });
-      });
-    });
+    runTerminalMath();
+    startDesperationCountdown();
   });
 </script>
 {% endblock %}

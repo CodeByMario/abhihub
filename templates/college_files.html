@@ -35,302 +35,620 @@
 {% endblock %}
 
 {% block content %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+
 <style>
-  .college-page {
-    max-width: 1100px;
-    margin: 0 auto 5rem;
-    padding: 0 1.5rem;
+  :root {
+    --cf-bg: #0b0f19;
+    --cf-surface: #ffffff;
+    --cf-surface-sub: #f8fafc;
+    --cf-border: #e2e8f0;
+    --cf-ink: #0f172a;
+    --cf-ink-muted: #64748b;
+    --cf-brand: #0284c7;
+    --cf-emerald: #059669;
+    --cf-amber: #d97706;
+    --cf-violet: #6366f1;
+    --cf-font-display: 'Space Grotesk', -apple-system, sans-serif;
+    --cf-font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
+    --cf-font-mono: 'JetBrains Mono', monospace;
   }
-  .college-hero {
-    padding: 5.5rem 1.5rem 3rem;
-    background: linear-gradient(135deg, #1e293b 0%, #2563eb 100%);
-    color: white;
-    text-align: center;
-    border-bottom-left-radius: 40px;
-    border-bottom-right-radius: 40px;
-    box-shadow: 0 20px 40px rgba(37, 99, 235, 0.15);
-    margin-bottom: 1.5rem;
+
+  .dark :root {
+    --cf-surface: #131b2e;
+    --cf-surface-sub: #0f172a;
+    --cf-border: #1e293b;
+    --cf-ink: #f8fafc;
+    --cf-ink-muted: #94a3b8;
   }
-  .college-hero h1 {
-    font-size: clamp(1.6rem, 4.5vw, 2.6rem);
-    font-weight: 900;
-    margin-bottom: 0.6rem;
+
+  .arch-catalog-wrap {
+    font-family: var(--cf-font-body);
+    color: var(--cf-ink);
+    padding: 0 0 5rem;
+    background: transparent;
   }
-  .college-hero p {
-    font-size: 1rem;
-    opacity: 0.9;
-    max-width: 560px;
+
+  /* Architectural Technical Banner */
+  .arch-hero {
+    background: linear-gradient(180deg, #0b0f19 0%, #111827 100%);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    padding: 5rem 1.5rem 3.5rem;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .arch-hero::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background-image: 
+      linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
+      linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+    background-size: 32px 32px;
+    pointer-events: none;
+  }
+
+  .arch-hero-inner {
+    max-width: 1140px;
     margin: 0 auto;
+    position: relative;
+    z-index: 1;
   }
-  .college-toolbar {
-    max-width: 1100px;
-    margin: 0 auto 2rem;
+
+  .arch-spec-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-family: var(--cf-font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    color: #38bdf8;
+    background: rgba(56, 189, 248, 0.1);
+    border: 1px solid rgba(56, 189, 248, 0.25);
+    padding: 4px 10px;
+    border-radius: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+  }
+
+  .arch-spec-tag .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #38bdf8;
+    box-shadow: 0 0 8px #38bdf8;
+  }
+
+  .arch-hero h1 {
+    font-family: var(--cf-font-display);
+    font-size: clamp(1.75rem, 4vw, 2.75rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.8rem;
+    color: #ffffff;
+  }
+
+  .arch-hero p {
+    font-size: clamp(0.92rem, 1.8vw, 1.05rem);
+    color: #94a3b8;
+    max-width: 680px;
+    line-height: 1.6;
+    margin: 0;
+  }
+
+  /* Architectural Controls Rack */
+  .arch-rack-container {
+    max-width: 1140px;
+    margin: -1.75rem auto 2.5rem;
     padding: 0 1.5rem;
+    position: relative;
+    z-index: 2;
+  }
+
+  .arch-rack-card {
+    background: var(--cf-surface);
+    border: 1px solid var(--cf-border);
+    border-radius: 12px;
+    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+    padding: 1.25rem 1.5rem;
     display: flex;
     flex-direction: column;
     gap: 1rem;
   }
-  .college-search {
+
+  .arch-search-row {
     display: flex;
-    gap: 0.5rem;
+    gap: 0.75rem;
+    align-items: stretch;
   }
-  .college-search input[type="text"] {
+
+  .arch-input-group {
     flex: 1 1 auto;
-    padding: 0.85rem 1rem;
-    border-radius: 16px;
-    border: 1px solid #e2e8f0;
-    background: #ffffff;
-    box-shadow: 0 10px 24px rgba(0,0,0,0.05);
-    font-size: 1rem;
-  }
-  .college-search button {
-    padding: 0.85rem 1.1rem;
-    border-radius: 16px;
-    border: none;
-    background: #2563eb;
-    color: white;
-    font-weight: 800;
-    box-shadow: 0 10px 24px rgba(37,99,235,0.25);
-  }
-  .college-filters {
+    position: relative;
     display: flex;
-    flex-wrap: wrap;
-    gap: 0.5rem;
     align-items: center;
   }
-  .filter-chip {
-    padding: 0.45rem 0.9rem;
-    border-radius: 9999px;
-    border: 1px solid #e2e8f0;
-    background: #fff;
-    color: #0f172a;
+
+  .arch-search-icon {
+    position: absolute;
+    left: 1rem;
+    color: var(--cf-ink-muted);
+    font-size: 1rem;
+    pointer-events: none;
+  }
+
+  .arch-search-input {
+    width: 100%;
+    padding: 0.85rem 1rem 0.85rem 2.75rem;
+    border-radius: 8px;
+    border: 1px solid var(--cf-border);
+    background: var(--cf-surface-sub);
+    color: var(--cf-ink);
+    font-family: var(--cf-font-body);
+    font-size: 0.95rem;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  .arch-search-input:focus {
+    border-color: var(--cf-brand);
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    background: var(--cf-surface);
+  }
+
+  .arch-btn-primary {
+    padding: 0.85rem 1.5rem;
+    border-radius: 8px;
+    border: none;
+    background: #0284c7;
+    color: #ffffff;
+    font-family: var(--cf-font-display);
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+
+  .arch-btn-primary:hover {
+    background: #0369a1;
+    transform: translateY(-1px);
+  }
+
+  .arch-filter-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--cf-border);
+  }
+
+  .arch-chip-group {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    gap: 0.5rem;
+    padding-bottom: 2px;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .arch-chip-group::-webkit-scrollbar {
+    display: none;
+  }
+
+  .arch-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.45rem 0.95rem;
+    border-radius: 6px;
+    border: 1px solid var(--cf-border);
+    background: var(--cf-surface-sub);
+    color: var(--cf-ink);
     text-decoration: none;
+    font-size: 0.82rem;
     font-weight: 700;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+
+  .arch-chip:hover {
+    border-color: var(--cf-brand);
+    color: var(--cf-brand);
+  }
+
+  .arch-chip.active {
+    background: #0f172a;
+    color: #ffffff;
+    border-color: #0f172a;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
+  }
+
+  .dark .arch-chip.active {
+    background: #38bdf8;
+    color: #090d16;
+    border-color: #38bdf8;
+  }
+
+  .arch-select {
+    padding: 0.5rem 0.85rem;
+    border-radius: 6px;
+    border: 1px solid var(--cf-border);
+    background: var(--cf-surface);
+    color: var(--cf-ink);
+    font-family: var(--cf-font-body);
     font-size: 0.85rem;
-    transition: all 0.18s ease;
+    font-weight: 600;
+    cursor: pointer;
+    outline: none;
+    max-width: 240px;
   }
-  .filter-chip:hover {
-    border-color: #2563eb;
-    color: #2563eb;
+
+  .arch-select:focus {
+    border-color: var(--cf-brand);
   }
-  .filter-chip.active {
-    background: #2563eb;
-    color: white;
-    border-color: #2563eb;
+
+  /* Catalog Dossier Grid */
+  .arch-content-container {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
   }
-  .filter-select {
-    padding: 0.5rem 0.75rem;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-    background: white;
-    font-weight: 700;
-  }
-  .file-grid {
+
+  .arch-catalog-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 1.25rem;
   }
-  .pcard {
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 1.1rem;
+
+  /* Dossier Card System */
+  .arch-card-dossier {
+    background: var(--cf-surface);
+    border: 1px solid var(--cf-border);
+    border-radius: 8px;
+    padding: 1.2rem;
     text-decoration: none;
     color: inherit;
     display: flex;
     flex-direction: column;
-    gap: 0.6rem;
-    transition: transform 0.25s, box-shadow 0.25s;
     position: relative;
-    overflow: hidden;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+    border-left: 3.5px solid var(--cf-brand);
   }
-  .pcard::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #f59e0b, #ef4444);
+
+  .arch-card-dossier.type-pyq {
+    border-left-color: var(--cf-amber);
   }
-  .pcard.notes-card::before { background: linear-gradient(90deg, #10b981, #3b82f6); }
-  .pcard.practical-card::before { background: linear-gradient(90deg, #8b5cf6, #ec4899); }
-  .pcard:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 28px rgba(0,0,0,0.1);
+
+  .arch-card-dossier.type-notes {
+    border-left-color: var(--cf-brand);
   }
-  .pcard-badge {
+
+  .arch-card-dossier.type-practical {
+    border-left-color: var(--cf-violet);
+  }
+
+  .arch-card-dossier:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
+    border-color: #cbd5e1;
+  }
+
+  .arch-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.85rem;
+    gap: 0.5rem;
+  }
+
+  .arch-badge-stamp {
+    font-family: var(--cf-font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 3px 7px;
+    border-radius: 4px;
+    text-transform: uppercase;
     display: inline-flex;
     align-items: center;
     gap: 4px;
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    padding: 3px 8px;
-    border-radius: 6px;
-    background: #fff7ed;
-    color: #c2410c;
-    border: 1px solid #fed7aa;
-    width: fit-content;
   }
-  .pcard-badge.notes { background: #ecfdf5; color: #065f46; border-color: #a7f3d0; }
-  .pcard-badge.practical { background: #f5f3ff; color: #6d28d9; border-color: #ddd6fe; }
-  .pcard-subject {
-    font-size: 1rem;
+
+  .arch-badge-stamp.pyq {
+    background: #fffbeb;
+    color: #b45309;
+    border: 1px solid #fde68a;
+  }
+
+  .arch-badge-stamp.notes {
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
+
+  .arch-badge-stamp.practical {
+    background: #f5f3ff;
+    color: #6d28d9;
+    border: 1px solid #ddd6fe;
+  }
+
+  .arch-doc-id-pill {
+    font-family: var(--cf-font-mono);
+    font-size: 0.68rem;
+    color: var(--cf-ink-muted);
+  }
+
+  .arch-card-subject {
+    font-family: var(--cf-font-display);
+    font-size: 1.02rem;
     font-weight: 700;
-    color: #0f172a;
-    line-height: 1.3;
+    line-height: 1.35;
+    color: var(--cf-ink);
+    margin-bottom: 0.35rem;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .pcard-name {
-    font-size: 0.8rem;
-    color: #64748b;
+
+  .arch-card-title {
+    font-size: 0.84rem;
+    color: var(--cf-ink-muted);
+    line-height: 1.45;
+    margin-bottom: 1.25rem;
     display: -webkit-box;
-    -webkit-line-clamp: 1;
+    -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
-  .pcard-footer {
+
+  .arch-card-footer {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-top: auto;
-    padding-top: 0.6rem;
-    border-top: 1px solid #f1f5f9;
+    padding-top: 0.75rem;
+    border-top: 1px dashed var(--cf-border);
+    font-size: 0.76rem;
   }
-  .pcard-meta { font-size: 0.75rem; color: #94a3b8; display: flex; align-items: center; gap: 0.35rem; }
-  .pcard-views { font-size: 0.75rem; color: #2563eb; font-weight: 600; display: flex; align-items: center; gap: 3px; }
 
-  .pagination {
+  .arch-card-uploader {
+    color: var(--cf-ink-muted);
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    max-width: 160px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .arch-card-views {
+    font-family: var(--cf-font-mono);
+    font-weight: 700;
+    color: var(--cf-brand);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+  }
+
+  /* Architectural Pagination */
+  .arch-pagination {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-top: 1.5rem;
-    gap: 0.75rem;
+    margin-top: 2.5rem;
+    gap: 1rem;
     flex-wrap: wrap;
+    padding: 1.25rem 0 0;
+    border-top: 1px solid var(--cf-border);
   }
-  .pagination a, .pagination button {
-    padding: 0.65rem 0.9rem;
-    border-radius: 12px;
-    border: 1px solid #e2e8f0;
-    background: #fff;
+
+  .arch-page-btn {
+    padding: 0.65rem 1.1rem;
+    border-radius: 6px;
+    border: 1px solid var(--cf-border);
+    background: var(--cf-surface);
+    color: var(--cf-ink);
+    font-family: var(--cf-font-display);
     font-weight: 700;
-    color: #0f172a;
+    font-size: 0.85rem;
     text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.15s ease;
   }
-  .pagination .page-active {
-    background: #2563eb;
-    color: white;
-    border-color: #2563eb;
+
+  .arch-page-btn:hover:not(:disabled) {
+    border-color: var(--cf-brand);
+    color: var(--cf-brand);
   }
-  .empty-state {
-    grid-column: 1/-1;
-    text-align: center;
-    padding: 3rem;
-    background: #ffffff;
-    border-radius: 20px;
-    border: 1px dashed #e2e8f0;
-    color: #64748b;
+
+  .arch-page-btn:disabled, button.arch-page-btn[disabled] {
+    opacity: 0.45;
+    cursor: not-allowed;
   }
-  @media (max-width: 640px) {
-    .college-hero { padding: 4.5rem 1rem 2.5rem; }
-    .file-grid { grid-template-columns: 1fr; }
+
+  .arch-page-indicator {
+    font-family: var(--cf-font-mono);
+    font-size: 0.82rem;
+    color: var(--cf-ink-muted);
+  }
+
+  /* Mobile Adjustments */
+  @media (max-width: 768px) {
+    .arch-hero {
+      padding: 4.25rem 1.25rem 2.75rem;
+    }
+    .arch-rack-container {
+      margin-top: -1.25rem;
+      padding: 0 1rem;
+    }
+    .arch-rack-card {
+      padding: 1rem;
+    }
+    .arch-content-container {
+      padding: 0 1rem;
+    }
+    .arch-filter-row {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.75rem;
+    }
+    .arch-select {
+      max-width: 100%;
+    }
+    .arch-catalog-grid {
+      grid-template-columns: 1fr;
+      gap: 1rem;
+    }
+    .arch-search-row {
+      flex-direction: column;
+    }
+    .arch-btn-primary {
+      justify-content: center;
+      width: 100%;
+    }
   }
 </style>
 
-<div class="college-hero">
-  <h1>{{ college.name }} Files</h1>
-  <p>Browse {{ _abbr }} resources by branch. Use filters to narrow down exactly what you need.</p>
-</div>
+<div class="arch-catalog-wrap">
+  <!-- Architectural Hero Banner -->
+  <section class="arch-hero">
+    <div class="arch-hero-inner">
+      <div class="arch-spec-tag">
+        <span class="pulse-dot"></span>
+        <span>INDEX // {{ _abbr }} · ACADEMIC ARCHIVE</span>
+      </div>
+      <h1>{{ college.name }} Resources</h1>
+      <p>Verified previous year questions, class notes, and lab manuals organized by engineering department and semester syllabus.</p>
+    </div>
+  </section>
 
-<div class="college-toolbar">
-  <form class="college-search" action="{{ request.path }}" method="get">
-    {% if filters.type %}
-    <input type="hidden" name="type" value="{{ filters.type }}">
-    {% endif %}
-    {% if filters.branch %}
-    <input type="hidden" name="branch" value="{{ filters.branch }}">
-    {% endif %}
-    <input type="text" name="search" value="{{ filters.search }}" placeholder="Search files by title or keyword...">
-    <button type="submit">Search</button>
-  </form>
+  <!-- Controls Rack: Search, Filter Chips, Branch Selector -->
+  <section class="arch-rack-container">
+    <div class="arch-rack-card">
+      <form class="arch-search-row" action="{{ request.path }}" method="get">
+        {% if filters.type %}
+        <input type="hidden" name="type" value="{{ filters.type }}">
+        {% endif %}
+        {% if filters.branch %}
+        <input type="hidden" name="branch" value="{{ filters.branch }}">
+        {% endif %}
+        <div class="arch-input-group">
+          <span class="arch-search-icon">🔍</span>
+          <input type="text" name="search" class="arch-search-input" value="{{ filters.search }}" placeholder="Search files, subject name, exam code...">
+        </div>
+        <button type="submit" class="arch-btn-primary">Search Archive</button>
+      </form>
 
-  <form class="college-filters" action="{{ request.path }}" method="get">
-    {% if filters.search %}
-    <input type="hidden" name="search" value="{{ filters.search }}">
-    {% endif %}
-    <a class="filter-chip {{ 'active' if not filters.type }}" href="{{ request.path }}?{% if filters.search %}search={{ filters.search | urlencode }}&{% endif %}page=1">All</a>
-    <a class="filter-chip {{ 'active' if filters.type == 'pyq' or filters.type == 'papers' or filters.type == 'paper' }}" href="{{ request.path }}?type=pyq{% if filters.search %}&search={{ filters.search | urlencode }}{% endif %}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}&page=1">📄 PYQ</a>
-    <a class="filter-chip {{ 'active' if filters.type == 'notes' }}" href="{{ request.path }}?type=notes{% if filters.search %}&search={{ filters.search | urlencode }}{% endif %}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}&page=1">📝 Notes</a>
-    <a class="filter-chip {{ 'active' if filters.type == 'practical' or filters.type == 'practicals' }}" href="{{ request.path }}?type=practical{% if filters.search %}&search={{ filters.search | urlencode }}{% endif %}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}&page=1">🧪 Practicals</a>
-
-    <select class="filter-select" name="branch" onchange="this.form.submit()">
-      <option value="">All Branches</option>
-      {% for dept in departments %}
-        {% set selected = 'selected' if filters.branch == (dept.abbreviation or dept.name | lower | replace(' ', '-')) else '' %}
-        <option value="{{ (dept.abbreviation or dept.name) | lower | replace(' ', '-') }}" {{ selected }}>{{ dept.name }}</option>
-      {% endfor %}
-    </select>
-
-    {% if filters.type %}<input type="hidden" name="type" value="{{ filters.type }}">{% endif %}
-    {% if filters.search %}<input type="hidden" name="search" value="{{ filters.search }}">{% endif %}
-    <input type="hidden" name="page" value="1">
-  </form>
-</div>
-
-<div class="college-page">
-  <div class="file-grid">
-    {% for file in files %}
-      {% set cat = (file.get('document_category', '') | string | lower) %}
-      {% set is_pyq = cat in ['pyq', 'papers', 'paper'] %}
-      {% set is_practical = cat in ['practical', 'practicals'] %}
-      {% set _rid = file.get('record_id') or file.get('id') or '' %}
-      {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-      <a href="{{ furl }}" class="pcard {% if is_practical %}practical-card{% elif not is_pyq %}notes-card{% endif %}">
-        {% if is_pyq %}
-          <span class="pcard-badge">📄 PYQ</span>
-        {% elif is_practical %}
-          <span class="pcard-badge practical">🧪 Practical</span>
-        {% else %}
-          <span class="pcard-badge notes">📝 Notes</span>
+      <form class="arch-filter-row" action="{{ request.path }}" method="get">
+        {% if filters.search %}
+        <input type="hidden" name="search" value="{{ filters.search }}">
         {% endif %}
 
-        <div class="pcard-subject">{{ file.get('subjects', {}).get('name', 'Uncategorized') if file.get('subjects') else 'Uncategorized' }}</div>
-        <div class="pcard-name">{{ file.get('title', 'File') }}</div>
-
-        <div class="pcard-footer">
-          <span class="pcard-meta">👤 {{ file.get('profiles', {}).get('full_name', 'Anonymous') if file.get('profiles') else 'Anonymous' }}</span>
-          <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
+        <!-- Horizontal scrollable filter chips -->
+        <div class="arch-chip-group" role="tablist" aria-label="Resource Category Filters">
+          <a class="arch-chip {{ 'active' if not filters.type }}" href="{{ request.path }}?{% if filters.search %}search={{ filters.search | urlencode }}&{% endif %}page=1">All Items</a>
+          <a class="arch-chip {{ 'active' if filters.type in ['pyq', 'papers', 'paper'] }}" href="{{ request.path }}?type=pyq{% if filters.search %}&search={{ filters.search | urlencode }}{% endif %}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}&page=1">📄 PYQ Papers</a>
+          <a class="arch-chip {{ 'active' if filters.type == 'notes' }}" href="{{ request.path }}?type=notes{% if filters.search %}&search={{ filters.search | urlencode }}{% endif %}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}&page=1">📝 Notes</a>
+          <a class="arch-chip {{ 'active' if filters.type in ['practical', 'practicals'] }}" href="{{ request.path }}?type=practical{% if filters.search %}&search={{ filters.search | urlencode }}{% endif %}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}&page=1">🧪 Practicals</a>
         </div>
-      </a>
-    {% else %}
-      <div style="grid-column: 1/-1;">
-        {% set queue_target_name = (college.name ~ ' (' ~ _abbr ~ ')') if college is defined else 'this filter criteria' %}
-        {% include 'includes/psychological_queue.html' %}
+
+        <!-- Branch Selector -->
+        <select class="arch-select" name="branch" onchange="this.form.submit()" aria-label="Filter by Branch">
+          <option value="">All Branches & Departments</option>
+          {% for dept in departments %}
+            {% set selected = 'selected' if filters.branch == (dept.abbreviation or dept.name | lower | replace(' ', '-')) else '' %}
+            <option value="{{ (dept.abbreviation or dept.name) | lower | replace(' ', '-') }}" {{ selected }}>{{ dept.name }}</option>
+          {% endfor %}
+        </select>
+
+        {% if filters.type %}<input type="hidden" name="type" value="{{ filters.type }}">{% endif %}
+        {% if filters.search %}<input type="hidden" name="search" value="{{ filters.search }}">{% endif %}
+        <input type="hidden" name="page" value="1">
+      </form>
+    </div>
+  </section>
+
+  <!-- Document Dossier Grid -->
+  <main class="arch-content-container">
+    <div class="arch-catalog-grid">
+      {% for file in files %}
+        {% set cat = (file.get('document_category', '') | string | lower) %}
+        {% set is_pyq = cat in ['pyq', 'papers', 'paper'] %}
+        {% set is_practical = cat in ['practical', 'practicals'] %}
+        {% set _rid = file.get('record_id') or file.get('id') or '' %}
+        {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
+        <a href="{{ furl }}" class="arch-card-dossier {% if is_pyq %}type-pyq{% elif is_practical %}type-practical{% else %}type-notes{% endif %}">
+          <div class="arch-card-header">
+            {% if is_pyq %}
+              <span class="arch-badge-stamp pyq">📄 [DOC·PYQ]</span>
+            {% elif is_practical %}
+              <span class="arch-badge-stamp practical">🧪 [DOC·LAB]</span>
+            {% else %}
+              <span class="arch-badge-stamp notes">📝 [DOC·NOTE]</span>
+            {% endif %}
+            <span class="arch-doc-id-pill">#{{ file.get('id', '')[:6] }}</span>
+          </div>
+
+          <div class="arch-card-subject">{{ file.get('subjects', {}).get('name', 'General Engineering') if file.get('subjects') else 'General Engineering' }}</div>
+          <div class="arch-card-title">{{ file.get('title', 'Study Resource File') }}</div>
+
+          <div class="arch-card-footer">
+            <span class="arch-card-uploader" title="{{ file.get('profiles', {}).get('full_name', 'Student Contributor') if file.get('profiles') else 'Student Contributor' }}">
+              👤 {{ file.get('profiles', {}).get('full_name', 'Student Contributor') if file.get('profiles') else 'Student Contributor' }}
+            </span>
+            <span class="arch-card-views">
+              👁 {{ file.get('view_count', 0) }}
+            </span>
+          </div>
+        </a>
+      {% else %}
+        <div style="grid-column: 1/-1;">
+          {% set queue_target_name = (college.name ~ ' (' ~ _abbr ~ ')') if college is defined else 'this filter criteria' %}
+          {% include 'includes/psychological_queue.html' %}
+        </div>
+      {% endfor %}
+    </div>
+
+    <!-- Pagination Controls -->
+    {% if filters.total > filters.page_size %}
+    <nav class="arch-pagination" aria-label="Page navigation">
+      {% set prev_page = filters.page - 1 %}
+      {% if prev_page >= 1 %}
+        <a class="arch-page-btn" href="{{ request.path }}?type={{ filters.type }}&branch={{ filters.branch }}&search={{ filters.search | urlencode }}&page={{ prev_page }}">← Previous Page</a>
+      {% else %}
+        <button class="arch-page-btn" disabled>← Previous Page</button>
+      {% endif %}
+
+      <div class="arch-page-indicator">
+        Page {{ filters.page }} of {{ (filters.total // filters.page_size) + (1 if filters.total % filters.page_size else 0) }} · {{ filters.total }} total documents
       </div>
-    {% endfor %}
-  </div>
 
-  {% if filters.total > filters.page_size %}
-  <div class="pagination">
-    {% set prev_page = filters.page - 1 %}
-    {% if prev_page >= 1 %}
-      <a href="{{ request.path }}?type={{ filters.type }}&branch={{ filters.branch }}&search={{ filters.search | urlencode }}&page={{ prev_page }}">← Prev</a>
-    {% else %}
-      <button disabled>← Prev</button>
+      {% set next_page = filters.page + 1 %}
+      {% if next_page * filters.page_size <= filters.total or (next_page - 1) * filters.page_size < filters.total %}
+        <a class="arch-page-btn" href="{{ request.path }}?type={{ filters.type }}&branch={{ filters.branch }}&search={{ filters.search | urlencode }}&page={{ next_page }}">Next Page →</a>
+      {% else %}
+        <button class="arch-page-btn" disabled>Next Page →</button>
+      {% endif %}
+    </nav>
     {% endif %}
-
-    <span>Page {{ filters.page }} of {{ (filters.total // filters.page_size) + (1 if filters.total % filters.page_size else 0) }} · {{ filters.total }} files</span>
-
-    {% set next_page = filters.page + 1 %}
-    {% if next_page * filters.page_size <= filters.total or (next_page - 1) * filters.page_size < filters.total %}
-      <a href="{{ request.path }}?type={{ filters.type }}&branch={{ filters.branch }}&search={{ filters.search | urlencode }}&page={{ next_page }}">Next →</a>
-    {% else %}
-      <button disabled>Next →</button>
-    {% endif %}
-  </div>
-  {% endif %}
+  </main>
 </div>
 {% endblock %}

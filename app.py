@@ -337,7 +337,7 @@ def apply_security_and_cache_headers(response):
         )
 
     response.headers.setdefault('Referrer-Policy', 'strict-origin-when-cross-origin')
-    response.headers.setdefault('Permissions-Policy', 'camera=(self), microphone=(), geolocation=()')
+    response.headers.setdefault('Permissions-Policy', 'camera=(self), microphone=(), geolocation=(), display-capture=()')
     
     # HSTS in production
     if os.getenv('FLASK_ENV', 'production').lower() != 'development':
@@ -766,8 +766,21 @@ def log_document_view(file_name, file_url, record_id=None,
             if viewed_dict.get(doc_key) == today_str:
                 already_viewed_today = True
 
-        # Deduct credit ONLY if user is not the uploader AND has not viewed it today
-        if not is_owner and not already_viewed_today:
+        # Check 3: Paid material rule (credits ONLY charged on FREE material, never on paid notes)
+        is_paid_doc = False
+        if record_id:
+            try:
+                from data.pricing import extract_document_pricing
+                p_chk = supabase.table('documents').select('id, is_paid, price, description').eq('id', record_id).limit(1).execute()
+                if p_chk.data:
+                    doc_pricing = extract_document_pricing(p_chk.data[0])
+                    if doc_pricing.get('is_paid') and float(doc_pricing.get('price', 0)) > 0:
+                        is_paid_doc = True
+            except Exception:
+                pass
+
+        # Deduct credit ONLY on FREE material, if user is not the uploader, AND has not viewed today
+        if not is_owner and not already_viewed_today and not is_paid_doc:
             allowed = _consume_credit()
             if allowed:
                 try:
@@ -914,8 +927,12 @@ def _get_quota():
     Caches the Supabase response at L1 for 60s to reduce DB load."""
     user = session.get('user', {})
     user_id = user.get('uid')
+    from methods.domain_tier_service import classify_email
+    tier_info = classify_email(user.get('email', ''))
+    default_quota = tier_info['starting_views']
+
     if not user_id:
-        return {'credits': 19, 'total_views': 0}
+        return {'credits': default_quota, 'total_views': 0}
 
     # Check L1 cache for quota (short TTL since it changes on every paper open)
     cached_quota = cache.l1.get(f"user:quota:{user_id}")
@@ -924,18 +941,18 @@ def _get_quota():
 
     # Fetch from Supabase
     res = supabase.table('profiles').select('paper_quota_remaining, last_quota_reset').eq('id', user_id).execute()
-    db_quota = 19
+    db_quota = default_quota
     _default_month = datetime.utcnow().strftime('%Y-%m')
     last_reset = _default_month
     if res.data:
         db_quota = res.data[0].get('paper_quota_remaining')
         if db_quota is None:
-            db_quota = 19
+            db_quota = default_quota
         last_reset = res.data[0].get('last_quota_reset') or _default_month
 
     current_month = datetime.utcnow().strftime('%Y-%m')
     if last_reset != current_month:
-        db_quota = 19
+        db_quota = default_quota
         last_reset = current_month
         supabase.table('profiles').update({
             'paper_quota_remaining': db_quota,
@@ -948,32 +965,17 @@ def _get_quota():
     return q
 
 def log_credit_transaction(user_id, amount, tx_type, reason):
-    """Record credit earning or spending transaction for ledger tracking."""
+    """Record credit transaction for ledger tracking via unified payment engine."""
     if not user_id:
         return
     try:
-        data = {
-            'user_id': user_id,
-            'amount': amount,
-            'type': tx_type,  # 'earn' or 'spend'
-            'reason': reason,
-            'created_at': datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S')
-        }
-        # Session storage for fast UI response
-        history = session.get('credit_history', [])
-        if not isinstance(history, list):
-            history = []
-        history.insert(0, data)
-        session['credit_history'] = history[:100]
-        session.modified = True
-
-        # Database storage
-        try:
-            supabase.table('credit_transactions').insert(data).execute()
-        except Exception:
-            pass
+        from methods.payment_engine import engine
+        if tx_type == 'earn' or amount > 0:
+            engine.credit_views(user_id, abs(amount), reason=reason, source='system')
+        else:
+            engine.deduct_view(user_id, doc_name=reason)
     except Exception as e:
-        logging.warning(f"[CREDIT-LOG] Could not log credit tx: {e}")
+        logging.warning(f"[CREDIT-LOG] Error logging credit transaction: {e}")
 
 def _grant_upload_credits():
     """Award +3 paper quota views and +1 reputation score to the user after a successful upload."""
@@ -981,31 +983,28 @@ def _grant_upload_credits():
     user_id = user.get('uid')
     if not user_id:
         return
-    
-    # Fetch current quota and rep
-    res = supabase.table('profiles').select('paper_quota_remaining, reputation_score').eq('id', user_id).execute()
-    if res.data:
-        curr_quota = res.data[0].get('paper_quota_remaining')
-        if curr_quota is None:
-            curr_quota = 19
-        curr_rep = res.data[0].get('reputation_score') or 0
-        new_quota = curr_quota + 3
-        
-        supabase.table('profiles').update({
-            'paper_quota_remaining': new_quota,
-            'reputation_score': curr_rep + 1
-        }).eq('id', user_id).execute()
 
-        # Update session quota
-        q = session.get('paper_quota', {})
-        if isinstance(q, dict):
-            q['credits'] = new_quota
-            session['paper_quota'] = q
-            session.modified = True
+    from methods.payment_engine import engine
+    new_quota = engine.grant_reward(user_id, 3, reason='upload_reward')
 
-        cache.l1.delete(f"user:quota:{user_id}")
-        log_credit_transaction(user_id, 3, 'earn', "Document upload reward (+3 views)")
-        logging.info(f"[REWARD] Granted +3 views (quota={new_quota}) and +1 rep to {user.get('email')}")
+    # Bump reputation score
+    try:
+        res = supabase.table('profiles').select('reputation_score').eq('id', user_id).limit(1).execute()
+        if res.data:
+            curr_rep = res.data[0].get('reputation_score') or 0
+            supabase.table('profiles').update({'reputation_score': curr_rep + 1}).eq('id', user_id).execute()
+    except Exception as e:
+        logging.warning(f"[REWARD] Error updating reputation: {e}")
+
+    # Update session quota
+    q = session.get('paper_quota', {})
+    if isinstance(q, dict):
+        q['credits'] = new_quota
+        session['paper_quota'] = q
+        session.modified = True
+
+    cache.l1.delete(f"user:quota:{user_id}")
+    logging.info(f"[REWARD] Granted +3 views (quota={new_quota}) and +1 rep to {user.get('email')}")
 
 def _consume_credit(doc_name="Document"):
     """
@@ -1016,30 +1015,28 @@ def _consume_credit(doc_name="Document"):
     user = session.get('user', {})
     user_email = user.get('email', '').lower()
     user_id = user.get('uid')
-    
+
     # Admins bypass the gate
     if user_email in ADMIN_EMAILS:
         return True
-        
+
     q = _get_quota()
     if q.get('credits', 0) <= 0:
         return False
-        
-    new_credits = q['credits'] - 1
+
+    from methods.payment_engine import engine
+    allowed, new_credits = engine.deduct_view(user_id, doc_name=doc_name)
+    if not allowed:
+        return False
+
     q['credits'] = new_credits
     q['total_views'] = q.get('total_views', 0) + 1
     session['paper_quota'] = q
     session.modified = True
-    
-    # Update backend
-    if user_id:
-        supabase.table('profiles').update({'paper_quota_remaining': new_credits}).eq('id', user_id).execute()
-        log_credit_transaction(user_id, -1, 'spend', f"Viewed: {doc_name}")
 
-    # Invalidate quota cache — it changed
     cache.l1.delete(f"user:quota:{user_id}")
-
     return True
+
 
 
 
@@ -1326,11 +1323,11 @@ def send_upload_notifications_command():
 # Error Handlers
 @app.errorhandler(404)
 def page_not_found(e):
-    return render_template('site/error.html', error="Page Not Found"), 404
+    return render_template('p_error.html', error="Page Not Found"), 404
 
 @app.errorhandler(500)
 def internal_server_error(e):
-    return render_template('site/error.html', error="Internal Server Error"), 500
+    return render_template('p_error.html', error="Internal Server Error"), 500
 
 
 
@@ -1558,7 +1555,7 @@ def chat_reconnect():
 @socketio.on('join_admin_room')
 def join_admin_room(data):
     """Admin joins the admin-room namespace to receive real-time updates."""
-    socketio.join_room('admin-room')
+    join_room('admin-room')
     # Send immediate snapshot
     try:
         stats = get_admin_broadcast_delivery_stats(limit=20)

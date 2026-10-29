@@ -110,3 +110,76 @@ def api_save_channel():
         'handle': result,
         'channel_url': url_for('channels.public_channel_view', handle=result, _external=True)
     })
+
+
+# ---------------------------------------------------------------------
+# Creator Hub & Customer CRM
+# ---------------------------------------------------------------------
+@channels_bp.route('/creator/hub')
+@channels_bp.route('/creator-hub')
+@channels_bp.route('/creater-hub')
+@channels_bp.route('/creater/hub')
+@auth_required
+def creator_hub():
+    """Creator Hub: Top customers leaderboard, revenue metrics, and community broadcasts."""
+    user = session.get('user', {})
+    user_id = user.get('uid')
+
+    from methods.creator_crm_service import (
+        get_creator_customer_stats,
+        get_creator_top_customers,
+        get_creator_broadcasts
+    )
+
+    stats = get_creator_customer_stats(user_id) if user_id else {}
+    customers = get_creator_top_customers(user_id, limit=25) if user_id else []
+    broadcasts = get_creator_broadcasts(user_id, limit=10) if user_id else []
+
+    channel = get_channel_by_user_id(user_id) if user_id else None
+
+    return render_template(
+        'p_creator_hub.html',
+        user=user,
+        channel=channel,
+        stats=stats,
+        customers=customers,
+        broadcasts=broadcasts
+    )
+
+
+@channels_bp.route('/api/creator/customers', methods=['GET'])
+@auth_required
+def api_creator_customers():
+    """API to fetch top customers with metrics."""
+    user_id = session.get('user', {}).get('uid')
+    if not user_id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    from methods.creator_crm_service import get_creator_top_customers, get_creator_customer_stats
+    limit = int(request.args.get('limit', 20))
+    customers = get_creator_top_customers(user_id, limit=limit)
+    stats = get_creator_customer_stats(user_id)
+    return jsonify({'success': True, 'customers': customers, 'stats': stats})
+
+
+@channels_bp.route('/api/creator/broadcast', methods=['POST'])
+@auth_required
+def api_create_broadcast():
+    """Publish announcement to buyers."""
+    user_id = session.get('user', {}).get('uid')
+    if not user_id:
+        return jsonify({'success': False, 'error': 'Unauthorized'}), 401
+    data = request.get_json(silent=True) or request.form.to_dict() or {}
+    title = str(data.get('title', '')).strip()
+    msg = str(data.get('message', '')).strip()
+    channel_url = str(data.get('channel_url', '')).strip()
+    tier = str(data.get('target_tier', 'all')).strip()
+
+    if not title or not msg:
+        return jsonify({'success': False, 'error': 'Title and message are required.'}), 400
+
+    from methods.creator_crm_service import create_creator_broadcast
+    res = create_creator_broadcast(user_id, title=title, message=msg, channel_url=channel_url, target_tier=tier)
+    if not res.get('success'):
+        return jsonify(res), 400
+    return jsonify(res)
+

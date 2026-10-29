@@ -32,12 +32,15 @@
     {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}">
     <title>{% block title %}Admin Command Center{% endblock %} | AbhiHub</title>
     <!-- Google Fonts & Font Awesome 6 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500;600&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Admin Core Utilities -->
+    <script src="/static/js/admin-dashboard.js"></script>
     
     <!-- Instant Theme Detection & Application (prevents theme flash) -->
     <script>
@@ -524,7 +527,11 @@
             </a>
             <a href="/admin#users" class="nav-link">
                 <i class="fas fa-user-graduate"></i>
-                <span>Students & Rank</span>
+                <span>Students & Moderation</span>
+            </a>
+            <a href="/admin#files" class="nav-link">
+                <i class="fas fa-folder-tree"></i>
+                <span>Files & Storage</span>
             </a>
 
             <div class="menu-heading">Intelligence</div>
@@ -536,6 +543,10 @@
                 <i class="fas fa-triangle-exclamation"></i>
                 <span>File Reports</span>
             </a>
+            <a href="/admin#audit" class="nav-link">
+                <i class="fas fa-shield-halved"></i>
+                <span>Audit Logs</span>
+            </a>
 
             <div class="menu-heading">Operations</div>
             <a href="/admin/payments" class="nav-link {% if request.path == '/admin/payments' %}active{% endif %}">
@@ -545,6 +556,10 @@
             <a href="/admin/economy" class="nav-link {% if request.path == '/admin/economy' %}active{% endif %}">
                 <i class="fas fa-coins"></i>
                 <span>Economy & Scoring</span>
+            </a>
+            <a href="/admin#settings" class="nav-link">
+                <i class="fas fa-sliders"></i>
+                <span>Site Settings</span>
             </a>
             {% if not IS_PRODUCTION %}
             <a href="/admin/developer" class="nav-link {% if request.path == '/admin/developer' %}active{% endif %}">

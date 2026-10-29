@@ -2,35 +2,134 @@
 <html lang="en">
 
 <head>
-    {% if IS_PRODUCTION %}
-    <!-- Production Mode: Prevent Opening DevTools & Inspect Elements -->
+    <!-- Security Shield: Prevent Extension Injection, Downloads, Screenshots & DevTools -->
+    <style>
+        /* Anti-Download: Disable text selection and callouts, preserve form fields */
+        body, html {
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+        }
+        input, textarea, [contenteditable="true"] {
+            -webkit-user-select: text;
+            -moz-user-select: text;
+            -ms-user-select: text;
+            user-select: text;
+        }
+        /* Anti-Screenshot / Anti-Print Blanking */
+        @media print {
+            html, body {
+                display: none !important;
+                visibility: hidden !important;
+            }
+        }
+        /* Screen Shield when app loses focus (e.g. Snipping Tool / external screenshotting) */
+        .screen-shield-active {
+            filter: blur(50px) !important;
+            opacity: 0.05 !important;
+            pointer-events: none !important;
+        }
+    </style>
     <script>
         (function() {
+            // 1. Anti-Download: Prevent context menu & dragging
             document.addEventListener('contextmenu', function(e) {
                 e.preventDefault();
                 return false;
             }, { capture: true });
 
+            document.addEventListener('dragstart', function(e) {
+                e.preventDefault();
+                return false;
+            }, { capture: true });
+
+            // 2. Anti-Download & Anti-Inspect & Anti-Screenshot Shortcut Interception
             document.addEventListener('keydown', function(e) {
-                if (e.key === 'F12' || e.keyCode === 123) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
+                var k = (e.key || '').toLowerCase();
+                var code = e.keyCode || e.which;
+
+                // F12 / DevTools
+                if (e.key === 'F12' || code === 123) {
+                    e.preventDefault(); e.stopPropagation(); return false;
                 }
-                if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
+                // Ctrl+Shift+I / J / C (DevTools)
+                if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'j', 'c'].includes(k)) {
+                    e.preventDefault(); e.stopPropagation(); return false;
                 }
-                if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
+                // Ctrl+U (View Source)
+                if ((e.ctrlKey || e.metaKey) && k === 'u') {
+                    e.preventDefault(); e.stopPropagation(); return false;
+                }
+                // Ctrl+S / Cmd+S (Save Page / Download)
+                if ((e.ctrlKey || e.metaKey) && k === 's') {
+                    e.preventDefault(); e.stopPropagation(); return false;
+                }
+                // Ctrl+P / Cmd+P (Print to PDF / Save as PDF)
+                if ((e.ctrlKey || e.metaKey) && k === 'p') {
+                    e.preventDefault(); e.stopPropagation(); return false;
+                }
+                // PrintScreen or Screenshot combos (Meta+Shift+S / Meta+Shift+3,4,5)
+                if (e.key === 'PrintScreen' || code === 44 || ((e.metaKey || e.ctrlKey) && e.shiftKey && ['s', '3', '4', '5'].includes(k))) {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        try { navigator.clipboard.writeText(''); } catch(err) {}
+                    }
+                    if (document.body) {
+                        document.body.classList.add('screen-shield-active');
+                        setTimeout(function() { document.body.classList.remove('screen-shield-active'); }, 1200);
+                    }
+                    e.preventDefault(); e.stopPropagation(); return false;
                 }
             }, { capture: true });
+
+            // Clear clipboard on PrintScreen keyup
+            window.addEventListener('keyup', function(e) {
+                if (e.key === 'PrintScreen' || (e.keyCode || e.which) === 44) {
+                    if (navigator.clipboard && navigator.clipboard.writeText) {
+                        try { navigator.clipboard.writeText(''); } catch(err) {}
+                    }
+                }
+            }, { capture: true });
+
+            // 3. Anti-Screenshot: Blur screen when browser loses focus (Snipping tool / window switch)
+            window.addEventListener('blur', function() {
+                if (document.body) document.body.classList.add('screen-shield-active');
+            });
+            window.addEventListener('focus', function() {
+                if (document.body) document.body.classList.remove('screen-shield-active');
+            });
+            document.addEventListener('visibilitychange', function() {
+                if (document.body) {
+                    if (document.hidden) document.body.classList.add('screen-shield-active');
+                    else document.body.classList.remove('screen-shield-active');
+                }
+            });
+
+            // 4. Anti-Extension: Strip injected extension DOM nodes
+            try {
+                var extObserver = new MutationObserver(function(mutations) {
+                    for (var i = 0; i < mutations.length; i++) {
+                        var added = mutations[i].addedNodes;
+                        for (var j = 0; j < added.length; j++) {
+                            var node = added[j];
+                            if (node && node.nodeType === 1) {
+                                var src = (node.getAttribute('src') || '').toLowerCase();
+                                var href = (node.getAttribute('href') || '').toLowerCase();
+                                var id = (node.id || '').toLowerCase();
+                                var cls = (node.className || '').toString().toLowerCase();
+                                if (src.indexOf('extension://') !== -1 || href.indexOf('extension://') !== -1 ||
+                                    id.indexOf('extension') !== -1 || cls.indexOf('extension') !== -1) {
+                                    node.remove();
+                                }
+                            }
+                        }
+                    }
+                });
+                extObserver.observe(document.documentElement, { childList: true, subtree: true });
+            } catch(e) {}
         })();
     </script>
-    {% endif %}
 
     <!-- Instant Theme Detection & Application (prevents theme flash) -->
     <script>
@@ -107,7 +206,39 @@
                             if (window.history && window.history.replaceState) {
                                 window.history.replaceState(null, document.title, window.location.pathname);
                             }
-                            window.location.replace('/app-shell');
+                            var nextUrl = '/app-shell';
+                            try {
+                                var storedNext = localStorage.getItem('auth_next_url') || sessionStorage.getItem('auth_next_url');
+                                if (storedNext && storedNext.startsWith('/') && !storedNext.startsWith('//') && !storedNext.includes('\\')) {
+                                    if (storedNext.startsWith('/app-shell?p=')) {
+                                        var pVal = new URLSearchParams(storedNext.substring(10)).get('p');
+                                        if (pVal) storedNext = pVal;
+                                    }
+                                    var cleanNext = storedNext.split('?')[0].split('#')[0];
+                                    if (cleanNext !== '' && cleanNext !== '/' && cleanNext !== '/landing') {
+                                        nextUrl = storedNext;
+                                    }
+                                    try {
+                                        localStorage.removeItem('auth_next_url');
+                                        sessionStorage.removeItem('auth_next_url');
+                                    } catch(e) {}
+                                }
+                            } catch(e) {}
+                            if (nextUrl === '/app-shell' && document.referrer) {
+                                try {
+                                    var refObj = new URL(document.referrer);
+                                    if (refObj.origin === window.location.origin && 
+                                        refObj.pathname !== '/' &&
+                                        refObj.pathname !== '/landing' &&
+                                        !refObj.pathname.startsWith('/login') && 
+                                        !refObj.pathname.startsWith('/signup') && 
+                                        !refObj.pathname.startsWith('/logout') && 
+                                        !refObj.pathname.startsWith('/auth')) {
+                                        nextUrl = refObj.pathname + refObj.search;
+                                    }
+                                } catch(e) {}
+                            }
+                            window.location.replace(nextUrl);
                         } else {
                             var errMsg = (data && data.message) ? data.message : 'Sign-in failed. Please try again.';
                             window.location.replace('/login?error=' + encodeURIComponent(errMsg));
@@ -144,13 +275,13 @@
                     try { window.parent.postMessage({ type: 'NAVIGATE_START' }, window.location.origin); } catch(e) {}
                 });
             } else {
-                var shellEnabled = {{ 'true' if config.get('APP_SHELL_ENABLED', True) else 'false' }};
+                var shellEnabled = {{ 'true' if (config.get('APP_SHELL_ENABLED', True) and session.get('user')) else 'false' }};
                 if (shellEnabled) {
                     var path = window.location.pathname;
                     var skipPatterns = [/^\/app-shell/, /^\/login/, /^\/signup/, /^\/logout/, /^\/auth/, /^\/reset-password/, /^\/reset-password-confirm/, /^\/offline/, /^\/api\//, /^\/(about|terms|privacy|contact)?$/];
                     var shouldSkip = skipPatterns.some(function(re) { return re.test(path); });
                     if (!shouldSkip) {
-                        var tabPatterns = [/^\/dashboard/, /^\/upload/, /^\/leaderboard/, /^\/rank/, /^\/profile/, /^\/account/, /^\/store-room/, /^\/admin/, /^\/settings/, /^\/setting/, /^\/chat/, /^\/resource/, /^\/pdf-reader/, /^\/preview/, /^\/notifications/];
+                        var tabPatterns = [/^\/dashboard/, /^\/upload/, /^\/leaderboard/, /^\/rank/, /^\/profile/, /^\/account/, /^\/creator/, /^\/store-room/, /^\/admin/, /^\/settings/, /^\/setting/, /^\/chat/, /^\/pdf-reader/, /^\/preview/, /^\/notifications/];
                         var isTabOrChild = tabPatterns.some(function(re) { return re.test(path); });
                         if (isTabOrChild) {
                             var currentPath = window.location.pathname + window.location.search + window.location.hash;
@@ -395,9 +526,16 @@
                 <a href="{{ url_for('site.careers') }}" style="font-size:0.8rem; font-weight:700; color:#2563eb; text-decoration:none; padding:0.25rem 0.65rem; border-radius:9999px; background:rgba(37,99,235,0.08); border:1px solid rgba(37,99,235,0.2); display:inline-flex; align-items:center; gap:0.25rem;">
                     <span>💼 Careers</span>
                 </a>
+                {% set cur_req_path = request.full_path if request.query_string else request.path %}
+                {% if cur_req_path and cur_req_path.strip() not in ('/', '/landing') %}
+                <a href="{{ url_for('auth.login', next=cur_req_path.strip()) }}" style="font-size:0.82rem; font-weight:600; color:var(--text-secondary); text-decoration:none; padding:0.25rem 0.5rem;">
+                    Log In
+                </a>
+                {% else %}
                 <a href="{{ url_for('auth.login') }}" style="font-size:0.82rem; font-weight:600; color:var(--text-secondary); text-decoration:none; padding:0.25rem 0.5rem;">
                     Log In
                 </a>
+                {% endif %}
                 <a href="{{ url_for('auth.signup') }}" style="font-size:0.8rem; font-weight:700; color:#ffffff !important; background:linear-gradient(135deg, #2563eb, #1d4ed8); text-decoration:none; padding:0.3rem 0.75rem; border-radius:8px; box-shadow:0 2px 6px rgba(37,99,235,0.25);">
                     Sign Up
                 </a>
@@ -1009,34 +1147,66 @@
     <!-- Global Buy Credits Modal (₹2 / view) -->
     <div id="buyCreditsModal" class="buy-credits-modal-overlay" style="display: none;" onclick="if(event.target===this)closeBuyCreditsModal();">
       <div class="buy-credits-modal" role="dialog" aria-modal="true" aria-labelledby="buyCreditsTitle">
+        <style>
+          .buy-credits-modal { max-width: 720px !important; width: 95% !important; }
+          .buy-credits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 0.75rem; margin-top: 0.5rem; }
+          .pack-orig { text-decoration: line-through; color: #94a3b8; font-size: 0.82rem; font-weight: 500; margin-right: 0.25rem; }
+          .pack-discount-tag { display: inline-block; background: #dcfce7; color: #15803d; font-size: 0.68rem; font-weight: 800; padding: 0.12rem 0.45rem; border-radius: 999px; }
+          .pack-bonus-tag { display: inline-block; background: #ede9fe; color: #6d28d9; font-size: 0.7rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 4px; margin-top: 0.25rem; }
+          .pack-badge.urgency-badge { color: #dc2626; font-weight: 800; }
+        </style>
         <div class="buy-credits-header">
-          <h3 id="buyCreditsTitle" style="margin: 0; font-size: 1.2rem; color: inherit;">💎 Buy View Credits</h3>
+          <h3 id="buyCreditsTitle" style="margin: 0; font-size: 1.25rem; color: inherit; font-weight: 800;">💎 Buy View Credits</h3>
           <button type="button" onclick="closeBuyCreditsModal()" class="buy-credits-close" aria-label="Close">&times;</button>
         </div>
-        <p id="buyCreditsSubtitle" style="font-size: 0.85rem; color: #64748b; margin: 0.3rem 0 1rem 0;">
-          Rate: <strong>₹2 / view</strong>. Get instant views to access and download exam resources.
-        </p>
-        <div class="buy-credits-grid">
-          <div class="buy-pack-card" onclick="selectCreditPack(50, 100)">
-            <div class="pack-badge">Standard</div>
-            <div class="pack-views">50 Views</div>
-            <div class="pack-price">₹100</div>
-            <div class="pack-unit">₹2.00 / view</div>
-            <button type="button" class="pack-buy-btn" onclick="event.stopPropagation(); selectCreditPack(50, 100)">Buy 50 Views</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin: 0.35rem 0 0.85rem 0; gap: 0.5rem;">
+          <p id="buyCreditsSubtitle" style="font-size: 0.85rem; color: #64748b; margin: 0;">
+            ⚡ <strong>Limited Exam Offer:</strong> Up to <strong>72% OFF</strong> + free bonus views included.
+          </p>
+          <span id="buyCreditsSaleBadge" style="font-size: 0.75rem; font-weight: 700; color: #dc2626; background: #fee2e2; padding: 0.2rem 0.5rem; border-radius: 6px;">⏱️ Flash Sale Active</span>
+        </div>
+        <div id="buyCreditsGrid" class="buy-credits-grid">
+          <!-- Tier 1: Chai Top-up (Micro-commit) -->
+          <div class="buy-pack-card" onclick="selectCreditPack(10, 19)">
+            <div class="pack-badge">Chai Pack</div>
+            <span class="pack-discount-tag">51% OFF</span>
+            <div class="pack-views">10 Views</div>
+            <div class="pack-price"><span class="pack-orig">₹39</span>₹19</div>
+            <div class="pack-unit">₹1.90 / view</div>
+            <button type="button" class="pack-buy-btn" onclick="event.stopPropagation(); selectCreditPack(10, 19)">Get 10 Views</button>
           </div>
-          <div class="buy-pack-card featured" onclick="selectCreditPack(100, 200)">
-            <div class="pack-badge featured-badge">Best Value</div>
-            <div class="pack-views">100 Views</div>
-            <div class="pack-price">₹200</div>
-            <div class="pack-unit">₹2.00 / view</div>
-            <button type="button" class="pack-buy-btn featured-btn" onclick="event.stopPropagation(); selectCreditPack(100, 200)">Buy 100 Views</button>
+
+          <!-- Tier 2: Decoy / Most Popular (62% OFF) -->
+          <div class="buy-pack-card featured" onclick="selectCreditPack(65, 49)">
+            <div class="pack-badge featured-badge urgency-badge">🔥 82% Pick This</div>
+            <span class="pack-discount-tag">62% OFF</span>
+            <div class="pack-views">65 Views</div>
+            <span class="pack-bonus-tag">+15 Free Views</span>
+            <div class="pack-price"><span class="pack-orig">₹129</span>₹49</div>
+            <div class="pack-unit">₹0.75 / view</div>
+            <button type="button" class="pack-buy-btn featured-btn" onclick="event.stopPropagation(); selectCreditPack(65, 49)">Claim 65 Views</button>
           </div>
-          <div class="buy-pack-card" onclick="selectCreditPack(500, 1000)">
-            <div class="pack-badge">Pro Pack</div>
+
+          <!-- Tier 3: Semester Pro (Best Value) -->
+          <div class="buy-pack-card" onclick="selectCreditPack(160, 99)">
+            <div class="pack-badge featured-badge">⭐ Best Value</div>
+            <span class="pack-discount-tag">67% OFF</span>
+            <div class="pack-views">160 Views</div>
+            <span class="pack-bonus-tag">+40 Free Views</span>
+            <div class="pack-price"><span class="pack-orig">₹299</span>₹99</div>
+            <div class="pack-unit">₹0.61 / view</div>
+            <button type="button" class="pack-buy-btn" onclick="event.stopPropagation(); selectCreditPack(160, 99)">Get 160 Views</button>
+          </div>
+
+          <!-- Tier 4: Ultimate Exam Destroyer Pass (Anchor) -->
+          <div class="buy-pack-card" onclick="selectCreditPack(500, 199)">
+            <div class="pack-badge">👑 Ultimate Pass</div>
+            <span class="pack-discount-tag">72% OFF</span>
             <div class="pack-views">500 Views</div>
-            <div class="pack-price">₹1000</div>
-            <div class="pack-unit">₹2.00 / view</div>
-            <button type="button" class="pack-buy-btn" onclick="event.stopPropagation(); selectCreditPack(500, 1000)">Buy 500 Views</button>
+            <span class="pack-bonus-tag">+100 Free Views</span>
+            <div class="pack-price"><span class="pack-orig">₹699</span>₹199</div>
+            <div class="pack-unit">₹0.39 / view</div>
+            <button type="button" class="pack-buy-btn" onclick="event.stopPropagation(); selectCreditPack(500, 199)">Get 500 Views</button>
           </div>
         </div>
         <div id="buyCreditsStatus" style="margin-top: 1rem; font-size: 0.85rem; text-align: center; font-weight: 600;"></div>
@@ -1047,19 +1217,102 @@
     </div>
 
     <script>
+      window._cachedTierPacks = null;
+
+      window.renderTierPacks = function(tierData) {
+        if (!tierData || !tierData.packs) return;
+        var grid = document.getElementById('buyCreditsGrid');
+        var sub = document.getElementById('buyCreditsSubtitle');
+        var badge = document.getElementById('buyCreditsSaleBadge');
+        var alt = document.getElementById('buyCreditsAlt');
+
+        if (tierData.discount_pct === 90 || tierData.is_promo) {
+          if (sub) sub.innerHTML = '🚀 <strong>Launch Special Promotion:</strong> <strong>90% OFF</strong> applied for your first 90 days! Top-up packs start from just <strong>₹4</strong>.';
+          if (badge) {
+            badge.textContent = '🔥 90% Launch Offer Active';
+            badge.style.color = '#4338ca';
+            badge.style.background = '#e0e7ff';
+          }
+          if (alt) alt.style.display = 'block';
+        } else if (tierData.tier === 'disposable') {
+          if (sub) sub.innerHTML = '⚠️ <strong>Direct Pay Required:</strong> Temporary email domains do not receive free view credits or discounts. Choose a pack to unlock instant access.';
+          if (badge) {
+            badge.textContent = '🔒 Direct Pay (0% OFF)';
+            badge.style.color = '#475569';
+            badge.style.background = '#e2e8f0';
+          }
+          if (alt) alt.style.display = 'none';
+        } else if (tierData.tier === 'gmail') {
+          if (sub) sub.innerHTML = '⚡ <strong>Standard User Offer:</strong> <strong>20% OFF</strong> applied on all view packs for personal accounts.';
+          if (badge) {
+            badge.textContent = '✨ 20% Discount Active';
+            badge.style.color = '#0284c7';
+            badge.style.background = '#e0f2fe';
+          }
+          if (alt) alt.style.display = 'block';
+        } else {
+          if (sub) sub.innerHTML = '🎓 <strong>Campus Special:</strong> Verified college email applied! Up to <strong>72% OFF</strong> flash discount.';
+          if (badge) {
+            badge.textContent = '⏱️ Campus Flash Sale Active';
+            badge.style.color = '#dc2626';
+            badge.style.background = '#fee2e2';
+          }
+          if (alt) alt.style.display = 'block';
+        }
+
+        if (grid) {
+          var html = '';
+          tierData.packs.forEach(function(p, idx) {
+            var isFeatured = (p.pack === 65);
+            var cardClass = 'buy-pack-card' + (isFeatured ? ' featured' : '');
+            var btnClass = 'pack-buy-btn' + (isFeatured ? ' featured-btn' : '');
+            var badgeText = p.badge || (isFeatured ? '🔥 Most Popular' : '');
+            var bonusHtml = p.bonus ? '<span class="pack-bonus-tag">' + p.bonus + '</span>' : '';
+            var discountHtml = (p.discount && p.discount !== '0% OFF') ? '<span class="pack-discount-tag">' + p.discount + '</span>' : '';
+            var origHtml = (p.original && p.original > p.price) ? '<span class="pack-orig">₹' + p.original + '</span>' : '';
+            var unitPrice = (p.price / p.views).toFixed(2);
+
+            html += '<div class="' + cardClass + '" onclick="selectCreditPack(' + p.pack + ', ' + p.price + ')">' +
+              (badgeText ? '<div class="pack-badge' + (isFeatured ? ' featured-badge urgency-badge' : '') + '">' + badgeText + '</div>' : '') +
+              discountHtml +
+              '<div class="pack-views">' + p.views + ' Views</div>' +
+              bonusHtml +
+              '<div class="pack-price">' + origHtml + '₹' + Math.round(p.price) + '</div>' +
+              '<div class="pack-unit">₹' + unitPrice + ' / view</div>' +
+              '<button type="button" class="' + btnClass + '" onclick="event.stopPropagation(); selectCreditPack(' + p.pack + ', ' + p.price + ')">' +
+                (p.pack === 65 ? 'Claim ' : 'Get ') + p.views + ' Views' +
+              '</button>' +
+            '</div>';
+          });
+          grid.innerHTML = html;
+        }
+      };
+
       window.openBuyCreditsModal = function(isExhausted) {
         var m = document.getElementById('buyCreditsModal');
         if (!m) return;
         var title = document.getElementById('buyCreditsTitle');
-        var sub = document.getElementById('buyCreditsSubtitle');
         if (isExhausted) {
           if (title) title.innerHTML = '⚠️ Views Exhausted — Top Up';
-          if (sub) sub.innerHTML = 'You have used all your free study views. Purchase view credits below (<strong>₹2 / view</strong>) to continue reading and downloading papers!';
         } else {
           if (title) title.innerHTML = '💎 Buy View Credits';
-          if (sub) sub.innerHTML = 'Rate: <strong>₹2 / view</strong>. Get instant views to access and download exam resources.';
         }
         m.style.display = 'flex';
+
+        // Fetch dynamic pricing tailored to user's domain tier
+        if (window._cachedTierPacks) {
+          window.renderTierPacks(window._cachedTierPacks);
+        } else {
+          fetch('/api/credit-packs')
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+              if (data && data.success) {
+                window._cachedTierPacks = data;
+                window.renderTierPacks(data);
+              }
+            })
+            .catch(function() {});
+        }
       };
 
       window.closeBuyCreditsModal = function() {
@@ -1082,7 +1335,11 @@
             body: JSON.stringify({ pack: packViews })
           });
           if (res.status === 401) {
-            (window.top || window).location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+            if (window.showAuthModal) {
+              window.showAuthModal();
+            } else {
+              (window.top || window).location.href = '/login?next=' + encodeURIComponent(window.location.pathname);
+            }
             return;
           }
           var data = await res.json();
@@ -1314,6 +1571,239 @@
 
 
     <!-- Ad placements are disabled by default until consent and AdSense approval are in place. -->
+
+    {% if not session.get('user') %}
+    <!-- Global Auth Modal -->
+    <div id="global-auth-modal" style="display:none; position:fixed; inset:0; z-index:999999; background:rgba(15,23,42,0.65); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:1rem;" role="dialog" aria-modal="true" aria-labelledby="gam-title">
+      <div style="background:#ffffff; border-radius:18px; width:100%; max-width:440px; padding:1.75rem; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); position:relative; font-family:inherit;">
+        <button type="button" id="gam-close-btn" style="position:absolute; top:1rem; right:1rem; background:transparent; border:none; font-size:1.4rem; line-height:1; color:#94a3b8; cursor:pointer; padding:0.25rem 0.5rem; border-radius:6px;">&times;</button>
+        <div style="text-align:center; margin-bottom:1rem;">
+          <h3 id="gam-title" style="margin:0 0 0.35rem; font-size:1.35rem; font-weight:800; color:#0f172a;">Sign in to AbhiHub</h3>
+          <p style="margin:0; font-size:0.85rem; color:#64748b;">Sign in to access your notes, studio, and tools.</p>
+        </div>
+
+        <!-- Psychological Campus Benefit Card -->
+        <div style="background:linear-gradient(135deg, #eff6ff 0%, #f0fdf4 100%); border:1.5px solid #bfdbfe; border-radius:12px; padding:0.8rem; margin-bottom:1rem; text-align:left;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:0.5rem; margin-bottom:0.35rem;">
+            <span style="font-size:0.7rem; font-weight:800; color:#1e40af; background:#dbeafe; padding:0.15rem 0.45rem; border-radius:999px;">🎓 Campus VIP Perk</span>
+            <span style="font-size:0.7rem; font-weight:800; color:#15803d; background:#dcfce7; padding:0.15rem 0.45rem; border-radius:999px;">⚡ Up to 72% OFF</span>
+          </div>
+          <div style="font-size:0.88rem; font-weight:800; color:#0f172a; margin-bottom:0.2rem;">
+            Use College Email for Free Access
+          </div>
+          <p style="font-size:0.75rem; color:#475569; margin:0 0 0.5rem 0; line-height:1.35;">
+            Use <strong>@ghrce.raisoni.net</strong>, <strong>*.raisoni.net</strong>, or any <strong>.edu/.ac.in</strong> email:
+          </p>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.4rem; background:rgba(255,255,255,0.9); padding:0.5rem; border-radius:8px; border:1px solid #e2e8f0; font-size:0.75rem;">
+            <div>
+              <div style="color:#64748b; font-size:0.65rem; font-weight:700;">FREE STUDY QUOTA</div>
+              <div style="color:#15803d; font-weight:800; font-size:0.92rem;">🎁 20 Views Free</div>
+              <div style="color:#94a3b8; font-size:0.65rem; text-decoration:line-through;">Gmail gets only 5</div>
+            </div>
+            <div>
+              <div style="color:#64748b; font-size:0.65rem; font-weight:700;">TOP-UP DISCOUNT</div>
+              <div style="color:#2563eb; font-weight:800; font-size:0.92rem;">🔥 72% OFF (₹19)</div>
+              <div style="color:#94a3b8; font-size:0.65rem;">Normal price ₹39</div>
+            </div>
+          </div>
+          <div style="margin-top:0.4rem; font-size:0.7rem; color:#64748b; display:flex; align-items:center; gap:0.3rem;">
+            <span>💡</span> <span><em>Don't lose 15 free views — always log in with your college account.</em></span>
+          </div>
+        </div>
+
+        <div id="gam-perk-hint" style="display:none; padding:0.5rem 0.75rem; border-radius:8px; font-size:0.75rem; font-weight:600; margin-bottom:0.75rem; transition:all 0.2s;"></div>
+
+        <div id="gam-error" style="display:none; padding:0.6rem 0.8rem; background:#fef2f2; border:1px solid #fecaca; color:#dc2626; border-radius:8px; font-size:0.825rem; margin-bottom:1rem;"></div>
+
+        <button type="button" id="gam-google-btn" style="width:100%; padding:0.65rem; background:#ffffff; border:1px solid #cbd5e1; border-radius:10px; display:flex; align-items:center; justify-content:center; gap:0.6rem; font-size:0.9rem; font-weight:600; color:#1e293b; cursor:pointer; transition:background 0.2s; margin-bottom:1rem;">
+          <img src="{{ url_for('static', filename='images/google-icon.png') }}" alt="Google" style="width:18px; height:18px;" onerror="this.style.display='none'">
+          <span>Continue with Google</span>
+        </button>
+
+        <div style="display:flex; align-items:center; text-align:center; color:#94a3b8; font-size:0.75rem; font-weight:600; margin:1rem 0; text-transform:uppercase;">
+          <span style="flex:1; border-bottom:1px solid #e2e8f0;"></span>
+          <span style="padding:0 0.5rem;">or email</span>
+          <span style="flex:1; border-bottom:1px solid #e2e8f0;"></span>
+        </div>
+
+        <form id="gam-form" onsubmit="return false;" style="display:flex; flex-direction:column; gap:0.75rem;">
+          <div>
+            <label for="gam-email" style="display:block; font-size:0.8rem; font-weight:600; color:#334155; margin-bottom:0.25rem;">Email</label>
+            <input type="email" id="gam-email" required placeholder="College email (e.g. you@ghrce.raisoni.net)" style="width:100%; padding:0.6rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.875rem; box-sizing:border-box;">
+          </div>
+          <div>
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem;">
+              <label for="gam-password" style="font-size:0.8rem; font-weight:600; color:#334155;">Password</label>
+              <a href="{{ url_for('auth.reset_password') }}" style="font-size:0.75rem; color:#4f46e5; text-decoration:none;">Forgot?</a>
+            </div>
+            <input type="password" id="gam-password" required placeholder="••••••••" style="width:100%; padding:0.6rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.875rem; box-sizing:border-box;">
+          </div>
+          <button type="submit" id="gam-submit-btn" style="width:100%; padding:0.7rem; background:#4f46e5; color:#ffffff; border:none; border-radius:10px; font-size:0.9rem; font-weight:700; cursor:pointer; transition:background 0.2s; margin-top:0.25rem;">Sign In</button>
+        </form>
+
+        <div style="margin-top:1rem; text-align:center; font-size:0.8rem; color:#64748b;">
+          Don't have an account? <a href="{{ url_for('auth.signup') }}" style="color:#4f46e5; font-weight:600; text-decoration:none;">Sign up</a>
+        </div>
+      </div>
+    </div>
+
+    <script type="module">
+      import { supabase } from '/static/supabase-config.js';
+
+      var modal = document.getElementById('global-auth-modal');
+      var closeBtn = document.getElementById('gam-close-btn');
+      var googleBtn = document.getElementById('gam-google-btn');
+      var form = document.getElementById('gam-form');
+      var emailIn = document.getElementById('gam-email');
+      var passIn = document.getElementById('gam-password');
+      var submitBtn = document.getElementById('gam-submit-btn');
+      var errBox = document.getElementById('gam-error');
+      var perkHint = document.getElementById('gam-perk-hint');
+
+      if (emailIn && perkHint) {
+        emailIn.addEventListener('input', function() {
+          var val = (this.value || '').trim().toLowerCase();
+          if (!val || !val.includes('@')) {
+            perkHint.style.display = 'none';
+            return;
+          }
+          var parts = val.split('@');
+          var domain = parts[1] || '';
+          if (!domain) {
+            perkHint.style.display = 'none';
+            return;
+          }
+          var collegeMatch = domain.endsWith('raisoni.net') || domain.endsWith('.edu') || domain.endsWith('.ac.in') || domain.endsWith('.edu.in') || domain.endsWith('.res.in') || domain === 'rcoem.in';
+          var gmailMatch = domain === 'gmail.com' || domain === 'googlemail.com';
+
+          if (collegeMatch) {
+            perkHint.style.display = 'block';
+            perkHint.style.background = '#dcfce7';
+            perkHint.style.border = '1.5px solid #86efac';
+            perkHint.style.color = '#15803d';
+            perkHint.innerHTML = '🎓 <strong>Verified Campus Email!</strong> You qualify for <strong>20 Free Study Views</strong> + <strong>Up to 72% Flash Discount</strong> (Packs from ₹19)!';
+          } else if (gmailMatch) {
+            perkHint.style.display = 'block';
+            perkHint.style.background = '#fef3c7';
+            perkHint.style.border = '1.5px solid #fde68a';
+            perkHint.style.color = '#92400e';
+            perkHint.innerHTML = '⚡ <strong>Personal Gmail:</strong> 5 Free Views & max 20% discount (₹31/pack). <em>Tip: Use your college email to unlock 20 Free Views & 72% OFF!</em>';
+          } else {
+            perkHint.style.display = 'block';
+            perkHint.style.background = '#f1f5f9';
+            perkHint.style.border = '1px solid #cbd5e1';
+            perkHint.style.color = '#475569';
+            perkHint.innerHTML = 'ℹ️ Use your official college email (@raisoni.net / .ac.in / .edu) to qualify for 20 free views and student pricing.';
+          }
+        });
+      }
+
+      window.showAuthModal = function(nextUrl) {
+        if (!modal) return;
+        var target = nextUrl || (window.location.pathname + window.location.search);
+        var cleanTarget = target ? target.split('?')[0].split('#')[0] : '';
+        if (cleanTarget && cleanTarget !== '/' && cleanTarget !== '/landing') {
+          try {
+            localStorage.setItem('auth_next_url', target);
+            sessionStorage.setItem('auth_next_url', target);
+          } catch(e) {}
+        } else {
+          try {
+            localStorage.removeItem('auth_next_url');
+            sessionStorage.removeItem('auth_next_url');
+          } catch(e) {}
+        }
+        if (errBox) { errBox.style.display = 'none'; errBox.textContent = ''; }
+        modal.style.display = 'flex';
+      };
+
+      window.hideAuthModal = function() {
+        if (modal) modal.style.display = 'none';
+      };
+
+      if (closeBtn) closeBtn.addEventListener('click', window.hideAuthModal);
+      if (modal) {
+        modal.addEventListener('click', function(e) {
+          if (e.target === modal) window.hideAuthModal();
+        });
+      }
+
+      if (googleBtn) {
+        googleBtn.addEventListener('click', async function() {
+          try {
+            googleBtn.disabled = true;
+            googleBtn.style.opacity = '0.7';
+            var currentTarget = localStorage.getItem('auth_next_url') || (window.location.pathname + window.location.search);
+            if (currentTarget && currentTarget !== '/' && currentTarget !== '/landing') {
+              try {
+                localStorage.setItem('auth_next_url', currentTarget);
+                sessionStorage.setItem('auth_next_url', currentTarget);
+              } catch(e) {}
+            }
+            await supabase.auth.signInWithOAuth({
+              provider: 'google',
+              options: { redirectTo: window.location.origin }
+            });
+          } catch(err) {
+            if (errBox) { errBox.textContent = err.message || 'Google sign-in error'; errBox.style.display = 'block'; }
+            googleBtn.disabled = false;
+            googleBtn.style.opacity = '1';
+          }
+        });
+      }
+
+      if (form) {
+        form.addEventListener('submit', async function(e) {
+          e.preventDefault();
+          var email = (emailIn ? emailIn.value : '').trim();
+          var password = passIn ? passIn.value : '';
+          if (!email || !password) return;
+
+          if (errBox) errBox.style.display = 'none';
+          if (submitBtn) { submitBtn.disabled = true; submitBtn.textContent = 'Signing in...'; }
+
+          try {
+            var res = await supabase.auth.signInWithPassword({ email: email, password: password });
+            if (res.error) throw res.error;
+            var session = res.data && res.data.session;
+            if (!session) throw new Error('Authentication failed');
+
+            var authRes = await fetch('/auth', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': 'Bearer ' + session.access_token
+              },
+              credentials: 'same-origin'
+            });
+            var authData = await authRes.json();
+            if (authRes.ok && authData.success) {
+              var next = localStorage.getItem('auth_next_url') || sessionStorage.getItem('auth_next_url') || window.location.href;
+              try {
+                localStorage.removeItem('auth_next_url');
+                sessionStorage.removeItem('auth_next_url');
+              } catch(e) {}
+              window.location.href = next;
+            } else {
+              throw new Error(authData.message || 'Failed to establish session');
+            }
+          } catch(err) {
+            if (errBox) { errBox.textContent = err.message || 'Invalid email or password'; errBox.style.display = 'block'; }
+            if (submitBtn) { submitBtn.disabled = false; submitBtn.textContent = 'Sign In'; }
+          }
+        });
+      }
+
+      // Auto-attach to clicks on elements requesting auth
+      document.addEventListener('click', function(e) {
+        var target = e.target.closest('[data-require-auth], .require-auth');
+        if (target) {
+          e.preventDefault();
+          window.showAuthModal(target.getAttribute('data-next') || target.getAttribute('href'));
+        }
+      });
+    </script>
+    {% endif %}
 
 </body>
 <amp-auto-ads type="adsense" data-ad-client="ca-pub-8274846157272362">

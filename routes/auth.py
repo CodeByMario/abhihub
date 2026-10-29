@@ -23,64 +23,94 @@ def is_safe_redirect_url(target):
     return target.startswith('/') and not target.startswith('//') and '\\' not in target and '://' not in target
 
 
+def _is_api_request() -> bool:
+    """Detect if the current request is an API call expecting JSON response."""
+    return (
+        request.path.startswith(('/api/', '/admin/api/', '/store-room/api/'))
+        or request.is_json
+        or request.headers.get('Accept', '').find('application/json') != -1
+    )
+
+
 def auth_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if 'user' not in session:
-            if request.path.startswith('/api/') or request.path.startswith('/store-room/api/'):
+            if _is_api_request():
                 return jsonify({'success': False, 'message': 'Unauthorized'}), 401
-            return redirect(url_for('auth.login'))
+            next_url = request.full_path if request.query_string else request.path
+            return redirect(url_for('auth.login', next=next_url))
         return f(*args, **kwargs)
     return decorated_function
 
 
 def is_admin_user(user: dict) -> bool:
-    """Check if session user has administrative privileges."""
+    """Check if session user has administrative privileges (moderator, admin, or superadmin)."""
     if not user or not isinstance(user, dict):
         return False
     user_email = (user.get('email') or '').lower().strip()
     user_role = (user.get('role') or '').lower().strip()
-    if user_role == 'admin' or bool(user.get('is_admin')):
+    if user_role in ('admin', 'superadmin', 'moderator') or bool(user.get('is_admin')):
         return True
     active_admin_emails = ADMIN_EMAILS or ['abhihub.02@gmail.com']
     return bool(user_email and user_email in active_admin_emails)
 
 
-def admin_required(f):
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        user = session.get('user')
-        if not user:
-            if request.path.startswith('/api/') or request.path.startswith('/store-room/api/'):
-                return jsonify({'success': False, 'message': 'Unauthorized'}), 401
-            return redirect(url_for('auth.login'))
+def role_required(min_role: str = 'admin'):
+    """
+    Role-based access decorator supporting hierarchy:
+    superadmin (40) > admin (30) > moderator (20) > student (5).
+    """
+    def decorator(f):
+        @wraps(f)
+        def decorated_function(*args, **kwargs):
+            user = session.get('user')
+            if not user:
+                if _is_api_request():
+                    return jsonify({'success': False, 'message': 'Unauthorized: Please log in'}), 401
+                next_url = request.full_path if request.query_string else request.path
+                return redirect(url_for('auth.login', next=next_url))
 
-        if not is_admin_user(user):
-            if request.path.startswith('/api/') or request.path.startswith('/store-room/api/'):
-                return jsonify({'success': False, 'message': 'Forbidden: Admin access required'}), 403
-            abort(403)
-        return f(*args, **kwargs)
-    return decorated_function
+            from services.admin_service import has_min_role, get_user_role
+            if not has_min_role(user, min_role):
+                user_role = get_user_role(user)
+                if _is_api_request():
+                    return jsonify({
+                        'success': False,
+                        'message': f"Forbidden: '{min_role}' privileges required (current: '{user_role}')"
+                    }), 403
+                abort(403)
+            return f(*args, **kwargs)
+        return decorated_function
+    return decorator
+
+
+# Convenience aliases
+admin_required = role_required('admin')
+moderator_required = role_required('moderator')
+superadmin_required = role_required('superadmin')
 
 
 def log_admin_action(action: str, target: str = None, details: dict = None):
-    """Structured audit logging for all administrative modifications."""
+    """Structured audit logging for administrative modifications; persists to DB."""
     try:
         user = session.get('user', {})
         admin_email = user.get('email', 'unknown')
         admin_id = user.get('uid') or user.get('id', 'unknown')
         client_ip = request.headers.get('X-Forwarded-For', request.remote_addr or '').split(',')[0].strip()
-        timestamp = datetime.now(timezone.utc).isoformat()
-        entry = {
-            'timestamp': timestamp,
-            'admin_id': admin_id,
-            'admin_email': admin_email,
-            'action': action,
-            'target': target,
-            'ip': client_ip,
-            'details': details or {}
-        }
-        logging.info(f"[ADMIN_AUDIT] {entry}")
+        user_agent = request.headers.get('User-Agent', '')
+
+        from services.admin_service import record_audit_log
+        record_audit_log(
+            admin_id=admin_id,
+            admin_email=admin_email,
+            action=action,
+            target_type='action',
+            target_id=target,
+            new_value=details,
+            ip_address=client_ip,
+            user_agent=user_agent
+        )
     except Exception as e:
         logging.warning(f"Failed to record admin audit log: {e}")
 
@@ -103,8 +133,11 @@ def auth_callback():
 @auth_bp.route('/login')
 def login():
     if 'user' in session:
-        next_url = request.args.get('next', '')
-        dest = next_url if is_safe_redirect_url(next_url) else url_for('app_pages.app_shell')
+        next_url = request.args.get('next', '').strip()
+        if is_safe_redirect_url(next_url) and next_url not in ('/', '/landing'):
+            dest = next_url
+        else:
+            dest = url_for('app_pages.app_shell')
         return redirect(dest)
     else:
         return render_template('site/login.html')

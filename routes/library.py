@@ -400,6 +400,16 @@ def resource_landing_redirect(slug):
     return redirect(url_for('library.resource_landing', slug=slug), code=301)
 
 
+@library_bp.route('/resources')
+def resources_index_catalog():
+    """Canonical /resources catalog index. Redirects to user's college files or general library."""
+    profile = session.get('profile') or {}
+    college_slug = profile.get('college_slug')
+    if college_slug:
+        return redirect(url_for('library.college_files', college_slug=college_slug))
+    return redirect(url_for('library.pyq_landing'))
+
+
 @library_bp.route('/resource/<path:slug>')
 @library_bp.route('/resources/<path:slug>')
 def resource_landing(slug):
@@ -457,6 +467,10 @@ def resource_landing(slug):
         if request.query_string:
             target_url = f"{target_url}?{request.query_string.decode('utf-8')}"
         return redirect(target_url, code=301)
+
+    if 'user' not in session:
+        next_url = request.full_path if request.query_string else request.path
+        return redirect(url_for('auth.login', next=next_url))
 
     document['is_liked'] = False
     document['is_bookmarked'] = False
@@ -583,7 +597,9 @@ def resource_landing(slug):
             logging.warning(f"Error fetching dropdown lists for resource manager: {err}")
 
     recorded_views = len(viewers) if viewers else 0
-    view_earnings = round(recorded_views * 0.20, 2)
+    from methods.wallet_service import is_creator_verified
+    is_uploader_verified = is_creator_verified(document.get('uploader_id'))
+    view_earnings = round(recorded_views * 0.20, 2) if is_uploader_verified else 0.0
 
     return render_template(
         'resource.html',
@@ -593,6 +609,7 @@ def resource_landing(slug):
         can_manage=can_manage,
         is_admin=is_admin,
         is_uploader=is_uploader,
+        is_uploader_verified=is_uploader_verified,
         viewers=viewers,
         recorded_views=recorded_views,
         view_earnings=view_earnings,

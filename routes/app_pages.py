@@ -139,7 +139,7 @@ def dashboard():
     if user_data is None:
         user_data = {}
 
-    user_data.setdefault('paper_quota_remaining', app._get_quota().get('credits', 19))
+    user_data.setdefault('paper_quota_remaining', app._get_quota().get('credits', 0))
     user_data.setdefault('students_helped', 0)
     user_data.setdefault('reputation_score', 0)
     user_data.setdefault('badges', [])
@@ -150,7 +150,7 @@ def dashboard():
     user_data.setdefault('subscription_tier', 'free')
 
     promo_context = {
-        'remaining_views': user_data.get('paper_quota_remaining', 19) if user_data else 19,
+        'remaining_views': user_data.get('paper_quota_remaining', 0) if user_data else 0,
         'students_helped': user_data.get('students_helped', 0) if user_data else 0,
         'reputation_score': user_data.get('reputation_score', 0) if user_data else 0,
         'upload_goal_month': 'May'
@@ -344,9 +344,11 @@ def p_setting():
 
 
 @app_pages_bp.route('/earnings')
+@app_pages_bp.route('/wallet')
+@app_pages_bp.route('/passbook')
 @auth_required
 def earnings():
-    """Eligibility and earnings info page."""
+    """Eligibility, wallet, KYC, and passbook statement page."""
     return render_template('earnings.html')
 
 
@@ -517,53 +519,9 @@ def local_viewer():
 @app_pages_bp.route('/store-room')
 @auth_required
 def store_room():
-    """Store Room page - displays unsorted papers from Cloudinary."""
-    import app
-    from routes.store_room import get_cached_unlabeled_files
-    try:
-        unlabeled_files, sorted_papers = get_cached_unlabeled_files()
-        all_files = unlabeled_files
-        total_papers = len(unlabeled_files) + sorted_papers
-        remaining_papers = len(unlabeled_files)
-
-        formats = app.get_unique_formats(all_files)
-        folders = app.get_unique_folders(all_files)
-        initial_batch_size = 20
-        initial_files = all_files[:initial_batch_size]
-
-        user_info = session.get('user', {})
-        user_id = user_info.get('uid', '')
-        curator_stats = {
-            'name': user_info.get('name', 'Academic Curator'),
-            'reputation_score': 0,
-            'uploads_count': 0,
-            'tier_title': 'Curator'
-        }
-        if user_id:
-            try:
-                from methods.supabase_helper import calculate_user_ranks
-                for r in calculate_user_ranks():
-                    if r.get('uploader_id') == user_id:
-                        curator_stats['uploads_count'] = r.get('upload_count', 0)
-                        pts = r.get('points', 0)
-                        curator_stats['reputation_score'] = int(pts * 10)
-                        break
-            except Exception:
-                pass
-
-        return render_template('app/store_room.html',
-                               files=initial_files,
-                               total_papers=total_papers,
-                               sorted_papers=sorted_papers,
-                               remaining_papers=remaining_papers,
-                               formats=formats,
-                               folders=folders,
-                               initial_batch_size=initial_batch_size,
-                               current_user=user_info,
-                               curator_stats=curator_stats)
-    except Exception as e:
-        logging.error(f"Error loading store room: {e}")
-        return render_template('site/error.html', error=str(e)), 500
+    """Store Room replaced by Creator Hub."""
+    from flask import redirect, url_for
+    return redirect(url_for('channels.creator_hub'))
 
 
 @app_pages_bp.route('/upload', methods=['GET', 'POST'])

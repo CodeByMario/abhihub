@@ -322,68 +322,63 @@
     </div>
   </div>
 
-  <!-- Creator Payout Requests Panel -->
-  <div class="glass-panel" id="payouts-panel" style="margin-bottom: 2rem;">
-    <h2><i class="fas fa-hand-holding-dollar text-emerald-600"></i> Creator Payout Requests</h2>
-    <p class="section-subtitle">Review, approve (mark paid), or reject withdrawal requests from creators.</p>
-    <div style="overflow-x: auto;">
-      <table id="payouts-table" class="data-table">
-        <thead>
-          <tr>
-            <th>Date</th>
-            <th>Creator ID</th>
-            <th>Amount</th>
-            <th>Method</th>
-            <th>Details</th>
-            <th>Status</th>
-            <th>Action</th>
-          </tr>
-        </thead>
-        <tbody id="payouts-tbody">
-          <tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:1.5rem;">Loading payout requests...</td></tr>
-        </tbody>
-      </table>
+  <!-- Payout Requests Quick Access -->
+  <div class="glass-panel" id="payouts-panel" style="margin-bottom: 2rem; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+    <div>
+      <h2 style="margin: 0 0 0.25rem;"><i class="fas fa-hand-holding-dollar text-emerald-600"></i> Creator Payout Processing</h2>
+      <p class="section-subtitle" style="margin: 0;">Creator payouts, withdrawal reconciliation, and KYC verifications are managed in the Payments Hub.</p>
     </div>
+    <a href="/admin/payments" class="btn-action" style="text-decoration: none; display: inline-flex; align-items: center; gap: 0.5rem;">
+      <i class="fas fa-arrow-up-right-from-square"></i> Open Payments & Payouts Hub
+    </a>
   </div>
 </div>
 
-
-
 <script>
   async function loadOverview() {
-    const r = await fetch('/api/admin/economy/overview');
-    const d = await r.json();
-    if (!d.success) return;
-    document.getElementById('level-dist').innerHTML =
-      Object.entries(d.level_distribution).map(([k, v]) =>
-        `<span class="pill"><b>${k}</b>: ${v}</span>`).join('') || '<i>No users scored yet</i>';
-    document.getElementById('top-contrib').innerHTML =
-      d.top_contributors.map(u => `<li>${u.name || u.level} — ${Math.round(u.score || 0)}</li>`).join('');
-    document.getElementById('consumer-heavy').innerHTML =
-      d.most_consumer_heavy.map(u => `<li>${u.name} — CCR ${u.ccr}</li>`).join('') || '<li>—</li>';
-    const tb = document.querySelector('#recent-events tbody');
-    tb.innerHTML = (d.recent_events || []).map(e => `<tr>
-    <td>${(e.created_at || '').slice(0, 16).replace('T', ' ')}</td>
-    <td>${(e.profiles && e.profiles.full_name) || e.user_id}</td>
-    <td>${e.action_type}</td><td>${e.xp_awarded}</td><td>${e.description || ''}</td></tr>`).join('');
+    try {
+      const r = await adminFetch('/api/admin/economy/overview');
+      const d = await r.json();
+      if (!d.success) return;
+      document.getElementById('level-dist').innerHTML =
+        Object.entries(d.level_distribution).map(([k, v]) =>
+          `<span class="pill"><b>${adminEscapeHtml(k)}</b>: ${adminEscapeHtml(v)}</span>`).join('') || '<i>No users scored yet</i>';
+      document.getElementById('top-contrib').innerHTML =
+        d.top_contributors.map(u => `<li>${adminEscapeHtml(u.name || u.level)} — ${Math.round(u.score || 0)}</li>`).join('');
+      document.getElementById('consumer-heavy').innerHTML =
+        d.most_consumer_heavy.map(u => `<li>${adminEscapeHtml(u.name)} — CCR ${adminEscapeHtml(u.ccr)}</li>`).join('') || '<li>—</li>';
+      const tb = document.querySelector('#recent-events tbody');
+      if (tb) {
+        tb.innerHTML = (d.recent_events || []).map(e => `<tr>
+        <td>${adminEscapeHtml((e.created_at || '').slice(0, 16).replace('T', ' '))}</td>
+        <td>${adminEscapeHtml((e.profiles && e.profiles.full_name) || e.user_id)}</td>
+        <td>${adminEscapeHtml(e.action_type)}</td><td>${adminEscapeHtml(e.xp_awarded)}</td><td>${adminEscapeHtml(e.description || '')}</td></tr>`).join('');
+      }
+    } catch(err) {
+      console.error(err);
+    }
   }
 
   function renderConfig(items) {
     document.getElementById('config-list').innerHTML = items.map((c, i) => `
-    <div class="cfg-row" data-key="${c.key}">
-      <b>${c.key}</b> ${c.description ? `<span style="color:#64748b;font-size:.8rem;">— ${c.description}</span>` : ''}
-      ${c.updated_at ? `<span style="color:#94a3b8;font-size:.75rem;">(updated ${(c.updated_at || '').slice(0, 16)})</span>` : ''}
-      <textarea data-i="${i}">${JSON.stringify(c.value, null, 1)}</textarea>
-      <button onclick="saveCfg('${c.key}', ${i})">Save</button>
+    <div class="cfg-row" data-key="${adminEscapeHtml(c.key)}">
+      <b>${adminEscapeHtml(c.key)}</b> ${c.description ? `<span style="color:#64748b;font-size:.8rem;">— ${adminEscapeHtml(c.description)}</span>` : ''}
+      ${c.updated_at ? `<span style="color:#94a3b8;font-size:.75rem;">(updated ${adminEscapeHtml((c.updated_at || '').slice(0, 16))})</span>` : ''}
+      <textarea data-i="${i}">${adminEscapeHtml(JSON.stringify(c.value, null, 1))}</textarea>
+      <button onclick="saveCfg('${adminEscapeHtml(c.key)}', ${i})">Save</button>
       <span class="msg"></span>
     </div>`).join('');
     window.__cfg = items;
   }
 
   async function loadConfig() {
-    const r = await fetch('/api/admin/economy/config');
-    const d = await r.json();
-    if (d.success) renderConfig(d.config);
+    try {
+      const r = await adminFetch('/api/admin/economy/config');
+      const d = await r.json();
+      if (d.success) renderConfig(d.config);
+    } catch(err) {
+      console.error(err);
+    }
   }
 
   async function saveCfg(key, i) {
@@ -391,13 +386,14 @@
     const msg = row.querySelector('.msg');
     try {
       const value = JSON.parse(row.querySelector('textarea').value);
-      const r = await fetch('/api/admin/economy/config', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
+      const r = await adminFetch('/api/admin/economy/config', {
+        method: 'POST',
         body: JSON.stringify({ key, value })
       });
       const d = await r.json();
       msg.textContent = d.success ? '✅ saved' : ('❌ ' + d.message);
       msg.style.color = d.success ? 'green' : 'red';
+      if (d.success) showAdminToast(`Updated config for '${key}'`, 'success');
     } catch (err) {
       msg.textContent = '❌ invalid JSON';
       msg.style.color = 'red';
@@ -413,13 +409,13 @@
       if (q.length < 2) return;
       _ovTimer = setTimeout(async () => {
         try {
-          const r = await fetch('/api/chat/search-peers?q=' + encodeURIComponent(q));
+          const r = await adminFetch('/api/admin/users?q=' + encodeURIComponent(q));
           const d = await r.json();
           if (d.success && d.users) {
             const dl = document.getElementById('user-override-list');
             if (dl) {
               dl.innerHTML = d.users.map(u =>
-                `<option value="${u.email || u.id}">${u.full_name || 'User'} (${u.email || u.id})</option>`
+                `<option value="${adminEscapeHtml(u.email || u.id)}">${adminEscapeHtml(u.full_name || 'User')} (${adminEscapeHtml(u.email || u.id)})</option>`
               ).join('');
             }
           }
@@ -436,83 +432,22 @@
       msg.style.color = 'red';
       return;
     }
-    const r = await fetch('/api/admin/economy/user/' + encodeURIComponent(inputVal), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ access_level: document.getElementById('ov-level').value })
-    });
-    const d = await r.json();
-    msg.textContent = d.success ? '✅ applied' : ('❌ ' + (d.message || d.error));
-    msg.style.color = d.success ? 'green' : 'red';
-  };
-
-  async function loadPayouts() {
     try {
-      const r = await fetch('/api/admin/payouts');
-      const d = await r.json();
-      const tbody = document.getElementById('payouts-tbody');
-      if (!tbody) return;
-      if (!d.success || !d.payouts || d.payouts.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:#94a3b8;padding:1.5rem;">No payout requests found.</td></tr>';
-        return;
-      }
-      tbody.innerHTML = d.payouts.map(p => {
-        const details = p.payout_details ? (p.payout_details.upi_id || p.payout_details.account_info || JSON.stringify(p.payout_details)) : '-';
-        const date = p.created_at ? new Date(p.created_at).toLocaleDateString('en-IN', {month:'short', day:'numeric', hour:'2-digit', minute:'2-digit'}) : '-';
-        let badgeColor = '#d97706';
-        if (p.status === 'completed') badgeColor = '#059669';
-        if (p.status === 'rejected') badgeColor = '#dc2626';
-
-        let actionButtons = '-';
-        if (p.status === 'pending' || p.status === 'processing') {
-          actionButtons = `
-            <button onclick="handlePayoutAction('${p.id}', 'completed')" style="padding:4px 8px;background:#10b981;color:#fff;border:none;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;margin-right:4px;">Approve</button>
-            <button onclick="handlePayoutAction('${p.id}', 'rejected')" style="padding:4px 8px;background:#ef4444;color:#fff;border:none;border-radius:6px;font-size:0.78rem;font-weight:700;cursor:pointer;">Reject</button>
-          `;
-        }
-        return `
-          <tr>
-            <td>${date}</td>
-            <td style="font-family:monospace;font-size:0.8rem;" title="${p.creator_id}">${p.creator_id ? p.creator_id.substring(0, 10) + '...' : '-'}</td>
-            <td style="font-weight:700;color:#16a34a;">₹${parseFloat(p.amount || 0).toFixed(2)}</td>
-            <td><span class="pill" style="font-size:0.75rem;padding:2px 8px;text-transform:uppercase;">${p.payout_method || 'UPI'}</span></td>
-            <td style="font-family:monospace;font-size:0.82rem;">${details}</td>
-            <td><span style="color:${badgeColor};font-weight:700;text-transform:capitalize;">${p.status}</span></td>
-            <td>${actionButtons}</td>
-          </tr>
-        `;
-      }).join('');
-    } catch(e) {
-      console.error(e);
-    }
-  }
-
-  window.handlePayoutAction = async function(payoutId, action) {
-    const confirmMsg = action === 'completed'
-      ? 'Mark this payout as Completed (Paid to creator)?'
-      : 'Reject this payout request? The amount will be refunded back to creator withdrawable balance.';
-    if (!confirm(confirmMsg)) return;
-
-    const notes = prompt('Optional admin notes/reference UTR:') || '';
-    try {
-      const res = await fetch('/api/admin/payout/action', {
+      const r = await adminFetch('/api/admin/economy/user/' + encodeURIComponent(inputVal), {
         method: 'POST',
-        headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({ payout_id: payoutId, action: action, admin_notes: notes })
+        body: JSON.stringify({ access_level: document.getElementById('ov-level').value })
       });
-      const data = await res.json();
-      if (data.success) {
-        alert('✅ ' + data.message);
-        loadPayouts();
-      } else {
-        alert('❌ ' + (data.error || 'Failed to process payout.'));
-      }
-    } catch(err) {
-      alert('❌ Network error processing payout.');
+      const d = await r.json();
+      msg.textContent = d.success ? '✅ applied' : ('❌ ' + (d.message || d.error));
+      msg.style.color = d.success ? 'green' : 'red';
+      if (d.success) showAdminToast('User access level updated', 'success');
+    } catch (err) {
+      msg.textContent = '❌ Network error';
+      msg.style.color = 'red';
     }
   };
 
   loadOverview();
   loadConfig();
-  loadPayouts();
 </script>
 {% endblock %}

@@ -25,6 +25,7 @@ from flask import (
 from routes.auth import auth_required, admin_required, log_admin_action
 from methods.supabase_helper import (
     init_supabase,
+    init_supabase_admin,
     supabase,
     recalculate_and_persist_user_rank,
     award_contribution_xp,
@@ -141,6 +142,56 @@ def admin_payments_dashboard():
 
 # ─── Payment & Payout Admin Endpoints ────────────────────────────────────────
 
+@admin_bp.route('/api/admin/incidents/top', methods=['GET'])
+@admin_required
+def admin_get_top_incidents():
+    """Real-time aggregator for top major failures and critical system incidents."""
+    incidents = []
+    try:
+        # 1. Check for recent failed credit transactions
+        res_fail = supabase.table('credit_transactions').select('*').in_('status', ['FAILED', 'FAILED_VERIFICATION', 'ERROR']).order('created_at', desc=True).limit(5).execute()
+        if res_fail.data:
+            for f in res_fail.data:
+                incidents.append({
+                    'id': f.get('id', ''),
+                    'type': 'PAYMENT_FAILED',
+                    'title': f"Payment Failed: Order {f.get('order_id', 'Unknown')}",
+                    'description': f"User {f.get('user_id', 'N/A')} failed to complete ₹{f.get('amount', 0)}. Status: {f.get('status')}",
+                    'severity': 'high',
+                    'created_at': f.get('created_at')
+                })
+
+        # 2. Check for rejected payouts requiring triage
+        res_payouts = supabase.table('creator_payout_requests').select('*').eq('status', 'rejected').order('created_at', desc=True).limit(5).execute()
+        if res_payouts.data:
+            for p in res_payouts.data:
+                incidents.append({
+                    'id': p.get('id', ''),
+                    'type': 'PAYOUT_REJECTED',
+                    'title': f"Payout Rejected / Failed for Creator {p.get('creator_id', 'N/A')}",
+                    'description': f"Amount ₹{p.get('amount', 0)} ({p.get('payout_method', 'UPI')}) rejected: {p.get('admin_notes', 'No note')}",
+                    'severity': 'critical',
+                    'created_at': p.get('created_at')
+                })
+    except Exception as e:
+        incidents.append({
+            'id': 'db-err',
+            'type': 'SYSTEM_ERROR',
+            'title': 'Database Query Warning',
+            'description': str(e),
+            'severity': 'warning',
+            'created_at': datetime.utcnow().isoformat()
+        })
+
+    return jsonify({
+        'success': True,
+        'has_incidents': len(incidents) > 0,
+        'count': len(incidents),
+        'top_incident': incidents[0] if incidents else None,
+        'incidents': incidents
+    })
+
+
 @admin_bp.route('/api/admin/payment/transactions', methods=['GET'])
 @admin_required
 def admin_get_payment_transactions():
@@ -217,7 +268,117 @@ def admin_payout_action():
     if not ok:
         return jsonify({'success': False, 'error': msg}), 400
     log_admin_action('payout_action', target=payout_id, details={'action': action, 'admin_notes': admin_notes})
+    try:
+        from app import socketio
+        socketio.emit('admin_activity', {
+            'event': 'payout_action',
+            'payout_id': payout_id,
+            'action': action,
+            'admin_notes': admin_notes,
+            'ts': datetime.utcnow().isoformat() + 'Z'
+        }, room='admin-room')
+    except Exception:
+        pass
     return jsonify({'success': True, 'message': f'Payout {action} successfully'})
+
+
+@admin_bp.route('/api/admin/kyc/list', methods=['GET'])
+@admin_bp.route('/admin/api/kyc/pending', methods=['GET'])
+@auth_required
+@admin_required
+def admin_kyc_list():
+    """Fetch KYC applications (filterable by status: pending/verified/all)."""
+    status_filter = request.args.get('status', 'pending').lower()
+    client = init_supabase_admin() or init_supabase()
+    if not client:
+        return jsonify({'success': False, 'error': 'Database unavailable'}), 500
+    try:
+        q = client.table('user_kyc_details').select('*')
+        if status_filter == 'pending':
+            q = q.eq('is_verified', False).is_('rejection_reason', 'null')
+        elif status_filter == 'verified':
+            q = q.eq('is_verified', True)
+        elif status_filter == 'rejected':
+            q = q.not_.is_('rejection_reason', 'null')
+        res = q.order('submitted_at', desc=True).limit(100).execute()
+        return jsonify({'success': True, 'data': res.data or []})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/kyc/<kyc_id>/action', methods=['POST'])
+@admin_bp.route('/api/admin/kyc/<kyc_id>/verify', methods=['POST'])
+@admin_bp.route('/admin/api/kyc/<kyc_id>/verify', methods=['POST'])
+@auth_required
+@admin_required
+def admin_kyc_verify(kyc_id):
+    """Approve or reject a user KYC application."""
+    data = request.get_json(silent=True) or {}
+    action = str(data.get('action', '')).strip().lower()  # 'approve' | 'reject'
+    reason = str(data.get('reason', '')).strip()
+
+    if action not in ('approve', 'reject'):
+        return jsonify({'success': False, 'error': "Action must be 'approve' or 'reject'"}), 400
+    if action == 'reject' and not reason:
+        return jsonify({'success': False, 'error': 'Rejection reason is required'}), 400
+
+    admin_user = session.get('user', {})
+    admin_id = admin_user.get('uid')
+
+    client = init_supabase_admin() or init_supabase()
+    if not client:
+        return jsonify({'success': False, 'error': 'Database unavailable'}), 500
+
+    try:
+        now_iso = datetime.now(timezone.utc).isoformat()
+        if action == 'approve':
+            client.table('user_kyc_details').update({
+                'is_verified': True,
+                'verified_at': now_iso,
+                'verified_by': admin_id,
+                'rejection_reason': None,
+                'updated_at': now_iso
+            }).eq('id', kyc_id).execute()
+        else:
+            client.table('user_kyc_details').update({
+                'is_verified': False,
+                'verified_at': None,
+                'rejection_reason': reason,
+                'updated_at': now_iso
+            }).eq('id', kyc_id).execute()
+
+        log_admin_action('kyc_verify', target=kyc_id, details={'action': action, 'reason': reason})
+        return jsonify({'success': True, 'message': f'KYC application {action}d successfully'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/audit/export', methods=['GET'])
+@admin_bp.route('/admin/api/audit/export', methods=['GET'])
+@auth_required
+@admin_required
+def admin_audit_export():
+    """Generates and downloads a multi-sheet audit Excel report (.xlsx)."""
+    from flask import Response
+    from methods.audit_service import build_audit_export
+    filters = {
+        'start_date': request.args.get('start_date'),
+        'end_date': request.args.get('end_date'),
+        'user_id': request.args.get('user_id'),
+        'status': request.args.get('status'),
+    }
+    try:
+        stream = build_audit_export(filters)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        return Response(
+            stream.getvalue(),
+            mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            headers={'Content-Disposition': f'attachment; filename=audit_export_{timestamp}.xlsx'}
+        )
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 
 
 @admin_bp.route('/api/admin/creator/wallets', methods=['GET'])
@@ -280,7 +441,7 @@ def admin_creator_wallets():
                 'full_name': p.get('full_name') or 'Student',
                 'email': p.get('email') or '',
                 'role': p.get('role') or 'student',
-                'paper_quota_remaining': p.get('paper_quota_remaining', 19),
+                'paper_quota_remaining': p.get('paper_quota_remaining', 0),
                 'total_views': w_data.get('total_views', 0),
                 'view_earnings': w_data.get('view_earnings', 0.0),
                 'sales_withdrawable': w_data.get('sales_withdrawable', float(w.get('withdrawable_balance', 0.0))),
@@ -630,9 +791,9 @@ def api_admin_logs():
     for lf in log_candidates:
         if os.path.exists(lf):
             try:
+                from collections import deque
                 with open(lf, 'r', errors='replace') as f:
-                    all_lines = f.readlines()
-                lines = all_lines[-n:]
+                    lines = list(deque(f, maxlen=n))
                 log_file_used = lf
                 break
             except Exception:
@@ -661,50 +822,46 @@ def api_admin_logs():
     })
 
 
-# ─── User Management & Admin Statistics ─────────────────────────────────────
+# ─── User Management & Admin Moderation ─────────────────────────────────────
 
 @admin_bp.route('/api/admin/users', methods=['GET'])
 @auth_required
 @admin_required
 def admin_get_users():
-    """Get list of users with verification and academic details for admin dashboard."""
+    """Get paginated list of users with verification and academic details."""
     try:
-        client = init_supabase()
-        sort_by = request.args.get('sort', 'recent')
-        category = request.args.get('category', '').strip()
+        from services.admin_service import list_users
         search = request.args.get('q', '').strip()
-        
-        query = client.table('profiles')\
-            .select('id, full_name, email, created_at, role, is_verified, verified_at, verified_by, reputation_score, abhihub_score, rank_title, access_level, degree, last_active_at, students_helped, college_id, department_id, phone_number, paper_quota_remaining, referral_credits')
-        
-        if search:
-            query = query.or_(f"full_name.ilike.%{search}%,email.ilike.%{search}%")
-        if category and category.lower() != 'all':
-            query = query.ilike('degree', f"%{category}%")
+        role = request.args.get('role', '').strip()
+        status = request.args.get('status', '').strip()
+        degree = request.args.get('category', '').strip()
+        sort_by = request.args.get('sort', 'recent').strip()
+        page = max(1, request.args.get('page', 1, type=int))
+        limit = min(max(1, request.args.get('limit', 50, type=int)), 100)
 
-        if sort_by == 'top':
-            query = query.order('abhihub_score', desc=True).order('reputation_score', desc=True)
-        elif sort_by == 'active':
-            query = query.order('last_active_at', desc=True)
-        elif sort_by == 'unverified':
-            query = query.eq('is_verified', False).order('created_at', desc=True)
-        else:
-            query = query.order('created_at', desc=True)
-            
-        res = query.limit(300).execute()
-        users = res.data or []
+        result = list_users(
+            search=search,
+            role=role,
+            status=status,
+            degree=degree,
+            sort_by=sort_by,
+            page=page,
+            limit=limit
+        )
 
         top_students = sorted(
-            users,
+            result.get('users', []),
             key=lambda u: (u.get('abhihub_score') or 0, u.get('reputation_score') or 0, u.get('students_helped') or 0),
             reverse=True
         )[:10]
 
         return jsonify({
             'success': True,
-            'users': users,
-            'top_students': top_students,
-            'total_count': len(users)
+            'users': result.get('users', []),
+            'total_count': result.get('total', 0),
+            'page': page,
+            'limit': limit,
+            'top_students': top_students
         })
     except Exception as e:
         logging.error(f"[admin_get_users] {e}")
@@ -715,30 +872,20 @@ def admin_get_users():
 @auth_required
 @admin_required
 def admin_verify_user():
-    """Verify or unverify a user profile."""
+    """Verify or unverify a user profile with UUID validation."""
     try:
         data = request.get_json() or {}
         user_id = data.get('user_id')
+        if not user_id or not validate_uuid(user_id):
+            return jsonify({'success': False, 'error': 'Valid user UUID is required'}), 400
+
         is_verified = bool(data.get('is_verified', True))
-        if not user_id:
-            return jsonify({'success': False, 'error': 'User ID is required'}), 400
-
-        client = init_supabase()
-        if not client:
-            return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
-
         admin_user = session.get('user', {})
-        admin_uid = admin_user.get('uid') or admin_user.get('id')
 
-        update_payload = {
-            'is_verified': is_verified,
-            'verified_at': datetime.now(timezone.utc).isoformat() if is_verified else None,
-            'verified_by': admin_uid if (is_verified and validate_uuid(admin_uid)) else None
-        }
-
-        res = client.table('profiles').update(update_payload).eq('id', user_id).execute()
-        if not res.data:
-            return jsonify({'success': False, 'error': 'User not found or update failed'}), 404
+        from services.admin_service import update_user_verification
+        ok, msg = update_user_verification(admin_user, user_id, is_verified)
+        if not ok:
+            return jsonify({'success': False, 'error': msg}), 400
 
         if is_verified:
             try:
@@ -752,12 +899,7 @@ def admin_verify_user():
             except Exception:
                 pass
 
-        log_admin_action('verify_user', target=user_id, details={'is_verified': is_verified})
-        return jsonify({
-            'success': True,
-            'message': f"User successfully {'verified' if is_verified else 'unverified'}.",
-            'profile': res.data[0]
-        })
+        return jsonify({'success': True, 'message': msg})
     except Exception as e:
         logging.error(f"[admin_verify_user] {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -767,32 +909,147 @@ def admin_verify_user():
 @auth_required
 @admin_required
 def admin_update_user_role():
-    """Update a user role (student, teacher, moderator, admin)."""
+    """Update a user role with anti-lockout and superadmin escalation checks."""
     try:
         data = request.get_json() or {}
         user_id = data.get('user_id')
         new_role = (data.get('role') or '').lower().strip()
-        valid_roles = {'student', 'teacher', 'moderator', 'admin'}
-        if not user_id or new_role not in valid_roles:
-            return jsonify({'success': False, 'error': f"Valid user_id and role ({', '.join(valid_roles)}) required"}), 400
+        if not user_id or not validate_uuid(user_id):
+            return jsonify({'success': False, 'error': 'Valid user UUID is required'}), 400
 
-        client = init_supabase()
-        if not client:
-            return jsonify({'success': False, 'error': 'Database client not initialized'}), 500
+        admin_user = session.get('user', {})
+        from services.admin_service import set_user_role
+        ok, msg = set_user_role(admin_user, user_id, new_role)
+        if not ok:
+            return jsonify({'success': False, 'error': msg}), 403
 
-        res = client.table('profiles').update({'role': new_role}).eq('id', user_id).execute()
-        if not res.data:
-            return jsonify({'success': False, 'error': 'User not found or update failed'}), 404
-
-        log_admin_action('update_user_role', target=user_id, details={'new_role': new_role})
-        return jsonify({
-            'success': True,
-            'message': f"User role successfully updated to '{new_role}'.",
-            'profile': res.data[0]
-        })
+        return jsonify({'success': True, 'message': msg})
     except Exception as e:
         logging.error(f"[admin_update_user_role] {e}")
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/users/<user_id>/block', methods=['POST'])
+@auth_required
+@admin_required
+def admin_block_user(user_id):
+    """Block or unblock user with reason and optional expiry."""
+    if not user_id or not validate_uuid(user_id):
+        return jsonify({'success': False, 'error': 'Valid user UUID required'}), 400
+    data = request.get_json() or {}
+    is_blocked = bool(data.get('is_blocked', True))
+    reason = str(data.get('reason', '')).strip()
+    expiry_days = data.get('expiry_days')
+    if expiry_days is not None:
+        try:
+            expiry_days = int(expiry_days)
+        except (ValueError, TypeError):
+            expiry_days = None
+
+    admin_user = session.get('user', {})
+    from services.admin_service import set_user_block
+    ok, msg = set_user_block(admin_user, user_id, is_blocked, reason, expiry_days)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 403
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/users/<user_id>/ban', methods=['POST'])
+@auth_required
+@admin_required
+def admin_ban_user(user_id):
+    """Ban or unban user account permanently."""
+    if not user_id or not validate_uuid(user_id):
+        return jsonify({'success': False, 'error': 'Valid user UUID required'}), 400
+    data = request.get_json() or {}
+    is_banned = bool(data.get('is_banned', True))
+    reason = str(data.get('reason', '')).strip()
+
+    admin_user = session.get('user', {})
+    from services.admin_service import set_user_ban
+    ok, msg = set_user_ban(admin_user, user_id, is_banned, reason)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 403
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/users/<user_id>/status', methods=['POST'])
+@auth_required
+@admin_required
+def admin_set_user_status(user_id):
+    """Set account status to active, suspended, or deactivated."""
+    if not user_id or not validate_uuid(user_id):
+        return jsonify({'success': False, 'error': 'Valid user UUID required'}), 400
+    data = request.get_json() or {}
+    status = str(data.get('status', 'active')).strip().lower()
+
+    admin_user = session.get('user', {})
+    from services.admin_service import set_user_account_status
+    ok, msg = set_user_account_status(admin_user, user_id, status)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 403
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/users/<user_id>/soft-delete', methods=['POST'])
+@auth_required
+@admin_required
+def admin_soft_delete_user(user_id):
+    """Soft delete user account."""
+    if not user_id or not validate_uuid(user_id):
+        return jsonify({'success': False, 'error': 'Valid user UUID required'}), 400
+    admin_user = session.get('user', {})
+    from services.admin_service import soft_delete_user
+    ok, msg = soft_delete_user(admin_user, user_id)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 403
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/users/<user_id>/restore', methods=['POST'])
+@auth_required
+@admin_required
+def admin_restore_user(user_id):
+    """Restore soft deleted user account."""
+    if not user_id or not validate_uuid(user_id):
+        return jsonify({'success': False, 'error': 'Valid user UUID required'}), 400
+    admin_user = session.get('user', {})
+    from services.admin_service import restore_user
+    ok, msg = restore_user(admin_user, user_id)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 403
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/users/<user_id>/hard-delete', methods=['DELETE', 'POST'])
+@auth_required
+@admin_required
+def admin_hard_delete_user(user_id):
+    """Permanently delete user profile and cascade related records."""
+    if not user_id or not validate_uuid(user_id):
+        return jsonify({'success': False, 'error': 'Valid user UUID required'}), 400
+    admin_user = session.get('user', {})
+    from services.admin_service import hard_delete_user
+    ok, msg = hard_delete_user(admin_user, user_id)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 403
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/users/bulk-action', methods=['POST'])
+@auth_required
+@admin_required
+def admin_bulk_user_action():
+    """Perform bulk actions: block, unblock, verify, delete."""
+    data = request.get_json() or {}
+    action = str(data.get('action', '')).strip().lower()
+    user_ids = data.get('user_ids', [])
+    reason = str(data.get('reason', '')).strip()
+
+    admin_user = session.get('user', {})
+    from services.admin_service import bulk_user_action
+    result = bulk_user_action(admin_user, action, user_ids, reason)
+    return jsonify(result), 200 if result.get('success') else 400
 
 
 @admin_bp.route('/api/admin/update-user-level', methods=['POST'])
@@ -863,7 +1120,7 @@ def admin_update_user_level():
 def admin_get_user_stats(user_id):
     """Get detailed stats for a specific user."""
     try:
-        client = init_supabase()
+        client = init_supabase_admin() or init_supabase()
         session_res = client.table('user_sessions').select('login_time').eq('user_id', user_id).order('login_time', desc=True).limit(1).execute()
         last_visit = session_res.data[0].get('login_time') if session_res.data else "Never"
         
@@ -878,7 +1135,7 @@ def admin_get_user_stats(user_id):
         prof_data = prof_res.data[0] if prof_res.data else {}
         paper_quota = prof_data.get('paper_quota_remaining')
         if paper_quota is None:
-            paper_quota = 19
+            paper_quota = 0
         referral_credits = prof_data.get('referral_credits', 0) or 0
         access_level = prof_data.get('access_level') or 'explorer'
         rank_title = prof_data.get('rank_title') or 'Beginner'
@@ -886,6 +1143,10 @@ def admin_get_user_stats(user_id):
         from methods.wallet_service import get_creator_wallet
         w_data = get_creator_wallet(user_id)
         wallet_info = w_data.get('wallet', {}) if w_data.get('success') else {}
+
+        # Fetch user's KYC application details
+        kyc_res = client.table('user_kyc_details').select('*').eq('user_id', user_id).limit(1).execute()
+        kyc_info = kyc_res.data[0] if kyc_res.data else None
 
         return jsonify({
             'success': True,
@@ -897,7 +1158,8 @@ def admin_get_user_stats(user_id):
                 'referral_credits': referral_credits,
                 'access_level': access_level,
                 'rank_title': rank_title,
-                'wallet': wallet_info
+                'wallet': wallet_info,
+                'kyc': kyc_info
             }
         })
     except Exception as e:
@@ -1149,12 +1411,8 @@ def reject_document():
         admin_uid = admin_user.get('uid') or admin_user.get('id')
 
         if hard_delete:
-            for table_name, col in [('search_documents', 'file_id'), ('document_views', 'document_id'), ('document_likes', 'document_id'), ('document_bookmarks', 'document_id'), ('viewer_failure_reports', 'doc_id')]:
-                try:
-                    client.table(table_name).delete().eq(col, doc_id).execute()
-                except Exception:
-                    pass
-            client.table('documents').delete().eq('id', doc_id).execute()
+            from services.admin_service import delete_file_completely
+            delete_file_completely(doc_id, admin_user, reason=f"Rejected & hard-deleted: {reason}")
         else:
             client.table('documents').update({
                 'status': 'rejected',
@@ -1609,3 +1867,141 @@ def api_indexnow_submit():
     except Exception as e:
         logging.error(f'[api_indexnow_submit] {e}')
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+# ─── File & Storage Management Endpoints ────────────────────────────────────
+
+@admin_bp.route('/api/admin/files', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_files():
+    """List uploaded files with uploader info, storage provider, size, and status."""
+    try:
+        from services.admin_service import list_files
+        search = request.args.get('q', '').strip()
+        status = request.args.get('status', '').strip()
+        page = max(1, request.args.get('page', 1, type=int))
+        limit = min(max(1, request.args.get('limit', 50, type=int)), 100)
+
+        result = list_files(search=search, status=status, page=page, limit=limit)
+        return jsonify(result)
+    except Exception as e:
+        logging.error(f"[admin_get_files] {e}")
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@admin_bp.route('/api/admin/files/<doc_id>', methods=['DELETE', 'POST'])
+@auth_required
+@admin_required
+def admin_delete_single_file(doc_id):
+    """Delete a single file completely from Cloudinary, Firebase, Supabase, and DB."""
+    admin_user = session.get('user', {})
+    data = request.get_json(silent=True) or {}
+    reason = str(data.get('reason', 'Admin file deletion')).strip()
+
+    from services.admin_service import delete_file_completely
+    ok, msg = delete_file_completely(doc_id, admin_user, reason)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg})
+
+
+@admin_bp.route('/api/admin/files/bulk-delete', methods=['POST'])
+@auth_required
+@admin_required
+def admin_bulk_delete_files_endpoint():
+    """Bulk delete files completely across all storage providers and database."""
+    admin_user = session.get('user', {})
+    data = request.get_json() or {}
+    doc_ids = data.get('doc_ids', [])
+    reason = str(data.get('reason', 'Admin bulk removal')).strip()
+
+    if not doc_ids or not isinstance(doc_ids, list):
+        return jsonify({'success': False, 'error': 'doc_ids list is required'}), 400
+
+    from services.admin_service import bulk_delete_files
+    result = bulk_delete_files(doc_ids, admin_user, reason)
+    return jsonify(result)
+
+
+@admin_bp.route('/api/admin/files/<doc_id>/quarantine', methods=['POST'])
+@auth_required
+@admin_required
+def admin_quarantine_file_endpoint(doc_id):
+    """Flag or quarantine a suspicious document."""
+    admin_user = session.get('user', {})
+    data = request.get_json() or {}
+    reason = str(data.get('reason', 'Suspicious or flagged by administration')).strip()
+
+    from services.admin_service import flag_quarantine_file
+    ok, msg = flag_quarantine_file(doc_id, admin_user, reason)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg})
+
+
+# ─── Audit Trail & Compliance Endpoints ─────────────────────────────────────
+
+@admin_bp.route('/api/admin/audit/logs', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_audit_logs():
+    """Query paginated audit logs with optional filters."""
+    action = request.args.get('action')
+    admin_id = request.args.get('admin_id')
+    target_type = request.args.get('target_type')
+    page = max(1, request.args.get('page', 1, type=int))
+    limit = min(max(1, request.args.get('limit', 50, type=int)), 100)
+
+    from services.admin_service import get_audit_logs
+    res = get_audit_logs(action=action, admin_id=admin_id, target_type=target_type, page=page, limit=limit)
+    return jsonify(res)
+
+
+@admin_bp.route('/api/admin/audit/export/csv', methods=['GET'])
+@auth_required
+@admin_required
+def admin_export_audit_logs_csv():
+    """Download audit logs in CSV format."""
+    from flask import Response
+    from services.admin_service import export_audit_logs_csv
+    csv_data = export_audit_logs_csv()
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+    return Response(
+        csv_data,
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename=admin_audit_trail_{timestamp}.csv'}
+    )
+
+
+# ─── Site Settings & Operations Endpoints ───────────────────────────────────
+
+@admin_bp.route('/api/admin/settings', methods=['GET'])
+@auth_required
+@admin_required
+def admin_get_settings():
+    """Retrieve site-wide configuration flags."""
+    from services.admin_service import get_site_settings
+    settings = get_site_settings()
+    return jsonify({'success': True, 'settings': settings})
+
+
+@admin_bp.route('/api/admin/settings', methods=['POST'])
+@auth_required
+@admin_required
+def admin_update_setting():
+    """Update a specific site configuration flag."""
+    admin_user = session.get('user', {})
+    data = request.get_json() or {}
+    key = str(data.get('key', '')).strip()
+    value = data.get('value')
+
+    if not key or value is None:
+        return jsonify({'success': False, 'error': 'Key and value are required'}), 400
+
+    from services.admin_service import update_site_setting
+    ok, msg = update_site_setting(admin_user, key, value)
+    if not ok:
+        return jsonify({'success': False, 'error': msg}), 400
+    return jsonify({'success': True, 'message': msg})
+

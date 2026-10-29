@@ -27,8 +27,68 @@ class _SupabaseProxy:
 supabase = _SupabaseProxy()
 
 MIN_WITHDRAWAL_AMOUNT = 100.0
-HOLDING_DAYS = 30
+HOLDING_DAYS = 9  # Payouts released in T+9 days or earlier
 VIEW_EARNING_RATE_INR = 0.20
+
+# Monetization & Commission Configuration
+# Standard: 30% platform commission (creator keeps 70%)
+# Launch Promo: 10% platform commission (creator keeps 90%) for first 90 days if registered before 8 Nov 2026
+PROMO_REGISTRATION_CUTOFF = datetime(2026, 11, 8, 23, 59, 59, tzinfo=timezone.utc)
+PROMO_DURATION_DAYS = 90
+STANDARD_CREATOR_PCT = 70
+PROMO_CREATOR_PCT = 90
+
+
+def is_creator_verified(creator_id) -> bool:
+    """Checks if creator has verified status in abhihub.profiles."""
+    if not creator_id:
+        return False
+    try:
+        res = supabase.table('profiles').select('is_verified').eq('id', str(creator_id)).limit(1).execute()
+        if res and res.data and isinstance(res.data, list) and len(res.data) > 0:
+            return bool(res.data[0].get('is_verified', False))
+    except Exception as e:
+        logging.error(f"[WALLET] Error checking creator verification: {e}")
+    return False
+
+
+def get_creator_commission_pct(creator_id: str = None) -> dict:
+    """
+    Computes file sales commission percentage:
+    - Base: 70% creator share (30% platform commission)
+    - Early Creator Promo: 90% creator share (10% platform commission) for first 90 days if registered before 8 Nov 2026.
+    """
+    if not creator_id:
+        return {'creator_pct': STANDARD_CREATOR_PCT, 'is_promo': False, 'reason': 'Standard Creator (70%)'}
+
+    try:
+        res = supabase.table('profiles').select('created_at').eq('id', str(creator_id)).limit(1).execute()
+        if res and res.data and isinstance(res.data, list) and len(res.data) > 0:
+            raw_dt = res.data[0].get('created_at')
+            if raw_dt:
+                if isinstance(raw_dt, str):
+                    reg_date = datetime.fromisoformat(raw_dt.replace('Z', '+00:00'))
+                else:
+                    reg_date = raw_dt
+
+                if reg_date.tzinfo is None:
+                    reg_date = reg_date.replace(tzinfo=timezone.utc)
+
+                now = datetime.now(timezone.utc)
+                if reg_date <= PROMO_REGISTRATION_CUTOFF:
+                    days_active = (now - reg_date).total_seconds() / 86400.0
+                    if 0 <= days_active <= PROMO_DURATION_DAYS:
+                        remaining = max(0, int(PROMO_DURATION_DAYS - days_active))
+                        return {
+                            'creator_pct': PROMO_CREATOR_PCT,
+                            'is_promo': True,
+                            'promo_days_remaining': remaining,
+                            'reason': f'Early Creator Promo: 90% share ({remaining} days remaining)'
+                        }
+    except Exception as e:
+        logging.error(f"[WALLET] Error checking creator registration for {creator_id}: {e}")
+
+    return {'creator_pct': STANDARD_CREATOR_PCT, 'is_promo': False, 'reason': 'Standard Creator (70%)'}
 
 
 def get_document_creator(doc_id):
@@ -42,40 +102,32 @@ def get_document_creator(doc_id):
     return None
 
 
-def calculate_fee_breakdown(gross_amount: float) -> dict:
+def calculate_fee_breakdown(gross_amount: float, creator_id: str = None) -> dict:
     """
-    Computes creator earnings (80%) and 20% platform expenses:
-    - 80% Creator Share
-    - 2% Payment Gateway
-    - 4% Storage
-    - 4% Hosting
-    - 4% Advertisement
-    - 6% Platform Revenue
+    Calculates simplified file sales fee breakdown:
+    - Creator Share: 70% standard (or 90% early creator promo for first 90 days)
+    - Platform Fee: Remainder (30% standard or 10% promo)
     """
     gross = round(float(gross_amount), 2)
-    creator_share = round(gross * 0.80, 2)
-    gateway_fee = round(gross * 0.02, 2)
-    storage_fee = round(gross * 0.04, 2)
-    hosting_fee = round(gross * 0.04, 2)
-    ads_fee = round(gross * 0.04, 2)
-    revenue_fee = round(gross - (creator_share + gateway_fee + storage_fee + hosting_fee + ads_fee), 2)
+    comm = get_creator_commission_pct(creator_id)
+    creator_pct = comm['creator_pct']
+    creator_share = round(gross * (creator_pct / 100.0), 2)
+    platform_fee = round(gross - creator_share, 2)
     return {
         'gross_amount': gross,
         'creator_amount': creator_share,
-        'creator_pct': 80,
-        'payment_gateway_2pct': gateway_fee,
-        'storage_4pct': storage_fee,
-        'hosting_4pct': hosting_fee,
-        'advertisement_4pct': ads_fee,
-        'platform_revenue_6pct': revenue_fee,
-        'total_expense_20pct': round(gross - creator_share, 2)
+        'creator_pct': creator_pct,
+        'platform_fee': platform_fee,
+        'platform_pct': 100 - creator_pct,
+        'is_promo': comm.get('is_promo', False),
+        'promo_reason': comm.get('reason', ''),
+        'total_expense_20pct': platform_fee
     }
 
 
 def credit_creator_for_purchase(order_id, doc_id, amount):
     """
-    Credits creator's wallet with 30-day locked status (80% creator share).
-    20% covers platform expenses (2% gateway, 4% storage, 4% hosting, 4% ads, 6% revenue).
+    Credits creator's wallet with 30-day locked status (70% standard or 90% early creator promo).
     """
     creator_id = get_document_creator(doc_id)
     if not creator_id:
@@ -88,7 +140,7 @@ def credit_creator_for_purchase(order_id, doc_id, amount):
     except (ValueError, TypeError):
         return False, "Invalid amount"
 
-    breakdown = calculate_fee_breakdown(gross_amt)
+    breakdown = calculate_fee_breakdown(gross_amt, creator_id=creator_id)
     creator_amt = breakdown['creator_amount']
 
     now = datetime.now(timezone.utc)
@@ -234,7 +286,12 @@ def get_creator_wallet(creator_id):
         if w_res.data:
             wallet = w_res.data[0]
 
-        total_views, view_earnings = get_creator_views_and_earnings(creator_id)
+        is_verified = is_creator_verified(creator_id)
+        total_views, raw_view_earnings = get_creator_views_and_earnings(creator_id)
+        # Only verified users receive view earnings & view rate
+        view_earnings = raw_view_earnings if is_verified else 0.0
+        view_rate = VIEW_EARNING_RATE_INR if is_verified else 0.0
+        comm_info = get_creator_commission_pct(creator_id)
 
         # 1. Calculate unlocked and pending note sales from ledger
         credits_res = supabase.table('wallet_ledger').select('amount, order_id, status').eq('creator_id', str(creator_id)).eq('type', 'credit').execute()
@@ -303,7 +360,12 @@ def get_creator_wallet(creator_id):
                 'sales_withdrawable': sales_withdrawable,
                 'total_views': total_views,
                 'view_earnings': view_earnings,
-                'view_rate': VIEW_EARNING_RATE_INR,
+                'view_rate': view_rate,
+                'is_verified': is_verified,
+                'is_view_monetized': is_verified,
+                'creator_commission_pct': comm_info['creator_pct'],
+                'is_promo': comm_info.get('is_promo', False),
+                'commission_status': comm_info.get('reason', ''),
                 'total_withdrawn': total_withdrawn,
                 'min_withdrawal': min_limit,
                 'withdrawal_tier': withdrawal_tier,
@@ -320,11 +382,27 @@ def get_creator_wallet(creator_id):
         return {'success': False, 'error': str(e)}
 
 
-def request_withdrawal(creator_id, amount, payout_method, payout_details):
+def request_withdrawal(creator_id, amount, payout_method=None, payout_details=None):
     """
-    Processes a withdrawal request if balance >= 100.
+    Processes a withdrawal request using verified KYC payment details.
     """
     unlock_eligible_entries(creator_id)
+
+    # Automatically fetch verified payment details from KYC instead of asking user
+    if not payout_details or not payout_method:
+        from methods.payment_engine import engine
+        kyc = engine.get_kyc(creator_id)
+        if not kyc or not kyc.get('is_verified'):
+            return False, "Verified KYC is required before requesting a payout. Please submit your KYC details first."
+        payout_method = kyc.get('preferred_method', 'upi')
+        payout_details = {
+            'upi_id': kyc.get('upi_id'),
+            'account_number': kyc.get('account_number'),
+            'ifsc_code': kyc.get('ifsc_code'),
+            'account_holder_name': kyc.get('full_name'),
+            'bank_name': kyc.get('bank_name'),
+            'pan_number': kyc.get('pan_number'),
+        }
 
     try:
         amt = round(float(amount), 2)
@@ -335,18 +413,39 @@ def request_withdrawal(creator_id, amount, payout_method, payout_details):
         return False, "Payout method must be 'upi' or 'bank'"
 
     if not isinstance(payout_details, dict) or not payout_details:
-        return False, "Account or UPI details are required"
+        return False, "PAN and account details are required to receive payout"
 
-    if payout_method == 'upi':
+    # 1. Mandatory PAN validation for tax & compliance
+    pan = str(payout_details.get('pan_number') or payout_details.get('pan', '')).strip().upper()
+    if not pan:
+        return False, "PAN card number is required for receiving payouts."
+    if not re.match(r'^[A-Z]{5}[0-9]{4}[A-Z]{1}$', pan):
+        return False, "Invalid PAN format. Must be 10 characters (e.g. ABCDE1234F)."
+    payout_details['pan_number'] = pan
+
+    # 2. Account Holder Name
+    holder_name = str(payout_details.get('account_holder_name') or payout_details.get('name', '')).strip()
+    if not holder_name:
+        return False, "Full name of account holder is required."
+    payout_details['account_holder_name'] = holder_name
+
+    # 3. Method-specific details (Bank or UPI)
+    if payout_method == 'bank':
+        acc_no = str(payout_details.get('account_number') or payout_details.get('account_info', '')).strip()
+        ifsc = str(payout_details.get('ifsc_code') or payout_details.get('ifsc', '')).strip().upper()
+        if not acc_no or not re.match(r'^\d{9,18}$', acc_no):
+            return False, "Valid Bank Account Number (9 to 18 digits) is required."
+        if not ifsc or not re.match(r'^[A-Z]{4}0[A-Z0-9]{6}$', ifsc):
+            return False, "Valid 11-character IFSC Code (e.g. SBIN0001234) is required."
+        payout_details['account_number'] = acc_no
+        payout_details['ifsc_code'] = ifsc
+    elif payout_method == 'upi':
         upi_id = str(payout_details.get('upi_id', '') or payout_details.get('vpa', '')).strip()
         if not upi_id:
             return False, "UPI ID is required"
         if not re.match(r'^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z0-9]{2,64}$', upi_id):
             return False, "Invalid UPI ID format. Must be in format username@bank (e.g., yourname@okhdfcbank)"
-    elif payout_method == 'bank':
-        acc_info = str(payout_details.get('account_info', '')).strip()
-        if not acc_info or len(acc_info) < 6:
-            return False, "Please provide complete bank account details and IFSC code"
+        payout_details['upi_id'] = upi_id
 
     try:
         # Prevent double-spending: disallow new payout if one is already pending/processing

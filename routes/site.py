@@ -1,3 +1,4 @@
+import os
 from flask import Blueprint, render_template, session, redirect, url_for, request
 from routes.seo import sitemap_page
 from routes.auth import auth_required
@@ -153,10 +154,10 @@ def features():
         colleges=all_colleges[:8],
         branches=branches[:8],
         recent_docs=recent_docs,
-        seo_title="AbhiHub — Buy & Sell Engineering Notes, PYQs & Study Materials",
-        seo_description="India's student-first peer academic marketplace. Download verified previous year question papers & high-scoring engineering notes, or upload handwritten notes to earn 85% royalties via UPI.",
-        og_title="AbhiHub — India's #1 Student Notes & PYQ Marketplace",
-        og_description="Download verified PYQs & engineering notes, or upload & earn 85% royalties. Started at GHRCE Nagpur by students, for students across India."
+        seo_title="AbhiHub — Engineering PYQs, Handwritten Notes & Creator Marketplace",
+        seo_description="India's verified engineering peer study marketplace. Download verified PYQs and handwritten solutions. Launch Deal: 90% off view packs, 90% creator royalties, payouts in T+9 days or earlier.",
+        og_title="AbhiHub — Verified Engineering PYQs & Student Notes Marketplace",
+        og_description="Download verified engineering PYQs and study notes. Sell handwritten notes and keep 90% of earnings with payouts in T+9 days or earlier. Founded at GHRCEN."
     )
 
 
@@ -179,11 +180,34 @@ def game_page():
 
 
 @site_bp.route('/payment')
+@auth_required
 def payment_page():
     import time
     import secrets
     from datetime import datetime
     from flask import request
+    from methods.supabase_helper import init_supabase
+
+    user = session.get('user', {})
+    user_id = user.get('uid') or user.get('id')
+    user_email = (user.get('email') or '').strip()
+    user_name = (user.get('name') or user.get('display_name') or '').strip()
+    user_phone = ''
+
+    if user_id:
+        try:
+            client = init_supabase()
+            if client:
+                p_res = client.table('profiles').select('full_name, email, phone_number').eq('id', user_id).limit(1).execute()
+                if p_res.data:
+                    prof = p_res.data[0]
+                    user_name = prof.get('full_name') or user_name
+                    user_email = prof.get('email') or user_email
+                    user_phone = prof.get('phone_number') or ''
+        except Exception:
+            pass
+    if not user_phone:
+        user_phone = (user.get('user_metadata') or {}).get('phone') or ''
 
     raw_amount = request.args.get('amount', '49')
     purpose = request.args.get('purpose', 'AbhiHub Support / Credits')
@@ -201,6 +225,9 @@ def payment_page():
         amount = "49.00"
 
     order_id = request.args.get('order_id', '').strip() or f"AH{int(time.time())}{secrets.token_hex(2).upper()}"
+    invoice_id = f"INV-{order_id.replace('AH', '')}" if order_id.startswith('AH') else f"INV-{order_id}"
+    app_name = os.getenv('APP_NAME', 'AbhiHub')
+    app_id = os.getenv('APP_ID', 'com.abhihub.app')
     purchase_date = datetime.now().strftime("%d %b %Y, %I:%M %p")
 
     doc_info = None
@@ -215,12 +242,18 @@ def payment_page():
 
     return render_template(
         'payment.html',
+        app_name=app_name,
+        app_id=app_id,
+        invoice_id=invoice_id,
         amount=amount,
         purpose=purpose,
         order_id=order_id,
         doc_id=doc_id,
         doc_info=doc_info,
-        purchase_date=purchase_date
+        purchase_date=purchase_date,
+        user_email=user_email,
+        user_name=user_name,
+        user_phone=user_phone
     )
 
 
@@ -228,11 +261,17 @@ def payment_page():
 def payment_receipt_page():
     """Valid feedback and receipt page for completed or failed payments."""
     from flask import request
+    from datetime import datetime
     order_id = request.args.get('order_id', '').strip()
     status = request.args.get('status', 'success')
     doc_id = request.args.get('doc_id', '').strip()
     raw_amount = request.args.get('amount', '49.00')
     error_msg = request.args.get('error', '').strip()
+
+    invoice_id = f"INV-{order_id.replace('AH', '').replace('order_', '')}" if order_id else f"INV-{int(datetime.now().timestamp())}"
+    app_name = os.getenv('APP_NAME', 'AbhiHub')
+    app_id = os.getenv('APP_ID', 'com.abhihub.app')
+    purchase_date = datetime.now().strftime("%d %b %Y, %I:%M %p")
 
     from data.transactions import get_transaction_record
     rec = get_transaction_record(order_id)
@@ -276,6 +315,10 @@ def payment_receipt_page():
 
     return render_template(
         'payment_receipt.html',
+        app_name=app_name,
+        app_id=app_id,
+        invoice_id=invoice_id,
+        purchase_date=purchase_date,
         order_id=order_id,
         amount=amount,
         doc_id=doc_id,

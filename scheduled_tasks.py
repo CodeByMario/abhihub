@@ -106,7 +106,7 @@ def setup_jobs(scheduler):
     )
     logging.info("📅 Scheduled job: Score Recalculator (every 24 hours)")
 
-    # Job 5: Reconcile 30-day mature wallet earnings
+    # Job 5: Reconcile 30-day mature wallet earnings + auto-payout trigger
     def _reconcile_wallets():
         try:
             from methods.wallet_service import unlock_eligible_entries
@@ -114,6 +114,27 @@ def setup_jobs(scheduler):
             logging.info(f"[WALLET] Daily unlock completed: {unlocked} entries matured")
         except Exception as e:
             logging.error(f"[WALLET] Daily unlock error: {e}")
+            return
+
+        # After unlock: trigger auto-payout for any creator now eligible (balance >= ₹10, KYC verified)
+        try:
+            from methods.payment_engine import engine
+            from methods.supabase_helper import init_supabase_admin
+            db = init_supabase_admin()
+            if db:
+                # Find creators who have an 'available' wallet entry (i.e. were just unlocked or already eligible)
+                rows = db.table('creator_wallets') \
+                    .select('user_id, withdrawable_balance') \
+                    .gte('withdrawable_balance', 10.0) \
+                    .execute()
+                creator_ids = [r['user_id'] for r in (rows.data or []) if r.get('withdrawable_balance', 0) >= 10.0]
+                triggered = 0
+                for cid in creator_ids:
+                    if engine.auto_request_payout(cid):
+                        triggered += 1
+                logging.info(f"[WALLET] Auto-payout triggered for {triggered}/{len(creator_ids)} eligible creators")
+        except Exception as e:
+            logging.error(f"[WALLET] Auto-payout trigger error: {e}")
 
     scheduler.add_job(
         func=_reconcile_wallets,

@@ -154,7 +154,7 @@
 <div class="earn-page">
   <div class="earn-hero">
     <div class="earn-title">Creator Earnings Wall</div>
-    <p class="earn-sub">Earn ₹0.20 for every unique view on your uploaded study notes and PYQs. Request direct payouts to UPI or Bank once eligible.</p>
+    <p class="earn-sub">Earn from selling your study notes (70% standard share, or 90% for early creators). Verified creators also receive view earnings.</p>
     <div class="earn-badge" style="background:rgba(16, 185, 129, 0.2); border-color:rgba(16, 185, 129, 0.4); color:#a7f3d0;">● Monetization Active</div>
   </div>
 
@@ -341,30 +341,28 @@
     <div style="background:#f8fafc; border-radius:14px; padding:1.25rem; border:1px solid #e2e8f0; margin-top:1rem;">
       <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
         <h4 style="margin:0; font-size:0.95rem; color:#1e293b;">💸 Request Withdrawal</h4>
-        <span id="payoutPolicyBadge" style="font-size:0.78rem; color:#64748b;">Policy: Minimum <strong>₹100</strong></span>
+        <span id="payoutPolicyBadge" style="font-size:0.78rem; color:#64748b;">Policy: Minimum <strong>₹10.00</strong> • Auto-payout at ₹10+ within 7 days</span>
       </div>
 
       <div id="withdrawEligibleWrap" style="display:none;">
-        <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:flex-start;">
-          <div style="display:flex; flex-direction:column; gap:2px;">
-            <input id="payoutAmount" type="number" min="5" step="1" style="width:120px; padding:0.6rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.9rem;" placeholder="Amount (₹)" />
-            <div id="earnAmtStatus" style="font-size:0.75rem; font-weight:600; display:none;"></div>
-          </div>
-          <select id="payoutMethod" style="padding:0.6rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.9rem; height:42px;">
-            <option value="upi">UPI ID</option>
-            <option value="bank">Bank Account</option>
-          </select>
-          <div style="flex:1; min-width:200px; display:flex; flex-direction:column; gap:2px;">
-            <input id="payoutDetailVal" type="text" placeholder="e.g. name@okhdfcbank" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.9rem;" />
-            <div id="earnUpiStatus" style="font-size:0.75rem; font-weight:600; display:none;"></div>
-          </div>
-          <button type="button" id="submitWithdrawBtn" class="earn-btn" style="padding:0.65rem 1.25rem; height:42px;">Submit Request</button>
+        <!-- Verified KYC Payout Destination Banner -->
+        <div id="earnWithdrawKycDestInfo" style="margin-bottom:1rem; padding:0.75rem; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:10px; font-size:0.83rem;">
+          <span style="color:#15803d; font-weight:700;"><i class="fas fa-circle-check"></i> Payout Destination (from Verified KYC):</span>
+          <strong id="earnWithdrawKycDestText" style="margin-left:4px; color:#1e293b;">Loading verified details...</strong>
         </div>
+
+        <div style="margin-bottom:0.75rem;">
+          <label style="font-size:0.76rem; font-weight:700; color:#334155; display:block; margin-bottom:3px;">Amount (₹) *</label>
+          <input id="payoutAmount" type="number" min="10" step="1" style="width:100%; max-width:320px; padding:0.6rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.9rem;" placeholder="Amount (min ₹10)" />
+          <div id="earnAmtStatus" style="font-size:0.72rem; font-weight:600; display:none; margin-top:2px;"></div>
+        </div>
+
+        <button type="button" id="submitWithdrawBtn" class="earn-btn" style="padding:0.7rem 1.5rem; height:42px;">Submit Withdrawal Request</button>
         <div id="withdrawMsg" style="margin-top:0.6rem; font-size:0.86rem; font-weight:600; display:none;"></div>
       </div>
 
       <div id="withdrawLockedWrap" style="display:none; font-size:0.86rem; color:#64748b; line-height:1.5;">
-        🔒 You need at least <strong>₹100.00</strong> in withdrawable balance to request a payout. Upload more notes or share links with friends to earn ₹0.20 per view!
+        🔒 You need at least <strong>₹10.00</strong> in withdrawable balance to request a payout. Auto-payout is triggered automatically when reaching ₹10+ with verified KYC and processed within 7 days.
       </div>
     </div>
   </div>
@@ -385,6 +383,135 @@
         <div style="font-size:0.75rem; color:#166534; font-weight:600;">Note Sales Revenue</div>
         <div id="salesRevenueAmt" style="font-size:1.3rem; font-weight:800; color:#16a34a; margin-top:0.25rem;">₹0.00</div>
       </div>
+    </div>
+    <div id="monetizedNotesWrap" style="margin-top:1rem; border-top:1px solid #e2e8f0; padding-top:0.75rem;">
+      <div style="font-size:0.82rem; font-weight:700; color:#334155; margin-bottom:0.5rem;">Monetized Files</div>
+      <div style="overflow-x:auto;">
+        <table style="width:100%; border-collapse:collapse; font-size:0.82rem;">
+          <thead>
+            <tr style="text-align:left; border-bottom:1px solid #e2e8f0; color:#64748b;">
+              <th style="padding:0.4rem 0.5rem;">File Title</th>
+              <th style="padding:0.4rem 0.5rem;">Price</th>
+              <th style="padding:0.4rem 0.5rem;">Sales</th>
+              <th style="padding:0.4rem 0.5rem;">Earnings</th>
+            </tr>
+          </thead>
+          <tbody id="monetizedNotesTbody">
+            <tr><td colspan="4" style="padding:0.6rem; text-align:center; color:#94a3b8;">No monetized files found.</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  <!-- KYC & Auto-Payout Enrollment -->
+  <div class="earn-card" id="userKycCard">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem; margin-bottom:0.75rem;">
+      <h3 style="margin:0;"><i class="fas fa-shield-halved text-sky-500"></i> KYC &amp; Payout Verification</h3>
+      <span id="kycStatusBadge" class="earn-badge" style="background:#f1f5f9; color:#475569; border-color:#cbd5e1;">Checking KYC...</span>
+    </div>
+    <p class="earn-muted" style="margin-bottom:1rem;">
+      Provide your identity and payout destination. Once verified by admin, withdrawals &ge; ₹10.00 are automatically scheduled and credited to your account within <strong>7 business days</strong>.
+    </p>
+
+    <!-- Verified Display -->
+    <div id="kycVerifiedView" style="display:none; background:#f0fdf4; border:1px solid #bbf7d0; border-radius:12px; padding:1rem;">
+      <div style="display:flex; align-items:center; gap:0.5rem; color:#15803d; font-weight:700; margin-bottom:0.5rem;">
+        <i class="fas fa-circle-check"></i> Account Verified for Direct Payouts
+      </div>
+      <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:0.5rem; font-size:0.85rem; color:#334155;">
+        <div><strong>Name:</strong> <span id="kycVerifiedName">-</span></div>
+        <div><strong>PAN:</strong> <span id="kycVerifiedPan" style="font-family:monospace;">-</span></div>
+        <div><strong>Method:</strong> <span id="kycVerifiedMethod" style="text-transform:uppercase;">-</span></div>
+        <div><strong>Account/UPI:</strong> <span id="kycVerifiedDest">-</span></div>
+      </div>
+    </div>
+
+    <!-- Form for Unverified / Resubmit -->
+    <div id="kycFormWrap" style="display:none;">
+      <div id="kycRejectionAlert" style="display:none; background:#fef2f2; border:1px solid #fecaca; color:#b91c1c; border-radius:10px; padding:0.75rem; margin-bottom:1rem; font-size:0.85rem;">
+        <strong>⚠️ Previous Submission Rejected:</strong> <span id="kycRejectionReason">Please correct your details.</span>
+      </div>
+      <form id="userKycForm" onsubmit="handleUserKycSubmit(event)">
+        <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.75rem; margin-bottom:0.75rem;">
+          <div>
+            <label style="font-size:0.76rem; font-weight:700; color:#334155; display:block; margin-bottom:3px;">Full Legal Name *</label>
+            <input type="text" id="kycInputName" required placeholder="As on PAN / Bank" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.9rem;" />
+          </div>
+          <div>
+            <label style="font-size:0.76rem; font-weight:700; color:#334155; display:block; margin-bottom:3px;">PAN Card Number *</label>
+            <input type="text" id="kycInputPan" required maxlength="10" placeholder="e.g. ABCDE1234F" style="width:100%; text-transform:uppercase; padding:0.6rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.9rem;" />
+          </div>
+          <div>
+            <label style="font-size:0.76rem; font-weight:700; color:#334155; display:block; margin-bottom:3px;">Preferred Payout Method *</label>
+            <select id="kycInputMethod" onchange="toggleKycMethodFields()" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.9rem; height:42px;">
+              <option value="upi" selected>UPI ID (Instant VPA)</option>
+              <option value="bank">Bank Account Transfer</option>
+            </select>
+          </div>
+        </div>
+
+        <div id="kycUpiFields" style="margin-bottom:0.75rem;">
+          <label style="font-size:0.76rem; font-weight:700; color:#334155; display:block; margin-bottom:3px;">UPI ID *</label>
+          <input type="text" id="kycInputUpi" placeholder="e.g. yourname@okhdfcbank" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.9rem;" />
+        </div>
+
+        <div id="kycBankFields" style="display:none; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:0.75rem; margin-bottom:0.75rem;">
+          <div>
+            <label style="font-size:0.76rem; font-weight:700; color:#334155; display:block; margin-bottom:3px;">Bank Account Number *</label>
+            <input type="text" id="kycInputBankAcc" placeholder="9 to 18 digits" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.9rem;" />
+          </div>
+          <div>
+            <label style="font-size:0.76rem; font-weight:700; color:#334155; display:block; margin-bottom:3px;">IFSC Code *</label>
+            <input type="text" id="kycInputBankIfsc" maxlength="11" placeholder="e.g. SBIN0001234" style="width:100%; text-transform:uppercase; padding:0.6rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.9rem;" />
+          </div>
+          <div>
+            <label style="font-size:0.76rem; font-weight:700; color:#334155; display:block; margin-bottom:3px;">Bank Name</label>
+            <input type="text" id="kycInputBankName" placeholder="e.g. State Bank of India" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:10px; font-size:0.9rem;" />
+          </div>
+        </div>
+
+        <div style="display:flex; gap:0.75rem; align-items:center;">
+          <button type="submit" id="kycSubmitBtn" class="earn-btn" style="padding:0.65rem 1.4rem;">Submit KYC for Verification</button>
+          <span id="kycSubmitFeedback" style="font-size:0.85rem; font-weight:600; display:none;"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Unified Bank Passbook -->
+  <div class="earn-card" id="passbookCard">
+    <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.75rem; margin-bottom:1rem;">
+      <div>
+        <h3 style="margin:0;"><i class="fas fa-book text-emerald-500"></i> Account Statement &amp; Passbook</h3>
+        <p class="earn-muted" style="margin:0.2rem 0 0; font-size:0.82rem;">Real-time unified audit of all earnings, rewards, view credits &amp; withdrawal transactions.</p>
+      </div>
+      <div style="display:flex; gap:0.5rem; align-items:center;">
+        <select id="passbookCurrencyFilter" onchange="renderPassbookRows()" style="padding:0.4rem 0.6rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.8rem;">
+          <option value="ALL">All Currencies</option>
+          <option value="INR">Cash (₹ INR)</option>
+          <option value="VIEWS">View Credits</option>
+        </select>
+        <a href="/api/user/passbook/download" class="earn-btn earn-btn-secondary" style="padding:0.4rem 0.8rem; font-size:0.8rem; text-decoration:none; display:inline-flex; align-items:center; gap:0.35rem;" title="Download complete statement in CSV format">
+          <i class="fas fa-file-csv"></i> Download Statement
+        </a>
+      </div>
+    </div>
+
+    <div style="overflow-x:auto;">
+      <table style="width:100%; border-collapse:collapse; font-size:0.85rem;">
+        <thead>
+          <tr style="text-align:left; border-bottom:1.5px solid #cbd5e1; color:#475569; background:#f8fafc;">
+            <th style="padding:0.6rem 0.5rem;">Date</th>
+            <th style="padding:0.6rem 0.5rem;">Description</th>
+            <th style="padding:0.6rem 0.5rem;">Currency</th>
+            <th style="padding:0.6rem 0.5rem; text-align:right;">Amount</th>
+            <th style="padding:0.6rem 0.5rem; text-align:center;">Status</th>
+            <th style="padding:0.6rem 0.5rem;">Unlocks On / Ref</th>
+          </tr>
+        </thead>
+        <tbody id="passbookTbody">
+          <tr><td colspan="6" style="padding:1.5rem; text-align:center; color:#94a3b8;">Loading passbook statement...</td></tr>
+        </tbody>
+      </table>
     </div>
   </div>
 
@@ -408,6 +535,9 @@
 <script>
   (function () {
     async function initWall() {
+      loadUserKyc();
+      loadPassbook();
+
       // 1. Fetch wallet data
       try {
         const wRes = await fetch('/api/creator/wallet');
@@ -420,11 +550,32 @@
           const pdEl = document.getElementById('wallPending');
           const twEl = document.getElementById('wallTotalWithdrawn');
 
-          if (tvEl) tvEl.textContent = (w.total_views || 0).toLocaleString();
-          if (veEl) veEl.textContent = '₹' + (w.view_earnings || 0).toFixed(2);
+          const viewsCard = document.getElementById('earnCardViews');
+          if (w.is_view_monetized) {
+            if (tvEl) tvEl.textContent = (w.total_views || 0).toLocaleString();
+            if (veEl) veEl.textContent = '₹' + (w.view_earnings || 0).toFixed(2);
+            if (viewsCard) viewsCard.style.display = 'block';
+          } else {
+            if (viewsCard) viewsCard.style.display = 'none';
+            const viewsPanel = document.getElementById('earnPanelViews');
+            if (viewsPanel) viewsPanel.style.display = 'none';
+          }
+
           if (wdEl) wdEl.textContent = '₹' + (w.withdrawable_balance || 0).toFixed(2);
           if (pdEl) pdEl.textContent = '₹' + (w.pending_balance || 0).toFixed(2);
           if (twEl) twEl.textContent = '₹' + (w.total_withdrawn || 0).toFixed(2);
+
+          const rankEl = document.getElementById('rankBadge');
+          if (rankEl) {
+            const commPct = w.creator_commission_pct || 70;
+            const commMsg = w.commission_status || (commPct + '% File Sales Share');
+            rankEl.innerHTML = (w.is_promo ? '🔥 ' : '💼 ') + commMsg;
+            if (w.is_promo) {
+              rankEl.style.background = '#fef3c7';
+              rankEl.style.color = '#92400e';
+              rankEl.style.borderColor = '#f59e0b';
+            }
+          }
 
           const eligWrap = document.getElementById('withdrawEligibleWrap');
           const lockWrap = document.getElementById('withdrawLockedWrap');
@@ -472,19 +623,19 @@
           if (eDrawerViewsWith) eDrawerViewsWith.textContent = '₹' + Math.max(0, (w.withdrawable_balance || 0) - (w.sales_withdrawable || 0)).toFixed(2);
           if (eDrawerNetWith) eDrawerNetWith.textContent = '₹' + (w.withdrawable_balance || 0).toFixed(2);
 
-          // Populate 30-Day Escrow Pending Ledger
+          // Populate T+9 Days Escrow Pending Ledger
           const ePendingList = document.getElementById('earnDrawerPendingList');
           if (ePendingList) {
             const lockedEntries = (wData.ledger || []).filter(l => l.status === 'locked');
             if (lockedEntries.length === 0) {
               ePendingList.innerHTML = `
                 <div style="padding:1rem; text-align:center; color:#64748b; background:#f8fafc; border-radius:10px;">
-                  ✨ All eligible note sales have passed the 30-day holding period and are fully unlocked into your Withdrawable Balance.
+                  ✨ All eligible note sales have passed the T+9 days holding period and are fully unlocked into your Withdrawable Balance.
                 </div>
               `;
             } else {
               ePendingList.innerHTML = lockedEntries.map(entry => {
-                const unlockDate = entry.unlock_at ? new Date(entry.unlock_at).toLocaleDateString('en-IN', {month:'short', day:'numeric', year:'numeric'}) : 'In 30 days';
+                const unlockDate = entry.unlock_at ? new Date(entry.unlock_at).toLocaleDateString('en-IN', {month:'short', day:'numeric', year:'numeric'}) : 'In T+9 days or earlier';
                 return `
                   <div style="display:flex; justify-content:space-between; align-items:center; padding:0.6rem 0.75rem; background:#f8fafc; border-radius:8px; margin-bottom:0.5rem; border:1px solid #e2e8f0;">
                     <div>
@@ -545,28 +696,37 @@
             }
           }
 
-          if (eData.eligible && (eData.paid_notes_count > 0 || eData.total_sales > 0)) {
+          if (eData.paid_notes_count > 0 || eData.total_sales > 0 || eData.eligible) {
             const sc = document.getElementById('noteSalesCard');
-            if (sc) sc.style.display = 'block';
-            const nc = document.getElementById('salesNoteCount');
-            const oc = document.getElementById('salesOrderCount');
-            const ra = document.getElementById('salesRevenueAmt');
-            if (nc) nc.textContent = eData.paid_notes_count || 0;
-            if (oc) oc.textContent = eData.total_sales || 0;
-            if (ra) ra.textContent = '₹' + (eData.total_earnings || 0).toFixed(2);
+            if (sc && (eData.paid_notes_count > 0 || eData.total_sales > 0)) {
+              sc.style.display = 'block';
+              const nc = document.getElementById('salesNoteCount');
+              const oc = document.getElementById('salesOrderCount');
+              const ra = document.getElementById('salesRevenueAmt');
+              if (nc) nc.textContent = eData.paid_notes_count || 0;
+              if (oc) oc.textContent = eData.total_sales || 0;
+              if (ra) ra.textContent = '₹' + (eData.total_earnings || 0).toFixed(2);
+
+              const tb = document.getElementById('monetizedNotesTbody');
+              if (tb && Array.isArray(eData.paid_notes) && eData.paid_notes.length > 0) {
+                tb.innerHTML = eData.paid_notes.map(n => `
+                  <tr style="border-bottom:1px solid #f1f5f9;">
+                    <td style="padding:0.5rem; font-weight:600; color:#1e293b;">${n.title || 'Untitled'}</td>
+                    <td style="padding:0.5rem; font-weight:700; color:#16a34a;">₹${parseFloat(n.price || 0).toFixed(2)}</td>
+                    <td style="padding:0.5rem; color:#64748b;">${n.sales_count || 0}</td>
+                    <td style="padding:0.5rem; font-weight:700; color:#1e293b;">₹${parseFloat(n.earnings || 0).toFixed(2)}</td>
+                  </tr>
+                `).join('');
+              }
+            }
           }
         }
       } catch (err) {}
 
-      // 3. Bind withdrawal request handler with live verification
+      // 3. Bind withdrawal request handler (amount only; payout destination is auto-filled from verified KYC)
       const amtInput = document.getElementById('payoutAmount');
-      const detailInput = document.getElementById('payoutDetailVal');
-      const methodSelect = document.getElementById('payoutMethod');
       const amtStatus = document.getElementById('earnAmtStatus');
-      const upiStatus = document.getElementById('earnUpiStatus');
       const submitBtn = document.getElementById('submitWithdrawBtn');
-
-      const UPI_REGEX = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z0-9]{2,64}$/;
 
       function verifyEarnAmount() {
         if (!amtInput || !amtStatus) return false;
@@ -599,92 +759,37 @@
         return true;
       }
 
-      function verifyEarnUpi() {
-        if (!detailInput || !upiStatus) return false;
-        const method = methodSelect?.value || 'upi';
-        const val = detailInput.value.trim();
-
-        upiStatus.style.display = 'block';
-        if (!val) {
-          upiStatus.style.color = '#dc2626';
-          upiStatus.textContent = method === 'upi' ? '⚠️ UPI ID required' : '⚠️ Bank details required';
-          detailInput.style.borderColor = '#dc2626';
-          return false;
-        }
-        if (method === 'upi') {
-          if (!UPI_REGEX.test(val)) {
-            upiStatus.style.color = '#dc2626';
-            upiStatus.textContent = '⚠️ Invalid UPI format (e.g. name@okhdfcbank)';
-            detailInput.style.borderColor = '#dc2626';
-            return false;
-          }
-          upiStatus.style.color = '#16a34a';
-          upiStatus.textContent = '✓ Valid UPI format';
-          detailInput.style.borderColor = '#16a34a';
-          return true;
-        } else {
-          if (val.length < 8) {
-            upiStatus.style.color = '#dc2626';
-            upiStatus.textContent = '⚠️ Enter full account and IFSC';
-            detailInput.style.borderColor = '#dc2626';
-            return false;
-          }
-          upiStatus.style.color = '#16a34a';
-          upiStatus.textContent = '✓ Bank details entered';
-          detailInput.style.borderColor = '#16a34a';
-          return true;
-        }
-      }
-
       if (amtInput) amtInput.addEventListener('input', verifyEarnAmount);
-      if (detailInput) detailInput.addEventListener('input', verifyEarnUpi);
-      if (methodSelect) {
-        methodSelect.addEventListener('change', () => {
-          if (methodSelect.value === 'upi') {
-            detailInput.placeholder = 'e.g. name@okhdfcbank';
-          } else {
-            detailInput.placeholder = 'e.g. A/C: 1234567890, IFSC: HDFC0000123';
-          }
-          verifyEarnUpi();
-        });
-      }
 
       if (submitBtn) {
         submitBtn.addEventListener('click', async () => {
           const msg = document.getElementById('withdrawMsg');
           const isAmtValid = verifyEarnAmount();
-          const isUpiValid = verifyEarnUpi();
 
-          if (!isAmtValid || !isUpiValid) {
+          if (!isAmtValid) {
             if (msg) {
               msg.style.display = 'block';
               msg.style.color = '#dc2626';
-              msg.textContent = 'Please fix the highlighted errors before submitting.';
+              msg.textContent = 'Please enter a valid withdrawal amount (min ₹10).';
             }
             return;
           }
 
           const amt = parseFloat(amtInput.value);
-          const method = methodSelect.value;
-          const detailVal = detailInput.value.trim();
 
           submitBtn.disabled = true;
-          submitBtn.textContent = 'Verifying & Submitting...';
+          submitBtn.textContent = 'Submitting Request...';
           try {
             const res = await fetch('/api/creator/withdraw', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                amount: amt,
-                payout_method: method,
-                payout_details: method === 'upi' ? { upi_id: detailVal } : { account_info: detailVal }
-              })
+              body: JSON.stringify({ amount: amt })
             });
             const data = await res.json();
             if (msg) msg.style.display = 'block';
             if (data.success) {
               msg.style.color = '#16a34a';
-              msg.textContent = '🎉 Payout request submitted successfully! Admin will process within 24-48 hours.';
+              msg.textContent = '🎉 Payout request submitted! Funds will be credited to your verified KYC account within 7 days.';
               setTimeout(initWall, 1500);
             } else {
               msg.style.color = '#dc2626';
@@ -698,7 +803,7 @@
             }
           } finally {
             submitBtn.disabled = false;
-            submitBtn.textContent = 'Submit Request';
+            submitBtn.textContent = 'Submit Withdrawal Request';
           }
         });
       }
@@ -746,6 +851,232 @@
         if (chevrons[cat]) chevrons[cat].textContent = '▲';
         drawer.style.display = 'block';
         drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      };
+
+      // ── KYC Client Logic ──
+      window.toggleKycMethodFields = function() {
+        const m = document.getElementById('kycInputMethod')?.value;
+        const upi = document.getElementById('kycUpiFields');
+        const bank = document.getElementById('kycBankFields');
+        if (m === 'bank') {
+          if (upi) upi.style.display = 'none';
+          if (bank) bank.style.display = 'grid';
+        } else {
+          if (upi) upi.style.display = 'block';
+          if (bank) bank.style.display = 'none';
+        }
+      };
+
+      async function loadUserKyc() {
+        try {
+          const res = await fetch('/api/user/kyc/status');
+          const data = await res.json();
+          const badge = document.getElementById('kycStatusBadge');
+          const verifiedView = document.getElementById('kycVerifiedView');
+          const formWrap = document.getElementById('kycFormWrap');
+
+          if (data.success && data.kyc) {
+            const k = data.kyc;
+            const destTextEl = document.getElementById('earnWithdrawKycDestText');
+            const destWrap = document.getElementById('earnWithdrawKycDestInfo');
+            const submitBtnEl = document.getElementById('submitWithdrawBtn');
+
+            if (k.is_verified) {
+              badge.textContent = '✓ Verified';
+              badge.style.background = '#dcfce7';
+              badge.style.color = '#15803d';
+              badge.style.borderColor = '#86efac';
+              verifiedView.style.display = 'block';
+              formWrap.style.display = 'none';
+
+              document.getElementById('kycVerifiedName').textContent = k.full_name || '-';
+              document.getElementById('kycVerifiedPan').textContent = k.pan_number || '-';
+              document.getElementById('kycVerifiedMethod').textContent = k.preferred_method || '-';
+              document.getElementById('kycVerifiedDest').textContent = k.preferred_method === 'bank'
+                ? `${k.bank_name || 'Bank'} (${k.account_number || ''})`
+                : (k.upi_id || '-');
+
+              const destSummary = k.preferred_method === 'bank'
+                ? `${k.full_name} • ${k.bank_name || 'Bank'} (A/C: ****${(k.account_number || '').slice(-4)}, IFSC: ${k.ifsc_code || ''}) • PAN: ${k.pan_number || ''}`
+                : `${k.full_name} • UPI: ${k.upi_id || ''} • PAN: ${k.pan_number || ''}`;
+              if (destTextEl) {
+                destTextEl.textContent = destSummary;
+                destTextEl.style.color = '#15803d';
+              }
+              if (destWrap) {
+                destWrap.style.background = '#f0fdf4';
+                destWrap.style.borderColor = '#bbf7d0';
+              }
+              if (submitBtnEl) submitBtnEl.disabled = false;
+              return;
+            } else if (k.rejection_reason) {
+              badge.textContent = 'Action Required';
+              badge.style.background = '#fee2e2';
+              badge.style.color = '#b91c1c';
+              badge.style.borderColor = '#fca5a5';
+              verifiedView.style.display = 'none';
+              formWrap.style.display = 'block';
+              const alertEl = document.getElementById('kycRejectionAlert');
+              if (alertEl) alertEl.style.display = 'block';
+              document.getElementById('kycRejectionReason').textContent = k.rejection_reason;
+            } else {
+              badge.textContent = '⏳ Under Review';
+              badge.style.background = '#fef3c7';
+              badge.style.color = '#b45309';
+              badge.style.borderColor = '#fde68a';
+              verifiedView.style.display = 'none';
+              formWrap.style.display = 'block';
+            }
+
+            if (destTextEl) {
+              destTextEl.textContent = '⚠️ KYC verification required before requesting payout. Submit form below.';
+              destTextEl.style.color = '#dc2626';
+            }
+            if (destWrap) {
+              destWrap.style.background = '#fffbeb';
+              destWrap.style.borderColor = '#fde68a';
+            }
+            if (submitBtnEl) submitBtnEl.disabled = true;
+
+            if (document.getElementById('kycInputName')) document.getElementById('kycInputName').value = k.full_name || '';
+            if (document.getElementById('kycInputPan')) document.getElementById('kycInputPan').value = k.pan_number || '';
+            if (document.getElementById('kycInputMethod')) {
+              document.getElementById('kycInputMethod').value = k.preferred_method || 'upi';
+              toggleKycMethodFields();
+            }
+            if (document.getElementById('kycInputUpi')) document.getElementById('kycInputUpi').value = k.upi_id || '';
+            if (document.getElementById('kycInputBankName')) document.getElementById('kycInputBankName').value = k.bank_name || '';
+          } else {
+            badge.textContent = 'Not Submitted';
+            badge.style.background = '#f1f5f9';
+            badge.style.color = '#475569';
+            verifiedView.style.display = 'none';
+            formWrap.style.display = 'block';
+
+            const destTextEl = document.getElementById('earnWithdrawKycDestText');
+            if (destTextEl) {
+              destTextEl.textContent = '⚠️ KYC verification required before requesting payout. Submit form below.';
+              destTextEl.style.color = '#dc2626';
+            }
+            const destWrap = document.getElementById('earnWithdrawKycDestInfo');
+            if (destWrap) {
+              destWrap.style.background = '#fffbeb';
+              destWrap.style.borderColor = '#fde68a';
+            }
+            const submitBtnEl = document.getElementById('submitWithdrawBtn');
+            if (submitBtnEl) submitBtnEl.disabled = true;
+          }
+        } catch (e) {
+          console.warn('KYC load error:', e);
+        }
+      }
+
+      window.handleUserKycSubmit = async function(e) {
+        e.preventDefault();
+        const btn = document.getElementById('kycSubmitBtn');
+        const fb = document.getElementById('kycSubmitFeedback');
+        const payload = {
+          full_name: document.getElementById('kycInputName')?.value?.trim(),
+          pan_number: document.getElementById('kycInputPan')?.value?.trim()?.toUpperCase(),
+          preferred_method: document.getElementById('kycInputMethod')?.value,
+          upi_id: document.getElementById('kycInputUpi')?.value?.trim(),
+          account_number: document.getElementById('kycInputBankAcc')?.value?.trim(),
+          ifsc_code: document.getElementById('kycInputBankIfsc')?.value?.trim()?.toUpperCase(),
+          bank_name: document.getElementById('kycInputBankName')?.value?.trim()
+        };
+
+        btn.disabled = true;
+        btn.textContent = 'Submitting...';
+        fb.style.display = 'none';
+
+        try {
+          const res = await fetch('/api/user/kyc/submit', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          });
+          const data = await res.json();
+          fb.style.display = 'inline-block';
+          if (data.success) {
+            fb.style.color = '#16a34a';
+            fb.textContent = '✓ ' + (data.message || 'KYC submitted successfully!');
+            setTimeout(loadUserKyc, 1200);
+          } else {
+            fb.style.color = '#dc2626';
+            fb.textContent = '⚠️ ' + (data.error || 'Submission failed');
+          }
+        } catch (err) {
+          fb.style.display = 'inline-block';
+          fb.style.color = '#dc2626';
+          fb.textContent = 'Network error submitting KYC.';
+        } finally {
+          btn.disabled = false;
+          btn.textContent = 'Submit KYC for Verification';
+        }
+      };
+
+      // ── Passbook Client Logic ──
+      let _passbookEntries = [];
+
+      async function loadPassbook() {
+        const tbody = document.getElementById('passbookTbody');
+        try {
+          const res = await fetch('/api/user/passbook?page=1&limit=50');
+          const data = await res.json();
+          if (data.success) {
+            _passbookEntries = data.entries || [];
+            renderPassbookRows();
+          } else {
+            tbody.innerHTML = '<tr><td colspan="6" style="padding:1.5rem; text-align:center; color:#ef4444;">Failed to load passbook.</td></tr>';
+          }
+        } catch (e) {
+          tbody.innerHTML = '<tr><td colspan="6" style="padding:1.5rem; text-align:center; color:#ef4444;">Network error loading passbook.</td></tr>';
+        }
+      }
+
+      window.renderPassbookRows = function() {
+        const tbody = document.getElementById('passbookTbody');
+        const filter = document.getElementById('passbookCurrencyFilter')?.value || 'ALL';
+        let list = _passbookEntries;
+        if (filter !== 'ALL') {
+          list = list.filter(e => e.currency === filter);
+        }
+
+        if (list.length === 0) {
+          tbody.innerHTML = '<tr><td colspan="6" style="padding:1.5rem; text-align:center; color:#94a3b8;">No transactions found in this statement.</td></tr>';
+          return;
+        }
+
+        tbody.innerHTML = list.map(e => {
+          const isCredit = e.type === 'credit';
+          const isViews = e.currency === 'VIEWS';
+          const amtPrefix = isCredit ? '+' : '';
+          const amtColor = isCredit ? '#16a34a' : '#dc2626';
+          const amtDisplay = isViews ? `${amtPrefix}${e.amount} Views` : `${amtPrefix}₹${Math.abs(e.amount).toFixed(2)}`;
+
+          let badgeStyle = 'background:#f1f5f9; color:#475569;';
+          if (e.status === 'completed' || e.status === 'paid' || e.status === 'available') {
+            badgeStyle = 'background:#dcfce7; color:#15803d;';
+          } else if (e.status === 'locked' || e.status === 'pending') {
+            badgeStyle = 'background:#fef3c7; color:#b45309;';
+          }
+
+          const dateStr = e.date ? new Date(e.date).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '-';
+          const refOrUnlock = e.unlocks_on
+            ? `<span style="font-size:0.75rem; color:#b45309;">Unlocks ${new Date(e.unlocks_on).toLocaleDateString('en-IN', { day:'2-digit', month:'short' })}</span>`
+            : `<code style="font-size:0.75rem; color:#64748b;">${e.ref_id || '-'}</code>`;
+
+          return `
+            <tr style="border-bottom:1px solid #f1f5f9;">
+              <td style="padding:0.6rem 0.5rem; color:#64748b; font-size:0.8rem; white-space:nowrap;">${dateStr}</td>
+              <td style="padding:0.6rem 0.5rem; font-weight:600; color:#1e293b;">${e.description}</td>
+              <td style="padding:0.6rem 0.5rem;"><span style="font-size:0.72rem; font-weight:700; padding:2px 6px; border-radius:4px; ${isViews ? 'background:#eff6ff; color:#2563eb;' : 'background:#f0fdf4; color:#16a34a;'}">${e.currency}</span></td>
+              <td style="padding:0.6rem 0.5rem; text-align:right; font-weight:700; color:${amtColor};">${amtDisplay}</td>
+              <td style="padding:0.6rem 0.5rem; text-align:center;"><span style="display:inline-block; font-size:0.75rem; font-weight:700; padding:2px 8px; border-radius:999px; text-transform:capitalize; ${badgeStyle}">${e.status || 'completed'}</span></td>
+              <td style="padding:0.6rem 0.5rem;">${refOrUnlock}</td>
+            </tr>
+          `;
+        }).join('');
       };
     }
 

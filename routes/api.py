@@ -344,6 +344,30 @@ def authorize():
     except Exception as sess_err:
         logging.warning(f"[AUTH] Logging login session failed: {sess_err}")
 
+    # Set initial paper view credits based on strict domain policy:
+    # @ghrce.raisoni.net / approved college -> 20 views
+    # @gmail.com -> 5 views
+    # Temporary / disposable domains -> 0 views (must pay directly)
+    try:
+        from methods.domain_tier_service import classify_email
+        tier_info = classify_email(user_data['email'])
+        init_views = tier_info['starting_views']
+        p_chk = client.table('profiles').select('id, paper_quota_remaining').eq('id', user_data['id']).limit(1).execute()
+        if p_chk.data:
+            if p_chk.data[0].get('paper_quota_remaining') is None:
+                client.table('profiles').update({'paper_quota_remaining': init_views}).eq('id', user_data['id']).execute()
+                session['paper_quota'] = {'credits': init_views, 'total_views': 0}
+        else:
+            client.table('profiles').insert({
+                'id': user_data['id'],
+                'email': user_data['email'],
+                'full_name': user_data['name'],
+                'paper_quota_remaining': init_views
+            }).execute()
+            session['paper_quota'] = {'credits': init_views, 'total_views': 0}
+    except Exception as q_err:
+        logging.warning(f"[AUTH] Initial quota setup note: {q_err}")
+
     # Process referral reward if referral code was provided at authorization
     payload = request.get_json(silent=True) or {}
     ref_code = (payload.get('ref') or '').strip()
@@ -721,12 +745,20 @@ def api_buy_credits():
             
         data = request.get_json(silent=True) or {}
         pack_size = int(data.get('pack', 0) or 0)
-        
-        valid_packs = {50: 100, 100: 200, 500: 1000}
+
+        from methods.domain_tier_service import get_tiered_credit_packs, classify_email
+        user_email = user_info.get('email', '')
+        prof = session.get('profile', {})
+        created_at = prof.get('created_at') or user_info.get('created_at')
+        valid_packs = get_tiered_credit_packs(user_email, created_at=created_at)
+        tier_info = classify_email(user_email, created_at=created_at)
+
         if pack_size not in valid_packs:
-            return jsonify({'success': False, 'message': 'Invalid pack. Choose 50, 100, or 500 views.'}), 400
-            
-        price_inr = float(valid_packs[pack_size])
+            return jsonify({'success': False, 'message': 'Invalid pack. Choose 10, 65, 160, or 500 views.'}), 400
+
+        pack_info = valid_packs[pack_size]
+        price_inr = float(pack_info['price'])
+        granted_views = int(pack_info['views'])
         order_id = f"AH{int(time.time())}{secrets.token_hex(2).upper()}"
 
         # Record initiated transaction in database
@@ -735,22 +767,51 @@ def api_buy_credits():
             'amount': price_inr,
             'status': 'initiated',
             'utr': order_id,
-            'admin_notes': f"purpose=Credits-{pack_size};pack={pack_size};views={pack_size}"
+            'admin_notes': f"purpose=Credits-{granted_views};pack={granted_views};views={granted_views};tier={tier_info['tier']};promo={tier_info.get('is_promo', False)}"
         })
 
-        payment_url = f"/payment?amount={price_inr:.2f}&purpose=Credits-{pack_size}-Views&order_id={order_id}"
+        payment_url = f"/payment?amount={price_inr:.2f}&purpose=Credits-{granted_views}-Views&order_id={order_id}"
 
         return jsonify({
             'success': True,
-            'pack': pack_size,
+            'pack': granted_views,
             'price_inr': price_inr,
             'order_id': order_id,
+            'tier': tier_info['tier'],
+            'discount_pct': tier_info['discount_pct'],
             'payment_url': payment_url,
             'message': 'Payment initiated. Redirecting to payment gateway…'
         }), 200
     except Exception as e:
         logging.error(f"[BUY-CREDITS] Error: {e}", exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@api_bp.route('/api/credit-packs', methods=['GET'])
+def api_get_credit_packs():
+    """Returns tailored credit pack pricing and discount rate based on user's email domain."""
+    user = session.get('user', {})
+    email = user.get('email', '')
+    prof = session.get('profile', {})
+    created_at = prof.get('created_at') or user.get('created_at')
+    from methods.domain_tier_service import get_tiered_credit_packs, classify_email
+    tier_info = classify_email(email, created_at=created_at)
+    packs = get_tiered_credit_packs(email, created_at=created_at)
+    # Deduplicate aliases
+    clean_packs = [
+        {'pack': 10, **packs[10]},
+        {'pack': 65, **packs[65]},
+        {'pack': 160, **packs[160]},
+        {'pack': 500, **packs[500]}
+    ]
+    return jsonify({
+        'success': True,
+        'tier': tier_info['tier'],
+        'tier_label': tier_info['label'],
+        'starting_views': tier_info['starting_views'],
+        'discount_pct': tier_info['discount_pct'],
+        'packs': clean_packs
+    }), 200
 
 
 @api_bp.route('/api/credit-history', methods=['GET'])
@@ -761,7 +822,7 @@ def api_credit_history():
         from data.pricing import _get_quota
         uid = session['user'].get('uid')
         quota_info = _get_quota()
-        remaining = quota_info.get('credits', 19)
+        remaining = quota_info.get('credits', 0)
         txs = []
         client = init_supabase()
         if client:

@@ -73,10 +73,15 @@ def payment_status_api():
             pack_size = int(float(amount) / 2)
         if pack_size > 0:
             try:
-                prof_res = client.table('profiles').select('paper_quota_remaining').eq('id', user_id).execute()
-                curr_q = 19
+                prof_res = client.table('profiles').select('paper_quota_remaining, email').eq('id', user_id).execute()
+                curr_q = 0
                 if prof_res.data:
-                    curr_q = prof_res.data[0].get('paper_quota_remaining') or 19
+                    val = prof_res.data[0].get('paper_quota_remaining')
+                    if val is not None:
+                        curr_q = int(val)
+                    else:
+                        from methods.domain_tier_service import classify_email
+                        curr_q = classify_email(prof_res.data[0].get('email', ''))['starting_views']
                 new_q = curr_q + pack_size
                 client.table('profiles').update({'paper_quota_remaining': new_q}).eq('id', user_id).execute()
                 if 'paper_quota' in session and isinstance(session['paper_quota'], dict):
@@ -97,11 +102,21 @@ def payment_status_api():
             except Exception as cred_err:
                 logging.warning(f"[PAYMENT_STATUS] Could not add credits: {cred_err}")
 
-    # Instant access unlock in user session
     if doc_id:
         try:
-            from methods.wallet_service import credit_creator_for_purchase
+            from methods.wallet_service import credit_creator_for_purchase, get_document_creator
             credit_creator_for_purchase(order_id, doc_id, amount)
+            creator_id = get_document_creator(doc_id)
+            user_id = session.get('user', {}).get('uid')
+            if creator_id and user_id and str(creator_id) != str(user_id):
+                from methods.creator_crm_service import record_creator_customer_purchase
+                record_creator_customer_purchase(
+                    creator_id=creator_id,
+                    customer_id=user_id,
+                    amount=amount,
+                    customer_name=session.get('user', {}).get('name'),
+                    customer_email=session.get('user', {}).get('email')
+                )
         except Exception:
             pass
 
@@ -123,6 +138,7 @@ def phonepe_initiate_api():
 @payments_bp.route('/api/create-order', methods=['POST'])
 @payments_bp.route('/api/payment/initiate', methods=['POST'])
 @payments_bp.route('/api/payment/razorpay/initiate', methods=['POST'])
+@auth_required
 def initiate_payment():
     """Initiates a Razorpay standard checkout order."""
     from methods.razorpay_service import create_order
@@ -134,6 +150,29 @@ def initiate_payment():
     pack_size = int(data.get('pack', 0) or 0)
     user = session.get('user', {})
     user_id = user.get('uid') or user.get('id') or ''
+    user_email = (user.get('email') or '').strip()
+    user_name = (user.get('name') or user.get('display_name') or '').strip()
+    user_phone = str(data.get('phone') or data.get('contact') or '').strip()
+
+    client = init_supabase()
+    if user_id and client:
+        try:
+            if user_phone:
+                client.table('profiles').update({'phone_number': user_phone}).eq('id', user_id).execute()
+            else:
+                p_res = client.table('profiles').select('phone_number, full_name, email').eq('id', user_id).limit(1).execute()
+                if p_res.data:
+                    prof = p_res.data[0]
+                    user_phone = prof.get('phone_number') or ''
+                    if not user_email:
+                        user_email = (prof.get('email') or '').strip()
+                    if not user_name:
+                        user_name = (prof.get('full_name') or '').strip()
+        except Exception as p_err:
+            logging.warning(f"[PAYMENT] Profile sync error: {p_err}")
+
+    if not user_phone:
+        user_phone = (user.get('user_metadata') or {}).get('phone') or ''
 
     price = 0.0
     admin_notes_parts = []
@@ -228,16 +267,20 @@ def initiate_payment():
         'admin_notes': ';'.join(admin_notes_parts)
     })
 
+    invoice_id = f"INV-{rzp_order_id.replace('order_', '')}" if rzp_order_id.startswith('order_') else f"INV-{rzp_order_id}"
     return jsonify({
         'success': True,
+        'app_name': os.getenv('APP_NAME', 'AbhiHub'),
+        'app_id': os.getenv('APP_ID', 'com.abhihub.app'),
+        'invoice_id': invoice_id,
         'key_id': os.getenv('RAZORPAY_KEY_ID', ''),
         'order_id': rzp_order_id,
         'amount': order['amount'],
         'currency': order.get('currency', currency),
         'prefill': {
-            'name': user.get('display_name') or user.get('name', ''),
-            'email': user.get('email', ''),
-            'contact': user.get('phone', '')
+            'name': user_name,
+            'email': user_email,
+            'contact': user_phone
         }
     })
 
@@ -388,20 +431,57 @@ def api_creator_earnings():
     """Fetch earnings summary and monetized documents for eligible creators."""
     user_id = session.get('user', {}).get('uid')
     from methods.scoring_engine import get_feature_gate
-    from methods.wallet_service import get_creator_views_and_earnings, VIEW_EARNING_RATE_INR
+    from methods.wallet_service import (
+        get_creator_views_and_earnings,
+        VIEW_EARNING_RATE_INR,
+        is_creator_verified,
+        get_creator_commission_pct,
+    )
+    from data.pricing import extract_document_pricing
     gate = get_feature_gate(user_id)
-    is_eligible = (gate.get('level') or '').lower() in ['contributor', 'power_contributor', 'community_leader']
-    total_views, view_earnings = get_creator_views_and_earnings(user_id)
+    is_rank_eligible = (gate.get('level') or '').lower() in ['contributor', 'power_contributor', 'community_leader']
+    is_verified = is_creator_verified(user_id)
+    total_views, raw_view_earnings = get_creator_views_and_earnings(user_id)
+    view_earnings = raw_view_earnings if is_verified else 0.0
+    view_rate = VIEW_EARNING_RATE_INR if is_verified else 0.0
+    comm_info = get_creator_commission_pct(user_id)
+    creator_share_ratio = comm_info['creator_pct'] / 100.0
+
+    paid_docs = []
+    try:
+        # Check documents uploaded by creator
+        docs_res = supabase.table('documents')\
+            .select('id, title, description, is_paid, price, uploader_id, created_at')\
+            .eq('uploader_id', str(user_id))\
+            .execute()
+        for d in (docs_res.data or []):
+            p = extract_document_pricing(d)
+            if p.get('is_paid') and float(p.get('price', 0) or 0) > 0:
+                paid_docs.append({
+                    'id': d['id'],
+                    'title': d.get('title'),
+                    'price': float(p.get('price', 0)),
+                    'coupon_code': p.get('coupon_code', '')
+                })
+    except Exception as e:
+        logging.error(f"[CREATOR_EARNINGS] Error loading documents: {e}")
+
+    is_eligible = is_rank_eligible or (len(paid_docs) > 0)
 
     if not is_eligible:
         return jsonify({
             'success': True,
             'eligible': False,
             'level': gate.get('level'),
-            'message': 'Reach Contributor rank to sell paid notes. Upload view earnings are active.',
+            'message': 'Reach Contributor rank to sell paid notes. Upload view earnings are active for verified creators.',
+            'is_verified': is_verified,
+            'is_view_monetized': is_verified,
             'total_views': total_views,
-            'view_rate': VIEW_EARNING_RATE_INR,
+            'view_rate': view_rate,
             'view_earnings': view_earnings,
+            'creator_commission_pct': comm_info['creator_pct'],
+            'is_promo': comm_info.get('is_promo', False),
+            'commission_status': comm_info.get('reason', ''),
             'paid_notes_count': 0,
             'total_sales': 0,
             'total_earnings': 0.0,
@@ -409,59 +489,52 @@ def api_creator_earnings():
             'paid_notes': []
         })
 
-    try:
-        docs_res = supabase.table('documents').select('id, title, description, created_at').eq('uploader_id', user_id).execute()
-        paid_docs = []
-        for d in (docs_res.data or []):
-            desc = d.get('description') or ''
-            if desc.startswith('{'):
-                try:
-                    p = json.loads(desc).get('pricing', {})
-                    if p.get('is_paid'):
-                        paid_docs.append({
-                            'id': d['id'],
-                            'title': d.get('title'),
-                            'price': p.get('price', 0),
-                            'coupon_code': p.get('coupon_code', '')
-                        })
-                except Exception:
-                    pass
-
-        total_sales = 0
-        total_earnings = 0.0
-        for d in paid_docs:
-            try:
+    total_sales = 0
+    total_earnings = 0.0
+    for d in paid_docs:
+        try:
+            # Check sales in ledger first, fallback to credit_transactions
+            ledger_res = supabase.table('wallet_ledger').select('amount, status').eq('doc_id', str(d['id'])).execute()
+            if ledger_res.data:
+                sales_count = len(ledger_res.data)
+                earnings = sum(float(l.get('amount') or 0.0) for l in ledger_res.data)
+                gross_amt = round(earnings / creator_share_ratio, 2) if creator_share_ratio > 0 else earnings
+            else:
                 tx_res = supabase.table('credit_transactions').select('amount, status').ilike('admin_notes', f"%{d['id']}%").execute()
                 sales_count = len(tx_res.data or [])
                 gross_amt = sum(float(t.get('amount', 0)) for t in (tx_res.data or []))
-                earnings = round(gross_amt * 0.80, 2)
-                d['sales_count'] = sales_count
-                d['gross_amount'] = round(gross_amt, 2)
-                d['earnings'] = earnings
-                total_sales += sales_count
-                total_earnings += earnings
-            except Exception:
-                d['sales_count'] = 0
-                d['gross_amount'] = 0
-                d['earnings'] = 0
+                earnings = round(gross_amt * creator_share_ratio, 2)
 
-        combined_earnings = round(total_earnings + view_earnings, 2)
+            d['sales_count'] = sales_count
+            d['gross_amount'] = round(gross_amt, 2)
+            d['earnings'] = round(earnings, 2)
+            total_sales += sales_count
+            total_earnings += earnings
+        except Exception:
+            d['sales_count'] = 0
+            d['gross_amount'] = 0
+            d['earnings'] = 0
 
-        return jsonify({
-            'success': True,
-            'eligible': True,
-            'level': gate.get('level'),
-            'paid_notes_count': len(paid_docs),
-            'total_sales': total_sales,
-            'total_earnings': round(total_earnings, 2),
-            'total_views': total_views,
-            'view_rate': VIEW_EARNING_RATE_INR,
-            'view_earnings': view_earnings,
-            'combined_earnings': combined_earnings,
-            'paid_notes': paid_docs
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+    combined_earnings = round(total_earnings + view_earnings, 2)
+
+    return jsonify({
+        'success': True,
+        'eligible': is_eligible,
+        'level': gate.get('level'),
+        'is_verified': is_verified,
+        'is_view_monetized': is_verified,
+        'paid_notes_count': len(paid_docs),
+        'total_sales': total_sales,
+        'total_earnings': round(total_earnings, 2),
+        'total_views': total_views,
+        'view_rate': view_rate,
+        'view_earnings': view_earnings,
+        'creator_commission_pct': comm_info['creator_pct'],
+        'is_promo': comm_info.get('is_promo', False),
+        'commission_status': comm_info.get('reason', ''),
+        'combined_earnings': combined_earnings,
+        'paid_notes': paid_docs
+    })
 
 
 @payments_bp.route('/api/creator/wallet', methods=['GET'])
@@ -477,12 +550,29 @@ def api_creator_wallet():
 @payments_bp.route('/api/creator/withdraw', methods=['POST'])
 @auth_required
 def api_creator_withdraw():
-    """Request a payout if withdrawable balance >= 100."""
+    """Request a payout using KYC-verified payment details."""
     user_id = session.get('user', {}).get('uid')
     data = request.get_json(silent=True) or {}
     amount = data.get('amount')
-    payout_method = str(data.get('payout_method', '')).lower().strip()
-    payout_details = data.get('payout_details', {})
+
+    # Automatically fetch verified payment details from KYC instead of asking user
+    from methods.payment_engine import engine
+    kyc = engine.get_kyc(user_id)
+    if not kyc or not kyc.get('is_verified'):
+        return jsonify({
+            'success': False,
+            'error': 'KYC verification required before requesting a payout. Please submit and verify your KYC details first.'
+        }), 400
+
+    payout_method = kyc.get('preferred_method', 'upi')
+    payout_details = {
+        'upi_id': kyc.get('upi_id'),
+        'account_number': kyc.get('account_number'),
+        'ifsc_code': kyc.get('ifsc_code'),
+        'account_holder_name': kyc.get('full_name'),
+        'bank_name': kyc.get('bank_name'),
+        'pan_number': kyc.get('pan_number'),
+    }
 
     from methods.wallet_service import request_withdrawal
     ok, result = request_withdrawal(user_id, amount, payout_method, payout_details)
@@ -562,3 +652,73 @@ def apply_document_coupon(doc_id):
         })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ─── KYC & Passbook Endpoints ──────────────────────────────────────────────────
+
+@payments_bp.route('/api/user/kyc/submit', methods=['POST'])
+@auth_required
+def submit_user_kyc():
+    from methods.payment_engine import engine
+    user_id = session.get('user', {}).get('uid')
+    data = request.get_json(silent=True) or {}
+    ok, msg = engine.submit_kyc(user_id, data)
+    return jsonify({'success': ok, 'message' if ok else 'error': msg}), (200 if ok else 400)
+
+
+@payments_bp.route('/api/user/kyc/status', methods=['GET'])
+@auth_required
+def get_user_kyc_status():
+    from methods.payment_engine import engine
+    user_id = session.get('user', {}).get('uid')
+    kyc = engine.get_kyc(user_id)
+    return jsonify({'success': True, 'kyc': kyc})
+
+
+@payments_bp.route('/api/user/passbook', methods=['GET'])
+@auth_required
+def get_user_passbook():
+    from methods.payment_engine import engine
+    user_id = session.get('user', {}).get('uid')
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+        limit = min(100, max(1, int(request.args.get('limit', 20))))
+    except (ValueError, TypeError):
+        page, limit = 1, 20
+    res = engine.get_passbook(user_id, page=page, limit=limit)
+    return jsonify(res), (200 if res.get('success') else 500)
+
+
+@payments_bp.route('/api/user/passbook/download', methods=['GET'])
+@auth_required
+def download_user_passbook_csv():
+    import csv
+    import io
+    from flask import Response
+    from methods.payment_engine import engine
+    user_id = session.get('user', {}).get('uid')
+    res = engine.get_passbook(user_id, page=1, limit=500)
+    if not res.get('success'):
+        return jsonify(res), 500
+
+    output = io.StringIO()
+    writer = csv.writer(output)
+    writer.writerow(['Date', 'Description', 'Type', 'Currency', 'Amount', 'Status', 'Unlocks On', 'Reference ID', 'Balance After'])
+    for e in res.get('entries', []):
+        writer.writerow([
+            e.get('date', ''),
+            e.get('description', ''),
+            e.get('type', ''),
+            e.get('currency', ''),
+            e.get('amount', ''),
+            e.get('status', ''),
+            e.get('unlocks_on', '') or '',
+            e.get('ref_id', '') or '',
+            e.get('balance_after', '') if e.get('balance_after') is not None else ''
+        ])
+    output.seek(0)
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={'Content-Disposition': f'attachment; filename=passbook_{user_id[:8]}.csv'}
+    )

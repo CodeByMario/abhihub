@@ -1490,6 +1490,60 @@ def get_related_documents(college_id: str = None, subject_id: str = None,
         log.error(f'get_related_documents error: {e}')
         return []
 
+def search_documents_rpc(
+    query: str,
+    limit: int = 20,
+    offset: int = 0,
+    college_id: str = None,
+    department_id: str = None,
+    subject_id: str = None,
+    program: str = None,
+    category: str = None,
+    exam_type: str = None,
+    year: int = None,
+    status: List[str] = None
+) -> List[Dict]:
+    """Execute tiered SQL document search via abhihub.search_documents RPC."""
+    client = init_supabase()
+    if not client or not query or len(query.strip()) < 2:
+        return []
+    try:
+        payload = {
+            'p_query': query.strip(),
+            'p_limit': limit,
+            'p_offset': offset,
+            'p_college': college_id if validate_uuid(college_id) else None,
+            'p_department': department_id if validate_uuid(department_id) else None,
+            'p_subject': subject_id if validate_uuid(subject_id) else None,
+            'p_program': program,
+            'p_category': category,
+            'p_exam_type': exam_type,
+            'p_year': int(year) if year and str(year).isdigit() else None,
+            'p_status': status or ['approved']
+        }
+        res = client.rpc('search_documents', payload).execute()
+        return res.data if res.data else []
+    except Exception as e:
+        log.error(f'search_documents_rpc error: {e}')
+        return []
+
+def suggest_documents_rpc(query: str, limit: int = 8, status: List[str] = None) -> List[Dict]:
+    """Get fast prefix autocomplete suggestions via abhihub.suggest_documents RPC."""
+    client = init_supabase()
+    if not client or not query or len(query.strip()) < 2:
+        return []
+    try:
+        payload = {
+            'p_query': query.strip(),
+            'p_limit': limit,
+            'p_status': status or ['approved']
+        }
+        res = client.rpc('suggest_documents', payload).execute()
+        return res.data if res.data else []
+    except Exception as e:
+        log.error(f'suggest_documents_rpc error: {e}')
+        return []
+
 def search_file_records(search_query='', document_type=None, college_id=None, branch_id=None, year=None, program=None, limit=50) -> List[Dict]:
     client = init_supabase()
     if not client: return []

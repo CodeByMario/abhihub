@@ -1,18 +1,872 @@
-{% set seo_description = "Welcome to AbhiHub! Download free engineering previous year question papers (PYQs), study notes, practicals, and exam resources for top colleges across India." %}
+{% set seo_description = "AbhiHub Engineering Command Deck — Access university question papers (PYQs), topper notes, lab manuals, and peer study exchange for engineering colleges." %}
 {% extends 'p_struct.html' %}
+
 {% block page_head %}
 <meta name="keywords" content="{{ seo_keywords }}">
 <link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#ffffff">
+<meta name="theme-color" content="#0b1329">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='premium/icons/icon-192x192.png') }}">
-
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script src="{{ url_for('static', filename='premium/js/interactions.js') }}"></script>
 {% endblock %}
+
 {% block page_styles %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/pipeline.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/dashboard-home.css') }}">
+
+<style>
+  :root {
+    --deck-navy: #0b1329;
+    --deck-navy-light: #152244;
+    --deck-cobalt: #0284c7;
+    --deck-cobalt-light: #e0f2fe;
+    --deck-cobalt-text: #0369a1;
+    --deck-emerald: #059669;
+    --deck-emerald-light: #d1fae5;
+    --deck-emerald-text: #047857;
+    --deck-violet: #6366f1;
+    --deck-violet-light: #ede9fe;
+    --deck-violet-text: #4f46e5;
+    --deck-amber: #d97706;
+    --deck-amber-light: #fef3c7;
+    --deck-amber-text: #92400e;
+    --deck-bg: #f8fafc;
+    --deck-card-bg: #ffffff;
+    --deck-border: #e2e8f0;
+    --deck-text-main: #0f172a;
+    --deck-text-muted: #64748b;
+    --deck-font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    --deck-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --deck-font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    background-color: var(--deck-bg);
+    color: var(--deck-text-main);
+    font-family: var(--deck-font-body);
+  }
+
+  /* ── 1. Command Station Header ────────────────────────────────────────── */
+  .deck-command-station {
+    background: linear-gradient(145deg, #090f20 0%, #111e3f 55%, #0f1933 100%);
+    border-radius: 20px;
+    padding: 1.75rem 2rem;
+    margin: 1rem auto 2rem;
+    max-width: 1240px;
+    box-shadow: 0 12px 36px -10px rgba(11, 19, 41, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    position: relative;
+    overflow: hidden;
+  }
+  .deck-command-station::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+    opacity: 0.8;
+  }
+
+  .deck-station-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    position: relative;
+    z-index: 2;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .deck-station-identity {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .deck-identity-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--deck-font-display);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  }
+  .deck-identity-meta h1 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+    font-family: var(--deck-font-display);
+    letter-spacing: -0.02em;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .deck-identity-meta p {
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .deck-pill-campus {
+    background: rgba(2, 132, 199, 0.2);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.15rem 0.6rem;
+    border-radius: 6px;
+  }
+  .deck-pill-rank {
+    background: rgba(217, 119, 6, 0.2);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #fcd34d;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.2rem 0.75rem;
+    border-radius: 8px;
+  }
+
+  /* 90% Covenant Urgency Ticker in Hero */
+  .deck-urgency-banner {
+    position: relative;
+    z-index: 2;
+    margin-top: 1.25rem;
+    background: linear-gradient(90deg, rgba(217, 119, 6, 0.22) 0%, rgba(180, 83, 9, 0.15) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 12px;
+    padding: 0.85rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .deck-urgency-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .deck-urgency-icon {
+    font-size: 1.5rem;
+  }
+  .deck-urgency-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #fef08a;
+    letter-spacing: -0.01em;
+  }
+  .deck-urgency-sub {
+    font-size: 0.8rem;
+    color: #fde68a;
+    margin-top: 2px;
+  }
+  .deck-countdown-clock {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .deck-clock-segment {
+    background: #090f20;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    text-align: center;
+    min-width: 44px;
+  }
+  .deck-clock-val {
+    font-family: var(--deck-font-mono);
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #ffffff;
+    display: block;
+    line-height: 1.1;
+  }
+  .deck-clock-label {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* Metric Readouts */
+  .deck-metrics-grid {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.85rem;
+    margin-top: 1.25rem;
+  }
+  .deck-metric-box {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    transition: all 0.2s ease;
+  }
+  .deck-metric-box:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+  .deck-metric-box.highlight {
+    background: rgba(2, 132, 199, 0.15);
+    border-color: rgba(56, 189, 248, 0.35);
+  }
+  .deck-metric-box.gold {
+    background: rgba(217, 119, 6, 0.12);
+    border-color: rgba(245, 158, 11, 0.35);
+  }
+  .deck-metric-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .deck-metric-val {
+    font-family: var(--deck-font-mono);
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-top: 0.3rem;
+    line-height: 1.1;
+  }
+
+  /* Action Buttons Cluster */
+  .deck-station-actions {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.35rem;
+    align-items: center;
+  }
+  .deck-btn-primary {
+    background: #0284c7;
+    color: #ffffff;
+    border: 1px solid #38bdf8;
+    padding: 0.65rem 1.25rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+    transition: all 0.2s ease;
+  }
+  .deck-btn-primary:hover {
+    background: #0369a1;
+    transform: translateY(-1px);
+    color: #ffffff;
+  }
+  .deck-btn-gold {
+    background: #d97706;
+    color: #ffffff;
+    border: 1px solid #f59e0b;
+    padding: 0.65rem 1.25rem;
+    border-radius: 10px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .deck-btn-gold:hover {
+    background: #b45309;
+    transform: translateY(-1px);
+  }
+  .deck-btn-hollow {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    padding: 0.65rem 1.1rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+  .deck-btn-hollow:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  /* ── 2. Shelf Section Layout ──────────────────────────────────────────── */
+  .deck-shelf {
+    max-width: 1240px;
+    margin: 0 auto 2.25rem;
+    padding: 0 0.5rem;
+  }
+  .deck-shelf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 1.15rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .deck-shelf-title-wrap h2 {
+    font-family: var(--deck-font-display);
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--deck-text-main);
+    letter-spacing: -0.02em;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .deck-shelf-subtitle {
+    font-size: 0.82rem;
+    color: var(--deck-text-muted);
+    margin-top: 0.2rem;
+  }
+  .deck-shelf-link {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--deck-cobalt);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .deck-shelf-link:hover {
+    text-decoration: underline;
+  }
+
+  .deck-scroll-rack {
+    display: flex;
+    gap: 1.15rem;
+    overflow-x: auto;
+    padding: 0.5rem 0.25rem 1rem;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  .deck-scroll-rack::-webkit-scrollbar {
+    height: 6px;
+  }
+  .deck-scroll-rack::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     BESPOKE PREMIUM CARD ARCHITECTURE
+     ───────────────────────────────────────────────────────────────────────── */
+
+  /* Master Base Card Container */
+  .card-dossier {
+    min-width: 275px;
+    max-width: 300px;
+    flex: 0 0 280px;
+    scroll-snap-align: start;
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+  }
+  .card-dossier:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 28px -6px rgba(15, 23, 42, 0.1), 0 4px 10px rgba(15, 23, 42, 0.04);
+  }
+
+  /* Card Interior Layout */
+  .card-dossier-inner {
+    padding: 1.15rem 1.15rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Card Header: Technical Ticket Ribbon */
+  .card-ticket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.85rem;
+  }
+  .card-taxonomy-badge {
+    font-family: var(--deck-font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.25rem 0.55rem;
+    border-radius: 6px;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .card-dossier-term {
+    font-family: var(--deck-font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+  }
+  .card-spec-trigger {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .card-spec-trigger:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #cbd5e1;
+  }
+
+  /* Card Subject & Campus Meta */
+  .card-subject-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.35rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card-title-text {
+    font-family: var(--deck-font-display);
+    font-size: 0.96rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #0f172a;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 0.85rem;
+    min-height: 2.6em;
+  }
+
+  /* Card Bottom Footer Tray */
+  .card-footer-tray {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.65rem 1.15rem;
+    border-top: 1px solid #f1f5f9;
+    background: #fafafa;
+    font-size: 0.74rem;
+  }
+  .card-author-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #475569;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 150px;
+  }
+  .card-author-monogram {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 800;
+  }
+  .card-views-counter {
+    font-family: var(--deck-font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  /* ── TYPE 1: PYQ (Official University Exam Paper) ───────────────────── */
+  .card-type-pyq {
+    border-top: 3px solid #0284c7;
+  }
+  .card-type-pyq:hover {
+    border-color: #0284c7;
+  }
+  .card-type-pyq .card-taxonomy-badge {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+  }
+  .card-type-pyq .card-subject-meta {
+    color: #0284c7;
+  }
+  .card-type-pyq .card-views-counter {
+    color: #0369a1;
+  }
+  .card-type-pyq .card-author-monogram {
+    background: #e0f2fe;
+    color: #0369a1;
+  }
+
+  /* ── TYPE 2: TOPPER NOTES (Manuscript Study Synthesis) ──────────────── */
+  .card-type-notes {
+    border-top: 3px solid #059669;
+    background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 32%);
+  }
+  .card-type-notes:hover {
+    border-color: #059669;
+  }
+  .card-type-notes .card-taxonomy-badge {
+    background: #d1fae5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+  }
+  .card-type-notes .card-subject-meta {
+    color: #059669;
+  }
+  .card-type-notes .card-views-counter {
+    color: #047857;
+  }
+  .card-type-notes .card-author-monogram {
+    background: #d1fae5;
+    color: #047857;
+  }
+
+  /* ── TYPE 3: LAB PRACTICAL (Workbench Experiment Specimen) ──────────── */
+  .card-type-practical {
+    border-top: 3px solid #6366f1;
+    background: linear-gradient(180deg, #f5f3ff 0%, #ffffff 32%);
+  }
+  .card-type-practical:hover {
+    border-color: #6366f1;
+  }
+  .card-type-practical .card-taxonomy-badge {
+    background: #ede9fe;
+    color: #4f46e5;
+    border: 1px solid #ddd6fe;
+  }
+  .card-type-practical .card-subject-meta {
+    color: #6366f1;
+  }
+  .card-type-practical .card-views-counter {
+    color: #4f46e5;
+  }
+  .card-type-practical .card-author-monogram {
+    background: #ede9fe;
+    color: #4f46e5;
+  }
+
+  /* ── TYPE 4: PREMIUM & TOPPER VAULT (Pro High-Yield Blueprint) ──────── */
+  .card-type-premium {
+    background: linear-gradient(150deg, #0b1329 0%, #151f38 60%, #1a2544 100%);
+    border: 1px solid #d97706;
+    border-top: 3px solid #f59e0b;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.15);
+  }
+  .card-type-premium:hover {
+    border-color: #f59e0b;
+    box-shadow: 0 16px 32px -6px rgba(217, 119, 6, 0.25);
+  }
+  .card-type-premium .card-taxonomy-badge {
+    background: rgba(217, 119, 6, 0.2);
+    color: #fde68a;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+  }
+  .card-type-premium .card-dossier-term {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fef08a;
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+  .card-type-premium .card-spec-trigger {
+    color: #fde68a;
+  }
+  .card-type-premium .card-spec-trigger:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+  }
+  .card-type-premium .card-subject-meta {
+    color: #fcd34d;
+  }
+  .card-type-premium .card-title-text {
+    color: #ffffff;
+  }
+  .card-type-premium .card-footer-tray {
+    background: rgba(0, 0, 0, 0.35);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+  }
+  .card-type-premium .card-author-pill {
+    color: #fef08a;
+  }
+  .card-type-premium .card-views-counter {
+    color: #fcd34d;
+  }
+
+  /* ── TYPE 5: RECENTLY ACCESSED (Active Session Resumption) ───────────── */
+  .card-type-recent {
+    border-left: 3px solid #0284c7;
+  }
+
+  /* ── 4. Channel Showcase ─────────────────────────────────────────────── */
+  .deck-channel-card {
+    min-width: 260px;
+    max-width: 280px;
+    flex: 0 0 260px;
+    scroll-snap-align: start;
+    background: #ffffff;
+    border: 1px solid var(--deck-border);
+    border-radius: 16px;
+    padding: 1.15rem;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    transition: all 0.2s ease;
+  }
+  .deck-channel-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px -6px rgba(15, 23, 42, 0.08);
+    border-color: #0284c7;
+  }
+  .deck-ch-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+  }
+  .deck-ch-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #0284c7 0%, #3b82f6 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-family: var(--deck-font-display);
+    font-size: 1.15rem;
+    object-fit: cover;
+  }
+  .deck-ch-name {
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: var(--deck-text-main);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .deck-ch-handle {
+    font-size: 0.78rem;
+    color: #0284c7;
+    font-weight: 600;
+  }
+  .deck-ch-bio {
+    font-size: 0.8rem;
+    color: #64748b;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 0.85rem;
+  }
+  .deck-ch-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.65rem;
+    border-top: 1px solid #f1f5f9;
+    font-size: 0.78rem;
+  }
+
+  /* ── 5. Tabbed Exam Section ───────────────────────────────────────────── */
+  .deck-tab-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.15rem;
+    border-bottom: 1px solid var(--deck-border);
+    padding-bottom: 0.5rem;
+  }
+  .deck-tab-button {
+    background: transparent;
+    border: none;
+    font-family: var(--deck-font-display);
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--deck-text-muted);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .deck-tab-button.active {
+    background: #0f172a;
+    color: #ffffff;
+  }
+
+  /* ── 6. Search Deck & Author Filters ─────────────────────────────────── */
+  .deck-search-box-station {
+    background: #ffffff;
+    border: 1px solid var(--deck-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+    margin-bottom: 1.5rem;
+  }
+  .deck-author-pills {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    margin: 1rem 0;
+  }
+  .deck-author-chip {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 30px;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+  .deck-author-chip:hover {
+    background: #e2e8f0;
+  }
+  .deck-author-chip.active {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #0284c7;
+  }
+
+  /* ── 7. Community & Growth Grid ───────────────────────────────────────── */
+  .deck-community-split {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+  }
+  .deck-community-card {
+    background: #ffffff;
+    border: 1px solid var(--deck-border);
+    border-radius: 16px;
+    padding: 1.4rem;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+  }
+  .deck-community-card h3 {
+    margin: 0 0 0.4rem;
+    font-family: var(--deck-font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--deck-text-main);
+  }
+  .deck-community-card p {
+    font-size: 0.85rem;
+    color: var(--deck-text-muted);
+    margin: 0 0 1rem;
+    line-height: 1.45;
+  }
+
+  /* Peer Cards */
+  .deck-peers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.85rem;
+    margin-top: 1rem;
+  }
+  .deck-peer-tile {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.15s ease;
+  }
+  .deck-peer-tile:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+  }
+
+  /* Responsive Adjustments */
+  @media (max-width: 768px) {
+    .deck-command-station {
+      padding: 1.25rem 1rem;
+      border-radius: 16px;
+    }
+    .deck-urgency-banner {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .deck-countdown-clock {
+      width: 100%;
+      justify-content: space-between;
+    }
+    .card-dossier {
+      min-width: 250px;
+      flex: 0 0 250px;
+    }
+  }
+</style>
 {% endblock %}
+
 {% block content %}
 
 <script>
@@ -21,262 +875,276 @@
 </script>
 <script src="{{ url_for('static', filename='js/pages/p_index.js') }}"></script>
 
-<!-- ── 1. Hero & Command Center (Unified Header) ────────────────────────── -->
-<div class="home-hero">
-  <div class="home-hero-content">
-    <div class="hero-user-strip">
-      <div class="hero-user-left">
+<!-- ── 1. Master Command Deck (Hero Station) ─────────────────────────────── -->
+<div class="deck-command-station">
+  <div class="deck-station-topbar">
+    <div class="deck-station-identity">
+      <div class="deck-identity-avatar">
+        {{ (user_data.name if user_data and user_data.name else 'A')[0] | upper }}
+      </div>
+      <div class="deck-identity-meta">
         {% set hour = (now.hour if now else 12) %}
-        <div class="hero-greeting">
-          {% if hour < 12 %}🌅 Good Morning,{% elif hour < 17 %}☀️ Good Afternoon,{% elif hour < 21 %}🌆 Good Evening,{% else %}🌙 Good Night,{% endif %}
-          <strong>{{ user_data.name if user_data else 'Scholar' }}</strong>!
+        <h1>
+          {% if hour < 12 %}Good Morning,{% elif hour < 17 %}Good Afternoon,{% elif hour < 21 %}Good Evening,{% else %}Good Night,{% endif %}
+          {{ user_data.name if user_data else 'Scholar' }}
+        </h1>
+        <p>
+          {% if user_data and user_data.college_name %}
+          <span class="deck-pill-campus">{{ user_data.college_name }}</span>
+          {% endif %}
+          {% if user_data and user_data.branch_name %}
+          <span>{{ user_data.branch_name }}</span>
+          {% endif %}
+          {% if user_data and user_data.global_rank %}
+          <span class="deck-pill-rank">🏆 Global Rank #<span id="live-global-rank">{{ user_data.global_rank }}</span></span>
+          {% endif %}
+        </p>
+      </div>
+    </div>
+
+    <!-- Active View Quota & Top Up -->
+    <div style="display:flex; align-items:center; gap:0.75rem;">
+      <div style="text-align:right;">
+        <div style="font-size:0.72rem; color:#94a3b8; font-weight:600;">ACTIVE VIEW QUOTA</div>
+        <div style="font-family:var(--deck-font-mono); font-size:1.3rem; font-weight:800; color:#38bdf8;">
+          ⚡ <span id="user-views-quota">{{ user_data.get('paper_quota_remaining', 20) }}</span> Views
         </div>
-        {% if user_data and user_data.college_name %}
-        <span class="hero-college-badge">🏛️ {{ user_data.college_name }}</span>
-        {% endif %}
       </div>
-      <div class="hero-user-right">
-        {% if user_data and user_data.global_rank %}
-        <span class="hero-rank-badge" title="Global Rank">🏆 Rank #<span id="live-global-rank">{{ user_data.global_rank }}</span></span>
-        {% endif %}
-      </div>
+      <button type="button" onclick="openBuyCreditsModal()" class="deck-btn-gold" style="padding:0.45rem 0.85rem; font-size:0.8rem;">
+        Recharge
+      </button>
     </div>
+  </div>
 
-    <!-- Stats Bar -->
-    <div class="hero-stats-row">
-      {% if user_data %}
-      <div class="hero-stat-pill quota-pill" title="Study Views Left Today">
-        <span class="hero-stat-icon">⚡</span>
-        <span class="hero-stat-val" id="user-views-quota">{{ user_data.get('paper_quota_remaining', 19) }}</span>
-        <span class="hero-stat-lbl">Views Left</span>
-      </div>
-      <div class="hero-stat-pill" title="Reputation Points">
-        <span class="hero-stat-icon">✨</span>
-        <span class="hero-stat-val" id="live-reputation-score">{{ user_data.get('reputation_score', 0) }}</span>
-        <span class="hero-stat-lbl">Pts</span>
-      </div>
-      {% if user_data.get('referral_credits', 0) > 0 %}
-      <div class="hero-stat-pill" title="Referral Bonus Credits" style="border-color:#f59e0b;">
-        <span class="hero-stat-icon">🎁</span>
-        <span class="hero-stat-val" id="live-referral-credits">{{ user_data.get('referral_credits', 0) }}</span>
-        <span class="hero-stat-lbl">Ref Credits</span>
-      </div>
-      {% endif %}
-      {% if user_data.get('students_helped', 0) > 0 %}
-      <div class="hero-stat-pill helped-pill" title="Students Helped">
-        <span class="hero-stat-icon">🤝</span>
-        <span class="hero-stat-val">{{ user_data.students_helped }}</span>
-        <span class="hero-stat-lbl">Helped</span>
-      </div>
-      {% endif %}
-      {% endif %}
-      <div class="hero-stat-pill" title="Total Ready Papers">
-        <span class="hero-stat-icon">🔓</span>
-        <span class="hero-stat-val">{{ paper_count }}</span>
-        <span class="hero-stat-lbl">Papers</span>
-      </div>
-      <div class="hero-stat-pill" title="Total Active Notes">
-        <span class="hero-stat-icon">📝</span>
-        <span class="hero-stat-val">{{ notes_count }}</span>
-        <span class="hero-stat-lbl">Notes</span>
+  <!-- Launch Urgency Covenant Bar (Ticking to 8 Nov 2026) -->
+  <div class="deck-urgency-banner">
+    <div class="deck-urgency-left">
+      <div class="deck-urgency-icon">⏳</div>
+      <div>
+        <div class="deck-urgency-title">90% Launch Covenant Active · Special Launch Rates</div>
+        <div class="deck-urgency-sub">Keep 90% note earnings (T+9 payouts) & 90% off view packs (₹4, ₹13, ₹30)</div>
       </div>
     </div>
+    <div class="deck-countdown-clock" id="heroCovenantCountdown">
+      <div class="deck-clock-segment">
+        <span class="deck-clock-val" id="covDays">--</span>
+        <span class="deck-clock-label">Days</span>
+      </div>
+      <div class="deck-clock-segment">
+        <span class="deck-clock-val" id="covHours">--</span>
+        <span class="deck-clock-label">Hours</span>
+      </div>
+      <div class="deck-clock-segment">
+        <span class="deck-clock-val" id="covMins">--</span>
+        <span class="deck-clock-label">Mins</span>
+      </div>
+      <div class="deck-clock-segment">
+        <span class="deck-clock-val" id="covSecs">--</span>
+        <span class="deck-clock-label">Secs</span>
+      </div>
+    </div>
+  </div>
 
-    <!-- Quick Action Buttons -->
-    <div class="hero-quick-actions">
-      <a href="/upload" class="hero-action-btn primary" title="Upload Question Paper or Notes">📤 Upload Resource</a>
-      <button type="button" onclick="openBuyCreditsModal()" class="hero-action-btn accent" title="Buy Views Quota">💎 Buy Credits</button>
-      <button type="button" data-action="openPeerSearchModal" class="hero-action-btn glass" aria-label="Search Students & Peer Notes">👥 Find Peers</button>
-      {% if user_data %}
-      <a href="{{ url_for('app_pages.memorywall_dashboard') }}" class="hero-action-btn glass" title="MemoryWall">🧠 MemoryWall</a>
-      {% endif %}
-      <button type="button" data-action="openAppGuide" class="hero-action-btn glass" title="Explore Interactive Guides & Features">🧭 Tour</button>
+  <!-- Command Station Metric Readouts -->
+  <div class="deck-metrics-grid">
+    <div class="deck-metric-box highlight">
+      <div class="deck-metric-label">⚡ Daily Free Quota</div>
+      <div class="deck-metric-val">{{ user_data.get('paper_quota_remaining', 20) }}</div>
     </div>
+    <div class="deck-metric-box">
+      <div class="deck-metric-label">✨ Reputation Score</div>
+      <div class="deck-metric-val" id="live-reputation-score">{{ user_data.get('reputation_score', 0) }}</div>
+    </div>
+    {% if user_data.get('referral_credits', 0) > 0 %}
+    <div class="deck-metric-box gold">
+      <div class="deck-metric-label">🎁 Referral Credits</div>
+      <div class="deck-metric-val" id="live-referral-credits">{{ user_data.get('referral_credits', 0) }}</div>
+    </div>
+    {% endif %}
+    <div class="deck-metric-box">
+      <div class="deck-metric-label">🤝 Students Helped</div>
+      <div class="deck-metric-val">{{ user_data.get('students_helped', 0) }}</div>
+    </div>
+    <div class="deck-metric-box">
+      <div class="deck-metric-label">🔓 Ready Exam Papers</div>
+      <div class="deck-metric-val">{{ paper_count }}</div>
+    </div>
+    <div class="deck-metric-box">
+      <div class="deck-metric-label">📝 Curated Study Notes</div>
+      <div class="deck-metric-val">{{ notes_count }}</div>
+    </div>
+  </div>
+
+  <!-- Primary Flight Deck Controls -->
+  <div class="deck-station-actions">
+    <a href="/upload" class="deck-btn-primary">
+      <span>📤</span> Upload Resource & Earn 90%
+    </a>
+    <button type="button" onclick="openBuyCreditsModal()" class="deck-btn-gold">
+      <span>💎</span> Top Up Credits (90% Off)
+    </button>
+    <button type="button" data-action="openPeerSearchModal" class="deck-btn-hollow">
+      <span>👥</span> Find College Peers
+    </button>
+    {% if user_data %}
+    <a href="{{ url_for('app_pages.memorywall_dashboard') }}" class="deck-btn-hollow">
+      <span>🧠</span> MemoryWall
+    </a>
+    {% endif %}
+    <button type="button" data-action="openAppGuide" class="deck-btn-hollow">
+      <span>🧭</span> Interactive Tour
+    </button>
   </div>
 </div>
 
-<!-- Ad Placement (Banner) -->
-{% if ad_decision and ad_decision.show_ads %}
-<div class="home-section" style="padding-top:0.5rem; padding-bottom:0;">
-  {% include 'ads/banner.html' %}
-</div>
-{% endif %}
-
-<!-- ── 1.5 Recently Viewed Resources ─────────────────────────────────── -->
-<div class="home-section">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">⏱️ Recently Viewed</div>
-      <div class="home-section-subtitle">Pick up where you left off with your recently viewed files</div>
+<!-- ── 2. Shelf: Recently Viewed Resources ──────────────────────────────── -->
+<div class="deck-shelf">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>⏱️ Recently Accessed</h2>
+      <div class="deck-shelf-subtitle">Jump back into your recent revision dossiers</div>
     </div>
   </div>
+
   {% if recently_viewed_files %}
-  <div class="hscroll-row">
+  <div class="deck-scroll-rack">
     {% for file in recently_viewed_files %}
     {% set _rid = file.get('record_id') or file.get('id') or '' %}
     {% set _ftype = file.get('type', 'papers')|lower %}
     {% set is_notes = _ftype in ['notes', 'note', 'imp questions', 'imp_questions'] %}
     {% set is_prac = _ftype in ['practical', 'practicals'] %}
     {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-    <a href="{{ furl }}" class="pcard {% if is_notes %}notes-card{% elif is_prac %}practical-card{% endif %}">
-      {% if is_notes %}
-      <span class="pcard-badge notes">📝 Notes</span>
-      {% elif is_prac %}
-      <span class="pcard-badge practical">🧪 Practical</span>
-      {% else %}
-      <span class="pcard-badge">📄 PYQ</span>
-      {% endif %}
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-        data-file-type="{{ 'Notes' if is_notes else ('Practical' if is_prac else 'PYQ') }}" data-file-subject="{{ file.get('subject', '') }}"
-        data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
-        data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}"
-        data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
-      <div class="pcard-subject">{{ file.get('subject', 'General') }}</div>
-      <div class="pcard-name">{{ file['file-name'] }}</div>
-      <div class="pcard-footer">
-        <span class="pcard-meta">📅 {{ file.get('year','') or file.get('date','')[:4] }}</span>
-        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
+    <a href="{{ furl }}" class="card-dossier {% if is_notes %}card-type-notes{% elif is_prac %}card-type-practical{% else %}card-type-pyq{% endif %} pcard">
+      <div class="card-dossier-inner">
+        <div class="card-ticket-header">
+          <span class="card-taxonomy-badge">
+            {% if is_notes %}📝 NOTES{% elif is_prac %}🧪 PRACTICAL{% else %}📄 PYQ EXAM{% endif %}
+          </span>
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <span class="card-dossier-term">{{ file.get('year','') or file.get('date','')[:4] or 'TERM' }}</span>
+            <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+              data-file-type="{{ 'Notes' if is_notes else ('Practical' if is_prac else 'PYQ') }}" data-file-subject="{{ file.get('subject', '') }}"
+              data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
+              data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}"
+              data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
+          </div>
+        </div>
+        <div class="card-subject-meta">
+          <span>🏛️</span>
+          <span>{{ file.get('subject', 'ENGINEERING CORE') }}</span>
+        </div>
+        <div class="card-title-text">{{ file['file-name'] }}</div>
+      </div>
+      <div class="card-footer-tray">
+        <div class="card-author-pill">
+          <span class="card-author-monogram">⏱️</span>
+          <span>Recently Viewed</span>
+        </div>
+        <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
       </div>
     </a>
     {% endfor %}
   </div>
   {% else %}
-  <div style="padding:1.25rem 1.5rem; background:rgba(255,255,255,0.7); border:1.5px dashed rgba(148,163,184,0.4); border-radius:18px; color:#64748b; font-size:0.92rem; display:flex; align-items:center; gap:0.75rem;">
-    <span style="font-size:1.4rem;">📂</span>
-    <span>No recently viewed files yet. Click on any question paper or study note below and it will appear here for fast access!</span>
+  <div style="background:#ffffff; border:1px dashed #cbd5e1; border-radius:14px; padding:1.25rem 1.5rem; color:#64748b; font-size:0.9rem; display:flex; align-items:center; gap:0.75rem;">
+    <span>📂</span>
+    <span>No recently viewed documents. Open any exam paper or topper note below and it will dock here automatically.</span>
   </div>
   {% endif %}
 </div>
 
-<!-- ── 1.6 Recommended Resources (Peer Activity) ─────────────────────── -->
-<div class="home-section">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">✨ Recommended For You</div>
-      <div class="home-section-subtitle">
+<!-- ── 3. Shelf: Recommended Peer Activity ──────────────────────────────── -->
+<div class="deck-shelf">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>✨ Recommended For Your Branch</h2>
+      <div class="deck-shelf-subtitle">
         {% if user_data and (user_data.branch_name or user_data.college_name) %}
-        Trending among peers from {% if user_data.branch_name %}{{ user_data.branch_name }} • {% endif %}{{ user_data.college_name }}
+        High-traffic revision papers among classmates at {{ user_data.college_name }}
         {% else %}
-        Most viewed study materials by peers across engineering departments
+        High-traffic question papers and verified topper notes across campus
         {% endif %}
       </div>
     </div>
   </div>
+
   {% if recommended_files %}
-  <div class="hscroll-row">
+  <div class="deck-scroll-rack">
     {% for file in recommended_files %}
     {% set _rid = file.get('record_id') or file.get('id') or '' %}
     {% set _ftype = file.get('type', 'papers')|lower %}
     {% set is_notes = _ftype in ['notes', 'note', 'imp questions', 'imp_questions'] %}
     {% set is_prac = _ftype in ['practical', 'practicals'] %}
     {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-    <a href="{{ furl }}" class="pcard {% if is_notes %}notes-card{% elif is_prac %}practical-card{% endif %}">
-      {% if is_notes %}
-      <span class="pcard-badge notes">📝 Notes</span>
-      {% elif is_prac %}
-      <span class="pcard-badge practical">🧪 Practical</span>
-      {% else %}
-      <span class="pcard-badge">📄 PYQ</span>
-      {% endif %}
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-        data-file-type="{{ 'Notes' if is_notes else ('Practical' if is_prac else 'PYQ') }}" data-file-subject="{{ file.get('subject', '') }}"
-        data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
-        data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}"
-        data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
-      <div class="pcard-subject">{{ file.get('subject', 'General') }}</div>
-      <div class="pcard-name">{{ file['file-name'] }}</div>
-      <div class="pcard-footer">
-        <span class="pcard-meta">👥 Peer Fav</span>
-        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
+    <a href="{{ furl }}" class="card-dossier {% if is_notes %}card-type-notes{% elif is_prac %}card-type-practical{% else %}card-type-pyq{% endif %} pcard">
+      <div class="card-dossier-inner">
+        <div class="card-ticket-header">
+          <span class="card-taxonomy-badge">
+            {% if is_notes %}📝 NOTES{% elif is_prac %}🧪 PRACTICAL{% else %}📄 PYQ EXAM{% endif %}
+          </span>
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <span class="card-dossier-term">{{ file.get('year','') or file.get('date','')[:4] or 'CURATED' }}</span>
+            <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+              data-file-type="{{ 'Notes' if is_notes else ('Practical' if is_prac else 'PYQ') }}" data-file-subject="{{ file.get('subject', '') }}"
+              data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
+              data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}"
+              data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
+          </div>
+        </div>
+        <div class="card-subject-meta">
+          <span>🎯</span>
+          <span>{{ file.get('subject', 'ENGINEERING CORE') }}</span>
+        </div>
+        <div class="card-title-text">{{ file['file-name'] }}</div>
+      </div>
+      <div class="card-footer-tray">
+        <div class="card-author-pill">
+          <span class="card-author-monogram">👥</span>
+          <span>Peer Recommended</span>
+        </div>
+        <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
       </div>
     </a>
     {% endfor %}
-  </div>
-  {% else %}
-  <div style="padding:1.25rem 1.5rem; background:rgba(255,255,255,0.7); border:1.5px dashed rgba(148,163,184,0.4); border-radius:18px; color:#64748b; font-size:0.92rem; display:flex; align-items:center; gap:0.75rem;">
-    <span style="font-size:1.4rem;">🎓</span>
-    <span>Recommendations will update as classmates in your department view and share papers.</span>
   </div>
   {% endif %}
 </div>
 
-<!-- ── 1.7 Recently Added Materials ─────────────────────────────────── -->
-{% if recently_added_files %}
-<div class="home-section" id="recentlyAddedSection">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">⏱️ Recently Added</div>
-      <div class="home-section-subtitle">Newly uploaded question papers, handwritten notes & manuals</div>
-    </div>
-    <a href="{{ url_for('library.pyq_landing') }}" class="home-see-all">Browse all →</a>
-  </div>
-  <div class="hscroll-row">
-    {% for file in recently_added_files %}
-    {% set _rid = file.get('record_id') or file.get('id') or '' %}
-    {% set _ftype = file.get('type', 'papers')|lower %}
-    {% set is_notes = _ftype in ['notes', 'note', 'imp questions', 'imp_questions'] %}
-    {% set is_prac = _ftype in ['practical', 'practicals'] %}
-    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-    <a href="{{ furl }}" class="pcard {% if is_notes %}notes-card{% elif is_prac %}practical-card{% endif %}">
-      {% if is_notes %}
-      <span class="pcard-badge notes">📝 Notes</span>
-      {% elif is_prac %}
-      <span class="pcard-badge practical">🧪 Practical</span>
-      {% else %}
-      <span class="pcard-badge">📄 PYQ</span>
-      {% endif %}
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-        data-file-type="{{ 'Notes' if is_notes else ('Practical' if is_prac else 'PYQ') }}" data-file-subject="{{ file.get('subject', '') }}"
-        data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
-        data-file-author="{{ file.get('author','')[:15] }}"
-        data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}"
-        data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
-      <div class="pcard-subject">{{ file.get('subject', 'General') }}</div>
-      <div class="pcard-name">{{ file['file-name'] }}</div>
-      <div class="pcard-footer">
-        <span class="pcard-meta">📅 {{ file.get('date', '') or file.get('year', '') }}</span>
-        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<!-- ── 1.8 Creator Channels (Moving Cards) ────────────────────────── -->
+<!-- ── 4. Shelf: Creator Channels ───────────────────────────────────────── -->
 {% if featured_channels %}
-<div class="home-section" id="creatorChannelsSection">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">📺 Creator Channels</div>
-      <div class="home-section-subtitle">Branded notes hubs powered by top student creators & toppers</div>
+<div class="deck-shelf" id="creatorChannelsSection">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>📺 Creator Channels</h2>
+      <div class="deck-shelf-subtitle">Verified subject channels powered by student toppers & contributors</div>
     </div>
-    <a href="/channel/studio" class="home-see-all">+ Create Your Channel →</a>
+    <a href="/channel/studio" class="deck-shelf-link">+ Create Your Channel</a>
   </div>
-  <div class="hscroll-row">
+
+  <div class="deck-scroll-rack">
     {% for ch in featured_channels %}
-    <a href="/c/{{ ch.handle }}" class="pcard" style="min-width: 240px; max-width: 260px; padding: 1.15rem; display: flex; flex-direction: column; justify-content: space-between; border-radius: 18px; text-decoration: none;">
+    <a href="/c/{{ ch.handle }}" class="deck-channel-card">
       <div>
-        <div style="display: flex; align-items: center; gap: 0.75rem; margin-bottom: 0.75rem;">
+        <div class="deck-ch-head">
           {% if ch.avatar_url %}
-            <img src="{{ ch.avatar_url }}" alt="{{ ch.title }}" style="width: 44px; height: 44px; border-radius: 50%; object-fit: cover; border: 2px solid #e0e7ff;">
+            <img src="{{ ch.avatar_url }}" alt="{{ ch.title }}" class="deck-ch-avatar">
           {% else %}
-            <div style="width: 44px; height: 44px; border-radius: 50%; background: linear-gradient(135deg, #4f46e5, #6366f1); color: #ffffff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 1.15rem; box-shadow: 0 4px 10px rgba(79,70,229,0.25);">
+            <div class="deck-ch-avatar">
               {{ ch.title[:1].upper() if ch.title else 'C' }}
             </div>
           {% endif %}
-          <div style="overflow: hidden;">
-            <div style="font-weight: 700; color: #0f172a; font-size: 0.95rem; line-height: 1.2; text-overflow: ellipsis; white-space: nowrap; overflow: hidden;">{{ ch.title }}</div>
-            <div style="font-size: 0.8rem; color: #6366f1; font-weight: 600;">@{{ ch.handle }}</div>
+          <div style="overflow:hidden;">
+            <div class="deck-ch-name">{{ ch.title }}</div>
+            <div class="deck-ch-handle">@{{ ch.handle }}</div>
           </div>
         </div>
-        <div style="font-size: 0.82rem; color: #475569; margin-bottom: 0.85rem; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">
-          {{ ch.bio or 'Explore study notes, questions, and revision guides.' }}
+        <div class="deck-ch-bio">
+          {{ ch.bio or 'Explore exam guides, past papers, and revision notes.' }}
         </div>
       </div>
-      <div style="display: flex; justify-content: space-between; align-items: center; padding-top: 0.6rem; border-top: 1px solid rgba(226,232,240,0.8); font-size: 0.78rem;">
-        <span style="color: #64748b; font-weight: 600;">📚 {{ ch.notes_count or 0 }} Notes</span>
-        <span style="color: #4f46e5; font-weight: 700;">Visit Hub →</span>
+      <div class="deck-ch-foot">
+        <span style="color:#64748b; font-weight:600;">📚 {{ ch.notes_count or 0 }} Notes</span>
+        <span style="color:#0284c7; font-weight:700;">Open Hub →</span>
       </div>
     </a>
     {% endfor %}
@@ -284,156 +1152,146 @@
 </div>
 {% endif %}
 
-<!-- ── 2. Academic Library: Personalized Papers ────────────────────────── -->
-{% if relevant_papers %}
-<div class="home-section">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">
-        {% if user_data and user_data.college_name %}
-        🎓 Papers for {{ user_data.college_name }}
-        {% else %}
-        🔥 Top Exam Papers
-        {% endif %}
-      </div>
-      <div class="home-section-subtitle">Curated previous year question papers · sorted by views</div>
+<!-- ── 5. Shelf: Verified Exam Question Papers (Tabbed) ──────────────────── -->
+<div class="deck-shelf">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>📚 Previous Year Exam Papers</h2>
+      <div class="deck-shelf-subtitle">Official university question papers arranged by semester traffic & upload date</div>
     </div>
-    {% if user_data and user_data.college_slug %}
-    <a href="{{ url_for('library.college_files', college_slug=user_data.college_slug) }}?type=pyq"
-      class="home-see-all">See all papers →</a>
-    {% else %}
-    <a href="{{ url_for('library.pyq_landing') }}"
-      class="home-see-all">See all papers →</a>
-    {% endif %}
+    <a href="{{ url_for('library.pyq_landing') }}" class="deck-shelf-link">Full Library Catalog</a>
   </div>
-  <div class="hscroll-row">
-    {% for file in relevant_papers %}
-    {% set _rid = file.get('record_id') or file.get('id') or '' %}
-    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-    <a href="{{ furl }}" class="pcard">
-      <span class="pcard-badge">📄 PYQ</span>
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-        data-file-type="PYQ" data-file-subject="{{ file['subject'] }}"
-        data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
-        data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}"
-        data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
-      <div class="pcard-subject">{{ file['subject'] }}</div>
-      <div class="pcard-name">{{ file['file-name'] }}</div>
-      <div class="pcard-footer">
-        <span class="pcard-meta">📅 {{ file.get('year','') or file.get('date','')[:4] }}</span>
-        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
 
-<!-- ── 3. Browse Papers: Trending & Recent Tabs ──────────────────────── -->
-<div class="home-section">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">📚 Browse Question Papers</div>
-      <div class="home-section-subtitle">Explore trending and newly uploaded university exam resources</div>
-    </div>
-    <a href="{{ url_for('library.pyq_landing') }}"
-      class="home-see-all">Full library →</a>
-  </div>
-  <div class="tab-bar">
-    <button class="tab-btn active" type="button" data-action="switchTab" data-tab="tab-trending">🔥 Trending</button>
-    <button class="tab-btn" type="button" data-action="switchTab" data-tab="tab-recent">🆕 Recent</button>
+  <div class="deck-tab-bar">
+    <button class="deck-tab-button tab-btn active" type="button" data-action="switchTab" data-tab="tab-trending" onclick="switchTab(this, 'tab-trending')">🔥 Trending PYQs</button>
+    <button class="deck-tab-button tab-btn" type="button" data-action="switchTab" data-tab="tab-recent" onclick="switchTab(this, 'tab-recent')">🆕 Recently Added</button>
   </div>
 
   <div id="tab-trending" class="tab-panel active">
-    <div class="hscroll-row">
+    <div class="deck-scroll-rack">
       {% for file in trending_papers %}
       {% set _rid = file.get('record_id') or file.get('id') or '' %}
       {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-      <a href="{{ furl }}" class="pcard">
-        <span class="pcard-badge">📄 PYQ</span>
-        <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-          data-file-type="PYQ" data-file-subject="{{ file['subject'] }}"
-          data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
-          data-file-author="{{ file.get('author','')[:15] }}" data-file-views="{{ file.get('view_count', 0) }}"
-          title="File info">ℹ️</span>
-        <div class="pcard-subject">{{ file['subject'] }}</div>
-        <div class="pcard-name">{{ file['file-name'] }}</div>
-        <div class="pcard-footer">
-          <span class="pcard-meta">👤 {{ file.get('author','')[:15] or 'Contributor' }}</span>
-          <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
+      <a href="{{ furl }}" class="card-dossier card-type-pyq pcard">
+        <div class="card-dossier-inner">
+          <div class="card-ticket-header">
+            <span class="card-taxonomy-badge">📄 PYQ EXAM</span>
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+              <span class="card-dossier-term">{{ file.get('year','') or file.get('date','')[:4] or 'SEMESTER' }}</span>
+              <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+                data-file-type="PYQ" data-file-subject="{{ file['subject'] }}"
+                data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
+                data-file-author="{{ file.get('author','')[:15] }}" data-file-views="{{ file.get('view_count', 0) }}"
+                title="Inspect Specs">ℹ️</span>
+            </div>
+          </div>
+          <div class="card-subject-meta">
+            <span>🏛️</span>
+            <span>{{ file['subject'] }}</span>
+          </div>
+          <div class="card-title-text">{{ file['file-name'] }}</div>
+        </div>
+        <div class="card-footer-tray">
+          <div class="card-author-pill">
+            <span class="card-author-monogram">{{ (file.get('author','') or 'V')[0] | upper }}</span>
+            <span>{{ file.get('author','')[:14] or 'Verified Exam' }}</span>
+          </div>
+          <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
         </div>
       </a>
       {% else %}
-      <div style="color:#94a3b8;padding:2rem;">No papers found.</div>
+      <div style="color:#94a3b8; padding:1.5rem;">No trending papers found in this category.</div>
       {% endfor %}
     </div>
   </div>
 
-  <div id="tab-recent" class="tab-panel">
-    <div class="hscroll-row">
+  <div id="tab-recent" class="tab-panel" style="display:none;">
+    <div class="deck-scroll-rack">
       {% for file in recent_papers %}
       {% set _rid = file.get('record_id') or file.get('id') or '' %}
       {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-      <a href="{{ furl }}" class="pcard">
-        <span class="pcard-badge">📄 PYQ</span>
-        <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-          data-file-type="PYQ" data-file-subject="{{ file['subject'] }}"
-          data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
-          data-file-date="{{ file.get('date','') }}" data-file-views="{{ file.get('view_count', 0) }}"
-          title="File info">ℹ️</span>
-        <div class="pcard-subject">{{ file['subject'] }}</div>
-        <div class="pcard-name">{{ file['file-name'] }}</div>
-        <div class="pcard-footer">
-          <span class="pcard-meta">📅 {{ file.get('date','') }}</span>
-          <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
+      <a href="{{ furl }}" class="card-dossier card-type-pyq pcard">
+        <div class="card-dossier-inner">
+          <div class="card-ticket-header">
+            <span class="card-taxonomy-badge">📄 PYQ EXAM</span>
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+              <span class="card-dossier-term">{{ file.get('date','')[:4] or 'NEW' }}</span>
+              <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+                data-file-type="PYQ" data-file-subject="{{ file['subject'] }}"
+                data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
+                data-file-date="{{ file.get('date','') }}" data-file-views="{{ file.get('view_count', 0) }}"
+                title="Inspect Specs">ℹ️</span>
+            </div>
+          </div>
+          <div class="card-subject-meta">
+            <span>🏛️</span>
+            <span>{{ file['subject'] }}</span>
+          </div>
+          <div class="card-title-text">{{ file['file-name'] }}</div>
+        </div>
+        <div class="card-footer-tray">
+          <div class="card-author-pill">
+            <span class="card-author-monogram">📅</span>
+            <span>{{ file.get('date','') or 'Latest Upload' }}</span>
+          </div>
+          <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
         </div>
       </a>
       {% else %}
-      <div style="color:#94a3b8;padding:2rem;">No recent papers uploaded yet.</div>
+      <div style="color:#94a3b8; padding:1.5rem;">No recent papers uploaded yet.</div>
       {% endfor %}
     </div>
   </div>
 </div>
 
-<!-- ── 3.5 Premium Resources Section ───────────────────────────────────── -->
+<!-- ── 6. Shelf: Premium & Topper Curated Materials ──────────────────────── -->
 {% if premium_files %}
-<div class="home-section" id="premiumResourcesSection">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">💎 Premium & Topper Resources</div>
-      <div class="home-section-subtitle">High-yield exam banks, verified topper notes & premium blueprints</div>
+<div class="deck-shelf" id="premiumResourcesSection">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>💎 Premium Exam Banks & Blueprints</h2>
+      <div class="deck-shelf-subtitle">High-yield study bundles curated by verified university rank holders</div>
     </div>
-    <span class="home-see-all" style="color:#d97706;font-weight:600;">⭐ Pro Curated</span>
+    <span style="font-size:0.8rem; font-weight:700; color:#b45309; background:#fef3c7; padding:0.25rem 0.65rem; border-radius:6px;">
+      Verified Dossiers
+    </span>
   </div>
-  <div class="hscroll-row">
+
+  <div class="deck-scroll-rack">
     {% for file in premium_files %}
     {% set _rid = file.get('record_id') or file.get('id') or '' %}
-    {% set _ftype = file.get('type', 'notes')|lower %}
     {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-    <a href="{{ furl }}" class="pcard premium-card">
-      <span class="pcard-badge premium">
-        {% if file.get('is_paid') and file.get('price') %}
-        💎 ₹{{ file.price | int }} Premium
-        {% else %}
-        ⭐ Top Pick
-        {% endif %}
-      </span>
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-        data-file-type="Premium {{ file.get('type', 'Material')|title }}" data-file-subject="{{ file.get('subject', '') }}"
-        data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
-        data-file-author="{{ file.get('author','')[:15] }}"
-        data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
-      <div class="pcard-subject" style="color:#b45309;">{{ file.get('subject', 'Special Curated') }}</div>
-      <div class="pcard-name" style="font-weight:700;">{{ file['file-name'] }}</div>
-      <div class="pcard-footer">
-        <span class="pcard-price-tag">
-          {% if file.get('is_paid') and file.get('price') %}
-          💎 Instant Unlock
-          {% else %}
-          ✓ Verified
-          {% endif %}
-        </span>
-        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
+    <a href="{{ furl }}" class="card-dossier card-type-premium pcard">
+      <div class="card-dossier-inner">
+        <div class="card-ticket-header">
+          <span class="card-taxonomy-badge">
+            {% if file.get('is_paid') and file.get('price') %}
+            💎 ₹{{ file.price | int }}
+            {% else %}
+            ⭐ TOPPER PICK
+            {% endif %}
+          </span>
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <span class="card-dossier-term">PRO BLUEPRINT</span>
+            <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+              data-file-type="Premium {{ file.get('type', 'Material')|title }}" data-file-subject="{{ file.get('subject', '') }}"
+              data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
+              data-file-author="{{ file.get('author','')[:15] }}"
+              data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
+          </div>
+        </div>
+        <div class="card-subject-meta">
+          <span>👑</span>
+          <span>{{ file.get('subject', 'SPECIAL BLUEPRINT') }}</span>
+        </div>
+        <div class="card-title-text">{{ file['file-name'] }}</div>
+      </div>
+      <div class="card-footer-tray">
+        <div class="card-author-pill">
+          <span>⚡</span>
+          <span>{% if file.get('is_paid') and file.get('price') %}Instant Access{% else %}Verified Quality{% endif %}</span>
+        </div>
+        <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
       </div>
     </a>
     {% endfor %}
@@ -441,136 +1299,45 @@
 </div>
 {% endif %}
 
-<!-- ── 4. Upload Contribution Banner ──────────────────────────────────── -->
-{% if user_data %}
-<div class="home-section">
-  <div class="upload-cta">
-    <div class="upload-cta-text">
-      📤 Share a paper, help your classmates
-      <span>You've helped {{ user_data.get('students_helped', 0) }} students so far. Keep contributing!</span>
+<!-- ── 7. Shelf: Topper Notes & Lab Practicals ───────────────────────────── -->
+{% if relevant_notes or trending_notes %}
+<div class="deck-shelf">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>📝 Curated Topper Notes</h2>
+      <div class="deck-shelf-subtitle">Handwritten unit summaries and chapter-wise question revisions</div>
     </div>
-    <a href="/upload" class="upload-cta-btn">Upload PYQ / Notes</a>
-  </div>
-</div>
-{% endif %}
-
-<!-- ── 5. Advanced Search Filter Bar ──────────────────────────────────── -->
-<div class="home-section" id="dashboardSearchSection">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">🔍 Filter & Search Library</div>
-      <div class="home-section-subtitle">Quickly filter by college, subject, year, or term</div>
-    </div>
-  </div>
-  <div class="container_search">
-    {% include 'includes/_search_partial.html' %}
-  </div>
-</div>
-
-<!-- ── 5.5 Filter by Author & Contributor ─────────────────────────────── -->
-{% if top_authors %}
-<div class="home-section" id="filterByAuthorSection">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">👤 Filter by Author & Contributor</div>
-      <div class="home-section-subtitle">Explore notes and exam packs published by student toppers & verified contributors</div>
-    </div>
-  </div>
-  
-  <div class="author-filter-header">
-    <div class="author-search-box">
-      <span class="author-search-icon">🔍</span>
-      <input type="text" id="authorSearchFilter" class="author-search-input" placeholder="Search authors (e.g. Mario, Abhijeet)..." oninput="filterAuthorPills()">
-    </div>
+    <a href="{{ url_for('library.pyq_landing') }}?type=notes" class="deck-shelf-link">Browse Notes Catalog</a>
   </div>
 
-  <div class="author-chips-container" id="authorChipsList">
-    <button type="button" class="author-chip active" data-author="all" onclick="selectAuthorFilter('all', this)">
-      <span class="author-chip-avatar">★</span>
-      <span>All Authors</span>
-    </button>
-    {% for auth in top_authors %}
-    <button type="button" class="author-chip" data-author="{{ auth.name | lower }}" onclick="selectAuthorFilter('{{ auth.name }}', this)">
-      <span class="author-chip-avatar">{{ auth.name[0] | upper }}</span>
-      <span class="author-chip-name">{{ auth.name }}</span>
-      <span class="author-chip-count">{{ auth.count }}</span>
-    </button>
-    {% endfor %}
-  </div>
-
-  <div class="hscroll-row" id="authorFilteredRow">
-    {% for file in data[:30] %}
-    {% set _rid = file.get('record_id') or file.get('id') or '' %}
-    {% set _ftype = file.get('type', 'papers')|lower %}
-    {% set is_notes = _ftype in ['notes', 'note', 'imp questions', 'imp_questions'] %}
-    {% set is_prac = _ftype in ['practical', 'practicals'] %}
-    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-    <a href="{{ furl }}" class="pcard {% if is_notes %}notes-card{% elif is_prac %}practical-card{% endif %}" data-file-author="{{ (file.get('author') or '') | lower }}">
-      {% if is_notes %}
-      <span class="pcard-badge notes">📝 Notes</span>
-      {% elif is_prac %}
-      <span class="pcard-badge practical">🧪 Practical</span>
-      {% else %}
-      <span class="pcard-badge">📄 PYQ</span>
-      {% endif %}
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-        data-file-type="{{ 'Notes' if is_notes else ('Practical' if is_prac else 'PYQ') }}" data-file-subject="{{ file.get('subject', '') }}"
-        data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
-        data-file-author="{{ file.get('author','') }}"
-        data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}"
-        data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
-      <div class="pcard-subject">{{ file.get('subject', 'General') }}</div>
-      <div class="pcard-name">{{ file['file-name'] }}</div>
-      <div class="pcard-footer">
-        <span class="pcard-meta">👤 {{ file.get('author','')[:14] or 'Contributor' }}</span>
-        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-  <div id="authorFilteredEmpty" class="author-filtered-empty" style="display:none;">
-    <span>No documents found for this author yet. Check back soon or select another author!</span>
-  </div>
-</div>
-{% endif %}
-
-<!-- ── 6. Study Notes: Personalized & Trending ────────────────────────── -->
-{% if relevant_notes %}
-<div class="home-section">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">
-        {% if user_data and user_data.college_name %}
-        📚 Notes for {{ user_data.college_name }}
-        {% else %}
-        🔥 Top Study Notes
-        {% endif %}
-      </div>
-      <div class="home-section-subtitle">Handwritten and typed notes organized by subject</div>
-    </div>
-    {% if user_data and user_data.college_slug %}
-    <a href="{{ url_for('library.college_files', college_slug=user_data.college_slug) }}?type=notes"
-      class="home-see-all">See all notes →</a>
-    {% else %}
-    <a href="{{ url_for('library.pyq_landing') }}?type=notes"
-      class="home-see-all">See all notes →</a>
-    {% endif %}
-  </div>
-  <div class="hscroll-row">
-    {% for file in relevant_notes %}
+  <div class="deck-scroll-rack">
+    {% for file in (relevant_notes or trending_notes) %}
     {% set _rid = file.get('record_id') or file.get('id') or '' %}
     {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-    <a href="{{ furl }}" class="pcard notes-card">
-      <span class="pcard-badge notes">📝 Notes</span>
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-        data-file-type="Notes" data-file-subject="{{ file['subject'] }}"
-        data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
-        data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
-      <div class="pcard-subject">{{ file['subject'] }}</div>
-      <div class="pcard-name">{{ file['file-name'] }}</div>
-      <div class="pcard-footer">
-        <span class="pcard-meta">📅 {{ file.get('year','') or file.get('date','')[:4] }}</span>
-        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
+    <a href="{{ furl }}" class="card-dossier card-type-notes pcard">
+      <div class="card-dossier-inner">
+        <div class="card-ticket-header">
+          <span class="card-taxonomy-badge">📝 TOPPER NOTES</span>
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <span class="card-dossier-term">HANDWRITTEN</span>
+            <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+              data-file-type="Notes" data-file-subject="{{ file['subject'] }}"
+              data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
+              data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
+          </div>
+        </div>
+        <div class="card-subject-meta">
+          <span>✒️</span>
+          <span>{{ file['subject'] }}</span>
+        </div>
+        <div class="card-title-text">{{ file['file-name'] }}</div>
+      </div>
+      <div class="card-footer-tray">
+        <div class="card-author-pill">
+          <span class="card-author-monogram">{{ (file.get('author','') or 'T')[0] | upper }}</span>
+          <span>{{ file.get('author','')[:14] or 'Student Contributor' }}</span>
+        </div>
+        <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
       </div>
     </a>
     {% endfor %}
@@ -578,44 +1345,7 @@
 </div>
 {% endif %}
 
-{% if trending_notes %}
-<div class="home-section">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">🔥 Trending Notes Across Colleges</div>
-      <div class="home-section-subtitle">Most viewed study notes and exam preparation material</div>
-    </div>
-    {% if user_data and user_data.college_slug %}
-    <a href="{{ url_for('library.college_files', college_slug=user_data.college_slug) }}?type=notes"
-      class="home-see-all">See all notes →</a>
-    {% else %}
-    <a href="{{ url_for('library.pyq_landing') }}?type=notes"
-      class="home-see-all">See all notes →</a>
-    {% endif %}
-  </div>
-  <div class="hscroll-row">
-    {% for file in trending_notes %}
-    {% set _rid = file.get('record_id') or file.get('id') or '' %}
-    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-    <a href="{{ furl }}" class="pcard notes-card">
-      <span class="pcard-badge notes">📝 Notes</span>
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-        data-file-type="Notes" data-file-subject="{{ file['subject'] }}"
-        data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
-        data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
-      <div class="pcard-subject">{{ file['subject'] }}</div>
-      <div class="pcard-name">{{ file['file-name'] }}</div>
-      <div class="pcard-footer">
-        <span class="pcard-meta">👤 {{ file.get('author','')[:15] or 'Contributor' }}</span>
-        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<!-- ── 7. Lab Practicals & Manuals ────────────────────────────────────── -->
+<!-- Lab Practicals & Manuals -->
 {% set practicals_files = [] %}
 {% for file in data %}
   {% if file['type']|lower in ['practical','practicals'] %}
@@ -623,38 +1353,43 @@
   {% endif %}
 {% endfor %}
 {% if practicals_files %}
-<div class="home-section">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">🧪 Lab Practicals & Manuals</div>
-      <div class="home-section-subtitle">Codes, write-ups and viva prep materials</div>
+<div class="deck-shelf">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>🧪 Laboratory Manuals & Code Writeups</h2>
+      <div class="deck-shelf-subtitle">Experiment setups, observation tables, and viva voce question packs</div>
     </div>
-    {% if practicals_files|length > 6 %}
-    {% if user_data and user_data.college_slug %}
-    <a href="{{ url_for('library.college_files', college_slug=user_data.college_slug) }}?type=practical"
-      class="home-see-all">See all practicals →</a>
-    {% else %}
-    <a href="{{ url_for('library.pyq_landing') }}?type=practical"
-      class="home-see-all">See all practicals →</a>
-    {% endif %}
-    {% endif %}
+    <a href="{{ url_for('library.pyq_landing') }}?type=practical" class="deck-shelf-link">Browse Practicals</a>
   </div>
-  <div class="hscroll-row">
-    {% for file in practicals_files[:8] %}
+
+  <div class="deck-scroll-rack">
+    {% for file in practicals_files[:10] %}
     {% set _rid = file.get('record_id') or file.get('id') or '' %}
     {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-    <a href="{{ furl }}" class="pcard practical-card">
-      <span class="pcard-badge practical">🧪 Practical</span>
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-        data-file-type="Practical" data-file-subject="{{ file['subject'] }}"
-        data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
-        data-file-author="{{ file.get('author','')[:15] }}" data-file-views="{{ file.get('view_count', 0) }}"
-        title="File info">ℹ️</span>
-      <div class="pcard-subject">{{ file['subject'] }}</div>
-      <div class="pcard-name">{{ file['file-name'] }}</div>
-      <div class="pcard-footer">
-        <span class="pcard-meta">👤 {{ file.get('author','')[:15] or 'Contributor' }}</span>
-        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
+    <a href="{{ furl }}" class="card-dossier card-type-practical pcard">
+      <div class="card-dossier-inner">
+        <div class="card-ticket-header">
+          <span class="card-taxonomy-badge">🧪 LAB MANUAL</span>
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <span class="card-dossier-term">VIVA READY</span>
+            <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+              data-file-type="Practical" data-file-subject="{{ file['subject'] }}"
+              data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
+              data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
+          </div>
+        </div>
+        <div class="card-subject-meta">
+          <span>⚡</span>
+          <span>{{ file['subject'] }}</span>
+        </div>
+        <div class="card-title-text">{{ file['file-name'] }}</div>
+      </div>
+      <div class="card-footer-tray">
+        <div class="card-author-pill">
+          <span class="card-author-monogram">🔬</span>
+          <span>{{ file.get('author','')[:14] or 'Lab Contributor' }}</span>
+        </div>
+        <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
       </div>
     </a>
     {% endfor %}
@@ -662,93 +1397,154 @@
 </div>
 {% endif %}
 
-<!-- ── 8. Growth & Community Hub (Grouped Cleanly) ────────────────────── -->
-<div class="home-section">
-  <div class="community-grid">
-    <!-- Semester Exam Pack -->
-    <div id="examPackBanner" class="exam-pack-banner">
-      <div class="exam-pack-banner-icon">📚</div>
-      <div class="exam-pack-banner-body">
-        <div class="exam-pack-banner-title">Semester Exam Pack Ready</div>
-        <div class="exam-pack-banner-sub">Previous-year papers & toppers' notes for your branch, all organized in one place.</div>
-        <div class="exam-pack-banner-actions">
-          <a href="/college" class="exam-pack-btn primary">Open Pack →</a>
-          <button id="examPackInviteBtn" type="button" class="exam-pack-btn ghost">Invite Classmate</button>
-          <button id="examPackWaBtn" type="button" class="exam-pack-btn wa" title="Share on WhatsApp">WhatsApp</button>
-          <button id="examPackIgBtn" type="button" class="exam-pack-btn ig" title="Share on Instagram">Instagram</button>
-        </div>
-      </div>
-      <button id="examPackClose" type="button" class="exam-pack-close" aria-label="Dismiss">×</button>
+<!-- ── 8. Search Station & Contributor Directory ────────────────────────── -->
+<div class="deck-shelf" id="dashboardSearchSection">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>🔍 Search & Multi-College Index</h2>
+      <div class="deck-shelf-subtitle">Quickly filter by subject, branch semester, or contributor profile</div>
+    </div>
+  </div>
+
+  <div class="deck-search-box-station">
+    <div class="container_search">
+      {% include 'includes/_search_partial.html' %}
     </div>
 
-    <!-- Referral Nudge Card -->
-    <div id="referralWidget" class="referral-widget">
-      <div class="referral-widget-icon">🎁</div>
-      <div class="referral-widget-body">
-        <div class="referral-widget-title">Invite Friends — Earn Credits</div>
-        <div class="referral-widget-sub">When your classmates join, you both get free instant view credits.</div>
-        <div class="referral-widget-progress" id="referralProgress" hidden></div>
-        <div class="referral-widget-row">
-          <input id="referralLinkInput" class="referral-widget-input" type="text" readonly value="Loading invite link…">
-          <button id="referralCopyBtn" class="referral-widget-copy" type="button">Copy</button>
-          <a id="referralShareBtn" class="referral-widget-share" href="#" target="_blank" rel="noopener">WhatsApp</a>
-          <button id="referralIgBtn" class="referral-widget-share ig" type="button" title="Share on Instagram">Instagram</button>
-        </div>
+    <!-- Author Filter Row -->
+    {% if top_authors %}
+    <div style="margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid #f1f5f9;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+        <span style="font-size:0.85rem; font-weight:700; color:#334155;">Filter Library by Author:</span>
+        <input type="text" id="authorSearchFilter" placeholder="Filter authors..." oninput="filterAuthorPills()" style="padding:0.35rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.8rem;">
+      </div>
+
+      <div class="deck-author-pills" id="authorChipsList">
+        <button type="button" class="deck-author-chip author-chip active" data-author="all" onclick="selectAuthorFilter('all', this)">
+          ★ All Authors
+        </button>
+        {% for auth in top_authors %}
+        <button type="button" class="deck-author-chip author-chip" data-author="{{ auth.name | lower }}" onclick="selectAuthorFilter('{{ auth.name }}', this)">
+          <span>{{ auth.name }}</span>
+          <span style="background:rgba(0,0,0,0.08); padding:0.1rem 0.4rem; border-radius:10px; font-size:0.7rem;">{{ auth.count }}</span>
+        </button>
+        {% endfor %}
+      </div>
+
+      <div class="deck-scroll-rack" id="authorFilteredRow">
+        {% for file in data[:30] %}
+        {% set _rid = file.get('record_id') or file.get('id') or '' %}
+        {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
+        <a href="{{ furl }}" class="card-dossier card-type-pyq pcard" data-file-author="{{ (file.get('author') or '') | lower }}">
+          <div class="card-dossier-inner">
+            <div class="card-ticket-header">
+              <span class="card-taxonomy-badge">📄 DOSSIER</span>
+              <div style="display:flex; align-items:center; gap:0.4rem;">
+                <span class="card-dossier-term">LIBRARY</span>
+                <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+                  data-file-type="Document" data-file-subject="{{ file.get('subject', '') }}"
+                  data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
+                  data-file-author="{{ file.get('author','') }}"
+                  data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
+              </div>
+            </div>
+            <div class="card-subject-meta">
+              <span>🏛️</span>
+              <span>{{ file.get('subject', 'CORE') }}</span>
+            </div>
+            <div class="card-title-text">{{ file['file-name'] }}</div>
+          </div>
+          <div class="card-footer-tray">
+            <div class="card-author-pill">
+              <span class="card-author-monogram">{{ (file.get('author','') or 'C')[0] | upper }}</span>
+              <span>{{ file.get('author','')[:14] or 'Contributor' }}</span>
+            </div>
+            <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      <div id="authorFilteredEmpty" style="display:none; text-align:center; padding:1.5rem; color:#94a3b8; font-size:0.88rem;">
+        No documents found matching this author query. Select "All Authors" to reset.
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── 9. Community Dispatch & Peer Network ──────────────────────────────── -->
+<div class="deck-shelf">
+  <div class="deck-community-split">
+    <!-- Semester Pack Dispatch -->
+    <div id="examPackBanner" class="deck-community-card">
+      <div style="font-size:1.75rem; margin-bottom:0.5rem;">📚</div>
+      <h3>Semester Pack Ready</h3>
+      <p>Previous-year question papers & topper notes for your branch bundled in one single academic pack.</p>
+      <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+        <a href="/college" class="deck-btn-primary" style="padding:0.45rem 0.85rem; font-size:0.8rem;">Open Pack</a>
+        <button id="examPackInviteBtn" type="button" class="deck-btn-hollow" style="color:#0f172a; border-color:#cbd5e1; padding:0.45rem 0.85rem; font-size:0.8rem;">Invite Classmate</button>
+        <button id="examPackWaBtn" type="button" class="deck-btn-hollow" style="color:#15803d; border-color:#86efac; background:#f0fdf4; padding:0.45rem 0.85rem; font-size:0.8rem;">WhatsApp</button>
+        <button id="examPackIgBtn" type="button" class="deck-btn-hollow" style="color:#b91c1c; border-color:#fca5a5; background:#fef2f2; padding:0.45rem 0.85rem; font-size:0.8rem;">Instagram</button>
+      </div>
+    </div>
+
+    <!-- Referral Incentive Engine -->
+    <div id="referralWidget" class="deck-community-card">
+      <div style="font-size:1.75rem; margin-bottom:0.5rem;">🎁</div>
+      <h3>Invite Friends · Earn Credits</h3>
+      <p>When your classmates join AbhiHub, both of you earn instant extra study view credits.</p>
+      <div id="referralProgress" hidden style="background:#fef3c7; color:#92400e; padding:0.4rem 0.75rem; border-radius:8px; font-size:0.8rem; margin-bottom:0.75rem;"></div>
+      <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <input id="referralLinkInput" type="text" readonly value="Loading invite link…" style="flex:1; min-width:160px; padding:0.45rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.8rem; background:#f8fafc;">
+        <button id="referralCopyBtn" type="button" class="deck-btn-primary" style="padding:0.45rem 0.85rem; font-size:0.8rem;">Copy</button>
+        <a id="referralShareBtn" href="#" class="deck-btn-hollow" style="color:#15803d; border-color:#86efac; background:#f0fdf4; padding:0.45rem 0.85rem; font-size:0.8rem;">WhatsApp</a>
+        <button id="referralIgBtn" type="button" class="deck-btn-hollow" style="color:#b91c1c; border-color:#fca5a5; background:#fef2f2; padding:0.45rem 0.85rem; font-size:0.8rem;">Instagram</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- Suggested Peers & Classmates Section (logged-in users only) -->
+<!-- Classmates & Peers Section -->
 {% if user_data %}
-<div class="home-section">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">
-        🎓 Classmates from {{ user_data.college_name or 'Your College' }}
-      </div>
-      <div class="home-section-subtitle">Connect, chat, and share study materials with peers</div>
+<div class="deck-shelf">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>🎓 Classmates from {{ user_data.college_name or 'Your Campus' }}</h2>
+      <div class="deck-shelf-subtitle">Real-time study network and peer note exchange</div>
     </div>
-    <div id="onlineWidget" class="online-widget">
-      <div id="onlineInner" class="online-inner">
-        <span class="online-dot"></span>
-        <span>Online Now: <strong id="onlineCount">—</strong></span>
-      </div>
+    <div style="display:inline-flex; align-items:center; gap:0.4rem; background:#ecfdf5; border:1px solid #a7f3d0; padding:0.25rem 0.65rem; border-radius:20px; font-size:0.78rem; font-weight:600; color:#065f46;">
+      <span style="width:8px; height:8px; border-radius:50%; background:#10b981; display:inline-block;"></span>
+      <span>Online: <strong id="onlineCount">—</strong></span>
     </div>
   </div>
-  <div id="suggestedPeersGrid" class="suggested-peers-grid">
-    <div class="suggested-peers-loading" style="text-align:center;padding:1.5rem;color:#94a3b8;grid-column:1/-1;">
-      Loading classmates…
+
+  <div id="suggestedPeersGrid" class="deck-peers-grid">
+    <div style="text-align:center; padding:1.5rem; color:#94a3b8; grid-column:1/-1;">
+      Connecting to peer network…
     </div>
   </div>
 </div>
 {% endif %}
 
-<!-- ── 8.5 Student Reviews & App Feedback ────────────────────────── -->
-<div class="home-section feedback-section">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">
-        💬 Student Reviews & App Feedback
-      </div>
-      <div class="home-section-subtitle">
-        ⭐ 4.9 / 5 Rating · Real feedback from college students & diploma toppers
-      </div>
+<!-- ── 10. Student Reviews & Continuous Feedback ────────────────────────── -->
+<div class="deck-shelf feedback-section">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>💬 Student Reviews & App Feedback</h2>
+      <div class="deck-shelf-subtitle">Rated 4.9 / 5 across engineering, diploma, and technical colleges</div>
     </div>
-    <div class="feedback-header-actions">
-      <button type="button" id="toggleFeedbackFormBtn" class="btn-leave-review">
-        ✍️ Give Feedback
-      </button>
-    </div>
+    <button type="button" id="toggleFeedbackFormBtn" class="deck-btn-primary" style="padding:0.45rem 0.85rem; font-size:0.82rem;">
+      ✍️ Submit Review
+    </button>
   </div>
 
-  <!-- Interactive Feedback Submission Box -->
-  <div id="feedbackFormBox" class="feedback-form-box">
-    <div class="feedback-form-title">Rate your AbhiHub Experience</div>
-    <div class="feedback-form-sub">Your feedback helps us expand past papers, question banks, and notes for all colleges.</div>
+  <!-- Interactive Feedback Drawer -->
+  <div id="feedbackFormBox" class="feedback-form-box" style="margin-bottom:1.5rem;">
+    <div style="font-weight:700; font-size:1rem; margin-bottom:0.25rem;">Rate Your AbhiHub Experience</div>
+    <div style="font-size:0.82rem; color:#64748b; margin-bottom:1rem;">Your feedback helps us expand past papers, question banks, and notes for all colleges.</div>
     <form id="appFeedbackForm" onsubmit="submitAppFeedback(event)">
-      <div class="feedback-rating-select">
-        <span style="font-size:0.85rem;font-weight:600;color:#475569;margin-right:0.5rem;">Your Rating:</span>
+      <div class="feedback-rating-select" style="display:flex; align-items:center; gap:0.35rem; margin-bottom:1rem;">
+        <span style="font-size:0.85rem; font-weight:600; color:#475569; margin-right:0.5rem;">Your Rating:</span>
         <button type="button" class="rating-star-btn active" data-star="1">★</button>
         <button type="button" class="rating-star-btn active" data-star="2">★</button>
         <button type="button" class="rating-star-btn active" data-star="3">★</button>
@@ -756,78 +1552,69 @@
         <button type="button" class="rating-star-btn active" data-star="5">★</button>
         <input type="hidden" id="feedbackRatingValue" name="rating" value="5">
       </div>
-      <div class="feedback-input-row">
-        <input type="text" id="feedbackUserName" class="feedback-input" placeholder="Your Name" value="{{ user_data.name if user_data else '' }}" required maxlength="50">
-        <input type="text" id="feedbackUserCollege" class="feedback-input" placeholder="College / Branch (e.g. GHRCE · CSE)" value="{{ user_data.college_name if user_data else '' }}" maxlength="60">
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+        <input type="text" id="feedbackUserName" class="feedback-input" placeholder="Your Name" value="{{ user_data.name if user_data else '' }}" required maxlength="50" style="padding:0.5rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px;">
+        <input type="text" id="feedbackUserCollege" class="feedback-input" placeholder="College / Branch (e.g. GHRCE · CSE)" value="{{ user_data.college_name if user_data else '' }}" maxlength="60" style="padding:0.5rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px;">
       </div>
-      <textarea id="feedbackMessage" class="feedback-textarea" placeholder="Tell us what you love or what new notes / features you'd like to see next..." required maxlength="300"></textarea>
-      <div class="feedback-form-actions">
-        <button type="button" id="cancelFeedbackBtn" class="feedback-btn-cancel">Cancel</button>
-        <button type="submit" id="submitFeedbackBtn" class="feedback-btn-submit">Submit Review 🚀</button>
+      <textarea id="feedbackMessage" class="feedback-textarea" placeholder="Tell us what you love or what new notes / features you'd like to see next..." required maxlength="300" style="width:100%; box-sizing:border-box; padding:0.6rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px; min-height:80px;"></textarea>
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.75rem;">
+        <button type="button" id="cancelFeedbackBtn" class="deck-btn-hollow" style="color:#0f172a; border-color:#cbd5e1;">Cancel</button>
+        <button type="submit" id="submitFeedbackBtn" class="deck-btn-primary">Submit Review 🚀</button>
       </div>
     </form>
   </div>
 
   <!-- Reviews Grid -->
-  <div id="feedbackCardsGrid" class="feedback-grid">
+  <div id="feedbackCardsGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:1rem;">
     {% for fb in (community_feedbacks or []) %}
-    <div class="feedback-card">
+    <div style="background:#ffffff; border:1px solid var(--deck-border); border-radius:14px; padding:1.15rem; display:flex; flex-direction:column; justify-content:space-between;">
       <div>
-        <div class="feedback-card-header">
-          <div class="feedback-avatar">
+        <div style="display:flex; align-items:center; gap:0.65rem; margin-bottom:0.65rem;">
+          <div style="width:36px; height:36px; border-radius:50%; background:#e0f2fe; color:#0369a1; display:flex; align-items:center; justify-content:center; font-weight:700;">
             {{ (fb.name or 'S')[0] | upper }}
           </div>
-          <div class="feedback-author-info">
-            <div class="feedback-author-name">
-              {{ fb.name }}
-              <span class="feedback-badge-verified">✓ Verified Student</span>
-            </div>
-            <div class="feedback-author-meta">
-              {{ fb.college or 'Engineering Student' }}{% if fb.branch %} · {{ fb.branch }}{% endif %}
-            </div>
+          <div>
+            <div style="font-weight:700; font-size:0.88rem; color:#0f172a;">{{ fb.name }} <span style="color:#0284c7; font-size:0.75rem;">✓</span></div>
+            <div style="font-size:0.75rem; color:#64748b;">{{ fb.college or 'Engineering Student' }}</div>
           </div>
         </div>
-        <div class="feedback-stars-row">
+        <div style="color:#f59e0b; font-size:0.85rem; margin-bottom:0.5rem;">
           {% for i in range(fb.rating or 5) %}★{% endfor %}
-          {% for i in range(5 - (fb.rating or 5)) %}<span style="color:#cbd5e1;">★</span>{% endfor %}
         </div>
-        <p class="feedback-text">"{{ fb.message }}"</p>
+        <p style="font-size:0.82rem; color:#334155; line-height:1.45; margin:0 0 0.75rem;">"{{ fb.message }}"</p>
       </div>
-      <div class="feedback-card-footer">
-        <span>AbhiHub Student Community</span>
-        <span>{{ fb.date or 'Recently' }}</span>
+      <div style="font-size:0.72rem; color:#94a3b8; border-top:1px solid #f1f5f9; padding-top:0.5rem;">
+        Verified Student Review
       </div>
     </div>
     {% endfor %}
   </div>
 </div>
 
-<div id="feedbackToast" class="feedback-toast">
+<div id="feedbackToast" class="feedback-toast" style="display:none; position:fixed; bottom:24px; right:24px; background:#0f172a; color:#ffffff; padding:0.75rem 1.25rem; border-radius:10px; z-index:9999; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
   <span>✅ Thank you! Your review has been published.</span>
 </div>
 
-<!-- ── 9. Modals & Overlays ───────────────────────────────────────────── -->
+<!-- ── 11. Modals & Overlays ────────────────────────────────────────────── -->
 
-<!-- Buy Credits Modal is inherited globally from p_struct.html -->
-
-<!-- File Info Modal (ℹ️ on file cards) -->
+<!-- File Info Modal -->
 <div id="fileInfoModal" class="file-info-modal-overlay" data-action="closeFileInfo">
   <div class="file-info-modal" role="dialog" aria-modal="true" aria-labelledby="fileInfoTitle">
-    <button type="button" class="file-info-modal__close" data-action="closeFileInfo" aria-label="Close">✕</button>
-    <h3 id="fileInfoTitle" style="margin:0;font-size:1.15rem;color:#0f172a;">📄 File Information</h3>
+    <button type="button" class="file-info-modal__close" data-action="closeFileInfo" aria-label="Close" onclick="closeFileInfo()">✕</button>
+    <h3 id="fileInfoTitle" style="margin:0 0 1rem; font-size:1.15rem; color:#0f172a; font-family:var(--deck-font-display);">📄 File Dossier</h3>
     <div class="file-info-modal-body"></div>
   </div>
 </div>
 
 <!-- First-Login Onboarding Modal -->
 {% if user_data %}
-<div id="welcomeOnboardingModal" class="popup-overlay dashboard-modal-body">
+<div id="welcomeOnboardingModal" class="popup-overlay dashboard-modal-body" style="display:none;">
   <div class="popup-card dashboard-welcome-card">
     <div class="dashboard-welcome-header">
       <div class="dashboard-welcome-banner"></div>
       <div class="dashboard-welcome-icon">🎓</div>
       <h2 class="dashboard-welcome-title">Welcome to AbhiHub!</h2>
-      <p class="dashboard-welcome-copy">Your academic resource & community hub</p>
+      <p class="dashboard-welcome-copy">Your engineering exam resource & peer exchange hub</p>
     </div>
     <div class="dashboard-welcome-body">
       <div class="dashboard-welcome-grid">
@@ -844,18 +1631,19 @@
           <div>Practicals</div>
         </div>
       </div>
-      <button type="button" onclick="closeOnboardingModal()" class="dashboard-modal-link" style="border:none;cursor:pointer;">Get Started →</button>
+      <button type="button" onclick="closeOnboardingModal()" class="dashboard-modal-link" style="border:none; cursor:pointer;">Enter Flight Deck →</button>
     </div>
   </div>
 </div>
 {% endif %}
+
 <!-- PWA Install Popup -->
-<div id="pwaInstallPopup" class="pwa-install-popup">
+<div id="pwaInstallPopup" class="pwa-install-popup" style="display:none;">
   <div class="pwa-popup-content">
     <div class="pwa-popup-header">
       <button class="pwa-popup-close" type="button" data-action="PWAManager.closePWAPopup" aria-label="Close">×</button>
-      <h2 class="pwa-popup-heading">📱 Install AbhiHub App</h2>
-      <p class="pwa-popup-copy">Install AbhiHub on your home screen for quick offline access</p>
+      <h2 class="pwa-popup-heading">📱 Install AbhiHub Terminal</h2>
+      <p class="pwa-popup-copy">Save AbhiHub directly to your device home screen for lightning offline access</p>
     </div>
     <div class="pwa-popup-body">
       <div id="installInstructions"></div>
@@ -863,15 +1651,45 @@
   </div>
 </div>
 
-<!-- ── 10. Dashboard Interactive Scripts ──────────────────────────────── -->
+<!-- ── 12. Dashboard Interactive Scripts ─────────────────────────────────── -->
 <script>
+  /* ── 90% Launch Covenant Countdown Timer (Target: 8 Nov 2026 23:59:59 IST) ── */
+  function startCovenantTimer() {
+    const targetDate = new Date('2026-11-08T23:59:59+05:30').getTime();
+    function tick() {
+      const now = new Date().getTime();
+      const diff = Math.max(0, targetDate - now);
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diff % (1000 * 60)) / 1000);
+
+      const dEl = document.getElementById('covDays');
+      const hEl = document.getElementById('covHours');
+      const mEl = document.getElementById('covMins');
+      const sEl = document.getElementById('covSecs');
+      if (dEl) dEl.textContent = String(days).padStart(2, '0');
+      if (hEl) hEl.textContent = String(hours).padStart(2, '0');
+      if (mEl) mEl.textContent = String(mins).padStart(2, '0');
+      if (sEl) sEl.textContent = String(secs).padStart(2, '0');
+    }
+    tick();
+    setInterval(tick, 1000);
+  }
+
   /* ── Tab Switching ─────────────────────────────────────────── */
   function switchTab(btn, tabId) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.deck-tab-button, .tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => {
+      p.classList.remove('active');
+      p.style.display = 'none';
+    });
     btn.classList.add('active');
     const panel = document.getElementById(tabId);
-    if (panel) panel.classList.add('active');
+    if (panel) {
+      panel.classList.add('active');
+      panel.style.display = 'block';
+    }
   }
 
   /* ── Author Filter Interactive Logic ───────────────────────── */
@@ -912,13 +1730,11 @@
     });
   };
 
-
-
   /* ── File Information Modal ────────────────────────────────── */
   window.showFileInfo = function (e, el) {
     if (e && e.target) { e.stopPropagation(); e.preventDefault(); }
     const data = (el || e)?.dataset || {};
-    const name = data.fileName || data.file_name || 'Unknown file';
+    const name = data.fileName || data.file_name || 'Resource';
     const subject = data.fileSubject || data.file_subject || '-';
     const author = data.fileAuthor || data.file_author || '-';
     const year = data.fileYear || data.file_year || data.fileDate || data.file_date || '-';
@@ -928,13 +1744,13 @@
     const modal = document.getElementById('fileInfoModal');
     if (!modal) return;
     let html = '';
-    [['File', name], ['Type', ftype], ['College', college], ['Subject', subject],
-     ['Author', author], ['Year', year], ['Views', views]]
+    [['Resource', name], ['Classification', ftype], ['Institution', college], ['Subject', subject],
+     ['Contributor', author], ['Term / Year', year], ['Views', views]]
       .forEach(([label, val]) => {
-        html += `<div class="file-info-row"><span class="file-info-label">${label}</span><span class="file-info-value">${val || '-'}</span></div>`;
+        html += `<div style="display:flex; justify-content:space-between; padding:0.45rem 0; border-bottom:1px solid #f1f5f9; font-size:0.85rem;"><span style="color:#64748b; font-weight:600;">${label}</span><span style="color:#0f172a; font-weight:700; text-align:right;">${val || '-'}</span></div>`;
       });
-    html += `<div class="file-info-license">
-      <strong>Ownership Notice:</strong> This academic resource was contributed by the AbhiHub student community for educational reference.
+    html += `<div style="margin-top:1rem; padding:0.75rem; background:#f8fafc; border-radius:8px; font-size:0.75rem; color:#64748b; line-height:1.4;">
+      <strong>Academic Covenant:</strong> Verified peer resource shared for study & research under AbhiHub community guidelines.
     </div>`;
     const body = modal.querySelector('.file-info-modal-body');
     if (body) body.innerHTML = html;
@@ -959,18 +1775,6 @@
   /* ── Exam Pack & Referral Link Growth Logic ─────────────────── */
   (function () {
     try {
-      if (localStorage.getItem('examPackBannerDismissed') === '1') {
-        const b = document.getElementById('examPackBanner');
-        if (b) b.remove();
-      }
-      const close = document.getElementById('examPackClose');
-      if (close) {
-        close.addEventListener('click', function () {
-          const el = document.getElementById('examPackBanner');
-          if (el) el.remove();
-          try { localStorage.setItem('examPackBannerDismissed', '1'); } catch (e) { }
-        });
-      }
       const inv = document.getElementById('examPackInviteBtn');
       if (inv) {
         inv.addEventListener('click', function () {
@@ -998,13 +1802,11 @@
         return 'https://' + base + '/signup';
       }
 
-      // Referral link is fetched on demand when clicking share/copy buttons
-
       const waBtn = document.getElementById('examPackWaBtn');
       if (waBtn) {
         waBtn.addEventListener('click', async function () {
           const url = await examPackShareUrl();
-          const text = encodeURIComponent('Free engineering exam papers & notes on AbhiHub — join with my link: ' + url);
+          const text = encodeURIComponent('Free engineering exam papers & topper notes on AbhiHub — join here: ' + url);
           window.open('https://wa.me/?text=' + text, '_blank', 'noopener');
         });
       }
@@ -1028,7 +1830,7 @@
             copyBtn.textContent = 'Copied!';
             setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
           } catch (e) {
-            alert('Your invite link: ' + url);
+            alert('Invite link: ' + url);
           }
         });
       }
@@ -1040,9 +1842,9 @@
             const url = await examPackShareUrl();
             try {
               await navigator.clipboard.writeText(url);
-              alert('Invite link copied! Share it with classmates on Instagram:\n' + url);
+              alert('Invite link copied! Share with classmates on Instagram:\n' + url);
             } catch (e) {
-              alert('Your invite link: ' + url);
+              alert('Invite link: ' + url);
             }
             window.open('https://instagram.com/', '_blank', 'noopener');
           });
@@ -1051,7 +1853,7 @@
     } catch (e) { }
   })();
 
-  /* ── Suggested Peers & Classmates Loader (Lazy on scroll) ────── */
+  /* ── Suggested Peers & Classmates Loader ─────────────────────── */
   (function () {
     let peersLoaded = false;
     function loadSuggestedPeers() {
@@ -1063,28 +1865,30 @@
         .then(r => r.json())
         .then(d => {
           if (d.success && (d.suggested || []).length) {
-            grid.className = 'suggested-peers-grid';
             grid.innerHTML = d.suggested.map(u => {
               const init = (u.full_name || 'S').charAt(0).toUpperCase();
-              const verified = u.is_verified ? '<span style="color:#4f46e5;">✔️</span>' : '';
-              return `<div class="suggested-peer-card" title="View ${u.full_name || 'Student'}'s profile" onclick="location.href='/u/${u.id}'">
-                <div class="suggested-peer-avatar">${init}</div>
-                <div class="suggested-peer-name">${u.full_name || 'Student'} ${verified}</div>
-                <div class="suggested-peer-meta">${u.college_name || 'AbhiHub'} • ⚡ ${u.reputation_score || 0} • 📤 ${u.uploads_count || 0}</div>
-                <div class="suggested-peer-actions">
-                  <a href="/chat/${u.id}" class="suggested-peer-chat" onclick="event.stopPropagation();">💬 Chat</a>
-                  <a href="/u/${u.id}" class="suggested-peer-profile" onclick="event.stopPropagation();">Profile</a>
+              return `<div class="deck-peer-tile" onclick="location.href='/u/${u.id}'" style="cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:0.65rem; margin-bottom:0.5rem;">
+                  <div style="width:36px; height:36px; border-radius:50%; background:#e0f2fe; color:#0369a1; display:flex; align-items:center; justify-content:center; font-weight:700;">${init}</div>
+                  <div style="overflow:hidden;">
+                    <div style="font-weight:700; font-size:0.85rem; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${u.full_name || 'Student'}</div>
+                    <div style="font-size:0.75rem; color:#64748b;">${u.college_name || 'AbhiHub'}</div>
+                  </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; border-top:1px solid #e2e8f0; padding-top:0.4rem;">
+                  <span style="color:#0284c7; font-weight:600;">⚡ ${u.reputation_score || 0} pts</span>
+                  <a href="/chat/${u.id}" onclick="event.stopPropagation();" style="color:#0284c7; font-weight:700; text-decoration:none;">Chat 💬</a>
                 </div>
               </div>`;
             }).join('');
             const onlineCount = document.getElementById('onlineCount');
-            if (onlineCount) onlineCount.textContent = d.suggested.length + ' peers';
+            if (onlineCount) onlineCount.textContent = d.suggested.length + ' peers active';
           } else {
-            grid.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#94a3b8;grid-column:1/-1;font-size:0.88rem;">No classmates registered yet. Be the first to invite your college friends!</div>';
+            grid.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#94a3b8; grid-column:1/-1; font-size:0.88rem;">No classmates registered yet. Be the first to invite your college peers!</div>';
           }
         })
         .catch(() => {
-          grid.innerHTML = '<div style="text-align:center;padding:1.5rem;color:#94a3b8;grid-column:1/-1;font-size:0.88rem;">Connect with college peers using Find Peers above.</div>';
+          grid.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#94a3b8; grid-column:1/-1; font-size:0.88rem;">Connect with college peers using Find Peers above.</div>';
         });
     }
 
@@ -1097,10 +1901,8 @@
         }
       }, { rootMargin: '250px' });
       observer.observe(gridTarget);
-    } else if ('requestIdleCallback' in window) {
-      requestIdleCallback(loadSuggestedPeers, { timeout: 5000 });
     } else {
-      setTimeout(loadSuggestedPeers, 4000);
+      setTimeout(loadSuggestedPeers, 3000);
     }
   })();
 
@@ -1131,6 +1933,7 @@
       if (p) p.style.display = 'none';
     }
   };
+
   /* ── App Feedback & Ratings ─────────────────────────────────── */
   function initFeedbackUI() {
     const toggleBtn = document.getElementById('toggleFeedbackFormBtn');
@@ -1141,16 +1944,13 @@
 
     if (toggleBtn && formBox) {
       toggleBtn.addEventListener('click', () => {
-        formBox.classList.toggle('is-open');
-        if (formBox.classList.contains('is-open')) {
-          const msg = document.getElementById('feedbackMessage');
-          if (msg) msg.focus();
-        }
+        const isHidden = formBox.style.display === 'none' || !formBox.style.display;
+        formBox.style.display = isHidden ? 'block' : 'none';
       });
     }
     if (cancelBtn && formBox) {
       cancelBtn.addEventListener('click', () => {
-        formBox.classList.remove('is-open');
+        formBox.style.display = 'none';
       });
     }
 
@@ -1194,44 +1994,10 @@
           toast.style.display = 'flex';
           setTimeout(() => { toast.style.display = 'none'; }, 3500);
         }
-        const grid = document.getElementById('feedbackCardsGrid');
-        if (grid && data.feedback) {
-          const fb = data.feedback;
-          const starsHtml = '★'.repeat(fb.rating || 5) + (fb.rating < 5 ? `<span style="color:#cbd5e1;">${'★'.repeat(5 - fb.rating)}</span>` : '');
-          const cardHtml = `
-            <div class="feedback-card" style="border-color:#818cf8;animation:feedbackSlideDown 0.3s ease-out;">
-              <div>
-                <div class="feedback-card-header">
-                  <div class="feedback-avatar" style="background:#e0e7ff;color:#4338ca;">
-                    ${(fb.name || 'S')[0].toUpperCase()}
-                  </div>
-                  <div class="feedback-author-info">
-                    <div class="feedback-author-name">
-                      ${fb.name}
-                      <span class="feedback-badge-verified">✓ Verified Student</span>
-                    </div>
-                    <div class="feedback-author-meta">
-                      ${fb.college || 'Engineering Student'}
-                    </div>
-                  </div>
-                </div>
-                <div class="feedback-stars-row">
-                  ${starsHtml}
-                </div>
-                <p class="feedback-text">"${fb.message}"</p>
-              </div>
-              <div class="feedback-card-footer">
-                <span>AbhiHub Student Community</span>
-                <span>Just now</span>
-              </div>
-            </div>
-          `;
-          grid.insertAdjacentHTML('afterbegin', cardHtml);
-        }
         const form = document.getElementById('appFeedbackForm');
         if (form) form.reset();
         const formBox = document.getElementById('feedbackFormBox');
-        if (formBox) formBox.classList.remove('is-open');
+        if (formBox) formBox.style.display = 'none';
       } else {
         alert(data.error || 'Failed to submit review.');
       }
@@ -1244,6 +2010,7 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
+    startCovenantTimer();
     PWAManager.init();
     initFeedbackUI();
     // Progressive sync of dashboard live summary
@@ -1251,8 +2018,8 @@
       .then(r => r.json())
       .then(res => {
         if (res.success && res.counts) {
-          const pEl = document.querySelector('.hero-stat-pill[title*="Papers"] .hero-stat-val');
-          const nEl = document.querySelector('.hero-stat-pill[title*="Notes"] .hero-stat-val');
+          const pEl = document.querySelector('.deck-metric-box:nth-child(5) .deck-metric-val');
+          const nEl = document.querySelector('.deck-metric-box:nth-child(6) .deck-metric-val');
           if (pEl && res.counts.papers !== undefined) pEl.textContent = res.counts.papers;
           if (nEl && res.counts.notes !== undefined) nEl.textContent = res.counts.notes;
         }

@@ -1,12 +1,51 @@
 import { supabase } from "./supabase-config.js";
 
-function getNextRedirectUrl() {
+function getNextRedirectUrl(consume = false) {
     try {
-        const nextParam = new URLSearchParams(window.location.search).get('next');
+        let nextParam = new URLSearchParams(window.location.search).get('next') 
+            || localStorage.getItem('auth_next_url') 
+            || sessionStorage.getItem('auth_next_url');
+        
         if (nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') && !nextParam.startsWith('/\\') && !nextParam.includes('\\')) {
-            return nextParam;
+            if (nextParam.startsWith('/app-shell?p=')) {
+                const pVal = new URLSearchParams(nextParam.substring(10)).get('p');
+                if (pVal) nextParam = pVal;
+            }
+            const cleanNext = nextParam.split('?')[0].split('#')[0];
+            if (cleanNext !== '' && cleanNext !== '/' && cleanNext !== '/landing') {
+                if (consume) {
+                    try {
+                        localStorage.removeItem('auth_next_url');
+                        sessionStorage.removeItem('auth_next_url');
+                    } catch(e) {}
+                }
+                return nextParam;
+            }
         }
     } catch (e) {}
+
+    // Fallback: check document.referrer if from same origin and not landing or auth page
+    try {
+        if (document.referrer) {
+            const refObj = new URL(document.referrer);
+            if (refObj.origin === window.location.origin && 
+                refObj.pathname !== '/' &&
+                refObj.pathname !== '/landing' &&
+                !refObj.pathname.startsWith('/login') && 
+                !refObj.pathname.startsWith('/signup') && 
+                !refObj.pathname.startsWith('/logout') && 
+                !refObj.pathname.startsWith('/auth')) {
+                return refObj.pathname + refObj.search;
+            }
+        }
+    } catch (e) {}
+
+    if (consume) {
+        try {
+            localStorage.removeItem('auth_next_url');
+            sessionStorage.removeItem('auth_next_url');
+        } catch(e) {}
+    }
     return '/app-shell';
 }
 
@@ -25,7 +64,7 @@ function clearStoredReferralCode() {
     } catch (e) {}
 }
 
-// Immediately capture referral code if present in current URL
+// Immediately capture referral code and next redirect URL if present
 try {
     const _urlParams = new URLSearchParams(window.location.search);
     const _refParam = _urlParams.get('ref');
@@ -33,6 +72,14 @@ try {
         const _cleanRef = _refParam.trim().toUpperCase();
         localStorage.setItem('abhihub_ref_code', _cleanRef);
         sessionStorage.setItem('abhihub_ref_code', _cleanRef);
+    }
+    const _nextParam = _urlParams.get('next');
+    if (_nextParam && _nextParam.startsWith('/') && !_nextParam.startsWith('//') && !_nextParam.includes('\\')) {
+        const cleanNext = _nextParam.split('?')[0].split('#')[0];
+        if (cleanNext !== '' && cleanNext !== '/' && cleanNext !== '/landing') {
+            localStorage.setItem('auth_next_url', _nextParam);
+            sessionStorage.setItem('auth_next_url', _nextParam);
+        }
     }
 } catch (e) {}
 
@@ -131,13 +178,14 @@ async function handleOAuthCallback() {
                 } else if (window.AbhiHubTracking) {
                     window.AbhiHubTracking.trackLogin(type === 'signup' ? 'email_verification' : 'google_oauth');
                 }
+                const targetRedirect = getNextRedirectUrl(true);
                 // Clean the URL without triggering hash-navigation cancels
                 if (window.history && window.history.replaceState) {
                     window.history.replaceState(null, document.title, window.location.pathname);
                 } else {
                     window.location.hash = '';
                 }
-                window.location.replace(getNextRedirectUrl());
+                window.location.replace(targetRedirect);
             } else {
                 console.error('Backend login failed:', data.message);
                 const failMsg = data.message || 'Authentication session could not be established.';
@@ -247,6 +295,15 @@ async function authSignInWithGoogle() {
         // Clear previous errors
         errorMsgGoogleSignIn.textContent = '';
 
+        // Persist return URL before navigating away to Google OAuth
+        const targetNext = getNextRedirectUrl();
+        if (targetNext && targetNext !== '/app-shell') {
+            try {
+                localStorage.setItem('auth_next_url', targetNext);
+                sessionStorage.setItem('auth_next_url', targetNext);
+            } catch(e) {}
+        }
+
         // Attempt to sign in with Google via Supabase
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
@@ -279,6 +336,15 @@ async function authSignUpWithGoogle() {
 
         // Clear previous errors
         errorMsgGoogleSignIn.textContent = '';
+
+        // Persist return URL before navigating away to Google OAuth
+        const targetNext = getNextRedirectUrl();
+        if (targetNext && targetNext !== '/app-shell') {
+            try {
+                localStorage.setItem('auth_next_url', targetNext);
+                sessionStorage.setItem('auth_next_url', targetNext);
+            } catch(e) {}
+        }
 
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
@@ -662,7 +728,7 @@ function loginUser(user, idToken) {
                 } else if (window.AbhiHubTracking) {
                     window.AbhiHubTracking.trackLogin('email');
                 }
-                window.location.href = getNextRedirectUrl();
+                window.location.href = getNextRedirectUrl(true);
             } else {
                 if (signInButtonEl) {
                     signInButtonEl.disabled = false;

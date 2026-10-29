@@ -286,6 +286,7 @@
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.65);
+    -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
     z-index: 9999;
     align-items: center;
@@ -331,16 +332,97 @@
     font-size: 0.88rem;
     box-sizing: border-box;
   }
+
+  /* Critical Incident Triage Banner */
+  .critical-incident-banner {
+    display: none;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem 1.25rem;
+    background: linear-gradient(135deg, rgba(239, 68, 68, 0.12), rgba(185, 28, 28, 0.2));
+    border: 1px solid rgba(239, 68, 68, 0.5);
+    border-radius: var(--radius-md);
+    margin-bottom: 1.5rem;
+    box-shadow: 0 4px 16px rgba(239, 68, 68, 0.15);
+  }
+  .incident-icon {
+    font-size: 1.4rem;
+    color: #ef4444;
+    flex-shrink: 0;
+  }
+  .incident-body {
+    flex: 1;
+  }
+  .incident-title {
+    font-weight: 700;
+    color: #f87171;
+    font-size: 0.92rem;
+    margin-bottom: 0.15rem;
+  }
+  .incident-msg {
+    color: var(--text-secondary);
+    font-size: 0.84rem;
+  }
+  .incident-actions {
+    display: flex;
+    gap: 0.5rem;
+    flex-shrink: 0;
+  }
+  .live-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.65rem;
+    background: rgba(16, 185, 129, 0.1);
+    border: 1px solid rgba(16, 185, 129, 0.25);
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #10b981;
+  }
+  .live-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #10b981;
+    box-shadow: 0 0 8px #10b981;
+    animation: livePulse 1.8s infinite;
+  }
+  .live-dot.offline {
+    background: #f59e0b;
+    box-shadow: 0 0 8px #f59e0b;
+  }
+  @keyframes livePulse {
+    0%, 100% { transform: scale(1); opacity: 1; }
+    50% { transform: scale(1.3); opacity: 0.6; }
+  }
 </style>
 
 <div class="pay-container">
+  <!-- Critical Failures & Incident Alert Bar (Top of Admin Panel) -->
+  <div id="adminTopFailureBar" class="critical-incident-banner">
+    <div class="incident-icon"><i class="fas fa-triangle-exclamation"></i></div>
+    <div class="incident-body">
+      <div class="incident-title" id="incidentTitle">Critical Payment / Payout Incident</div>
+      <div class="incident-msg" id="incidentMessage">Investigating system state...</div>
+    </div>
+    <div class="incident-actions">
+      <button type="button" class="pay-btn pay-btn-danger" style="padding:0.35rem 0.75rem; font-size:0.8rem;" onclick="refreshAllPaymentData()">Investigate</button>
+      <button type="button" class="pay-btn pay-btn-outline" style="padding:0.35rem 0.6rem; font-size:0.8rem;" onclick="document.getElementById('adminTopFailureBar').style.display='none'" title="Dismiss"><i class="fas fa-xmark"></i></button>
+    </div>
+  </div>
+
   <!-- Header -->
   <div class="pay-header">
     <div>
       <h1><i class="fas fa-credit-card" style="color: var(--accent-indigo);"></i> Payments &amp; Payouts Hub</h1>
       <p>Audit incoming transactions, manage Razorpay payment orders, and process creator withdrawal payouts.</p>
     </div>
-    <div style="display:flex; gap:0.5rem;">
+    <div style="display:flex; gap:0.5rem; align-items:center;">
+      <span class="live-pill" id="realtimeStatus"><span class="live-dot"></span> Live 0-Latency</span>
+      <a href="/admin/api/audit/export" class="pay-btn pay-btn-primary" style="text-decoration:none; display:inline-flex; align-items:center; gap:0.4rem;" title="Download Multi-Tab Financial Audit Excel (.xlsx)">
+        <i class="fas fa-file-excel"></i> Export Audit (Excel)
+      </a>
       <button type="button" class="pay-btn pay-btn-outline" onclick="refreshAllPaymentData()">
         <i class="fas fa-rotate"></i> Refresh
       </button>
@@ -382,6 +464,9 @@
     <button type="button" class="tab-btn" onclick="switchPayTab('wallets', this)">
       <i class="fas fa-briefcase"></i> Creator Wallets
     </button>
+    <button type="button" class="tab-btn" onclick="switchPayTab('kyc', this)">
+      <i class="fas fa-id-card"></i> KYC Verification (<span id="kpiPendingKycCount" style="color:#f59e0b; font-weight:700;">0</span>)
+    </button>
   </div>
 
   <!-- Tab 1: Creator Payout Requests -->
@@ -389,7 +474,7 @@
     <div class="panel-header">
       <h2><i class="fas fa-hand-holding-dollar text-emerald-500"></i> Creator Payout Requests</h2>
       <div class="search-filter-row">
-        <select id="payoutStatusFilter" class="pay-input" onchange="loadPayoutRequests()">
+        <select id="payoutStatusFilter" class="pay-input" title="Filter by Payout Status" aria-label="Filter by Payout Status" onchange="loadPayoutRequests()">
           <option value="">All Statuses</option>
           <option value="pending" selected>Pending Review</option>
           <option value="completed">Completed (Paid)</option>
@@ -496,6 +581,43 @@
       </table>
     </div>
   </div>
+
+  <!-- Tab 4: KYC Verifications -->
+  <div class="pay-panel" id="panel-kyc" style="display:none;">
+    <div class="panel-header">
+      <h2><i class="fas fa-id-card text-amber-500"></i> Creator KYC Applications</h2>
+      <div class="search-filter-row">
+        <select id="kycStatusFilter" class="pay-input" onchange="loadKycSubmissions()">
+          <option value="pending" selected>Pending Review</option>
+          <option value="verified">Verified (Approved)</option>
+          <option value="rejected">Rejected</option>
+          <option value="all">All Applications</option>
+        </select>
+        <button type="button" class="pay-btn pay-btn-outline" onclick="loadKycSubmissions()">
+          <i class="fas fa-filter"></i> Apply Filter
+        </button>
+      </div>
+    </div>
+
+    <div class="pay-table-wrap">
+      <table class="pay-table">
+        <thead>
+          <tr>
+            <th>User &amp; Full Name</th>
+            <th>PAN (Masked)</th>
+            <th>Payout Method</th>
+            <th>Account / UPI Details</th>
+            <th>Submitted At</th>
+            <th>Status</th>
+            <th style="text-align:right;">Actions</th>
+          </tr>
+        </thead>
+        <tbody id="kycTbody">
+          <tr><td colspan="7" style="text-align:center; padding:1.5rem; color:var(--text-muted);">Loading KYC applications...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <!-- Modal: Edit / Verify Transaction -->
@@ -574,10 +696,12 @@
     document.getElementById('panel-payouts').style.display = tabKey === 'payouts' ? 'block' : 'none';
     document.getElementById('panel-transactions').style.display = tabKey === 'transactions' ? 'block' : 'none';
     document.getElementById('panel-wallets').style.display = tabKey === 'wallets' ? 'block' : 'none';
+    document.getElementById('panel-kyc').style.display = tabKey === 'kyc' ? 'block' : 'none';
 
     if (tabKey === 'payouts') loadPayoutRequests();
     else if (tabKey === 'transactions') loadTransactions();
     else if (tabKey === 'wallets') loadCreatorWallets();
+    else if (tabKey === 'kyc') loadKycSubmissions();
   }
 
   // ── 1. Payout Requests Management ──
@@ -931,12 +1055,154 @@
     }
   }
 
+  // ── 4. KYC Applications Management ──
+  async function loadKycSubmissions() {
+    const tbody = document.getElementById('kycTbody');
+    const filter = (document.getElementById('kycStatusFilter')?.value || 'pending');
+    try {
+      const res = await fetch(`/api/admin/kyc/list?status=${filter}`);
+      const data = await res.json();
+      const list = data.data || [];
+
+      // Update badge if pending
+      if (filter === 'pending') {
+        const badge = document.getElementById('kpiPendingKycCount');
+        if (badge) badge.textContent = list.length;
+      }
+
+      if (list.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:1.5rem; color:var(--text-muted);">No KYC applications found for this filter.</td></tr>';
+        return;
+      }
+
+      tbody.innerHTML = list.map(k => {
+        const pan = k.pan_number || '';
+        const maskedPan = pan.length === 10 ? (pan.substring(0, 5) + '****' + pan.substring(9)) : pan;
+        const details = k.preferred_method === 'bank'
+          ? `Acc: ${k.account_number ? ('****' + k.account_number.slice(-4)) : 'N/A'}<br><span style="font-size:0.7rem; color:#64748b;">${k.bank_name || ''} (${k.ifsc_code || ''})</span>`
+          : `UPI: <code>${k.upi_id || 'N/A'}</code>`;
+
+        let statusBadge = '<span style="color:#d97706; font-weight:700;">Pending Review</span>';
+        if (k.is_verified) {
+          statusBadge = '<span style="color:#16a34a; font-weight:700;">✓ Verified</span>';
+        } else if (k.rejection_reason) {
+          statusBadge = `<span style="color:#dc2626; font-weight:700;" title="${k.rejection_reason}">✕ Rejected</span>`;
+        }
+
+        const dateStr = k.submitted_at ? new Date(k.submitted_at).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : 'N/A';
+
+        const actionBtns = !k.is_verified ? `
+          <div style="display:flex; gap:0.35rem; justify-content:flex-end;">
+            <button type="button" class="pay-btn pay-btn-primary" style="padding:0.25rem 0.55rem; font-size:0.75rem;" onclick="handleKycAction('${k.id}', 'approve')">Approve</button>
+            <button type="button" class="pay-btn pay-btn-outline" style="padding:0.25rem 0.55rem; font-size:0.75rem; color:#dc2626;" onclick="handleKycAction('${k.id}', 'reject')">Reject</button>
+          </div>
+        ` : `<span style="font-size:0.75rem; color:#16a34a;">Approved</span>`;
+
+        return `
+          <tr>
+            <td style="font-weight:600;">${k.full_name || 'Anonymous'}<br><code style="font-size:0.7rem; color:#64748b;">${k.user_id}</code></td>
+            <td style="font-family:monospace; font-weight:700;">${maskedPan}</td>
+            <td style="text-transform:uppercase; font-size:0.8rem; font-weight:700;">${k.preferred_method || 'UPI'}</td>
+            <td style="font-size:0.82rem;">${details}</td>
+            <td style="font-size:0.78rem; color:#64748b;">${dateStr}</td>
+            <td>${statusBadge}</td>
+            <td style="text-align:right;">${actionBtns}</td>
+          </tr>
+        `;
+      }).join('');
+    } catch (e) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center; padding:1.5rem; color:#ef4444;">Error loading KYC applications.</td></tr>';
+    }
+  }
+
+  async function handleKycAction(kycId, action) {
+    let reason = '';
+    if (action === 'reject') {
+      reason = prompt('Enter the reason for rejecting this KYC application:');
+      if (!reason) return;
+    } else {
+      if (!confirm('Approve this KYC application for automated payouts?')) return;
+    }
+
+    try {
+      const res = await fetch(`/admin/api/kyc/${kycId}/verify`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: action, reason: reason })
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert(data.message || `KYC ${action}d successfully`);
+        loadKycSubmissions();
+      } else {
+        alert(`Error: ${data.error}`);
+      }
+    } catch (e) {
+      alert('Network error updating KYC status.');
+    }
+  }
+
+  async function loadTopIncidents() {
+    try {
+      const res = await fetch('/api/admin/incidents/top');
+      const data = await res.json();
+      const bar = document.getElementById('adminTopFailureBar');
+      if (bar && data.success && data.has_incidents && data.top_incident) {
+        const top = data.top_incident;
+        document.getElementById('incidentTitle').textContent = top.title || 'Critical Incident Alert';
+        document.getElementById('incidentMessage').textContent = top.description || 'Action required.';
+        bar.style.display = 'flex';
+      } else if (bar) {
+        bar.style.display = 'none';
+      }
+    } catch (e) {
+      console.debug('Failed to fetch top incidents', e);
+    }
+  }
+
+  function initRealtimeStream() {
+    try {
+      if (typeof io !== 'undefined') {
+        const socket = io();
+        socket.on('connect', () => {
+          const pill = document.getElementById('realtimeStatus');
+          if (pill) pill.innerHTML = '<span class="live-dot"></span> Live 0-Latency';
+          socket.emit('join_admin_room', {});
+        });
+        socket.on('disconnect', () => {
+          const pill = document.getElementById('realtimeStatus');
+          if (pill) pill.innerHTML = '<span class="live-dot offline"></span> Reconnecting...';
+        });
+        socket.on('admin_activity', (payload) => {
+          loadTopIncidents();
+          if (payload && payload.event === 'payout_action') {
+            loadPayoutRequests();
+            loadCreatorWallets();
+          } else if (payload && (payload.event === 'payment' || payload.event === 'transaction')) {
+            loadTransactions();
+          }
+        });
+        socket.on('admin_snapshot', () => {
+          loadTopIncidents();
+        });
+      }
+    } catch (err) {
+      console.warn('[Realtime stream init error]', err);
+    }
+  }
+
   function refreshAllPaymentData() {
+    loadTopIncidents();
     loadPayoutRequests();
     loadTransactions();
     loadCreatorWallets();
+    loadKycSubmissions();
   }
 
-  document.addEventListener('DOMContentLoaded', refreshAllPaymentData);
+  document.addEventListener('DOMContentLoaded', () => {
+    refreshAllPaymentData();
+    initRealtimeStream();
+  });
 </script>
+<script src="{{ url_for('static', filename='js/socket.io.min.js') }}"></script>
 {% endblock %}

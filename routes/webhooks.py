@@ -162,32 +162,22 @@ def fulfill_order_transaction(order_id: str, verified_amount: float, doc_id: str
 
             if eff_uid:
                 try:
-                    from data.db import get_client
+                    from methods.payment_engine import engine
                     from cache_manager import get_cache
-                    from data.pricing import log_credit_transaction
-                    db = get_client()
-                    if db:
-                        prof_res = db.table('profiles').select('paper_quota_remaining').eq('id', eff_uid).execute()
-                        curr_q = 19
-                        if prof_res.data:
-                            curr_q = prof_res.data[0].get('paper_quota_remaining')
-                            if curr_q is None:
-                                curr_q = 19
-                        new_q = curr_q + pack_size
-                        db.table('profiles').update({'paper_quota_remaining': new_q}).eq('id', eff_uid).execute()
-
-                        if session and 'paper_quota' in session and isinstance(session['paper_quota'], dict):
-                            session['paper_quota']['credits'] = new_q
-                        elif session:
-                            session['paper_quota'] = {'credits': new_q, 'total_views': 0}
-                        if session:
-                            session.modified = True
-
-                        cache = get_cache()
-                        if cache and hasattr(cache, 'l1'):
-                            cache.l1.delete(f"user:quota:{eff_uid}")
-                        log_credit_transaction(eff_uid, pack_size, 'earn', f"Bought {pack_size} Views Pack (₹{verified_amount})")
-                        logging.info(f"[_fulfill_phonepe_transaction] Added {pack_size} credits to user {eff_uid}. New quota: {new_q}")
+                    new_q = engine.credit_views(
+                        eff_uid,
+                        pack_size,
+                        reason='pack_purchase',
+                        source='razorpay',
+                        ref_id=order_id
+                    )
+                    if session:
+                        session['paper_quota'] = {'credits': new_q, 'total_views': 0}
+                        session.modified = True
+                    cache = get_cache()
+                    if cache and hasattr(cache, 'l1'):
+                        cache.l1.delete(f"user:quota:{eff_uid}")
+                    logging.info(f"[_fulfill_phonepe_transaction] Added {pack_size} credits to user {eff_uid}. New quota: {new_q}")
                 except Exception as cred_err:
                     logging.error(f"[_fulfill_phonepe_transaction] Error crediting quota: {cred_err}")
     elif not doc_id and not is_credits:
@@ -210,8 +200,8 @@ def fulfill_order_transaction(order_id: str, verified_amount: float, doc_id: str
 
     if doc_id and not is_already_completed:
         try:
-            from methods.wallet_service import credit_creator_for_purchase
-            credit_creator_for_purchase(order_id, doc_id, verified_amount)
+            from methods.payment_engine import engine
+            engine.credit_creator(order_id, doc_id, verified_amount)
         except Exception as e:
             logging.error(f"[_fulfill_phonepe_transaction] Creator credit error: {e}")
 

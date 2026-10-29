@@ -882,15 +882,43 @@ def execute_search_v3(
                 break
         return out
 
-    # 1. Dual Retrieval: by matched subjects AND by topic keywords in title
+    # 1. Primary Database-side Tiered Search (Fast, index-driven RPC)
     docs_map = {}
+    if query and len(query.strip()) >= 2:
+        try:
+            from methods.supabase_helper import search_documents_rpc
+            primary_cid = target_college_ids[0] if target_college_ids and len(target_college_ids) == 1 else None
+            primary_sid = matched_subj_ids[0] if matched_subj_ids and len(matched_subj_ids) == 1 else None
+            rpc_results = search_documents_rpc(
+                query=query.strip(),
+                limit=limit * 2,
+                college_id=primary_cid,
+                department_id=target_department_id,
+                subject_id=primary_sid,
+                category=target_category if target_category != 'All types' else None,
+                year=int(target_year) if target_year and str(target_year).isdigit() else None,
+                status=['approved', 'pending']
+            )
+            if rpc_results:
+                cached_by_id = {d['id']: d for d in all_cached_docs}
+                for r in rpc_results:
+                    r_id = r.get('id')
+                    full_doc = dict(cached_by_id.get(r_id) or r)
+                    full_doc['_rpc_score'] = r.get('score')
+                    full_doc['_rpc_match_type'] = r.get('match_type')
+                    docs_map[r_id] = full_doc
+        except Exception as rpc_err:
+            logger.warning(f"[SEARCH-RPC] Falling back to memory index: {rpc_err}")
+
+    # 2. Dual Retrieval Fallback: by matched subjects AND by topic keywords in title
     if matched_subj_ids:
         subj_docs = fetch_documents_by_filter(target_college_ids, matched_subj_ids)
         for d in subj_docs:
-            docs_map[d['id']] = d
+            if d['id'] not in docs_map:
+                docs_map[d['id']] = d
 
     # If user provided topic words (e.g. 'binary tree', 'deadlock'), fetch matching titles
-    if topic_str and len(topic_str) >= 3:
+    if topic_str and len(topic_str) >= 3 and len(docs_map) < limit:
         title_docs = fetch_documents_by_filter(target_college_ids, [], title_keyword=topic_str)
         for d in title_docs:
             if d['id'] not in docs_map and len(docs_map) < limit * 2:
@@ -1017,6 +1045,33 @@ def execute_search_v3(
 
         clean_q = norm_text(query)
         code_q = norm_code(query)
+
+        # 0. RPC Tier & Match Type integration
+        rpc_sc = doc.get('_rpc_score')
+        rpc_mt = doc.get('_rpc_match_type')
+        if rpc_sc is not None:
+            score += float(rpc_sc)
+            if rpc_mt == 'code_exact':
+                reasons.append({'field': 'subject_code', 'kind': 'exact', 'matched': f"Subject code matched"})
+                tier = 'exact'
+            elif rpc_mt == 'title_exact':
+                reasons.append({'field': 'title', 'kind': 'exact', 'matched': f"Exact title: {doc_title}"})
+                tier = 'exact'
+            elif rpc_mt == 'title_prefix':
+                reasons.append({'field': 'title', 'kind': 'prefix', 'matched': f"Title prefix: {doc_title}"})
+                tier = 'close'
+            elif rpc_mt == 'code_prefix':
+                reasons.append({'field': 'subject_code', 'kind': 'prefix', 'matched': f"Code prefix matched"})
+                tier = 'close'
+            elif rpc_mt == 'fulltext':
+                reasons.append({'field': 'title', 'kind': 'fulltext', 'matched': f"Keyword match: {doc_title}"})
+                tier = 'close'
+            elif rpc_mt in ('fuzzy_title', 'fuzzy_code'):
+                reasons.append({'field': 'title', 'kind': 'fuzzy', 'matched': f"Typo-tolerant match: {doc_title}"})
+                tier = 'related'
+            else:
+                reasons.append({'field': 'title', 'kind': 'match', 'matched': f"Matched: {doc_title}"})
+                tier = 'related'
 
         # 1. Exact subject code match (+100)
         if subj_code and code_q and norm_code(subj_code) == code_q:
@@ -1355,12 +1410,34 @@ def get_suggestions_payload(query: str, college_id: str = None) -> Dict[str, Any
                 if len(groups['branches']) >= 4:
                     break
 
+    # Document title autocomplete via RPC
+    groups['documents'] = []
+    if len(clean_q) >= 2:
+        try:
+            from methods.supabase_helper import suggest_documents_rpc
+            doc_suggs = suggest_documents_rpc(clean_q, limit=4, status=['approved', 'pending'])
+            for ds in (doc_suggs or []):
+                t = ds.get('suggestion')
+                c = ds.get('doc_count')
+                if t and t not in seen:
+                    item = {
+                        'type': 'document',
+                        'title': t,
+                        'subtitle': f"{c} document{'s' if c != 1 else ''}",
+                        'query': t,
+                        'chip': {'type': 'title', 'value': t, 'label': t}
+                    }
+                    groups['documents'].append(item)
+                    seen.add(t)
+        except Exception:
+            pass
+
     # Flattened suggestions list for dropdowns
     all_suggestions: List[Dict[str, Any]] = []
     if detected:
         all_suggestions.append(detected)
-    for g in ['subjects', 'colleges', 'branches', 'uploaders']:
-        for it in groups[g]:
+    for g in ['subjects', 'documents', 'colleges', 'branches', 'uploaders']:
+        for it in groups.get(g, []):
             if it not in all_suggestions:
                 all_suggestions.append(it)
 

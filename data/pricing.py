@@ -148,7 +148,12 @@ def _get_quota():
         if cached_quota and cached_quota[0] is not None:
             return cached_quota[0]
 
-    db_quota = 19
+    from methods.domain_tier_service import classify_email
+    user_email = session.get('user', {}).get('email', '')
+    tier_info = classify_email(user_email)
+    default_quota = tier_info['starting_views']
+
+    db_quota = default_quota
     _default_month = datetime.utcnow().strftime('%Y-%m')
     last_reset = _default_month
 
@@ -158,12 +163,12 @@ def _get_quota():
             if res.data:
                 db_quota = res.data[0].get('paper_quota_remaining')
                 if db_quota is None:
-                    db_quota = 19
+                    db_quota = default_quota
                 last_reset = res.data[0].get('last_quota_reset') or _default_month
 
             current_month = datetime.utcnow().strftime('%Y-%m')
             if last_reset != current_month:
-                db_quota = 19
+                db_quota = default_quota
                 last_reset = current_month
                 supabase.table('profiles').update({
                     'paper_quota_remaining': db_quota,
@@ -179,32 +184,15 @@ def _get_quota():
 
 
 def log_credit_transaction(user_id, amount, tx_type, reason):
-    """Record credit earning or spending transaction for ledger tracking."""
+    """Record credit transaction for ledger tracking via unified payment engine."""
     if not user_id:
         return
     try:
-        from datetime import datetime
-        from data.db import get_client
-        data = {
-            'user_id': user_id,
-            'amount': amount,
-            'type': tx_type,  # 'earn' or 'spend'
-            'reason': reason,
-            'created_at': datetime.utcnow().strftime('%Y-%m-%d %H:%M:%S')
-        }
-        history = session.get('credit_history', [])
-        if not isinstance(history, list):
-            history = []
-        history.insert(0, data)
-        session['credit_history'] = history[:100]
-        session.modified = True
-
-        supabase = get_client()
-        if supabase:
-            try:
-                supabase.table('credit_transactions').insert(data).execute()
-            except Exception:
-                pass
+        from methods.payment_engine import engine
+        if tx_type == 'earn' or amount > 0:
+            engine.credit_views(user_id, abs(amount), reason=reason, source='system')
+        else:
+            engine.deduct_view(user_id, doc_name=reason)
     except Exception as e:
         logging.warning(f"[CREDIT-LOG] Could not log credit tx: {e}")
 
@@ -218,37 +206,30 @@ def _grant_upload_credits():
 
     from data.db import get_client
     from cache_manager import get_cache
+    from methods.payment_engine import engine
+
     cache = get_cache()
     supabase = get_client()
 
-    if not supabase:
-        return
+    new_quota = engine.grant_reward(user_id, 3, reason='upload_reward')
 
-    try:
-        res = supabase.table('profiles').select('paper_quota_remaining, reputation_score').eq('id', user_id).execute()
-        if res.data:
-            curr_quota = res.data[0].get('paper_quota_remaining')
-            if curr_quota is None:
-                curr_quota = 19
-            curr_rep = res.data[0].get('reputation_score') or 0
-            new_quota = curr_quota + 3
+    if supabase:
+        try:
+            res = supabase.table('profiles').select('reputation_score').eq('id', user_id).limit(1).execute()
+            if res.data:
+                curr_rep = res.data[0].get('reputation_score') or 0
+                supabase.table('profiles').update({'reputation_score': curr_rep + 1}).eq('id', user_id).execute()
+        except Exception as e:
+            logging.warning(f"[GRANT_UPLOAD] Error updating reputation: {e}")
 
-            supabase.table('profiles').update({
-                'paper_quota_remaining': new_quota,
-                'reputation_score': curr_rep + 1
-            }).eq('id', user_id).execute()
+    q = session.get('paper_quota', {})
+    if isinstance(q, dict):
+        q['credits'] = new_quota
+        session['paper_quota'] = q
+        session.modified = True
 
-            q = session.get('paper_quota', {})
-            if isinstance(q, dict):
-                q['credits'] = new_quota
-                session['paper_quota'] = q
-                session.modified = True
-
-            if cache and hasattr(cache, 'l1'):
-                cache.l1.delete(f"user:quota:{user_id}")
-            log_credit_transaction(user_id, 3, 'earn', "Document upload reward (+3 views)")
-    except Exception as e:
-        logging.warning(f"[GRANT_UPLOAD] Error granting upload reward: {e}")
+    if cache and hasattr(cache, 'l1'):
+        cache.l1.delete(f"user:quota:{user_id}")
 
 
 def _consume_credit(doc_name="Document"):
@@ -258,11 +239,10 @@ def _consume_credit(doc_name="Document"):
     Admins always pass.
     """
     from routes.auth import ADMIN_EMAILS
-    from data.db import get_client
     from cache_manager import get_cache
-    cache = get_cache()
-    supabase = get_client()
+    from methods.payment_engine import engine
 
+    cache = get_cache()
     user = session.get('user', {})
     user_email = user.get('email', '').lower()
     user_id = user.get('uid')
@@ -274,18 +254,14 @@ def _consume_credit(doc_name="Document"):
     if q.get('credits', 0) <= 0:
         return False
 
-    new_credits = q['credits'] - 1
+    allowed, new_credits = engine.deduct_view(user_id, doc_name=doc_name)
+    if not allowed:
+        return False
+
     q['credits'] = new_credits
     q['total_views'] = q.get('total_views', 0) + 1
     session['paper_quota'] = q
     session.modified = True
-
-    if user_id and supabase:
-        try:
-            supabase.table('profiles').update({'paper_quota_remaining': new_credits}).eq('id', user_id).execute()
-            log_credit_transaction(user_id, -1, 'spend', f"Viewed: {doc_name}")
-        except Exception:
-            pass
 
     if cache and hasattr(cache, 'l1'):
         cache.l1.delete(f"user:quota:{user_id}")

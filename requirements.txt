@@ -21,3 +21,4 @@ gevent-websocket
 apscheduler>=3.10.0
 cryptography>=42.0.0
 razorpay>=1.4.1
+openpyxl>=3.1.0

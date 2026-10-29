@@ -79,7 +79,7 @@
                 <a href="/upload" class="shell-nav-link" data-page="upload">Upload</a>
                 <a href="/leaderboard" class="shell-nav-link" data-page="ranking">Ranking</a>
                 <a href="/settings" class="shell-nav-link" data-page="settings">Settings</a>
-                <a href="/store-room" class="shell-nav-link" data-page="store-room">Store Room</a>
+                <a href="/creator/hub" class="shell-nav-link" data-page="creator-hub">Creator Hub</a>
             </nav>
 
             <div class="shell-header-right">
@@ -190,11 +190,11 @@
                 <span class="navbar__label">Settings</span>
             </a>
 
-            <a href="/store-room" class="navbar__item -green" data-page="store-room">
+            <a href="/creator/hub" class="navbar__item -green" data-page="creator-hub">
                 <span class="navbar__icon" aria-hidden="true">
-                    <svg class="icon"><use xlink:href="#icon-folder"></use></svg>
+                    <svg class="icon"><use xlink:href="#icon-user"></use></svg>
                 </span>
-                <span class="navbar__label">Store Room</span>
+                <span class="navbar__label">Creator Hub</span>
             </a>
 
             {% set shell_u = session.get('user', {}) %}
