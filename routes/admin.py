@@ -849,6 +849,19 @@ def admin_get_users():
             limit=limit
         )
 
+        # Expose the same server-side ad decision used by the user-facing
+        # templates so admins can audit density and zero-view monetization.
+        from methods.scoring_engine import get_ad_decision
+        for user in result.get('users', []):
+            decision = get_ad_decision(
+                user.get('id'),
+                email=user.get('email')
+            )
+            user['ad_level'] = decision.get('density', 'high')
+            user['ad_view_count'] = decision.get('view_count', 0)
+            user['ads_enabled'] = decision.get('show_ads', True)
+            user['ad_verification_mode'] = decision.get('verification_mode', False)
+
         top_students = sorted(
             result.get('users', []),
             key=lambda u: (u.get('abhihub_score') or 0, u.get('reputation_score') or 0, u.get('students_helped') or 0),
@@ -2004,4 +2017,3 @@ def admin_update_setting():
     if not ok:
         return jsonify({'success': False, 'error': msg}), 400
     return jsonify({'success': True, 'message': msg})
-

@@ -966,7 +966,16 @@ def inject_ad_decision():
         '/delete-account',
         '/login',
     )
-    if request.path.startswith(no_ad_prefixes):
+    purpose = request.args.get('purpose', '').lower()
+    is_credit_purchase = (
+        request.path == '/payment'
+        and (
+            'credit' in purpose
+            or 'pack=' in purpose
+            or 'view' in purpose and 'document' not in purpose
+        )
+    )
+    if request.path.startswith(no_ad_prefixes) and not is_credit_purchase:
         ad_decision = {
             **ad_decision,
             'show_ads': False,
