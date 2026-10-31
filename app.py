@@ -957,7 +957,11 @@ def inject_ad_decision():
     user_email = user.get('email')
     try:
         from methods.scoring_engine import get_ad_decision
-        ad_decision = get_ad_decision(user_id, email=user_email)
+        ad_decision = get_ad_decision(
+            user_id,
+            email=user_email,
+            page_path=request.path,
+        )
         if ad_decision.get('density') == 'monthly':
             month_key = datetime.now(timezone.utc).strftime('%Y-%m')
             monthly_seen_key = session.get('monthly_ad_seen')

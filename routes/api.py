@@ -1107,6 +1107,23 @@ def api_save_document():
         original_filename = os.path.basename(
             str(data.get('original_filename') or data.get('file_name') or '')
         )
+        is_pdf_upload = (
+            original_filename.lower().endswith('.pdf')
+            or str(data.get('file_type') or '').lower() == 'pdf'
+            or str(public_id).lower().endswith('.txt')
+        )
+        if is_pdf_upload:
+            # Cloudinary must store PDFs as raw assets with a .txt public ID.
+            # Do not persist a provider response URL that still contains .pdf.
+            public_id = str(public_id)
+            if not public_id.lower().endswith('.txt'):
+                public_id = f"{public_id.rsplit('.', 1)[0] if '.' in public_id else public_id}.txt"
+            cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME', '')
+            if cloud_name:
+                secure_url = (
+                    f"https://res.cloudinary.com/{cloud_name}/raw/upload/{public_id}"
+                )
+            file_type = 'pdf'
         
         # Document metadata
         title = (data.get('title') or '').strip()
@@ -2017,6 +2034,30 @@ def view_doc(doc_id, filename=None):
             logging.warning(f"[VIEW-DOC] Cloudinary pre-sign failed for {doc_id}: {_e}")
 
     upstream = _fetch(file_url)
+
+    # Older records may contain a Cloudinary URL with a PDF extension even
+    # though the asset was uploaded as raw .txt. Retry the canonical raw path.
+    if upstream.status_code == 404 and parsed.hostname == 'res.cloudinary.com':
+        try:
+            cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME', '')
+            pub_id = (
+                document.get('provider_public_id')
+                or document.get('cloudinary_public_id')
+                or document.get('public_id')
+                or ''
+            )
+            if cloud_name and pub_id:
+                raw_pub_id = str(pub_id)
+                if not raw_pub_id.lower().endswith('.txt'):
+                    raw_pub_id = f"{raw_pub_id.rsplit('.', 1)[0] if '.' in raw_pub_id else raw_pub_id}.txt"
+                retry_url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{raw_pub_id}"
+                upstream.close()
+                upstream = _fetch(retry_url)
+                if upstream.ok:
+                    file_url = retry_url
+                    parsed = urlparse(retry_url)
+        except Exception as retry_error:
+            logging.warning(f"[VIEW-DOC] Cloudinary raw .txt retry failed for {doc_id}: {retry_error}")
 
     if upstream.status_code in (403, 404) and parsed.hostname in ('firebasestorage.googleapis.com', 'storage.googleapis.com'):
         try:

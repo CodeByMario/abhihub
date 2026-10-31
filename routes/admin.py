@@ -114,6 +114,91 @@ def admin_economy_dashboard():
     return render_template('admin_economy.html')
 
 
+@admin_bp.route('/admin/ads')
+@auth_required
+@admin_required
+def admin_ads_dashboard():
+    """Admin portal for persistent global, page, and user ad overrides."""
+    return render_template('admin_ads.html')
+
+
+@admin_bp.route('/api/admin/ads/overrides', methods=['GET'])
+@auth_required
+@admin_required
+def admin_ads_overrides():
+    client = init_supabase_admin() or init_supabase()
+    if not client:
+        return jsonify({'success': False, 'error': 'Database unavailable'}), 500
+    try:
+        result = client.table('ad_overrides').select(
+            'id, scope_type, scope_key, enabled, note, updated_by, updated_at'
+        ).order('updated_at', desc=True).limit(200).execute()
+        return jsonify({'success': True, 'data': result.data or []})
+    except Exception as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 500
+
+
+@admin_bp.route('/api/admin/ads/overrides', methods=['POST'])
+@auth_required
+@admin_required
+def admin_upsert_ads_override():
+    data = request.get_json(silent=True) or {}
+    scope_type = str(data.get('scope_type', '')).strip().lower()
+    scope_key = str(data.get('scope_key', '')).strip()
+    if scope_type not in ('global', 'page', 'user'):
+        return jsonify({'success': False, 'error': 'Invalid scope type'}), 400
+    if scope_type == 'global':
+        scope_key = '*'
+    elif scope_type == 'page':
+        if not scope_key.startswith('/') or len(scope_key) > 200:
+            return jsonify({'success': False, 'error': 'Page must be an absolute path'}), 400
+    elif not scope_key or len(scope_key) > 200:
+        return jsonify({'success': False, 'error': 'User ID or email is required'}), 400
+
+    client = init_supabase_admin() or init_supabase()
+    if not client:
+        return jsonify({'success': False, 'error': 'Database unavailable'}), 500
+    admin_id = (session.get('user') or {}).get('uid')
+    payload = {
+        'scope_type': scope_type,
+        'scope_key': scope_key.lower() if '@' in scope_key else scope_key,
+        'enabled': bool(data.get('enabled')),
+        'note': str(data.get('note', '')).strip()[:500] or None,
+        'updated_by': admin_id,
+        'updated_at': datetime.now(timezone.utc).isoformat(),
+    }
+    try:
+        result = client.table('ad_overrides').upsert(
+            payload, on_conflict='scope_type,scope_key'
+        ).execute()
+        log_admin_action('ad_override_updated', target=scope_key, details=payload)
+        return jsonify({'success': True, 'data': result.data or []})
+    except Exception as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 500
+
+
+@admin_bp.route('/api/admin/ads/overrides', methods=['DELETE'])
+@auth_required
+@admin_required
+def admin_delete_ads_override():
+    data = request.get_json(silent=True) or {}
+    scope_type = str(data.get('scope_type', '')).strip().lower()
+    scope_key = str(data.get('scope_key', '')).strip()
+    if scope_type not in ('global', 'page', 'user') or not scope_key:
+        return jsonify({'success': False, 'error': 'scope_type and scope_key are required'}), 400
+    client = init_supabase_admin() or init_supabase()
+    if not client:
+        return jsonify({'success': False, 'error': 'Database unavailable'}), 500
+    try:
+        client.table('ad_overrides').delete().eq(
+            'scope_type', scope_type
+        ).eq('scope_key', '*' if scope_type == 'global' else scope_key).execute()
+        log_admin_action('ad_override_deleted', target=scope_key, details={'scope_type': scope_type})
+        return jsonify({'success': True})
+    except Exception as exc:
+        return jsonify({'success': False, 'error': str(exc)}), 500
+
+
 @admin_bp.route('/admin/developer')
 @auth_required
 @admin_required
