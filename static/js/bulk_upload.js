@@ -288,6 +288,14 @@ async function processFileMetadataAutofill(newItem, file) {
     return;
   }
 
+  // Vercel rejects multipart requests above its serverless body limit. Large
+  // files still upload directly to Cloudinary, but need manual metadata.
+  const maxAiMetadataFileSize = 4 * 1024 * 1024;
+  if (file.size > maxAiMetadataFileSize) {
+    setStatusBadge(true, 'Large file — enter remaining metadata manually');
+    return;
+  }
+
   // Step 3: AI Document Extraction Pass (Async, Abortable)
   const controller = new AbortController();
   window._uploadAiControllers[newItem.id] = controller;
@@ -1346,12 +1354,25 @@ async function uploadOne(item, retries) {
   }
 
   return new Promise(async function (resolve) {
+      // Build the normalized academic filename once and use that same File
+      // object for both direct Cloudinary uploads and the server fallback.
+      let preparedFormData = null;
+      let preparedUploadFile = null;
+      try {
+        preparedFormData = buildFormData(item);
+        preparedUploadFile = preparedFormData.get('upload_document');
+      } catch (e) {
+        console.error('Unable to prepare renamed upload file', e);
+      }
+
       let sigRes = null;
       try {
         const res = await fetch('/api/get-upload-signature', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: item.name })
+          body: JSON.stringify({
+            filename: preparedUploadFile?.name || item.name
+          })
         });
         sigRes = await res.json();
       } catch (e) {
@@ -1365,10 +1386,9 @@ async function uploadOne(item, retries) {
         return { ok: true, xp: 0, score: 0, skipped: true };
       }
 
-      // If we have a Cloudinary signature, upload directly to Cloudinary
-      // PDFs must use the server path so the Cloudinary adapter can preserve
-      // PDF bytes while assigning the required .txt public ID.
-      if (sigRes && sigRes.success && sigRes.upload_url && !/\.pdf$/i.test(item.name || '')) {
+      // Keep file bytes off the application server. This is required for PDFs
+      // above Vercel's request-body limit as well as for other large files.
+      if (sigRes && sigRes.success && sigRes.upload_url) {
         try {
           setItemStatus(item.id, 'uploading', 0, 'Uploading to Cloudinary...');
         
@@ -1377,7 +1397,9 @@ async function uploadOne(item, retries) {
           formData.append('timestamp', sigRes.timestamp);
           formData.append('signature', sigRes.signature);
           formData.append('folder', sigRes.folder);
-          formData.append('file', item.file);
+          if (sigRes.public_id) formData.append('public_id', sigRes.public_id);
+          if (sigRes.resource_type) formData.append('resource_type', sigRes.resource_type);
+          formData.append('file', preparedUploadFile || item.file);
         
           const uploadResponse = await fetch(sigRes.upload_url, {
             method: 'POST',
@@ -1459,7 +1481,17 @@ async function uploadOne(item, retries) {
                                   }
                                 }
         
-                        // Fallback: server-side upload via Flask (runs if no Cloudinary signature or upload failed)
+                        // Never retry a large file through Flask: Vercel rejects
+                        // the request before the application can handle it.
+                        if (item.file && item.file.size > 4 * 1024 * 1024) {
+                          const msg = 'Direct storage upload failed. Please retry.';
+                          setFileStatus(item.id, 'error', 0, msg);
+                          setItemStatus(item.id, 'error', 0, msg, true);
+                          resolve({ ok: false, msg: msg, item: item });
+                          return;
+                        }
+
+                        // Fallback: server-side upload for small files only.
                         var xhr = new XMLHttpRequest();
       var targetUrl = '/upload';
       xhr.open('POST', targetUrl, true);
@@ -1574,7 +1606,7 @@ async function uploadOne(item, retries) {
       };
 
       try {
-        var fd = buildFormData(item);
+        var fd = preparedFormData || buildFormData(item);
         if (sigRes && sigRes.success) {
           fd.append('api_key', sigRes.api_key);
           fd.append('timestamp', sigRes.timestamp);

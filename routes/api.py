@@ -67,13 +67,29 @@ def version_info():
 def get_upload_signature():
     """Generates a presigned Cloudinary upload signature for client-side direct uploads."""
     import time
+    import re
     import cloudinary.utils
     timestamp = int(time.time())
     folder = "uploads"
+    data = request.get_json(silent=True) or {}
+    filename = os.path.basename(str(data.get('filename') or 'upload'))
+    is_pdf = filename.lower().endswith('.pdf')
     params = {
         'timestamp': timestamp,
         'folder': folder
     }
+    if is_pdf:
+        # Vercel rejects requests over its serverless body limit. Upload PDF bytes
+        # directly to Cloudinary as a public raw asset, using a .txt suffix so
+        # Cloudinary's PDF delivery restriction does not block the file.
+        stem = re.sub(r'[^\w.-]+', '_', os.path.splitext(filename)[0]).strip('._') or 'upload'
+        user_id = str(session.get('user', {}).get('uid') or session.get('user', {}).get('email') or 'user')
+        user_id = re.sub(r'[^\w.-]+', '_', user_id)
+        public_id = f"{user_id}_{timestamp}_{stem}.txt"
+        params.update({
+            'public_id': public_id,
+            'resource_type': 'raw',
+        })
     api_secret = os.getenv('CLOUDINARY_API_SECRET')
     cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME')
     api_key = os.getenv('CLOUDINARY_API_KEY')
@@ -83,11 +99,13 @@ def get_upload_signature():
     signature = cloudinary.utils.api_sign_request(params, api_secret)
     return jsonify({
         'success': True,
-        'upload_url': f"https://api.cloudinary.com/v1_1/{cloud_name}/auto/upload",
+        'upload_url': f"https://api.cloudinary.com/v1_1/{cloud_name}/{('raw' if is_pdf else 'auto')}/upload",
         'api_key': api_key,
         'timestamp': timestamp,
         'signature': signature,
-        'folder': folder
+        'folder': folder,
+        'public_id': params.get('public_id'),
+        'resource_type': params.get('resource_type')
     }), 200
 
 
@@ -3178,4 +3196,3 @@ def dashboard_summary_api():
     except Exception as e:
         logging.error(f"[API /api/dashboard/summary] Error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
-
