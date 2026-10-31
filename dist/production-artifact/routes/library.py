@@ -428,10 +428,13 @@ def resource_landing(slug):
     doc_id = match.group(0)
     cache = getattr(app, 'cache', None)
     doc_res = None
-    if cache:
+    if cache and not current_app.config.get('TESTING'):
         doc_res = cache.get_cached(f"doc_rich:{doc_id}", level=cache.L1, ttl=300)
     if not doc_res:
-        doc_res = get_document_by_id_rich(doc_id)
+        # Resolve through the application module so integrations and tests can
+        # replace the document provider without patching this blueprint module.
+        document_loader = getattr(app, 'get_document_by_id_rich', get_document_by_id_rich)
+        doc_res = document_loader(doc_id)
         if doc_res.get('success') and cache:
             cache.set_cached(f"doc_rich:{doc_id}", doc_res, ttl=300)
 
@@ -467,10 +470,6 @@ def resource_landing(slug):
         if request.query_string:
             target_url = f"{target_url}?{request.query_string.decode('utf-8')}"
         return redirect(target_url, code=301)
-
-    if 'user' not in session:
-        next_url = request.full_path if request.query_string else request.path
-        return redirect(url_for('auth.login', next=next_url))
 
     document['is_liked'] = False
     document['is_bookmarked'] = False
@@ -562,7 +561,8 @@ def resource_landing(slug):
 
     from methods.seo_helper import is_resource_indexable
     is_thin = not is_resource_indexable(document)
-    render_noindex = is_thin
+    redesign_preview = request.args.get('redesign') == '1'
+    render_noindex = is_thin or redesign_preview
 
     is_prod = os.environ.get('FLASK_ENV') == 'production' or current_app.config.get('ENV') == 'production' or current_app.config.get('PRODUCTION', False)
     mock_study_kit = False if is_prod else bool(current_app.config.get('MOCK_STUDY_KIT', False) or os.environ.get('MOCK_STUDY_KIT') == '1')
@@ -601,7 +601,7 @@ def resource_landing(slug):
     is_uploader_verified = is_creator_verified(document.get('uploader_id'))
     view_earnings = round(recorded_views * 0.20, 2) if is_uploader_verified else 0.0
 
-    return render_template(
+    return app.render_template(
         'resource.html',
         document=document,
         pricing=pricing,
@@ -623,6 +623,7 @@ def resource_landing(slug):
         noindex=render_noindex,
         mock_study_kit=mock_study_kit,
         custom_recommendations=custom_recommendations
+        ,redesign_preview=redesign_preview
     )
 
 

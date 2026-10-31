@@ -20,6 +20,7 @@ Disallow: /
 User-agent: *
 Disallow: /api/
 Disallow: /login
+Disallow: /signup
 Disallow: /auth
 Disallow: /settings
 Disallow: /store-room
@@ -32,3 +33,46 @@ Allow: /sitemap.xml
 Allow: /college/
 Allow: /subject/
 Allow: /resource/
+
+# Allow search and answer engines to discover public educational pages.
+User-agent: GPTBot
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+User-agent: ChatGPT-User
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+User-agent: PerplexityBot
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+User-agent: ClaudeBot
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+User-agent: anthropic-ai
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+User-agent: Google-Extended
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+User-agent: Gemini-Google-Bot
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+User-agent: bingbot
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+Sitemap: https://www.abhihub.edu.eu.org/sitemap.xml

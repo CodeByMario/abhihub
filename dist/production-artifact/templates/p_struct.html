@@ -386,7 +386,7 @@
     <!-- Global Card Navigation & Page Loading Transition -->
     {% include 'includes/_loading_spinner.html' %}
 
-    {% if not disable_ads and ad_decision.show_ads %}
+    {% if not disable_ads and ads_allowed and ad_decision.show_ads %}
       {% include 'ads/third_party.html' %}
     {% endif %}
     <!-- ===== PROMO COMPONENTS ===== -->

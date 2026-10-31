@@ -54,7 +54,7 @@
 <meta name="rating" content="General">
 
 <!-- Google AdSense: Single canonical load (IS_PRODUCTION + noindex safe). p_struct.html duplicate removed. -->
-{% if IS_PRODUCTION and not is_noindex and not disable_ads %}
+{% if IS_PRODUCTION and not is_noindex and not disable_ads and ads_allowed %}
 <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-8274846157272362"
   crossorigin="anonymous"></script>
 {% endif %}

@@ -8,6 +8,7 @@ award_contribution_xp() pipeline in methods/supabase_helper.py.
 Phase 1 scope: config loader + event processing with unique-view dedupe.
 """
 import logging
+import os
 import time
 from typing import Dict, Optional
 
@@ -355,7 +356,7 @@ def check_upload_quota(user_id: str) -> Dict:
         return {"allowed": True, "remaining": None}
 
 
-def get_ad_decision(user_id: Optional[str] = None) -> Dict:
+def get_ad_decision(user_id: Optional[str] = None, email: Optional[str] = None) -> Dict:
     """
     Server-side ad decision based on the user's document consumption.
 
@@ -363,6 +364,22 @@ def get_ad_decision(user_id: Optional[str] = None) -> Dict:
     progressively less intrusive as the user consumes more content and stop
     entirely after ten recorded document views.
     """
+    verification_emails = {
+        value.strip().lower()
+        for value in os.getenv(
+            "AD_VERIFICATION_EMAILS", "vaibhavi@abhihub.com"
+        ).split(",")
+        if value.strip()
+    }
+    if email and email.strip().lower() in verification_emails:
+        return {
+            "show_ads": True,
+            "density": "high",
+            "level": None,
+            "view_count": 0,
+            "verification_mode": True,
+        }
+
     if not user_id:
         return {"show_ads": True, "density": "high", "level": None, "view_count": 0}
 

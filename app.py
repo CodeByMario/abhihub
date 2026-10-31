@@ -23,6 +23,7 @@ import requests
 import json
 from datetime import timedelta, datetime, timezone
 import logging
+from urllib.parse import unquote
 from dotenv import load_dotenv
 from supabase import create_client, ClientOptions
 
@@ -313,14 +314,44 @@ import time
 
 # Valid production domains for security checks
 VALID_DOMAINS = {'www.abhihub.edu.eu.org', 'abhihub.edu.eu.org'}
+AI_CRAWLER_USER_AGENTS = (
+    'GPTBot',
+    'ChatGPT-User',
+    'PerplexityBot',
+    'ClaudeBot',
+    'anthropic-ai',
+    'Google-Extended',
+    'Gemini-Google-Bot',
+    'bingbot',
+    'cohere-ai',
+)
 
 # ── Resource Page Security Middleware ──
 @app.before_request
 def check_resource_page_security():
-    """Additional security for resource-related pages to prevent unauthorized access."""
-    # Skip for non-resource pages and API endpoints
-    if not request.path.startswith('/resource') and not request.path.startswith('/resources'):
+    """Prevent known AI crawlers from accessing resource pages and shell wrappers."""
+    target_path = request.path
+    if request.path == '/app-shell':
+        target_path = request.args.get('p', '')
+        for _ in range(3):
+            decoded_target = unquote(target_path)
+            if decoded_target == target_path:
+                break
+            target_path = decoded_target
+        target_path = target_path.split('?', 1)[0].split('#', 1)[0]
+
+    is_resource_target = (
+        target_path.startswith('/resource/')
+        or target_path.startswith('/resources/')
+        or target_path in ('/resource', '/resources')
+    )
+    if not is_resource_target:
         return None
+
+    user_agent = request.headers.get('User-Agent', '')
+    if any(crawler.lower() in user_agent.lower() for crawler in AI_CRAWLER_USER_AGENTS):
+        logging.info('[SECURITY] Blocked AI crawler from resource page: %s', user_agent)
+        return make_response('Resource pages are not available to automated crawlers.', 403)
     
     # Validate Referer for cross-origin protection
     referer = request.headers.get('Referer', '')
@@ -919,16 +950,39 @@ def inject_ad_decision():
     Templates use: {% if ad_decision.show_ads %}{% include 'ads/banner.html' %}{% endif %}
     Density drives the shared third-party placement mix.
     """
-    user_id = session.get('user', {}).get('uid')
+    user = session.get('user', {})
+    user_id = user.get('uid')
+    user_email = user.get('email')
     try:
         from methods.scoring_engine import get_ad_decision
-        ad_decision = get_ad_decision(user_id)
+        ad_decision = get_ad_decision(user_id, email=user_email)
     except Exception:
         ad_decision = {'show_ads': True, 'density': 'high', 'level': None}
+    no_ad_prefixes = (
+        '/payment',
+        '/terms',
+        '/upload',
+        '/settings',
+        '/delete-account',
+        '/login',
+    )
+    if request.path.startswith(no_ad_prefixes):
+        ad_decision = {
+            **ad_decision,
+            'show_ads': False,
+            'density': 'off',
+        }
+    elif request.path == '/signup':
+        ad_decision = {
+            **ad_decision,
+            'show_ads': True,
+            'density': 'medium',
+        }
     return {
         'ad_decision': ad_decision,
         'ad_density': ad_decision.get('density', 'high'),
         'ad_view_count': ad_decision.get('view_count', 0),
+        'ads_allowed': ad_decision.get('show_ads', True),
         # Convenience flags for slot-level frequency gating
         'show_secondary_ads': ad_decision.get('density') in ('high', 'medium', 'low'),
     }
@@ -1858,7 +1912,15 @@ try:
     register_blueprints(app)
     # Keep the feature-flag API available to legacy integrations that import
     # it from the application module.
-    from routes.ai import is_tarika_enabled_for_user
+    from routes import ai as _ai_routes
+    is_tarika_enabled_for_user = _ai_routes.is_tarika_enabled_for_user
+    api_ai_assistant = _ai_routes.api_ai_assistant
+    _tarika_lock = _ai_routes._tarika_lock
+    _tarika_active_count = _ai_routes._tarika_active_count
+
+    def _get_tarika_load_tier(user_id, ai_profile):
+        _ai_routes._tarika_active_count = _tarika_active_count
+        return _ai_routes._get_tarika_load_tier(user_id, ai_profile)
 
     def _resolve_bare_endpoint_fallback(error, endpoint, values):
         if '.' not in endpoint:

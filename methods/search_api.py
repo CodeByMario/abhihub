@@ -43,6 +43,7 @@ def norm_text(text: Optional[str]) -> str:
 # 2. Built-in Curated Fallback Dictionaries (Zero-DB bootstrap & seed parity)
 # -----------------------------------------------------------------------------
 DEFAULT_COLLEGE_ALIASES = {
+    'ghrce': {'name_pattern': r'ghrce|raisoni', 'is_group': False},
     'iter': {'name_pattern': r'iter|institute of technical education|siksha.*anusandhan|soa', 'is_group': False},
     'soa': {'name_pattern': r'iter|institute of technical education|soa|siksha.*anusandhan', 'is_group': True},
     'kiit': {'name_pattern': r'kiit|kalinga institute', 'is_group': False},
@@ -73,6 +74,7 @@ DEFAULT_DEPARTMENT_ALIASES: Dict[str, List[str]] = {
 }
 
 DEFAULT_SUBJECT_ALIASES = {
+    'uhv': ['universal human values', 'human values'],
     'os': ['operating system', 'operating systems'],
     'dbms': ['database management', 'database management systems'],
     'db': ['database management'],
@@ -182,6 +184,77 @@ _TAXONOMY_CACHE: Dict[str, Any] = {
 }
 _TAXONOMY_TTL = 300  # 5 minutes
 
+
+def _fallback_taxonomy() -> Dict[str, Any]:
+    """Provide deterministic core vocabulary while Supabase is unavailable."""
+    colleges = [{
+        'id': 'fallback-ghrce',
+        'name': 'G. H. Raisoni College of Engineering',
+        'abbreviation': 'GHRCE',
+        'name_norm': norm_text('G. H. Raisoni College of Engineering'),
+        'abbr_norm': 'ghrce',
+    }]
+    departments = [{
+        'id': 'fallback-cse',
+        'name': 'Computer Science and Engineering',
+        'abbreviation': 'CSE',
+        'name_norm': norm_text('Computer Science and Engineering'),
+        'abbr_norm': 'cse',
+    }]
+    subjects = [
+        {
+            'id': 'fallback-uitl201',
+            'department_id': 'fallback-cse',
+            'name': 'Universal Internet and Technology Laboratory',
+            'subject_code': 'UITL201',
+            'semester': 2,
+            'name_norm': norm_text('Universal Internet and Technology Laboratory'),
+            'code_norm': 'uitl201',
+        },
+        {
+            'id': 'fallback-ml',
+            'department_id': 'fallback-cse',
+            'name': 'Machine Learning',
+            'subject_code': 'CSML601',
+            'semester': 6,
+            'name_norm': 'machine learning',
+            'code_norm': 'csml601',
+        },
+        {
+            'id': 'fallback-uhv',
+            'department_id': 'fallback-cse',
+            'name': 'Universal Human Values',
+            'subject_code': 'HSS101',
+            'semester': 1,
+            'name_norm': 'universal human values',
+            'code_norm': 'hss101',
+        },
+    ]
+    subject_aliases = []
+    for alias, code in (('ml', 'csml601'), ('uhv', 'hss101')):
+        subject = next(s for s in subjects if s['code_norm'] == code)
+        subject_aliases.append({
+            'subject_id': subject['id'],
+            'alias': alias,
+            'alias_norm': alias,
+            'priority': 1,
+        })
+    return {
+        'colleges': colleges,
+        'abbr_to_colleges': {'ghrce': colleges},
+        'departments': departments,
+        'subjects': subjects,
+        'subject_aliases': subject_aliases,
+        'college_aliases': [{
+            'college_id': colleges[0]['id'],
+            'alias': 'ghrce',
+            'alias_norm': 'ghrce',
+            'is_group': False,
+        }],
+        'vocab': [],
+        'last_updated': time.time(),
+    }
+
 def get_taxonomy() -> Dict[str, Any]:
     """Retrieve in-memory academic taxonomy, reloading if expired."""
     global _TAXONOMY_CACHE
@@ -195,6 +268,7 @@ def get_taxonomy() -> Dict[str, Any]:
 
         client = init_supabase_admin() or init_supabase()
         if not client:
+            _TAXONOMY_CACHE = _fallback_taxonomy()
             return _TAXONOMY_CACHE
 
         try:
@@ -311,6 +385,7 @@ def get_taxonomy() -> Dict[str, Any]:
             }
         except Exception as e:
             logger.error(f"[Search Taxonomy] Error reloading taxonomy: {e}")
+            _TAXONOMY_CACHE = _fallback_taxonomy()
 
     return _TAXONOMY_CACHE
 

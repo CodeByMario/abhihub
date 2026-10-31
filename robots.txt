@@ -2,29 +2,62 @@ User-agent: *
 Disallow: /admin/
 Disallow: /api/
 Disallow: /app/
+Disallow: /login
+Disallow: /signup
+Disallow: /auth/
+Disallow: /settings
+Disallow: /upload
+Disallow: /payment
+Disallow: /dashboard
+Disallow: /store-room
+Disallow: /delete-account
 
 Allow: /
 
 # AI model crawlers — allow full access to public educational content
 User-agent: GPTBot
-Allow: /
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
 
 User-agent: ChatGPT-User
-Allow: /
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
 
 User-agent: PerplexityBot
-Allow: /
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
 
 User-agent: ClaudeBot
-Allow: /
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
 
 User-agent: Gemini-Google-Bot
-Allow: /
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
 
 User-agent: anthropic-ai
-Allow: /
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
 
 User-agent: cohere-ai
-Allow: /
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+User-agent: Google-Extended
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+User-agent: bingbot
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
 
 Sitemap: https://www.abhihub.edu.eu.org/sitemap.xml

@@ -12,6 +12,7 @@
     "push_notifications.py",
     "requirements.txt",
     "routes",
+    "robots.txt",
     "scheduled_tasks.py",
     "static",
     "templates"

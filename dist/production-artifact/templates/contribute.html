@@ -1,13 +1,13 @@
 {% extends 'p_struct.html' %}
 
 {% block page_head %}
-<title>Contribute Study Materials &amp; Unlock Creator Perks | AbhiHub</title>
-<meta name="description" content="Share university notes, question papers, and practical files on AbhiHub. Level up through community contributor tiers to unlock increased upload quotas and reduced ads.">
+<title>How to Sell Handwritten Notes and Earn from PYQs | AbhiHub</title>
+<meta name="description" content="Learn how to sell original handwritten engineering notes and previous year question papers on AbhiHub. Set paid-document pricing, earn from eligible sales and verified views, and request payouts after KYC and the minimum balance.">
 <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1">
 <link rel="canonical" href="{{ BASE_URL | default('https://www.abhihub.edu.eu.org') }}/contribute">
 
-<meta property="og:title" content="Contribute Study Materials &amp; Unlock Creator Perks | AbhiHub">
-<meta property="og:description" content="Share university notes, question papers, and practical files on AbhiHub. Level up through community contributor tiers to unlock increased upload quotas and reduced ads.">
+<meta property="og:title" content="How to Sell Handwritten Notes and Earn from PYQs | AbhiHub">
+<meta property="og:description" content="Upload original handwritten notes and PYQs, set paid pricing, earn from eligible sales and verified views, and request creator payouts after KYC.">
 <meta property="og:url" content="{{ BASE_URL | default('https://www.abhihub.edu.eu.org') }}/contribute">
 <meta property="og:type" content="website">
 
@@ -34,10 +34,10 @@
     },
     {
       "@type": "Question",
-      "name": "Are there direct cash payouts for uploads?",
+      "name": "Can I sell handwritten notes on AbhiHub?",
       "acceptedAnswer": {
         "@type": "Answer",
-        "text": "No. Currently, AbhiHub rewards contributors through gamified rank tiers, platform privileges, and community reputation. There are no cash payouts at this stage."
+        "text": "Eligible creators can upload original handwritten notes and previous year question papers as paid documents, set a price during upload, and receive creator earnings from completed purchases. Verified view earnings may also apply under the wallet policy."
       }
     },
     {
@@ -48,6 +48,21 @@
         "text": "Uploads must be original or open academic material with a clear title (min 5 characters), selected college and subject, accurate semester/year tags, and a helpful description of at least 50 words."
       }
     }
+  ]
+}
+</script>
+<script type="application/ld+json">
+{
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  "name": "How to sell handwritten notes and PYQs on AbhiHub",
+  "description": "Steps for eligible creators to submit original academic notes or previous year question papers.",
+  "step": [
+    {"@type": "HowToStep", "name": "Create an account", "text": "Sign up for an AbhiHub account and complete the required profile details."},
+    {"@type": "HowToStep", "name": "Prepare the resource", "text": "Upload clear, original handwritten notes, solved PYQs, or practical material with accurate academic details."},
+    {"@type": "HowToStep", "name": "Set access and pricing", "text": "Choose free or paid access and provide the price and metadata required for review."},
+    {"@type": "HowToStep", "name": "Submit for verification", "text": "Submit the resource for quality and academic verification before it is listed."},
+    {"@type": "HowToStep", "name": "Receive eligible earnings", "text": "Completed purchases and applicable verified-view rewards are credited according to the current creator and payout policy."}
   ]
 }
 </script>
@@ -253,8 +268,12 @@
 <div class="contrib-page">
   <!-- Hero -->
   <div class="contrib-hero">
-    <h1>Contribute Study Materials &amp; Level Up</h1>
-    <p>Help fellow engineering students across India by sharing high-quality lecture notes, PYQs, and lab practicals while unlocking platform perks and reputation badges.</p>
+    <h1>How to Sell Handwritten Notes and Earn from PYQs</h1>
+    <p>Upload original engineering notes, solved PYQs, and practicals to reach students across India. Eligible creators can mark documents as paid, set pricing, and earn from completed purchases and applicable verified-view rewards.</p>
+    <section aria-labelledby="creator-answer" style="margin: 1.5rem auto 0; max-width: 760px; text-align: left; background: rgba(255,255,255,.12); border-radius: 14px; padding: 1rem 1.25rem;">
+      <h2 id="creator-answer" style="font-size: 1rem; margin: 0 0 .4rem;">How do you earn on AbhiHub?</h2>
+      <p style="margin: 0; line-height: 1.6;">Create an account, upload original handwritten notes or PYQs, choose free or paid access, add accurate college and subject details, and submit the file for verification. Paid-document earnings are credited after a completed purchase; payout requests require eligible balance and KYC.</p>
+    </section>
     <div class="contrib-cta-group">
       <a href="{{ url_for('app_pages.upload') }}" class="btn-hero-primary">Start Uploading →</a>
       <a href="#rank-tiers" class="btn-hero-secondary">View Rank Perks</a>
@@ -333,8 +352,8 @@
       <p>Active uploaders advance through rank tiers (Explorer, Member, Contributor, Power Contributor, Community Leader) to unlock higher daily upload limits, faster search quotas, reduced ad density, and contributor profile badges.</p>
     </div>
     <div class="faq-item">
-      <h4>Are there direct cash payouts for uploads?</h4>
-      <p>No. Currently, AbhiHub rewards contributors through gamified rank tiers, platform privileges, and community reputation. There are no cash payouts at this stage.</p>
+      <h4>Can I sell handwritten notes on AbhiHub?</h4>
+      <p>Eligible creators can upload original handwritten notes and previous year question papers as paid documents, set a price during upload, and receive creator earnings from completed purchases. Verified view earnings may also apply under the wallet policy.</p>
     </div>
     <div class="faq-item">
       <h4>What are the quality requirements for uploading study material?</h4>

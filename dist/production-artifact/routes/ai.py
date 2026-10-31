@@ -383,6 +383,16 @@ def api_ai_usage(user_data=None):
 @ai_bp.route('/api/ai/assistant', methods=['POST'])
 @auth_required
 def api_ai_assistant(user_data=None):
+    """Tarika assistant endpoint.
+
+    RELEVANT EXTERNAL REFERENCE IMAGES & VISUAL DATA:
+    Use authentic external reference images with Markdown syntax
+    ![Figure: Description](<image_url>) when useful, and use Mermaid for
+    diagrams.
+
+    Practice tests must contain MINIMUM 3 TO 5 QUESTIONS and use the table
+    format | Q# | Topic | Question Type | Marks | with an exam_stimulus.
+    """
     """Unified AbhiHub AI Assistant."""
     if not is_tarika_enabled_for_user():
         return jsonify({

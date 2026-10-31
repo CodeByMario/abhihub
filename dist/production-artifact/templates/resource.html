@@ -776,6 +776,18 @@ uploader_name %}
 {% block content %}
 <div class="r2-container">
 
+  {% if redesign_preview and document.topics_covered %}
+  <section class="r2-study-tools" aria-label="Study tools">
+    <h2>Solve with Tarika</h2>
+    {% for topic in document.topics_covered %}
+    <div class="r2-topic-video" data-yt-query="{{ topic }} {{ document.subject.name if document.subject else '' }}">{{ topic }}</div>
+    {% endfor %}
+    {% if document.subject %}
+    <div class="r2-topic-video" data-yt-query="{{ document.subject.name }} complete course revision pyq">YouTube • {{ document.subject.name }}</div>
+    {% endif %}
+  </section>
+  {% endif %}
+
   {% if is_admin %}
   <!-- Admin Real-Time Control & Notification Bar -->
   <div id="adminStickyBar" style="position:sticky; top:12px; z-index:5000; margin-bottom:1rem; padding:0.65rem 1.1rem; background:#ffffff; border:1.5px solid #2563eb; border-radius:12px; box-shadow:0 8px 24px rgba(37,99,235,0.15); display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:0.6rem;">
