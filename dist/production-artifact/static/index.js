@@ -23,9 +23,9 @@ async function handleOAuthCallback() {
             const data = await response.json();
             
             if (response.ok && data.success) {
-                console.log('Login successful, redirecting to dashboard');
+                console.log('Login successful, redirecting to app shell');
                 window.location.hash = '';
-                window.location.href = '/dashboard';
+                window.location.href = '/app-shell';
             } else {
                 console.error('Backend login failed:', data.message);
                 alert('Login failed: ' + (data.message || 'Unknown error'));
@@ -232,7 +232,7 @@ function loginUser(user, idToken) {
         credentials: 'same-origin'
     }).then(response => {
         if (response.ok) {
-            window.location.href = '/dashboard';
+            window.location.href = '/app-shell';
         } else {
             console.error('Failed to login');
         }
@@ -251,7 +251,7 @@ function showLoggedOutView() {
 function showLoggedInView(user) {
     console.log("Show logged in view")
     console.log(user.id)
-    window.location.href = '/dashboard';
+    window.location.href = '/app-shell';
 }
 
 

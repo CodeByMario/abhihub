@@ -1856,6 +1856,9 @@ def chat_history_resend(data):
 try:
     from routes import register_blueprints
     register_blueprints(app)
+    # Keep the feature-flag API available to legacy integrations that import
+    # it from the application module.
+    from routes.ai import is_tarika_enabled_for_user
 
     def _resolve_bare_endpoint_fallback(error, endpoint, values):
         if '.' not in endpoint:

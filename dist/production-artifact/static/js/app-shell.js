@@ -19,8 +19,9 @@
         '/settings': { id: 'settings', label: 'Settings', selector: '[data-page="settings"]', keepAlive: false },
         '/setting': { id: 'settings', label: 'Settings', selector: '[data-page="settings"]', keepAlive: false },
         '/profile': { id: 'settings', label: 'Settings', selector: '[data-page="settings"]', keepAlive: false },
-        '/account': { id: 'settings', label: 'Account', selector: '[data-page="settings"]', keepAlive: false },
-        '/store-room': { id: 'store-room', label: 'Store Room', selector: '[data-page="store-room"]', keepAlive: false },
+        '/store-room': { id: 'creator-hub', label: 'Creator Hub', selector: '[data-page="creator-hub"]', keepAlive: false },
+        '/creator/hub': { id: 'creator-hub', label: 'Creator Hub', selector: '[data-page="creator-hub"]', keepAlive: false },
+        '/creator/customers': { id: 'creator-hub', label: 'Creator Hub', selector: '[data-page="creator-hub"]', keepAlive: false },
         '/admin': { id: 'admin', label: 'Admin', selector: '[data-page="admin"]', keepAlive: false }
     };
 
@@ -253,7 +254,14 @@
 
             // Security & Auth escape check
             if (/^\/(login|signup|logout|auth(\/|$))/i.test(innerWin.location.pathname)) {
-                escapeShellTo('/login');
+                let targetLoginUrl = innerWin.location.pathname + innerWin.location.search;
+                if (!innerWin.location.search.includes('next=')) {
+                    const currentShellP = new URLSearchParams(window.location.search).get('p');
+                    if (currentShellP) {
+                        targetLoginUrl += (targetLoginUrl.includes('?') ? '&' : '?') + 'next=' + encodeURIComponent(currentShellP);
+                    }
+                }
+                escapeShellTo(targetLoginUrl);
                 return;
             }
 

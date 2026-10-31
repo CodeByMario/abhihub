@@ -368,8 +368,10 @@ class AbhiHubCache:
         if fetcher is not None:
             data = fetcher()
             if data is not None:
-                self.l1.set(key, data, ttl=ttl)
-                self.l2.set(key, data, ttl=ttl)
+                # Do not cache empty collections as long-lived cache hits
+                if not (isinstance(data, (list, dict)) and len(data) == 0):
+                    self.l1.set(key, data, ttl=ttl)
+                    self.l2.set(key, data, ttl=ttl)
                 return data
 
         return None

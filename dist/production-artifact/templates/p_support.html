@@ -38,10 +38,11 @@
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:0.85rem;">
                 <div style="display:flex;align-items:center;gap:0.4rem;">
                     <span style="font-size:1.1rem;">🫖</span>
+                    <span style="font-size:1.1rem;">🫖</span>
                     <h2 style="margin:0;font-size:0.95rem;font-weight:700;color:#0f172a;">Select Your Chai Treat</h2>
                 </div>
-                <span style="font-size:0.72rem;background:#fef3c7;color:#b45309;padding:0.2rem 0.55rem;border-radius:999px;font-weight:700;">
-                    PhonePe Instant UPI
+                <span style="font-size:0.72rem;background:#dbeafe;color:#1e40af;padding:0.2rem 0.55rem;border-radius:999px;font-weight:700;">
+                    Razorpay Instant UPI
                 </span>
             </div>
 
@@ -115,28 +116,29 @@
 
                     <!-- Direct Pay Button -->
                     <button type="button" data-action="payCustom" id="payCustomSubmitBtn"
-                            style="width:100%;padding:0.8rem;background:linear-gradient(135deg,#d97706 0%,#ea580c 100%);color:#ffffff;border:none;border-radius:12px;font-weight:800;font-size:0.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.45rem;box-shadow:0 4px 14px rgba(234, 88, 12, 0.25);transition:transform 0.15s;">
-                        <span>Proceed with <strong id="customPayText">₹50</strong> via PhonePe ⚡</span>
+                            style="width:100%;padding:0.8rem;background:linear-gradient(135deg,#0c2340 0%,#1d4ed8 100%);color:#ffffff;border:none;border-radius:12px;font-weight:800;font-size:0.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:0.45rem;box-shadow:0 4px 14px rgba(29, 78, 216, 0.25);transition:transform 0.15s;">
+                        <span>Proceed with <strong id="customPayText">₹50</strong> via Razorpay ⚡</span>
                     </button>
                 </div>
             </div>
 
-            <!-- PhonePe Verified Merchant Badge -->
+            <!-- Razorpay Verified Badge -->
             <div style="background:#f8fafc;border:1.5px solid #e2e8f0;border-radius:16px;padding:0.9rem 1.1rem;margin-bottom:1.25rem;text-align:center;">
                 <div style="display:inline-flex;align-items:center;gap:0.45rem;background:#eff6ff;color:#1e40af;padding:0.25rem 0.75rem;border-radius:999px;font-size:0.72rem;font-weight:700;margin-bottom:0.45rem;">
-                    <span>🛡️ PhonePe Verified Business Gateway</span>
+                    <span>🛡️ Razorpay Verified Gateway</span>
                 </div>
                 <p style="margin:0;font-size:0.8rem;color:#64748b;line-height:1.5;">
-                    Your payment is processed securely via official <strong>PhonePe Merchant Checkout</strong>. Upon payment, your name will appear on the AbhiHub Landing Page and Dashboard wall!
+                    Your payment is processed securely via official <strong>Razorpay Secure Checkout</strong>. Upon payment, your name will appear on the AbhiHub Landing Page and Dashboard wall!
                 </p>
             </div>
 
             <!-- Footer Trust Badges -->
             <div style="display:flex;justify-content:space-around;align-items:center;padding-top:0.75rem;border-top:1px solid #f1f5f9;font-size:0.72rem;color:#64748b;">
-                <span>🛡️ PhonePe Merchant</span>
+                <span>🛡️ Razorpay Secure</span>
                 <span>🌟 Shown on Wall</span>
                 <span>⚡ Instant Receipt</span>
             </div>
+
         </div>
     </div>
 </div>
@@ -191,29 +193,9 @@
             clickedBtn.style.opacity = '0.6';
         }
 
-        fetch('/api/payment/phonepe/initiate', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                amount: amount,
-                purpose: purpose,
-                supporter_name: supporterName,
-                message: message,
-                doc_id: ''
-            })
-        })
-        .then(function(res) { return res.json(); })
-        .then(function(data) {
-            if (data.success && data.payment_url) {
-                window.location.href = data.payment_url;
-            } else {
-                window.location.href = '/payment?amount=' + encodeURIComponent(amount) + '&purpose=' + encodeURIComponent(purpose);
-            }
-        })
-        .catch(function() {
-            window.location.href = '/payment?amount=' + encodeURIComponent(amount) + '&purpose=' + encodeURIComponent(purpose);
-        });
+        window.location.href = '/payment?amount=' + encodeURIComponent(amount) + '&purpose=' + encodeURIComponent(purpose);
     };
+
 
     // Event delegation for action buttons
     document.addEventListener('click', function(e) {

@@ -1,44 +1,44 @@
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/navbar.css') }}">
 
 <div class="navbar navbar--bottom" role="navigation" aria-label="Main">
-  <a href="{{ url_for('dashboard') }}" class="navbar__item -blue" data-page="home" data-feature="Nav: Home">
+  <a href="{{ url_for('app_pages.dashboard') }}" class="navbar__item -blue" data-page="home" data-feature="Nav: Home">
     <span class="navbar__icon" aria-hidden="true">
       <svg class="icon"><use xlink:href="#icon-home"></use></svg>
     </span>
     <span class="navbar__label">Home</span>
   </a>
 
-  <a href="{{ url_for('upload') }}" class="navbar__item -yellow" data-page="upload" data-feature="Nav: Upload">
+  <a href="{{ url_for('app_pages.upload') }}" class="navbar__item -yellow" data-page="upload" data-feature="Nav: Upload">
     <span class="navbar__icon" aria-hidden="true">
       <svg class="icon"><use xlink:href="#icon-upload"></use></svg>
     </span>
     <span class="navbar__label">Upload</span>
   </a>
 
-  <a href="{{ url_for('leaderboard') }}" class="navbar__item -orange" data-page="ranking" data-feature="Nav: Ranking">
+  <a href="{{ url_for('library.leaderboard') }}" class="navbar__item -orange" data-page="ranking" data-feature="Nav: Ranking">
     <span class="navbar__icon" aria-hidden="true">
       <svg class="icon"><use xlink:href="#icon-cup"></use></svg>
     </span>
     <span class="navbar__label">Ranking</span>
   </a>
 
-  <a href="{{ url_for('profile') }}" class="navbar__item -purple" data-page="profile" data-feature="Nav: Profile">
+  <a href="{{ url_for('app_pages.settings') }}" class="navbar__item -purple" data-page="settings" data-feature="Nav: Settings">
     <span class="navbar__icon" aria-hidden="true">
-      <svg class="icon"><use xlink:href="#icon-user"></use></svg>
+      <svg class="icon"><use xlink:href="#icon-settings"></use></svg>
       <span id="accountRedDot" class="notification-dot"></span>
     </span>
-    <span class="navbar__label">Account</span>
+    <span class="navbar__label">Settings</span>
   </a>
 
-  <a href="{{ url_for('store_room') }}" class="navbar__item -green" data-page="store-room" data-feature="Nav: Store Room">
+  <a href="{{ url_for('channels.creator_hub') }}" class="navbar__item -green" data-page="creator-hub" data-feature="Nav: Creator Hub">
     <span class="navbar__icon" aria-hidden="true">
-      <svg class="icon"><use xlink:href="#icon-folder"></use></svg>
+      <svg class="icon"><use xlink:href="#icon-user"></use></svg>
     </span>
-    <span class="navbar__label">Store Room</span>
+    <span class="navbar__label">Creator Hub</span>
   </a>
 
   {% if session.get('user', {}).get('email', '').lower() in ['codebymario@gmail.com', 'info@abhihub.edu.eu.org', 'admin@abhihub.edu.eu.org'] %}
-  <a href="{{ url_for('admin_control_panel') }}" class="navbar__item -red" title="Admin Panel" data-page="admin">
+  <a href="{{ url_for('admin.admin_control_panel') }}" class="navbar__item -red" title="Admin Panel" data-page="admin">
     <span class="navbar__icon" aria-hidden="true">
       <svg class="icon"><use xlink:href="#icon-settings"></use></svg>
     </span>
@@ -46,6 +46,11 @@
   </a>
   {% endif %}
 </div>
+
+<!-- Global Unified AbhiHub AI Assistant (skipped when inside app-shell iframe) -->
+{% if request.headers.get('Sec-Fetch-Dest') != 'iframe' %}
+{% include 'includes/ai_assistant.html' %}
+{% endif %}
 
 <!-- SVG Icon Definitions -->
 <svg style="display:none" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
@@ -124,8 +129,8 @@
       if (
         (page === 'home' && (currentPath === '/dashboard/' || currentPath === '/dashboard')) ||
         (page === 'ranking' && currentPath.includes('rank')) ||
-        (page === 'profile' && currentPath.includes('profile')) ||
-        (page === 'store-room' && currentPath.includes('store-room')) ||
+        (page === 'settings' && (currentPath.includes('setting') || currentPath.includes('profile') || currentPath.includes('account'))) ||
+        (page === 'creator-hub' && (currentPath.includes('creator') || currentPath.includes('channel'))) ||
         (page === 'upload' && (currentPath === '/upload' || currentPath === '/upload-gate')) ||
         (page === 'admin' && currentPath.includes('admin'))
       ) {

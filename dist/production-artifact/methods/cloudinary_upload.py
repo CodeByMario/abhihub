@@ -9,7 +9,10 @@ import time
 import cloudinary
 import cloudinary.uploader
 from PIL import Image
-from pypdf import PdfReader, PdfWriter
+try:
+    from pypdf import PdfReader, PdfWriter
+except ImportError:
+    PdfReader = PdfWriter = None
 from typing import Dict, Optional, BinaryIO
 from dotenv import load_dotenv
 import logging
@@ -68,9 +71,10 @@ def compress_pdf(file_data: bytes) -> bytes:
         cleaned = out.getvalue()
         if len(cleaned) < len(file_data):
             logging.info(f"✓ PDF metadata stripped & streams compressed → {len(cleaned)} bytes (was {len(file_data)}")
+            return cleaned
         else:
-            logging.info(f"✓ PDF metadata stripped ({len(cleaned)} bytes)")
-        return cleaned
+            logging.info(f"✓ PDF compression produced no size reduction; keeping original ({len(file_data)} bytes)")
+            return file_data
     except Exception as e:
         logging.warning(f"PDF metadata strip failed, keeping original: {e}")
         return file_data
@@ -97,8 +101,8 @@ def compress_image(file_data: bytes, format: str = 'JPEG', quality: int = 75) ->
         enhancer = ImageEnhance.Contrast(img)
         img = enhancer.enhance(1.15)
 
-        # Convert to RGB for JPEG save
-        if format.upper() in ('JPEG', 'WEBP'):
+        # Ensure RGB mode for watermarking and consistent saving
+        if img.mode != 'RGB':
             img = img.convert('RGB')
 
         # Add AbhiHub watermark to bottom right corner
@@ -199,6 +203,9 @@ def upload_file_to_cloudinary(
         resource_type = get_cloudinary_resource_type(filename)
         ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
 
+        original_bytes = len(file_bytes)
+        compression_applied = False
+
         # Compress / clean files if enabled
         if compress:
             if resource_type == 'image':
@@ -209,8 +216,11 @@ def upload_file_to_cloudinary(
                 image_format = format_map.get(ext, 'JPEG')
                 file_bytes = compress_image(file_bytes, format=image_format, quality=85)
                 logging.info(f"✓ Image compressed: {len(file_bytes)} bytes")
+                compression_applied = len(file_bytes) < original_bytes
             elif ext == 'pdf':
-                file_bytes = compress_pdf(file_bytes)
+                compressed_bytes = compress_pdf(file_bytes)
+                compression_applied = len(compressed_bytes) < original_bytes
+                file_bytes = compressed_bytes
                 logging.info(f"✓ PDF metadata stripped: {len(file_bytes)} bytes")
 
         # Create unique filename with user ID and timestamp
@@ -249,40 +259,35 @@ def upload_file_to_cloudinary(
         elif resource_type == 'raw':
             # For PDFs and documents
             upload_params['resource_type'] = 'raw'
+        upload_params['access_mode'] = 'public'
 
         logging.info(f"📤 Uploading to Cloudinary: {public_id}")
+        if is_pdf and not public_id.lower().endswith('.txt'):
+            raise ValueError("PDF Cloudinary public ID must use a .txt suffix")
         result = cloudinary.uploader.upload(file_bytes, **upload_params)
 
-        # Ensure the resource is publicly accessible via admin API.
-        # The access_control param on upload doesn't always stick for raw resources
-        # on some account configurations; an explicit admin update guarantees it.
-        try:
-            import cloudinary.api as _cld_api
-            _cld_api.update(result.get('public_id'), resource_type=resource_type, access_mode='public')
-            logging.info(f"✓ Public access confirmed for {result.get('public_id')}")
-        except Exception as _e:
-            logging.warning(f"[cloudinary] Could not set public access on {public_id}: {_e}")
+        def _bg_register_storage_asset(res_data, orig_filename):
+            try:
+                from methods.supabase_helper import init_supabase
+                client = init_supabase()
+                if client:
+                    client.table('storage_assets').upsert({
+                        'provider': 'cloudinary',
+                        'provider_public_id': res_data.get('public_id'),
+                        'filename': orig_filename or res_data.get('original_filename') or res_data.get('public_id'),
+                        'public_url': res_data.get('secure_url') or res_data.get('url'),
+                        'mime': res_data.get('format', 'unknown'),
+                        'status': 'PENDING'
+                    }, on_conflict='provider,provider_public_id', ignore_duplicates=True).execute()
+            except Exception as _e:
+                logging.debug(f"[cloudinary] Storage asset registration skipped: {_e}")
 
-        # Also upload to Supabase Storage as a fallback/public delivery layer.
-        # Cloudinary Free plan may block all access methods (signed URLs, admin API),
-        # but Supabase Storage with anon key provides reliable public access.
-        try:
-            from methods.supabase_helper import init_supabase, upload_file_to_supabase
-            client = init_supabase()
-            if client:
-                supabase_result = upload_file_to_supabase(
-                    file_data=file_bytes,
-                    supabase_path=f"cloudinary_fallback/{result['public_id']}{ext if ext else '.pdf'}",
-                    content_type='application/pdf' if ext and ext.lower() == 'pdf' else 'application/octet-stream'
-                )
-                if supabase_result.get('success'):
-                    result['supabase_url'] = supabase_result.get('url')
-                    result['supabase_public_id'] = supabase_result.get('public_path')
-                    logging.info(f"✓ Uploaded to Supabase fallback: {supabase_result.get('url')}")
-                else:
-                    logging.warning(f"[cloudinary] Supabase upload fallback skipped: {supabase_result.get('message')}")
-        except Exception as _e:
-            logging.warning(f"[cloudinary] Supabase fallback upload skipped: {_e}")
+        import threading
+        threading.Thread(
+            target=_bg_register_storage_asset,
+            args=(result, filename),
+            daemon=True
+        ).start()
 
         logging.info(f"✅ Upload successful: {result.get('secure_url')}")
 
@@ -295,6 +300,14 @@ def upload_file_to_cloudinary(
             'format': result.get('format'),
             'bytes': result.get('bytes'),
             'original_filename': filename,
+            'cloudinary_filename': f"{public_id.rsplit('/', 1)[-1]}",
+            'source_extension': ext,
+            'uploaded_extension': 'txt' if is_pdf else ext,
+            'pdf_uploaded_as_txt': is_pdf,
+            'original_bytes': original_bytes,
+            'processed_bytes': len(file_bytes),
+            'compression_requested': bool(compress),
+            'compression_applied': compression_applied,
             'width': result.get('width'),
             'height': result.get('height'),
             # Optional fallback fields

@@ -2,321 +2,448 @@
 {% block page_head %}
 <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
 <meta name="robots" content="noindex, follow">
-<title>Notifications — AbhiHub</title>
+<title>Notification Center — AbhiHub</title>
 <style>
-.notif-page {
-  max-width: 700px;
-  margin: 0 auto;
-  padding: 1.25rem 1rem 5rem;
-}
-.notif-page-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1.5rem;
-  padding-bottom: 0.75rem;
-  border-bottom: 1px solid var(--border-light, #e2e8f0);
-}
-.notif-page-title {
-  font-size: 1.3rem;
-  font-weight: 800;
-  color: var(--text-primary, #1e293b);
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.notif-page-title .notif-icon { font-size: 1.4rem; }
-.notif-seen-btn {
-  background: none;
-  border: none;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: #0d9488;
-  cursor: pointer;
-  padding: 0.3rem 0.6rem;
-  border-radius: 6px;
-  transition: all 0.2s;
-}
-.notif-seen-btn:hover { background: #ecfdf5; color: #065f46; }
+  :root {
+    --n-primary: #6366f1;
+    --n-surface: #ffffff;
+    --n-bg: #f8fafc;
+    --n-border: #e2e8f0;
+    --n-text: #0f172a;
+    --n-muted: #64748b;
+    --n-unread-bg: #f0f7ff;
+    --n-unread-border: #93c5fd;
+  }
 
-.notif-count-badge {
-  background: #0d9488;
-  color: #fff;
-  font-size: 0.7rem;
-  font-weight: 800;
-  padding: 0.15rem 0.5rem;
-  border-radius: 999px;
-  min-width: 20px;
-  text-align: center;
-  line-height: 1.5;
-}
+  .dark :root {
+    --n-surface: #1e293b;
+    --n-bg: #0f172a;
+    --n-border: #334155;
+    --n-text: #f8fafc;
+    --n-muted: #94a3b8;
+    --n-unread-bg: rgba(99, 102, 241, 0.12);
+    --n-unread-border: #6366f1;
+  }
 
-.notif-list {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-.notif-item {
-  display: flex;
-  gap: 0.75rem;
-  padding: 0.9rem 1rem;
-  border-radius: 14px;
-  background: var(--surface, #fff);
-  border: 1px solid var(--border-light, #e2e8f0);
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
-  transition: all 0.2s;
-}
-.notif-item:hover { box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06); }
-.notif-item.unread { background: #f0f7ff; border-color: #bfdbfe; }
-.notif-item-icon {
-  width: 36px;
-  height: 36px;
-  border-radius: 10px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.1rem;
-  flex-shrink: 0;
-}
-.notif-item-icon.view { background: #dbeafe; color: #2563eb; }
-.notif-item-icon.default { background: #dcfce7; color: #166534; }
-.notif-item-icon.marketing { background: #ede9fe; color: #7c3aed; }
-.notif-item-icon.system { background: #ffedd5; color: #c2410c; }
-.notif-item-content { flex: 1; min-width: 0; }
-.notif-item-title {
-  font-size: 0.85rem;
-  font-weight: 700;
-  color: var(--text-primary, #1e293b);
-  margin-bottom: 0.2rem;
-}
-.notif-item-message {
-  font-size: 0.78rem;
-  color: var(--text-secondary, #64748b);
-  line-height: 1.4;
-  margin-bottom: 0.3rem;
-}
-.notif-item-time {
-  font-size: 0.68rem;
-  color: var(--text-tertiary, #94a3b8);
-}
-.notif-item-link {
-  font-size: 0.72rem;
-  color: #0d9488;
-  font-weight: 600;
-  text-decoration: none;
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-.notif-item-link:hover { text-decoration: underline; color: #065f46; }
-.notif-unread-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 50%;
-  background: #3b82f6;
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-.notif-empty {
-  text-align: center;
-  padding: 3rem 1.5rem;
-  color: var(--text-tertiary, #94a3b8);
-}
-.notif-empty-icon { font-size: 2.5rem; margin-bottom: 0.75rem; opacity: 0.4; }
-.notif-loading-more {
-  text-align: center;
-  padding: 1.5rem;
-  color: var(--text-tertiary, #94a3b8);
-  font-size: 0.85rem;
-}
-.notif-load-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.4rem;
-  padding: 0.6rem 1.2rem;
-  background: var(--primary-600, #3b82f6);
-  color: #fff;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 0.85rem;
-  text-decoration: none;
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s;
-  margin-top: 1rem;
-}
-.notif-load-btn:hover { background: var(--primary-700, #2563eb); transform: translateY(-1px); }
-@media (max-width: 600px) {
-  .notif-page { padding: 1rem 0.5rem 5rem; }
-  .notif-item { padding: 0.75rem; }
-}
+  body {
+    background-color: var(--n-bg);
+  }
+
+  .notif-hub-wrap {
+    max-width: 760px;
+    margin: 1.5rem auto 5rem;
+    padding: 0 1rem;
+    font-family: 'Kanit', -apple-system, BlinkMacSystemFont, sans-serif;
+  }
+
+  /* Header Box */
+  .notif-header-box {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    background: var(--n-surface);
+    border: 1px solid var(--n-border);
+    padding: 1.25rem 1.5rem;
+    border-radius: 20px;
+    box-shadow: 0 4px 20px -5px rgba(0, 0, 0, 0.05);
+    margin-bottom: 1.5rem;
+  }
+
+  .notif-title-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .notif-icon-badge {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    box-shadow: 0 6px 14px rgba(99, 102, 241, 0.25);
+  }
+
+  .notif-h1 {
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: var(--n-text);
+    margin: 0;
+    line-height: 1.2;
+  }
+
+  .notif-subtext {
+    font-size: 0.82rem;
+    color: var(--n-muted);
+    margin: 0;
+  }
+
+  .btn-mark-read {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: rgba(99, 102, 241, 0.08);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    color: var(--n-primary);
+    font-size: 0.82rem;
+    font-weight: 700;
+    padding: 0.5rem 0.9rem;
+    border-radius: 10px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .btn-mark-read:hover {
+    background: var(--n-primary);
+    color: #ffffff;
+  }
+
+  /* Filter Pills */
+  .notif-filters {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .notif-pill {
+    background: var(--n-surface);
+    border: 1px solid var(--n-border);
+    color: var(--n-muted);
+    padding: 0.4rem 0.9rem;
+    border-radius: 999px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.15s;
+  }
+
+  .notif-pill.active {
+    background: var(--n-primary);
+    color: #ffffff;
+    border-color: var(--n-primary);
+    box-shadow: 0 4px 12px rgba(99, 102, 241, 0.25);
+  }
+
+  /* Notification Items List */
+  .notif-feed {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .notif-card {
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    background: var(--n-surface);
+    border: 1px solid var(--n-border);
+    border-radius: 16px;
+    padding: 1.15rem 1.25rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+    cursor: pointer;
+  }
+
+  .notif-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.06);
+    border-color: rgba(99, 102, 241, 0.4);
+  }
+
+  .notif-card.unread {
+    background: var(--n-unread-bg);
+    border-left: 4px solid var(--n-primary);
+    border-color: var(--n-unread-border);
+  }
+
+  .notif-type-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.15rem;
+    flex-shrink: 0;
+  }
+
+  .type-view { background: #dbeafe; color: #1d4ed8; }
+  .type-upload { background: #ede9fe; color: #6d28d9; }
+  .type-royalty { background: #dcfce7; color: #047857; }
+  .type-system { background: #ffedd5; color: #c2410c; }
+  .type-default { background: #f1f5f9; color: #475569; }
+
+  .notif-body {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .notif-meta-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .notif-title {
+    font-size: 0.92rem;
+    font-weight: 700;
+    color: var(--n-text);
+  }
+
+  .notif-time {
+    font-size: 0.72rem;
+    color: var(--n-muted);
+    white-space: nowrap;
+  }
+
+  .notif-msg {
+    font-size: 0.85rem;
+    color: var(--n-muted);
+    line-height: 1.5;
+    margin-bottom: 0.5rem;
+  }
+
+  .notif-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+
+  .btn-action-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    background: rgba(99, 102, 241, 0.1);
+    color: var(--n-primary);
+    padding: 0.3rem 0.7rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    text-decoration: none;
+    transition: background 0.15s;
+  }
+
+  .btn-action-link:hover {
+    background: var(--n-primary);
+    color: #ffffff;
+  }
+
+  .unread-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--n-primary);
+    box-shadow: 0 0 8px var(--n-primary);
+  }
+
+  /* Empty State */
+  .notif-empty-box {
+    text-align: center;
+    padding: 4rem 1.5rem;
+    background: var(--n-surface);
+    border: 1px dashed var(--n-border);
+    border-radius: 20px;
+    margin-top: 1rem;
+  }
+
+  .notif-empty-icon {
+    font-size: 3rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* Load More Button */
+  .btn-load-more {
+    display: block;
+    margin: 1.5rem auto 0;
+    padding: 0.75rem 2rem;
+    background: var(--n-surface);
+    border: 1px solid var(--n-border);
+    color: var(--n-text);
+    font-weight: 700;
+    font-size: 0.88rem;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  }
+
+  .btn-load-more:hover {
+    background: var(--n-primary);
+    color: #ffffff;
+    border-color: var(--n-primary);
+    transform: translateY(-2px);
+  }
 </style>
 {% endblock %}
+
 {% block content %}
-<div class="notif-page">
-  <div class="notif-page-header">
-    <h1 class="notif-page-title">
-      <span class="notif-icon">🔔</span> Notifications
-      {% if unread > 0 %}<span class="notif-count-badge">{{ unread }}</span>{% endif %}
-    </h1>
+<div class="notif-hub-wrap">
+  <!-- Hub Header -->
+  <div class="notif-header-box">
+    <div class="notif-title-wrap">
+      <div class="notif-icon-badge">🔔</div>
+      <div>
+        <h1 class="notif-h1">Notification Center</h1>
+        <p class="notif-subtext">Real-time alerts on your notes, sales &amp; university updates.</p>
+      </div>
+    </div>
+
     {% if unread > 0 %}
-    <button type="button" class="notif-seen-btn" data-action="markAllRead">Mark all read</button>
+    <button type="button" class="btn-mark-read" data-action="markAllRead">
+      <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7"/></svg>
+      Mark all as read
+    </button>
     {% endif %}
   </div>
 
-  {% if notifications %}
-  <div class="notif-list">
+  <!-- Filter Pills -->
+  <div class="notif-filters">
+    <button class="notif-pill active" onclick="filterNotifs('all', this)">All</button>
+    <button class="notif-pill" onclick="filterNotifs('unread', this)">
+      Unread {% if unread > 0 %}({{ unread }}){% endif %}
+    </button>
+    <button class="notif-pill" onclick="filterNotifs('notes', this)">📄 Notes &amp; PYQs</button>
+    <button class="notif-pill" onclick="filterNotifs('sales', this)">💰 Sales &amp; Royalties</button>
+    <button class="notif-pill" onclick="filterNotifs('system', this)">⚙️ Platform</button>
+  </div>
+
+  <!-- Notification Feed -->
+  <div class="notif-feed" id="notifFeed">
     {% for n in notifications %}
-    <div class="notif-item {{ 'unread' if not n.is_read else '' }}" data-notif-id="{{ n.id }}" data-read="{{ n.is_read }}">
-      <div class="notif-item-icon {{ 'view' if n.type == 'file_view' else ('marketing' if n.type == 'marketing' else ('system' if n.type == 'system' else 'default')) }}">
-        {% if n.type == 'file_view' %}👁
-        {% elif n.type == 'marketing' %}📢
+    {% set is_unread = not n.is_read %}
+    {% set n_cat = 'sales' if ('payout' in n.type or 'earning' in n.type or 'royalty' in n.type or 'sale' in n.type) else ('notes' if ('upload' in n.type or 'view' in n.type or 'paper' in n.type) else 'system') %}
+
+    <div class="notif-card {{ 'unread' if is_unread else '' }}"
+         data-id="{{ n.id }}"
+         data-read="{{ 'false' if is_unread else 'true' }}"
+         data-cat="{{ n_cat }}"
+         onclick="markCardAsRead(this)">
+
+      <!-- Icon -->
+      <div class="notif-type-icon {{ 'type-royalty' if n_cat == 'sales' else ('type-upload' if 'upload' in n.type else ('type-view' if 'view' in n.type else ('type-system' if n.type == 'system' else 'type-default'))) }}">
+        {% if n_cat == 'sales' %}💰
+        {% elif 'upload' in n.type %}📄
+        {% elif 'view' in n.type %}👁️
         {% elif n.type == 'system' %}⚙️
         {% else %}🔔{% endif %}
       </div>
-      <div class="notif-item-content">
-        <div class="notif-item-title">{{ n.title or n.type|capitalize }}</div>
-        <div class="notif-item-message">{{ n.message or '' }}</div>
-        <div class="notif-item-time">{{ n.created_at[:10] if n.created_at else '' }} {{ n.created_at[11:16] if n.created_at and n.created_at|length > 16 else '' }}</div>
+
+      <!-- Content -->
+      <div class="notif-body">
+        <div class="notif-meta-head">
+          <span class="notif-title">{{ n.title or n.type|capitalize }}</span>
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <span class="notif-time">{{ n.created_at[:10] if n.created_at else '' }}</span>
+            {% if is_unread %}
+            <span class="unread-dot"></span>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="notif-msg">{{ n.message or 'No additional details provided.' }}</div>
+
+        {% if n.action_url %}
+        <div class="notif-actions">
+          <a href="{{ n.action_url }}" class="btn-action-link" onclick="event.stopPropagation()">
+            View Details →
+          </a>
+        </div>
+        {% endif %}
       </div>
-      {% if not n.is_read %}
-      <div class="notif-unread-dot" title="Unread"></div>
-      {% endif %}
-      {% if n.action_url %}
-      <a href="{{ n.action_url }}" class="notif-item-link">Open</a>
-      {% endif %}
+    </div>
+    {% else %}
+    <div class="notif-empty-box">
+      <div class="notif-empty-icon">🎉</div>
+      <h3 style="font-size:1.2rem; font-weight:800; margin:0 0 0.4rem;">All Caught Up!</h3>
+      <p style="color:var(--n-muted); font-size:0.9rem; margin:0 0 1.5rem;">
+        You don't have any unread notifications right now.
+      </p>
+      <a href="{{ url_for('library.pyq_landing') }}" class="btn-action-link" style="padding:0.6rem 1.4rem; font-size:0.88rem;">
+        Browse Exam Papers
+      </a>
     </div>
     {% endfor %}
   </div>
 
   {% if has_more %}
-  <div style="text-align: center;">
-    <button type="button" class="notif-load-btn" id="loadMoreNotifs"
-            data-offset="{{ offset + limit }}" data-limit="{{ limit }}">Load More</button>
-  </div>
-  {% endif %}
-
-  {% if notifications.__len__() == 0 %}
-  <div class="notif-empty">
-    <div class="notif-empty-icon">🔔</div>
-    <p>No notifications yet. Check back later!</p>
-  </div>
-  {% endif %}
-
-  {% else %}
-  <div class="notif-empty">
-    <div class="notif-empty-icon">🔔</div>
-    <p>No notifications yet. Check back later!</p>
-  </div>
+  <button type="button" class="btn-load-more" id="loadMoreNotifs"
+          data-offset="{{ offset + limit }}" data-limit="{{ limit }}">
+    Load Earlier Notifications
+  </button>
   {% endif %}
 </div>
 
 <script>
-(function() {
-  // Load more notifications
-  const loadBtn = document.getElementById('loadMoreNotifs');
-  if (loadBtn) {
-    loadBtn.addEventListener('click', async function() {
-      const offset = parseInt(this.dataset.offset, 10);
-      const limit = parseInt(this.dataset.limit, 10);
-      this.disabled = true;
-      this.textContent = 'Loading…';
-      try {
-        const r = await fetch(`/api/my-notifications?limit=${limit}&offset=${offset}`, {
-          signal: AbortSignal.timeout(10000)
-        });
-        const d = await r.json();
-        if (d.success && d.data.length) {
-          // Append new items to the list
-          const list = document.querySelector('.notif-list');
-          if (list) {
-            const html = d.data.map(n => {
-              const cls = 'notif-item ' + (n.is_read ? '' : 'unread');
-              const iconClass = n.type === 'file_view' ? 'view' :
-                n.type === 'marketing' ? 'marketing' :
-                n.type === 'system' ? 'system' : 'default';
-              const icon = n.type === 'file_view' ? '\ud83d\udc41' :
-                n.type === 'marketing' ? '\ud83d\udce2' :
-                n.type === 'system' ? '\u2699\ufe0f' : '\ud83d\udd14';
-              const timeStr = n.created_at ? n.created_at.substring(0, 10) + ' ' + n.created_at.substring(11, 16) : '';
-              const link = n.action_url ? '<a href="' + n.action_url + '" class="notif-item-link">Open</a>' : '';
-              const dot = !n.is_read ? '<div class="notif-unread-dot" title="Unread"></div>' : '';
-              return '<div class="' + cls + '" data-notif-id="' + n.id + '" data-read="' + n.is_read + '">' +
-                '<div class="notif-item-icon ' + iconClass + '">' + icon + '</div>' +
-                '<div class="notif-item-content">' +
-                  '<div class="notif-item-title">' + (n.title || n.type) + '</div>' +
-                  '<div class="notif-item-message">' + (n.message || '') + '</div>' +
-                  '<div class="notif-item-time">' + timeStr + '</div>' +
-                '</div>' + dot + link +
-              '</div>';
-            }).join('');
-            list.insertAdjacentHTML('beforeend', html);
-          }
-          // Update offset for next load
-          this.dataset.offset = offset + limit;
-          if (d.unread !== undefined) {
-            // Update unread badge if present
-          }
-        }
-        if (d.data && d.data.length < limit) {
-          this.style.display = 'none';
-        }
-      } catch(e) {
-        this.textContent = 'Load More';
-        this.disabled = false;
+  let activeFilter = 'all';
+
+  function filterNotifs(type, btn) {
+    activeFilter = type;
+    document.querySelectorAll('.notif-pill').forEach(p => p.classList.remove('active'));
+    btn.classList.add('active');
+
+    const cards = document.querySelectorAll('.notif-card');
+    cards.forEach(card => {
+      const isUnread = card.getAttribute('data-read') === 'false';
+      const cat = card.getAttribute('data-cat');
+
+      if (type === 'all') {
+        card.style.display = 'flex';
+      } else if (type === 'unread') {
+        card.style.display = isUnread ? 'flex' : 'none';
+      } else {
+        card.style.display = cat === type ? 'flex' : 'none';
       }
-      this.textContent = 'Load More';
-      this.disabled = false;
     });
   }
 
-  // Mark single notification as read on click
-  document.querySelectorAll('.notif-item.unread').forEach(function(item) {
-    item.addEventListener('click', function(e) {
-      // Don't mark as read if clicking the action link
-      if (e.target.classList.contains('notif-item-link')) return;
-      const id = this.getAttribute('data-notif-id');
-      if (id && this.classList.contains('unread')) {
-        fetch('/api/notifications/' + id + '/read', { method: 'POST' })
-          .then(r => r.json())
-          .then(d => {
-            if (d.success) {
-              this.classList.remove('unread');
-              this.setAttribute('data-read', 'true');
-              const dot = this.querySelector('.notif-unread-dot');
-              if (dot) dot.remove();
-              // Decrement badge
-              const badge = document.querySelector('.notif-count-badge');
-              if (badge) {
-                const val = parseInt(badge.textContent, 10) - 1;
-                badge.textContent = val > 0 ? val : '';
-                if (val <= 0) badge.remove();
-              }
-            }
-          })
-          .catch(() => {});
-      }
-    });
-  });
+  function markCardAsRead(card) {
+    const isUnread = card.getAttribute('data-read') === 'false';
+    const notifId = card.getAttribute('data-id');
 
-  // Mark all read from page
+    if (isUnread && notifId) {
+      fetch('/api/notifications/' + notifId + '/read', { method: 'POST' })
+        .then(r => r.json())
+        .then(data => {
+          if (data.success) {
+            card.classList.remove('unread');
+            card.setAttribute('data-read', 'true');
+            const dot = card.querySelector('.unread-dot');
+            if (dot) dot.remove();
+          }
+        })
+        .catch(() => {});
+    }
+  }
+
+  // Mark all read
   const markAllBtn = document.querySelector('[data-action="markAllRead"]');
   if (markAllBtn) {
     markAllBtn.addEventListener('click', async function() {
-      const r = await fetch('/api/my-notifications/read', { method: 'POST' });
-      if (r.ok) {
-        document.querySelectorAll('.notif-item.unread').forEach(item => {
-          item.classList.remove('unread');
-          item.setAttribute('data-read', 'true');
-          const dot = item.querySelector('.notif-unread-dot');
-          if (dot) dot.remove();
-        });
-        const badge = document.querySelector('.notif-count-badge');
-        if (badge) badge.remove();
-        this.style.display = 'none';
-      }
+      try {
+        const res = await fetch('/api/my-notifications/read', { method: 'POST' });
+        if (res.ok) {
+          document.querySelectorAll('.notif-card.unread').forEach(c => {
+            c.classList.remove('unread');
+            c.setAttribute('data-read', 'true');
+            const dot = c.querySelector('.unread-dot');
+            if (dot) dot.remove();
+          });
+          this.style.display = 'none';
+        }
+      } catch(e) {}
     });
   }
-})();
 </script>
 {% endblock %}

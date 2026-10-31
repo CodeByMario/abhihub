@@ -77,6 +77,23 @@
     transform: translateY(-2px);
   }
 
+  .offline-arcade {
+    width: min(100%, 520px);
+    margin: 0 0 2rem;
+    border: 0;
+    border-radius: 16px;
+    overflow: hidden;
+    background: #020617;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  }
+
+  .offline-arcade iframe {
+    display: block;
+    width: 100%;
+    height: 680px;
+    border: 0;
+  }
+
   @media (max-width: 640px) {
     .offline-container {
       padding: 1rem;
@@ -114,7 +131,13 @@
     reconnecting.
   </p>
 
-  {% include 'dino_game.html' %}
+  <div class="offline-arcade" aria-label="Offline arcade">
+    <iframe
+      src="{{ url_for('site.game_page') }}"
+      title="Snake and Flappy Bird offline arcade"
+      loading="eager"
+      allow="autoplay"></iframe>
+  </div>
 
   <div class="offline-actions">
     <button class="offline-button retry-btn" type="button" data-action="retryConnection" aria-label="Retry connection">

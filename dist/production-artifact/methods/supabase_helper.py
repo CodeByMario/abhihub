@@ -805,35 +805,38 @@ def save_file_record(
         subj_abbr = ''
         resolved_code = (subject_code or '').strip().upper()
 
-        if c_id:
-            try:
-                c_data = client.table('colleges').select('name, abbreviation').eq('id', c_id).limit(1).execute()
-                if c_data.data:
-                    col_abbr = (c_data.data[0].get('abbreviation') or make_acronym(c_data.data[0].get('name') or '')).strip().upper()
-            except Exception:
-                pass
+        # Only resolve acronyms from database if title is not already pre-formatted
+        needs_acronym_lookup = not title or title.strip().lower() == (subject_name or '').strip().lower()
+        if needs_acronym_lookup:
+            if c_id:
+                try:
+                    c_data = client.table('colleges').select('name, abbreviation').eq('id', c_id).limit(1).execute()
+                    if c_data.data:
+                        col_abbr = (c_data.data[0].get('abbreviation') or make_acronym(c_data.data[0].get('name') or '')).strip().upper()
+                except Exception:
+                    pass
 
-        if d_id:
-            try:
-                d_data = client.table('departments').select('name, abbreviation').eq('id', d_id).limit(1).execute()
-                if d_data.data:
-                    dept_abbr = (d_data.data[0].get('abbreviation') or make_acronym(d_data.data[0].get('name') or '')).strip().upper()
-            except Exception:
-                pass
+            if d_id:
+                try:
+                    d_data = client.table('departments').select('name, abbreviation').eq('id', d_id).limit(1).execute()
+                    if d_data.data:
+                        dept_abbr = (d_data.data[0].get('abbreviation') or make_acronym(d_data.data[0].get('name') or '')).strip().upper()
+                except Exception:
+                    pass
 
-        if sub_id:
-            try:
-                s_data = client.table('subjects').select('name, subject_code').eq('id', sub_id).limit(1).execute()
-                if s_data.data:
-                    if not resolved_code:
-                        resolved_code = (s_data.data[0].get('subject_code') or '').strip().upper()
-                    if not subj_abbr:
-                        subj_abbr = make_acronym(s_data.data[0].get('name') or subject_name or '')
-            except Exception:
-                pass
+            if sub_id:
+                try:
+                    s_data = client.table('subjects').select('name, subject_code').eq('id', sub_id).limit(1).execute()
+                    if s_data.data:
+                        if not resolved_code:
+                            resolved_code = (s_data.data[0].get('subject_code') or '').strip().upper()
+                        if not subj_abbr:
+                            subj_abbr = make_acronym(s_data.data[0].get('name') or subject_name or '')
+                except Exception:
+                    pass
 
-        if not subj_abbr and subject_name:
-            subj_abbr = make_acronym(subject_name)
+            if not subj_abbr and subject_name:
+                subj_abbr = make_acronym(subject_name)
 
         if c_id and (not col_abbr or col_abbr == 'GHRCEG'):
             try:
@@ -974,6 +977,7 @@ def save_file_record(
 
             update_res = client.table('documents').update(data).eq('id', existing['id']).execute()
             if update_res.data:
+                invalidate_files_cache()
                 logging.info(f"[Supabase] Completed metadata for existing document: {existing['id']}")
                 return {'success': True, 'message': 'Existing file metadata updated', 'data': update_res.data[0]}
             return {'success': False, 'message': 'Failed to update existing file record'}
@@ -1039,7 +1043,7 @@ def save_file_record(
             
             res_data = res.data[0]
             res_data.update(xp_data)
-            
+            invalidate_files_cache()
             return {'success': True, 'message': 'Saved successfully', 'data': res_data}
         
         logging.error(f"[Supabase] Failed to save document record. Response empty.")
@@ -1122,16 +1126,16 @@ def _extract_location_keys(val) -> set:
     if not val:
         return set()
     s = str(val).strip()
-    keys = {s}
+    keys = {s, s.lower()}
     s_clean = re.sub(r'^https?://[^/]+/', '', s)
     keys.add(s_clean)
+    keys.add(s_clean.lower())
     s_clean2 = re.sub(r'^(?:raw/|image/)?upload/(?:v\d+/)?', '', s_clean)
     keys.add(s_clean2)
+    keys.add(s_clean2.lower())
     s_noext = re.sub(r'\.[a-zA-Z0-9]+$', '', s_clean2)
     keys.add(s_noext)
-    base = s_noext.split('/')[-1]
-    if base and len(base) > 3:
-        keys.add(base)
+    keys.add(s_noext.lower())
     return {k for k in keys if k}
 
 def get_pending_storage_assets() -> list:
@@ -1139,16 +1143,42 @@ def get_pending_storage_assets() -> list:
     client = init_supabase()
     if not client: return []
     try:
-        # 1. Fetch all registered document locations
-        docs_res = client.table('documents').select('provider_public_id, file_url').execute()
+        # 1. Fetch all registered document locations across all pages
         doc_location_keys = set()
-        for doc in (docs_res.data or []):
-            doc_location_keys.update(_extract_location_keys(doc.get('file_url')))
-            doc_location_keys.update(_extract_location_keys(doc.get('provider_public_id')))
+        page = 0
+        batch_limit = 1000
+        while True:
+            docs_res = client.table('documents').select('provider_public_id, file_url').range(page * batch_limit, (page + 1) * batch_limit - 1).execute()
+            rows = docs_res.data or []
+            for doc in rows:
+                doc_location_keys.update(_extract_location_keys(doc.get('file_url')))
+                doc_location_keys.update(_extract_location_keys(doc.get('provider_public_id')))
+            if len(rows) < batch_limit:
+                break
+            page += 1
 
-        # 2. Fetch storage assets marked PENDING
-        res = client.table('storage_assets').select('*').eq('status', 'PENDING').execute()
-        pending = res.data or []
+        # 2. Fetch storage assets marked PENDING across all pages
+        pending = []
+        page = 0
+        while True:
+            res = client.table('storage_assets').select('*').eq('status', 'PENDING').range(page * batch_limit, (page + 1) * batch_limit - 1).execute()
+            rows = res.data or []
+            pending.extend(rows)
+            if len(rows) < batch_limit:
+                break
+            page += 1
+
+        # 2b. Auto-seed fallback: if storage_assets table has 0 assets, sync once from Cloudinary
+        if not pending:
+            cnt_check = client.table('storage_assets').select('id', count='exact').limit(1).execute()
+            if (cnt_check.count or 0) == 0:
+                try:
+                    from methods.storage_providers import CloudinaryProvider
+                    CloudinaryProvider().sync()
+                    res = client.table('storage_assets').select('*').eq('status', 'PENDING').range(0, batch_limit - 1).execute()
+                    pending = res.data or []
+                except Exception as sync_e:
+                    logging.warning(f"[get_pending_storage_assets] Auto seed error: {sync_e}")
 
         truly_pending = []
         already_labeled_ids = []
@@ -1188,12 +1218,23 @@ def mark_storage_asset_labeled(provider: str, provider_public_id: str, filename:
             res = client.table('storage_assets').update({'status': 'LABELED'}).eq('provider', provider).eq('provider_public_id', provider_public_id).execute()
             if res.data and len(res.data) > 0:
                 updated = True
+            if not updated and '.' in provider_public_id:
+                no_ext = provider_public_id.rsplit('.', 1)[0]
+                res = client.table('storage_assets').update({'status': 'LABELED'}).eq('provider', provider).eq('provider_public_id', no_ext).execute()
+                if res.data and len(res.data) > 0:
+                    updated = True
         if not updated and filename:
             res = client.table('storage_assets').update({'status': 'LABELED'}).eq('filename', filename).execute()
             if res.data and len(res.data) > 0:
                 updated = True
         if not updated and url:
-            client.table('storage_assets').update({'status': 'LABELED'}).eq('public_url', url).execute()
+            res = client.table('storage_assets').update({'status': 'LABELED'}).eq('public_url', url).execute()
+            if res.data and len(res.data) > 0:
+                updated = True
+            if not updated:
+                clean_name = url.split('/')[-1].split('?')[0]
+                if clean_name:
+                    client.table('storage_assets').update({'status': 'LABELED'}).eq('filename', clean_name).execute()
         return True
     except Exception as e:
         logging.error(f"[Supabase] Error updating asset status: {e}")
@@ -1307,13 +1348,14 @@ def _doc_to_json(doc: dict, current_user_id: str = None) -> dict:
         'is_bookmarked': is_bookmarked,
         'college': college_name or 'Other',
         'is_paid': is_paid,
-        'price': price_val
+        'price': price_val,
+        'uploader_id': str(doc.get('uploader_id') or '')
     }
 
 def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dict:
-    # Cache key: anon gets shared cache; authed users get personal cache (for like/bookmark state)
-    _FILES_CACHE_TTL = 120  # 2 minutes
-    cache_key = f'all_files:{current_user_id or "anon"}'
+    # Use shared cache for document records across users (180s TTL)
+    _FILES_CACHE_TTL = 180  # 3 minutes
+    cache_key = 'all_files:shared'
     cached = _cache_get(cache_key)
     if cached is not None:
         return {'success': True, 'data': cached, 'count': len(cached)}
@@ -1322,14 +1364,90 @@ def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dic
     try:
         res = client.table('documents') \
             .select('*, profiles!documents_uploader_id_fkey(full_name, email), subjects(name, subject_code), colleges(name, abbreviation), document_votes(user_id), bookmarks(user_id), document_comments(id)') \
-            .in_('status', ['approved', 'pending']) \
+            .neq('status', 'rejected') \
             .order('created_at', desc=True) \
+            .limit(1000) \
             .execute()
-        files = [_doc_to_json(d, current_user_id) for d in res.data] if res.data else []
+        files = [_doc_to_json(d, None) for d in res.data] if res.data else []
         _cache[cache_key] = {'val': files, 'ts': _time.time() - (_CACHE_TTL - _FILES_CACHE_TTL)}
         return {'success': True, 'data': files, 'count': len(files)}
     except Exception as e:
         return {'success': False, 'data': [], 'count': 0, 'message': str(e)}
+
+_DASHBOARD_SUMMARY_CACHE = {}
+
+def get_dashboard_summary_data(college_name: str = None) -> Dict:
+    """Pre-computed, memory-cached dashboard summary data (counts, trending, recent)."""
+    cache_key = f"dash_summary:{college_name or 'all'}"
+    now_ts = _time.time()
+    cached = _DASHBOARD_SUMMARY_CACHE.get(cache_key)
+    if cached and (now_ts - cached['ts'] < 180):
+        return cached['data']
+
+    from collections import Counter
+    files = get_all_file_records_formatted()
+    
+    all_subjects = list(set([f.get('subject', '') for f in files if f.get('subject', '').strip()]))
+    top_subjects = sorted(all_subjects)[:8]
+    paper_count = len([f for f in files if f.get('type', '').lower() in ('papers', 'paper', 'pyq')])
+    notes_count = len([f for f in files if f.get('type', '').lower() in ('notes', 'note', 'imp questions', 'imp_questions')])
+
+    all_papers = [f for f in files if f.get('type', '').lower() in ('papers', 'paper', 'pyq')]
+    all_papers_by_views = sorted(all_papers, key=lambda f: f.get('view_count', 0), reverse=True)
+
+    if college_name:
+        college_papers = [f for f in all_papers_by_views if f.get('college', '').lower() == college_name.lower()]
+        relevant_papers = college_papers[:8] if college_papers else all_papers_by_views[:8]
+    else:
+        relevant_papers = all_papers_by_views[:8]
+
+    trending_papers = all_papers_by_views[:8]
+    recent_papers = sorted(all_papers, key=lambda f: f.get('date', ''), reverse=True)[:8]
+
+    notes_type_values = ('notes', 'note', 'imp questions', 'imp_questions')
+    all_notes = [f for f in files if f.get('type', '').lower() in notes_type_values]
+    all_notes_by_views = sorted(all_notes, key=lambda f: f.get('view_count', 0), reverse=True)
+
+    if college_name:
+        college_notes = [f for f in all_notes_by_views if f.get('college', '').lower() == college_name.lower()]
+        relevant_notes = college_notes[:8] if college_notes else all_notes_by_views[:8]
+    else:
+        relevant_notes = all_notes_by_views[:8]
+
+    trending_notes = all_notes_by_views[:8]
+    recent_notes = sorted(all_notes, key=lambda f: f.get('date', ''), reverse=True)[:8]
+
+    recently_added_files = sorted(files, key=lambda f: f.get('date') or '', reverse=True)[:10]
+
+    premium_files = [f for f in files if f.get('is_paid') or (f.get('price') and float(f.get('price', 0)) > 0)]
+    if len(premium_files) < 8:
+        curated_extra = [f for f in sorted(files, key=lambda x: x.get('view_count', 0), reverse=True)
+                         if f.get('verified') and f.get('record_id') not in {p.get('record_id') for p in premium_files}]
+        premium_files.extend(curated_extra[:8 - len(premium_files)])
+
+    author_counts = Counter()
+    for f in files:
+        auth = (f.get('author') or '').strip()
+        if auth and auth.lower() not in ('unknown', 'contributor', 'none', ''):
+            author_counts[auth] += 1
+    top_authors = [{'name': name, 'count': count} for name, count in author_counts.most_common(20)]
+
+    result = {
+        'counts': {'papers': paper_count, 'notes': notes_count, 'total': len(files)},
+        'top_subjects': top_subjects,
+        'relevant_papers': relevant_papers,
+        'trending_papers': trending_papers,
+        'recent_papers': recent_papers,
+        'relevant_notes': relevant_notes,
+        'trending_notes': trending_notes,
+        'recent_notes': recent_notes,
+        'recently_added_files': recently_added_files,
+        'premium_files': premium_files,
+        'top_authors': top_authors,
+        'preview_pool': files[:30]
+    }
+    _DASHBOARD_SUMMARY_CACHE[cache_key] = {'data': result, 'ts': now_ts}
+    return result
 
 def get_all_file_records_formatted(current_user_id=None) -> List[Dict]:
     return get_all_files_merged(current_user_id=current_user_id).get('data', [])
@@ -1339,6 +1457,12 @@ def invalidate_files_cache():
     keys_to_del = [k for k in _cache if k.startswith('all_files:')]
     for k in keys_to_del:
         del _cache[k]
+    _DASHBOARD_SUMMARY_CACHE.clear()
+    try:
+        from methods.search_api import invalidate_search_cache
+        invalidate_search_cache()
+    except Exception:
+        pass
     log.debug(f'Invalidated {len(keys_to_del)} file cache entries')
 
 def get_related_documents(college_id: str = None, subject_id: str = None,
@@ -1364,6 +1488,60 @@ def get_related_documents(college_id: str = None, subject_id: str = None,
         return docs[:limit]
     except Exception as e:
         log.error(f'get_related_documents error: {e}')
+        return []
+
+def search_documents_rpc(
+    query: str,
+    limit: int = 20,
+    offset: int = 0,
+    college_id: str = None,
+    department_id: str = None,
+    subject_id: str = None,
+    program: str = None,
+    category: str = None,
+    exam_type: str = None,
+    year: int = None,
+    status: List[str] = None
+) -> List[Dict]:
+    """Execute tiered SQL document search via abhihub.search_documents RPC."""
+    client = init_supabase()
+    if not client or not query or len(query.strip()) < 2:
+        return []
+    try:
+        payload = {
+            'p_query': query.strip(),
+            'p_limit': limit,
+            'p_offset': offset,
+            'p_college': college_id if validate_uuid(college_id) else None,
+            'p_department': department_id if validate_uuid(department_id) else None,
+            'p_subject': subject_id if validate_uuid(subject_id) else None,
+            'p_program': program,
+            'p_category': category,
+            'p_exam_type': exam_type,
+            'p_year': int(year) if year and str(year).isdigit() else None,
+            'p_status': status or ['approved']
+        }
+        res = client.rpc('search_documents', payload).execute()
+        return res.data if res.data else []
+    except Exception as e:
+        log.error(f'search_documents_rpc error: {e}')
+        return []
+
+def suggest_documents_rpc(query: str, limit: int = 8, status: List[str] = None) -> List[Dict]:
+    """Get fast prefix autocomplete suggestions via abhihub.suggest_documents RPC."""
+    client = init_supabase()
+    if not client or not query or len(query.strip()) < 2:
+        return []
+    try:
+        payload = {
+            'p_query': query.strip(),
+            'p_limit': limit,
+            'p_status': status or ['approved']
+        }
+        res = client.rpc('suggest_documents', payload).execute()
+        return res.data if res.data else []
+    except Exception as e:
+        log.error(f'suggest_documents_rpc error: {e}')
         return []
 
 def search_file_records(search_query='', document_type=None, college_id=None, branch_id=None, year=None, program=None, limit=50) -> List[Dict]:
@@ -2481,6 +2659,14 @@ def notify_all_new_upload(doc_id: str, title: str, uploader_id: str = None, subj
             try:
                 client.table('notifications').insert(chunk).execute()
             except Exception as e:
+                # Fallback to supported 'system' type if 'new_upload' enum value is not yet in Postgres enum
+                if 'notification_type' in str(e) or '22P02' in str(e):
+                    try:
+                        fallback_chunk = [{**item, 'type': 'system'} for item in chunk]
+                        client.table('notifications').insert(fallback_chunk).execute()
+                        continue
+                    except Exception as fe:
+                        e = fe
                 logging.warning(f"[NOTIFY_UPLOAD] In-app batch insert failed chunk {i}: {e}")
         logging.info(f"[NOTIFY_UPLOAD] Created in-app notifications for {len(records)} users for doc {doc_id}")
     except Exception as e:
@@ -2714,19 +2900,20 @@ def award_contribution_xp(user_id: str, action_type: str, entity_id: str = None,
                 base_xp = float(pts.get(action_type, 0) or 0)
             except Exception:
                 base_xp = 0.0
-        if not base_xp or base_xp <= 0:
+        int_xp = int(round(base_xp))
+        if int_xp <= 0:
             return {'success': True, 'scored': False, 'reason': 'zero/unknown point value'}
         # 1. Log the contribution
         client.table('contribution_logs').insert({
             'user_id': user_id, 'action_type': action_type, 'entity_id': entity_id,
-            'entity_type': entity_type, 'xp_awarded': base_xp, 'description': description
+            'entity_type': entity_type, 'xp_awarded': int_xp, 'description': description
         }).execute()
         
         # 2. Update the profile XP
         p_res = client.table('profiles').select('reputation_score').eq('id', user_id).execute()
         if p_res.data:
-            current_xp = p_res.data[0].get('reputation_score') or 0
-            new_xp = current_xp + base_xp
+            current_xp = int(p_res.data[0].get('reputation_score') or 0)
+            new_xp = current_xp + int_xp
             
             # Simple rank calculation based on new_xp
             rank = "Beginner"
@@ -2751,7 +2938,7 @@ def award_contribution_xp(user_id: str, action_type: str, entity_id: str = None,
                     log.debug(f"add_xp_and_rank: badge insert failed (unique constraint?): {e}")
                     pass  # unique constraint handles duplicates
                     
-            return {'success': True, 'xp_gained': base_xp, 'new_score': new_xp, 'new_rank': rank}
+            return {'success': True, 'xp_gained': int_xp, 'new_score': new_xp, 'new_rank': rank}
     except Exception as e:
         logging.error(f"Error awarding XP: {e}")
     return {'success': False}
@@ -3104,8 +3291,8 @@ def upload_file_to_supabase(file_data: bytes, supabase_path: str, content_type: 
         return {'success': False, 'message': 'Supabase client not available'}
     
     try:
-        # Use the 'public' bucket which allows anon key access
-        bucket_name = 'public'
+        # Use the configured bucket (defaulting to 'public')
+        bucket_name = os.getenv('SUPABASE_STORAGE_BUCKET', 'public')
         
         # Upload the file
         response = client.storage.from_(bucket_name).upload(

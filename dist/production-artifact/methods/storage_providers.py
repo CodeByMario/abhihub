@@ -67,7 +67,9 @@ class CloudinaryProvider(StorageProvider):
         return True
         
     def generate_public_url(self, storage_id: str) -> str:
-        return f"https://res.cloudinary.com/demo/image/upload/{storage_id}"
+        import os
+        cloud = os.getenv('CLOUDINARY_CLOUD_NAME', 'demo')
+        return f"https://res.cloudinary.com/{cloud}/image/upload/{storage_id}"
         
     def sync(self) -> Dict:
         from methods.supabase_helper import init_supabase

@@ -259,6 +259,68 @@
   line-height: 1;
 }
 
+/* ── Interactive Creator Wallet Category Cards & Drawer ── */
+.wallet-cat-card {
+  background: var(--st-surface-hover, #f8fafc);
+  border: 1.5px solid var(--st-border, #e2e8f0);
+  border-radius: 14px;
+  padding: 1rem;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  user-select: none;
+}
+.wallet-cat-card:hover {
+  transform: translateY(-2px);
+  border-color: var(--st-navy, #2563eb);
+  box-shadow: 0 6px 16px rgba(0,0,0,0.06);
+}
+.wallet-cat-card.active {
+  border-color: var(--st-navy, #2563eb);
+  background: rgba(37, 99, 235, 0.04);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+.wallet-cat-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.35rem;
+}
+.wallet-cat-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+.wallet-cat-indicator {
+  font-size: 0.72rem;
+  color: var(--st-text-muted, #64748b);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 0.5rem;
+  font-weight: 600;
+}
+.wallet-cat-card.active .wallet-cat-indicator {
+  color: var(--st-navy, #2563eb);
+}
+.wallet-drawer-panel {
+  display: none;
+  background: var(--st-surface, #ffffff);
+  border: 1px solid var(--st-border, #e2e8f0);
+  border-radius: 14px;
+  padding: 1.25rem;
+  margin-top: 1rem;
+  animation: slideDownFade 0.25s ease-out;
+}
+@keyframes slideDownFade {
+  from { opacity: 0; transform: translateY(-8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ── Form Rows & Controls ── */
 .st-form-row {
   display: flex;
@@ -916,51 +978,141 @@
 
       <!-- Study Credits -->
       <div class="st-section" id="section-study-credits">
-        <div class="st-card">
-          <h2><span class="st-card-icon">🎓</span> Study Credits</h2>
-          <div class="st-stat-row">
-            <span class="st-stat-label">Credits Remaining Today</span>
-            <span class="st-stat-value">{{ user_data.paper_quota_remaining if user_data and user_data.paper_quota_remaining is not none else 19 }}</span>
+        <!-- Main Balance Card -->
+        <div class="st-card" style="background:linear-gradient(135deg, rgba(79, 169, 224, 0.08) 0%, rgba(27, 58, 107, 0.04) 100%);border:1px solid rgba(79, 169, 224, 0.25);">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;">
+            <h2 style="margin:0;"><span class="st-card-icon">🎓</span> Study Credits & Daily Quota</h2>
+            <span class="st-stat-value" style="background:var(--st-success-tint);color:var(--st-success);font-size:0.8rem;padding:0.25rem 0.65rem;border-radius:20px;">● Resets Daily at Midnight</span>
           </div>
-          <div class="st-form-sublabel" style="margin-top:0.75rem;">Each document view costs 1 credit. Credits refill daily.</div>
-        </div>
 
-        <div class="st-card">
-          <h2><span class="st-card-icon">💎</span> Earn More Credits</h2>
-          <div class="st-stat-list">
-            <div class="st-stat-row">
-              <span class="st-stat-label">Daily Login Bonus</span>
-              <span class="st-stat-value">+5</span>
-            </div>
-            <div class="st-stat-row">
-              <span class="st-stat-label">Invite a Friend (via referral)</span>
-              <span class="st-stat-value">+50</span>
-            </div>
-            <div class="st-stat-row">
-              <span class="st-stat-label">Upload a Resource</span>
-              <span class="st-stat-value">+10</span>
-            </div>
-            <div class="st-stat-row">
-              <span class="st-stat-label">Enable Notifications</span>
-              <span class="st-stat-value">+25</span>
-            </div>
+          <div style="display:flex;align-items:baseline;gap:0.5rem;margin-bottom:0.75rem;">
+            <span style="font-size:2.25rem;font-weight:800;color:var(--st-navy);line-height:1;">
+              {{ user_data.paper_quota_remaining if user_data and user_data.paper_quota_remaining is not none else 19 }}
+            </span>
+            <span style="font-size:1.1rem;font-weight:600;color:var(--st-text-muted);">/ 20 Credits Available Today</span>
+          </div>
+
+          <!-- Progress Bar -->
+          {% set cur_quota = user_data.paper_quota_remaining if user_data and user_data.paper_quota_remaining is not none else 19 %}
+          {% set quota_pct = ((cur_quota / 20) * 100) if cur_quota <= 20 else 100 %}
+          <div style="width:100%;height:8px;background:var(--st-border);border-radius:999px;overflow:hidden;margin-bottom:0.75rem;">
+            <div style="width:{{ [quota_pct, 100]|min }}%;height:100%;background:linear-gradient(90deg, #4FA9E0, #16A34A);border-radius:999px;transition:width 0.4s ease;"></div>
+          </div>
+
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;font-size:0.825rem;color:var(--st-text-muted);">
+            <span>Each document view or download costs <strong>1 credit</strong>.</span>
+            {% if user_data and user_data.referral_credits and user_data.referral_credits > 0 %}
+            <span style="color:#d97706;font-weight:700;">🎁 +{{ user_data.referral_credits }} Referral Bonus Credits in reserve</span>
+            {% endif %}
           </div>
         </div>
 
+        <!-- Earn More Credits -->
         <div class="st-card">
-          <h2><span class="st-card-icon">📊</span> Reputation</h2>
+          <h2><span class="st-card-icon">💎</span> Ways to Earn More Credits</h2>
+          <div class="st-form-sublabel" style="margin-bottom:1rem;">Complete quick activities to replenish your credits and unlock exclusive creator earnings.</div>
+          
+          <div style="display:flex;flex-direction:column;gap:0.85rem;">
+            <!-- Store Room -->
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.85rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:0.85rem;min-width:240px;flex:1;">
+                <div style="font-size:1.6rem;">🏷️</div>
+                <div>
+                  <div style="font-weight:700;color:var(--st-text-main);font-size:0.95rem;">Store Room File Labeling</div>
+                  <div style="font-size:0.8rem;color:var(--st-text-muted);">Categorize uncategorized question papers & syllabus docs</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.75rem;">
+                <span style="font-weight:700;color:var(--st-navy);background:var(--st-sky-tint);padding:0.25rem 0.6rem;border-radius:6px;font-size:0.85rem;">+5 Credits / Paper</span>
+                <a href="/store-room" class="st-btn st-btn-primary" style="padding:0.35rem 0.85rem;font-size:0.825rem;min-height:34px;text-decoration:none;">Go to Store Room →</a>
+              </div>
+            </div>
+
+            <!-- Upload Resource -->
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.85rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:0.85rem;min-width:240px;flex:1;">
+                <div style="font-size:1.6rem;">📤</div>
+                <div>
+                  <div style="font-weight:700;color:var(--st-text-main);font-size:0.95rem;">Upload Study Material</div>
+                  <div style="font-size:0.8rem;color:var(--st-text-muted);">Share notes, PYQs, or practical manuals (+ creator royalties)</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.75rem;">
+                <span style="font-weight:700;color:var(--st-success);background:var(--st-success-tint);padding:0.25rem 0.6rem;border-radius:6px;font-size:0.85rem;">+10 Credits + ₹0.20/view</span>
+                <a href="/upload" class="st-btn st-btn-outline" style="padding:0.35rem 0.85rem;font-size:0.825rem;min-height:34px;text-decoration:none;">Upload Now →</a>
+              </div>
+            </div>
+
+            <!-- Invite Friend -->
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.85rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:0.85rem;min-width:240px;flex:1;">
+                <div style="font-size:1.6rem;">👥</div>
+                <div>
+                  <div style="font-weight:700;color:var(--st-text-main);font-size:0.95rem;">Invite Classmates</div>
+                  <div style="font-size:0.8rem;color:var(--st-text-muted);">Share your referral link with college friends</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.75rem;">
+                <span style="font-weight:700;color:#d97706;background:#fef3c7;padding:0.25rem 0.6rem;border-radius:6px;font-size:0.85rem;">+50 Credits / Friend</span>
+                <button type="button" class="st-btn st-btn-outline" onclick="copySettingsReferralLink(this)" style="padding:0.35rem 0.85rem;font-size:0.825rem;min-height:34px;">📋 Copy Link</button>
+              </div>
+            </div>
+
+            <!-- Daily Login Bonus -->
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.85rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:0.85rem;min-width:240px;flex:1;">
+                <div style="font-size:1.6rem;">🎁</div>
+                <div>
+                  <div style="font-weight:700;color:var(--st-text-main);font-size:0.95rem;">Daily Login Bonus</div>
+                  <div style="font-size:0.8rem;color:var(--st-text-muted);">Daily study streak reward awarded on active visits</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.75rem;">
+                <span style="font-weight:700;color:var(--st-navy);background:var(--st-sky-tint);padding:0.25rem 0.6rem;border-radius:6px;font-size:0.85rem;">+5 Credits Daily</span>
+                <span style="font-size:0.8rem;font-weight:600;color:var(--st-success);">✓ Automatic</span>
+              </div>
+            </div>
+
+            <!-- Enable Notifications -->
+            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.85rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;flex-wrap:wrap;">
+              <div style="display:flex;align-items:center;gap:0.85rem;min-width:240px;flex:1;">
+                <div style="font-size:1.6rem;">🔔</div>
+                <div>
+                  <div style="font-weight:700;color:var(--st-text-main);font-size:0.95rem;">Push Notifications</div>
+                  <div style="font-size:0.8rem;color:var(--st-text-muted);">Stay alert for new question papers & department uploads</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;gap:0.75rem;">
+                <span style="font-weight:700;color:var(--st-navy);background:var(--st-sky-tint);padding:0.25rem 0.6rem;border-radius:6px;font-size:0.85rem;">+25 Credits</span>
+                <button type="button" class="st-btn st-btn-outline" onclick="document.querySelector('[data-section=\'notifications\']').click()" style="padding:0.35rem 0.85rem;font-size:0.825rem;min-height:34px;">Settings →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Reputation & Statistics -->
+        <div class="st-card">
+          <h2><span class="st-card-icon">📊</span> Academic Reputation & Impact</h2>
           <div class="st-stat-list">
             <div class="st-stat-row">
-              <span class="st-stat-label">Reputation Score</span>
+              <span class="st-stat-label">⭐ Reputation Score</span>
               <span class="st-stat-value">{{ user_data.reputation_score if user_data and user_data.reputation_score is not none else 0 }}</span>
             </div>
             <div class="st-stat-row">
-              <span class="st-stat-label">Students Helped</span>
+              <span class="st-stat-label">🤝 Students Helped</span>
               <span class="st-stat-value">{{ user_data.students_helped if user_data and user_data.students_helped is not none else 0 }}</span>
             </div>
             <div class="st-stat-row">
-              <span class="st-stat-label">Your Uploads</span>
+              <span class="st-stat-label">📚 Your Uploads</span>
               <span class="st-stat-value">{{ user_data.uploads_count if user_data and user_data.uploads_count is not none else 0 }}</span>
+            </div>
+            <div class="st-stat-row">
+              <span class="st-stat-label">🎁 Referral Bonus Credits Earned</span>
+              <span class="st-stat-value" style="color:#f59e0b;font-weight:700;">{{ user_data.referral_credits if user_data and user_data.referral_credits is not none else 0 }}</span>
+            </div>
+            <div class="st-stat-row">
+              <span class="st-stat-label">👥 Friends Joined via Your Link</span>
+              <span class="st-stat-value">{{ user_data.referral_count if user_data and user_data.referral_count is not none else 0 }}</span>
             </div>
           </div>
         </div>
@@ -1106,53 +1258,290 @@
           </div>
         </div>
 
-        <!-- Card 2: Creator Wallet Balances -->
-        <div class="st-card">
-          <h2><span class="st-card-icon">💼</span> Creator Wallet Balances</h2>
-          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:0.5rem;">
-            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
-              <div style="font-size:0.75rem;color:#b45309;font-weight:700;text-transform:uppercase;">Pending (30-day Lock)</div>
-              <div id="stWalletPending" style="font-size:1.35rem;font-weight:800;color:#d97706;margin-top:0.25rem;">₹0.00</div>
-              <div style="font-size:0.7rem;color:var(--st-text-sub);margin-top:0.25rem;">Holding period for disputes</div>
+        <!-- Card 2: Creator Wallet Balances (Interactive Categorized Dashboard) -->
+        <div class="st-card" id="stCreatorWalletCard">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;">
+            <h2 style="margin:0;"><span class="st-card-icon">💼</span> Creator Wallet Balances</h2>
+            <span style="font-size:0.75rem;color:var(--st-text-muted);background:var(--st-surface-hover);padding:3px 10px;border-radius:20px;border:1px solid var(--st-border);">
+              👆 Click any balance card to expand history
+            </span>
+          </div>
+
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:0.85rem;">
+            <!-- Category 1: Views Earnings -->
+            <div class="wallet-cat-card" id="stCardViews" onclick="toggleWalletCategory('views')">
+              <div class="wallet-cat-header">
+                <span class="wallet-cat-badge" style="background:#eff6ff;color:#1d4ed8;">Views</span>
+                <span style="font-size:1.1rem;">👁️</span>
+              </div>
+              <div id="stWalletViewsEarnings" style="font-size:1.4rem;font-weight:800;color:var(--st-navy);margin-top:0.15rem;">₹0.00</div>
+              <div id="stWalletViewsCount" style="font-size:0.72rem;color:var(--st-text-sub);margin-top:0.25rem;">0 views @ ₹0.20/view</div>
+              <div class="wallet-cat-indicator">
+                <span>View Details</span>
+                <span class="wallet-chevron" id="stChevronViews">▼</span>
+              </div>
             </div>
-            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
-              <div style="font-size:0.75rem;color:var(--st-success);font-weight:700;text-transform:uppercase;">Withdrawable</div>
-              <div id="stWalletWithdrawable" style="font-size:1.35rem;font-weight:800;color:var(--st-success);margin-top:0.25rem;">₹0.00</div>
-              <div style="font-size:0.7rem;color:var(--st-text-sub);margin-top:0.25rem;">Ready for payout</div>
+
+            <!-- Category 2: Withdrawable Balance -->
+            <div class="wallet-cat-card" id="stCardWithdrawable" onclick="toggleWalletCategory('withdrawable')">
+              <div class="wallet-cat-header">
+                <span class="wallet-cat-badge" style="background:#f0fdf4;color:#15803d;">Available</span>
+                <span style="font-size:1.1rem;">✅</span>
+              </div>
+              <div id="stWalletWithdrawable" style="font-size:1.4rem;font-weight:800;color:var(--st-success);margin-top:0.15rem;">₹0.00</div>
+              <div style="font-size:0.72rem;color:var(--st-text-sub);margin-top:0.25rem;">Ready for payout</div>
+              <div class="wallet-cat-indicator">
+                <span>Cashout Breakdown</span>
+                <span class="wallet-chevron" id="stChevronWithdrawable">▼</span>
+              </div>
             </div>
-            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
-              <div style="font-size:0.75rem;color:var(--st-text-muted);font-weight:700;text-transform:uppercase;">Total Withdrawn</div>
-              <div id="stWalletTotalWithdrawn" style="font-size:1.35rem;font-weight:800;color:var(--st-text-main);margin-top:0.25rem;">₹0.00</div>
-              <div style="font-size:0.7rem;color:var(--st-text-sub);margin-top:0.25rem;">Lifetime payout total</div>
+
+            <!-- Category 3: Pending (30-day Lock) -->
+            <div class="wallet-cat-card" id="stCardPending" onclick="toggleWalletCategory('pending')">
+              <div class="wallet-cat-header">
+                <span class="wallet-cat-badge" style="background:#fffbeb;color:#b45309;">30-Day Escrow</span>
+                <span style="font-size:1.1rem;">⏳</span>
+              </div>
+              <div id="stWalletPending" style="font-size:1.4rem;font-weight:800;color:#d97706;margin-top:0.15rem;">₹0.00</div>
+              <div style="font-size:0.72rem;color:var(--st-text-sub);margin-top:0.25rem;">Holding period (sales)</div>
+              <div class="wallet-cat-indicator">
+                <span>Locked Ledger</span>
+                <span class="wallet-chevron" id="stChevronPending">▼</span>
+              </div>
             </div>
+
+            <!-- Category 4: Total Withdrawn -->
+            <div class="wallet-cat-card" id="stCardWithdrawn" onclick="toggleWalletCategory('withdrawn')">
+              <div class="wallet-cat-header">
+                <span class="wallet-cat-badge" style="background:var(--st-surface-hover);color:var(--st-text-muted);">Disbursed</span>
+                <span style="font-size:1.1rem;">📜</span>
+              </div>
+              <div id="stWalletTotalWithdrawn" style="font-size:1.4rem;font-weight:800;color:var(--st-text-main);margin-top:0.15rem;">₹0.00</div>
+              <div style="font-size:0.72rem;color:var(--st-text-sub);margin-top:0.25rem;">Lifetime payout total</div>
+              <div class="wallet-cat-indicator">
+                <span>Payout Receipts</span>
+                <span class="wallet-chevron" id="stChevronWithdrawn">▼</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Expandable Details & History Drawer -->
+          <div id="stWalletDrawer" class="wallet-drawer-panel">
+            <!-- 1. Views Panel -->
+            <div id="stPanelViews" style="display:none;">
+              <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--st-border);padding-bottom:0.75rem;margin-bottom:0.85rem;">
+                <div>
+                  <h3 style="margin:0;font-size:0.98rem;color:var(--st-navy);display:flex;align-items:center;gap:0.4rem;">
+                    <span>👁️</span> Views Royalty Earnings History
+                  </h3>
+                  <div style="font-size:0.76rem;color:var(--st-text-muted);margin-top:2px;">Earnings calculated across all your uploads and Store Room labeled files.</div>
+                </div>
+                <button type="button" class="st-btn st-btn-outline" style="padding:4px 10px;font-size:0.75rem;min-height:28px;" onclick="toggleWalletCategory('views')">✕ Close</button>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:0.85rem;">
+                <div style="background:var(--st-surface-hover);padding:0.75rem;border-radius:10px;border:1px solid var(--st-border);">
+                  <div style="font-size:0.72rem;color:var(--st-text-muted);font-weight:600;">Earning Rate</div>
+                  <div style="font-size:1.1rem;font-weight:800;color:var(--st-navy);margin-top:2px;">₹0.20 <span style="font-size:0.75rem;font-weight:500;">/ unique view</span></div>
+                </div>
+                <div style="background:var(--st-surface-hover);padding:0.75rem;border-radius:10px;border:1px solid var(--st-border);">
+                  <div style="font-size:0.72rem;color:var(--st-text-muted);font-weight:600;">Total Unique Views</div>
+                  <div id="stDrawerTotalViewsVal" style="font-size:1.1rem;font-weight:800;color:var(--st-text-main);margin-top:2px;">0</div>
+                </div>
+                <div style="background:var(--st-surface-hover);padding:0.75rem;border-radius:10px;border:1px solid var(--st-border);">
+                  <div style="font-size:0.72rem;color:var(--st-text-muted);font-weight:600;">Store Room Points</div>
+                  <div id="stDrawerPointsVal" style="font-size:1.1rem;font-weight:800;color:#d97706;margin-top:2px;">5 Pts <span style="font-size:0.75rem;font-weight:500;">/ labeled file</span></div>
+                </div>
+              </div>
+              <div style="padding:0.75rem;background:rgba(37,99,235,0.04);border-radius:10px;border:1px dashed rgba(37,99,235,0.25);font-size:0.78rem;color:var(--st-text-sub);line-height:1.5;">
+                🛡️ <strong>View Verification Policy:</strong> Only verified unique student views count towards view earnings. Self-views, bot queries, and rapid reloads are automatically deducted to guarantee authentic community payouts.
+              </div>
+            </div>
+
+            <!-- 2. Withdrawable Balance Panel -->
+            <div id="stPanelWithdrawable" style="display:none;">
+              <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--st-border);padding-bottom:0.75rem;margin-bottom:0.85rem;">
+                <div>
+                  <h3 style="margin:0;font-size:0.98rem;color:var(--st-success);display:flex;align-items:center;gap:0.4rem;">
+                    <span>✅</span> Withdrawable Balance Breakdown
+                  </h3>
+                  <div style="font-size:0.76rem;color:var(--st-text-muted);margin-top:2px;">Funds eligible for immediate bank transfer or UPI payout.</div>
+                </div>
+                <button type="button" class="st-btn st-btn-outline" style="padding:4px 10px;font-size:0.75rem;min-height:28px;" onclick="toggleWalletCategory('withdrawable')">✕ Close</button>
+              </div>
+              <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:0.85rem;">
+                <div style="background:var(--st-surface-hover);padding:0.75rem;border-radius:10px;border:1px solid var(--st-border);">
+                  <div style="font-size:0.72rem;color:var(--st-text-muted);font-weight:600;">Unlocked Sales</div>
+                  <div id="stDrawerSalesWithdrawableVal" style="font-size:1.1rem;font-weight:800;color:var(--st-text-main);margin-top:2px;">₹0.00</div>
+                </div>
+                <div style="background:var(--st-surface-hover);padding:0.75rem;border-radius:10px;border:1px solid var(--st-border);">
+                  <div style="font-size:0.72rem;color:var(--st-text-muted);font-weight:600;">View Royalties Unlocked</div>
+                  <div id="stDrawerViewsWithdrawableVal" style="font-size:1.1rem;font-weight:800;color:var(--st-navy);margin-top:2px;">₹0.00</div>
+                </div>
+                <div style="background:#f0fdf4;padding:0.75rem;border-radius:10px;border:1px solid #86efac;">
+                  <div style="font-size:0.72rem;color:#15803d;font-weight:600;">Net Available Now</div>
+                  <div id="stDrawerNetWithdrawableVal" style="font-size:1.1rem;font-weight:800;color:#16a34a;margin-top:2px;">₹0.00</div>
+                </div>
+              </div>
+              <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;padding:0.75rem;background:var(--st-surface-hover);border-radius:10px;border:1px solid var(--st-border);">
+                <span style="font-size:0.78rem;color:var(--st-text-muted);">Ready to cash out? Fast payouts sent to UPI or Bank account.</span>
+                <button type="button" class="st-btn st-btn-primary" style="padding:4px 14px;font-size:0.78rem;min-height:30px;" onclick="document.getElementById('stWithdrawAmt')?.focus(); document.getElementById('stWithdrawalForm')?.scrollIntoView({behavior:'smooth'});">Request Payout ↓</button>
+              </div>
+            </div>
+
+            <!-- 3. Pending (30-day Lock) Panel -->
+            <div id="stPanelPending" style="display:none;">
+              <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--st-border);padding-bottom:0.75rem;margin-bottom:0.85rem;">
+                <div>
+                  <h3 style="margin:0;font-size:0.98rem;color:#b45309;display:flex;align-items:center;gap:0.4rem;">
+                    <span>⏳</span> 30-Day Escrow Ledger &amp; Unlocking Schedule
+                  </h3>
+                  <div style="font-size:0.76rem;color:var(--st-text-muted);margin-top:2px;">Study note sales are safeguarded in 30-day buyer protection escrow before shifting to Withdrawable.</div>
+                </div>
+                <button type="button" class="st-btn st-btn-outline" style="padding:4px 10px;font-size:0.75rem;min-height:28px;" onclick="toggleWalletCategory('pending')">✕ Close</button>
+              </div>
+              <div id="stDrawerPendingLedgerList" style="font-size:0.83rem;">
+                <div style="padding:1rem;text-align:center;color:var(--st-text-muted);">Loading escrow ledger...</div>
+              </div>
+            </div>
+
+            <!-- 4. Total Withdrawn Panel -->
+            <div id="stPanelWithdrawn" style="display:none;">
+              <div style="display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--st-border);padding-bottom:0.75rem;margin-bottom:0.85rem;">
+                <div>
+                  <h3 style="margin:0;font-size:0.98rem;color:var(--st-text-main);display:flex;align-items:center;gap:0.4rem;">
+                    <span>📜</span> Withdrawal Receipts &amp; Disbursements History
+                  </h3>
+                  <div style="font-size:0.76rem;color:var(--st-text-muted);margin-top:2px;">Complete record of all payout transfers sent to your UPI ID and Bank accounts.</div>
+                </div>
+                <button type="button" class="st-btn st-btn-outline" style="padding:4px 10px;font-size:0.75rem;min-height:28px;" onclick="toggleWalletCategory('withdrawn')">✕ Close</button>
+              </div>
+              <div style="overflow-x:auto;">
+                <table style="width:100%;border-collapse:collapse;font-size:0.83rem;">
+                  <thead>
+                    <tr style="text-align:left;border-bottom:1px solid var(--st-border);color:var(--st-text-muted);">
+                      <th style="padding:0.45rem;">Date</th>
+                      <th style="padding:0.45rem;">Amount</th>
+                      <th style="padding:0.45rem;">Method</th>
+                      <th style="padding:0.45rem;">Details</th>
+                      <th style="padding:0.45rem;">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="stDrawerPayoutsTbody">
+                    <tr><td colspan="5" style="padding:1rem;text-align:center;color:var(--st-text-muted);">Loading receipts...</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card 2.5: KYC & Account Verification -->
+        <div class="st-card" id="stKycCard">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
+            <h2 style="margin:0;"><span class="st-card-icon">🛡️</span> Payout KYC &amp; Bank / UPI Details</h2>
+            <span id="stKycStatusBadge" class="st-stat-value" style="background:#fef3c7;color:#92400e;">Checking KYC...</span>
+          </div>
+          <div class="st-form-sublabel" style="margin-bottom:1rem;line-height:1.5;">
+            Identity and bank account verification is required for security and automated payouts. When your balance reaches <strong>₹10+</strong>, payouts are scheduled automatically and credited within <strong>7 business days</strong>.
+          </div>
+
+          <!-- Verified Summary Box -->
+          <div id="stKycVerifiedBox" style="display:none;background:rgba(22,163,74,0.06);border:1px solid rgba(22,163,74,0.3);border-radius:12px;padding:1rem;">
+            <div style="display:flex;align-items:center;gap:0.5rem;color:var(--st-success);font-weight:700;margin-bottom:0.6rem;font-size:0.92rem;">
+              <span>✓</span> KYC Verified &amp; Auto-Payouts Active
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:0.65rem;font-size:0.83rem;">
+              <div><span style="color:var(--st-text-muted);">Name:</span> <strong id="stKycValName">-</strong></div>
+              <div><span style="color:var(--st-text-muted);">PAN:</span> <code id="stKycValPan">-</code></div>
+              <div><span style="color:var(--st-text-muted);">Method:</span> <strong id="stKycValMethod" style="text-transform:uppercase;">-</strong></div>
+              <div><span style="color:var(--st-text-muted);">Account/UPI:</span> <strong id="stKycValDest">-</strong></div>
+            </div>
+            <div style="margin-top:0.75rem;">
+              <button type="button" class="st-btn st-btn-outline" style="padding:4px 10px;font-size:0.75rem;min-height:28px;" onclick="showStKycForm(true)">
+                Update Bank / UPI Details
+              </button>
+            </div>
+          </div>
+
+          <!-- KYC Form Container -->
+          <div id="stKycFormWrap" style="display:none;">
+            <div id="stKycRejectionMsg" style="display:none;padding:0.75rem;background:#fef2f2;border:1px solid #fecaca;color:#b91c1c;border-radius:10px;font-size:0.83rem;margin-bottom:1rem;">
+              <strong>⚠️ KYC Rejected:</strong> <span id="stKycRejectionText">Please correct your details.</span>
+            </div>
+
+            <form id="stKycForm" onsubmit="handleStKycSubmit(event)">
+              <div class="st-form-row">
+                <label for="stKycFullName" class="st-form-label">Full Legal Name *</label>
+                <input type="text" id="stKycFullName" required class="st-form-input" placeholder="As written on your PAN card & Bank Account">
+              </div>
+
+              <div class="st-form-row">
+                <label for="stKycPanNumber" class="st-form-label">PAN Card Number *</label>
+                <input type="text" id="stKycPanNumber" required maxlength="10" class="st-form-input" placeholder="e.g. ABCDE1234F" style="text-transform:uppercase;" oninput="this.value = this.value.toUpperCase()">
+                <div class="st-form-sublabel" style="font-size:0.74rem;">10-digit Indian PAN (5 letters, 4 numbers, 1 letter)</div>
+              </div>
+
+              <div class="st-form-row">
+                <label for="stKycPrefMethod" class="st-form-label">Payout Transfer Method *</label>
+                <select id="stKycPrefMethod" class="st-form-input" onchange="toggleStKycMethodFields()">
+                  <option value="upi" selected>UPI ID (Instant Virtual Payment Address)</option>
+                  <option value="bank">Bank Account (Direct NEFT/IMPS)</option>
+                </select>
+              </div>
+
+              <!-- UPI Fields -->
+              <div id="stKycUpiGroup" class="st-form-row">
+                <label for="stKycUpiId" class="st-form-label">UPI ID *</label>
+                <input type="text" id="stKycUpiId" class="st-form-input" placeholder="e.g. username@okhdfcbank">
+                <div class="st-form-sublabel" style="font-size:0.74rem;">Must be a valid UPI handle (e.g. @paytm, @okaxis, @ybl)</div>
+              </div>
+
+              <!-- Bank Fields -->
+              <div id="stKycBankGroup" style="display:none;">
+                <div class="st-form-row">
+                  <label for="stKycBankAcc" class="st-form-label">Bank Account Number *</label>
+                  <input type="text" id="stKycBankAcc" class="st-form-input" placeholder="9 to 18 digits">
+                </div>
+                <div class="st-form-row">
+                  <label for="stKycBankIfsc" class="st-form-label">IFSC Code *</label>
+                  <input type="text" id="stKycBankIfsc" maxlength="11" class="st-form-input" placeholder="e.g. SBIN0001234" style="text-transform:uppercase;" oninput="this.value = this.value.toUpperCase()">
+                </div>
+                <div class="st-form-row">
+                  <label for="stKycBankName" class="st-form-label">Bank Name</label>
+                  <input type="text" id="stKycBankName" class="st-form-input" placeholder="e.g. State Bank of India">
+                </div>
+              </div>
+
+              <div class="st-btn-row" style="margin-top:1rem;">
+                <button type="submit" id="stKycSubmitBtn" class="st-btn st-btn-primary">
+                  <span>Submit KYC for Verification</span>
+                </button>
+              </div>
+              <div id="stKycFeedback" style="display:none;margin-top:0.75rem;font-size:0.85rem;font-weight:600;"></div>
+            </form>
           </div>
         </div>
 
         <!-- Card 3: Request Withdrawal -->
         <div class="st-card">
           <h2><span class="st-card-icon">💸</span> Request Payout</h2>
-          <div class="st-form-sublabel" style="margin-bottom:1rem;">
-            Minimum withdrawal amount is <strong>₹100</strong>. Payouts are reviewed and dispatched within 24-48 hours.
+          <div id="stWithdrawPolicySublabel" class="st-form-sublabel" style="margin-bottom:1rem;">
+            Minimum withdrawal amount: <strong>₹10.00</strong>. When eligible with verified KYC, payouts are automatically scheduled and credited within <strong>7 business days</strong>.
           </div>
           <div id="stWithdrawDisabledNote" style="display:none;padding:0.75rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;font-size:0.85rem;color:var(--st-text-muted);">
-            🔒 Insufficient withdrawable balance. You need at least ₹100 in matured balance to request a payout.
+            🔒 Insufficient withdrawable balance to request a payout.
           </div>
           <form id="stWithdrawalForm" style="display:none;" onsubmit="handleWithdrawalSubmit(event)">
             <div class="st-form-row">
               <label for="stWithdrawAmt" class="st-form-label">Withdrawal Amount (₹)</label>
-              <input type="number" id="stWithdrawAmt" name="amount" class="st-form-input" min="100" step="1" required placeholder="Min 100">
+              <input type="number" id="stWithdrawAmt" name="amount" class="st-form-input" min="5" step="1" required placeholder="Min 5" oninput="verifySettingsAmount()">
+              <div id="stAmtStatus" style="font-size:0.8rem;margin-top:4px;display:none;font-weight:600;"></div>
             </div>
-            <div class="st-form-row">
-              <label for="stWithdrawMethod" class="st-form-label">Payout Method</label>
-              <select id="stWithdrawMethod" name="payout_method" class="st-form-input" onchange="togglePayoutMethodPlaceholder()">
-                <option value="upi">UPI (Instant Transfer)</option>
-                <option value="bank">Bank Account (IMPS/NEFT)</option>
-              </select>
+            <div id="stWithdrawKycDestInfo" style="margin-bottom:1rem;padding:0.75rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;font-size:0.83rem;">
+              <span style="color:var(--st-text-muted);">Payout Destination (from KYC):</span>
+              <strong id="stWithdrawKycDestText" style="margin-left:4px;color:var(--st-success);">Loading verified details...</strong>
             </div>
-            <div class="st-form-row">
-              <label for="stWithdrawDetails" class="st-form-label" id="stWithdrawDetailsLabel">UPI ID</label>
-              <input type="text" id="stWithdrawDetails" name="payout_details" class="st-form-input" required placeholder="e.g. yourname@okhdfcbank">
-            </div>
+
             <div class="st-btn-row">
               <button type="submit" id="stWithdrawBtn" class="st-btn st-btn-primary">
                 <span>Submit Payout Request</span>
@@ -1193,7 +1582,7 @@
             </button>
           </div>
           <div class="st-form-sublabel" style="margin-bottom:1.25rem;">
-            View all your past PhonePe purchases, document unlocks, support contributions, and official bank receipts.
+            View all your past purchases, document unlocks, support contributions, and official bank receipts.
           </div>
 
           <!-- Transaction Metrics Grid -->
@@ -1207,8 +1596,8 @@
               <div id="stTxSuccessOrders" style="font-size:1.35rem;font-weight:800;color:var(--st-success);margin-top:0.25rem;">0</div>
             </div>
             <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
-              <div style="font-size:0.75rem;color:#7c3aed;font-weight:700;text-transform:uppercase;">Gateway</div>
-              <div style="font-size:1.05rem;font-weight:800;color:#7c3aed;margin-top:0.35rem;">PhonePe Merchant</div>
+              <div style="font-size:0.75rem;color:#1d4ed8;font-weight:700;text-transform:uppercase;">Gateway</div>
+              <div style="font-size:1.05rem;font-weight:800;color:#1d4ed8;margin-top:0.35rem;">Razorpay Secure</div>
             </div>
           </div>
 
@@ -1299,6 +1688,14 @@
             <button type="button" class="st-btn st-btn-outline" onclick="clearCache()">Clear Cache</button>
           </div>
         </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon">🧭</span> Interactive Feature Tours</h2>
+          <div class="st-form-sublabel" style="margin-bottom: 12px;">Explore or replay step-by-step interactive walk-throughs for study search, uploads, and profile features.</div>
+          <div class="st-btn-row">
+            <button type="button" class="st-btn st-btn-primary" data-action="openAppGuide">Explore Page Guides</button>
+          </div>
+        </div>
       </div>
 
       <!-- Danger Zone -->
@@ -1309,7 +1706,7 @@
             These actions are irreversible. Proceed with caution.
           </div>
           <div class="st-btn-row">
-            <a href="/account/delete" class="st-btn danger">🗑️ Delete My Account</a>
+            <a href="/delete-account" class="st-btn danger">🗑️ Delete My Account</a>
           </div>
         </div>
 
@@ -1319,7 +1716,7 @@
             Sign out of your AbhiHub account on this device.
           </div>
           <div class="st-btn-row">
-            <a href="/logout" class="st-btn st-btn-outline">🔒 Sign Out</a>
+            <a href="/logout" target="_top" class="st-btn st-btn-outline">🔒 Sign Out</a>
           </div>
         </div>
       </div>
@@ -1339,45 +1736,100 @@
             </div>
           </div>
 
-          <div class="st-form-row">
-            <label for="aiProviderSelect" class="st-form-label">AI Provider Platform</label>
-            <select id="aiProviderSelect" class="st-form-select" onchange="onAiProviderChanged()">
-              <option value="openrouter">OpenRouter (Multi-model & Free Pool)</option>
-              <option value="anthropic">Anthropic Claude (Direct API Key)</option>
-              <option value="gemini">Google Gemini (Direct API Key)</option>
-              <option value="nvidia">NVIDIA NIM (Direct API Key)</option>
-              <option value="openai">OpenAI (Direct API Key)</option>
-              <option value="groq">Groq (Direct API Key · Ultra Fast)</option>
-            </select>
-            <div class="st-form-sublabel">Select your platform provider. We connect directly to the chosen platform.</div>
-          </div>
-
-          <div class="st-form-row">
-            <label for="aiApiKeyInput" class="st-form-label" id="aiKeyLabel">API Key (BYOK)</label>
+          <!-- Minimal Standard OpenRouter Configuration -->
+          <div class="st-form-row" id="aiKeyRow">
+            <label for="aiApiKeyInput" class="st-form-label" id="aiKeyLabel">OpenRouter API Key (BYOK)</label>
             <input type="password" id="aiApiKeyInput" class="st-form-input" placeholder="sk-or-v1-...">
-            <div class="st-form-sublabel" id="aiKeySublabel">Your key is Fernet-encrypted on the server and verified before saving. Never shared.</div>
+            <div class="st-form-sublabel" id="aiKeySublabel">Your key is Fernet-encrypted on the server and verified before saving. Free keys available at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" style="color:var(--st-blue, #2563eb); text-decoration:underline;">openrouter.ai/keys</a>.</div>
           </div>
 
           <div class="st-form-row">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.25rem; flex-wrap:wrap; gap:0.5rem;">
-              <label for="aiModelSelect" class="st-form-label" style="margin-bottom:0;">Model Selection (Real-Time)</label>
-              <button type="button" class="st-btn st-btn-outline" style="min-height:36px; padding:0.25rem 0.75rem; font-size:0.8125rem;" onclick="refreshLiveModels()">🔄 Fetch Live Models</button>
-            </div>
+            <label for="aiModelSelect" class="st-form-label" style="margin-bottom:0.25rem;">Active AI Model</label>
             <select id="aiModelSelect" class="st-form-select">
               <option value="">Loading models...</option>
             </select>
-            <div class="st-form-sublabel" id="aiModelSublabel">Live models retrieved directly from provider API.</div>
-            
-            <div class="st-banner st-banner-tip" style="margin-top:0.75rem; font-size:0.8125rem; line-height:1.45;">
-              💡 <strong>Credits exhausted?</strong> Switch your model to any option under <strong>🎁 Free Tier / Included</strong> (such as OpenRouter <code>:free</code> models, Groq, or Gemini Flash) to continue chatting without requiring paid credits.
-            </div>
+            <div class="st-form-sublabel" id="aiModelSublabel">Live models from OpenRouter API. Tarika uses verified free models by default.</div>
           </div>
 
-          <div class="st-btn-row">
-            <button type="button" class="st-btn st-btn-primary" id="saveAiBtn" onclick="saveAiSettings()">💾 Save Key & Model</button>
+          <div class="st-btn-row" style="margin-top:1.25rem;">
+            <button type="button" class="st-btn st-btn-primary" id="saveAiBtn" onclick="saveAiSettings()">💾 Save Key &amp; Model</button>
             <button type="button" class="st-btn st-btn-outline" id="deleteAiBtn" onclick="removeAiKey()" style="color:var(--st-red); border-color:var(--st-red-border);">🗑️ Remove Key</button>
           </div>
           <div id="aiSettingStatus" style="margin-top:0.75rem; font-size:0.875rem; font-weight:600;"></div>
+
+          <!-- Developer Options for Additional Engines & Providers -->
+          <details id="aiDevOptionsSection" class="st-dev-accordion" style="margin-top:1.5rem; border:1px dashed var(--st-border, #cbd5e1); border-radius:12px; padding:0.85rem 1.15rem; background:var(--st-bg-subtle, rgba(0,0,0,0.02));">
+            <summary style="font-weight:600; cursor:pointer; font-size:0.875rem; color:var(--st-navy, #1e293b); display:flex; align-items:center; gap:6px; user-select:none;">
+              <span>🛠️</span> <span>Developer Options (Alternative Providers, Ollama &amp; WebLLM)</span>
+            </summary>
+
+            <div style="margin-top:1rem; display:flex; flex-direction:column; gap:1rem;">
+              <div class="st-form-row" style="margin-bottom:0;">
+                <label for="aiProviderSelect" class="st-form-label">AI Provider Platform</label>
+                <select id="aiProviderSelect" class="st-form-select" onchange="onAiProviderChanged()">
+                  <option value="openrouter">OpenRouter (Default · Multi-model &amp; Free Pool)</option>
+                  <option value="anthropic">Anthropic Claude (Direct API Key)</option>
+                  <option value="gemini">Google Gemini (Direct API Key)</option>
+                  <option value="nvidia">NVIDIA NIM (Direct API Key)</option>
+                  <option value="openai">OpenAI (Direct API Key)</option>
+                  <option value="groq">Groq (Direct API Key · Ultra Fast)</option>
+                  <option value="ollama">🖥️ Local Model (Ollama · Private, Offline &amp; 100% Free)</option>
+                  <option value="webllm">🌸 Tarika &amp; Friends (AbhiHub Local AI · 100% Offline WebGPU)</option>
+                </select>
+                <div class="st-form-sublabel">Select an alternative provider. Defaults to OpenRouter.</div>
+              </div>
+
+              <div style="display:flex; justify-content:flex-end;">
+                <button type="button" class="st-btn st-btn-outline" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" onclick="refreshLiveModels()">🔄 Refresh Provider Models</button>
+              </div>
+
+              <div id="localOllamaPanel" style="display:none; background:rgba(99, 102, 241, 0.04); border:1px solid rgba(99, 102, 241, 0.2); border-radius:12px; padding:1rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+                  <div style="font-weight:600; font-size:0.9375rem; display:flex; align-items:center; gap:0.4rem;">
+                    <span>🖥️</span> Local Model Engine (Ollama)
+                  </div>
+                  <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    <button type="button" class="st-btn st-btn-outline" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" onclick="checkLocalOllamaStatus()">🔍 Check Status</button>
+                    <button type="button" class="st-btn st-btn-primary" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" id="runLocalAiBtn" onclick="runLocalAiTest()">⚡ Run Local Model</button>
+                  </div>
+                </div>
+                <div id="localOllamaStatus" style="font-size:0.8125rem; line-height:1.5; color:var(--st-text-muted);">
+                  Checking local Ollama status...
+                </div>
+                <div id="localOllamaTestOutput" style="display:none; margin-top:0.75rem; padding:0.75rem; background:rgba(0,0,0,0.05); border-radius:8px; font-size:0.8125rem; font-family:monospace; white-space:pre-wrap;"></div>
+              </div>
+
+              <div id="onDeviceWebLlmPanel" style="display:none; background:rgba(16, 185, 129, 0.05); border:1px solid rgba(16, 185, 129, 0.25); border-radius:12px; padding:1rem;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.75rem; flex-wrap:wrap; gap:0.5rem;">
+                  <div style="font-weight:600; font-size:0.9375rem; display:flex; align-items:center; gap:0.4rem; color:var(--st-navy, #0f172a);">
+                    <span>🌸</span> AbhiHub Local Engine (Tarika On-Device)
+                  </div>
+                  <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+                    <button type="button" class="st-btn st-btn-primary" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" id="downloadWebLlmBtn" onclick="downloadSelectedWebLlmModel()">⬇ Download to Device</button>
+                    <button type="button" class="st-btn" style="display:none; min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem; background:#ef4444; color:#fff; border:none; border-radius:8px;" id="deleteWebLlmBtn" onclick="deleteSelectedWebLlmModel()">🗑️ Delete from Device</button>
+                    <a href="/ai" target="_blank" class="st-btn st-btn-outline" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem; text-decoration:none; display:inline-flex; align-items:center;">🚀 Open /ai Portal</a>
+                    <button type="button" class="st-btn st-btn-outline" style="min-height:34px; padding:0.25rem 0.75rem; font-size:0.8125rem;" onclick="checkWebGpuStatus()">⚡ Test WebGPU</button>
+                  </div>
+                </div>
+                <div id="webGpuStatusMsg" style="font-size:0.8125rem; line-height:1.5; color:var(--st-text-muted);">
+                  Runs WebLLM MLC models directly in your browser. Downloaded once into persistent IndexedDB storage, then works 100% offline with zero server calls.
+                </div>
+                <div id="webLlmProgressWrap" style="display:none; margin-top:0.75rem;">
+                  <div style="display:flex; justify-content:space-between; font-size:0.75rem; font-weight:600; margin-bottom:0.25rem; color:#1e293b;">
+                    <span id="webLlmProgressText">Downloading model shards...</span>
+                    <span id="webLlmProgressPct">0%</span>
+                  </div>
+                  <div style="height:6px; background:#e2e8f0; border-radius:4px; overflow:hidden;">
+                    <div id="webLlmProgressBar" style="width:0%; height:100%; background:#10b981; transition:width 0.2s;"></div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="st-banner st-banner-tip" style="margin-top:0.25rem; font-size:0.8125rem; line-height:1.45;">
+                💡 <strong>Credits exhausted?</strong> Switch your model to any option under <strong>🎁 Free Tier / Included</strong> (such as OpenRouter <code>:free</code> models, Groq, or Gemini Flash) to continue chatting without requiring paid credits.
+              </div>
+            </div>
+          </details>
         </div>
 
         <div class="st-card">
@@ -1402,13 +1854,44 @@ function showStToast(msg, duration = 2500) {
   setTimeout(() => t.classList.remove('show'), duration);
 }
 
-// ── Sidebar navigation & Mobile Pill Centering ──
+// ── Sidebar navigation & URL Hash / Query Parameter Sync ──
 (function() {
   const navItems = document.querySelectorAll('#settingsNav .st-nav-item');
   const sections = document.querySelectorAll('.st-section');
 
-  function activateSection(sectionId, updateHash) {
-    if (updateHash === undefined) updateHash = true;
+  function resolveSectionId(raw) {
+    if (!raw) return '';
+    let s = String(raw).trim().toLowerCase().replace(/^[#?]/, '').replace(/^section-/, '');
+    const aliases = {
+      'account': 'my-account',
+      'profile': 'my-account',
+      'notification': 'notifications',
+      'notif': 'notifications',
+      'credits': 'study-credits',
+      'credit': 'study-credits',
+      'earnings': 'payout',
+      'payouts': 'payout',
+      'wallet': 'payout',
+      'payments': 'transactions',
+      'history': 'transactions',
+      'transaction': 'transactions',
+      'privacy': 'privacy',
+      'app': 'app',
+      'ai': 'ai-assistant',
+      'models': 'ai-assistant',
+      'byok': 'ai-assistant',
+      'danger': 'danger',
+      'delete': 'danger'
+    };
+    return aliases[s] || s;
+  }
+
+  function activateSection(rawSectionId, updateUrl) {
+    if (updateUrl === undefined) updateUrl = true;
+    const sectionId = resolveSectionId(rawSectionId) || 'my-account';
+    const targetSection = document.getElementById('section-' + sectionId);
+    if (!targetSection) return false;
+
     navItems.forEach(item => {
       const isMatch = item.dataset.section === sectionId;
       item.classList.toggle('active', isMatch);
@@ -1418,34 +1901,61 @@ function showStToast(msg, duration = 2500) {
         } catch(e) {}
       }
     });
+
     sections.forEach(section => {
       section.classList.toggle('active', section.id === 'section-' + sectionId);
     });
+
     if (sectionId === 'payout' && typeof loadPayoutSettings === 'function') {
       loadPayoutSettings();
     }
     if (sectionId === 'transactions' && typeof loadTransactionHistory === 'function') {
       loadTransactionHistory();
     }
-    if (updateHash && history.replaceState) {
+
+    if (updateUrl && history.replaceState) {
       try {
-        history.replaceState(null, '', '#' + sectionId);
+        const url = new URL(window.location.href);
+        url.hash = sectionId;
+        history.replaceState(null, '', url.toString());
       } catch(e) {}
+    }
+    return true;
+  }
+
+  function syncFromUrl(updateUrl = false) {
+    const params = new URLSearchParams(window.location.search);
+    const queryTab = params.get('tab') || params.get('section');
+    const hashTab = window.location.hash;
+    const requested = queryTab || hashTab;
+
+    if (requested) {
+      const resolved = resolveSectionId(requested);
+      if (document.getElementById('section-' + resolved)) {
+        activateSection(resolved, updateUrl);
+        return;
+      }
+    }
+    if (!document.querySelector('.st-section.active')) {
+      activateSection('my-account', false);
     }
   }
 
+  window.switchSettingsTab = activateSection;
+  window.syncSettingsTabFromUrl = syncFromUrl;
+
   navItems.forEach(item => {
-    item.addEventListener('click', function() {
+    item.addEventListener('click', function(e) {
+      e.preventDefault();
       const section = this.dataset.section;
       activateSection(section, true);
     });
   });
 
-  // Support direct hash navigation on page load
-  const hash = (window.location.hash || '').replace('#', '');
-  if (hash && document.getElementById('section-' + hash)) {
-    activateSection(hash, false);
-  }
+  window.addEventListener('hashchange', () => syncFromUrl(false));
+  window.addEventListener('popstate', () => syncFromUrl(false));
+
+  syncFromUrl(false);
 })();
 
 // ── PWA Install ──
@@ -1657,6 +2167,8 @@ function onAiProviderChanged() {
   const kSublabel = document.getElementById('aiKeySublabel');
   const kRow = document.getElementById('aiKeyRow');
   const saveBtn = document.getElementById('saveAiBtn');
+  const localPanel = document.getElementById('localOllamaPanel');
+  const onDevicePanel = document.getElementById('onDeviceWebLlmPanel');
 
   if (kInput) {
     kInput.placeholder = PROVIDER_PLACEHOLDERS[provider] || 'Enter API Key...';
@@ -1664,18 +2176,209 @@ function onAiProviderChanged() {
   if (provider === 'webllm') {
     if (kRow) kRow.style.display = 'none';
     if (saveBtn) saveBtn.textContent = '⚡ Activate On-Device Model';
+    if (localPanel) localPanel.style.display = 'none';
+    if (onDevicePanel) {
+      onDevicePanel.style.display = 'block';
+      checkWebGpuStatus();
+    }
   } else if (provider === 'ollama') {
     if (kRow) kRow.style.display = '';
     if (saveBtn) saveBtn.textContent = '💾 Save Local Endpoint';
     if (kLabel) kLabel.textContent = 'Local Ollama Host URL (Optional)';
-    if (kSublabel) kSublabel.textContent = 'Default: http://localhost:11434. No API key required.';
+    if (kSublabel) kSublabel.textContent = 'Default: http://localhost:11434. No API key required; runs locally on your machine.';
+    if (localPanel) {
+      localPanel.style.display = 'block';
+      checkLocalOllamaStatus();
+    }
+    if (onDevicePanel) onDevicePanel.style.display = 'none';
+  } else if (provider === 'openrouter') {
+    if (kRow) kRow.style.display = '';
+    if (saveBtn) saveBtn.textContent = '💾 Save Key & Model';
+    if (kLabel) kLabel.textContent = 'OpenRouter API Key (BYOK)';
+    if (kSublabel) kSublabel.innerHTML = 'Your key is Fernet-encrypted on the server and verified before saving. Free keys available at <a href="https://openrouter.ai/keys" target="_blank" rel="noopener" style="color:var(--st-blue, #2563eb); text-decoration:underline;">openrouter.ai/keys</a>.';
+    if (localPanel) localPanel.style.display = 'none';
+    if (onDevicePanel) onDevicePanel.style.display = 'none';
   } else {
     if (kRow) kRow.style.display = '';
     if (saveBtn) saveBtn.textContent = '💾 Save Key & Model';
-    if (kLabel) kLabel.textContent = 'API Key (BYOK)';
+    if (kLabel) kLabel.textContent = `${provider.toUpperCase()} API Key (BYOK)`;
     if (kSublabel) kSublabel.textContent = 'Your key is Fernet-encrypted on the server and verified before saving. Never shared.';
+    if (localPanel) localPanel.style.display = 'none';
+    if (onDevicePanel) onDevicePanel.style.display = 'none';
   }
   refreshLiveModels();
+}
+
+function checkWebGpuStatus() {
+  const el = document.getElementById('webGpuStatusMsg');
+  const mSelect = document.getElementById('aiModelSelect');
+  const downloadBtn = document.getElementById('downloadWebLlmBtn');
+  const deleteBtn = document.getElementById('deleteWebLlmBtn');
+  const selectedModel = (mSelect && mSelect.value) ? mSelect.value : (localStorage.getItem('ai_preferred_model') || 'Llama-3.2-1B-Instruct-q4f16_1-MLC');
+
+  if (navigator.storage && navigator.storage.persist) {
+    navigator.storage.persist().catch(() => {});
+  }
+
+  const isCurrentCached = localStorage.getItem(`webllm_installed_${selectedModel}`) === 'true' || localStorage.getItem('webllm_last_cached') === selectedModel;
+
+  if (deleteBtn) {
+    deleteBtn.style.display = isCurrentCached ? 'inline-block' : 'none';
+  }
+  if (downloadBtn) {
+    downloadBtn.textContent = isCurrentCached ? '⚡ Re-Download / Verify' : '⬇ Download to Device';
+  }
+
+  if (!el) return;
+
+  if ('gpu' in navigator) {
+    navigator.gpu.requestAdapter().then(adapter => {
+      if (adapter) {
+        if (isCurrentCached) {
+          el.innerHTML = `<span style="color:#16a34a; font-weight:600;">🟢 Model Saved on Device! (${selectedModel})</span><br>Stored permanently in browser storage — works 100% offline with zero network re-downloads.`;
+        } else {
+          el.innerHTML = `<span style="color:#16a34a; font-weight:600;">🟢 WebGPU Hardware Ready</span><br>Click <strong>Download to Device</strong> to save <code>${selectedModel}</code> for offline use.`;
+        }
+      } else {
+        el.innerHTML = '<span style="color:#eab308; font-weight:600;">🟡 WebGPU supported, but adapter unavailable.</span> Enable hardware acceleration in your browser settings (<code>chrome://settings/system</code>).';
+      }
+    }).catch(() => {
+      el.innerHTML = '<span style="color:#eab308; font-weight:600;">🟡 WebGPU supported, but adapter query failed.</span>';
+    });
+  } else {
+    el.innerHTML = '<span style="color:#dc2626; font-weight:600;">🔴 WebGPU not detected in this browser.</span> Use Chrome, Edge 113+, or Arc, or use the <strong>Local Model (Ollama)</strong> option.';
+  }
+}
+
+async function downloadSelectedWebLlmModel() {
+  const mSelect = document.getElementById('aiModelSelect');
+  const modelId = (mSelect && mSelect.value) ? mSelect.value : 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+  const progressWrap = document.getElementById('webLlmProgressWrap');
+  const progressText = document.getElementById('webLlmProgressText');
+  const progressPct  = document.getElementById('webLlmProgressPct');
+  const progressBar  = document.getElementById('webLlmProgressBar');
+  const downloadBtn  = document.getElementById('downloadWebLlmBtn');
+
+  if (progressWrap) progressWrap.style.display = 'block';
+  if (downloadBtn) downloadBtn.disabled = true;
+
+  try {
+    if (navigator.storage && navigator.storage.persist) {
+      await navigator.storage.persist();
+    }
+    const core = await import('/static/js/ai/webllm-core.js');
+    const mgr = new core.AbhiHubWebLLMManager();
+    await mgr.prefetchModel(modelId, (report) => {
+      if (report.text && progressText) progressText.textContent = report.text;
+      if (typeof report.progress === 'number' && progressPct && progressBar) {
+        const pct = Math.round(report.progress * 100);
+        progressPct.textContent = `${pct}%`;
+        progressBar.style.width = `${pct}%`;
+      }
+    });
+    await core.markModelCached(modelId);
+    showStToast(`✓ ${modelId} successfully downloaded & saved!`);
+    checkWebGpuStatus();
+  } catch (err) {
+    showStToast(`Download failed: ${err.message || err}`, 4000);
+    if (progressText) progressText.textContent = `Error: ${err.message || err}`;
+  } finally {
+    if (downloadBtn) downloadBtn.disabled = false;
+  }
+}
+
+async function deleteSelectedWebLlmModel() {
+  const mSelect = document.getElementById('aiModelSelect');
+  const modelId = (mSelect && mSelect.value) ? mSelect.value : 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+  if (!confirm(`Are you sure you want to delete ${modelId} from this device to free disk space?`)) return;
+
+  try {
+    const core = await import('/static/js/ai/webllm-core.js');
+    await core.deleteModelFromStorage(modelId);
+    showStToast(`✓ ${modelId} deleted from device.`);
+    checkWebGpuStatus();
+  } catch (err) {
+    showStToast(`Delete failed: ${err.message || err}`, 4000);
+  }
+}
+
+function checkLocalOllamaStatus() {
+  const statusEl = document.getElementById('localOllamaStatus');
+  const kInput = document.getElementById('aiApiKeyInput');
+  const host = (kInput ? kInput.value : '').trim();
+  if (statusEl) statusEl.innerHTML = '🔄 Probing Ollama server...';
+
+  const url = '/api/ai/local/status' + (host ? `?host=${encodeURIComponent(host)}` : '');
+  fetch(url)
+    .then(r => r.json())
+    .then(data => {
+      if (!statusEl) return;
+      if (data.running) {
+        const modelList = (data.models && data.models.length > 0)
+          ? `<code>${data.models.join('</code>, <code>')}</code>`
+          : 'None installed yet (run <code>ollama pull llama3.2</code>)';
+        statusEl.innerHTML = `<span style="color:#16a34a; font-weight:600;">🟢 Ollama is Online</span> (${data.host})<br>` +
+          `Installed models (${data.count}): ${modelList}`;
+      } else {
+        statusEl.innerHTML = `<span style="color:#eab308; font-weight:600;">🟠 Ollama Offline</span> (${data.host})<br>` +
+          `To run AI locally, start Ollama in your terminal: <code>ollama serve</code> or launch Ollama Desktop.<br>` +
+          `<span style="margin-top:4px; display:inline-block;">💡 Get Ollama at <a href="https://ollama.com" target="_blank" style="color:var(--st-primary); font-weight:600;">ollama.com</a> & run <code>ollama run llama3.2</code></span>`;
+      }
+    })
+    .catch(() => {
+      if (statusEl) {
+        statusEl.innerHTML = '<span style="color:#dc2626;">❌ Unable to connect to local Ollama check endpoint.</span>';
+      }
+    });
+}
+
+function runLocalAiTest() {
+  const btn = document.getElementById('runLocalAiBtn');
+  const out = document.getElementById('localOllamaTestOutput');
+  const mSelect = document.getElementById('aiModelSelect');
+  const kInput = document.getElementById('aiApiKeyInput');
+  const model = mSelect ? mSelect.value : '';
+  const host = (kInput ? kInput.value : '').trim();
+
+  if (btn) { btn.disabled = true; btn.textContent = '⏳ Running...'; }
+  if (out) {
+    out.style.display = 'block';
+    out.textContent = `Sending test prompt to local model [${model || 'auto'}]...`;
+  }
+
+  fetch('/api/ai/local/status', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      model: model,
+      host: host,
+      prompt: 'Hello! Please confirm in one short sentence that the local model is operational.'
+    })
+  })
+  .then(r => r.json())
+  .then(data => {
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Local Model'; }
+    if (!out) return;
+    if (data.success) {
+      out.style.border = '1px solid #86efac';
+      out.style.background = '#f0fdf4';
+      out.textContent = `✅ Success (${data.latency_ms}ms) · Model: ${data.model_used}\n\n"${data.reply}"`;
+      showStToast('✅ Local model executed successfully!');
+    } else {
+      out.style.border = '1px solid #fca5a5';
+      out.style.background = '#fef2f2';
+      out.textContent = `❌ ${data.message || 'Execution failed'}`;
+      showStToast('⚠️ ' + (data.message || 'Local execution failed'));
+    }
+  })
+  .catch(err => {
+    if (btn) { btn.disabled = false; btn.textContent = '⚡ Run Local Model'; }
+    if (out) {
+      out.style.border = '1px solid #fca5a5';
+      out.style.background = '#fef2f2';
+      out.textContent = `❌ Network error connecting to local runner: ${err}`;
+    }
+  });
 }
 
 function refreshLiveModels() {
@@ -1698,7 +2401,9 @@ function refreshLiveModels() {
         const savedModel = localStorage.getItem('ai_preferred_model');
 
         const freeGroup = document.createElement('optgroup');
-        freeGroup.label = '🎁 Free Tier / Included (Use when credits exhaust)';
+        freeGroup.label = (provider === 'ollama' || provider === 'webllm')
+          ? '🖥️ Available On-Device / Local Models (100% Free & Offline)'
+          : '🎁 Free Tier / Included (Use when credits exhaust)';
 
         const paidGroup = document.createElement('optgroup');
         paidGroup.label = '💎 Premium / Paid Tier';
@@ -1706,7 +2411,7 @@ function refreshLiveModels() {
         data.models.forEach(m => {
           const opt = document.createElement('option');
           opt.value = m.id;
-          opt.textContent = (m.is_free ? '🎁 ' : '⚡ ') + (m.name || m.id);
+          opt.textContent = (m.is_free ? (provider === 'ollama' || provider === 'webllm' ? '🧠 ' : '🎁 ') : '⚡ ') + (m.name || m.id);
           if (m.id === savedModel) opt.selected = true;
 
           if (m.is_free) {
@@ -1721,7 +2426,16 @@ function refreshLiveModels() {
 
         const freeCount = freeGroup.children.length;
         if (mSublabel) {
-          mSublabel.innerHTML = `✅ <strong>${data.models.length} models</strong> retrieved (${freeCount} free-tier models ready if credits run out).`;
+          if (provider === 'webllm') {
+            mSublabel.innerHTML = `✅ <strong>${data.models.length} on-device WebGPU models</strong> ready to run offline in browser.`;
+          } else if (provider === 'ollama') {
+            mSublabel.innerHTML = `✅ <strong>${data.models.length} local models</strong> ready for offline execution.`;
+          } else {
+            mSublabel.innerHTML = `✅ <strong>${data.models.length} models</strong> retrieved (${freeCount} free-tier models ready if credits run out).`;
+          }
+        }
+        if (provider === 'webllm') {
+          checkWebGpuStatus();
         }
       } else if (mSelect) {
         mSelect.innerHTML = '<option value="">No models returned</option>';
@@ -1735,6 +2449,22 @@ function refreshLiveModels() {
 function loadAiSettings() {
   const savedProvider = localStorage.getItem('ai_provider') || 'openrouter';
   const pSelect = document.getElementById('aiProviderSelect');
+  const mSelect = document.getElementById('aiModelSelect');
+
+  if (mSelect && !mSelect.__webllmListenerAdded__) {
+    mSelect.__webllmListenerAdded__ = true;
+    mSelect.addEventListener('change', () => {
+      if (document.getElementById('aiProviderSelect')?.value === 'webllm') {
+        checkWebGpuStatus();
+      }
+    });
+  }
+
+  const devDetails = document.getElementById('aiDevOptionsSection');
+  if (devDetails && savedProvider !== 'openrouter') {
+    devDetails.open = true;
+  }
+
   if (pSelect) {
     pSelect.value = savedProvider;
     onAiProviderChanged();
@@ -1784,6 +2514,7 @@ function saveAiSettings() {
       statusEl.textContent = '✅ On-Device WebLLM active (100% in-browser WebGPU • No API key required).';
       statusEl.style.color = '#16a34a';
     }
+    // Background sync with server; never throws or shows errors
     fetch('/api/ai/key', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -1804,7 +2535,7 @@ function saveAiSettings() {
 
   if (key) {
     if (btn) { btn.disabled = true; btn.textContent = 'Validating key...'; }
-    if (statusEl) { statusEl.textContent = `Validating key with ${provider}...`; statusEl.style.color = 'var(--text-secondary)'; }
+    if (statusEl) { statusEl.textContent = `Saving settings for ${provider}...`; statusEl.style.color = 'var(--text-secondary)'; }
 
     fetch('/api/ai/key', {
       method: 'POST',
@@ -1815,19 +2546,19 @@ function saveAiSettings() {
     .then(res => {
       if (btn) { btn.disabled = false; btn.textContent = '💾 Save Key & Model'; }
       if (res.ok && res.data.success) {
-        showStToast(`✅ ${provider.toUpperCase()} Key verified & activated!`);
-        if (statusEl) { statusEl.textContent = `✅ Key verified & encrypted. ${provider.toUpperCase()} BYOK plan active.`; statusEl.style.color = '#16a34a'; }
+        showStToast(`✅ ${provider.toUpperCase()} configured & activated!`);
+        if (statusEl) { statusEl.textContent = `✅ ${res.data.message || 'Configured & saved.'}`; statusEl.style.color = '#16a34a'; }
         if (keyInput && provider !== 'ollama') keyInput.value = '';
         refreshLiveModels();
         loadAiSettings();
       } else {
-        showStToast('❌ ' + (res.data.message || 'Key validation failed'));
+        showStToast('❌ ' + (res.data.message || 'Validation failed'));
         if (statusEl) { statusEl.textContent = '❌ ' + (res.data.message || 'Validation failed'); statusEl.style.color = '#dc2626'; }
       }
     })
     .catch(err => {
       if (btn) { btn.disabled = false; btn.textContent = '💾 Save Key & Model'; }
-      showStToast('❌ Network error saving key');
+      showStToast('❌ Network error saving settings');
     });
   } else {
     showStToast('✅ Provider & model preferences saved');
@@ -1957,12 +2688,23 @@ async function loadPayoutSettings(force = false) {
   if (_payoutLoaded && !force) return;
   _payoutLoaded = true;
 
+  loadStKycStatus();
+
   try {
     // 1. Check access level & eligibility
     const accessRes = await fetch('/api/my-access');
     const accessData = await accessRes.json();
     const level = (accessData.level || 'explorer').toLowerCase();
-    const isEligible = ['contributor', 'power_contributor', 'community_leader'].includes(level);
+    let isEligible = ['contributor', 'power_contributor', 'community_leader'].includes(level);
+
+    let earnData = {};
+    try {
+      const earnRes = await fetch('/api/creator/earnings');
+      earnData = await earnRes.json();
+      if (earnData.success && (earnData.paid_notes_count > 0 || earnData.total_sales > 0)) {
+        isEligible = true;
+      }
+    } catch(e) {}
 
     const badge = document.getElementById('stPayoutEligibilityBadge');
     const msg = document.getElementById('stPayoutEligibilityMsg');
@@ -1971,25 +2713,24 @@ async function loadPayoutSettings(force = false) {
 
     if (badge) {
       if (isEligible) {
-        badge.textContent = 'Eligible (' + (accessData.level || 'Contributor').replace('_', ' ').toUpperCase() + ')';
+        const isContributor = ['contributor', 'power_contributor', 'community_leader'].includes(level);
+        badge.textContent = isContributor
+          ? 'Eligible (' + (accessData.level || 'Contributor').replace('_', ' ').toUpperCase() + ')'
+          : 'Monetization Active (Seller)';
         badge.style.background = 'var(--st-success-tint)';
         badge.style.color = 'var(--st-success)';
-        if (msg) msg.textContent = '🎉 You have Contributor tier privileges enabled. You can monetize your study documents and earn directly.';
+        if (msg) msg.textContent = '🎉 Monetization & payout privileges are active. Your monetized files and creator earnings are tracked below.';
         if (metricsGrid) metricsGrid.style.display = 'grid';
         if (boostBox) boostBox.style.display = 'none';
 
-        try {
-          const earnRes = await fetch('/api/creator/earnings');
-          const earnData = await earnRes.json();
-          if (earnData.success) {
-            const pnc = document.getElementById('stPaidNotesCount');
-            const stc = document.getElementById('stTotalSalesCount');
-            const tea = document.getElementById('stTotalEarningsAmt');
-            if (pnc) pnc.textContent = earnData.paid_notes_count || 0;
-            if (stc) stc.textContent = earnData.total_sales || 0;
-            if (tea) tea.textContent = '₹' + parseFloat(earnData.total_earnings || 0).toFixed(2);
-          }
-        } catch(e) {}
+        if (earnData.success) {
+          const pnc = document.getElementById('stPaidNotesCount');
+          const stc = document.getElementById('stTotalSalesCount');
+          const tea = document.getElementById('stTotalEarningsAmt');
+          if (pnc) pnc.textContent = earnData.paid_notes_count || 0;
+          if (stc) stc.textContent = earnData.total_sales || 0;
+          if (tea) tea.textContent = '₹' + parseFloat(earnData.total_earnings || 0).toFixed(2);
+        }
       } else {
         badge.textContent = 'Locked (' + level.toUpperCase() + ')';
         badge.style.background = 'rgba(239, 68, 68, 0.12)';
@@ -2024,60 +2765,167 @@ async function loadPayoutSettings(force = false) {
       const pend = document.getElementById('stWalletPending');
       const withdr = document.getElementById('stWalletWithdrawable');
       const totw = document.getElementById('stWalletTotalWithdrawn');
+      const vEarn = document.getElementById('stWalletViewsEarnings');
+      const vCount = document.getElementById('stWalletViewsCount');
       if (pend) pend.textContent = '₹' + (w.pending_balance || 0).toFixed(2);
       if (withdr) withdr.textContent = '₹' + (w.withdrawable_balance || 0).toFixed(2);
       if (totw) totw.textContent = '₹' + (w.total_withdrawn || 0).toFixed(2);
+      if (vEarn) vEarn.textContent = '₹' + (w.view_earnings || 0).toFixed(2);
+      if (vCount) vCount.textContent = (w.total_views || 0) + ' views @ ₹0.20/view';
 
       const form = document.getElementById('stWithdrawalForm');
       const disabledNote = document.getElementById('stWithdrawDisabledNote');
       const amtInput = document.getElementById('stWithdrawAmt');
+      const policySublabel = document.getElementById('stWithdrawPolicySublabel');
+      const minAmt = w.min_withdrawal || 5;
+      const tier = w.withdrawal_tier || (w.withdrawals_completed === 0 ? 1 : (w.withdrawals_completed === 1 ? 2 : 3));
+
+      if (policySublabel) {
+        policySublabel.innerHTML = `🎯 <strong>Level ${tier} Payout: Minimum ₹${minAmt.toFixed(0)}</strong> (Gamified: 1st ₹5, 2nd ₹25, 3rd+ ₹100). Payouts are reviewed within 24-48 hours.`;
+      }
+      if (amtInput) {
+        amtInput.min = minAmt;
+        amtInput.placeholder = 'Min ' + minAmt.toFixed(0);
+      }
 
       if (w.can_withdraw) {
         if (form) form.style.display = 'block';
         if (disabledNote) disabledNote.style.display = 'none';
         if (amtInput) {
           amtInput.max = w.withdrawable_balance;
-          amtInput.value = Math.min(w.withdrawable_balance, 500);
+          amtInput.value = Math.min(w.withdrawable_balance, Math.max(minAmt, 5));
         }
       } else {
         if (form) form.style.display = 'none';
         if (disabledNote) {
           disabledNote.style.display = 'block';
-          disabledNote.textContent = '🔒 Minimum ₹100 withdrawable balance required (Available: ₹' + (w.withdrawable_balance || 0).toFixed(2) + ').';
+          disabledNote.textContent = `🔒 Minimum ₹${minAmt.toFixed(0)} withdrawable balance required for Level ${tier} (Available: ₹${(w.withdrawable_balance || 0).toFixed(2)}).`;
         }
       }
 
-      // Render Payouts History
-      const tbody = document.getElementById('stPayoutHistoryTbody');
-      if (tbody) {
-        const payouts = walletData.payouts || [];
-        if (payouts.length === 0) {
-          tbody.innerHTML = '<tr><td colspan="4" style="padding:1rem;text-align:center;color:var(--st-text-muted);">No payout requests yet.</td></tr>';
+      // Populate Drawer Details
+      const drawerViewsVal = document.getElementById('stDrawerTotalViewsVal');
+      const drawerPointsVal = document.getElementById('stDrawerPointsVal');
+      const drawerSalesWith = document.getElementById('stDrawerSalesWithdrawableVal');
+      const drawerViewsWith = document.getElementById('stDrawerViewsWithdrawableVal');
+      const drawerNetWith = document.getElementById('stDrawerNetWithdrawableVal');
+
+      if (drawerViewsVal) drawerViewsVal.textContent = w.total_views || 0;
+      if (drawerPointsVal) drawerPointsVal.textContent = ((w.total_views || 0) * 5) + ' Pts';
+      if (drawerSalesWith) drawerSalesWith.textContent = '₹' + (w.sales_withdrawable || 0).toFixed(2);
+      if (drawerViewsWith) drawerViewsWith.textContent = '₹' + Math.max(0, (w.withdrawable_balance || 0) - (w.sales_withdrawable || 0)).toFixed(2);
+      if (drawerNetWith) drawerNetWith.textContent = '₹' + (w.withdrawable_balance || 0).toFixed(2);
+
+      // Render 30-Day Escrow Pending Ledger
+      const pendingList = document.getElementById('stDrawerPendingLedgerList');
+      if (pendingList) {
+        const lockedEntries = (walletData.ledger || []).filter(l => l.status === 'locked');
+        if (lockedEntries.length === 0) {
+          pendingList.innerHTML = `
+            <div style="padding:1rem;text-align:center;color:var(--st-text-muted);background:var(--st-surface-hover);border-radius:10px;">
+              ✨ All eligible note sales have passed the 30-day holding period and are fully unlocked into your Withdrawable Balance.
+            </div>
+          `;
         } else {
-          tbody.innerHTML = payouts.map(p => {
-            const date = p.created_at ? new Date(p.created_at).toLocaleDateString('en-IN', {month:'short', day:'numeric', year:'numeric'}) : '-';
-            let statusColor = '#d97706';
-            if (p.status === 'completed') statusColor = 'var(--st-success)';
-            if (p.status === 'rejected') statusColor = '#dc2626';
+          pendingList.innerHTML = lockedEntries.map(entry => {
+            const unlockDate = entry.unlock_at ? new Date(entry.unlock_at).toLocaleDateString('en-IN', {month:'short', day:'numeric', year:'numeric'}) : 'In 30 days';
             return `
-              <tr style="border-bottom:1px solid var(--st-border);">
-                <td style="padding:0.6rem 0.5rem;">${date}</td>
-                <td style="padding:0.6rem 0.5rem;font-weight:700;color:var(--st-navy);">₹${parseFloat(p.amount || 0).toFixed(2)}</td>
-                <td style="padding:0.6rem 0.5rem;text-transform:uppercase;font-size:0.75rem;"><span style="background:var(--st-surface-hover);padding:2px 8px;border-radius:6px;border:1px solid var(--st-border);">${p.payout_method || 'UPI'}</span></td>
-                <td style="padding:0.6rem 0.5rem;font-weight:700;color:${statusColor};text-transform:capitalize;">${p.status || 'pending'}</td>
-              </tr>
+              <div style="display:flex;justify-content:space-between;align-items:center;padding:0.6rem 0.75rem;background:var(--st-surface-hover);border-radius:8px;margin-bottom:0.5rem;border:1px solid var(--st-border);">
+                <div>
+                  <div style="font-weight:700;color:var(--st-text-main);">Order #${entry.order_id || entry.id || '-'}</div>
+                  <div style="font-size:0.73rem;color:#b45309;">Unlocks on: ${unlockDate}</div>
+                </div>
+                <div style="font-weight:800;color:#d97706;font-size:0.95rem;">+₹${parseFloat(entry.amount || 0).toFixed(2)}</div>
+              </div>
             `;
           }).join('');
         }
       }
+
+      // Render Payouts History (in both main table and Drawer)
+      const tbody = document.getElementById('stPayoutHistoryTbody');
+      const drawerTbody = document.getElementById('stDrawerPayoutsTbody');
+      const payouts = walletData.payouts || [];
+
+      const renderRows = (includeDetails = false) => {
+        if (payouts.length === 0) {
+          return `<tr><td colspan="${includeDetails ? 5 : 4}" style="padding:1rem;text-align:center;color:var(--st-text-muted);">No payout requests yet.</td></tr>`;
+        }
+        return payouts.map(p => {
+          const date = p.created_at ? new Date(p.created_at).toLocaleDateString('en-IN', {month:'short', day:'numeric', year:'numeric'}) : '-';
+          let statusColor = '#d97706';
+          if (p.status === 'completed') statusColor = 'var(--st-success, #16a34a)';
+          if (p.status === 'rejected') statusColor = '#dc2626';
+          const details = p.payout_details?.upi_id || p.payout_details?.account_info || (p.payout_details ? JSON.stringify(p.payout_details) : '-');
+          return `
+            <tr style="border-bottom:1px solid var(--st-border);">
+              <td style="padding:0.6rem 0.5rem;">${date}</td>
+              <td style="padding:0.6rem 0.5rem;font-weight:700;color:var(--st-navy);">₹${parseFloat(p.amount || 0).toFixed(2)}</td>
+              <td style="padding:0.6rem 0.5rem;text-transform:uppercase;font-size:0.75rem;"><span style="background:var(--st-surface-hover);padding:2px 8px;border-radius:6px;border:1px solid var(--st-border);">${p.payout_method || 'UPI'}</span></td>
+              ${includeDetails ? `<td style="padding:0.6rem 0.5rem;font-size:0.75rem;color:var(--st-text-muted);max-width:140px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${details}</td>` : ''}
+              <td style="padding:0.6rem 0.5rem;font-weight:700;color:${statusColor};text-transform:capitalize;">${p.status || 'pending'}</td>
+            </tr>
+          `;
+        }).join('');
+      };
+
+      if (tbody) tbody.innerHTML = renderRows(false);
+      if (drawerTbody) drawerTbody.innerHTML = renderRows(true);
     }
   } catch (err) {
     console.error('[SETTINGS] Payout load error:', err);
   }
 }
 
-async function copySettingsReferralLink() {
-  const btn = document.getElementById('stCopyRefBtn');
+let _activeWalletCategory = null;
+function toggleWalletCategory(cat) {
+  const drawer = document.getElementById('stWalletDrawer');
+  if (!drawer) return;
+
+  const cards = {
+    views: document.getElementById('stCardViews'),
+    withdrawable: document.getElementById('stCardWithdrawable'),
+    pending: document.getElementById('stCardPending'),
+    withdrawn: document.getElementById('stCardWithdrawn')
+  };
+  const panels = {
+    views: document.getElementById('stPanelViews'),
+    withdrawable: document.getElementById('stPanelWithdrawable'),
+    pending: document.getElementById('stPanelPending'),
+    withdrawn: document.getElementById('stPanelWithdrawn')
+  };
+  const chevrons = {
+    views: document.getElementById('stChevronViews'),
+    withdrawable: document.getElementById('stChevronWithdrawable'),
+    pending: document.getElementById('stChevronPending'),
+    withdrawn: document.getElementById('stChevronWithdrawn')
+  };
+
+  if (_activeWalletCategory === cat) {
+    drawer.style.display = 'none';
+    cards[cat]?.classList.remove('active');
+    if (chevrons[cat]) chevrons[cat].textContent = '▼';
+    _activeWalletCategory = null;
+    return;
+  }
+
+  Object.keys(cards).forEach(k => {
+    cards[k]?.classList.remove('active');
+    if (panels[k]) panels[k].style.display = 'none';
+    if (chevrons[k]) chevrons[k].textContent = '▼';
+  });
+
+  _activeWalletCategory = cat;
+  cards[cat]?.classList.add('active');
+  if (panels[cat]) panels[cat].style.display = 'block';
+  if (chevrons[cat]) chevrons[cat].textContent = '▲';
+  drawer.style.display = 'block';
+  drawer.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+async function copySettingsReferralLink(btnEl) {
+  const btn = (btnEl && btnEl.nodeType) ? btnEl : document.getElementById('stCopyRefBtn');
+  const origText = btn ? btn.textContent : '📋 Copy Link';
   try {
     const res = await fetch('/api/referral/my-code');
     const data = await res.json();
@@ -2086,10 +2934,92 @@ async function copySettingsReferralLink() {
     await navigator.clipboard.writeText(shareUrl);
     if (btn) {
       btn.textContent = '✅ Copied!';
-      setTimeout(() => { btn.textContent = 'Copy Invite Link'; }, 2000);
+      setTimeout(() => { btn.textContent = origText; }, 2000);
+    }
+    if (typeof showStToast === 'function') {
+      showStToast('📋 Invite link copied to clipboard!');
     }
   } catch (err) {
     if (btn) btn.textContent = 'Failed to copy';
+  }
+}
+
+const UPI_REGEX = /^[a-zA-Z0-9.\-_]{2,256}@[a-zA-Z0-9]{2,64}$/;
+
+function verifySettingsAmount() {
+  const amtInput = document.getElementById('stWithdrawAmt');
+  const statusEl = document.getElementById('stAmtStatus');
+  if (!amtInput || !statusEl) return false;
+
+  const val = parseFloat(amtInput.value);
+  const min = parseFloat(amtInput.min || 5);
+  const max = parseFloat(amtInput.max || Infinity);
+
+  statusEl.style.display = 'block';
+
+  if (isNaN(val) || val <= 0) {
+    statusEl.style.color = '#dc2626';
+    statusEl.textContent = '⚠️ Please enter a valid withdrawal amount.';
+    amtInput.style.borderColor = '#dc2626';
+    return false;
+  }
+  if (val < min) {
+    statusEl.style.color = '#dc2626';
+    statusEl.textContent = `⚠️ Minimum withdrawal amount is ₹${min.toFixed(0)}.`;
+    amtInput.style.borderColor = '#dc2626';
+    return false;
+  }
+  if (val > max) {
+    statusEl.style.color = '#dc2626';
+    statusEl.textContent = `⚠️ Exceeds available balance (Max: ₹${max.toFixed(2)}).`;
+    amtInput.style.borderColor = '#dc2626';
+    return false;
+  }
+
+  statusEl.style.color = 'var(--st-success, #16a34a)';
+  statusEl.textContent = `✓ Eligible for payout: ₹${val.toFixed(2)}`;
+  amtInput.style.borderColor = 'var(--st-success, #16a34a)';
+  return true;
+}
+
+function verifySettingsUpi() {
+  const method = document.getElementById('stWithdrawMethod')?.value || 'upi';
+  const input = document.getElementById('stWithdrawDetails');
+  const statusEl = document.getElementById('stUpiStatus');
+  if (!input || !statusEl) return false;
+
+  const val = input.value.trim();
+  statusEl.style.display = 'block';
+
+  if (!val) {
+    statusEl.style.color = '#dc2626';
+    statusEl.textContent = method === 'upi' ? '⚠️ UPI ID is required.' : '⚠️ Bank details are required.';
+    input.style.borderColor = '#dc2626';
+    return false;
+  }
+
+  if (method === 'upi') {
+    if (!UPI_REGEX.test(val)) {
+      statusEl.style.color = '#dc2626';
+      statusEl.textContent = '⚠️ Invalid UPI format. Use username@bank (e.g., name@okhdfcbank or 9876543210@paytm).';
+      input.style.borderColor = '#dc2626';
+      return false;
+    }
+    statusEl.style.color = 'var(--st-success, #16a34a)';
+    statusEl.textContent = '✓ Valid UPI ID format verified';
+    input.style.borderColor = 'var(--st-success, #16a34a)';
+    return true;
+  } else {
+    if (val.length < 8) {
+      statusEl.style.color = '#dc2626';
+      statusEl.textContent = '⚠️ Please provide full Account Number and IFSC code.';
+      input.style.borderColor = '#dc2626';
+      return false;
+    }
+    statusEl.style.color = 'var(--st-success, #16a34a)';
+    statusEl.textContent = '✓ Bank account details entered';
+    input.style.borderColor = 'var(--st-success, #16a34a)';
+    return true;
   }
 }
 
@@ -2097,6 +3027,9 @@ function togglePayoutMethodPlaceholder() {
   const method = document.getElementById('stWithdrawMethod').value;
   const label = document.getElementById('stWithdrawDetailsLabel');
   const input = document.getElementById('stWithdrawDetails');
+  const statusEl = document.getElementById('stUpiStatus');
+  if (statusEl) statusEl.style.display = 'none';
+
   if (method === 'upi') {
     if (label) label.textContent = 'UPI ID';
     if (input) input.placeholder = 'e.g. yourname@okhdfcbank';
@@ -2104,44 +3037,41 @@ function togglePayoutMethodPlaceholder() {
     if (label) label.textContent = 'Bank Account & IFSC';
     if (input) input.placeholder = 'e.g. A/C: 1234567890, IFSC: HDFC0000123';
   }
+  verifySettingsUpi();
 }
 
 async function handleWithdrawalSubmit(e) {
   e.preventDefault();
   const btn = document.getElementById('stWithdrawBtn');
   const fb = document.getElementById('stWithdrawFeedback');
-  const amt = parseFloat(document.getElementById('stWithdrawAmt').value);
-  const method = document.getElementById('stWithdrawMethod').value;
-  const details = (document.getElementById('stWithdrawDetails').value || '').trim();
+  const amtValid = verifySettingsAmount();
 
-  if (!details) {
+  if (!amtValid) {
     if (fb) {
       fb.style.display = 'block';
       fb.style.color = '#dc2626';
-      fb.textContent = 'Please enter payout account or UPI ID details.';
+      fb.textContent = 'Please enter a valid withdrawal amount.';
     }
     return;
   }
 
+  const amt = parseFloat(document.getElementById('stWithdrawAmt').value);
+
   btn.disabled = true;
-  btn.innerText = 'Submitting...';
+  btn.innerText = 'Submitting Request...';
 
   try {
     const res = await fetch('/api/creator/withdraw', {
       method: 'POST',
       headers: {'Content-Type': 'application/json'},
-      body: JSON.stringify({
-        amount: amt,
-        payout_method: method,
-        payout_details: method === 'upi' ? {upi_id: details} : {account_info: details}
-      })
+      body: JSON.stringify({ amount: amt })
     });
     const data = await res.json();
     if (fb) fb.style.display = 'block';
     if (data.success) {
       if (fb) {
-        fb.style.color = 'var(--st-success)';
-        fb.textContent = '🎉 Withdrawal request submitted! Admin will review and process.';
+        fb.style.color = 'var(--st-success, #16a34a)';
+        fb.textContent = '🎉 Withdrawal request submitted! Payout will be sent to your verified KYC account within 7 days.';
       }
       setTimeout(() => loadPayoutSettings(true), 1200);
     } else {
@@ -2162,6 +3092,226 @@ async function handleWithdrawalSubmit(e) {
   }
 }
 
+// ── KYC & Verification Functions (Settings Tab) ──
+function toggleStKycMethodFields() {
+  const method = document.getElementById('stKycPrefMethod')?.value;
+  const upiGroup = document.getElementById('stKycUpiGroup');
+  const bankGroup = document.getElementById('stKycBankGroup');
+  if (method === 'bank') {
+    if (upiGroup) upiGroup.style.display = 'none';
+    if (bankGroup) bankGroup.style.display = 'block';
+  } else {
+    if (upiGroup) upiGroup.style.display = 'block';
+    if (bankGroup) bankGroup.style.display = 'none';
+  }
+}
+
+function showStKycForm(show) {
+  const verifiedBox = document.getElementById('stKycVerifiedBox');
+  const formWrap = document.getElementById('stKycFormWrap');
+  if (show) {
+    if (verifiedBox) verifiedBox.style.display = 'none';
+    if (formWrap) formWrap.style.display = 'block';
+  } else {
+    if (verifiedBox) verifiedBox.style.display = 'block';
+    if (formWrap) formWrap.style.display = 'none';
+  }
+}
+
+async function loadStKycStatus() {
+  try {
+    const res = await fetch('/api/user/kyc/status');
+    const data = await res.json();
+    const badge = document.getElementById('stKycStatusBadge');
+    const verifiedBox = document.getElementById('stKycVerifiedBox');
+    const formWrap = document.getElementById('stKycFormWrap');
+
+    if (data.success && data.kyc) {
+      const k = data.kyc;
+      if (k.is_verified) {
+        if (badge) {
+          badge.textContent = '✓ Verified';
+          badge.style.background = 'var(--st-success-tint, #dcfce7)';
+          badge.style.color = 'var(--st-success, #15803d)';
+        }
+        if (verifiedBox) verifiedBox.style.display = 'block';
+        if (formWrap) formWrap.style.display = 'none';
+
+        const nameEl = document.getElementById('stKycValName');
+        const panEl = document.getElementById('stKycValPan');
+        const methodEl = document.getElementById('stKycValMethod');
+        const destEl = document.getElementById('stKycValDest');
+        if (nameEl) nameEl.textContent = k.full_name || '-';
+        if (panEl) panEl.textContent = k.pan_number || '-';
+        if (methodEl) methodEl.textContent = k.preferred_method || '-';
+        if (destEl) destEl.textContent = k.preferred_method === 'bank'
+          ? `${k.bank_name || 'Bank'} (${k.account_number || ''})`
+          : (k.upi_id || '-');
+
+        const destSummary = k.preferred_method === 'bank'
+          ? `Bank: ${k.bank_name || 'Bank'} (A/C: ****${k.account_number ? k.account_number.slice(-4) : ''}, IFSC: ${k.ifsc_code || ''}) • PAN: ${k.pan_number || ''}`
+          : `UPI: ${k.upi_id || ''} • PAN: ${k.pan_number || ''}`;
+        const destInfo = document.getElementById('stWithdrawKycDestText');
+        if (destInfo) {
+          destInfo.textContent = destSummary;
+          destInfo.style.color = 'var(--st-success, #16a34a)';
+        }
+        const wBtn = document.getElementById('stWithdrawBtn');
+        if (wBtn) wBtn.disabled = false;
+        return;
+      } else if (k.rejection_reason) {
+        if (badge) {
+          badge.textContent = 'Action Required';
+          badge.style.background = '#fee2e2';
+          badge.style.color = '#b91c1c';
+        }
+        if (verifiedBox) verifiedBox.style.display = 'none';
+        if (formWrap) formWrap.style.display = 'block';
+        const rejMsg = document.getElementById('stKycRejectionMsg');
+        const rejText = document.getElementById('stKycRejectionText');
+        if (rejMsg) rejMsg.style.display = 'block';
+        if (rejText) rejText.textContent = k.rejection_reason;
+      } else {
+        if (badge) {
+          badge.textContent = '⏳ Under Review';
+          badge.style.background = '#fef3c7';
+          badge.style.color = '#b45309';
+        }
+        if (verifiedBox) verifiedBox.style.display = 'none';
+        if (formWrap) formWrap.style.display = 'block';
+      }
+
+      const destInfo = document.getElementById('stWithdrawKycDestText');
+      if (destInfo) {
+        destInfo.textContent = '⚠️ KYC Verification Required (Submit form above)';
+        destInfo.style.color = '#dc2626';
+      }
+      const wBtn = document.getElementById('stWithdrawBtn');
+      if (wBtn) wBtn.disabled = true;
+
+      // Prefill fields
+      if (document.getElementById('stKycFullName')) document.getElementById('stKycFullName').value = k.full_name || '';
+      if (document.getElementById('stKycPanNumber')) document.getElementById('stKycPanNumber').value = k.pan_number || '';
+      if (document.getElementById('stKycPrefMethod')) {
+        document.getElementById('stKycPrefMethod').value = k.preferred_method || 'upi';
+        toggleStKycMethodFields();
+      }
+      if (document.getElementById('stKycUpiId')) document.getElementById('stKycUpiId').value = k.upi_id || '';
+      if (document.getElementById('stKycBankName')) document.getElementById('stKycBankName').value = k.bank_name || '';
+    } else {
+      if (badge) {
+        badge.textContent = 'Not Submitted';
+        badge.style.background = 'var(--st-surface-hover, #f1f5f9)';
+        badge.style.color = 'var(--st-text-muted, #475569)';
+      }
+      if (verifiedBox) verifiedBox.style.display = 'none';
+      if (formWrap) formWrap.style.display = 'block';
+
+      const destInfo = document.getElementById('stWithdrawKycDestText');
+      if (destInfo) {
+        destInfo.textContent = '⚠️ KYC Verification Required (Submit form above)';
+        destInfo.style.color = '#dc2626';
+      }
+      const wBtn = document.getElementById('stWithdrawBtn');
+      if (wBtn) wBtn.disabled = true;
+    }
+  } catch (e) {
+    console.warn('loadStKycStatus error:', e);
+  }
+}
+
+async function handleStKycSubmit(e) {
+  e.preventDefault();
+  const btn = document.getElementById('stKycSubmitBtn');
+  const fb = document.getElementById('stKycFeedback');
+
+  const fullName = (document.getElementById('stKycFullName')?.value || '').trim();
+  const pan = (document.getElementById('stKycPanNumber')?.value || '').trim().toUpperCase();
+  const method = document.getElementById('stKycPrefMethod')?.value;
+  const upiId = (document.getElementById('stKycUpiId')?.value || '').trim();
+  const bankAcc = (document.getElementById('stKycBankAcc')?.value || '').trim();
+  const bankIfsc = (document.getElementById('stKycBankIfsc')?.value || '').trim().toUpperCase();
+  const bankName = (document.getElementById('stKycBankName')?.value || '').trim();
+
+  const PAN_REGEX = /^[A-Z]{5}[0-9]{4}[A-Z]$/;
+  if (!PAN_REGEX.test(pan)) {
+    if (fb) {
+      fb.style.display = 'block';
+      fb.style.color = '#dc2626';
+      fb.textContent = '⚠️ Invalid PAN card format (e.g. ABCDE1234F)';
+    }
+    return;
+  }
+
+  if (method === 'upi') {
+    const UPI_REGEX = /^[\w.\-_]{2,256}@[\w]{2,64}$/;
+    if (!UPI_REGEX.test(upiId)) {
+      if (fb) {
+        fb.style.display = 'block';
+        fb.style.color = '#dc2626';
+        fb.textContent = '⚠️ Invalid UPI ID format (e.g. username@okhdfcbank)';
+      }
+      return;
+    }
+  } else {
+    if (!/^\d{9,18}$/.test(bankAcc)) {
+      if (fb) {
+        fb.style.display = 'block';
+        fb.style.color = '#dc2626';
+        fb.textContent = '⚠️ Bank account number must be 9 to 18 digits';
+      }
+      return;
+    }
+    if (!/^[A-Z]{4}0[A-Z0-9]{6}$/.test(bankIfsc)) {
+      if (fb) {
+        fb.style.display = 'block';
+        fb.style.color = '#dc2626';
+        fb.textContent = '⚠️ Invalid IFSC code format (e.g. SBIN0001234)';
+      }
+      return;
+    }
+  }
+
+  btn.disabled = true;
+  btn.innerText = 'Submitting KYC...';
+  if (fb) fb.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/user/kyc/submit', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        full_name: fullName,
+        pan_number: pan,
+        preferred_method: method,
+        upi_id: upiId,
+        account_number: bankAcc,
+        ifsc_code: bankIfsc,
+        bank_name: bankName
+      })
+    });
+    const data = await res.json();
+    if (fb) fb.style.display = 'block';
+    if (data.success) {
+      fb.style.color = 'var(--st-success, #16a34a)';
+      fb.textContent = '✓ ' + (data.message || 'KYC submitted successfully!');
+      setTimeout(loadStKycStatus, 1200);
+    } else {
+      fb.style.color = '#dc2626';
+      fb.textContent = '⚠️ ' + (data.error || 'KYC submission failed');
+    }
+  } catch (err) {
+    if (fb) {
+      fb.style.display = 'block';
+      fb.style.color = '#dc2626';
+      fb.textContent = 'Network error submitting KYC.';
+    }
+  } finally {
+    btn.disabled = false;
+    btn.innerText = 'Submit KYC for Verification';
+  }
+}
+
 // ── Payment & Transaction History Management ──
 let _txHistoryLoaded = false;
 async function loadTransactionHistory(force = false) {
@@ -2170,7 +3320,7 @@ async function loadTransactionHistory(force = false) {
 
   const tbody = document.getElementById('stTransactionsTbody');
   if (!tbody) return;
-  tbody.innerHTML = '<tr><td colspan="5" style="padding:1.5rem;text-align:center;color:var(--st-text-muted);">⏳ Fetching your PhonePe transactions...</td></tr>';
+  tbody.innerHTML = '<tr><td colspan="5" style="padding:1.5rem;text-align:center;color:var(--st-text-muted);">⏳ Fetching your transactions...</td></tr>';
 
   try {
     const res = await fetch('/api/user/transactions');
@@ -2186,7 +3336,7 @@ async function loadTransactionHistory(force = false) {
       tbody.innerHTML = '<tr><td colspan="5" style="padding:2.5rem 1rem;text-align:center;color:var(--st-text-muted);">' +
         '<div style="font-size:2rem;margin-bottom:0.5rem;">🧾</div>' +
         '<div style="font-weight:700;color:var(--st-text-main);font-size:0.95rem;margin-bottom:0.35rem;">No payment transactions found</div>' +
-        '<div style="font-size:0.8rem;max-width:360px;margin:0 auto;line-height:1.4;">When you unlock paid notes or contribute to AbhiHub via PhonePe, all verified receipts will be recorded here.</div>' +
+        '<div style="font-size:0.8rem;max-width:360px;margin:0 auto;line-height:1.4;">When you unlock paid notes or contribute to AbhiHub, all verified receipts will be recorded here.</div>' +
         '</td></tr>';
       return;
     }
@@ -2208,7 +3358,7 @@ async function loadTransactionHistory(force = false) {
       html += '</td>';
       html += '<td style="padding:0.75rem 0.5rem;">';
       html += '<div style="font-weight:600;color:var(--st-text-main);max-width:220px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">' + itemName + '</div>';
-      html += '<div style="font-size:0.72rem;color:#7c3aed;font-weight:600;">PhonePe Merchant</div>';
+      html += '<div style="font-size:0.72rem;color:#1d4ed8;font-weight:600;">Razorpay Secure</div>';
       html += '</td>';
       html += '<td style="padding:0.75rem 0.5rem;font-weight:800;color:var(--st-text-main);">₹' + (parseFloat(t.amount || 0).toFixed(2)) + '</td>';
       html += '<td style="padding:0.75rem 0.5rem;">' + statusBadge + '</td>';
@@ -2238,11 +3388,8 @@ document.addEventListener('DOMContentLoaded', () => {
   loadAiSettings();
   filterSettingsBranches();
   toggleSettingsStudentFields();
-  if (window.location.hash === '#payout') {
-    loadPayoutSettings();
-  }
-  if (window.location.hash === '#transactions') {
-    loadTransactionHistory();
+  if (typeof window.syncSettingsTabFromUrl === 'function') {
+    window.syncSettingsTabFromUrl(false);
   }
 });
 </script>

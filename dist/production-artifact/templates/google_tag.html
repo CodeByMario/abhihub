@@ -1,8 +1,23 @@
-<!-- Google Analytics 4 - Privacy-Safe Canonical Measurement -->
+<!-- Google Analytics 4 — Consent Mode v2 (Privacy-Safe + Traffic Modelling) -->
 <script>
   window.dataLayer = window.dataLayer || [];
   const CONSENT_KEY = 'abhihub-consent';
   const GA_MEASUREMENT_ID = 'G-EH5BGS9BEG';
+
+  function gtag() { window.dataLayer.push(arguments); }
+  window.gtag = gtag;
+
+  // ─── Consent Mode v2: Fire BEFORE gtag script loads ─────────────────────
+  // 'denied' storage = cookieless traffic modelling (counts visitors even without opt-in)
+  // 'granted' storage = full cookie-based analytics after explicit consent
+  gtag('consent', 'default', {
+    analytics_storage: 'denied',
+    ad_storage: 'denied',
+    ad_user_data: 'denied',
+    ad_personalization: 'denied',
+    wait_for_update: 500
+  });
+  // ─────────────────────────────────────────────────────────────────────────
 
   function getConsentChoice() {
     try {
@@ -16,6 +31,15 @@
     try {
       localStorage.setItem(CONSENT_KEY, granted ? 'granted' : 'denied');
     } catch (e) { }
+
+    // Upgrade or downgrade Consent Mode v2 signals immediately
+    gtag('consent', 'update', {
+      analytics_storage: granted ? 'granted' : 'denied',
+      ad_storage: granted ? 'granted' : 'denied',
+      ad_user_data: granted ? 'granted' : 'denied',
+      ad_personalization: 'denied'   // Always off — no ad targeting on student platform
+    });
+
     if (window.AbhiHubAnalytics) {
       window.AbhiHubAnalytics.track('consent_updated', { analytics_allowed: Boolean(granted) });
     }
@@ -24,17 +48,15 @@
 
   function ensureConsentBanner() {
     if (document.getElementById('abhihub-consent-banner')) return;
-
     const banner = document.createElement('div');
     banner.id = 'abhihub-consent-banner';
     banner.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#0f172a;color:#fff;padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;box-shadow:0 -8px 24px rgba(0,0,0,.2);';
-    banner.innerHTML = '<span style="font-size:14px;line-height:1.4;">We use analytics to improve study note quality and platform performance. Accept to enable privacy-conscious analytics. <a href="/privacy" style="color:#bfdbfe;text-decoration:underline;">Privacy policy</a></span><span style="display:flex;gap:8px;"><button data-consent="accept" style="border:0;border-radius:999px;padding:8px 14px;background:#2563eb;color:#fff;cursor:pointer;font-weight:600;">Accept</button><button data-consent="decline" style="border:0;border-radius:999px;padding:8px 14px;background:#475569;color:#fff;cursor:pointer;">Decline</button></span>';
+    banner.innerHTML = '<span style="font-size:14px;line-height:1.4;">We use analytics to improve study note quality and platform performance. Accept to enable privacy-conscious analytics. <a href="/privacy" style="color:#bfdbfe;text-decoration:underline;">Privacy policy</a></span><span style="display:flex;gap:8px;"><button id="consent-accept-btn" data-consent="accept" style="border:0;border-radius:999px;padding:8px 14px;background:#2563eb;color:#fff;cursor:pointer;font-weight:600;">Accept</button><button id="consent-decline-btn" data-consent="decline" style="border:0;border-radius:999px;padding:8px 14px;background:#475569;color:#fff;cursor:pointer;">Decline</button></span>';
     document.body.appendChild(banner);
 
     banner.querySelector('[data-consent="accept"]').addEventListener('click', function () {
       setConsentChoice(true);
     });
-
     banner.querySelector('[data-consent="decline"]').addEventListener('click', function () {
       setConsentChoice(false);
     });
@@ -45,21 +67,13 @@
     setConsent: setConsentChoice
   };
 
-  function gtag() { window.dataLayer.push(arguments); }
-  window.gtag = gtag;
-
   // Server-injected profile (sanitized: NO email, NO mobile, NO passwords)
   window.ABHIHUB_USER_PROFILE = {{ user_profile_json | default(get_full_profile_json()) | tojson }};
 
   function initializeAnalytics() {
     const isLocal = /^(localhost|127\.0\.0\.1|0\.0\.0\.0|.*\.local)$/.test(window.location.hostname);
-    if (!getConsentChoice()) {
-      window.__ABHIHUB_ANALYTICS_DISABLED__ = true;
-      return;
-    }
-
     if (isLocal) {
-      console.info('[Analytics] Running in local development mode. Live GA4 hits are silenced.');
+      console.info('[Analytics] Local dev mode — GA4 hits silenced, consent mode v2 active.');
       return;
     }
 
@@ -70,8 +84,6 @@
 
     gtagScript.onload = function () {
       window.gtag('js', new Date());
-      window.gtag('consent', 'default', { analytics_storage: 'granted' });
-
       window.gtag('config', GA_MEASUREMENT_ID, {
         page_path: window.location.pathname,
         page_title: document.title,
@@ -94,11 +106,12 @@
     };
   }
 
-  if (!getConsentChoice()) {
-    window.__ABHIHUB_ANALYTICS_DISABLED__ = true;
+  // Always initialize GA4 (Consent Mode v2 ensures cookieless modelling even before opt-in)
+  initializeAnalytics();
+
+  // Show consent banner only if user hasn't chosen yet
+  if (localStorage.getItem(CONSENT_KEY) === null) {
     document.addEventListener('DOMContentLoaded', ensureConsentBanner);
-  } else {
-    initializeAnalytics();
   }
 </script>
 <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>

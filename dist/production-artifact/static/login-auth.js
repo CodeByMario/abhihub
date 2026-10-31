@@ -1,56 +1,239 @@
 import { supabase } from "./supabase-config.js";
 
+function getNextRedirectUrl(consume = false) {
+    try {
+        let nextParam = new URLSearchParams(window.location.search).get('next') 
+            || localStorage.getItem('auth_next_url') 
+            || sessionStorage.getItem('auth_next_url');
+        
+        if (nextParam && nextParam.startsWith('/') && !nextParam.startsWith('//') && !nextParam.startsWith('/\\') && !nextParam.includes('\\')) {
+            if (nextParam.startsWith('/app-shell?p=')) {
+                const pVal = new URLSearchParams(nextParam.substring(10)).get('p');
+                if (pVal) nextParam = pVal;
+            }
+            const cleanNext = nextParam.split('?')[0].split('#')[0];
+            if (cleanNext !== '' && cleanNext !== '/' && cleanNext !== '/landing') {
+                if (consume) {
+                    try {
+                        localStorage.removeItem('auth_next_url');
+                        sessionStorage.removeItem('auth_next_url');
+                    } catch(e) {}
+                }
+                return nextParam;
+            }
+        }
+    } catch (e) {}
+
+    // Fallback: check document.referrer if from same origin and not landing or auth page
+    try {
+        if (document.referrer) {
+            const refObj = new URL(document.referrer);
+            if (refObj.origin === window.location.origin && 
+                refObj.pathname !== '/' &&
+                refObj.pathname !== '/landing' &&
+                !refObj.pathname.startsWith('/login') && 
+                !refObj.pathname.startsWith('/signup') && 
+                !refObj.pathname.startsWith('/logout') && 
+                !refObj.pathname.startsWith('/auth')) {
+                return refObj.pathname + refObj.search;
+            }
+        }
+    } catch (e) {}
+
+    if (consume) {
+        try {
+            localStorage.removeItem('auth_next_url');
+            sessionStorage.removeItem('auth_next_url');
+        } catch(e) {}
+    }
+    return '/app-shell';
+}
+
+function getStoredReferralCode() {
+    try {
+        return (localStorage.getItem('abhihub_ref_code') || sessionStorage.getItem('abhihub_ref_code') || '').trim();
+    } catch (e) {
+        return '';
+    }
+}
+
+function clearStoredReferralCode() {
+    try {
+        localStorage.removeItem('abhihub_ref_code');
+        sessionStorage.removeItem('abhihub_ref_code');
+    } catch (e) {}
+}
+
+// Immediately capture referral code and next redirect URL if present
+try {
+    const _urlParams = new URLSearchParams(window.location.search);
+    const _refParam = _urlParams.get('ref');
+    if (_refParam) {
+        const _cleanRef = _refParam.trim().toUpperCase();
+        localStorage.setItem('abhihub_ref_code', _cleanRef);
+        sessionStorage.setItem('abhihub_ref_code', _cleanRef);
+    }
+    const _nextParam = _urlParams.get('next');
+    if (_nextParam && _nextParam.startsWith('/') && !_nextParam.startsWith('//') && !_nextParam.includes('\\')) {
+        const cleanNext = _nextParam.split('?')[0].split('#')[0];
+        if (cleanNext !== '' && cleanNext !== '/' && cleanNext !== '/landing') {
+            localStorage.setItem('auth_next_url', _nextParam);
+            sessionStorage.setItem('auth_next_url', _nextParam);
+        }
+    }
+} catch (e) {}
+
+let _isProcessingAuth = !!(window.__IS_PROCESSING_OAUTH__);
+
 /* === Handle OAuth Callback === */
 // This handles the redirect from Google/OAuth providers
 async function handleOAuthCallback() {
-    const hash = window.location.hash.substring(1); // Remove '#'
-    const params = new URLSearchParams(hash);
-    const accessToken = params.get('access_token');
+    if (_isProcessingAuth || window.__IS_PROCESSING_OAUTH__) return;
+
+    const hash = window.location.hash ? window.location.hash.substring(1) : '';
+    const hashParams = new URLSearchParams(hash);
+    const searchParams = new URLSearchParams(window.location.search);
+
+    const errorParam = hashParams.get('error') || searchParams.get('error');
+    const errorDesc = hashParams.get('error_description') || searchParams.get('error_description') || hashParams.get('error_message');
+    const type = hashParams.get('type') || searchParams.get('type');
+    let accessToken = hashParams.get('access_token') || searchParams.get('access_token');
+
+    // Handle OAuth/Email callback errors (e.g., expired token, user cancel)
+    if (errorParam) {
+        console.warn('Auth callback error:', errorParam, errorDesc);
+        let msg = errorDesc ? decodeURIComponent(errorDesc).replace(/\+/g, ' ') : 'Authentication failed';
+        if (msg.toLowerCase().includes('expired') || errorParam.includes('otp_expired')) {
+            msg = 'This confirmation link has expired or has already been used. Please try again.';
+        } else if (msg.toLowerCase().includes('access_denied')) {
+            msg = 'Sign-in request was cancelled or access denied.';
+        }
+        if (errorMsgGoogleSignIn) errorMsgGoogleSignIn.textContent = msg;
+        else if (errorMsgEmail) errorMsgEmail.textContent = msg;
+        const overlay = document.getElementById('authLoadingOverlay');
+        if (overlay) overlay.style.display = 'none';
+        if (window.history && window.history.replaceState) {
+            window.history.replaceState(null, document.title, window.location.pathname);
+        } else {
+            window.location.hash = '';
+        }
+        return;
+    }
+
+    // Fallback: If URL hash was already consumed/cleared by Supabase JS client
+    if (!accessToken && supabase && supabase.auth) {
+        try {
+            const { data } = await supabase.auth.getSession();
+            if (data && data.session && data.session.access_token) {
+                accessToken = data.session.access_token;
+            }
+        } catch (e) {
+            console.warn('Could not read session from Supabase:', e);
+        }
+    }
 
     if (accessToken) {
-        console.log('OAuth callback detected, token found:', accessToken.substring(0, 20) + '...');
+        // If recovery token and not already on reset confirmation page, forward there
+        if (type === 'recovery' && !window.location.pathname.includes('reset-password-confirm')) {
+            window.location.href = '/reset-password-confirm' + window.location.hash;
+            return;
+        }
+
+        console.log('Auth callback detected, token found:', accessToken.substring(0, 20) + '...');
+        _isProcessingAuth = true;
+
+        const overlay = document.getElementById('authLoadingOverlay');
+        if (overlay) overlay.style.display = 'flex';
+
         try {
-            // Send token to backend to create session
+            const refCode = getStoredReferralCode();
             const response = await fetch('/auth', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${accessToken}`
                 },
+                body: JSON.stringify({ ref: refCode }),
                 credentials: 'same-origin'
             });
 
             const data = await response.json();
 
             if (response.ok && data.success) {
-                console.log('Login successful, redirecting to dashboard');
-                // Track login via GA
-                if (window.AbhiHubAnalytics) {
-                    window.AbhiHubAnalytics.track('login', { method: 'google_oauth' });
-                } else if (window.AbhiHubTracking) {
-                    window.AbhiHubTracking.trackLogin('google_oauth');
+                console.log('Login successful, redirecting');
+                if (refCode) {
+                    try {
+                        await fetch('/api/referral/register', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            credentials: 'same-origin',
+                            keepalive: true,
+                            body: JSON.stringify({ code: refCode })
+                        });
+                    } catch (e) {}
+                    clearStoredReferralCode();
                 }
-                // Clear the hash and redirect
-                window.location.hash = '';
-                window.location.href = '/dashboard';
+                if (window.AbhiHubAnalytics) {
+                    window.AbhiHubAnalytics.track('login', { method: type === 'signup' ? 'email_verification' : 'google_oauth' });
+                } else if (window.AbhiHubTracking) {
+                    window.AbhiHubTracking.trackLogin(type === 'signup' ? 'email_verification' : 'google_oauth');
+                }
+                const targetRedirect = getNextRedirectUrl(true);
+                // Clean the URL without triggering hash-navigation cancels
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState(null, document.title, window.location.pathname);
+                } else {
+                    window.location.hash = '';
+                }
+                window.location.replace(targetRedirect);
             } else {
                 console.error('Backend login failed:', data.message);
-                alert('Login failed: ' + (data.message || 'Unknown error'));
-                // Clear the hash so user can retry
-                window.location.hash = '';
+                const failMsg = data.message || 'Authentication session could not be established.';
+                if (errorMsgGoogleSignIn) errorMsgGoogleSignIn.textContent = failMsg;
+                else if (errorMsgEmail) errorMsgEmail.textContent = failMsg;
+                if (overlay) overlay.style.display = 'none';
+                if (window.history && window.history.replaceState) {
+                    window.history.replaceState(null, document.title, window.location.pathname);
+                } else {
+                    window.location.hash = '';
+                }
+                _isProcessingAuth = false;
             }
         } catch (error) {
             console.error('Error during OAuth callback:', error);
-            alert('Error processing login: ' + error.message);
-            window.location.hash = '';
+            const errText = 'Network error during sign-in. Please try again.';
+            if (errorMsgGoogleSignIn) errorMsgGoogleSignIn.textContent = errText;
+            else if (errorMsgEmail) errorMsgEmail.textContent = errText;
+            const overlay = document.getElementById('authLoadingOverlay');
+            if (overlay) overlay.style.display = 'none';
+            if (window.history && window.history.replaceState) {
+                window.history.replaceState(null, document.title, window.location.pathname);
+            } else {
+                window.location.hash = '';
+            }
+            _isProcessingAuth = false;
         }
     }
 }
 
-// Run on page load
-if (window.location.hash) {
-    console.log('Hash detected on page load:', window.location.hash.substring(0, 50));
+// Run on page load if auth params are in URL
+if (
+    (window.location.hash && (window.location.hash.includes('access_token') || window.location.hash.includes('error='))) ||
+    window.location.search.includes('access_token=') ||
+    window.location.search.includes('error=')
+) {
+    console.log('Auth params detected on page load');
     handleOAuthCallback();
+}
+
+// Also listen for Supabase auth state changes (catches OAuth when Supabase JS auto-consumes hash)
+if (supabase && supabase.auth) {
+    supabase.auth.onAuthStateChange(async (event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') && session && session.access_token && !_isProcessingAuth) {
+            console.log('Supabase onAuthStateChange detected session, validating with backend');
+            handleOAuthCallback();
+        }
+    });
 }
 
 /* == UI - Elements == */
@@ -70,9 +253,11 @@ const errorMsgGoogleSignIn = document.getElementById("google-signin-error-messag
 
 
 /* == UI - Event Listeners == */
-if (signInWithGoogleButtonEl && signInButtonEl) {
-    signInWithGoogleButtonEl.addEventListener("click", authSignInWithGoogle)
-    signInButtonEl.addEventListener("click", authSignInWithEmail)
+if (signInWithGoogleButtonEl) {
+    signInWithGoogleButtonEl.addEventListener("click", authSignInWithGoogle);
+}
+if (signInButtonEl) {
+    signInButtonEl.addEventListener("click", authSignInWithEmail);
 }
 
 if (createAccountButtonEl) {
@@ -110,6 +295,15 @@ async function authSignInWithGoogle() {
         // Clear previous errors
         errorMsgGoogleSignIn.textContent = '';
 
+        // Persist return URL before navigating away to Google OAuth
+        const targetNext = getNextRedirectUrl();
+        if (targetNext && targetNext !== '/app-shell') {
+            try {
+                localStorage.setItem('auth_next_url', targetNext);
+                sessionStorage.setItem('auth_next_url', targetNext);
+            } catch(e) {}
+        }
+
         // Attempt to sign in with Google via Supabase
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
@@ -143,6 +337,15 @@ async function authSignUpWithGoogle() {
         // Clear previous errors
         errorMsgGoogleSignIn.textContent = '';
 
+        // Persist return URL before navigating away to Google OAuth
+        const targetNext = getNextRedirectUrl();
+        if (targetNext && targetNext !== '/app-shell') {
+            try {
+                localStorage.setItem('auth_next_url', targetNext);
+                sessionStorage.setItem('auth_next_url', targetNext);
+            } catch(e) {}
+        }
+
         const { data, error } = await supabase.auth.signInWithOAuth({
             provider: 'google',
             options: {
@@ -169,21 +372,28 @@ async function authSignUpWithGoogle() {
 
 
 function authSignInWithEmail() {
-    const email = emailInputEl.value?.trim();
-    const password = passwordInputEl.value;
+    const email = emailInputEl?.value?.trim();
+    const password = passwordInputEl?.value;
 
     // Clear previous errors
-    errorMsgEmail.textContent = '';
-    errorMsgPassword.textContent = '';
+    if (errorMsgEmail) errorMsgEmail.textContent = '';
+    if (errorMsgPassword) errorMsgPassword.textContent = '';
+    if (errorMsgGoogleSignIn) errorMsgGoogleSignIn.textContent = '';
 
     // Validate inputs
     if (!email) {
-        errorMsgEmail.textContent = 'Email is required';
+        if (errorMsgEmail) errorMsgEmail.textContent = 'Email is required';
         return;
     }
     if (!password) {
-        errorMsgPassword.textContent = 'Password is required';
+        if (errorMsgPassword) errorMsgPassword.textContent = 'Password is required';
         return;
+    }
+
+    if (signInButtonEl) {
+        signInButtonEl.disabled = true;
+        signInButtonEl.dataset.originalText = signInButtonEl.textContent;
+        signInButtonEl.textContent = 'Signing in...';
     }
 
     console.log('Attempting email login for:', email);
@@ -202,28 +412,38 @@ function authSignInWithEmail() {
                 throw new Error('Invalid response from authentication service');
             }
 
-            const user = data.user;
-            const session = data.session;
-
-            console.log('Login successful for:', user.email);
-
-            // Get the access token and send to backend
-            const idToken = session.access_token;
-            loginUser(user, idToken);
+            console.log('Login successful for:', data.user.email);
+            loginUser(data.user, data.session.access_token);
         })
         .catch((error) => {
+            if (signInButtonEl) {
+                signInButtonEl.disabled = false;
+                signInButtonEl.textContent = signInButtonEl.dataset.originalText || 'Sign In';
+            }
             console.error('Login error:', error.message);
+            const errStr = (error.message || '').toLowerCase();
 
-            if (error.message?.includes('Invalid login credentials')) {
-                errorMsgPassword.textContent = 'Invalid email or password';
-            } else if (error.message?.includes('invalid email')) {
-                errorMsgEmail.textContent = 'Invalid email format';
-            } else if (error.message?.includes('User not confirmed')) {
-                errorMsgEmail.textContent = 'Please confirm your email before logging in';
-            } else if (error.message?.includes('Email not confirmed')) {
-                errorMsgEmail.textContent = 'Check your email for a confirmation link';
+            if (errStr.includes('invalid login credentials') || errStr.includes('invalid credentials')) {
+                if (errorMsgPassword) errorMsgPassword.textContent = 'Invalid email or password';
+            } else if (errStr.includes('invalid email')) {
+                if (errorMsgEmail) errorMsgEmail.textContent = 'Invalid email format';
+            } else if (errStr.includes('user not confirmed') || errStr.includes('email not confirmed')) {
+                if (errorMsgEmail) {
+                    errorMsgEmail.innerHTML = 'Email not confirmed yet. <a href="#" id="resend-login-confirm" style="color:#4285f4;text-decoration:underline;">Resend link</a>';
+                    document.getElementById('resend-login-confirm')?.addEventListener('click', async (e) => {
+                        e.preventDefault();
+                        try {
+                            await supabase.auth.resend({ type: 'signup', email: email });
+                            errorMsgEmail.textContent = 'Confirmation link resent! Please check your inbox (and spam).';
+                        } catch (resendErr) {
+                            errorMsgEmail.textContent = resendErr.message || 'Could not resend email right now. Try again later.';
+                        }
+                    });
+                }
+            } else if (errStr.includes('rate limit')) {
+                if (errorMsgPassword) errorMsgPassword.textContent = 'Too many failed login attempts. Please wait a few minutes.';
             } else {
-                errorMsgPassword.textContent = error.message || 'Login failed. Please try again.';
+                if (errorMsgPassword) errorMsgPassword.textContent = error.message || 'Login failed. Please try again.';
             }
         });
 }
@@ -231,32 +451,38 @@ function authSignInWithEmail() {
 
 
 function authCreateAccountWithEmail() {
-    const email = emailInputEl.value?.trim();
-    const password = passwordInputEl.value;
+    const email = emailInputEl?.value?.trim();
+    const password = passwordInputEl?.value;
 
     // Clear previous errors
-    errorMsgEmail.textContent = '';
-    errorMsgPassword.textContent = '';
+    if (errorMsgEmail) errorMsgEmail.textContent = '';
+    if (errorMsgPassword) errorMsgPassword.textContent = '';
+    if (errorMsgGoogleSignIn) errorMsgGoogleSignIn.textContent = '';
 
     // Validate inputs
     if (!email) {
-        errorMsgEmail.textContent = 'Email is required';
+        if (errorMsgEmail) errorMsgEmail.textContent = 'Email is required';
         return;
     }
-    if (!password) {
-        errorMsgPassword.textContent = 'Password is required';
-        return;
-    }
-    if (password.length < 6) {
-        errorMsgPassword.textContent = 'Password must be at least 6 characters';
-        return;
-    }
-
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
-        errorMsgEmail.textContent = 'Please enter a valid email address';
+        if (errorMsgEmail) errorMsgEmail.textContent = 'Please enter a valid email address';
         return;
+    }
+    if (!password) {
+        if (errorMsgPassword) errorMsgPassword.textContent = 'Password is required';
+        return;
+    }
+    if (password.length < 6) {
+        if (errorMsgPassword) errorMsgPassword.textContent = 'Password must be at least 6 characters';
+        return;
+    }
+
+    if (createAccountButtonEl) {
+        createAccountButtonEl.disabled = true;
+        createAccountButtonEl.dataset.originalText = createAccountButtonEl.textContent;
+        createAccountButtonEl.textContent = 'Creating account...';
     }
 
     console.log('Attempting signup for:', email);
@@ -265,6 +491,7 @@ function authCreateAccountWithEmail() {
         email: email,
         password: password,
         options: {
+            emailRedirectTo: `${window.location.origin}/login`,
             data: {
                 name: email.split('@')[0] // Default name from email
             }
@@ -284,10 +511,12 @@ function authCreateAccountWithEmail() {
             console.log('Signup successful for:', user.email);
 
             // Capture referral code from the signup URL (?ref=ABHI-XXXXXX)
-            // and stash it so we can apply it right after backend auth.
             const _refCode = new URLSearchParams(window.location.search).get('ref');
             if (_refCode) {
-                try { sessionStorage.setItem('abhihub_ref_code', _refCode); } catch (e) {}
+                try {
+                    localStorage.setItem('abhihub_ref_code', _refCode.trim().toUpperCase());
+                    sessionStorage.setItem('abhihub_ref_code', _refCode.trim().toUpperCase());
+                } catch (e) {}
             }
 
             // Try to create user profile
@@ -297,20 +526,18 @@ function authCreateAccountWithEmail() {
                     .insert([{
                         id: user.id,
                         email: user.email,
-                        name: user.user_metadata?.name || email.split('@')[0]
+                        full_name: user.user_metadata?.name || email.split('@')[0]
                     }])
                     .select();
 
                 console.log('User profile created');
             } catch (profileError) {
                 console.warn('Could not create profile:', profileError);
-                // Don't fail signup if profile creation fails
             }
 
             // If email confirmation is disabled, session will be returned
             if (data.session) {
                 console.log('Auto-login after signup');
-                // Track signup via GA
                 if (window.AbhiHubAnalytics) {
                     window.AbhiHubAnalytics.track('sign_up', { method: 'email' });
                 } else if (window.AbhiHubTracking) {
@@ -319,43 +546,53 @@ function authCreateAccountWithEmail() {
                 const idToken = data.session.access_token;
                 loginUser(user, idToken);
             } else {
-                // Email confirmation is required
-                errorMsgEmail.style.color = '#188038';
-                errorMsgEmail.innerHTML = '✅ Account created! We sent a confirmation link to <b>' + user.email +
-                    '</b>. Click it to start studying. ' +
-                    '<a href="#" id="resend-confirm-link" style="color:#4285f4;text-decoration:underline;">Resend email</a>';
-                console.log('Email confirmation required for:', user.email);
-
-                const resendLink = document.getElementById('resend-confirm-link');
-                if (resendLink) {
-                    resendLink.addEventListener('click', async (ev) => {
-                        ev.preventDefault();
-                        try {
-                            await supabase.auth.resend({ type: 'signup', email: user.email });
-                            errorMsgEmail.innerHTML = '📨 Confirmation email resent. Check your inbox (and spam).';
-                        } catch (e) {
-                            errorMsgEmail.textContent = 'Could not resend email. Try again later.';
-                        }
-                    });
+                if (createAccountButtonEl) {
+                    createAccountButtonEl.disabled = false;
+                    createAccountButtonEl.textContent = createAccountButtonEl.dataset.originalText || 'Create Account';
                 }
+                // Email confirmation is required
+                if (errorMsgEmail) {
+                    errorMsgEmail.style.color = '#188038';
+                    errorMsgEmail.innerHTML = '✅ Account created! We sent a confirmation link to <b>' + user.email +
+                        '</b>. Click it to verify your account. ' +
+                        '<a href="#" id="resend-confirm-link" style="color:#4285f4;text-decoration:underline;">Resend email</a>';
 
-                // Clear input fields
+                    const resendLink = document.getElementById('resend-confirm-link');
+                    if (resendLink) {
+                        resendLink.addEventListener('click', async (ev) => {
+                            ev.preventDefault();
+                            try {
+                                await supabase.auth.resend({ type: 'signup', email: user.email });
+                                errorMsgEmail.innerHTML = '📨 Confirmation email resent. Check your inbox (and spam).';
+                            } catch (e) {
+                                errorMsgEmail.textContent = 'Could not resend email. Try again later.';
+                            }
+                        });
+                    }
+                }
                 clearAuthFields();
             }
         })
         .catch((error) => {
+            if (createAccountButtonEl) {
+                createAccountButtonEl.disabled = false;
+                createAccountButtonEl.textContent = createAccountButtonEl.dataset.originalText || 'Create Account';
+            }
             console.error('Signup error:', error.message);
+            const errStr = (error.message || '').toLowerCase();
 
-            if (error.message?.includes('already registered')) {
-                errorMsgEmail.textContent = 'This email is already registered. Try logging in instead.';
-            } else if (error.message?.includes('invalid email')) {
-                errorMsgEmail.textContent = 'Invalid email format';
-            } else if (error.message?.includes('password')) {
-                errorMsgPassword.textContent = 'Password must be at least 6 characters';
-            } else if (error.message?.includes('Email rate limit')) {
-                errorMsgEmail.textContent = 'Too many signup attempts. Please try again later.';
+            if (errStr.includes('already registered')) {
+                if (errorMsgEmail) {
+                    errorMsgEmail.innerHTML = 'This email is already registered. <a href="/login" style="color:#4285f4;text-decoration:underline;">Log in instead</a>';
+                }
+            } else if (errStr.includes('invalid email')) {
+                if (errorMsgEmail) errorMsgEmail.textContent = 'Invalid email format';
+            } else if (errStr.includes('password')) {
+                if (errorMsgPassword) errorMsgPassword.textContent = 'Password must be at least 6 characters';
+            } else if (errStr.includes('rate limit')) {
+                if (errorMsgEmail) errorMsgEmail.textContent = 'Too many signup attempts. Please try again later.';
             } else {
-                errorMsgEmail.textContent = error.message || 'Signup failed. Please try again.';
+                if (errorMsgEmail) errorMsgEmail.textContent = error.message || 'Signup failed. Please try again.';
             }
         });
 }
@@ -363,18 +600,29 @@ function authCreateAccountWithEmail() {
 
 
 function resetPassword() {
-    const emailToReset = emailForgotPasswordEl.value?.trim();
+    const emailToReset = emailForgotPasswordEl?.value?.trim();
+    const errorEl = document.getElementById("email-error-message") || errorMsgEmail;
+    const loadingEl = document.getElementById("loading");
+
+    if (errorEl) errorEl.textContent = '';
 
     if (!emailToReset) {
-        alert('Please enter your email address');
+        if (errorEl) errorEl.textContent = 'Please enter your email address';
         return;
     }
 
     // Validate email format
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(emailToReset)) {
-        alert('Please enter a valid email address');
+        if (errorEl) errorEl.textContent = 'Please enter a valid email address';
         return;
+    }
+
+    if (forgotPasswordButtonEl) {
+        forgotPasswordButtonEl.disabled = true;
+    }
+    if (loadingEl) {
+        loadingEl.classList.add('show');
     }
 
     console.log('Requesting password reset for:', emailToReset);
@@ -383,6 +631,9 @@ function resetPassword() {
         redirectTo: window.location.origin + '/reset-password-confirm'
     })
         .then(({ data, error }) => {
+            if (loadingEl) loadingEl.classList.remove('show');
+            if (forgotPasswordButtonEl) forgotPasswordButtonEl.disabled = false;
+
             if (error) {
                 console.error('Password reset error:', error);
                 throw error;
@@ -398,27 +649,35 @@ function resetPassword() {
             if (resetFormView && resetSuccessView) {
                 resetFormView.style.display = "none";
                 resetSuccessView.style.display = "block";
-            } else {
-                alert('Check your email for a password reset link');
+            } else if (errorEl) {
+                errorEl.style.color = '#188038';
+                errorEl.textContent = 'Check your email for a password reset link.';
             }
         })
         .catch((error) => {
-            console.error('Password reset error:', error.message);
+            if (loadingEl) loadingEl.classList.remove('show');
+            if (forgotPasswordButtonEl) forgotPasswordButtonEl.disabled = false;
 
-            // Better error messages
+            console.error('Password reset error:', error.message);
+            const errStr = (error.message || '').toLowerCase();
             let errorMessage = 'Failed to send password reset email. Please try again.';
 
-            if (error.message.includes('email rate limit')) {
+            if (errStr.includes('rate limit')) {
                 errorMessage = 'Too many password reset requests. Please wait a few minutes and try again.';
-            } else if (error.message.includes('email_not_confirmed')) {
+            } else if (errStr.includes('email_not_confirmed')) {
                 errorMessage = 'Please confirm your email address first before resetting password.';
-            } else if (error.message.includes('Over email send rate limits')) {
-                errorMessage = 'Too many requests. Please wait 5 minutes before trying again.';
-            } else if (error.message.includes('user_not_found')) {
-                errorMessage = 'Email address not found. Please check the email and try again.';
+            } else if (errStr.includes('user_not_found')) {
+                errorMessage = 'Email address not found. Please verify the email and try again.';
+            } else if (error.message) {
+                errorMessage = error.message;
             }
 
-            alert('Error: ' + errorMessage);
+            if (errorEl) {
+                errorEl.style.color = '#d93025';
+                errorEl.textContent = errorMessage;
+            } else {
+                alert(errorMessage);
+            }
         });
 }
 
@@ -426,6 +685,7 @@ function resetPassword() {
 
 function loginUser(user, idToken) {
     console.log('Sending auth token to backend');
+    const refCode = getStoredReferralCode();
 
     fetch('/auth', {
         method: 'POST',
@@ -433,47 +693,64 @@ function loginUser(user, idToken) {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${idToken}`
         },
-        credentials: 'same-origin'  // Ensures cookies are sent with the request
+        body: JSON.stringify({ ref: refCode }),
+        credentials: 'same-origin'
     })
         .then(response => {
             console.log('Auth response status:', response.status);
             return response.json().then(data => ({ response, data }));
         })
-        .then(({ response, data }) => {
+        .then(async ({ response, data }) => {
             if (response.ok && data.success) {
                 console.log('Backend authentication successful');
                 // Apply any referral code captured at signup (after session exists)
-                try {
-                    const _rc = sessionStorage.getItem('abhihub_ref_code');
-                    if (_rc) {
-                        fetch('/api/referral/register', {
+                if (refCode) {
+                    try {
+                        const refRes = await fetch('/api/referral/register', {
                             method: 'POST',
                             headers: { 'Content-Type': 'application/json' },
                             credentials: 'same-origin',
-                            body: JSON.stringify({ code: _rc })
-                        }).then(r => r.json()).then(j => {
-                            if (j.success) {
-                                console.log('[Referral] credited invitee with', j.credit_invitee);
-                                sessionStorage.removeItem('abhihub_ref_code');
-                            }
-                        }).catch(() => {});
+                            keepalive: true,
+                            body: JSON.stringify({ code: refCode })
+                        });
+                        const j = await refRes.json();
+                        if (j && j.success) {
+                            console.log('[Referral] credited invitee with', j.credit_invitee);
+                        }
+                    } catch (e) {
+                        console.warn('[Referral] Registration request error:', e);
                     }
-                } catch (e) {}
-                // Track login via GA
+                    clearStoredReferralCode();
+                }
+
                 if (window.AbhiHubAnalytics) {
                     window.AbhiHubAnalytics.track('login', { method: 'email' });
                 } else if (window.AbhiHubTracking) {
                     window.AbhiHubTracking.trackLogin('email');
                 }
-                window.location.href = '/dashboard';
+                window.location.href = getNextRedirectUrl(true);
             } else {
+                if (signInButtonEl) {
+                    signInButtonEl.disabled = false;
+                    signInButtonEl.textContent = signInButtonEl.dataset.originalText || 'Sign In';
+                }
                 console.error('Backend authentication failed:', data.message);
-                alert('Login failed: ' + (data.message || 'Unable to create session'));
+                const failMsg = data.message || 'Unable to establish session. Please try again.';
+                if (errorMsgPassword) errorMsgPassword.textContent = failMsg;
+                else if (errorMsgEmail) errorMsgEmail.textContent = failMsg;
+                else alert('Login failed: ' + failMsg);
             }
         })
         .catch(error => {
+            if (signInButtonEl) {
+                signInButtonEl.disabled = false;
+                signInButtonEl.textContent = signInButtonEl.dataset.originalText || 'Sign In';
+            }
             console.error('Error during login:', error);
-            alert('Error: ' + error.message);
+            const netErr = 'Network error during sign-in. Please check your connection and try again.';
+            if (errorMsgPassword) errorMsgPassword.textContent = netErr;
+            else if (errorMsgEmail) errorMsgEmail.textContent = netErr;
+            else alert('Error: ' + error.message);
         });
 }
 
@@ -491,20 +768,20 @@ function clearAuthFields() {
     clearInputField(passwordInputEl);
 }
 
-function logoutUser() {
+async function logoutUser() {
     console.log('Logging out user');
-
+    if (supabase && supabase.auth) {
+        try {
+            await supabase.auth.signOut();
+        } catch (e) {
+            console.warn('Supabase signOut error:', e);
+        }
+    }
     fetch('/logout', {
         method: 'GET',
         credentials: 'same-origin'
     })
-        .then(response => {
-            console.log('Logout response:', response.status);
-            window.location.href = '/login';
-        })
-        .catch(error => {
-            console.error('Logout error:', error);
-            // Even if logout fails, clear frontend and redirect
+        .finally(() => {
             window.location.href = '/login';
         });
 }

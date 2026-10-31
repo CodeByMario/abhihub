@@ -1,0 +1,437 @@
+{
+  "AH17915403832BCE": {
+    "user_id": "3ee5f02a-e187-47a9-8119-4e8cddda2e91",
+    "amount": 99.0,
+    "status": "initiated",
+    "utr": "AH17915403832BCE",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "admin_notes": "purpose=Buy Me Tea - Chai & Samosa;doc_id=;name=wasudha;msg=",
+    "order_id": "AH17915403832BCE",
+    "updated_at": "2026-10-09T10:06:23.818821+00:00"
+  },
+  "AH17915403833597": {
+    "user_id": "3ee5f02a-e187-47a9-8119-4e8cddda2e91",
+    "amount": 99.0,
+    "status": "completed",
+    "utr": "AH17915403833597",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36 Edg/154.0.0.0",
+    "admin_notes": "verified_via=redirect;verified_via=redirect",
+    "order_id": "AH17915403833597",
+    "updated_at": "2026-10-09T10:07:00.140057+00:00"
+  },
+  "AH17917140157F24": {
+    "user_id": "f92e9c8e-945e-4a76-80a0-56e965780a10",
+    "amount": 100.0,
+    "status": "initiated",
+    "utr": "AH17917140157F24",
+    "admin_notes": "purpose=Credits-50;pack=50;views=50",
+    "order_id": "AH17917140157F24",
+    "updated_at": "2026-10-11T10:20:15.984179+00:00"
+  },
+  "AH17917157093F1A": {
+    "user_id": "e2fc0dda-b8e8-41f6-b70e-52f74c3f586c",
+    "amount": 200.0,
+    "status": "initiated",
+    "utr": "AH17917157093F1A",
+    "admin_notes": "purpose=Credits-100;pack=100;views=100",
+    "order_id": "AH17917157093F1A",
+    "updated_at": "2026-10-11T10:48:29.235582+00:00"
+  },
+  "AH1791715716E8C1": {
+    "user_id": "e2fc0dda-b8e8-41f6-b70e-52f74c3f586c",
+    "amount": 200.0,
+    "status": "initiated",
+    "utr": "AH1791715716E8C1",
+    "admin_notes": "purpose=Credits-100;pack=100;views=100",
+    "order_id": "AH1791715716E8C1",
+    "updated_at": "2026-10-11T10:48:36.925278+00:00"
+  },
+  "AH1791715985C9CB": {
+    "user_id": "e2fc0dda-b8e8-41f6-b70e-52f74c3f586c",
+    "amount": 100.0,
+    "status": "initiated",
+    "utr": "AH1791715985C9CB",
+    "admin_notes": "purpose=Credits-50;pack=50;views=50",
+    "order_id": "AH1791715985C9CB",
+    "updated_at": "2026-10-11T10:53:05.167967+00:00"
+  },
+  "AH17917164495E11": {
+    "user_id": "e2fc0dda-b8e8-41f6-b70e-52f74c3f586c",
+    "amount": 200.0,
+    "status": "completed",
+    "utr": "AH17917164495E11",
+    "admin_notes": "purpose=Credits-100;pack=100;views=100;verified_via=redirect",
+    "order_id": "AH17917164495E11",
+    "updated_at": "2026-10-11T11:12:32.280701+00:00",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0"
+  },
+  "AH1791716456A41D": {
+    "user_id": "e2fc0dda-b8e8-41f6-b70e-52f74c3f586c",
+    "amount": 1000.0,
+    "status": "initiated",
+    "utr": "AH1791716456A41D",
+    "admin_notes": "purpose=Credits-500;pack=500;views=500",
+    "order_id": "AH1791716456A41D",
+    "updated_at": "2026-10-11T11:00:56.711525+00:00"
+  },
+  "AH17917165394484": {
+    "user_id": "e2fc0dda-b8e8-41f6-b70e-52f74c3f586c",
+    "amount": 100.0,
+    "status": "completed",
+    "utr": "AH17917165394484",
+    "admin_notes": "purpose=Credits-50;pack=50;views=50;verified_via=redirect",
+    "order_id": "AH17917165394484",
+    "updated_at": "2026-10-11T11:12:33.841377+00:00",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0"
+  },
+  "AH1791717649DACA": {
+    "user_id": "e2fc0dda-b8e8-41f6-b70e-52f74c3f586c",
+    "amount": 100.0,
+    "status": "completed",
+    "utr": "AH1791717649DACA",
+    "admin_notes": "purpose=Credits-50;pack=50;views=50;verified_via=redirect",
+    "order_id": "AH1791717649DACA",
+    "updated_at": "2026-10-11T11:21:36.249928+00:00",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0"
+  },
+  "AH179171772076CE": {
+    "user_id": "e2fc0dda-b8e8-41f6-b70e-52f74c3f586c",
+    "amount": 100.0,
+    "status": "completed",
+    "utr": "AH179171772076CE",
+    "admin_notes": "purpose=Credits-50;pack=50;views=50;verified_via=redirect",
+    "order_id": "AH179171772076CE",
+    "updated_at": "2026-10-11T11:22:28.869849+00:00",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0"
+  },
+  "AH17917362587360": {
+    "user_id": "48ee75a8-f815-4a52-90c3-4082cfbf6a24",
+    "amount": 999.0,
+    "status": "completed",
+    "utr": "AH17917362587360",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+    "admin_notes": "purpose=Document-23a264f8-2e1a-4fe8-aa1c-16cc84dbe556;doc_id=23a264f8-2e1a-4fe8-aa1c-16cc84dbe556;name=;msg=;verified_via=redirect;verified_via=redirect",
+    "order_id": "AH17917362587360",
+    "updated_at": "2026-10-11T16:32:30.890505+00:00"
+  },
+  "AH1792317931C9E3": {
+    "user_id": "e2fc0dda-b8e8-41f6-b70e-52f74c3f586c",
+    "amount": 49.0,
+    "status": "initiated",
+    "utr": "AH1792317931C9E3",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+    "admin_notes": "purpose=Buy Me Tea - Masala Chai (Popular);doc_id=;name=Abhijeet Shende;msg=",
+    "order_id": "AH1792317931C9E3",
+    "updated_at": "2026-10-18T10:05:31.011673+00:00"
+  },
+  "AH179231793100C5": {
+    "user_id": "e2fc0dda-b8e8-41f6-b70e-52f74c3f586c",
+    "amount": 49.0,
+    "status": "completed",
+    "utr": "AH179231793100C5",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/155.0.0.0 Safari/537.36 Edg/155.0.0.0",
+    "admin_notes": "purpose=Buy Me Tea;doc_id=;name=Abhijeet Shende;msg=;verified_via=redirect",
+    "order_id": "AH179231793100C5",
+    "updated_at": "2026-10-18T10:06:14.589390+00:00"
+  },
+  "order_TrmCTQE0Pk2nlV": {
+    "user_id": "3ee5f02a-e187-47a9-8119-4e8cddda2e91",
+    "amount": 29.0,
+    "status": "completed",
+    "utr": "order_TrmCTQE0Pk2nlV",
+    "doc_id": "7e4781ca-97c2-4604-b500-51e2c5d15d71",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+    "admin_notes": "doc_id=7e4781ca-97c2-4604-b500-51e2c5d15d71;verified_via=razorpay_verify",
+    "order_id": "order_TrmCTQE0Pk2nlV",
+    "updated_at": "2026-10-24T14:25:15.960303+00:00"
+  },
+  "order_TrmUVc0YQJoOgj": {
+    "user_id": "3ee5f02a-e187-47a9-8119-4e8cddda2e91",
+    "amount": 29.0,
+    "status": "pending",
+    "utr": "order_TrmUVc0YQJoOgj",
+    "doc_id": "7e4781ca-97c2-4604-b500-51e2c5d15d71",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+    "admin_notes": "doc_id=7e4781ca-97c2-4604-b500-51e2c5d15d71",
+    "order_id": "order_TrmUVc0YQJoOgj",
+    "updated_at": "2026-10-24T14:38:22.950800+00:00"
+  },
+  "order_TrmUcVnQYcRA5g": {
+    "user_id": "3ee5f02a-e187-47a9-8119-4e8cddda2e91",
+    "amount": 29.0,
+    "status": "completed",
+    "utr": "order_TrmUcVnQYcRA5g",
+    "doc_id": "7e4781ca-97c2-4604-b500-51e2c5d15d71",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+    "admin_notes": "doc_id=7e4781ca-97c2-4604-b500-51e2c5d15d71;verified_via=razorpay_verify",
+    "order_id": "order_TrmUcVnQYcRA5g",
+    "updated_at": "2026-10-24T14:39:21.655607+00:00"
+  },
+  "AH1792853277169E": {
+    "user_id": "3ee5f02a-e187-47a9-8119-4e8cddda2e91",
+    "amount": 200.0,
+    "status": "initiated",
+    "utr": "AH1792853277169E",
+    "admin_notes": "purpose=Credits-100;pack=100;views=100",
+    "order_id": "AH1792853277169E",
+    "updated_at": "2026-10-24T14:47:57.024617+00:00"
+  },
+  "AH1792853290BA06": {
+    "user_id": "3ee5f02a-e187-47a9-8119-4e8cddda2e91",
+    "amount": 1000.0,
+    "status": "initiated",
+    "utr": "AH1792853290BA06",
+    "admin_notes": "purpose=Credits-500;pack=500;views=500",
+    "order_id": "AH1792853290BA06",
+    "updated_at": "2026-10-24T14:48:10.540244+00:00"
+  },
+  "AH179285453893D0": {
+    "user_id": "3ee5f02a-e187-47a9-8119-4e8cddda2e91",
+    "amount": 100.0,
+    "status": "initiated",
+    "utr": "AH179285453893D0",
+    "admin_notes": "purpose=Credits-50;pack=50;views=50",
+    "order_id": "AH179285453893D0",
+    "updated_at": "2026-10-24T15:08:58.405743+00:00"
+  },
+  "order_test_123": {
+    "user_id": null,
+    "amount": 200.0,
+    "status": "pending",
+    "utr": "order_test_123",
+    "doc_id": "7e4781ca-97c2-4604-b500-51e2c5d15d71",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Werkzeug/3.1.3",
+    "admin_notes": "purpose=Credits-100;pack=100;views=100",
+    "order_id": "order_test_123",
+    "updated_at": "2026-10-24T16:20:55.189706+00:00"
+  },
+  "order_test_456": {
+    "user_id": null,
+    "amount": 19.0,
+    "status": "pending",
+    "utr": "order_test_456",
+    "doc_id": "7e4781ca-97c2-4604-b500-51e2c5d15d71",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Werkzeug/3.1.3",
+    "admin_notes": "doc_id=7e4781ca-97c2-4604-b500-51e2c5d15d71;purpose=Document-7e4781ca-97c2-4604-b500-51e2c5d15d71",
+    "order_id": "order_test_456",
+    "updated_at": "2026-10-24T16:20:56.726041+00:00"
+  },
+  "AH1792859102A789": {
+    "user_id": "3ee5f02a-e187-47a9-8119-4e8cddda2e91",
+    "amount": 100.0,
+    "status": "initiated",
+    "utr": "AH1792859102A789",
+    "admin_notes": "purpose=Credits-50;pack=50;views=50",
+    "order_id": "AH1792859102A789",
+    "updated_at": "2026-10-24T16:25:02.295240+00:00"
+  },
+  "AH1792859226DA68": {
+    "user_id": "3ee5f02a-e187-47a9-8119-4e8cddda2e91",
+    "amount": 100.0,
+    "status": "initiated",
+    "utr": "AH1792859226DA68",
+    "admin_notes": "purpose=Credits-50;pack=50;views=50",
+    "order_id": "AH1792859226DA68",
+    "updated_at": "2026-10-24T16:27:06.324904+00:00"
+  },
+  "order_TroRFouVmD4COQ": {
+    "user_id": "3ee5f02a-e187-47a9-8119-4e8cddda2e91",
+    "amount": 100.0,
+    "status": "completed",
+    "utr": "order_TroRFouVmD4COQ",
+    "doc_id": "",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+    "admin_notes": "purpose=Credits-50;pack=50;views=50;verified_via=razorpay_verify",
+    "order_id": "order_TroRFouVmD4COQ",
+    "updated_at": "2026-10-24T16:33:22.159061+00:00"
+  },
+  "order_Tt1d4WESojKuoQ": {
+    "user_id": "e53e385c-da0e-4357-9ec3-40f277176e12",
+    "amount": 19.0,
+    "status": "completed",
+    "utr": "order_Tt1d4WESojKuoQ",
+    "doc_id": "e88918e1-ad89-466b-adbb-61de8f3ac0dc",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+    "admin_notes": "doc_id=e88918e1-ad89-466b-adbb-61de8f3ac0dc;purpose=Document-e88918e1-ad89-466b-adbb-61de8f3ac0dc;verified_via=razorpay_verify",
+    "order_id": "order_Tt1d4WESojKuoQ",
+    "updated_at": "2026-10-27T18:07:09.527623+00:00"
+  },
+  "order_Tt2f3H5FMfKFY2": {
+    "user_id": null,
+    "amount": 19.0,
+    "status": "pending",
+    "utr": "order_Tt2f3H5FMfKFY2",
+    "doc_id": "e88918e1-ad89-466b-adbb-61de8f3ac0dc",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+    "admin_notes": "doc_id=e88918e1-ad89-466b-adbb-61de8f3ac0dc;purpose=Document-e88918e1-ad89-466b-adbb-61de8f3ac0dc",
+    "order_id": "order_Tt2f3H5FMfKFY2",
+    "updated_at": "2026-10-27T19:06:29.635927+00:00"
+  },
+  "AH17931288102BD3": {
+    "user_id": "3b135f8c-f872-4c50-ad33-2fcc0b9bda97",
+    "amount": 100.0,
+    "status": "initiated",
+    "utr": "AH17931288102BD3",
+    "admin_notes": "purpose=Credits-50;pack=50;views=50",
+    "order_id": "AH17931288102BD3",
+    "updated_at": "2026-10-27T19:20:10.986142+00:00"
+  },
+  "AH1793128814BE9E": {
+    "user_id": "3b135f8c-f872-4c50-ad33-2fcc0b9bda97",
+    "amount": 100.0,
+    "status": "initiated",
+    "utr": "AH1793128814BE9E",
+    "admin_notes": "purpose=Credits-50;pack=50;views=50",
+    "order_id": "AH1793128814BE9E",
+    "updated_at": "2026-10-27T19:20:14.135954+00:00"
+  },
+  "order_Tt2tmtkS8MloTC": {
+    "user_id": "3b135f8c-f872-4c50-ad33-2fcc0b9bda97",
+    "amount": 100.0,
+    "status": "pending",
+    "utr": "order_Tt2tmtkS8MloTC",
+    "doc_id": "",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+    "admin_notes": "purpose=Credits-50;pack=50;views=50",
+    "order_id": "order_Tt2tmtkS8MloTC",
+    "updated_at": "2026-10-27T19:20:26.628870+00:00"
+  },
+  "order_test123": {
+    "user_id": "f10c348f-43af-47a7-a790-1b74e6b3cad1",
+    "amount": 49.0,
+    "status": "pending",
+    "utr": "order_test123",
+    "doc_id": "510c026e-612a-40dd-b443-2717bb15885c",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Werkzeug/3.1.3",
+    "admin_notes": "doc_id=510c026e-612a-40dd-b443-2717bb15885c;purpose=Document-510c026e-612a-40dd-b443-2717bb15885c",
+    "order_id": "order_test123",
+    "updated_at": "2026-10-27T19:29:20.419063+00:00"
+  },
+  "AH1793262182292F": {
+    "user_id": "1e9c2658-7f61-4db3-8560-db5136c6a2a8",
+    "amount": 19.0,
+    "status": "initiated",
+    "utr": "AH1793262182292F",
+    "admin_notes": "purpose=Credits-10;pack=10;views=10",
+    "order_id": "AH1793262182292F",
+    "updated_at": "2026-10-29T08:23:02.373139+00:00"
+  },
+  "AH17932621874343": {
+    "user_id": "1e9c2658-7f61-4db3-8560-db5136c6a2a8",
+    "amount": 49.0,
+    "status": "initiated",
+    "utr": "AH17932621874343",
+    "admin_notes": "purpose=Credits-65;pack=65;views=65",
+    "order_id": "AH17932621874343",
+    "updated_at": "2026-10-29T08:23:07.512812+00:00"
+  },
+  "AH17932621870B8D": {
+    "user_id": "1e9c2658-7f61-4db3-8560-db5136c6a2a8",
+    "amount": 99.0,
+    "status": "initiated",
+    "utr": "AH17932621870B8D",
+    "admin_notes": "purpose=Credits-160;pack=160;views=160",
+    "order_id": "AH17932621870B8D",
+    "updated_at": "2026-10-29T08:23:07.998750+00:00"
+  },
+  "AH1793262188FC17": {
+    "user_id": "1e9c2658-7f61-4db3-8560-db5136c6a2a8",
+    "amount": 199.0,
+    "status": "initiated",
+    "utr": "AH1793262188FC17",
+    "admin_notes": "purpose=Credits-500;pack=500;views=500",
+    "order_id": "AH1793262188FC17",
+    "updated_at": "2026-10-29T08:23:08.575632+00:00"
+  },
+  "AH1793262189D695": {
+    "user_id": "1e9c2658-7f61-4db3-8560-db5136c6a2a8",
+    "amount": 49.0,
+    "status": "initiated",
+    "utr": "AH1793262189D695",
+    "admin_notes": "purpose=Credits-65;pack=65;views=65",
+    "order_id": "AH1793262189D695",
+    "updated_at": "2026-10-29T08:23:09.303170+00:00"
+  },
+  "AH1793262190983A": {
+    "user_id": "1e9c2658-7f61-4db3-8560-db5136c6a2a8",
+    "amount": 99.0,
+    "status": "initiated",
+    "utr": "AH1793262190983A",
+    "admin_notes": "purpose=Credits-160;pack=160;views=160",
+    "order_id": "AH1793262190983A",
+    "updated_at": "2026-10-29T08:23:10.266295+00:00"
+  },
+  "AH1793262292458A": {
+    "user_id": "e2fc0dda-b8e8-41f6-b70e-52f74c3f586c",
+    "amount": 49.0,
+    "status": "initiated",
+    "utr": "AH1793262292458A",
+    "admin_notes": "purpose=Credits-65;pack=65;views=65",
+    "order_id": "AH1793262292458A",
+    "updated_at": "2026-10-29T08:24:52.336358+00:00"
+  },
+  "order_TtepxJz90cdfDU": {
+    "user_id": "e2fc0dda-b8e8-41f6-b70e-52f74c3f586c",
+    "amount": 49.0,
+    "status": "completed",
+    "utr": "order_TtepxJz90cdfDU",
+    "doc_id": "",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+    "admin_notes": "purpose=Credits-65;pack=65;views=65;verified_via=razorpay_verify",
+    "order_id": "order_TtepxJz90cdfDU",
+    "updated_at": "2026-10-29T08:28:31.153017+00:00"
+  },
+  "AH17934612515767": {
+    "user_id": "e53e385c-da0e-4357-9ec3-40f277176e12",
+    "amount": 13.0,
+    "status": "initiated",
+    "utr": "AH17934612515767",
+    "admin_notes": "purpose=Credits-65;pack=65;views=65;tier=gmail;promo=True",
+    "order_id": "AH17934612515767",
+    "updated_at": "2026-10-31T15:40:51.157206+00:00"
+  },
+  "order_TuZIZrKDtBXeBl": {
+    "user_id": "e53e385c-da0e-4357-9ec3-40f277176e12",
+    "amount": 13.0,
+    "status": "pending",
+    "utr": "order_TuZIZrKDtBXeBl",
+    "doc_id": "",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+    "admin_notes": "purpose=Credits-65;pack=65;views=65",
+    "order_id": "order_TuZIZrKDtBXeBl",
+    "updated_at": "2026-10-31T15:41:06.564530+00:00"
+  },
+  "order_TuZMkBDFsMRnT9": {
+    "user_id": "e53e385c-da0e-4357-9ec3-40f277176e12",
+    "amount": 13.0,
+    "status": "completed",
+    "utr": "order_TuZMkBDFsMRnT9",
+    "doc_id": "",
+    "client_ip": "127.0.0.1",
+    "user_agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/156.0.0.0 Safari/537.36 Edg/156.0.0.0",
+    "admin_notes": "purpose=Credits-65;pack=65;views=65;verified_via=razorpay_verify",
+    "order_id": "order_TuZMkBDFsMRnT9",
+    "updated_at": "2026-10-31T15:45:40.520445+00:00"
+  }
+}

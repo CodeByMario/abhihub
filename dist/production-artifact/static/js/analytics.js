@@ -240,6 +240,28 @@
       });
     },
 
+    trackUpload: function (fileName, fileType, sizeKb) {
+      AbhiHubAnalytics.track('file_uploaded', {
+        file_name: fileName || '',
+        file_type: fileType || 'image/jpeg',
+        size_kb: sizeKb || 0
+      });
+    },
+
+    trackCameraUpload: function () {
+      AbhiHubAnalytics.track('camera_upload_opened', {
+        method: 'camera'
+      });
+    },
+
+    trackXpEarned: function (xp, score, filesCount) {
+      AbhiHubAnalytics.track('xp_earned', {
+        xp_gained: xp || 0,
+        total_score: score || 0,
+        files_count: filesCount || 1
+      });
+    },
+
     trackUploadAbandoned: function (stage) {
       AbhiHubAnalytics.track('upload_abandoned', {
         stage: stage || 'file_selected'

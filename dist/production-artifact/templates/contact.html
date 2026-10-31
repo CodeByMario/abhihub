@@ -181,9 +181,11 @@
         <label for="c-message">Message</label>
         <textarea id="c-message" placeholder="How can we help you?" required></textarea>
       </div>
+      {% if TURNSTILE_SITEKEY %}
       <div class="turnstile-wrap">
         <div class="cf-turnstile" data-sitekey="{{ TURNSTILE_SITEKEY }}" data-action="turnstile-spin-v2"></div>
       </div>
+      {% endif %}
       <button type="submit" class="btn-submit" id="contactSubmit">Send Message →</button>
       <div id="contactMsg"></div>
     </form>
@@ -206,13 +208,15 @@
     </div>
     <div class="faq-item">
       <button class="faq-btn" data-faq="f4">Can I delete my account? <span class="arrow">▾</span></button>
-      <div class="faq-body" id="f4">Yes. Go to <a href="{{ url_for('delete_account') }}" style="color:var(--primary-600);font-weight:700;">Delete Account</a> in your account settings to permanently remove your data.</div>
+      <div class="faq-body" id="f4">Yes. Go to <a href="{{ url_for('app_pages.delete_account') }}" style="color:var(--primary-600);font-weight:700;">Delete Account</a> in your account settings to permanently remove your data.</div>
     </div>
   </div>
 
 </div>
 
+{% if TURNSTILE_SITEKEY %}
 <script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{% endif %}
 <script>
 // FAQ accordion
 document.querySelectorAll('.faq-btn').forEach(btn => {

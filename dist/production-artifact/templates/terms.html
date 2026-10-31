@@ -20,12 +20,12 @@
 }
 .info-hero h1 { font-size: clamp(2.2rem,5vw,3.8rem); font-weight: 900; line-height: 1.1; margin: 0 0 1rem; }
 .info-hero h1 span { background: linear-gradient(90deg,#60a5fa,#a78bfa); -webkit-background-clip:text; -webkit-text-fill-color:transparent; }
-.info-hero p { font-size: clamp(.9rem,2vw,1.1rem); color: rgba(255,255,255,.8); max-width: 520px; margin: 0 auto; line-height: 1.7; font-weight: 500; }
+.info-hero p { font-size: clamp(.9rem,2vw,1.1rem); color: rgba(255,255,255,.8); max-width: 540px; margin: 0 auto; line-height: 1.7; font-weight: 500; }
 
 .sr { opacity:0; transform:translateY(40px); transition:opacity .7s cubic-bezier(.16,1,.3,1),transform .7s cubic-bezier(.16,1,.3,1); }
 .sr.on { opacity:1; transform:none; }
 
-.info-body { max-width: 800px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
+.info-body { max-width: 860px; margin: 0 auto; padding: 3rem 1.5rem 5rem; }
 
 .info-card {
   background: var(--surface); border: 1px solid var(--border-light);
@@ -75,80 +75,97 @@
 
 <!-- Hero -->
 <div class="info-hero">
-  <div class="info-hero-chip">📜 Legal</div>
+  <div class="info-hero-chip">📜 Terms &amp; Conditions</div>
   <h1>Terms of <span>Service</span></h1>
-  <p>Please read these terms carefully before using AbhiHub.</p>
+  <p>User Agreement, Content Licensing, and Platform Terms for AbhiHub.</p>
 </div>
 
 <div class="info-body">
 
-  <div class="updated-badge sr">📅 Last updated: July 2025</div>
+  <div class="updated-badge sr">📅 Last updated: October 2026 | Effective immediately</div>
 
   <!-- TOC -->
   <div class="toc sr">
     <h3>Contents</h3>
     <ol>
-      <li><a href="#t-purpose">Purpose &amp; Scope</a></li>
-      <li><a href="#t-conduct">User Conduct</a></li>
-      <li><a href="#t-content">Content &amp; Ownership</a></li>
-      <li><a href="#t-liability">Liability Disclaimer</a></li>
-      <li><a href="#t-termination">Account Termination</a></li>
-      <li><a href="#t-changes">Changes to Terms</a></li>
-      <li><a href="#t-contact">Contact</a></li>
+      <li><a href="#t-acceptable">1. Acceptable Use &amp; All-Ages Access Policy</a></li>
+      <li><a href="#t-license">2. Uploads, IP Ownership &amp; Non-Exclusive Licensing</a></li>
+      <li><a href="#t-dmca">3. DMCA &amp; Copyright Takedown Procedure</a></li>
+      <li><a href="#t-credits">4. Purchases, Orders &amp; Strict No-Refund Policy</a></li>
+      <li><a href="#t-disclaimer">5. Document Accuracy Disclaimer &amp; Liability Limitation</a></li>
+      <li><a href="#t-termination">6. Account Termination &amp; Suspension</a></li>
+      <li><a href="#t-jurisdiction">7. Governing Law &amp; Jurisdiction (India)</a></li>
     </ol>
   </div>
 
-  <div class="info-card sr" id="t-purpose">
-    <div class="section-pill">🎯 Section 1</div>
-    <h2>Purpose &amp; Scope</h2>
-    <p>AbhiHub is an academic knowledge-sharing platform designed to facilitate the reliable exchange of study materials among engineering students. By using AbhiHub, you agree to these Terms of Service.</p>
-    <p>These terms apply to all users of the platform, including students, contributors, and visitors.</p>
-  </div>
-
-  <div class="info-card sr" id="t-conduct">
-    <div class="section-pill">✅ Section 2</div>
-    <h2>User Conduct</h2>
-    <p>By using AbhiHub, you agree to:</p>
+  <div class="info-card sr" id="t-acceptable">
+    <div class="section-pill">✅ Section 1</div>
+    <h2>1. Acceptable Use &amp; All-Ages Access Policy</h2>
+    <p>AbhiHub is an online platform and academic marketplace designed for students and learners. By accessing or using the platform, you agree to:</p>
     <ul>
-      <li>Share only content that is accurate to the best of your knowledge</li>
-      <li>Not upload content that violates copyright, privacy, or applicable laws</li>
-      <li>Not use platform content for commercial purposes without the resource owner's permission</li>
-      <li>Not attempt to reverse-engineer, scrape, or abuse the platform</li>
-      <li>Treat other community members with respect</li>
+      <li><strong>All-Ages Accessibility:</strong> AbhiHub does not impose any minimum age limit and welcomes learners of all age groups. Minor users under 18 years of age are encouraged to access services under parental or guardian guidance, especially when making digital payments or submitting user-generated content.</li>
+      <li><strong>Lawful Use:</strong> Use the service solely for lawful educational, study, and platform-related purposes.</li>
+      <li><strong>Prohibited Content:</strong> Refrain from uploading copyrighted commercial textbooks without permission, paid test-prep material without rights, defamatory, or illegal content.</li>
+      <li><strong>Platform Integrity:</strong> Refrain from unauthorized scraping, automated API abuse, denial of service attacks, or bypassing payment and access quota systems.</li>
+      <li><strong>Community Decorum:</strong> Maintain respectful conduct across interactive features including direct messaging, memory walls, and discussion comments.</li>
     </ul>
   </div>
 
-  <div class="info-card sr" id="t-content">
-    <div class="section-pill">📁 Section 3</div>
-    <h2>Content &amp; Ownership</h2>
-    <p>User-contributed content (notes, papers, practicals) remains the property of its respective contributors. By uploading content, you grant AbhiHub a non-exclusive, royalty-free licence to display and distribute that content through the platform.</p>
-    <p>AbhiHub does not claim ownership of user-submitted materials. However, AbhiHub may remove content that appears unlawful, harmful, or in violation of these terms without prior notice.</p>
+  <div class="info-card sr" id="t-license">
+    <div class="section-pill">📁 Section 2</div>
+    <h2>2. Uploads, IP Ownership &amp; Licensing</h2>
+    <p><strong>Contributor Ownership:</strong> You retain full copyright ownership of all original study notes, handwritten solutions, and academic resources you upload to AbhiHub.</p>
+    <p><strong>Non-Exclusive License to AbhiHub:</strong> By submitting content to AbhiHub, you grant AbhiHub Technologies a worldwide, non-exclusive, royalty-free, sublicensable, and transferable license to host, store, index, format, OCR process, publicly display, and distribute the content solely for operating, promoting, and improving the platform.</p>
+    <p>This license enables AbhiHub to render web previews, generate AI OCR study assists, and present curated study materials to fellow engineering students.</p>
   </div>
 
-  <div class="info-card sr" id="t-liability">
-    <div class="section-pill">⚠️ Section 4</div>
-    <h2>Liability Disclaimer</h2>
-    <p>AbhiHub is provided "as is" without warranties of any kind. The platform is not liable for any damages arising from the use of the service, including but not limited to direct, indirect, incidental, or consequential damages.</p>
-    <p>AbhiHub does not guarantee the accuracy, completeness, or reliability of user-contributed content. Always verify academic materials with your institution.</p>
+  <div class="info-card sr" id="t-dmca">
+    <div class="section-pill">🛡️ Section 3</div>
+    <h2>3. DMCA &amp; Copyright Takedown Procedure</h2>
+    <p>AbhiHub respects intellectual property rights and acts promptly upon copyright notices. If you believe your copyrighted work has been uploaded without authorization, send a notice to our Copyright Agent:</p>
+    <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 1.25rem; margin-top: 1rem;">
+      <p style="margin-bottom: 0.3rem;"><strong>Copyright Agent:</strong> AbhiHub Legal Team</p>
+      <p style="margin-bottom: 0.3rem;"><strong>Email:</strong> <a href="mailto:info@abhihub.edu.in">info@abhihub.edu.in</a></p>
+      <p style="margin-bottom: 0.3rem;"><strong>Required Notice Elements:</strong></p>
+      <ul style="margin: 0; font-size: 0.88rem; color: #475569;">
+        <li>Identification of the copyrighted work claimed to be infringed.</li>
+        <li>URL or exact document ID of the material on AbhiHub.</li>
+        <li>Your contact details (Name, Email, Phone Number, Physical Address).</li>
+        <li>A statement of good-faith belief that the use is unauthorized.</li>
+      </ul>
+    </div>
+  </div>
+
+  <div class="info-card sr" id="t-credits">
+    <div class="section-pill">💳 Section 4</div>
+    <h2>4. Purchases, Orders &amp; Strict No-Refund Policy</h2>
+    <p>AbhiHub provides digital access, view credits, study resources, and online services:</p>
+    <ul>
+      <li><strong>Orders &amp; Payments:</strong> All online purchases (including view quota packages, digital subscriptions, and services) are processed securely via third-party payment gateways.</li>
+      <li><strong>Strict No Refunds / All Sales Final:</strong> All purchases and payments on AbhiHub are <strong>100% FINAL and NON-REFUNDABLE</strong>. Due to the immediate delivery, digital availability, and consumable nature of digital credits and educational access, we do not offer returns, cancellations, exchanges, or chargeback refunds under any circumstances once transaction processing is complete.</li>
+      <li><strong>Token Nature of Credits:</strong> Purchased credits and view quotas represent platform utility tokens for accessing digital resources; they hold no monetary cash value, cannot be redeemed for legal tender, and are non-transferable between accounts.</li>
+    </ul>
+  </div>
+
+  <div class="info-card sr" id="t-disclaimer">
+    <div class="section-pill">⚠️ Section 5</div>
+    <h2>5. Document Accuracy Disclaimer &amp; Liability Limitation</h2>
+    <p>AbhiHub is provided on an <strong>"AS IS"</strong> and <strong>"AS AVAILABLE"</strong> basis. Study materials and products are submitted by student peers and educators; AbhiHub does not guarantee that uploaded notes or solutions are free of academic error or fully aligned with specific university marking schemes.</p>
+    <p>To the maximum extent permitted by Indian law, AbhiHub Technologies shall not be liable for any indirect, incidental, or consequential damages arising from reliance on platform content or service interruptions.</p>
   </div>
 
   <div class="info-card sr" id="t-termination">
-    <div class="section-pill">🚫 Section 5</div>
-    <h2>Account Termination</h2>
-    <p>AbhiHub reserves the right to suspend or terminate accounts that violate these terms, engage in abusive behaviour, or upload unlawful content.</p>
-    <p>You may delete your own account at any time via the <a href="{{ url_for('delete_account') }}">Delete Account</a> page.</p>
+    <div class="section-pill">🚫 Section 6</div>
+    <h2>6. Account Termination &amp; Suspension</h2>
+    <p>AbhiHub reserves the right to suspend or terminate user accounts immediately, without prior notice, for violations of these terms, copyright infringement, or fraudulent activity.</p>
+    <p>Users may terminate their account at any time via <a href="{{ url_for('app_pages.delete_account') }}">Delete Account</a>.</p>
   </div>
 
-  <div class="info-card sr" id="t-changes">
-    <div class="section-pill">🔄 Section 6</div>
-    <h2>Changes to Terms</h2>
-    <p>We may update these terms from time to time. The revised version will be posted on this page with an updated date. Continued use of the platform after changes constitutes acceptance of the updated terms.</p>
-  </div>
-
-  <div class="info-card sr" id="t-contact">
-    <div class="section-pill">✉️ Section 7</div>
-    <h2>Contact</h2>
-    <p>For questions about these terms, contact us at <a href="mailto:info@abhihub.edu.eu.org">info@abhihub.edu.eu.org</a> or through the <a href="{{ url_for('contact') }}">Contact page</a>.</p>
+  <div class="info-card sr" id="t-jurisdiction">
+    <div class="section-pill">⚖️ Section 7</div>
+    <h2>7. Governing Law &amp; Jurisdiction</h2>
+    <p>These terms shall be governed by and construed in accordance with the laws of the <strong>Republic of India</strong>.</p>
+    <p>Any disputes arising under or in connection with these Terms of Service shall be subject to the exclusive jurisdiction of the competent courts located in <strong>Nagpur, Maharashtra, India</strong>.</p>
   </div>
 
 </div>

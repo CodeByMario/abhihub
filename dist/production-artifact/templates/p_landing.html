@@ -1,3 +1,4 @@
+{% set hide_header_tools = true %}
 {% set disable_ads = true %}
 {% set seo_title = "World's #1 Previous Year Question Paper & Notes Sharing Platform | AbhiHub Exam Preparation" %}
 {% set seo_description = "AbhiHub is the World's #1 previous year question paper platform, notes sharing platform, and exam preparation platform. Proudly Made in India with multi-device support and fast-growing Tarika AI support." %}
@@ -357,7 +358,7 @@
   <div class="hero-bg-blob"></div>
 
   <div class="hero-badge stagger-in" style="animation-delay: 0s;">
-    <span>🇮🇳</span> Made in India • World's #1 PYQ & Notes Platform
+    <span>🇮🇳</span> Made in India • World's #1 PYQ & Notes Platform • <a href="{{ url_for('site.careers') }}" style="color:#2563eb; font-weight:700; text-decoration:none;">💼 We're Hiring →</a>
   </div>
 
   <h1 class="hero-title stagger-in" style="animation-delay: 0.1s;">
@@ -369,22 +370,88 @@
     The complete exam preparation platform. Access 3,000+ verified PYQs, shared notes, and practicals with multi-device cloud sync and fast-growing Tarika AI support.
   </p>
 
+  <!-- 🚀 Special Launch Promotion (29 Oct - 8 Nov 2026: 90% OFF for 90 Days + Free Views) -->
+  <div class="launch-promo-card stagger-in" style="animation-delay: 0.25s; max-width: 720px; width: 100%; margin: 0 auto 2.25rem; background: linear-gradient(135deg, rgba(255,255,255,0.98) 0%, rgba(240,253,244,0.92) 100%); border: 2px solid #6366f1; border-radius: 20px; padding: 1.5rem 1.75rem; box-shadow: 0 15px 35px -5px rgba(99, 102, 241, 0.25); text-align: left; position: relative; overflow: hidden;">
+    <div style="position: absolute; top: -30px; right: -30px; width: 130px; height: 130px; background: radial-gradient(circle, rgba(239,68,68,0.15) 0%, transparent 70%); border-radius: 50%;"></div>
+    
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.6rem; margin-bottom: 0.85rem;">
+      <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: #fee2e2; border: 1px solid #fecaca; color: #dc2626; padding: 0.25rem 0.75rem; border-radius: 999px; font-size: 0.78rem; font-weight: 800; letter-spacing: 0.5px; text-transform: uppercase;">
+        <span style="display: inline-block; width: 8px; height: 8px; background: #dc2626; border-radius: 50%;"></span>
+        ⚡ LIMITED LAUNCH PROMO · TODAY TILL 8 NOV 2026
+      </div>
+      <span style="font-size: 0.85rem; font-weight: 800; color: #4338ca; background: #e0e7ff; padding: 0.25rem 0.65rem; border-radius: 8px;">
+        🔥 90% OFF For First 90 Days
+      </span>
+    </div>
+
+    <h3 style="font-size: 1.35rem; font-weight: 900; color: #0f172a; margin: 0 0 0.5rem; letter-spacing: -0.3px;">
+      Register by 8 Nov 2026 to Lock In 90% Discount + Free Study Quota!
+    </h3>
+    <p style="font-size: 0.88rem; color: #475569; margin: 0 0 1.1rem; line-height: 1.5;">
+      Any account created between <strong>29 Oct and 8 Nov 2026</strong> automatically receives a <strong>90% discount rate for 90 days</strong> on all view packs. Plus instant bonus view quota based on your email domain:
+    </p>
+
+    <!-- 2 Column Value & Price Breakdown Grid -->
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 0.85rem; margin-bottom: 1.15rem;">
+      <!-- Column 1: Free Views -->
+      <div style="background: rgba(255,255,255,0.9); border: 1.5px solid #dcfce7; border-radius: 14px; padding: 0.9rem;">
+        <div style="font-size: 0.72rem; font-weight: 800; color: #15803d; text-transform: uppercase; margin-bottom: 0.35rem;">🎁 Instant View Quota</div>
+        <div style="font-size: 0.88rem; font-weight: 700; color: #0f172a; margin-bottom: 0.2rem;">
+          🎓 College Email (<span style="color:#2563eb;">@*.raisoni.net / .ac.in</span>): <strong>20 Free Views</strong>
+        </div>
+        <div style="font-size: 0.85rem; color: #475569;">
+          ⚡ Personal Email (<span style="color:#64748b;">@gmail.com</span>): <strong>5 Free Views</strong>
+        </div>
+        <div style="margin-top: 0.4rem; font-size: 0.74rem; color: #059669; font-weight: 600;">
+          ✓ Credits only deducted on free materials. Paid notes never charge your views!
+        </div>
+      </div>
+
+      <!-- Column 2: 90% OFF Pricing -->
+      <div style="background: rgba(255,255,255,0.9); border: 1.5px solid #e0e7ff; border-radius: 14px; padding: 0.9rem;">
+        <div style="font-size: 0.72rem; font-weight: 800; color: #4338ca; text-transform: uppercase; margin-bottom: 0.35rem;">💎 90% Discounted Pack Rates</div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; font-size: 0.82rem;">
+          <span style="color: #334155; font-weight: 600;">10 Views Chai Top-up:</span>
+          <span><span style="text-decoration: line-through; color: #94a3b8; font-size: 0.75rem; margin-right: 4px;">₹39</span><strong style="color: #16a34a; font-size: 0.95rem;">₹4</strong> (40p/view)</span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.25rem; font-size: 0.82rem;">
+          <span style="color: #334155; font-weight: 600;">65 Views Pro Pack:</span>
+          <span><span style="text-decoration: line-through; color: #94a3b8; font-size: 0.75rem; margin-right: 4px;">₹129</span><strong style="color: #16a34a; font-size: 0.95rem;">₹13</strong></span>
+        </div>
+        <div style="display: flex; justify-content: space-between; align-items: center; font-size: 0.82rem;">
+          <span style="color: #334155; font-weight: 600;">160 Views Semester Pass:</span>
+          <span><span style="text-decoration: line-through; color: #94a3b8; font-size: 0.75rem; margin-right: 4px;">₹299</span><strong style="color: #16a34a; font-size: 0.95rem;">₹30</strong></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- CTA & Trust footer -->
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 0.75rem; border-top: 1px solid #e2e8f0; padding-top: 0.85rem;">
+      <span style="font-size: 0.78rem; color: #64748b;">
+        ⏱️ Offer automatically activates upon account creation. Valid for 90 days.
+      </span>
+      <a href="{{ url_for('auth.signup') }}" class="btn btn-primary" style="padding: 0.5rem 1.25rem; font-size: 0.88rem; font-weight: 800; border-radius: 10px; background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);">
+        Claim 90% Discount & Free Views →
+      </a>
+    </div>
+  </div>
+
   <div class="hero-actions stagger-in" style="animation-delay: 0.3s;">
-    <a href="{{ url_for('upload') }}" class="btn btn-primary pulse-glow">
+    <a href="{{ url_for('app_pages.upload') }}" class="btn btn-primary pulse-glow">
       <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
       </svg>
       Upload File
     </a>
-    <a href="{{ url_for('dashboard') }}" class="btn btn-glass">
+    <a href="{{ url_for('app_pages.dashboard') }}" class="btn btn-glass">
       <svg width="20" height="20" fill="none" viewBox="0 0 24 24" stroke="currentColor">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
           d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
       </svg>
       Explore Files
     </a>
-    <a href="{{ url_for('features_tour') }}" class="btn btn-glass">
+    <a href="{{ url_for('site.features_tour') }}" class="btn btn-glass">
       ✨ View Features
     </a>
   </div>
@@ -412,7 +479,7 @@
 <div class="features-section">
   <h2 class="section-title">Why Students Choose AbhiHub</h2>
   <div class="features-grid">
-    <a href="{{ url_for('ai_hub') }}" class="glass-card stagger-in" style="border: 1px solid rgba(124, 58, 237, 0.4); background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(237, 233, 254, 0.6));">
+    <a href="{{ url_for('app_pages.chat_page') }}" class="glass-card stagger-in" style="border: 1px solid rgba(124, 58, 237, 0.4); background: linear-gradient(135deg, rgba(255,255,255,0.85), rgba(237, 233, 254, 0.6));">
       <div class="icon-box" style="background: rgba(124, 58, 237, 0.15);">🤖</div>
       <div style="display:flex; align-items:center; gap:0.5rem; margin-bottom:0.25rem;">
         <h3 class="card-title" style="margin-bottom:0;">Tarika (AI Support)</h3>
@@ -422,21 +489,21 @@
       <span class="card-link" style="color: #7c3aed; font-weight: 700;">Explore Tarika AI →</span>
     </a>
 
-    <a href="{{ url_for('features_tour') }}" class="glass-card stagger-in" style="border: 1px solid rgba(37, 99, 235, 0.3);">
+    <a href="{{ url_for('site.features_tour') }}" class="glass-card stagger-in" style="border: 1px solid rgba(37, 99, 235, 0.3);">
       <div class="icon-box" style="background: rgba(37, 99, 235, 0.15);">📲</div>
       <h3 class="card-title">Multi-Device Support</h3>
       <p class="card-desc">Seamlessly study anywhere. Real-time sync across Android, iOS, Windows, macOS, and tablets with offline PWA caching.</p>
       <span class="card-link" style="color: #2563eb; font-weight: 700;">View Device Support →</span>
     </a>
 
-    <a href="{{ url_for('dashboard') }}" class="glass-card stagger-in">
+    <a href="{{ url_for('app_pages.dashboard') }}" class="glass-card stagger-in">
       <div class="icon-box">🎯</div>
       <h3 class="card-title">Personalized Dashboard</h3>
       <p class="card-desc">A tailored feed based on your college and branch for lightning-fast access to your exact PYQs and notes.</p>
       <span class="card-link" style="color: #ec4899;">View Dashboard →</span>
     </a>
 
-    <a href="{{ url_for('upload') }}" class="glass-card stagger-in">
+    <a href="{{ url_for('app_pages.upload') }}" class="glass-card stagger-in">
       <div class="icon-box">📤</div>
       <h3 class="card-title">Smart Upload & Notes Sharing</h3>
       <p class="card-desc">Share notes and previous year papers, earn reputation points, and climb the leaderboard as a top campus contributor.</p>
@@ -459,7 +526,7 @@
     {% endfor %}
   </div>
   <div style="text-align: center; margin-top: 1.5rem;">
-    <a href="{{ url_for('pyq_landing') }}" class="btn btn-glass" style="font-size: 0.95rem; padding: 0.6rem 1.5rem;">View All Colleges & PYQs →</a>
+    <a href="{{ url_for('library.pyq_landing') }}" class="btn btn-glass" style="font-size: 0.95rem; padding: 0.6rem 1.5rem;">View All Colleges & PYQs →</a>
   </div>
 </div>
 {% endif %}
@@ -497,55 +564,11 @@
       Upload previous year papers, handwritten notes, and practical files. Help your peers ace their semester exams while unlocking higher upload quotas, search limits, and community rank perks.
     </p>
     <div style="display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap;">
-      <a href="{{ url_for('contribute_page') }}" class="btn btn-primary" style="background: #ffffff; color: #1e3a8a; font-weight: 700;">How Contribution Perks Work →</a>
-      <a href="{{ url_for('upload') }}" class="btn btn-glass" style="color: #ffffff; border-color: rgba(255,255,255,0.4);">Start Uploading Now</a>
+      <a href="{{ url_for('site.contribute_page') }}" class="btn btn-primary" style="background: #ffffff; color: #1e3a8a; font-weight: 700;">How Contribution Perks Work →</a>
+      <a href="{{ url_for('app_pages.upload') }}" class="btn btn-glass" style="color: #ffffff; border-color: rgba(255,255,255,0.4);">Start Uploading Now</a>
     </div>
   </div>
-<!-- ── Tea Supporters Wall Section ── -->
-<div class="features-section" style="padding-top: 1rem; padding-bottom: 3rem;">
-  <div style="background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 50%, #fed7aa 100%); border: 1.5px solid #fde68a; border-radius: 24px; padding: 2.25rem 1.75rem; box-shadow: 0 10px 25px -5px rgba(217, 119, 6, 0.1);">
-    <div style="display: flex; justify-content: space-between; align-items: flex-end; flex-wrap: wrap; gap: 1rem; margin-bottom: 1.5rem;">
-      <div>
-        <div style="display: inline-flex; align-items: center; gap: 0.4rem; background: #ffffff; color: #b45309; padding: 0.3rem 0.8rem; border-radius: 999px; font-size: 0.75rem; font-weight: 800; letter-spacing: 0.03em; margin-bottom: 0.5rem; box-shadow: 0 2px 6px rgba(180, 83, 9, 0.1);">
-          ☕ FUELING FREE EDUCATION
-        </div>
-        <h2 style="font-size: 1.7rem; font-weight: 800; color: #78350f; margin: 0 0 0.4rem 0;">Recent Tea Supporters</h2>
-        <p style="font-size: 0.95rem; color: #92400e; margin: 0; max-width: 600px; line-height: 1.5;">
-          Every cup of chai directly supports high-speed servers, database storage, and free university exam resources for thousands of engineering students across India.
-        </p>
-      </div>
-      <a href="{{ url_for('support') }}" class="btn btn-primary" style="background: linear-gradient(135deg, #b45309 0%, #ea580c 100%); color: #ffffff; border: none; font-weight: 700; padding: 0.65rem 1.4rem; font-size: 0.95rem; text-decoration: none; border-radius: 12px; display: inline-flex; align-items: center; gap: 0.4rem; box-shadow: 0 4px 14px rgba(234, 88, 12, 0.3);">
-        <span>☕ Buy Me a Tea</span>
-      </a>
-    </div>
 
-    <!-- Supporters Grid -->
-    <div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 1rem;">
-      {% for s in tea_supporters %}
-      <div style="background: rgba(255, 255, 255, 0.9); border: 1px solid rgba(253, 230, 138, 0.8); border-radius: 16px; padding: 1.1rem; box-shadow: 0 4px 12px rgba(180, 83, 9, 0.05); display: flex; flex-direction: column; justify-content: space-between; backdrop-filter: blur(8px);">
-        <div>
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
-            <strong style="color: #78350f; font-size: 0.95rem; display: flex; align-items: center; gap: 0.35rem;">
-              <span>{{ "☕" * (s.cups if s.cups <= 3 else 3) }}</span>
-              <span>{{ s.name }}</span>
-            </strong>
-            <span style="font-size: 0.78rem; font-weight: 800; color: #b45309; background: #fef3c7; padding: 0.2rem 0.55rem; border-radius: 8px; border: 1px solid #fde68a;">
-              ₹{{ "%.0f"|format(s.amount) }}
-            </span>
-          </div>
-          <p style="margin: 0; font-size: 0.84rem; color: #475569; font-style: italic; line-height: 1.45;">
-            "{{ s.message or 'Bought tea to support AbhiHub!' }}"
-          </p>
-        </div>
-        <div style="margin-top: 0.75rem; font-size: 0.72rem; color: #94a3b8; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid rgba(0,0,0,0.04); padding-top: 0.5rem;">
-          <span>{{ s.cups }} Cup{{ 's' if s.cups != 1 else '' }} of Tea</span>
-          <span>{{ s.date or 'Recently' }}</span>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  </div>
-</div>
 
 <!-- ── Frequently Asked Questions (FAQ) ── -->
 <div class="features-section" style="padding-top: 1rem; padding-bottom: 4rem;">
@@ -673,9 +696,10 @@
 </div>
 
 <script type="module">
-  // Show loading state if we have a hash (potential OAuth callback)
-  if (window.location.hash && window.location.hash.includes('access_token')) {
-    document.getElementById('authLoadingOverlay').style.display = 'flex';
+  // Show loading state if we have a hash or search param (potential OAuth callback)
+  if ((window.location.hash && window.location.hash.includes('access_token')) || window.location.search.includes('access_token=')) {
+    const overlay = document.getElementById('authLoadingOverlay');
+    if (overlay) overlay.style.display = 'flex';
   }
 </script>
 

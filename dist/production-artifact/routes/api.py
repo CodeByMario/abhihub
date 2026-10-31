@@ -344,6 +344,30 @@ def authorize():
     except Exception as sess_err:
         logging.warning(f"[AUTH] Logging login session failed: {sess_err}")
 
+    # Set initial paper view credits based on strict domain policy:
+    # @ghrce.raisoni.net / approved college -> 20 views
+    # @gmail.com -> 5 views
+    # Temporary / disposable domains -> 0 views (must pay directly)
+    try:
+        from methods.domain_tier_service import classify_email
+        tier_info = classify_email(user_data['email'])
+        init_views = tier_info['starting_views']
+        p_chk = client.table('profiles').select('id, paper_quota_remaining').eq('id', user_data['id']).limit(1).execute()
+        if p_chk.data:
+            if p_chk.data[0].get('paper_quota_remaining') is None:
+                client.table('profiles').update({'paper_quota_remaining': init_views}).eq('id', user_data['id']).execute()
+                session['paper_quota'] = {'credits': init_views, 'total_views': 0}
+        else:
+            client.table('profiles').insert({
+                'id': user_data['id'],
+                'email': user_data['email'],
+                'full_name': user_data['name'],
+                'paper_quota_remaining': init_views
+            }).execute()
+            session['paper_quota'] = {'credits': init_views, 'total_views': 0}
+    except Exception as q_err:
+        logging.warning(f"[AUTH] Initial quota setup note: {q_err}")
+
     # Process referral reward if referral code was provided at authorization
     payload = request.get_json(silent=True) or {}
     ref_code = (payload.get('ref') or '').strip()
@@ -721,12 +745,20 @@ def api_buy_credits():
             
         data = request.get_json(silent=True) or {}
         pack_size = int(data.get('pack', 0) or 0)
-        
-        valid_packs = {50: 100, 100: 200, 500: 1000}
+
+        from methods.domain_tier_service import get_tiered_credit_packs, classify_email
+        user_email = user_info.get('email', '')
+        prof = session.get('profile', {})
+        created_at = prof.get('created_at') or user_info.get('created_at')
+        valid_packs = get_tiered_credit_packs(user_email, created_at=created_at)
+        tier_info = classify_email(user_email, created_at=created_at)
+
         if pack_size not in valid_packs:
-            return jsonify({'success': False, 'message': 'Invalid pack. Choose 50, 100, or 500 views.'}), 400
-            
-        price_inr = float(valid_packs[pack_size])
+            return jsonify({'success': False, 'message': 'Invalid pack. Choose 10, 65, 160, or 500 views.'}), 400
+
+        pack_info = valid_packs[pack_size]
+        price_inr = float(pack_info['price'])
+        granted_views = int(pack_info['views'])
         order_id = f"AH{int(time.time())}{secrets.token_hex(2).upper()}"
 
         # Record initiated transaction in database
@@ -735,22 +767,51 @@ def api_buy_credits():
             'amount': price_inr,
             'status': 'initiated',
             'utr': order_id,
-            'admin_notes': f"purpose=Credits-{pack_size};pack={pack_size};views={pack_size}"
+            'admin_notes': f"purpose=Credits-{granted_views};pack={granted_views};views={granted_views};tier={tier_info['tier']};promo={tier_info.get('is_promo', False)}"
         })
 
-        payment_url = f"/payment?amount={price_inr:.2f}&purpose=Credits-{pack_size}-Views&order_id={order_id}"
+        payment_url = f"/payment?amount={price_inr:.2f}&purpose=Credits-{granted_views}-Views&order_id={order_id}"
 
         return jsonify({
             'success': True,
-            'pack': pack_size,
+            'pack': granted_views,
             'price_inr': price_inr,
             'order_id': order_id,
+            'tier': tier_info['tier'],
+            'discount_pct': tier_info['discount_pct'],
             'payment_url': payment_url,
             'message': 'Payment initiated. Redirecting to payment gateway…'
         }), 200
     except Exception as e:
         logging.error(f"[BUY-CREDITS] Error: {e}", exc_info=True)
         return jsonify({'success': False, 'message': str(e)}), 500
+
+
+@api_bp.route('/api/credit-packs', methods=['GET'])
+def api_get_credit_packs():
+    """Returns tailored credit pack pricing and discount rate based on user's email domain."""
+    user = session.get('user', {})
+    email = user.get('email', '')
+    prof = session.get('profile', {})
+    created_at = prof.get('created_at') or user.get('created_at')
+    from methods.domain_tier_service import get_tiered_credit_packs, classify_email
+    tier_info = classify_email(email, created_at=created_at)
+    packs = get_tiered_credit_packs(email, created_at=created_at)
+    # Deduplicate aliases
+    clean_packs = [
+        {'pack': 10, **packs[10]},
+        {'pack': 65, **packs[65]},
+        {'pack': 160, **packs[160]},
+        {'pack': 500, **packs[500]}
+    ]
+    return jsonify({
+        'success': True,
+        'tier': tier_info['tier'],
+        'tier_label': tier_info['label'],
+        'starting_views': tier_info['starting_views'],
+        'discount_pct': tier_info['discount_pct'],
+        'packs': clean_packs
+    }), 200
 
 
 @api_bp.route('/api/credit-history', methods=['GET'])
@@ -761,7 +822,7 @@ def api_credit_history():
         from data.pricing import _get_quota
         uid = session['user'].get('uid')
         quota_info = _get_quota()
-        remaining = quota_info.get('credits', 19)
+        remaining = quota_info.get('credits', 0)
         txs = []
         client = init_supabase()
         if client:
@@ -1009,6 +1070,145 @@ def api_add_department(user_data=None):
         return jsonify({'success': True, 'department': dept}), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 400
+
+
+@api_bp.route('/api/save-document', methods=['POST'])
+@auth_required
+def api_save_document():
+    """Save a document record from Cloudinary metadata (used after direct browser upload)."""
+    try:
+        data = request.get_json(silent=True) or {}
+        user_info = session.get('user', {})
+        user_id = user_info.get('uid')
+        user_email = user_info.get('email', '')
+        
+        # Cloudinary result fields
+        public_id = data.get('public_id', '')
+        secure_url = data.get('secure_url', '')
+        file_size = data.get('bytes', 0)
+        file_type = data.get('format', 'pdf')
+        
+        # Document metadata
+        title = (data.get('title') or '').strip()
+        subject = (data.get('subject') or '').strip()
+        subject_id = data.get('subject_id', '')
+        college_id = data.get('college_id', '')
+        branch_id = data.get('branch_id', '')
+        document_type = (data.get('document_type') or 'notes').lower()
+        year = data.get('year', '')
+        semester = data.get('semester')
+        description = data.get('description', '')
+        exam_type = data.get('exam_type', '')
+        subject_code = data.get('subject_code', '')
+        program = data.get('program', 'b.tech')
+        file_hash = data.get('file_hash', '')
+        material_request_id = data.get('material_request_id')
+        
+        if not public_id or not secure_url:
+            return jsonify({'success': False, 'message': 'Missing Cloudinary metadata'}), 400
+        
+        # Build standardized title
+        import re
+        from methods.supabase_helper import make_acronym
+        col_abbr = ''
+        dept_abbr = ''
+        subj_abbr = ''
+        
+        if college_id:
+            col_abbr = college_id[:4].upper() if len(college_id) > 4 else college_id.upper()
+        if branch_id:
+            dept_abbr = branch_id[:4].upper() if len(branch_id) > 4 else branch_id.upper()
+        if subject:
+            subj_abbr = make_acronym(subject)
+        
+        prefix_tags = [p for p in [col_abbr, dept_abbr, subj_abbr] if p]
+        header = " - ".join(prefix_tags)
+        if not title:
+            cat_title = document_type.replace('_', ' ').title()
+            title = f"{header} - {cat_title} {year}" if header else f"{cat_title} {year}"
+        
+        # Save the record
+        from methods.supabase_helper import save_file_record
+        result = save_file_record(
+            user_id=user_id,
+            user_email=user_email,
+            file_name=public_id.split('/')[-1].split('.')[0] if '/' in public_id else public_id,
+            file_url=secure_url,
+            file_type=file_type if file_type in ('pdf', 'image', 'document') else 'pdf',
+            file_size=file_size,
+            cloudinary_public_id=public_id,
+            subject_name=subject,
+            document_type=document_type,
+            year=year,
+            college_id=college_id if college_id else None,
+            branch_id=branch_id if branch_id else None,
+            title=title,
+            description=description,
+            subject_id=subject_id if subject_id else None,
+            semester=semester,
+            program=program,
+            exam_type=exam_type,
+            subject_code=subject_code,
+            file_hash=file_hash
+        )
+        
+        if not result.get('success'):
+            # Handle duplicate case
+            if result.get('conflict'):
+                return jsonify({'success': True, 'skipped': True, 'message': result.get('message', 'File already exists')}), 200
+            return jsonify({'success': False, 'message': result.get('message', 'Save failed')}), 500
+        
+        doc_data = result.get('data', {})
+        doc_id = doc_data.get('id')
+        
+        # Build response
+        document_payload = {
+            'id': doc_id,
+            'title': title,
+            'url': f"/resource/{doc_id}" if doc_id else secure_url,
+            'subject': subject,
+            'semester': semester,
+            'document_type': document_type
+        }
+        
+        xp_gained = 1.0
+        total_xp = 0.0
+        total_contributions = 1
+        try:
+            profile = session.get('profile') or {}
+            total_contributions = int(profile.get('total_contributions') or 0) + 1
+            xp_gained = getattr(current_app, 'POINTS_MAP', {}).get(document_type, 0.5) * 0.5
+            total_xp = float(profile.get('reputation_score') or 0) + xp_gained
+        except Exception:
+            pass
+        
+        contribution_payload = {
+            'xp_earned': xp_gained,
+            'total_xp': total_xp,
+            'total_contributions': total_contributions
+        }
+        
+        return jsonify({
+            'success': True,
+            'message': 'Document saved successfully!',
+            'document': document_payload,
+            'contribution': contribution_payload,
+            'data': {
+                'url': secure_url,
+                'record_id': doc_id,
+                'resource_id': doc_id,
+                'resource_url': f"/resource/{doc_id}" if doc_id else None,
+                'title': title,
+                'subject': subject,
+                'public_id': public_id,
+                'file_size': file_size,
+                'file_type': file_type
+            }
+        }), 200
+        
+    except Exception as e:
+        logging.error(f"[API /api/save-document] Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
 
 
 @api_bp.route('/api/check-duplicate', methods=['POST'])
@@ -1688,7 +1888,10 @@ def view_doc(doc_id, filename=None):
         if is_paid_doc and (document.get('file_type') == 'pdf' or '.pdf' in str(document.get('file_url', '')).lower()):
             is_preview_mode = True
         else:
-            abort(402, description="Payment required to view or download this document.")
+            return jsonify({
+                'success': False,
+                'message': 'Payment required to view or download this document.'
+            }), 402
 
     file_url = document.get('file_url', '')
     if isinstance(file_url, (list, tuple)):
@@ -2975,5 +3178,4 @@ def dashboard_summary_api():
     except Exception as e:
         logging.error(f"[API /api/dashboard/summary] Error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
-
 

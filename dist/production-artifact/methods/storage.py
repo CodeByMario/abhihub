@@ -10,9 +10,6 @@ import os
 from datetime import datetime
 import logging
 
-# Get the default app initialized in app.py
-default_app = get_app()
-
 # DEFERRED: storage.bucket() crashes if Firebase credentials are missing or invalid.
 # Use a lazy proxy so the bucket is only accessed when a storage operation is actually performed.
 _bucket = None  # Lazily initialized
@@ -21,7 +18,11 @@ def _get_bucket():
     """Return Firebase storage bucket, initializing on first access."""
     global _bucket
     if _bucket is None:
-        _bucket = storage.bucket(app=default_app)
+        try:
+            app = get_app()
+        except Exception:
+            app = None
+        _bucket = storage.bucket(app=app) if app else storage.bucket()
     return _bucket
 
 def upload_file(file_path, destination_blob_name, chunk_size=15 * 1024 * 1024, timeout=600):

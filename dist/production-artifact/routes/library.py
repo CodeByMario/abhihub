@@ -163,6 +163,7 @@ def leaderboard():
 
 
 @library_bp.route('/pyq')
+@library_bp.route('/college')
 @sitemap_page(priority="0.95", changefreq="daily")
 def pyq_landing():
     """SEO landing page targeting 'PYQ' and '[college] PYQ' searches"""
@@ -399,6 +400,16 @@ def resource_landing_redirect(slug):
     return redirect(url_for('library.resource_landing', slug=slug), code=301)
 
 
+@library_bp.route('/resources')
+def resources_index_catalog():
+    """Canonical /resources catalog index. Redirects to user's college files or general library."""
+    profile = session.get('profile') or {}
+    college_slug = profile.get('college_slug')
+    if college_slug:
+        return redirect(url_for('library.college_files', college_slug=college_slug))
+    return redirect(url_for('library.pyq_landing'))
+
+
 @library_bp.route('/resource/<path:slug>')
 @library_bp.route('/resources/<path:slug>')
 def resource_landing(slug):
@@ -408,8 +419,9 @@ def resource_landing(slug):
     from data.pricing import has_document_access, extract_document_pricing
     from routes.ai import AI_MODELS, get_best_ai_model
 
-    uuid_pattern = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$'
-    match = re.search(uuid_pattern, slug.lower())
+    clean_slug = re.sub(r'-view$', '', slug.lower().strip())
+    uuid_pattern = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+    match = re.search(uuid_pattern, clean_slug)
     if not match:
         abort(404)
 
@@ -455,6 +467,10 @@ def resource_landing(slug):
         if request.query_string:
             target_url = f"{target_url}?{request.query_string.decode('utf-8')}"
         return redirect(target_url, code=301)
+
+    if 'user' not in session:
+        next_url = request.full_path if request.query_string else request.path
+        return redirect(url_for('auth.login', next=next_url))
 
     document['is_liked'] = False
     document['is_bookmarked'] = False
@@ -553,13 +569,17 @@ def resource_landing(slug):
 
     desc_raw = document.get('description') or ''
     pricing = extract_document_pricing(document)
+    custom_recommendations = {}
     if isinstance(desc_raw, str) and desc_raw.strip().startswith('{'):
         try:
-            document['display_description'] = json.loads(desc_raw.strip()).get('text_description', '')
+            parsed_d = json.loads(desc_raw.strip())
+            document['display_description'] = parsed_d.get('text_description', '')
+            custom_recommendations = parsed_d.get('recommendations') or {}
         except Exception:
             document['display_description'] = desc_raw
     elif isinstance(desc_raw, dict):
         document['display_description'] = desc_raw.get('text_description', '')
+        custom_recommendations = desc_raw.get('recommendations') or {}
     else:
         document['display_description'] = desc_raw
 
@@ -577,7 +597,9 @@ def resource_landing(slug):
             logging.warning(f"Error fetching dropdown lists for resource manager: {err}")
 
     recorded_views = len(viewers) if viewers else 0
-    view_earnings = round(recorded_views * 0.20, 2)
+    from methods.wallet_service import is_creator_verified
+    is_uploader_verified = is_creator_verified(document.get('uploader_id'))
+    view_earnings = round(recorded_views * 0.20, 2) if is_uploader_verified else 0.0
 
     return render_template(
         'resource.html',
@@ -587,6 +609,7 @@ def resource_landing(slug):
         can_manage=can_manage,
         is_admin=is_admin,
         is_uploader=is_uploader,
+        is_uploader_verified=is_uploader_verified,
         viewers=viewers,
         recorded_views=recorded_views,
         view_earnings=view_earnings,
@@ -598,7 +621,8 @@ def resource_landing(slug):
         store_room_docs=store_room_docs,
         ai_chat_allowed=ai_chat_allowed,
         noindex=render_noindex,
-        mock_study_kit=mock_study_kit
+        mock_study_kit=mock_study_kit,
+        custom_recommendations=custom_recommendations
     )
 
 
@@ -903,6 +927,20 @@ def api_edit_document(doc_id):
 
         # Apply updates to documents table (filtering only columns that exist in documents)
         doc_update_clean = {k: v for k, v in update_payload.items() if k in valid_doc_cols}
+        if 'title' in doc_update_clean and len(str(doc_update_clean['title']).strip()) < 3:
+            return jsonify({'success': False, 'message': 'Title must contain at least 3 characters'}), 400
+        if 'document_category' in doc_update_clean:
+            allowed_categories = {'papers', 'notes', 'practical', 'syllabus', 'question_bank', 'assignment', 'timetable', 'other'}
+            category_value = str(doc_update_clean['document_category']).strip().lower()
+            if category_value not in allowed_categories:
+                return jsonify({'success': False, 'message': 'Invalid document category'}), 400
+            doc_update_clean['document_category'] = category_value
+        if 'price' in doc_update_clean:
+            doc_update_clean['price'] = min(max(float(doc_update_clean['price']), 0.0), 5000.0)
+            if doc_update_clean['price'] > 0:
+                doc_update_clean['is_paid'] = True
+        if doc_update_clean.get('is_paid') is False:
+            doc_update_clean['price'] = 0.0
         if doc_update_clean:
             try:
                 client.table('documents').update(doc_update_clean).eq('id', doc_id).execute()
@@ -918,6 +956,11 @@ def api_edit_document(doc_id):
                 c.invalidate(f"doc_rich:{doc_id}")
         except Exception as ce:
             logging.warning(f"Cache invalidate error: {ce}")
+        try:
+            from methods.search_api import invalidate_search_cache
+            invalidate_search_cache()
+        except Exception as cache_err:
+            logging.warning(f"[api_edit_document] Search cache invalidation failed: {cache_err}")
 
         # Notify owner if edited by admin
         if is_admin and notify_owner and doc.get('uploader_id'):
@@ -987,3 +1030,132 @@ def show_rank():
     """Legacy route: redirect to new leaderboard"""
     return redirect(url_for('library.leaderboard'))
 
+
+@library_bp.route('/api/document/<doc_id>/recommendations', methods=['POST'])
+@auth_required
+def api_save_document_recommendations(doc_id):
+    """
+    Allow uploader / owner / admin to customize the Recommended For You section:
+    - Videos: YouTube videos & playlists
+    - Papers / Notes: AbhiHub direct links
+    - Books: AbhiHub links OR verified bookstore affiliate links
+    - Faculty / Peers: AbhiHub creator channels & peer links
+    """
+    client = init_supabase()
+    if not client:
+        return jsonify({'success': False, 'message': 'Database unavailable'}), 500
+
+    doc_res = client.table('documents').select('id, uploader_id, description').eq('id', doc_id).limit(1).execute()
+    if not doc_res.data:
+        return jsonify({'success': False, 'message': 'Document not found'}), 404
+
+    doc = doc_res.data[0]
+    user_info = session.get('user', {})
+    current_user_id = user_info.get('uid') or user_info.get('id')
+    is_admin = is_admin_user(user_info)
+    is_uploader = bool(current_user_id and str(doc.get('uploader_id') or '') == str(current_user_id))
+
+    if not (is_admin or is_uploader):
+        return jsonify({'success': False, 'message': 'Permission denied. Only uploader or admin can edit recommendations.'}), 403
+
+    payload = request.get_json(silent=True) or {}
+    recommendations = payload.get('recommendations') or {}
+
+    clean_recs = {
+        'videos': [],
+        'papers': [],
+        'notes': [],
+        'books': [],
+        'faculty': []
+    }
+
+    # 1. Videos (YouTube links & playlists)
+    for v in recommendations.get('videos', []):
+        t = str(v.get('title', '')).strip()[:100]
+        u = str(v.get('url', '')).strip()
+        if t and u and ('youtube.com' in u.lower() or 'youtu.be' in u.lower()):
+            clean_recs['videos'].append({
+                'title': t,
+                'url': u,
+                'type': 'playlist' if ('list=' in u.lower() or 'playlist' in u.lower()) else 'video'
+            })
+
+    # 2. Papers (AbhiHub direct links)
+    for p in recommendations.get('papers', []):
+        t = str(p.get('title', '')).strip()[:100]
+        u = str(p.get('url', '')).strip()
+        if t and u:
+            clean_recs['papers'].append({
+                'title': t,
+                'url': u,
+                'badge': str(p.get('badge') or 'PYQ')[:30]
+            })
+
+    # 3. Notes (AbhiHub direct links)
+    for n in recommendations.get('notes', []):
+        t = str(n.get('title', '')).strip()[:100]
+        u = str(n.get('url', '')).strip()
+        if t and u:
+            clean_recs['notes'].append({
+                'title': t,
+                'url': u,
+                'badge': str(n.get('badge') or 'Notes')[:30]
+            })
+
+    # 4. Books (AbhiHub direct links OR verified bookstore affiliate links)
+    for b in recommendations.get('books', []):
+        t = str(b.get('title', '')).strip()[:100]
+        u = str(b.get('url', '')).strip()
+        store = str(b.get('store', '')).strip()[:50]
+        if t and u:
+            is_affiliate = any(store_key in u.lower() for store_key in ['amazon', 'flipkart', 'amzn', 'fkrt', 'bookswagon', 'sapna'])
+            clean_recs['books'].append({
+                'title': t,
+                'url': u,
+                'store': store or ('Bookstore' if is_affiliate else 'AbhiHub'),
+                'is_affiliate': is_affiliate
+            })
+
+    # 5. Faculty / Peers (AbhiHub peer/channel links)
+    for f in recommendations.get('faculty', []):
+        name = str(f.get('name', '')).strip()[:80]
+        u = str(f.get('url', '')).strip()
+        role = str(f.get('role', '')).strip()[:80]
+        if name and u:
+            clean_recs['faculty'].append({
+                'name': name,
+                'url': u,
+                'role': role or 'Faculty / Peer Mentor'
+            })
+
+    desc_raw = doc.get('description') or ''
+    desc_obj = {}
+    if isinstance(desc_raw, str) and desc_raw.strip().startswith('{'):
+        try:
+            desc_obj = json.loads(desc_raw.strip())
+        except Exception:
+            desc_obj = {'text_description': desc_raw}
+    elif isinstance(desc_raw, dict):
+        desc_obj = dict(desc_raw)
+    else:
+        desc_obj = {'text_description': desc_raw}
+
+    desc_obj['recommendations'] = clean_recs
+
+    try:
+        client.table('documents').update({
+            'description': json.dumps(desc_obj)
+        }).eq('id', doc_id).execute()
+    except Exception as e:
+        logging.error(f"[api_save_document_recommendations] DB Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+    try:
+        import app
+        c = getattr(app, 'cache', None)
+        if c:
+            c.invalidate(f"doc_rich:{doc_id}")
+    except Exception:
+        pass
+
+    return jsonify({'success': True, 'recommendations': clean_recs})

@@ -1,5 +1,6 @@
 import logging
 from typing import Dict
+from methods.supabase_helper import init_supabase
 
 
 def get_user_uploaded_files(user_email: str, limit: int = 20) -> Dict:

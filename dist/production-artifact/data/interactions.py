@@ -205,6 +205,16 @@ class DocumentView:
             return {"success": False, "message": "Invalid user_id or document_id"}
         
         try:
+            # 1. Skip self-view (owner viewing own document must not earn payout)
+            doc_owner = client.table("documents").select("uploader_id").eq("id", document_id).limit(1).execute()
+            if doc_owner.data and doc_owner.data[0].get("uploader_id") == user_id:
+                return {"success": True, "skipped": True, "message": "Owner view not eligible"}
+
+            # 2. Enforce unique view (never record twice for the same user)
+            existing = client.table(DocumentView.TABLE).select("id").eq("document_id", document_id).eq("user_id", user_id).limit(1).execute()
+            if existing.data:
+                return {"success": True, "duplicate": True, "message": "View already logged"}
+
             res = client.table(DocumentView.TABLE).insert({
                 "document_id": document_id,
                 "user_id": user_id,

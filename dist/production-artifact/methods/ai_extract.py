@@ -77,9 +77,12 @@ def build_extraction_prompt(
         "- unit (for 'papers'): 'CAE1' | 'CAE2' | 'CAE3' | 'ESE'\n"
         "- unit (for 'notes'): 'U1' | 'U2' | 'U3' | 'U4' | 'U5' | 'All'\n"
         "- subject_match: Name or code of the subject found in the document (or null if uncertain)\n"
+        "- subject_code: Subject / course code if printed on paper (e.g. 'UITL305') or null\n"
+        "- semester: integer semester between 1 and 8 or null\n"
+        "- college: name or acronym of college / university if visible in header or null\n"
         "- qb_tags: Short comma-separated topic tags if question bank\n\n"
         "Respond ONLY with a valid JSON object in this exact schema, with no markdown fences or other text:\n"
-        '{"type": "...", "year": "...", "unit": "...", "subject_match": "...", "qb_tags": "..."}'
+        '{"type": "...", "year": "...", "unit": "...", "subject_match": "...", "subject_code": "...", "semester": "...", "college": "...", "qb_tags": "..."}'
     )
 
 
@@ -88,6 +91,7 @@ def build_extraction_prompt(
 def _extract_json_block(text: str) -> dict[str, Any] | None:
     """Extract and parse JSON dictionary from text safely."""
     text = clean_output(text or "").strip()
+    # Try direct parse
     try:
         data = json.loads(text)
         if isinstance(data, dict):
@@ -95,6 +99,7 @@ def _extract_json_block(text: str) -> dict[str, Any] | None:
     except Exception:
         pass
 
+    # Try regex match for outermost JSON block
     match = re.search(r'\{[\s\S]*\}', text)
     if match:
         try:
@@ -127,12 +132,14 @@ def _match_subject(
     if not clean_name:
         return None, None
 
+    # If branch_id is absent -> skip DB search, return subject_name only
     if not branch_id:
         return None, clean_name
 
     try:
         from methods.supabase_helper import get_subjects_by_department, init_supabase
 
+        # 1. Fetch subjects for this department
         res = get_subjects_by_department(branch_id)
         subjects = res.get('data', []) if res.get('success') else []
         if not subjects:
@@ -140,12 +147,14 @@ def _match_subject(
 
         s_norm = clean_name.lower().strip()
 
+        # 2. Exact match on name or subject_code
         for s in subjects:
             name = (s.get('name') or '').lower().strip()
             code = (s.get('subject_code') or '').lower().strip()
             if s_norm == name or (code and s_norm == code):
                 return s.get('id'), s.get('name')
 
+        # 3. Match against subject_aliases for this department's subjects
         client = init_supabase()
         if client:
             subj_ids = [s['id'] for s in subjects if s.get('id')]
@@ -163,6 +172,7 @@ def _match_subject(
                         if matched:
                             return matched.get('id'), matched.get('name')
 
+        # 4. Bounded fuzzy match with defined confidence floor
         best_match = None
         best_ratio = 0.0
 
@@ -179,6 +189,7 @@ def _match_subject(
     except Exception as exc:
         log.warning("[ai_extract] Subject matching error: %s", exc)
 
+    # If no match met confidence floor, return subject_name without invalid subject_id
     return None, clean_name
 
 
@@ -194,11 +205,13 @@ def validate_extracted_metadata(
     """
     known = known_fields or {}
 
+    # 1. Output safety scan
     safety = check_output(raw_response_text)
     flag = safety.flag if safety.borderline else None
 
     parsed = _extract_json_block(raw_response_text) or {}
 
+    # Clean all string values in parsed JSON
     for k, v in list(parsed.items()):
         if isinstance(v, str):
             parsed[k] = clean_output(v).strip()
@@ -209,13 +222,18 @@ def validate_extracted_metadata(
         'unit': None,
         'subject_id': None,
         'subject_name': None,
+        'subject_code': None,
+        'semester': None,
+        'college': None,
         'qb_tags': None,
     }
 
+    # 2. Resolve Category / Type FIRST
     raw_type = (known.get('type') or parsed.get('type') or '').lower().strip()
     if raw_type in VALID_CATEGORIES:
         result['type'] = raw_type
 
+    # 3. Validate Unit against the resolved type vocabulary
     raw_unit = str(known.get('unit') or parsed.get('unit') or '').lower().strip()
     resolved_type = result['type']
 
@@ -226,15 +244,29 @@ def validate_extracted_metadata(
     else:
         result['unit'] = None
 
+    # 4. Validate Year
     raw_year = str(known.get('year') or parsed.get('year') or '').strip()
     if raw_year in VALID_YEARS:
         result['year'] = raw_year
 
+    # 5. Validate & Scope Subject Matching
     raw_subject = parsed.get('subject_match') or parsed.get('subject') or parsed.get('subject_name')
     subj_id, subj_name = _match_subject(raw_subject, branch_id)
     result['subject_id'] = subj_id
     result['subject_name'] = subj_name
+    result['subject_code'] = clean_output(str(parsed.get('subject_code') or '')).strip() or None
 
+    # 6. Validate Semester
+    raw_sem = str(parsed.get('semester') or '').strip()
+    if raw_sem.isdigit() and 1 <= int(raw_sem) <= 8:
+        result['semester'] = int(raw_sem)
+
+    # 7. Validate College
+    raw_col = parsed.get('college')
+    if raw_col and isinstance(raw_col, str):
+        result['college'] = clean_output(raw_col).strip()[:100]
+
+    # 8. Validate Question Bank Tags
     raw_tags = parsed.get('qb_tags')
     if raw_tags and isinstance(raw_tags, str):
         cleaned_tags = re.sub(r'[^a-zA-Z0-9,\s\-_]', '', raw_tags)[:100].strip()
@@ -242,3 +274,36 @@ def validate_extracted_metadata(
             result['qb_tags'] = cleaned_tags
 
     return result, flag
+
+
+# ── Ponytail self-check ───────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    # Test JSON extraction & validation
+    sample_llm = '```json\n{"type": "papers", "year": "2025", "unit": "CAE1", "subject_match": "Data Structures", "qb_tags": "BST, trees"}\n```'
+    val, s_flag = validate_extracted_metadata(sample_llm, branch_id=None)
+    assert val['type'] == 'papers', val
+    assert val['year'] == '2025', val
+    assert val['unit'] == 'CAE1', val
+    assert val['subject_id'] is None, val  # No branch_id -> subject_id is None
+    assert val['subject_name'] == 'Data Structures', val
+    assert val['qb_tags'] == 'BST, trees', val
+
+    # Test invalid unit rejection for papers
+    sample_bad_unit = '{"type": "papers", "unit": "U3"}'
+    val2, _ = validate_extracted_metadata(sample_bad_unit)
+    assert val2['type'] == 'papers'
+    assert val2['unit'] is None, val2  # U3 is invalid for papers!
+
+    # Test valid unit for notes
+    sample_notes = '{"type": "notes", "unit": "Unit 2"}'
+    val3, _ = validate_extracted_metadata(sample_notes)
+    assert val3['type'] == 'notes'
+    assert val3['unit'] == 'U2', val3
+
+    # Test prompt building
+    prompt = build_extraction_prompt(['subject_match', 'unit'], {'year': '2024'})
+    assert "FIELDS NEEDED: subject_match, unit" in prompt
+    assert "year='2024'" in prompt
+
+    print("ai_extract self-check: PASS")

@@ -2,6 +2,7 @@
 
 let selectedFiles = [];
 let isUploading = false;
+let uploadSubmissionLocked = false;
 let cropperInst = null;
 let currentCropId = null;
 let currentMetaId = null;
@@ -45,6 +46,70 @@ var _progCurrentPct = 0;
 var _statusModalOpen = false;
 var _duplicateDecisions = {};
 
+function showTopUploadBanner() {
+  const banner = document.getElementById('uploadTopBanner');
+  if (banner) {
+    banner.classList.remove('utb-success');
+    banner.style.display = 'block';
+  }
+}
+
+function dismissTopBanner() {
+  const banner = document.getElementById('uploadTopBanner');
+  if (banner) banner.style.display = 'none';
+}
+
+function updateTopBanner(done, total, currentFile, pct, isSuccess) {
+  const banner = document.getElementById('uploadTopBanner');
+  if (!banner) return;
+  banner.style.display = 'block';
+
+  const titleEl = document.getElementById('utbTitle');
+  const badgeEl = document.getElementById('utbBadge');
+  const subEl = document.getElementById('utbSub');
+  const fillEl = document.getElementById('utbProgressFill');
+  const pctEl = document.getElementById('utbPercent');
+
+  if (isSuccess) {
+    banner.classList.add('utb-success');
+    if (titleEl) titleEl.textContent = `🎉 All ${total} document(s) published!`;
+    if (badgeEl) badgeEl.textContent = 'Done';
+    if (subEl) subEl.textContent = 'Upload complete • Contributions are live on AbhiHub.';
+    if (fillEl) fillEl.style.width = '100%';
+    if (pctEl) pctEl.textContent = '100%';
+    setTimeout(() => {
+      if (banner && banner.classList.contains('utb-success')) {
+        banner.style.opacity = '0';
+        setTimeout(() => { banner.style.display = 'none'; banner.style.opacity = '1'; }, 300);
+      }
+    }, 6000);
+    return;
+  }
+
+  const remaining = Math.max(0, total - done);
+  const overall = total > 0 ? Math.min(100, Math.round(((done + (pct / 100)) / total) * 100)) : 0;
+
+  if (titleEl) {
+    titleEl.textContent = currentFile 
+      ? `Uploading (${done + 1}/${total}): ${currentFile}`
+      : `Uploading ${done + 1} of ${total} files in background…`;
+  }
+  if (badgeEl) {
+    badgeEl.textContent = `${remaining} remaining`;
+  }
+  if (subEl) {
+    subEl.textContent = pct < 100 
+      ? `${pct}% transmitted • Keep browsing or use the app freely`
+      : `Processing & publishing on server…`;
+  }
+  if (fillEl) {
+    fillEl.style.width = overall + '%';
+  }
+  if (pctEl) {
+    pctEl.textContent = overall + '%';
+  }
+}
+
 function updateProgressUI() {
   if (_progBar) {
     var overall = _progTotal > 0
@@ -60,6 +125,7 @@ function updateProgressUI() {
   if (_progText) {
     _progText.innerText = 'Uploading ' + (_progDone + (_progCurrentPct > 0 ? 1 : 0)) + ' / ' + _progTotal;
   }
+  updateTopBanner(_progDone, _progTotal, _progCurrentFile, _progCurrentPct, false);
 }
 
 function setFileStatus(id, status, progress, msg) {
@@ -1280,141 +1346,250 @@ async function uploadOne(item, retries) {
   }
 
   return new Promise(async function (resolve) {
-    let sigRes = null;
-    try {
-      const res = await fetch('/api/get-upload-signature', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ filename: item.name })
-      });
-      sigRes = await res.json();
-    } catch (e) {
-      console.warn('Presigned URL fetch failed, routing via server', e);
-    }
-
-    var xhr = new XMLHttpRequest();
-    var targetUrl = '/upload';
-    xhr.open('POST', targetUrl, true);
-    xhr.timeout = 180000;
-
-    // Real upload progress (network transmission)
-    xhr.upload.onprogress = function (e) {
-      if (e.lengthComputable) {
-        var pct = Math.round((e.loaded / e.total) * 100);
-        if (pct < 100) {
-          setItemStatus(item.id, 'uploading', pct, `Uploading ${pct}%`);
-          setFileStatus(item.id, 'uploading', pct);
-          setUploadButtonState('uploading', { pct: pct, current: _progDone + 1, total: _progTotal });
-        } else {
-          // Transmission reached 100%, now waiting for server processing
-          setItemStatus(item.id, 'processing', 100, 'Upload received. Processing & publishing…');
-          setFileStatus(item.id, 'uploading', 100);
-          setUploadButtonState('processing');
-        }
-        if (_progCurrentFile !== item.name) {
-          _progCurrentFile = item.name;
-          _progCurrentPct = 0;
-        }
-        _progCurrentPct = pct;
-        updateProgressUI();
-      }
-    };
-
-    xhr.upload.onload = function () {
-      setItemStatus(item.id, 'processing', 100, 'Processing & publishing contribution…');
-      setUploadButtonState('processing');
-    };
-
-    xhr.onload = function () {
+      let sigRes = null;
       try {
-        var r = JSON.parse(xhr.responseText);
-        if (xhr.status === 200 && (r.success || r.document || r.secure_url)) {
-          _progCurrentFile = '';
-          _progCurrentPct = 0;
-          uploadedFingerprints.add(fp);
-          setFileStatus(item.id, 'done', 100);
-          setItemStatus(item.id, 'done', 100, 'Published');
-
-          var docData = r.document || (r.data ? {
-            id: r.data.resource_id || r.data.record_id,
-            title: r.data.title || item.name,
-            url: r.data.resource_url || r.data.url,
-            subject: r.data.subject,
-            semester: r.data.semester,
-            document_type: r.data.document_type
-          } : { id: null, title: item.name, url: null });
-
-          var contribData = r.contribution || (r.data ? {
-            xp_earned: r.data.xp_gained || 1,
-            total_xp: r.data.new_score || 0,
-            total_contributions: r.data.total_contributions || 1
-          } : { xp_earned: 1, total_xp: 0, total_contributions: 1 });
-
-          resolve({
-            ok: true,
-            item: item,
-            document: docData,
-            contribution: contribData,
-            xp: contribData.xp_earned,
-            score: contribData.total_xp
-          });
-
-          if (typeof window.AbhiHubInvitePrompt === 'function') {
-            try { window.AbhiHubInvitePrompt(); } catch (e) { }
-          }
-        } else {
-          _progCurrentFile = '';
-          _progCurrentPct = 0;
-          var errMsg = r.message || r.error || 'Upload failed';
-          setFileStatus(item.id, 'error', 0, errMsg);
-          setItemStatus(item.id, 'error', 0, errMsg, true);
-          resolve({ ok: false, msg: errMsg, item: item });
-        }
+        const res = await fetch('/api/get-upload-signature', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ filename: item.name })
+        });
+        sigRes = await res.json();
       } catch (e) {
+        console.warn('Presigned URL fetch failed, routing via server', e);
+      }
+
+      // Check duplicate first
+      if (uploadedFingerprints.has(fp)) {
+        openStatusModal();
+        setItemStatus(item.id, 'skipped', 100, 'Already uploaded in this session');
+        return { ok: true, xp: 0, score: 0, skipped: true };
+      }
+
+      // If we have a Cloudinary signature, upload directly to Cloudinary
+      // PDFs must use the server path so the Cloudinary adapter can preserve
+      // PDF bytes while assigning the required .txt public ID.
+      if (sigRes && sigRes.success && sigRes.upload_url && !/\.pdf$/i.test(item.name || '')) {
+        try {
+          setItemStatus(item.id, 'uploading', 0, 'Uploading to Cloudinary...');
+        
+          const formData = new FormData();
+          formData.append('api_key', sigRes.api_key);
+          formData.append('timestamp', sigRes.timestamp);
+          formData.append('signature', sigRes.signature);
+          formData.append('folder', sigRes.folder);
+          formData.append('file', item.file);
+        
+          const uploadResponse = await fetch(sigRes.upload_url, {
+            method: 'POST',
+            body: formData
+          });
+        
+          const uploadResult = await uploadResponse.json();
+        
+          if (uploadResponse.ok && uploadResult.secure_url) {
+                      // Upload succeeded - now save record via the new API endpoint with metadata
+                      setItemStatus(item.id, 'processing', 100, 'Saving record...');
+          
+                      const saveResponse = await fetch('/api/save-document', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                          public_id: uploadResult.public_id,
+                          secure_url: uploadResult.secure_url,
+                          bytes: uploadResult.bytes,
+                          format: uploadResult.format,
+                          title: item.meta?.title || item.name,
+                          subject: item.meta?.subject || '',
+                          subject_id: item.meta?.subject_id || '',
+                          college_id: item.meta?.college_id || '',
+                          branch_id: item.meta?.branch_id || '',
+                          document_type: item.meta?.type || 'notes',
+                          year: item.meta?.year || new Date().getFullYear(),
+                          semester: item.meta?.semester || '',
+                          description: item.meta?.description || ''
+                        })
+                      });
+          
+                      const saveResult = await saveResponse.json();
+
+                      if (saveResponse.ok && (saveResult.success || saveResult.document || saveResult.secure_url)) {
+                        const r = saveResult;
+                        _progCurrentFile = '';
+                        _progCurrentPct = 0;
+                        uploadedFingerprints.add(fp);
+                        setFileStatus(item.id, 'done', 100);
+                        setItemStatus(item.id, 'done', 100, 'Published');
+            
+                        var docData = r.document || (r.data ? {
+                          id: r.data.resource_id || r.data.record_id,
+                          title: r.data.title || item.name,
+                          url: r.data.resource_url || r.data.url,
+                          subject: r.data.subject,
+                          semester: r.data.semester,
+                          document_type: r.data.document_type
+                        } : { id: null, title: item.name, url: null });
+            
+                        var contribData = r.contribution || (r.data ? {
+                          xp_earned: r.data.xp_gained || 1,
+                          total_xp: r.data.new_score || 0,
+                          total_contributions: r.data.total_contributions || 1
+                        } : { xp_earned: 1, total_xp: 0, total_contributions: 1 });
+            
+                        resolve({
+                          ok: true,
+                          item: item,
+                          document: docData,
+                          contribution: contribData,
+                          xp: contribData.xp_earned,
+                          score: contribData.total_xp
+                        });
+                        return;
+                      } else {
+                        setFileStatus(item.id, 'error', 0, saveResult.message || 'Save failed');
+                        setItemStatus(item.id, 'error', 0, saveResult.message || 'Upload failed', true);
+                        resolve({ ok: false, msg: saveResult.message || 'Save failed', item: item });
+                        return;
+                      }
+                    } else {
+                      // Cloudinary upload failed - fall back to server-side upload
+                      console.warn('Cloudinary direct upload failed, falling back to server', uploadResult);
+                    }
+                  } catch (e) {
+                                      console.warn('Cloudinary upload error, falling back to server', e);
+                                  }
+                                }
+        
+                        // Fallback: server-side upload via Flask (runs if no Cloudinary signature or upload failed)
+                        var xhr = new XMLHttpRequest();
+      var targetUrl = '/upload';
+      xhr.open('POST', targetUrl, true);
+      xhr.timeout = 180000;
+
+      // Real upload progress (network transmission)
+      xhr.upload.onprogress = function (e) {
+        if (e.lengthComputable) {
+          var pct = Math.round((e.loaded / e.total) * 100);
+          if (pct < 100) {
+            setItemStatus(item.id, 'uploading', pct, `Uploading ${pct}%`);
+            setFileStatus(item.id, 'uploading', pct);
+            setUploadButtonState('uploading', { pct: pct, current: _progDone + 1, total: _progTotal });
+          } else {
+            // Transmission reached 100%, now waiting for server processing
+            setItemStatus(item.id, 'processing', 100, 'Upload received. Processing & publishing...');
+            setFileStatus(item.id, 'uploading', 100);
+            setUploadButtonState('processing');
+          }
+          if (_progCurrentFile !== item.name) {
+            _progCurrentFile = item.name;
+            _progCurrentPct = 0;
+          }
+          _progCurrentPct = pct;
+          updateProgressUI();
+        }
+      };
+
+      xhr.upload.onload = function () {
+        setItemStatus(item.id, 'processing', 100, 'Processing & publishing contribution...');
+        setUploadButtonState('processing');
+      };
+
+      xhr.onload = function () {
+        try {
+          var r = JSON.parse(xhr.responseText);
+          if (xhr.status === 200 && (r.success || r.document || r.secure_url)) {
+            _progCurrentFile = '';
+            _progCurrentPct = 0;
+            uploadedFingerprints.add(fp);
+            setFileStatus(item.id, 'done', 100);
+            setItemStatus(item.id, 'done', 100, 'Published');
+
+            var docData = r.document || (r.data ? {
+              id: r.data.resource_id || r.data.record_id,
+              title: r.data.title || item.name,
+              url: r.data.resource_url || r.data.url,
+              subject: r.data.subject,
+              semester: r.data.semester,
+              document_type: r.data.document_type
+            } : { id: null, title: item.name, url: null });
+
+            var contribData = r.contribution || (r.data ? {
+              xp_earned: r.data.xp_gained || 1,
+              total_xp: r.data.new_score || 0,
+              total_contributions: r.data.total_contributions || 1
+            } : { xp_earned: 1, total_xp: 0, total_contributions: 1 });
+
+            resolve({
+              ok: true,
+              item: item,
+              document: docData,
+              contribution: contribData,
+              xp: contribData.xp_earned,
+              score: contribData.total_xp
+            });
+
+            if (typeof window.AbhiHubInvitePrompt === 'function') {
+              try { window.AbhiHubInvitePrompt(); } catch (e) { }
+            }
+          } else {
+            _progCurrentFile = '';
+            _progCurrentPct = 0;
+            var errMsg = r.message || r.error || 'Upload failed';
+            setFileStatus(item.id, 'error', 0, errMsg);
+            setItemStatus(item.id, 'error', 0, errMsg, true);
+            resolve({ ok: false, msg: errMsg, item: item });
+          }
+        } catch (e) {
+          _progCurrentFile = '';
+          _progCurrentPct = 0;
+          setFileStatus(item.id, 'error', 0, 'Invalid server response');
+          setItemStatus(item.id, 'error', 0, 'Invalid server response', true);
+          resolve({ ok: false, msg: 'Invalid response', item: item });
+        }
+      };
+
+      xhr.onerror = function () {
         _progCurrentFile = '';
         _progCurrentPct = 0;
-        setFileStatus(item.id, 'error', 0, 'Invalid server response');
-        setItemStatus(item.id, 'error', 0, 'Invalid server response', true);
-        resolve({ ok: false, msg: 'Invalid response', item: item });
-      }
-    };
+        if (retries > 0) {
+          showToast('Network issue — retrying…', 'error');
+          setItemStatus(item.id, 'validating', 0, 'Network issue — retrying…');
+          setTimeout(function () { uploadOne(item, retries - 1).then(resolve); }, 1500);
+        } else {
+          setFileStatus(item.id, 'error', 0, 'Network error');
+          setItemStatus(item.id, 'error', 0, 'Network connection interrupted', true);
+          resolve({ ok: false, msg: 'Network error', item: item });
+        }
+      };
 
-    xhr.onerror = function () {
-      _progCurrentFile = '';
-      _progCurrentPct = 0;
-      if (retries > 0) {
-        showToast('Network issue — retrying…', 'error');
-        setItemStatus(item.id, 'validating', 0, 'Network issue — retrying…');
-        setTimeout(function () { uploadOne(item, retries - 1).then(resolve); }, 1500);
-      } else {
-        setFileStatus(item.id, 'error', 0, 'Network error');
-        setItemStatus(item.id, 'error', 0, 'Network connection interrupted', true);
-        resolve({ ok: false, msg: 'Network error', item: item });
-      }
-    };
+      xhr.ontimeout = function () {
+        if (retries > 0) {
+          showToast('Upload timed out — retrying…', 'error');
+          setItemStatus(item.id, 'validating', 0, 'Timeout — retrying…');
+          setTimeout(function () { uploadOne(item, retries - 1).then(resolve); }, 2000);
+        } else {
+          setFileStatus(item.id, 'error', 0, 'Timed out');
+          setItemStatus(item.id, 'error', 0, 'Upload timed out. Check your connection.', true);
+          resolve({ ok: false, msg: 'Upload timed out', item: item });
+        }
+      };
 
-    xhr.ontimeout = function () {
-      if (retries > 0) {
-        showToast('Upload timed out — retrying…', 'error');
-        setItemStatus(item.id, 'validating', 0, 'Timeout — retrying…');
-        setTimeout(function () { uploadOne(item, retries - 1).then(resolve); }, 2000);
-      } else {
-        setFileStatus(item.id, 'error', 0, 'Timed out');
-        setItemStatus(item.id, 'error', 0, 'Upload timed out. Check your connection.', true);
-        resolve({ ok: false, msg: 'Upload timed out', item: item });
+      try {
+        var fd = buildFormData(item);
+        if (sigRes && sigRes.success) {
+          fd.append('api_key', sigRes.api_key);
+          fd.append('timestamp', sigRes.timestamp);
+          fd.append('signature', sigRes.signature);
+          fd.append('folder', sigRes.folder);
+          fd.append('file', item.file);
+        }
+        xhr.send(fd);
+      } catch (err) {
+        console.error("Upload preparation error:", err);
+        setFileStatus(item.id, 'error', 0, err.message);
+        setItemStatus(item.id, 'error', 0, 'Form error: ' + err.message, true);
+        resolve({ ok: false, msg: err.message, item: item });
       }
-    };
-
-    var fd = buildFormData(item);
-    if (sigRes && sigRes.success) {
-      fd.append('api_key', sigRes.api_key);
-      fd.append('timestamp', sigRes.timestamp);
-      fd.append('signature', sigRes.signature);
-      fd.append('folder', sigRes.folder);
-      fd.append('file', item.file);
-    }
-    xhr.send(fd);
-  });
+    });
 }
 
 function handleBeforeUnload(e) {
@@ -1428,37 +1603,92 @@ function handleBeforeUnload(e) {
 
 async function startBulkUpload(event) {
   if (event) event.preventDefault();
-  if (isUploading) return; // Immediate duplicate click prevention
+  if (isUploading || uploadSubmissionLocked) return; // Immediate duplicate click prevention
+
+  // Lock before validation so a second submit event cannot start another batch
+  // while the first submission is still checking metadata.
+  uploadSubmissionLocked = true;
 
   // Immediately lock submit button synchronously
   setUploadButtonState('validating');
 
   if (!selectedFiles.length) {
+    uploadSubmissionLocked = false;
     resetUploadButton();
     return showToast('Select at least one file', 'error');
   }
 
-  // Validate all files have required metadata
-  const missing = selectedFiles.filter(f => {
+  // Validate all files have required metadata with specific error messages and field highlighting
+  for (let i = 0; i < selectedFiles.length; i++) {
+    const f = selectedFiles[i];
     const form = document.getElementById(`meta-form-${f.id}`);
-    if (!form) return true;
-    const type = form.querySelector('.meta-type')?.value;
-    const col = form.querySelector('.college-select')?.value;
-    const branch = form.querySelector('.branch-select')?.value;
+    if (!form) continue;
 
+    const colEl = form.querySelector('.college-select');
+    const branchEl = form.querySelector('.branch-select');
     const subjEl = form.querySelector('.subject-select');
+    const typeEl = form.querySelector('.meta-type');
+    const progEl = form.querySelector('.program-select');
+
+    const col = colEl?.value;
+    const branch = branchEl?.value;
     const tsSubj = window.AbhiHubSelect?.instances[subjEl?.id];
     const subj = tsSubj ? tsSubj.getValue() : (subjEl ? subjEl.value : '');
+    let type = typeEl?.value;
+    const prog = progEl?.value || 'b.tech';
 
-    const prog = form.querySelector('.program-select')?.value;
-    return !type || !col || !branch || !subj || !prog;
-  });
+    // Auto-detect Category from Subject or Title if Category was left blank
+    if (!type) {
+      const subjOpt = tsSubj ? tsSubj.options[subj] : null;
+      const subjName = (subjOpt ? subjOpt.text : (subjEl && subjEl.selectedIndex >= 0 ? subjEl.options[subjEl.selectedIndex]?.text : '')) || '';
+      const titleVal = form.querySelector('.meta-title')?.value || '';
+      if (/question\s*bank|\bqb\b/i.test(subjName) || /question\s*bank|\bqb\b/i.test(titleVal)) {
+        type = 'question_bank';
+        if (typeEl) typeEl.value = 'question_bank';
+      } else if (/notes?|handwritten/i.test(titleVal)) {
+        type = 'notes';
+        if (typeEl) typeEl.value = 'notes';
+      } else if (/practical|lab\s*manual/i.test(titleVal)) {
+        type = 'practical';
+        if (typeEl) typeEl.value = 'practical';
+      } else if (/pyq|exam|paper/i.test(titleVal)) {
+        type = 'papers';
+        if (typeEl) typeEl.value = 'papers';
+      }
+    }
 
-  if (missing.length) {
-    resetUploadButton();
-    if (typeof window.AbhiHubTracking !== 'undefined') window.AbhiHubTracking.trackUploadFailed('missing_metadata', 'validation_error', 'file');
-    showToast('Fill required metadata (College, Department, Category, Subject) first', 'error');
-    return;
+    function _highlightField(el, msg) {
+      uploadSubmissionLocked = false;
+      resetUploadButton();
+      if (el) {
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        el.focus();
+        el.style.borderColor = '#ef4444';
+        el.style.boxShadow = '0 0 0 3px rgba(239, 68, 68, 0.25)';
+        setTimeout(() => {
+          el.style.borderColor = '';
+          el.style.boxShadow = '';
+        }, 5000);
+      }
+      showToast(msg, 'error');
+    }
+
+    if (!col) {
+      _highlightField(colEl, `Please select a College for "${f.name}"`);
+      return;
+    }
+    if (!branch) {
+      _highlightField(branchEl, `Please select a Department / Branch for "${f.name}"`);
+      return;
+    }
+    if (!subj) {
+      _highlightField(subjEl, `Please select a Subject for "${f.name}"`);
+      return;
+    }
+    if (!type) {
+      _highlightField(typeEl, `Please select a Category (e.g. Question Bank, Papers, Notes, Practical) for "${f.name}"`);
+      return;
+    }
   }
 
   // Extract batch
@@ -1490,7 +1720,7 @@ async function startBulkUpload(event) {
     }
   });
 
-  openStatusModal();
+  showTopUploadBanner();
   await processUploadBatch(uploadBatch);
 }
 
@@ -1512,7 +1742,7 @@ async function processUploadBatch(batch) {
   isUploading = true;
   window.addEventListener('beforeunload', handleBeforeUnload);
 
-  openStatusModal();
+  showTopUploadBanner();
   const statusList = document.getElementById('uploadStatusList');
   if (statusList) statusList.innerHTML = '';
   batch.forEach(item => ensureStatusItem(item.id, item.name));
@@ -1576,6 +1806,7 @@ async function processUploadBatch(batch) {
 
   activeUploads--;
   isUploading = false;
+  uploadSubmissionLocked = false;
   window.removeEventListener('beforeunload', handleBeforeUnload);
 
   if (failed === 0 && done > 0) {
@@ -1609,6 +1840,7 @@ async function processUploadBatch(batch) {
 
     if (typeof window.markUserUploaded === 'function') window.markUserUploaded();
     closeStatusModal();
+    updateTopBanner(done, batch.length, '', 100, true);
     if (typeof showXpModal === 'function') {
       showXpModal(totalXp, lastScore, done, successfulDocs);
     }

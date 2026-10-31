@@ -357,32 +357,44 @@ def check_upload_quota(user_id: str) -> Dict:
 
 def get_ad_decision(user_id: Optional[str] = None) -> Dict:
     """
-    Server-side ad decision for the current user, from their access level.
-    Returns {'show_ads': bool, 'density': str}. Anonymous users get default
-    (show, high) — never manipulate ad rendering beyond frequency reduction.
+    Server-side ad decision based on the user's document consumption.
+
+    New users see the full ad mix on their first content view. Ads become
+    progressively less intrusive as the user consumes more content and stop
+    entirely after ten recorded document views.
     """
-    default_levels = {"explorer": "high", "member": "medium", "contributor": "low",
-                      "power_contributor": "very_low", "community_leader": "minimal"}
-    density_map = get_config("ad_density") or default_levels
+    if not user_id:
+        return {"show_ads": True, "density": "high", "level": None, "view_count": 0}
+
     try:
-        if not user_id:
-            return {"show_ads": True, "density": "high", "level": None}
         client = _get_client()
-        res = (
-            client.table("profiles")
-            .select("access_level")
-            .eq("id", user_id)
-            .limit(1)
-            .execute()
-        )
-        level = (res.data or [{}])[0].get("access_level") or "explorer"
-        density = density_map.get(level, "high")
-        # 'minimal' still shows occasional ads; only a future explicit opt-out
-        # (e.g. premium tier) would set show_ads False.
-        return {"show_ads": True, "density": density, "level": level}
+        if not client:
+            logging.warning("[ScoringEngine] ad decision unavailable: database client missing")
+            return {"show_ads": True, "density": "high", "level": None, "view_count": 0}
+
+        views = client.table("document_views").select("id", count="exact").eq(
+            "user_id", user_id
+        ).execute()
+        view_count = int(getattr(views, "count", None) or len(views.data or []))
+
+        if view_count == 0:
+            density = "high"
+        elif view_count < 5:
+            density = "medium"
+        elif view_count < 10:
+            density = "low"
+        else:
+            density = "off"
+
+        return {
+            "show_ads": density != "off",
+            "density": density,
+            "level": None,
+            "view_count": view_count,
+        }
     except Exception as e:
         logging.warning(f"[ScoringEngine] ad decision failed, defaulting: {e}")
-        return {"show_ads": True, "density": "high", "level": None}
+        return {"show_ads": True, "density": "high", "level": None, "view_count": 0}
 
 
 def process_event(user_id: str, event_type: str, entity_id: Optional[str] = None,
@@ -419,7 +431,7 @@ def process_event(user_id: str, event_type: str, entity_id: Optional[str] = None
             return {"success": True, "scored": False,
                     "reason": "rate limit exceeded"}
 
-        base = float(point_map[event_type])
+        base = int(round(float(point_map[event_type])))
         if base <= 0:
             return {"success": True, "scored": False}
 

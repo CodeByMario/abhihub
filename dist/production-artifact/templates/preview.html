@@ -266,7 +266,7 @@
 {% if user_credits == 0 %}
 <div id="studyPassChipFull" class="study-pass-chip-full">
     <span>Help someone pass their exam 💙</span>
-    <a href="{{ url_for('upload') }}" style="color:#2563eb;font-weight:600;text-decoration:none;">Upload</a>
+    <a href="{{ url_for('app_pages.upload') }}" style="color:#2563eb;font-weight:600;text-decoration:none;">Upload</a>
     <button type="button" data-action="dismissStudyPass" class="chip-close" aria-label="Hide study pass chip">✕</button>
 </div>
 <div id="studyPassChipMini" data-action="showStudyPassChip" class="study-pass-chip-mini"

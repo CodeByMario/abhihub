@@ -172,12 +172,12 @@
         },
         toggleLike: function (e, el) {
             e.stopPropagation();
-            var recordId = el.getAttribute('data-record-id');
+            var recordId = el.getAttribute('data-record-id') || el.getAttribute('data-doc-id') || el.getAttribute('data-file-id');
             if (typeof window.toggleLike === 'function') window.toggleLike(e, recordId);
         },
         toggleBookmark: function (e, el) {
             e.stopPropagation();
-            var recordId = el.getAttribute('data-record-id');
+            var recordId = el.getAttribute('data-record-id') || el.getAttribute('data-doc-id') || el.getAttribute('data-file-id');
             if (typeof window.toggleBookmark === 'function') window.toggleBookmark(e, recordId);
         },
         openComments: function (e, el) {
@@ -452,9 +452,6 @@
         },
         copyLink: function (e, el) {
             if (typeof window.copyLink === 'function') window.copyLink();
-        },
-        openSupportModal: function (e, el) {
-            if (typeof window.openSupportModal === 'function') window.openSupportModal();
         },
         selectPeer: function (e, el) {
             var peerId = el.getAttribute('data-peer-id');

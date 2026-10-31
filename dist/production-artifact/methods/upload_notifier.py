@@ -87,9 +87,9 @@ def send_upload_notification(user_id: str, user_email: str, file_name: str, subj
     try:
         from push_notifications import send_notification
         
-        # Create notification message
-        title = "Upload Successful! 🎉"
-        body = f"Your file '{file_name}' has been successfully uploaded and is now available for others to view!"
+        # Create psychological notification message (curiosity loop & social proof)
+        title = "Your notes are live! 👀 First views rolling in..."
+        body = f"Students in your branch are preparing right now. Tap to see who views '{file_name}' first!"
         url = "/dashboard"  # Redirect to dashboard
         icon = "/static/images/android-chrome-192x192.png"
         tag = "upload-success"
