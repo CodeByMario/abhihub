@@ -958,6 +958,13 @@ def inject_ad_decision():
     try:
         from methods.scoring_engine import get_ad_decision
         ad_decision = get_ad_decision(user_id, email=user_email)
+        if ad_decision.get('density') == 'monthly':
+            month_key = datetime.now(timezone.utc).strftime('%Y-%m')
+            monthly_seen_key = session.get('monthly_ad_seen')
+            if monthly_seen_key == month_key:
+                ad_decision = {**ad_decision, 'show_ads': False}
+            else:
+                session['monthly_ad_seen'] = month_key
     except Exception:
         ad_decision = {'show_ads': True, 'density': 'high', 'level': None}
     no_ad_prefixes = (

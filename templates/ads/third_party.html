@@ -1,7 +1,7 @@
 {#
   Adaptive third-party placements.
   The server supplies ad_density from the user's recorded document views:
-  high (0), medium (1-4), low (5-9), off (10+).
+  high (0), medium (1-4), low (5-9), minimum (10-19), monthly (20+).
 #}
 {% if ad_density == 'high' %}
   <script data-cfasync="false" src="https://abscloud.org/1/442567bc75eda61e014549835780ee0a"></script>
@@ -11,7 +11,7 @@
   <script data-cfasync="false" src="https://bauval.org/14/d343fa63fbc906d4cdbfde7220cba00f"></script>
 {% endif %}
 
-{% if ad_density in ('high', 'medium', 'low') %}
+{% if ad_density in ('high', 'medium', 'low', 'minimum', 'monthly') %}
   <div class="ad-native-shell" aria-label="Advertisement">
     <span class="ad-native-label">Advertisement</span>
     <div class="ad-native-banner">

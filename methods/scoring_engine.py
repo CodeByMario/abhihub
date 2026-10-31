@@ -360,9 +360,9 @@ def get_ad_decision(user_id: Optional[str] = None, email: Optional[str] = None) 
     """
     Server-side ad decision based on the user's document consumption.
 
-    New users see the full ad mix on their first content view. Ads become
-    progressively less intrusive as the user consumes more content and stop
-    entirely after ten recorded document views.
+    Ads reduce as document views increase: 0 = high, 1-4 = moderate,
+    5-9 = minimum, 10-19 = reduced minimum, and 20+ = one opportunity
+    per calendar month.
     """
     verification_emails = {
         value.strip().lower()
@@ -389,10 +389,24 @@ def get_ad_decision(user_id: Optional[str] = None, email: Optional[str] = None) 
             logging.warning("[ScoringEngine] ad decision unavailable: database client missing")
             return {"show_ads": True, "density": "high", "level": None, "view_count": 0}
 
-        views = client.table("document_views").select("id", count="exact").eq(
-            "user_id", user_id
-        ).execute()
-        view_count = int(getattr(views, "count", None) or len(views.data or []))
+        # Ad tiers must follow consumed file-view credits, not raw
+        # document_views rows. Raw rows can include owner/paid views and
+        # analytics duplicates that did not consume quota.
+        try:
+            spend_rows = client.table("user_credit_ledger").select(
+                "id", count="exact"
+            ).eq("user_id", user_id).eq("reason", "view_spend").execute()
+            ledger_count = getattr(spend_rows, "count", None)
+            if ledger_count is not None:
+                view_count = int(ledger_count)
+            else:
+                view_count = len(spend_rows.data or [])
+        except Exception:
+            # Compatibility fallback before the unified credit ledger exists.
+            views = client.table("document_views").select("id", count="exact").eq(
+                "user_id", user_id
+            ).execute()
+            view_count = int(getattr(views, "count", None) or len(views.data or []))
 
         if view_count == 0:
             density = "high"
@@ -400,11 +414,13 @@ def get_ad_decision(user_id: Optional[str] = None, email: Optional[str] = None) 
             density = "medium"
         elif view_count < 10:
             density = "low"
+        elif view_count < 20:
+            density = "minimum"
         else:
-            density = "off"
+            density = "monthly"
 
         return {
-            "show_ads": density != "off",
+            "show_ads": True,
             "density": density,
             "level": None,
             "view_count": view_count,

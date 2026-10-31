@@ -1,0 +1,195 @@
+{% extends "admin_base.html" %}
+
+{% block title %}Observability Command Center{% endblock %}
+
+{% block extra_head %}
+<style>
+  .obs-wrap { max-width: 1440px; margin: 0 auto; padding: 1.5rem 1.25rem 4rem; }
+  .obs-head, .obs-toolbar, .incident-head { display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; }
+  .obs-head { margin-bottom:1.25rem; padding-bottom:1.25rem; border-bottom:1px solid var(--border-subtle); }
+  .obs-title { font-size:1.8rem; font-weight:800; display:flex; align-items:center; gap:.65rem; }
+  .obs-title i { color:var(--accent-indigo); }
+  .obs-subtitle, .muted { color:var(--text-secondary); font-size:.9rem; }
+  .obs-status { display:inline-flex; align-items:center; gap:.4rem; padding:.4rem .7rem; border-radius:999px; background:rgba(16,185,129,.12); color:var(--accent-emerald); font-size:.76rem; font-weight:700; border:1px solid rgba(16,185,129,.22); }
+  .obs-status-dot { width:7px; height:7px; border-radius:50%; background:currentColor; box-shadow:0 0 8px currentColor; }
+  .obs-btn, .obs-select, .obs-input { border:1px solid var(--border-subtle); border-radius:9px; background:var(--bg-card); color:var(--text-primary); padding:.55rem .8rem; }
+  .obs-btn { cursor:pointer; font-weight:600; }
+  .obs-btn.primary { background:var(--accent-indigo); color:#fff; border-color:var(--accent-indigo); }
+  .obs-btn.danger { background:var(--accent-rose); color:#fff; border-color:var(--accent-rose); }
+  .obs-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin-bottom:1.25rem; }
+  .obs-card { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:14px; padding:1.1rem; box-shadow:var(--card-shadow); position:relative; overflow:hidden; }
+  .obs-card::after { content:""; position:absolute; width:80px; height:80px; right:-28px; bottom:-32px; border-radius:50%; background:var(--accent-indigo-glow); }
+  .obs-value { font-size:1.8rem; font-weight:800; margin-top:.3rem; }
+  .obs-label { color:var(--text-secondary); font-size:.78rem; text-transform:uppercase; letter-spacing:.06em; }
+  .obs-trend { color:var(--accent-emerald); font-size:.75rem; margin-top:.35rem; }
+  .obs-layout { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(280px,.85fr); gap:1.25rem; align-items:start; }
+  .obs-panel { background:var(--bg-card); border:1px solid var(--border-subtle); border-radius:14px; padding:1.2rem; margin-bottom:1.25rem; box-shadow:var(--card-shadow); }
+  .obs-panel h2 { font-size:1rem; }
+  .panel-kicker { color:var(--text-muted); font-size:.75rem; text-transform:uppercase; letter-spacing:.06em; margin-top:.25rem; }
+  .incident-list { display:grid; gap:.7rem; margin-top:1rem; }
+  .incident { border:1px solid var(--border-subtle); border-left:4px solid var(--accent-sky); border-radius:10px; padding:.9rem; }
+  .incident.critical { border-left-color:var(--accent-rose); }
+  .incident.high { border-left-color:var(--accent-amber); }
+  .incident-title { font-weight:700; }
+  .incident-meta { color:var(--text-secondary); font-size:.78rem; margin-top:.3rem; }
+  .incident-actions { display:flex; gap:.5rem; flex-wrap:wrap; margin-top:.7rem; }
+  .pill { display:inline-block; border-radius:999px; padding:.18rem .55rem; font-size:.72rem; font-weight:700; text-transform:uppercase; background:var(--pill-bg); }
+  .empty { color:var(--text-secondary); padding:1rem 0; }
+  .slo-row { display:grid; grid-template-columns:1fr auto; gap:.5rem; padding:.65rem 0; border-bottom:1px solid var(--border-subtle); }
+  .slo-row:last-child { border-bottom:0; }
+  .bar-row { display:grid; grid-template-columns:90px 1fr 40px; align-items:center; gap:.55rem; margin-top:.85rem; font-size:.78rem; }
+  .bar-track { height:8px; border-radius:99px; background:var(--pill-bg); overflow:hidden; }
+  .bar-fill { height:100%; border-radius:inherit; background:var(--accent-indigo); min-width:2px; }
+  .bar-fill.critical { background:var(--accent-rose); }
+  .bar-fill.high { background:var(--accent-amber); }
+  .bar-fill.medium { background:var(--accent-sky); }
+  .rule-row { padding:.75rem 0; border-bottom:1px solid var(--border-subtle); }
+  .rule-row:last-child { border-bottom:0; }
+  .rule-name { font-weight:700; font-size:.85rem; }
+  .rule-meta { color:var(--text-secondary); font-size:.75rem; margin-top:.25rem; }
+  .health-list { display:grid; gap:.65rem; margin-top:1rem; }
+  .health-row { display:flex; justify-content:space-between; gap:1rem; padding:.65rem .75rem; border-radius:9px; background:var(--pill-bg); font-size:.8rem; }
+  .health-ok { color:var(--accent-emerald); font-weight:700; }
+  .metrics-strip { display:grid; grid-template-columns:repeat(3,1fr); gap:.7rem; margin-top:1rem; }
+  .metric-mini { padding:.75rem; border-radius:10px; background:var(--pill-bg); }
+  .metric-mini strong { display:block; font-size:1.05rem; margin-top:.2rem; }
+  .metric-mini span { color:var(--text-secondary); font-size:.7rem; }
+  #obs-toast { position:fixed; right:1rem; bottom:1rem; padding:.8rem 1rem; border-radius:9px; background:var(--bg-surface); border:1px solid var(--border-subtle); display:none; z-index:999; }
+  @media(max-width:900px) { .obs-layout { grid-template-columns:1fr; } }
+  @media(max-width:640px) { .obs-title { font-size:1.4rem; } .metrics-strip { grid-template-columns:1fr; } }
+</style>
+{% endblock %}
+
+{% block admin_content %}
+<main class="obs-wrap">
+  <header class="obs-head">
+    <div>
+      <h1 class="obs-title"><i class="fa-solid fa-heart-pulse"></i> Observability</h1>
+      <p class="obs-subtitle">Incidents, admin delivery, health probes, alert rules, and SLOs.</p>
+    </div>
+    <div class="obs-toolbar">
+      <span class="obs-status"><span class="obs-status-dot"></span><span id="system-status">System operational</span></span>
+      <button class="obs-btn" id="refresh-btn"><i class="fa-solid fa-rotate"></i> Refresh</button>
+      <a class="obs-btn" href="/metrics" target="_blank" rel="noopener">Metrics</a>
+    </div>
+  </header>
+
+  <section class="obs-grid" aria-label="Incident summary">
+    <article class="obs-card"><div class="obs-label">Active incidents</div><div class="obs-value" id="active-count">—</div><div class="obs-trend">Live now</div></article>
+    <article class="obs-card"><div class="obs-label">Critical</div><div class="obs-value" id="critical-count">—</div></article>
+    <article class="obs-card"><div class="obs-label">High</div><div class="obs-value" id="high-count">—</div></article>
+    <article class="obs-card"><div class="obs-label">Application</div><div class="obs-value" id="health-status">—</div></article>
+  </section>
+
+  <div class="obs-layout">
+    <section class="obs-panel">
+      <div class="incident-head">
+        <div><h2>Incident timeline</h2><div class="panel-kicker">Latest system events and administrator actions</div></div>
+        <select class="obs-select" id="status-filter" aria-label="Filter incidents">
+          <option value="">All statuses</option><option value="firing">Firing</option>
+          <option value="acknowledged">Acknowledged</option><option value="resolved">Resolved</option>
+        </select>
+      </div>
+      <div class="incident-list" id="incident-list"><div class="empty">Loading incidents…</div></div>
+    </section>
+    <aside>
+      <section class="obs-panel">
+        <h2>Service health</h2><div class="panel-kicker">Dependency checks</div>
+        <div class="health-list">
+          <div class="health-row"><span>Application</span><strong class="health-ok" id="health-application">Checking</strong></div>
+          <div class="health-row"><span>Supabase</span><strong id="health-supabase">Checking</strong></div>
+          <div class="health-row"><span>Notifications</span><strong id="health-notifications">Checking</strong></div>
+        </div>
+      </section>
+      <section class="obs-panel">
+        <h2>Request telemetry</h2><div class="panel-kicker">Current worker process</div>
+        <div class="metrics-strip">
+          <div class="metric-mini"><span>Requests</span><strong id="request-count">—</strong></div>
+          <div class="metric-mini"><span>Average latency</span><strong id="avg-latency">—</strong></div>
+          <div class="metric-mini"><span>Window</span><strong>Live</strong></div>
+        </div>
+      </section>
+    </aside>
+  </div>
+
+  <div class="obs-layout">
+    <section class="obs-panel">
+      <h2>Incident distribution</h2><div class="panel-kicker">Current and historical incidents returned by the alert store</div>
+      <div id="severity-bars"></div>
+    </section>
+    <section class="obs-panel">
+      <h2>Alert rules</h2><div class="panel-kicker">Configured detection policies</div>
+      <div id="rule-list"></div>
+    </section>
+  </div>
+
+  <section class="obs-panel">
+    <h2>Service objectives</h2><div class="panel-kicker">Reliability targets for the platform</div>
+    <div id="slo-list" class="incident-list"></div>
+  </section>
+</main>
+<div id="obs-toast" role="status"></div>
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+  const esc = (value) => String(value ?? '').replace(/[&<>"']/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const toast = (message) => { const el = $('obs-toast'); el.textContent = message; el.style.display = 'block'; setTimeout(() => { el.style.display = 'none'; }, 3000); };
+  const api = async (url, options = {}) => {
+    const response = await fetch(url, { credentials: 'same-origin', headers: {'Content-Type':'application/json'}, ...options });
+    const data = await response.json().catch(() => ({}));
+    if (!response.ok) throw new Error(data.error || data.message || `Request failed (${response.status})`);
+    return data;
+  };
+  const formatDate = (value) => value ? new Date(value).toLocaleString() : '—';
+  const renderIncidents = (items) => {
+    const list = $('incident-list');
+    if (!items.length) { list.innerHTML = '<div class="empty">No incidents match this filter.</div>'; return; }
+    list.innerHTML = items.map((item) => `<article class="incident ${esc(item.severity)}">
+      <div class="incident-head"><div class="incident-title">${esc(item.name)} <span class="pill">${esc(item.severity)}</span> <span class="pill">${esc(item.status)}</span></div><span class="muted">${formatDate(item.last_seen_at)}</span></div>
+      <div>${esc(item.message)}</div><div class="incident-meta">ID: ${esc(item.id)} · Occurrences: ${esc(item.occurrence_count || 1)} · Route: ${esc(item.route || '—')}</div>
+      <div class="incident-actions">${item.status === 'firing' ? `<button class="obs-btn" data-action="ack" data-id="${esc(item.id)}">Acknowledge</button><button class="obs-btn" data-action="silence" data-id="${esc(item.id)}">Silence 1h</button>` : ''}${item.status !== 'resolved' ? `<button class="obs-btn danger" data-action="resolve" data-id="${esc(item.id)}">Resolve</button>` : ''}<button class="obs-btn" data-action="detail" data-id="${esc(item.id)}">Details</button></div>
+    </article>`).join('');
+  };
+  const load = async () => {
+    try {
+      const [summary, health] = await Promise.all([api(`/api/admin/observability/summary`), api('/health/dependencies')]);
+      $('active-count').textContent = summary.active_count;
+      $('critical-count').textContent = summary.critical_count;
+      $('high-count').textContent = summary.high_count;
+      const checks = health.checks || {};
+      $('health-status').textContent = checks.application || health.status;
+      $('system-status').textContent = health.status === 'healthy' ? 'System operational' : 'Monitoring active';
+      $('health-application').textContent = checks.application || 'Unknown';
+      $('health-supabase').textContent = checks.supabase || 'Not checked';
+      $('health-notifications').textContent = checks.notifications || 'Not checked';
+      $('request-count').textContent = (summary.metrics?.request_count || 0).toLocaleString();
+      $('avg-latency').textContent = `${summary.metrics?.average_request_duration_ms || 0} ms`;
+      const filter = $('status-filter').value;
+      renderIncidents(filter ? summary.incidents.filter((item) => item.status === filter) : summary.incidents);
+      const counts = {critical: 0, high: 0, medium: 0, low: 0};
+      summary.incidents.forEach((item) => { if (counts[item.severity] !== undefined) counts[item.severity] += 1; });
+      const max = Math.max(...Object.values(counts), 1);
+      $('severity-bars').innerHTML = Object.entries(counts).map(([name, count]) => `<div class="bar-row"><span>${name}</span><div class="bar-track"><div class="bar-fill ${name}" style="width:${(count / max) * 100}%"></div></div><strong>${count}</strong></div>`).join('');
+      $('rule-list').innerHTML = (summary.alerts || []).map((rule) => `<div class="rule-row"><div class="rule-name">${esc(rule.name)}</div><div class="rule-meta">${esc(rule.condition)} · for ${esc(rule.for)} · ${esc(rule.severity)}</div></div>`).join('');
+      $('slo-list').innerHTML = (summary.slos || []).map((slo) => `<div class="slo-row"><span><strong>${esc(slo.name)}</strong><br><span class="muted">${esc(slo.indicator)} · ${esc(slo.window)}</span></span><strong>${esc(slo.target)}%</strong></div>`).join('');
+    } catch (error) { toast(error.message); $('incident-list').innerHTML = `<div class="empty">${esc(error.message)}</div>`; }
+  };
+  $('refresh-btn').addEventListener('click', load);
+  $('status-filter').addEventListener('change', load);
+  $('incident-list').addEventListener('click', async (event) => {
+    const button = event.target.closest('button[data-action]'); if (!button) return;
+    try {
+      if (button.dataset.action === 'detail') {
+        const data = await api(`/api/admin/observability/incidents/${button.dataset.id}`);
+        alert(JSON.stringify(data.incident, null, 2));
+      } else {
+        const action = button.dataset.action === 'ack' ? 'acknowledge' : button.dataset.action === 'resolve' ? 'resolve' : 'silence';
+        await api(`/api/admin/observability/incidents/${button.dataset.id}/${action}`, {method:'POST', body: JSON.stringify(action === 'silence' ? {duration_minutes:60, reason:'Admin dashboard silence'} : {})});
+        toast(`Incident ${action}d.`); await load();
+      }
+    } catch (error) { toast(error.message); }
+  });
+  load();
+})();
+</script>
+{% endblock %}

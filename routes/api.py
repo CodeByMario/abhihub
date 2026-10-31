@@ -1996,7 +1996,12 @@ def view_doc(doc_id, filename=None):
                 api_secret=os.getenv('CLOUDINARY_API_SECRET'),
                 secure=True,
             )
-            pub_id = document.get('cloudinary_public_id') or document.get('public_id') or ''
+            pub_id = (
+                document.get('provider_public_id')
+                or document.get('cloudinary_public_id')
+                or document.get('public_id')
+                or ''
+            )
             if not pub_id:
                 m = re.search(r'/upload/(?:v\d+/)?(.+)$', parsed.path)
                 pub_id = m.group(1) if m else ''

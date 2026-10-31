@@ -406,7 +406,7 @@ def invalidate_search_cache():
         _DOCUMENTS_CACHE['last_updated'] = 0
 
 def get_cached_documents(force_refresh: bool = False) -> List[Dict[str, Any]]:
-    """Retrieve preloaded approved documents catalogue in memory for instantaneous search."""
+    """Retrieve all non-rejected documents for instantaneous search."""
     global _DOCUMENTS_CACHE
     now = time.time()
     if not force_refresh and _DOCUMENTS_CACHE['last_updated'] > 0 and (now - _DOCUMENTS_CACHE['last_updated']) < _DOCUMENTS_TTL:
@@ -421,15 +421,54 @@ def get_cached_documents(force_refresh: bool = False) -> List[Dict[str, Any]]:
             return _DOCUMENTS_CACHE['documents']
 
         try:
-            res = client.table('documents').select(
-                'id, title, file_url, document_category, file_type, '
+            select_fields = (
+                'id, title, file_url, document_category, file_type, status, '
                 'view_count, like_count, bookmark_count, created_at, description, '
                 'college_id, department_id, subject_id, search_text, '
                 'profiles!documents_uploader_id_fkey(full_name), '
                 'subjects(id, name, subject_code, semester), colleges(id, name)'
-            ).in_('status', ['approved', 'pending']).order('created_at', desc=True).limit(5000).execute()
-
-            docs = res.data or []
+            )
+            fallback_select_fields = (
+                'id, title, file_url, document_category, file_type, status, '
+                'view_count, like_count, bookmark_count, created_at, description, '
+                'college_id, department_id, subject_id, search_text'
+            )
+            # Do not silently drop older uploads when the catalogue grows past
+            # the previous 5,000-row limit. Supabase pagination keeps each
+            # request bounded while allowing the complete searchable catalogue.
+            docs = []
+            page_size = 1000
+            page = 0
+            active_select_fields = select_fields
+            while True:
+                try:
+                    page_res = client.table('documents').select(
+                        active_select_fields
+                    ).order(
+                        'created_at', desc=True
+                    ).range(page * page_size, (page + 1) * page_size - 1).execute()
+                except Exception as query_error:
+                    if active_select_fields == fallback_select_fields:
+                        raise
+                    logger.warning(
+                        "[Search API] Relationship projection failed; "
+                        "retrying without embeds: %s", query_error,
+                    )
+                    active_select_fields = fallback_select_fields
+                    page_res = client.table('documents').select(
+                        active_select_fields
+                    ).order(
+                        'created_at', desc=True
+                    ).range(page * page_size, (page + 1) * page_size - 1).execute()
+                raw_batch = page_res.data or []
+                batch = [
+                    d for d in raw_batch
+                    if str(d.get('status') or '').lower() != 'rejected'
+                ]
+                docs.extend(batch)
+                if len(raw_batch) < page_size:
+                    break
+                page += 1
             for d in docs:
                 d['title_norm'] = norm_text(d.get('title'))
                 st = d.get('search_text') or ''
@@ -795,6 +834,21 @@ def execute_search_v3(
 
     target_semester = semester or parsed['semester']
     target_category = document_type or parsed['category']
+    if target_category:
+        category_aliases = {
+            'pyq': 'Papers',
+            'pyqs': 'Papers',
+            'paper': 'Papers',
+            'question paper': 'Papers',
+            'practicals': 'Practical',
+            'lab': 'Practical',
+            'question bank': 'Question Bank',
+            'question_bank': 'Question Bank',
+        }
+        target_category = category_aliases.get(
+            str(target_category).strip().lower(),
+            target_category
+        )
     target_year = year or parsed['year']
     target_author = author or parsed.get('author')
 
@@ -949,7 +1003,16 @@ def execute_search_v3(
             elif kw_norm:
                 d_title_norm = d.get('title_norm') or norm_text(d.get('title'))
                 d_search_text = d.get('search_text_norm') or norm_text(d.get('search_text') or '')
-                if kw_norm not in d_title_norm and kw_norm not in d_search_text:
+                searchable = f"{d_title_norm} {d_search_text}".strip()
+                query_tokens = [
+                    token for token in kw_norm.split()
+                    if len(token) >= 2
+                ]
+                exact_match = kw_norm in searchable
+                token_match = bool(query_tokens) and all(
+                    token in searchable for token in query_tokens
+                )
+                if not exact_match and not token_match:
                     continue
 
             out.append(d)
@@ -972,7 +1035,7 @@ def execute_search_v3(
                 subject_id=primary_sid,
                 category=target_category if target_category != 'All types' else None,
                 year=int(target_year) if target_year and str(target_year).isdigit() else None,
-                status=['approved', 'pending']
+                status=['approved', 'pending', 'unverified']
             )
             if rpc_results:
                 cached_by_id = {d['id']: d for d in all_cached_docs}
@@ -1120,6 +1183,16 @@ def execute_search_v3(
 
         clean_q = norm_text(query)
         code_q = norm_code(query)
+        searchable_text = norm_text(
+            ' '.join([
+                str(doc.get('title') or ''),
+                str(doc.get('file_url') or ''),
+                str(doc.get('search_text') or ''),
+                str(doc_desc_raw),
+                str(subj_name or ''),
+                str(subj_code or ''),
+            ])
+        )
 
         # 0. RPC Tier & Match Type integration
         rpc_sc = doc.get('_rpc_score')
@@ -1172,6 +1245,11 @@ def execute_search_v3(
             reasons.append({'field': 'title', 'kind': 'exact', 'matched': doc_title})
             if tier != 'exact':
                 tier = 'exact'
+        elif clean_q and clean_q in searchable_text:
+            score += 70.0
+            reasons.append({'field': 'metadata', 'kind': 'exact', 'matched': 'Search metadata matched'})
+            if tier != 'exact':
+                tier = 'close'
 
         # 4. Word prefix match (+60)
         q_words = [w for w in clean_q.split() if len(w) > 2]
@@ -1490,7 +1568,9 @@ def get_suggestions_payload(query: str, college_id: str = None) -> Dict[str, Any
     if len(clean_q) >= 2:
         try:
             from methods.supabase_helper import suggest_documents_rpc
-            doc_suggs = suggest_documents_rpc(clean_q, limit=4, status=['approved', 'pending'])
+            doc_suggs = suggest_documents_rpc(
+                clean_q, limit=4, status=['approved', 'pending', 'unverified']
+            )
             for ds in (doc_suggs or []):
                 t = ds.get('suggestion')
                 c = ds.get('doc_count')

@@ -156,6 +156,52 @@ def list_incidents(status: Optional[str] = None, limit: int = 50, client=None) -
         return {"success": False, "error": "Incident listing failed"}
 
 
+def get_incident(incident_id: str, client=None) -> Dict:
+    client = client or _db()
+    if client is None:
+        return {"success": False, "error": "Observability database is unavailable"}
+    try:
+        result = client.table("admin_alert_incidents").select("*").eq("id", incident_id).limit(1).execute()
+        if not result.data:
+            return {"success": False, "error": "Incident not found"}
+        deliveries = (
+            client.table("admin_alert_deliveries")
+            .select("*")
+            .eq("incident_id", incident_id)
+            .order("sent_at", desc=True)
+            .limit(100)
+            .execute()
+        )
+        incident = dict(result.data[0])
+        incident["deliveries"] = deliveries.data or []
+        return {"success": True, "incident": incident}
+    except Exception as exc:
+        log.error("incident detail lookup failed: %s", exc)
+        return {"success": False, "error": "Incident detail lookup failed"}
+
+
+def create_silence(incident_id: str, admin_id: str, duration_minutes: int, reason: str, client=None) -> Dict:
+    if duration_minutes < 1 or duration_minutes > 10080:
+        return {"success": False, "error": "Silence duration must be between 1 and 10080 minutes"}
+    client = client or _db()
+    if client is None:
+        return {"success": False, "error": "Observability database is unavailable"}
+    from datetime import timedelta
+    try:
+        result = client.table("admin_alert_silences").insert({
+            "incident_id": incident_id,
+            "created_by": admin_id,
+            "reason": (reason or "Maintenance")[:500],
+            "expires_at": (datetime.now(timezone.utc) + timedelta(minutes=duration_minutes)).isoformat(),
+        }).execute()
+        if not result.data:
+            return {"success": False, "error": "Silence was not created"}
+        return {"success": True, "silence": result.data[0]}
+    except Exception as exc:
+        log.error("incident silence failed: %s", exc)
+        return {"success": False, "error": "Incident silence failed"}
+
+
 def update_incident_status(incident_id: str, status: str, admin_id: str, note: str = "", client=None) -> Dict:
     if status not in ("acknowledged", "resolved"):
         return {"success": False, "error": "Invalid incident status"}

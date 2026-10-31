@@ -8,6 +8,8 @@ from flask import Blueprint, Response, jsonify, request, session
 from routes.auth import admin_required
 from observability.alerts import (
     create_incident,
+    create_silence,
+    get_incident,
     list_incidents,
     notify_administrators,
     update_incident_status,
@@ -76,6 +78,40 @@ def admin_incidents():
     return jsonify(result), 200 if result.get("success") else 503
 
 
+@observability_bp.route("/admin/observability")
+@admin_required
+def observability_dashboard():
+    from flask import render_template
+    return render_template("admin_observability.html")
+
+
+@observability_bp.route("/api/admin/observability/summary", methods=["GET"])
+@admin_required
+def observability_summary():
+    incidents = list_incidents(limit=100)
+    active = [
+        item for item in incidents.get("incidents", [])
+        if item.get("status") == "firing"
+    ]
+    return jsonify({
+        "success": incidents.get("success", False),
+        "active_count": len(active),
+        "critical_count": sum(item.get("severity") == "critical" for item in active),
+        "high_count": sum(item.get("severity") == "high" for item in active),
+        "incidents": incidents.get("incidents", []),
+        "alerts": ALERT_RULES,
+        "slos": SLO_DEFINITIONS,
+        "metrics": metrics.snapshot(),
+    }), 200 if incidents.get("success") else 503
+
+
+@observability_bp.route("/api/admin/observability/incidents/<incident_id>", methods=["GET"])
+@admin_required
+def incident_detail(incident_id):
+    result = get_incident(incident_id)
+    return jsonify(result), 200 if result.get("success") else 404
+
+
 @observability_bp.route("/api/admin/observability/incidents", methods=["POST"])
 @admin_required
 def create_admin_incident():
@@ -111,3 +147,21 @@ def resolve_incident(incident_id):
         (request.get_json(silent=True) or {}).get("note", ""),
     )
     return jsonify(result), 200 if result.get("success") else 400
+
+
+@observability_bp.route("/api/admin/observability/incidents/<incident_id>/silence", methods=["POST"])
+@admin_required
+def silence_incident(incident_id):
+    user = session.get("user", {})
+    payload = request.get_json(silent=True) or {}
+    try:
+        duration = int(payload.get("duration_minutes", 60))
+    except (TypeError, ValueError):
+        return jsonify({"success": False, "error": "duration_minutes must be an integer"}), 400
+    result = create_silence(
+        incident_id,
+        user.get("uid") or user.get("id", ""),
+        duration,
+        str(payload.get("reason", "")),
+    )
+    return jsonify(result), 201 if result.get("success") else 400

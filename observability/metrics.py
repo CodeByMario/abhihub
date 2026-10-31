@@ -52,6 +52,26 @@ class MetricsRegistry:
             ])
         return "\n".join(lines) + "\n"
 
+    def snapshot(self) -> Dict[str, object]:
+        """Return safe aggregate values for the admin dashboard."""
+        with self._lock:
+            request_count = sum(
+                value for (name, _labels), value in self._counters.items()
+                if name == "http_requests_total"
+            )
+            request_duration = [
+                values for (name, _labels), values in self._histograms.items()
+                if name == "http_request_duration_seconds"
+            ]
+        duration_count = sum(item["count"] for item in request_duration)
+        duration_sum = sum(item["sum"] for item in request_duration)
+        return {
+            "request_count": int(request_count),
+            "request_duration_count": int(duration_count),
+            "average_request_duration_ms": round((duration_sum / duration_count) * 1000, 2)
+            if duration_count else 0,
+        }
+
     @staticmethod
     def _format_labels(labels: Iterable[Tuple[str, str]]) -> str:
         if not labels:

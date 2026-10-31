@@ -511,9 +511,24 @@ def get_document_by_id_rich(doc_id: str) -> Dict:
         response = client.table('documents')\
             .select('*, college:colleges(name, abbreviation), department:departments(name, abbreviation), subject:subjects(name)')\
             .eq('id', doc_id)\
-            .single()\
+            .limit(1)\
             .execute()
-        return {"success": True, "data": response.data}
+        if response.data:
+            return {"success": True, "data": response.data[0]}
+    except Exception as e:
+        log.warning("[Supabase] Rich document lookup failed for %s: %s", doc_id, e)
+
+    # Unverified/legacy rows may not have all relationship metadata available
+    # in PostgREST. The document row itself is sufficient to stream its file.
+    try:
+        response = client.table('documents')\
+            .select('*')\
+            .eq('id', doc_id)\
+            .limit(1)\
+            .execute()
+        if response.data:
+            return {"success": True, "data": response.data[0]}
+        return {"success": False, "message": "Document not found"}
     except Exception as e:
         return {"success": False, "message": str(e)}
 
@@ -906,6 +921,14 @@ def save_file_record(
                 }
             }
             description = json.dumps(desc_data)
+
+        # Keep the search index useful even when a database trigger is delayed
+        # or unavailable. This includes the same academic fields used in the
+        # standardized filename and title.
+        search_text = ' '.join(str(value) for value in (
+            final_title, final_file_name, subject_name, resolved_code,
+            exam_type, document_type, year, description
+        ) if value).strip()
         
         # Extract structured pricing for Phase 2 columns
         is_paid = False
@@ -941,6 +964,7 @@ def save_file_record(
             'provider_public_id': cloudinary_public_id,
             'file_type': file_type,
             'file_size_bytes': file_size,
+            'search_text': search_text,
             'status': 'pending',  # All new uploads start as pending
             'exam_type': exam_type or None,
             'file_hash': file_hash,
@@ -978,6 +1002,11 @@ def save_file_record(
             update_res = client.table('documents').update(data).eq('id', existing['id']).execute()
             if update_res.data:
                 invalidate_files_cache()
+                try:
+                    from methods.search_api import invalidate_search_cache
+                    invalidate_search_cache()
+                except Exception as search_cache_err:
+                    logging.debug(f"[Supabase] Search cache invalidation skipped: {search_cache_err}")
                 logging.info(f"[Supabase] Completed metadata for existing document: {existing['id']}")
                 return {'success': True, 'message': 'Existing file metadata updated', 'data': update_res.data[0]}
             return {'success': False, 'message': 'Failed to update existing file record'}
@@ -1005,12 +1034,17 @@ def save_file_record(
                     'college_id': c_id,
                     'department_id': d_id,
                     'semester': semester,
-                    'normalized_title': _normalize(title or file_name) if '_normalize' in globals() else (title or file_name).lower(),
+                    'normalized_title': _normalize(search_text) if '_normalize' in globals() else search_text.lower(),
                     'status': 'pending'
                 }).execute()
                 logging.info(f"[Supabase] Queued {doc_id} for background search indexing.")
             except Exception as search_q_err:
                 logging.error(f"[Supabase] Warning: Could not queue for indexing: {search_q_err}")
+            try:
+                from methods.search_api import invalidate_search_cache
+                invalidate_search_cache()
+            except Exception as search_cache_err:
+                logging.debug(f"[Supabase] Search cache invalidation skipped: {search_cache_err}")
             # -------------------------------------------------------------
             
             # Phase 15: Gamification / Dopamine Loop
@@ -1362,13 +1396,40 @@ def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dic
     client = init_supabase()
     if not client: return {'success': False, 'data': [], 'count': 0}
     try:
-        res = client.table('documents') \
-            .select('*, profiles!documents_uploader_id_fkey(full_name, email), subjects(name, subject_code), colleges(name, abbreviation), document_votes(user_id), bookmarks(user_id), document_comments(id)') \
-            .neq('status', 'rejected') \
-            .order('created_at', desc=True) \
-            .limit(1000) \
-            .execute()
-        files = [_doc_to_json(d, None) for d in res.data] if res.data else []
+        # Relationship embeds are useful for display, but a missing/stale
+        # foreign-key relationship in PostgREST must not take down the entire
+        # catalogue. Retry with progressively simpler projections.
+        projections = (
+            '*, profiles!documents_uploader_id_fkey(full_name, email), '
+            'subjects(name, subject_code), colleges(name, abbreviation), '
+            'document_votes(user_id), bookmarks(user_id), document_comments(id)',
+            '*, profiles!documents_uploader_id_fkey(full_name, email), '
+            'subjects(name, subject_code), colleges(name, abbreviation)',
+            '*',
+        )
+        res = None
+        last_error = None
+        for projection in projections:
+            try:
+                res = client.table('documents') \
+                    .select(projection) \
+                    .order('created_at', desc=True) \
+                    .limit(1000) \
+                    .execute()
+                break
+            except Exception as query_error:
+                last_error = query_error
+                logging.warning(
+                    "[Supabase] Catalogue projection failed; retrying simpler query: %s",
+                    query_error,
+                )
+        if res is None:
+            raise last_error or RuntimeError('Unable to load documents catalogue')
+        documents = [
+            d for d in (res.data or [])
+            if str(d.get('status') or '').lower() != 'rejected'
+        ]
+        files = [_doc_to_json(d, None) for d in documents]
         _cache[cache_key] = {'val': files, 'ts': _time.time() - (_CACHE_TTL - _FILES_CACHE_TTL)}
         return {'success': True, 'data': files, 'count': len(files)}
     except Exception as e:
@@ -3632,5 +3693,3 @@ def delete_ai_conversation(user_id: str, conversation_id: str) -> bool:
         _AI_LOCAL_MSGS.pop(conversation_id, None)
         return True
     return True
-
-

@@ -41,3 +41,9 @@ def test_observability_rules_are_admin_protected():
     app.config["TESTING"] = True
     response = app.test_client().get("/api/admin/observability/rules")
     assert response.status_code in (302, 401, 403)
+
+
+def test_observability_dashboard_is_admin_protected():
+    app.config["TESTING"] = True
+    response = app.test_client().get("/admin/observability")
+    assert response.status_code in (302, 401, 403)
