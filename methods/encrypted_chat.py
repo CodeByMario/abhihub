@@ -24,7 +24,7 @@ from typing import Dict, List, Optional, Any
 
 log = logging.getLogger(__name__)
 
-CHAT_SECRET = os.getenv('CHAT_SECRET', '')
+CHAT_SECRET = os.getenv('CHAT_SECRET') or os.getenv('SECRET_KEY') or os.getenv('FLASK_SECRET_KEY') or ''
 
 # ── Crypto helpers ────────────────────────────────────────────────
 
@@ -152,38 +152,70 @@ def _pair_key(uid_a: str, uid_b: str) -> str:
 def _get_supabase_admin():
     """Get a Supabase admin client (service role, bypasses RLS)."""
     try:
-        from supabase_helper import init_supabase_admin
+        from methods.supabase_helper import init_supabase_admin
         return init_supabase_admin()
-    except Exception as e:
-        log.debug(f"Could not init Supabase admin client: {e}")
-        return None
+    except Exception:
+        try:
+            from supabase_helper import init_supabase_admin
+            return init_supabase_admin()
+        except Exception as e:
+            log.debug(f"Could not init Supabase admin client: {e}")
+            return None
 
 
 def _get_supabase_user():
     """Get a Supabase anon client (for user-scoped operations)."""
     try:
-        from supabase_helper import init_supabase
+        from methods.supabase_helper import init_supabase
         return init_supabase()
     except Exception:
+        try:
+            from supabase_helper import init_supabase
+            return init_supabase()
+        except Exception:
+            return None
+
+
+def _fernet_for_pair(uid_a: str, uid_b: str):
+    """Derive a deterministic Fernet cipher by alphabetically sorting sender and receiver IDs."""
+    pair_str = '_'.join(sorted([str(uid_a), str(uid_b)]))
+    seed = f"{CHAT_SECRET}:{pair_str}".encode('utf-8') if CHAT_SECRET else pair_str.encode('utf-8')
+    derived = hashlib.sha256(seed).digest()
+    try:
+        from cryptography.fernet import Fernet
+        import base64
+        return Fernet(base64.urlsafe_b64encode(derived))
+    except Exception as e:
+        log.debug(f"Fernet pair init failed: {e}")
         return None
 
 
 def save_message_supabase(sender_id: str, recipient_id: str,
                            plaintext: str, sender_public_key: Optional[str] = None) -> Optional[Dict]:
-    """Encrypt and persist a chat message to Supabase."""
-    enc = encrypt_message(plaintext, peer_pubkey=sender_public_key)
+    """Encrypt using sorted pair key and persist chat message to Supabase."""
+    f = _fernet_for_pair(sender_id, recipient_id)
+    if f:
+        try:
+            token = f.encrypt(plaintext.encode('utf-8')).decode('utf-8')
+            enc = {'ciphertext': token, 'nonce': '', 'method': 'pair-fernet'}
+        except Exception as e:
+            log.debug(f"Pair encryption failed: {e}")
+            enc = encrypt_message(plaintext, peer_pubkey=sender_public_key)
+    else:
+        enc = encrypt_message(plaintext, peer_pubkey=sender_public_key)
+
+    nonce_val = enc.get('nonce', '')
+    if enc.get('ephemeral_pubkey'):
+        nonce_val = f"{nonce_val}:{enc['ephemeral_pubkey']}"
 
     msg_data = {
         'sender_id': str(sender_id),
         'recipient_id': str(recipient_id),
         'ciphertext': enc['ciphertext'],
-        'nonce': enc.get('nonce', ''),
+        'nonce': nonce_val,
         'created_at': datetime.utcnow().isoformat() + 'Z',
         'status': 'sent',
     }
-    # Store encryption method and ephemeral key if NaCl was used
-    if enc.get('ephemeral_pubkey'):
-        msg_data['ephemeral_pubkey'] = enc['ephemeral_pubkey']
 
     client = _get_supabase_admin() or _get_supabase_user()
     if not client:
@@ -194,10 +226,9 @@ def save_message_supabase(sender_id: str, recipient_id: str,
         result = client.table('chat_messages').insert(msg_data).execute()
         if result.data:
             stored = result.data[0]
-            stored['ciphertext'] = enc['ciphertext']  # client needs enc metadata to decrypt
+            stored['ciphertext'] = enc['ciphertext']
             stored['nonce'] = enc.get('nonce', '')
-            stored['ephemeral_pubkey'] = enc.get('ephemeral_pubkey', '')
-            stored['method'] = enc.get('method', 'fernet')
+            stored['method'] = enc.get('method', 'pair-fernet')
             stored['plaintext'] = plaintext
             return stored
     except Exception as e:
@@ -208,11 +239,13 @@ def save_message_supabase(sender_id: str, recipient_id: str,
 def load_conversation_supabase(user_a: str, user_b: str,
                                 my_privkey: Optional[str] = None,
                                 peer_pubkey: Optional[str] = None) -> List[Dict]:
-    """Load and decrypt a conversation from Supabase."""
+    """Load and decrypt a conversation from Supabase using sorted pair key."""
     client = _get_supabase_admin() or _get_supabase_user()
     if not client:
         log.warning("No Supabase client — cannot load conversation from DB")
         return []
+
+    f_pair = _fernet_for_pair(user_a, user_b)
 
     try:
         # Query messages for this conversation only (both directions)
@@ -224,16 +257,36 @@ def load_conversation_supabase(user_a: str, user_b: str,
 
         messages = []
         for row in (result.data or []):
-            enc_data = {
-                'ciphertext': row.get('ciphertext', ''),
-                'nonce': row.get('nonce', ''),
-                'ephemeral_pubkey': row.get('ephemeral_pubkey', ''),
-                'method': row.get('method', 'fernet'),
-            }
-            text = decrypt_message(enc_data, my_privkey=my_privkey, peer_pubkey=peer_pubkey)
+            ct = row.get('ciphertext', '')
+            text = None
+            if f_pair and ct:
+                try:
+                    text = f_pair.decrypt(ct.encode('utf-8')).decode('utf-8')
+                except Exception:
+                    pass
+
             if text is None:
-                text = row.get('ciphertext', '')  # fallback
+                nonce_val = row.get('nonce') or ''
+                eph_pk = row.get('ephemeral_pubkey') or ''
+                if not eph_pk and ':' in nonce_val:
+                    parts = nonce_val.split(':', 1)
+                    nonce_val = parts[0]
+                    eph_pk = parts[1]
+
+                method = 'nacl-box' if eph_pk else ('fernet' if ct.startswith('gAAAAA') else 'plaintext')
+                enc_data = {
+                    'ciphertext': ct,
+                    'nonce': nonce_val,
+                    'ephemeral_pubkey': eph_pk,
+                    'method': method,
+                }
+                text = decrypt_message(enc_data, my_privkey=my_privkey, peer_pubkey=peer_pubkey)
+                if text is None:
+                    text = ct  # fallback
+
             messages.append({
+                'msg_id': str(row.get('id', '')),
+                'id': str(row.get('id', '')),
                 'text': text,
                 'from': str(row.get('sender_id', '')),
                 'to': str(row.get('recipient_id', '')),

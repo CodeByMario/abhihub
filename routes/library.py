@@ -927,6 +927,20 @@ def api_edit_document(doc_id):
 
         # Apply updates to documents table (filtering only columns that exist in documents)
         doc_update_clean = {k: v for k, v in update_payload.items() if k in valid_doc_cols}
+        if 'title' in doc_update_clean and len(str(doc_update_clean['title']).strip()) < 3:
+            return jsonify({'success': False, 'message': 'Title must contain at least 3 characters'}), 400
+        if 'document_category' in doc_update_clean:
+            allowed_categories = {'papers', 'notes', 'practical', 'syllabus', 'question_bank', 'assignment', 'timetable', 'other'}
+            category_value = str(doc_update_clean['document_category']).strip().lower()
+            if category_value not in allowed_categories:
+                return jsonify({'success': False, 'message': 'Invalid document category'}), 400
+            doc_update_clean['document_category'] = category_value
+        if 'price' in doc_update_clean:
+            doc_update_clean['price'] = min(max(float(doc_update_clean['price']), 0.0), 5000.0)
+            if doc_update_clean['price'] > 0:
+                doc_update_clean['is_paid'] = True
+        if doc_update_clean.get('is_paid') is False:
+            doc_update_clean['price'] = 0.0
         if doc_update_clean:
             try:
                 client.table('documents').update(doc_update_clean).eq('id', doc_id).execute()
@@ -942,6 +956,11 @@ def api_edit_document(doc_id):
                 c.invalidate(f"doc_rich:{doc_id}")
         except Exception as ce:
             logging.warning(f"Cache invalidate error: {ce}")
+        try:
+            from methods.search_api import invalidate_search_cache
+            invalidate_search_cache()
+        except Exception as cache_err:
+            logging.warning(f"[api_edit_document] Search cache invalidation failed: {cache_err}")
 
         # Notify owner if edited by admin
         if is_admin and notify_owner and doc.get('uploader_id'):
@@ -1140,5 +1159,3 @@ def api_save_document_recommendations(doc_id):
         pass
 
     return jsonify({'success': True, 'recommendations': clean_recs})
-
-

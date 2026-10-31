@@ -71,9 +71,10 @@ def compress_pdf(file_data: bytes) -> bytes:
         cleaned = out.getvalue()
         if len(cleaned) < len(file_data):
             logging.info(f"✓ PDF metadata stripped & streams compressed → {len(cleaned)} bytes (was {len(file_data)}")
+            return cleaned
         else:
-            logging.info(f"✓ PDF metadata stripped ({len(cleaned)} bytes)")
-        return cleaned
+            logging.info(f"✓ PDF compression produced no size reduction; keeping original ({len(file_data)} bytes)")
+            return file_data
     except Exception as e:
         logging.warning(f"PDF metadata strip failed, keeping original: {e}")
         return file_data
@@ -202,6 +203,9 @@ def upload_file_to_cloudinary(
         resource_type = get_cloudinary_resource_type(filename)
         ext = filename.rsplit('.', 1)[-1].lower() if '.' in filename else ''
 
+        original_bytes = len(file_bytes)
+        compression_applied = False
+
         # Compress / clean files if enabled
         if compress:
             if resource_type == 'image':
@@ -212,8 +216,11 @@ def upload_file_to_cloudinary(
                 image_format = format_map.get(ext, 'JPEG')
                 file_bytes = compress_image(file_bytes, format=image_format, quality=85)
                 logging.info(f"✓ Image compressed: {len(file_bytes)} bytes")
+                compression_applied = len(file_bytes) < original_bytes
             elif ext == 'pdf':
-                file_bytes = compress_pdf(file_bytes)
+                compressed_bytes = compress_pdf(file_bytes)
+                compression_applied = len(compressed_bytes) < original_bytes
+                file_bytes = compressed_bytes
                 logging.info(f"✓ PDF metadata stripped: {len(file_bytes)} bytes")
 
         # Create unique filename with user ID and timestamp
@@ -255,6 +262,8 @@ def upload_file_to_cloudinary(
         upload_params['access_mode'] = 'public'
 
         logging.info(f"📤 Uploading to Cloudinary: {public_id}")
+        if is_pdf and not public_id.lower().endswith('.txt'):
+            raise ValueError("PDF Cloudinary public ID must use a .txt suffix")
         result = cloudinary.uploader.upload(file_bytes, **upload_params)
 
         def _bg_register_storage_asset(res_data, orig_filename):
@@ -291,6 +300,14 @@ def upload_file_to_cloudinary(
             'format': result.get('format'),
             'bytes': result.get('bytes'),
             'original_filename': filename,
+            'cloudinary_filename': f"{public_id.rsplit('/', 1)[-1]}",
+            'source_extension': ext,
+            'uploaded_extension': 'txt' if is_pdf else ext,
+            'pdf_uploaded_as_txt': is_pdf,
+            'original_bytes': original_bytes,
+            'processed_bytes': len(file_bytes),
+            'compression_requested': bool(compress),
+            'compression_applied': compression_applied,
             'width': result.get('width'),
             'height': result.get('height'),
             # Optional fallback fields

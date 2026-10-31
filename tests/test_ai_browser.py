@@ -1,6 +1,8 @@
 import pytest
 import re
 
+pytest.importorskip("pytest_playwright")
+
 """
 Tarika AI Assistant - End-to-End Browser Tests (Playwright)
 Validates Task 6.5 requirements:

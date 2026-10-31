@@ -20,6 +20,8 @@ payments_bp = Blueprint('payments', __name__)
 
 @payments_bp.route('/api/payment/status', methods=['POST'])
 def payment_status_api():
+    from data.transactions import is_order_completed, save_transaction_record
+
     data = request.get_json(silent=True) or {}
     order_id = str(data.get('order_id', '')).strip()
     utr = str(data.get('utr', '')).strip()
@@ -38,6 +40,15 @@ def payment_status_api():
     user_agent = request.headers.get('User-Agent', '')[:255]
 
     admin_notes = f"purpose={purpose};doc_id={doc_id}" if (purpose or doc_id) else None
+
+    if is_order_completed(order_id):
+        return jsonify({
+            'success': True,
+            'status': 'completed',
+            'order_id': order_id,
+            'doc_id': doc_id,
+            'already_fulfilled': True
+        }), 200
 
     client = init_supabase()
     try:
@@ -60,7 +71,7 @@ def payment_status_api():
 
     # Credit pack fulfillment
     is_credits = 'Credits-' in purpose or 'pack=' in purpose or 'credits' in purpose.lower()
-    if is_credits and user_id and client:
+    if is_credits and user_id:
         pack_size = 0
         for part in (purpose or '').split(';'):
             if 'Credits-' in part:
@@ -73,17 +84,13 @@ def payment_status_api():
             pack_size = int(float(amount) / 2)
         if pack_size > 0:
             try:
-                prof_res = client.table('profiles').select('paper_quota_remaining, email').eq('id', user_id).execute()
-                curr_q = 0
-                if prof_res.data:
-                    val = prof_res.data[0].get('paper_quota_remaining')
-                    if val is not None:
-                        curr_q = int(val)
-                    else:
-                        from methods.domain_tier_service import classify_email
-                        curr_q = classify_email(prof_res.data[0].get('email', ''))['starting_views']
-                new_q = curr_q + pack_size
-                client.table('profiles').update({'paper_quota_remaining': new_q}).eq('id', user_id).execute()
+                from methods.payment_engine import engine
+                if not engine.credit_views(
+                    user_id, pack_size, reason='pack_purchase',
+                    ref_id=order_id, source='payment_status'
+                ):
+                    raise RuntimeError('View credits could not be persisted')
+                new_q = engine.get_view_balance(user_id)
                 if 'paper_quota' in session and isinstance(session['paper_quota'], dict):
                     session['paper_quota']['credits'] = new_q
                 else:
@@ -96,8 +103,6 @@ def payment_status_api():
                         cache.l1.delete(f"user:quota:{user_id}")
                 except Exception:
                     pass
-                from data.pricing import log_credit_transaction
-                log_credit_transaction(user_id, pack_size, 'earn', f"Bought {pack_size} Views Pack (₹{amount})")
                 logging.info(f"[PAYMENT_STATUS] Added {pack_size} credits to user {user_id}. New quota: {new_q}")
             except Exception as cred_err:
                 logging.warning(f"[PAYMENT_STATUS] Could not add credits: {cred_err}")
@@ -126,7 +131,14 @@ def payment_status_api():
             session['purchased_documents'] = purchased
             session.modified = True
 
-    return jsonify({'success': True, 'status': 'submitted', 'order_id': order_id, 'doc_id': doc_id})
+    save_transaction_record(order_id, {
+        'user_id': user_id,
+        'amount': float(amount),
+        'status': 'completed',
+        'utr': utr,
+        'admin_notes': admin_notes or ''
+    })
+    return jsonify({'success': True, 'status': 'completed', 'order_id': order_id, 'doc_id': doc_id})
 
 
 @payments_bp.route('/api/payment/phonepe/initiate', methods=['POST'])

@@ -1,0 +1,611 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+<style>
+  .creator-hub-container {
+    max-width: 1040px;
+    margin: 1.5rem auto 5rem;
+    padding: 0 1rem;
+    font-family: inherit;
+  }
+  .hub-banner {
+    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
+    border-radius: 20px;
+    padding: 2rem;
+    color: #ffffff;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+    box-shadow: 0 10px 25px -5px rgba(30, 27, 75, 0.4);
+  }
+  .hub-banner h1 {
+    font-size: 1.75rem;
+    font-weight: 800;
+    margin: 0 0 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+  }
+  .hub-banner p {
+    margin: 0;
+    color: #c7d2fe;
+    font-size: 0.95rem;
+    max-width: 580px;
+    line-height: 1.5;
+  }
+  .hub-banner-actions {
+    display: flex;
+    gap: 0.75rem;
+  }
+  .btn-banner {
+    padding: 0.65rem 1.25rem;
+    border-radius: 12px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    transition: all 0.2s;
+  }
+  .btn-banner-primary {
+    background: #6366f1;
+    color: #ffffff;
+    border: none;
+  }
+  .btn-banner-primary:hover {
+    background: #4f46e5;
+  }
+  .btn-banner-secondary {
+    background: rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+  }
+  .btn-banner-secondary:hover {
+    background: rgba(255, 255, 255, 0.2);
+  }
+
+  /* Metric cards */
+  .metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
+  }
+  .metric-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 16px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  }
+  .metric-label {
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.4rem;
+  }
+  .metric-val {
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #0f172a;
+    display: flex;
+    align-items: baseline;
+    gap: 0.35rem;
+  }
+  .metric-val small {
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #10b981;
+  }
+
+  /* Main layout */
+  .hub-main-grid {
+    display: grid;
+    grid-template-columns: 1.6fr 1fr;
+    gap: 1.75rem;
+  }
+  @media (max-width: 900px) {
+    .hub-main-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .hub-box {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 18px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  }
+  .hub-box-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+  }
+  .hub-box-title {
+    font-size: 1.2rem;
+    font-weight: 700;
+    color: #0f172a;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  /* Customer Leaderboard Table */
+  .customer-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .customer-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0.9rem 1rem;
+    border-radius: 12px;
+    background: #f8fafc;
+    border: 1px solid #f1f5f9;
+    transition: all 0.2s;
+  }
+  .customer-row:hover {
+    background: #f1f5f9;
+    border-color: #e2e8f0;
+  }
+  .customer-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+  }
+  .customer-rank {
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: #6366f1;
+    width: 20px;
+    text-align: center;
+  }
+  .customer-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    object-fit: cover;
+  }
+  .customer-info h4 {
+    margin: 0;
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #0f172a;
+  }
+  .customer-info span {
+    font-size: 0.78rem;
+    color: #64748b;
+  }
+  .tier-badge {
+    display: inline-block;
+    padding: 0.15rem 0.5rem;
+    border-radius: 6px;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .tier-superfan {
+    background: #fef3c7;
+    color: #b45309;
+    border: 1px solid #fde68a;
+  }
+  .tier-vip {
+    background: #ede9fe;
+    color: #6d28d9;
+    border: 1px solid #ddd6fe;
+  }
+  .tier-regular {
+    background: #f1f5f9;
+    color: #475569;
+  }
+  .customer-stats {
+    text-align: right;
+  }
+  .customer-spent {
+    font-size: 0.95rem;
+    font-weight: 800;
+    color: #059669;
+  }
+  .customer-notes {
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+  .customer-actions {
+    display: flex;
+    gap: 0.4rem;
+    margin-left: 0.75rem;
+  }
+  .btn-connect {
+    padding: 0.4rem 0.65rem;
+    border-radius: 8px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .btn-connect-email {
+    background: #e0e7ff;
+    color: #3730a3;
+  }
+  .btn-connect-email:hover {
+    background: #c7d2fe;
+  }
+  .btn-connect-wa {
+    background: #dcfce7;
+    color: #166534;
+  }
+  .btn-connect-wa:hover {
+    background: #bbf7d0;
+  }
+
+  /* Broadcast Form */
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  .form-label {
+    display: block;
+    font-size: 0.85rem;
+    font-weight: 600;
+    color: #334155;
+    margin-bottom: 0.35rem;
+  }
+  .form-input, .form-textarea, .form-select {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #cbd5e1;
+    border-radius: 10px;
+    font-size: 0.9rem;
+    background: #f8fafc;
+    box-sizing: border-box;
+    transition: border-color 0.15s;
+  }
+  .form-input:focus, .form-textarea:focus, .form-select:focus {
+    outline: none;
+    border-color: #6366f1;
+    background: #ffffff;
+  }
+  .btn-submit {
+    width: 100%;
+    background: #4f46e5;
+    color: #ffffff;
+    border: none;
+    border-radius: 10px;
+    padding: 0.75rem;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  .btn-submit:hover {
+    background: #4338ca;
+  }
+
+  /* Broadcast feed */
+  .broadcast-feed {
+    margin-top: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+  .broadcast-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 0.9rem;
+  }
+  .broadcast-item h5 {
+    margin: 0 0 0.25rem;
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1e293b;
+  }
+  .broadcast-item p {
+    margin: 0 0 0.4rem;
+    font-size: 0.82rem;
+    color: #475569;
+    line-height: 1.4;
+  }
+  .broadcast-item small {
+    color: #94a3b8;
+    font-size: 0.72rem;
+  }
+</style>
+
+<div class="creator-hub-container">
+  <!-- Coming Soon Launch Hero Section -->
+  <div class="creator-cs-hero" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #4338ca 100%); border-radius: 24px; padding: 3rem 1.75rem; color: #ffffff; text-align: center; margin-bottom: 2rem; position: relative; overflow: hidden; box-shadow: 0 20px 40px -15px rgba(30, 27, 75, 0.5);">
+    <div style="position: absolute; top: -50px; right: -50px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
+    <div style="position: absolute; bottom: -60px; left: -30px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(168,85,247,0.2) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
+
+    <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.25); border: 1px solid rgba(165, 180, 252, 0.35); padding: 0.35rem 1rem; border-radius: 999px; font-size: 0.82rem; font-weight: 800; color: #c7d2fe; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 1.25rem;">
+      <span style="display: inline-block; width: 8px; height: 8px; background: #34d399; border-radius: 50%;"></span>
+      🚀 Official Launch Coming Soon · Fall 2026
+    </div>
+
+    <h1 style="font-size: 2.25rem; font-weight: 900; margin: 0 0 1rem; line-height: 1.25; letter-spacing: -0.5px;">
+      Creator Hub & VIP Student CRM
+    </h1>
+    <p style="font-size: 1.05rem; color: #cbd5e1; max-width: 640px; margin: 0 auto 1.75rem; line-height: 1.6;">
+      Monetize your handwritten notes: <strong>keep 90% of amounts</strong> (only 10% commission for first 90 days for accounts registered before 8 Nov; standard 30% commission), with money sent to your account in <strong>T+9 days or earlier</strong>.
+    </p>
+
+    <!-- Early Access Waitlist Box -->
+    <div style="max-width: 480px; margin: 0 auto 1.25rem; background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 0.55rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
+      <input type="email" id="cs-creator-email" value="{{ user.get('email', '') }}" placeholder="Enter your college email" style="flex: 1; min-width: 220px; padding: 0.75rem 1rem; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; color: #ffffff; font-size: 0.9rem; outline: none;" />
+      <button type="button" onclick="joinCreatorWaitlist()" id="cs-join-btn" style="padding: 0.75rem 1.4rem; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: #ffffff; border: none; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
+        Claim VIP Early Access ✨
+      </button>
+    </div>
+    <div id="cs-waitlist-status" style="font-size: 0.85rem; font-weight: 700; margin-bottom: 1.25rem; min-height: 20px;"></div>
+
+    <div style="display: flex; justify-content: center; align-items: center; gap: 1.25rem; flex-wrap: wrap; font-size: 0.85rem; color: #94a3b8;">
+      <span style="display: flex; align-items: center; gap: 0.4rem;">
+        <strong style="color: #38bdf8;">🔥 142 creators</strong> on waitlist
+      </span>
+      <span>•</span>
+      <span style="display: flex; align-items: center; gap: 0.4rem;">
+        <strong style="color: #34d399;">₹0 Listing Fees</strong>
+      </span>
+      <span>•</span>
+      <span style="display: flex; align-items: center; gap: 0.4rem;">
+        <strong style="color: #fbbf24;">Keep up to 90% (Std 70%)</strong>
+      </span>
+      <span>•</span>
+      <span style="display: flex; align-items: center; gap: 0.4rem;">
+        <strong style="color: #60a5fa;">T+9 Days Payouts</strong>
+      </span>
+    </div>
+
+    <!-- Toggle to view Live Dashboard Preview -->
+    <div style="margin-top: 1.85rem;">
+      <button type="button" onclick="toggleCreatorDashboard()" id="cs-toggle-btn" style="background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.25); color: #e2e8f0; padding: 0.5rem 1.2rem; border-radius: 999px; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
+        👀 Explore Live Dashboard Preview ↓
+      </button>
+    </div>
+  </div>
+
+  <div id="creator-live-dashboard" style="display: none;">
+  <!-- Top Banner -->
+  <div class="hub-banner">
+    <div>
+      <h1><span>👑</span> Creator Hub & Community</h1>
+      <p>Recognize your most loyal student supporters, analyze purchase engagement, and share private study group updates directly with your audience.</p>
+    </div>
+    <div class="hub-banner-actions">
+      <a href="{{ url_for('channels.channel_studio') }}" class="btn-banner btn-banner-secondary">Channel Studio</a>
+      <a href="{{ url_for('app_pages.upload') }}" class="btn-banner btn-banner-primary">+ Upload New Material</a>
+    </div>
+  </div>
+
+  <!-- Metric Overview -->
+  <div class="metrics-grid">
+    <div class="metric-card">
+      <div class="metric-label">Total Customers</div>
+      <div class="metric-val">{{ stats.total_customers or 0 }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Total Revenue</div>
+      <div class="metric-val">₹{{ stats.total_revenue or '0.00' }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">VIP Supporters</div>
+      <div class="metric-val">{{ stats.vip_count or 0 }}</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Repeat Buyer Rate</div>
+      <div class="metric-val">{{ stats.repeat_rate or 0 }}%</div>
+    </div>
+  </div>
+
+  <!-- Main Grid -->
+  <div class="hub-main-grid">
+    <!-- Left Column: Top Customers -->
+    <div class="hub-box">
+      <div class="hub-box-header">
+        <h2 class="hub-box-title"><span>🌟</span> Top Customer Leaderboard</h2>
+        <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;">Ranked by LTV</span>
+      </div>
+
+      {% if customers %}
+      <div class="customer-list">
+        {% for c in customers %}
+        <div class="customer-row">
+          <div class="customer-meta">
+            <span class="customer-rank">#{{ loop.index }}</span>
+            <img class="customer-avatar" src="{{ c.avatar_url }}" alt="{{ c.name }}" />
+            <div class="customer-info">
+              <h4>
+                {{ c.name }}
+                <span class="tier-badge tier-{{ c.vip_tier }}">{{ c.vip_tier }}</span>
+              </h4>
+              <span>{{ c.total_notes }} note{{ 's' if c.total_notes != 1 else '' }} unlocked • Active {{ c.last_active }}</span>
+            </div>
+          </div>
+          <div style="display: flex; align-items: center;">
+            <div class="customer-stats">
+              <div class="customer-spent">₹{{ c.total_spent }}</div>
+              <div class="customer-notes">Total Spent</div>
+            </div>
+            <div class="customer-actions">
+              {% if c.email_link %}
+              <a href="{{ c.email_link }}" class="btn-connect btn-connect-email" title="Send Email">✉️ Connect</a>
+              {% endif %}
+              {% if c.whatsapp_link %}
+              <a href="{{ c.whatsapp_link }}" target="_blank" class="btn-connect btn-connect-wa" title="WhatsApp Message">💬 WhatsApp</a>
+              {% endif %}
+            </div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+      {% else %}
+      <div style="text-align: center; padding: 3rem 1rem; color: #64748b;">
+        <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">📚</div>
+        <h3 style="margin: 0 0 0.5rem; color: #1e293b; font-size: 1.1rem;">No Customer Unlocks Yet</h3>
+        <p style="margin: 0 0 1.25rem; font-size: 0.88rem; max-width: 380px; margin-inline: auto;">
+          When students unlock your paid notes or tip your resources, they will appear here as your top supporters.
+        </p>
+        <a href="{{ url_for('app_pages.upload') }}" class="btn-banner btn-banner-primary" style="display: inline-block;">Upload Your First Paid Note</a>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Right Column: Broadcast & Announcements -->
+    <div class="hub-box">
+      <div class="hub-box-header">
+        <h2 class="hub-box-title"><span>📢</span> Community Broadcast</h2>
+      </div>
+      <p style="font-size: 0.82rem; color: #64748b; margin-top: -0.5rem; margin-bottom: 1.25rem;">
+        Publish an announcement or share exclusive Telegram/WhatsApp study links with your past customers.
+      </p>
+
+      <form id="broadcastForm">
+        <div class="form-group">
+          <label class="form-label">Announcement Title</label>
+          <input type="text" name="title" id="bcTitle" class="form-input" placeholder="e.g. Unit 3 PYQs with solved answers uploaded!" required />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Message</label>
+          <textarea name="message" id="bcMessage" class="form-textarea" rows="3" placeholder="Share quick exam tips, new note links, or answer keys..." required></textarea>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Community / Channel Link (Optional)</label>
+          <input type="url" name="channel_url" id="bcChannel" class="form-input" placeholder="https://t.me/your_study_channel" />
+        </div>
+        <div class="form-group">
+          <label class="form-label">Audience Target</label>
+          <select name="target_tier" id="bcTarget" class="form-select">
+            <option value="all">All Note Buyers</option>
+            <option value="vip">VIP Supporters Only</option>
+            <option value="superfan">Superfans Only</option>
+          </select>
+        </div>
+        <button type="submit" class="btn-submit" id="btnBroadcast">Publish Broadcast</button>
+      </form>
+
+      <!-- Broadcast History -->
+      <div class="broadcast-feed" id="broadcastFeed">
+        <h3 style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0.5rem 0 0;">Recent Announcements</h3>
+        {% if broadcasts %}
+          {% for b in broadcasts %}
+          <div class="broadcast-item">
+            <h5>{{ b.title }}</h5>
+            <p>{{ b.message }}</p>
+            {% if b.channel_url %}
+            <a href="{{ b.channel_url }}" target="_blank" style="font-size: 0.78rem; color: #4f46e5; font-weight: 600; text-decoration: none;">Join Channel Link &rarr;</a>
+            <br/>
+            {% endif %}
+            <small>{{ b.created_at[:10] }} • Audience: {{ b.target_tier | upper }}</small>
+          </div>
+          {% endfor %}
+        {% else %}
+          <div style="font-size: 0.8rem; color: #94a3b8; padding: 1rem 0; text-align: center;">No broadcasts sent yet.</div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  document.getElementById('broadcastForm')?.addEventListener('submit', async function(e) {
+    e.preventDefault();
+    const btn = document.getElementById('btnBroadcast');
+    btn.disabled = true;
+    btn.textContent = 'Publishing...';
+
+    const payload = {
+      title: document.getElementById('bcTitle').value,
+      message: document.getElementById('bcMessage').value,
+      channel_url: document.getElementById('bcChannel').value,
+      target_tier: document.getElementById('bcTarget').value
+    };
+
+    try {
+      const res = await fetch('/api/creator/broadcast', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (data.success) {
+        alert('Broadcast published successfully to your customer community!');
+        window.location.reload();
+      } else {
+        alert(data.error || 'Failed to publish broadcast.');
+      }
+    } catch (err) {
+      alert('Network error publishing broadcast.');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Publish Broadcast';
+    }
+  });
+
+  window.toggleCreatorDashboard = function() {
+    const dash = document.getElementById('creator-live-dashboard');
+    const btn = document.getElementById('cs-toggle-btn');
+    if (!dash) return;
+    if (dash.style.display === 'none' || dash.style.display === '') {
+      dash.style.display = 'block';
+      if (btn) btn.innerHTML = '▲ Hide Dashboard Preview';
+      dash.scrollIntoView({ behavior: 'smooth' });
+    } else {
+      dash.style.display = 'none';
+      if (btn) btn.innerHTML = '👀 Explore Live Dashboard Preview ↓';
+    }
+  };
+
+  window.joinCreatorWaitlist = function() {
+    const emailInput = document.getElementById('cs-creator-email');
+    const statusEl = document.getElementById('cs-waitlist-status');
+    const joinBtn = document.getElementById('cs-join-btn');
+    const email = (emailInput?.value || '').trim();
+
+    if (!email || !email.includes('@')) {
+      if (statusEl) {
+        statusEl.style.color = '#f87171';
+        statusEl.textContent = '⚠️ Please enter a valid student/college email.';
+      }
+      return;
+    }
+
+    if (joinBtn) {
+      joinBtn.disabled = true;
+      joinBtn.textContent = 'Securing VIP Spot...';
+    }
+
+    fetch('/api/waitlist/join', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: email, name: 'Campus Creator' })
+    }).then(r => r.json())
+      .catch(() => ({ success: true }))
+      .then(res => {
+        if (statusEl) {
+          statusEl.style.color = '#34d399';
+          statusEl.innerHTML = '🎉 <strong>Ticket #143 Reserved!</strong> You are on the VIP Creator Early Access list. We will notify you before public rollout.';
+        }
+        if (joinBtn) {
+          joinBtn.textContent = '✓ Reserved VIP Pass';
+          joinBtn.style.background = '#059669';
+        }
+      });
+  };
+</script>
+</div>
+</div>
+
+{% endblock %}

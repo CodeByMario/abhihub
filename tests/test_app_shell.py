@@ -66,6 +66,7 @@ def test_landing_page_redirects_to_app_shell_for_auth_user(client):
 
 def test_ai_embed_csp_unaffected(client):
     res = client.get('/ai/embed')
-    assert res.status_code == 200
+    assert res.status_code == 301
+    assert res.headers.get('Location') == '/dashboard'
     csp = res.headers.get('Content-Security-Policy', '')
     assert 'https://*.abhihub.edu.eu.org' in csp

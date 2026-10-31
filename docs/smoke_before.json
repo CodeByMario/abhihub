@@ -49,11 +49,11 @@
   },
   "/admin": {
     "status_code": 302,
-    "location": "/login"
+    "location": "/login?next=/admin"
   },
   "/admin/controle": {
-    "status_code": 301,
-    "location": "/admin"
+    "status_code": 404,
+    "location": null
   },
   "/api/version": {
     "status_code": 200,

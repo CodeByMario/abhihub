@@ -76,7 +76,7 @@ def test_phase2():
         sys.exit(1)
     else:
         print("All Phase 2 unified endpoints verified successfully! 100% PASS.")
-        sys.exit(0)
+        return None
 
 if __name__ == '__main__':
     test_phase2()

@@ -1072,6 +1072,145 @@ def api_add_department(user_data=None):
         return jsonify({'success': False, 'message': str(e)}), 400
 
 
+@api_bp.route('/api/save-document', methods=['POST'])
+@auth_required
+def api_save_document():
+    """Save a document record from Cloudinary metadata (used after direct browser upload)."""
+    try:
+        data = request.get_json(silent=True) or {}
+        user_info = session.get('user', {})
+        user_id = user_info.get('uid')
+        user_email = user_info.get('email', '')
+        
+        # Cloudinary result fields
+        public_id = data.get('public_id', '')
+        secure_url = data.get('secure_url', '')
+        file_size = data.get('bytes', 0)
+        file_type = data.get('format', 'pdf')
+        
+        # Document metadata
+        title = (data.get('title') or '').strip()
+        subject = (data.get('subject') or '').strip()
+        subject_id = data.get('subject_id', '')
+        college_id = data.get('college_id', '')
+        branch_id = data.get('branch_id', '')
+        document_type = (data.get('document_type') or 'notes').lower()
+        year = data.get('year', '')
+        semester = data.get('semester')
+        description = data.get('description', '')
+        exam_type = data.get('exam_type', '')
+        subject_code = data.get('subject_code', '')
+        program = data.get('program', 'b.tech')
+        file_hash = data.get('file_hash', '')
+        material_request_id = data.get('material_request_id')
+        
+        if not public_id or not secure_url:
+            return jsonify({'success': False, 'message': 'Missing Cloudinary metadata'}), 400
+        
+        # Build standardized title
+        import re
+        from methods.supabase_helper import make_acronym
+        col_abbr = ''
+        dept_abbr = ''
+        subj_abbr = ''
+        
+        if college_id:
+            col_abbr = college_id[:4].upper() if len(college_id) > 4 else college_id.upper()
+        if branch_id:
+            dept_abbr = branch_id[:4].upper() if len(branch_id) > 4 else branch_id.upper()
+        if subject:
+            subj_abbr = make_acronym(subject)
+        
+        prefix_tags = [p for p in [col_abbr, dept_abbr, subj_abbr] if p]
+        header = " - ".join(prefix_tags)
+        if not title:
+            cat_title = document_type.replace('_', ' ').title()
+            title = f"{header} - {cat_title} {year}" if header else f"{cat_title} {year}"
+        
+        # Save the record
+        from methods.supabase_helper import save_file_record
+        result = save_file_record(
+            user_id=user_id,
+            user_email=user_email,
+            file_name=public_id.split('/')[-1].split('.')[0] if '/' in public_id else public_id,
+            file_url=secure_url,
+            file_type=file_type if file_type in ('pdf', 'image', 'document') else 'pdf',
+            file_size=file_size,
+            cloudinary_public_id=public_id,
+            subject_name=subject,
+            document_type=document_type,
+            year=year,
+            college_id=college_id if college_id else None,
+            branch_id=branch_id if branch_id else None,
+            title=title,
+            description=description,
+            subject_id=subject_id if subject_id else None,
+            semester=semester,
+            program=program,
+            exam_type=exam_type,
+            subject_code=subject_code,
+            file_hash=file_hash
+        )
+        
+        if not result.get('success'):
+            # Handle duplicate case
+            if result.get('conflict'):
+                return jsonify({'success': True, 'skipped': True, 'message': result.get('message', 'File already exists')}), 200
+            return jsonify({'success': False, 'message': result.get('message', 'Save failed')}), 500
+        
+        doc_data = result.get('data', {})
+        doc_id = doc_data.get('id')
+        
+        # Build response
+        document_payload = {
+            'id': doc_id,
+            'title': title,
+            'url': f"/resource/{doc_id}" if doc_id else secure_url,
+            'subject': subject,
+            'semester': semester,
+            'document_type': document_type
+        }
+        
+        xp_gained = 1.0
+        total_xp = 0.0
+        total_contributions = 1
+        try:
+            profile = session.get('profile') or {}
+            total_contributions = int(profile.get('total_contributions') or 0) + 1
+            xp_gained = getattr(current_app, 'POINTS_MAP', {}).get(document_type, 0.5) * 0.5
+            total_xp = float(profile.get('reputation_score') or 0) + xp_gained
+        except Exception:
+            pass
+        
+        contribution_payload = {
+            'xp_earned': xp_gained,
+            'total_xp': total_xp,
+            'total_contributions': total_contributions
+        }
+        
+        return jsonify({
+            'success': True,
+            'message': 'Document saved successfully!',
+            'document': document_payload,
+            'contribution': contribution_payload,
+            'data': {
+                'url': secure_url,
+                'record_id': doc_id,
+                'resource_id': doc_id,
+                'resource_url': f"/resource/{doc_id}" if doc_id else None,
+                'title': title,
+                'subject': subject,
+                'public_id': public_id,
+                'file_size': file_size,
+                'file_type': file_type
+            }
+        }), 200
+        
+    except Exception as e:
+        logging.error(f"[API /api/save-document] Error: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
+
+
 @api_bp.route('/api/check-duplicate', methods=['POST'])
 @auth_required
 def api_check_duplicate(user_data=None):
@@ -1749,7 +1888,10 @@ def view_doc(doc_id, filename=None):
         if is_paid_doc and (document.get('file_type') == 'pdf' or '.pdf' in str(document.get('file_url', '')).lower()):
             is_preview_mode = True
         else:
-            abort(402, description="Payment required to view or download this document.")
+            return jsonify({
+                'success': False,
+                'message': 'Payment required to view or download this document.'
+            }), 402
 
     file_url = document.get('file_url', '')
     if isinstance(file_url, (list, tuple)):
@@ -3036,5 +3178,4 @@ def dashboard_summary_api():
     except Exception as e:
         logging.error(f"[API /api/dashboard/summary] Error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
-
 

@@ -1469,15 +1469,17 @@ def suggest_endpoint():
 
 def search_v2_endpoint():
     """Unified Search Endpoint with tiered resolution and relaxation."""
-    q = request.args.get('q', '').strip()
+    q = request.args.get('q', '').strip()[:120]
     college_id = request.args.get('college_id')
     department_id = request.args.get('department_id') or request.args.get('branch')
     semester = request.args.get('semester') or request.args.get('sem')
     document_type = request.args.get('document_type') or request.args.get('type')
     subject = request.args.get('subject')
     year = request.args.get('year')
-    author = request.args.get('author')
+    author = request.args.get('author', '').strip()[:80] or None
     sort = request.args.get('sort', 'relevance')
+    if sort not in {'relevance', 'newest', 'oldest', 'views', 'popular'}:
+        sort = 'relevance'
 
     try:
         sem_int = int(semester) if semester and str(semester).isdigit() else None

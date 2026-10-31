@@ -1,0 +1,286 @@
+{# 
+  Psychological Auth Gate Overlay Component (Soft-Wall)
+  Usage: {% include 'includes/auth_gate_overlay.html' %}
+#}
+{% if not session.get('user') %}
+<style>
+  .auth-gate-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(15, 23, 42, 0.72);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    animation: authGateFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .auth-gate-backdrop.active {
+    display: flex;
+  }
+
+  @keyframes authGateFadeIn {
+    from { opacity: 0; transform: scale(0.98); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .auth-gate-card {
+    background: #ffffff;
+    max-width: 440px;
+    width: 100%;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35);
+    text-align: center;
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.6);
+  }
+
+  .auth-gate-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.35rem 0.85rem;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border-radius: 999px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-bottom: 1rem;
+    border: 1px solid #bfdbfe;
+  }
+
+  .auth-gate-dot {
+    width: 7px;
+    height: 7px;
+    background: #2563eb;
+    border-radius: 50%;
+    animation: authDotPulse 1.5s infinite;
+  }
+
+  @keyframes authDotPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.4; transform: scale(0.85); }
+  }
+
+  .auth-gate-title {
+    font-size: 1.45rem;
+    font-weight: 800;
+    color: #0f172a;
+    line-height: 1.25;
+    margin-bottom: 0.5rem;
+  }
+
+  .auth-gate-subtitle {
+    font-size: 0.92rem;
+    color: #475569;
+    line-height: 1.5;
+    margin-bottom: 1.4rem;
+  }
+
+  .auth-gate-perks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    margin-bottom: 1.5rem;
+    text-align: left;
+  }
+
+  .auth-gate-perk-item {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .auth-gate-btn-google {
+    width: 100%;
+    padding: 0.85rem;
+    background: #ffffff;
+    border: 1.5px solid #cbd5e1;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #0f172a;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    transition: all 0.2s ease;
+  }
+
+  .auth-gate-btn-google:hover {
+    background: #f8fafc;
+    border-color: #94a3b8;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .auth-gate-btn-email {
+    display: block;
+    width: 100%;
+    margin-top: 0.65rem;
+    padding: 0.75rem;
+    background: #0f172a;
+    color: #ffffff;
+    border-radius: 12px;
+    text-decoration: none;
+    font-size: 0.9rem;
+    font-weight: 600;
+    transition: background 0.2s;
+  }
+
+  .auth-gate-btn-email:hover {
+    background: #1e293b;
+  }
+
+  .auth-gate-micro-copy {
+    margin-top: 0.85rem;
+    font-size: 0.75rem;
+    color: #64748b;
+  }
+
+  .auth-gate-close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: #f1f5f9;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #64748b;
+    font-size: 1.1rem;
+    transition: all 0.2s;
+  }
+
+  .auth-gate-close-btn:hover {
+    background: #e2e8f0;
+    color: #0f172a;
+  }
+</style>
+
+<div class="auth-gate-backdrop" id="psychologicalAuthGate">
+  <div class="auth-gate-card">
+    <button type="button" class="auth-gate-close-btn" id="authGateCloseBtn" aria-label="Dismiss">&times;</button>
+    
+    <div class="auth-gate-badge">
+      <span class="auth-gate-dot"></span>
+      <span id="authGateBadgeText">🎁 FREE STUDENT PASS</span>
+    </div>
+
+    <h2 class="auth-gate-title" id="authGateTitle">Keep Your Study Flow Going</h2>
+    <p class="auth-gate-subtitle" id="authGateSubtitle">
+      You're doing great! Create a free student account in 1 tap to unlock the full document, auto-sync your notes, and claim 50 free AI tokens.
+    </p>
+
+    <div class="auth-gate-perks">
+      <div class="auth-gate-perk-item">
+        <span>⚡</span> <span>50 Free AI Credits</span>
+      </div>
+      <div class="auth-gate-perk-item">
+        <span>📱</span> <span>Sync Across Devices</span>
+      </div>
+      <div class="auth-gate-perk-item">
+        <span>📖</span> <span>Unlimited Reading</span>
+      </div>
+      <div class="auth-gate-perk-item">
+        <span>🏆</span> <span>Campus Leaderboard</span>
+      </div>
+    </div>
+
+    <a href="{{ url_for('auth.login') }}?next={{ request.path | urlencode }}" class="auth-gate-btn-google" id="authGateGoogleBtn">
+      <svg width="20" height="20" viewBox="0 0 24 24">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+      </svg>
+      Continue with Google (1-Tap)
+    </a>
+
+    <a href="{{ url_for('auth.signup') }}?next={{ request.path | urlencode }}" class="auth-gate-btn-email">
+      Create Free Account
+    </a>
+
+    <p class="auth-gate-micro-copy">
+      🔒 100% free · No spam · Instant activation
+    </p>
+  </div>
+</div>
+
+<script>
+  window.PsychologicalAuthGate = (function() {
+    const modal = document.getElementById('psychologicalAuthGate');
+    const titleEl = document.getElementById('authGateTitle');
+    const subEl = document.getElementById('authGateSubtitle');
+    const badgeEl = document.getElementById('authGateBadgeText');
+    const closeBtn = document.getElementById('authGateCloseBtn');
+
+    if (closeBtn && modal) {
+      closeBtn.addEventListener('click', () => {
+        modal.classList.remove('active');
+      });
+    }
+
+    const CONTEXT_PRESETS = {
+      reader: {
+        badge: "🔥 24 STUDENTS READING RIGHT NOW",
+        title: "Unlock The Full Study Document",
+        subtitle: "Join 12,000+ peers. Create a free account in 5 seconds to read all pages, make highlights, and save to your personal store room."
+      },
+      ai_summary: {
+        badge: "⚡ 50 FREE AI CREDITS WAITING",
+        title: "Extract Exam Answers with AI",
+        subtitle: "Get smart instant summaries, key formula cards, and revision flashcards generated directly from this document."
+      },
+      upload: {
+        badge: "✨ FILE READY FOR CLOUD SYNC",
+        title: "Save & Organize Your Document",
+        subtitle: "Your file is processed! Log in to claim your upload reputation points and access your papers on any mobile or desktop device."
+      },
+      exit_intent: {
+        badge: "⏳ DON'T LOSE YOUR PROGRESS",
+        title: "Save This Paper For Later?",
+        subtitle: "One tap with Google saves this document to your library so you won't have to search for it again before exams."
+      }
+    };
+
+    function trigger(type) {
+      if (!modal) return;
+      const preset = CONTEXT_PRESETS[type] || CONTEXT_PRESETS.reader;
+      if (titleEl) titleEl.textContent = preset.title;
+      if (subEl) subEl.textContent = preset.subtitle;
+      if (badgeEl) badgeEl.textContent = preset.badge;
+      modal.classList.add('active');
+    }
+
+    // Exit intent trigger (desktop mouse leaving window)
+    let exitTriggered = false;
+    document.addEventListener('mouseleave', (e) => {
+      if (e.clientY <= 0 && !exitTriggered && modal && !modal.classList.contains('active')) {
+        exitTriggered = true;
+        trigger('exit_intent');
+      }
+    });
+
+    return { trigger };
+  })();
+</script>
+{% endif %}

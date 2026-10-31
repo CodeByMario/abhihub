@@ -1,0 +1,34 @@
+# AbhiHub robots.txt - Block junk crawlers to improve server load
+
+# Block SEO scrapers and bad bots
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+# For all other crawlers - block API and login access
+User-agent: *
+Disallow: /api/
+Disallow: /login
+Disallow: /auth
+Disallow: /settings
+Disallow: /store-room
+Disallow: /admin
+Disallow: /upload
+
+# Allow sitemap and important pages
+Allow: /
+Allow: /sitemap.xml
+Allow: /college/
+Allow: /subject/
+Allow: /resource/

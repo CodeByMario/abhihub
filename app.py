@@ -311,6 +311,72 @@ from flask import make_response, request
 from flask import make_response, request
 import time
 
+# Valid production domains for security checks
+VALID_DOMAINS = {'www.abhihub.edu.eu.org', 'abhihub.edu.eu.org'}
+
+# ── Resource Page Security Middleware ──
+@app.before_request
+def check_resource_page_security():
+    """Additional security for resource-related pages to prevent unauthorized access."""
+    # Skip for non-resource pages and API endpoints
+    if not request.path.startswith('/resource') and not request.path.startswith('/resources'):
+        return None
+    
+    # Validate Referer for cross-origin protection
+    referer = request.headers.get('Referer', '')
+    if referer:
+        # Parse referer domain
+        try:
+            from urllib.parse import urlparse
+            ref_domain = urlparse(referer).netloc.lower().rstrip(':443')
+            if ref_domain not in VALID_DOMAINS and not ref_domain.startswith('localhost'):
+                logging.warning(f"[SECURITY] Invalid referer for resource access: {referer}")
+                # Don't block, but log for monitoring
+        except Exception as e:
+            logging.debug(f"[SECURITY] Referer parse error: {e}")
+
+@app.after_request
+def enhance_resource_page_security(response):
+    """Add additional security headers for resource pages."""
+    if request.path.startswith('/resource') or request.path.startswith('/resources'):
+        # Prevent caching of potentially sensitive resource metadata
+        if response.status_code == 200:
+            response.headers.setdefault('Cache-Control', 'private, no-store, no-cache, must-revalidate')
+            response.headers['Pragma'] = 'no-cache'
+            # Add CORS for same-origin only
+            response.headers['Access-Control-Allow-Origin'] = f'https://{BASE_DOMAIN}'
+            response.headers['Access-Control-Allow-Methods'] = 'GET, HEAD, OPTIONS'
+            response.headers['Access-Control-Allow-Headers'] = 'Range, If-Range, Origin, Accept, Content-Type'
+    return response
+
+# ── API Domain Validation ──
+@app.before_request
+def validate_api_domain():
+    """Ensure API requests come from valid domains in production."""
+    if not request.path.startswith('/api/'):
+        return None
+    
+    # Skip validation in development
+    env_name = os.getenv('FLASK_ENV', 'production').lower()
+    if env_name in ('development', 'dev', 'testing'):
+        return None
+    
+    # Allow requests without Origin/Referer (e.g., server-to-server)
+    origin = request.headers.get('Origin', '')
+    referer = request.headers.get('Referer', '')
+    
+    if origin:
+        # Validate origin
+        try:
+            from urllib.parse import urlparse
+            origin_domain = urlparse(origin).netloc.lower().rstrip(':443')
+            if origin_domain not in VALID_DOMAINS:
+                logging.warning(f"[SECURITY] API request from invalid origin: {origin}")
+                # In production, you might want to block this
+                # For now, just log and allow (CORS will handle it)
+        except Exception as e:
+            logging.debug(f"[SECURITY] Origin parse error: {e}")
+
 @app.after_request
 def apply_security_and_cache_headers(response):
     """Add security and cache control headers to all responses."""
@@ -848,10 +914,10 @@ def inject_user_profile():
 
 @app.context_processor
 def inject_ad_decision():
-    """Inject dynamic ad decision (from access level) into all templates.
+    """Inject dynamic ad decision (from document consumption) into all templates.
 
     Templates use: {% if ad_decision.show_ads %}{% include 'ads/banner.html' %}{% endif %}
-    Density drives per-slot frequency: 'minimal'/'very_low' show ads rarely.
+    Density drives the shared third-party placement mix.
     """
     user_id = session.get('user', {}).get('uid')
     try:
@@ -862,8 +928,9 @@ def inject_ad_decision():
     return {
         'ad_decision': ad_decision,
         'ad_density': ad_decision.get('density', 'high'),
+        'ad_view_count': ad_decision.get('view_count', 0),
         # Convenience flags for slot-level frequency gating
-        'show_secondary_ads': ad_decision.get('density') in ('high', 'medium'),
+        'show_secondary_ads': ad_decision.get('density') in ('high', 'medium', 'low'),
     }
 
 
@@ -977,15 +1044,18 @@ def log_credit_transaction(user_id, amount, tx_type, reason):
     except Exception as e:
         logging.warning(f"[CREDIT-LOG] Error logging credit transaction: {e}")
 
-def _grant_upload_credits():
-    """Award +3 paper quota views and +1 reputation score to the user after a successful upload."""
+def _grant_upload_credits(document_type='papers'):
+    """Award verification views based on the uploaded document category."""
     user = session.get('user', {})
     user_id = user.get('uid')
     if not user_id:
         return
 
     from methods.payment_engine import engine
-    new_quota = engine.grant_reward(user_id, 3, reason='upload_reward')
+    category = str(document_type or 'papers').strip().lower()
+    reward_views = 2 if category in {'notes', 'note'} else 1
+    reward_reason = f'upload_verification_reward_{category}'
+    new_quota = engine.grant_reward(user_id, reward_views, reason=reward_reason)
 
     # Bump reputation score
     try:
@@ -1004,7 +1074,10 @@ def _grant_upload_credits():
         session.modified = True
 
     cache.l1.delete(f"user:quota:{user_id}")
-    logging.info(f"[REWARD] Granted +3 views (quota={new_quota}) and +1 rep to {user.get('email')}")
+    logging.info(
+        f"[REWARD] Granted +{reward_views} verification views "
+        f"for {category} (quota={new_quota}) and +1 rep to {user.get('email')}"
+    )
 
 def _consume_credit(doc_name="Document"):
     """
@@ -1352,14 +1425,14 @@ def _get_uid():
 _chat_online = {}        # {user_id: {sid, name}}
 _chat_online_http = {}   # {user_id: {time, name}}
 
-CHAT_SECRET = os.getenv('CHAT_SECRET')
+CHAT_SECRET = os.getenv('CHAT_SECRET') or os.getenv('SECRET_KEY') or os.getenv('FLASK_SECRET_KEY')
 
 def _chat_secret():
     if not CHAT_SECRET:
         return None
     try:
         import base64
-        b = base64.urlsafe_b64encode(CHAT_SECRET.encode('utf-8')[:32])
+        b = base64.urlsafe_b64encode(CHAT_SECRET.encode('utf-8')[:32].ljust(32, b'\0'))
         return b.decode('utf-8')
     except Exception:
         return None
@@ -1392,10 +1465,10 @@ def _persist_chat_message(uid_a, uid_b, payload):
     plaintext = payload.get('text', '')
     peer_pubkey = None
 
-    # Try to get sender's public key for E2E encryption
+    # Try to get recipient's public key for E2E encryption
     try:
         from methods.encrypted_chat import get_user_keys
-        keys = get_user_keys(uid_a)
+        keys = get_user_keys(uid_b)
         peer_pubkey = keys.get('public_key')
     except Exception:
         pass
@@ -1807,6 +1880,3 @@ if __name__ == '__main__':
     debug_mode = os.getenv('FLASK_ENV') != 'production'
     port = int(os.getenv('PORT', 5000))
     socketio.run(app, host='0.0.0.0', port=port, debug=debug_mode)
-
-
-

@@ -1,0 +1,837 @@
+{% set seo_title = "Retro Phone Arcade — Snake & Mario | AbhiHub" %}
+{% set seo_description = "Play classic retro Snake and Mario inside a nostalgic keypad phone! Full retro mobile keypad with tactile controls, audio, and haptics on PC and mobile." %}
+{% set disable_ads = true %}
+
+{% extends 'p_struct.html' %}
+{% block page_head %}
+<style>
+  :root {
+    --phone-body: #1e293b;
+    --phone-border: #334155;
+    --phone-accent: #38bdf8;
+    --lcd-bg: #9bbc0f;
+    --lcd-dark: #0f380f;
+    --lcd-pixel: #306230;
+    --key-bg: #0f172a;
+    --key-text: #e2e8f0;
+    --key-border: #475569;
+  }
+
+  body {
+    background: #020617;
+    color: #f8fafc;
+    overflow-x: hidden;
+    user-select: none;
+    -webkit-user-select: none;
+    touch-action: manipulation;
+  }
+
+  .retro-arcade-wrap {
+    max-width: 440px;
+    margin: 1rem auto 2.5rem;
+    padding: 0 0.75rem;
+    font-family: 'Courier New', Courier, monospace;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Top bar */
+  .retro-top-nav {
+    width: 100%;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+    font-family: 'Kanit', sans-serif;
+  }
+
+  .nav-back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    color: #94a3b8;
+    text-decoration: none;
+    font-size: 0.82rem;
+    font-weight: 600;
+    background: rgba(255, 255, 255, 0.06);
+    padding: 0.35rem 0.75rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+  }
+
+  .game-mode-pills {
+    display: flex;
+    gap: 0.3rem;
+  }
+
+  .mode-pill {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #cbd5e1;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.35rem 0.7rem;
+    border-radius: 8px;
+    cursor: pointer;
+    font-family: 'Kanit', sans-serif;
+  }
+
+  .mode-pill.active {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #38bdf8;
+  }
+
+  /* THE KEYPAD PHONE CASING */
+  .phone-chassis {
+    width: 100%;
+    max-width: 380px;
+    background: linear-gradient(165deg, #334155 0%, #1e293b 50%, #0f172a 100%);
+    border-radius: 44px;
+    padding: 1.25rem 1.15rem 1.5rem;
+    border: 4px solid #475569;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8),
+                inset 0 2px 4px rgba(255, 255, 255, 0.2),
+                inset 0 -4px 6px rgba(0, 0, 0, 0.5);
+    position: relative;
+  }
+
+  /* Earpiece slit & logo */
+  .phone-earpiece {
+    width: 50px;
+    height: 5px;
+    background: #0f172a;
+    border-radius: 99px;
+    margin: 0 auto 0.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.15);
+  }
+
+  .phone-brand {
+    text-align: center;
+    font-size: 0.85rem;
+    font-weight: 900;
+    letter-spacing: 0.25em;
+    color: #cbd5e1;
+    margin-bottom: 0.75rem;
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+  }
+
+  /* LCD Screen Bezel */
+  .screen-bezel {
+    background: #0f172a;
+    border-radius: 18px;
+    padding: 0.6rem;
+    border: 2px solid #334155;
+    box-shadow: inset 0 3px 8px rgba(0, 0, 0, 0.8);
+    margin-bottom: 1.25rem;
+  }
+
+  /* Authentic Green LCD Screen */
+  .lcd-display {
+    background: var(--lcd-bg);
+    border-radius: 10px;
+    overflow: hidden;
+    position: relative;
+    box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.4);
+    border: 2px solid #8bac0f;
+  }
+
+  /* LCD Status Header */
+  .lcd-header {
+    background: #8bac0f;
+    color: var(--lcd-dark);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.72rem;
+    font-weight: 900;
+    border-bottom: 1px solid #306230;
+  }
+
+  /* Game Canvas on LCD */
+  #lcdCanvas {
+    display: block;
+    width: 100%;
+    aspect-ratio: 4 / 3;
+    background: var(--lcd-bg);
+    image-rendering: pixelated;
+  }
+
+  /* LCD Game Message Overlay */
+  .lcd-overlay {
+    position: absolute;
+    inset: 0;
+    background: rgba(155, 188, 15, 0.92);
+    color: var(--lcd-dark);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1rem;
+    font-weight: 900;
+  }
+
+  .lcd-overlay.hidden {
+    display: none;
+  }
+
+  .lcd-overlay h3 {
+    margin: 0 0 0.4rem;
+    font-size: 1.2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .lcd-overlay p {
+    font-size: 0.75rem;
+    margin: 0 0 0.85rem;
+    line-height: 1.3;
+  }
+
+  .lcd-btn {
+    background: var(--lcd-dark);
+    color: var(--lcd-bg);
+    border: none;
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    font-family: inherit;
+    font-weight: 900;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+
+  /* KEYPAD SECTION */
+  .keypad-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  /* Nav softkeys + D-Pad row */
+  .nav-controls-row {
+    display: grid;
+    grid-template-columns: 1fr 1.6fr 1fr;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .softkey-col {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .btn-soft {
+    background: linear-gradient(180deg, #334155, #1e293b);
+    border: 1px solid #475569;
+    border-radius: 8px;
+    color: #cbd5e1;
+    font-weight: 800;
+    font-size: 0.72rem;
+    padding: 0.5rem 0.25rem;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #0f172a;
+    text-align: center;
+  }
+
+  .btn-soft:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #0f172a;
+  }
+
+  .btn-call {
+    color: #4ade80 !important;
+    font-size: 0.95rem;
+  }
+
+  .btn-end {
+    color: #f87171 !important;
+    font-size: 0.95rem;
+  }
+
+  /* Central D-PAD */
+  .dpad-cluster {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    grid-template-rows: repeat(3, 1fr);
+    gap: 3px;
+    width: 130px;
+    height: 130px;
+    margin: 0 auto;
+    background: #0f172a;
+    padding: 6px;
+    border-radius: 50%;
+    border: 2px solid #334155;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+  }
+
+  .dpad-arrow {
+    background: linear-gradient(180deg, #334155, #1e293b);
+    border: 1px solid #475569;
+    color: #e2e8f0;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 1rem;
+    touch-action: manipulation;
+  }
+
+  .dpad-arrow:active {
+    background: #38bdf8;
+    color: #0f172a;
+  }
+
+  .dpad-center {
+    background: linear-gradient(180deg, #0284c7, #0369a1);
+    color: #ffffff;
+    font-weight: 900;
+    font-size: 0.75rem;
+    border-radius: 50%;
+    border: 2px solid #38bdf8;
+  }
+
+  /* 3x4 Number Keypad */
+  .numeric-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+  }
+
+  .key-num {
+    background: linear-gradient(180deg, #1e293b, #0f172a);
+    border: 1.5px solid #334155;
+    border-radius: 12px;
+    padding: 0.45rem 0.25rem;
+    color: #f1f5f9;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #020617;
+    touch-action: manipulation;
+  }
+
+  .key-num:active {
+    transform: translateY(2px);
+    box-shadow: 0 1px 0 #020617;
+    background: #334155;
+  }
+
+  .key-main {
+    font-size: 1.15rem;
+    font-weight: 900;
+    line-height: 1;
+  }
+
+  .key-sub {
+    font-size: 0.55rem;
+    color: #94a3b8;
+    letter-spacing: 0.1em;
+    margin-top: 2px;
+  }
+
+  /* Quick Helper Legend */
+  .keyboard-guide {
+    text-align: center;
+    font-size: 0.75rem;
+    color: #64748b;
+    margin-top: 1rem;
+    font-family: 'Kanit', sans-serif;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="retro-arcade-wrap">
+  <!-- Top Switcher -->
+  <div class="retro-top-nav">
+    <a href="{{ url_for('library.pyq_landing') }}" class="nav-back-btn">
+      ← Back
+    </a>
+
+    <div class="game-mode-pills">
+      <button class="mode-pill active" id="btnModeSnake" onclick="setPhoneGame('snake')">🐍 Snake</button>
+      <button class="mode-pill" id="btnModeBird" onclick="setPhoneGame('bird')">🐦 Flappy Bird</button>
+    </div>
+  </div>
+
+  <!-- THE RETRO NOKIA PHONE -->
+  <div class="phone-chassis">
+    <div class="phone-earpiece"></div>
+    <div class="phone-brand">ABHIHUB 3310</div>
+
+    <!-- LCD Screen -->
+    <div class="screen-bezel">
+      <div class="lcd-display">
+        <div class="lcd-header">
+          <span id="lcdGameTitle">SNAKE II</span>
+          <span id="lcdScore">000</span>
+          <span>🔋 100%</span>
+        </div>
+
+        <canvas id="lcdCanvas" width="320" height="240"></canvas>
+
+        <div class="lcd-overlay" id="lcdOverlay">
+          <h3 id="lcdOverlayHeading">SNAKE II</h3>
+          <p id="lcdOverlayText">Use D-Pad or Keys 2, 4, 6, 8 to steer.</p>
+          <button class="lcd-btn" onclick="startCurrentGame()">START [OK]</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phone Keypad -->
+    <div class="keypad-section">
+      <!-- Softkeys + Nav Cluster -->
+      <div class="nav-controls-row">
+        <!-- Left Softkeys -->
+        <div class="softkey-col">
+          <button class="btn-soft" onclick="pressSoftLeft()">SELECT</button>
+          <button class="btn-soft btn-call" onclick="startCurrentGame()">📞</button>
+        </div>
+
+        <!-- D-PAD Navigation -->
+        <div class="dpad-cluster">
+          <div style="grid-column: 2;">
+            <button class="dpad-arrow" style="width:100%; height:100%;" onclick="phoneAction('UP')">▲</button>
+          </div>
+          <div style="grid-row: 2; grid-column: 1;">
+            <button class="dpad-arrow" style="width:100%; height:100%;" onclick="phoneAction('LEFT')">◀</button>
+          </div>
+          <div style="grid-row: 2; grid-column: 2;">
+            <button class="dpad-arrow dpad-center" style="width:100%; height:100%;" onclick="phoneAction('OK')">OK</button>
+          </div>
+          <div style="grid-row: 2; grid-column: 3;">
+            <button class="dpad-arrow" style="width:100%; height:100%;" onclick="phoneAction('RIGHT')">▶</button>
+          </div>
+          <div style="grid-row: 3; grid-column: 2;">
+            <button class="dpad-arrow" style="width:100%; height:100%;" onclick="phoneAction('DOWN')">▼</button>
+          </div>
+        </div>
+
+        <!-- Right Softkeys -->
+        <div class="softkey-col">
+          <button class="btn-soft" onclick="pressSoftRight()">PAUSE</button>
+          <button class="btn-soft btn-end" onclick="pressSoftEnd()">✕</button>
+        </div>
+      </div>
+
+      <!-- 3x4 Classic Nokia Numeric Pad -->
+      <div class="numeric-keypad">
+        <button class="key-num" onclick="keyPressSound();">
+          <span class="key-main">1</span>
+          <span class="key-sub">. , '</span>
+        </button>
+        <button class="key-num" onclick="phoneAction('UP')">
+          <span class="key-main">2</span>
+          <span class="key-sub">▲ ABC</span>
+        </button>
+        <button class="key-num" onclick="keyPressSound();">
+          <span class="key-main">3</span>
+          <span class="key-sub">DEF</span>
+        </button>
+
+        <button class="key-num" onclick="phoneAction('LEFT')">
+          <span class="key-main">4</span>
+          <span class="key-sub">◀ GHI</span>
+        </button>
+        <button class="key-num" onclick="phoneAction('OK')">
+          <span class="key-main">5</span>
+          <span class="key-sub">● JKL</span>
+        </button>
+        <button class="key-num" onclick="phoneAction('RIGHT')">
+          <span class="key-main">6</span>
+          <span class="key-sub">▶ MNO</span>
+        </button>
+
+        <button class="key-num" onclick="keyPressSound();">
+          <span class="key-main">7</span>
+          <span class="key-sub">PQRS</span>
+        </button>
+        <button class="key-num" onclick="phoneAction('DOWN')">
+          <span class="key-main">8</span>
+          <span class="key-sub">▼ TUV</span>
+        </button>
+        <button class="key-num" onclick="keyPressSound();">
+          <span class="key-main">9</span>
+          <span class="key-sub">WXYZ</span>
+        </button>
+
+        <button class="key-num" onclick="keyPressSound();">
+          <span class="key-main">*</span>
+          <span class="key-sub">+</span>
+        </button>
+        <button class="key-num" onclick="phoneAction('DOWN')">
+          <span class="key-main">0</span>
+          <span class="key-sub">_</span>
+        </button>
+        <button class="key-num" onclick="phoneAction('OK')">
+          <span class="key-main">#</span>
+          <span class="key-sub">⇧</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <div class="keyboard-guide">
+    💻 PC Controls: Arrow Keys or 2/4/6/8 • Space for OK/Jump
+  </div>
+</div>
+
+<script>
+  // Audio Synthesizer (Nokia Keypad Tone)
+  let audioCtx = null;
+  function getAudioCtx() {
+    if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    return audioCtx;
+  }
+
+  function playBeep(freq, duration = 0.05) {
+    try {
+      const ctx = getAudioCtx();
+      const osc = ctx.createOscillator();
+      const gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(freq, ctx.currentTime);
+      gain.gain.setValueAtTime(0.08, ctx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + duration);
+      osc.connect(gain);
+      gain.connect(ctx.destination);
+      osc.start();
+      osc.stop(ctx.currentTime + duration);
+    } catch(e) {}
+  }
+
+  function keyPressSound() {
+    playBeep(850, 0.04);
+    if (navigator.vibrate) navigator.vibrate(15);
+  }
+
+  // GAME ENGINE WRAPPER (Snake & Mario on LCD)
+  let currentMode = 'snake'; // 'snake' or 'mario'
+  const canvas = document.getElementById('lcdCanvas');
+  const ctx = canvas.getContext('2d');
+  const overlay = document.getElementById('lcdOverlay');
+  const scoreLabel = document.getElementById('lcdScore');
+  let isRunning = false;
+  let isPaused = false;
+  let gameInterval = null;
+
+  function setPhoneGame(mode) {
+    keyPressSound();
+    currentMode = mode;
+    document.getElementById('btnModeSnake').classList.toggle('active', mode === 'snake');
+    document.getElementById('btnModeBird').classList.toggle('active', mode === 'bird');
+    document.getElementById('lcdGameTitle').innerText = mode === 'snake' ? 'SNAKE II' : 'FLAPPY BIRD';
+    document.getElementById('lcdOverlayHeading').innerText = mode === 'snake' ? 'SNAKE II' : 'FLAPPY BIRD';
+    document.getElementById('lcdOverlayText').innerText = mode === 'snake' ? 'Steer with D-Pad or Keys 2, 4, 6, 8' : 'Press OK / 5 / Space to Flap!';
+    stopGame();
+    overlay.classList.remove('hidden');
+  }
+
+  function stopGame() {
+    isRunning = false;
+    isPaused = false;
+    if (gameInterval) clearInterval(gameInterval);
+    if (birdAnim) cancelAnimationFrame(birdAnim);
+  }
+
+  function startCurrentGame() {
+    keyPressSound();
+    overlay.classList.add('hidden');
+    stopGame();
+    isRunning = true;
+    if (currentMode === 'snake') {
+      startSnakeGame();
+    } else {
+      startBirdGame();
+    }
+  }
+
+  function pressSoftLeft() {
+    if (!isRunning) startCurrentGame();
+  }
+
+  function pressSoftRight() {
+    keyPressSound();
+    if (isRunning) {
+      isPaused = !isPaused;
+      if (isPaused) {
+        document.getElementById('lcdOverlayHeading').innerText = 'PAUSED';
+        document.getElementById('lcdOverlayText').innerText = 'Press OK to continue.';
+        overlay.classList.remove('hidden');
+      } else {
+        overlay.classList.add('hidden');
+      }
+    }
+  }
+
+  function pressSoftEnd() {
+    keyPressSound();
+    stopGame();
+    document.getElementById('lcdOverlayHeading').innerText = 'STOPPED';
+    document.getElementById('lcdOverlayText').innerText = 'Press SELECT or OK to play.';
+    overlay.classList.remove('hidden');
+  }
+
+  // ──────────────────────────────────────────
+  // 1. NOKIA 3310 SNAKE ENGINE
+  // ──────────────────────────────────────────
+  const SNAKE_GRID = 16;
+  const COLS = 20; // 320 / 16
+  const ROWS = 15; // 240 / 16
+  let snake = [];
+  let food = { x: 10, y: 7 };
+  let dir = { x: 1, y: 0 };
+  let nextDir = { x: 1, y: 0 };
+  let snakeScore = 0;
+
+  function startSnakeGame() {
+    snake = [{ x: 5, y: 7 }, { x: 4, y: 7 }, { x: 3, y: 7 }];
+    dir = { x: 1, y: 0 };
+    nextDir = { x: 1, y: 0 };
+    snakeScore = 0;
+    scoreLabel.innerText = '000';
+    spawnSnakeFood();
+    gameInterval = setInterval(updateSnake, 120);
+  }
+
+  function spawnSnakeFood() {
+    food.x = Math.floor(Math.random() * COLS);
+    food.y = Math.floor(Math.random() * ROWS);
+  }
+
+  function updateSnake() {
+    if (isPaused) return;
+    dir = nextDir;
+    const head = { x: snake[0].x + dir.x, y: snake[0].y + dir.y };
+
+    // Wall loop or hit
+    if (head.x < 0 || head.x >= COLS || head.y < 0 || head.y >= ROWS) {
+      return onSnakeDeath();
+    }
+    // Self hit
+    for (let p of snake) {
+      if (head.x === p.x && head.y === p.y) return onSnakeDeath();
+    }
+
+    snake.unshift(head);
+    if (head.x === food.x && head.y === food.y) {
+      snakeScore += 10;
+      scoreLabel.innerText = String(snakeScore).padStart(3, '0');
+      playBeep(980, 0.08);
+      if (navigator.vibrate) navigator.vibrate(25);
+      spawnSnakeFood();
+    } else {
+      snake.pop();
+    }
+
+    drawSnake();
+  }
+
+  function onSnakeDeath() {
+    stopGame();
+    playBeep(180, 0.3);
+    if (navigator.vibrate) navigator.vibrate([80, 40, 100]);
+    document.getElementById('lcdOverlayHeading').innerText = 'GAME OVER';
+    document.getElementById('lcdOverlayText').innerText = `Score: ${snakeScore} pts`;
+    overlay.classList.remove('hidden');
+  }
+
+  function drawSnake() {
+    ctx.fillStyle = '#9bbc0f';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    // Food (Pixel Apple)
+    ctx.fillStyle = '#0f380f';
+    ctx.fillRect(food.x * SNAKE_GRID + 2, food.y * SNAKE_GRID + 2, SNAKE_GRID - 4, SNAKE_GRID - 4);
+
+    // Snake
+    snake.forEach((part, idx) => {
+      ctx.fillStyle = '#0f380f';
+      ctx.fillRect(part.x * SNAKE_GRID + 1, part.y * SNAKE_GRID + 1, SNAKE_GRID - 2, SNAKE_GRID - 2);
+      if (idx === 0) {
+        ctx.fillStyle = '#9bbc0f';
+        ctx.fillRect(part.x * SNAKE_GRID + 4, part.y * SNAKE_GRID + 4, 3, 3);
+      }
+    });
+  }
+
+  // ──────────────────────────────────────────
+  // 2. RETRO LCD FLAPPY BIRD ENGINE
+  // ──────────────────────────────────────────
+  let birdAnim = null;
+  let birdObj = { x: 50, y: 110, vy: 0, radius: 8 };
+  let birdPipes = [];
+  let birdScore = 0;
+  let birdFrame = 0;
+  const BIRD_GRAVITY = 0.42;
+  const BIRD_FLAP = -6.5;
+  const PIPE_GAP = 72;
+  const PIPE_WIDTH = 28;
+
+  function startBirdGame() {
+    birdObj.y = 110;
+    birdObj.vy = 0;
+    birdPipes = [];
+    birdScore = 0;
+    birdFrame = 0;
+    scoreLabel.innerText = '000';
+    birdLoop();
+  }
+
+  function birdFlap() {
+    birdObj.vy = BIRD_FLAP;
+    playBeep(720, 0.08);
+    if (navigator.vibrate) navigator.vibrate(18);
+  }
+
+  function birdLoop() {
+    if (!isRunning) return;
+    if (!isPaused) {
+      birdFrame++;
+      birdObj.vy += BIRD_GRAVITY;
+      birdObj.y += birdObj.vy;
+
+      // Floor & ceiling collision
+      if (birdObj.y + birdObj.radius >= canvas.height || birdObj.y - birdObj.radius <= 0) {
+        return onBirdDeath();
+      }
+
+      // Spawn pipes
+      if (birdFrame % 80 === 0) {
+        const minH = 35;
+        const maxH = canvas.height - PIPE_GAP - minH;
+        const topH = Math.floor(Math.random() * (maxH - minH + 1)) + minH;
+        birdPipes.push({
+          x: canvas.width + 10,
+          top: topH,
+          bottom: topH + PIPE_GAP,
+          passed: false
+        });
+      }
+
+      // Move & check pipes
+      for (let i = birdPipes.length - 1; i >= 0; i--) {
+        const pipe = birdPipes[i];
+        pipe.x -= 3.5;
+
+        // Collision box
+        if (
+          birdObj.x + birdObj.radius > pipe.x &&
+          birdObj.x - birdObj.radius < pipe.x + PIPE_WIDTH
+        ) {
+          if (birdObj.y - birdObj.radius < pipe.top || birdObj.y + birdObj.radius > pipe.bottom) {
+            return onBirdDeath();
+          }
+        }
+
+        // Score pass
+        if (!pipe.passed && pipe.x + PIPE_WIDTH < birdObj.x) {
+          pipe.passed = true;
+          birdScore += 1;
+          scoreLabel.innerText = String(birdScore).padStart(3, '0');
+          playBeep(920, 0.09);
+        }
+
+        if (pipe.x + PIPE_WIDTH < 0) {
+          birdPipes.splice(i, 1);
+        }
+      }
+
+      // Draw LCD Flappy Bird
+      ctx.fillStyle = '#9bbc0f';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+      // Pipes (Top and Bottom)
+      ctx.fillStyle = '#0f380f';
+      birdPipes.forEach(pipe => {
+        // Top pipe
+        ctx.fillRect(pipe.x, 0, PIPE_WIDTH, pipe.top);
+        ctx.fillRect(pipe.x - 3, pipe.top - 8, PIPE_WIDTH + 6, 8);
+        // Bottom pipe
+        ctx.fillRect(pipe.x, pipe.bottom, PIPE_WIDTH, canvas.height - pipe.bottom);
+        ctx.fillRect(pipe.x - 3, pipe.bottom, PIPE_WIDTH + 6, 8);
+      });
+
+      // Bird pixel avatar
+      ctx.fillStyle = '#0f380f';
+      ctx.beginPath();
+      ctx.arc(birdObj.x, birdObj.y, birdObj.radius, 0, Math.PI * 2);
+      ctx.fill();
+
+      // Wing & Beak
+      ctx.fillStyle = '#9bbc0f';
+      ctx.fillRect(birdObj.x - 4, birdObj.y - 2, 5, 4);
+      ctx.fillStyle = '#0f380f';
+      ctx.fillRect(birdObj.x + birdObj.radius - 2, birdObj.y - 2, 5, 4);
+    }
+
+    birdAnim = requestAnimationFrame(birdLoop);
+  }
+
+  function onBirdDeath() {
+    stopGame();
+    playBeep(180, 0.3);
+    if (navigator.vibrate) navigator.vibrate([80, 40, 100]);
+    document.getElementById('lcdOverlayHeading').innerText = 'GAME OVER';
+    document.getElementById('lcdOverlayText').innerText = `Score: ${birdScore} pipes`;
+    overlay.classList.remove('hidden');
+  }
+
+  // ──────────────────────────────────────────
+  // KEYPAD ACTIONS DISPATCHER
+  // ──────────────────────────────────────────
+  function phoneAction(action) {
+    keyPressSound();
+    if (!isRunning) {
+      if (action === 'OK') startCurrentGame();
+      return;
+    }
+
+    if (currentMode === 'snake') {
+      if (action === 'UP' && dir.y === 0) nextDir = { x: 0, y: -1 };
+      else if (action === 'DOWN' && dir.y === 0) nextDir = { x: 0, y: 1 };
+      else if (action === 'LEFT' && dir.x === 0) nextDir = { x: -1, y: 0 };
+      else if (action === 'RIGHT' && dir.x === 0) nextDir = { x: 1, y: 0 };
+      else if (action === 'OK') pressSoftRight();
+    } else {
+      if (['UP', 'OK', 'DOWN'].includes(action)) birdFlap();
+    }
+  }
+
+  // PC Keyboard Mapping
+  window.addEventListener('keydown', (e) => {
+    if (['ArrowUp', 'KeyW', 'Numpad8'].includes(e.code)) {
+      e.preventDefault();
+      phoneAction('UP');
+    } else if (['ArrowDown', 'KeyS', 'Numpad2'].includes(e.code)) {
+      e.preventDefault();
+      phoneAction('DOWN');
+    } else if (['ArrowLeft', 'KeyA', 'Numpad4'].includes(e.code)) {
+      e.preventDefault();
+      phoneAction('LEFT');
+    } else if (['ArrowRight', 'KeyD', 'Numpad6'].includes(e.code)) {
+      e.preventDefault();
+      phoneAction('RIGHT');
+    } else if (['Space', 'Enter', 'Numpad5'].includes(e.code)) {
+      e.preventDefault();
+      phoneAction('OK');
+    }
+  });
+
+  // Touch on LCD directly flaps or starts
+  canvas.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    if (!isRunning) startCurrentGame();
+    else if (currentMode === 'bird') birdFlap();
+  });
+</script>
+{% endblock %}

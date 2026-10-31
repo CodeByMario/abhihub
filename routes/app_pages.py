@@ -571,6 +571,8 @@ def upload():
             description_val = request.form.get('description', '').strip()
             program = request.form.get('program', 'b.tech').strip() or 'b.tech'
             unit = request.form.get('unit', '')
+            exam_type = request.form.get('exam_type', '').strip() or ''
+            subject_code = request.form.get('subject_code', '').strip().upper()
 
             price_raw = request.form.get('price', '').strip()
             coupon_raw = request.form.get('coupon_code', '').strip().upper()
@@ -612,23 +614,7 @@ def upload():
             }
             cloudinary_folder = folder_map.get(doc_type, 'uploads')
 
-            # 1. FIRST: Upload file directly to Cloudinary
-            from methods.cloudinary_upload import upload_file_to_cloudinary
-            upload_result = upload_file_to_cloudinary(
-                file_data=file,
-                filename=file.filename,
-                user_id=user_id or user_name.replace(' ', '_'),
-                folder=cloudinary_folder,
-                compress=True
-            )
-
-            if not upload_result.get('success'):
-                return jsonify(
-                    success=False,
-                    message=f"Upload failed: {upload_result.get('error', 'Unknown error')}"
-                ), 500
-
-            # 2. NEXT: Verification of metadata and academic requirements
+            # Verification of metadata and academic requirements
             verification_issues = []
             if (not subject_id or subject_id == '__other__') and document_type.lower() != 'question_bank':
                 verification_issues.append(f"Subject selection is required (provided subject: '{subject or 'None'}')")
@@ -649,7 +635,6 @@ def upload():
             col_abbr = (request.form.get('college_abbr') or '').strip().upper()
             dept_abbr = (request.form.get('branch_abbr') or request.form.get('department_abbr') or '').strip().upper()
             subj_abbr = (request.form.get('subject_abbr') or '').strip().upper()
-            subject_code = (request.form.get('subject_code') or '').strip().upper()
 
             # Fast cache lookup for College, Department, Subject abbreviations
             global _ACRONYM_CACHE
@@ -734,7 +719,10 @@ def upload():
                 if program and str(program).lower() == 'mba':
                     title_val = re.sub(r'\bABA\b', 'MBA', title_val)
 
-            fn_components = [p for p in [col_abbr, dept_abbr, subj_abbr, subject_code, unit_clean, cat_title.replace(' ', ''), str(year)] if p]
+            fn_components = [p for p in [
+                col_abbr, dept_abbr, subj_abbr, subject_code, exam_type,
+                unit_clean, cat_title.replace(' ', ''), str(year)
+            ] if p]
             if fn_components:
                 _base = "_".join(re.sub(r'[^a-zA-Z0-9]', '', c) for c in fn_components)
             else:
@@ -754,11 +742,27 @@ def upload():
                 'zip': 'archive', 'rar': 'archive', '7z': 'archive'
             }.get(ext, 'file')
 
+            # Upload only after the canonical filename has been generated.
+            # The Cloudinary adapter stores PDFs under a .txt public id while
+            # preserving their PDF bytes and application/pdf delivery type.
+            from methods.cloudinary_upload import upload_file_to_cloudinary
+            upload_result = upload_file_to_cloudinary(
+                file_data=file,
+                filename=original_filename,
+                user_id=user_id or user_name.replace(' ', '_'),
+                folder=cloudinary_folder,
+                compress=True
+            )
+
+            if not upload_result.get('success'):
+                return jsonify(
+                    success=False,
+                    message=f"Upload failed: {upload_result.get('error', 'Unknown error')}"
+                ), 500
+
             logging.info(f"[UPLOAD] Uploader:{user_id} College:{college_id} Branch:{branch_id} Semester:{semester} Subject:{subject!r} SubjectID:{subject_id}")
 
             file_hash = request.form.get('file_hash', '').strip() or None
-            exam_type = request.form.get('exam_type', '').strip() or ''
-            subject_code = request.form.get('subject_code', '').strip() or ''
 
             _save_fn = getattr(app, 'save_file_record', None) or save_file_record
             file_record_result = _save_fn(
@@ -819,15 +823,51 @@ def upload():
                 except Exception as admin_rep_err:
                     logging.warning(f"[UPLOAD ADMIN REPORT NOTE] {admin_rep_err}")
 
-                doc_id = file_record_result.get('data', {}).get('id') if file_record_result.get('success') else None
+            if not file_record_result.get('success'):
                 return jsonify(
                     success=True,
                     pending_admin=True,
-                    message=f"File uploaded to cloud storage successfully! Flagged for admin verification ({err_detail}).",
+                    message=f"File uploaded to cloud storage and queued for admin review ({err_detail}).",
+                    file_url=upload_result['secure_url'],
+                    public_id=upload_result['public_id'],
+                    data={
+                        'record_id': None,
+                        'url': upload_result['secure_url'],
+                        'file_type': file_type_category,
+                        'is_paid': bool(pricing_data),
+                        'price': float(pricing_data.get('price', 0)) if pricing_data else 0.0,
+                        'public_id': upload_result['public_id']
+                    }
+                ), 200
+
+            if file_record_result.get('success'):
+                try:
+                    from methods.search_api import invalidate_search_cache
+                    invalidate_search_cache()
+                except Exception as cache_err:
+                    logging.warning(f"[UPLOAD] Search cache invalidation failed: {cache_err}")
+
+                doc_id = file_record_result.get('data', {}).get('id') if file_record_result.get('success') else None
+                upload_message = (
+                    f"File uploaded to cloud storage successfully! Flagged for admin verification ({err_detail})."
+                    if verification_issues else
+                    "File uploaded and published successfully."
+                )
+                return jsonify(
+                    success=True,
+                    pending_admin=True,
+                    message=upload_message,
                     file_url=upload_result['secure_url'],
                     public_id=upload_result['public_id'],
                     document={'id': doc_id, 'title': title_val, 'url': upload_result['secure_url']},
-                    data={'record_id': doc_id, 'url': upload_result['secure_url']}
+                    data={
+                        'record_id': doc_id,
+                        'url': upload_result['secure_url'],
+                        'file_type': file_type_category,
+                        'is_paid': bool(pricing_data),
+                        'price': float(pricing_data.get('price', 0)) if pricing_data else 0.0,
+                        'public_id': upload_result['public_id']
+                    }
                 ), 200
 
             doc_id = file_record_result.get('data', {}).get('id')
@@ -881,9 +921,8 @@ def upload():
                 daemon=True
             ).start()
 
-            app._grant_upload_credits()
-
             cat = document_type.lower()
+            app._grant_upload_credits(cat)
             raw_pts = app.POINTS_MAP.get(cat, app.DEFAULT_POINTS)
             xp_gained = round(raw_pts * 0.5, 2)
             new_score = 0.0
@@ -942,6 +981,8 @@ def upload():
                     'public_id': upload_result['public_id'],
                     'file_size': upload_result.get('bytes') or file_size,
                     'file_type': file_type_category,
+                    'is_paid': bool(pricing_data),
+                    'price': float(pricing_data.get('price', 0)) if pricing_data else 0.0,
                     'compressed': bool(upload_result.get('bytes') and upload_result['bytes'] < file_size),
                     'credits_granted': app.QUOTA_PER_UPLOAD,
                     'credits_remaining': app._get_quota().get('credits', 0),
@@ -1376,4 +1417,3 @@ def instagram_profile(user_id):
                            og_title=og_title,
                            og_description=og_description,
                            og_image=None)
-

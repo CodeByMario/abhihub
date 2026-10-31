@@ -164,13 +164,15 @@ def fulfill_order_transaction(order_id: str, verified_amount: float, doc_id: str
                 try:
                     from methods.payment_engine import engine
                     from cache_manager import get_cache
-                    new_q = engine.credit_views(
+                    if not engine.credit_views(
                         eff_uid,
                         pack_size,
                         reason='pack_purchase',
                         source='razorpay',
                         ref_id=order_id
-                    )
+                    ):
+                        raise RuntimeError("View credits could not be persisted")
+                    new_q = engine.get_view_balance(eff_uid)
                     if session:
                         session['paper_quota'] = {'credits': new_q, 'total_views': 0}
                         session.modified = True
@@ -260,4 +262,3 @@ def razorpay_webhook():
         logging.info(f'[RZP WEBHOOK] Payment failed for order: {order_id}')
 
     return jsonify({'status': 'ok'}), 200
-

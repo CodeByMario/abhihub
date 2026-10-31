@@ -17,6 +17,7 @@ All external I/O is mocked — no network, no real credentials needed.
 """
 
 import io
+import json
 import os
 import sys
 import unittest
@@ -234,6 +235,22 @@ class TestCloudinaryResourceTypeRouting(unittest.TestCase):
         result, m = self._upload_and_capture(PDF_BYTES, "lecture.pdf")
         self.assertTrue(m.call_args.kwargs["public_id"].endswith(".txt"),
                         "PDF public_id should end with .txt")
+        self.assertTrue(result["pdf_uploaded_as_txt"])
+        self.assertEqual(result["source_extension"], "pdf")
+        self.assertEqual(result["uploaded_extension"], "txt")
+
+    def test_compression_metadata_is_reported(self):
+        """The helper reports original and processed sizes for upload auditing."""
+        fake_resp = _fake_cld("lecture.pdf", "raw")
+        with patch.object(cloudinary_upload.cloudinary.uploader, "upload", return_value=fake_resp), \
+             patch("threading.Thread"):
+            result = cloudinary_upload.upload_file_to_cloudinary(
+                io.BytesIO(PDF_BYTES), "lecture.pdf", "u1", compress=True
+            )
+        self.assertTrue(result["compression_requested"])
+        self.assertEqual(result["original_bytes"], len(PDF_BYTES))
+        self.assertGreater(result["processed_bytes"], 0)
+        self.assertIn("compression_applied", result)
 
     def test_png_uploads_as_image(self):
         result, m = self._upload_and_capture(PNG_BYTES, "diagram.png")
@@ -372,6 +389,39 @@ class TestUploadRouteImages(unittest.TestCase):
         self.assertEqual(body["data"]["file_type"], "image")
 
 
+class TestUploadVerificationRewards(unittest.TestCase):
+    """Verification rewards vary by document category."""
+
+    def _grant_and_capture(self, document_type):
+        engine = MagicMock()
+        engine.grant_reward.return_value = 12
+        profile_query = MagicMock()
+        profile_query.execute.return_value = MagicMock(
+            data=[{"reputation_score": 4}]
+        )
+        supabase = MagicMock()
+        supabase.table.return_value.select.return_value.eq.return_value.limit.return_value = profile_query
+
+        with app_module.app.test_request_context("/upload"), \
+             patch.dict(app_module.session, {"user": {"uid": "user-1", "email": "u@example.com"}}, clear=True), \
+             patch("methods.payment_engine.engine", engine), \
+             patch.object(app_module, "supabase", supabase), \
+             patch.object(app_module.cache.l1, "delete"):
+            app_module._grant_upload_credits(document_type)
+
+        return engine.grant_reward.call_args
+
+    def test_notes_receive_two_verification_views(self):
+        args, kwargs = self._grant_and_capture("notes")
+        self.assertEqual(args[1], 2)
+        self.assertEqual(kwargs["reason"], "upload_verification_reward_notes")
+
+    def test_papers_receive_one_verification_view(self):
+        args, kwargs = self._grant_and_capture("papers")
+        self.assertEqual(args[1], 1)
+        self.assertEqual(kwargs["reason"], "upload_verification_reward_papers")
+
+
 class TestUploadRoutePDF(unittest.TestCase):
     """POST /upload with a PDF (mocked Cloudinary + DB)."""
 
@@ -407,6 +457,67 @@ class TestUploadRoutePDF(unittest.TestCase):
     def test_pdf_file_type_is_pdf(self):
         resp = self._post_pdf()
         self.assertEqual(resp.get_json()["data"]["file_type"], "pdf")
+
+    def test_route_sends_canonical_filename_to_cloudinary(self):
+        """Cloudinary receives the renamed academic filename, not paper.pdf."""
+        client = _session_client()
+        cld_rv = _fake_cld("canonical.pdf", "raw")
+        with patch("methods.cloudinary_upload.upload_file_to_cloudinary", return_value=cld_rv) as upload_mock, \
+             patch.object(app_module, "save_file_record", return_value=SAVE_OK), \
+             patch.object(app_module.csrf, "protect"), \
+             patch("threading.Thread"), \
+             patch("methods.supabase_helper.init_supabase", return_value=None):
+            response = client.post(
+                "/upload",
+                data={
+                    **BASE_FORM,
+                    "exam_type": "midsem",
+                    "subject_code": "CS201",
+                    "unit": "Unit 3",
+                    "upload_document": (io.BytesIO(PDF_BYTES), "paper.pdf"),
+                },
+                content_type="multipart/form-data",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        uploaded_name = upload_mock.call_args.kwargs["filename"]
+        self.assertTrue(uploaded_name.endswith(".pdf"))
+        for expected_part in ("CS201", "MIDSEM", "UNIT3", "NOTES", "2025"):
+            self.assertIn(expected_part, uploaded_name.upper())
+        self.assertNotEqual(uploaded_name.lower(), "paper.pdf")
+
+    def test_paid_upload_persists_price_and_pricing_payload(self):
+        """Paid uploads must persist a positive price and seller pricing metadata."""
+        client = _session_client()
+        cld_rv = _fake_cld("paid.pdf", "raw")
+        with patch("methods.cloudinary_upload.upload_file_to_cloudinary", return_value=cld_rv), \
+             patch.object(app_module, "save_file_record", return_value=SAVE_OK) as save_mock, \
+             patch.object(app_module.csrf, "protect"), \
+             patch("threading.Thread"), \
+             patch("methods.supabase_helper.init_supabase", return_value=None):
+            response = client.post(
+                "/upload",
+                data={
+                    **BASE_FORM,
+                    "price": "49",
+                    "coupon_code": "EXAM20",
+                    "coupon_discount": "20",
+                    "upload_document": (io.BytesIO(PDF_BYTES), "paid.pdf"),
+                },
+                content_type="multipart/form-data",
+            )
+
+        self.assertEqual(response.status_code, 200)
+        saved_description = save_mock.call_args.kwargs["description"]
+        pricing = json.loads(saved_description)["pricing"]
+        self.assertTrue(pricing["is_paid"])
+        self.assertEqual(pricing["price"], 49.0)
+        self.assertEqual(pricing["seller_id"], "test-uid-001")
+        self.assertEqual(pricing["coupon_code"], "EXAM20")
+        self.assertEqual(pricing["coupon_discount"], 20)
+        body = response.get_json()
+        self.assertTrue(body["data"]["is_paid"])
+        self.assertEqual(body["data"]["price"], 49.0)
 
     def test_pdf_document_id_returned(self):
         resp = self._post_pdf()
@@ -589,5 +700,3 @@ class TestPdfTxtRetrieval(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
-
-
