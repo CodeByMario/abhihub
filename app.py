@@ -26,6 +26,7 @@ import logging
 from urllib.parse import unquote
 from dotenv import load_dotenv
 from supabase import create_client, ClientOptions
+from observability.request_context import install_request_context
 
 # Load environment variables
 load_dotenv()
@@ -239,6 +240,7 @@ def _score_item(item: dict, tokens: list[str]) -> float:
 
 # Initialize Flask app
 app = Flask(__name__)
+install_request_context(app)
 
 from jinja2 import FileSystemLoader, TemplateNotFound
 

@@ -1104,6 +1104,9 @@ def api_save_document():
         secure_url = data.get('secure_url', '')
         file_size = data.get('bytes', 0)
         file_type = data.get('format', 'pdf')
+        original_filename = os.path.basename(
+            str(data.get('original_filename') or data.get('file_name') or '')
+        )
         
         # Document metadata
         title = (data.get('title') or '').strip()
@@ -1111,8 +1114,20 @@ def api_save_document():
         subject_id = data.get('subject_id', '')
         college_id = data.get('college_id', '')
         branch_id = data.get('branch_id', '')
-        document_type = (data.get('document_type') or 'notes').lower()
-        year = data.get('year', '')
+        document_type = (data.get('document_type') or 'notes').strip().lower()
+        document_type = {
+            'pyq': 'papers',
+            'paper': 'papers',
+            'question-paper': 'papers',
+            'question paper': 'papers',
+            'practicals': 'practical',
+            'lab': 'practical',
+            'question bank': 'question_bank',
+            'question-bank': 'question_bank',
+        }.get(document_type, document_type)
+        if document_type not in {'papers', 'notes', 'practical', 'syllabus', 'question_bank', 'assignment', 'timetable'}:
+            document_type = 'notes'
+        year = str(data.get('year', '') or '')
         semester = data.get('semester')
         description = data.get('description', '')
         exam_type = data.get('exam_type', '')
@@ -1149,7 +1164,7 @@ def api_save_document():
         result = save_file_record(
             user_id=user_id,
             user_email=user_email,
-            file_name=public_id.split('/')[-1].split('.')[0] if '/' in public_id else public_id,
+            file_name=original_filename or (public_id.split('/')[-1].split('.')[0] if '/' in public_id else public_id),
             file_url=secure_url,
             file_type=file_type if file_type in ('pdf', 'image', 'document') else 'pdf',
             file_size=file_size,

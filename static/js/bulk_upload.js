@@ -1097,6 +1097,7 @@ function buildFormData(item) {
     const semEl = form.querySelector('.semester-select');
     const subjEl = form.querySelector('.subject-select');
     const progEl = form.querySelector('.program-select');
+    const examEl = form.querySelector('[name="exam_type"]');
     const titleEl = form.querySelector('.meta-title') || form.querySelector('input[name="title"]');
     const descEl = form.querySelector('.meta-description') || form.querySelector('.meta-desc') || form.querySelector('textarea[name="description"]');
 
@@ -1145,7 +1146,8 @@ function buildFormData(item) {
       college_abbr: colAbbr,
       branch_abbr: deptAbbr,
       subject_abbr: subjAbbr,
-      subject_code: parsedSubjCode
+      subject_code: parsedSubjCode,
+      exam_type: examEl ? examEl.value.trim() : ''
     };
   }
   if (item.meta) {
@@ -1197,16 +1199,21 @@ function buildFormData(item) {
   }
   const origName = item.name || (item.file && item.file.name) || `file_${Date.now()}`;
   const ext = origName.includes('.') ? origName.split('.').pop().toLowerCase() : 'jpg';
-  const sanitize = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-  const code = sanitize(m.subject || '');
-  const docType = sanitize(m.type || '');
-  const year = sanitize(m.year || '2025');
+  const sanitize = s => (s || '').toString().replace(/[^a-zA-Z0-9]/g, '');
+  const year = (m.year || '2025').toString().replace(/\D/g, '') || '2025';
+  const category = (m.type || 'notes').replace(/_/g, ' ');
   const unit = sanitize(m.unit || '');
-  const randSuffix = Math.random().toString(36).slice(2, 7);
-  const parts = [code, docType, year];
-  if (unit) parts.push(unit);
-  parts.push(randSuffix);
-  const cleanName = parts.filter(Boolean).join('_') || `doc_${Date.now()}_${randSuffix}`;
+  const parts = [
+    sanitize(m.college_abbr),
+    sanitize(m.branch_abbr),
+    sanitize(m.subject_abbr),
+    sanitize(m.subject_code),
+    sanitize(m.exam_type),
+    unit,
+    sanitize(category),
+    year
+  ].filter(Boolean);
+  const cleanName = parts.join('_') || `upload_${Date.now()}`;
   const finalName = `${cleanName}.${ext}`;
 
   let fileObj = item.compressedBlob || item.blob || item.file;
@@ -1216,6 +1223,7 @@ function buildFormData(item) {
     fileObj = new File([fileObj], finalName, { type: fileObj.type });
   }
   fd.append('upload_document', fileObj, finalName);
+  fd.append('original_filename', finalName);
   return fd;
 }
 
@@ -1364,6 +1372,11 @@ async function uploadOne(item, retries) {
       } catch (e) {
         console.error('Unable to prepare renamed upload file', e);
       }
+      const preparedValue = (name, fallback = '') => (
+        preparedFormData && preparedFormData.get(name) != null
+          ? preparedFormData.get(name)
+          : fallback
+      );
 
       let sigRes = null;
       try {
@@ -1419,15 +1432,20 @@ async function uploadOne(item, retries) {
                           secure_url: uploadResult.secure_url,
                           bytes: uploadResult.bytes,
                           format: uploadResult.format,
-                          title: item.meta?.title || item.name,
-                          subject: item.meta?.subject || '',
-                          subject_id: item.meta?.subject_id || '',
-                          college_id: item.meta?.college_id || '',
-                          branch_id: item.meta?.branch_id || '',
-                          document_type: item.meta?.type || 'notes',
-                          year: item.meta?.year || new Date().getFullYear(),
-                          semester: item.meta?.semester || '',
-                          description: item.meta?.description || ''
+                          original_filename: preparedUploadFile?.name || item.name,
+                          title: preparedValue('title', item.meta?.title || item.name),
+                          subject: preparedValue('subject', item.meta?.subject || ''),
+                          subject_id: preparedValue('subject_id', item.meta?.subject_id || ''),
+                          college_id: preparedValue('college_id', item.meta?.college_id || ''),
+                          branch_id: preparedValue('branch_id', item.meta?.branch_id || ''),
+                          document_type: preparedValue('document_type', item.meta?.type || 'notes'),
+                          year: preparedValue('year', item.meta?.year || new Date().getFullYear()),
+                          semester: preparedValue('semester', item.meta?.semester || ''),
+                          description: preparedValue('description', item.meta?.description || ''),
+                          exam_type: preparedValue('exam_type'),
+                          subject_code: preparedValue('subject_code'),
+                          program: preparedValue('program', 'b.tech'),
+                          file_hash: item.fileHash || ''
                         })
                       });
           
