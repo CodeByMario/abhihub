@@ -1398,7 +1398,6 @@ async function uploadOne(item, retries) {
           formData.append('signature', sigRes.signature);
           formData.append('folder', sigRes.folder);
           if (sigRes.public_id) formData.append('public_id', sigRes.public_id);
-          if (sigRes.resource_type) formData.append('resource_type', sigRes.resource_type);
           formData.append('file', preparedUploadFile || item.file);
         
           const uploadResponse = await fetch(sigRes.upload_url, {
@@ -1406,7 +1405,7 @@ async function uploadOne(item, retries) {
             body: formData
           });
         
-          const uploadResult = await uploadResponse.json();
+          const uploadResult = await uploadResponse.json().catch(() => ({}));
         
           if (uploadResponse.ok && uploadResult.secure_url) {
                       // Upload succeeded - now save record via the new API endpoint with metadata
@@ -1473,11 +1472,30 @@ async function uploadOne(item, retries) {
                         return;
                       }
                     } else {
-                      // Cloudinary upload failed - fall back to server-side upload
-                      console.warn('Cloudinary direct upload failed, falling back to server', uploadResult);
+                      // Cloudinary upload failed - retain its actionable error.
+                      const cloudinaryMessage = uploadResult?.error?.message
+                        || uploadResult?.message
+                        || `Cloudinary upload failed (${uploadResponse.status})`;
+                      console.warn('Cloudinary direct upload failed', {
+                        status: uploadResponse.status,
+                        message: cloudinaryMessage
+                      });
+                      if (item.file && item.file.size > 4 * 1024 * 1024) {
+                        setFileStatus(item.id, 'error', 0, cloudinaryMessage);
+                        setItemStatus(item.id, 'error', 0, cloudinaryMessage, true);
+                        resolve({ ok: false, msg: cloudinaryMessage, item: item });
+                        return;
+                      }
                     }
                   } catch (e) {
                                       console.warn('Cloudinary upload error, falling back to server', e);
+                                      if (item.file && item.file.size > 4 * 1024 * 1024) {
+                                        const msg = e?.message || 'Cloudinary upload failed';
+                                        setFileStatus(item.id, 'error', 0, msg);
+                                        setItemStatus(item.id, 'error', 0, msg, true);
+                                        resolve({ ok: false, msg: msg, item: item });
+                                        return;
+                                      }
                                   }
                                 }
         

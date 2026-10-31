@@ -88,7 +88,6 @@ def get_upload_signature():
         public_id = f"{user_id}_{timestamp}_{stem}.txt"
         params.update({
             'public_id': public_id,
-            'resource_type': 'raw',
         })
     api_secret = os.getenv('CLOUDINARY_API_SECRET')
     cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME')
@@ -105,7 +104,7 @@ def get_upload_signature():
         'signature': signature,
         'folder': folder,
         'public_id': params.get('public_id'),
-        'resource_type': params.get('resource_type')
+        'resource_type': 'raw' if is_pdf else 'auto'
     }), 200
 
 
