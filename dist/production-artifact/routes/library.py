@@ -9,11 +9,12 @@ from flask import (
 from routes.auth import is_admin_user, auth_required, log_admin_action
 from routes.seo import sitemap_page, slugify
 from methods.supabase_helper import (
-    init_supabase, get_all_colleges, get_all_branches, get_college_by_slug,
+    init_supabase, init_supabase_admin, get_all_colleges, get_all_branches, get_college_by_slug,
     get_colleges_by_brand, get_college_stats, get_waitlist_count,
     get_recent_college_files, get_department_by_slug, get_department_stats,
     get_recent_department_files, get_subjects_by_slug, get_subject_stats,
     get_recent_subject_files, get_document_by_id_rich, get_leaderboard_data,
+    get_departments_by_college,
     log_notification
 )
 
@@ -170,9 +171,9 @@ def pyq_landing():
     colleges_res = get_all_colleges()
     colleges = colleges_res.get('data', [])
     try:
-        client = init_supabase()
+        client = init_supabase_admin() or init_supabase()
         if client:
-            raw = client.table('documents').select('college_id').execute()
+            raw = client.table('documents').select('college_id').eq('status', 'approved').execute()
             count_map = {}
             for row in (raw.data or []):
                 cid = row.get('college_id')
@@ -197,6 +198,16 @@ def search_page():
     """Public search page. Accepts ?q=... to prefill + auto-run search on load."""
     q = request.args.get('q', '').strip()
     return render_template('site/search.html', initial_query=q)
+
+
+def _canonical_college_redirect(college, requested_slug, suffix=''):
+    canonical_slug = slugify(college.get('abbreviation') or college.get('name'))
+    if requested_slug == canonical_slug:
+        return None
+    target = url_for('library.college_landing', college_slug=canonical_slug) + suffix
+    if request.query_string:
+        target = f"{target}?{request.query_string.decode('utf-8')}"
+    return redirect(target, code=301)
 
 
 @library_bp.route('/college/<college_slug>')
@@ -226,9 +237,9 @@ def college_landing(college_slug):
     college_id = college.get('id')
 
     # 3. If accessed via alias, 301-redirect
-    canonical_slug = slugify(college.get('abbreviation') or college.get('name'))
-    if college_slug != canonical_slug:
-        return redirect(f"{route_prefix}/{canonical_slug}", code=301)
+    canonical_redirect = _canonical_college_redirect(college, college_slug)
+    if canonical_redirect:
+        return canonical_redirect
 
     # 4. Check doc count
     stats = get_college_stats(college_id).get('data', {})
@@ -241,7 +252,7 @@ def college_landing(college_slug):
                                noindex=True)
 
     recent_files = get_recent_college_files(college_id, limit=6).get('data', [])
-    departments = get_all_branches().get('data', [])
+    departments = get_departments_by_college(college_id).get('data', [])
 
     return render_template('college.html',
                            college=college,
@@ -259,7 +270,7 @@ def pyq_college_legacy_redirect(college_slug):
 @library_bp.route('/college/<college_slug>/files')
 def college_files(college_slug):
     """College files listing with filters, search, and pagination."""
-    client = init_supabase()
+    client = init_supabase_admin() or init_supabase()
     if not client:
         abort(500, description='Database client unavailable')
 
@@ -268,6 +279,9 @@ def college_files(college_slug):
         abort(404)
     college = college_res.get('data')
     college_id = college.get('id')
+    canonical_redirect = _canonical_college_redirect(college, college_slug, '/files')
+    if canonical_redirect:
+        return canonical_redirect
 
     raw_type = request.args.get('type', '').strip().lower()
     doc_type_map = {
@@ -282,18 +296,23 @@ def college_files(college_slug):
     doc_type = doc_type_map.get(raw_type, raw_type)
     department_slug = request.args.get('branch', '').strip().lower()
     search_query = request.args.get('search', '').strip()
-    page = max(1, int(request.args.get('page', '1') or '1'))
+    search_query = re.sub(r'[^a-zA-Z0-9\s_-]', ' ', search_query)
+    search_query = re.sub(r'\s+', ' ', search_query).strip()[:200]
+    try:
+        page = max(1, int(request.args.get('page', '1') or '1'))
+    except (TypeError, ValueError):
+        abort(400, description='page must be a positive integer')
     page_size = 16
     offset = (page - 1) * page_size
 
     dept_res = {'success': False, 'data': {}}
     if department_slug:
-        dept_res = get_department_by_slug(department_slug)
+        dept_res = get_department_by_slug(department_slug, college_id=college_id)
 
     q = client.table('documents') \
         .select('*, subjects(name, subject_code), profiles!documents_uploader_id_fkey(full_name), colleges(name, abbreviation), departments(name, abbreviation)') \
         .eq('college_id', college_id) \
-        .in_('status', ['approved', 'pending']) \
+        .eq('status', 'approved') \
         .order('view_count', desc=True)
 
     if doc_type:
@@ -307,11 +326,13 @@ def college_files(college_slug):
         count_resp = client.table('documents') \
             .select('id', count='exact') \
             .eq('college_id', college_id) \
-            .in_('status', ['approved', 'pending'])
+            .eq('status', 'approved')
         if doc_type:
             count_resp = count_resp.eq('document_category', doc_type)
         if dept_res.get('success') and dept_res.get('data', {}).get('college_id') == college_id:
             count_resp = count_resp.eq('department_id', dept_res['data']['id'])
+        if search_query:
+            count_resp = count_resp.or_(f"title.ilike.%{search_query}%,description.ilike.%{search_query}%")
         total_count = count_resp.execute().count or 0
 
         items_resp = q.limit(page_size).offset(offset).execute()
@@ -321,7 +342,7 @@ def college_files(college_slug):
         files = []
         total_count = 0
 
-    departments = get_all_branches().get('data', [])
+    departments = get_departments_by_college(college_id).get('data', [])
 
     return render_template('college_files.html',
                            college=college,
@@ -352,11 +373,34 @@ def department_landing(college_slug, department_slug):
     college = college_res.get('data')
     college_id = college.get('id')
 
-    dept_res = get_department_by_slug(department_slug)
+    dept_res = get_department_by_slug(department_slug, college_id=college_id)
     if not dept_res.get('success'):
         abort(404)
     department = dept_res.get('data')
     dept_id = department.get('id')
+
+    canonical_college_slug = slugify(college.get('abbreviation') or college.get('name'))
+    canonical_department_slug = slugify(department.get('abbreviation') or department.get('name'))
+    if college_slug != canonical_college_slug or department_slug != canonical_department_slug:
+        return redirect(url_for(
+            'library.department_landing',
+            college_slug=canonical_college_slug,
+            department_slug=canonical_department_slug
+        ), code=301)
+
+    # Do not render a department under a college unless the relationship is
+    # explicitly present; otherwise valid-looking links can show false data.
+    client = init_supabase_admin() or init_supabase()
+    if not client:
+        abort(503, description='Database client unavailable')
+    mapping = client.table('college_departments') \
+        .select('department_id') \
+        .eq('college_id', college_id) \
+        .eq('department_id', dept_id) \
+        .limit(1) \
+        .execute()
+    if not mapping.data:
+        abort(404)
 
     stats = get_department_stats(college_id, dept_id).get('data', {})
     recent_files = get_recent_department_files(college_id, dept_id, limit=6).get('data', [])

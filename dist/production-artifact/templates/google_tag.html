@@ -50,8 +50,11 @@
     if (document.getElementById('abhihub-consent-banner')) return;
     const banner = document.createElement('div');
     banner.id = 'abhihub-consent-banner';
-    banner.style.cssText = 'position:fixed;left:0;right:0;bottom:0;z-index:9999;background:#0f172a;color:#fff;padding:14px 16px;display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;box-shadow:0 -8px 24px rgba(0,0,0,.2);';
-    banner.innerHTML = '<span style="font-size:14px;line-height:1.4;">We use analytics to improve study note quality and platform performance. Accept to enable privacy-conscious analytics. <a href="/privacy" style="color:#bfdbfe;text-decoration:underline;">Privacy policy</a></span><span style="display:flex;gap:8px;"><button id="consent-accept-btn" data-consent="accept" style="border:0;border-radius:999px;padding:8px 14px;background:#2563eb;color:#fff;cursor:pointer;font-weight:600;">Accept</button><button id="consent-decline-btn" data-consent="decline" style="border:0;border-radius:999px;padding:8px 14px;background:#475569;color:#fff;cursor:pointer;">Decline</button></span>';
+    banner.className = 'abhihub-consent-banner';
+    banner.setAttribute('role', 'dialog');
+    banner.setAttribute('aria-labelledby', 'consent-banner-title');
+    banner.setAttribute('aria-describedby', 'consent-banner-copy');
+    banner.innerHTML = '<div class="abhihub-consent-content"><strong id="consent-banner-title">Your privacy matters</strong><p id="consent-banner-copy">We use privacy-conscious analytics to improve study note quality and platform performance. <a href="/privacy">Read our privacy policy</a>.</p></div><div class="abhihub-consent-actions"><button type="button" data-consent="accept" class="abhihub-consent-btn abhihub-consent-btn--accept">Accept analytics</button><button type="button" data-consent="decline" class="abhihub-consent-btn abhihub-consent-btn--decline">Decline</button></div>';
     document.body.appendChild(banner);
 
     banner.querySelector('[data-consent="accept"]').addEventListener('click', function () {
@@ -110,9 +113,146 @@
   initializeAnalytics();
 
   // Show consent banner only if user hasn't chosen yet
-  if (localStorage.getItem(CONSENT_KEY) === null) {
+  try {
+    if (localStorage.getItem(CONSENT_KEY) === null) {
+      document.addEventListener('DOMContentLoaded', ensureConsentBanner);
+    }
+  } catch (e) {
     document.addEventListener('DOMContentLoaded', ensureConsentBanner);
   }
 </script>
+<style>
+  .abhihub-consent-banner {
+    position: fixed;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 20px;
+    padding: 16px max(24px, env(safe-area-inset-right)) 16px max(24px, env(safe-area-inset-left));
+    padding-bottom: max(16px, env(safe-area-inset-bottom));
+    color: #f8fafc;
+    background: #0f172a;
+    border-top: 1px solid rgba(148, 163, 184, 0.35);
+    box-shadow: 0 -8px 24px rgba(15, 23, 42, 0.24);
+    font: 400 14px/1.45 system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  }
+
+  .abhihub-consent-content {
+    min-width: 0;
+    max-width: 760px;
+  }
+
+  .abhihub-consent-content strong {
+    display: block;
+    margin-bottom: 3px;
+    color: #fff;
+    font-size: 15px;
+    font-weight: 700;
+  }
+
+  .abhihub-consent-content p {
+    margin: 0;
+    color: #cbd5e1;
+  }
+
+  .abhihub-consent-content a {
+    color: #bfdbfe;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .abhihub-consent-actions {
+    display: flex;
+    flex: 0 0 auto;
+    gap: 10px;
+  }
+
+  .abhihub-consent-btn {
+    min-height: 44px;
+    padding: 10px 16px;
+    border: 1px solid transparent;
+    border-radius: 10px;
+    cursor: pointer;
+    font: inherit;
+    font-weight: 700;
+    white-space: nowrap;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  }
+
+  .abhihub-consent-btn:hover {
+    transform: translateY(-1px);
+  }
+
+  .abhihub-consent-btn:focus-visible {
+    outline: 3px solid #93c5fd;
+    outline-offset: 2px;
+  }
+
+  .abhihub-consent-btn--accept {
+    color: #fff;
+    background: #2563eb;
+  }
+
+  .abhihub-consent-btn--accept:hover {
+    background: #1d4ed8;
+  }
+
+  .abhihub-consent-btn--decline {
+    color: #e2e8f0;
+    background: transparent;
+    border-color: #64748b;
+  }
+
+  .abhihub-consent-btn--decline:hover {
+    background: #1e293b;
+    border-color: #94a3b8;
+  }
+
+  @media (max-width: 640px) {
+    .abhihub-consent-banner {
+      left: 12px;
+      right: 12px;
+      bottom: calc(76px + env(safe-area-inset-bottom, 0px));
+      flex-direction: column;
+      align-items: stretch;
+      gap: 14px;
+      padding: 16px;
+      border: 1px solid rgba(148, 163, 184, 0.35);
+      border-radius: 16px;
+    }
+
+    .abhihub-consent-actions {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      width: 100%;
+    }
+
+    .abhihub-consent-btn {
+      width: 100%;
+      padding-inline: 10px;
+    }
+  }
+
+  @media (max-width: 360px) {
+    .abhihub-consent-actions {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .abhihub-consent-btn {
+      transition: none;
+    }
+
+    .abhihub-consent-btn:hover {
+      transform: none;
+    }
+  }
+</style>
 <script src="{{ url_for('static', filename='js/analytics.js') }}"></script>
 <script src="{{ url_for('static', filename='js/analytics-helper.js') }}" defer></script>

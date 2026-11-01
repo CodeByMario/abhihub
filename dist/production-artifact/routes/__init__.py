@@ -13,9 +13,11 @@ from .store_room import store_room_bp
 from .payments import payments_bp
 from .ai import ai_bp
 from .channels import channels_bp
+from .observability import observability_bp
 
 def register_blueprints(app):
     """Register all modular route blueprints."""
+    app.register_blueprint(observability_bp)
     app.register_blueprint(seo_bp)
     app.register_blueprint(site_bp)
     app.register_blueprint(auth_bp)

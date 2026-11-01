@@ -288,6 +288,14 @@ async function processFileMetadataAutofill(newItem, file) {
     return;
   }
 
+  // Vercel rejects multipart requests above its serverless body limit. Large
+  // files still upload directly to Cloudinary, but need manual metadata.
+  const maxAiMetadataFileSize = 4 * 1024 * 1024;
+  if (file.size > maxAiMetadataFileSize) {
+    setStatusBadge(true, 'Large file — enter remaining metadata manually');
+    return;
+  }
+
   // Step 3: AI Document Extraction Pass (Async, Abortable)
   const controller = new AbortController();
   window._uploadAiControllers[newItem.id] = controller;
@@ -1089,6 +1097,7 @@ function buildFormData(item) {
     const semEl = form.querySelector('.semester-select');
     const subjEl = form.querySelector('.subject-select');
     const progEl = form.querySelector('.program-select');
+    const examEl = form.querySelector('[name="exam_type"]');
     const titleEl = form.querySelector('.meta-title') || form.querySelector('input[name="title"]');
     const descEl = form.querySelector('.meta-description') || form.querySelector('.meta-desc') || form.querySelector('textarea[name="description"]');
 
@@ -1137,7 +1146,8 @@ function buildFormData(item) {
       college_abbr: colAbbr,
       branch_abbr: deptAbbr,
       subject_abbr: subjAbbr,
-      subject_code: parsedSubjCode
+      subject_code: parsedSubjCode,
+      exam_type: examEl ? examEl.value.trim() : ''
     };
   }
   if (item.meta) {
@@ -1189,16 +1199,21 @@ function buildFormData(item) {
   }
   const origName = item.name || (item.file && item.file.name) || `file_${Date.now()}`;
   const ext = origName.includes('.') ? origName.split('.').pop().toLowerCase() : 'jpg';
-  const sanitize = s => (s || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_|_$/g, '');
-  const code = sanitize(m.subject || '');
-  const docType = sanitize(m.type || '');
-  const year = sanitize(m.year || '2025');
+  const sanitize = s => (s || '').toString().replace(/[^a-zA-Z0-9]/g, '');
+  const year = (m.year || '2025').toString().replace(/\D/g, '') || '2025';
+  const category = (m.type || 'notes').replace(/_/g, ' ');
   const unit = sanitize(m.unit || '');
-  const randSuffix = Math.random().toString(36).slice(2, 7);
-  const parts = [code, docType, year];
-  if (unit) parts.push(unit);
-  parts.push(randSuffix);
-  const cleanName = parts.filter(Boolean).join('_') || `doc_${Date.now()}_${randSuffix}`;
+  const parts = [
+    sanitize(m.college_abbr),
+    sanitize(m.branch_abbr),
+    sanitize(m.subject_abbr),
+    sanitize(m.subject_code),
+    sanitize(m.exam_type),
+    unit,
+    sanitize(category),
+    year
+  ].filter(Boolean);
+  const cleanName = parts.join('_') || `upload_${Date.now()}`;
   const finalName = `${cleanName}.${ext}`;
 
   let fileObj = item.compressedBlob || item.blob || item.file;
@@ -1208,6 +1223,7 @@ function buildFormData(item) {
     fileObj = new File([fileObj], finalName, { type: fileObj.type });
   }
   fd.append('upload_document', fileObj, finalName);
+  fd.append('original_filename', finalName);
   return fd;
 }
 
@@ -1346,12 +1362,30 @@ async function uploadOne(item, retries) {
   }
 
   return new Promise(async function (resolve) {
+      // Build the normalized academic filename once and use that same File
+      // object for both direct Cloudinary uploads and the server fallback.
+      let preparedFormData = null;
+      let preparedUploadFile = null;
+      try {
+        preparedFormData = buildFormData(item);
+        preparedUploadFile = preparedFormData.get('upload_document');
+      } catch (e) {
+        console.error('Unable to prepare renamed upload file', e);
+      }
+      const preparedValue = (name, fallback = '') => (
+        preparedFormData && preparedFormData.get(name) != null
+          ? preparedFormData.get(name)
+          : fallback
+      );
+
       let sigRes = null;
       try {
         const res = await fetch('/api/get-upload-signature', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ filename: item.name })
+          body: JSON.stringify({
+            filename: preparedUploadFile?.name || item.name
+          })
         });
         sigRes = await res.json();
       } catch (e) {
@@ -1365,10 +1399,9 @@ async function uploadOne(item, retries) {
         return { ok: true, xp: 0, score: 0, skipped: true };
       }
 
-      // If we have a Cloudinary signature, upload directly to Cloudinary
-      // PDFs must use the server path so the Cloudinary adapter can preserve
-      // PDF bytes while assigning the required .txt public ID.
-      if (sigRes && sigRes.success && sigRes.upload_url && !/\.pdf$/i.test(item.name || '')) {
+      // Keep file bytes off the application server. This is required for PDFs
+      // above Vercel's request-body limit as well as for other large files.
+      if (sigRes && sigRes.success && sigRes.upload_url) {
         try {
           setItemStatus(item.id, 'uploading', 0, 'Uploading to Cloudinary...');
         
@@ -1377,14 +1410,16 @@ async function uploadOne(item, retries) {
           formData.append('timestamp', sigRes.timestamp);
           formData.append('signature', sigRes.signature);
           formData.append('folder', sigRes.folder);
-          formData.append('file', item.file);
+          if (sigRes.public_id) formData.append('public_id', sigRes.public_id);
+          if (sigRes.format) formData.append('format', sigRes.format);
+          formData.append('file', preparedUploadFile || item.file);
         
           const uploadResponse = await fetch(sigRes.upload_url, {
             method: 'POST',
             body: formData
           });
         
-          const uploadResult = await uploadResponse.json();
+          const uploadResult = await uploadResponse.json().catch(() => ({}));
         
           if (uploadResponse.ok && uploadResult.secure_url) {
                       // Upload succeeded - now save record via the new API endpoint with metadata
@@ -1398,15 +1433,20 @@ async function uploadOne(item, retries) {
                           secure_url: uploadResult.secure_url,
                           bytes: uploadResult.bytes,
                           format: uploadResult.format,
-                          title: item.meta?.title || item.name,
-                          subject: item.meta?.subject || '',
-                          subject_id: item.meta?.subject_id || '',
-                          college_id: item.meta?.college_id || '',
-                          branch_id: item.meta?.branch_id || '',
-                          document_type: item.meta?.type || 'notes',
-                          year: item.meta?.year || new Date().getFullYear(),
-                          semester: item.meta?.semester || '',
-                          description: item.meta?.description || ''
+                          original_filename: preparedUploadFile?.name || item.name,
+                          title: preparedValue('title', item.meta?.title || item.name),
+                          subject: preparedValue('subject', item.meta?.subject || ''),
+                          subject_id: preparedValue('subject_id', item.meta?.subject_id || ''),
+                          college_id: preparedValue('college_id', item.meta?.college_id || ''),
+                          branch_id: preparedValue('branch_id', item.meta?.branch_id || ''),
+                          document_type: preparedValue('document_type', item.meta?.type || 'notes'),
+                          year: preparedValue('year', item.meta?.year || new Date().getFullYear()),
+                          semester: preparedValue('semester', item.meta?.semester || ''),
+                          description: preparedValue('description', item.meta?.description || ''),
+                          exam_type: preparedValue('exam_type'),
+                          subject_code: preparedValue('subject_code'),
+                          program: preparedValue('program', 'b.tech'),
+                          file_hash: item.fileHash || ''
                         })
                       });
           
@@ -1451,15 +1491,44 @@ async function uploadOne(item, retries) {
                         return;
                       }
                     } else {
-                      // Cloudinary upload failed - fall back to server-side upload
-                      console.warn('Cloudinary direct upload failed, falling back to server', uploadResult);
+                      // Cloudinary upload failed - retain its actionable error.
+                      const cloudinaryMessage = uploadResult?.error?.message
+                        || uploadResult?.message
+                        || `Cloudinary upload failed (${uploadResponse.status})`;
+                      console.warn('Cloudinary direct upload failed', {
+                        status: uploadResponse.status,
+                        message: cloudinaryMessage
+                      });
+                      if (item.file && item.file.size > 4 * 1024 * 1024) {
+                        setFileStatus(item.id, 'error', 0, cloudinaryMessage);
+                        setItemStatus(item.id, 'error', 0, cloudinaryMessage, true);
+                        resolve({ ok: false, msg: cloudinaryMessage, item: item });
+                        return;
+                      }
                     }
                   } catch (e) {
                                       console.warn('Cloudinary upload error, falling back to server', e);
+                                      if (item.file && item.file.size > 4 * 1024 * 1024) {
+                                        const msg = e?.message || 'Cloudinary upload failed';
+                                        setFileStatus(item.id, 'error', 0, msg);
+                                        setItemStatus(item.id, 'error', 0, msg, true);
+                                        resolve({ ok: false, msg: msg, item: item });
+                                        return;
+                                      }
                                   }
                                 }
         
-                        // Fallback: server-side upload via Flask (runs if no Cloudinary signature or upload failed)
+                        // Never retry a large file through Flask: Vercel rejects
+                        // the request before the application can handle it.
+                        if (item.file && item.file.size > 4 * 1024 * 1024) {
+                          const msg = 'Direct storage upload failed. Please retry.';
+                          setFileStatus(item.id, 'error', 0, msg);
+                          setItemStatus(item.id, 'error', 0, msg, true);
+                          resolve({ ok: false, msg: msg, item: item });
+                          return;
+                        }
+
+                        // Fallback: server-side upload for small files only.
                         var xhr = new XMLHttpRequest();
       var targetUrl = '/upload';
       xhr.open('POST', targetUrl, true);
@@ -1574,7 +1643,7 @@ async function uploadOne(item, retries) {
       };
 
       try {
-        var fd = buildFormData(item);
+        var fd = preparedFormData || buildFormData(item);
         if (sigRes && sigRes.success) {
           fd.append('api_key', sigRes.api_key);
           fd.append('timestamp', sigRes.timestamp);

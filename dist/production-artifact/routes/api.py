@@ -67,13 +67,31 @@ def version_info():
 def get_upload_signature():
     """Generates a presigned Cloudinary upload signature for client-side direct uploads."""
     import time
+    import re
     import cloudinary.utils
     timestamp = int(time.time())
     folder = "uploads"
+    data = request.get_json(silent=True) or {}
+    filename = os.path.basename(str(data.get('filename') or 'upload'))
+    is_pdf = filename.lower().endswith('.pdf')
     params = {
         'timestamp': timestamp,
         'folder': folder
     }
+    if is_pdf:
+        # Vercel rejects requests over its serverless body limit. Upload PDF bytes
+        # directly to Cloudinary as a public raw asset, using a .txt suffix so
+        # Cloudinary's PDF delivery restriction does not block the file.
+        stem = re.sub(r'[^\w.-]+', '_', os.path.splitext(filename)[0]).strip('._') or 'upload'
+        user_id = str(session.get('user', {}).get('uid') or session.get('user', {}).get('email') or 'user')
+        user_id = re.sub(r'[^\w.-]+', '_', user_id)
+        public_id = f"{user_id}_{timestamp}_{stem}.txt"
+        params.update({
+            'public_id': public_id,
+            # Raw uploads otherwise inherit the browser file extension and
+            # Cloudinary can return `<public_id>.pdf`.
+            'format': 'txt',
+        })
     api_secret = os.getenv('CLOUDINARY_API_SECRET')
     cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME')
     api_key = os.getenv('CLOUDINARY_API_KEY')
@@ -83,11 +101,14 @@ def get_upload_signature():
     signature = cloudinary.utils.api_sign_request(params, api_secret)
     return jsonify({
         'success': True,
-        'upload_url': f"https://api.cloudinary.com/v1_1/{cloud_name}/auto/upload",
+        'upload_url': f"https://api.cloudinary.com/v1_1/{cloud_name}/{('raw' if is_pdf else 'auto')}/upload",
         'api_key': api_key,
         'timestamp': timestamp,
         'signature': signature,
-        'folder': folder
+        'folder': folder,
+        'public_id': params.get('public_id'),
+        'format': params.get('format'),
+        'resource_type': 'raw' if is_pdf else 'auto'
     }), 200
 
 
@@ -849,15 +870,15 @@ def api_credit_history():
 def api_get_colleges():
     """Get all colleges for dropdown — cached at L1 for 1 hour."""
     from cache_manager import get_cache
-    from methods.supabase_helper import get_all_colleges
+    from methods.supabase_helper import get_colleges_with_document_counts
     cache = get_cache()
 
     def fetch_all_colleges():
-        result = get_all_colleges()
+        result = get_colleges_with_document_counts()
         return result.get('data', []) if result.get('success') else []
 
     if cache:
-        colleges = cache.get_cached('dropdowns:colleges', level=cache.L1, ttl=cache.LONG, fetcher=fetch_all_colleges)
+        colleges = cache.get_cached('dropdowns:colleges:v2', level=cache.L1, ttl=cache.SHORT, fetcher=fetch_all_colleges)
         response = jsonify({'success': True, 'colleges': colleges}), 200
         cache.set_cache_headers(response[0], max_age=cache.LONG, stale_while_revalidate=True, stale_if_error=86400)
         return response
@@ -1087,6 +1108,28 @@ def api_save_document():
         secure_url = data.get('secure_url', '')
         file_size = data.get('bytes', 0)
         file_type = data.get('format', 'pdf')
+        original_filename = os.path.basename(
+            str(data.get('original_filename') or data.get('file_name') or '')
+        )
+        is_pdf_upload = (
+            original_filename.lower().endswith('.pdf')
+            or str(data.get('file_type') or '').lower() == 'pdf'
+            or str(public_id).lower().endswith('.txt')
+        )
+        if is_pdf_upload:
+            # Cloudinary must store PDFs as raw assets with a .txt public ID.
+            # Do not persist a provider response URL that still contains .pdf.
+            public_id = str(public_id)
+            if public_id.lower().endswith('.txt.pdf'):
+                public_id = public_id[:-4]
+            elif not public_id.lower().endswith('.txt'):
+                public_id = f"{public_id.rsplit('.', 1)[0] if '.' in public_id else public_id}.txt"
+            cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME', '')
+            if cloud_name:
+                secure_url = (
+                    f"https://res.cloudinary.com/{cloud_name}/raw/upload/{public_id}"
+                )
+            file_type = 'pdf'
         
         # Document metadata
         title = (data.get('title') or '').strip()
@@ -1094,8 +1137,20 @@ def api_save_document():
         subject_id = data.get('subject_id', '')
         college_id = data.get('college_id', '')
         branch_id = data.get('branch_id', '')
-        document_type = (data.get('document_type') or 'notes').lower()
-        year = data.get('year', '')
+        document_type = (data.get('document_type') or 'notes').strip().lower()
+        document_type = {
+            'pyq': 'papers',
+            'paper': 'papers',
+            'question-paper': 'papers',
+            'question paper': 'papers',
+            'practicals': 'practical',
+            'lab': 'practical',
+            'question bank': 'question_bank',
+            'question-bank': 'question_bank',
+        }.get(document_type, document_type)
+        if document_type not in {'papers', 'notes', 'practical', 'syllabus', 'question_bank', 'assignment', 'timetable'}:
+            document_type = 'notes'
+        year = str(data.get('year', '') or '')
         semester = data.get('semester')
         description = data.get('description', '')
         exam_type = data.get('exam_type', '')
@@ -1132,7 +1187,7 @@ def api_save_document():
         result = save_file_record(
             user_id=user_id,
             user_email=user_email,
-            file_name=public_id.split('/')[-1].split('.')[0] if '/' in public_id else public_id,
+            file_name=original_filename or (public_id.split('/')[-1].split('.')[0] if '/' in public_id else public_id),
             file_url=secure_url,
             file_type=file_type if file_type in ('pdf', 'image', 'document') else 'pdf',
             file_size=file_size,
@@ -1562,8 +1617,13 @@ def api_comments(doc_id):
         data = request.json or {}
         content = data.get('content')
         user_email = session.get('user', {}).get('email')
+        if not isinstance(content, str):
+            return jsonify({'success': False, 'message': 'Comment content must be text'}), 400
+        content = content.strip()
         if not content:
             return jsonify({'success': False, 'message': 'Comment content is required'}), 400
+        if len(content) > 2000:
+            return jsonify({'success': False, 'message': 'Comment is too long (maximum 2000 characters)'}), 400
         res = add_comment(user_email, doc_id, content)
         return jsonify(res), 200 if res.get('success') else 500
 
@@ -1964,7 +2024,12 @@ def view_doc(doc_id, filename=None):
                 api_secret=os.getenv('CLOUDINARY_API_SECRET'),
                 secure=True,
             )
-            pub_id = document.get('cloudinary_public_id') or document.get('public_id') or ''
+            pub_id = (
+                document.get('provider_public_id')
+                or document.get('cloudinary_public_id')
+                or document.get('public_id')
+                or ''
+            )
             if not pub_id:
                 m = re.search(r'/upload/(?:v\d+/)?(.+)$', parsed.path)
                 pub_id = m.group(1) if m else ''
@@ -1980,6 +2045,30 @@ def view_doc(doc_id, filename=None):
             logging.warning(f"[VIEW-DOC] Cloudinary pre-sign failed for {doc_id}: {_e}")
 
     upstream = _fetch(file_url)
+
+    # Older records may contain a Cloudinary URL with a PDF extension even
+    # though the asset was uploaded as raw .txt. Retry the canonical raw path.
+    if upstream.status_code == 404 and parsed.hostname == 'res.cloudinary.com':
+        try:
+            cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME', '')
+            pub_id = (
+                document.get('provider_public_id')
+                or document.get('cloudinary_public_id')
+                or document.get('public_id')
+                or ''
+            )
+            if cloud_name and pub_id:
+                raw_pub_id = str(pub_id)
+                if not raw_pub_id.lower().endswith('.txt'):
+                    raw_pub_id = f"{raw_pub_id.rsplit('.', 1)[0] if '.' in raw_pub_id else raw_pub_id}.txt"
+                retry_url = f"https://res.cloudinary.com/{cloud_name}/raw/upload/{raw_pub_id}"
+                upstream.close()
+                upstream = _fetch(retry_url)
+                if upstream.ok:
+                    file_url = retry_url
+                    parsed = urlparse(retry_url)
+        except Exception as retry_error:
+            logging.warning(f"[VIEW-DOC] Cloudinary raw .txt retry failed for {doc_id}: {retry_error}")
 
     if upstream.status_code in (403, 404) and parsed.hostname in ('firebasestorage.googleapis.com', 'storage.googleapis.com'):
         try:
@@ -3178,4 +3267,3 @@ def dashboard_summary_api():
     except Exception as e:
         logging.error(f"[API /api/dashboard/summary] Error: {e}")
         return jsonify({'success': False, 'message': str(e)}), 500
-

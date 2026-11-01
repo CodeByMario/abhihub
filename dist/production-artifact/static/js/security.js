@@ -198,6 +198,10 @@
         <span class="cm-icon">🔄</span>
         <span>Reload Page</span>
       </div>
+      <div class="cm-item" data-action="update-pwa">
+        <span class="cm-icon">⬆️</span>
+        <span>Update App Cache</span>
+      </div>
     `;
 
     contextMenuEl.addEventListener('click', function (e) {
@@ -281,7 +285,45 @@
       case 'refresh':
         window.location.reload();
         break;
+      case 'update-pwa':
+        updatePwaCache();
+        break;
     }
+  }
+
+  function updatePwaCache() {
+    if (!('serviceWorker' in navigator) || !('caches' in window)) {
+      showToast('⚠️ App cache updates are not supported here.');
+      return;
+    }
+
+    showToast('⏳ Updating AbhiHub app cache…');
+    Promise.all([
+      navigator.serviceWorker.getRegistrations().then(function (registrations) {
+        return Promise.all(registrations.map(function (registration) {
+          return registration.update().then(function () {
+            if (registration.waiting) {
+              registration.waiting.postMessage({ type: 'SKIP_WAITING' });
+            }
+          });
+        }));
+      }),
+      caches.keys().then(function (cacheNames) {
+        return Promise.all(cacheNames
+          .filter(function (name) {
+            return name.indexOf('abhihub-') === 0 && name.indexOf('abhihub-ai-models-') !== 0;
+          })
+          .map(function (name) { return caches.delete(name); }));
+      })
+    ]).then(function () {
+      showToast('✅ App cache updated. Reloading…');
+      setTimeout(function () {
+        window.location.reload();
+      }, 500);
+    }).catch(function (error) {
+      console.error('[PWA] Cache update failed:', error);
+      showToast('⚠️ Could not update app cache. Please try again.');
+    });
   }
 
   function showContextMenu(x, y) {
@@ -290,7 +332,7 @@
 
     // Position adjustments to prevent overflowing window bounds
     const menuWidth = 230;
-    const menuHeight = 280;
+    const menuHeight = 325;
     const winWidth = window.innerWidth;
     const winHeight = window.innerHeight;
 

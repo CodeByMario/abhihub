@@ -26,6 +26,7 @@ import logging
 from urllib.parse import unquote
 from dotenv import load_dotenv
 from supabase import create_client, ClientOptions
+from observability.request_context import install_request_context
 
 # Load environment variables
 load_dotenv()
@@ -239,6 +240,7 @@ def _score_item(item: dict, tokens: list[str]) -> float:
 
 # Initialize Flask app
 app = Flask(__name__)
+install_request_context(app)
 
 from jinja2 import FileSystemLoader, TemplateNotFound
 
@@ -955,23 +957,68 @@ def inject_ad_decision():
     user_email = user.get('email')
     try:
         from methods.scoring_engine import get_ad_decision
-        ad_decision = get_ad_decision(user_id, email=user_email)
+        ad_decision = get_ad_decision(
+            user_id,
+            email=user_email,
+            page_path=request.path,
+        )
+        if ad_decision.get('density') == 'monthly':
+            month_key = datetime.now(timezone.utc).strftime('%Y-%m')
+            monthly_seen_key = session.get('monthly_ad_seen')
+            if monthly_seen_key == month_key:
+                ad_decision = {**ad_decision, 'show_ads': False}
+            else:
+                session['monthly_ad_seen'] = month_key
     except Exception:
         ad_decision = {'show_ads': True, 'density': 'high', 'level': None}
+    # Keep monetization on study/discovery surfaces only. Support, trust,
+    # account, payment, and utility flows should remain distraction-free.
     no_ad_prefixes = (
+        '/about',
+        '/open-source',
+        '/features-tour',
+        '/terms',
+        '/privacy',
+        '/contribute',
+        '/dmca',
+        '/help',
+        '/join',
+        '/team',
+        '/careers',
+        '/contact',
+        '/support',
+        '/offline',
+        '/game',
         '/payment',
         '/terms',
         '/upload',
         '/settings',
+        '/account',
+        '/wallet',
+        '/store-room',
+        '/notifications',
+        '/chat',
+        '/creator',
         '/delete-account',
+        '/login',
+        '/signup',
     )
-    if request.path.startswith(no_ad_prefixes):
+    purpose = request.args.get('purpose', '').lower()
+    is_credit_purchase = (
+        request.path == '/payment'
+        and (
+            'credit' in purpose
+            or 'pack=' in purpose
+            or 'view' in purpose and 'document' not in purpose
+        )
+    )
+    if request.path.startswith(no_ad_prefixes) and not is_credit_purchase:
         ad_decision = {
             **ad_decision,
             'show_ads': False,
             'density': 'off',
         }
-    elif request.path in {'/login', '/signup'}:
+    elif request.path == '/signup':
         ad_decision = {
             **ad_decision,
             'show_ads': True,

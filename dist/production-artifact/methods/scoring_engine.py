@@ -356,13 +356,19 @@ def check_upload_quota(user_id: str) -> Dict:
         return {"allowed": True, "remaining": None}
 
 
-def get_ad_decision(user_id: Optional[str] = None, email: Optional[str] = None) -> Dict:
+def get_ad_decision(
+    user_id: Optional[str] = None,
+    email: Optional[str] = None,
+    page_path: Optional[str] = None,
+) -> Dict:
     """
-    Server-side ad decision based on the user's document consumption.
+    Server-side ad decision based on the user's remaining file-view credits.
 
-    New users see the full ad mix on their first content view. Ads become
-    progressively less intrusive as the user consumes more content and stop
-    entirely after ten recorded document views.
+    Ads reduce as remaining credits increase: 0 = high, 1-4 = moderate,
+    5-9 = low, 10-19 = minimum, and 20+ = one opportunity per calendar
+    month. Verified contributors receive an additional benefit: users with
+    1-2 approved uploads are capped at minimum density, while users with 3+
+    approved uploads are ad-free.
     """
     verification_emails = {
         value.strip().lower()
@@ -372,46 +378,112 @@ def get_ad_decision(user_id: Optional[str] = None, email: Optional[str] = None) 
         if value.strip()
     }
     if email and email.strip().lower() in verification_emails:
-        return {
+        decision = {
             "show_ads": True,
             "density": "high",
             "level": None,
             "view_count": 0,
+            "view_credits_remaining": 0,
             "verification_mode": True,
         }
+        from methods.ad_control import apply_ad_override, get_ad_override
+        return apply_ad_override(decision, get_ad_override(user_id, email, page_path))
 
     if not user_id:
-        return {"show_ads": True, "density": "high", "level": None, "view_count": 0}
+        decision = {
+            "show_ads": True,
+            "density": "high",
+            "level": None,
+            "view_count": 0,
+            "view_credits_remaining": 0,
+        }
+        from methods.ad_control import apply_ad_override, get_ad_override
+        return apply_ad_override(decision, get_ad_override(None, email, page_path))
 
     try:
         client = _get_client()
         if not client:
             logging.warning("[ScoringEngine] ad decision unavailable: database client missing")
-            return {"show_ads": True, "density": "high", "level": None, "view_count": 0}
+            decision = {
+                "show_ads": True,
+                "density": "high",
+                "level": None,
+                "view_count": 0,
+                "view_credits_remaining": 0,
+            }
+            from methods.ad_control import apply_ad_override, get_ad_override
+            return apply_ad_override(decision, get_ad_override(user_id, email, page_path))
 
-        views = client.table("document_views").select("id", count="exact").eq(
-            "user_id", user_id
-        ).execute()
-        view_count = int(getattr(views, "count", None) or len(views.data or []))
-
-        if view_count == 0:
-            density = "high"
-        elif view_count < 5:
-            density = "medium"
-        elif view_count < 10:
-            density = "low"
+        profile = client.table("profiles").select(
+            "paper_quota_remaining"
+        ).eq("id", user_id).limit(1).execute()
+        if not profile.data:
+            logging.warning("[ScoringEngine] no quota profile found for user %s", user_id)
+            remaining_credits = 0
         else:
-            density = "off"
+            remaining_credits = max(
+                0, int(profile.data[0].get("paper_quota_remaining") or 0)
+            )
 
-        return {
-            "show_ads": density != "off",
+        if remaining_credits == 0:
+            density = "high"
+        elif remaining_credits < 5:
+            density = "medium"
+        elif remaining_credits < 10:
+            density = "low"
+        elif remaining_credits < 20:
+            density = "minimum"
+        else:
+            density = "monthly"
+
+        verified_upload_count = 0
+        try:
+            uploads = client.table("documents").select(
+                "id", count="exact"
+            ).eq("uploader_id", user_id).eq("status", "approved").limit(1).execute()
+            verified_upload_count = int(
+                getattr(uploads, "count", None)
+                if getattr(uploads, "count", None) is not None
+                else len(uploads.data or [])
+            )
+        except Exception as upload_error:
+            logging.warning(
+                "[ScoringEngine] verified upload lookup failed for %s: %s",
+                user_id,
+                upload_error,
+            )
+
+        if verified_upload_count >= 3:
+            show_ads = False
+            density = "off"
+        elif verified_upload_count >= 1:
+            show_ads = True
+            density = "minimum"
+        else:
+            show_ads = True
+
+        decision = {
+            "show_ads": show_ads,
             "density": density,
             "level": None,
-            "view_count": view_count,
+            "view_count": remaining_credits,
+            "view_credits_remaining": remaining_credits,
+            "verified_upload_count": verified_upload_count,
+            "ad_free_contributor": verified_upload_count >= 3,
         }
+        from methods.ad_control import apply_ad_override, get_ad_override
+        return apply_ad_override(decision, get_ad_override(user_id, email, page_path))
     except Exception as e:
         logging.warning(f"[ScoringEngine] ad decision failed, defaulting: {e}")
-        return {"show_ads": True, "density": "high", "level": None, "view_count": 0}
+        decision = {
+            "show_ads": True,
+            "density": "high",
+            "level": None,
+            "view_count": 0,
+            "view_credits_remaining": 0,
+        }
+        from methods.ad_control import apply_ad_override, get_ad_override
+        return apply_ad_override(decision, get_ad_override(user_id, email, page_path))
 
 
 def process_event(user_id: str, event_type: str, entity_id: Optional[str] = None,
