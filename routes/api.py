@@ -88,6 +88,9 @@ def get_upload_signature():
         public_id = f"{user_id}_{timestamp}_{stem}.txt"
         params.update({
             'public_id': public_id,
+            # Raw uploads otherwise inherit the browser file extension and
+            # Cloudinary can return `<public_id>.pdf`.
+            'format': 'txt',
         })
     api_secret = os.getenv('CLOUDINARY_API_SECRET')
     cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME')
@@ -104,6 +107,7 @@ def get_upload_signature():
         'signature': signature,
         'folder': folder,
         'public_id': params.get('public_id'),
+        'format': params.get('format'),
         'resource_type': 'raw' if is_pdf else 'auto'
     }), 200
 
@@ -866,15 +870,15 @@ def api_credit_history():
 def api_get_colleges():
     """Get all colleges for dropdown — cached at L1 for 1 hour."""
     from cache_manager import get_cache
-    from methods.supabase_helper import get_all_colleges
+    from methods.supabase_helper import get_colleges_with_document_counts
     cache = get_cache()
 
     def fetch_all_colleges():
-        result = get_all_colleges()
+        result = get_colleges_with_document_counts()
         return result.get('data', []) if result.get('success') else []
 
     if cache:
-        colleges = cache.get_cached('dropdowns:colleges', level=cache.L1, ttl=cache.LONG, fetcher=fetch_all_colleges)
+        colleges = cache.get_cached('dropdowns:colleges:v2', level=cache.L1, ttl=cache.SHORT, fetcher=fetch_all_colleges)
         response = jsonify({'success': True, 'colleges': colleges}), 200
         cache.set_cache_headers(response[0], max_age=cache.LONG, stale_while_revalidate=True, stale_if_error=86400)
         return response
@@ -1116,7 +1120,9 @@ def api_save_document():
             # Cloudinary must store PDFs as raw assets with a .txt public ID.
             # Do not persist a provider response URL that still contains .pdf.
             public_id = str(public_id)
-            if not public_id.lower().endswith('.txt'):
+            if public_id.lower().endswith('.txt.pdf'):
+                public_id = public_id[:-4]
+            elif not public_id.lower().endswith('.txt'):
                 public_id = f"{public_id.rsplit('.', 1)[0] if '.' in public_id else public_id}.txt"
             cloud_name = os.getenv('CLOUDINARY_CLOUD_NAME', '')
             if cloud_name:
@@ -1611,8 +1617,13 @@ def api_comments(doc_id):
         data = request.json or {}
         content = data.get('content')
         user_email = session.get('user', {}).get('email')
+        if not isinstance(content, str):
+            return jsonify({'success': False, 'message': 'Comment content must be text'}), 400
+        content = content.strip()
         if not content:
             return jsonify({'success': False, 'message': 'Comment content is required'}), 400
+        if len(content) > 2000:
+            return jsonify({'success': False, 'message': 'Comment is too long (maximum 2000 characters)'}), 400
         res = add_comment(user_email, doc_id, content)
         return jsonify(res), 200 if res.get('success') else 500
 

@@ -14,12 +14,12 @@
 {
   "@context": "https://schema.org",
   "@type": "EducationalOrganization",
-  "name": "{{ department.name }} - {{ college.name }}",
-  "url": "{{ request.base_url }}",
-  "description": "Academic resources, PYQs, and notes for the {{ department.name }} department at {{ college.name }}.",
+  "name": {{ (department.name ~ " - " ~ college.name)|tojson }},
+  "url": {{ request.base_url|tojson }},
+  "description": {{ ("Academic resources, PYQs, and notes for the " ~ department.name ~ " department at " ~ college.name ~ ".")|tojson }},
   "parentOrganization": {
     "@type": "CollegeOrUniversity",
-    "name": "{{ college.name }}"
+    "name": {{ college.name|tojson }}
   }
 }
 </script>

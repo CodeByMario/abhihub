@@ -187,7 +187,7 @@ def get_all_colleges() -> Dict:
     cached = _cache_get('all_colleges')
     if cached is not None and cached:
         return {"success": True, "data": cached}
-    client = init_supabase() or init_supabase_admin()
+    client = init_supabase_admin() or init_supabase()
     if not client: return {"success": False, "data": []}
     try:
         response = client.table("colleges").select("*").order("name").execute()
@@ -211,8 +211,39 @@ def get_all_colleges() -> Dict:
                 log.error(f"[Supabase] admin get_all_colleges error: {e2}")
         return {"success": False, "data": []}
 
+def get_colleges_with_document_counts() -> Dict:
+    """Return colleges with counts for publicly published documents."""
+    colleges_result = get_all_colleges()
+    colleges = colleges_result.get('data', []) if colleges_result.get('success') else []
+    if not colleges:
+        return {"success": colleges_result.get('success', False), "data": []}
+
+    client = init_supabase_admin() or init_supabase()
+    if not client:
+        return {"success": False, "data": []}
+
+    try:
+        response = client.table('documents') \
+            .select('college_id') \
+            .eq('status', 'approved') \
+            .execute()
+        counts = {}
+        for document in response.data or []:
+            college_id = document.get('college_id')
+            if college_id:
+                counts[college_id] = counts.get(college_id, 0) + 1
+
+        for college in colleges:
+            count = counts.get(college.get('id'), 0)
+            college['document_count'] = count
+            college['doc_count'] = count
+        return {"success": True, "data": colleges}
+    except Exception as e:
+        log.error("[Supabase] get_colleges_with_document_counts failed: %s", e)
+        return {"success": False, "data": []}
+
 def get_college_by_slug(slug: str) -> Dict:
-    client = init_supabase()
+    client = init_supabase_admin() or init_supabase()
     if not client: return {"success": False}
     try:
         response = client.table("colleges").select("*").execute()
@@ -333,10 +364,10 @@ def join_college_waitlist(college_id: str, email: str, name: str = '') -> Dict:
         return {'success': False, 'message': str(e)}
 
 def get_college_stats(college_id: str) -> Dict:
-    client = init_supabase()
+    client = init_supabase_admin() or init_supabase()
     if not client: return {"success": False}
     try:
-        doc_resp = client.table('documents').select('id', count='exact').eq('college_id', college_id).execute()
+        doc_resp = client.table('documents').select('id', count='exact').eq('college_id', college_id).eq('status', 'approved').execute()
         total_docs = doc_resp.count or 0
         
         total_subs = 0
@@ -364,12 +395,13 @@ def get_college_stats(college_id: str) -> Dict:
         return {"success": False, "message": str(e)}
 
 def get_recent_college_files(college_id: str, limit: int = 5) -> Dict:
-    client = init_supabase()
+    client = init_supabase_admin() or init_supabase()
     if not client: return {"success": False}
     try:
         response = client.table('documents')\
             .select('*, subject:subjects(name), uploader:profiles!documents_uploader_id_fkey(full_name)')\
             .eq('college_id', college_id)\
+            .eq('status', 'approved')\
             .order('created_at', desc=True)\
             .limit(limit)\
             .execute()
@@ -378,7 +410,7 @@ def get_recent_college_files(college_id: str, limit: int = 5) -> Dict:
         return {"success": False, "message": str(e)}
 
 def get_department_by_slug(slug: str) -> Dict:
-    client = init_supabase()
+    client = init_supabase_admin() or init_supabase()
     if not client: return {"success": False}
     try:
         response = client.table("departments").select("*").execute()
@@ -395,10 +427,10 @@ def get_department_by_slug(slug: str) -> Dict:
         return {"success": False, "message": str(e)}
 
 def get_department_stats(college_id: str, dept_id: str) -> Dict:
-    client = init_supabase()
+    client = init_supabase_admin() or init_supabase()
     if not client: return {"success": False}
     try:
-        doc_resp = client.table('documents').select('id', count='exact').eq('college_id', college_id).eq('department_id', dept_id).execute()
+        doc_resp = client.table('documents').select('id', count='exact').eq('college_id', college_id).eq('department_id', dept_id).eq('status', 'approved').execute()
         sub_resp = client.table('subjects').select('id', count='exact').eq('department_id', dept_id).execute()
         total_docs = doc_resp.count or 0
         total_subs = sub_resp.count or 0
@@ -419,13 +451,14 @@ def get_department_stats(college_id: str, dept_id: str) -> Dict:
         return {"success": False, "message": str(e)}
 
 def get_recent_department_files(college_id: str, dept_id: str, limit: int = 6) -> Dict:
-    client = init_supabase()
+    client = init_supabase_admin() or init_supabase()
     if not client: return {"success": False}
     try:
         response = client.table('documents')\
             .select('*, subject:subjects(name), uploader:profiles!documents_uploader_id_fkey(full_name)')\
             .eq('college_id', college_id)\
             .eq('department_id', dept_id)\
+            .eq('status', 'approved')\
             .order('created_at', desc=True)\
             .limit(limit)\
             .execute()
@@ -569,7 +602,7 @@ def get_all_branches() -> Dict:
     cached = _cache_get('all_branches')
     if cached is not None and cached:
         return {"success": True, "data": cached}
-    client = init_supabase() or init_supabase_admin()
+    client = init_supabase_admin() or init_supabase()
     if not client: return {"success": False, "data": []}
     try:
         response = client.table("departments").select("*").order("name").execute()
@@ -614,18 +647,15 @@ def _cache_set(key: str, val):
 
 
 def get_departments_by_college(college_id: str) -> Dict:
-    """Return departments mapped to a college via college_departments table.
-    Falls back to all departments if no mapping exists yet.
-    """
+    """Return only departments explicitly mapped to a college."""
     cache_key = f"depts:{college_id}"
     cached = _cache_get(cache_key)
     if cached is not None and cached:
         return {"success": True, "data": cached}
 
-    client = init_supabase() or init_supabase_admin()
+    client = init_supabase_admin() or init_supabase()
     if not client:
-        all_b = get_all_branches()
-        return {"success": True, "data": all_b.get('data', [])}
+        return {"success": False, "data": []}
     try:
         res = client.table("college_departments") \
             .select("department_id, departments(id, name, abbreviation)") \
@@ -640,16 +670,12 @@ def get_departments_by_college(college_id: str) -> Dict:
                     "name": dept.get("name"),
                     "abbreviation": dept.get("abbreviation"),
                 })
-        if not data:
-            all_b = get_all_branches()
-            data = all_b.get('data', [])
         if data:
             _cache_set(cache_key, data)
         return {"success": True, "data": data}
     except Exception as e:
         log.error(f"[Supabase] get_departments_by_college error: {e}")
-        all_b = get_all_branches()
-        return {"success": True, "data": all_b.get('data', [])}
+        return {"success": False, "data": []}
 
 
 def get_subjects_by_department(department_id: str, semester: int = None) -> Dict:
@@ -1534,7 +1560,7 @@ def get_related_documents(college_id: str = None, subject_id: str = None,
     try:
         q = client.table('documents') \
             .select('id, title, document_category, file_type, college_id, subject_id, created_at, view_count, provider_public_id, file_url, storage_provider') \
-            .in_('status', ['approved', 'pending']) \
+            .eq('status', 'approved') \
             .order('view_count', desc=True) \
             .limit(limit + 1)  # fetch one extra to exclude current doc
         if college_id and validate_uuid(college_id):
@@ -1580,7 +1606,7 @@ def search_documents_rpc(
             'p_category': category,
             'p_exam_type': exam_type,
             'p_year': int(year) if year and str(year).isdigit() else None,
-            'p_status': status or ['approved']
+            'p_status': status or ['approved', 'verified']
         }
         res = client.rpc('search_documents', payload).execute()
         return res.data if res.data else []
@@ -1597,7 +1623,7 @@ def suggest_documents_rpc(query: str, limit: int = 8, status: List[str] = None) 
         payload = {
             'p_query': query.strip(),
             'p_limit': limit,
-            'p_status': status or ['approved']
+            'p_status': status or ['approved', 'verified']
         }
         res = client.rpc('suggest_documents', payload).execute()
         return res.data if res.data else []
@@ -2285,7 +2311,7 @@ def calculate_user_ranks(force_refresh: bool = False) -> List[Dict]:
                 'uploader_id, document_category, status, view_count, '
                 'profiles!documents_uploader_id_fkey(full_name)'
             )
-            .in_('status', ['approved', 'pending'])
+            .eq('status', 'approved')
             .limit(10000)
             .execute()
         )
@@ -2355,7 +2381,7 @@ def recalculate_and_persist_user_rank(user_id: str) -> Dict:
             client.table('documents')
             .select('document_category, status')
             .eq('uploader_id', user_id)
-            .in_('status', ['approved', 'pending'])
+            .eq('status', 'approved')
             .execute()
         )
 
@@ -2398,7 +2424,7 @@ def get_reputation_stats(user_id: str) -> Dict:
             client.table('documents')
             .select('status, view_count')
             .eq('uploader_id', user_id)
-            .in_('status', ['approved', 'pending'])
+            .eq('status', 'approved')
             .execute()
         )
         

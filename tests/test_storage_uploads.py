@@ -91,6 +91,54 @@ class FirebaseUploadTests(unittest.TestCase):
 
 
 class CloudinaryUploadTests(unittest.TestCase):
+    def test_pdf_direct_upload_signature_forces_txt_format(self):
+        """Signed browser PDF uploads must not receive Cloudinary's .pdf suffix."""
+        application_module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+        client = application_module.app.test_client()
+        with client.session_transaction() as session:
+            session["user"] = {"uid": "test-user", "email": "test@example.com"}
+
+        with patch("cloudinary.utils.api_sign_request", return_value="signature") as sign_mock, \
+             patch.dict(os.environ, {
+                 "CLOUDINARY_API_SECRET": "secret",
+                 "CLOUDINARY_CLOUD_NAME": "cloud",
+                 "CLOUDINARY_API_KEY": "key",
+             }):
+            response = client.post(
+                "/api/get-upload-signature",
+                json={"filename": "lecture.pdf"},
+            )
+
+        self.assertEqual(response.status_code, 200)
+        payload = response.get_json()
+        self.assertEqual(payload["format"], "txt")
+        self.assertTrue(payload["public_id"].endswith(".txt"))
+        self.assertEqual(sign_mock.call_args.args[0]["format"], "txt")
+
+    def test_save_document_normalizes_legacy_txt_pdf_public_id(self):
+        """Previously uploaded `<id>.txt.pdf` metadata is saved under `<id>.txt`."""
+        application_module.app.config.update(TESTING=True, WTF_CSRF_ENABLED=False)
+        client = application_module.app.test_client()
+        with client.session_transaction() as session:
+            session["user"] = {"uid": "test-user", "email": "test@example.com"}
+
+        with patch("methods.supabase_helper.save_file_record", return_value={
+            "success": True,
+            "data": {"id": "document-1"},
+        }) as save_mock:
+            response = client.post(
+                "/api/save-document",
+                json={
+                    "public_id": "uploads/lecture.txt.pdf",
+                    "secure_url": "https://res.cloudinary.com/cloud/raw/upload/uploads/lecture.txt.pdf",
+                    "original_filename": "lecture.pdf",
+                    "format": "pdf",
+                },
+            )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(save_mock.call_args.kwargs["cloudinary_public_id"], "uploads/lecture.txt")
+
     def test_helper_uploads_pdf_as_raw_and_image_as_image(self):
         """Cloudinary helper selects the correct provider resource type."""
         fake_response = {

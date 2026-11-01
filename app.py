@@ -971,13 +971,37 @@ def inject_ad_decision():
                 session['monthly_ad_seen'] = month_key
     except Exception:
         ad_decision = {'show_ads': True, 'density': 'high', 'level': None}
+    # Keep monetization on study/discovery surfaces only. Support, trust,
+    # account, payment, and utility flows should remain distraction-free.
     no_ad_prefixes = (
+        '/about',
+        '/open-source',
+        '/features-tour',
+        '/terms',
+        '/privacy',
+        '/contribute',
+        '/dmca',
+        '/help',
+        '/join',
+        '/team',
+        '/careers',
+        '/contact',
+        '/support',
+        '/offline',
+        '/game',
         '/payment',
         '/terms',
         '/upload',
         '/settings',
+        '/account',
+        '/wallet',
+        '/store-room',
+        '/notifications',
+        '/chat',
+        '/creator',
         '/delete-account',
         '/login',
+        '/signup',
     )
     purpose = request.args.get('purpose', '').lower()
     is_credit_purchase = (

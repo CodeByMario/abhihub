@@ -17,17 +17,17 @@
   "@graph": [
     {
       "@type": "CollegeOrUniversity",
-      "name": "{{ college.name }}",
-      "alternateName": ["{{ _abbr }}"{% if _popular %}, "{{ _popular }}"{% endif %}],
-      "address": { "@type": "PostalAddress", "addressLocality": "{{ _city }}", "addressCountry": "IN" },
-      "url": "{{ request.base_url }}",
-      "description": "Free PYQs, notes and study materials for {{ college.name }} ({{ _abbr }}) on AbhiHub."
+      "name": {{ college.name|tojson }},
+      "alternateName": [{{ _abbr|tojson }}{% if _popular %}, {{ _popular|tojson }}{% endif %}],
+      "address": { "@type": "PostalAddress", "addressLocality": {{ _city|tojson }}, "addressCountry": "IN" },
+      "url": {{ request.base_url|tojson }},
+      "description": {{ ("Free PYQs, notes and study materials for " ~ college.name ~ " (" ~ _abbr ~ ") on AbhiHub.")|tojson }}
     },
     {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "{{ request.url_root.rstrip('/') }}/" },
-        { "@type": "ListItem", "position": 2, "name": "{{ college.name }}", "item": "{{ request.base_url }}" }
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": {{ (request.url_root.rstrip('/') ~ '/')|tojson }} },
+        { "@type": "ListItem", "position": 2, "name": {{ college.name|tojson }}, "item": {{ request.base_url|tojson }} }
       ]
     },
     {
@@ -35,13 +35,13 @@
       "mainEntity": [
         {
           "@type": "Question",
-          "name": "Where can I find {{ _abbr }} PYQ (Previous Year Question Papers)?",
-          "acceptedAnswer": { "@type": "Answer", "text": "AbhiHub has free PYQs for {{ college.name }} ({{ _abbr }}){% if _popular %} also known as {{ _popular }}{% endif %} organized by department and subject. Browse the resources below." }
+          "name": {{ ("Where can I find " ~ _abbr ~ " PYQ (Previous Year Question Papers)?")|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ ("AbhiHub has free PYQs for " ~ college.name ~ " (" ~ _abbr ~ ")" ~ (" also known as " ~ _popular if _popular else "") ~ " organized by department and subject. Browse the resources below.")|tojson }} }
         },
         {
           "@type": "Question",
-          "name": "Are {{ _abbr }} notes available for free on AbhiHub?",
-          "acceptedAnswer": { "@type": "Answer", "text": "Yes! All notes, practicals, and PYQs for {{ college.name }} are completely free on AbhiHub, uploaded by senior students." }
+          "name": {{ ("Are " ~ _abbr ~ " notes available for free on AbhiHub?")|tojson }},
+          "acceptedAnswer": { "@type": "Answer", "text": {{ ("Yes! All notes, practicals, and PYQs for " ~ college.name ~ " are completely free on AbhiHub, uploaded by senior students.")|tojson }} }
         }
       ]
     }
@@ -257,7 +257,7 @@ body { background-color: var(--c-bg); }
 <div class="college-section">
   <div class="section-header">
     <h2 class="section-title">Latest Uploads</h2>
-    <a href="{{ url_for('app_pages.dashboard') }}" class="btn btn-outline" style="font-weight:700; color:var(--c-primary);">Browse All →</a>
+    <a href="{{ url_for('library.college_files', college_slug=request.view_args.get('college_slug')) }}" class="btn btn-outline" style="font-weight:700; color:var(--c-primary);">Browse All →</a>
   </div>
   
   <div class="file-grid">

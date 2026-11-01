@@ -493,6 +493,51 @@ uploader_name %}
     border: none;
     display: block;
   }
+  .r2-comment-form {
+    display: flex;
+    gap: 0.75rem;
+    margin-bottom: 1.5rem;
+  }
+  .r2-comment-input {
+    flex: 1;
+    min-width: 0;
+    box-sizing: border-box;
+    padding: 0.65rem 0.9rem;
+    border: 1px solid var(--v2-line);
+    border-radius: var(--v2-radius-btn);
+    font: inherit;
+    outline: none;
+    background: var(--v2-surface);
+    color: var(--v2-ink);
+  }
+  .r2-comment-input:focus {
+    border-color: var(--v2-brand);
+    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.14);
+  }
+  .r2-comment {
+    padding: 0.75rem;
+    border: 1px solid var(--v2-line);
+    border-radius: 8px;
+    font-size: 0.88rem;
+  }
+  .r2-comment-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin-bottom: 0.3rem;
+  }
+  .r2-comment-author {
+    color: var(--v2-brand);
+    font-weight: 700;
+  }
+  .r2-comment-date {
+    color: var(--v2-muted);
+    font-size: 0.75rem;
+  }
+  .r2-comment-content {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+  }
 
   /* Watermark Overlay */
   .r2-watermark-overlay {
@@ -705,6 +750,14 @@ uploader_name %}
     .r2-preview-iframe {
       height: clamp(440px, 68vh, 560px);
       min-height: 420px;
+    }
+    .r2-comment-form {
+      align-items: stretch;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+    .r2-comment-form .r2-btn {
+      width: 100%;
     }
     .r2-watermark-overlay {
       opacity: 0.05;
@@ -1976,9 +2029,9 @@ uploader_name %}
     <h3 style="margin:0 0 1rem 0; font-size:1.15rem; font-weight:700;">
       💬 Community Discussion (<span id="commentsCountBadge">{{ document.comment_count or 0 }}</span>)
     </h3>
-    <div style="display:flex; gap:0.75rem; margin-bottom:1.5rem;">
-      <input type="text" id="newCommentInput" placeholder="Add a study tip or comment..."
-        style="flex:1; padding:0.65rem 0.9rem; border:1px solid var(--v2-line); border-radius:var(--v2-radius-btn); font-family:inherit; font-size:0.9rem; outline:none; background:var(--v2-surface); color:var(--v2-ink);">
+    <div class="r2-comment-form">
+      <input type="text" id="newCommentInput" maxlength="2000" placeholder="Add a study tip or comment..."
+        class="r2-comment-input" aria-label="New comment">
       <button type="button" id="submitCommentBtn" onclick="submitComment()" class="r2-btn"
         style="background:var(--v2-brand); color:#fff; border-color:var(--v2-brand);">Post</button>
     </div>
@@ -2449,6 +2502,8 @@ uploader_name %}
     if (!card) return;
     var isFs = card.classList.toggle('fullscreen-doc-card');
     document.body.style.overflow = isFs ? 'hidden' : '';
+    var button = document.querySelector('[aria-label="Fullscreen view"]');
+    if (button) button.setAttribute('aria-pressed', String(isFs));
     if (window.AbhiHubTracking && isFs) {
       window.AbhiHubTracking.trackFeatureUsage('fullscreen_view', 'activated', 0, 'doc_viewer');
     }
@@ -2650,6 +2705,36 @@ uploader_name %}
   };
 
   // Load Comments
+  function appendCommentText(parent, value) {
+    parent.appendChild(document.createTextNode(value == null ? '' : String(value)));
+  }
+
+  function renderComment(comment) {
+    var item = document.createElement('article');
+    item.className = 'r2-comment';
+
+    var meta = document.createElement('div');
+    meta.className = 'r2-comment-meta';
+    var author = document.createElement('span');
+    author.className = 'r2-comment-author';
+    appendCommentText(author, (comment.profiles && comment.profiles.full_name) || comment.user_name || 'Student');
+    meta.appendChild(author);
+    if (comment.created_at) {
+      var date = document.createElement('time');
+      date.className = 'r2-comment-date';
+      date.dateTime = comment.created_at;
+      date.textContent = new Date(comment.created_at).toLocaleString();
+      meta.appendChild(date);
+    }
+
+    var content = document.createElement('div');
+    content.className = 'r2-comment-content';
+    appendCommentText(content, comment.content || comment.text || '');
+    item.appendChild(meta);
+    item.appendChild(content);
+    return item;
+  }
+
   async function loadComments() {
     const container = document.getElementById('commentsList');
     if (!container || !_rDocId) return;
@@ -2658,16 +2743,15 @@ uploader_name %}
       const data = await res.json();
       if (data.success && Array.isArray(data.data) && data.data.length > 0) {
         document.getElementById('commentsCountBadge').textContent = data.data.length;
-        container.innerHTML = data.data.map(function (c) {
-          const authorLink = c.user_id 
-            ? `<a href="/u/${c.user_id}" target="_blank" style="color:var(--v2-brand, #4f46e5); font-weight:700; text-decoration:none;" onmouseover="this.style.textDecoration='underline'" onmouseout="this.style.textDecoration='none'">👤 ${c.user_name || 'Student'}</a>`
-            : `<strong>${c.user_name || 'Student'}</strong>`;
-          return `<div style="padding:0.75rem; border:1px solid var(--v2-line); border-radius:8px; font-size:0.88rem;">
-            ${authorLink}: ${c.content || c.text || ''}
-          </div>`;
-        }).join('');
+        container.replaceChildren(...data.data.map(renderComment));
       } else {
-        container.innerHTML = '<div style="color:var(--v2-muted); font-size:0.85rem;">No comments yet.</div>';
+        document.getElementById('commentsCountBadge').textContent = '0';
+        container.replaceChildren();
+        var empty = document.createElement('div');
+        empty.style.color = 'var(--v2-muted)';
+        empty.style.fontSize = '0.85rem';
+        empty.textContent = 'No comments yet.';
+        container.appendChild(empty);
       }
     } catch (e) {
       container.innerHTML = '<div style="color:#ef4444; font-size:0.85rem;">Failed to load comments.</div>';
@@ -2676,8 +2760,11 @@ uploader_name %}
 
   window.submitComment = async function () {
     const inp = document.getElementById('newCommentInput');
+    const btn = document.getElementById('submitCommentBtn');
     const val = inp.value.trim();
     if (!val) return;
+    if (val.length > 2000) { alert('Comment is too long (maximum 2000 characters).'); return; }
+    btn.disabled = true;
     try {
       const res = await fetch('/api/interactions/comments/' + _rDocId, {
         method: 'POST',
@@ -2688,7 +2775,54 @@ uploader_name %}
       if (data.success) { inp.value = ''; loadComments(); }
       else { alert(data.message || 'Failed to post comment.'); }
     } catch (e) { alert('Network error.'); }
+    finally { btn.disabled = false; }
   };
+
+  async function toggleResourceInteraction(action, docId) {
+    var endpoint = action === 'toggleLike' ? '/api/interactions/like' : '/api/interactions/bookmark';
+    var buttons = Array.from(document.querySelectorAll('[data-action="' + action + '"]'));
+    buttons.forEach(function (button) { button.disabled = true; });
+    try {
+      var response = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ document_id: docId })
+      });
+      var data = await response.json();
+      if (!response.ok || !data.success) {
+        alert(data.message || 'Please sign in to use this action.');
+        return;
+      }
+      buttons.forEach(function (button) {
+        var active = action === 'toggleLike' ? data.is_liked : data.is_bookmarked;
+        button.classList.toggle(action === 'toggleLike' ? 'liked' : 'bookmarked', Boolean(active));
+        button.setAttribute('aria-pressed', String(Boolean(active)));
+        if (action === 'toggleLike') {
+          var count = button.querySelector('.like-count');
+          if (count) count.textContent = data.like_count;
+          var icon = button.querySelector('.like-heart-icon');
+          if (icon) icon.setAttribute('fill', active ? '#ef4444' : 'none');
+        }
+      });
+    } catch (error) {
+      alert('Network error. Please try again.');
+    } finally {
+      buttons.forEach(function (button) { button.disabled = false; });
+    }
+  }
+
+  document.addEventListener('click', function (event) {
+    var button = event.target.closest('[data-action="toggleLike"], [data-action="toggleBookmark"]');
+    if (!button) return;
+    toggleResourceInteraction(button.getAttribute('data-action'), button.getAttribute('data-doc-id'));
+  });
+
+  document.getElementById('newCommentInput')?.addEventListener('keydown', function (event) {
+    if (event.key === 'Enter' && !event.shiftKey) {
+      event.preventDefault();
+      window.submitComment();
+    }
+  });
 
   window.applyLockedCoupon = function(docId) {
     var code = (document.getElementById('lockedCouponInput').value || '').trim();

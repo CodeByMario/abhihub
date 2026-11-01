@@ -1411,6 +1411,7 @@ async function uploadOne(item, retries) {
           formData.append('signature', sigRes.signature);
           formData.append('folder', sigRes.folder);
           if (sigRes.public_id) formData.append('public_id', sigRes.public_id);
+          if (sigRes.format) formData.append('format', sigRes.format);
           formData.append('file', preparedUploadFile || item.file);
         
           const uploadResponse = await fetch(sigRes.upload_url, {

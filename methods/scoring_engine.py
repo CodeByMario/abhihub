@@ -366,7 +366,9 @@ def get_ad_decision(
 
     Ads reduce as remaining credits increase: 0 = high, 1-4 = moderate,
     5-9 = low, 10-19 = minimum, and 20+ = one opportunity per calendar
-    month. This uses the same paper_quota_remaining balance shown to users.
+    month. Verified contributors receive an additional benefit: users with
+    1-2 approved uploads are capped at minimum density, while users with 3+
+    approved uploads are ad-free.
     """
     verification_emails = {
         value.strip().lower()
@@ -434,12 +436,40 @@ def get_ad_decision(
         else:
             density = "monthly"
 
+        verified_upload_count = 0
+        try:
+            uploads = client.table("documents").select(
+                "id", count="exact"
+            ).eq("uploader_id", user_id).eq("status", "approved").limit(1).execute()
+            verified_upload_count = int(
+                getattr(uploads, "count", None)
+                if getattr(uploads, "count", None) is not None
+                else len(uploads.data or [])
+            )
+        except Exception as upload_error:
+            logging.warning(
+                "[ScoringEngine] verified upload lookup failed for %s: %s",
+                user_id,
+                upload_error,
+            )
+
+        if verified_upload_count >= 3:
+            show_ads = False
+            density = "off"
+        elif verified_upload_count >= 1:
+            show_ads = True
+            density = "minimum"
+        else:
+            show_ads = True
+
         decision = {
-            "show_ads": True,
+            "show_ads": show_ads,
             "density": density,
             "level": None,
             "view_count": remaining_credits,
             "view_credits_remaining": remaining_credits,
+            "verified_upload_count": verified_upload_count,
+            "ad_free_contributor": verified_upload_count >= 3,
         }
         from methods.ad_control import apply_ad_override, get_ad_override
         return apply_ad_override(decision, get_ad_override(user_id, email, page_path))

@@ -15,18 +15,18 @@
   "@graph": [
     {
       "@type": "CollegeOrUniversity",
-      "name": "{{ college.name }}",
-      "alternateName": ["{{ _abbr }}"],
-      "address": { "@type": "PostalAddress", "addressLocality": "{{ _city }}", "addressCountry": "IN" },
-      "url": "{{ request.base_url }}",
-      "description": "Browse all files for {{ college.name }} ({{ _abbr }}) on AbhiHub."
+      "name": {{ college.name|tojson }},
+      "alternateName": [{{ _abbr|tojson }}],
+      "address": { "@type": "PostalAddress", "addressLocality": {{ _city|tojson }}, "addressCountry": "IN" },
+      "url": {{ request.base_url|tojson }},
+      "description": {{ ("Browse all files for " ~ college.name ~ " (" ~ _abbr ~ ") on AbhiHub.")|tojson }}
     },
     {
       "@type": "BreadcrumbList",
       "itemListElement": [
-        { "@type": "ListItem", "position": 1, "name": "Home", "item": "{{ request.url_root.rstrip('/') }}/" },
-        { "@type": "ListItem", "position": 2, "name": "{{ college.name }}", "item": "{{ request.url_root.rstrip('/') }}/college/{{ (college.abbreviation or college.name) | lower | replace(' ', '-') }}" },
-        { "@type": "ListItem", "position": 3, "name": "Files", "item": "{{ request.base_url }}" }
+        { "@type": "ListItem", "position": 1, "name": "Home", "item": {{ (request.url_root.rstrip('/') ~ '/')|tojson }} },
+        { "@type": "ListItem", "position": 2, "name": {{ college.name|tojson }}, "item": {{ url_for('library.college_landing', college_slug=request.view_args.get('college_slug'))|tojson }} },
+        { "@type": "ListItem", "position": 3, "name": "Files", "item": {{ request.base_url|tojson }} }
       ]
     }
   ]
@@ -574,7 +574,8 @@
         <select class="arch-select" name="branch" onchange="this.form.submit()" aria-label="Filter by Branch">
           <option value="">All Branches & Departments</option>
           {% for dept in departments %}
-            {% set selected = 'selected' if filters.branch == (dept.abbreviation or dept.name | lower | replace(' ', '-')) else '' %}
+            {% set dept_slug = (dept.abbreviation or dept.name)|lower|replace(' ', '-') %}
+            {% set selected = 'selected' if filters.branch == dept_slug else '' %}
             <option value="{{ (dept.abbreviation or dept.name) | lower | replace(' ', '-') }}" {{ selected }}>{{ dept.name }}</option>
           {% endfor %}
         </select>

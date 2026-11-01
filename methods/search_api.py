@@ -406,7 +406,7 @@ def invalidate_search_cache():
         _DOCUMENTS_CACHE['last_updated'] = 0
 
 def get_cached_documents(force_refresh: bool = False) -> List[Dict[str, Any]]:
-    """Retrieve all non-rejected documents for instantaneous search."""
+    """Retrieve approved documents for the public search catalogue."""
     global _DOCUMENTS_CACHE
     now = time.time()
     if not force_refresh and _DOCUMENTS_CACHE['last_updated'] > 0 and (now - _DOCUMENTS_CACHE['last_updated']) < _DOCUMENTS_TTL:
@@ -463,7 +463,7 @@ def get_cached_documents(force_refresh: bool = False) -> List[Dict[str, Any]]:
                 raw_batch = page_res.data or []
                 batch = [
                     d for d in raw_batch
-                    if str(d.get('status') or '').lower() != 'rejected'
+                    if str(d.get('status') or '').lower() in ('approved', 'verified')
                 ]
                 docs.extend(batch)
                 if len(raw_batch) < page_size:
@@ -1035,7 +1035,7 @@ def execute_search_v3(
                 subject_id=primary_sid,
                 category=target_category if target_category != 'All types' else None,
                 year=int(target_year) if target_year and str(target_year).isdigit() else None,
-                status=['approved', 'pending', 'unverified']
+                status=['approved', 'verified']
             )
             if rpc_results:
                 cached_by_id = {d['id']: d for d in all_cached_docs}
@@ -1569,7 +1569,7 @@ def get_suggestions_payload(query: str, college_id: str = None) -> Dict[str, Any
         try:
             from methods.supabase_helper import suggest_documents_rpc
             doc_suggs = suggest_documents_rpc(
-                clean_q, limit=4, status=['approved', 'pending', 'unverified']
+                clean_q, limit=4, status=['approved', 'verified']
             )
             for ds in (doc_suggs or []):
                 t = ds.get('suggestion')
