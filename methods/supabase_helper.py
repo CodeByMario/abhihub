@@ -409,18 +409,29 @@ def get_recent_college_files(college_id: str, limit: int = 5) -> Dict:
     except Exception as e:
         return {"success": False, "message": str(e)}
 
-def get_department_by_slug(slug: str) -> Dict:
+def get_department_by_slug(slug: str, college_id: str = None) -> Dict:
     client = init_supabase_admin() or init_supabase()
     if not client: return {"success": False}
     try:
-        response = client.table("departments").select("*").execute()
+        if college_id:
+            mapping = client.table("college_departments") \
+                .select("department_id") \
+                .eq("college_id", college_id) \
+                .execute()
+            department_ids = [row.get("department_id") for row in (mapping.data or []) if row.get("department_id")]
+            if not department_ids:
+                return {"success": False, "message": "Department not mapped to college"}
+            response = client.table("departments").select("*").in_("id", department_ids).execute()
+        else:
+            response = client.table("departments").select("*").execute()
         import re
         for c in response.data:
             abbr = (c.get('abbreviation') or '').lower()
-            if abbr and abbr == slug:
+            normalized_slug = re.sub(r'[^a-z0-9]+', '-', str(slug).lower()).strip('-')
+            if abbr and (abbr == slug or abbr == normalized_slug):
                 return {"success": True, "data": c}
             name_slug = re.sub(r'[^a-z0-9]+', '-', (c.get('name') or '').lower()).strip('-')
-            if name_slug == slug:
+            if name_slug == normalized_slug:
                 return {"success": True, "data": c}
         return {"success": False, "message": "Department not found"}
     except Exception as e:
@@ -669,6 +680,10 @@ def get_departments_by_college(college_id: str) -> Dict:
                     "id": dept.get("id"),
                     "name": dept.get("name"),
                     "abbreviation": dept.get("abbreviation"),
+                    "slug": re.sub(
+                        r'[^a-z0-9]+', '-',
+                        str(dept.get("abbreviation") or dept.get("name") or '').lower()
+                    ).strip('-'),
                 })
         if data:
             _cache_set(cache_key, data)

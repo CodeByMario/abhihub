@@ -307,7 +307,7 @@ def college_files(college_slug):
 
     dept_res = {'success': False, 'data': {}}
     if department_slug:
-        dept_res = get_department_by_slug(department_slug)
+        dept_res = get_department_by_slug(department_slug, college_id=college_id)
 
     q = client.table('documents') \
         .select('*, subjects(name, subject_code), profiles!documents_uploader_id_fkey(full_name), colleges(name, abbreviation), departments(name, abbreviation)') \
@@ -373,7 +373,7 @@ def department_landing(college_slug, department_slug):
     college = college_res.get('data')
     college_id = college.get('id')
 
-    dept_res = get_department_by_slug(department_slug)
+    dept_res = get_department_by_slug(department_slug, college_id=college_id)
     if not dept_res.get('success'):
         abort(404)
     department = dept_res.get('data')
