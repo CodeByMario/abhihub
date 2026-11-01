@@ -254,15 +254,20 @@ def get_college_by_slug(slug: str) -> Dict:
         target = _slug(slug)
         raw_slug = str(slug).lower().strip()
         
+        # Resolve canonical identifiers before aliases. Legacy aliases are not
+        # guaranteed to be unique and must never shadow a real abbreviation.
         for c in response.data:
-            # Match abbreviation slug (canonical)
             abbr = (c.get('abbreviation') or '').lower()
             if abbr and (abbr == raw_slug or abbr == target):
                 return {"success": True, "data": c}
+
+        for c in response.data:
             # Match full name slug
             name_slug = _slug(c.get('name') or '')
             if name_slug and (name_slug == target or name_slug == raw_slug):
                 return {"success": True, "data": c}
+
+        for c in response.data:
             # Match popular_name (e.g. "raisoni" for GHRCE)
             popular = (c.get('popular_name') or '')
             if popular and (_slug(popular) == target or _slug(popular) == raw_slug):
@@ -313,18 +318,27 @@ def get_colleges_by_brand(brand_slug: str) -> Dict:
             return re.sub(r'[^a-z0-9]+', '-', str(text).lower()).strip('-')
         
         response = client.table("colleges").select("*").execute()
+        normalized_brand_slug = _slug(brand_slug)
+
+        # A canonical abbreviation must win over stale/overlapping aliases.
+        # For example, some legacy rows list "ghrce" as an alias even though
+        # GHRCE is the canonical abbreviation of another college.
+        for college in response.data:
+            if _slug(college.get('abbreviation') or '') == normalized_brand_slug:
+                return {"success": False, "data": []}
+
         matches = []
         brand_display = None
         for c in response.data:
             popular = (c.get('popular_name') or '')
-            if popular and _slug(popular) == brand_slug:
+            if popular and _slug(popular) == normalized_brand_slug:
                 matches.append(c)
                 if not brand_display:
                     brand_display = popular
             else:
                 # Also check aliases
                 for alias in (c.get('aliases') or []):
-                    if alias and _slug(alias) == brand_slug:
+                    if alias and _slug(alias) == normalized_brand_slug:
                         matches.append(c)
                         break
         
