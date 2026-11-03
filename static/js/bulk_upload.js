@@ -69,45 +69,19 @@ function updateTopBanner(done, total, currentFile, pct, isSuccess) {
   const subEl = document.getElementById('utbSub');
   const fillEl = document.getElementById('utbProgressFill');
   const pctEl = document.getElementById('utbPercent');
+  const overall = total > 0
+    ? Math.min(100, Math.round(((done + (pct / 100)) / total) * 100))
+    : 0;
 
-  if (isSuccess) {
-    banner.classList.add('utb-success');
-    if (titleEl) titleEl.textContent = `🎉 All ${total} document(s) published!`;
-    if (badgeEl) badgeEl.textContent = 'Done';
-    if (subEl) subEl.textContent = 'Upload complete • Contributions are live on AbhiHub.';
-    if (fillEl) fillEl.style.width = '100%';
-    if (pctEl) pctEl.textContent = '100%';
-    setTimeout(() => {
-      if (banner && banner.classList.contains('utb-success')) {
-        banner.style.opacity = '0';
-        setTimeout(() => { banner.style.display = 'none'; banner.style.opacity = '1'; }, 300);
-      }
-    }, 6000);
-    return;
-  }
-
-  const remaining = Math.max(0, total - done);
-  const overall = total > 0 ? Math.min(100, Math.round(((done + (pct / 100)) / total) * 100)) : 0;
-
-  if (titleEl) {
-    titleEl.textContent = currentFile 
-      ? `Uploading (${done + 1}/${total}): ${currentFile}`
-      : `Uploading ${done + 1} of ${total} files in background…`;
-  }
-  if (badgeEl) {
-    badgeEl.textContent = `${remaining} remaining`;
-  }
-  if (subEl) {
-    subEl.textContent = pct < 100 
-      ? `${pct}% transmitted • Keep browsing or use the app freely`
-      : `Processing & publishing on server…`;
-  }
-  if (fillEl) {
-    fillEl.style.width = overall + '%';
-  }
-  if (pctEl) {
-    pctEl.textContent = overall + '%';
-  }
+  if (titleEl) titleEl.textContent = isSuccess
+    ? `All ${total} document(s) published`
+    : `Uploading ${Math.min(done + 1, total)} of ${total} files`;
+  if (badgeEl) badgeEl.textContent = isSuccess ? 'Done' : `${Math.max(0, total - done)} remaining`;
+  if (subEl) subEl.textContent = isSuccess
+    ? 'Upload complete. Opening your dashboard…'
+    : (currentFile ? `${currentFile} · ${pct}% transmitted` : 'Upload started. You can continue browsing.');
+  if (fillEl) fillEl.style.width = `${isSuccess ? 100 : overall}%`;
+  if (pctEl) pctEl.textContent = `${isSuccess ? 100 : overall}%`;
 }
 
 function updateProgressUI() {
@@ -209,6 +183,52 @@ function showToast(msg, type) {
 // Map of in-flight AbortControllers for AI extraction per file ID
 window._uploadAiControllers = window._uploadAiControllers || {};
 
+function predictMetadataLocally(filename, form) {
+  const stem = String(filename || '').replace(/\.[^.]+$/, '').toLowerCase();
+  const words = stem.split(/[\W_]+/).filter(Boolean);
+  const prediction = {
+    subject_id: null,
+    subject: null,
+    type: null,
+    unit: null,
+    year: String(new Date().getFullYear())
+  };
+
+  words.forEach(function (word) {
+    if (word === 'notes' || word === 'note') prediction.type = 'notes';
+    else if (/^cae[123]$/.test(word) || word === 'ese') {
+      prediction.type = 'papers';
+      prediction.unit = word.toUpperCase();
+    } else if (word === 'practical' || word === 'lab') prediction.type = 'practical';
+    else if (word === 'syllabus') prediction.type = 'syllabus';
+    if (/^20\d{2}$/.test(word)) prediction.year = word;
+  });
+
+  // Subject options are already present in the upload form, so matching them
+  // locally avoids a metadata round trip for every selected file.
+  const subjectSelect = form && form.querySelector('.subject-select');
+  if (subjectSelect) {
+    const normalized = words.join(' ');
+    Array.from(subjectSelect.options || []).some(function (option) {
+      const label = (option.textContent || '').trim();
+      const code = String(option.value || '').toLowerCase();
+      const labelWords = label.toLowerCase().split(/[\W_]+/).filter(function (word) {
+        return word.length > 2;
+      });
+      const matches = labelWords.length > 0 && labelWords.every(function (word) {
+        return normalized.includes(word);
+      });
+      if (matches || (code && words.includes(code))) {
+        prediction.subject_id = option.value;
+        prediction.subject = label;
+        return true;
+      }
+      return false;
+    });
+  }
+  return prediction;
+}
+
 async function processFileMetadataAutofill(newItem, file) {
   const form = document.getElementById(`meta-form-${newItem.id}`);
   if (!form) return;
@@ -232,54 +252,38 @@ async function processFileMetadataAutofill(newItem, file) {
 
   let known = { type: null, year: null, unit: null, subject_id: null, subject_name: null, qb_tags: null };
 
-  // Step 1: Fast & Free Heuristic Pass
-  try {
-    const hRes = await fetch('/api/ai/predict-metadata', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ filename: file.name })
-    }).then(r => r.json());
+  // Step 1: deterministic heuristic pass on the user's device.
+  const p = predictMetadataLocally(file.name, form);
+  if (p.type) known.type = p.type;
+  if (p.year) known.year = p.year;
+  if (p.unit) known.unit = p.unit;
+  if (p.subject_id) known.subject_id = p.subject_id;
 
-    if (hRes && hRes.success && hRes.prediction) {
-      const p = hRes.prediction;
-      if (p.type) known.type = p.type;
-      if (p.year) known.year = p.year;
-      if (p.unit) known.unit = p.unit;
-      if (p.subject_id) known.subject_id = p.subject_id;
-
-      if (known.type) {
-        const typeEl = form.querySelector('.meta-type');
-        if (typeEl && !typeEl.dataset.userModified && !typeEl.value) {
-          typeEl.value = known.type;
-          updateDynamicFieldsForForm(form);
-        }
-      }
-      if (known.year) {
-        const yearEl = form.querySelector('.meta-year');
-        if (yearEl && !yearEl.dataset.userModified) yearEl.value = known.year;
-      }
-      if (known.unit) {
-        const unitEl = form.querySelector('.meta-unit');
-        if (unitEl && !unitEl.dataset.userModified && !unitEl.value) {
-          unitEl.innerHTML = `<option value="${known.unit}" selected>${known.unit}</option>`;
-          unitEl.value = known.unit;
-        }
-      }
-      if (known.subject_id) {
-        const subjEl = form.querySelector('.subject-select');
-        if (subjEl && !subjEl.dataset.userModified) {
-          const tsSubj = window.AbhiHubSelect?.instances[subjEl.id];
-          if (tsSubj) {
-            if (!tsSubj.options[known.subject_id]) tsSubj.addOption({ value: known.subject_id, text: p.subject || 'Loading...' });
-            tsSubj.setValue(known.subject_id, true);
-          } else {
-            subjEl.value = known.subject_id;
-          }
-        }
-      }
+  if (known.type) {
+    const typeEl = form.querySelector('.meta-type');
+    if (typeEl && !typeEl.dataset.userModified && !typeEl.value) {
+      typeEl.value = known.type;
+      updateDynamicFieldsForForm(form);
     }
-  } catch (e) {
-    console.warn("[Autofill] Heuristic predict error:", e);
+  }
+  if (known.year) {
+    const yearEl = form.querySelector('.meta-year');
+    if (yearEl && !yearEl.dataset.userModified) yearEl.value = known.year;
+  }
+  if (known.unit) {
+    const unitEl = form.querySelector('.meta-unit');
+    if (unitEl && !unitEl.dataset.userModified && !unitEl.value) {
+      unitEl.innerHTML = `<option value="${known.unit}" selected>${known.unit}</option>`;
+      unitEl.value = known.unit;
+    }
+  }
+  if (known.subject_id) {
+    const subjEl = form.querySelector('.subject-select');
+    if (subjEl && !subjEl.dataset.userModified) {
+      const tsSubj = window.AbhiHubSelect?.instances[subjEl.id];
+      if (tsSubj) tsSubj.setValue(known.subject_id, true);
+      else subjEl.value = known.subject_id;
+    }
   }
 
   // Step 2: Check if all key fields are resolved
@@ -423,7 +427,7 @@ function handleFilesSelected(filesOrEvent) {
     if (!file.type.startsWith('image/') && file.type !== 'application/pdf') {
       return showToast(file.name + ': unsupported type', 'error');
     }
-    if (file.size > 500 * 1024 * 1024) return showToast(file.name + ': exceeds 500 MB', 'error');
+    if (file.size > 50 * 1024 * 1024) return showToast(file.name + ': exceeds 50 MB', 'error');
 
     const newItem = {
       id: uid(), file, blob: null, compressedBlob: null, name: file.name, cropped: false, status: 'pending', compressionStatus: 'compressing'
@@ -504,6 +508,7 @@ function removeFile(id) {
     if (carouselIndex >= selectedFiles.length) carouselIndex = selectedFiles.length - 1;
     renderCarousel(carouselIndex);
   }
+  document.dispatchEvent(new CustomEvent('upload:selection-changed'));
 }
 
 /* ── Carousel Logic ── */
@@ -571,6 +576,7 @@ function renderCarousel(index) {
   if (cNextBtn) cNextBtn.disabled = (index === selectedFiles.length - 1);
 
   renderFilmstrip();
+  document.dispatchEvent(new CustomEvent('upload:selection-changed'));
 }
 
 function renderFilmstrip() {
@@ -710,9 +716,117 @@ function openFullPreview() {
   if (selectedFiles.length === 0) return;
   const item = selectedFiles[carouselIndex];
   if (!item || !item.file) return;
-  const fileUrl = URL.createObjectURL(item.file);
-  window.open(fileUrl, '_blank');
+  const modal = document.getElementById('uploadPreviewModal');
+  const image = document.getElementById('uploadPreviewImage');
+  const pdf = document.getElementById('uploadPreviewPdf');
+  const title = document.getElementById('uploadPreviewTitle');
+  if (!modal || !image || !pdf) return;
+
+  closeUploadPreview();
+  const previewSource = item.previewBlob || item.blob || item.file;
+  const objectUrl = URL.createObjectURL(previewSource);
+  const isPdf = item.file.type === 'application/pdf' || item.name.toLowerCase().endsWith('.pdf');
+  window._uploadPreview = { scale: 1, rotation: 0, x: 0, y: 0, objectUrl, dragging: false };
+  if (title) title.textContent = item.name;
+  image.hidden = isPdf;
+  pdf.hidden = !isPdf;
+  if (isPdf) {
+    pdf.src = objectUrl;
+  } else {
+    image.src = objectUrl;
+    image.alt = `Large preview of ${item.name}`;
+  }
+  modal.hidden = false;
+  document.body.classList.add('upload-preview-open');
+  updateUploadPreviewTransform();
+  modal.querySelector('.upload-preview-close')?.focus();
 }
+
+function updateUploadPreviewTransform() {
+  const preview = window._uploadPreview;
+  const image = document.getElementById('uploadPreviewImage');
+  const zoom = document.getElementById('uploadPreviewZoom');
+  if (!preview || !image) return;
+  image.style.transform = `translate(${preview.x}px, ${preview.y}px) scale(${preview.scale}) rotate(${preview.rotation}deg)`;
+  if (zoom) zoom.textContent = `${Math.round(preview.scale * 100)}%`;
+}
+
+function setUploadPreviewZoom(scale) {
+  if (!window._uploadPreview) return;
+  window._uploadPreview.scale = Math.min(4, Math.max(0.5, scale));
+  updateUploadPreviewTransform();
+}
+
+function previewZoomIn() { setUploadPreviewZoom((window._uploadPreview?.scale || 1) + 0.25); }
+function previewZoomOut() { setUploadPreviewZoom((window._uploadPreview?.scale || 1) - 0.25); }
+
+function previewFit() {
+  if (!window._uploadPreview) return;
+  window._uploadPreview.scale = 1;
+  window._uploadPreview.rotation = 0;
+  window._uploadPreview.x = 0;
+  window._uploadPreview.y = 0;
+  updateUploadPreviewTransform();
+}
+
+function previewRotate() {
+  if (!window._uploadPreview) return;
+  window._uploadPreview.rotation = (window._uploadPreview.rotation + 90) % 360;
+  updateUploadPreviewTransform();
+}
+
+function closeUploadPreview() {
+  const modal = document.getElementById('uploadPreviewModal');
+  const image = document.getElementById('uploadPreviewImage');
+  const pdf = document.getElementById('uploadPreviewPdf');
+  if (window._uploadPreview?.objectUrl) URL.revokeObjectURL(window._uploadPreview.objectUrl);
+  if (modal) modal.hidden = true;
+  if (image) image.removeAttribute('src');
+  if (pdf) {
+    pdf.removeAttribute('src');
+    pdf.hidden = true;
+  }
+  document.body.classList.remove('upload-preview-open');
+  window._uploadPreview = null;
+}
+
+function bindUploadPreviewInteractions() {
+  const modal = document.getElementById('uploadPreviewModal');
+  const stage = document.getElementById('uploadPreviewStage');
+  if (!modal || !stage || modal.dataset.bound === 'true') return;
+  modal.dataset.bound = 'true';
+  stage.addEventListener('wheel', event => {
+    if (!window._uploadPreview) return;
+    event.preventDefault();
+    setUploadPreviewZoom(window._uploadPreview.scale + (event.deltaY < 0 ? 0.15 : -0.15));
+  }, { passive: false });
+  stage.addEventListener('pointerdown', event => {
+    if (!window._uploadPreview || event.target.id !== 'uploadPreviewImage') return;
+    window._uploadPreview.dragging = true;
+    window._uploadPreview.pointerX = event.clientX;
+    window._uploadPreview.pointerY = event.clientY;
+    event.target.setPointerCapture?.(event.pointerId);
+  });
+  stage.addEventListener('pointermove', event => {
+    const preview = window._uploadPreview;
+    if (!preview?.dragging) return;
+    preview.x += event.clientX - preview.pointerX;
+    preview.y += event.clientY - preview.pointerY;
+    preview.pointerX = event.clientX;
+    preview.pointerY = event.clientY;
+    updateUploadPreviewTransform();
+  });
+  ['pointerup', 'pointercancel'].forEach(type => {
+    stage.addEventListener(type, () => {
+      if (window._uploadPreview) window._uploadPreview.dragging = false;
+    });
+  });
+  document.addEventListener('keydown', event => {
+    if (event.key === 'Escape' && window._uploadPreview) closeUploadPreview();
+  });
+}
+
+bindUploadPreviewInteractions();
 
 async function analyzeCurrentFileWithAi() {
   if (selectedFiles.length === 0) {
@@ -797,6 +911,11 @@ window.renderFilmstrip = renderFilmstrip;
 window.removeFileById = removeFileById;
 window.copyLabelsToAll = copyLabelsToAll;
 window.openFullPreview = openFullPreview;
+window.closeUploadPreview = closeUploadPreview;
+window.previewZoomIn = previewZoomIn;
+window.previewZoomOut = previewZoomOut;
+window.previewFit = previewFit;
+window.previewRotate = previewRotate;
 window.analyzeCurrentFileWithAi = analyzeCurrentFileWithAi;
 
 
@@ -1188,6 +1307,7 @@ function buildFormData(item) {
   const _paidActive = form ? form.querySelector('.access-paid-btn.active') : null;
   const _rawPrice = _priceEl ? (parseFloat(_priceEl.value) || 0) : 0;
   const _priceVal = (_paidActive || _rawPrice > 0) ? _rawPrice : 0;
+  fd.append('is_paid', _priceVal > 0 ? 'true' : 'false');
   if (_priceVal > 0) {
     fd.append('price', _priceVal.toFixed(2));
     const _couponEl = form ? form.querySelector('[name="coupon_code"]') : null;
@@ -1288,11 +1408,35 @@ function resetUploadButton() {
   setUploadButtonState('idle');
 }
 
+function uploadDirectToCloudinary(uploadUrl, formData, onProgress) {
+  return new Promise(function (resolve, reject) {
+    const xhr = new XMLHttpRequest();
+    xhr.open('POST', uploadUrl, true);
+    xhr.upload.addEventListener('progress', function (event) {
+      if (event.lengthComputable && typeof onProgress === 'function') {
+        onProgress(Math.round((event.loaded / event.total) * 100));
+      }
+    });
+    xhr.addEventListener('load', function () {
+      let payload = {};
+      try { payload = JSON.parse(xhr.responseText || '{}'); } catch (e) {}
+      resolve({ ok: xhr.status >= 200 && xhr.status < 300, status: xhr.status, payload: payload });
+    });
+    xhr.addEventListener('error', function () {
+      reject(new Error('Network error while uploading directly to Cloudinary'));
+    });
+    xhr.addEventListener('abort', function () {
+      reject(new Error('Cloudinary upload was cancelled'));
+    });
+    xhr.send(formData);
+  });
+}
+
 async function uploadOne(item, retries) {
   retries = (retries === undefined) ? 2 : retries;
 
   if (!item.meta || !item.meta.type || (item.meta.type.toLowerCase() !== 'question_bank' && !item.meta.subject)) {
-    openStatusModal();
+    showUploadStatusLauncher(true);
     setItemStatus(item.id, 'error', 0, 'Fill metadata first', true);
     showToast(item.name + ': fill metadata first', 'error');
     return { ok: false, msg: 'Missing metadata' };
@@ -1301,12 +1445,12 @@ async function uploadOne(item, retries) {
   // Duplicate guard — skip if already uploaded this session
   var fp = fileFingerprint(item);
   if (uploadedFingerprints.has(fp)) {
-    openStatusModal();
+    showUploadStatusLauncher(true);
     setItemStatus(item.id, 'skipped', 100, 'Already uploaded in this session');
     return { ok: true, xp: 0, score: 0, skipped: true };
   }
 
-  openStatusModal();
+  showUploadStatusLauncher(true);
   ensureStatusItem(item.id, item.name);
   setItemStatus(item.id, 'validating', 0, 'Checking file & integrity…');
 
@@ -1366,9 +1510,11 @@ async function uploadOne(item, retries) {
       // object for both direct Cloudinary uploads and the server fallback.
       let preparedFormData = null;
       let preparedUploadFile = null;
+      let preparedOriginalFilename = item.name;
       try {
         preparedFormData = buildFormData(item);
         preparedUploadFile = preparedFormData.get('upload_document');
+        preparedOriginalFilename = preparedFormData.get('original_filename') || preparedUploadFile?.name || item.name;
       } catch (e) {
         console.error('Unable to prepare renamed upload file', e);
       }
@@ -1412,14 +1558,30 @@ async function uploadOne(item, retries) {
           formData.append('folder', sigRes.folder);
           if (sigRes.public_id) formData.append('public_id', sigRes.public_id);
           if (sigRes.format) formData.append('format', sigRes.format);
-          formData.append('file', preparedUploadFile || item.file);
+          let cloudinaryFile = preparedUploadFile || item.file;
+          if (preparedOriginalFilename.toLowerCase().endsWith('.pdf')) {
+            // Cloudinary raw delivery is configured with a .txt public ID for
+            // PDFs. Keep the academic .pdf name for the document record, but
+            // send the same PDF bytes with a .txt upload name.
+            const cloudinaryName = preparedOriginalFilename.replace(/\.pdf$/i, '.txt');
+            cloudinaryFile = new File([cloudinaryFile], cloudinaryName, { type: 'text/plain' });
+          }
+          formData.append('file', cloudinaryFile);
         
-          const uploadResponse = await fetch(sigRes.upload_url, {
-            method: 'POST',
-            body: formData
-          });
-        
-          const uploadResult = await uploadResponse.json().catch(() => ({}));
+          // Send the file bytes directly from this browser to Cloudinary.
+          // Do not replace this with /api/save-document or any Flask endpoint:
+          // the application server only receives the resulting metadata below.
+          const directUpload = await uploadDirectToCloudinary(
+            sigRes.upload_url,
+            formData,
+            function (progress) {
+              _progCurrentPct = progress;
+              setItemStatus(item.id, 'uploading', progress, `Uploading directly to Cloudinary… ${progress}%`);
+              updateProgressUI();
+            }
+          );
+          const uploadResponse = { ok: directUpload.ok, status: directUpload.status };
+          const uploadResult = directUpload.payload || {};
         
           if (uploadResponse.ok && uploadResult.secure_url) {
                       // Upload succeeded - now save record via the new API endpoint with metadata
@@ -1433,7 +1595,7 @@ async function uploadOne(item, retries) {
                           secure_url: uploadResult.secure_url,
                           bytes: uploadResult.bytes,
                           format: uploadResult.format,
-                          original_filename: preparedUploadFile?.name || item.name,
+                          original_filename: preparedOriginalFilename,
                           title: preparedValue('title', item.meta?.title || item.name),
                           subject: preparedValue('subject', item.meta?.subject || ''),
                           subject_id: preparedValue('subject_id', item.meta?.subject_id || ''),
@@ -1443,6 +1605,10 @@ async function uploadOne(item, retries) {
                           year: preparedValue('year', item.meta?.year || new Date().getFullYear()),
                           semester: preparedValue('semester', item.meta?.semester || ''),
                           description: preparedValue('description', item.meta?.description || ''),
+                          price: preparedValue('price', '0'),
+                          is_paid: preparedValue('is_paid', 'false') === 'true',
+                          coupon_code: preparedValue('coupon_code', ''),
+                          coupon_discount: preparedValue('coupon_discount', ''),
                           exam_type: preparedValue('exam_type'),
                           subject_code: preparedValue('subject_code'),
                           program: preparedValue('program', 'b.tech'),
@@ -1755,13 +1921,19 @@ async function startBulkUpload(event) {
       return;
     }
     if (!type) {
-      _highlightField(typeEl, `Please select a Category (e.g. Question Bank, Papers, Notes, Practical) for "${f.name}"`);
+      const categoryButton = form.querySelector('.category-quick-choice');
+      _highlightField(categoryButton || typeEl, `Please select a Category (e.g. Question Bank, Papers, Notes, Practical) for "${f.name}"`);
       return;
     }
   }
 
   // Extract batch
-  const uploadBatch = [...selectedFiles];
+  const uploadBatch = selectedFiles.filter(item => item.uploadStatus !== 'done' && item.uploadStatus !== 'skipped');
+  if (!uploadBatch.length) {
+    uploadSubmissionLocked = false;
+    setUploadButtonState('completed');
+    return showToast('All selected files have already been published.', 'info');
+  }
 
   // Reset upload status modal for a fresh batch
   const statusList = document.getElementById('uploadStatusList');
@@ -1789,7 +1961,6 @@ async function startBulkUpload(event) {
     }
   });
 
-  showTopUploadBanner();
   await processUploadBatch(uploadBatch);
 }
 
@@ -1812,6 +1983,7 @@ async function processUploadBatch(batch) {
   window.addEventListener('beforeunload', handleBeforeUnload);
 
   showTopUploadBanner();
+  updateTopBanner(0, batch.length, '', 0, false);
   const statusList = document.getElementById('uploadStatusList');
   if (statusList) statusList.innerHTML = '';
   batch.forEach(item => ensureStatusItem(item.id, item.name));
@@ -1909,9 +2081,15 @@ async function processUploadBatch(batch) {
 
     if (typeof window.markUserUploaded === 'function') window.markUserUploaded();
     closeStatusModal();
+    showUploadStatusLauncher(false);
     updateTopBanner(done, batch.length, '', 100, true);
-    if (typeof showXpModal === 'function') {
-      showXpModal(totalXp, lastScore, done, successfulDocs);
+    showToast(`${done} resource${done === 1 ? '' : 's'} published successfully.`, 'success');
+    if (typeof window.showXpModal === 'function') {
+      window.showXpModal(totalXp, lastScore, done, successfulDocs);
+    } else {
+      setTimeout(() => {
+        window.location.assign('/upload?tab=history');
+      }, 900);
     }
 
   } else if (done > 0) {
@@ -2026,11 +2204,12 @@ function startMarioGame() {
 }
 
 function setFloatStatus(show, text) {
-  const el = document.getElementById('uploadFloat');
-  if (!el) return;
-  el.style.display = show ? 'flex' : 'none';
-  const t = document.getElementById('uploadFloatText');
-  if (t && text) t.textContent = text;
+  // The upload status modal is the single progress surface. Avoid showing a
+  // second floating progress popup while duplicate checks are running.
+  if (show && text) {
+    const meta = document.getElementById('usSummary');
+    if (meta) meta.textContent = text;
+  }
 }
 
 /* ── Upload Status Modal ── */
@@ -2045,6 +2224,11 @@ function closeStatusModal() {
   const overlay = document.getElementById('uploadStatusModal');
   if (overlay) overlay.style.display = 'none';
   _statusModalOpen = false;
+}
+
+function showUploadStatusLauncher(show) {
+  const launcher = document.getElementById('uploadStatusLauncher');
+  if (launcher) launcher.hidden = true;
 }
 
 function ensureStatusItem(id, name) {
@@ -2070,8 +2254,13 @@ function ensureStatusItem(id, name) {
 
 function setItemStatus(id, status, progress, msg, allowRetry) {
   const item = (typeof selectedFiles !== 'undefined' ? selectedFiles : []).find(f => f.id === id);
+  if (item) item.uploadStatus = status;
   const name = item ? item.name : 'File';
   ensureStatusItem(id, name);
+
+  if ((status === 'duplicate' || status === 'error') && !_statusModalOpen) {
+    openStatusModal();
+  }
 
   const pill = document.getElementById('us-pill-' + id);
   const fill = document.getElementById('us-fill-' + id);
@@ -2133,6 +2322,9 @@ function updateStatusSummary() {
   const title = document.getElementById('usTitle');
   const subtitle = document.getElementById('usSubtitle');
   const closeBtn = document.getElementById('usClose');
+  const launcher = document.getElementById('uploadStatusLauncher');
+  const launcherCount = document.getElementById('uploadStatusLauncherCount');
+  const launcherLabel = document.getElementById('uploadStatusLauncherLabel');
   if (!list || !summary) return;
   const entries = Array.from(list.querySelectorAll('.upload-status-item'));
   const total = entries.length;
@@ -2150,6 +2342,11 @@ function updateStatusSummary() {
   if (skipped) parts.push(`${skipped} Skipped`);
 
   summary.textContent = parts.join(' · ') || 'Preparing resources…';
+  if (launcher) launcher.hidden = total === 0;
+  if (launcherCount) launcherCount.textContent = String(Math.max(0, total - done - error - skipped));
+  if (launcherLabel) {
+    launcherLabel.textContent = (done + error + skipped) >= total && total > 0 ? 'Review upload' : 'Uploading';
+  }
 
   if (title) {
     if (error > 0 && (done + error + skipped === total)) title.textContent = 'Upload Completed with Issues';
@@ -2214,4 +2411,10 @@ document.addEventListener('DOMContentLoaded', function () {
   if (usClose) usClose.addEventListener('click', function () { closeStatusModal(); });
   if (usMinimize) usMinimize.addEventListener('click', function () { closeStatusModal(); });
   if (usOverlay) usOverlay.addEventListener('click', function (e) { if (e.target === usOverlay) closeStatusModal(); });
+});
+
+window.addEventListener('message', function (event) {
+  if (event.origin !== window.location.origin || !event.data) return;
+  if (event.data.type === 'ABHIHUB_OPEN_UPLOAD_DETAILS') openStatusModal();
+  if (event.data.type === 'ABHIHUB_DISMISS_UPLOAD_STATUS') dismissTopBanner();
 });

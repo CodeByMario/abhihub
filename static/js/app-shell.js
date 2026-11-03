@@ -41,11 +41,66 @@
     const notifBadge = document.getElementById('shellNotifBadge');
     const notifPanel = document.getElementById('shellNotifPanel');
     const notifList = document.getElementById('shellNotifList');
+    const uploadStatus = document.getElementById('shellUploadStatus');
+    const uploadTitle = document.getElementById('shellUploadTitle');
+    const uploadSub = document.getElementById('shellUploadSub');
+    const uploadProgress = document.getElementById('shellUploadProgress');
+    const uploadPercent = document.getElementById('shellUploadPercent');
+    const uploadDetails = document.getElementById('shellUploadDetails');
+    const uploadDismiss = document.getElementById('shellUploadDismiss');
 
     let currentActiveTab = null;
     let activeIframe = iframeMain;
     let slowTimer = null;
+    let uploadNotificationDismissed = false;
     const SLOW_TIMEOUT_MS = 8000;
+
+    function postToUploadFrame(message) {
+        if (!iframeUpload || !iframeUpload.contentWindow) return;
+        iframeUpload.contentWindow.postMessage(message, window.location.origin);
+    }
+
+    function updateShellUploadStatus(data) {
+        if (!uploadStatus || !data) return;
+        if (data.type === 'UPLOAD_DISMISSED') {
+            uploadNotificationDismissed = true;
+            uploadStatus.hidden = true;
+            return;
+        }
+        uploadNotificationDismissed = false;
+        uploadStatus.hidden = false;
+        if (uploadTitle) uploadTitle.textContent = data.title || 'Uploading in background…';
+        if (uploadSub) uploadSub.textContent = data.sub || 'You can continue using AbhiHub.';
+        if (uploadProgress) uploadProgress.style.width = `${Math.max(0, Math.min(100, Number(data.progress) || 0))}%`;
+        if (uploadPercent) uploadPercent.textContent = `${Math.max(0, Math.min(100, Number(data.progress) || 0))}%`;
+        uploadStatus.classList.toggle('is-success', Boolean(data.success));
+        if (data.success) {
+            window.setTimeout(function () {
+                if (!uploadNotificationDismissed && uploadStatus) uploadStatus.hidden = true;
+            }, 6000);
+        }
+    }
+
+    window.addEventListener('message', function (event) {
+        if (event.origin !== window.location.origin || !event.data) return;
+        if (event.data.type === 'ABHIHUB_UPLOAD_STATUS') updateShellUploadStatus(event.data);
+    });
+
+    if (uploadDetails) {
+        uploadDetails.addEventListener('click', function () {
+            navigateTo('/upload', true);
+            window.setTimeout(function () {
+                postToUploadFrame({ type: 'ABHIHUB_OPEN_UPLOAD_DETAILS' });
+            }, 0);
+        });
+    }
+    if (uploadDismiss) {
+        uploadDismiss.addEventListener('click', function () {
+            uploadNotificationDismissed = true;
+            if (uploadStatus) uploadStatus.hidden = true;
+            postToUploadFrame({ type: 'ABHIHUB_DISMISS_UPLOAD_STATUS' });
+        });
+    }
 
     // ── Loader Helpers ──
     function showLoader() {

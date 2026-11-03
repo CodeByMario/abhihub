@@ -1000,7 +1000,29 @@ def upload():
             ), 500
 
     if 'user' in session:
-        return render_template('app/upload.html')
+        user_info = dict(session.get('user', {}))
+        user_id = user_info.get('uid') or user_info.get('id')
+        if user_id:
+            try:
+                from methods.supabase_helper import init_supabase, make_acronym
+                sb_client = init_supabase()
+                if sb_client:
+                    pres = sb_client.table('profiles').select(
+                        'college_id, department_id, colleges(name, abbreviation), departments(name, abbreviation)'
+                    ).eq('id', user_id).limit(1).execute()
+                    if pres.data:
+                        prow = pres.data[0]
+                        col = prow.get('colleges') or {}
+                        dept = prow.get('departments') or {}
+                        user_info['college_id'] = prow.get('college_id') or ''
+                        user_info['college_name'] = col.get('name') or ''
+                        user_info['college_abbr'] = (col.get('abbreviation') or make_acronym(col.get('name'))).strip().upper()
+                        user_info['branch_id'] = prow.get('department_id') or ''
+                        user_info['branch_name'] = dept.get('name') or ''
+                        user_info['branch_abbr'] = (dept.get('abbreviation') or make_acronym(dept.get('name'))).strip().upper()
+            except Exception as _e:
+                logging.warning('Upload profile default failed: %s', _e)
+        return render_template('app/upload.html', current_user=user_info)
     else:
         return render_template('site/login.html')
 

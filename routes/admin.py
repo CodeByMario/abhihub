@@ -207,7 +207,13 @@ def admin_developer_panel():
     env_name = os.getenv('FLASK_ENV', os.getenv('APP_ENV', 'development')).lower()
     if env_name in ('production', 'prod'):
         abort(403, description="Developer panel is disabled in production mode.")
-    return render_template('admin_developer.html')
+    from services.free_llm_catalog import FREE_LLM_DIRECTORY, FREE_LLM_SOURCE, get_provider_catalog
+    return render_template(
+        'admin_developer.html',
+        free_llm_directory=FREE_LLM_DIRECTORY,
+        free_llm_source=FREE_LLM_SOURCE,
+        free_llm_providers=get_provider_catalog(),
+    )
 
 
 @admin_bp.route('/admin/file-reports')

@@ -52,6 +52,18 @@
 <body class="app-shell-body">
 
     <div class="app-shell-viewport">
+        <div id="shellUploadStatus" class="shell-upload-status" hidden role="status" aria-live="polite">
+            <div class="shell-upload-status__copy">
+                <strong id="shellUploadTitle">Uploading in background…</strong>
+                <span id="shellUploadSub">You can continue using AbhiHub.</span>
+            </div>
+            <div class="shell-upload-status__progress">
+                <div id="shellUploadProgress"></div>
+            </div>
+            <span id="shellUploadPercent">0%</span>
+            <button type="button" id="shellUploadDetails" class="shell-upload-status__button">Details</button>
+            <button type="button" id="shellUploadDismiss" class="shell-upload-status__dismiss" aria-label="Dismiss upload notification">×</button>
+        </div>
 
         <!-- Shell Header / Top Bar -->
         <header id="shellHeader" class="shell-header">

@@ -9,7 +9,7 @@
  * - Background sync
  */
 
-const CACHE_VERSION = 'v2.0.10';
+const CACHE_VERSION = 'v2.0.19';
 const CACHE_NAME = `abhihub-${CACHE_VERSION}`;
 const STATIC_CACHE = `abhihub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `abhihub-dynamic-${CACHE_VERSION}`;

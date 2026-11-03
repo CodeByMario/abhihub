@@ -1,2032 +1,883 @@
-{% set seo_description = "AbhiHub Engineering Command Deck — Access university question papers (PYQs), topper notes, lab manuals, and peer study exchange for engineering colleges." %}
+{% set seo_description = "AbhiHub Engineering Dashboard — Fast file finder and study deck for engineering semester papers and topper notes." %}
 {% extends 'p_struct.html' %}
 
 {% block page_head %}
 <meta name="keywords" content="{{ seo_keywords }}">
 <link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#0b1329">
-<link rel="apple-touch-icon" href="{{ url_for('static', filename='premium/icons/icon-192x192.png') }}">
+<meta name="theme-color" content="#f5f5f7">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-<script src="{{ url_for('static', filename='premium/js/interactions.js') }}"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 {% endblock %}
 
 {% block page_styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/pipeline.css') }}">
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
-
 <style>
   :root {
-    --deck-navy: #0b1329;
-    --deck-navy-light: #152244;
-    --deck-cobalt: #0284c7;
-    --deck-cobalt-light: #e0f2fe;
-    --deck-cobalt-text: #0369a1;
-    --deck-emerald: #059669;
-    --deck-emerald-light: #d1fae5;
-    --deck-emerald-text: #047857;
-    --deck-violet: #6366f1;
-    --deck-violet-light: #ede9fe;
-    --deck-violet-text: #4f46e5;
-    --deck-amber: #d97706;
-    --deck-amber-light: #fef3c7;
-    --deck-amber-text: #92400e;
-    --deck-bg: #f8fafc;
-    --deck-card-bg: #ffffff;
-    --deck-border: #e2e8f0;
-    --deck-text-main: #0f172a;
-    --deck-text-muted: #64748b;
-    --deck-font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
-    --deck-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    --deck-font-mono: 'JetBrains Mono', monospace;
+    --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Plus Jakarta Sans", sans-serif;
+    --apple-bg: #f5f5f7;
+    --apple-card: #ffffff;
+    --apple-text-primary: #1d1d1f;
+    --apple-text-secondary: #86868b;
+    --apple-blue: #0071e3;
+    --apple-blue-hover: #0077ed;
+    --apple-border: rgba(0, 0, 0, 0.08);
+    --apple-row-hover: #f9f9fb;
+    --apple-radius-card: 16px;
+    --apple-radius-pill: 980px;
+    --apple-shadow-card: 0 2px 12px rgba(0, 0, 0, 0.04);
+  }
+
+  [data-theme="dark"], .dark {
+    --apple-bg: #000000;
+    --apple-card: #1c1c1e;
+    --apple-text-primary: #f5f5f7;
+    --apple-text-secondary: #86868b;
+    --apple-blue: #2997ff;
+    --apple-blue-hover: #0071e3;
+    --apple-border: rgba(255, 255, 255, 0.1);
+    --apple-row-hover: #262629;
+    --apple-shadow-card: 0 2px 14px rgba(0, 0, 0, 0.4);
   }
 
   body {
-    background-color: var(--deck-bg);
-    color: var(--deck-text-main);
-    font-family: var(--deck-font-body);
+    background: var(--apple-bg);
+    color: var(--apple-text-primary);
+    font-family: var(--apple-font);
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* ── 1. Command Station Header ────────────────────────────────────────── */
-  .deck-command-station {
-    background: linear-gradient(145deg, #090f20 0%, #111e3f 55%, #0f1933 100%);
-    border-radius: 20px;
-    padding: 1.75rem 2rem;
-    margin: 1rem auto 2rem;
-    max-width: 1240px;
-    box-shadow: 0 12px 36px -10px rgba(11, 19, 41, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
-    color: #ffffff;
-    position: relative;
-    overflow: hidden;
-  }
-  .deck-command-station::before {
-    content: '';
-    position: absolute;
-    top: 0; right: 0; bottom: 0; left: 0;
-    background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
-    background-size: 24px 24px;
-    pointer-events: none;
-    opacity: 0.8;
+  .dash-wrapper {
+    max-width: 1140px;
+    margin: 0 auto;
+    padding: 1.25rem 1rem 4rem;
   }
 
-  .deck-station-topbar {
+  /* ── 1. Top Header ── */
+  .dash-header-bar {
+    background: var(--apple-card);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--apple-radius-card);
+    padding: 1.15rem 1.5rem;
+    box-shadow: var(--apple-shadow-card);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
     gap: 1rem;
-    position: relative;
-    z-index: 2;
-    padding-bottom: 1.25rem;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 1.25rem;
   }
-  .deck-station-identity {
+
+  .header-user-side {
     display: flex;
     align-items: center;
-    gap: 1rem;
+    gap: 0.85rem;
   }
-  .deck-identity-avatar {
-    width: 52px;
-    height: 52px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
-    border: 2px solid rgba(255, 255, 255, 0.2);
+
+  .header-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: var(--apple-blue);
+    color: #ffffff;
+    font-size: 1.2rem;
+    font-weight: 700;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-family: var(--deck-font-display);
-    font-size: 1.4rem;
-    font-weight: 700;
-    color: #ffffff;
-    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
-  }
-  .deck-identity-meta h1 {
-    margin: 0;
-    font-size: 1.35rem;
-    font-weight: 800;
-    font-family: var(--deck-font-display);
-    letter-spacing: -0.02em;
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .deck-identity-meta p {
-    margin: 0.25rem 0 0;
-    font-size: 0.85rem;
-    color: #94a3b8;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .deck-pill-campus {
-    background: rgba(2, 132, 199, 0.2);
-    border: 1px solid rgba(56, 189, 248, 0.3);
-    color: #38bdf8;
-    font-size: 0.75rem;
-    font-weight: 600;
-    padding: 0.15rem 0.6rem;
-    border-radius: 6px;
-  }
-  .deck-pill-rank {
-    background: rgba(217, 119, 6, 0.2);
-    border: 1px solid rgba(245, 158, 11, 0.4);
-    color: #fcd34d;
-    font-size: 0.78rem;
-    font-weight: 700;
-    padding: 0.2rem 0.75rem;
-    border-radius: 8px;
   }
 
-  /* 90% Covenant Urgency Ticker in Hero */
-  .deck-urgency-banner {
-    position: relative;
-    z-index: 2;
-    margin-top: 1.25rem;
-    background: linear-gradient(90deg, rgba(217, 119, 6, 0.22) 0%, rgba(180, 83, 9, 0.15) 100%);
-    border: 1px solid rgba(245, 158, 11, 0.35);
-    border-radius: 12px;
-    padding: 0.85rem 1.25rem;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 1rem;
+  .header-name {
+    font-size: 1.25rem;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    margin: 0 0 0.15rem;
   }
-  .deck-urgency-left {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-  }
-  .deck-urgency-icon {
-    font-size: 1.5rem;
-  }
-  .deck-urgency-title {
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #fef08a;
-    letter-spacing: -0.01em;
-  }
-  .deck-urgency-sub {
-    font-size: 0.8rem;
-    color: #fde68a;
-    margin-top: 2px;
-  }
-  .deck-countdown-clock {
+
+  .header-badges {
     display: flex;
     align-items: center;
     gap: 0.4rem;
-  }
-  .deck-clock-segment {
-    background: #090f20;
-    border: 1px solid rgba(245, 158, 11, 0.4);
-    border-radius: 6px;
-    padding: 0.25rem 0.5rem;
-    text-align: center;
-    min-width: 44px;
-  }
-  .deck-clock-val {
-    font-family: var(--deck-font-mono);
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: #ffffff;
-    display: block;
-    line-height: 1.1;
-  }
-  .deck-clock-label {
-    font-size: 0.65rem;
-    color: #94a3b8;
-    text-transform: uppercase;
-    font-weight: 600;
-  }
-
-  /* Metric Readouts */
-  .deck-metrics-grid {
-    position: relative;
-    z-index: 2;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-    gap: 0.85rem;
-    margin-top: 1.25rem;
-  }
-  .deck-metric-box {
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.08);
-    border-radius: 12px;
-    padding: 0.85rem 1rem;
-    transition: all 0.2s ease;
-  }
-  .deck-metric-box:hover {
-    background: rgba(255, 255, 255, 0.08);
-    border-color: rgba(255, 255, 255, 0.16);
-  }
-  .deck-metric-box.highlight {
-    background: rgba(2, 132, 199, 0.15);
-    border-color: rgba(56, 189, 248, 0.35);
-  }
-  .deck-metric-box.gold {
-    background: rgba(217, 119, 6, 0.12);
-    border-color: rgba(245, 158, 11, 0.35);
-  }
-  .deck-metric-label {
-    font-size: 0.72rem;
-    font-weight: 600;
-    color: #94a3b8;
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-  }
-  .deck-metric-val {
-    font-family: var(--deck-font-mono);
-    font-size: 1.4rem;
-    font-weight: 800;
-    color: #ffffff;
-    margin-top: 0.3rem;
-    line-height: 1.1;
-  }
-
-  /* Action Buttons Cluster */
-  .deck-station-actions {
-    position: relative;
-    z-index: 2;
-    display: flex;
     flex-wrap: wrap;
-    gap: 0.75rem;
-    margin-top: 1.35rem;
-    align-items: center;
-  }
-  .deck-btn-primary {
-    background: #0284c7;
-    color: #ffffff;
-    border: 1px solid #38bdf8;
-    padding: 0.65rem 1.25rem;
-    border-radius: 10px;
-    font-weight: 700;
-    font-size: 0.88rem;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
-    transition: all 0.2s ease;
-  }
-  .deck-btn-primary:hover {
-    background: #0369a1;
-    transform: translateY(-1px);
-    color: #ffffff;
-  }
-  .deck-btn-gold {
-    background: #d97706;
-    color: #ffffff;
-    border: 1px solid #f59e0b;
-    padding: 0.65rem 1.25rem;
-    border-radius: 10px;
-    font-weight: 700;
-    font-size: 0.88rem;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
-    cursor: pointer;
-    transition: all 0.2s ease;
-  }
-  .deck-btn-gold:hover {
-    background: #b45309;
-    transform: translateY(-1px);
-  }
-  .deck-btn-hollow {
-    background: rgba(255, 255, 255, 0.08);
-    color: #e2e8f0;
-    border: 1px solid rgba(255, 255, 255, 0.16);
-    padding: 0.65rem 1.1rem;
-    border-radius: 10px;
-    font-weight: 600;
-    font-size: 0.85rem;
-    text-decoration: none;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-  }
-  .deck-btn-hollow:hover {
-    background: rgba(255, 255, 255, 0.14);
-    color: #ffffff;
-    border-color: rgba(255, 255, 255, 0.25);
+    font-size: 0.78rem;
+    color: var(--apple-text-secondary);
   }
 
-  /* ── 2. Shelf Section Layout ──────────────────────────────────────────── */
-  .deck-shelf {
-    max-width: 1240px;
-    margin: 0 auto 2.25rem;
-    padding: 0 0.5rem;
+  .chip-subtle {
+    background: var(--apple-bg);
+    border: 1px solid var(--apple-border);
+    padding: 0.15rem 0.55rem;
+    border-radius: var(--apple-radius-pill);
+    font-weight: 600;
   }
-  .deck-shelf-header {
+
+  .header-tools-side {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .quota-pill-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--apple-bg);
+    border: 1px solid var(--apple-border);
+    padding: 0.4rem 0.85rem;
+    border-radius: var(--apple-radius-pill);
+    font-size: 0.82rem;
+    font-weight: 700;
+  }
+
+  .btn-apple-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.35rem;
+    background: var(--apple-blue);
+    color: #ffffff !important;
+    height: 38px;
+    padding: 0 1.15rem;
+    border-radius: var(--apple-radius-pill);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background 150ms ease;
+    border: none;
+    cursor: pointer;
+  }
+  .btn-apple-pill:hover {
+    background: var(--apple-blue-hover);
+  }
+
+  /* ── 2. Unified Search & Filter Deck ── */
+  .finder-hub {
+    background: var(--apple-card);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--apple-radius-card);
+    padding: 1.35rem;
+    box-shadow: var(--apple-shadow-card);
+    margin-bottom: 1.5rem;
+  }
+
+  .hub-title-row {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
-    margin-bottom: 1.15rem;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+  .hub-title {
+    font-size: 0.82rem;
+    font-weight: 800;
+    color: var(--apple-blue);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .search-bar-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--apple-bg);
+    border: 1px solid var(--apple-border);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    gap: 0.65rem;
+    transition: border-color 150ms ease;
+  }
+  .search-bar-wrap:focus-within {
+    border-color: var(--apple-blue);
+  }
+
+  .search-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 0.98rem;
+    font-family: inherit;
+    color: var(--apple-text-primary);
+  }
+
+  /* Segmented Category Filter */
+  .hub-filters-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     flex-wrap: wrap;
     gap: 0.75rem;
-  }
-  .deck-shelf-title-wrap h2 {
-    font-family: var(--deck-font-display);
-    font-size: 1.25rem;
-    font-weight: 800;
-    color: var(--deck-text-main);
-    letter-spacing: -0.02em;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-  .deck-shelf-subtitle {
-    font-size: 0.82rem;
-    color: var(--deck-text-muted);
-    margin-top: 0.2rem;
-  }
-  .deck-shelf-link {
-    font-size: 0.82rem;
-    font-weight: 700;
-    color: var(--deck-cobalt);
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-  }
-  .deck-shelf-link:hover {
-    text-decoration: underline;
+    margin-top: 1rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--apple-border);
   }
 
-  .deck-scroll-rack {
+  .type-segments {
     display: flex;
-    gap: 1.15rem;
+    background: var(--apple-bg);
+    padding: 3px;
+    border-radius: var(--apple-radius-pill);
+    border: 1px solid var(--apple-border);
+    gap: 2px;
     overflow-x: auto;
-    padding: 0.5rem 0.25rem 1rem;
-    scroll-snap-type: x mandatory;
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
-  }
-  .deck-scroll-rack::-webkit-scrollbar {
-    height: 6px;
-  }
-  .deck-scroll-rack::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
+    max-width: 100%;
   }
 
-  /* ─────────────────────────────────────────────────────────────────────────
-     BESPOKE PREMIUM CARD ARCHITECTURE
-     ───────────────────────────────────────────────────────────────────────── */
+  .type-btn {
+    border: none;
+    background: transparent;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--apple-text-secondary);
+    padding: 0.4rem 0.85rem;
+    border-radius: var(--apple-radius-pill);
+    cursor: pointer;
+    transition: all 140ms ease;
+    white-space: nowrap;
+  }
+  .type-btn.active {
+    background: var(--apple-card);
+    color: var(--apple-text-primary);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.08);
+  }
 
-  /* Master Base Card Container */
-  .card-dossier {
-    min-width: 275px;
-    max-width: 300px;
-    flex: 0 0 280px;
-    scroll-snap-align: start;
-    background: #ffffff;
-    border-radius: 16px;
-    border: 1px solid #e2e8f0;
-    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+  .subject-chips-box {
     display: flex;
-    flex-direction: column;
+    align-items: center;
+    gap: 0.4rem;
+    flex-wrap: wrap;
+    margin-top: 0.85rem;
+  }
+
+  .chip-subject {
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--apple-radius-pill);
+    background: var(--apple-bg);
+    border: 1px solid var(--apple-border);
+    color: var(--apple-text-secondary);
+    cursor: pointer;
+    transition: all 120ms ease;
+  }
+  .chip-subject:hover, .chip-subject.active {
+    background: var(--apple-card);
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+  }
+
+  /* ── 3. Resume Revision ── */
+  {% if recently_viewed_files %}
+  .resume-block {
+    margin-bottom: 1.5rem;
+  }
+  .resume-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.65rem;
+  }
+  .resume-head-title {
+    font-size: 0.92rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+
+  .resume-tiles-wrap {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .resume-item {
+    background: var(--apple-card);
+    border: 1px solid var(--apple-border);
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    display: flex;
+    align-items: center;
     justify-content: space-between;
     text-decoration: none;
     color: inherit;
-    position: relative;
+    box-shadow: var(--apple-shadow-card);
+    transition: transform 120ms ease, border-color 120ms ease;
+  }
+  .resume-item:hover {
+    transform: translateY(-1px);
+    border-color: var(--apple-blue);
+  }
+
+  .resume-text-title {
+    font-size: 0.86rem;
+    font-weight: 700;
+    white-space: nowrap;
     overflow: hidden;
-    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+    text-overflow: ellipsis;
+    max-width: 190px;
+    margin-bottom: 0.15rem;
   }
-  .card-dossier:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 14px 28px -6px rgba(15, 23, 42, 0.1), 0 4px 10px rgba(15, 23, 42, 0.04);
+  .resume-text-meta {
+    font-size: 0.74rem;
+    color: var(--apple-text-secondary);
+  }
+  .resume-btn {
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--apple-blue);
+    background: rgba(0, 113, 227, 0.08);
+    padding: 0.3rem 0.65rem;
+    border-radius: var(--apple-radius-pill);
+    white-space: nowrap;
+  }
+  {% endif %}
+
+  /* ── 4. Apple File List Rows (Never exposes raw filename) ── */
+  .files-list-card {
+    background: var(--apple-card);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--apple-radius-card);
+    box-shadow: var(--apple-shadow-card);
+    overflow: hidden;
   }
 
-  /* Card Interior Layout */
-  .card-dossier-inner {
-    padding: 1.15rem 1.15rem 0.75rem;
-    display: flex;
-    flex-direction: column;
-    height: 100%;
-    box-sizing: border-box;
-  }
-
-  /* Card Header: Technical Ticket Ribbon */
-  .card-ticket-header {
+  .list-card-top {
+    padding: 1rem 1.35rem;
+    border-bottom: 1px solid var(--apple-border);
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.85rem;
   }
-  .card-taxonomy-badge {
-    font-family: var(--deck-font-mono);
-    font-size: 0.68rem;
-    font-weight: 700;
-    padding: 0.25rem 0.55rem;
-    border-radius: 6px;
-    letter-spacing: 0.02em;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.35rem;
+  .list-card-title {
+    font-size: 0.95rem;
+    font-weight: 800;
+    letter-spacing: -0.01em;
   }
-  .card-dossier-term {
-    font-family: var(--deck-font-mono);
-    font-size: 0.7rem;
+  .list-card-count {
+    font-size: 0.82rem;
+    color: var(--apple-text-secondary);
     font-weight: 600;
-    color: #64748b;
-    background: #f1f5f9;
-    padding: 0.2rem 0.5rem;
-    border-radius: 6px;
-    border: 1px solid #e2e8f0;
   }
-  .card-spec-trigger {
-    width: 24px;
-    height: 24px;
-    border-radius: 6px;
+
+  /* File Row */
+  .apple-file-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.35rem;
+    border-bottom: 1px solid var(--apple-border);
+    text-decoration: none;
+    color: inherit;
+    transition: background 100ms ease;
+    gap: 1rem;
+  }
+  .apple-file-row:last-child {
+    border-bottom: none;
+  }
+  .apple-file-row:hover {
+    background: var(--apple-row-hover);
+  }
+
+  .file-left-col {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .file-type-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.8rem;
-    color: #94a3b8;
-    background: transparent;
-    border: 1px solid transparent;
-    cursor: pointer;
-    transition: all 0.15s ease;
+    font-size: 1.25rem;
+    flex-shrink: 0;
   }
-  .card-spec-trigger:hover {
-    background: #f1f5f9;
-    color: #0f172a;
-    border-color: #cbd5e1;
+  .icon-pyq { background: #eff6ff; color: #1d4ed8; }
+  .icon-notes { background: #ecfdf5; color: #047857; }
+  .icon-practical { background: #fdf2f8; color: #be185d; }
+  .icon-other { background: #fef3c7; color: #b45309; }
+
+  .file-details {
+    flex: 1;
+    min-width: 0;
   }
 
-  /* Card Subject & Campus Meta */
-  .card-subject-meta {
+  .file-name-heading {
+    font-size: 0.94rem;
+    font-weight: 700;
+    color: var(--apple-text-primary);
+    margin: 0 0 0.25rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .file-meta-sub {
+    font-size: 0.78rem;
+    color: var(--apple-text-secondary);
     display: flex;
     align-items: center;
-    gap: 0.4rem;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+  }
+
+  .file-right-col {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    flex-shrink: 0;
+  }
+
+  .badge-category {
     font-size: 0.72rem;
     font-weight: 700;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin-bottom: 0.35rem;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-  }
-  .card-title-text {
-    font-family: var(--deck-font-display);
-    font-size: 0.96rem;
-    font-weight: 700;
-    line-height: 1.35;
-    color: #0f172a;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    margin-bottom: 0.85rem;
-    min-height: 2.6em;
+    padding: 0.2rem 0.55rem;
+    border-radius: 6px;
+    letter-spacing: 0.03em;
   }
 
-  /* Card Bottom Footer Tray */
-  .card-footer-tray {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 0.65rem 1.15rem;
-    border-top: 1px solid #f1f5f9;
-    background: #fafafa;
-    font-size: 0.74rem;
-  }
-  .card-author-pill {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    color: #475569;
-    font-weight: 600;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    max-width: 150px;
-  }
-  .card-author-monogram {
-    width: 20px;
-    height: 20px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 0.65rem;
-    font-weight: 800;
-  }
-  .card-views-counter {
-    font-family: var(--deck-font-mono);
-    font-size: 0.72rem;
+  .btn-open-pdf {
+    font-size: 0.8rem;
     font-weight: 700;
+    color: #ffffff !important;
+    background: var(--apple-blue);
+    padding: 0.4rem 0.95rem;
+    border-radius: var(--apple-radius-pill);
+    text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 0.25rem;
+    transition: background 140ms ease;
+  }
+  .btn-open-pdf:hover {
+    background: var(--apple-blue-hover);
   }
 
-  /* ── TYPE 1: PYQ (Official University Exam Paper) ───────────────────── */
-  .card-type-pyq {
-    border-top: 3px solid #0284c7;
-  }
-  .card-type-pyq:hover {
-    border-color: #0284c7;
-  }
-  .card-type-pyq .card-taxonomy-badge {
-    background: #e0f2fe;
-    color: #0369a1;
-    border: 1px solid #bae6fd;
-  }
-  .card-type-pyq .card-subject-meta {
-    color: #0284c7;
-  }
-  .card-type-pyq .card-views-counter {
-    color: #0369a1;
-  }
-  .card-type-pyq .card-author-monogram {
-    background: #e0f2fe;
-    color: #0369a1;
+  /* Empty state */
+  .hub-empty-state {
+    padding: 3.5rem 1.5rem;
+    text-align: center;
+    color: var(--apple-text-secondary);
+    display: none;
   }
 
-  /* ── TYPE 2: TOPPER NOTES (Manuscript Study Synthesis) ──────────────── */
-  .card-type-notes {
-    border-top: 3px solid #059669;
-    background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 32%);
-  }
-  .card-type-notes:hover {
-    border-color: #059669;
-  }
-  .card-type-notes .card-taxonomy-badge {
-    background: #d1fae5;
-    color: #047857;
-    border: 1px solid #a7f3d0;
-  }
-  .card-type-notes .card-subject-meta {
-    color: #059669;
-  }
-  .card-type-notes .card-views-counter {
-    color: #047857;
-  }
-  .card-type-notes .card-author-monogram {
-    background: #d1fae5;
-    color: #047857;
-  }
-
-  /* ── TYPE 3: LAB PRACTICAL (Workbench Experiment Specimen) ──────────── */
-  .card-type-practical {
-    border-top: 3px solid #6366f1;
-    background: linear-gradient(180deg, #f5f3ff 0%, #ffffff 32%);
-  }
-  .card-type-practical:hover {
-    border-color: #6366f1;
-  }
-  .card-type-practical .card-taxonomy-badge {
-    background: #ede9fe;
-    color: #4f46e5;
-    border: 1px solid #ddd6fe;
-  }
-  .card-type-practical .card-subject-meta {
-    color: #6366f1;
-  }
-  .card-type-practical .card-views-counter {
-    color: #4f46e5;
-  }
-  .card-type-practical .card-author-monogram {
-    background: #ede9fe;
-    color: #4f46e5;
-  }
-
-  /* ── TYPE 4: PREMIUM & TOPPER VAULT (Pro High-Yield Blueprint) ──────── */
-  .card-type-premium {
-    background: linear-gradient(150deg, #0b1329 0%, #151f38 60%, #1a2544 100%);
-    border: 1px solid #d97706;
-    border-top: 3px solid #f59e0b;
-    color: #ffffff;
-    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.15);
-  }
-  .card-type-premium:hover {
-    border-color: #f59e0b;
-    box-shadow: 0 16px 32px -6px rgba(217, 119, 6, 0.25);
-  }
-  .card-type-premium .card-taxonomy-badge {
-    background: rgba(217, 119, 6, 0.2);
-    color: #fde68a;
-    border: 1px solid rgba(245, 158, 11, 0.4);
-  }
-  .card-type-premium .card-dossier-term {
-    background: rgba(255, 255, 255, 0.08);
-    color: #fef08a;
-    border-color: rgba(245, 158, 11, 0.3);
-  }
-  .card-type-premium .card-spec-trigger {
-    color: #fde68a;
-  }
-  .card-type-premium .card-spec-trigger:hover {
-    background: rgba(255, 255, 255, 0.12);
-    color: #ffffff;
-  }
-  .card-type-premium .card-subject-meta {
-    color: #fcd34d;
-  }
-  .card-type-premium .card-title-text {
-    color: #ffffff;
-  }
-  .card-type-premium .card-footer-tray {
-    background: rgba(0, 0, 0, 0.35);
-    border-top: 1px solid rgba(255, 255, 255, 0.08);
-    color: #cbd5e1;
-  }
-  .card-type-premium .card-author-pill {
-    color: #fef08a;
-  }
-  .card-type-premium .card-views-counter {
-    color: #fcd34d;
-  }
-
-  /* ── TYPE 5: RECENTLY ACCESSED (Active Session Resumption) ───────────── */
-  .card-type-recent {
-    border-left: 3px solid #0284c7;
-  }
-
-  /* ── 4. Channel Showcase ─────────────────────────────────────────────── */
-  .deck-channel-card {
-    min-width: 260px;
-    max-width: 280px;
-    flex: 0 0 260px;
-    scroll-snap-align: start;
-    background: #ffffff;
-    border: 1px solid var(--deck-border);
-    border-radius: 16px;
-    padding: 1.15rem;
-    text-decoration: none;
-    color: inherit;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
-    transition: all 0.2s ease;
-  }
-  .deck-channel-card:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 24px -6px rgba(15, 23, 42, 0.08);
-    border-color: #0284c7;
-  }
-  .deck-ch-head {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    margin-bottom: 0.65rem;
-  }
-  .deck-ch-avatar {
-    width: 44px;
-    height: 44px;
-    border-radius: 12px;
-    background: linear-gradient(135deg, #0284c7 0%, #3b82f6 100%);
-    color: #ffffff;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: 800;
-    font-family: var(--deck-font-display);
-    font-size: 1.15rem;
-    object-fit: cover;
-  }
-  .deck-ch-name {
-    font-weight: 700;
-    font-size: 0.92rem;
-    color: var(--deck-text-main);
-    line-height: 1.2;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-  .deck-ch-handle {
-    font-size: 0.78rem;
-    color: #0284c7;
-    font-weight: 600;
-  }
-  .deck-ch-bio {
-    font-size: 0.8rem;
-    color: #64748b;
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    margin-bottom: 0.85rem;
-  }
-  .deck-ch-foot {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding-top: 0.65rem;
-    border-top: 1px solid #f1f5f9;
-    font-size: 0.78rem;
-  }
-
-  /* ── 5. Tabbed Exam Section ───────────────────────────────────────────── */
-  .deck-tab-bar {
-    display: flex;
-    gap: 0.5rem;
-    margin-bottom: 1.15rem;
-    border-bottom: 1px solid var(--deck-border);
-    padding-bottom: 0.5rem;
-  }
-  .deck-tab-button {
-    background: transparent;
-    border: none;
-    font-family: var(--deck-font-display);
-    font-size: 0.88rem;
-    font-weight: 700;
-    color: var(--deck-text-muted);
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    cursor: pointer;
-    transition: all 0.15s ease;
-  }
-  .deck-tab-button.active {
-    background: #0f172a;
-    color: #ffffff;
-  }
-
-  /* ── 6. Search Deck & Author Filters ─────────────────────────────────── */
-  .deck-search-box-station {
-    background: #ffffff;
-    border: 1px solid var(--deck-border);
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
-    margin-bottom: 1.5rem;
-  }
-  .deck-author-pills {
-    display: flex;
-    gap: 0.5rem;
-    overflow-x: auto;
-    padding-bottom: 0.5rem;
-    margin: 1rem 0;
-  }
-  .deck-author-chip {
-    background: #f1f5f9;
-    border: 1px solid #e2e8f0;
-    border-radius: 30px;
-    padding: 0.4rem 0.85rem;
-    font-size: 0.8rem;
-    font-weight: 600;
-    color: #334155;
-    cursor: pointer;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.4rem;
-    white-space: nowrap;
-    transition: all 0.15s ease;
-  }
-  .deck-author-chip:hover {
-    background: #e2e8f0;
-  }
-  .deck-author-chip.active {
-    background: #0284c7;
-    color: #ffffff;
-    border-color: #0284c7;
-  }
-
-  /* ── 7. Community & Growth Grid ───────────────────────────────────────── */
-  .deck-community-split {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-    gap: 1.25rem;
-    margin-bottom: 2rem;
-  }
-  .deck-community-card {
-    background: #ffffff;
-    border: 1px solid var(--deck-border);
-    border-radius: 16px;
-    padding: 1.4rem;
-    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
-  }
-  .deck-community-card h3 {
-    margin: 0 0 0.4rem;
-    font-family: var(--deck-font-display);
-    font-size: 1.1rem;
-    font-weight: 700;
-    color: var(--deck-text-main);
-  }
-  .deck-community-card p {
-    font-size: 0.85rem;
-    color: var(--deck-text-muted);
-    margin: 0 0 1rem;
-    line-height: 1.45;
-  }
-
-  /* Peer Cards */
-  .deck-peers-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 0.85rem;
-    margin-top: 1rem;
-  }
-  .deck-peer-tile {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 12px;
-    padding: 0.85rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    transition: all 0.15s ease;
-  }
-  .deck-peer-tile:hover {
-    background: #ffffff;
-    border-color: #cbd5e1;
-    transform: translateY(-2px);
-  }
-
-  /* Responsive Adjustments */
+  /* ── Mobile Optimization (< 768px) ── */
   @media (max-width: 768px) {
-    .deck-command-station {
-      padding: 1.25rem 1rem;
-      border-radius: 16px;
-    }
-    .deck-urgency-banner {
+    .dash-header-bar {
       flex-direction: column;
       align-items: flex-start;
+      padding: 1.15rem;
     }
-    .deck-countdown-clock {
+    .header-tools-side {
       width: 100%;
       justify-content: space-between;
     }
-    .card-dossier {
-      min-width: 250px;
-      flex: 0 0 250px;
+    .apple-file-row {
+      padding: 0.85rem 1rem;
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.65rem;
+    }
+    .file-left-col {
+      width: 100%;
+    }
+    .file-right-col {
+      width: 100%;
+      justify-content: space-between;
+      border-top: 1px solid var(--apple-border);
+      padding-top: 0.5rem;
     }
   }
 </style>
 {% endblock %}
 
 {% block content %}
-
-<script>
-  window.ABHIHUB_USER_NAME = '{{ session.user.name if session.user else "" }}';
-  window.ABHIHUB_USER_COLLEGE = '{{ user_data.college_name if user_data else "" }}';
-</script>
-<script src="{{ url_for('static', filename='js/pages/p_index.js') }}"></script>
-
-<!-- ── 1. Master Command Deck (Hero Station) ─────────────────────────────── -->
-<div class="deck-command-station">
-  <div class="deck-station-topbar">
-    <div class="deck-station-identity">
-      <div class="deck-identity-avatar">
-        {{ (user_data.name if user_data and user_data.name else 'A')[0] | upper }}
+<div class="dash-wrapper">
+  <!-- ── 1. Clean Top Header: Identity & Daily Quota ── -->
+  <header class="dash-header-bar">
+    <div class="header-user-side">
+      <div class="header-avatar">
+        {{ (user_data.name or session.user.name or 'A')[:1] | upper }}
       </div>
-      <div class="deck-identity-meta">
-        {% set hour = (now.hour if now else 12) %}
-        <h1>
-          {% if hour < 12 %}Good Morning,{% elif hour < 17 %}Good Afternoon,{% elif hour < 21 %}Good Evening,{% else %}Good Night,{% endif %}
-          {{ user_data.name if user_data else 'Scholar' }}
+      <div>
+        <h1 class="header-name">
+          {{ user_data.name or session.user.name or 'Student' }}
         </h1>
-        <p>
-          {% if user_data and user_data.college_name %}
-          <span class="deck-pill-campus">{{ user_data.college_name }}</span>
-          {% endif %}
-          {% if user_data and user_data.branch_name %}
-          <span>{{ user_data.branch_name }}</span>
-          {% endif %}
-          {% if user_data and user_data.global_rank %}
-          <span class="deck-pill-rank">🏆 Global Rank #<span id="live-global-rank">{{ user_data.global_rank }}</span></span>
-          {% endif %}
-        </p>
+        <div class="header-badges">
+          <span class="chip-subtle">🏛️ {{ user_data.college_name or 'Engineering Hub' }}</span>
+          <span class="chip-subtle">📚 {{ user_data.branch_name or 'General Core' }}</span>
+        </div>
       </div>
     </div>
 
-    <!-- Active View Quota & Top Up -->
-    <div style="display:flex; align-items:center; gap:0.75rem;">
-      <div style="text-align:right;">
-        <div style="font-size:0.72rem; color:#94a3b8; font-weight:600;">ACTIVE VIEW QUOTA</div>
-        <div style="font-family:var(--deck-font-mono); font-size:1.3rem; font-weight:800; color:#38bdf8;">
-          ⚡ <span id="user-views-quota">{{ user_data.get('paper_quota_remaining', 20) }}</span> Views
-        </div>
+    <div class="header-tools-side">
+      <div class="quota-pill-badge">
+        <span>⚡ Daily Pass:</span>
+        <span style="color:var(--apple-blue);">{{ user_data.get('paper_quota_remaining', 20) }}/20 Views</span>
       </div>
-      <button type="button" onclick="openBuyCreditsModal()" class="deck-btn-gold" style="padding:0.45rem 0.85rem; font-size:0.8rem;">
-        Recharge
+      <a href="{{ url_for('app_pages.upload') }}" class="btn-apple-pill">
+        + Upload Notes
+      </a>
+    </div>
+  </header>
+
+  <!-- ── 2. The Study File Finder Hub ── -->
+  <section class="finder-hub">
+    <div class="hub-title-row">
+      <span class="hub-title">Study Catalog & File Finder</span>
+      <span style="font-size:0.78rem; color:var(--apple-text-secondary);" id="activeSearchStatus">Instant Filter</span>
+    </div>
+
+    <div class="search-bar-wrap">
+      <span style="font-size:1.15rem; color:var(--apple-text-secondary);">🔍</span>
+      <input type="text" id="finderSearchInput" class="search-input"
+             placeholder="Search by subject, course code, or topic (e.g. DMS, Mathematics, Python)..."
+             oninput="handleSearchInput()">
+    </div>
+
+    <!-- Category Segments -->
+    <div class="hub-filters-row">
+      <div class="type-segments">
+        <button type="button" class="type-btn active" data-type="all" onclick="selectType('all', this)">
+          All Resources
+        </button>
+        <button type="button" class="type-btn" data-type="pyq" onclick="selectType('pyq', this)">
+          📄 Question Papers
+        </button>
+        <button type="button" class="type-btn" data-type="notes" onclick="selectType('notes', this)">
+          📝 Topper Notes
+        </button>
+        <button type="button" class="type-btn" data-type="practical" onclick="selectType('practical', this)">
+          🧪 Practicals & Labs
+        </button>
+      </div>
+
+      <span id="activeMatchesCount" style="font-size:0.8rem; color:var(--apple-text-secondary); font-weight:600;">
+        Ready
+      </span>
+    </div>
+
+    <!-- Quick Subject Filter Chips -->
+    {% if top_subjects %}
+    <div class="subject-chips-box">
+      <span style="font-size:0.75rem; color:var(--apple-text-secondary); font-weight:700;">SUBJECTS:</span>
+      <button type="button" class="chip-subject active" onclick="selectSubject('all', this)">All</button>
+      {% for sub in top_subjects[:8] %}
+      <button type="button" class="chip-subject" onclick="selectSubject('{{ sub | escape }}', this)">
+        {{ sub }}
       </button>
-    </div>
-  </div>
-
-  <!-- Launch Urgency Covenant Bar (Ticking to 8 Nov 2026) -->
-  <div class="deck-urgency-banner">
-    <div class="deck-urgency-left">
-      <div class="deck-urgency-icon">⏳</div>
-      <div>
-        <div class="deck-urgency-title">90% Launch Covenant Active · Special Launch Rates</div>
-        <div class="deck-urgency-sub">Keep 90% note earnings (T+9 payouts) & 90% off view packs (₹4, ₹13, ₹30)</div>
-      </div>
-    </div>
-    <div class="deck-countdown-clock" id="heroCovenantCountdown">
-      <div class="deck-clock-segment">
-        <span class="deck-clock-val" id="covDays">--</span>
-        <span class="deck-clock-label">Days</span>
-      </div>
-      <div class="deck-clock-segment">
-        <span class="deck-clock-val" id="covHours">--</span>
-        <span class="deck-clock-label">Hours</span>
-      </div>
-      <div class="deck-clock-segment">
-        <span class="deck-clock-val" id="covMins">--</span>
-        <span class="deck-clock-label">Mins</span>
-      </div>
-      <div class="deck-clock-segment">
-        <span class="deck-clock-val" id="covSecs">--</span>
-        <span class="deck-clock-label">Secs</span>
-      </div>
-    </div>
-  </div>
-
-  <!-- Command Station Metric Readouts -->
-  <div class="deck-metrics-grid">
-    <div class="deck-metric-box highlight">
-      <div class="deck-metric-label">⚡ Daily Free Quota</div>
-      <div class="deck-metric-val">{{ user_data.get('paper_quota_remaining', 20) }}</div>
-    </div>
-    <div class="deck-metric-box">
-      <div class="deck-metric-label">✨ Reputation Score</div>
-      <div class="deck-metric-val" id="live-reputation-score">{{ user_data.get('reputation_score', 0) }}</div>
-    </div>
-    {% if user_data.get('referral_credits', 0) > 0 %}
-    <div class="deck-metric-box gold">
-      <div class="deck-metric-label">🎁 Referral Credits</div>
-      <div class="deck-metric-val" id="live-referral-credits">{{ user_data.get('referral_credits', 0) }}</div>
+      {% endfor %}
     </div>
     {% endif %}
-    <div class="deck-metric-box">
-      <div class="deck-metric-label">🤝 Students Helped</div>
-      <div class="deck-metric-val">{{ user_data.get('students_helped', 0) }}</div>
-    </div>
-    <div class="deck-metric-box">
-      <div class="deck-metric-label">🔓 Ready Exam Papers</div>
-      <div class="deck-metric-val">{{ paper_count }}</div>
-    </div>
-    <div class="deck-metric-box">
-      <div class="deck-metric-label">📝 Curated Study Notes</div>
-      <div class="deck-metric-val">{{ notes_count }}</div>
-    </div>
-  </div>
+  </section>
 
-  <!-- Primary Flight Deck Controls -->
-  <div class="deck-station-actions">
-    <a href="/upload" class="deck-btn-primary">
-      <span>📤</span> Upload Resource & Earn 90%
-    </a>
-    <button type="button" onclick="openBuyCreditsModal()" class="deck-btn-gold">
-      <span>💎</span> Top Up Credits (90% Off)
-    </button>
-    <button type="button" data-action="openPeerSearchModal" class="deck-btn-hollow">
-      <span>👥</span> Find College Peers
-    </button>
-    {% if user_data %}
-    <a href="{{ url_for('app_pages.memorywall_dashboard') }}" class="deck-btn-hollow">
-      <span>🧠</span> MemoryWall
-    </a>
-    {% endif %}
-    <button type="button" data-action="openAppGuide" class="deck-btn-hollow">
-      <span>🧭</span> Interactive Tour
-    </button>
-  </div>
-</div>
-
-<!-- ── 2. Shelf: Recently Viewed Resources ──────────────────────────────── -->
-<div class="deck-shelf">
-  <div class="deck-shelf-header">
-    <div class="deck-shelf-title-wrap">
-      <h2>⏱️ Recently Accessed</h2>
-      <div class="deck-shelf-subtitle">Jump back into your recent revision dossiers</div>
-    </div>
-  </div>
-
+  <!-- ── 3. Quick Resume (Recently Opened - Never Exposes Filename) ── -->
   {% if recently_viewed_files %}
-  <div class="deck-scroll-rack">
-    {% for file in recently_viewed_files %}
-    {% set _rid = file.get('record_id') or file.get('id') or '' %}
-    {% set _ftype = file.get('type', 'papers')|lower %}
-    {% set is_notes = _ftype in ['notes', 'note', 'imp questions', 'imp_questions'] %}
-    {% set is_prac = _ftype in ['practical', 'practicals'] %}
-    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-    <a href="{{ furl }}" class="card-dossier {% if is_notes %}card-type-notes{% elif is_prac %}card-type-practical{% else %}card-type-pyq{% endif %} pcard">
-      <div class="card-dossier-inner">
-        <div class="card-ticket-header">
-          <span class="card-taxonomy-badge">
-            {% if is_notes %}📝 NOTES{% elif is_prac %}🧪 PRACTICAL{% else %}📄 PYQ EXAM{% endif %}
-          </span>
-          <div style="display:flex; align-items:center; gap:0.4rem;">
-            <span class="card-dossier-term">{{ file.get('year','') or file.get('date','')[:4] or 'TERM' }}</span>
-            <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-              data-file-type="{{ 'Notes' if is_notes else ('Practical' if is_prac else 'PYQ') }}" data-file-subject="{{ file.get('subject', '') }}"
-              data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
-              data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}"
-              data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
-          </div>
-        </div>
-        <div class="card-subject-meta">
-          <span>🏛️</span>
-          <span>{{ file.get('subject', 'ENGINEERING CORE') }}</span>
-        </div>
-        <div class="card-title-text">{{ file['file-name'] }}</div>
-      </div>
-      <div class="card-footer-tray">
-        <div class="card-author-pill">
-          <span class="card-author-monogram">⏱️</span>
-          <span>Recently Viewed</span>
-        </div>
-        <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-  {% else %}
-  <div style="background:#ffffff; border:1px dashed #cbd5e1; border-radius:14px; padding:1.25rem 1.5rem; color:#64748b; font-size:0.9rem; display:flex; align-items:center; gap:0.75rem;">
-    <span>📂</span>
-    <span>No recently viewed documents. Open any exam paper or topper note below and it will dock here automatically.</span>
-  </div>
-  {% endif %}
-</div>
-
-<!-- ── 3. Shelf: Recommended Peer Activity ──────────────────────────────── -->
-<div class="deck-shelf">
-  <div class="deck-shelf-header">
-    <div class="deck-shelf-title-wrap">
-      <h2>✨ Recommended For Your Branch</h2>
-      <div class="deck-shelf-subtitle">
-        {% if user_data and (user_data.branch_name or user_data.college_name) %}
-        High-traffic revision papers among classmates at {{ user_data.college_name }}
-        {% else %}
-        High-traffic question papers and verified topper notes across campus
-        {% endif %}
-      </div>
+  <section class="resume-block">
+    <div class="resume-head">
+      <span class="resume-head-title">Resume Revision</span>
+      <span style="font-size:0.78rem; color:var(--apple-text-secondary);">Recently Opened</span>
     </div>
-  </div>
 
-  {% if recommended_files %}
-  <div class="deck-scroll-rack">
-    {% for file in recommended_files %}
-    {% set _rid = file.get('record_id') or file.get('id') or '' %}
-    {% set _ftype = file.get('type', 'papers')|lower %}
-    {% set is_notes = _ftype in ['notes', 'note', 'imp questions', 'imp_questions'] %}
-    {% set is_prac = _ftype in ['practical', 'practicals'] %}
-    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-    <a href="{{ furl }}" class="card-dossier {% if is_notes %}card-type-notes{% elif is_prac %}card-type-practical{% else %}card-type-pyq{% endif %} pcard">
-      <div class="card-dossier-inner">
-        <div class="card-ticket-header">
-          <span class="card-taxonomy-badge">
-            {% if is_notes %}📝 NOTES{% elif is_prac %}🧪 PRACTICAL{% else %}📄 PYQ EXAM{% endif %}
-          </span>
-          <div style="display:flex; align-items:center; gap:0.4rem;">
-            <span class="card-dossier-term">{{ file.get('year','') or file.get('date','')[:4] or 'CURATED' }}</span>
-            <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-              data-file-type="{{ 'Notes' if is_notes else ('Practical' if is_prac else 'PYQ') }}" data-file-subject="{{ file.get('subject', '') }}"
-              data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
-              data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}"
-              data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
-          </div>
-        </div>
-        <div class="card-subject-meta">
-          <span>🎯</span>
-          <span>{{ file.get('subject', 'ENGINEERING CORE') }}</span>
-        </div>
-        <div class="card-title-text">{{ file['file-name'] }}</div>
-      </div>
-      <div class="card-footer-tray">
-        <div class="card-author-pill">
-          <span class="card-author-monogram">👥</span>
-          <span>Peer Recommended</span>
-        </div>
-        <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-  {% endif %}
-</div>
-
-<!-- ── 4. Shelf: Creator Channels ───────────────────────────────────────── -->
-{% if featured_channels %}
-<div class="deck-shelf" id="creatorChannelsSection">
-  <div class="deck-shelf-header">
-    <div class="deck-shelf-title-wrap">
-      <h2>📺 Creator Channels</h2>
-      <div class="deck-shelf-subtitle">Verified subject channels powered by student toppers & contributors</div>
-    </div>
-    <a href="/channel/studio" class="deck-shelf-link">+ Create Your Channel</a>
-  </div>
-
-  <div class="deck-scroll-rack">
-    {% for ch in featured_channels %}
-    <a href="/c/{{ ch.handle }}" class="deck-channel-card">
-      <div>
-        <div class="deck-ch-head">
-          {% if ch.avatar_url %}
-            <img src="{{ ch.avatar_url }}" alt="{{ ch.title }}" class="deck-ch-avatar">
-          {% else %}
-            <div class="deck-ch-avatar">
-              {{ ch.title[:1].upper() if ch.title else 'C' }}
-            </div>
-          {% endif %}
-          <div style="overflow:hidden;">
-            <div class="deck-ch-name">{{ ch.title }}</div>
-            <div class="deck-ch-handle">@{{ ch.handle }}</div>
-          </div>
-        </div>
-        <div class="deck-ch-bio">
-          {{ ch.bio or 'Explore exam guides, past papers, and revision notes.' }}
-        </div>
-      </div>
-      <div class="deck-ch-foot">
-        <span style="color:#64748b; font-weight:600;">📚 {{ ch.notes_count or 0 }} Notes</span>
-        <span style="color:#0284c7; font-weight:700;">Open Hub →</span>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<!-- ── 5. Shelf: Verified Exam Question Papers (Tabbed) ──────────────────── -->
-<div class="deck-shelf">
-  <div class="deck-shelf-header">
-    <div class="deck-shelf-title-wrap">
-      <h2>📚 Previous Year Exam Papers</h2>
-      <div class="deck-shelf-subtitle">Official university question papers arranged by semester traffic & upload date</div>
-    </div>
-    <a href="{{ url_for('library.pyq_landing') }}" class="deck-shelf-link">Full Library Catalog</a>
-  </div>
-
-  <div class="deck-tab-bar">
-    <button class="deck-tab-button tab-btn active" type="button" data-action="switchTab" data-tab="tab-trending" onclick="switchTab(this, 'tab-trending')">🔥 Trending PYQs</button>
-    <button class="deck-tab-button tab-btn" type="button" data-action="switchTab" data-tab="tab-recent" onclick="switchTab(this, 'tab-recent')">🆕 Recently Added</button>
-  </div>
-
-  <div id="tab-trending" class="tab-panel active">
-    <div class="deck-scroll-rack">
-      {% for file in trending_papers %}
+    <div class="resume-tiles-wrap">
+      {% for file in recently_viewed_files[:3] %}
       {% set _rid = file.get('record_id') or file.get('id') or '' %}
       {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-      <a href="{{ furl }}" class="card-dossier card-type-pyq pcard">
-        <div class="card-dossier-inner">
-          <div class="card-ticket-header">
-            <span class="card-taxonomy-badge">📄 PYQ EXAM</span>
-            <div style="display:flex; align-items:center; gap:0.4rem;">
-              <span class="card-dossier-term">{{ file.get('year','') or file.get('date','')[:4] or 'SEMESTER' }}</span>
-              <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-                data-file-type="PYQ" data-file-subject="{{ file['subject'] }}"
-                data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
-                data-file-author="{{ file.get('author','')[:15] }}" data-file-views="{{ file.get('view_count', 0) }}"
-                title="Inspect Specs">ℹ️</span>
-            </div>
-          </div>
-          <div class="card-subject-meta">
-            <span>🏛️</span>
-            <span>{{ file['subject'] }}</span>
-          </div>
-          <div class="card-title-text">{{ file['file-name'] }}</div>
+      {% set clean_title = file.get('subject', 'Engineering Core') ~ ' — ' ~ file.get('type', 'Study Material') %}
+      <a href="{{ furl }}" class="resume-item">
+        <div>
+          <div class="resume-text-title">{{ clean_title }}</div>
+          <div class="resume-text-meta">{{ file.get('subject_code') or file.get('subject', 'Subject') }} · {{ file.get('year','') or 'Term' }}</div>
         </div>
-        <div class="card-footer-tray">
-          <div class="card-author-pill">
-            <span class="card-author-monogram">{{ (file.get('author','') or 'V')[0] | upper }}</span>
-            <span>{{ file.get('author','')[:14] or 'Verified Exam' }}</span>
-          </div>
-          <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
-        </div>
+        <span class="resume-btn">Open →</span>
       </a>
-      {% else %}
-      <div style="color:#94a3b8; padding:1.5rem;">No trending papers found in this category.</div>
       {% endfor %}
     </div>
-  </div>
-
-  <div id="tab-recent" class="tab-panel" style="display:none;">
-    <div class="deck-scroll-rack">
-      {% for file in recent_papers %}
-      {% set _rid = file.get('record_id') or file.get('id') or '' %}
-      {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-      <a href="{{ furl }}" class="card-dossier card-type-pyq pcard">
-        <div class="card-dossier-inner">
-          <div class="card-ticket-header">
-            <span class="card-taxonomy-badge">📄 PYQ EXAM</span>
-            <div style="display:flex; align-items:center; gap:0.4rem;">
-              <span class="card-dossier-term">{{ file.get('date','')[:4] or 'NEW' }}</span>
-              <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-                data-file-type="PYQ" data-file-subject="{{ file['subject'] }}"
-                data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
-                data-file-date="{{ file.get('date','') }}" data-file-views="{{ file.get('view_count', 0) }}"
-                title="Inspect Specs">ℹ️</span>
-            </div>
-          </div>
-          <div class="card-subject-meta">
-            <span>🏛️</span>
-            <span>{{ file['subject'] }}</span>
-          </div>
-          <div class="card-title-text">{{ file['file-name'] }}</div>
-        </div>
-        <div class="card-footer-tray">
-          <div class="card-author-pill">
-            <span class="card-author-monogram">📅</span>
-            <span>{{ file.get('date','') or 'Latest Upload' }}</span>
-          </div>
-          <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
-        </div>
-      </a>
-      {% else %}
-      <div style="color:#94a3b8; padding:1.5rem;">No recent papers uploaded yet.</div>
-      {% endfor %}
-    </div>
-  </div>
-</div>
-
-<!-- ── 6. Shelf: Premium & Topper Curated Materials ──────────────────────── -->
-{% if premium_files %}
-<div class="deck-shelf" id="premiumResourcesSection">
-  <div class="deck-shelf-header">
-    <div class="deck-shelf-title-wrap">
-      <h2>💎 Premium Exam Banks & Blueprints</h2>
-      <div class="deck-shelf-subtitle">High-yield study bundles curated by verified university rank holders</div>
-    </div>
-    <span style="font-size:0.8rem; font-weight:700; color:#b45309; background:#fef3c7; padding:0.25rem 0.65rem; border-radius:6px;">
-      Verified Dossiers
-    </span>
-  </div>
-
-  <div class="deck-scroll-rack">
-    {% for file in premium_files %}
-    {% set _rid = file.get('record_id') or file.get('id') or '' %}
-    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-    <a href="{{ furl }}" class="card-dossier card-type-premium pcard">
-      <div class="card-dossier-inner">
-        <div class="card-ticket-header">
-          <span class="card-taxonomy-badge">
-            {% if file.get('is_paid') and file.get('price') %}
-            💎 ₹{{ file.price | int }}
-            {% else %}
-            ⭐ TOPPER PICK
-            {% endif %}
-          </span>
-          <div style="display:flex; align-items:center; gap:0.4rem;">
-            <span class="card-dossier-term">PRO BLUEPRINT</span>
-            <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-              data-file-type="Premium {{ file.get('type', 'Material')|title }}" data-file-subject="{{ file.get('subject', '') }}"
-              data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
-              data-file-author="{{ file.get('author','')[:15] }}"
-              data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
-          </div>
-        </div>
-        <div class="card-subject-meta">
-          <span>👑</span>
-          <span>{{ file.get('subject', 'SPECIAL BLUEPRINT') }}</span>
-        </div>
-        <div class="card-title-text">{{ file['file-name'] }}</div>
-      </div>
-      <div class="card-footer-tray">
-        <div class="card-author-pill">
-          <span>⚡</span>
-          <span>{% if file.get('is_paid') and file.get('price') %}Instant Access{% else %}Verified Quality{% endif %}</span>
-        </div>
-        <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<!-- ── 7. Shelf: Topper Notes & Lab Practicals ───────────────────────────── -->
-{% if relevant_notes or trending_notes %}
-<div class="deck-shelf">
-  <div class="deck-shelf-header">
-    <div class="deck-shelf-title-wrap">
-      <h2>📝 Curated Topper Notes</h2>
-      <div class="deck-shelf-subtitle">Handwritten unit summaries and chapter-wise question revisions</div>
-    </div>
-    <a href="{{ url_for('library.pyq_landing') }}?type=notes" class="deck-shelf-link">Browse Notes Catalog</a>
-  </div>
-
-  <div class="deck-scroll-rack">
-    {% for file in (relevant_notes or trending_notes) %}
-    {% set _rid = file.get('record_id') or file.get('id') or '' %}
-    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-    <a href="{{ furl }}" class="card-dossier card-type-notes pcard">
-      <div class="card-dossier-inner">
-        <div class="card-ticket-header">
-          <span class="card-taxonomy-badge">📝 TOPPER NOTES</span>
-          <div style="display:flex; align-items:center; gap:0.4rem;">
-            <span class="card-dossier-term">HANDWRITTEN</span>
-            <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-              data-file-type="Notes" data-file-subject="{{ file['subject'] }}"
-              data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
-              data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
-          </div>
-        </div>
-        <div class="card-subject-meta">
-          <span>✒️</span>
-          <span>{{ file['subject'] }}</span>
-        </div>
-        <div class="card-title-text">{{ file['file-name'] }}</div>
-      </div>
-      <div class="card-footer-tray">
-        <div class="card-author-pill">
-          <span class="card-author-monogram">{{ (file.get('author','') or 'T')[0] | upper }}</span>
-          <span>{{ file.get('author','')[:14] or 'Student Contributor' }}</span>
-        </div>
-        <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<!-- Lab Practicals & Manuals -->
-{% set practicals_files = [] %}
-{% for file in data %}
-  {% if file['type']|lower in ['practical','practicals'] %}
-    {% set _ = practicals_files.append(file) %}
+  </section>
   {% endif %}
-{% endfor %}
-{% if practicals_files %}
-<div class="deck-shelf">
-  <div class="deck-shelf-header">
-    <div class="deck-shelf-title-wrap">
-      <h2>🧪 Laboratory Manuals & Code Writeups</h2>
-      <div class="deck-shelf-subtitle">Experiment setups, observation tables, and viva voce question packs</div>
-    </div>
-    <a href="{{ url_for('library.pyq_landing') }}?type=practical" class="deck-shelf-link">Browse Practicals</a>
-  </div>
 
-  <div class="deck-scroll-rack">
-    {% for file in practicals_files[:10] %}
-    {% set _rid = file.get('record_id') or file.get('id') or '' %}
-    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-    <a href="{{ furl }}" class="card-dossier card-type-practical pcard">
-      <div class="card-dossier-inner">
-        <div class="card-ticket-header">
-          <span class="card-taxonomy-badge">🧪 LAB MANUAL</span>
-          <div style="display:flex; align-items:center; gap:0.4rem;">
-            <span class="card-dossier-term">VIVA READY</span>
-            <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-              data-file-type="Practical" data-file-subject="{{ file['subject'] }}"
-              data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
-              data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
-          </div>
-        </div>
-        <div class="card-subject-meta">
-          <span>⚡</span>
-          <span>{{ file['subject'] }}</span>
-        </div>
-        <div class="card-title-text">{{ file['file-name'] }}</div>
-      </div>
-      <div class="card-footer-tray">
-        <div class="card-author-pill">
-          <span class="card-author-monogram">🔬</span>
-          <span>{{ file.get('author','')[:14] or 'Lab Contributor' }}</span>
-        </div>
-        <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<!-- ── 8. Search Station & Contributor Directory ────────────────────────── -->
-<div class="deck-shelf" id="dashboardSearchSection">
-  <div class="deck-shelf-header">
-    <div class="deck-shelf-title-wrap">
-      <h2>🔍 Search & Multi-College Index</h2>
-      <div class="deck-shelf-subtitle">Quickly filter by subject, branch semester, or contributor profile</div>
-    </div>
-  </div>
-
-  <div class="deck-search-box-station">
-    <div class="container_search">
-      {% include 'includes/_search_partial.html' %}
+  <!-- ── 4. Main Responsive File List ── -->
+  <section class="files-list-card">
+    <div class="list-card-top">
+      <span class="list-card-title">
+        Verified Engineering Documents
+      </span>
+      <span class="list-card-count" id="listTotalCount">
+        Loading catalog...
+      </span>
     </div>
 
-    <!-- Author Filter Row -->
-    {% if top_authors %}
-    <div style="margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid #f1f5f9;">
-      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
-        <span style="font-size:0.85rem; font-weight:700; color:#334155;">Filter Library by Author:</span>
-        <input type="text" id="authorSearchFilter" placeholder="Filter authors..." oninput="filterAuthorPills()" style="padding:0.35rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.8rem;">
-      </div>
+    <div id="resourcesListContainer">
+      {# Comprehensive Pool: Combines preview_pool/data with all relevant, recent, and trending files #}
+      {% set combined_pool = (data or []) + (relevant_papers or []) + (recent_papers or []) + (trending_papers or []) + (relevant_notes or []) + (trending_notes or []) + (recent_notes or []) + (recommended_files or []) %}
+      {% set seen_ids = [] %}
 
-      <div class="deck-author-pills" id="authorChipsList">
-        <button type="button" class="deck-author-chip author-chip active" data-author="all" onclick="selectAuthorFilter('all', this)">
-          ★ All Authors
-        </button>
-        {% for auth in top_authors %}
-        <button type="button" class="deck-author-chip author-chip" data-author="{{ auth.name | lower }}" onclick="selectAuthorFilter('{{ auth.name }}', this)">
-          <span>{{ auth.name }}</span>
-          <span style="background:rgba(0,0,0,0.08); padding:0.1rem 0.4rem; border-radius:10px; font-size:0.7rem;">{{ auth.count }}</span>
-        </button>
-        {% endfor %}
-      </div>
+      {% for doc in combined_pool %}
+        {% set _did = doc.get('record_id') or doc.get('id') or '' %}
+        {% if _did and _did not in seen_ids %}
+          {% set _ = seen_ids.append(_did) %}
+          {% set raw_type = (doc.get('type') or 'pyq')|lower %}
+          {% set is_notes = ('note' in raw_type) or ('assignment' in raw_type) %}
+          {% set is_prac = ('practical' in raw_type) or ('lab' in raw_type) %}
+          {% set norm_type = 'notes' if is_notes else ('practical' if is_prac else 'pyq') %}
+          {% set durl = url_for('library.resource_landing', slug=_did) %}
 
-      <div class="deck-scroll-rack" id="authorFilteredRow">
-        {% for file in data[:30] %}
-        {% set _rid = file.get('record_id') or file.get('id') or '' %}
-        {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
-        <a href="{{ furl }}" class="card-dossier card-type-pyq pcard" data-file-author="{{ (file.get('author') or '') | lower }}">
-          <div class="card-dossier-inner">
-            <div class="card-ticket-header">
-              <span class="card-taxonomy-badge">📄 DOSSIER</span>
-              <div style="display:flex; align-items:center; gap:0.4rem;">
-                <span class="card-dossier-term">LIBRARY</span>
-                <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
-                  data-file-type="Document" data-file-subject="{{ file.get('subject', '') }}"
-                  data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
-                  data-file-author="{{ file.get('author','') }}"
-                  data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
+          {# Construct clean display title from database fields, never raw file name #}
+          {% set display_subject = doc.get('subject') or 'Engineering Core' %}
+          {% set display_type = doc.get('type') or ('Topper Notes' if is_notes else ('Practical' if is_prac else 'PYQ Exam Paper')) %}
+          {% set display_year = doc.get('year') or doc.get('date','')[:4] or '2026' %}
+          {% set display_code = doc.get('subject_code') or '' %}
+          {% set display_author = doc.get('author') or 'Verified Contributor' %}
+          {% set display_college = doc.get('college') or user_data.college_name or 'Engineering Hub' %}
+
+          <div class="apple-file-row resource-item-row"
+               data-type="{{ norm_type }}"
+               data-subject="{{ display_subject | lower }}"
+               data-code="{{ display_code | lower }}"
+               data-author="{{ display_author | lower }}"
+               data-college="{{ display_college | lower }}">
+            <div class="file-left-col">
+              <div class="file-type-icon {% if is_notes %}icon-notes{% elif is_prac %}icon-practical{% else %}icon-pyq{% endif %}">
+                {% if is_notes %}📝{% elif is_prac %}🧪{% else %}📄{% endif %}
+              </div>
+              <div class="file-details">
+                <div class="file-name-heading">
+                  {{ display_subject }} — {{ display_type }}
+                </div>
+                <div class="file-meta-sub">
+                  {% if display_code %}
+                  <span>Code: {{ display_code }}</span>
+                  <span>•</span>
+                  {% endif %}
+                  <span>Term: {{ display_year }}</span>
+                  <span>•</span>
+                  <span>By: {{ display_author }}</span>
+                  <span>•</span>
+                  <span>🏛️ {{ display_college }}</span>
+                </div>
               </div>
             </div>
-            <div class="card-subject-meta">
-              <span>🏛️</span>
-              <span>{{ file.get('subject', 'CORE') }}</span>
+
+            <div class="file-right-col">
+              <span class="badge-category {% if is_notes %}icon-notes{% elif is_prac %}icon-practical{% else %}icon-pyq{% endif %}">
+                {% if is_notes %}Notes{% elif is_prac %}Practical{% else %}PYQ Exam{% endif %}
+              </span>
+              <a href="{{ durl }}" class="btn-open-pdf">
+                Open PDF →
+              </a>
             </div>
-            <div class="card-title-text">{{ file['file-name'] }}</div>
           </div>
-          <div class="card-footer-tray">
-            <div class="card-author-pill">
-              <span class="card-author-monogram">{{ (file.get('author','') or 'C')[0] | upper }}</span>
-              <span>{{ file.get('author','')[:14] or 'Contributor' }}</span>
-            </div>
-            <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
-          </div>
-        </a>
-        {% endfor %}
-      </div>
-      <div id="authorFilteredEmpty" style="display:none; text-align:center; padding:1.5rem; color:#94a3b8; font-size:0.88rem;">
-        No documents found matching this author query. Select "All Authors" to reset.
-      </div>
+        {% endif %}
+      {% endfor %}
     </div>
-    {% endif %}
-  </div>
+
+    <!-- Friendly Empty State -->
+    <div id="emptyCatalogNotice" class="hub-empty-state">
+      <div style="font-size:2.2rem; margin-bottom:0.5rem;">🔍</div>
+      <div style="font-weight:700; font-size:1.05rem; color:var(--apple-text-primary); margin-bottom:0.25rem;">No matching documents found</div>
+      <p style="font-size:0.85rem; margin:0 0 1.25rem;">Try clearing your search query or selecting a different resource type.</p>
+      <button type="button" class="btn-apple-pill" onclick="resetAllFilters()">
+        Show All Resources
+      </button>
+    </div>
+  </section>
 </div>
 
-<!-- ── 9. Community Dispatch & Peer Network ──────────────────────────────── -->
-<div class="deck-shelf">
-  <div class="deck-community-split">
-    <!-- Semester Pack Dispatch -->
-    <div id="examPackBanner" class="deck-community-card">
-      <div style="font-size:1.75rem; margin-bottom:0.5rem;">📚</div>
-      <h3>Semester Pack Ready</h3>
-      <p>Previous-year question papers & topper notes for your branch bundled in one single academic pack.</p>
-      <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
-        <a href="/college" class="deck-btn-primary" style="padding:0.45rem 0.85rem; font-size:0.8rem;">Open Pack</a>
-        <button id="examPackInviteBtn" type="button" class="deck-btn-hollow" style="color:#0f172a; border-color:#cbd5e1; padding:0.45rem 0.85rem; font-size:0.8rem;">Invite Classmate</button>
-        <button id="examPackWaBtn" type="button" class="deck-btn-hollow" style="color:#15803d; border-color:#86efac; background:#f0fdf4; padding:0.45rem 0.85rem; font-size:0.8rem;">WhatsApp</button>
-        <button id="examPackIgBtn" type="button" class="deck-btn-hollow" style="color:#b91c1c; border-color:#fca5a5; background:#fef2f2; padding:0.45rem 0.85rem; font-size:0.8rem;">Instagram</button>
-      </div>
-    </div>
-
-    <!-- Referral Incentive Engine -->
-    <div id="referralWidget" class="deck-community-card">
-      <div style="font-size:1.75rem; margin-bottom:0.5rem;">🎁</div>
-      <h3>Invite Friends · Earn Credits</h3>
-      <p>When your classmates join AbhiHub, both of you earn instant extra study view credits.</p>
-      <div id="referralProgress" hidden style="background:#fef3c7; color:#92400e; padding:0.4rem 0.75rem; border-radius:8px; font-size:0.8rem; margin-bottom:0.75rem;"></div>
-      <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
-        <input id="referralLinkInput" type="text" readonly value="Loading invite link…" style="flex:1; min-width:160px; padding:0.45rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.8rem; background:#f8fafc;">
-        <button id="referralCopyBtn" type="button" class="deck-btn-primary" style="padding:0.45rem 0.85rem; font-size:0.8rem;">Copy</button>
-        <a id="referralShareBtn" href="#" class="deck-btn-hollow" style="color:#15803d; border-color:#86efac; background:#f0fdf4; padding:0.45rem 0.85rem; font-size:0.8rem;">WhatsApp</a>
-        <button id="referralIgBtn" type="button" class="deck-btn-hollow" style="color:#b91c1c; border-color:#fca5a5; background:#fef2f2; padding:0.45rem 0.85rem; font-size:0.8rem;">Instagram</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Classmates & Peers Section -->
-{% if user_data %}
-<div class="deck-shelf">
-  <div class="deck-shelf-header">
-    <div class="deck-shelf-title-wrap">
-      <h2>🎓 Classmates from {{ user_data.college_name or 'Your Campus' }}</h2>
-      <div class="deck-shelf-subtitle">Real-time study network and peer note exchange</div>
-    </div>
-    <div style="display:inline-flex; align-items:center; gap:0.4rem; background:#ecfdf5; border:1px solid #a7f3d0; padding:0.25rem 0.65rem; border-radius:20px; font-size:0.78rem; font-weight:600; color:#065f46;">
-      <span style="width:8px; height:8px; border-radius:50%; background:#10b981; display:inline-block;"></span>
-      <span>Online: <strong id="onlineCount">—</strong></span>
-    </div>
-  </div>
-
-  <div id="suggestedPeersGrid" class="deck-peers-grid">
-    <div style="text-align:center; padding:1.5rem; color:#94a3b8; grid-column:1/-1;">
-      Connecting to peer network…
-    </div>
-  </div>
-</div>
-{% endif %}
-
-<!-- ── 10. Student Reviews & Continuous Feedback ────────────────────────── -->
-<div class="deck-shelf feedback-section">
-  <div class="deck-shelf-header">
-    <div class="deck-shelf-title-wrap">
-      <h2>💬 Student Reviews & App Feedback</h2>
-      <div class="deck-shelf-subtitle">Rated 4.9 / 5 across engineering, diploma, and technical colleges</div>
-    </div>
-    <button type="button" id="toggleFeedbackFormBtn" class="deck-btn-primary" style="padding:0.45rem 0.85rem; font-size:0.82rem;">
-      ✍️ Submit Review
-    </button>
-  </div>
-
-  <!-- Interactive Feedback Drawer -->
-  <div id="feedbackFormBox" class="feedback-form-box" style="margin-bottom:1.5rem;">
-    <div style="font-weight:700; font-size:1rem; margin-bottom:0.25rem;">Rate Your AbhiHub Experience</div>
-    <div style="font-size:0.82rem; color:#64748b; margin-bottom:1rem;">Your feedback helps us expand past papers, question banks, and notes for all colleges.</div>
-    <form id="appFeedbackForm" onsubmit="submitAppFeedback(event)">
-      <div class="feedback-rating-select" style="display:flex; align-items:center; gap:0.35rem; margin-bottom:1rem;">
-        <span style="font-size:0.85rem; font-weight:600; color:#475569; margin-right:0.5rem;">Your Rating:</span>
-        <button type="button" class="rating-star-btn active" data-star="1">★</button>
-        <button type="button" class="rating-star-btn active" data-star="2">★</button>
-        <button type="button" class="rating-star-btn active" data-star="3">★</button>
-        <button type="button" class="rating-star-btn active" data-star="4">★</button>
-        <button type="button" class="rating-star-btn active" data-star="5">★</button>
-        <input type="hidden" id="feedbackRatingValue" name="rating" value="5">
-      </div>
-      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
-        <input type="text" id="feedbackUserName" class="feedback-input" placeholder="Your Name" value="{{ user_data.name if user_data else '' }}" required maxlength="50" style="padding:0.5rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px;">
-        <input type="text" id="feedbackUserCollege" class="feedback-input" placeholder="College / Branch (e.g. GHRCE · CSE)" value="{{ user_data.college_name if user_data else '' }}" maxlength="60" style="padding:0.5rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px;">
-      </div>
-      <textarea id="feedbackMessage" class="feedback-textarea" placeholder="Tell us what you love or what new notes / features you'd like to see next..." required maxlength="300" style="width:100%; box-sizing:border-box; padding:0.6rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px; min-height:80px;"></textarea>
-      <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.75rem;">
-        <button type="button" id="cancelFeedbackBtn" class="deck-btn-hollow" style="color:#0f172a; border-color:#cbd5e1;">Cancel</button>
-        <button type="submit" id="submitFeedbackBtn" class="deck-btn-primary">Submit Review 🚀</button>
-      </div>
-    </form>
-  </div>
-
-  <!-- Reviews Grid -->
-  <div id="feedbackCardsGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:1rem;">
-    {% for fb in (community_feedbacks or []) %}
-    <div style="background:#ffffff; border:1px solid var(--deck-border); border-radius:14px; padding:1.15rem; display:flex; flex-direction:column; justify-content:space-between;">
-      <div>
-        <div style="display:flex; align-items:center; gap:0.65rem; margin-bottom:0.65rem;">
-          <div style="width:36px; height:36px; border-radius:50%; background:#e0f2fe; color:#0369a1; display:flex; align-items:center; justify-content:center; font-weight:700;">
-            {{ (fb.name or 'S')[0] | upper }}
-          </div>
-          <div>
-            <div style="font-weight:700; font-size:0.88rem; color:#0f172a;">{{ fb.name }} <span style="color:#0284c7; font-size:0.75rem;">✓</span></div>
-            <div style="font-size:0.75rem; color:#64748b;">{{ fb.college or 'Engineering Student' }}</div>
-          </div>
-        </div>
-        <div style="color:#f59e0b; font-size:0.85rem; margin-bottom:0.5rem;">
-          {% for i in range(fb.rating or 5) %}★{% endfor %}
-        </div>
-        <p style="font-size:0.82rem; color:#334155; line-height:1.45; margin:0 0 0.75rem;">"{{ fb.message }}"</p>
-      </div>
-      <div style="font-size:0.72rem; color:#94a3b8; border-top:1px solid #f1f5f9; padding-top:0.5rem;">
-        Verified Student Review
-      </div>
-    </div>
-    {% endfor %}
-  </div>
-</div>
-
-<div id="feedbackToast" class="feedback-toast" style="display:none; position:fixed; bottom:24px; right:24px; background:#0f172a; color:#ffffff; padding:0.75rem 1.25rem; border-radius:10px; z-index:9999; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
-  <span>✅ Thank you! Your review has been published.</span>
-</div>
-
-<!-- ── 11. Modals & Overlays ────────────────────────────────────────────── -->
-
-<!-- File Info Modal -->
-<div id="fileInfoModal" class="file-info-modal-overlay" data-action="closeFileInfo">
-  <div class="file-info-modal" role="dialog" aria-modal="true" aria-labelledby="fileInfoTitle">
-    <button type="button" class="file-info-modal__close" data-action="closeFileInfo" aria-label="Close" onclick="closeFileInfo()">✕</button>
-    <h3 id="fileInfoTitle" style="margin:0 0 1rem; font-size:1.15rem; color:#0f172a; font-family:var(--deck-font-display);">📄 File Dossier</h3>
-    <div class="file-info-modal-body"></div>
-  </div>
-</div>
-
-<!-- First-Login Onboarding Modal -->
-{% if user_data %}
-<div id="welcomeOnboardingModal" class="popup-overlay dashboard-modal-body" style="display:none;">
-  <div class="popup-card dashboard-welcome-card">
-    <div class="dashboard-welcome-header">
-      <div class="dashboard-welcome-banner"></div>
-      <div class="dashboard-welcome-icon">🎓</div>
-      <h2 class="dashboard-welcome-title">Welcome to AbhiHub!</h2>
-      <p class="dashboard-welcome-copy">Your engineering exam resource & peer exchange hub</p>
-    </div>
-    <div class="dashboard-welcome-body">
-      <div class="dashboard-welcome-grid">
-        <div class="dashboard-welcome-grid-item positive">
-          <div>📄</div>
-          <div>PYQs</div>
-        </div>
-        <div class="dashboard-welcome-grid-item secondary">
-          <div>📝</div>
-          <div>Notes</div>
-        </div>
-        <div class="dashboard-welcome-grid-item accent">
-          <div>🧪</div>
-          <div>Practicals</div>
-        </div>
-      </div>
-      <button type="button" onclick="closeOnboardingModal()" class="dashboard-modal-link" style="border:none; cursor:pointer;">Enter Flight Deck →</button>
-    </div>
-  </div>
-</div>
-{% endif %}
-
-<!-- PWA Install Popup -->
-<div id="pwaInstallPopup" class="pwa-install-popup" style="display:none;">
-  <div class="pwa-popup-content">
-    <div class="pwa-popup-header">
-      <button class="pwa-popup-close" type="button" data-action="PWAManager.closePWAPopup" aria-label="Close">×</button>
-      <h2 class="pwa-popup-heading">📱 Install AbhiHub Terminal</h2>
-      <p class="pwa-popup-copy">Save AbhiHub directly to your device home screen for lightning offline access</p>
-    </div>
-    <div class="pwa-popup-body">
-      <div id="installInstructions"></div>
-    </div>
-  </div>
-</div>
-
-<!-- ── 12. Dashboard Interactive Scripts ─────────────────────────────────── -->
 <script>
-  /* ── 90% Launch Covenant Countdown Timer (Target: 8 Nov 2026 23:59:59 IST) ── */
-  function startCovenantTimer() {
-    const targetDate = new Date('2026-11-08T23:59:59+05:30').getTime();
-    function tick() {
-      const now = new Date().getTime();
-      const diff = Math.max(0, targetDate - now);
-      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      const secs = Math.floor((diff % (1000 * 60)) / 1000);
+  let activeType = 'all';
+  let activeSubject = 'all';
+  let searchDebounceTimer = null;
 
-      const dEl = document.getElementById('covDays');
-      const hEl = document.getElementById('covHours');
-      const mEl = document.getElementById('covMins');
-      const sEl = document.getElementById('covSecs');
-      if (dEl) dEl.textContent = String(days).padStart(2, '0');
-      if (hEl) hEl.textContent = String(hours).padStart(2, '0');
-      if (mEl) mEl.textContent = String(mins).padStart(2, '0');
-      if (sEl) sEl.textContent = String(secs).padStart(2, '0');
-    }
-    tick();
-    setInterval(tick, 1000);
-  }
-
-  /* ── Tab Switching ─────────────────────────────────────────── */
-  function switchTab(btn, tabId) {
-    document.querySelectorAll('.deck-tab-button, .tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => {
-      p.classList.remove('active');
-      p.style.display = 'none';
-    });
-    btn.classList.add('active');
-    const panel = document.getElementById(tabId);
-    if (panel) {
-      panel.classList.add('active');
-      panel.style.display = 'block';
-    }
-  }
-
-  /* ── Author Filter Interactive Logic ───────────────────────── */
-  window.selectAuthorFilter = function (authorName, btn) {
-    document.querySelectorAll('#authorChipsList .author-chip').forEach(c => c.classList.remove('active'));
+  function selectType(type, btn) {
+    activeType = type;
+    document.querySelectorAll('.type-btn').forEach(b => b.classList.remove('active'));
     if (btn) btn.classList.add('active');
+    triggerSearchOrFilter();
+  }
 
-    const lowerAuth = (authorName || '').trim().toLowerCase();
-    const cards = document.querySelectorAll('#authorFilteredRow .pcard');
-    let visibleCount = 0;
+  function selectSubject(sub, btn) {
+    activeSubject = sub.trim().toLowerCase();
+    document.querySelectorAll('.chip-subject').forEach(c => c.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+    triggerSearchOrFilter();
+  }
 
-    cards.forEach(card => {
-      const cardAuthor = (card.getAttribute('data-file-author') || '').trim().toLowerCase();
-      if (lowerAuth === 'all' || cardAuthor === lowerAuth || cardAuthor.includes(lowerAuth)) {
-        card.style.display = '';
-        visibleCount++;
-      } else {
-        card.style.display = 'none';
-      }
-    });
+  function handleSearchInput() {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+      triggerSearchOrFilter();
+    }, 280);
+  }
 
-    const emptyMsg = document.getElementById('authorFilteredEmpty');
-    if (emptyMsg) {
-      emptyMsg.style.display = visibleCount === 0 ? 'block' : 'none';
-    }
-  };
+  function triggerSearchOrFilter() {
+    const q = (document.getElementById('finderSearchInput')?.value || '').trim();
 
-  window.filterAuthorPills = function () {
-    const q = (document.getElementById('authorSearchFilter')?.value || '').trim().toLowerCase();
-    const chips = document.querySelectorAll('#authorChipsList .author-chip');
-    chips.forEach(chip => {
-      const author = chip.getAttribute('data-author') || '';
-      if (author === 'all' || author.includes(q)) {
-        chip.style.display = '';
-      } else {
-        chip.style.display = 'none';
-      }
-    });
-  };
-
-  /* ── File Information Modal ────────────────────────────────── */
-  window.showFileInfo = function (e, el) {
-    if (e && e.target) { e.stopPropagation(); e.preventDefault(); }
-    const data = (el || e)?.dataset || {};
-    const name = data.fileName || data.file_name || 'Resource';
-    const subject = data.fileSubject || data.file_subject || '-';
-    const author = data.fileAuthor || data.file_author || '-';
-    const year = data.fileYear || data.file_year || data.fileDate || data.file_date || '-';
-    const views = data.fileViews || data.file_views || '0';
-    const ftype = data.fileType || data.file_type || 'PDF';
-    const college = data.fileCollege || data.file_college || '-';
-    const modal = document.getElementById('fileInfoModal');
-    if (!modal) return;
-    let html = '';
-    [['Resource', name], ['Classification', ftype], ['Institution', college], ['Subject', subject],
-     ['Contributor', author], ['Term / Year', year], ['Views', views]]
-      .forEach(([label, val]) => {
-        html += `<div style="display:flex; justify-content:space-between; padding:0.45rem 0; border-bottom:1px solid #f1f5f9; font-size:0.85rem;"><span style="color:#64748b; font-weight:600;">${label}</span><span style="color:#0f172a; font-weight:700; text-align:right;">${val || '-'}</span></div>`;
-      });
-    html += `<div style="margin-top:1rem; padding:0.75rem; background:#f8fafc; border-radius:8px; font-size:0.75rem; color:#64748b; line-height:1.4;">
-      <strong>Academic Covenant:</strong> Verified peer resource shared for study & research under AbhiHub community guidelines.
-    </div>`;
-    const body = modal.querySelector('.file-info-modal-body');
-    if (body) body.innerHTML = html;
-    modal.classList.add('show');
-    document.body.style.overflow = 'hidden';
-  };
-
-  window.closeFileInfo = function () {
-    const modal = document.getElementById('fileInfoModal');
-    if (modal) modal.classList.remove('show');
-    document.body.style.overflow = '';
-  };
-
-  document.addEventListener('click', function (e) {
-    const m = document.getElementById('fileInfoModal');
-    if (m && m.classList.contains('show') && e.target === m) closeFileInfo();
-  });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') closeFileInfo();
-  });
-
-  /* ── Exam Pack & Referral Link Growth Logic ─────────────────── */
-  (function () {
-    try {
-      const inv = document.getElementById('examPackInviteBtn');
-      if (inv) {
-        inv.addEventListener('click', function () {
-          const w = document.getElementById('referralWidget');
-          if (w) w.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        });
-      }
-
-      async function examPackShareUrl() {
-        try {
-          const r = await fetch('/api/referral/my-code', { credentials: 'same-origin' });
-          const j = await r.json();
-          if (j.success && j.share_url) {
-            const inp = document.getElementById('referralLinkInput');
-            if (inp) inp.value = j.share_url;
-            const prog = document.getElementById('referralProgress');
-            if (prog && (j.referral_count > 0 || j.referral_credits > 0)) {
-              prog.hidden = false;
-              prog.innerHTML = `🎉 <b>${j.referral_count || 0}</b> friend(s) joined • <b>${j.referral_credits || 0}</b> referral credits earned!`;
-            }
-            return j.share_url;
-          }
-        } catch (e) { }
-        const base = location.hostname.indexOf('abhihub') >= 0 ? location.hostname : 'abhihub.edu.eu.org';
-        return 'https://' + base + '/signup';
-      }
-
-      const waBtn = document.getElementById('examPackWaBtn');
-      if (waBtn) {
-        waBtn.addEventListener('click', async function () {
-          const url = await examPackShareUrl();
-          const text = encodeURIComponent('Free engineering exam papers & topper notes on AbhiHub — join here: ' + url);
-          window.open('https://wa.me/?text=' + text, '_blank', 'noopener');
-        });
-      }
-
-      const refWa = document.getElementById('referralShareBtn');
-      if (refWa) {
-        refWa.addEventListener('click', async function (e) {
-          e.preventDefault();
-          const url = await examPackShareUrl();
-          const text = encodeURIComponent('Join AbhiHub for free previous year papers & study notes: ' + url);
-          window.open('https://wa.me/?text=' + text, '_blank', 'noopener');
-        });
-      }
-
-      const copyBtn = document.getElementById('referralCopyBtn');
-      if (copyBtn) {
-        copyBtn.addEventListener('click', async function () {
-          const url = await examPackShareUrl();
-          try {
-            await navigator.clipboard.writeText(url);
-            copyBtn.textContent = 'Copied!';
-            setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
-          } catch (e) {
-            alert('Invite link: ' + url);
-          }
-        });
-      }
-
-      const igBtns = [document.getElementById('examPackIgBtn'), document.getElementById('referralIgBtn')];
-      igBtns.forEach(btn => {
-        if (btn) {
-          btn.addEventListener('click', async function () {
-            const url = await examPackShareUrl();
-            try {
-              await navigator.clipboard.writeText(url);
-              alert('Invite link copied! Share with classmates on Instagram:\n' + url);
-            } catch (e) {
-              alert('Invite link: ' + url);
-            }
-            window.open('https://instagram.com/', '_blank', 'noopener');
-          });
-        }
-      });
-    } catch (e) { }
-  })();
-
-  /* ── Suggested Peers & Classmates Loader ─────────────────────── */
-  (function () {
-    let peersLoaded = false;
-    function loadSuggestedPeers() {
-      if (peersLoaded) return;
-      peersLoaded = true;
-      const grid = document.getElementById('suggestedPeersGrid');
-      if (!grid) return;
-      fetch('/api/chat/search-peers?q=__suggested__', { signal: AbortSignal.timeout(8000) })
-        .then(r => r.json())
-        .then(d => {
-          if (d.success && (d.suggested || []).length) {
-            grid.innerHTML = d.suggested.map(u => {
-              const init = (u.full_name || 'S').charAt(0).toUpperCase();
-              return `<div class="deck-peer-tile" onclick="location.href='/u/${u.id}'" style="cursor:pointer;">
-                <div style="display:flex; align-items:center; gap:0.65rem; margin-bottom:0.5rem;">
-                  <div style="width:36px; height:36px; border-radius:50%; background:#e0f2fe; color:#0369a1; display:flex; align-items:center; justify-content:center; font-weight:700;">${init}</div>
-                  <div style="overflow:hidden;">
-                    <div style="font-weight:700; font-size:0.85rem; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${u.full_name || 'Student'}</div>
-                    <div style="font-size:0.75rem; color:#64748b;">${u.college_name || 'AbhiHub'}</div>
-                  </div>
-                </div>
-                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; border-top:1px solid #e2e8f0; padding-top:0.4rem;">
-                  <span style="color:#0284c7; font-weight:600;">⚡ ${u.reputation_score || 0} pts</span>
-                  <a href="/chat/${u.id}" onclick="event.stopPropagation();" style="color:#0284c7; font-weight:700; text-decoration:none;">Chat 💬</a>
-                </div>
-              </div>`;
-            }).join('');
-            const onlineCount = document.getElementById('onlineCount');
-            if (onlineCount) onlineCount.textContent = d.suggested.length + ' peers active';
-          } else {
-            grid.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#94a3b8; grid-column:1/-1; font-size:0.88rem;">No classmates registered yet. Be the first to invite your college peers!</div>';
-          }
-        })
-        .catch(() => {
-          grid.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#94a3b8; grid-column:1/-1; font-size:0.88rem;">Connect with college peers using Find Peers above.</div>';
-        });
-    }
-
-    const gridTarget = document.getElementById('suggestedPeersGrid');
-    if (gridTarget && 'IntersectionObserver' in window) {
-      const observer = new IntersectionObserver((entries, obs) => {
-        if (entries[0].isIntersecting) {
-          loadSuggestedPeers();
-          obs.disconnect();
-        }
-      }, { rootMargin: '250px' });
-      observer.observe(gridTarget);
+    // If search query is present and has at least 2 chars, fetch from backend search API
+    if (q.length >= 2) {
+      fetchBackendSearch(q);
     } else {
-      setTimeout(loadSuggestedPeers, 3000);
+      // Revert to client-side pool filtering
+      filterClientPool();
     }
-  })();
-
-  /* ── Onboarding Modal ───────────────────────────────────────── */
-  function closeOnboardingModal() {
-    const modal = document.getElementById('welcomeOnboardingModal');
-    if (modal) modal.style.display = 'none';
   }
 
-  /* ── PWA Installation Manager ───────────────────────────────── */
-  const PWAManager = {
-    deferredPrompt: null,
-    installButton: null,
-    init() {
-      this.installButton = document.getElementById('installAppButton');
-      window.addEventListener('beforeinstallprompt', e => {
-        e.preventDefault();
-        this.deferredPrompt = e;
-        if (this.installButton) this.installButton.style.display = 'block';
-      });
-      window.addEventListener('appinstalled', () => {
-        localStorage.setItem('appInstalled', 'true');
-        if (this.installButton) this.installButton.style.display = 'none';
-      });
-    },
-    closePWAPopup() {
-      const p = document.getElementById('pwaInstallPopup');
-      if (p) p.style.display = 'none';
-    }
-  };
+  function filterClientPool() {
+    const q = (document.getElementById('finderSearchInput')?.value || '').trim().toLowerCase();
+    const rows = document.querySelectorAll('.resource-item-row');
+    let count = 0;
 
-  /* ── App Feedback & Ratings ─────────────────────────────────── */
-  function initFeedbackUI() {
-    const toggleBtn = document.getElementById('toggleFeedbackFormBtn');
-    const formBox = document.getElementById('feedbackFormBox');
-    const cancelBtn = document.getElementById('cancelFeedbackBtn');
-    const starBtns = document.querySelectorAll('.rating-star-btn');
-    const ratingInput = document.getElementById('feedbackRatingValue');
+    rows.forEach(row => {
+      const rType = row.getAttribute('data-type');
+      const rSub = row.getAttribute('data-subject') || '';
+      const rCode = row.getAttribute('data-code') || '';
+      const rAuthor = row.getAttribute('data-author') || '';
+      const rCollege = row.getAttribute('data-college') || '';
 
-    if (toggleBtn && formBox) {
-      toggleBtn.addEventListener('click', () => {
-        const isHidden = formBox.style.display === 'none' || !formBox.style.display;
-        formBox.style.display = isHidden ? 'block' : 'none';
-      });
-    }
-    if (cancelBtn && formBox) {
-      cancelBtn.addEventListener('click', () => {
-        formBox.style.display = 'none';
-      });
+      const matchType = (activeType === 'all' || rType === activeType);
+      const matchSub = (activeSubject === 'all' || rSub.includes(activeSubject));
+      const matchSearch = (!q || rSub.includes(q) || rCode.includes(q) || rAuthor.includes(q) || rCollege.includes(q));
+
+      if (matchType && matchSub && matchSearch) {
+        row.style.display = 'flex';
+        count++;
+      } else {
+        row.style.display = 'none';
+      }
+    });
+
+    const emptyBox = document.getElementById('emptyCatalogNotice');
+    const countBadge = document.getElementById('listTotalCount');
+    const matchBadge = document.getElementById('activeMatchesCount');
+    const statusLabel = document.getElementById('activeSearchStatus');
+
+    if (emptyBox) emptyBox.style.display = count === 0 ? 'block' : 'none';
+    if (countBadge) countBadge.textContent = count + ' documents available';
+    if (matchBadge) matchBadge.textContent = count + ' matches';
+    if (statusLabel) statusLabel.textContent = 'Instant Filter';
+  }
+
+  function fetchBackendSearch(query) {
+    const statusLabel = document.getElementById('activeSearchStatus');
+    if (statusLabel) statusLabel.textContent = 'Searching database...';
+
+    let url = `/api/v2/search?q=${encodeURIComponent(query)}`;
+    if (activeType !== 'all') {
+      url += `&type=${encodeURIComponent(activeType)}`;
     }
 
-    starBtns.forEach(btn => {
-      btn.addEventListener('click', () => {
-        const starVal = parseInt(btn.getAttribute('data-star') || '5', 10);
-        if (ratingInput) ratingInput.value = starVal;
-        starBtns.forEach(s => {
-          const sVal = parseInt(s.getAttribute('data-star') || '0', 10);
-          if (sVal <= starVal) {
-            s.classList.add('active');
-          } else {
-            s.classList.remove('active');
-          }
-        });
+    fetch(url)
+      .then(res => res.json())
+      .then(data => {
+        const results = data.results || [];
+        renderSearchResults(results);
+      })
+      .catch(err => {
+        console.warn('Backend search error, falling back to local pool:', err);
+        filterClientPool();
       });
+  }
+
+  function renderSearchResults(results) {
+    const container = document.getElementById('resourcesListContainer');
+    const emptyBox = document.getElementById('emptyCatalogNotice');
+    const countBadge = document.getElementById('listTotalCount');
+    const matchBadge = document.getElementById('activeMatchesCount');
+    const statusLabel = document.getElementById('activeSearchStatus');
+
+    if (statusLabel) statusLabel.textContent = 'Search Results';
+
+    if (!results || results.length === 0) {
+      container.querySelectorAll('.resource-item-row').forEach(r => r.style.display = 'none');
+      if (emptyBox) emptyBox.style.display = 'block';
+      if (countBadge) countBadge.textContent = '0 documents found';
+      if (matchBadge) matchBadge.textContent = '0 matches';
+      return;
+    }
+
+    if (emptyBox) emptyBox.style.display = 'none';
+    if (countBadge) countBadge.textContent = results.length + ' documents found';
+    if (matchBadge) matchBadge.textContent = results.length + ' matches';
+
+    // Hide initial static rows and inject dynamic result rows
+    container.querySelectorAll('.resource-item-row').forEach(r => r.style.display = 'none');
+
+    // Remove existing dynamic search rows
+    container.querySelectorAll('.dynamic-search-row').forEach(r => r.remove());
+
+    results.forEach(doc => {
+      const rawType = (doc.type || 'PYQ').toLowerCase();
+      const isNotes = rawType.includes('note') || rawType.includes('assignment');
+      const isPrac = rawType.includes('practical') || rawType.includes('lab');
+      const iconClass = isNotes ? 'icon-notes' : (isPrac ? 'icon-practical' : 'icon-pyq');
+      const iconEmoji = isNotes ? '📝' : (isPrac ? '🧪' : '📄');
+      const badgeText = isNotes ? 'Notes' : (isPrac ? 'Practical' : 'PYQ Exam');
+
+      // Database information only - NEVER expose raw filename
+      const displaySubject = doc.subject || 'Engineering Core';
+      const displayType = doc.type || badgeText;
+      const displayYear = doc.year || '2026';
+      const displayCode = doc.subject_code ? `<span>Code: ${doc.subject_code}</span><span>•</span>` : '';
+      const displayAuthor = doc.author || 'Verified Contributor';
+      const displayCollege = doc.college || 'Engineering Hub';
+      const recordId = doc.record_id || doc.id || '';
+      const docUrl = recordId ? `/resource/${recordId}` : '#';
+
+      const row = document.createElement('div');
+      row.className = 'apple-file-row dynamic-search-row';
+      row.innerHTML = `
+        <div class="file-left-col">
+          <div class="file-type-icon ${iconClass}">
+            ${iconEmoji}
+          </div>
+          <div class="file-details">
+            <div class="file-name-heading">
+              ${displaySubject} — ${displayType}
+            </div>
+            <div class="file-meta-sub">
+              ${displayCode}
+              <span>Term: ${displayYear}</span>
+              <span>•</span>
+              <span>By: ${displayAuthor}</span>
+              <span>•</span>
+              <span>🏛️ ${displayCollege}</span>
+            </div>
+          </div>
+        </div>
+        <div class="file-right-col">
+          <span class="badge-category ${iconClass}">
+            ${badgeText}
+          </span>
+          <a href="${docUrl}" class="btn-open-pdf">
+            Open PDF →
+          </a>
+        </div>
+      `;
+      container.appendChild(row);
     });
   }
 
-  async function submitAppFeedback(e) {
-    e.preventDefault();
-    const btn = document.getElementById('submitFeedbackBtn');
-    const name = (document.getElementById('feedbackUserName')?.value || '').trim();
-    const college = (document.getElementById('feedbackUserCollege')?.value || '').trim();
-    const rating = parseInt(document.getElementById('feedbackRatingValue')?.value || '5', 10);
-    const message = (document.getElementById('feedbackMessage')?.value || '').trim();
+  function resetAllFilters() {
+    activeType = 'all';
+    activeSubject = 'all';
+    const searchInput = document.getElementById('finderSearchInput');
+    if (searchInput) searchInput.value = '';
 
-    if (!message) return;
-    if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+    document.querySelectorAll('.type-btn').forEach((b, idx) => {
+      b.classList.toggle('active', idx === 0);
+    });
+    document.querySelectorAll('.chip-subject').forEach((c, idx) => {
+      c.classList.toggle('active', idx === 0);
+    });
 
-    try {
-      const res = await fetch('/api/feedback', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name, college, rating, message })
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        const toast = document.getElementById('feedbackToast');
-        if (toast) {
-          toast.style.display = 'flex';
-          setTimeout(() => { toast.style.display = 'none'; }, 3500);
-        }
-        const form = document.getElementById('appFeedbackForm');
-        if (form) form.reset();
-        const formBox = document.getElementById('feedbackFormBox');
-        if (formBox) formBox.style.display = 'none';
-      } else {
-        alert(data.error || 'Failed to submit review.');
-      }
-    } catch (err) {
-      console.error('Feedback submit error:', err);
-      alert('Could not submit feedback. Please check your connection.');
-    } finally {
-      if (btn) { btn.disabled = false; btn.textContent = 'Submit Review 🚀'; }
-    }
+    // Remove dynamic search rows and restore static rows
+    document.querySelectorAll('.dynamic-search-row').forEach(r => r.remove());
+    filterClientPool();
   }
 
-  document.addEventListener('DOMContentLoaded', () => {
-    startCovenantTimer();
-    PWAManager.init();
-    initFeedbackUI();
-    // Progressive sync of dashboard live summary
-    fetch('/api/dashboard/summary')
-      .then(r => r.json())
-      .then(res => {
-        if (res.success && res.counts) {
-          const pEl = document.querySelector('.deck-metric-box:nth-child(5) .deck-metric-val');
-          const nEl = document.querySelector('.deck-metric-box:nth-child(6) .deck-metric-val');
-          if (pEl && res.counts.papers !== undefined) pEl.textContent = res.counts.papers;
-          if (nEl && res.counts.notes !== undefined) nEl.textContent = res.counts.notes;
-        }
-      })
-      .catch(() => {});
-  });
+  document.addEventListener('DOMContentLoaded', filterClientPool);
 </script>
-
-{% include 'includes/_peer_search_modal.html' ignore missing %}
 {% endblock %}

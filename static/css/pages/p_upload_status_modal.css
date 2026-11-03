@@ -17,6 +17,60 @@
   display: flex;
 }
 
+.upload-status-launcher {
+  position: fixed;
+  right: 1.25rem;
+  bottom: 1.25rem;
+  z-index: 11090;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 44px;
+  padding: 0.55rem 0.8rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  color: #1d4ed8;
+  background: rgba(239, 246, 255, 0.96);
+  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.2);
+  backdrop-filter: blur(12px);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.upload-status-launcher[hidden] {
+  display: none;
+}
+
+.upload-status-launcher-icon {
+  display: grid;
+  place-items: center;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 50%;
+  color: #fff;
+  background: #2563eb;
+  animation: upload-status-spin 1.2s linear infinite;
+}
+
+.upload-status-launcher-count {
+  min-width: 1.25rem;
+  padding: 0.1rem 0.3rem;
+  border-radius: 999px;
+  color: #1e3a8a;
+  background: #dbeafe;
+  text-align: center;
+}
+
+.upload-status-launcher:hover,
+.upload-status-launcher:focus-visible {
+  border-color: #2563eb;
+  background: #dbeafe;
+  outline: 3px solid rgba(37, 99, 235, 0.2);
+  outline-offset: 2px;
+}
+
 .upload-status-card {
   width: min(100%, 520px);
   max-width: 520px;
@@ -495,15 +549,85 @@
 }
 
 @media (max-width: 640px) {
+  .upload-status-launcher {
+    right: 0.75rem;
+    bottom: 0.75rem;
+  }
   .upload-top-banner {
     border-radius: 16px;
     padding: 0.6rem 0.8rem;
     top: 8px;
   }
-  .utb-mid {
-    width: 90px;
+  .utb-mid { width: 90px; }
+  .utb-sub { display: none; }
+}
+
+#toastContainer {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 12000;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  align-items: flex-end;
+  width: min(360px, calc(100% - 2rem));
+  pointer-events: none;
+}
+
+#toastContainer .bu-toast {
+  background: rgba(15, 23, 42, 0.95);
+  color: #fff;
+  border-radius: 16px;
+  padding: 0.9rem 1rem;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.24);
+  font-size: 0.95rem;
+  font-weight: 700;
+  pointer-events: auto;
+}
+
+#toastContainer .bu-toast-info { background: rgba(37, 99, 235, 0.95); }
+#toastContainer .bu-toast-error { background: rgba(239, 68, 68, 0.95); }
+#toastContainer .bu-toast-success { background: rgba(16, 185, 129, 0.95); }
+
+#uploadFloat {
+  display: none;
+  position: fixed;
+  right: 1rem;
+  bottom: 1rem;
+  z-index: 12000;
+  align-items: center;
+  gap: 0.65rem;
+  padding: 0.75rem 1rem;
+  border-radius: 999px;
+  background: rgba(15, 23, 42, 0.96);
+  color: #fff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.32);
+}
+
+#uploadFloat.show { display: flex; }
+
+.mini-spin {
+  width: 1rem;
+  height: 1rem;
+  border: 2px solid rgba(255, 255, 255, 0.35);
+  border-top-color: #fff;
+  border-radius: 999px;
+  animation: upload-status-spin 0.9s linear infinite;
+}
+
+@keyframes upload-status-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 640px) {
+  #uploadTopBanner {
+    top: 0.5rem;
+    left: 0.5rem;
+    right: 0.5rem;
   }
-  .utb-sub {
-    display: none;
-  }
+  .utb-content { flex-wrap: wrap; gap: 0.65rem; }
+  .utb-mid { order: 3; width: 100%; }
+  .utb-right { margin-left: auto; }
+  #uploadFloat { right: 0.75rem; bottom: 0.75rem; }
 }

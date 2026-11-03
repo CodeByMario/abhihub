@@ -49,6 +49,29 @@ Two live systems keep it free:
 
 **Free-only rule:** only models with status `free_verified` are routed (BYOK users excepted, since it is their own money).
 
+### Free-LLM directory integration
+
+Tarika uses [Free-LLM](https://github.com/nejib1/Free-LLM) as a provider discovery
+and setup reference. It is not treated as an authoritative runtime policy:
+free-tier terms, quotas, and model availability can change without notice.
+
+The admin-only Developer Panel contains the **Free LLM Setup** section with the
+current provider links and environment variable names. To configure one:
+
+1. Open `/admin/developer` in a non-production environment.
+2. Open **Free LLM Setup**, review the linked provider terms, and choose one provider.
+3. Create a provider key from the linked official key page.
+4. Add the key to the server environment using the exact variable shown there
+   (`OPENROUTER_API_KEY`, `GROQ_API_KEY`, `GEMINI_API_KEY`, `MISTRAL_API_KEY`,
+   `CEREBRAS_API_KEY`, or `NVIDIA_API_KEY`).
+5. Restart the Flask worker and select the provider/model in Tarika settings.
+6. Send a short test prompt and confirm the provider response and usage logs.
+
+Keys must remain server-side and must never be placed in templates, browser
+storage, Git, or chat messages. The Developer Panel is intentionally hidden
+from normal users and the admin route is protected by `auth_required` and
+`admin_required`.
+
 ---
 
 ## 2. One-Time Setup

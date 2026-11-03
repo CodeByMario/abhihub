@@ -1117,7 +1117,8 @@ def api_save_document():
             or str(public_id).lower().endswith('.txt')
         )
         if is_pdf_upload:
-            # Cloudinary must store PDFs as raw assets with a .txt public ID.
+            # Cloudinary receives PDF bytes under a .txt raw asset name. The
+            # original .pdf filename remains the user-facing document name.
             # Do not persist a provider response URL that still contains .pdf.
             public_id = str(public_id)
             if public_id.lower().endswith('.txt.pdf'):
@@ -1153,6 +1154,22 @@ def api_save_document():
         year = str(data.get('year', '') or '')
         semester = data.get('semester')
         description = data.get('description', '')
+        try:
+            submitted_price = max(0.0, min(5000.0, float(data.get('price') or 0)))
+        except (TypeError, ValueError):
+            submitted_price = 0.0
+        submitted_is_paid = str(data.get('is_paid', '')).strip().lower() in {'1', 'true', 'yes', 'on'} and submitted_price > 0
+        if submitted_is_paid:
+            description = json.dumps({
+                'text_description': description,
+                'pricing': {
+                    'is_paid': True,
+                    'price': submitted_price,
+                    'seller_id': user_id,
+                    'coupon_code': str(data.get('coupon_code') or '')[:12] or None,
+                    'coupon_discount': int(data.get('coupon_discount') or 0)
+                }
+            })
         exam_type = data.get('exam_type', '')
         subject_code = data.get('subject_code', '')
         program = data.get('program', 'b.tech')

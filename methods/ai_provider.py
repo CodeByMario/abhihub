@@ -593,6 +593,20 @@ def get_adapter(provider: str, api_key: str, model: str | None = None) -> LLMPro
             provider_name="groq",
             model=model or "llama-3.3-70b-versatile"
         )
+    elif p == "mistral":
+        return OpenAICompatibleAdapter(
+            api_key=api_key,
+            base_url="https://api.mistral.ai/v1",
+            provider_name="mistral",
+            model=model or "mistral-small-latest"
+        )
+    elif p == "cerebras":
+        return OpenAICompatibleAdapter(
+            api_key=api_key,
+            base_url="https://api.cerebras.ai/v1",
+            provider_name="cerebras",
+            model=model or "llama-3.3-70b"
+        )
     elif p == "openai":
         return OpenAICompatibleAdapter(
             api_key=api_key,
@@ -685,6 +699,22 @@ def fetch_live_models(provider: str, api_key: str | None = None) -> list[dict]:
                         "name": m.get("id"),
                         "is_free": True  # 100% Free on console.groq.com
                     })
+        elif p in ("mistral", "cerebras"):
+            env_name = "MISTRAL_API_KEY" if p == "mistral" else "CEREBRAS_API_KEY"
+            base_url = "https://api.mistral.ai/v1" if p == "mistral" else "https://api.cerebras.ai/v1"
+            key = api_key or os.getenv(env_name, "")
+            headers = {"Authorization": f"Bearer {key}"} if key else {}
+            resp = requests.get(f"{base_url}/models", headers=headers, timeout=8)
+            if resp.ok:
+                data = resp.json().get("data", [])
+                for m in data:
+                    mid = m.get("id")
+                    if mid:
+                        models.append({
+                            "id": mid,
+                            "name": m.get("name") or mid,
+                            "is_free": True,
+                        })
         elif p == "gemini":
             key = api_key or os.getenv("GEMINI_API", "").strip().strip("'\"") or os.getenv("GEMINI_API_KEY", "").strip().strip("'\"")
             if key:
@@ -772,6 +802,12 @@ def fetch_live_models(provider: str, api_key: str | None = None) -> list[dict]:
                 {"id": "meta/llama-3.3-70b-instruct", "name": "Llama 3.3 70B (Free 1K credits)", "is_free": True},
                 {"id": "deepseek-ai/deepseek-r1", "name": "DeepSeek R1 (Free 1K credits)", "is_free": True},
                 {"id": "nvidia/nemotron-4-340b-instruct", "name": "Nemotron 4 340B (Free 1K credits)", "is_free": True},
+            ],
+            "mistral": [
+                {"id": "mistral-small-latest", "name": "Mistral Small (Free tier if enabled)", "is_free": True},
+            ],
+            "cerebras": [
+                {"id": "llama-3.3-70b", "name": "Llama 3.3 70B (Cerebras)", "is_free": True},
             ],
             "openai": [
                 {"id": "gpt-4o-mini", "name": "GPT-4o Mini (Ultra low cost)", "is_free": False},

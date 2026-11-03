@@ -345,6 +345,7 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/promo.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/profile-nudge.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/notification-bell.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/p_upload_status_modal.css') }}">
 
     <link rel="stylesheet" href="{{ url_for('static', filename='css/overlay-system.css') }}">
     <link rel="stylesheet" href="{{ url_for('static', filename='css/tailwind.min.css') }}">
@@ -577,6 +578,64 @@
 
         </nav>
     </header>
+
+    <!-- Persistent upload status lives in the shared shell so navigation does not
+         remove progress, retry actions, or completion feedback. -->
+    <div id="uploadTopBanner" class="upload-top-banner" style="display:none;" role="status" aria-live="polite">
+        <div class="utb-content">
+            <div class="utb-left">
+                <div class="utb-spinner" id="utbSpinner"></div>
+                <div class="utb-text-wrap">
+                    <div class="utb-title-row">
+                        <span class="utb-title" id="utbTitle">Uploading in background…</span>
+                        <span class="utb-badge" id="utbBadge">1 remaining</span>
+                    </div>
+                    <div class="utb-sub" id="utbSub">You can continue using the app while your files upload.</div>
+                </div>
+            </div>
+            <div class="utb-mid">
+                <div class="utb-progress-bar">
+                    <div class="utb-progress-fill" id="utbProgressFill" style="width: 0%;"></div>
+                </div>
+                <span class="utb-percent" id="utbPercent">0%</span>
+            </div>
+            <div class="utb-right">
+                <a class="utb-btn utb-btn-secondary" href="/game" target="_blank" rel="noopener noreferrer">
+                    Play Game
+                </a>
+                <button type="button" class="utb-btn utb-btn-secondary" id="utbDetailsBtn" onclick="openStatusModal()">Details</button>
+                <button type="button" class="utb-btn-icon" id="utbCloseBtn" onclick="dismissTopBanner()" title="Dismiss notification">✕</button>
+            </div>
+        </div>
+    </div>
+    <div id="toastContainer"></div>
+    <div id="uploadStatusModal" class="upload-status-overlay" style="display:none;" data-action="dismissIfClicked">
+        <div class="upload-status-card" onclick="event.stopPropagation()">
+            <div class="upload-status-header">
+                <div>
+                    <div class="upload-status-title" id="usTitle">Uploading…</div>
+                    <div class="upload-status-subtitle" id="usSubtitle">Please keep this window open</div>
+                </div>
+                <div class="upload-status-actions">
+                    <button type="button" class="upload-status-minimize" id="usMinimize" aria-label="Minimize">−</button>
+                    <button type="button" class="upload-status-close" id="usClose" aria-label="Close" style="display:none;">✕</button>
+                </div>
+            </div>
+            <div class="upload-status-summary" id="usSummary"></div>
+            <div class="upload-status-list" id="uploadStatusList"></div>
+        </div>
+    </div>
+    <button type="button" id="uploadStatusLauncher" class="upload-status-launcher" hidden
+        onclick="openStatusModal()" aria-label="Show upload progress" title="Show upload progress">
+        <span class="upload-status-launcher-icon" aria-hidden="true">↑</span>
+        <span class="upload-status-launcher-count" id="uploadStatusLauncherCount">0</span>
+        <span class="upload-status-launcher-label" id="uploadStatusLauncherLabel">Uploading</span>
+    </button>
+    <div id="uploadFloat">
+        <div class="mini-spin"></div>
+        <span id="uploadFloatText">Uploading…</span>
+    </div>
+
     <main style="display: block; min-height: 0;">
         {% block content %}
 

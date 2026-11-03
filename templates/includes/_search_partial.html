@@ -5,13 +5,13 @@
 <style>
   /* Architectural Engineering Search Console — High-density, tactile & responsive */
   .ss-search {
-    --ss-ink: #0f172a;
-    --ss-muted: #64748b;
-    --ss-line: #e2e8f0;
-    --ss-surface: #ffffff;
-    --ss-surface-sub: #f8fafc;
-    --ss-primary: #0284c7;
-    --ss-primary-hover: #0369a1;
+    --ss-ink: var(--text-primary, #0f172a);
+    --ss-muted: var(--text-secondary, #64748b);
+    --ss-line: var(--border-light, #e2e8f0);
+    --ss-surface: var(--surface, #ffffff);
+    --ss-surface-sub: var(--bg-secondary, #f8fafc);
+    --ss-primary: var(--primary-600, #2563eb);
+    --ss-primary-hover: var(--primary-700, #1d4ed8);
     --ss-emerald: #059669;
     --ss-amber: #d97706;
     --ss-violet: #6366f1;
@@ -25,11 +25,19 @@
   }
 
   .dark .ss-search {
-    --ss-ink: #f8fafc;
-    --ss-muted: #94a3b8;
-    --ss-line: #1e293b;
-    --ss-surface: #131b2e;
-    --ss-surface-sub: #0f172a;
+    --ss-ink: var(--text-primary, #f8fafc);
+    --ss-muted: var(--text-secondary, #94a3b8);
+    --ss-line: var(--border-light, #1e293b);
+    --ss-surface: var(--surface, #131b2e);
+    --ss-surface-sub: var(--bg-secondary, #0f172a);
+  }
+
+  [data-theme="dark"] .ss-search {
+    --ss-ink: var(--text-primary, #f8fafc);
+    --ss-muted: var(--text-secondary, #94a3b8);
+    --ss-line: var(--border-light, #1e293b);
+    --ss-surface: var(--surface, #131b2e);
+    --ss-surface-sub: var(--bg-secondary, #0f172a);
   }
 
   .ss-panel {
@@ -118,7 +126,7 @@
     min-height: 56px;
     padding: 0.6rem 0.85rem 0.6rem 1.15rem;
     border: 1.5px solid var(--ss-line);
-    border-radius: 10px;
+    border-radius: 12px;
     background: var(--ss-surface-sub);
     box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
     transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
@@ -147,8 +155,24 @@
     line-height: 1.4;
   }
 
+  .ss-input:focus-visible {
+    outline: 0;
+  }
+
   .ss-input::placeholder {
     color: #94a3b8;
+  }
+
+  .ss-visually-hidden {
+    position: absolute !important;
+    width: 1px !important;
+    height: 1px !important;
+    padding: 0 !important;
+    margin: -1px !important;
+    overflow: hidden !important;
+    clip: rect(0, 0, 0, 0) !important;
+    white-space: nowrap !important;
+    border: 0 !important;
   }
 
   .ss-clear {
@@ -174,9 +198,9 @@
   /* Filter Area */
   .ss-filter-area {
     margin-top: 1.25rem;
-    padding: 1.1rem 1.25rem;
+    padding: 1.15rem;
     border: 1px solid var(--ss-line);
-    border-radius: 10px;
+    border-radius: 12px;
     background: var(--ss-surface-sub);
     display: flex;
     flex-direction: column;
@@ -195,11 +219,38 @@
     gap: 6px;
   }
 
+  .ss-filter-title::before {
+    content: '⌘';
+    display: grid;
+    place-items: center;
+    width: 1.35rem;
+    height: 1.35rem;
+    border-radius: 6px;
+    color: var(--ss-primary);
+    background: color-mix(in srgb, var(--ss-primary) 12%, transparent);
+    font-family: var(--ss-font-body);
+    font-size: 0.9rem;
+  }
+
   .ss-chips {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 0.65rem;
     width: 100%;
+  }
+
+  .ss-filter-field {
+    display: grid;
+    gap: 0.35rem;
+    min-width: 0;
+  }
+
+  .ss-filter-label {
+    color: var(--ss-muted);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
   }
 
   .ss-chip {
@@ -209,10 +260,10 @@
     padding: 0.5rem 2rem 0.5rem 0.8rem;
     appearance: none;
     border: 1px solid var(--ss-line);
-    border-radius: 6px;
+    border-radius: 8px;
     outline: 0;
     color: var(--ss-ink);
-    background: var(--ss-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%230284c7'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") no-repeat right 0.7rem center/0.9em;
+    background: var(--ss-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%232563eb'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") no-repeat right 0.7rem center/0.9em;
     font-family: var(--ss-font-body);
     font-size: 0.83rem;
     font-weight: 600;
@@ -229,7 +280,7 @@
 
   .ss-chip:focus {
     border-color: var(--ss-primary);
-    box-shadow: 0 0 0 2px rgba(2, 132, 199, 0.15);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--ss-primary) 18%, transparent);
   }
 
   .ss-chip.active {
@@ -867,6 +918,9 @@
     .ss-results {
       grid-template-columns: repeat(2, minmax(0, 1fr));
     }
+    .ss-chips {
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
   }
 
   @media (max-width: 768px) {
@@ -885,12 +939,15 @@
       margin-bottom: 1.15rem;
     }
     .ss-chips {
-      grid-template-columns: repeat(2, 1fr);
+      grid-template-columns: repeat(2, minmax(0, 1fr));
       gap: 0.5rem;
     }
     .ss-chip {
       min-height: 44px;
       font-size: 0.85rem;
+    }
+    .ss-filter-area {
+      padding: 1rem;
     }
   }
 
@@ -900,19 +957,13 @@
       gap: 0.85rem;
     }
     .ss-chips {
-      display: flex;
-      overflow-x: auto;
-      scroll-snap-type: x mandatory;
-      padding-bottom: 4px;
-      -webkit-overflow-scrolling: touch;
-      scrollbar-width: none;
-    }
-    .ss-chips::-webkit-scrollbar {
-      display: none;
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      overflow: visible;
+      padding-bottom: 0;
     }
     .ss-chip {
-      flex: 0 0 160px;
-      scroll-snap-align: start;
+      width: 100%;
     }
     .ss-bar {
       min-height: 52px;
@@ -931,6 +982,12 @@
     }
     .ss-sr-btn {
       justify-content: center;
+    }
+  }
+
+  @media (max-width: 380px) {
+    .ss-chips {
+      grid-template-columns: 1fr;
     }
   }
 
@@ -953,9 +1010,258 @@
       animation: none;
     }
   }
+
+  /* Luxury control system: calm neutrals, restrained brass accents, and clear states. */
+  .ss-search {
+    --ss-luxury-ink: #172033;
+    --ss-luxury-brass: #b38a3b;
+    --ss-luxury-brass-bright: #d3ae68;
+    --ss-luxury-border: rgba(179, 138, 59, 0.28);
+    --ss-luxury-focus: rgba(179, 138, 59, 0.22);
+    --ss-ink: var(--ss-luxury-ink);
+    --ss-muted: #687386;
+    --ss-line: rgba(23, 32, 51, 0.13);
+    --ss-surface: #fffdf9;
+    --ss-surface-sub: #f7f4ed;
+    --ss-primary: #8a692c;
+    --ss-primary-hover: #6f5221;
+  }
+
+  .dark .ss-search,
+  [data-theme="dark"] .ss-search {
+    --ss-luxury-ink: #f5f1e8;
+    --ss-muted: #a9a39a;
+    --ss-line: rgba(211, 174, 104, 0.22);
+    --ss-surface: #171b26;
+    --ss-surface-sub: #202532;
+    --ss-primary: #d3ae68;
+    --ss-primary-hover: #e1c27e;
+  }
+
+  .ss-panel {
+    border-color: var(--ss-luxury-border);
+    border-radius: 24px;
+    background:
+      radial-gradient(circle at 100% 0%, rgba(211, 174, 104, 0.12), transparent 28%),
+      var(--ss-surface);
+    box-shadow: 0 24px 60px -34px rgba(23, 32, 51, 0.42), 0 2px 8px rgba(23, 32, 51, 0.04);
+  }
+
+  .ss-panel::before {
+    height: 4px;
+    background: linear-gradient(90deg, #8a692c, #e1c27e 48%, #8a692c);
+  }
+
+  .ss-kicker {
+    color: var(--ss-primary);
+    background: rgba(179, 138, 59, 0.1);
+    border-color: rgba(179, 138, 59, 0.28);
+    border-radius: 999px;
+    letter-spacing: 0.1em;
+  }
+
+  .ss-tip {
+    color: var(--ss-primary);
+    background: rgba(179, 138, 59, 0.08);
+    border-color: var(--ss-luxury-border);
+    border-radius: 999px;
+  }
+
+  .ss-bar {
+    min-height: 62px;
+    border-color: var(--ss-luxury-border);
+    border-radius: 16px;
+    background: rgba(247, 244, 237, 0.72);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 8px 24px -18px rgba(23, 32, 51, 0.4);
+  }
+
+  .ss-bar:focus-within {
+    border-color: var(--ss-luxury-brass);
+    box-shadow: 0 0 0 4px var(--ss-luxury-focus), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+    background: var(--ss-surface);
+  }
+
+  .ss-bar > svg,
+  .ss-clear:hover,
+  .ss-clear:focus-visible {
+    color: var(--ss-luxury-brass);
+  }
+
+  .ss-input {
+    font-size: 1.02rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+  }
+
+  .ss-filter-area {
+    padding: 1.35rem;
+    border-color: rgba(179, 138, 59, 0.2);
+    border-radius: 18px;
+    background: rgba(247, 244, 237, 0.68);
+  }
+
+  .ss-filter-title::before {
+    color: var(--ss-luxury-brass);
+    background: rgba(179, 138, 59, 0.14);
+  }
+
+  .ss-filter-label {
+    color: #7d6a48;
+    letter-spacing: 0.08em;
+  }
+
+  .ss-chip {
+    min-height: 46px;
+    border-color: rgba(23, 32, 51, 0.15);
+    border-radius: 12px;
+    background-color: rgba(255, 253, 249, 0.92);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23b38a3b'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='1.8' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E");
+    box-shadow: 0 2px 6px rgba(23, 32, 51, 0.03);
+  }
+
+  .dark .ss-panel,
+  [data-theme="dark"] .ss-panel {
+    background:
+      radial-gradient(circle at 100% 0%, rgba(211, 174, 104, 0.12), transparent 28%),
+      var(--ss-surface);
+    box-shadow: 0 24px 60px -34px rgba(0, 0, 0, 0.8), 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+
+  .dark .ss-bar,
+  [data-theme="dark"] .ss-bar,
+  .dark .ss-filter-area,
+  [data-theme="dark"] .ss-filter-area {
+    background: rgba(32, 37, 50, 0.78);
+  }
+
+  .dark .ss-chip,
+  [data-theme="dark"] .ss-chip {
+    background-color: rgba(23, 27, 38, 0.92);
+    color: var(--ss-ink);
+  }
+
+  .ss-chip:hover,
+  .ss-chip:focus {
+    border-color: var(--ss-luxury-brass);
+  }
+
+  .ss-chip:focus {
+    box-shadow: 0 0 0 4px var(--ss-luxury-focus);
+  }
+
+  .ss-chip.active {
+    border-color: var(--ss-luxury-brass);
+    background-color: rgba(179, 138, 59, 0.1);
+    color: var(--ss-primary);
+  }
+
+  .ss-tag,
+  #searchResetBtn,
+  .ss-more-btn {
+    border-color: var(--ss-luxury-border);
+    border-radius: 999px;
+  }
+
+  .ss-tag:hover,
+  #searchResetBtn:hover {
+    border-color: var(--ss-luxury-brass);
+    color: var(--ss-primary);
+    background: rgba(179, 138, 59, 0.08);
+  }
+
+  .ss-more-btn,
+  .ss-sr-btn {
+    border: 1px solid var(--ss-luxury-brass);
+    border-radius: 999px;
+    color: #fff !important;
+    background: linear-gradient(135deg, #a67c32, #c49a4b);
+    box-shadow: 0 8px 18px -10px rgba(138, 105, 44, 0.8);
+  }
+
+  .ss-more-btn:hover,
+  .ss-sr-btn:hover {
+    border-color: var(--ss-primary-hover);
+    background: linear-gradient(135deg, #8a692c, #b38a3b);
+    box-shadow: 0 12px 24px -12px rgba(138, 105, 44, 0.9);
+  }
+
+  .ss-suggestions {
+    border-color: var(--ss-luxury-border);
+    border-radius: 16px;
+    box-shadow: 0 24px 48px -24px rgba(23, 32, 51, 0.45);
+  }
+
+  /* Compact filter layout: keep the complete control set visible without
+     sacrificing the larger touch targets used on smaller screens. */
+  .ss-filter-area {
+    margin-top: 0.9rem;
+    padding: 0.8rem 1rem 0.95rem;
+    gap: 0.55rem;
+    border-radius: 16px;
+  }
+
+  .ss-filter-title {
+    font-size: 0.66rem;
+  }
+
+  .ss-filter-title::before {
+    width: 1.15rem;
+    height: 1.15rem;
+    font-size: 0.78rem;
+  }
+
+  .ss-chips {
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .ss-filter-field {
+    gap: 0.22rem;
+  }
+
+  .ss-filter-label {
+    font-size: 0.61rem;
+    line-height: 1.1;
+  }
+
+  .ss-chip {
+    min-height: 38px;
+    padding: 0.35rem 1.7rem 0.35rem 0.65rem;
+    border-radius: 10px;
+    font-size: 0.74rem;
+  }
+
+  @media (max-width: 1100px) {
+    .ss-chips {
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 768px) {
+    .ss-filter-area {
+      padding: 0.85rem;
+    }
+
+    .ss-chips {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .ss-chip {
+      min-height: 44px;
+      font-size: 0.85rem;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .ss-panel *,
+    .ss-panel *::before,
+    .ss-panel *::after {
+      transition-duration: 0.01ms !important;
+    }
+  }
 </style>
 
-<section class="ss-search" aria-labelledby="smartSearchTitle">
+<section class="ss-search" role="search" aria-labelledby="smartSearchTitle">
   <div class="ss-panel">
     <div class="ss-intro">
       <div>
@@ -965,12 +1271,15 @@
       </div>
       <span class="ss-tip">Indexed Library</span>
     </div>
+    <p id="searchHelp" class="ss-visually-hidden">Enter a subject, paper, college, or keyword. Use the filters to narrow results.</p>
     <div class="ss-bar"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor"
         stroke-width="2" aria-hidden="true">
         <circle cx="11" cy="11" r="8" />
         <path d="m21 21-4.35-4.35" />
       </svg><input type="text" id="searchFileName" class="ss-input" placeholder="Search subjects (e.g. OS, DBMS, CSE2001), ITER, KIIT, PYQs…"
-        value="{{ initial_query }}" autocomplete="off" aria-label="Search files"><button id="searchClearBtn"
+        value="{{ initial_query }}" autocomplete="off" inputmode="search" enterkeyhint="search"
+        aria-label="Search files" aria-describedby="searchHelp" aria-controls="searchSuggestions"
+        aria-autocomplete="list"><button id="searchClearBtn"
         class="ss-clear" type="button" aria-label="Clear search" title="Clear search"><svg width="18" height="18"
           viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18" />
@@ -981,17 +1290,17 @@
     <div id="searchRelaxationBanner" class="ss-relaxation-notice" style="display:none;"></div>
     <div id="searchTypoBanner" class="ss-typo-banner" style="display:none;"></div>
     <div class="ss-filter-area">
-      <div class="ss-filter-title">Filter and sort</div>
-      <div class="ss-chips">
-        <label for="searchCollege" class="sr-only">College</label><select id="searchCollege" class="ss-chip"
+      <div id="searchFiltersTitle" class="ss-filter-title">Filter and sort</div>
+      <div class="ss-chips" role="group" aria-labelledby="searchFiltersTitle">
+        <div class="ss-filter-field"><label for="searchCollege" class="ss-filter-label">College</label><select id="searchCollege" class="ss-chip"
           aria-label="Filter by college">
           <option value="">All colleges</option>
-        </select>
-        <label for="searchBranch" class="sr-only">Branch</label><select id="searchBranch" class="ss-chip"
+        </select></div>
+        <div class="ss-filter-field"><label for="searchBranch" class="ss-filter-label">Branch</label><select id="searchBranch" class="ss-chip"
           aria-label="Filter by branch">
           <option value="">All branches</option>
-        </select>
-        <label for="searchSemester" class="sr-only">Semester</label><select id="searchSemester" class="ss-chip"
+        </select></div>
+        <div class="ss-filter-field"><label for="searchSemester" class="ss-filter-label">Semester</label><select id="searchSemester" class="ss-chip"
           aria-label="Filter by semester">
           <option value="">All semesters</option>
           <option value="1">Semester 1</option>
@@ -1002,26 +1311,26 @@
           <option value="6">Semester 6</option>
           <option value="7">Semester 7</option>
           <option value="8">Semester 8</option>
-        </select>
-        <label for="searchSubject" class="sr-only">Subject</label><select id="searchSubject" class="ss-chip"
+        </select></div>
+        <div class="ss-filter-field"><label for="searchSubject" class="ss-filter-label">Subject</label><select id="searchSubject" class="ss-chip"
           aria-label="Filter by subject">
           <option value="">All subjects</option>
-        </select>
-        <label for="searchType" class="sr-only">Type</label><select id="searchType" class="ss-chip"
+        </select></div>
+        <div class="ss-filter-field"><label for="searchType" class="ss-filter-label">Type</label><select id="searchType" class="ss-chip"
           aria-label="Filter by type">
           <option value="">All types</option>
-        </select>
-        <label for="searchYear" class="sr-only">Year</label><select id="searchYear" class="ss-chip"
+        </select></div>
+        <div class="ss-filter-field"><label for="searchYear" class="ss-filter-label">Year</label><select id="searchYear" class="ss-chip"
           aria-label="Filter by year">
           <option value="">All years</option>
-        </select>
-        <label for="searchSort" class="sr-only">Sort by</label><select id="searchSort" class="ss-chip"
+        </select></div>
+        <div class="ss-filter-field"><label for="searchSort" class="ss-filter-label">Sort by</label><select id="searchSort" class="ss-chip"
           aria-label="Sort by">
           <option value="relevance">Top relevance</option>
           <option value="date_desc">Latest first</option>
           <option value="views_desc">Most viewed</option>
           <option value="likes_desc">Most liked</option>
-        </select>
+        </select></div>
         <input type="hidden" id="searchAuthor" value=""><button id="searchBtn" hidden aria-hidden="true"
           type="button"></button>
       </div>

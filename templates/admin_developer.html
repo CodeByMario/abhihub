@@ -89,6 +89,22 @@
   .dev-toast.show { opacity: 1; transform: translateY(0); }
   .auto-refresh-label { display: flex; align-items: center; gap: .5rem; font-size: .8rem; color: var(--muted); cursor: pointer; }
   .auto-refresh-label input { accent-color: var(--accent); }
+  .free-llm-intro { color: var(--muted); line-height: 1.6; margin-bottom: 1.25rem; max-width: 860px; }
+  .free-llm-source { display: flex; gap: .6rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+  .free-llm-source a { color: #93c5fd; }
+  .free-llm-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(270px, 1fr)); gap: 1rem; margin-bottom: 1.5rem; }
+  .free-llm-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.1rem; }
+  .free-llm-card h3 { font-size: .95rem; margin-bottom: .65rem; }
+  .free-llm-card p { color: var(--muted); font-size: .78rem; line-height: 1.5; margin: .35rem 0; }
+  .free-llm-card code { color: #a5b4fc; font-size: .75rem; word-break: break-word; }
+  .free-llm-card a { color: #93c5fd; font-size: .78rem; }
+  .free-llm-status { display: inline-block; padding: .18rem .45rem; border-radius: 999px; background: rgba(16,185,129,.14); color: #6ee7b7; font-size: .68rem; font-weight: 700; text-transform: uppercase; }
+  .setup-steps { display: grid; gap: .75rem; counter-reset: setup; }
+  .setup-step { display: grid; grid-template-columns: 2rem 1fr; gap: .75rem; align-items: start; padding: .9rem; background: var(--card); border: 1px solid var(--border); border-radius: 10px; }
+  .setup-step::before { counter-increment: setup; content: counter(setup); display: grid; place-items: center; width: 2rem; height: 2rem; border-radius: 8px; background: rgba(99,102,241,.18); color: #a5b4fc; font-weight: 800; }
+  .setup-step strong { display: block; margin-bottom: .25rem; }
+  .setup-step span { color: var(--muted); font-size: .8rem; line-height: 1.5; }
+  .setup-warning { padding: .9rem 1rem; margin-top: 1rem; border: 1px solid rgba(245,158,11,.3); border-radius: 10px; background: rgba(245,158,11,.08); color: #fde68a; font-size: .8rem; line-height: 1.5; }
   @media (max-width: 640px) { .cloud-grid, .features-grid { grid-template-columns: 1fr; } }
 </style>
 {% endblock %}
@@ -104,6 +120,7 @@
       <button class="tab-btn active" onclick="switchTab('cloud',this)">☁️ Cloud Usage</button>
       <button class="tab-btn" onclick="switchTab('health',this)">🩺 Feature Health</button>
       <button class="tab-btn" onclick="switchTab('logs',this)">📋 Logs</button>
+      <button class="tab-btn" onclick="switchTab('free-llm',this)">🧩 Free LLM Setup</button>
     </nav>
   </div>
 
@@ -160,6 +177,46 @@
         <div class="stat-row"><span class="stat-label">Free tier limit</span><span class="stat-val" style="color:var(--muted)">512 MB</span></div>
         <div class="stat-row"><span class="stat-label">Note</span><span class="stat-val" style="font-size:.72rem;color:var(--muted)">Needs get_db_size() RPC</span></div>
       </div>
+    </div>
+  </section>
+
+  <!-- ═══ TAB 4: FREE LLM DIRECTORY ═══ -->
+  <section id="tab-free-llm" class="tab-section">
+    <div class="sec-head">
+      <div class="sec-title">🧩 Free-LLM Directory → Tarika</div>
+    </div>
+    <p class="free-llm-intro">
+      This admin-only section uses the
+      <strong>Free-LLM</strong> directory as a provider discovery and setup reference.
+      Tarika only routes through adapters implemented and verified in this application;
+      it does not blindly execute third-party directory entries.
+    </p>
+    <div class="free-llm-source">
+      <a href="{{ free_llm_source }}" target="_blank" rel="noopener noreferrer">Source repository ↗</a>
+      <a href="{{ free_llm_directory }}" target="_blank" rel="noopener noreferrer">Live directory ↗</a>
+    </div>
+    <div class="free-llm-grid">
+      {% for provider in free_llm_providers %}
+      <article class="free-llm-card">
+        <h3>{{ provider.name }} {% if provider.recommended %}<span class="free-llm-status">Recommended</span>{% endif %}</h3>
+        <p>Tarika status: <strong>{{ provider.tarika_status }}</strong></p>
+        <p>Environment key: <code>{{ provider.env_key }}</code></p>
+        <p>Endpoint: <code>{{ provider.base_url }}</code></p>
+        <p>{{ provider.free_tier }}</p>
+        <a href="{{ provider.key_url }}" target="_blank" rel="noopener noreferrer">Open provider key page ↗</a>
+      </article>
+      {% endfor %}
+    </div>
+    <div class="card">
+      <div class="card-title">One-time setup checklist</div>
+      <div class="setup-steps">
+        <div class="setup-step"><div><strong>Review current terms</strong><span>Open the Free-LLM source or live directory and confirm the provider's current free-tier, rate limits, acceptable-use policy, and model availability. Do not rely on an old quota shown here.</span></div></div>
+        <div class="setup-step"><div><strong>Create one provider key</strong><span>Start with OpenRouter or Groq. Create a key only from the linked provider page. Do not add a payment method unless paid usage is explicitly intended.</span></div></div>
+        <div class="setup-step"><div><strong>Store the secret on the server</strong><span>Add the key to the deployment environment using the exact environment variable shown above. Never put it in templates, JavaScript, Git, browser localStorage, or a chat message.</span></div></div>
+        <div class="setup-step"><div><strong>Restart and verify Tarika</strong><span>Restart the Flask worker, open Tarika, select the configured provider/model, send a short test, and confirm the provider/model in the response or application logs.</span></div></div>
+        <div class="setup-step"><div><strong>Keep the free-only guard enabled</strong><span>For OpenRouter, select models ending in <code>:free</code>. For other providers, confirm the provider dashboard shows free-tier usage before enabling it for production traffic.</span></div></div>
+      </div>
+      <div class="setup-warning"><strong>Important:</strong> Free-tier status can change without notice. A provider listed here is not a guarantee of zero cost. Monitor usage, set provider-side limits where available, and remove unused keys immediately.</div>
     </div>
   </section>
 
