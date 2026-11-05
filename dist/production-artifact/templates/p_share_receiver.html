@@ -1,0 +1,246 @@
+{% extends 'p_struct.html' %}
+{% block content %}
+
+<style>
+    .share-receiver-container {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        min-height: calc(100vh - 180px);
+        padding: 2rem;
+    }
+
+    .share-header {
+        text-align: center;
+        margin-bottom: 2rem;
+    }
+
+    .share-icon {
+        width: 80px;
+        height: 80px;
+        margin-bottom: 1rem;
+        background: linear-gradient(135deg, #10b981, #059669);
+        border-radius: 20px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 8px 32px rgba(16, 185, 129, 0.3);
+    }
+
+    .share-icon svg {
+        width: 40px;
+        height: 40px;
+        color: white;
+    }
+
+    .share-title {
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: #1F2937;
+        margin-bottom: 0.5rem;
+    }
+
+    .share-message {
+        font-size: 1rem;
+        color: #6B7280;
+    }
+
+    .shared-content {
+        width: 100%;
+        max-width: 600px;
+        margin-top: 1.5rem;
+    }
+
+    .shared-meta {
+        background: #F9FAFB;
+        border-radius: 12px;
+        padding: 1.5rem;
+        margin-bottom: 1.5rem;
+    }
+
+    .shared-meta-item {
+        display: flex;
+        margin-bottom: 0.75rem;
+    }
+
+    .shared-meta-label {
+        font-weight: 600;
+        color: #374151;
+        min-width: 60px;
+    }
+
+    .shared-meta-value {
+        color: #6B7280;
+        word-break: break-all;
+    }
+
+    .shared-files {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .shared-file-card {
+        display: flex;
+        align-items: center;
+        padding: 1rem;
+        background: white;
+        border: 1px solid #E5E7EB;
+        border-radius: 12px;
+        transition: all 0.2s;
+    }
+
+    .shared-file-card:hover {
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        border-color: #2563eb;
+    }
+
+    .file-icon {
+        width: 48px;
+        height: 48px;
+        border-radius: 12px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        margin-right: 1rem;
+        font-size: 1.5rem;
+    }
+
+    .file-icon.image {
+        background: linear-gradient(135deg, #8B5CF6, #7C3AED);
+    }
+
+    .file-icon.pdf {
+        background: linear-gradient(135deg, #EF4444, #DC2626);
+    }
+
+    .file-info {
+        flex: 1;
+    }
+
+    .file-name {
+        font-weight: 600;
+        color: #1F2937;
+        margin-bottom: 0.25rem;
+    }
+
+    .file-meta {
+        font-size: 0.85rem;
+        color: #6B7280;
+    }
+
+    .file-actions {
+        display: flex;
+        gap: 0.5rem;
+    }
+
+    .action-btn {
+        padding: 0.5rem 1rem;
+        border-radius: 8px;
+        font-size: 0.9rem;
+        font-weight: 500;
+        cursor: pointer;
+        transition: all 0.2s;
+        border: none;
+    }
+
+    .action-btn.primary {
+        background: linear-gradient(135deg, #2563eb, #1d4ed8);
+        color: white;
+    }
+
+    .action-btn.secondary {
+        background: #F3F4F6;
+        color: #374151;
+    }
+
+    .action-btn:hover {
+        transform: translateY(-1px);
+    }
+
+    .empty-state {
+        text-align: center;
+        padding: 3rem;
+        background: #F9FAFB;
+        border-radius: 16px;
+        border: 2px dashed #E5E7EB;
+    }
+
+    .empty-state p {
+        color: #6B7280;
+        margin: 0;
+    }
+</style>
+
+<div class="share-receiver-container">
+    <div class="share-header">
+        <div class="share-icon">
+            <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z">
+                </path>
+            </svg>
+        </div>
+        <h1 class="share-title">Shared Content</h1>
+        <p class="share-message">{{ message }}</p>
+    </div>
+
+    <div class="shared-content">
+        {% if title or text or url %}
+        <div class="shared-meta">
+            {% if title %}
+            <div class="shared-meta-item">
+                <span class="shared-meta-label">Title:</span>
+                <span class="shared-meta-value">{{ title }}</span>
+            </div>
+            {% endif %}
+            {% if text %}
+            <div class="shared-meta-item">
+                <span class="shared-meta-label">Text:</span>
+                <span class="shared-meta-value">{{ text }}</span>
+            </div>
+            {% endif %}
+            {% if url %}
+            <div class="shared-meta-item">
+                <span class="shared-meta-label">URL:</span>
+                <span class="shared-meta-value"><a href="{{ url }}" target="_blank">{{ url }}</a></span>
+            </div>
+            {% endif %}
+        </div>
+        {% endif %}
+
+        {% if files %}
+        <div class="shared-files">
+            {% for file in files %}
+            <div class="shared-file-card">
+                <div class="file-icon {{ 'image' if 'image' in file.type else 'pdf' }}">
+                    {{ '🖼️' if 'image' in file.type else '📄' }}
+                </div>
+                <div class="file-info">
+                    <div class="file-name">{{ file.name }}</div>
+                    <div class="file-meta">
+                        {{ (file.size / 1024)|round(1) }} KB • {{ file.type }}
+                    </div>
+                </div>
+                <div class="file-actions">
+                    <a href="/{{ file.path }}" class="action-btn primary" target="_blank">View</a>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="empty-state">
+            <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="#9CA3AF" stroke-width="1.5"
+                style="margin-bottom: 1rem;">
+                <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M9 13h6m-3-3v6m5 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z">
+                </path>
+            </svg>
+            <p>No files shared yet.</p>
+            <p style="margin-top: 0.5rem; font-size: 0.9rem;">Use your device's share button to send files to AbhiHub.
+            </p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+{% endblock %}

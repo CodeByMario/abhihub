@@ -1,27 +1,78 @@
-User-agent: *
-Allow: /
-Allow: /premium/
-Allow: /premium/search
-Allow: /premium/about
-Allow: /static/
+# AbhiHub robots.txt - Block junk crawlers to improve server load
 
-# Disallow admin and auth pages
+# Block SEO scrapers and bad bots
+User-agent: SemrushBot
+Disallow: /
+
+User-agent: AhrefsBot
+Disallow: /
+
+User-agent: MJ12bot
+Disallow: /
+
+User-agent: DotBot
+Disallow: /
+
+User-agent: BLEXBot
+Disallow: /
+
+# For all other crawlers - block API and login access
+User-agent: *
+Disallow: /api/
 Disallow: /login
 Disallow: /signup
-Disallow: /logout
+Disallow: /auth
+Disallow: /settings
+Disallow: /store-room
+Disallow: /admin
 Disallow: /upload
-Disallow: /admin/
-Disallow: /abhijeet_updae
 
-# Sitemap location
-Sitemap: https://abhi-hub-06bba7f4101d.herokuapp.com/sitemap.xml
+# Allow sitemap and important pages
+Allow: /
+Allow: /sitemap.xml
+Allow: /college/
+Allow: /subject/
+Allow: /resource/
 
-# Crawl delay (be nice to servers)
-Crawl-delay: 1
+# Allow search and answer engines to discover public educational pages.
+User-agent: GPTBot
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
 
-# Block specific bots (optional)
-User-agent: AhrefsBot
-Crawl-delay: 10
+User-agent: ChatGPT-User
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
 
-User-agent: SemrushBot
-Crawl-delay: 10
+User-agent: PerplexityBot
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+User-agent: ClaudeBot
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+User-agent: anthropic-ai
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+User-agent: Google-Extended
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+User-agent: Gemini-Google-Bot
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+User-agent: bingbot
+Disallow: /resources
+Disallow: /resource
+Disallow: /app-shell
+
+Sitemap: https://www.abhihub.edu.eu.org/sitemap.xml

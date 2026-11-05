@@ -9,11 +9,26 @@
  * - Background sync
  */
 
-const CACHE_VERSION = 'v2.0.5';
+const CACHE_VERSION = 'v2.0.18';
 const CACHE_NAME = `abhihub-${CACHE_VERSION}`;
 const STATIC_CACHE = `abhihub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `abhihub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `abhihub-images-${CACHE_VERSION}`;
+const AI_MODEL_CACHE = 'abhihub-ai-models-v1'; // Permanent on-device WebLLM model weights cache
+
+// Private document requests must not be persisted in a shared service-worker
+// cache: a signed storage URL is not a user-isolation boundary. This map only
+// coalesces identical requests while they are in flight.
+const inFlightFileRequests = new Map();
+
+function dedupeFileRequest(request) {
+  const key = request.url + '|' + (request.headers.get('Range') || '');
+  const existing = inFlightFileRequests.get(key);
+  if (existing) return existing.then(response => response.clone());
+  const pending = fetch(request).finally(() => inFlightFileRequests.delete(key));
+  inFlightFileRequests.set(key, pending);
+  return pending.then(response => response.clone());
+}
 
 // ==================== ENCRYPTED PDF CACHE ====================
 const PDF_IDB_NAME = 'abhihub-pdf-cache';
@@ -37,21 +52,33 @@ function openPdfDb() {
 
 /** Get or create a persistent AES-GCM CryptoKey stored in IDB */
 async function getOrCreateCryptoKey(db) {
-  const tx = db.transaction(PDF_IDB_STORE, 'readwrite');
-  const store = tx.objectStore(PDF_IDB_STORE);
   const existing = await new Promise((res) => {
-    const r = store.get('__cryptokey__');
-    r.onsuccess = () => res(r.result);
-    r.onerror = () => res(null);
+    try {
+      const tx = db.transaction(PDF_IDB_STORE, 'readonly');
+      const store = tx.objectStore(PDF_IDB_STORE);
+      const r = store.get('__cryptokey__');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => res(null);
+    } catch {
+      res(null);
+    }
   });
-  if (existing) {
-    return crypto.subtle.importKey('raw', existing.keyData, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+  if (existing && existing.keyData) {
+    try {
+      return await crypto.subtle.importKey('raw', existing.keyData, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+    } catch (e) {}
   }
   const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
   const raw = await crypto.subtle.exportKey('raw', key);
   await new Promise((res, rej) => {
-    const r = store.put({ key: '__cryptokey__', keyData: raw });
-    r.onsuccess = res; r.onerror = rej;
+    try {
+      const tx = db.transaction(PDF_IDB_STORE, 'readwrite');
+      const store = tx.objectStore(PDF_IDB_STORE);
+      const r = store.put({ key: '__cryptokey__', keyData: raw });
+      r.onsuccess = res; r.onerror = rej;
+    } catch (err) {
+      rej(err);
+    }
   });
   return key;
 }
@@ -171,25 +198,50 @@ const handleEncryptedFileFetch = handleEncryptedPdfFetch;
 const PRECACHE_URLS = [
   '/',
   '/dashboard',
-  '/dashboard/',
   '/login',
   '/signup',
   '/offline',
+  '/game',
+  '/college',
+  '/account',
+  '/profile',
+  '/settings',
+  '/leaderboard',
   '/static/manifest.json',
-  '/static/css/abhihub-theme.css',
-  '/static/premium/css/style.css',
   '/static/images/android-chrome-192x192.png',
   '/static/images/android-chrome-512x512.png',
   '/static/images/apple-touch-icon.png',
   '/static/images/logo.png',
   '/static/widget/template.json',
   '/static/widget/data.json',
-  // Key app pages — cached on install for offline access
-  '/dashboard',
-  '/account',
-  '/profile',
-  '/dashboard',
-  '/dashboard/',
+  // Core Stylesheets for Full Offline Rendering
+  '/static/css/tailwind.min.css',
+  '/static/css/abhihub-select.css',
+  '/static/css/overlay-system.css',
+  '/static/css/study-pass.css',
+  '/static/css/pipeline/01_tokens.css',
+  '/static/css/pipeline/02_base.css',
+  '/static/css/pipeline/03_components.css',
+  '/static/css/pipeline/04_layout.css',
+  '/static/css/pipeline/05_utilities.css',
+  '/static/css/pipeline/app-shell.css',
+  '/static/css/pipeline/notification-bell.css',
+  '/static/css/pipeline/pwa-install.css',
+  '/static/premium/css/style.css',
+  '/static/css/app-shell-frame.css',
+  // Core Scripts for Offline Functionality & Layout
+  '/static/js/app-shell.js',
+  '/static/js/bridge.js',
+  '/static/js/inline-handler-compat.js',
+  '/static/js/security.js',
+  '/static/js/idb-sync-store.js',
+  '/static/js/abhihub-select.js',
+  '/static/js/overlay-manager.js',
+  '/static/js/access-gates.js',
+  '/static/js/push-notifications.js',
+  '/static/js/analytics-helper.js',
+  '/static/js/guide_engine.js',
+  '/static/premium/js/script.js',
 ];
 
 // Paths that should NEVER be cached (security-sensitive)
@@ -294,6 +346,7 @@ async function limitCacheSize(cacheName, maxItems) {
 
 // ==================== INSTALL EVENT ====================
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   console.log('[SW] Installing version:', CACHE_VERSION);
 
   event.waitUntil(
@@ -329,11 +382,13 @@ self.addEventListener('activate', (event) => {
         return Promise.all(
           cacheNames
             .filter((name) => {
-              // Delete old caches that don't match current version
+              // Delete old caches that don't match current version, preserving AI_MODEL_CACHE and WebLLM caches
               return name.startsWith('abhihub-') &&
                 name !== STATIC_CACHE &&
                 name !== DYNAMIC_CACHE &&
-                name !== IMAGE_CACHE;
+                name !== IMAGE_CACHE &&
+                name !== AI_MODEL_CACHE &&
+                !name.startsWith('webllm');
             })
             .map((name) => {
               console.log('[SW] Deleting old cache:', name);
@@ -341,11 +396,227 @@ self.addEventListener('activate', (event) => {
             })
         );
       })
+      .then(() => new Promise((resolve) => {
+        // Remove legacy private-file entries now that private bytes are no
+        // longer persisted in the service worker.
+        const request = indexedDB.deleteDatabase(PDF_IDB_NAME);
+        request.onsuccess = request.onerror = request.onblocked = resolve;
+      }))
+      .then(async () => {
+        if (self.registration && self.registration.navigationPreload) {
+          try {
+            await self.registration.navigationPreload.enable();
+            console.log('[SW] Navigation preload enabled');
+          } catch (e) {
+            console.warn('[SW] Navigation preload failed to enable:', e);
+          }
+        }
+      })
       .then(() => {
         console.log('[SW] Activation complete');
         return self.clients.claim();
       })
   );
+});
+
+/**
+ * Check if request is for WebLLM model weights, WASM, or MLC CDN
+ */
+function isAiModelAsset(url) {
+  const p = url.pathname.toLowerCase();
+  const host = url.hostname.toLowerCase();
+  return (
+    p.endsWith('.wasm') ||
+    p.endsWith('.bin') ||
+    p.endsWith('.safetensors') ||
+    p.includes('ndarray-cache') ||
+    p.includes('mlc-chat-config') ||
+    p.includes('tokenizer') ||
+    p.startsWith('/static/js/ai/') ||
+    host.includes('huggingface.co') ||
+    host.includes('mlc.ai') ||
+    host.includes('esm.run') ||
+    (host.includes('jsdelivr.net') && p.includes('web-llm'))
+  );
+}
+
+/**
+ * Handle WebLLM AI model asset caching (Cache-First strategy)
+ */
+async function handleAiModelFetch(request) {
+  // Check primary AI model cache and standard WebLLM cache
+  const aiCache = await caches.open(AI_MODEL_CACHE);
+  let cachedResponse = await aiCache.match(request);
+  if (cachedResponse) return cachedResponse;
+
+  try {
+    const webllmCache = await caches.open('webllm/model');
+    cachedResponse = await webllmCache.match(request);
+    if (cachedResponse) return cachedResponse;
+  } catch (e) {}
+
+  try {
+    const networkResponse = await fetch(request, { mode: 'cors' }).catch(() => fetch(request));
+    if (networkResponse && (networkResponse.ok || networkResponse.type === 'opaque')) {
+      aiCache.put(request, networkResponse.clone()).catch(() => {});
+      try {
+        const webllmCache = await caches.open('webllm/model');
+        webllmCache.put(request, networkResponse.clone()).catch(() => {});
+      } catch (e) {}
+    }
+    return networkResponse;
+  } catch (err) {
+    if (cachedResponse) return cachedResponse;
+    throw err;
+  }
+}
+
+// ==================== PERSISTENT BACKGROUND AI MODEL DOWNLOADER ====================
+let activeAiPrecache = null;
+
+async function broadcastToClients(msg) {
+  try {
+    const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of allClients) {
+      client.postMessage(msg);
+    }
+  } catch (e) {}
+}
+
+async function startAiModelPrecache(modelId, baseUrl) {
+  if (activeAiPrecache && activeAiPrecache.modelId === modelId && activeAiPrecache.status === 'downloading') {
+    broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+    return;
+  }
+
+  activeAiPrecache = {
+    modelId,
+    status: 'downloading',
+    progress: 0,
+    text: 'Connecting to model repository in background...'
+  };
+
+  broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+
+  try {
+    const cache = await caches.open(AI_MODEL_CACHE);
+    const webllmCache = await caches.open('webllm/model');
+
+    // 1. Fetch & Cache Manifest
+    const manifestUrl = `${baseUrl}/ndarray-cache.json`;
+    let manifestRes = await cache.match(manifestUrl);
+    if (!manifestRes) {
+      manifestRes = await fetch(manifestUrl, { mode: 'cors' });
+      if (manifestRes.ok) {
+        await cache.put(manifestUrl, manifestRes.clone());
+        await webllmCache.put(manifestUrl, manifestRes.clone());
+      }
+    }
+
+    if (!manifestRes || !manifestRes.ok) {
+      throw new Error('Unable to connect to model manifest');
+    }
+
+    const manifest = await manifestRes.json();
+    const records = manifest.records || [];
+    
+    // Additional ancillary files (config, tokenizers)
+    const ancillaryFiles = [
+      'mlc-chat-config.json',
+      'tokenizer.json',
+      'tokenizer_config.json',
+      'vocab.json',
+      'merges.txt',
+      'special_tokens_map.json'
+    ];
+
+    const totalRecords = records.length + ancillaryFiles.length;
+    let completed = 0;
+
+    // 2. Fetch ancillary files in parallel
+    await Promise.all(ancillaryFiles.map(async (file) => {
+      const fileUrl = `${baseUrl}/${file}`;
+      const existing = await cache.match(fileUrl);
+      if (!existing) {
+        try {
+          const res = await fetch(fileUrl, { mode: 'cors' });
+          if (res.ok) {
+            await cache.put(fileUrl, res.clone());
+            await webllmCache.put(fileUrl, res.clone());
+          }
+        } catch (e) {}
+      }
+      completed++;
+      const pct = Math.round((completed / totalRecords) * 100);
+      activeAiPrecache.progress = pct;
+      activeAiPrecache.text = `Caching model metadata (${completed}/${totalRecords})...`;
+      broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+    }));
+
+    // 3. Download shards in parallel batches (concurrency = 8) for maximum download speed
+    const CONCURRENCY = 8;
+    const shardUrls = [];
+    for (const rec of records) {
+      const shardPath = rec.dataPath || rec.name;
+      if (shardPath) shardUrls.push(`${baseUrl}/${shardPath}`);
+    }
+
+    let shardIndex = 0;
+    async function worker() {
+      while (shardIndex < shardUrls.length) {
+        const idx = shardIndex++;
+        const sUrl = shardUrls[idx];
+        const existing = await cache.match(sUrl);
+        if (!existing) {
+          try {
+            const shardRes = await fetch(sUrl, { mode: 'cors' });
+            if (shardRes.ok) {
+              await cache.put(sUrl, shardRes.clone());
+              await webllmCache.put(sUrl, shardRes.clone());
+            }
+          } catch (e) {}
+        }
+        completed++;
+        const pct = Math.round((completed / totalRecords) * 100);
+        activeAiPrecache.progress = pct;
+        activeAiPrecache.text = `Downloading model shard ${completed}/${totalRecords} (${pct}%)...`;
+        broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+      }
+    }
+
+    const workers = [];
+    for (let i = 0; i < CONCURRENCY; i++) {
+      workers.push(worker());
+    }
+    await Promise.all(workers);
+
+    activeAiPrecache.status = 'ready';
+    activeAiPrecache.progress = 100;
+    activeAiPrecache.text = 'Model cached permanently on device!';
+    broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+  } catch (err) {
+    activeAiPrecache.status = 'error';
+    activeAiPrecache.text = `Download notice: ${err.message}`;
+    broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+  }
+}
+
+self.addEventListener('message', async (event) => {
+  const { type, payload } = event.data || {};
+  if (type === 'START_AI_MODEL_PRECACHE') {
+    startAiModelPrecache(payload.modelId, payload.baseUrl);
+  } else if (type === 'GET_AI_MODEL_CACHE_STATUS') {
+    if (activeAiPrecache) {
+      event.source?.postMessage({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+    }
+  } else if (type === 'CLEAR_AI_MODEL_CACHE') {
+    await caches.delete(AI_MODEL_CACHE);
+    await caches.delete('webllm/model').catch(() => {});
+    await caches.delete('webllm/wasm').catch(() => {});
+    await caches.delete('webllm/config').catch(() => {});
+    activeAiPrecache = null;
+    event.source?.postMessage({ type: 'AI_MODEL_CACHE_CLEARED', success: true });
+  }
 });
 
 // ==================== FETCH EVENT ====================
@@ -358,11 +629,22 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Intercept cross-origin file requests (Firebase/Cloudinary signed URLs — all types)
+  // 1. Intercept AI Model Weights & WASM (Cache-First for permanent local device residency)
+  if (isAiModelAsset(url)) {
+    event.respondWith(handleAiModelFetch(request));
+    return;
+  }
+
+  // Cross-origin cloud storage (Cloudinary, Firebase) requests bypass the SW
+  // so the browser network stack can natively handle CORS, HTTP Range requests,
+  // 206 Partial Content streaming, and CDN cache validators without interference.
   if (url.origin !== self.location.origin) {
-    if (isCrossOriginFile(url)) {
-      event.respondWith(handleEncryptedFileFetch(request.url));
-    }
+    return;
+  }
+
+  // Document delivery and authorization endpoints bypass the SW to ensure
+  // authorization headers/cookies, range requests, and 302 redirects are handled natively.
+  if (url.pathname.startsWith('/api/view-doc/') || url.pathname.startsWith('/api/documents/')) {
     return;
   }
 
@@ -371,9 +653,8 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Never cache security-sensitive endpoints
+  // Never cache security-sensitive endpoints - bypass SW directly
   if (shouldNeverCache(url)) {
-    event.respondWith(fetch(request));
     return;
   }
 
@@ -383,16 +664,24 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // All same-origin user files (images, PDFs, docs) → encrypted IDB cache-first
-  // EXCLUDE /api/view-doc/ — these are proxied through Flask and should not be cached by SW
-  // PDF.js viewer fetches them via fetch() and requires proper streaming + headers
-  if (isUserFile(url) && !url.pathname.startsWith('/api/view-doc/')) {
-    event.respondWith(handleEncryptedFileFetch(request.url));
+  // Static images and icons (app UI) -> standard image cache
+  if (url.pathname.startsWith('/static/images/') || url.pathname === '/favicon.ico' || (isImageUrl(url) && url.pathname.startsWith('/static/'))) {
+    event.respondWith(handleImageRequest(request));
+    return;
+  }
+
+  // User uploaded files on the origin (non-static) bypass the service worker
+  // to ensure server-side access control, ETag validators, and Range requests work cleanly.
+  if (isUserFile(url) && !url.pathname.startsWith('/static/')) {
     return;
   }
 
   // Handle navigation requests
   if (request.mode === 'navigate') {
+    if (url.pathname === '/app-shell') {
+      event.respondWith(handleAppShellRequest(request));
+      return;
+    }
     event.respondWith(
       (async () => {
         // Try navigation preload first
@@ -487,17 +776,52 @@ async function handlePdfRequest(request) {
 }
 
 /**
+ * Handle App Shell navigation requests:
+ * Network-first runtime caching. Only caches 200 non-redirected responses.
+ * Offline fallback: cached shell HTML or /offline fallback page.
+ */
+async function handleAppShellRequest(request) {
+  const cache = await caches.open(DYNAMIC_CACHE);
+  try {
+    const networkResponse = await fetch(request);
+    // Runtime-cache only 200 non-redirected responses
+    if (networkResponse && networkResponse.status === 200 && !networkResponse.redirected) {
+      await cache.put(request, networkResponse.clone());
+      await cache.put('/app-shell', networkResponse.clone());
+    }
+    return networkResponse;
+  } catch (err) {
+    const cached = (await cache.match(request, { ignoreSearch: true })) || (await cache.match('/app-shell'));
+    if (cached) {
+      return cached;
+    }
+    const offlinePage = await caches.match('/offline');
+    return offlinePage || new Response('Offline — AbhiHub', {
+      headers: { 'Content-Type': 'text/html' }
+    });
+  }
+}
+
+/**
  * Handle navigation requests — stale-while-revalidate for offline-first UX.
  * Serves cached page immediately, refreshes cache in background.
  */
 async function handleNavigationRequest(request) {
-  const cache = await caches.open(DYNAMIC_CACHE);
-  const cachedResponse = await cache.match(request, { ignoreSearch: true });
+  // Query parameters drive search, filters, pagination, and embedded app routes.
+  // Check any active cache (STATIC_CACHE or DYNAMIC_CACHE)
+  let cachedResponse = await caches.match(request);
+  if (!cachedResponse) {
+    try {
+      const url = new URL(request.url);
+      cachedResponse = await caches.match(url.pathname);
+    } catch (_) {}
+  }
 
   // Kick off network refresh in background
   const networkFetch = fetch(request).then(async (networkResponse) => {
     if (networkResponse.ok) {
-      await cache.put(request, networkResponse.clone());
+      const dynamicCache = await caches.open(DYNAMIC_CACHE);
+      await dynamicCache.put(request, networkResponse.clone());
     }
     return networkResponse;
   }).catch(() => null);
@@ -753,21 +1077,75 @@ self.addEventListener('widgetclick', (event) => {
 
 console.log('[SW] Service Worker loaded - version:', CACHE_VERSION);
 
+// ==================== DEPLOYMENT UPDATE MESSAGES ====================
+self.addEventListener('message', (event) => {
+  if (event.data) {
+    switch (event.data.type) {
+      case 'SKIP_WAITING':
+        self.skipWaiting();
+        break;
+
+      case 'CLEAR_CACHE':
+        // Clear all caches and trigger update
+        caches.keys().then(names => {
+          names.forEach(name => caches.delete(name));
+        });
+        // Claim clients to force refresh
+        self.clients.claim();
+        break;
+
+      case 'SHOW_UPDATE_NOTIFICATION':
+        // Show notification about available update
+          self.registration.showNotification(
+            'AbhiHub Update Available',
+            {
+              body: 'A new version is available. Click to refresh the app.',
+              icon: '/static/images/android-chrome-192x192.png',
+              badge: '/static/images/favicon-32x32.png',
+              tag: 'abhihub-update',
+              data: { url: '/' }
+            }
+          );
+        break;
+
+      case 'SHOW_INSTALL_PROMPT':
+        // Show the install prompt UI
+        // This is sent from the main page after beforeinstallprompt event
+        event.waitUntil(
+          self.registration.showNotification(
+            'AbhiHub Install',
+            {
+              body: 'Install AbhiHub for offline access and faster loading.',
+              icon: '/static/images/android-chrome-192x192.png',
+              badge: '/static/images/favicon-32x32.png',
+              tag: 'abhihub-install',
+              data: { url: '/' }
+            }
+          )
+        );
+        break;
+
+      default:
+        break;
+    }
+  }
+});
+
 // ==================== PUSH NOTIFICATIONS ====================
 
 /**
  * Handle incoming push notifications
  */
-self.addEventListener('push', (event) => {
+self.addEventListener("push", (event) => {
   console.log('[SW] Push received');
-
   let data = {
     title: 'AbhiHub',
     body: 'You have a new notification',
     icon: '/static/images/android-chrome-192x192.png',
     badge: '/static/images/favicon-32x32.png',
     url: '/dashboard',
-    tag: 'abhihub-notification'
+    tag: 'abhihub-notification',
+    notification_id: null
   };
 
   // Parse push data if available
@@ -786,7 +1164,11 @@ self.addEventListener('push', (event) => {
     icon: data.icon,
     badge: data.badge,
     tag: data.tag,
-    data: { url: data.url },
+    data: {
+      url: data.url,
+      notification_id: data.notification_id,
+      timestamp: Date.now()
+    },
     vibrate: [100, 50, 100],
     requireInteraction: false,
     actions: [
@@ -808,26 +1190,48 @@ self.addEventListener('notificationclick', (event) => {
 
   event.notification.close();
 
-  // Handle actions
-  if (event.action === 'dismiss') {
+  // Handle dismiss action
+  if (event.action === 'dismiss' || event.action === 'close') {
     return;
   }
 
-  // Get URL from notification data or default to /premium
-  const urlToOpen = event.notification.data?.url || '/dashboard';
+  // Record open if notification_id exists
+  const notifData = event.notification.data || {};
+  if (notifData.notification_id) {
+    try {
+      fetch(`/api/notifications/${encodeURIComponent(notifData.notification_id)}/open`, {
+        method: 'POST',
+        credentials: 'same-origin'
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
+  // Sanitize allowlisted URL
+  let rawUrl = notifData.url ? notifData.url : '/dashboard';
+  let urlToOpen = '/dashboard';
+  if (typeof rawUrl === 'string' && rawUrl.startsWith('/') && !rawUrl.startsWith('//') && !rawUrl.includes('\\')) {
+    const ALLOWED = ['/dashboard', '/profile', '/resource', '/chat', '/settings', '/notifications', '/pyqs', '/notes', '/college'];
+    if (ALLOWED.some(prefix => rawUrl === prefix || rawUrl.startsWith(prefix + '/') || rawUrl.startsWith(prefix + '?') || rawUrl.startsWith(prefix + '#'))) {
+      urlToOpen = rawUrl;
+    }
+  }
 
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
-        // Check if app window is already open
+        // Check if any app window from same origin is already open
         for (const client of clientList) {
-          if (client.url.includes('/dashboard') && 'focus' in client) {
-            client.navigate(urlToOpen);
+          if (client.url && client.url.includes(self.location.origin) && 'focus' in client) {
+            if ('navigate' in client && urlToOpen) {
+              client.navigate(urlToOpen);
+            }
             return client.focus();
           }
         }
-        // Open new window if not
-        return clients.openWindow(urlToOpen);
+        // Open new window if no active tab found
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
       })
   );
 });

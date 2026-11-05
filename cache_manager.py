@@ -109,6 +109,11 @@ class L1Cache:
             entry = self._store.get(vkey)
             if entry is None:
                 self._stats["misses"] += 1
+                try:
+                    from observability.metrics import record_cache_event
+                    record_cache_event("CACHE_MISS", level="l1", key=key)
+                except Exception:
+                    pass
                 return None, 0
 
             # Check TTL expiry
@@ -121,6 +126,11 @@ class L1Cache:
             # Move to end (most recently used)
             self._store.move_to_end(vkey)
             self._stats["hits"] += 1
+            try:
+                from observability.metrics import record_cache_event
+                record_cache_event("CACHE_HIT", level="l1", key=key)
+            except Exception:
+                pass
             ttl_left = entry["expires_at"] - time.time()
             return entry["data"], ttl_left
 
@@ -368,8 +378,10 @@ class AbhiHubCache:
         if fetcher is not None:
             data = fetcher()
             if data is not None:
-                self.l1.set(key, data, ttl=ttl)
-                self.l2.set(key, data, ttl=ttl)
+                # Do not cache empty collections as long-lived cache hits
+                if not (isinstance(data, (list, dict)) and len(data) == 0):
+                    self.l1.set(key, data, ttl=ttl)
+                    self.l2.set(key, data, ttl=ttl)
                 return data
 
         return None

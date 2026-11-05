@@ -167,68 +167,81 @@ def format_file_size(bytes_size: int) -> str:
     return f"{bytes_size:.1f} TB"
 
 
-def search_files(files: List[Dict], query: str) -> List[Dict]:
+
+def _normalize_text(text: str) -> str:
+    """Shared normalizer: lowercase, replace separators with space, collapse."""
+    if not text:
+        return ''
+    for ch in ['_', '-', '.', '(', ')', '[', ']', '{', '}']:
+        text = text.replace(ch, ' ')
+    return ' '.join(text.lower().split())
+
+
+def build_inverted_index(files: List[Dict]) -> Dict[str, List[int]]:
     """
-    Filter files by search query with flexible matching.
-    Handles underscores, hyphens, and spaces interchangeably.
-    
+    Build a token → [file_index, ...] map for O(1) multi-token lookup.
+    Call once when cache is populated, not on every search request.
+    """
+    index: Dict[str, List[int]] = {}
+    for i, file in enumerate(files):
+        raw = ' '.join(filter(None, [
+            file.get('filename', ''),
+            file.get('folder', ''),
+            file.get('format', ''),
+            file.get('storage_id', ''),
+            file.get('path', ''),
+        ]))
+        tokens = set(_normalize_text(raw).split())
+        for tok in tokens:
+            if tok:
+                index.setdefault(tok, []).append(i)
+    return index
+
+
+def search_files(files: List[Dict], query: str, _index: Optional[Dict] = None) -> List[Dict]:
+    """
+    Filter files by search query.
+    Uses inverted index (O(intersect)) when available, falls back to linear scan.
+
     Args:
-        files: List of file dictionaries
-        query: Search query string
-    
+        files:  List of file dicts (the full unlabeled list)
+        query:  Search query string
+        _index: Optional pre-built inverted index from build_inverted_index()
+
     Returns:
         Filtered list of files
     """
     if not query:
         return files
-    
-    def normalize_text(text: str) -> str:
-        """Normalize text by replacing special chars with spaces and lowercasing."""
-        if not text:
-            return ""
-        # Replace underscores, hyphens, and other special chars with spaces
-        normalized = text.lower()
-        for char in ['_', '-', '.', '(', ')', '[', ']', '{', '}']:
-            normalized = normalized.replace(char, ' ')
-        # Collapse multiple spaces into one
-        return ' '.join(normalized.split())
-    
-    # Normalize the search query
-    normalized_query = normalize_text(query)
-    query_tokens = normalized_query.split()
-    
+
+    normalized = _normalize_text(query)
+    tokens = [t for t in normalized.split() if t]
+    if not tokens:
+        return files
+
+    if _index is not None:
+        # Intersect posting lists — all tokens must match
+        candidate_sets = [set(_index.get(t, [])) for t in tokens]
+        if not candidate_sets:
+            return []
+        matched_indices = candidate_sets[0]
+        for s in candidate_sets[1:]:
+            matched_indices &= s
+        return [files[i] for i in sorted(matched_indices) if i < len(files)]
+
+    # Fallback: original linear scan (safe if index not available)
     filtered = []
-    
     for file in files:
-        # Normalize all searchable fields
-        filename_norm = normalize_text(file.get("filename", ""))
-        folder_norm = normalize_text(file.get("folder", ""))
-        format_norm = normalize_text(file.get("format", ""))
-        path_norm = normalize_text(file.get("path", ""))
-        storage_id_norm = normalize_text(file.get("storage_id", ""))
-        provider_id_norm = normalize_text(file.get("provider_public_id", ""))
-        
-        # Check if all query tokens are present in any of the fields
-        match_found = False
-        
-        # Try exact phrase match first
-        if (normalized_query in filename_norm or
-            normalized_query in folder_norm or
-            normalized_query in format_norm or
-            normalized_query in path_norm or
-            normalized_query in storage_id_norm or
-            normalized_query in provider_id_norm):
-            match_found = True
-        else:
-            # Try token-based matching (all tokens must be present)
-            combined_text = f"{filename_norm} {folder_norm} {format_norm} {path_norm} {storage_id_norm} {provider_id_norm}"
-            if all(token in combined_text for token in query_tokens):
-                match_found = True
-        
-        if match_found:
+        combined = _normalize_text(' '.join(filter(None, [
+            file.get('filename', ''), file.get('folder', ''),
+            file.get('format', ''), file.get('path', ''),
+            file.get('storage_id', ''), file.get('provider_public_id', ''),
+        ])))
+        if all(t in combined for t in tokens):
             filtered.append(file)
-    
     return filtered
+
+
 
 
 def sort_files(files: List[Dict], sort_by: str = "created_at", order: str = "desc") -> List[Dict]:

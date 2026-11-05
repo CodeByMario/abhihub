@@ -1,1003 +1,1593 @@
-{% set seo_description = "Welcome to AbhiHub! Download free engineering previous year question papers (PYQs), study
-notes, practicals, and exam resources for top colleges across India." %}
+{% set seo_description = "AbhiHub Engineering Command Deck — Access university question papers (PYQs), topper notes, lab manuals, and peer study exchange for engineering colleges." %}
 {% extends 'p_struct.html' %}
+
 {% block page_head %}
 <meta name="keywords" content="{{ seo_keywords }}">
 <link rel="manifest" href="/static/manifest.json">
-<meta name="theme-color" content="#ffffff">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="default">
-<meta name="apple-mobile-web-app-title" content="AbhiHub">
+<meta name="theme-color" content="#0b1329">
 <link rel="apple-touch-icon" href="{{ url_for('static', filename='premium/icons/icon-192x192.png') }}">
-
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700;800&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 <script src="{{ url_for('static', filename='premium/js/interactions.js') }}"></script>
 {% endblock %}
+
 {% block page_styles %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/pipeline.css') }}">
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
+
+<style>
+  :root {
+    --deck-navy: #0b1329;
+    --deck-navy-light: #152244;
+    --deck-cobalt: #0071E3;
+    --deck-cobalt-light: #e0f2fe;
+    --deck-cobalt-text: #0369a1;
+    --deck-emerald: #059669;
+    --deck-emerald-light: #d1fae5;
+    --deck-emerald-text: #047857;
+    --deck-violet: #6366f1;
+    --deck-violet-light: #ede9fe;
+    --deck-violet-text: #4f46e5;
+    --deck-amber: #d97706;
+    --deck-amber-light: #fef3c7;
+    --deck-amber-text: #92400e;
+    --deck-bg: #f8fafc;
+    --deck-card-bg: #ffffff;
+    --deck-border: #e2e8f0;
+    --deck-text-main: #0f172a;
+    --deck-text-muted: #64748b;
+    --deck-font-display: 'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif;
+    --deck-font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+    --deck-font-mono: 'JetBrains Mono', monospace;
+  }
+
+  body {
+    background-color: var(--deck-bg);
+    color: var(--deck-text-main);
+    font-family: var(--deck-font-body);
+  }
+
+  /* ── 1. Command Station Header ────────────────────────────────────────── */
+  .deck-command-station {
+    background: linear-gradient(145deg, #090f20 0%, #111e3f 55%, #0f1933 100%);
+    border-radius: 20px;
+    padding: 1.75rem 2rem;
+    margin: 1rem auto 2rem;
+    max-width: 1240px;
+    box-shadow: 0 12px 36px -10px rgba(11, 19, 41, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.1);
+    color: #ffffff;
+    position: relative;
+    overflow: hidden;
+  }
+  .deck-command-station::before {
+    content: '';
+    position: absolute;
+    top: 0; right: 0; bottom: 0; left: 0;
+    background-image: radial-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+    background-size: 24px 24px;
+    pointer-events: none;
+    opacity: 0.8;
+  }
+
+  .deck-station-topbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    position: relative;
+    z-index: 2;
+    padding-bottom: 1.25rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .deck-station-identity {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+  }
+  .deck-identity-avatar {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: linear-gradient(135deg, #0284c7 0%, #2563eb 100%);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--deck-font-display);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+  }
+  .deck-identity-meta h1 {
+    margin: 0;
+    font-size: 1.35rem;
+    font-weight: 800;
+    font-family: var(--deck-font-display);
+    letter-spacing: -0.02em;
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .deck-identity-meta p {
+    margin: 0.25rem 0 0;
+    font-size: 0.85rem;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .deck-pill-campus {
+    background: rgba(2, 132, 199, 0.2);
+    border: 1px solid rgba(56, 189, 248, 0.3);
+    color: #38bdf8;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.15rem 0.6rem;
+    border-radius: 6px;
+  }
+  .deck-pill-rank {
+    background: rgba(217, 119, 6, 0.2);
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    color: #fcd34d;
+    font-size: 0.78rem;
+    font-weight: 700;
+    padding: 0.2rem 0.75rem;
+    border-radius: 8px;
+  }
+
+  /* 90% Covenant Urgency Ticker in Hero */
+  .deck-urgency-banner {
+    position: relative;
+    z-index: 2;
+    margin-top: 1.25rem;
+    background: linear-gradient(90deg, rgba(217, 119, 6, 0.22) 0%, rgba(180, 83, 9, 0.15) 100%);
+    border: 1px solid rgba(245, 158, 11, 0.35);
+    border-radius: 12px;
+    padding: 0.85rem 1.25rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .deck-urgency-left {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+  .deck-urgency-icon {
+    font-size: 1.5rem;
+  }
+  .deck-urgency-title {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: #fef08a;
+    letter-spacing: -0.01em;
+  }
+  .deck-urgency-sub {
+    font-size: 0.8rem;
+    color: #fde68a;
+    margin-top: 2px;
+  }
+  .deck-countdown-clock {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+  .deck-clock-segment {
+    background: #090f20;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+    border-radius: 6px;
+    padding: 0.25rem 0.5rem;
+    text-align: center;
+    min-width: 44px;
+  }
+  .deck-clock-val {
+    font-family: var(--deck-font-mono);
+    font-size: 1.05rem;
+    font-weight: 800;
+    color: #ffffff;
+    display: block;
+    line-height: 1.1;
+  }
+  .deck-clock-label {
+    font-size: 0.65rem;
+    color: #94a3b8;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  /* Metric Readouts */
+  .deck-metrics-grid {
+    position: relative;
+    z-index: 2;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 0.85rem;
+    margin-top: 1.25rem;
+  }
+  .deck-metric-box {
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    transition: all 0.2s ease;
+  }
+  .deck-metric-box:hover {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+  .deck-metric-box.highlight {
+    background: rgba(2, 132, 199, 0.15);
+    border-color: rgba(56, 189, 248, 0.35);
+  }
+  .deck-metric-box.gold {
+    background: rgba(217, 119, 6, 0.12);
+    border-color: rgba(245, 158, 11, 0.35);
+  }
+  .deck-metric-label {
+    font-size: 0.72rem;
+    font-weight: 600;
+    color: #94a3b8;
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .deck-metric-val {
+    font-family: var(--deck-font-mono);
+    font-size: 1.4rem;
+    font-weight: 800;
+    color: #ffffff;
+    margin-top: 0.3rem;
+    line-height: 1.1;
+  }
+
+  /* Action Buttons Cluster */
+  .deck-station-actions {
+    position: relative;
+    z-index: 2;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    margin-top: 1.35rem;
+    align-items: center;
+  }
+  .deck-btn-primary {
+    background: #0071E3;
+    color: #ffffff;
+    border: 1px solid #0071E3;
+    padding: 0.7rem 1.5rem;
+    border-radius: 980px;
+    min-height: 44px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 12px rgba(2, 132, 199, 0.35);
+    transition: all 0.2s ease;
+  }
+  .deck-btn-primary:hover {
+    background: #0369a1;
+    transform: translateY(-1px);
+    color: #ffffff;
+  }
+  .deck-btn-gold {
+    background: #d97706;
+    color: #ffffff;
+    border: 1px solid #f59e0b;
+    padding: 0.7rem 1.5rem;
+    border-radius: 980px;
+    min-height: 44px;
+    font-weight: 700;
+    font-size: 0.88rem;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.35);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .deck-btn-gold:hover {
+    background: #b45309;
+    transform: translateY(-1px);
+  }
+  .deck-btn-hollow {
+    background: rgba(255, 255, 255, 0.08);
+    color: #e2e8f0;
+    border: 1px solid rgba(255, 255, 255, 0.16);
+    padding: 0.65rem 1.1rem;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+  .deck-btn-hollow:hover {
+    background: rgba(255, 255, 255, 0.14);
+    color: #ffffff;
+    border-color: rgba(255, 255, 255, 0.25);
+  }
+
+  /* ── 2. Shelf Section Layout ──────────────────────────────────────────── */
+  .deck-shelf {
+    max-width: 1240px;
+    margin: 0 auto 2.25rem;
+    padding: 0 0.5rem;
+  }
+  .deck-shelf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-bottom: 1.15rem;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+  }
+  .deck-shelf-title-wrap h2 {
+    font-family: var(--deck-font-display);
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: var(--deck-text-main);
+    letter-spacing: -0.02em;
+    margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .deck-shelf-subtitle {
+    font-size: 0.82rem;
+    color: var(--deck-text-muted);
+    margin-top: 0.2rem;
+  }
+  .deck-shelf-link {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--deck-cobalt);
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+  }
+  .deck-shelf-link:hover {
+    text-decoration: underline;
+  }
+
+  .deck-scroll-rack {
+    display: flex;
+    gap: 1.15rem;
+    overflow-x: auto;
+    padding: 0.5rem 0.25rem 1rem;
+    scroll-snap-type: x mandatory;
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+  }
+  .deck-scroll-rack::-webkit-scrollbar {
+    height: 6px;
+  }
+  .deck-scroll-rack::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+  }
+
+  /* ─────────────────────────────────────────────────────────────────────────
+     BESPOKE PREMIUM CARD ARCHITECTURE
+     ───────────────────────────────────────────────────────────────────────── */
+
+  /* Master Base Card Container */
+  .card-dossier {
+    min-width: 275px;
+    max-width: 300px;
+    flex: 0 0 280px;
+    scroll-snap-align: start;
+    background: #ffffff;
+    border-radius: 18px;
+    border: 1px solid #e2e8f0;
+    box-shadow: 0 3px 8px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    text-decoration: none;
+    color: inherit;
+    position: relative;
+    overflow: hidden;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.22s ease;
+  }
+  .card-dossier:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 14px 28px -6px rgba(15, 23, 42, 0.1), 0 4px 10px rgba(15, 23, 42, 0.04);
+  }
+
+  /* Card Interior Layout */
+  .card-dossier-inner {
+    padding: 1.15rem 1.15rem 0.75rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+  }
+
+  /* Card Header: Technical Ticket Ribbon */
+  .card-ticket-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.85rem;
+  }
+  .card-taxonomy-badge {
+    font-family: var(--deck-font-mono);
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 0.25rem 0.55rem;
+    border-radius: 6px;
+    letter-spacing: 0.02em;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .card-dossier-term {
+    font-family: var(--deck-font-mono);
+    font-size: 0.7rem;
+    font-weight: 600;
+    color: #64748b;
+    background: #f1f5f9;
+    padding: 0.2rem 0.5rem;
+    border-radius: 6px;
+    border: 1px solid #e2e8f0;
+  }
+  .card-spec-trigger {
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.8rem;
+    color: #94a3b8;
+    background: transparent;
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .card-spec-trigger:hover {
+    background: #f1f5f9;
+    color: #0f172a;
+    border-color: #cbd5e1;
+  }
+
+  /* Card Subject & Campus Meta */
+  .card-subject-meta {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    margin-bottom: 0.35rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .card-title-text {
+    font-family: var(--deck-font-display);
+    font-size: 0.96rem;
+    font-weight: 700;
+    line-height: 1.35;
+    color: #0f172a;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 0.85rem;
+    min-height: 2.6em;
+  }
+
+  /* Card Bottom Footer Tray */
+  .card-footer-tray {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.65rem 1.15rem;
+    border-top: 1px solid #f1f5f9;
+    background: #fafafa;
+    font-size: 0.74rem;
+  }
+  .card-author-pill {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    color: #475569;
+    font-weight: 600;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 150px;
+  }
+  .card-author-monogram {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.65rem;
+    font-weight: 800;
+  }
+  .card-views-counter {
+    font-family: var(--deck-font-mono);
+    font-size: 0.72rem;
+    font-weight: 700;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  /* ── TYPE 1: PYQ (Official University Exam Paper) ───────────────────── */
+  .card-type-pyq {
+    border-top: 3px solid #0284c7;
+  }
+  .card-type-pyq:hover {
+    border-color: #0284c7;
+  }
+  .card-type-pyq .card-taxonomy-badge {
+    background: #e0f2fe;
+    color: #0369a1;
+    border: 1px solid #bae6fd;
+  }
+  .card-type-pyq .card-subject-meta {
+    color: #0284c7;
+  }
+  .card-type-pyq .card-views-counter {
+    color: #0369a1;
+  }
+  .card-type-pyq .card-author-monogram {
+    background: #e0f2fe;
+    color: #0369a1;
+  }
+
+  /* ── TYPE 2: TOPPER NOTES (Manuscript Study Synthesis) ──────────────── */
+  .card-type-notes {
+    border-top: 3px solid #059669;
+    background: linear-gradient(180deg, #f0fdf4 0%, #ffffff 32%);
+  }
+  .card-type-notes:hover {
+    border-color: #059669;
+  }
+  .card-type-notes .card-taxonomy-badge {
+    background: #d1fae5;
+    color: #047857;
+    border: 1px solid #a7f3d0;
+  }
+  .card-type-notes .card-subject-meta {
+    color: #059669;
+  }
+  .card-type-notes .card-views-counter {
+    color: #047857;
+  }
+  .card-type-notes .card-author-monogram {
+    background: #d1fae5;
+    color: #047857;
+  }
+
+  /* ── TYPE 3: LAB PRACTICAL (Workbench Experiment Specimen) ──────────── */
+  .card-type-practical {
+    border-top: 3px solid #6366f1;
+    background: linear-gradient(180deg, #f5f3ff 0%, #ffffff 32%);
+  }
+  .card-type-practical:hover {
+    border-color: #6366f1;
+  }
+  .card-type-practical .card-taxonomy-badge {
+    background: #ede9fe;
+    color: #4f46e5;
+    border: 1px solid #ddd6fe;
+  }
+  .card-type-practical .card-subject-meta {
+    color: #6366f1;
+  }
+  .card-type-practical .card-views-counter {
+    color: #4f46e5;
+  }
+  .card-type-practical .card-author-monogram {
+    background: #ede9fe;
+    color: #4f46e5;
+  }
+
+  /* ── TYPE 4: PREMIUM & TOPPER VAULT (Pro High-Yield Blueprint) ──────── */
+  .card-type-premium {
+    background: linear-gradient(150deg, #0b1329 0%, #151f38 60%, #1a2544 100%);
+    border: 1px solid #d97706;
+    border-top: 3px solid #f59e0b;
+    color: #ffffff;
+    box-shadow: 0 4px 14px rgba(217, 119, 6, 0.15);
+  }
+  .card-type-premium:hover {
+    border-color: #f59e0b;
+    box-shadow: 0 16px 32px -6px rgba(217, 119, 6, 0.25);
+  }
+  .card-type-premium .card-taxonomy-badge {
+    background: rgba(217, 119, 6, 0.2);
+    color: #fde68a;
+    border: 1px solid rgba(245, 158, 11, 0.4);
+  }
+  .card-type-premium .card-dossier-term {
+    background: rgba(255, 255, 255, 0.08);
+    color: #fef08a;
+    border-color: rgba(245, 158, 11, 0.3);
+  }
+  .card-type-premium .card-spec-trigger {
+    color: #fde68a;
+  }
+  .card-type-premium .card-spec-trigger:hover {
+    background: rgba(255, 255, 255, 0.12);
+    color: #ffffff;
+  }
+  .card-type-premium .card-subject-meta {
+    color: #fcd34d;
+  }
+  .card-type-premium .card-title-text {
+    color: #ffffff;
+  }
+  .card-type-premium .card-footer-tray {
+    background: rgba(0, 0, 0, 0.35);
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+    color: #cbd5e1;
+  }
+  .card-type-premium .card-author-pill {
+    color: #fef08a;
+  }
+  .card-type-premium .card-views-counter {
+    color: #fcd34d;
+  }
+
+  /* ── TYPE 5: RECENTLY ACCESSED (Active Session Resumption) ───────────── */
+  .card-type-recent {
+    border-left: 3px solid #0284c7;
+  }
+
+  /* ── 4. Channel Showcase ─────────────────────────────────────────────── */
+  .deck-channel-card {
+    min-width: 260px;
+    max-width: 280px;
+    flex: 0 0 260px;
+    scroll-snap-align: start;
+    background: #ffffff;
+    border: 1px solid var(--deck-border);
+    border-radius: 16px;
+    padding: 1.15rem;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+    transition: all 0.2s ease;
+  }
+  .deck-channel-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px -6px rgba(15, 23, 42, 0.08);
+    border-color: #0284c7;
+  }
+  .deck-ch-head {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 0.65rem;
+  }
+  .deck-ch-avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #0284c7 0%, #3b82f6 100%);
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 800;
+    font-family: var(--deck-font-display);
+    font-size: 1.15rem;
+    object-fit: cover;
+  }
+  .deck-ch-name {
+    font-weight: 700;
+    font-size: 0.92rem;
+    color: var(--deck-text-main);
+    line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .deck-ch-handle {
+    font-size: 0.78rem;
+    color: #0284c7;
+    font-weight: 600;
+  }
+  .deck-ch-bio {
+    font-size: 0.8rem;
+    color: #64748b;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    margin-bottom: 0.85rem;
+  }
+  .deck-ch-foot {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding-top: 0.65rem;
+    border-top: 1px solid #f1f5f9;
+    font-size: 0.78rem;
+  }
+
+  /* ── 5. Tabbed Exam Section ───────────────────────────────────────────── */
+  .deck-tab-bar {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.15rem;
+    border-bottom: 1px solid var(--deck-border);
+    padding-bottom: 0.5rem;
+  }
+  .deck-tab-button {
+    background: transparent;
+    border: none;
+    font-family: var(--deck-font-display);
+    font-size: 0.88rem;
+    font-weight: 700;
+    color: var(--deck-text-muted);
+    padding: 0.5rem 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  .deck-tab-button.active {
+    background: #0f172a;
+    color: #ffffff;
+  }
+
+  /* ── 6. Search Deck & Author Filters ─────────────────────────────────── */
+  .deck-search-box-station {
+    background: #ffffff;
+    border: 1px solid var(--deck-border);
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+    margin-bottom: 1.5rem;
+  }
+  .deck-author-pills {
+    display: flex;
+    gap: 0.5rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    margin: 1rem 0;
+  }
+  .deck-author-chip {
+    background: #f1f5f9;
+    border: 1px solid #e2e8f0;
+    border-radius: 30px;
+    padding: 0.4rem 0.85rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #334155;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    white-space: nowrap;
+    transition: all 0.15s ease;
+  }
+  .deck-author-chip:hover {
+    background: #e2e8f0;
+  }
+  .deck-author-chip.active {
+    background: #0284c7;
+    color: #ffffff;
+    border-color: #0284c7;
+  }
+
+  /* ── 7. Community & Growth Grid ───────────────────────────────────────── */
+  .deck-community-split {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
+  }
+  .deck-community-card {
+    background: #ffffff;
+    border: 1px solid var(--deck-border);
+    border-radius: 16px;
+    padding: 1.4rem;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+  }
+  .deck-community-card h3 {
+    margin: 0 0 0.4rem;
+    font-family: var(--deck-font-display);
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--deck-text-main);
+  }
+  .deck-community-card p {
+    font-size: 0.85rem;
+    color: var(--deck-text-muted);
+    margin: 0 0 1rem;
+    line-height: 1.45;
+  }
+
+  /* Peer Cards */
+  .deck-peers-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.85rem;
+    margin-top: 1rem;
+  }
+  .deck-peer-tile {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    padding: 0.85rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    transition: all 0.15s ease;
+  }
+  .deck-peer-tile:hover {
+    background: #ffffff;
+    border-color: #cbd5e1;
+    transform: translateY(-2px);
+  }
+
+  /* Responsive Adjustments */
+  @media (max-width: 768px) {
+    .deck-command-station {
+      padding: 1.25rem 1rem;
+      border-radius: 16px;
+    }
+    .deck-urgency-banner {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+    .deck-countdown-clock {
+      width: 100%;
+      justify-content: space-between;
+    }
+    .card-dossier {
+      min-width: 250px;
+      flex: 0 0 250px;
+    }
+  }
+</style>
 {% endblock %}
+
 {% block content %}
 
 <script>
   window.ABHIHUB_USER_NAME = '{{ session.user.name if session.user else "" }}';
   window.ABHIHUB_USER_COLLEGE = '{{ user_data.college_name if user_data else "" }}';
 </script>
-<script src="/static/js/carousel-personalization.js"></script>
+<script src="{{ url_for('static', filename='js/pages/p_index.js') }}"></script>
 
-
-
-<!-- Personalized Welcome Section (shown only when user is logged in) -->
-<!-- Personalized User Status Banner (Sleek, Compact Redesign) -->
-{% if user_data %}
-<div class="welcome-mini-banner">
-  <div class="welcome-mini-content">
-    <div class="welcome-mini-user">
-      {% set hour = (now.hour if now else 12) %}
-      <span class="welcome-mini-greeting">
-        {% if hour < 12 %}🌅 Good Morning,{% elif hour < 17 %}☀️ Good Afternoon,{% elif hour < 21 %}🌆 Good Evening,{% else %}🌙 Good Night,{% endif %}
-        <strong>{{ user_data.name }}</strong>!
-      </span>
-      {% if user_data.get('badges') %}
-        <span class="welcome-mini-badge">🏆 {{ user_data.badges[0] }}</span>
-      {% endif %}
-    </div>
-
-    <div class="welcome-mini-stats">
-      <div class="welcome-stat-pill" title="Global Rank">
-        <span class="welcome-stat-icon">🏆</span>
-        <span class="welcome-stat-val" id="live-global-rank">#{{ user_data.global_rank }}</span>
-        <span class="welcome-stat-lbl">Rank</span>
+<!-- ── 1. Master Command Deck (Hero Station) ─────────────────────────────── -->
+<div class="deck-command-station">
+  <div class="deck-station-topbar">
+    <div class="deck-station-identity">
+      <div class="deck-identity-avatar">
+        {{ (user_data.name if user_data and user_data.name else 'A')[0] | upper }}
       </div>
-
-      <div class="welcome-stat-pill" title="Reputation Points">
-        <span class="welcome-stat-icon">⚡</span>
-        <span class="welcome-stat-val" id="live-reputation-score">{{ user_data.reputation_score }}</span>
-        <span class="welcome-stat-lbl">Pts</span>
+      <div class="deck-identity-meta">
+        {% set hour = (now.hour if now else 12) %}
+        <h1>
+          {% if hour < 12 %}Good Morning,{% elif hour < 17 %}Good Afternoon,{% elif hour < 21 %}Good Evening,{% else %}Good Night,{% endif %}
+          {{ user_data.name if user_data else 'Scholar' }}
+        </h1>
+        <p>
+          {% if user_data and user_data.college_name %}
+          <span class="deck-pill-campus">{{ user_data.college_name }}</span>
+          {% endif %}
+          {% if user_data and user_data.branch_name %}
+          <span>{{ user_data.branch_name }}</span>
+          {% endif %}
+          {% if user_data and user_data.global_rank %}
+          <span class="deck-pill-rank">🏆 Global Rank #<span id="live-global-rank">{{ user_data.global_rank }}</span></span>
+          {% endif %}
+        </p>
       </div>
-
-      <div class="welcome-stat-pill" title="Study Views Left Today">
-        <span class="welcome-stat-icon">📚</span>
-        <span class="welcome-stat-val">{{ user_data.get('paper_quota_remaining', 19) }}</span>
-        <span class="welcome-stat-lbl">Views</span>
-      </div>
-
-      {% if user_data.get('students_helped', 0) > 0 %}
-      <div class="welcome-stat-pill highlight" title="Students Helped">
-        <span class="welcome-stat-icon">💙</span>
-        <span class="welcome-stat-val">{{ user_data.get('students_helped', 0) }}</span>
-        <span class="welcome-stat-lbl">Helped</span>
-      </div>
-      {% endif %}
     </div>
 
-    <div class="welcome-mini-actions">
-      <button type="button" data-action="openPeerSearchModal" class="welcome-action-btn peer" aria-label="Search Students & Peer Notes">🔍 Find Peers</button>
-      <a href="/upload" class="welcome-action-btn primary">📤 Upload</a>
-      <a href="{{ url_for('support') }}" class="welcome-action-btn support" title="Support Us">💝</a>
-    </div>
-  </div>
-</div>
-
-<!-- ── Exam-pack seasonal banner (growth + re-engagement) ─────────────────── -->
-<div id="examPackBanner" class="exam-pack-banner">
-  <div class="exam-pack-banner-icon">📚</div>
-  <div class="exam-pack-banner-body">
-    <div class="exam-pack-banner-title">Your semester exam pack is ready — free</div>
-    <div class="exam-pack-banner-sub">Previous-year papers &amp; toppers' notes for your branch, in one place.</div>
-    <div class="exam-pack-banner-actions">
-      <a href="/pyq" class="exam-pack-btn primary">Get exam pack →</a>
-      <button id="examPackInviteBtn" type="button" class="exam-pack-btn ghost">Invite &amp; earn 50</button>
-      <button id="examPackWaBtn" type="button" class="exam-pack-btn wa" title="Share on WhatsApp">📲 WhatsApp</button>
-      <button id="examPackIgBtn" type="button" class="exam-pack-btn ig" title="Share on Instagram">📸 Instagram</button>
-    </div>
-  </div>
-  <button id="examPackClose" type="button" class="exam-pack-close" aria-label="Dismiss">×</button>
-</div>
-<script>
-(function(){
-  try {
-    if (localStorage.getItem('examPackBannerDismissed') === '1') {
-      var b = document.getElementById('examPackBanner'); if (b) b.remove();
-    }
-    var close = document.getElementById('examPackClose');
-    if (close) close.addEventListener('click', function(){
-      var el = document.getElementById('examPackBanner');
-      if (el) el.remove();
-      try { localStorage.setItem('examPackBannerDismissed','1'); } catch(e){}
-    });
-    var inv = document.getElementById('examPackInviteBtn');
-    if (inv) inv.addEventListener('click', function(){
-      var w = document.getElementById('referralWidget');
-      if (w) { w.hidden = false; w.scrollIntoView({behavior:'smooth', block:'center'}); }
-    });
-    // Build a share intent from the user's referral link (falls back to bare domain)
-    async function examPackShareUrl() {
-      try {
-        var r = await fetch('/api/referral/my-code', { credentials:'same-origin' });
-        var j = await r.json();
-        if (j.success && j.share_url) return j.share_url;
-      } catch(e){}
-      var base = location.hostname.indexOf('abhihub') >= 0 ? location.hostname : 'abhihub.edu.eu.org';
-      return 'https://' + base + '/signup';
-    }
-    var wa = document.getElementById('examPackWaBtn');
-    if (wa) wa.addEventListener('click', async function(){
-      var url = await examPackShareUrl();
-      var text = encodeURIComponent('Free engineering exam papers & notes on AbhiHub — join with my link: ' + url);
-      window.open('https://wa.me/?text=' + text, '_blank', 'noopener');
-    });
-    var ig = document.getElementById('examPackIgBtn');
-    if (ig) ig.addEventListener('click', async function(){
-      var url = await examPackShareUrl();
-      // Instagram has no direct share API; copy the link and point to the bio-card
-      try {
-        await navigator.clipboard.writeText(url);
-        alert('Invite link copied! Paste it in your Instagram bio or DM:\n' + url);
-      } catch(e){ alert('Your invite link: ' + url); }
-      window.open('https://instagram.com/', '_blank', 'noopener');
-    });
-  } catch(e){}
-})();
-</script>
-<style>
-.exam-pack-banner { position:relative; display:flex; gap:0.75rem; align-items:center;
-  margin:0.75rem 0; padding:0.9rem 1rem; border-radius:14px;
-  background:linear-gradient(135deg,#0d9488,#10b981); color:#fff;
-  box-shadow:0 4px 14px rgba(13,148,136,0.25); }
-.exam-pack-banner-icon { font-size:1.7rem; }
-.exam-pack-banner-body { flex:1; min-width:0; }
-.exam-pack-banner-title { font-weight:800; font-size:0.98rem; }
-.exam-pack-banner-sub { font-size:0.78rem; opacity:0.92; margin-bottom:0.5rem; }
-.exam-pack-banner-actions { display:flex; gap:0.5rem; flex-wrap:wrap; }
-.exam-pack-btn { padding:0.45rem 0.9rem; border-radius:10px; font-size:0.82rem; font-weight:700;
-  text-decoration:none; cursor:pointer; border:none; }
-.exam-pack-btn.primary { background:#fff; color:#0d9488; }
-.exam-pack-btn.primary:hover { background:#f0fdfa; }
-.exam-pack-btn.ghost { background:rgba(255,255,255,0.18); color:#fff; }
-.exam-pack-btn.ghost:hover { background:rgba(255,255,255,0.3); }
-.exam-pack-btn.wa { background:#25D366; color:#fff; }
-.exam-pack-btn.wa:hover { background:#1ebe5b; }
-.exam-pack-btn.ig { background:#E1306C; color:#fff; }
-.exam-pack-btn.ig:hover { background:#c81d5a; }
-.exam-pack-close { position:absolute; top:6px; right:10px; background:none; border:none;
-  color:#fff; font-size:1.3rem; line-height:1; cursor:pointer; opacity:0.85; }
-.exam-pack-close:hover { opacity:1; }
-@media (max-width:480px){ .exam-pack-banner-sub{ display:none; } }
-</style>
-
-<!-- ── Invite / Referral Nudge (growth loop) ─────────────────────────────── -->
-<div id="referralWidget" class="referral-widget" hidden>
-  <div class="referral-widget-icon">🎁</div>
-  <div class="referral-widget-body">
-    <div class="referral-widget-title">Invite classmates — earn <b id="referralCredits">credits</b></div>
-    <div class="referral-widget-sub">Share your link. When a peer joins, you both get view credits.</div>
-    <div class="referral-widget-progress" id="referralProgress" hidden></div>
-    <div class="referral-widget-row">
-      <input id="referralLinkInput" class="referral-widget-input" type="text" readonly value="Loading…">
-      <button id="referralCopyBtn" class="referral-widget-copy" type="button">Copy</button>
-      <a id="referralShareBtn" class="referral-widget-share" href="#" target="_blank" rel="noopener">WhatsApp</a>
-      <button id="referralIgBtn" class="referral-widget-share ig" type="button" title="Share on Instagram">Instagram</button>
-    </div>
-  </div>
-</div>
-<style>
-.referral-widget { display:flex; gap:0.75rem; align-items:center; margin:0.75rem 0;
-  background:linear-gradient(135deg,#eef2ff,#faf5ff); border:1px solid #c7d2fe;
-  border-radius:14px; padding:0.85rem 1rem; }
-.referral-widget-icon { font-size:1.6rem; }
-.referral-widget-body { flex:1; min-width:0; }
-.referral-widget-title { font-weight:800; font-size:0.95rem; color:#312e81; }
-.referral-widget-sub { font-size:0.78rem; color:#6366f1; margin-bottom:0.4rem; }
-.referral-widget-row { display:flex; gap:0.4rem; flex-wrap:wrap; }
-.referral-widget-input { flex:1; min-width:160px; padding:0.4rem 0.6rem; border:1px solid #c7d2fe;
-  border-radius:8px; font-size:0.8rem; background:#fff; color:#3730a3; }
-.referral-widget-copy, .referral-widget-share { padding:0.4rem 0.8rem; border-radius:8px; font-size:0.8rem;
-  font-weight:700; text-decoration:none; cursor:pointer; border:none; }
-.referral-widget-copy { background:#4f46e5; color:#fff; }
-.referral-widget-share { background:#22c55e; color:#fff; display:inline-flex; align-items:center; }
-.referral-widget-share.ig { background:#E1306C; }
-.referral-widget-share.ig:hover { background:#c81d5a; }
-.referral-widget-copy:hover { background:#4338ca; }
-.referral-widget-progress { font-size:0.74rem; font-weight:600; color:#4f46e5; margin-bottom:0.4rem; }
-.referral-widget-pulse { animation: referralPulse 0.8s ease-in-out 0s 2; }
-@keyframes referralPulse {
-  0%   { box-shadow: 0 0 0 0 rgba(79,70,229,0.5); }
-  100% { box-shadow: 0 0 0 14px rgba(79,70,229,0); }
-}
-</style>
-<script>
-(function loadReferral() {
-  try {
-    const r = fetch('/api/referral/my-code', { credentials:'same-origin' })
-      .then(res => res.json())
-      .then(j => {
-        if (!j.success) return;
-        const widget = document.getElementById('referralWidget');
-        const input = document.getElementById('referralLinkInput');
-        const share = document.getElementById('referralShareBtn');
-        const copy = document.getElementById('referralCopyBtn');
-        const creditsEl = document.getElementById('referralCredits');
-        const progressEl = document.getElementById('referralProgress');
-        input.value = j.share_url;
-        share.href = 'https://wa.me/?text=' + encodeURIComponent('Join me on AbhiHub for free engineering PYQs & notes: ' + j.share_url);
-        widget.hidden = false;
-        if (creditsEl) creditsEl.textContent = (j.referral_credits || 0) + ' credits';
-        if (progressEl) {
-          const n = j.referral_count || 0;
-          progressEl.textContent = n > 0
-            ? `🎉 ${n} friend${n === 1 ? '' : 's'} joined via your link — ${j.referral_credits || 0} credits earned`
-            : 'No friends joined yet — share your link to earn 50 credits each!';
-          progressEl.hidden = false;
-        }
-        const ig = document.getElementById('referralIgBtn');
-        if (ig) ig.addEventListener('click', () => {
-          try {
-            navigator.clipboard.writeText(j.share_url).then(() => {
-              alert('Invite link copied! Paste it in your Instagram bio or DM:\n' + j.share_url);
-            });
-          } catch (e) { alert('Your invite link: ' + j.share_url); }
-          window.open('https://instagram.com/', '_blank', 'noopener');
-        });
-        copy.addEventListener('click', () => {
-          navigator.clipboard.writeText(j.share_url).then(() => { copy.textContent='Copied!'; setTimeout(()=>copy.textContent='Copy',1500); });
-        });
-
-        // Expose the post-upload invite prompt (highest-intent moment).
-        // Fires at most once per browser session to avoid nagging.
-        window.AbhiHubInvitePrompt = function () {
-          try {
-            if (sessionStorage.getItem('invitePrompted') === '1') return;
-            sessionStorage.setItem('invitePrompted', '1');
-            widget.hidden = false;
-            widget.scrollIntoView({ behavior:'smooth', block:'center' });
-            widget.classList.add('referral-widget-pulse');
-            setTimeout(() => widget.classList.remove('referral-widget-pulse'), 1600);
-          } catch (e) {}
-        };
-      })
-      .catch(() => { /* widget stays hidden if API unavailable */ });
-  } catch (e) { /* widget stays hidden if fetch unsupported */ }
-})();
-</script>
-
-{% include 'includes/_peer_search_modal.html' %}
-
-{% if user_data %}
-<!-- ── Online Now Widget ───────────────────────────────────────────────── -->
-<div id="onlineWidget" class="online-widget">
-  <div id="onlineInner" class="online-inner">
-    <span class="online-label">
-      <span class="online-dot"></span> ONLINE NOW
-    </span>
-    <span id="onlineCount" class="online-count-badge">—</span>
-    <span id="onlineList" class="online-list"></span>
-  </div>
-</div>
-<style>
-.online-widget { margin: 0.75rem 0; }
-.online-inner { display: flex; align-items: center; gap: 0.6rem; flex-wrap: wrap; min-height: 36px; }
-.online-label { font-size: 0.78rem; font-weight: 700; color: #059669; letter-spacing: 0.04em; display: inline-flex; align-items: center; gap: 0.3rem; }
-.online-dot { width: 8px; height: 8px; border-radius: 50%; background: #10b981; animation: pulse 2s infinite; }
-.online-count-badge {
-  background: #d1fae5; color: #065f46; font-size: 0.72rem; font-weight: 800;
-  padding: 0.15rem 0.55rem; border-radius: 999px; min-width: 24px; text-align: center;
-  line-height: 1.4;
-}
-.online-list { display: flex; gap: 0.4rem; flex-wrap: wrap; }
-.online-chip {
-  display: inline-flex; align-items: center; gap: 0.35rem;
-  padding: 0.3rem 0.65rem; background: #ecfdf5; border: 1px solid #6ee7b7;
-  border-radius: 20px; font-size: 0.78rem; font-weight: 700; color: #065f46;
-  cursor: pointer; text-decoration: none; transition: 0.2s;
-}
-.online-chip:hover { background: #d1fae5; transform: translateY(-1px); box-shadow: 0 4px 12px rgba(16,185,129,0.15); }
-.online-chip .oc-dot { width: 7px; height: 7px; border-radius: 50%; background: #10b981; flex-shrink: 0; animation: pulse 2s infinite; }
-.online-chip.me { background: #dbeafe; border-color: #93c5fd; color: #1e40af; }
-.online-chip.me .oc-dot { background: #3b82f6; }
-.online-more { font-size: 0.72rem; color: #94a3b8; font-weight: 600; align-self: center; }
-@keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.4; } }
-</style>
-<script>
-(async function pollOnline() {
-  const selfName = '{{ (session.user.name if session.user else "") | e }}' || '';
-  const selfUid  = '{{ session.user.uid if session.user else "" }}';
-  try {
-    const r = await fetch('/api/chat/online', { signal: AbortSignal.timeout(8000) });
-    const data = await r.json();
-    const listEl = document.getElementById('onlineList');
-    const countEl = document.getElementById('onlineCount');
-    if (!listEl || !countEl) return;
-
-    const users = (data.online || []).sort((a, b) => {
-      // Show self first
-      if (a.id === selfUid) return -1;
-      if (b.id === selfUid) return 1;
-      return 0;
-    });
-
-    const total = users.length;
-    countEl.textContent = total;
-
-    if (!users.length) {
-      listEl.innerHTML = '<span style="font-size:.75rem;color:#94a3b8;">No one online right now</span>';
-      return;
-    }
-
-    // Show self first, then others, cap at 10
-    const display = users.slice(0, 10);
-    const extra = total - display.length;
-
-    listEl.innerHTML = display.map(u => {
-      const isSelf = u.id === selfUid;
-      const cls = isSelf ? 'online-chip me' : 'online-chip';
-      const label = isSelf ? (u.name.split(' ')[0] + ' (You)') : u.name.split(' ')[0];
-      return `<a class="${cls}" href="${isSelf ? '#' : '/chat/' + u.id}" title="${isSelf ? 'You are online' : 'Chat with ' + u.name}">
-        <span class="oc-dot"></span>${label}
-      </a>`;
-    }).join('');
-
-    if (extra > 0) {
-      listEl.innerHTML += `<span class="online-more">+${extra} more</span>`;
-    }
-  } catch (err) {
-    const listEl = document.getElementById('onlineList');
-    const countEl = document.getElementById('onlineCount');
-    if (countEl) countEl.textContent = '!';
-    if (listEl) listEl.innerHTML = '<span style="font-size:.75rem;color:#f59e0b;">Unable to load</span>';
-  }
-
-  // Poll every 60s for mobile-friendly battery life
-  setTimeout(pollOnline, 60000);
-})();
-</script>
-{% endif %}
-
-<style>
-.welcome-mini-banner {
-  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #4338ca 100%);
-  border-radius: 18px;
-  padding: 0.85rem 1.25rem;
-  margin: 1rem 0;
-  box-shadow: 0 8px 24px rgba(49, 46, 129, 0.25);
-  color: #ffffff;
-}
-.welcome-mini-content {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 1rem;
-  flex-wrap: wrap;
-}
-.welcome-mini-user {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  font-size: 1rem;
-}
-.welcome-mini-greeting strong {
-  color: #a5b4fc;
-}
-.welcome-mini-badge {
-  background: rgba(255, 255, 255, 0.15);
-  padding: 0.2rem 0.6rem;
-  border-radius: 99px;
-  font-size: 0.75rem;
-  font-weight: 700;
-  backdrop-filter: blur(4px);
-}
-.welcome-mini-stats {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  flex-wrap: wrap;
-}
-.welcome-stat-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.35rem;
-  background: rgba(255, 255, 255, 0.1);
-  padding: 0.35rem 0.75rem;
-  border-radius: 12px;
-  font-size: 0.85rem;
-  backdrop-filter: blur(6px);
-  border: 1px solid rgba(255, 255, 255, 0.12);
-}
-.welcome-stat-pill.highlight {
-  background: rgba(236, 72, 153, 0.2);
-  border-color: rgba(236, 72, 153, 0.3);
-}
-.welcome-stat-icon {
-  font-size: 0.9rem;
-}
-.welcome-stat-val {
-  font-weight: 800;
-  color: #ffffff;
-}
-.welcome-stat-lbl {
-  font-size: 0.75rem;
-  opacity: 0.75;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
-}
-.welcome-mini-actions {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-.welcome-action-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.45rem 0.9rem;
-  border-radius: 10px;
-  font-weight: 700;
-  font-size: 0.82rem;
-  text-decoration: none;
-  transition: all 0.2s ease;
-}
-.welcome-action-btn.primary {
-  background: #6366f1;
-  color: #ffffff;
-  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.35);
-}
-.welcome-action-btn.primary:hover {
-  background: #4f46e5;
-  transform: translateY(-1px);
-}
-.welcome-action-btn.peer {
-  background: rgba(255, 255, 255, 0.18);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  cursor: pointer;
-}
-.welcome-action-btn.peer:hover {
-  background: rgba(255, 255, 255, 0.3);
-}
-.welcome-action-btn.support {
-  background: rgba(244, 63, 94, 0.2);
-  color: #fda4af;
-  border: 1px solid rgba(244, 63, 94, 0.3);
-}
-.welcome-action-btn.support:hover {
-  background: rgba(244, 63, 94, 0.35);
-}
-
-@media (max-width: 768px) {
-  .welcome-mini-content {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 0.75rem;
-  }
-  .welcome-mini-stats {
-    width: 100%;
-    justify-content: space-between;
-  }
-  .welcome-mini-actions {
-    width: 100%;
-    justify-content: flex-end;
-  }
-}
-</style>
-
-<script>
-  // Live poll to update rank and reputation points
-  function startLiveRankPolling() {
-    setInterval(() => {
-      const authorName = window.ABHIHUB_USER_NAME;
-      if (!authorName) return;
-
-      fetch('/rank')
-        .then(r => r.json())
-        .then(data => {
-          if (data.status === 'success' && data.rank) {
-            let newRank = '-';
-            let newPoints = 0;
-
-            data.rank.forEach((r, idx) => {
-              if (r.author === authorName) {
-                newRank = (idx + 1).toString();
-                newPoints = r.points;
-              }
-            });
-
-            const elRank = document.getElementById('live-global-rank');
-            const elPts = document.getElementById('live-reputation-score');
-            if (elRank) elRank.innerText = newRank !== '-' ? '#' + newRank : '-';
-            if (elPts) elPts.innerText = newPoints;
-          }
-        })
-        .catch(err => console.error("Poll rank error", err));
-    }, 30000);
-  }
-
-  document.addEventListener("DOMContentLoaded", () => {
-    startLiveRankPolling();
-  });
-</script>
-{% endif %}
-
-<!-- ── Suggested Peers & Classmates Section (logged-in users only) ── -->
-{% if user_data and user_data.get('college_name') %}
-<div class="suggested-peers-section">
-  <div class="suggested-peers-header">
-    <h3>🎓 People from your college</h3>
-    <a href="/chat" class="suggested-peers-view-all">View all in chat →</a>
-  </div>
-  <div id="suggestedPeersGrid" class="suggested-peers-grid">
-    <div class="suggested-peers-loading">Finding classmates…</div>
-  </div>
-</div>
-
-<style>
-.suggested-peers-section {
-  background: var(--surface, #fff);
-  border: 1px solid var(--border-light, #e2e8f0);
-  border-radius: 18px;
-  padding: 1.25rem;
-  margin: 1rem 0;
-}
-.suggested-peers-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 1rem;
-}
-.suggested-peers-header h3 {
-  font-size: 1.1rem;
-  font-weight: 700;
-  color: var(--text-primary, #1e293b);
-  margin: 0;
-}
-.suggested-peers-view-all {
-  font-size: 0.82rem;
-  font-weight: 600;
-  color: var(--primary-600, #4f46e5);
-  text-decoration: none;
-  transition: all 0.15s;
-}
-.suggested-peers-view-all:hover {
-  color: var(--primary-700, #2563eb);
-  text-decoration: underline;
-}
-.suggested-peers-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 0.75rem;
-}
-.suggested-peers-grid.empty {
-  grid-template-columns: 1fr;
-}
-.suggested-peer-card {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.9rem;
-  background: var(--gray-50, #f8fafc);
-  border: 1px solid var(--border-light, #e2e8f0);
-  border-radius: 14px;
-  text-decoration: none;
-  color: inherit;
-  transition: all 0.18s;
-  text-align: center;
-}
-.suggested-peer-card:hover {
-  background: var(--primary-50, #eef2ff);
-  border-color: var(--primary-300, #c4b5fd);
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(79, 70, 229, 0.08);
-}
-.suggested-peer-avatar {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, var(--primary-600, #4f46e5), var(--accent-pink, #f4725F));
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 1.3rem;
-  font-weight: 800;
-  flex-shrink: 0;
-}
-.suggested-peer-name {
-  width: 100%;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: var(--text-primary, #1e293b);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.suggested-peer-name .verified {
-  color: var(--primary-600, #4f46e5);
-  margin-left: 2px;
-}
-.suggested-peer-meta {
-  width: 100%;
-  font-size: 0.72rem;
-  color: var(--text-tertiary, #94a3b8);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.suggested-peer-actions {
-  width: 100%;
-  display: flex;
-  gap: 0.4rem;
-  margin-top: 0.3rem;
-}
-.suggested-peer-chat {
-  flex: 1;
-  padding: 0.35rem 0.6rem;
-  background: var(--primary-600, #4f46e5);
-  color: #fff;
-  border-radius: 8px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-decoration: none;
-  text-align: center;
-  transition: all 0.15s;
-}
-.suggested-peer-chat:hover {
-  background: var(--primary-700, #2563eb);
-  transform: translateY(-1px);
-}
-.suggested-peer-profile {
-  flex: 1;
-  padding: 0.35rem 0.6rem;
-  background: var(--gray-100, #f1f5f9);
-  color: var(--text-secondary, #475569);
-  border-radius: 8px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-decoration: none;
-  text-align: center;
-  transition: all 0.15s;
-}
-.suggested-peer-profile:hover {
-  background: var(--gray-200, #e2e8f0);
-}
-.suggested-peers-loading {
-  text-align: center;
-  padding: 1.5rem;
-  color: var(--text-tertiary, #94a3b8);
-  font-size: 0.88rem;
-}
-@media (max-width: 768px) {
-  .suggested-peers-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  }
-}
-
-
-/* File Info Icon & Modal */
-.file-info-icon {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.9);
-  border: 1px solid var(--border-light, #e2e8f0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 13px;
-  color: var(--text-tertiary, #94a3b8);
-  cursor: pointer;
-  opacity: 0;
-  transition: opacity 0.18s, background-color 0.18s, color 0.18s;
-  z-index: 2;
-  pointer-events: auto;
-}
-.file-info-icon:hover {
-  background: var(--primary-100, #eef2ff);
-  color: var(--primary-600, #4f46e5);
-  transform: scale(1.1);
-}
-.pcard:hover .file-info-icon {
-  opacity: 1;
-}
-
-/* Button-style file info icon (for _card_file.html) */
-.file-info-btn {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 24px;
-  height: 24px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.95);
-  border: 1px solid var(--border-light, #e2e8f0);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 12px;
-  color: var(--text-tertiary, #94a3b8);
-  cursor: pointer;
-  opacity: 0;
-  transition: all 0.18s;
-  z-index: 2;
-  padding: 0;
-  line-height: 1;
-}
-.file-info-btn:hover {
-  background: var(--primary-100, #eef2ff);
-  color: var(--primary-600, #4f46e5);
-  transform: scale(1.1);
-}
-.file-card:hover .file-info-btn {
-  opacity: 1;
-}
-.file-info-modal-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.6);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 9999;
-  padding: 1rem;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s, visibility 0.2s;
-}
-.file-info-modal-overlay.show {
-  opacity: 1;
-  visibility: visible;
-}
-.file-info-modal {
-  background: var(--surface, #fff);
-  border-radius: 16px;
-  padding: 1.5rem;
-  max-width: 480px;
-  width: 100%;
-  box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
-  position: relative;
-}
-.file-info-modal__close {
-  position: absolute;
-  top: 12px;
-  right: 12px;
-  background: none;
-  border: none;
-  font-size: 20px;
-  cursor: pointer;
-  color: var(--text-tertiary, #94a3b8);
-}
-.file-info-modal h3 {
-  font-size: 1.1rem;
-  color: var(--text-primary, #1e293b);
-  margin: 0 0 1rem;
-}
-.file-info-row {
-  display: flex;
-  justify-content: space-between;
-  padding: 0.5rem 0;
-  border-bottom: 1px solid var(--border-light, #e2e8f0);
-  font-size: 0.88rem;
-}
-.file-info-row:last-child {
-  border-bottom: none;
-}
-.file-info-label {
-  color: var(--text-tertiary, #94a3b8);
-}
-.file-info-value {
-  color: var(--text-primary, #1e293b);
-  font-weight: 600;
-}
-.file-info-license {
-  margin-top: 1rem;
-  padding: 0.75rem;
-  background: var(--gray-50, #f8fafc);
-  border-radius: 10px;
-  font-size: 0.82rem;
-  color: var(--text-secondary, #475569);
-  line-height: 1.5;
-}
-@media (max-width: 768px) {
-  .suggested-peers-grid {
-    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-  }
-}
-
-</style>
-
-<script>
-(function () {
-  function loadSuggestedPeers() {
-    const grid = document.getElementById('suggestedPeersGrid');
-    if (!grid) return;
-    fetch('/api/chat/search-peers?q=__suggested__', { signal: AbortSignal.timeout(8000) })
-      .then(r => r.json())
-      .then(d => {
-        if (d.success && (d.suggested || []).length) {
-          grid.className = 'suggested-peers-grid';
-          grid.innerHTML = d.suggested.map(u => {
-            const init = (u.full_name || 'S').charAt(0).toUpperCase();
-            const verified = u.is_verified ? '<span class="verified">✔️</span>' : '';
-            return `<div class="suggested-peer-card" title="View ${u.full_name || 'Student'}'s profile" onclick="location.href='/u/${u.id}'">
-              <div class="suggested-peer-avatar">${init}</div>
-              <div class="suggested-peer-name">${u.full_name || 'Student'} ${verified}</div>
-              <div class="suggested-peer-meta">${u.college_name || 'AbhiHub'} • ⚡ ${u.reputation_score || 0} • 📤 ${u.uploads_count || 0}</div>
-              <div class="suggested-peer-actions">
-                <a href="/chat/${u.id}" class="suggested-peer-chat" title="Chat">💬 Chat</a>
-                <a href="/u/${u.id}" class="suggested-peer-profile" title="Profile">Profile</a>
-              </div>
-            </div>`;
-          }).join('');
-        } else {
-          grid.className = 'suggested-peers-grid empty';
-          grid.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-tertiary);font-size:0.88rem;">No classmates found on AbhiHub yet.<br>Be the first to invite your college friends!</div>';
-        }
-      })
-      .catch(err => {
-        grid.className = 'suggested-peers-grid empty';
-        grid.innerHTML = '<div style="text-align:center;padding:1.5rem;color:var(--text-tertiary);font-size:0.88rem;">Unable to load suggestions right now.</div>';
-      });
-  }
-  // Load after DOM ready
-    if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', loadSuggestedPeers);
-    } else {
-      loadSuggestedPeers();
-    }
-  })();
-  </script>
-
-  {% endif %}
-
-  <!-- ── MemoryWall Awareness Popup (shows once) ─────────────────────── -->
-  {% if user_data %}
-  <div id="mw-awareness" class="popup-overlay mw-awareness-overlay" data-action="dismissIfClicked">
-  <div class="mw-aw-box">
-    <!-- Close -->
-    <button type="button" data-action="mwDismiss" aria-label="Close" class="mw-aw-close">✕</button>
-
-    <!-- Gradient header -->
-    <div class="mw-aw-header">
-      <div class="mw-aw-header-bubble mw-aw-header-bubble-1"></div>
-      <div class="mw-aw-header-bubble mw-aw-header-bubble-2"></div>
-      <div class="mw-aw-header-icon">🎉</div>
-      <h2 class="mw-aw-header-title">New Feature: MemoryWall</h2>
-      <p class="mw-aw-header-copy">Before you graduate, let your friends tell you who you are</p>
-    </div>
-
-    <!-- Steps -->
-    <div class="mw-aw-steps">
-      <div class="mw-step">
-        <div class="mw-step-num">1</div>
-        <div class="mw-step-body">
-          <div class="mw-step-title">Create Your Wall 🏗️</div>
-          <div class="mw-step-desc">Set up your MemoryWall in seconds — add your name, branch & college.</div>
+    <!-- Active View Quota & Top Up -->
+    <div style="display:flex; align-items:center; gap:0.75rem;">
+      <div style="text-align:right;">
+        <div style="font-size:0.72rem; color:#94a3b8; font-weight:600;">ACTIVE VIEW QUOTA</div>
+        <div style="font-family:var(--deck-font-mono); font-size:1.3rem; font-weight:800; color:#38bdf8;">
+          ⚡ <span id="user-views-quota">{{ user_data.get('paper_quota_remaining', 20) }}</span> Views
         </div>
       </div>
-      <div class="mw-step">
-        <div class="mw-step-num">2</div>
-        <div class="mw-step-body">
-          <div class="mw-step-title">Share the Link 🔗</div>
-          <div class="mw-step-desc">Send it to friends via WhatsApp. They describe you in <strong>3 words</strong>, draw
-            a signature & leave a memory.</div>
-        </div>
-      </div>
-      <div class="mw-step">
-        <div class="mw-step-num">3</div>
-        <div class="mw-step-body">
-          <div class="mw-step-title">Reveal Your Insights 🔮</div>
-          <div class="mw-step-desc">See your most-loved trait, word cloud, personality summary & all signatures —
-            powered by AI.</div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Social proof -->
-    <div class="mw-aw-social-proof">
-      <div class="mw-aw-social-note">❤️ Students are already collecting memories from friends</div>
-    </div>
-
-    <!-- CTA -->
-    <div class="mw-aw-actions">
-      <a href="{{ url_for('memorywall_dashboard') }}" class="dashboard-cta-link" data-action="mwDismiss">
-        ✨ Try MemoryWall Now
-      </a>
-      <button type="button" data-action="mwDismiss" class="dashboard-cta-secondary">
-        I'll check it out later
+      <button type="button" onclick="openBuyCreditsModal()" class="deck-btn-gold" style="padding:0.45rem 0.85rem; font-size:0.8rem;">
+        Recharge
       </button>
     </div>
   </div>
+
+  <!-- Command Station Metric Readouts -->
+  <div class="deck-metrics-grid">
+    <div class="deck-metric-box highlight">
+      <div class="deck-metric-label">⚡ Daily Free Quota</div>
+      <div class="deck-metric-val">{{ user_data.get('paper_quota_remaining', 20) }}</div>
+    </div>
+    <div class="deck-metric-box">
+      <div class="deck-metric-label">✨ Reputation Score</div>
+      <div class="deck-metric-val" id="live-reputation-score">{{ user_data.get('reputation_score', 0) }}</div>
+    </div>
+    {% if user_data.get('referral_credits', 0) > 0 %}
+    <div class="deck-metric-box gold">
+      <div class="deck-metric-label">🎁 Referral Credits</div>
+      <div class="deck-metric-val" id="live-referral-credits">{{ user_data.get('referral_credits', 0) }}</div>
+    </div>
+    {% endif %}
+    <div class="deck-metric-box">
+      <div class="deck-metric-label">🤝 Students Helped</div>
+      <div class="deck-metric-val">{{ user_data.get('students_helped', 0) }}</div>
+    </div>
+    <div class="deck-metric-box">
+      <div class="deck-metric-label">🔓 Ready Exam Papers</div>
+      <div class="deck-metric-val">{{ paper_count }}</div>
+    </div>
+    <div class="deck-metric-box">
+      <div class="deck-metric-label">📝 Curated Study Notes</div>
+      <div class="deck-metric-val">{{ notes_count }}</div>
+    </div>
+  </div>
+
+  <!-- Primary Flight Deck Controls -->
+  <div class="deck-station-actions">
+    <a href="/upload" class="deck-btn-primary">
+      <span>📤</span> Upload Resource & Earn 90%
+    </a>
+    <button type="button" onclick="openBuyCreditsModal()" class="deck-btn-gold">
+      <span>💎</span> Top Up Credits (90% Off)
+    </button>
+    <button type="button" data-action="openPeerSearchModal" class="deck-btn-hollow">
+      <span>👥</span> Find College Peers
+    </button>
+    {% if user_data %}
+    <a href="{{ url_for('app_pages.memorywall_dashboard') }}" class="deck-btn-hollow">
+      <span>🧠</span> MemoryWall
+    </a>
+    {% endif %}
+    <button type="button" data-action="openAppGuide" class="deck-btn-hollow">
+      <span>🧭</span> Interactive Tour
+    </button>
+  </div>
 </div>
 
-<script>
-  // Show awareness popup once per user
-  function mwDismiss() {
-    var el = document.getElementById('mw-awareness');
-    if (el) { el.classList.remove('show'); el.style.display = ''; }
-    try { localStorage.setItem('mw_awareness_seen', '1'); } catch (e) { }
-  }
-  (function () {
-    return; // Disabled per user request
-    try {
-      if (localStorage.getItem('mw_awareness_seen')) return;
-    } catch (e) { return; }
-    setTimeout(function () {
-      var el = document.getElementById('mw-awareness');
-      if (el) { el.style.display = 'flex'; el.classList.add('show'); }
-    }, 2000);
-  })();
-</script>
+<!-- ── 2. Shelf: Recently Viewed Resources ──────────────────────────────── -->
+<div class="deck-shelf">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>⏱️ Recently Accessed</h2>
+      <div class="deck-shelf-subtitle">Jump back into your recent revision dossiers</div>
+    </div>
+  </div>
+
+  {% if recently_viewed_files %}
+  <div class="deck-scroll-rack">
+    {% for file in recently_viewed_files %}
+    {% set _rid = file.get('record_id') or file.get('id') or '' %}
+    {% set _ftype = file.get('type', 'papers')|lower %}
+    {% set is_notes = _ftype in ['notes', 'note', 'imp questions', 'imp_questions'] %}
+    {% set is_prac = _ftype in ['practical', 'practicals'] %}
+    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
+    <a href="{{ furl }}" class="card-dossier {% if is_notes %}card-type-notes{% elif is_prac %}card-type-practical{% else %}card-type-pyq{% endif %} pcard">
+      <div class="card-dossier-inner">
+        <div class="card-ticket-header">
+          <span class="card-taxonomy-badge">
+            {% if is_notes %}📝 NOTES{% elif is_prac %}🧪 PRACTICAL{% else %}📄 PYQ EXAM{% endif %}
+          </span>
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <span class="card-dossier-term">{{ file.get('year','') or file.get('date','')[:4] or 'TERM' }}</span>
+            <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+              data-file-type="{{ 'Notes' if is_notes else ('Practical' if is_prac else 'PYQ') }}" data-file-subject="{{ file.get('subject', '') }}"
+              data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
+              data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}"
+              data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
+          </div>
+        </div>
+        <div class="card-subject-meta">
+          <span>🏛️</span>
+          <span>{{ file.get('subject', 'ENGINEERING CORE') }}</span>
+        </div>
+        <div class="card-title-text">{{ file['file-name'] }}</div>
+      </div>
+      <div class="card-footer-tray">
+        <div class="card-author-pill">
+          <span class="card-author-monogram">⏱️</span>
+          <span>Recently Viewed</span>
+        </div>
+        <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div style="background:#ffffff; border:1px dashed #cbd5e1; border-radius:14px; padding:1.25rem 1.5rem; color:#64748b; font-size:0.9rem; display:flex; align-items:center; gap:0.75rem;">
+    <span>📂</span>
+    <span>No recently viewed documents. Open any exam paper or topper note below and it will dock here automatically.</span>
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── 3. Shelf: Recommended Peer Activity ──────────────────────────────── -->
+<div class="deck-shelf">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>✨ Recommended For Your Branch</h2>
+      <div class="deck-shelf-subtitle">
+        {% if user_data and (user_data.branch_name or user_data.college_name) %}
+        High-traffic revision papers among classmates at {{ user_data.college_name }}
+        {% else %}
+        High-traffic question papers and verified topper notes across campus
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  {% if recommended_files %}
+  <div class="deck-scroll-rack">
+    {% for file in recommended_files %}
+    {% set _rid = file.get('record_id') or file.get('id') or '' %}
+    {% set _ftype = file.get('type', 'papers')|lower %}
+    {% set is_notes = _ftype in ['notes', 'note', 'imp questions', 'imp_questions'] %}
+    {% set is_prac = _ftype in ['practical', 'practicals'] %}
+    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
+    <a href="{{ furl }}" class="card-dossier {% if is_notes %}card-type-notes{% elif is_prac %}card-type-practical{% else %}card-type-pyq{% endif %} pcard">
+      <div class="card-dossier-inner">
+        <div class="card-ticket-header">
+          <span class="card-taxonomy-badge">
+            {% if is_notes %}📝 NOTES{% elif is_prac %}🧪 PRACTICAL{% else %}📄 PYQ EXAM{% endif %}
+          </span>
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <span class="card-dossier-term">{{ file.get('year','') or file.get('date','')[:4] or 'CURATED' }}</span>
+            <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+              data-file-type="{{ 'Notes' if is_notes else ('Practical' if is_prac else 'PYQ') }}" data-file-subject="{{ file.get('subject', '') }}"
+              data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
+              data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}"
+              data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
+          </div>
+        </div>
+        <div class="card-subject-meta">
+          <span>🎯</span>
+          <span>{{ file.get('subject', 'ENGINEERING CORE') }}</span>
+        </div>
+        <div class="card-title-text">{{ file['file-name'] }}</div>
+      </div>
+      <div class="card-footer-tray">
+        <div class="card-author-pill">
+          <span class="card-author-monogram">👥</span>
+          <span>Peer Recommended</span>
+        </div>
+        <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% endif %}
+</div>
+
+<!-- ── 4. Shelf: Creator Channels ───────────────────────────────────────── -->
+{% if featured_channels %}
+<div class="deck-shelf" id="creatorChannelsSection">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>📺 Creator Channels</h2>
+      <div class="deck-shelf-subtitle">Verified subject channels powered by student toppers & contributors</div>
+    </div>
+    <a href="/channel/studio" class="deck-shelf-link">+ Create Your Channel</a>
+  </div>
+
+  <div class="deck-scroll-rack">
+    {% for ch in featured_channels %}
+    <a href="/c/{{ ch.handle }}" class="deck-channel-card">
+      <div>
+        <div class="deck-ch-head">
+          {% if ch.avatar_url %}
+            <img src="{{ ch.avatar_url }}" alt="{{ ch.title }}" class="deck-ch-avatar">
+          {% else %}
+            <div class="deck-ch-avatar">
+              {{ ch.title[:1].upper() if ch.title else 'C' }}
+            </div>
+          {% endif %}
+          <div style="overflow:hidden;">
+            <div class="deck-ch-name">{{ ch.title }}</div>
+            <div class="deck-ch-handle">@{{ ch.handle }}</div>
+          </div>
+        </div>
+        <div class="deck-ch-bio">
+          {{ ch.bio or 'Explore exam guides, past papers, and revision notes.' }}
+        </div>
+      </div>
+      <div class="deck-ch-foot">
+        <span style="color:#64748b; font-weight:600;">📚 {{ ch.notes_count or 0 }} Notes</span>
+        <span style="color:#0284c7; font-weight:700;">Open Hub →</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
 {% endif %}
 
-<!-- ── File Info Modal (ℹ️ on file cards) — available globally ──────────── -->
-<div id="fileInfoModal" class="file-info-modal-overlay" data-action="closeFileInfo">
-  <div class="file-info-modal" role="dialog" aria-modal="true" aria-labelledby="fileInfoTitle">
-    <button type="button" class="file-info-modal__close" data-action="closeFileInfo" aria-label="Close">✕</button>
-    <h3 id="fileInfoTitle">📄 File Information</h3>
-    <div class="file-info-modal-body">
-      <!-- Populated by showFileInfo() -->
+<!-- ── 5. Shelf: Verified Exam Question Papers (Tabbed) ──────────────────── -->
+<div class="deck-shelf">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>📚 Previous Year Exam Papers</h2>
+      <div class="deck-shelf-subtitle">Official university question papers arranged by semester traffic & upload date</div>
+    </div>
+    <a href="{{ url_for('library.pyq_landing') }}" class="deck-shelf-link">Full Library Catalog</a>
+  </div>
+
+  <div class="deck-tab-bar">
+    <button class="deck-tab-button tab-btn active" type="button" data-action="switchTab" data-tab="tab-trending" onclick="switchTab(this, 'tab-trending')">🔥 Trending PYQs</button>
+    <button class="deck-tab-button tab-btn" type="button" data-action="switchTab" data-tab="tab-recent" onclick="switchTab(this, 'tab-recent')">🆕 Recently Added</button>
+  </div>
+
+  <div id="tab-trending" class="tab-panel active">
+    <div class="deck-scroll-rack">
+      {% for file in trending_papers %}
+      {% set _rid = file.get('record_id') or file.get('id') or '' %}
+      {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
+      <a href="{{ furl }}" class="card-dossier card-type-pyq pcard">
+        <div class="card-dossier-inner">
+          <div class="card-ticket-header">
+            <span class="card-taxonomy-badge">📄 PYQ EXAM</span>
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+              <span class="card-dossier-term">{{ file.get('year','') or file.get('date','')[:4] or 'SEMESTER' }}</span>
+              <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+                data-file-type="PYQ" data-file-subject="{{ file['subject'] }}"
+                data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
+                data-file-author="{{ file.get('author','')[:15] }}" data-file-views="{{ file.get('view_count', 0) }}"
+                title="Inspect Specs">ℹ️</span>
+            </div>
+          </div>
+          <div class="card-subject-meta">
+            <span>🏛️</span>
+            <span>{{ file['subject'] }}</span>
+          </div>
+          <div class="card-title-text">{{ file['file-name'] }}</div>
+        </div>
+        <div class="card-footer-tray">
+          <div class="card-author-pill">
+            <span class="card-author-monogram">{{ (file.get('author','') or 'V')[0] | upper }}</span>
+            <span>{{ file.get('author','')[:14] or 'Verified Exam' }}</span>
+          </div>
+          <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
+        </div>
+      </a>
+      {% else %}
+      <div style="color:#94a3b8; padding:1.5rem;">No trending papers found in this category.</div>
+      {% endfor %}
+    </div>
+  </div>
+
+  <div id="tab-recent" class="tab-panel" style="display:none;">
+    <div class="deck-scroll-rack">
+      {% for file in recent_papers %}
+      {% set _rid = file.get('record_id') or file.get('id') or '' %}
+      {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
+      <a href="{{ furl }}" class="card-dossier card-type-pyq pcard">
+        <div class="card-dossier-inner">
+          <div class="card-ticket-header">
+            <span class="card-taxonomy-badge">📄 PYQ EXAM</span>
+            <div style="display:flex; align-items:center; gap:0.4rem;">
+              <span class="card-dossier-term">{{ file.get('date','')[:4] or 'NEW' }}</span>
+              <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+                data-file-type="PYQ" data-file-subject="{{ file['subject'] }}"
+                data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
+                data-file-date="{{ file.get('date','') }}" data-file-views="{{ file.get('view_count', 0) }}"
+                title="Inspect Specs">ℹ️</span>
+            </div>
+          </div>
+          <div class="card-subject-meta">
+            <span>🏛️</span>
+            <span>{{ file['subject'] }}</span>
+          </div>
+          <div class="card-title-text">{{ file['file-name'] }}</div>
+        </div>
+        <div class="card-footer-tray">
+          <div class="card-author-pill">
+            <span class="card-author-monogram">📅</span>
+            <span>{{ file.get('date','') or 'Latest Upload' }}</span>
+          </div>
+          <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
+        </div>
+      </a>
+      {% else %}
+      <div style="color:#94a3b8; padding:1.5rem;">No recent papers uploaded yet.</div>
+      {% endfor %}
     </div>
   </div>
 </div>
-<script>
-  // File Info Modal: ℹ️ icon on file cards shows metadata + ownership
-  window.showFileInfo = function (e, el) {
-    if (e && e.target) { e.stopPropagation(); e.preventDefault(); }
-    const data = (el || e)?.dataset || {};
-    const name    = data.file_name    || 'Unknown file';
-    const subject = data.file_subject || '-';
-    const author  = data.file_author  || '-';
-    const year    = data.file_year    || data.file_date || '-';
-    const views   = data.file_views   || '0';
-    const ftype   = data.file_type    || data.file_format  || 'PDF';
-    const college = data.file_college || '-';
-    const size    = data.file_size    || '-';
-    const modal = document.getElementById('fileInfoModal');
-    if (!modal) return;
-    let html = '';
-    [['File', name], ['Type', ftype], ['College', college], ['Subject', subject],
-     ['Author', author], ['Year', year], ['Size', size], ['Views', views]]
-    .forEach(([label, val]) => {
-      html += `<div class="file-info-row"><span class="file-info-label">${label}</span><span class="file-info-value">${val || '-'}</span></div>`;
-    });
-    html += `<div class="file-info-license">
-      <strong>Ownership Notice:</strong> This file was contributed by a member of the AbhiHub
-      community. AbhiHub™ (AbhiHub Technologies) holds the exclusive platform rights to distribute,
-      brand, and monetize this resource. The original contributor retains copyright of their
-      submission. No third party may share or redistribute this file without explicit permission
-      from AbhiHub. <a href="mailto:abhihub.02@gmail.com">Contact</a>
-    </div>`;
-    const body = modal.querySelector('.file-info-modal-body');
-    if (body) body.innerHTML = html;
-    modal.classList.add('show');
-    document.body.style.overflow = 'hidden';
-  };
-  window.closeFileInfo = function () {
-    const modal = document.getElementById('fileInfoModal');
-    if (modal) modal.classList.remove('show');
-    document.body.style.overflow = '';
-  };
-  document.addEventListener('click', function (e) {
-    const m = document.getElementById('fileInfoModal');
-    if (m && m.classList.contains('show') && e.target === m) closeFileInfo();
-  });
-  document.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape') closeFileInfo();
-  });
-</script>
 
-<!-- ── T4: Premium First-Login Onboarding Modal ──────────────────── -->
+<!-- ── 6. Shelf: Premium & Topper Curated Materials ──────────────────────── -->
+{% if premium_files %}
+<div class="deck-shelf" id="premiumResourcesSection">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>💎 Premium Exam Banks & Blueprints</h2>
+      <div class="deck-shelf-subtitle">High-yield study bundles curated by verified university rank holders</div>
+    </div>
+    <span style="font-size:0.8rem; font-weight:700; color:#b45309; background:#fef3c7; padding:0.25rem 0.65rem; border-radius:6px;">
+      Verified Dossiers
+    </span>
+  </div>
+
+  <div class="deck-scroll-rack">
+    {% for file in premium_files %}
+    {% set _rid = file.get('record_id') or file.get('id') or '' %}
+    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
+    <a href="{{ furl }}" class="card-dossier card-type-premium pcard">
+      <div class="card-dossier-inner">
+        <div class="card-ticket-header">
+          <span class="card-taxonomy-badge">
+            {% if file.get('is_paid') and file.get('price') %}
+            💎 ₹{{ file.price | int }}
+            {% else %}
+            ⭐ TOPPER PICK
+            {% endif %}
+          </span>
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <span class="card-dossier-term">PRO BLUEPRINT</span>
+            <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+              data-file-type="Premium {{ file.get('type', 'Material')|title }}" data-file-subject="{{ file.get('subject', '') }}"
+              data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
+              data-file-author="{{ file.get('author','')[:15] }}"
+              data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
+          </div>
+        </div>
+        <div class="card-subject-meta">
+          <span>👑</span>
+          <span>{{ file.get('subject', 'SPECIAL BLUEPRINT') }}</span>
+        </div>
+        <div class="card-title-text">{{ file['file-name'] }}</div>
+      </div>
+      <div class="card-footer-tray">
+        <div class="card-author-pill">
+          <span>⚡</span>
+          <span>{% if file.get('is_paid') and file.get('price') %}Instant Access{% else %}Verified Quality{% endif %}</span>
+        </div>
+        <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── 7. Shelf: Topper Notes & Lab Practicals ───────────────────────────── -->
+{% if relevant_notes or trending_notes %}
+<div class="deck-shelf">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>📝 Curated Topper Notes</h2>
+      <div class="deck-shelf-subtitle">Handwritten unit summaries and chapter-wise question revisions</div>
+    </div>
+    <a href="{{ url_for('library.pyq_landing') }}?type=notes" class="deck-shelf-link">Browse Notes Catalog</a>
+  </div>
+
+  <div class="deck-scroll-rack">
+    {% for file in (relevant_notes or trending_notes) %}
+    {% set _rid = file.get('record_id') or file.get('id') or '' %}
+    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
+    <a href="{{ furl }}" class="card-dossier card-type-notes pcard">
+      <div class="card-dossier-inner">
+        <div class="card-ticket-header">
+          <span class="card-taxonomy-badge">📝 TOPPER NOTES</span>
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <span class="card-dossier-term">HANDWRITTEN</span>
+            <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+              data-file-type="Notes" data-file-subject="{{ file['subject'] }}"
+              data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
+              data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
+          </div>
+        </div>
+        <div class="card-subject-meta">
+          <span>✒️</span>
+          <span>{{ file['subject'] }}</span>
+        </div>
+        <div class="card-title-text">{{ file['file-name'] }}</div>
+      </div>
+      <div class="card-footer-tray">
+        <div class="card-author-pill">
+          <span class="card-author-monogram">{{ (file.get('author','') or 'T')[0] | upper }}</span>
+          <span>{{ file.get('author','')[:14] or 'Student Contributor' }}</span>
+        </div>
+        <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Lab Practicals & Manuals -->
+{% set practicals_files = [] %}
+{% for file in data %}
+  {% if file['type']|lower in ['practical','practicals'] %}
+    {% set _ = practicals_files.append(file) %}
+  {% endif %}
+{% endfor %}
+{% if practicals_files %}
+<div class="deck-shelf">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>🧪 Laboratory Manuals & Code Writeups</h2>
+      <div class="deck-shelf-subtitle">Experiment setups, observation tables, and viva voce question packs</div>
+    </div>
+    <a href="{{ url_for('library.pyq_landing') }}?type=practical" class="deck-shelf-link">Browse Practicals</a>
+  </div>
+
+  <div class="deck-scroll-rack">
+    {% for file in practicals_files[:10] %}
+    {% set _rid = file.get('record_id') or file.get('id') or '' %}
+    {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
+    <a href="{{ furl }}" class="card-dossier card-type-practical pcard">
+      <div class="card-dossier-inner">
+        <div class="card-ticket-header">
+          <span class="card-taxonomy-badge">🧪 LAB MANUAL</span>
+          <div style="display:flex; align-items:center; gap:0.4rem;">
+            <span class="card-dossier-term">VIVA READY</span>
+            <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+              data-file-type="Practical" data-file-subject="{{ file['subject'] }}"
+              data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}"
+              data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
+          </div>
+        </div>
+        <div class="card-subject-meta">
+          <span>⚡</span>
+          <span>{{ file['subject'] }}</span>
+        </div>
+        <div class="card-title-text">{{ file['file-name'] }}</div>
+      </div>
+      <div class="card-footer-tray">
+        <div class="card-author-pill">
+          <span class="card-author-monogram">🔬</span>
+          <span>{{ file.get('author','')[:14] or 'Lab Contributor' }}</span>
+        </div>
+        <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- ── 8. Search Station & Contributor Directory ────────────────────────── -->
+<div class="deck-shelf" id="dashboardSearchSection">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>🔍 Search & Multi-College Index</h2>
+      <div class="deck-shelf-subtitle">Quickly filter by subject, branch semester, or contributor profile</div>
+    </div>
+  </div>
+
+  <div class="deck-search-box-station">
+    <div class="container_search">
+      {% include 'includes/_search_partial.html' %}
+    </div>
+
+    <!-- Author Filter Row -->
+    {% if top_authors %}
+    <div style="margin-top:1.5rem; padding-top:1.25rem; border-top:1px solid #f1f5f9;">
+      <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+        <span style="font-size:0.85rem; font-weight:700; color:#334155;">Filter Library by Author:</span>
+        <input type="text" id="authorSearchFilter" placeholder="Filter authors..." oninput="filterAuthorPills()" style="padding:0.35rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.8rem;">
+      </div>
+
+      <div class="deck-author-pills" id="authorChipsList">
+        <button type="button" class="deck-author-chip author-chip active" data-author="all" onclick="selectAuthorFilter('all', this)">
+          ★ All Authors
+        </button>
+        {% for auth in top_authors %}
+        <button type="button" class="deck-author-chip author-chip" data-author="{{ auth.name | lower }}" onclick="selectAuthorFilter('{{ auth.name }}', this)">
+          <span>{{ auth.name }}</span>
+          <span style="background:rgba(0,0,0,0.08); padding:0.1rem 0.4rem; border-radius:10px; font-size:0.7rem;">{{ auth.count }}</span>
+        </button>
+        {% endfor %}
+      </div>
+
+      <div class="deck-scroll-rack" id="authorFilteredRow">
+        {% for file in data[:30] %}
+        {% set _rid = file.get('record_id') or file.get('id') or '' %}
+        {% set furl = url_for('library.resource_landing', slug=_rid) if _rid else '#' %}
+        <a href="{{ furl }}" class="card-dossier card-type-pyq pcard" data-file-author="{{ (file.get('author') or '') | lower }}">
+          <div class="card-dossier-inner">
+            <div class="card-ticket-header">
+              <span class="card-taxonomy-badge">📄 DOSSIER</span>
+              <div style="display:flex; align-items:center; gap:0.4rem;">
+                <span class="card-dossier-term">LIBRARY</span>
+                <span class="card-spec-trigger" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}"
+                  data-file-type="Document" data-file-subject="{{ file.get('subject', '') }}"
+                  data-file-college="{{ file.get('college') or (user_data.college_name if user_data else 'AbhiHub') }}"
+                  data-file-author="{{ file.get('author','') }}"
+                  data-file-views="{{ file.get('view_count', 0) }}" title="Inspect Specs">ℹ️</span>
+              </div>
+            </div>
+            <div class="card-subject-meta">
+              <span>🏛️</span>
+              <span>{{ file.get('subject', 'CORE') }}</span>
+            </div>
+            <div class="card-title-text">{{ file['file-name'] }}</div>
+          </div>
+          <div class="card-footer-tray">
+            <div class="card-author-pill">
+              <span class="card-author-monogram">{{ (file.get('author','') or 'C')[0] | upper }}</span>
+              <span>{{ file.get('author','')[:14] or 'Contributor' }}</span>
+            </div>
+            <span class="card-views-counter">👁️ {{ file.get('view_count', 0) }}</span>
+          </div>
+        </a>
+        {% endfor %}
+      </div>
+      <div id="authorFilteredEmpty" style="display:none; text-align:center; padding:1.5rem; color:#94a3b8; font-size:0.88rem;">
+        No documents found matching this author query. Select "All Authors" to reset.
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ── 9. Community Dispatch & Peer Network ──────────────────────────────── -->
+<div class="deck-shelf">
+  <div class="deck-community-split">
+    <!-- Semester Pack Dispatch -->
+    <div id="examPackBanner" class="deck-community-card">
+      <div style="font-size:1.75rem; margin-bottom:0.5rem;">📚</div>
+      <h3>Semester Pack Ready</h3>
+      <p>Previous-year question papers & topper notes for your branch bundled in one single academic pack.</p>
+      <div style="display:flex; flex-wrap:wrap; gap:0.5rem;">
+        <a href="/college" class="deck-btn-primary" style="padding:0.45rem 0.85rem; font-size:0.8rem;">Open Pack</a>
+        <button id="examPackInviteBtn" type="button" class="deck-btn-hollow" style="color:#0f172a; border-color:#cbd5e1; padding:0.45rem 0.85rem; font-size:0.8rem;">Invite Classmate</button>
+        <button id="examPackWaBtn" type="button" class="deck-btn-hollow" style="color:#15803d; border-color:#86efac; background:#f0fdf4; padding:0.45rem 0.85rem; font-size:0.8rem;">WhatsApp</button>
+        <button id="examPackIgBtn" type="button" class="deck-btn-hollow" style="color:#b91c1c; border-color:#fca5a5; background:#fef2f2; padding:0.45rem 0.85rem; font-size:0.8rem;">Instagram</button>
+      </div>
+    </div>
+
+    <!-- Referral Incentive Engine -->
+    <div id="referralWidget" class="deck-community-card">
+      <div style="font-size:1.75rem; margin-bottom:0.5rem;">🎁</div>
+      <h3>Invite Friends · Earn Credits</h3>
+      <p>When your classmates join AbhiHub, both of you earn instant extra study view credits.</p>
+      <div id="referralProgress" hidden style="background:#fef3c7; color:#92400e; padding:0.4rem 0.75rem; border-radius:8px; font-size:0.8rem; margin-bottom:0.75rem;"></div>
+      <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+        <input id="referralLinkInput" type="text" readonly value="Loading invite link…" style="flex:1; min-width:160px; padding:0.45rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px; font-size:0.8rem; background:#f8fafc;">
+        <button id="referralCopyBtn" type="button" class="deck-btn-primary" style="padding:0.45rem 0.85rem; font-size:0.8rem;">Copy</button>
+        <a id="referralShareBtn" href="#" class="deck-btn-hollow" style="color:#15803d; border-color:#86efac; background:#f0fdf4; padding:0.45rem 0.85rem; font-size:0.8rem;">WhatsApp</a>
+        <button id="referralIgBtn" type="button" class="deck-btn-hollow" style="color:#b91c1c; border-color:#fca5a5; background:#fef2f2; padding:0.45rem 0.85rem; font-size:0.8rem;">Instagram</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Classmates & Peers Section -->
 {% if user_data %}
-<div id="welcomeOnboardingModal" class="popup-overlay dashboard-modal-body">
+<div class="deck-shelf">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>🎓 Classmates from {{ user_data.college_name or 'Your Campus' }}</h2>
+      <div class="deck-shelf-subtitle">Real-time study network and peer note exchange</div>
+    </div>
+    <div style="display:inline-flex; align-items:center; gap:0.4rem; background:#ecfdf5; border:1px solid #a7f3d0; padding:0.25rem 0.65rem; border-radius:20px; font-size:0.78rem; font-weight:600; color:#065f46;">
+      <span style="width:8px; height:8px; border-radius:50%; background:#10b981; display:inline-block;"></span>
+      <span>Online: <strong id="onlineCount">—</strong></span>
+    </div>
+  </div>
+
+  <div id="suggestedPeersGrid" class="deck-peers-grid">
+    <div style="text-align:center; padding:1.5rem; color:#94a3b8; grid-column:1/-1;">
+      Connecting to peer network…
+    </div>
+  </div>
+</div>
+{% endif %}
+
+<!-- ── 10. Student Reviews & Continuous Feedback ────────────────────────── -->
+<div class="deck-shelf feedback-section">
+  <div class="deck-shelf-header">
+    <div class="deck-shelf-title-wrap">
+      <h2>💬 Student Reviews & App Feedback</h2>
+      <div class="deck-shelf-subtitle">Rated 4.9 / 5 across engineering, diploma, and technical colleges</div>
+    </div>
+    <button type="button" id="toggleFeedbackFormBtn" class="deck-btn-primary" style="padding:0.45rem 0.85rem; font-size:0.82rem;">
+      ✍️ Submit Review
+    </button>
+  </div>
+
+  <!-- Interactive Feedback Drawer -->
+  <div id="feedbackFormBox" class="feedback-form-box" style="margin-bottom:1.5rem;">
+    <div style="font-weight:700; font-size:1rem; margin-bottom:0.25rem;">Rate Your AbhiHub Experience</div>
+    <div style="font-size:0.82rem; color:#64748b; margin-bottom:1rem;">Your feedback helps us expand past papers, question banks, and notes for all colleges.</div>
+    <form id="appFeedbackForm" onsubmit="submitAppFeedback(event)">
+      <div class="feedback-rating-select" style="display:flex; align-items:center; gap:0.35rem; margin-bottom:1rem;">
+        <span style="font-size:0.85rem; font-weight:600; color:#475569; margin-right:0.5rem;">Your Rating:</span>
+        <button type="button" class="rating-star-btn active" data-star="1">★</button>
+        <button type="button" class="rating-star-btn active" data-star="2">★</button>
+        <button type="button" class="rating-star-btn active" data-star="3">★</button>
+        <button type="button" class="rating-star-btn active" data-star="4">★</button>
+        <button type="button" class="rating-star-btn active" data-star="5">★</button>
+        <input type="hidden" id="feedbackRatingValue" name="rating" value="5">
+      </div>
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:0.75rem;">
+        <input type="text" id="feedbackUserName" class="feedback-input" placeholder="Your Name" value="{{ user_data.name if user_data else '' }}" required maxlength="50" style="padding:0.5rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px;">
+        <input type="text" id="feedbackUserCollege" class="feedback-input" placeholder="College / Branch (e.g. GHRCE · CSE)" value="{{ user_data.college_name if user_data else '' }}" maxlength="60" style="padding:0.5rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px;">
+      </div>
+      <textarea id="feedbackMessage" class="feedback-textarea" placeholder="Tell us what you love or what new notes / features you'd like to see next..." required maxlength="300" style="width:100%; box-sizing:border-box; padding:0.6rem 0.75rem; border:1px solid #cbd5e1; border-radius:8px; min-height:80px;"></textarea>
+      <div style="display:flex; justify-content:flex-end; gap:0.5rem; margin-top:0.75rem;">
+        <button type="button" id="cancelFeedbackBtn" class="deck-btn-hollow" style="color:#0f172a; border-color:#cbd5e1;">Cancel</button>
+        <button type="submit" id="submitFeedbackBtn" class="deck-btn-primary">Submit Review 🚀</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Reviews Grid -->
+  <div id="feedbackCardsGrid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:1rem;">
+    {% for fb in (community_feedbacks or []) %}
+    <div style="background:#ffffff; border:1px solid var(--deck-border); border-radius:14px; padding:1.15rem; display:flex; flex-direction:column; justify-content:space-between;">
+      <div>
+        <div style="display:flex; align-items:center; gap:0.65rem; margin-bottom:0.65rem;">
+          <div style="width:36px; height:36px; border-radius:50%; background:#e0f2fe; color:#0369a1; display:flex; align-items:center; justify-content:center; font-weight:700;">
+            {{ (fb.name or 'S')[0] | upper }}
+          </div>
+          <div>
+            <div style="font-weight:700; font-size:0.88rem; color:#0f172a;">{{ fb.name }} <span style="color:#0284c7; font-size:0.75rem;">✓</span></div>
+            <div style="font-size:0.75rem; color:#64748b;">{{ fb.college or 'Engineering Student' }}</div>
+          </div>
+        </div>
+        <div style="color:#f59e0b; font-size:0.85rem; margin-bottom:0.5rem;">
+          {% for i in range(fb.rating or 5) %}★{% endfor %}
+        </div>
+        <p style="font-size:0.82rem; color:#334155; line-height:1.45; margin:0 0 0.75rem;">"{{ fb.message }}"</p>
+      </div>
+      <div style="font-size:0.72rem; color:#94a3b8; border-top:1px solid #f1f5f9; padding-top:0.5rem;">
+        Verified Student Review
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+
+<div id="feedbackToast" class="feedback-toast" style="display:none; position:fixed; bottom:24px; right:24px; background:#0f172a; color:#ffffff; padding:0.75rem 1.25rem; border-radius:10px; z-index:9999; box-shadow:0 10px 25px rgba(0,0,0,0.2);">
+  <span>✅ Thank you! Your review has been published.</span>
+</div>
+
+<!-- ── 11. Modals & Overlays ────────────────────────────────────────────── -->
+
+<!-- File Info Modal -->
+<div id="fileInfoModal" class="file-info-modal-overlay" data-action="closeFileInfo">
+  <div class="file-info-modal" role="dialog" aria-modal="true" aria-labelledby="fileInfoTitle">
+    <button type="button" class="file-info-modal__close" data-action="closeFileInfo" aria-label="Close" onclick="closeFileInfo()">✕</button>
+    <h3 id="fileInfoTitle" style="margin:0 0 1rem; font-size:1.15rem; color:#0f172a; font-family:var(--deck-font-display);">📄 File Dossier</h3>
+    <div class="file-info-modal-body"></div>
+  </div>
+</div>
+
+<!-- First-Login Onboarding Modal -->
+{% if user_data %}
+<div id="welcomeOnboardingModal" class="popup-overlay dashboard-modal-body" style="display:none;">
   <div class="popup-card dashboard-welcome-card">
     <div class="dashboard-welcome-header">
       <div class="dashboard-welcome-banner"></div>
       <div class="dashboard-welcome-icon">🎓</div>
       <h2 class="dashboard-welcome-title">Welcome to AbhiHub!</h2>
-      <p class="dashboard-welcome-copy">Your academic community awaits</p>
+      <p class="dashboard-welcome-copy">Your engineering exam resource & peer exchange hub</p>
     </div>
     <div class="dashboard-welcome-body">
       <div class="dashboard-welcome-grid">
@@ -1006,800 +1596,27 @@ notes, practicals, and exam resources for top colleges across India." %}
           <div>PYQs</div>
         </div>
         <div class="dashboard-welcome-grid-item secondary">
-          <div>📚</div>
+          <div>📝</div>
           <div>Notes</div>
         </div>
-        <div class="dashboard-welcome-grid-item positive">
+        <div class="dashboard-welcome-grid-item accent">
           <div>🧪</div>
           <div>Practicals</div>
         </div>
-        <div class="dashboard-welcome-grid-item accent">
-          <div>🏆</div>
-          <div>Leaderboard</div>
-        </div>
-        <div class="dashboard-welcome-grid-item accent">
-          <div>🧠</div>
-          <div>MemoryWall</div>
-        </div>
-        <div class="dashboard-welcome-grid-item secondary">
-          <div>🔗</div>
-          <div>Community</div>
-        </div>
       </div>
+      <button type="button" onclick="closeOnboardingModal()" class="dashboard-modal-link" style="border:none; cursor:pointer;">Enter Flight Deck →</button>
     </div>
-    <div class="dashboard-welcome-actions">
-      <button type="button" id="welcomeStartBtn" data-action="dismissWelcomeModal" class="dashboard-welcome-button">
-        🚀 Start Exploring
-      </button>
-    </div>
-  </div>
-</div>
-<script>
-  async function dismissWelcomeModal() {
-    document.getElementById('welcomeOnboardingModal')?.classList.remove('show');
-    try { await fetch('/api/onboarding/welcome-seen', { method: 'POST' }); } catch { }
-  }
-  (async function () {
-    return; // Disabled per user request
-    try {
-      const r = await fetch('/api/onboarding/status').then(r => r.json());
-      if (r.success && r.data && !r.data.welcome_seen) {
-        // First login — show onboarding modal, suppress all other popups
-        window.__ABHIHUB_FIRST_LOGIN = true;
-        document.getElementById('welcomeOnboardingModal')?.classList.add('show');
-      }
-    } catch { }
-  })();
-</script>
-{% endif %}
-
-<!-- ── T6: Floating ☕ Support Button (logged-in users, Dashboard only) ── -->
-{% if user_data %}
-<button id="floatSupportBtn" type="button" data-action="openSupportModal" aria-label="Support AbhiHub"
-  class="dashboard-float-support-btn">
-  ☕ Support AbhiHub
-</button>
-
-<div id="supportModal" class="popup-overlay dashboard-modal-body" data-action="dismissIfClicked">
-  <div class="popup-card dashboard-modal-card">
-    <button type="button" data-action="closeSupportModal" aria-label="Close" class="dashboard-modal-close">✕</button>
-    <div class="dashboard-modal-primary">
-      <div class="dashboard-modal-banner"></div>
-      <div class="modal-icon">💝</div>
-      <h2 class="modal-title">Keep AbhiHub Free</h2>
-      <p class="modal-copy">Your small contribution helps thousands of students</p>
-    </div>
-    <div class="dashboard-modal-actions">
-      <div class="modal-row">
-        <div class="modal-card positive">
-          <strong>☁️</strong>
-          <small>Hosting</small>
-        </div>
-        <div class="modal-card secondary">
-          <strong>💾</strong>
-          <small>Storage</small>
-        </div>
-        <div class="modal-card accent">
-          <strong>🚀</strong>
-          <small>Dev</small>
-        </div>
-      </div>
-      <div class="modal-row">
-        <a href="{{ url_for('support') }}" data-action="closeSupportModal" class="modal-card">
-          <strong>₹29</strong>
-          <small>Storage</small>
-        </a>
-        <a href="{{ url_for('support') }}" data-action="closeSupportModal" class="modal-card secondary">
-          <strong>₹49</strong>
-          <small>Hosting</small>
-        </a>
-        <a href="{{ url_for('support') }}" data-action="closeSupportModal" class="modal-card accent">
-          <strong>₹99</strong>
-          <small>Dev</small>
-        </a>
-      </div>
-      <a href="{{ url_for('support') }}" data-action="closeSupportModal" class="dashboard-modal-link">
-        💝 Support AbhiHub
-      </a>
-      <button data-action="closeSupportModal" type="button" class="dashboard-modal-secondary-button">Maybe Later</button>
-      <p class="dashboard-modal-note">AbhiHub is free. Contributions are optional.</p>
-    </div>
-  </div>
-</div>
-<script>
-  // Support modal handlers are provided globally by the base template.
-  // Hide float btn on first login (onboarding modal takes priority)
-  if (window.__ABHIHUB_FIRST_LOGIN) {
-    var btn = document.getElementById('floatSupportBtn');
-    if (btn) btn.style.display = 'none';
-  }
-</script>
-{% endif %}
-
-
-<style>
-  /* ── Hero Banner ── */
-  .home-hero {
-    background: linear-gradient(135deg, #1e3a5f 0%, #2563eb 60%, #7c3aed 100%);
-    padding: 2.5rem 2rem 3.5rem;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .home-hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
-  }
-
-  .home-hero-content {
-    position: relative;
-    z-index: 1;
-    max-width: 680px;
-    margin: 0 auto;
-  }
-
-  .home-hero h1 {
-    font-size: clamp(1.6rem, 4vw, 2.4rem);
-    font-weight: 800;
-    color: #fff;
-    margin: 0 0 0.5rem;
-    line-height: 1.2;
-  }
-
-  .home-hero p {
-    color: rgba(255, 255, 255, 0.82);
-    font-size: 1rem;
-    margin: 0 0 1.5rem;
-  }
-
-  .hero-stats {
-    display: flex;
-    justify-content: center;
-    gap: 1.5rem;
-    flex-wrap: wrap;
-    margin-bottom: 1.8rem;
-  }
-
-  .hero-stat {
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 10px;
-    padding: 0.5rem 1.2rem;
-    color: #fff;
-    font-size: 0.9rem;
-    font-weight: 600;
-    backdrop-filter: blur(6px);
-  }
-
-  .hero-stat span {
-    opacity: 0.75;
-    font-weight: 400;
-    font-size: 0.8rem;
-    display: block;
-  }
-
-  .hero-search-wrap {
-    display: flex;
-    gap: 0.6rem;
-    max-width: 500px;
-    margin: 0 auto;
-  }
-
-  .hero-search-wrap input {
-    flex: 1;
-    padding: 0.85rem 1.2rem;
-    border: none;
-    border-radius: 12px;
-    font-size: 0.95rem;
-    outline: none;
-    background: rgba(255, 255, 255, 0.97);
-    color: #1e293b;
-  }
-
-  .hero-search-btn {
-    padding: 0.85rem 1.4rem;
-    background: #f59e0b;
-    color: #1e1e1e;
-    border: none;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 0.95rem;
-    cursor: pointer;
-    transition: background 0.2s;
-    white-space: nowrap;
-  }
-
-  .hero-search-btn:hover {
-    background: #d97706;
-  }
-
-  /* ── Section wrapper ── */
-  .home-section {
-    padding: 2rem 1.5rem;
-    max-width: 1100px;
-    margin: 0 auto;
-    width: 100%;
-    box-sizing: border-box;
-    overflow: hidden;
-  }
-
-  .home-section-title {
-    font-size: 1.15rem;
-    font-weight: 800;
-    color: #0f172a;
-    margin: 0 0 0.25rem;
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-  }
-
-  .home-section-subtitle {
-    font-size: 0.85rem;
-    color: #64748b;
-    margin: 0 0 1.2rem;
-  }
-
-  .home-section-header {
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    margin-bottom: 1.2rem;
-    flex-wrap: wrap;
-    gap: 0.5rem;
-  }
-
-  .home-see-all {
-    font-size: 0.82rem;
-    color: #2563eb;
-    font-weight: 600;
-    text-decoration: none;
-  }
-
-  .home-see-all:hover {
-    text-decoration: underline;
-  }
-
-  /* ── Horizontal scroll card row ── */
-  .hscroll-row {
-    display: flex;
-    gap: 1rem;
-    overflow-x: auto;
-    scroll-snap-type: x mandatory;
-    padding-bottom: 0.75rem;
-    scrollbar-width: thin;
-    scrollbar-color: #cbd5e1 transparent;
-  }
-
-  .hscroll-row::-webkit-scrollbar {
-    height: 4px;
-  }
-
-  .hscroll-row::-webkit-scrollbar-thumb {
-    background: #cbd5e1;
-    border-radius: 4px;
-  }
-
-  /* ── Paper card ── */
-  .pcard {
-    flex: 0 0 240px;
-    scroll-snap-align: start;
-    background: #fff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 1.1rem;
-    text-decoration: none;
-    color: inherit;
-    display: flex;
-    flex-direction: column;
-    gap: 0.6rem;
-    transition: transform 0.25s, box-shadow 0.25s;
-    position: relative;
-    overflow: hidden;
-  }
-
-  .pcard::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #f59e0b, #ef4444);
-  }
-
-  .pcard.notes-card::before {
-    background: linear-gradient(90deg, #10b981, #3b82f6);
-  }
-
-  .pcard.practical-card::before {
-    background: linear-gradient(90deg, #8b5cf6, #ec4899);
-  }
-
-  .pcard:hover {
-    transform: translateY(-4px);
-    box-shadow: 0 12px 28px rgba(0, 0, 0, 0.1);
-  }
-
-  .pcard-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    padding: 3px 8px;
-    border-radius: 6px;
-    background: #fff7ed;
-    color: #c2410c;
-    border: 1px solid #fed7aa;
-    width: fit-content;
-  }
-
-  .pcard-badge.notes {
-    background: #ecfdf5;
-    color: #065f46;
-    border-color: #a7f3d0;
-  }
-
-  .pcard-badge.practical {
-    background: #f5f3ff;
-    color: #6d28d9;
-    border-color: #ddd6fe;
-  }
-
-  .pcard-subject {
-    font-size: 1rem;
-    font-weight: 700;
-    color: #0f172a;
-    line-height: 1.3;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .pcard-name {
-    font-size: 0.78rem;
-    color: #64748b;
-    display: -webkit-box;
-    -webkit-line-clamp: 1;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-  }
-
-  .pcard-footer {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-top: auto;
-    padding-top: 0.6rem;
-    border-top: 1px solid #f1f5f9;
-  }
-
-  .pcard-meta {
-    font-size: 0.75rem;
-    color: #94a3b8;
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-  }
-
-  .pcard-views {
-    font-size: 0.75rem;
-    color: #3b82f6;
-    font-weight: 600;
-    display: flex;
-    align-items: center;
-    gap: 3px;
-  }
-
-  /* ── Tabs ── */
-  .tab-bar {
-    display: flex;
-    gap: 0.4rem;
-    margin-bottom: 1.2rem;
-    flex-wrap: wrap;
-  }
-
-  .tab-btn {
-    padding: 0.45rem 1rem;
-    border: 1.5px solid #e2e8f0;
-    border-radius: 20px;
-    font-size: 0.82rem;
-    font-weight: 600;
-    background: #f8fafc;
-    color: #475569;
-    cursor: pointer;
-    transition: all 0.2s;
-  }
-
-  .tab-btn.active {
-    background: #2563eb;
-    border-color: #2563eb;
-    color: #fff;
-  }
-
-  .tab-panel {
-    display: none;
-  }
-
-  .tab-panel.active {
-    display: block;
-  }
-
-  /* ── Upload CTA Banner ── */
-  .upload-cta {
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    border: 1.5px solid #bae6fd;
-    border-radius: 16px;
-    padding: 1.2rem 1.5rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin-bottom: 2rem;
-  }
-
-  .upload-cta-text {
-    font-size: 0.9rem;
-    color: #0c4a6e;
-    font-weight: 600;
-  }
-
-  .upload-cta-text span {
-    display: block;
-    font-weight: 400;
-    font-size: 0.8rem;
-    color: #0369a1;
-    margin-top: 2px;
-  }
-
-  .upload-cta-btn {
-    background: #0284c7;
-    color: #fff;
-    border: none;
-    padding: 0.6rem 1.2rem;
-    border-radius: 10px;
-    font-weight: 700;
-    font-size: 0.85rem;
-    cursor: pointer;
-    text-decoration: none;
-    white-space: nowrap;
-    transition: background 0.2s;
-  }
-
-  .upload-cta-btn:hover {
-    background: #0369a1;
-  }
-
-  /* ── Notes grid ── */
-  .notes-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-    gap: 1rem;
-  }
-
-  @media (max-width: 640px) {
-    .home-hero {
-      padding: 1.8rem 1rem 2.5rem;
-    }
-
-    .home-section {
-      padding: 1.5rem 1rem;
-    }
-
-    .pcard {
-      flex: 0 0 200px;
-    }
-
-    .notes-grid {
-      grid-template-columns: 1fr 1fr;
-    }
-  }
-
-  @media (max-width: 420px) {
-    .notes-grid {
-      grid-template-columns: 1fr;
-    }
-  }
-</style>
-
-<!-- ── Hero ─────────────────────────────────────────────────── -->
-<div class="home-hero">
-  <div class="home-hero-content">
-    {% if user_data %}
-    <div style="display:inline-flex;align-items:center;gap:.5rem;background:rgba(255,255,255,0.15);backdrop-filter:blur(8px);padding:.35rem .9rem;border-radius:20px;font-size:.8rem;font-weight:600;color:#fff;margin-bottom:1rem;border:1px solid rgba(255,255,255,0.25);">
-      <span>🏛️ {{ user_data.college_name or 'Engineering Hub' }}</span>
-      <span style="opacity:0.5;">|</span>
-      <span style="color:#fef08a;">⚡ Rank #{{ user_data.global_rank }}</span>
-    </div>
-    <h1>
-      {% set hour = (now.hour if now else 12) %}
-      {% if hour < 12 %}🌅{% elif hour < 17 %}☀️{% else %}🌆{% endif %} Hey {{ user_data.name.split()[0] }}, find your papers!
-    </h1>
-    <p style="display:flex;align-items:center;justify-content:center;gap:.5rem;flex-wrap:wrap;margin-bottom:1.5rem;">
-      <span style="background:rgba(239,68,68,0.2);border:1px solid rgba(248,113,113,0.4);color:#fecaca;padding:.2rem .75rem;border-radius:12px;font-weight:700;font-size:.85rem;">
-        ⚡ Only {{ user_data.paper_quota_remaining }} views left today
-      </span>
-      {% if user_data.students_helped > 0 %}
-      <span style="background:rgba(16,185,129,0.2);border:1px solid rgba(52,211,153,0.4);color:#a7f3d0;padding:.2rem .75rem;border-radius:12px;font-weight:600;font-size:.85rem;">
-        🤝 Helped {{ user_data.students_helped }} peers
-      </span>
-      {% endif %}
-    </p>
-    {% else %}
-    <h1>📄 PYQ Papers, Notes & More</h1>
-    <p>Free engineering resources — GHRCE, RTMNU & more colleges</p>
-    {% endif %}
-    <div class="hero-stats">
-      <div class="hero-stat">🔓 {{ paper_count }}<span>Papers Ready</span></div>
-      <div class="hero-stat">📝 {{ notes_count }}<span>Active Notes</span></div>
-      <div class="hero-stat">🔥 Trending<span>College PYQs</span></div>
-    </div>
-    <form class="hero-search-wrap" action="/dashboard"
-      onsubmit="event.preventDefault(); const val=document.getElementById('heroSearchInput').value; const target=document.getElementById('searchFileName'); if(target){ target.value=val; target.dispatchEvent(new Event('input')); } const btn=document.getElementById('searchBtn'); if(btn){ btn.click(); } const sec=document.querySelector('.container_search'); if(sec){ sec.scrollIntoView({behavior:'smooth'}); }">
-      <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
-      <input type="text" id="heroSearchInput" placeholder="Search subjects, PYQ, notes…" autocomplete="off">
-      <button type="submit" class="hero-search-btn">🔍 Search</button>
-    </form>
-  </div>
-</div>
-
-<!-- Ad Placement (Banner) -->
-<div class="home-section" style="padding-top:1rem; padding-bottom:0;">
-  {% if ad_decision.show_ads %}{% include 'ads/banner.html' %}{% endif %}
-</div>
-
-<!-- ── MemoryWall Feature Card ──────────────────────────────── -->
-{% if user_data %}
-<div class="home-section" style="padding-bottom:0;">
-  <a href="{{ url_for('memorywall_dashboard') }}" id="mw-card-link" class="mw-card-link">
-    <div class="mw-highlight-card">
-      <div class="mw-circle mw-circle-1"></div>
-      <div class="mw-circle mw-circle-2"></div>
-      <div class="mw-card-icon">🧠</div>
-      <div class="mw-card-copy">
-        <div class="mw-card-title">
-          MemoryWall
-          <span class="mw-badge-new">NEW</span>
-        </div>
-        <div class="mw-card-subtitle">Let friends describe you in 3 words ✨</div>
-      </div>
-      <div class="mw-card-arrow">›</div>
-    </div>
-  </a>
-</div>
-{% endif %}
-
-<!-- ── Personalized Papers ──────────────────────────────────── -->
-{% if relevant_papers %}
-<div class="home-section">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">
-        {% if user_data and user_data.college_name %}
-        🎓 Papers for {{ user_data.college_name }}
-        {% else %}
-        🔥 Top Papers
-        {% endif %}
-      </div>
-      <div class="home-section-subtitle">Sorted by most viewed · click to read</div>
-    </div>
-    <a href="/store-room?type=pyq{% if user_data and user_data.college_name %}&college={{ user_data.college_name | urlencode }}{% endif %}"
-      class="home-see-all">See all →</a>
-  </div>
-  <div class="hscroll-row">
-    {% for file in relevant_papers %}
-    {% set furl = url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) %}
-    <a href="{{ furl }}" class="pcard">
-      <span class="pcard-badge">📄 PYQ</span>
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="PYQ" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-year="{{ file.get('year','') or file.get('date','')[:4] }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
-      <div class="pcard-subject">{{ file['subject'] }}</div>
-      <div class="pcard-name">{{ file['file-name'] }}</div>
-      <div class="pcard-footer">
-        <span class="pcard-meta">📅 {{ file.get('year','') or file.get('date','')[:4] }}</span>
-        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
-      </div>
-    </a>
-    {% endfor %}
   </div>
 </div>
 {% endif %}
 
-<!-- ── Tabs: For You / Trending / Recent ──────────────────── -->
-<div class="home-section" style="padding-top:0;">
-  <div class="home-section-header">
-    <div class="home-section-title">📚 Browse Papers</div>
-    <a href="/store-room?type=pyq" class="home-see-all">Full library →</a>
-  </div>
-  <div class="tab-bar">
-    <button class="tab-btn active" type="button" data-action="switchTab" data-tab="tab-trending">🔥 Trending</button>
-    <button class="tab-btn" type="button" data-action="switchTab" data-tab="tab-recent">🆕 Recent</button>
-  </div>
-
-  <div id="tab-trending" class="tab-panel active">
-    <div class="hscroll-row">
-      {% for file in trending_papers %}
-      {% set furl = url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) %}
-      <a href="{{ furl }}" class="pcard">
-        <span class="pcard-badge">📄 PYQ</span>
-        <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="PYQ" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-author="{{ file.get('author','')[:15] }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
-        <div class="pcard-subject">{{ file['subject'] }}</div>
-        <div class="pcard-name">{{ file['file-name'] }}</div>
-        <div class="pcard-footer">
-          <span class="pcard-meta">👤 {{ file.get('author','')[:15] }}</span>
-          <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
-        </div>
-      </a>
-      {% else %}
-      <div style="color:#94a3b8;padding:2rem;">No papers yet.</div>
-      {% endfor %}
-    </div>
-  </div>
-
-  <div id="tab-recent" class="tab-panel">
-    <div class="hscroll-row">
-      {% for file in recent_papers %}
-      {% set furl = url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) %}
-      <a href="{{ furl }}" class="pcard">
-        <span class="pcard-badge">📄 PYQ</span>
-        <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="PYQ" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-date="{{ file.get('date','') }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
-        <div class="pcard-subject">{{ file['subject'] }}</div>
-        <div class="pcard-name">{{ file['file-name'] }}</div>
-        <div class="pcard-footer">
-          <span class="pcard-meta">📅 {{ file.get('date','') }}</span>
-          <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
-        </div>
-      </a>
-      {% else %}
-      <div style="color:#94a3b8;padding:2rem;">No papers yet.</div>
-      {% endfor %}
-    </div>
-  </div>
-</div>
-
-<!-- ── Upload CTA ───────────────────────────────────────────── -->
-{% if user_data %}
-<div class="home-section" style="padding-top:0;">
-  <div class="upload-cta">
-    <div class="upload-cta-text">
-      📤 Share a paper, help others
-      <span>You've helped {{ user_data.get('students_helped', 0) }} students. Keep going!</span>
-    </div>
-    <a href="/upload" class="upload-cta-btn">Upload PYQ</a>
-  </div>
-</div>
-{% endif %}
-
-<!-- ── Search ── -->
-<div class="home-section" style="padding-top:0;">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">🔍 Advanced Search</div>
-      <div class="home-section-subtitle">Filter by college, subject, year and more</div>
-    </div>
-  </div>
-  <div class="container_search">
-    {% include 'includes/_search_partial.html' %}
-  </div>
-</div>
-
-<!-- ── Personalized Notes ────────────────────────────────────────── -->
-{% if relevant_notes %}
-<div class="home-section">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">
-        {% if user_data and user_data.college_name %}
-        📚 Notes for {{ user_data.college_name }}
-        {% else %}
-        🔥 Top Notes
-        {% endif %}
-      </div>
-      <div class="home-section-subtitle">Sorted by most viewed · click to read</div>
-    </div>
-    <a href="/store-room?type=notes" class="home-see-all">See all →</a>
-  </div>
-  <div class="hscroll-row">
-    {% for file in relevant_notes %}
-    <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) }}" class="pcard notes-card">
-      <span class="pcard-badge notes">📝 Notes</span>
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="Notes" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
-      <div class="pcard-subject">{{ file['subject'] }}</div>
-      <div class="pcard-name">{{ file['file-name'] }}</div>
-      <div class="pcard-footer">
-        <span class="pcard-meta">📅 {{ file.get('year','') or file.get('date','')[:4] }}</span>
-        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<!-- ── Notes ────────────────────────────────────────────────── -->
-{% if recent_notes %}
-<div class="home-section" style="padding-top:0;">
-  <div class="home-section-header">
-    <div>
-      <div class="home-section-title">🔥 Trending Notes</div>
-      <div class="home-section-subtitle">Most viewed study notes across colleges</div>
-    </div>
-    <a href="/store-room?type=notes" class="home-see-all">See all →</a>
-  </div>
-  <div class="hscroll-row">
-    {% for file in trending_notes %}
-    <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) }}"
-      class="pcard notes-card">
-      <span class="pcard-badge notes">📝 Notes</span>
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="Notes" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
-      <div class="pcard-subject">{{ file['subject'] }}</div>
-      <div class="pcard-name">{{ file['file-name'] }}</div>
-      <div class="pcard-footer">
-        <span class="pcard-meta">👤 {{ file.get('author','')[:15] }}</span>
-        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
-      </div>
-    </a>
-    {% else %}
-    <div style="color:#94a3b8;padding:2rem;">No notes yet.</div>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<!-- ── Practicals ────────────────────────────────────────────── -->
-{% set practicals_files = [] %}
-{% for file in data %}{% if file['type']|lower in ['practical','practicals'] %}{% set _ = practicals_files.append(file)
-%}{% endif %}{% endfor %}
-{% if practicals_files %}
-<div class="home-section" style="padding-top:0;">
-  <div class="home-section-header">
-    <div class="home-section-title">🧪 Practicals</div>
-    {% if practicals_files|length > 6 %}
-    <a href="/store-room?type=practical" class="home-see-all">See all →</a>
-    {% endif %}
-  </div>
-  <div class="hscroll-row">
-    {% for file in practicals_files[:8] %}
-    <a href="{{ url_for('view_pdf', pdf_name=file['file-path'], record_id=file.get('record_id','')) }}"
-      class="pcard practical-card">
-      <span class="pcard-badge practical">🧪 Practical</span>
-      <span class="file-info-icon" data-action="showFileInfo" data-file-name="{{ file['file-name'] }}" data-file-type="Practical" data-file-subject="{{ file['subject'] }}" data-file-college="{{ user_data.college_name if user_data else 'AbhiHub' }}" data-file-author="{{ file.get('author','')[:15] }}" data-file-views="{{ file.get('view_count', 0) }}" title="File info">ℹ️</span>
-      <div class="pcard-subject">{{ file['subject'] }}</div>
-      <div class="pcard-name">{{ file['file-name'] }}</div>
-      <div class="pcard-footer">
-        <span class="pcard-meta">👤 {{ file.get('author','')[:15] }}</span>
-        <span class="pcard-views">👁 {{ file.get('view_count', 0) }}</span>
-      </div>
-    </a>
-    {% endfor %}
-  </div>
-</div>
-{% endif %}
-
-<script>
-  function switchTab(btn, tabId) {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById(tabId)?.classList.add('active');
-  }
-</script>
-
-
-
-<!-- PWA Install Instructions Popup -->
-<div id="pwaInstallPopup" class="pwa-install-popup">
+<!-- PWA Install Popup -->
+<div id="pwaInstallPopup" class="pwa-install-popup" style="display:none;">
   <div class="pwa-popup-content">
     <div class="pwa-popup-header">
       <button class="pwa-popup-close" type="button" data-action="PWAManager.closePWAPopup" aria-label="Close">×</button>
-      <h2 class="pwa-popup-heading">📱 Install AbhiHub App</h2>
-      <p class="pwa-popup-copy">Get the app for better experience</p>
+      <h2 class="pwa-popup-heading">📱 Install AbhiHub Terminal</h2>
+      <p class="pwa-popup-copy">Save AbhiHub directly to your device home screen for lightning offline access</p>
     </div>
     <div class="pwa-popup-body">
       <div id="installInstructions"></div>
@@ -1807,86 +1624,382 @@ notes, practicals, and exam resources for top colleges across India." %}
   </div>
 </div>
 
+<!-- ── 12. Dashboard Interactive Scripts ─────────────────────────────────── -->
 <script>
-  // PWA Installation Manager
-  const PWAManager = {
-    deferredPrompt: null,
-    installButton: null,
+  /* ── 90% Launch Covenant Countdown Timer (Target: 8 Nov 2026 23:59:59 IST) ── */
+  function startCovenantTimer() {
+    const targetDate = new Date('2026-11-08T23:59:59+05:30').getTime();
+    function tick() {
+      const now = new Date().getTime();
+      const diff = Math.max(0, targetDate - now);
+      const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+      const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const mins = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const secs = Math.floor((diff % (1000 * 60)) / 1000);
 
-    init() {
-      this.installButton = document.getElementById('installAppButton');
-      this.setupEventListeners();
-    },
+      const dEl = document.getElementById('covDays');
+      const hEl = document.getElementById('covHours');
+      const mEl = document.getElementById('covMins');
+      const sEl = document.getElementById('covSecs');
+      if (dEl) dEl.textContent = String(days).padStart(2, '0');
+      if (hEl) hEl.textContent = String(hours).padStart(2, '0');
+      if (mEl) mEl.textContent = String(mins).padStart(2, '0');
+      if (sEl) sEl.textContent = String(secs).padStart(2, '0');
+    }
+    tick();
+    setInterval(tick, 1000);
+  }
 
-    setupEventListeners() {
-      window.addEventListener('beforeinstallprompt', this.handleInstallPrompt.bind(this));
-      window.addEventListener('appinstalled', this.handleAppInstalled.bind(this));
+  /* ── Tab Switching ─────────────────────────────────────────── */
+  function switchTab(btn, tabId) {
+    document.querySelectorAll('.deck-tab-button, .tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.tab-panel').forEach(p => {
+      p.classList.remove('active');
+      p.style.display = 'none';
+    });
+    btn.classList.add('active');
+    const panel = document.getElementById(tabId);
+    if (panel) {
+      panel.classList.add('active');
+      panel.style.display = 'block';
+    }
+  }
 
-      if (this.installButton) {
-        this.installButton.addEventListener('click', this.triggerInstall.bind(this));
+  /* ── Author Filter Interactive Logic ───────────────────────── */
+  window.selectAuthorFilter = function (authorName, btn) {
+    document.querySelectorAll('#authorChipsList .author-chip').forEach(c => c.classList.remove('active'));
+    if (btn) btn.classList.add('active');
+
+    const lowerAuth = (authorName || '').trim().toLowerCase();
+    const cards = document.querySelectorAll('#authorFilteredRow .pcard');
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+      const cardAuthor = (card.getAttribute('data-file-author') || '').trim().toLowerCase();
+      if (lowerAuth === 'all' || cardAuthor === lowerAuth || cardAuthor.includes(lowerAuth)) {
+        card.style.display = '';
+        visibleCount++;
+      } else {
+        card.style.display = 'none';
       }
-    },
+    });
 
-    async handleInstallPrompt(event) {
-      event.preventDefault();
-      this.deferredPrompt = event;
-
-      if (this.installButton) {
-        this.installButton.style.display = 'block';
-      }
-    },
-
-    async triggerInstall() {
-      if (!this.deferredPrompt) return;
-
-      try {
-        const result = await this.deferredPrompt.prompt();
-        const { outcome } = await this.deferredPrompt.userChoice;
-
-        if (outcome === 'accepted') {
-          this.handleSuccessfulInstall();
-        }
-      } catch (error) {
-        console.error('Install failed:', error);
-      } finally {
-        this.deferredPrompt = null;
-        this.hideInstallButton();
-      }
-    },
-
-    handleAppInstalled() {
-      localStorage.setItem('appInstalled', 'true');
-      this.hideInstallButton();
-    },
-
-    hideInstallButton() {
-      if (this.installButton) {
-        this.installButton.style.display = 'none';
-      }
-    },
-
-    handleSuccessfulInstall() {
-      localStorage.setItem('appInstalled', 'true');
-      console.log('App installed successfully');
+    const emptyMsg = document.getElementById('authorFilteredEmpty');
+    if (emptyMsg) {
+      emptyMsg.style.display = visibleCount === 0 ? 'block' : 'none';
     }
   };
 
-  // Initialize PWA Manager
-  document.addEventListener('DOMContentLoaded', () => PWAManager.init());
+  window.filterAuthorPills = function () {
+    const q = (document.getElementById('authorSearchFilter')?.value || '').trim().toLowerCase();
+    const chips = document.querySelectorAll('#authorChipsList .author-chip');
+    chips.forEach(chip => {
+      const author = chip.getAttribute('data-author') || '';
+      if (author === 'all' || author.includes(q)) {
+        chip.style.display = '';
+      } else {
+        chip.style.display = 'none';
+      }
+    });
+  };
 
-  // Note: SearchManager is defined in script.js which is loaded via p_struct.html
-  // No need to define it again here
+  /* ── File Information Modal ────────────────────────────────── */
+  window.showFileInfo = function (e, el) {
+    if (e && e.target) { e.stopPropagation(); e.preventDefault(); }
+    const data = (el || e)?.dataset || {};
+    const name = data.fileName || data.file_name || 'Resource';
+    const subject = data.fileSubject || data.file_subject || '-';
+    const author = data.fileAuthor || data.file_author || '-';
+    const year = data.fileYear || data.file_year || data.fileDate || data.file_date || '-';
+    const views = data.fileViews || data.file_views || '0';
+    const ftype = data.fileType || data.file_type || 'PDF';
+    const college = data.fileCollege || data.file_college || '-';
+    const modal = document.getElementById('fileInfoModal');
+    if (!modal) return;
+    let html = '';
+    [['Resource', name], ['Classification', ftype], ['Institution', college], ['Subject', subject],
+     ['Contributor', author], ['Term / Year', year], ['Views', views]]
+      .forEach(([label, val]) => {
+        html += `<div style="display:flex; justify-content:space-between; padding:0.45rem 0; border-bottom:1px solid #f1f5f9; font-size:0.85rem;"><span style="color:#64748b; font-weight:600;">${label}</span><span style="color:#0f172a; font-weight:700; text-align:right;">${val || '-'}</span></div>`;
+      });
+    html += `<div style="margin-top:1rem; padding:0.75rem; background:#f8fafc; border-radius:8px; font-size:0.75rem; color:#64748b; line-height:1.4;">
+      <strong>Academic Covenant:</strong> Verified peer resource shared for study & research under AbhiHub community guidelines.
+    </div>`;
+    const body = modal.querySelector('.file-info-modal-body');
+    if (body) body.innerHTML = html;
+    modal.classList.add('show');
+    document.body.style.overflow = 'hidden';
+  };
+
+  window.closeFileInfo = function () {
+    const modal = document.getElementById('fileInfoModal');
+    if (modal) modal.classList.remove('show');
+    document.body.style.overflow = '';
+  };
+
+  document.addEventListener('click', function (e) {
+    const m = document.getElementById('fileInfoModal');
+    if (m && m.classList.contains('show') && e.target === m) closeFileInfo();
+  });
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape') closeFileInfo();
+  });
+
+  /* ── Exam Pack & Referral Link Growth Logic ─────────────────── */
+  (function () {
+    try {
+      const inv = document.getElementById('examPackInviteBtn');
+      if (inv) {
+        inv.addEventListener('click', function () {
+          const w = document.getElementById('referralWidget');
+          if (w) w.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      }
+
+      async function examPackShareUrl() {
+        try {
+          const r = await fetch('/api/referral/my-code', { credentials: 'same-origin' });
+          const j = await r.json();
+          if (j.success && j.share_url) {
+            const inp = document.getElementById('referralLinkInput');
+            if (inp) inp.value = j.share_url;
+            const prog = document.getElementById('referralProgress');
+            if (prog && (j.referral_count > 0 || j.referral_credits > 0)) {
+              prog.hidden = false;
+              prog.innerHTML = `🎉 <b>${j.referral_count || 0}</b> friend(s) joined • <b>${j.referral_credits || 0}</b> referral credits earned!`;
+            }
+            return j.share_url;
+          }
+        } catch (e) { }
+        const base = location.hostname.indexOf('abhihub') >= 0 ? location.hostname : 'abhihub.edu.eu.org';
+        return 'https://' + base + '/signup';
+      }
+
+      const waBtn = document.getElementById('examPackWaBtn');
+      if (waBtn) {
+        waBtn.addEventListener('click', async function () {
+          const url = await examPackShareUrl();
+          const text = encodeURIComponent('Free engineering exam papers & topper notes on AbhiHub — join here: ' + url);
+          window.open('https://wa.me/?text=' + text, '_blank', 'noopener');
+        });
+      }
+
+      const refWa = document.getElementById('referralShareBtn');
+      if (refWa) {
+        refWa.addEventListener('click', async function (e) {
+          e.preventDefault();
+          const url = await examPackShareUrl();
+          const text = encodeURIComponent('Join AbhiHub for free previous year papers & study notes: ' + url);
+          window.open('https://wa.me/?text=' + text, '_blank', 'noopener');
+        });
+      }
+
+      const copyBtn = document.getElementById('referralCopyBtn');
+      if (copyBtn) {
+        copyBtn.addEventListener('click', async function () {
+          const url = await examPackShareUrl();
+          try {
+            await navigator.clipboard.writeText(url);
+            copyBtn.textContent = 'Copied!';
+            setTimeout(() => { copyBtn.textContent = 'Copy'; }, 2000);
+          } catch (e) {
+            alert('Invite link: ' + url);
+          }
+        });
+      }
+
+      const igBtns = [document.getElementById('examPackIgBtn'), document.getElementById('referralIgBtn')];
+      igBtns.forEach(btn => {
+        if (btn) {
+          btn.addEventListener('click', async function () {
+            const url = await examPackShareUrl();
+            try {
+              await navigator.clipboard.writeText(url);
+              alert('Invite link copied! Share with classmates on Instagram:\n' + url);
+            } catch (e) {
+              alert('Invite link: ' + url);
+            }
+            window.open('https://instagram.com/', '_blank', 'noopener');
+          });
+        }
+      });
+    } catch (e) { }
+  })();
+
+  /* ── Suggested Peers & Classmates Loader ─────────────────────── */
+  (function () {
+    let peersLoaded = false;
+    function loadSuggestedPeers() {
+      if (peersLoaded) return;
+      peersLoaded = true;
+      const grid = document.getElementById('suggestedPeersGrid');
+      if (!grid) return;
+      fetch('/api/chat/search-peers?q=__suggested__', { signal: AbortSignal.timeout(8000) })
+        .then(r => r.json())
+        .then(d => {
+          if (d.success && (d.suggested || []).length) {
+            grid.innerHTML = d.suggested.map(u => {
+              const init = (u.full_name || 'S').charAt(0).toUpperCase();
+              return `<div class="deck-peer-tile" onclick="location.href='/u/${u.id}'" style="cursor:pointer;">
+                <div style="display:flex; align-items:center; gap:0.65rem; margin-bottom:0.5rem;">
+                  <div style="width:36px; height:36px; border-radius:50%; background:#e0f2fe; color:#0369a1; display:flex; align-items:center; justify-content:center; font-weight:700;">${init}</div>
+                  <div style="overflow:hidden;">
+                    <div style="font-weight:700; font-size:0.85rem; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${u.full_name || 'Student'}</div>
+                    <div style="font-size:0.75rem; color:#64748b;">${u.college_name || 'AbhiHub'}</div>
+                  </div>
+                </div>
+                <div style="display:flex; justify-content:space-between; align-items:center; font-size:0.75rem; border-top:1px solid #e2e8f0; padding-top:0.4rem;">
+                  <span style="color:#0284c7; font-weight:600;">⚡ ${u.reputation_score || 0} pts</span>
+                  <a href="/chat/${u.id}" onclick="event.stopPropagation();" style="color:#0284c7; font-weight:700; text-decoration:none;">Chat 💬</a>
+                </div>
+              </div>`;
+            }).join('');
+            const onlineCount = document.getElementById('onlineCount');
+            if (onlineCount) onlineCount.textContent = d.suggested.length + ' peers active';
+          } else {
+            grid.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#94a3b8; grid-column:1/-1; font-size:0.88rem;">No classmates registered yet. Be the first to invite your college peers!</div>';
+          }
+        })
+        .catch(() => {
+          grid.innerHTML = '<div style="text-align:center; padding:1.5rem; color:#94a3b8; grid-column:1/-1; font-size:0.88rem;">Connect with college peers using Find Peers above.</div>';
+        });
+    }
+
+    const gridTarget = document.getElementById('suggestedPeersGrid');
+    if (gridTarget && 'IntersectionObserver' in window) {
+      const observer = new IntersectionObserver((entries, obs) => {
+        if (entries[0].isIntersecting) {
+          loadSuggestedPeers();
+          obs.disconnect();
+        }
+      }, { rootMargin: '250px' });
+      observer.observe(gridTarget);
+    } else {
+      setTimeout(loadSuggestedPeers, 3000);
+    }
+  })();
+
+  /* ── Onboarding Modal ───────────────────────────────────────── */
+  function closeOnboardingModal() {
+    const modal = document.getElementById('welcomeOnboardingModal');
+    if (modal) modal.style.display = 'none';
+  }
+
+  /* ── PWA Installation Manager ───────────────────────────────── */
+  const PWAManager = {
+    deferredPrompt: null,
+    installButton: null,
+    init() {
+      this.installButton = document.getElementById('installAppButton');
+      window.addEventListener('beforeinstallprompt', e => {
+        e.preventDefault();
+        this.deferredPrompt = e;
+        if (this.installButton) this.installButton.style.display = 'block';
+      });
+      window.addEventListener('appinstalled', () => {
+        localStorage.setItem('appInstalled', 'true');
+        if (this.installButton) this.installButton.style.display = 'none';
+      });
+    },
+    closePWAPopup() {
+      const p = document.getElementById('pwaInstallPopup');
+      if (p) p.style.display = 'none';
+    }
+  };
+
+  /* ── App Feedback & Ratings ─────────────────────────────────── */
+  function initFeedbackUI() {
+    const toggleBtn = document.getElementById('toggleFeedbackFormBtn');
+    const formBox = document.getElementById('feedbackFormBox');
+    const cancelBtn = document.getElementById('cancelFeedbackBtn');
+    const starBtns = document.querySelectorAll('.rating-star-btn');
+    const ratingInput = document.getElementById('feedbackRatingValue');
+
+    if (toggleBtn && formBox) {
+      toggleBtn.addEventListener('click', () => {
+        const isHidden = formBox.style.display === 'none' || !formBox.style.display;
+        formBox.style.display = isHidden ? 'block' : 'none';
+      });
+    }
+    if (cancelBtn && formBox) {
+      cancelBtn.addEventListener('click', () => {
+        formBox.style.display = 'none';
+      });
+    }
+
+    starBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const starVal = parseInt(btn.getAttribute('data-star') || '5', 10);
+        if (ratingInput) ratingInput.value = starVal;
+        starBtns.forEach(s => {
+          const sVal = parseInt(s.getAttribute('data-star') || '0', 10);
+          if (sVal <= starVal) {
+            s.classList.add('active');
+          } else {
+            s.classList.remove('active');
+          }
+        });
+      });
+    });
+  }
+
+  async function submitAppFeedback(e) {
+    e.preventDefault();
+    const btn = document.getElementById('submitFeedbackBtn');
+    const name = (document.getElementById('feedbackUserName')?.value || '').trim();
+    const college = (document.getElementById('feedbackUserCollege')?.value || '').trim();
+    const rating = parseInt(document.getElementById('feedbackRatingValue')?.value || '5', 10);
+    const message = (document.getElementById('feedbackMessage')?.value || '').trim();
+
+    if (!message) return;
+    if (btn) { btn.disabled = true; btn.textContent = 'Submitting…'; }
+
+    try {
+      const res = await fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, college, rating, message })
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        const toast = document.getElementById('feedbackToast');
+        if (toast) {
+          toast.style.display = 'flex';
+          setTimeout(() => { toast.style.display = 'none'; }, 3500);
+        }
+        const form = document.getElementById('appFeedbackForm');
+        if (form) form.reset();
+        const formBox = document.getElementById('feedbackFormBox');
+        if (formBox) formBox.style.display = 'none';
+      } else {
+        alert(data.error || 'Failed to submit review.');
+      }
+    } catch (err) {
+      console.error('Feedback submit error:', err);
+      alert('Could not submit feedback. Please check your connection.');
+    } finally {
+      if (btn) { btn.disabled = false; btn.textContent = 'Submit Review 🚀'; }
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    startCovenantTimer();
+    PWAManager.init();
+    initFeedbackUI();
+    // Progressive sync of dashboard live summary
+    fetch('/api/dashboard/summary')
+      .then(r => r.json())
+      .then(res => {
+        if (res.success && res.counts) {
+          const pEl = document.querySelector('.deck-metric-box:nth-child(5) .deck-metric-val');
+          const nEl = document.querySelector('.deck-metric-box:nth-child(6) .deck-metric-val');
+          if (pEl && res.counts.papers !== undefined) pEl.textContent = res.counts.papers;
+          if (nEl && res.counts.notes !== undefined) nEl.textContent = res.counts.notes;
+        }
+      })
+      .catch(() => {});
+  });
 </script>
 
-<style>
-  /* Fix overlapping elements at the bottom of the dashboard */
-  body {
-    padding-bottom: 90px !important;
-  }
-  .dashboard-float-support-btn {
-    bottom: 90px !important;
-  }
-</style>
-
-
+{% include 'includes/_peer_search_modal.html' ignore missing %}
 {% endblock %}

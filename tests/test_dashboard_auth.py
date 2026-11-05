@@ -16,7 +16,6 @@ which bypassed authentication. This gave unauthenticated users access to:
 These tests verify that /dashboard requires authentication.
 """
 import os
-import sys
 import pytest
 
 # Set minimal env before importing app
@@ -26,28 +25,6 @@ os.environ.setdefault('BASE_DOMAIN', 'localhost')
 os.environ.setdefault('SECRET_KEY', 'test-secret-key-for-dashboard-test')
 os.environ.setdefault('FLASK_ENV', 'testing')
 os.environ.setdefault('INDEX_NOW_BING_API_KEY', 'test-indexnow-key')
-
-# Prevent real Firebase/Supabase connections at import
-sys.modules['methods.supabase_helper'] = type(sys)('methods.supabase_helper')
-sys.modules['methods.supabase_helper'].init_supabase = lambda: None
-sys.modules['methods.supabase_helper'].get_all_file_records_formatted = lambda **kw: []
-sys.modules['methods.supabase_helper'].get_student_profile = lambda uid: {'success': False}
-sys.modules['methods.supabase_helper'].calculate_user_ranks = lambda: []
-sys.modules['methods.supabase_helper'].get_reputation_stats = lambda uid: {'success': False}
-sys.modules['data.profiles'] = type(sys)('data.profiles')
-sys.modules['data.profiles'].UserSession = type('UserSession', (), {'log_login': staticmethod(lambda *a, **kw: True)})
-sys.modules['data.documents'] = type(sys)('data.documents')
-sys.modules['data.documents'].Document = type('Document', (), {
-    'get_all_approved': staticmethod(lambda: []),
-    'to_dict': lambda self: {}
-})
-sys.modules['data.interactions'] = type(sys)('data.interactions')
-sys.modules['data.notifications'] = type(sys)('data.notifications')
-sys.modules['data.analytics'] = type(sys)('data.analytics')
-sys.modules['push_api'] = type(sys)('push_api')
-sys.modules['push_api'].init_push_api = lambda app: None
-sys.modules['scheduled_tasks'] = type(sys)('scheduled_tasks')
-sys.modules['scheduled_tasks'].init_scheduler = lambda app: None
 
 import jwt
 
@@ -61,7 +38,7 @@ def client():
     from functools import wraps
 
     test_app = Flask(__name__)
-    test_app.secret_key = 'test-secret'
+    test_app.secret_key = os.getenv('FLASK_SECRET_KEY', 'test-secret')  # Test only — never use this pattern in production
 
     def auth_required(f):
         @wraps(f)
@@ -106,7 +83,7 @@ def fixed_client():
     from functools import wraps
 
     test_app = Flask(__name__)
-    test_app.secret_key = 'test-secret'
+    test_app.secret_key = os.getenv('FLASK_SECRET_KEY', 'test-secret')  # Test only — never use this pattern in production
     test_app.config['TESTING'] = True
 
     def auth_required(f):
@@ -196,12 +173,12 @@ class TestRouteMapIntegrity:
     """Verify the route map itself doesn't have duplicate registrations."""
 
     def test_no_duplicate_dashboard_in_app_py(self):
-        """Static analysis: app.py must not have two @app.route('/dashboard')."""
+        """Static analysis: the dashboard blueprint has one protected route."""
         import ast
-        app_path = os.path.join(os.path.dirname(__file__), '..', 'app.py')
+        app_path = os.path.join(os.path.dirname(__file__), '..', 'routes', 'app_pages.py')
         app_path = os.path.abspath(app_path)
 
-        with open(app_path, 'r') as f:
+        with open(app_path, 'r', encoding='utf-8') as f:
             tree = ast.parse(f.read())
 
         dashboard_count = 0
@@ -219,10 +196,10 @@ class TestRouteMapIntegrity:
                                     dashboard_handlers.append((node.name, node.lineno))
 
         assert dashboard_count <= 1, \
-            f"Multiple /dashboard routes found: {dashboard_handlers}. " \
-            f"Only one /dashboard route should exist to prevent auth bypass."
+            f"Multiple exact /dashboard routes found: {dashboard_handlers}. " \
+            f"Only one exact dashboard route should exist to prevent auth bypass."
         assert dashboard_count == 1, \
-            f"Expected exactly 1 /dashboard route, found {dashboard_count}"
+            f"Expected exactly 1 exact /dashboard route, found {dashboard_count}"
 
 
 if __name__ == '__main__':

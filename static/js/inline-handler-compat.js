@@ -1,18 +1,18 @@
-    /**
-     * inline-handler-compat.js
+/**
  * inline-handler-compat.js
- * ========================
- * Replaces inline onclick="" handlers with delegated event listeners.
- *
- * Usage:  Replace onclick="myFunction()" with data-action="myFunction"
- *         The script auto-attaches a click listener from window scope.
- *
- * This is a progressive migration path: templates can be converted one at
- * a time while the script maintains backward compatibility with any
- * remaining inline handlers.
- *
- * Loaded in p_struct.html on all pages.
- */
+* inline-handler-compat.js
+* ========================
+* Replaces inline onclick="" handlers with delegated event listeners.
+*
+* Usage:  Replace onclick="myFunction()" with data-action="myFunction"
+*         The script auto-attaches a click listener from window scope.
+*
+* This is a progressive migration path: templates can be converted one at
+* a time while the script maintains backward compatibility with any
+* remaining inline handlers.
+*
+* Loaded in p_struct.html on all pages.
+*/
 
 (function () {
     'use strict';
@@ -168,16 +168,16 @@
         },
         viewPeerDetail: function (e, el) {
             var userId = el.getAttribute('data-user-id');
-            if (userId) { window.location.href = '/peer/' + userId; }
+            if (userId) { window.location.href = '/u/' + userId; }
         },
         toggleLike: function (e, el) {
             e.stopPropagation();
-            var recordId = el.getAttribute('data-record-id');
+            var recordId = el.getAttribute('data-record-id') || el.getAttribute('data-doc-id') || el.getAttribute('data-file-id');
             if (typeof window.toggleLike === 'function') window.toggleLike(e, recordId);
         },
         toggleBookmark: function (e, el) {
             e.stopPropagation();
-            var recordId = el.getAttribute('data-record-id');
+            var recordId = el.getAttribute('data-record-id') || el.getAttribute('data-doc-id') || el.getAttribute('data-file-id');
             if (typeof window.toggleBookmark === 'function') window.toggleBookmark(e, recordId);
         },
         openComments: function (e, el) {
@@ -453,9 +453,6 @@
         copyLink: function (e, el) {
             if (typeof window.copyLink === 'function') window.copyLink();
         },
-        openSupportModal: function (e, el) {
-            if (typeof window.openSupportModal === 'function') window.openSupportModal();
-        },
         selectPeer: function (e, el) {
             var peerId = el.getAttribute('data-peer-id');
             if (peerId && typeof window.selectPeer === 'function') window.selectPeer(peerId);
@@ -512,7 +509,7 @@
         var action = el.getAttribute('data-action');
         if (!action) return;
         if (el.hasAttribute('data-listener-attached')) return;
-        var fn = resolveAction(action) || builtInActions[action];
+        var fn = builtInActions[action] || resolveAction(action);
         if (!fn) return;
         el.addEventListener('click', function (e) {
             if (el.tagName === 'A' && el.getAttribute('href') === '#') e.preventDefault();

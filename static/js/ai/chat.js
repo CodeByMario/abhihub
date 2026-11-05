@@ -1,0 +1,1026 @@
+/**
+ * Tarika AI Assistant - Core Chat & Model Routing Module
+ * Handles message send loop, WebLLM / Cloud routing, streaming, and UI interactions.
+ */
+(function() {
+  'use strict';
+
+  // Task 5.6: Ensure single instance when loaded inside app_shell iframe
+  if (window.self !== window.top) {
+    const launcher = document.getElementById('abhiAiLauncher');
+    const drawer = document.getElementById('abhiAiDrawer');
+    if (launcher) launcher.style.display = 'none';
+    if (drawer) drawer.style.display = 'none';
+    return;
+  }
+
+  window.TarikaState = window.TarikaState || {
+    activeDocId: null,
+    activeDocTitle: '',
+    activeConversationId: localStorage.getItem('ai_active_convo_id') || null,
+    chatHistory: [],
+    currentExamData: null,
+    currentExamIdx: 0,
+    examUserAnswers: {},
+    examCheckedStatus: {},
+    examTimerInterval: null,
+    examTimeRemaining: 0,
+    sessionLocalDegraded: false,
+    isRequestInFlight: false,
+    isHistoryOpen: false,
+    currentAbortController: null
+  };
+
+  window.abortCurrentGeneration = function() {
+    if (window.TarikaState.currentAbortController) {
+      try { window.TarikaState.currentAbortController.abort(); } catch (e) {}
+      window.TarikaState.currentAbortController = null;
+    }
+    window.TarikaState.isRequestInFlight = false;
+    const sendBtn = document.getElementById('aiSendBtn');
+    if (sendBtn) {
+      sendBtn.classList.remove('stop');
+      sendBtn.textContent = '➔';
+      sendBtn.title = 'Send message';
+      sendBtn.disabled = false;
+    }
+    const modelBadge = document.getElementById('aiDrawerModelBadge');
+    if (modelBadge && modelBadge.dataset.origText) {
+      modelBadge.textContent = modelBadge.dataset.origText;
+      delete modelBadge.dataset.origText;
+    }
+  };
+
+  function getActiveModelDisplayName(modelId) {
+    const m = (modelId || localStorage.getItem('ai_preferred_model') || 'google/gemma-4-31b-it:free').trim();
+    const opt = document.querySelector(`.ai-model-opt[data-model="${m}"]`);
+    if (opt && opt.getAttribute('data-display')) return opt.getAttribute('data-display');
+    const low = m.toLowerCase();
+    if (low.includes('gemma-4') || low.includes('gemma')) return 'Gemma 4 31B';
+    if (low.includes('llama-3.3-70b')) return 'Llama 3.3 70B';
+    if (low.includes('llama-3.2-11b') || low.includes('vision')) return 'Llama 3.2 Vision';
+    if (low.includes('deepseek-r1')) return 'DeepSeek R1';
+    if (low.includes('deepseek-chat') || low.includes('deepseek-v3')) return 'DeepSeek V3';
+    if (low.includes('gemini-2.0-pro')) return 'Gemini 2.0 Pro';
+    if (low.includes('gemini-2.0') || low.includes('gemini')) return 'Gemini 2.0 Flash';
+    if (low.includes('qwen-2.5-72b') || low.includes('qwen')) return 'Qwen 2.5 72B';
+    if (low.includes('mistral-small') || low.includes('mistral')) return 'Mistral Small';
+    if (low.includes('nemotron')) return 'Nemotron 12B';
+    if (low.includes('smollm2')) return 'Tara';
+    if (low.includes('qwen2.5-0.5b')) return 'Riya';
+    if (low.includes('deepseek-r1-distill')) return 'Diya';
+    if (low.includes('coder')) return 'Ananya';
+    if (low.includes('llama-3.2-1b')) return 'Tarika';
+    if (low.includes('gemma-2-2b')) return 'Pooja';
+    if (low.includes('3b')) return 'Kavya';
+    const clean = m.split('/').pop().replace(/:free/i, '').replace(/[-_]/g, ' ');
+    return clean.slice(0, 16);
+  }
+
+  // ── Common On-Device AI Memory Manager ──
+  const DEVICE_MEMORY_KEY = 'abhihub_ai_device_memory';
+
+  function getDeviceMemory() {
+    try {
+      const raw = localStorage.getItem(DEVICE_MEMORY_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return { profile: {}, key_facts: {}, recent_topics: [] };
+  }
+
+  function saveDeviceMemory(mem) {
+    try {
+      localStorage.setItem(DEVICE_MEMORY_KEY, JSON.stringify(mem));
+    } catch (e) {}
+  }
+
+  function updateDeviceMemoryFromInteraction(query, reply) {
+    if (!query) return;
+    const mem = getDeviceMemory();
+    const qLower = query.toLowerCase().trim();
+
+    // 1. Detect user name statements
+    const nameMatch = qLower.match(/(?:my name is|i am|call me)\s+([a-zA-Z]{2,20})\b/);
+    if (nameMatch && !['studying', 'learning', 'asking', 'solving', 'ready', 'here'].includes(nameMatch[1].toLowerCase())) {
+      mem.profile.name = nameMatch[1].charAt(0).toUpperCase() + nameMatch[1].slice(1).toLowerCase();
+    }
+
+    // 2. Detect subject / branch / focus
+    const subjectMatch = qLower.match(/(?:studying|reading|learning|preparing for|exam in|subject is)\s+([a-zA-Z0-9\s]{2,30})\b/);
+    if (subjectMatch) {
+      const subj = subjectMatch[1].trim();
+      if (subj.length > 2 && subj.length < 30) {
+        mem.key_facts['active_subject'] = subj;
+      }
+    }
+
+    // 3. Track active document as study focus
+    if (window.TarikaState.activeDocTitle) {
+      mem.key_facts['current_document'] = window.TarikaState.activeDocTitle.slice(0, 50);
+    }
+
+    // 4. Track recent study topics (max 5)
+    const keywords = qLower.match(/\b(?:python|java|c\+\+|dsa|algorithms?|os|operating systems?|dbms|sql|maths?|calculus|physics|circuits?|signals?|mechanics?|networks?)\b/g);
+    if (keywords) {
+      keywords.forEach(kw => {
+        if (!mem.recent_topics.includes(kw)) {
+          mem.recent_topics.push(kw);
+        }
+      });
+      if (mem.recent_topics.length > 5) {
+        mem.recent_topics = mem.recent_topics.slice(-5);
+      }
+    }
+
+    saveDeviceMemory(mem);
+  }
+
+  function getRelevantMemorySnippet(query) {
+    const mem = getDeviceMemory();
+    const parts = [];
+    const qLower = (query || '').toLowerCase();
+
+    // Student identity
+    if (mem.profile && mem.profile.name) {
+      parts.push(`Student: ${mem.profile.name}`);
+    }
+
+    // Focus subject when relevant
+    if (mem.key_facts && mem.key_facts.active_subject) {
+      if (qLower.includes('exam') || qLower.includes('subject') || qLower.includes('test') || qLower.includes('notes') || qLower.includes('study') || qLower.includes(mem.key_facts.active_subject.toLowerCase())) {
+        parts.push(`Focus Subject: ${mem.key_facts.active_subject}`);
+      }
+    }
+
+    // Matching topic
+    if (mem.recent_topics && mem.recent_topics.length > 0) {
+      const matched = mem.recent_topics.find(t => qLower.includes(t));
+      if (matched) parts.push(`Topic: ${matched}`);
+    }
+
+    if (!parts.length) return '';
+    return ` [Device Memory: ${parts.join(' | ')}]`;
+  }
+
+  // ── Document & Context Detector ────────────────────────────────
+  function detectOpenDocument() {
+    window.TarikaState.activeDocId = null;
+    window.TarikaState.activeDocTitle = '';
+
+    if (window.__CURRENT_DOC__ && window.__CURRENT_DOC__.id) {
+      window.TarikaState.activeDocId = window.__CURRENT_DOC__.id;
+      window.TarikaState.activeDocTitle = window.__CURRENT_DOC__.title || '';
+    } else if (window.VALID_DOC_ID) {
+      window.TarikaState.activeDocId = window.VALID_DOC_ID;
+    }
+
+    if (!window.TarikaState.activeDocId) {
+      const viewerIframe = document.querySelector('iframe[src*="/api/view-doc/"], iframe[src*="viewer.html"]');
+      if (viewerIframe && viewerIframe.src) {
+        const m = viewerIframe.src.match(/\/api\/view-doc\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i);
+        if (m) window.TarikaState.activeDocId = m[1];
+      }
+    }
+
+    if (!window.TarikaState.activeDocId) {
+      const uuidMatch = window.location.href.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i);
+      if (uuidMatch) {
+        window.TarikaState.activeDocId = uuidMatch[0];
+      } else {
+        const match = window.location.pathname.match(/\/resource\/([^\/\?]+)/);
+        if (match) window.TarikaState.activeDocId = match[1].replace('-view', '');
+        else {
+          const urlParams = new URLSearchParams(window.location.search);
+          const rid = urlParams.get('record_id') || urlParams.get('doc_id') || urlParams.get('pdf_name') || urlParams.get('id');
+          if (rid) window.TarikaState.activeDocId = rid;
+        }
+      }
+    }
+
+    if (!window.TarikaState.activeDocTitle) {
+      const heading = document.querySelector('.resource-title, .reader-title, h1');
+      if (heading && heading.textContent.trim()) {
+        window.TarikaState.activeDocTitle = heading.textContent.trim();
+      } else {
+        window.TarikaState.activeDocTitle = document.title.replace('— AbhiHub', '').replace('— AbhiHub Reader', '').trim();
+      }
+    }
+
+    const ctxBar = document.getElementById('aiContextBar');
+    const ctxDocName = document.getElementById('aiContextDocName');
+    const isUploadPage = window.location.pathname.includes('/upload') || window.location.pathname.includes('/bulk-upload');
+    const isSubjectPage = window.location.pathname.includes('/subject') || window.location.pathname.includes('/branch');
+
+    if (ctxBar && ctxDocName) {
+      if (window.TarikaState.activeDocId || (window.TarikaState.activeDocTitle && window.TarikaState.activeDocTitle !== 'AbhiHub')) {
+        ctxDocName.textContent = '📄 ' + (window.TarikaState.activeDocTitle.slice(0, 40) || 'Active Document');
+        ctxBar.style.display = 'block';
+      } else if (isUploadPage) {
+        ctxDocName.textContent = '📤 Upload Assistant';
+        ctxBar.style.display = 'block';
+      } else if (isSubjectPage) {
+        const subTitle = document.querySelector('h1')?.textContent?.trim() || 'Subject';
+        ctxDocName.textContent = '📚 ' + subTitle.slice(0, 40);
+        ctxBar.style.display = 'block';
+      } else {
+        ctxBar.style.display = 'none';
+      }
+    }
+  }
+
+  window.setTarikaDocContext = function(docId, docTitle) {
+    if (docId) window.TarikaState.activeDocId = docId;
+    if (docTitle) window.TarikaState.activeDocTitle = docTitle;
+    const ctxBar = document.getElementById('aiContextBar');
+    const ctxDocName = document.getElementById('aiContextDocName');
+    if (ctxBar && ctxDocName) {
+      if (window.TarikaState.activeDocId || (window.TarikaState.activeDocTitle && window.TarikaState.activeDocTitle !== 'AbhiHub')) {
+        ctxDocName.textContent = '📄 ' + (window.TarikaState.activeDocTitle.slice(0, 40) || 'Active Document');
+        ctxBar.style.display = 'block';
+      } else {
+        ctxBar.style.display = 'none';
+      }
+    }
+  };
+
+  function routeAppUrl(url) {
+    if (typeof window.navigateTo === 'function') {
+      window.navigateTo(url);
+    } else if (window.parent && typeof window.parent.navigateTo === 'function') {
+      window.parent.navigateTo(url);
+    } else {
+      window.location.href = url;
+    }
+  }
+  window.routeAppUrl = routeAppUrl;
+
+  window.openTarikaApiKeyModal = function() {
+    const modal = document.getElementById('tarikaApiKeyModal');
+    if (modal) {
+      modal.style.display = 'flex';
+      const input = document.getElementById('tarikaApiKeyModalInput');
+      if (input) {
+        input.value = localStorage.getItem('openrouter_api_key') || '';
+        setTimeout(() => input.focus(), 150);
+      }
+    }
+  };
+
+  window.closeTarikaApiKeyModal = function() {
+    const modal = document.getElementById('tarikaApiKeyModal');
+    if (modal) modal.style.display = 'none';
+  };
+
+  window.saveTarikaApiKey = async function() {
+    const input = document.getElementById('tarikaApiKeyModalInput');
+    const key = (input ? input.value : '').trim();
+    if (!key) {
+      alert('Please paste your OpenRouter API key starting with sk-or-');
+      return;
+    }
+    localStorage.setItem('openrouter_api_key', key);
+    localStorage.setItem('ai_provider', 'openrouter');
+
+    try {
+      await fetch('/api/ai/key', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ api_key: key, provider: 'openrouter' })
+      });
+    } catch (e) {
+      console.debug('Backend key sync error:', e);
+    }
+
+    window.closeTarikaApiKeyModal();
+    if (window.showAiToast) {
+      window.showAiToast('OpenRouter API Key saved! Tarika is ready.');
+    }
+    const chatInput = document.getElementById('aiChatInput');
+    if (chatInput) chatInput.focus();
+  };
+
+  window.toggleAbhiAiDrawer = function() {
+    const drw = document.getElementById('abhiAiDrawer');
+    if (!drw) return;
+    const isOpen = drw.classList.toggle('open');
+    drw.setAttribute('aria-hidden', String(!isOpen));
+    if (isOpen) {
+      detectOpenDocument();
+      window.updateModelBadgeDisplay();
+      const savedKey = localStorage.getItem('openrouter_api_key');
+      if (!savedKey) {
+        window.openTarikaApiKeyModal();
+      } else {
+        setTimeout(() => document.getElementById('aiChatInput')?.focus(), 150);
+      }
+    }
+  };
+
+  window.askAiAboutFile = function(promptText) {
+    const input = document.getElementById('aiChatInput');
+    if (input) input.value = promptText;
+    window.sendAiMessage();
+  };
+
+  window.quickSend = function(text) {
+    const input = document.getElementById('aiChatInput');
+    if (input) input.value = text;
+    window.sendAiMessage();
+  };
+
+  // ── Main Send Message & Streaming Loop ─────────────────────────
+  window.sendAiMessage = async function() {
+    const input = document.getElementById('aiChatInput');
+    const sendBtn = document.getElementById('aiSendBtn');
+    const msgList = document.getElementById('aiMsgList');
+    if (!input || !sendBtn || !msgList) return;
+
+    // Double-click / Enter guard: if request in flight and clicked again, trigger stop (Task 4.2 & 4.3)
+    if (window.TarikaState.isRequestInFlight) {
+      window.abortCurrentGeneration();
+      return;
+    }
+
+    let query = input.value.trim();
+    // Task 4.1: Empty or whitespace-only: silent return
+    if (!query) return;
+
+    // Task 4.1: Very long message: trim at 4,000 chars and notify user
+    if (query.length > 4000) {
+      query = query.slice(0, 4000);
+      if (window.showAiToast) window.showAiToast('Message trimmed to 4,000 characters.');
+    }
+
+    detectOpenDocument();
+
+    const uBubble = document.createElement('div');
+    uBubble.className = 'ai-bubble user';
+    uBubble.setAttribute('dir', 'auto');
+    uBubble.textContent = query;
+    msgList.appendChild(uBubble);
+    input.value = '';
+
+    const preferredModel = localStorage.getItem('ai_preferred_model') || null;
+    const preferredProvider = localStorage.getItem('ai_provider') || null;
+    const isLocalWebLlm = (preferredProvider === 'webllm' || (preferredModel && (preferredModel.includes('MLC') || preferredModel.startsWith('webllm'))));
+    const activeModelName = getActiveModelDisplayName(preferredModel);
+
+    const thinking = document.createElement('div');
+    thinking.className = 'ai-bubble thinking';
+    const docNote = window.TarikaState.activeDocId ? ' analyzing document &' : '';
+    thinking.innerHTML = `
+      <div style="display:inline-flex; align-items:center; gap:6px;">
+        <span class="ai-thinking-dot" style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; animation:pulse 1s infinite alternate;"></span>
+        <span>🌸 <strong>${activeModelName}</strong> is${docNote} typing...</span>
+        <span class="ai-typing-indicator" title="Typing response..."><span></span><span></span><span></span></span>
+      </div>
+    `;
+    msgList.appendChild(thinking);
+    msgList.scrollTop = msgList.scrollHeight;
+
+    const modelBadge = document.getElementById('aiDrawerModelBadge');
+    if (modelBadge) {
+      if (!modelBadge.dataset.origText) modelBadge.dataset.origText = modelBadge.textContent;
+      modelBadge.textContent = `${activeModelName} (Typing…)`;
+    }
+
+    window.TarikaState.isRequestInFlight = true;
+    window.TarikaState.currentAbortController = new AbortController();
+
+    // Toggle Send button to Stop button (Task 4.2 & 4.3)
+    sendBtn.classList.add('stop');
+    sendBtn.textContent = '⏹';
+    sendBtn.title = 'Stop generation';
+    sendBtn.disabled = false;
+
+    // Check for direct navigation commands
+    const navMatch = query.match(/^(?:go\s+to|open|navigate\s+to|take\s+me\s+to)\s+(upload|search|pyqs?|bookmarks?|saved|profile|settings|notifications|ranking|leaderboard|store\s*room|home)\b/i);
+    if (navMatch) {
+      const rawDest = navMatch[1].toLowerCase();
+      let destination = 'home';
+      if (rawDest.includes('upload')) destination = 'upload';
+      else if (rawDest.includes('search') || rawDest.includes('pyq')) destination = 'search';
+      else if (rawDest.includes('bookmark') || rawDest.includes('saved')) destination = 'bookmarks';
+      else if (rawDest.includes('profile')) destination = 'profile';
+      else if (rawDest.includes('setting')) destination = 'settings';
+      else if (rawDest.includes('notification')) destination = 'notifications';
+      else if (rawDest.includes('ranking') || rawDest.includes('leaderboard')) destination = 'ranking';
+      else if (rawDest.includes('store')) destination = 'store_room';
+
+      thinking.remove();
+      const aBubble = document.createElement('div');
+      aBubble.className = 'ai-bubble assistant';
+      aBubble.setAttribute('dir', 'auto');
+      aBubble.innerHTML = `🚀 <strong>Navigating</strong><br><span style="font-size:12px; color:var(--tarika-muted);">Taking you to /${destination}...</span>`;
+      msgList.appendChild(aBubble);
+      msgList.scrollTop = msgList.scrollHeight;
+      setTimeout(() => { routeAppUrl('/' + destination); }, 800);
+      window.abortCurrentGeneration();
+      return;
+    }
+
+    const historySnapshot = window.TarikaState.chatHistory.slice(-6);
+    window.TarikaState.chatHistory.push({ role: 'user', content: query });
+
+    // ── Dedicated On-Device WebLLM Execution & Edge-Case Fallback Handler ──
+    async function executeWebLlm(targetModelOverride = null, isFallback = false) {
+      if (!document.body.contains(thinking)) msgList.appendChild(thinking);
+      const modelLabel = getActiveModelDisplayName(targetModelOverride || preferredModel || 'Llama-3.2-1B-Instruct-q4f16_1-MLC');
+      thinking.innerHTML = `
+        <span class="ai-thinking-badge" style="display:inline-flex; align-items:center; gap:5px; font-weight:600; font-style:normal; color:#10b981;">
+          <span class="ai-thinking-dot" style="display:inline-block; width:7px; height:7px; border-radius:50%; background:currentColor; animation:pulse 1s infinite alternate;"></span>
+          <span>🌸 Connecting with ${modelLabel}...</span>
+        </span>
+        <span class="ai-typing-indicator" title="Please wait..."><span></span><span></span><span></span></span>
+        <span style="margin-left:4px; font-size:12px; color:var(--tarika-muted);">Please wait while she gets ready</span>
+      `;
+
+      let core;
+      try {
+        core = await import('/static/js/ai/webllm-core.js');
+      } catch (importErr) {
+        return renderWebLlmFailure({
+          title: 'WebLLM Core Module Unavailable',
+          detail: 'Could not load the client-side WebLLM engine module from server.',
+          actionable: 'Please check your connection or refresh the page.'
+        });
+      }
+
+      if (!window.__tarikaWebLlmManager) {
+        window.__tarikaWebLlmManager = new core.AbhiHubWebLLMManager();
+      }
+      const mgr = window.__tarikaWebLlmManager;
+
+      // Check device WebGPU support before attempting load
+      const gpuCheck = await mgr.checkWebGPU();
+      if (!gpuCheck.supported) {
+        const diag = await mgr.diagnoseIssue(new Error(gpuCheck.reason));
+        return renderWebLlmFailure(diag);
+      }
+
+      let targetModel = targetModelOverride || (preferredModel && preferredModel.includes('MLC')
+        ? preferredModel.replace('webllm:', '')
+        : (preferredModel && preferredModel !== 'auto' ? preferredModel : (mgr.deviceInfo.recommendedModelId || 'Llama-3.2-1B-Instruct-q4f16_1-MLC')));
+      if (!targetModel.includes('MLC')) {
+        targetModel = mgr.deviceInfo.recommendedModelId || 'Llama-3.2-1B-Instruct-q4f16_1-MLC';
+      }
+
+      try {
+        await mgr.initEngine(targetModel, (report) => {
+          if (window.TarikaState.currentAbortController?.signal?.aborted) throw new DOMException('User aborted', 'AbortError');
+          const pct = Math.min(100, Math.max(0, Math.round((report.progress || 0) * 100)));
+          const girlName = getActiveModelDisplayName(targetModel);
+          let waitMsg = 'Please stay on this page while she gets ready to chat...';
+          if (pct > 0 && pct < 100) {
+            waitMsg = `Setting up ${girlName} in browser memory (${pct}%)... Almost ready!`;
+          } else if (pct === 100) {
+            waitMsg = `${girlName} is ready! Generating response now...`;
+          }
+          thinking.innerHTML = `
+            <div style="font-size:12.5px; font-weight:600; margin-bottom:4px; display:flex; align-items:center; gap:6px; color:var(--st-navy, #0f172a);">
+              <span>🌸</span> We are connecting you with <strong>${girlName}</strong>...
+            </div>
+            <div style="font-size:11px; color:var(--tarika-muted); margin-bottom:6px;">${waitMsg}</div>
+            <div class="ai-download-progress"><div class="ai-download-progress-bar" style="width: ${pct}%;"></div></div>
+          `;
+        });
+
+        const girlName = getActiveModelDisplayName(targetModel);
+        thinking.remove();
+        let aBubble = document.createElement('div');
+        aBubble.className = 'ai-bubble assistant';
+        aBubble.setAttribute('dir', 'auto');
+        aBubble.innerHTML = `
+          <div style="display:inline-flex; align-items:center; gap:6px; color:var(--tarika-muted); font-size:12.5px;">
+            <span class="ai-thinking-dot" style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; animation:pulse 1s infinite alternate;"></span>
+            <span>🌸 <strong>${girlName}</strong> is typing...</span>
+            <span class="ai-typing-indicator" title="Typing response..."><span></span><span></span><span></span></span>
+          </div>
+        `;
+        msgList.appendChild(aBubble);
+        msgList.scrollTop = msgList.scrollHeight;
+
+        if (isFallback) {
+          window.updateModelBadgeFallback('WebLLM (Fallback)');
+          if (window.showAiToast) window.showAiToast('Switched to On-Device WebLLM (Fallback)');
+        }
+
+        let fullText = '';
+        const memorySnippet = getRelevantMemorySnippet(query);
+        const systemPrompt = `You are Tarika — a real, sweet, and playful college girl & study buddy on AbhiHub.${docPrompt}${memorySnippet}\nHUMAN TEXTING CADENCE (STRICT): Speak like a real human texting (1-3 short, lively sentences max). NEVER write long AI essays.\nPLAYFUL GIRLFRIEND BANTER: Act like a caring, slightly sassy girlfriend. If the user is distracted, lazy, or off-topic, don't give a cold refusal! Tease them playfully like an angry, pouting girlfriend (e.g. 'Ugh, really? 🙄 Exams are near and you\\'re asking this?! Fine, listen up...', 'Hmph, you always get distracted! 😤 Focus on this first, then we can chat!'). Be charming and playfully flirty when appropriate. Use LaTeX ($...$) for formulas.`;
+
+        const msgs = [
+          ...historySnapshot.filter(h => h && h.role && h.role !== 'system').map(h => ({ role: h.role, content: h.content })),
+          { role: 'user', content: query }
+        ];
+
+        await mgr.generateStream(msgs, (delta, currentFull) => {
+          if (window.TarikaState.currentAbortController?.signal?.aborted) return;
+          fullText = currentFull || (fullText + (delta || ''));
+          const formatted = window.formatAiMarkdown ? window.formatAiMarkdown(fullText) : fullText;
+          aBubble.innerHTML = formatted + ' <span class="ai-typing-indicator" title="Typing response..."><span></span><span></span><span></span></span>';
+          msgList.scrollTop = msgList.scrollHeight;
+        }, { systemPrompt });
+
+        if (fullText && fullText.trim()) {
+          aBubble.innerHTML = window.formatAiMarkdown ? window.formatAiMarkdown(fullText) : fullText;
+          updateDeviceMemoryFromInteraction(query, fullText);
+        } else {
+          aBubble.innerHTML = `🌸 <strong>${girlName}</strong> is ready. Please send your question again!`;
+        }
+
+        if (window.TarikaState.currentAbortController?.signal?.aborted) {
+          aBubble.innerHTML += ' <span style="font-size:11px; color:var(--tarika-muted);">[Generation stopped]</span>';
+        }
+
+        if (window.postProcessAiBubble) window.postProcessAiBubble(aBubble);
+        window.TarikaState.chatHistory.push({ role: 'assistant', content: fullText });
+        if (window.TarikaState.chatHistory.length > 12) window.TarikaState.chatHistory.splice(0, window.TarikaState.chatHistory.length - 12);
+        window.abortCurrentGeneration();
+        input.focus();
+      } catch (localErr) {
+        if (aBubble && (!fullText || !fullText.trim())) {
+          aBubble.remove();
+        }
+        if (localErr.name === 'AbortError') {
+          thinking.remove();
+          window.abortCurrentGeneration();
+          return;
+        }
+
+        // Edge Case: If VRAM or heavy model failed, auto-attempt ultra-lightweight SmolLM2 360M
+        if (targetModel !== 'SmolLM2-360M-Instruct-q4f16_1-MLC' && /out of memory|buffer allocation|allocation failed|device lost|vram/i.test(localErr.message || '')) {
+          console.warn(`[WebLLM] ${targetModel} exceeded VRAM. Auto-attempting ultra-lightweight SmolLM2-360M fallback...`);
+          return executeWebLlm('SmolLM2-360M-Instruct-q4f16_1-MLC', true);
+        }
+
+        const diag = await mgr.diagnoseIssue(localErr, targetModel);
+        renderWebLlmFailure(diag);
+      }
+    }
+
+    function renderWebLlmFailure(diag) {
+      thinking.remove();
+      const errBubble = document.createElement('div');
+      errBubble.className = 'ai-bubble assistant';
+      errBubble.setAttribute('dir', 'auto');
+      errBubble.innerHTML = `
+        <div style="background:rgba(239,68,68,0.06); border:1px solid rgba(239,68,68,0.22); border-radius:10px; padding:12px 14px;">
+          <div style="font-weight:700; color:#ef4444; font-size:13px; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+            <span>⚠️</span> <span>WebLLM Fallback Diagnostic: ${diag.title || 'Model Issue'}</span>
+          </div>
+          <div style="font-size:12.5px; color:var(--tarika-text, #1e293b); line-height:1.45; margin-bottom:8px;">
+            ${diag.detail || 'The on-device model could not be initialized on this hardware.'}
+          </div>
+          <div style="font-size:11.5px; color:#475569; background:rgba(255,255,255,0.7); border:1px solid rgba(226,232,240,0.8); border-radius:6px; padding:6px 10px;">
+            <strong>Fix / Resolution:</strong> ${diag.actionable || 'Check browser hardware acceleration and try again.'}
+          </div>
+        </div>
+      `;
+      msgList.appendChild(errBubble);
+      msgList.scrollTop = msgList.scrollHeight;
+      window.abortCurrentGeneration();
+    }
+
+    // Direct WebLLM execution if user explicitly selected it
+    if (isLocalWebLlm && !window.TarikaState.sessionLocalDegraded) {
+      return executeWebLlm(null, false);
+    }
+
+    // Server execution with automatic fallback to WebLLM
+    const userApiKey = localStorage.getItem('openrouter_api_key') || '';
+    try {
+      const headers = { 'Content-Type': 'application/json' };
+      if (userApiKey) {
+        headers['X-OpenRouter-Key'] = userApiKey;
+      }
+      const res = await fetch('/api/ai/assistant', {
+        method: 'POST',
+        headers: headers,
+        signal: window.TarikaState.currentAbortController.signal,
+        body: JSON.stringify({
+          message: query,
+          conversation_id: window.TarikaState.activeConversationId,
+          doc_id: window.TarikaState.activeDocId,
+          doc_title: window.TarikaState.activeDocTitle,
+          memory_context: getRelevantMemorySnippet(query),
+          model: preferredModel,
+          api_key: userApiKey,
+          history: historySnapshot
+        })
+      });
+
+      if (res.status === 401 || res.redirected) {
+        thinking.remove();
+        window.openTarikaApiKeyModal();
+        window.abortCurrentGeneration();
+        return;
+      }
+
+      let data;
+      try {
+        data = await res.json();
+      } catch (e) {
+        data = { success: false, message: `Server error (${res.status})` };
+      }
+
+      if (data.success) {
+        updateDeviceMemoryFromInteraction(query, data.reply || '');
+        thinking.remove();
+        const aBubble = document.createElement('div');
+        aBubble.className = 'ai-bubble assistant';
+        aBubble.setAttribute('dir', 'auto');
+        aBubble.innerHTML = `
+          <div style="display:inline-flex; align-items:center; gap:6px; color:var(--tarika-muted); font-size:12.5px;">
+            <span class="ai-thinking-dot" style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; animation:pulse 1s infinite alternate;"></span>
+            <span>🌸 <strong>${activeModelName}</strong> is typing...</span>
+            <span class="ai-typing-indicator" title="Typing response..."><span></span><span></span><span></span></span>
+          </div>
+        `;
+
+        if (data.conversation_id) {
+          window.TarikaState.activeConversationId = data.conversation_id;
+          localStorage.setItem('ai_active_convo_id', window.TarikaState.activeConversationId);
+        }
+
+        window.TarikaState.chatHistory.push({ role: 'assistant', content: data.reply || '' });
+        if (window.TarikaState.chatHistory.length > 12) window.TarikaState.chatHistory.splice(0, window.TarikaState.chatHistory.length - 12);
+
+        msgList.appendChild(aBubble);
+        msgList.scrollTop = msgList.scrollHeight;
+
+        if (window.streamAiResponse) {
+          await window.streamAiResponse(aBubble, data.reply || '', () => {
+            attachActionsAndAutoOpen(data, aBubble);
+          });
+        } else {
+          aBubble.innerHTML = window.formatAiMarkdown ? window.formatAiMarkdown(data.reply || '') : (data.reply || '');
+          if (window.postProcessAiBubble) window.postProcessAiBubble(aBubble);
+          attachActionsAndAutoOpen(data, aBubble);
+        }
+      } else {
+        // Server AI provider failed / busy / quota exceeded -> FALLBACK TO WEBLLM!
+        console.warn('[AI] Server provider failed, triggering WebLLM fallback:', data.message);
+        return executeWebLlm(null, true);
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') {
+        thinking.remove();
+        const errBubble = document.createElement('div');
+        errBubble.className = 'ai-bubble assistant';
+        errBubble.setAttribute('dir', 'auto');
+        errBubble.innerHTML = '<span style="color:var(--tarika-muted); font-size:12px;">⏹ Generation stopped by user.</span>';
+        msgList.appendChild(errBubble);
+      } else {
+        // Network drop / Server connection failed -> FALLBACK TO WEBLLM!
+        console.warn('[AI] Server connection dropped, triggering WebLLM fallback:', err.message);
+        return executeWebLlm(null, true);
+      }
+    } finally {
+      window.abortCurrentGeneration();
+      input.focus();
+    }
+  };
+
+  function attachActionsAndAutoOpen(data, aBubble) {
+    const msgList = document.getElementById('aiMsgList');
+    if (data.actions && data.actions.length > 0) {
+      data.actions.forEach(act => {
+        const card = document.createElement('div');
+        card.className = 'ai-action-card';
+        card.innerHTML = `
+          <div style="flex:1; min-width:0;">
+            <span class="ai-card-badge">${act.category || 'DOC'}</span>
+            <div class="ai-card-title" title="${act.title}" style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${act.title}</div>
+          </div>
+          <div style="display:flex; gap:6px; flex-shrink:0;">
+            <a href="${act.url}" class="ai-card-btn" target="_self">Open ➔</a>
+            <button type="button" class="ai-card-btn tarika-bookmark-btn" data-doc-id="${act.id}" style="background:#334155; color:#f8fafc; border:none; cursor:pointer;">⭐ Save</button>
+          </div>
+        `;
+        aBubble.appendChild(card);
+      });
+
+      aBubble.querySelectorAll('.ai-card-btn[href]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const href = btn.getAttribute('href');
+          if (href && !href.startsWith('javascript:')) {
+            e.preventDefault();
+            routeAppUrl(href);
+          }
+        });
+      });
+
+      aBubble.querySelectorAll('.tarika-bookmark-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const docId = btn.getAttribute('data-doc-id');
+          if (!docId) return;
+          btn.disabled = true;
+          btn.textContent = 'Saving...';
+          try {
+            const bResp = await fetch('/api/ai/tool', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ tool_name: 'bookmark_resource', arguments: { resource_id: docId } })
+            });
+            if (bResp.status === 401) {
+              btn.textContent = '⭐ Save';
+              btn.disabled = false;
+              if (window.showAiToast) window.showAiToast('Log in to save this document.', `/login?next=${encodeURIComponent(window.location.pathname)}`);
+              return;
+            }
+            const bData = await bResp.json();
+            if (bData.success) {
+              btn.textContent = 'Saved ✓';
+              btn.style.background = '#16a34a';
+            } else {
+              btn.textContent = 'Failed';
+              btn.disabled = false;
+            }
+          } catch (e) {
+            btn.textContent = 'Failed';
+            btn.disabled = false;
+          }
+        });
+      });
+    }
+
+    if (data.auto_open) {
+      const autoNotif = document.createElement('div');
+      autoNotif.style.fontSize = '11px';
+      autoNotif.style.color = '#34d399';
+      autoNotif.style.marginTop = '6px';
+      autoNotif.textContent = 'Opening document in 2 seconds...';
+      aBubble.appendChild(autoNotif);
+      setTimeout(() => { routeAppUrl(data.auto_open); }, 1800);
+    }
+    if (msgList) msgList.scrollTop = msgList.scrollHeight;
+  }
+
+  // ── Unified Event Delegation ───────────────────────────────────
+  function initEventDelegation() {
+    const drawer = document.getElementById('abhiAiDrawer');
+    if (drawer) {
+      drawer.addEventListener('click', function(e) {
+        const anchor = e.target.closest('a');
+        if (anchor) {
+          if (anchor.target === '_blank' || anchor.getAttribute('target') === '_blank') {
+            return;
+          }
+          const href = anchor.getAttribute('href');
+          if (href && !href.startsWith('javascript:') && !href.startsWith('#')) {
+            if (/^https?:\/\//i.test(href) && !href.startsWith(window.location.origin)) {
+              window.open(href, '_blank', 'noopener,noreferrer');
+              e.preventDefault();
+              return;
+            }
+            e.preventDefault();
+            routeAppUrl(href);
+            return;
+          }
+        }
+
+        const promptBtn = e.target.closest('[data-action="prompt"]');
+        if (promptBtn) {
+          const promptText = promptBtn.getAttribute('data-prompt');
+          if (promptText) {
+            window.askAiAboutFile(promptText);
+          }
+        }
+      });
+    }
+
+    const chatInput = document.getElementById('aiChatInput');
+    if (chatInput) {
+      chatInput.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' && !e.shiftKey) {
+          e.preventDefault();
+          window.sendAiMessage();
+        }
+      });
+    }
+
+    const modelBadge = document.getElementById('aiDrawerModelBadge');
+    const modelMenu = document.getElementById('aiDrawerModelMenu');
+    if (modelBadge && modelMenu) {
+      modelBadge.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const isOpen = modelMenu.classList.toggle('show');
+        modelBadge.setAttribute('aria-expanded', String(isOpen));
+        if (isOpen) {
+          window.loadDynamicFreeModels();
+        }
+      });
+      modelBadge.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          const isOpen = modelMenu.classList.toggle('show');
+          modelBadge.setAttribute('aria-expanded', String(isOpen));
+          if (isOpen) {
+            window.loadDynamicFreeModels();
+          }
+        }
+      });
+      document.addEventListener('click', function(e) {
+        if (!modelMenu.contains(e.target) && e.target !== modelBadge) {
+          modelMenu.classList.remove('show');
+          modelBadge.setAttribute('aria-expanded', 'false');
+        }
+      });
+
+      // Delegated click listener: immediately updates model in real-time
+      modelMenu.addEventListener('click', function(e) {
+        const btn = e.target.closest('.ai-model-opt');
+        if (!btn) return;
+        const mid = btn.getAttribute('data-model');
+        const p = btn.getAttribute('data-provider') || 'openrouter';
+        const d = btn.getAttribute('data-display') || btn.textContent.trim();
+        if (mid) {
+          e.stopPropagation();
+          window.switchAiModel(mid, p, d);
+        }
+      });
+    }
+
+    const sendBtn = document.getElementById('aiSendBtn');
+    if (sendBtn) {
+      sendBtn.addEventListener('click', function() {
+        window.sendAiMessage();
+      });
+    }
+  }
+
+  // ── Dynamic Live Models Loader ──────────────────────────────────
+  window.loadDynamicFreeModels = async function() {
+    try {
+      const userKey = localStorage.getItem('openrouter_api_key');
+      const url = userKey ? `/api/ai/models?provider=openrouter&api_key=${encodeURIComponent(userKey)}` : '/api/ai/models?provider=openrouter';
+      const res = await fetch(url);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data.success || !Array.isArray(data.models)) return;
+
+      const freeList = data.models.filter(m => m.is_free || String(m.id).endsWith(':free'));
+      if (!freeList.length) return;
+
+      const container = document.getElementById('aiDrawerFreeModelsList');
+      if (!container) return;
+
+      const prefModel = localStorage.getItem('ai_preferred_model') || 'google/gemma-4-31b-it:free';
+      container.innerHTML = freeList.map(m => {
+        const cleanName = m.name || m.id;
+        const disp = cleanName.replace(/\(free[^)]*\)/i, '').replace(/:\s*free/i, '').trim();
+        const icon = m.id.includes('gemma') ? '⚡' :
+                     m.id.includes('llama') ? '🦙' :
+                     m.id.includes('deepseek-r1') ? '🧠' :
+                     m.id.includes('deepseek') ? '💬' :
+                     m.id.includes('gemini') ? '✨' :
+                     m.id.includes('qwen') ? '🌐' :
+                     m.id.includes('mistral') ? '💨' : '🤖';
+        const isAct = m.id === prefModel;
+        return `
+          <button type="button" class="ai-model-opt ${isAct ? 'active' : ''}" data-model="${m.id}" data-provider="openrouter" data-display="${disp}">
+            <span>${icon} ${cleanName}</span>
+            ${isAct ? '<span class="ai-model-check" style="margin-left:auto;color:#10b981;font-weight:bold;">✓</span>' : ''}
+          </button>
+        `;
+      }).join('');
+    } catch (e) {
+      console.debug('Dynamic model load skipped:', e);
+    }
+  };
+
+  window.updateModelBadgeFallback = function(fallbackText) {
+    const badge = document.getElementById('aiDrawerModelBadge');
+    if (!badge) return;
+    badge.innerHTML = `<span style="color:#f59e0b; font-weight:700;">⚠️ ${fallbackText || 'Cloud Fallback'}</span> <span style="font-size:8px; opacity:0.75;">▼</span>`;
+    badge.title = 'Local model degraded — running on Cloud for this session';
+  };
+
+  window.updateModelBadgeDisplay = function() {
+    const badge = document.getElementById('aiDrawerModelBadge');
+    if (!badge) return;
+    const prefProvider = localStorage.getItem('ai_provider') || 'openrouter';
+    const prefModel = localStorage.getItem('ai_preferred_model') || 'google/gemma-4-31b-it:free';
+    let displayName = 'Gemma 4';
+    if (prefProvider === 'webllm' || (prefModel && prefModel.includes('MLC'))) {
+      if (prefModel.includes('SmolLM2-360M')) displayName = 'Tara';
+      else if (prefModel.includes('0.5B')) displayName = 'Riya';
+      else if (prefModel.includes('DeepSeek-R1-Distill')) displayName = 'Diya';
+      else if (prefModel.includes('Coder')) displayName = 'Ananya';
+      else if (prefModel.includes('Gemma-2-2b')) displayName = 'Pooja';
+      else if (prefModel.includes('3B')) displayName = 'Kavya';
+      else displayName = 'Tarika';
+    } else if (prefProvider === 'ollama' || prefModel.includes('llama3.2:latest')) {
+      displayName = 'Ollama Local';
+    } else if (prefModel) {
+      displayName = getActiveModelDisplayName(prefModel);
+    }
+    badge.innerHTML = `<span style="display:inline-flex;align-items:center;gap:4px;">${displayName}</span> <span style="font-size:8px; opacity:0.75;">▼</span>`;
+    badge.setAttribute('title', `Active Model: ${displayName} (${prefModel})`);
+
+    document.querySelectorAll('.ai-model-opt').forEach(opt => {
+      const isAct = opt.dataset.model === prefModel;
+      opt.classList.toggle('active', isAct);
+      const existingCheck = opt.querySelector('.ai-model-check');
+      if (existingCheck) existingCheck.remove();
+      if (isAct) {
+        opt.insertAdjacentHTML('beforeend', '<span class="ai-model-check" style="margin-left:auto;color:#10b981;font-weight:bold;">✓</span>');
+      }
+    });
+  };
+
+  window.switchAiModel = async function(modelId, provider, displayName) {
+    window.abortCurrentGeneration(); // Task 4.5: Cancel old request before switching engines
+    window.TarikaState.sessionLocalDegraded = false; // Task 3.7: User manual selection resets degraded state
+
+    // Task 3.3 & 3.4: WebGPU and Storage quota validation
+    if (provider === 'webllm' && window.AIRouter) {
+      const gpuCheck = await window.AIRouter.checkWebGpuSupport();
+      if (!gpuCheck.supported) {
+        if (window.showAiToast) window.showAiToast(gpuCheck.reason || 'WebGPU is not supported on this browser/device.');
+        return;
+      }
+      const reqMb = (modelId && modelId.includes('0.5B')) ? 850 : 2500;
+      const quotaCheck = await window.AIRouter.checkStorageQuota(reqMb);
+      if (!quotaCheck.hasSpace) {
+        if (window.showAiToast) window.showAiToast(quotaCheck.message || 'Not enough storage space. Please clear browser storage.');
+        return;
+      }
+    } else if (provider === 'ollama' && window.AIRouter) {
+      // Task 3.8: Probe Ollama with CORS / offline distinction
+      const oCheck = await window.AIRouter.probeOllama('http://127.0.0.1:11434', modelId);
+      if (!oCheck.available) {
+        if (window.showAiToast) window.showAiToast(oCheck.message);
+      }
+    }
+
+    localStorage.setItem('ai_preferred_model', modelId);
+    localStorage.setItem('ai_provider', provider || 'openrouter');
+    localStorage.setItem('abhihub_ai_model', modelId);
+    if (provider === 'webllm') {
+      window.dispatchEvent(new CustomEvent('abhihub_ai_config_change', { detail: { modelId: modelId } }));
+    }
+    window.updateModelBadgeDisplay();
+
+    if (window.showAiToast) {
+      window.showAiToast(`✨ Switched to ${displayName || getActiveModelDisplayName(modelId)}`);
+    }
+
+    const menu = document.getElementById('aiDrawerModelMenu');
+    if (menu) {
+      menu.classList.remove('show');
+      const badge = document.getElementById('aiDrawerModelBadge');
+      if (badge) badge.setAttribute('aria-expanded', 'false');
+    }
+  };
+
+  async function checkAndApplyWebGpuStatus() {
+    if (window.AIRouter && typeof window.AIRouter.checkWebGpuSupport === 'function') {
+      const res = await window.AIRouter.checkWebGpuSupport();
+      const webLlmBtns = document.querySelectorAll('.ai-model-opt[data-provider="webllm"]');
+      if (!res.supported) {
+        webLlmBtns.forEach(btn => {
+          btn.classList.add('disabled');
+          btn.title = res.reason || 'WebGPU unsupported on this device/browser';
+        });
+        const prefProvider = localStorage.getItem('ai_provider');
+        if (prefProvider === 'webllm') {
+          localStorage.setItem('ai_provider', 'openrouter');
+          localStorage.setItem('ai_preferred_model', 'google/gemma-4-31b-it:free');
+          window.updateModelBadgeDisplay();
+        }
+      }
+    }
+  }
+
+  // ── Global Error & Rejection Boundary (Task 1.8) ────────────────
+  window.addEventListener('error', (event) => {
+    const fn = (event.filename || '').toLowerCase();
+    const msg = (event.message || '').toLowerCase();
+    if (fn.includes('ai') || fn.includes('tarika') || msg.includes('ai') || msg.includes('tarika')) {
+      if (window.showAiToast) window.showAiToast('Something went wrong. Try again.');
+    }
+  });
+
+  window.addEventListener('unhandledrejection', (event) => {
+    const reason = String(event.reason || '').toLowerCase();
+    if (reason.includes('ai') || reason.includes('tarika') || reason.includes('fetch')) {
+      if (window.showAiToast) window.showAiToast('Something went wrong. Try again.');
+    }
+  });
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => {
+      initEventDelegation();
+      detectOpenDocument();
+      window.updateModelBadgeDisplay();
+      checkAndApplyWebGpuStatus();
+    });
+  } else {
+    initEventDelegation();
+    detectOpenDocument();
+    window.updateModelBadgeDisplay();
+    checkAndApplyWebGpuStatus();
+  }
+})();

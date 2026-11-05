@@ -1,0 +1,236 @@
+/**
+ * AbhiHub — app-shell.css
+ * Styles for the authenticated app shell:
+ * header, main-nav, logo, body class, image popup.
+ * These were previously in premium/css/style.css.
+ * Depends on: 01_tokens.css
+ */
+
+/* ── Body base class ── */
+.font-regular {
+    font-family: var(--font-primary);
+    font-weight: 400;
+}
+
+/* ── Header ── */
+header {
+    width: 100%;
+    height: fit-content;
+    display: flex;
+    position: sticky;
+    top: var(--strip-h, 0px);
+    z-index: 1000;
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    background: rgba(255, 255, 255, 0.82);
+    border-bottom: 1px solid var(--apple-border-subtle, rgba(0, 0, 0, 0.08));
+    transition: top 0.3s ease, background-color 0.25s ease;
+}
+
+[data-theme="dark"] header {
+    background: rgba(0, 0, 0, 0.8);
+    border-bottom-color: rgba(255, 255, 255, 0.08);
+}
+
+/* ── Main Nav ── */
+.main-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    max-width: 1200px;
+    margin: 0 auto;
+    height: 48px;
+    padding: 0 1.5rem;
+    position: relative;
+    box-sizing: border-box;
+}
+
+/* ── Logo ── */
+.logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    text-decoration: none;
+    transition: transform var(--transition-fast);
+}
+
+.logo:hover { transform: translateY(-1px); }
+
+.logo-text {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--apple-dark, #1D1D1F);
+    letter-spacing: -0.025em;
+    font-family: var(--apple-font, "Plus Jakarta Sans", -apple-system, sans-serif);
+    transition: opacity 0.15s ease;
+}
+
+.logo:hover .logo-text {
+    opacity: 0.85;
+}
+
+[data-theme="dark"] .logo-text {
+    color: #F5F5F7;
+}
+
+/* ── Apple Navigation Typography & Links ── */
+.nav-careers-link {
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    color: var(--apple-gray, #6e6e73) !important;
+    text-decoration: none;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.nav-careers-link:hover {
+    color: var(--apple-blue, #0071E3) !important;
+    background: rgba(0, 113, 227, 0.06);
+}
+
+[data-theme="dark"] .nav-careers-link {
+    color: var(--apple-gray, #A1A1A6) !important;
+}
+
+[data-theme="dark"] .nav-careers-link:hover {
+    color: #38bdf8 !important;
+}
+
+.nav-login-link {
+    font-size: 0.875rem !important;
+    font-weight: 500 !important;
+    color: var(--apple-dark, #1d1d1f) !important;
+    text-decoration: none;
+    padding: 0.35rem 0.65rem;
+    border-radius: 6px;
+    transition: color 0.15s ease, background-color 0.15s ease;
+}
+
+.nav-login-link:hover {
+    color: var(--apple-blue, #0071E3) !important;
+    background: rgba(0, 113, 227, 0.06);
+}
+
+[data-theme="dark"] .nav-login-link {
+    color: #F5F5F7 !important;
+}
+
+[data-theme="dark"] .nav-login-link:hover {
+    color: #38bdf8 !important;
+}
+
+.btn-apple-nav-signup {
+    font-size: 0.875rem !important;
+    font-weight: 600 !important;
+    color: #ffffff !important;
+    background: #0071E3 !important;
+    text-decoration: none;
+    padding: 0.4rem 1.15rem;
+    border-radius: 980px;
+    box-shadow: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background-color 0.15s ease, transform 0.1s ease;
+}
+
+.btn-apple-nav-signup:hover {
+    background: #0077ED !important;
+    transform: scale(1.02);
+}
+
+@media (max-width: 560px) {
+    .nav-careers-link {
+        display: none !important;
+    }
+}
+
+/* Kanit font weight helpers (used as classes in templates) */
+.kanit-bold     { font-family: var(--font-primary); font-weight: 700; }
+.kanit-semibold { font-family: var(--font-primary); font-weight: 600; }
+.kanit-medium   { font-family: var(--font-primary); font-weight: 500; }
+.kanit-regular  { font-family: var(--font-primary); font-weight: 400; }
+.kanit-light    { font-family: var(--font-primary); font-weight: 300; }
+
+/* ── Main content area ── */
+main {
+    padding: var(--space-6);
+    margin-top: var(--space-6);
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-8);
+    margin-bottom: var(--space-20);
+    max-width: var(--max-content-width);
+    margin-left: auto;
+    margin-right: auto;
+}
+
+@media (max-width: 768px) {
+    .main-nav { padding: 0 var(--space-4); }
+    main       { padding: var(--space-4); margin-top: var(--space-4); gap: var(--space-6); }
+}
+
+/* ── Image popup (timetable viewer) ── */
+.popup {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0, 0, 0, 0.8);
+    backdrop-filter: blur(8px);
+    z-index: 2000;
+    padding: var(--space-4);
+}
+
+.popup .close {
+    position: absolute;
+    top: var(--space-4);
+    right: var(--space-4);
+    width: 48px;
+    height: 48px;
+    background: rgba(255, 255, 255, 0.2);
+    color: var(--text-inverse);
+    border: none;
+    border-radius: var(--radius-full);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--text-lg);
+    font-weight: 600;
+    transition: all var(--transition-fast);
+    backdrop-filter: blur(10px);
+}
+
+.popup .close:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: scale(1.05);
+}
+
+.popup .image {
+    max-width: 90%;
+    max-height: 90%;
+    border-radius: var(--radius-2xl);
+    box-shadow: var(--shadow-2xl);
+    object-fit: contain;
+}
+
+.nav-careers-link:hover {
+    color: var(--apple-blue, #0071E3) !important;
+}
+
+[data-theme="dark"] .nav-careers-link {
+    color: var(--apple-gray, #A1A1A6) !important;
+}
+
+[data-theme="dark"] .nav-careers-link:hover {
+    color: #38bdf8 !important;
+}
+
+.btn-apple-nav-signup:hover {
+    background: #0077ED !important;
+}

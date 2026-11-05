@@ -1,0 +1,3128 @@
+[
+  {
+    "rule": "/",
+    "endpoint": "features",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Root route - public landing page with crawlable university, subject, and resource hubs",
+    "start_line": 3759,
+    "num_lines": 47,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/<key>.txt",
+    "endpoint": "indexnow_key_file",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Serve the IndexNow key verification file dynamically based on .env configuration.",
+    "start_line": 1008,
+    "num_lines": 7,
+    "subdomain": "",
+    "arguments": [
+      "key"
+    ]
+  },
+  {
+    "rule": "/<key>.txt",
+    "endpoint": "index_now_key",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 1467,
+    "num_lines": 5,
+    "subdomain": "",
+    "arguments": [
+      "key"
+    ]
+  },
+  {
+    "rule": "/UHV",
+    "endpoint": "uhv_notes",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5763,
+    "num_lines": 3,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/abhijeetupdate",
+    "endpoint": "abhijeet_updae",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 4593,
+    "num_lines": 20,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/about",
+    "endpoint": "about",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "About page",
+    "start_line": 3747,
+    "num_lines": 5,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/account",
+    "endpoint": "account",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Display account management page",
+    "start_line": 3636,
+    "num_lines": 24,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/account/update",
+    "endpoint": "update_account",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Handle account profile updates",
+    "start_line": 3662,
+    "num_lines": 44,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/admin/analytics",
+    "endpoint": "admin_analytics_dashboard",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Admin analytics dashboard page.",
+    "start_line": 5534,
+    "num_lines": 6,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/admin/controle",
+    "endpoint": "admin_control_panel",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Admin notification control panel - restricted to admin email only",
+    "start_line": 5130,
+    "num_lines": 6,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/admin/economy",
+    "endpoint": "admin_economy_dashboard",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Admin economy dashboard: edit scoring config, view level distribution.",
+    "start_line": 5569,
+    "num_lines": 6,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/admin/file-reports",
+    "endpoint": "admin_file_reports_page",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Admin page for viewing all file reports and logs.",
+    "start_line": 6406,
+    "num_lines": 5,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/ads.txt",
+    "endpoint": "ads_txt",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 1443,
+    "num_lines": 3,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/ai",
+    "endpoint": "ai_hub",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Main WebLLM AI Hub portal (ai.abhihub.edu.eu.org / www.abhihub.edu.eu.org/ai).",
+    "start_line": 325,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/ai/embed",
+    "endpoint": "ai_embed",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Embedded WebLLM runtime bridge for cross-subdomain postMessage RPC.",
+    "start_line": 330,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/ai/setup",
+    "endpoint": "ai_setup",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Dedicated Setup Guide page \u2014 pre-selects the Setup Guide tab.",
+    "start_line": 335,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/analytics/daily-views",
+    "endpoint": "api_admin_daily_views",
+    "methods": [
+      "GET"
+    ],
+    "module": "methods.analytics_reporter_routes",
+    "doc": "Return daily view counts for chart.",
+    "start_line": 97,
+    "num_lines": 8,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/analytics/demographics",
+    "endpoint": "api_admin_demographics",
+    "methods": [
+      "GET"
+    ],
+    "module": "methods.analytics_reporter_routes",
+    "doc": "Return user demographics breakdown.",
+    "start_line": 31,
+    "num_lines": 8,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/analytics/devices",
+    "endpoint": "api_admin_devices",
+    "methods": [
+      "GET"
+    ],
+    "module": "methods.analytics_reporter_routes",
+    "doc": "Return device type distribution.",
+    "start_line": 59,
+    "num_lines": 8,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/analytics/errors",
+    "endpoint": "api_admin_errors",
+    "methods": [
+      "GET"
+    ],
+    "module": "methods.analytics_reporter_routes",
+    "doc": "Return recent errors.",
+    "start_line": 87,
+    "num_lines": 9,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/analytics/overview",
+    "endpoint": "api_admin_analytics_overview",
+    "methods": [
+      "GET"
+    ],
+    "module": "methods.analytics_reporter_routes",
+    "doc": "Return overview KPIs for the analytics dashboard.",
+    "start_line": 12,
+    "num_lines": 8,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/analytics/recent-activity",
+    "endpoint": "api_admin_recent_activity",
+    "methods": [
+      "GET"
+    ],
+    "module": "methods.analytics_reporter_routes",
+    "doc": "Return recent file view activity feed.",
+    "start_line": 68,
+    "num_lines": 8,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/analytics/traffic-sources",
+    "endpoint": "api_admin_traffic_sources",
+    "methods": [
+      "GET"
+    ],
+    "module": "methods.analytics_reporter_routes",
+    "doc": "Return top referrer URLs.",
+    "start_line": 49,
+    "num_lines": 9,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/analytics/trending-files",
+    "endpoint": "api_admin_trending_files",
+    "methods": [
+      "GET"
+    ],
+    "module": "methods.analytics_reporter_routes",
+    "doc": "Return most viewed files.",
+    "start_line": 21,
+    "num_lines": 9,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/analytics/trending-subjects",
+    "endpoint": "api_admin_trending_subjects",
+    "methods": [
+      "GET"
+    ],
+    "module": "methods.analytics_reporter_routes",
+    "doc": "Return most viewed subjects.",
+    "start_line": 77,
+    "num_lines": 9,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/analytics/usage-patterns",
+    "endpoint": "api_admin_usage_patterns",
+    "methods": [
+      "GET"
+    ],
+    "module": "methods.analytics_reporter_routes",
+    "doc": "Return hourly/daily usage patterns.",
+    "start_line": 40,
+    "num_lines": 8,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/approve-document",
+    "endpoint": "approve_document",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5686,
+    "num_lines": 27,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/broadcast-stats",
+    "endpoint": "get_admin_broadcast_stats",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Get broadcast delivery stats (sent vs read) for admin notifications.",
+    "start_line": 5240,
+    "num_lines": 12,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/contact-messages",
+    "endpoint": "get_contact_messages",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5137,
+    "num_lines": 6,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/economy/config",
+    "endpoint": "api_admin_economy_get_config",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Return all scoring_config entries.",
+    "start_line": 5577,
+    "num_lines": 10,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/economy/config",
+    "endpoint": "api_admin_economy_update_config",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Update one scoring_config key's JSONB value. Body: {key, value}.",
+    "start_line": 5589,
+    "num_lines": 30,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/economy/overview",
+    "endpoint": "api_admin_economy_overview",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Level distribution + top contributors/consumers + recent scored events.",
+    "start_line": 5621,
+    "num_lines": 37,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/economy/user/<user_id>",
+    "endpoint": "api_admin_economy_override_user",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Manually override a user's access level. Body: {access_level}.",
+    "start_line": 5660,
+    "num_lines": 25,
+    "subdomain": "",
+    "arguments": [
+      "user_id"
+    ]
+  },
+  {
+    "rule": "/api/admin/entity/add",
+    "endpoint": "api_add_entity",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 7410,
+    "num_lines": 22,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/file-reports",
+    "endpoint": "admin_file_reports",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "API endpoint for admin to view all file reports/logs.",
+    "start_line": 6371,
+    "num_lines": 33,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/notification-history",
+    "endpoint": "get_admin_notification_history",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Get notification history (last 10 entries)",
+    "start_line": 5227,
+    "num_lines": 11,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/pending-documents",
+    "endpoint": "get_pending_documents",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5495,
+    "num_lines": 18,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/reject-document",
+    "endpoint": "reject_document",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5714,
+    "num_lines": 41,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/send-notification",
+    "endpoint": "send_admin_notification",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Send push notification to selected users or all users",
+    "start_line": 5171,
+    "num_lines": 55,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/stats",
+    "endpoint": "get_admin_stats",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5453,
+    "num_lines": 41,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/subscribers",
+    "endpoint": "get_admin_subscribers",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Get all push notification subscribers with metadata",
+    "start_line": 5144,
+    "num_lines": 26,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/system-health",
+    "endpoint": "get_system_health",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Live system health dashboard: DB, storage, cache, CPU, memory, active users.",
+    "start_line": 5254,
+    "num_lines": 61,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/users",
+    "endpoint": "admin_get_users",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Get list of users for admin dashboard",
+    "start_line": 5410,
+    "num_lines": 11,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/admin/users/<user_id>/stats",
+    "endpoint": "admin_get_user_stats",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Get detailed stats for a specific user",
+    "start_line": 5422,
+    "num_lines": 30,
+    "subdomain": "",
+    "arguments": [
+      "user_id"
+    ]
+  },
+  {
+    "rule": "/api/ai/assistant",
+    "endpoint": "api_ai_assistant",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Unified AbhiHub AI Assistant:\n- Answers general questions & explains concepts\n- Context-aware: explains/summarizes the currently open document\n- Autonomous actions: searches PYQs, notes, and provides ",
+    "start_line": 6549,
+    "num_lines": 259,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/ai/extract-upload-metadata",
+    "endpoint": "api_extract_upload_metadata",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Extract metadata (Category, Year, Exam/Unit, Subject, qb_tags) from uploaded file bytes.\n\nAccepts raw multipart file.\nDegrades silently on cost ceiling (source: 'ceiling_reached') or model rate limits",
+    "start_line": 2024,
+    "num_lines": 206,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/ai/key",
+    "endpoint": "api_ai_key_set",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Save a BYOK API key for any supported provider (Claude, Gemini, NVIDIA, OpenAI, Groq, OpenRouter).\n\nValidates key against the provider with a minimal test call before encrypting/persisting.",
+    "start_line": 6470,
+    "num_lines": 43,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/ai/key",
+    "endpoint": "api_ai_key_delete",
+    "methods": [
+      "DELETE"
+    ],
+    "module": "app",
+    "doc": "Remove stored BYOK key; revert to free tier.",
+    "start_line": 6515,
+    "num_lines": 15,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/ai/models",
+    "endpoint": "api_ai_models",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Fetch live model catalog from provider in real-time.",
+    "start_line": 6446,
+    "num_lines": 22,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/ai/predict-metadata",
+    "endpoint": "api_predict_metadata",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Phase 5: AI Metadata Prediction.\nTakes a filename (e.g. 'tnm_cae2.pdf') and returns predicted Subject, Type, and Unit.",
+    "start_line": 1975,
+    "num_lines": 47,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/ai/usage",
+    "endpoint": "api_ai_usage",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Return the authenticated user's AI usage for the last 7 days.",
+    "start_line": 6532,
+    "num_lines": 14,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/analytics/error",
+    "endpoint": "analytics_error",
+    "methods": [
+      "POST"
+    ],
+    "module": "methods.analytics_tracker",
+    "doc": "Server-side error tracking with rate limiting.",
+    "start_line": 213,
+    "num_lines": 41,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/analytics/file-access",
+    "endpoint": "analytics_file_access",
+    "methods": [
+      "POST"
+    ],
+    "module": "methods.analytics_tracker",
+    "doc": "Track file access with duration, with rate limiting.",
+    "start_line": 255,
+    "num_lines": 38,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/analytics/pageview",
+    "endpoint": "analytics_pageview",
+    "methods": [
+      "POST"
+    ],
+    "module": "methods.analytics_tracker",
+    "doc": "Server-side pageview logging with rate limiting.",
+    "start_line": 157,
+    "num_lines": 37,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/analytics/session-end",
+    "endpoint": "analytics_session_end",
+    "methods": [
+      "POST"
+    ],
+    "module": "methods.analytics_tracker",
+    "doc": "Track session end with total duration, with rate limiting.",
+    "start_line": 294,
+    "num_lines": 33,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/analytics/user-properties",
+    "endpoint": "analytics_user_properties",
+    "methods": [
+      "GET"
+    ],
+    "module": "methods.analytics_tracker",
+    "doc": "Returns the current user's profile data as JSON with rate limiting.",
+    "start_line": 195,
+    "num_lines": 17,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/ask-paper",
+    "endpoint": "api_ask_paper",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "AI tutor: answer a question about a paper.\n\nPipeline:\n  1. Auth + cost ceiling check (replaces in-process rate limiter \u2014 fixes G1)\n  2. Input safety filter\n  3. Doc text extraction (unchanged)\n  4. Se",
+    "start_line": 6812,
+    "num_lines": 214,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/bookmark",
+    "endpoint": "toggle_bookmark_route",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 7106,
+    "num_lines": 17,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/branches",
+    "endpoint": "api_get_branches",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Get all branches for dropdown \u2014 cached at L1 for 1 hour (L3: browser/CDN 1hr).",
+    "start_line": 1819,
+    "num_lines": 16,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/buy-credits",
+    "endpoint": "api_buy_credits",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Endpoint to purchase credit packs (50, 100, 500 views @ \u20b92/view).",
+    "start_line": 1285,
+    "num_lines": 52,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/cache-health",
+    "endpoint": "api_cache_health",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Cache system health check \u2014 returns stats for all cache layers.",
+    "start_line": 1055,
+    "num_lines": 8,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/chat/history/<peer_id>",
+    "endpoint": "api_chat_history",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 7738,
+    "num_lines": 11,
+    "subdomain": "",
+    "arguments": [
+      "peer_id"
+    ]
+  },
+  {
+    "rule": "/api/chat/keys",
+    "endpoint": "chat_keys",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Generate or retrieve user's NaCl key pair for E2E encryption.",
+    "start_line": 8019,
+    "num_lines": 27,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/chat/messages",
+    "endpoint": "api_chat_send_message",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "HTTP fallback when a network blocks WebSocket upgrades.",
+    "start_line": 7945,
+    "num_lines": 8,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/chat/online",
+    "endpoint": "chat_online_users",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Returns currently online users for the dashboard widget, registering the caller's online heartbeat.",
+    "start_line": 7987,
+    "num_lines": 17,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/chat/peer/<target_user_id>/materials-summary",
+    "endpoint": "api_chat_peer_materials_summary",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Quick material summary for chat \u2014 uploads count + recent 5 viewed files.\n\nReturns {success: true, user: {...}, uploads_count, recent_views: [...]}",
+    "start_line": 7452,
+    "num_lines": 16,
+    "subdomain": "",
+    "arguments": [
+      "target_user_id"
+    ]
+  },
+  {
+    "rule": "/api/chat/search-peers",
+    "endpoint": "chat_search_peers",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Peer search for chat \u2014 available to all authenticated users.\n\nReturns: id, full_name, email, rank_title, reputation_score,\ncollege_name, is_verified, uploads_count, viewed_count",
+    "start_line": 5349,
+    "num_lines": 60,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/chat/user-info/<user_id>",
+    "endpoint": "chat_user_info",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Returns profile context shown in chat message badges.",
+    "start_line": 8272,
+    "num_lines": 24,
+    "subdomain": "",
+    "arguments": [
+      "user_id"
+    ]
+  },
+  {
+    "rule": "/api/check-auth",
+    "endpoint": "check_auth",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Check if user is authenticated",
+    "start_line": 1756,
+    "num_lines": 7,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/check-duplicate",
+    "endpoint": "api_check_duplicate",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 1956,
+    "num_lines": 18,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/check-profile",
+    "endpoint": "api_check_profile",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "API endpoint to check if profile is complete",
+    "start_line": 3708,
+    "num_lines": 14,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/colleges",
+    "endpoint": "api_get_colleges",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Get all colleges for dropdown \u2014 cached at L1 for 1 hour (L3: browser/CDN 1hr).",
+    "start_line": 1801,
+    "num_lines": 16,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/colleges",
+    "endpoint": "api_add_college",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 1937,
+    "num_lines": 17,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/contact",
+    "endpoint": "api_contact",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 4273,
+    "num_lines": 53,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/credit-history",
+    "endpoint": "api_credit_history",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Retrieve user credit transactions (spend & earn history) and current quota balance.",
+    "start_line": 1339,
+    "num_lines": 24,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/crush/<target_id>",
+    "endpoint": "api_crush_toggle",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Toggle a crush on target_id. Max 2 crushes per calendar year.",
+    "start_line": 8056,
+    "num_lines": 38,
+    "subdomain": "",
+    "arguments": [
+      "target_id"
+    ]
+  },
+  {
+    "rule": "/api/crush/status/<target_id>",
+    "endpoint": "api_crush_status",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Return crush/match state between current user and target.",
+    "start_line": 8096,
+    "num_lines": 25,
+    "subdomain": "",
+    "arguments": [
+      "target_id"
+    ]
+  },
+  {
+    "rule": "/api/departments",
+    "endpoint": "api_get_departments",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Return departments for a college (cascading dropdown, T1/T8).",
+    "start_line": 1838,
+    "num_lines": 8,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/departments",
+    "endpoint": "api_add_department",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 2233,
+    "num_lines": 24,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/document-view",
+    "endpoint": "api_log_document_view",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Log a document view to track file access history.\nRecords every time a user accesses a document.",
+    "start_line": 2553,
+    "num_lines": 80,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/events",
+    "endpoint": "api_track_event",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Tracks only UPLOAD, DOWNLOAD, SUBJECT_REQUEST. Returns 200 always.",
+    "start_line": 2322,
+    "num_lines": 10,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/extract-ocr",
+    "endpoint": "api_extract_ocr",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Extract OCR text from paper image or PDF using free PyPDF/PyMuPDF or Vision models.",
+    "start_line": 7028,
+    "num_lines": 56,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/file-access-history",
+    "endpoint": "api_get_file_access_history",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Get file access history for the logged-in user.\nRetrieves from file_access_history table for \"Previously Accessed Files\" UI.",
+    "start_line": 2682,
+    "num_lines": 45,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/files/all",
+    "endpoint": "get_all_files",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "API endpoint to get all files exclusively from the abhihub.documents table.\nReturns unified JSON array of all files.",
+    "start_line": 2796,
+    "num_lines": 39,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/get-upload-signature",
+    "endpoint": "get_upload_signature",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Generates a presigned Cloudinary upload signature for client-side direct uploads.",
+    "start_line": 1065,
+    "num_lines": 27,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/health",
+    "endpoint": "health_check",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Lightweight health check endpoint for monitoring without secret leakage.",
+    "start_line": 340,
+    "num_lines": 10,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/indexnow/submit",
+    "endpoint": "submit_indexnow",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Submit URLs to Bing IndexNow",
+    "start_line": 1016,
+    "num_lines": 24,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/indexnow/submit",
+    "endpoint": "api_indexnow_submit",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5516,
+    "num_lines": 17,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/interactions/bookmark",
+    "endpoint": "api_toggle_bookmark",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 2517,
+    "num_lines": 12,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/interactions/comments/<doc_id>",
+    "endpoint": "api_comments",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 2530,
+    "num_lines": 21,
+    "subdomain": "",
+    "arguments": [
+      "doc_id"
+    ]
+  },
+  {
+    "rule": "/api/interactions/comments/<document_id>",
+    "endpoint": "add_comment_route",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 7124,
+    "num_lines": 17,
+    "subdomain": "",
+    "arguments": [
+      "document_id"
+    ]
+  },
+  {
+    "rule": "/api/interactions/comments/<document_id>",
+    "endpoint": "get_comments_route",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 7142,
+    "num_lines": 10,
+    "subdomain": "",
+    "arguments": [
+      "document_id"
+    ]
+  },
+  {
+    "rule": "/api/interactions/like",
+    "endpoint": "api_toggle_like",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 2504,
+    "num_lines": 12,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/like",
+    "endpoint": "toggle_like_route",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 7088,
+    "num_lines": 17,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/material-request/respond",
+    "endpoint": "api_respond_material_request",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 7550,
+    "num_lines": 43,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/material-requests",
+    "endpoint": "api_get_material_requests",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Return pending material requests for the logged-in user.",
+    "start_line": 7506,
+    "num_lines": 42,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/memorywall/stats/<wall_id>",
+    "endpoint": "api_memorywall_stats",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Wall stats \u2014 auth required, owner only.",
+    "start_line": 7391,
+    "num_lines": 13,
+    "subdomain": "",
+    "arguments": [
+      "wall_id"
+    ]
+  },
+  {
+    "rule": "/api/memorywall/submit",
+    "endpoint": "api_memorywall_submit",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Public response submission \u2014 no auth, rate-limited by IP hash.",
+    "start_line": 7304,
+    "num_lines": 45,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/memorywall/upload-signature",
+    "endpoint": "api_memorywall_upload_signature",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Upload a signature PNG to Firebase Storage. Returns public URL.",
+    "start_line": 7351,
+    "num_lines": 38,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/my-access",
+    "endpoint": "api_my_access",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Current user's access level, feature gate limits, and ad density.",
+    "start_line": 5544,
+    "num_lines": 23,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/my-notifications",
+    "endpoint": "api_get_my_notifications",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Return paginated notifications for the logged-in user.",
+    "start_line": 2729,
+    "num_lines": 12,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/my-notifications/read",
+    "endpoint": "api_mark_notifications_read",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Mark all notifications as read for the logged-in user.",
+    "start_line": 2743,
+    "num_lines": 9,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/notifications/<notif_id>/open",
+    "endpoint": "push_api.track_notification_opened",
+    "methods": [
+      "POST"
+    ],
+    "module": "push_api",
+    "doc": "Record that a notification was opened/clicked by user.",
+    "start_line": 295,
+    "num_lines": 10,
+    "subdomain": "",
+    "arguments": [
+      "notif_id"
+    ]
+  },
+  {
+    "rule": "/api/notifications/<notif_id>/read",
+    "endpoint": "api_mark_single_notification_read",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Mark a single notification as read by its ID.",
+    "start_line": 2754,
+    "num_lines": 24,
+    "subdomain": "",
+    "arguments": [
+      "notif_id"
+    ]
+  },
+  {
+    "rule": "/api/onboarding/status",
+    "endpoint": "api_onboarding_status",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 2305,
+    "num_lines": 6,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/onboarding/welcome-seen",
+    "endpoint": "api_onboarding_welcome_seen",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 2313,
+    "num_lines": 6,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/profile",
+    "endpoint": "get_profile",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Get current user profile",
+    "start_line": 1662,
+    "num_lines": 58,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/profile-status",
+    "endpoint": "profile_status",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Lightweight endpoint for access-gates.js \u2014 returns profile completion state.",
+    "start_line": 1646,
+    "num_lines": 14,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/profile/update",
+    "endpoint": "api_update_profile",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Update profile's default college and department selection.",
+    "start_line": 1722,
+    "num_lines": 32,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/proxy-file",
+    "endpoint": "proxy_file",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Server-side proxy for Firebase/Cloudinary files to bypass browser CORS.",
+    "start_line": 3214,
+    "num_lines": 35,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/push/send",
+    "endpoint": "push_api.send",
+    "methods": [
+      "POST"
+    ],
+    "module": "push_api",
+    "doc": "Send broadcast push notification to all subscribers.\nRestricted strictly to authenticated admins.",
+    "start_line": 145,
+    "num_lines": 29,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/push/status",
+    "endpoint": "push_api.status",
+    "methods": [
+      "GET"
+    ],
+    "module": "push_api",
+    "doc": "Get subscription status for current authenticated user.",
+    "start_line": 118,
+    "num_lines": 25,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/push/subscribe",
+    "endpoint": "push_api.subscribe",
+    "methods": [
+      "POST"
+    ],
+    "module": "push_api",
+    "doc": "Subscribe current authenticated user to push notifications.",
+    "start_line": 31,
+    "num_lines": 58,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/push/test",
+    "endpoint": "push_api.send_test_notification",
+    "methods": [
+      "POST"
+    ],
+    "module": "push_api",
+    "doc": "Send a test notification to the authenticated user's registered devices.",
+    "start_line": 176,
+    "num_lines": 37,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/push/unsubscribe",
+    "endpoint": "push_api.unsubscribe",
+    "methods": [
+      "DELETE",
+      "POST"
+    ],
+    "module": "push_api",
+    "doc": "Unsubscribe a device from push notifications.",
+    "start_line": 91,
+    "num_lines": 25,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/push/vapid-public-key",
+    "endpoint": "push_api.vapid_public_key",
+    "methods": [
+      "GET"
+    ],
+    "module": "push_api",
+    "doc": "Return VAPID public key for push subscriptions.",
+    "start_line": 22,
+    "num_lines": 7,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/quota",
+    "endpoint": "api_get_quota",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Return the current quota for the logged-in user \u2014 cached at L1 for 60s.",
+    "start_line": 1041,
+    "num_lines": 12,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/recent-documents",
+    "endpoint": "api_get_recent_documents",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Get recently accessed documents for the logged-in user.\nReturns a list of documents the user has viewed recently.",
+    "start_line": 2635,
+    "num_lines": 45,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/referral/my-code",
+    "endpoint": "api_referral_my_code",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Return the logged-in user's shareable referral code + link + progress.",
+    "start_line": 1252,
+    "num_lines": 31,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/referral/register",
+    "endpoint": "api_referral_register",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Capture a referral code at signup and credit both sides.\n\nBody: {\"code\": \"ABHI-XXXXXX\"}\nThe new user is taken from the active session (set by /auth).\nSafe to call repeatedly; the credit logic is idemp",
+    "start_line": 1225,
+    "num_lines": 25,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/report-broken-file",
+    "endpoint": "report_broken_file",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "API endpoint for users to report broken/missing files with detailed logging to Supabase.",
+    "start_line": 6307,
+    "num_lines": 62,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/report-issue",
+    "endpoint": "api_report_issue",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Submit a document issue report from within a viewer page.\nSaves to Supabase viewer_failure_reports so the Admin File Reports panel shows it.\nNo Turnstile required.",
+    "start_line": 4232,
+    "num_lines": 40,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/report-suspect",
+    "endpoint": "report_suspect",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Log a suspect action (screenshot / screen-record attempt) to Supabase.",
+    "start_line": 1768,
+    "num_lines": 29,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/request-material",
+    "endpoint": "api_request_material",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Submit a material request to another student.",
+    "start_line": 7470,
+    "num_lines": 34,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/semesters",
+    "endpoint": "api_get_semesters",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Return semesters for a department (unified API).",
+    "start_line": 1848,
+    "num_lines": 10,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/subject-request",
+    "endpoint": "api_create_subject_request",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Create a pending_subject_requests row (T2). Duplicate-safe via DB index.",
+    "start_line": 2260,
+    "num_lines": 24,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/subjects",
+    "endpoint": "api_get_subjects",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Return subjects for a department, optionally filtered by semester \u2014 cached at L1 for 30min.",
+    "start_line": 1860,
+    "num_lines": 20,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/subjects",
+    "endpoint": "api_add_subject",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 1883,
+    "num_lines": 51,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/track-file-access",
+    "endpoint": "track_file_access_api",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "API endpoint for tracking file access from client-side JavaScript",
+    "start_line": 6270,
+    "num_lines": 35,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/user/<target_user_id>/materials",
+    "endpoint": "api_get_peer_materials",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Get target student's uploaded & referred study materials.",
+    "start_line": 7444,
+    "num_lines": 6,
+    "subdomain": "",
+    "arguments": [
+      "target_user_id"
+    ]
+  },
+  {
+    "rule": "/api/user/notification-preferences",
+    "endpoint": "push_api.user_notification_preferences",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "module": "push_api",
+    "doc": "Get or update user notification preferences stored in Supabase profiles.",
+    "start_line": 215,
+    "num_lines": 77,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/users/search",
+    "endpoint": "api_search_users",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Search student profiles by query string.",
+    "start_line": 7434,
+    "num_lines": 9,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/v2/search",
+    "endpoint": "search_v2_endpoint",
+    "methods": [
+      "GET"
+    ],
+    "module": "methods.search_api",
+    "doc": "",
+    "start_line": 95,
+    "num_lines": 32,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/v2/search/analytics",
+    "endpoint": "search_analytics_endpoint",
+    "methods": [
+      "POST"
+    ],
+    "module": "methods.search_api",
+    "doc": "",
+    "start_line": 128,
+    "num_lines": 34,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/version",
+    "endpoint": "version_info",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Return current app version for footer and cache management",
+    "start_line": 1125,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/view-doc/<doc_id>",
+    "endpoint": "view_doc",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Clean proxy endpoint for viewing docs \u2014 no URL encoding needed in PDF.js file= param.\n\nSecurity: (1) Firebase signed URLs expire in 1 hour,\n(2) doc_id is a UUID (unguessable), (3) CORS headers restric",
+    "start_line": 3251,
+    "num_lines": 302,
+    "subdomain": "",
+    "arguments": [
+      "doc_id"
+    ]
+  },
+  {
+    "rule": "/api/view-doc/<doc_id>/<filename>",
+    "endpoint": "view_doc",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Clean proxy endpoint for viewing docs \u2014 no URL encoding needed in PDF.js file= param.\n\nSecurity: (1) Firebase signed URLs expire in 1 hour,\n(2) doc_id is a UUID (unguessable), (3) CORS headers restric",
+    "start_line": 3251,
+    "num_lines": 302,
+    "subdomain": "",
+    "arguments": [
+      "filename",
+      "doc_id"
+    ]
+  },
+  {
+    "rule": "/api/waitlist/join",
+    "endpoint": "api_waitlist_join",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Public endpoint \u2014 join college waitlist. No auth required.",
+    "start_line": 2286,
+    "num_lines": 16,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/webhooks/cloudinary-upload",
+    "endpoint": "webhook_cloudinary_upload",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Webhook triggered on storage upload completion to run async background compression.",
+    "start_line": 1130,
+    "num_lines": 21,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/api/widget-data",
+    "endpoint": "widget_data",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "API endpoint for widget data updates.\nReturns latest documents for home screen widget display.",
+    "start_line": 5087,
+    "num_lines": 33,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/app-shell",
+    "endpoint": "app_shell",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Native-like App Shell container for authenticated users.",
+    "start_line": 4338,
+    "num_lines": 43,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/auth",
+    "endpoint": "authorize",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 1168,
+    "num_lines": 55,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/auth-callback",
+    "endpoint": "auth_callback",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Handle OAuth callback from Supabase",
+    "start_line": 1365,
+    "num_lines": 16,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/chat",
+    "endpoint": "chat_page",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 8006,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/chat/<peer_id>",
+    "endpoint": "chat_with_peer",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 8011,
+    "num_lines": 7,
+    "subdomain": "",
+    "arguments": [
+      "peer_id"
+    ]
+  },
+  {
+    "rule": "/college/<college_slug>",
+    "endpoint": "college_landing",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Dynamic SEO-optimized college landing page.\nPriority: brand group page > individual college page > 404",
+    "start_line": 3850,
+    "num_lines": 58,
+    "subdomain": "",
+    "arguments": [
+      "college_slug"
+    ]
+  },
+  {
+    "rule": "/college/<college_slug>/<department_slug>",
+    "endpoint": "department_landing",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Dynamic SEO-optimized department landing page",
+    "start_line": 3995,
+    "num_lines": 28,
+    "subdomain": "",
+    "arguments": [
+      "college_slug",
+      "department_slug"
+    ]
+  },
+  {
+    "rule": "/college/<college_slug>/files",
+    "endpoint": "college_files",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "College files listing with filters, search, and pagination (16 per page).",
+    "start_line": 3909,
+    "num_lines": 85,
+    "subdomain": "",
+    "arguments": [
+      "college_slug"
+    ]
+  },
+  {
+    "rule": "/contact",
+    "endpoint": "contact",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Contact page",
+    "start_line": 4221,
+    "num_lines": 5,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/contribute",
+    "endpoint": "contribute_page",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Public SEO-optimized contributor guide, rank progression & perks page.",
+    "start_line": 1425,
+    "num_lines": 5,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/copyright",
+    "endpoint": "dmca",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "DMCA and Academic Copyright Policy page.",
+    "start_line": 1436,
+    "num_lines": 6,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/dashboard",
+    "endpoint": "dashboard",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Dashboard for authenticated users.\n\nThis handler was previously named 'premium'. It is the sole\nregistered handler for /dashboard, fixing a security issue where\na duplicate unauthenticated dashboard()",
+    "start_line": 4382,
+    "num_lines": 191,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/dashboard/",
+    "endpoint": "index",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 4929,
+    "num_lines": 5,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/dashboard/about",
+    "endpoint": "premium_about",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5024,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/dashboard/profile",
+    "endpoint": "p_profile_redirect",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 3609,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/dashboard/profile/old",
+    "endpoint": "p_profile_deprecated",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5029,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/dashboard/save_search",
+    "endpoint": "save_search",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5049,
+    "num_lines": 25,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/dashboard/search",
+    "endpoint": "search",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 4935,
+    "num_lines": 8,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/dashboard/setting",
+    "endpoint": "p_setting",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5033,
+    "num_lines": 3,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/dashboard/share-receiver",
+    "endpoint": "share_receiver",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Handle shared files from other apps via PWA share_target.\nAccepts multipart/form-data with files.",
+    "start_line": 4968,
+    "num_lines": 55,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/dashboard/static/search.json",
+    "endpoint": "search_in",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5038,
+    "num_lines": 10,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/dashboard/suggest",
+    "endpoint": "suggest",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 4900,
+    "num_lines": 28,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/dashboard/view",
+    "endpoint": "view",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Handle file viewing - supports both form POST and file handler GET",
+    "start_line": 4944,
+    "num_lines": 23,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/delete-account",
+    "endpoint": "delete_account",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Account deletion request page",
+    "start_line": 4327,
+    "num_lines": 5,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/dmca",
+    "endpoint": "dmca",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "DMCA and Academic Copyright Policy page.",
+    "start_line": 1436,
+    "num_lines": 6,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/earn-with-abhihub",
+    "endpoint": "earn_with_abhihub_legacy_redirect",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "301 permanent redirect from deprecated /earn-with-abhihub to /contribute.",
+    "start_line": 1431,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/earnings",
+    "endpoint": "earnings",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Eligibility and earnings info page.",
+    "start_line": 3734,
+    "num_lines": 5,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/favicon.ico",
+    "endpoint": "favicon",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5121,
+    "num_lines": 3,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/features-tour",
+    "endpoint": "features_tour",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 3807,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/get-file-url",
+    "endpoint": "get_file_url",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Generate a signed URL for a file without storing it",
+    "start_line": 5861,
+    "num_lines": 30,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/health",
+    "endpoint": "health_check",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Lightweight health check endpoint for monitoring without secret leakage.",
+    "start_line": 340,
+    "num_lines": 10,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/help",
+    "endpoint": "help_center",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 1626,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/indexnow",
+    "endpoint": "indexnow",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 4808,
+    "num_lines": 36,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/join",
+    "endpoint": "join_team",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Collaborator recruitment landing page",
+    "start_line": 4209,
+    "num_lines": 5,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/leaderboard",
+    "endpoint": "leaderboard",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Phase 19: Global Gamification Leaderboard \u2014 cached at L1 for 10min.",
+    "start_line": 3614,
+    "num_lines": 20,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/llms.txt",
+    "endpoint": "llms_txt",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "GEO signal file for AI model crawlers (GPTBot, PerplexityBot, ClaudeBot, Gemini).",
+    "start_line": 1462,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/local-viewer",
+    "endpoint": "local_viewer",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Standalone page: open a local image/PDF, preview it, then upload to Cloudinary.",
+    "start_line": 3156,
+    "num_lines": 5,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/login",
+    "endpoint": "login",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 1382,
+    "num_lines": 6,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/logo",
+    "endpoint": "logo",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 3177,
+    "num_lines": 3,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/logout",
+    "endpoint": "logout",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 1631,
+    "num_lines": 14,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/m/<slug>",
+    "endpoint": "memorywall_public",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Public submission page \u2014 no auth required.",
+    "start_line": 7221,
+    "num_lines": 11,
+    "subdomain": "",
+    "arguments": [
+      "slug"
+    ]
+  },
+  {
+    "rule": "/manifest.json",
+    "endpoint": "premium_manifest",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5083,
+    "num_lines": 3,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/memorywall",
+    "endpoint": "memorywall_dashboard",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Creator dashboard \u2014 shows wall status, share link, stats, and recent activity.",
+    "start_line": 7157,
+    "num_lines": 23,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/memorywall/create",
+    "endpoint": "memorywall_create",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Create a new MemoryWall.",
+    "start_line": 7183,
+    "num_lines": 36,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/memorywall/reveal/<wall_id>",
+    "endpoint": "memorywall_reveal",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Reveal page \u2014 authenticated wall owner only.",
+    "start_line": 7234,
+    "num_lines": 66,
+    "subdomain": "",
+    "arguments": [
+      "wall_id"
+    ]
+  },
+  {
+    "rule": "/notifications",
+    "endpoint": "notifications_page",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Full notification center page with all notifications (paginated).",
+    "start_line": 2780,
+    "num_lines": 14,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/offline",
+    "endpoint": "offline_page",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 6440,
+    "num_lines": 3,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/open-source",
+    "endpoint": "open_source",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Open source page",
+    "start_line": 3753,
+    "num_lines": 5,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/pdf-proxy/<path:pdf_name>",
+    "endpoint": "pdf_proxy",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Proxy PDF from Firebase Storage or redirect if absolute URL",
+    "start_line": 4668,
+    "num_lines": 84,
+    "subdomain": "",
+    "arguments": [
+      "pdf_name"
+    ]
+  },
+  {
+    "rule": "/prepair/<subject>",
+    "endpoint": "exam_prep",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5756,
+    "num_lines": 6,
+    "subdomain": "",
+    "arguments": [
+      "subject"
+    ]
+  },
+  {
+    "rule": "/privacy",
+    "endpoint": "privacy",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 1420,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/profile",
+    "endpoint": "profile",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 3574,
+    "num_lines": 34,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/profile/<user_id>",
+    "endpoint": "peer_profile",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Legacy peer profile route \u2014 redirects to the new /u/<user_id> URL.",
+    "start_line": 8048,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": [
+      "user_id"
+    ]
+  },
+  {
+    "rule": "/pyq",
+    "endpoint": "pyq_landing",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "SEO landing page targeting 'PYQ' and '[college] PYQ' searches",
+    "start_line": 3811,
+    "num_lines": 23,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/pyq/<college_slug>",
+    "endpoint": "college_landing",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Dynamic SEO-optimized college landing page.\nPriority: brand group page > individual college page > 404",
+    "start_line": 3850,
+    "num_lines": 58,
+    "subdomain": "",
+    "arguments": [
+      "college_slug"
+    ]
+  },
+  {
+    "rule": "/pyq/<college_slug>/<department_slug>",
+    "endpoint": "department_landing",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Dynamic SEO-optimized department landing page",
+    "start_line": 3995,
+    "num_lines": 28,
+    "subdomain": "",
+    "arguments": [
+      "college_slug",
+      "department_slug"
+    ]
+  },
+  {
+    "rule": "/pyq/<college_slug>/files",
+    "endpoint": "college_files",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "College files listing with filters, search, and pagination (16 per page).",
+    "start_line": 3909,
+    "num_lines": 85,
+    "subdomain": "",
+    "arguments": [
+      "college_slug"
+    ]
+  },
+  {
+    "rule": "/pyq_landing",
+    "endpoint": "pyq_landing_legacy_redirect",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "301 permanent redirect from old /pyq_landing to /pyq.",
+    "start_line": 3835,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/rank",
+    "endpoint": "calculate_rank",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 5767,
+    "num_lines": 11,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/register",
+    "endpoint": "register",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Register page (alias for signup)",
+    "start_line": 4333,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/reset-password",
+    "endpoint": "reset_password",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 1397,
+    "num_lines": 6,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/reset-password-confirm",
+    "endpoint": "reset_password_confirm",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Handle password reset confirmation from Supabase email link",
+    "start_line": 1404,
+    "num_lines": 10,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/resource/<path:slug>",
+    "endpoint": "resource_landing",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Dynamic SEO-optimized resource landing page",
+    "start_line": 4051,
+    "num_lines": 157,
+    "subdomain": "",
+    "arguments": [
+      "slug"
+    ]
+  },
+  {
+    "rule": "/resource/<path:slug>-view",
+    "endpoint": "resource_landing_redirect",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Redirect resource slug with -view suffix to clean URL",
+    "start_line": 4046,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": [
+      "slug"
+    ]
+  },
+  {
+    "rule": "/robots.txt",
+    "endpoint": "robots_txt",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Expose crawler directives with a sitemap URL for the canonical host.",
+    "start_line": 1447,
+    "num_lines": 14,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/search",
+    "endpoint": "search_page",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Public search page (renders the orphaned p_search.html UI).\nAccepts ?q=... to prefill + auto-run the search on load.",
+    "start_line": 3842,
+    "num_lines": 7,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/settings",
+    "endpoint": "settings",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Display user settings page with account, notification, credit, and privacy controls.",
+    "start_line": 3726,
+    "num_lines": 6,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/show_rank",
+    "endpoint": "show_rank",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Legacy route: redirect to new leaderboard",
+    "start_line": 5779,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/signup",
+    "endpoint": "signup",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 1389,
+    "num_lines": 6,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/sitemap-audit",
+    "endpoint": "sitemap_audit",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "List unclassified static GET routes while running in debug mode.",
+    "start_line": 1612,
+    "num_lines": 13,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/sitemap-colleges.xml",
+    "endpoint": "sitemap_colleges",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Sitemap module for colleges, departments, and subjects.",
+    "start_line": 1511,
+    "num_lines": 60,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/sitemap-documents.xml",
+    "endpoint": "sitemap_documents",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Sitemap module for approved documents and PYQs.",
+    "start_line": 1573,
+    "num_lines": 37,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/sitemap-pages.xml",
+    "endpoint": "sitemap_pages",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Sitemap module for core static public routes.",
+    "start_line": 1489,
+    "num_lines": 20,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/sitemap.xml",
+    "endpoint": "sitemap",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Return Sitemap Index pointing to modular sub-sitemaps for search engines.",
+    "start_line": 1473,
+    "num_lines": 14,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/static/<path:filename>",
+    "endpoint": "static",
+    "methods": [
+      "GET"
+    ],
+    "module": "flask.app",
+    "doc": "",
+    "start_line": 518,
+    "num_lines": 1,
+    "subdomain": "",
+    "arguments": [
+      "filename"
+    ]
+  },
+  {
+    "rule": "/static/<path:filename>",
+    "endpoint": "static_files",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 1161,
+    "num_lines": 5,
+    "subdomain": "",
+    "arguments": [
+      "filename"
+    ]
+  },
+  {
+    "rule": "/store-room",
+    "endpoint": "store_room",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Store Room page - displays unsorted papers from Cloudinary\nOnly loads initial batch for performance",
+    "start_line": 6048,
+    "num_lines": 36,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/store-room/api/label",
+    "endpoint": "label_store_room_paper",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Label a paper from store room and save to file_records table.\nExpects JSON with: filename, url, college_name, subject_name, branch, year, exam_type, etc.",
+    "start_line": 2334,
+    "num_lines": 168,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/store-room/api/rename-file",
+    "endpoint": "store_room_api_rename_file",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "API endpoint for renaming files with metadata in filename",
+    "start_line": 6172,
+    "num_lines": 46,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/store-room/api/sync",
+    "endpoint": "store_room_api_sync",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Triggers a manual synchronization from physical storage to the storage_assets table.",
+    "start_line": 6085,
+    "num_lines": 21,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/store-room/api/unlabeled",
+    "endpoint": "store_room_api_unlabeled",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "API endpoint for fetching unlabeled queue files\nQuery params: search, sort_by, order, format, folder, offset, limit",
+    "start_line": 6108,
+    "num_lines": 61,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/store-room/api/verification-queue",
+    "endpoint": "store_room_api_verification_queue",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "API endpoint to get papers pending verification",
+    "start_line": 6254,
+    "num_lines": 14,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/store-room/api/verify",
+    "endpoint": "store_room_api_verify",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "API endpoint for verifying a labeled paper",
+    "start_line": 6220,
+    "num_lines": 32,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/subject/<subject_slug>",
+    "endpoint": "subject_landing",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Dynamic SEO-optimized subject landing page (aggregated across colleges)",
+    "start_line": 4024,
+    "num_lines": 21,
+    "subdomain": "",
+    "arguments": [
+      "subject_slug"
+    ]
+  },
+  {
+    "rule": "/support",
+    "endpoint": "support",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 3741,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/sw.js",
+    "endpoint": "service_worker_root",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Serve service worker from root with proper headers",
+    "start_line": 5075,
+    "num_lines": 7,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/team",
+    "endpoint": "team",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Team page",
+    "start_line": 4215,
+    "num_lines": 5,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/terms",
+    "endpoint": "terms",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 1415,
+    "num_lines": 4,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/u/<user_id>",
+    "endpoint": "instagram_profile",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Public, Instagram-friendly profile page with OG meta tags for sharing.\n\nURL: /u/<user_id>  \u2014 short, clean, perfect for Instagram bio links.\nNo login required \u2014 anyone with the link can view the contri",
+    "start_line": 8124,
+    "num_lines": 146,
+    "subdomain": "",
+    "arguments": [
+      "user_id"
+    ]
+  },
+  {
+    "rule": "/update-file-metadata",
+    "endpoint": "update_file_metadata",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Update file metadata in Supabase (Admin Only)",
+    "start_line": 5892,
+    "num_lines": 21,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/upload",
+    "endpoint": "upload",
+    "methods": [
+      "GET",
+      "POST"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 2839,
+    "num_lines": 316,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/upload-gate",
+    "endpoint": "upload_gate",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "Shown when a user has exhausted their paper-access credits.",
+    "start_line": 3163,
+    "num_lines": 10,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/verify-file",
+    "endpoint": "verify_file",
+    "methods": [
+      "POST"
+    ],
+    "module": "app",
+    "doc": "Verify a file and ensure it's properly added to data.json",
+    "start_line": 5784,
+    "num_lines": 76,
+    "subdomain": "",
+    "arguments": []
+  },
+  {
+    "rule": "/view_pdf",
+    "endpoint": "view_pdf",
+    "methods": [
+      "GET"
+    ],
+    "module": "app",
+    "doc": "",
+    "start_line": 4614,
+    "num_lines": 52,
+    "subdomain": "",
+    "arguments": []
+  }
+]

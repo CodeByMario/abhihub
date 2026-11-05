@@ -1,0 +1,998 @@
+{% set seo_description = "Join AbhiHub's mission to make engineering study resources, notes, and PYQs accessible to all students across India. Explore open positions, talent pipeline, and legal hiring framework." %}
+{% set seo_title = "Careers & Open Positions | AbhiHub" %}
+{% extends 'p_struct.html' %}
+
+{% block page_head %}
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@600;700&display=swap" rel="stylesheet">
+{% endblock %}
+
+{% block content %}
+<style>
+  /* ─── Apple Physics & Mathematical Smooth Scrolling ───────────── */
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: calc(48px + var(--strip-h, 0px) + 1.25rem);
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .apple-scroll-reveal {
+    opacity: 0;
+    transform: translateY(28px);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
+
+  .apple-scroll-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .apple-scroll-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  }
+
+  /* ─── Edge-to-Edge Full-Screen Reset ────────────────────────────── */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    gap: 0 !important;
+  }
+
+  /* ─── Apple Design Tokens & Variables ──────────────────────────── */
+  :root {
+    --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --apple-blue: #0071E3;
+    --apple-blue-hover: #0077ED;
+    --apple-blue-subtle: rgba(0, 113, 227, 0.08);
+    --apple-dark: #1D1D1F;
+    --apple-gray: #6E6E73;
+    --apple-light-gray: #86868B;
+    --apple-bg: #FFFFFF;
+    --apple-surface: #F5F5F7;
+    --apple-surface-card: #FFFFFF;
+    --apple-border: rgba(0, 0, 0, 0.08);
+    --apple-border-subtle: rgba(0, 0, 0, 0.04);
+    --apple-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    --apple-shadow-hover: 0 12px 36px rgba(0, 0, 0, 0.08);
+
+    --radius-pill: 980px;
+    --radius-card: 18px;
+    --radius-small: 12px;
+  }
+
+  :root[data-theme="dark"], [data-theme="dark"], .dark {
+    --apple-dark: #F5F5F7;
+    --apple-gray: #A1A1A6;
+    --apple-light-gray: #6E6E73;
+    --apple-bg: #000000;
+    --apple-surface: #121214;
+    --apple-surface-card: #1C1C1E;
+    --apple-border: rgba(255, 255, 255, 0.12);
+    --apple-border-subtle: rgba(255, 255, 255, 0.06);
+    --apple-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    --apple-shadow-hover: 0 16px 40px rgba(0, 0, 0, 0.6);
+    --apple-blue-subtle: rgba(0, 113, 227, 0.18);
+  }
+
+  /* ─── Global Reset & Structure ─────────────────────────────────── */
+  .apple-shell {
+    font-family: var(--apple-font);
+    background-color: var(--apple-bg);
+    color: var(--apple-dark);
+    margin: 0;
+    padding: 0;
+    width: 100%;
+    min-height: 100vh;
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+  }
+
+  .apple-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  @media (max-width: 640px) {
+    .apple-container {
+      padding: 0 1rem;
+    }
+  }
+
+  /* ─── Apple Hero Section ───────────────────────────────────────── */
+  .section-hero {
+    padding: 3rem 0 3.5rem;
+    text-align: center;
+    position: relative;
+    background: radial-gradient(circle at 50% 0%, var(--apple-blue-subtle) 0%, transparent 65%), var(--apple-bg);
+    border-bottom: 1px solid var(--apple-border-subtle);
+  }
+
+  .hero-badge-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.4rem 1.1rem;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-pill);
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--apple-dark);
+    margin-bottom: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  }
+
+  .hero-badge-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: #10B981;
+  }
+
+  .apple-headline {
+    font-size: clamp(2.5rem, 5.5vw, 4rem);
+    font-weight: 800;
+    line-height: 1.08;
+    letter-spacing: -0.028em;
+    color: var(--apple-dark);
+    margin: 0 0 1rem;
+  }
+
+  .apple-subhead {
+    font-size: clamp(1.1rem, 2vw, 1.25rem);
+    font-weight: 400;
+    line-height: 1.5;
+    color: var(--apple-gray);
+    max-width: 680px;
+    margin: 0 auto 1.75rem;
+  }
+
+  .cr-hero-desk-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.45rem 1.1rem;
+    background: var(--apple-surface-card);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-pill);
+    font-size: 0.84rem;
+    color: var(--apple-gray);
+    box-shadow: var(--apple-shadow);
+  }
+
+  .cr-hero-desk-pill a {
+    color: var(--apple-blue);
+    font-weight: 600;
+    text-decoration: none;
+    transition: color 0.15s ease;
+  }
+
+  .cr-hero-desk-pill a:hover {
+    color: var(--apple-blue-hover);
+    text-decoration: underline;
+  }
+
+  /* ─── Apple Values Strip ───────────────────────────────────────── */
+  .cr-values-section {
+    padding: 3rem 0;
+    background: var(--apple-surface);
+    border-bottom: 1px solid var(--apple-border-subtle);
+  }
+
+  .cr-values-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .cr-value-card {
+    background: var(--apple-surface-card);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    padding: 1.5rem;
+    box-shadow: var(--apple-shadow);
+    display: flex;
+    align-items: flex-start;
+    gap: 1rem;
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .cr-value-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--apple-shadow-hover);
+  }
+
+  .cr-value-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    background: var(--apple-blue-subtle);
+    color: var(--apple-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.35rem;
+    flex-shrink: 0;
+  }
+
+  .cr-value-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--apple-dark);
+    margin: 0 0 0.35rem;
+    letter-spacing: -0.015em;
+  }
+
+  .cr-value-desc {
+    font-size: 0.86rem;
+    line-height: 1.48;
+    color: var(--apple-gray);
+    margin: 0;
+  }
+
+  /* ─── Vacancy Filter Pills ─────────────────────────────────────── */
+  .cr-filter-bar {
+    padding: 2.5rem 0 1rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .cr-filter-wrap {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    padding: 0.35rem;
+    border-radius: var(--radius-pill);
+    overflow-x: auto;
+    max-width: 100%;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .cr-filter-wrap::-webkit-scrollbar {
+    display: none;
+  }
+
+  .cr-filter-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    flex-shrink: 0;
+    background: transparent;
+    border: none;
+    color: var(--apple-gray);
+    font-size: 0.84rem;
+    font-weight: 600;
+    padding: 0.45rem 1.1rem;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+  }
+
+  .cr-filter-btn svg {
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 640px) {
+    .cr-filter-bar {
+      padding: 1.5rem 0 0.5rem;
+      justify-content: flex-start;
+      overflow-x: auto;
+      scrollbar-width: none;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    .cr-filter-bar::-webkit-scrollbar {
+      display: none;
+    }
+
+    .cr-filter-wrap {
+      padding: 0.25rem 0.35rem;
+      gap: 0.3rem;
+      flex-wrap: nowrap;
+    }
+
+    .cr-filter-btn {
+      padding: 0.38rem 0.85rem;
+      font-size: 0.78rem;
+    }
+  }
+
+  .cr-filter-btn.active,
+  .cr-filter-btn:hover {
+    background: var(--apple-surface-card);
+    color: var(--apple-dark);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  }
+
+  .cr-filter-btn.active {
+    color: var(--apple-blue);
+  }
+
+  /* ─── Role Section & Grid ──────────────────────────────────────── */
+  .cr-role-section {
+    padding: 3.5rem 0;
+    border-bottom: 1px solid var(--apple-border-subtle);
+  }
+
+  .apple-section-header {
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto 2.5rem;
+  }
+
+  .apple-eyebrow {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: var(--apple-blue);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 0.5rem;
+    display: block;
+  }
+
+  .apple-section-title {
+    font-size: clamp(1.85rem, 3.5vw, 2.4rem);
+    font-weight: 800;
+    line-height: 1.15;
+    letter-spacing: -0.025em;
+    color: var(--apple-dark);
+    margin: 0 0 0.65rem;
+  }
+
+  .apple-section-desc {
+    font-size: 1rem;
+    line-height: 1.5;
+    color: var(--apple-gray);
+    margin: 0;
+  }
+
+  .cr-roles-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 640px) {
+    .cr-roles-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* ─── Apple Job Card ───────────────────────────────────────────── */
+  .cr-card {
+    background: var(--apple-surface-card);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    padding: 1.75rem 1.6rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: var(--apple-shadow);
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.22s ease;
+  }
+
+  .cr-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--apple-shadow-hover);
+    border-color: var(--apple-blue);
+  }
+
+  .cr-card--filled {
+    opacity: 0.72;
+    background: var(--apple-surface);
+  }
+
+  .cr-card--filled:hover {
+    transform: none;
+    border-color: var(--apple-border);
+    box-shadow: var(--apple-shadow);
+  }
+
+  .cr-card-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+    margin-bottom: 1.15rem;
+  }
+
+  .cr-badge {
+    display: inline-flex;
+    align-items: center;
+    font-size: 0.72rem;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: var(--radius-pill);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .cr-badge--live {
+    background: rgba(16, 185, 129, 0.1);
+    color: #10B981;
+    border: 1px solid rgba(16, 185, 129, 0.2);
+  }
+
+  .cr-badge--soon {
+    background: rgba(245, 158, 11, 0.1);
+    color: #f59e0b;
+    border: 1px solid rgba(245, 158, 11, 0.2);
+  }
+
+  .cr-badge--filled {
+    background: rgba(100, 116, 139, 0.1);
+    color: var(--apple-gray);
+    border: 1px solid var(--apple-border);
+  }
+
+  .cr-badge--pill {
+    background: var(--apple-surface);
+    color: var(--apple-gray);
+    border: 1px solid var(--apple-border);
+  }
+
+  .cr-card-title {
+    font-size: 1.35rem;
+    font-weight: 800;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+    color: var(--apple-dark);
+    margin: 0 0 0.65rem;
+  }
+
+  .cr-card-desc {
+    font-size: 0.88rem;
+    line-height: 1.55;
+    color: var(--apple-gray);
+    margin: 0 0 1.25rem;
+  }
+
+  .cr-card-points {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.75rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .cr-card-points li {
+    font-size: 0.84rem;
+    line-height: 1.45;
+    color: var(--apple-gray);
+    position: relative;
+    padding-left: 1.2rem;
+  }
+
+  .cr-card-points li::before {
+    content: "•";
+    position: absolute;
+    left: 0;
+    color: var(--apple-blue);
+    font-weight: 800;
+    font-size: 1.1rem;
+    line-height: 1;
+  }
+
+  .cr-btn-apply {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    background: var(--apple-blue);
+    color: #ffffff !important;
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.65rem 1.4rem;
+    border-radius: var(--radius-pill);
+    transition: background-color 0.15s ease, transform 0.1s ease;
+    text-align: center;
+  }
+
+  .cr-btn-apply:hover {
+    background: var(--apple-blue-hover);
+    transform: scale(1.01);
+  }
+
+  .cr-btn-soon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    background: var(--apple-surface);
+    color: var(--apple-dark) !important;
+    border: 1px solid var(--apple-border);
+    text-decoration: none;
+    font-size: 0.875rem;
+    font-weight: 600;
+    padding: 0.65rem 1.4rem;
+    border-radius: var(--radius-pill);
+    transition: all 0.15s ease;
+    text-align: center;
+  }
+
+  .cr-btn-soon:hover {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue) !important;
+  }
+
+  .cr-btn-filled {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    background: transparent;
+    color: var(--apple-light-gray);
+    font-size: 0.84rem;
+    font-weight: 600;
+    padding: 0.65rem 1.4rem;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--apple-border-subtle);
+    cursor: not-allowed;
+    text-align: center;
+  }
+
+  /* ─── Apple Legal Compliance Box ───────────────────────────────── */
+  .section-legal {
+    padding: 4.5rem 0;
+    background: var(--apple-surface);
+    border-bottom: 1px solid var(--apple-border-subtle);
+  }
+
+  .cr-legal-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+
+  .cr-legal-card {
+    background: var(--apple-surface-card);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    padding: 1.5rem;
+    box-shadow: var(--apple-shadow);
+  }
+
+  .cr-legal-card h4 {
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--apple-dark);
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.015em;
+  }
+
+  .cr-legal-card p {
+    font-size: 0.85rem;
+    line-height: 1.55;
+    color: var(--apple-gray);
+    margin: 0;
+  }
+
+  /* ─── Apple CTA Banner ─────────────────────────────────────────── */
+  .section-cta-banner {
+    padding: 5rem 0;
+    text-align: center;
+    background: var(--apple-bg);
+  }
+
+  .cta-title {
+    font-size: clamp(2rem, 4vw, 3rem);
+    font-weight: 800;
+    letter-spacing: -0.025em;
+    line-height: 1.15;
+    color: var(--apple-dark);
+    margin: 0 0 0.75rem;
+  }
+
+  .cta-sub {
+    font-size: 1.05rem;
+    line-height: 1.5;
+    color: var(--apple-gray);
+    max-width: 600px;
+    margin: 0 auto 2rem;
+  }
+</style>
+
+<div class="apple-shell">
+  <!-- 1. Apple Hero Section -->
+  <section class="section-hero">
+    <div class="apple-container">
+      <div class="hero-badge-pill">
+        <span class="hero-badge-dot"></span>
+        <span>Join India's Student Peer Ecosystem</span>
+      </div>
+
+      <h1 class="apple-headline">
+        Build the future of engineering study.
+      </h1>
+
+      <p class="apple-subhead">
+        Help us build the most accessible, verified academic platform for engineering question papers, handwritten notes, and campus student tools across India.
+      </p>
+
+      <div class="cr-hero-desk-pill">
+        <span>Official Talent Desk:</span>
+        <a href="mailto:careers@abhihub.edu.eu.org">careers@abhihub.edu.eu.org</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 2. Values & Culture Strip -->
+  <section class="cr-values-section">
+    <div class="apple-container">
+      <div class="cr-values-grid">
+        <div class="cr-value-card">
+          <div class="cr-value-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="2" y1="12" x2="22" y2="12"></line><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path></svg></div>
+          <div>
+            <h3 class="cr-value-title">100% Remote / Hybrid</h3>
+            <p class="cr-value-desc">Built for students to contribute around semester lectures, practicals, and university exams.</p>
+          </div>
+        </div>
+
+        <div class="cr-value-card">
+          <div class="cr-value-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></div>
+          <div>
+            <h3 class="cr-value-title">High Student Impact</h3>
+            <p class="cr-value-desc">Your contributions directly power revision and prep for thousands of peers across autonomous colleges.</p>
+          </div>
+        </div>
+
+        <div class="cr-value-card">
+          <div class="cr-value-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg></div>
+          <div>
+            <h3 class="cr-value-title">Formal Credentials & Perks</h3>
+            <p class="cr-value-desc">Official certificates, letters of recommendation, leadership titles, and contributor royalties.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 3. Vacancy Filter Bar -->
+  <div class="apple-container cr-filter-bar">
+    <div class="cr-filter-wrap" role="tablist" aria-label="Vacancy Status Filters">
+      <button class="cr-filter-btn active" data-filter="all">All Positions (8)</button>
+      <button class="cr-filter-btn" data-filter="live">● Actively Hiring (3)</button>
+      <button class="cr-filter-btn" data-filter="soon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening Soon (3)</button>
+      <button class="cr-filter-btn" data-filter="filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Position Filled (2)</button>
+    </div>
+  </div>
+
+  <!-- 4. Actively Hiring Positions -->
+  <section class="cr-role-section">
+    <div class="apple-container">
+      <div class="apple-section-header">
+        <span class="apple-eyebrow">Current Openings</span>
+        <h2 class="apple-section-title">Actively Hiring Positions</h2>
+        <p class="apple-section-desc">Apply directly by emailing your resume and portfolio or GitHub profile to our talent inbox.</p>
+      </div>
+
+      <div class="cr-roles-grid">
+        <!-- Role 1 -->
+        <article class="cr-card" data-status="live">
+          <div>
+            <div class="cr-card-badges">
+              <span class="cr-badge cr-badge--live">● Actively Hiring</span>
+              <span class="cr-badge cr-badge--pill">Remote (India)</span>
+              <span class="cr-badge cr-badge--pill">Intern / Core</span>
+            </div>
+            <h3 class="cr-card-title">Full-Stack Python &amp; Flask Developer</h3>
+            <p class="cr-card-desc">
+              Develop core web platform features, Supabase integrations, search query caching, and student exam viewing tools.
+            </p>
+            <ul class="cr-card-points">
+              <li>Python 3.10+, Flask, Jinja2, vanilla CSS &amp; Tailwind</li>
+              <li>PostgreSQL / Supabase schema design &amp; query optimization</li>
+              <li>Git workflows, REST endpoints, and client-side performance</li>
+            </ul>
+          </div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Full-Stack%20Python%20Flask%20Developer&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20apply%20for%20the%20Full-Stack%20Python%20%26%20Flask%20Developer%20position.%0A%0AFull%20Name%3A%0ALocation%2FCollege%3A%0APortfolio%20%2F%20GitHub%3A%0ALinkedIn%3A%0AResume%20Link%20%2F%20Attachment%3A%0A%0AThank%20you!" class="cr-btn-apply">
+            Apply via Email →
+          </a>
+        </article>
+
+        <!-- Role 2 -->
+        <article class="cr-card" data-status="live">
+          <div>
+            <div class="cr-card-badges">
+              <span class="cr-badge cr-badge--live">● Actively Hiring</span>
+              <span class="cr-badge cr-badge--pill">Remote</span>
+              <span class="cr-badge cr-badge--pill">Flexible</span>
+            </div>
+            <h3 class="cr-card-title">Academic Notes &amp; PYQ Curator</h3>
+            <p class="cr-card-desc">
+              Review, verify, and categorize university syllabus papers and engineering study resources submitted by contributors.
+            </p>
+            <ul class="cr-card-points">
+              <li>Engineering or Computer Science student or graduate</li>
+              <li>Strong eye for clarity in handwriting, equations &amp; diagrams</li>
+              <li>Familiarity with university syllabus patterns (RTMNU, SPPU, AKTU)</li>
+            </ul>
+          </div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Academic%20Notes%20Curator&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Academic%20Notes%20%26%20PYQ%20Curator%20role.%0A%0AFull%20Name%3A%0AUniversity%20%2F%20College%3A%0ABranch%20%26%20Year%3A%0ALinkedIn%3A%0A%0AThank%20you!" class="cr-btn-apply">
+            Apply via Email →
+          </a>
+        </article>
+
+        <!-- Role 3 -->
+        <article class="cr-card" data-status="live">
+          <div>
+            <div class="cr-card-badges">
+              <span class="cr-badge cr-badge--live">● Actively Hiring</span>
+              <span class="cr-badge cr-badge--pill">Hybrid / Campus</span>
+              <span class="cr-badge cr-badge--pill">Leadership</span>
+            </div>
+            <h3 class="cr-card-title">Campus Growth &amp; Ambassador Lead</h3>
+            <p class="cr-card-desc">
+              Lead student outreach, introduce AbhiHub to engineering colleges across regions, and manage peer contributor networks.
+            </p>
+            <ul class="cr-card-points">
+              <li>Proactive communication, community building &amp; social skills</li>
+              <li>Experience in university clubs, GDG/IEEE/CSI student chapters</li>
+              <li>Eligible for leadership certificates and contributor royalties</li>
+            </ul>
+          </div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Campus%20Growth%20Lead&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20interested%20in%20leading%20campus%20growth%20at%20my%20college.%0A%0AFull%20Name%3A%0ACollege%20%26%20City%3A%0ABranch%20%26%20Semester%3A%0ALeadership%20%2F%20Club%20Experience%3A%0A%0AThank%20you!" class="cr-btn-apply">
+            Apply via Email →
+          </a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 5. Opening Soon Roles -->
+  <section class="cr-role-section">
+    <div class="apple-container">
+      <div class="apple-section-header">
+        <span class="apple-eyebrow">Talent Pipeline</span>
+        <h2 class="apple-section-title">Opening Soon Roles</h2>
+        <p class="apple-section-desc">These positions will be opening shortly. You can submit early interest to receive priority consideration.</p>
+      </div>
+
+      <div class="cr-roles-grid">
+        <!-- Soon 1 -->
+        <article class="cr-card" data-status="soon">
+          <div>
+            <div class="cr-card-badges">
+              <span class="cr-badge cr-badge--soon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening Soon</span>
+              <span class="cr-badge cr-badge--pill">AI Engineering</span>
+            </div>
+            <h3 class="cr-card-title">AI &amp; LLM Integration Specialist</h3>
+            <p class="cr-card-desc">
+              Architecting Tarika AI study assistant workflows, vector retrieval pipelines, and automated academic summarization.
+            </p>
+            <ul class="cr-card-points">
+              <li>LangChain, Gemini API, OpenAI APIs, vector embeddings</li>
+              <li>Retrieval-Augmented Generation (RAG) on technical textbooks</li>
+            </ul>
+          </div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Expression%20of%20Interest%3A%20AI%20LLM%20Specialist&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20register%20early%20interest%20for%20the%20AI%20%26%20LLM%20Specialist%20role.%0A%0AName%3A%0AGitHub%2FPortfolio%3A" class="cr-btn-soon">
+            Submit Early Interest →
+          </a>
+        </article>
+
+        <!-- Soon 2 -->
+        <article class="cr-card" data-status="soon">
+          <div>
+            <div class="cr-card-badges">
+              <span class="cr-badge cr-badge--soon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening Soon</span>
+              <span class="cr-badge cr-badge--pill">Design &amp; UX</span>
+            </div>
+            <h3 class="cr-card-title">Product &amp; UI/UX Designer</h3>
+            <p class="cr-card-desc">
+              Crafting mobile-first student experiences, clean study dashboards, reading modes, and dark-mode design systems.
+            </p>
+            <ul class="cr-card-points">
+              <li>Figma prototyping and modern component design tokens</li>
+              <li>Understanding student workflows during semester exams</li>
+            </ul>
+          </div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Expression%20of%20Interest%3A%20UI%2FUX%20Designer&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20register%20early%20interest%20for%20the%20UI%2FUX%20Designer%20role.%0A%0AName%3A%0APortfolio%20Link%3A" class="cr-btn-soon">
+            Submit Early Interest →
+          </a>
+        </article>
+
+        <!-- Soon 3 -->
+        <article class="cr-card" data-status="soon">
+          <div>
+            <div class="cr-card-badges">
+              <span class="cr-badge cr-badge--soon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening Soon</span>
+              <span class="cr-badge cr-badge--pill">Growth &amp; SEO</span>
+            </div>
+            <h3 class="cr-card-title">Technical SEO &amp; Content Strategist</h3>
+            <p class="cr-card-desc">
+              Scaling organic discovery for college question papers, syllabus hubs, and academic resource directories.
+            </p>
+            <ul class="cr-card-points">
+              <li>Structured data, programmatic SEO, and crawl budget indexing</li>
+              <li>Academic search trend research across Indian universities</li>
+            </ul>
+          </div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Expression%20of%20Interest%3A%20Technical%20SEO&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20would%20like%20to%20register%20early%20interest%20for%20the%20SEO%20role.%0A%0AName%3A%0ALinkedIn%3A" class="cr-btn-soon">
+            Submit Early Interest →
+          </a>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 6. Filled Positions -->
+  <section class="cr-role-section">
+    <div class="apple-container">
+      <div class="apple-section-header">
+        <span class="apple-eyebrow" style="color:var(--apple-gray);">Hiring Transparency</span>
+        <h2 class="apple-section-title">Filled Positions</h2>
+        <p class="apple-section-desc">These positions have been successfully filled for the current academic session.</p>
+      </div>
+
+      <div class="cr-roles-grid">
+        <!-- Filled 1 -->
+        <article class="cr-card cr-card--filled" data-status="filled">
+          <div>
+            <div class="cr-card-badges">
+              <span class="cr-badge cr-badge--filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Position Filled</span>
+              <span class="cr-badge cr-badge--pill">Remote</span>
+              <span class="cr-badge cr-badge--pill">Cohort 2026</span>
+            </div>
+            <h3 class="cr-card-title">Frontend UI Developer Intern</h3>
+            <p class="cr-card-desc">
+              Building client-side responsive components, study tools, and interactive notes views using Tailwind and modern CSS.
+            </p>
+            <ul class="cr-card-points">
+              <li>Candidate selected &amp; onboarded</li>
+              <li>Applications closed for this intake</li>
+            </ul>
+          </div>
+          <span class="cr-btn-filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Applications Closed</span>
+        </article>
+
+        <!-- Filled 2 -->
+        <article class="cr-card cr-card--filled" data-status="filled">
+          <div>
+            <div class="cr-card-badges">
+              <span class="cr-badge cr-badge--filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Position Filled</span>
+              <span class="cr-badge cr-badge--pill">Nagpur / Hybrid</span>
+              <span class="cr-badge cr-badge--pill">Creator</span>
+            </div>
+            <h3 class="cr-card-title">Student Social Media &amp; Community Creator</h3>
+            <p class="cr-card-desc">
+              Campus outreach and academic reels/infographics production for exam time tips and PYQ announcements.
+            </p>
+            <ul class="cr-card-points">
+              <li>Candidate selected &amp; onboarded</li>
+              <li>Applications closed for this intake</li>
+            </ul>
+          </div>
+          <span class="cr-btn-filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Applications Closed</span>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <!-- 7. Official Legal Compliance Standards -->
+  <section class="section-legal">
+    <div class="apple-container">
+      <div class="apple-section-header">
+        <span class="apple-eyebrow">Official Compliance</span>
+        <h2 class="apple-section-title">Legal Standards &amp; Recruitment Policy</h2>
+        <p class="apple-section-desc">AbhiHub strictly adheres to labor guidelines, anti-fraud safeguards, and non-discriminatory hiring ethics.</p>
+      </div>
+
+      <div class="cr-legal-grid">
+        <div class="cr-legal-card">
+          <h4 style="display:flex;align-items:center;gap:0.4rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v18"></path><rect x="3" y="6" width="6" height="4" rx="1"></rect><rect x="15" y="14" width="6" height="4" rx="1"></rect><path d="M6 3h12"></path></svg> Equal Opportunity Employer</h4>
+          <p>
+            AbhiHub provides equal opportunities to all applicants regardless of race, caste, religion, gender, sexual orientation, disability, age, or socioeconomic status. Hiring decisions are strictly merit and capability based.
+          </p>
+        </div>
+
+        <div class="cr-legal-card">
+          <h4 style="display:flex;align-items:center;gap:0.4rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Anti-Fraud &amp; Zero-Fee Guarantee</h4>
+          <p>
+            <strong>AbhiHub NEVER requests any payment, registration fee, software deposit, or training charges</strong> at any stage of hiring. All official communications originate solely from <code>@abhihub.edu.eu.org</code>. Report suspicious claims immediately.
+          </p>
+        </div>
+
+        <div class="cr-legal-card">
+          <h4 style="display:flex;align-items:center;gap:0.4rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Candidate Data Privacy</h4>
+          <p>
+            All submitted CVs, portfolios, and personal details sent to <code>careers@abhihub.edu.eu.org</code> are handled in strict compliance with applicable Data Protection Regulations and our <a href="{{ url_for('site.privacy') }}" style="color:var(--apple-blue); font-weight:600;">Privacy Policy</a>. Data is never sold or shared with third-party advertisers.
+          </p>
+        </div>
+
+        <div class="cr-legal-card">
+          <h4 style="display:flex;align-items:center;gap:0.4rem;"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg> Engagement &amp; Contract Terms</h4>
+          <p>
+            Internship, collaborator, or employment arrangements are governed by mutual written agreements defining responsibilities, intellectual property assignment, non-disclosure (NDA), and applicable compensation or academic credits.
+          </p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 8. Apple CTA Banner -->
+  <section class="section-cta-banner">
+    <div class="apple-container">
+      <h2 class="cta-title">Have Questions About Joining Us?</h2>
+      <p class="cta-sub">
+        If your profile doesn't match an active listing or if you want to collaborate as a faculty advisor or student creator, write to us directly.
+      </p>
+      <a href="mailto:careers@abhihub.edu.eu.org?subject=General%20Career%20Inquiry" class="cr-btn-apply" style="font-size:1.05rem; padding:0.85rem 2.2rem;">
+        <span style="display:inline-flex;align-items:center;gap:0.4rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg> Contact careers@abhihub.edu.eu.org</span>
+      </a>
+    </div>
+  </section>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    // 1. Role Filter Switcher
+    const filterBtns = document.querySelectorAll('.cr-filter-btn');
+    const cards = document.querySelectorAll('.cr-card');
+    const sections = document.querySelectorAll('.cr-role-section');
+
+    filterBtns.forEach(btn => {
+      btn.addEventListener('click', function() {
+        filterBtns.forEach(b => b.classList.remove('active'));
+        this.classList.add('active');
+        const filter = this.dataset.filter;
+
+        cards.forEach(card => {
+          if (filter === 'all' || card.dataset.status === filter) {
+            card.style.display = 'flex';
+          } else {
+            card.style.display = 'none';
+          }
+        });
+
+        sections.forEach(sec => {
+          const hasVisible = Array.from(sec.querySelectorAll('.cr-card')).some(c => c.style.display !== 'none');
+          sec.style.display = hasVisible ? 'block' : 'none';
+        });
+      });
+    });
+
+    // 2. Apple Mathematical Smooth Scroll & Scroll-Reveal Observer
+    if ('IntersectionObserver' in window) {
+      var revealObserver = new IntersectionObserver(function(entries, observer) {
+        entries.forEach(function(entry) {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+            observer.unobserve(entry.target);
+          }
+        });
+      }, {
+        threshold: 0.08,
+        rootMargin: '0px 0px -40px 0px'
+      });
+
+      document.querySelectorAll('section, .cr-value-card, .cr-card, .cr-legal-card').forEach(function(el) {
+        el.classList.add('apple-scroll-reveal');
+        revealObserver.observe(el);
+      });
+    }
+  });
+</script>
+{% endblock %}

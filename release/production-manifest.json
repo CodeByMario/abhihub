@@ -1,0 +1,37 @@
+{
+  "allowlist": [
+    "app.py",
+    "cache_manager.py",
+    "data",
+    "firebase_config.py",
+    "gunicorn.conf.py",
+    "methods",
+    "migrations",
+    "Procfile",
+    "push_api.py",
+    "push_notifications.py",
+    "requirements.txt",
+    "routes",
+    "robots.txt",
+    "scheduled_tasks.py",
+    "static",
+    "templates"
+  ],
+  "denylist": [
+    ".env",
+    ".git",
+    "tests",
+    "docs",
+    "conductor",
+    "README.md",
+    "bot.py",
+    "setup.py",
+    "release",
+    "scripts"
+  ],
+  "required_environment_variables": [
+    "SECRET_KEY",
+    "SUPABASE_URL",
+    "SUPABASE_KEY"
+  ]
+}

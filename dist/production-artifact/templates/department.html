@@ -1,0 +1,425 @@
+{% set _dept = department.abbreviation or department.name %}
+{% set _college = college.abbreviation or college.name %}
+{% set college_slug = request.view_args.get('college_slug') %}
+{% set department_slug = request.view_args.get('department_slug') %}
+{% set seo_title = _dept ~ ' PYQ & Notes - ' ~ _college ~ ' | AbhiHub' %}
+{% set seo_description = 'Approved PYQs, notes and study resources for ' ~ department.name ~ ' at ' ~ college.name ~ '.' %}
+{% set og_title = seo_title %}
+{% set og_description = seo_description %}
+{% set og_type = 'website' %}
+
+{% extends 'p_struct.html' %}
+
+{% block page_head %}
+<script type="application/ld+json">
+{{ {"@context":"https://schema.org","@type":"EducationalOrganization","name":department.name ~ " - " ~ college.name,"url":request.base_url,"parentOrganization":{"@type":"CollegeOrUniversity","name":college.name}}|tojson }}
+</script>
+<style>
+  /* ─── Edge-to-Edge Reset ─── */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    background: var(--apple-bg, #FBFBFD) !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    gap: 0 !important;
+    background: var(--apple-bg, #FBFBFD) !important;
+  }
+
+  /* ─── Apple Design Tokens ─── */
+  :root {
+    --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --apple-blue: #0071E3;
+    --apple-blue-hover: #0077ED;
+    --apple-blue-subtle: rgba(0, 113, 227, 0.08);
+    --apple-dark: #1D1D1F;
+    --apple-gray: #86868B;
+    --apple-gray-light: #F5F5F7;
+    --apple-border: rgba(0, 0, 0, 0.08);
+    --apple-surface: #FFFFFF;
+    --apple-surface-card: #FFFFFF;
+    --apple-surface-subtle: #F5F5F7;
+    --apple-bg: #FBFBFD;
+    --apple-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    --apple-shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.08);
+    --apple-pill: 980px;
+  }
+
+  [data-theme="dark"], .dark {
+    --apple-dark: #F5F5F7;
+    --apple-gray: #A1A1A6;
+    --apple-gray-light: #1D1D1F;
+    --apple-border: rgba(255, 255, 255, 0.12);
+    --apple-surface: #121214;
+    --apple-surface-card: #18181B;
+    --apple-surface-subtle: #1C1C1E;
+    --apple-bg: #000000;
+    --apple-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    --apple-shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.6);
+    --apple-blue: #2997FF;
+    --apple-blue-hover: #40A9FF;
+    --apple-blue-subtle: rgba(41, 151, 255, 0.15);
+  }
+
+  .dept-page-wrap {
+    font-family: var(--apple-font);
+    background: var(--apple-bg);
+    color: var(--apple-dark);
+    min-height: 100vh;
+    padding: 2.5rem 1.5rem 5rem;
+    max-width: 1180px;
+    margin: 0 auto;
+    box-sizing: border-box;
+  }
+
+  /* ─── Hero Card ─── */
+  .dept-hero-card {
+    background: linear-gradient(150deg, #0A0D14 0%, #111726 100%);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+    padding: 3rem 2.5rem;
+    color: #FFFFFF;
+    box-shadow: 0 16px 40px -10px rgba(0, 0, 0, 0.2);
+  }
+
+  .dept-crumb {
+    font-size: 0.84rem;
+    color: #94A3B8;
+    margin-bottom: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+  }
+
+  .dept-crumb a {
+    color: #93C5FD;
+    text-decoration: none;
+    font-weight: 500;
+  }
+
+  .dept-crumb a:hover {
+    text-decoration: underline;
+  }
+
+  .dept-hero-card h1 {
+    font-size: clamp(2rem, 4.5vw, 3.2rem);
+    font-weight: 700;
+    line-height: 1.1;
+    letter-spacing: -0.025em;
+    margin: 0 0 0.85rem;
+    color: #FFFFFF;
+  }
+
+  .dept-hero-card p {
+    font-size: 1.05rem;
+    color: #94A3B8;
+    line-height: 1.6;
+    max-width: 700px;
+    margin: 0;
+  }
+
+  .dept-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    margin-top: 1.75rem;
+  }
+
+  .dept-action {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    height: 44px;
+    padding: 0 1.5rem;
+    border-radius: var(--apple-pill);
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    font-family: var(--apple-font);
+    cursor: pointer;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .dept-action.primary {
+    background: #0071E3;
+    color: #FFFFFF !important;
+  }
+
+  .dept-action.primary:hover {
+    background: #0077ED;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35);
+  }
+
+  .dept-action.secondary {
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: #FFFFFF !important;
+  }
+
+  .dept-action.secondary:hover {
+    background: rgba(255, 255, 255, 0.15);
+    transform: translateY(-1px);
+  }
+
+  /* ─── Metric Strip ─── */
+  .dept-stats-strip {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+    margin: 1.75rem 0 2.75rem;
+  }
+
+  .dept-stat-card {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: 18px;
+    padding: 1.25rem 1.5rem;
+    box-shadow: var(--apple-shadow);
+  }
+
+  .dept-stat-card strong {
+    display: block;
+    font-size: 1.85rem;
+    font-weight: 800;
+    color: var(--apple-blue);
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+  }
+
+  .dept-stat-card span {
+    display: block;
+    margin-top: 0.25rem;
+    font-size: 0.76rem;
+    font-weight: 600;
+    color: var(--apple-gray);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  /* ─── Grid ─── */
+  .dept-section-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-bottom: 1.35rem;
+  }
+
+  .dept-section-head h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--apple-dark);
+    margin: 0 0 0.25rem;
+  }
+
+  .dept-section-head p {
+    font-size: 0.9rem;
+    color: var(--apple-gray);
+    margin: 0;
+  }
+
+  .dept-link-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--apple-blue);
+    text-decoration: none;
+  }
+
+  .dept-link-cta:hover {
+    text-decoration: underline;
+  }
+
+  .dept-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .apple-doc-card {
+    background: var(--apple-surface-card);
+    border: 1px solid var(--apple-border);
+    border-radius: 18px;
+    padding: 1.35rem;
+    text-decoration: none;
+    color: var(--apple-dark);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: var(--apple-shadow);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+    min-height: 155px;
+  }
+
+  .apple-doc-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--apple-shadow-hover);
+    border-color: var(--apple-blue);
+  }
+
+  .apple-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .apple-category-pill {
+    padding: 0.25rem 0.6rem;
+    border-radius: 6px;
+    background: var(--apple-blue-subtle);
+    color: var(--apple-blue);
+    font-size: 0.72rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .apple-doc-card h3 {
+    font-size: 1.02rem;
+    font-weight: 700;
+    line-height: 1.35;
+    margin: 0 0 0.35rem;
+    color: var(--apple-dark);
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .apple-doc-card p {
+    font-size: 0.84rem;
+    color: var(--apple-gray);
+    margin: 0;
+    line-height: 1.45;
+  }
+
+  .apple-card-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--apple-border);
+    font-size: 0.76rem;
+    color: var(--apple-gray);
+  }
+
+  .apple-empty-state {
+    grid-column: 1 / -1;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    background: var(--apple-surface);
+    border: 1px dashed var(--apple-border);
+    border-radius: 18px;
+    color: var(--apple-gray);
+    font-size: 0.95rem;
+  }
+
+  @media (max-width: 768px) {
+    .dept-hero-card {
+      padding: 2rem 1.5rem;
+    }
+    .dept-stats-strip {
+      grid-template-columns: 1fr;
+    }
+    .dept-section-head {
+      flex-direction: column;
+      align-items: flex-start;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="dept-page-wrap">
+  <!-- Hero -->
+  <section class="dept-hero-card">
+    <div class="dept-crumb">
+      <a href="{{ url_for('library.college_landing', college_slug=college_slug) }}">{{ college.name }}</a>
+      <span>/</span>
+      <span>{{ _dept }}</span>
+    </div>
+    <h1>{{ department.name }}</h1>
+    <p>Approved previous-year question papers, handwritten notes and practical resources for {{ department.name }} students at {{ college.name }}.</p>
+    <div class="dept-actions">
+      <a class="dept-action primary" href="{{ url_for('library.college_files', college_slug=college_slug, branch=department_slug) }}">
+        <span>Browse department files</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+      <a class="dept-action secondary" href="{{ url_for('app_pages.upload') }}">
+        <span>Upload notes</span>
+      </a>
+    </div>
+  </section>
+
+  <!-- Metric Strip -->
+  <section class="dept-stats-strip" aria-label="Department archive statistics">
+    <div class="dept-stat-card">
+      <strong>{{ stats.total_documents|default(0) }}</strong>
+      <span>Approved resources</span>
+    </div>
+    <div class="dept-stat-card">
+      <strong>{{ stats.total_subjects|default(0) }}</strong>
+      <span>Subjects</span>
+    </div>
+    <div class="dept-stat-card">
+      <strong>{{ stats.archive_completion|default(0) }}%</strong>
+      <span>Archive completion</span>
+    </div>
+  </section>
+
+  <!-- Latest Resources -->
+  <section>
+    <div class="dept-section-head">
+      <div>
+        <h2>Latest department resources</h2>
+        <p>Verified resources mapped directly to syllabus subjects.</p>
+      </div>
+      <a class="dept-link-cta" href="{{ url_for('library.college_files', college_slug=college_slug, branch=department_slug) }}">
+        <span>Open filtered archive</span>
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+      </a>
+    </div>
+
+    <div class="dept-grid">
+      {% for file in recent_files %}
+        {% set file_id = file.get('id') or file.get('record_id') %}
+        {% set subject = file.get('subject') or file.get('subjects') or {} %}
+        {% set uploader = file.get('uploader') or file.get('profiles') or {} %}
+        {% set category = (file.get('document_category') or file.get('file_type') or 'resource')|lower %}
+        <a class="apple-doc-card" href="{{ url_for('library.resource_landing', slug=file_id) if file_id else url_for('library.college_files', college_slug=college_slug, branch=department_slug) }}">
+          <div class="apple-card-top">
+            <span class="apple-category-pill">{{ category }}</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--apple-gray);"><line x1="7" y1="17" x2="17" y2="7"></line><polyline points="7 7 17 7 17 17"></polyline></svg>
+          </div>
+          <h3>{{ file.get('title') or 'Untitled resource' }}</h3>
+          <p>{{ subject.get('name') or 'General subject' }}</p>
+          <div class="apple-card-footer">
+            <span>{{ uploader.get('full_name') or 'Student contributor' }}</span>
+            <span style="display:inline-flex;align-items:center;gap:3px;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              <span>{{ file.get('view_count', 0) }}</span>
+            </span>
+          </div>
+        </a>
+      {% else %}
+        <div class="apple-empty-state">No approved resources are available for this department yet.</div>
+      {% endfor %}
+    </div>
+  </section>
+</div>
+{% endblock %}

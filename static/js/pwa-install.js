@@ -53,11 +53,19 @@ window.addEventListener('beforeinstallprompt', (e) => {
     // Store the event for later use
     deferredPrompt = e;
 
-    // Show custom install button
-    showInstallButton();
+    const lastPromptDate = localStorage.getItem('pwa_last_prompt_date');
+    const today = new Date().toDateString();
 
-    // Log install prompt availability
-    logInstallPromptEvent('available');
+    if (lastPromptDate !== today) {
+        // Show custom install button and banner
+        showInstallButton();
+
+        // Mark as shown for today
+        localStorage.setItem('pwa_last_prompt_date', today);
+
+        // Log install prompt availability
+        logInstallPromptEvent('available');
+    }
 });
 
 // Listen for app installed event

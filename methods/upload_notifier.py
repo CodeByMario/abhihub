@@ -5,7 +5,7 @@ Handles sending notifications to users 1 hour after successful file upload.
 
 import os
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List
 from methods.supabase_helper import init_supabase
 
@@ -27,7 +27,7 @@ def get_files_needing_notification() -> List[Dict]:
     
     try:
         # Calculate time range: 55-65 minutes ago
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         one_hour_ago_start = now - timedelta(minutes=65)
         one_hour_ago_end = now - timedelta(minutes=55)
         
@@ -37,17 +37,20 @@ def get_files_needing_notification() -> List[Dict]:
         # Note: 'upload_notified' column might need to be added to abhihub.documents
         # For now, we query the new table to fulfill the "nothing relies on public" requirement.
         response = (client.table('documents')
-                   .select('id, uploader_id, title, document_category, created_at, profiles(email)')
+                   .select('id, uploader_id, title, document_category, created_at, profiles!documents_uploader_id_fkey(email)')
                    .gte('created_at', one_hour_ago_start.isoformat())
                    .lte('created_at', one_hour_ago_end.isoformat())
+                   .is_('upload_notified', 'null')
                    .execute())
         
         files = []
-        for d in response.data:
+        for d in response.data or []:
+            prof = d.get('profiles')
+            user_email = (prof.get('email') if isinstance(prof, dict) else (prof[0].get('email') if isinstance(prof, list) and prof else 'unknown')) or 'unknown'
             files.append({
                 'id': d['id'],
                 'user_id': d['uploader_id'],
-                'user_email': (d.get('profiles') or {}).get('email', 'unknown'),
+                'user_email': user_email,
                 'file_name': d['title'],
                 'document_type': d['document_category'],
                 'uploaded_at': d['created_at']
@@ -57,6 +60,12 @@ def get_files_needing_notification() -> List[Dict]:
         return files
     
     except Exception as e:
+        if "10035" in str(e) or "WinError" in str(e):
+            try:
+                from methods.supabase_helper import reset_thread_client
+                reset_thread_client()
+            except Exception:
+                pass
         logging.error(f"Error querying files for notification: {e}")
         return []
 
@@ -78,9 +87,9 @@ def send_upload_notification(user_id: str, user_email: str, file_name: str, subj
     try:
         from push_notifications import send_notification
         
-        # Create notification message
-        title = "Upload Successful! 🎉"
-        body = f"Your file '{file_name}' has been successfully uploaded and is now available for others to view!"
+        # Create psychological notification message (curiosity loop & social proof)
+        title = "Your notes are live! 👀 First views rolling in..."
+        body = f"Students in your branch are preparing right now. Tap to see who views '{file_name}' first!"
         url = "/dashboard"  # Redirect to dashboard
         icon = "/static/images/android-chrome-192x192.png"
         tag = "upload-success"
@@ -119,24 +128,20 @@ def mark_as_notified(file_record_id: str) -> bool:
         return False
     
     try:
-        # Update the record in abhihub.documents
-        # Note: If 'upload_notified' doesn't exist yet, this will be skipped or handled by schema update
-        # We target the new 'documents' table to fully migrate away from public schema.
         try:
             response = (client.table('documents')
                        .update({
-                           'status': 'approved' # Example: approving it implies we've processed it
-                           # 'upload_notified': True,
-                           # 'notified_at': datetime.utcnow().isoformat()
+                           'upload_notified': True,
+                           'notified_at': datetime.now(timezone.utc).isoformat()
                        })
                        .eq('id', file_record_id)
                        .execute())
             
             if response.data:
-                logging.info(f"✅ Processed document {file_record_id} status in abhihub schema")
+                logging.info(f"✅ Marked document {file_record_id} as notified")
                 return True
         except Exception as e:
-            logging.warning(f"Could not update status/notified columns for {file_record_id}: {e}")
+            logging.warning(f"Could not mark upload_notified for {file_record_id}: {e}")
             return True  # Return true so we don't spam errors in scheduler
             
         return False

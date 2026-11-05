@@ -95,5 +95,11 @@ def process_pending_documents():
                 
         return True
     except Exception as e:
+        if "10035" in str(e) or "WinError" in str(e):
+            try:
+                from methods.supabase_helper import reset_thread_client
+                reset_thread_client()
+            except Exception:
+                pass
         logging.error(f"Indexer error: {e}")
         return False

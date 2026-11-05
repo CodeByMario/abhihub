@@ -1,0 +1,29 @@
+# Local environments, caches, and credentials
+.venv
+venv
+__pycache__
+.pytest_cache
+.codegraph
+.env
+.env.*
+
+# Generated artifacts and repository-only tooling
+dist
+REPORT
+.agent
+.agents
+.ai
+.documentation
+.wip
+trash
+temp
+docs
+migrations
+tests
+dev
+persona_tests
+software-development
+
+# Deployment does not need generated Cloudinary metadata or source maps
+data/cache/*
+*.map

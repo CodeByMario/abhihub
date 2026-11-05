@@ -19,10 +19,37 @@ const AbhiHubSelect = {
                 return null;
             };
             
+            const isSubject = entity === 'subject';
             const ts = new TomSelect(el, {
                 valueField: 'value',
                 labelField: 'text',
-                searchField: ['text'],
+                searchField: ['text', 'code'],
+                maxOptions: 100,
+                loadThrottle: 200,
+                shouldLoad: function(query) {
+                    return isSubject && query.trim().length > 0;
+                },
+                load: isSubject ? function(query, callback) {
+                    if (!query || !query.trim().length) return callback();
+                    const url = `/api/subjects?q=${encodeURIComponent(query.trim())}`;
+                    fetch(url)
+                        .then(r => r.json())
+                        .then(json => {
+                            const items = json.subjects || json.data || [];
+                            const results = items.map(s => {
+                                const code = s.subject_code ? ` (${s.subject_code})` : '';
+                                return {
+                                    value: s.id,
+                                    text: `${s.name}${code}`,
+                                    code: s.subject_code || '',
+                                    department_id: s.department_id,
+                                    semester: s.semester
+                                };
+                            });
+                            callback(results);
+                        })
+                        .catch(() => callback());
+                } : null,
                 create: function(input, callback) {
                     const parentEl = getParentEl();
                     const parentVal = parentEl ? parentEl.value : null;
@@ -48,44 +75,62 @@ const AbhiHubSelect = {
             if (!el.id) el.id = 'abhihub_ts_' + Math.random().toString(36).substr(2, 9);
             this.instances[el.id] = ts;
             
-            // Handle dependency logic
+            // Auto-fetch independent entities immediately
+            if (entity === 'college') {
+                AbhiHubSelect.loadColleges(el.id);
+            } else if (entity === 'department' || entity === 'branch') {
+                AbhiHubSelect.loadDepartments(el.id);
+            } else if (entity === 'semester') {
+                AbhiHubSelect.loadSemesters(el.id);
+            } else if (entity === 'subject') {
+                AbhiHubSelect.loadSubjects(el.id);
+            }
+            
+            // Handle dependency logic if bound via parentId or parentClass
             const parentEl = getParentEl();
             if (parentEl) {
                 parentEl.addEventListener('change', () => {
                     AbhiHubSelect.handleParentChange(el.id, parentEl.value, parentEl);
                 });
-                
-                // Initial state
-                if (!parentEl.value) {
-                    ts.disable();
-                    ts.clearOptions();
-                }
-            } else if (entity === 'college') {
-                // Auto-fetch root entity
-                AbhiHubSelect.loadColleges(el.id);
             }
         });
     },
     
     async loadColleges(selectId) {
         const ts = this.instances[selectId];
+        const el = document.getElementById(selectId);
         if (!ts) return;
         ts.settings.placeholder = 'Loading colleges...';
         if (ts.control_input) ts.control_input.placeholder = 'Loading colleges...';
         try {
             let json;
-            if (this.apiCache['/api/colleges']) {
+            if (this.apiCache['/api/colleges'] && (this.apiCache['/api/colleges'].colleges || []).length > 0) {
                 json = this.apiCache['/api/colleges'];
-            } else {
+            } else if (window.AbhiHubIDB) {
+                const cached = await window.AbhiHubIDB.getColleges();
+                if (cached && cached.length > 0) {
+                    json = { success: true, colleges: cached };
+                    this.apiCache['/api/colleges'] = json;
+                }
+            }
+            if (!json) {
                 const res = await fetch('/api/colleges');
                 json = await res.json();
-                this.apiCache['/api/colleges'] = json;
+                if (json && (json.colleges || []).length > 0) {
+                    this.apiCache['/api/colleges'] = json;
+                }
             }
             const items = json.colleges || json.data || [];
             ts.clearOptions();
             items.forEach(c => {
                 const text = c.short_name ? `${c.name} (${c.short_name})` : c.name;
-                ts.addOption({ value: c.id, text: text });
+                ts.addOption({ value: String(c.id), text: text });
+                if (el && !el.querySelector(`option[value="${c.id}"]`)) {
+                    const opt = document.createElement('option');
+                    opt.value = String(c.id);
+                    opt.textContent = text;
+                    el.appendChild(opt);
+                }
             });
             ts.settings.placeholder = 'Select College';
             if (ts.control_input) ts.control_input.placeholder = 'Select College';
@@ -94,6 +139,119 @@ const AbhiHubSelect = {
         } catch (e) {
             console.error('Failed to load colleges', e);
             ts.settings.placeholder = 'Error loading options';
+        }
+    },
+
+    async loadDepartments(selectId) {
+        const ts = this.instances[selectId];
+        const el = document.getElementById(selectId);
+        if (!ts) return;
+        ts.settings.placeholder = 'Loading departments...';
+        if (ts.control_input) ts.control_input.placeholder = 'Loading departments...';
+        try {
+            let json;
+            if (this.apiCache['/api/departments'] && (this.apiCache['/api/departments'].departments || []).length > 0) {
+                json = this.apiCache['/api/departments'];
+            } else if (window.AbhiHubIDB) {
+                const cached = await window.AbhiHubIDB.getDepartments();
+                if (cached && cached.length > 0) {
+                    json = { success: true, departments: cached };
+                    this.apiCache['/api/departments'] = json;
+                }
+            }
+            if (!json) {
+                const res = await fetch('/api/departments');
+                json = await res.json();
+                if (json && (json.departments || []).length > 0) {
+                    this.apiCache['/api/departments'] = json;
+                }
+            }
+            const items = json.departments || json.branches || json.data || [];
+            ts.clearOptions();
+            items.forEach(d => {
+                const name = d.name || d.branch_name || '';
+                const abbr = d.abbreviation || d.short_name || '';
+                const text = abbr ? `${name} (${abbr})` : name;
+                const val = d.id || d.branch_id;
+                if (val && name) {
+                    ts.addOption({ value: String(val), text: text });
+                    if (el && !el.querySelector(`option[value="${val}"]`)) {
+                        const opt = document.createElement('option');
+                        opt.value = String(val);
+                        opt.textContent = text;
+                        el.appendChild(opt);
+                    }
+                }
+            });
+            ts.settings.placeholder = 'Select Department';
+            if (ts.control_input) ts.control_input.placeholder = 'Select Department';
+            ts.enable();
+            ts.refreshOptions(false);
+        } catch (e) {
+            console.error('Failed to load departments', e);
+            ts.settings.placeholder = 'Error loading options';
+        }
+    },
+
+    async loadSemesters(selectId) {
+        const ts = this.instances[selectId];
+        const el = document.getElementById(selectId);
+        if (!ts) return;
+        ts.clearOptions();
+        for (let i = 1; i <= 8; i++) {
+            ts.addOption({ value: String(i), text: `Semester ${i}` });
+            if (el && !el.querySelector(`option[value="${i}"]`)) {
+                const opt = document.createElement('option');
+                opt.value = String(i);
+                opt.textContent = `Semester ${i}`;
+                el.appendChild(opt);
+            }
+        }
+        ts.settings.placeholder = 'Select Semester';
+        if (ts.control_input) ts.control_input.placeholder = 'Select Semester';
+        ts.enable();
+        ts.refreshOptions(false);
+    },
+
+    async loadSubjects(selectId) {
+        const ts = this.instances[selectId];
+        const el = document.getElementById(selectId);
+        if (!ts) return;
+        ts.settings.placeholder = 'Search all subjects...';
+        if (ts.control_input) ts.control_input.placeholder = 'Search all subjects...';
+        try {
+            let json;
+            if (this.apiCache['/api/subjects:all'] && (this.apiCache['/api/subjects:all'].subjects || []).length > 0) {
+                json = this.apiCache['/api/subjects:all'];
+            } else if (window.AbhiHubIDB) {
+                const cached = await window.AbhiHubIDB.getSubjects();
+                if (cached && cached.length > 0) {
+                    json = { success: true, subjects: cached };
+                    this.apiCache['/api/subjects:all'] = json;
+                }
+            }
+            if (!json) {
+                const res = await fetch('/api/subjects');
+                json = await res.json();
+                if (json && (json.subjects || []).length > 0) {
+                    this.apiCache['/api/subjects:all'] = json;
+                }
+            }
+            const items = json.subjects || json.data || [];
+            items.forEach(s => {
+                const text = s.subject_code ? `${s.name} (${s.subject_code})` : s.name;
+                ts.addOption({ value: String(s.id), text: text });
+                if (el && !el.querySelector(`option[value="${s.id}"]`)) {
+                    const opt = document.createElement('option');
+                    opt.value = String(s.id);
+                    opt.textContent = text;
+                    el.appendChild(opt);
+                }
+            });
+            ts.enable();
+            ts.refreshOptions(false);
+        } catch (e) {
+            console.error('Failed to load initial subjects', e);
         }
     },
     
@@ -128,24 +286,57 @@ const AbhiHubSelect = {
                 const deptEl = semEl ? (semEl.dataset.parent ? document.getElementById(semEl.dataset.parent) : semEl.closest('.meta-form-wrap')?.querySelector('.branch-select')) : null;
                 const deptId = deptEl ? deptEl.value : null;
                 
-                url = `/api/subjects?department_id=${deptId}&semester=${parentValue}`;
+                const isUploadForm = el.closest('#uploadForm') !== null;
+                if (isUploadForm) {
+                    url = `/api/subjects?department_id=${deptId}`;
+                } else {
+                    url = `/api/subjects?department_id=${deptId}&semester=${parentValue}`;
+                }
             }
             
             let json;
             if (this.apiCache[url]) {
                 json = this.apiCache[url];
-            } else {
+            } else if (window.AbhiHubIDB && (entity === 'department' || entity === 'branch')) {
+                const cachedDepts = await window.AbhiHubIDB.getDepartments(parentValue);
+                if (cachedDepts && cachedDepts.length > 0) {
+                    json = { success: true, departments: cachedDepts };
+                    this.apiCache[url] = json;
+                }
+            } else if (window.AbhiHubIDB && entity === 'subject') {
+                const deptEl = parentEl || document.getElementById(el.dataset.parent);
+                const deptId = deptEl ? deptEl.value : null;
+                const cachedSubs = await window.AbhiHubIDB.getSubjects(deptId);
+                if (cachedSubs && cachedSubs.length > 0) {
+                    json = { success: true, subjects: cachedSubs };
+                    this.apiCache[url] = json;
+                }
+            }
+            if (!json) {
                 const response = await fetch(url);
                 json = await response.json();
                 this.apiCache[url] = json;
             }
             
-            const dataKey = entity === 'branch' ? 'departments' : `${entity}s`;
-            const items = json[dataKey] || json.data || [];
+            const dataKey = (entity === 'branch' || entity === 'department') ? 'departments' : `${entity}s`;
+            let items = json[dataKey] || json.departments || json.branches || json.data || [];
             
+            if ((entity === 'department' || entity === 'branch') && items.length === 0) {
+                try {
+                    const fallbackRes = await fetch('/api/departments');
+                    const fallbackJson = await fallbackRes.json();
+                    items = fallbackJson.departments || fallbackJson.branches || fallbackJson.data || [];
+                } catch(_) {}
+            }
+
             items.forEach(item => {
-                const text = item.subject_code ? `${item.name} (${item.subject_code})` : item.name;
-                ts.addOption({ value: item.id, text: text });
+                const val = item.id || item.branch_id || item.department_id;
+                const name = item.name || item.branch_name || '';
+                const code = item.subject_code || item.abbreviation || item.short_name || '';
+                const text = code ? `${name} (${code})` : name;
+                if (val && name) {
+                    ts.addOption({ value: String(val), text: text, code: code });
+                }
             });
             
             ts.settings.placeholder = 'Select ' + entity;
@@ -179,7 +370,8 @@ function openEntityModal(entityType, targetSelectId, initialInput, parentValue, 
     
     if (isCarousel) {
         // Build inline form right below the select dropdown
-        const targetEl = document.getElementById(targetSelectId);
+        const targetEl = typeof targetSelectId === 'string' ? document.getElementById(targetSelectId) : targetSelectId;
+        if (!targetEl) return;
         const wrapper = targetEl.closest('.meta-field') || targetEl.parentElement;
         
         // Remove existing if any
@@ -243,6 +435,12 @@ function openEntityModal(entityType, targetSelectId, initialInput, parentValue, 
                 const data = await res.json();
                 if (data.success) {
                     if (tomSelectCallback) tomSelectCallback({ value: data.id, text: data.name });
+                    const ts = targetEl.tomselect || AbhiHubSelect.instances[targetEl.id];
+                    if (ts) {
+                        ts.addOption({ value: data.id, text: data.name });
+                        ts.addItem(data.id);
+                    }
+                    targetEl.dispatchEvent(new Event('change', { bubbles: true }));
                     inlineForm.remove();
                 } else {
                     alert(data.message || 'Error saving entity');
@@ -439,6 +637,38 @@ async function submitEntityModal(tomSelectCallback) {
         submitBtn.textContent = 'Save';
     }
 }
+
+// Global click handler for "+ Add New" buttons in forms
+document.addEventListener('click', (e) => {
+    const btn = e.target.closest('.btn-add-new-entity');
+    if (!btn) return;
+    e.preventDefault();
+    const entity = btn.dataset.entity;
+    const metaField = btn.closest('.meta-field');
+    const select = metaField ? metaField.querySelector('.abhihub-select') : null;
+    if (select) {
+        const parentId = select.dataset.parent;
+        const parentClass = select.dataset.parentClass;
+        let parentVal = null;
+        if (parentId) {
+            const p = document.getElementById(parentId);
+            if (p) parentVal = p.value;
+        } else if (parentClass) {
+            const p = select.closest('.meta-form-wrap')?.querySelector(`.${parentClass}`);
+            if (p) parentVal = p.value;
+        }
+        openEntityModal(entity, select.id || select, '', parentVal, (created) => {
+            if (created) {
+                const ts = select.tomselect || AbhiHubSelect.instances[select.id];
+                if (ts) {
+                    ts.addOption({ value: created.value, text: created.text });
+                    ts.addItem(created.value);
+                }
+                select.dispatchEvent(new Event('change', { bubbles: true }));
+            }
+        });
+    }
+});
 
 // Auto init on DOM load
 document.addEventListener('DOMContentLoaded', () => {

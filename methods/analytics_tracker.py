@@ -8,7 +8,7 @@ Measurement ID: G-EH5BGS9BEG
 
 import logging
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from flask import request, jsonify, session
 
 # GA4 Measurement ID
@@ -83,19 +83,20 @@ def get_user_profile_data():
 
 def get_full_profile_json():
     """
-    Return the full user profile as a JSON-safe dict for embedding in templates.
+    Return sanitized user profile as JSON-safe dict for embedding in templates.
+    Strictly zero PII (no email, mobile, or private user credentials).
     """
     profile = get_user_profile_data()
     return {
         'userId': profile['uid'] or 'anonymous',
-        'email': profile['email'] or '',
-        'name': profile['name'] or '',
-        'mobile': profile['mobile'] or '',
         'branch': profile['branch'] or '',
         'college': profile['college'] or '',
         'yearOfStudy': profile['year_of_study'] or '',
         'role': profile['role'] or 'anonymous',
-        'isAuthenticated': profile['isAuthenticated']
+        'isAuthenticated': profile['isAuthenticated'],
+        'creatorStatus': 'active_uploader' if profile.get('uid') else 'never_uploaded',
+        'readerStatus': 'reader' if profile.get('uid') else 'never_read',
+        'engagementStage': 'returning' if profile.get('uid') else 'new'
     }
 
 
@@ -180,7 +181,7 @@ def register_analytics_routes(app):
                 'ip_address': request.headers.get('X-Forwarded-For', request.remote_addr),
                 'user_agent': request.headers.get('User-Agent', ''),
                 'device_type': _detect_device(request.headers.get('User-Agent', '')),
-                'timestamp': datetime.utcnow().isoformat() + 'Z'
+                'timestamp': datetime.now(timezone.utc).isoformat() + 'Z'
             }
             
             # Log to Supabase for backup analytics
@@ -231,7 +232,7 @@ def register_analytics_routes(app):
                 'ip_address': request.headers.get('X-Forwarded-For', request.remote_addr),
                 'user_agent': request.headers.get('User-Agent', ''),
                 'stack_trace': _validate_input(data.get('stack_trace', ''), 'stack_trace', 5000),
-                'timestamp': datetime.utcnow().isoformat() + 'Z'
+                'timestamp': datetime.now(timezone.utc).isoformat() + 'Z'
             }
             
             # Log to Supabase
@@ -279,7 +280,7 @@ def register_analytics_routes(app):
                 'time_spent_seconds': min(max(int(data.get('time_spent_seconds', 0)), 0), 86400),  # 0-24h
                 'action': _validate_input(data.get('action', 'view'), 'action', 50),
                 'session_id': _validate_input(data.get('session_id', ''), 'session_id', 200),
-                'timestamp': datetime.utcnow().isoformat() + 'Z'
+                'timestamp': datetime.now(timezone.utc).isoformat() + 'Z'
             }
             
             # Log to Supabase
@@ -313,7 +314,7 @@ def register_analytics_routes(app):
                 'searches': min(max(int(data.get('searches', 0)), 0), 10000),
                 'engagement_quality': _validate_input(data.get('engagement_quality', 'unknown'), 'engagement_quality', 50),
                 'exit_page': _validate_input(data.get('exit_page', request.path), 'exit_page', 500),
-                'timestamp': datetime.utcnow().isoformat() + 'Z'
+                'timestamp': datetime.now(timezone.utc).isoformat() + 'Z'
             }
             
             # Log to Supabase

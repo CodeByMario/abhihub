@@ -7,7 +7,7 @@
   <title>My MemoryWall — AbhiHub</title>
   <meta name="description" content="Share your MemoryWall and see what your friends say about you.">
   <meta name="robots" content="noindex">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='premium/css/style.css', v='2.0.1') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/know-me.css', v='2.1.0') }}">
@@ -49,7 +49,7 @@
     </div>
 
     <!-- Reveal CTA — prominent -->
-    <a href="{{ url_for('memorywall_reveal', wall_id=wall.id) }}" class="km-btn km-btn--primary km-sr"
+    <a href="{{ url_for('app_pages.memorywall_reveal', wall_id=wall.id) }}" class="km-btn km-btn--primary km-sr"
       style="display:block; text-align:center; margin-bottom:0.85rem; font-size:1rem; letter-spacing:0.01em;">
       🔮 Reveal My MemoryWall
     </a>
@@ -226,7 +226,7 @@
       <div style="color:var(--km-muted); font-size:0.9rem; margin-bottom:1.5rem;">
         Create your wall and start collecting memories from friends.
       </div>
-      <a href="{{ url_for('memorywall_create') }}" class="km-btn km-btn--primary">
+      <a href="{{ url_for('app_pages.memorywall_create') }}" class="km-btn km-btn--primary">
         ✨ Create My MemoryWall
       </a>
     </div>

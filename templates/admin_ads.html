@@ -1,0 +1,134 @@
+{% extends 'admin_base.html' %}
+
+{% block title %}Ads Control{% endblock %}
+
+{% block admin_content %}
+<style>
+  .ads-wrap { max-width: 1180px; margin: 2rem auto; padding: 0 1.5rem; }
+  .ads-card { background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: 16px; padding: 1.5rem; margin-bottom: 1.25rem; }
+  .ads-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: .8rem; align-items: end; }
+  .ads-grid label { display: flex; flex-direction: column; gap: .35rem; color: var(--text-secondary); font-size: .85rem; font-weight: 600; }
+  .ads-grid input, .ads-grid select { padding: .7rem; border: 1px solid var(--border-subtle); border-radius: 8px; background: var(--bg-surface); color: var(--text-primary); }
+  .ads-btn { border: 0; border-radius: 8px; padding: .7rem 1rem; cursor: pointer; font-weight: 700; }
+  .ads-btn-primary { background: var(--accent-indigo); color: white; }
+  .ads-btn-danger { background: var(--accent-rose); color: white; }
+  .ads-table { width: 100%; border-collapse: collapse; }
+  .ads-table th, .ads-table td { text-align: left; padding: .75rem; border-bottom: 1px solid var(--border-subtle); color: var(--text-primary); }
+  .ads-status-on { color: var(--accent-emerald); font-weight: 800; }
+  .ads-status-off { color: var(--accent-rose); font-weight: 800; }
+  #adsMessage { min-height: 1.3rem; margin-top: .75rem; color: var(--text-secondary); }
+</style>
+
+<div class="ads-wrap">
+  <div class="ads-card">
+    <h1>Ads Control Portal</h1>
+    <p style="color:var(--text-secondary);margin:.5rem 0 1.2rem;">
+      Override the normal quota-based ad schedule. User rules win over page rules,
+      and page rules win over the global rule.
+    </p>
+    <form id="adsOverrideForm">
+      <div class="ads-grid">
+        <label>Scope
+          <select id="adsScope" required>
+            <option value="global">Global</option>
+            <option value="page">Page path</option>
+            <option value="user">User ID or email</option>
+          </select>
+        </label>
+        <label id="adsKeyLabel">Target
+          <input id="adsKey" placeholder="Not required for global">
+        </label>
+        <label>Ads
+          <select id="adsEnabled">
+            <option value="false">Disabled</option>
+            <option value="true">Enabled</option>
+          </select>
+        </label>
+        <label>Admin note
+          <input id="adsNote" maxlength="500" placeholder="Reason or campaign">
+        </label>
+        <button class="ads-btn ads-btn-primary" type="submit">Save override</button>
+      </div>
+    </form>
+    <div id="adsMessage" role="status"></div>
+  </div>
+
+  <div class="ads-card">
+    <h2>Active overrides</h2>
+    <div style="overflow:auto;margin-top:1rem;">
+      <table class="ads-table">
+        <thead><tr><th>Scope</th><th>Target</th><th>Ads</th><th>Note</th><th>Updated</th><th></th></tr></thead>
+        <tbody id="adsRows"><tr><td colspan="6">Loading...</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const form = document.getElementById('adsOverrideForm');
+  const scope = document.getElementById('adsScope');
+  const key = document.getElementById('adsKey');
+  const keyLabel = document.getElementById('adsKeyLabel');
+  const message = document.getElementById('adsMessage');
+  const rows = document.getElementById('adsRows');
+
+  function updateKeyState() {
+    const global = scope.value === 'global';
+    key.disabled = global;
+    key.required = !global;
+    key.placeholder = scope.value === 'page' ? '/premium' : 'User UUID or email';
+    keyLabel.style.opacity = global ? '.55' : '1';
+  }
+  scope.addEventListener('change', updateKeyState);
+  updateKeyState();
+
+  async function load() {
+    const response = await fetch('/api/admin/ads/overrides');
+    const payload = await response.json();
+    if (!payload.success) throw new Error(payload.error || 'Unable to load overrides');
+    rows.innerHTML = payload.data.length ? payload.data.map(item => `
+      <tr>
+        <td>${escapeHtml(item.scope_type)}</td>
+        <td>${escapeHtml(item.scope_key)}</td>
+        <td class="${item.enabled ? 'ads-status-on' : 'ads-status-off'}">${item.enabled ? 'Enabled' : 'Disabled'}</td>
+        <td>${escapeHtml(item.note || '')}</td>
+        <td>${escapeHtml(item.updated_at || '')}</td>
+        <td><button class="ads-btn ads-btn-danger" data-scope="${escapeHtml(item.scope_type)}" data-key="${escapeHtml(item.scope_key)}">Remove</button></td>
+      </tr>`).join('') : '<tr><td colspan="6">No overrides configured.</td></tr>';
+    rows.querySelectorAll('button').forEach(button => button.addEventListener('click', () => removeOverride(button.dataset.scope, button.dataset.key)));
+  }
+
+  async function removeOverride(scopeType, scopeKey) {
+    if (!confirm(`Remove ${scopeType} override for ${scopeKey}?`)) return;
+    const response = await fetch('/api/admin/ads/overrides', {
+      method: 'DELETE', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({scope_type: scopeType, scope_key: scopeKey})
+    });
+    const payload = await response.json();
+    message.textContent = payload.success ? 'Override removed.' : (payload.error || 'Remove failed.');
+    if (payload.success) load();
+  }
+
+  form.addEventListener('submit', async event => {
+    event.preventDefault();
+    const response = await fetch('/api/admin/ads/overrides', {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({
+        scope_type: scope.value, scope_key: key.value.trim(),
+        enabled: document.getElementById('adsEnabled').value === 'true',
+        note: document.getElementById('adsNote').value.trim()
+      })
+    });
+    const payload = await response.json();
+    message.textContent = payload.success ? 'Override saved.' : (payload.error || 'Save failed.');
+    if (payload.success) { form.reset(); updateKeyState(); load(); }
+  });
+
+  function escapeHtml(value) {
+    return String(value || '').replace(/[&<>"']/g, char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[char]));
+  }
+  load().catch(error => { message.textContent = error.message; rows.innerHTML = '<tr><td colspan="6">Unable to load overrides.</td></tr>'; });
+})();
+</script>
+{% endblock %}

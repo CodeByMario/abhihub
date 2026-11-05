@@ -1,0 +1,359 @@
+{% set seo_description = "The story of AbhiHub: an engineering study library built around shared notes, previous-year papers, and practical resources." %}
+{% set seo_title = 'Our Story | About AbhiHub' %}
+{% extends 'p_struct.html' %}
+
+{% block content %}
+<style>
+  :root {
+    --about-bg: #fbfbfd;
+    --about-surface: #fff;
+    --about-soft: #f5f5f7;
+    --about-ink: #1d1d1f;
+    --about-muted: #6e6e73;
+    --about-blue: #0071e3;
+    --about-line: rgba(0, 0, 0, .09);
+    --about-radius: 24px;
+    --about-shadow: 0 8px 28px rgba(0, 0, 0, .045);
+  }
+  [data-theme="dark"], .dark {
+    --about-bg: #000;
+    --about-surface: #141416;
+    --about-soft: #1c1c1e;
+    --about-ink: #f5f5f7;
+    --about-muted: #a1a1a6;
+    --about-blue: #2997ff;
+    --about-line: rgba(255, 255, 255, .12);
+    --about-shadow: 0 8px 28px rgba(0, 0, 0, .24);
+  }
+  body:has(.about-story), body:has(.about-story) main {
+    margin: 0 !important;
+    padding: 0 !important;
+    max-width: none !important;
+    width: 100% !important;
+    background: var(--about-bg) !important;
+  }
+  .about-story {
+    color: var(--about-ink);
+    background: var(--about-bg);
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    min-height: 100vh;
+    padding-bottom: 6rem;
+  }
+  .story-hero {
+    max-width: 1040px;
+    margin: 0 auto;
+    padding: clamp(5rem, 12vw, 9rem) 1.5rem clamp(4rem, 8vw, 6.5rem);
+    text-align: center;
+  }
+  .story-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: .55rem;
+    padding: .45rem .9rem;
+    border: 1px solid var(--about-line);
+    border-radius: 999px;
+    background: var(--about-surface);
+    color: var(--about-blue);
+    font-size: .8rem;
+    font-weight: 650;
+    letter-spacing: .045em;
+  }
+  .story-eyebrow-dot {
+    width: .42rem;
+    height: .42rem;
+    border-radius: 50%;
+    background: currentColor;
+  }
+  .story-hero h1 {
+    max-width: 900px;
+    margin: 1.4rem auto 1.1rem;
+    font-size: clamp(2.7rem, 7.4vw, 6rem);
+    line-height: .99;
+    letter-spacing: -.065em;
+    font-weight: 720;
+  }
+  .story-hero h1 span { color: var(--about-blue); }
+  .story-hero p {
+    max-width: 650px;
+    margin: 0 auto;
+    color: var(--about-muted);
+    font-size: clamp(1.05rem, 2.2vw, 1.3rem);
+    line-height: 1.55;
+  }
+  .story-link {
+    display: inline-flex;
+    align-items: center;
+    gap: .4rem;
+    margin-top: 1.7rem;
+    color: var(--about-blue);
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .story-link:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .story-link:focus-visible, .story-button:focus-visible {
+    outline: 3px solid color-mix(in srgb, var(--about-blue) 35%, transparent);
+    outline-offset: 3px;
+  }
+  .story-main {
+    width: min(100% - 3rem, 900px);
+    margin: 0 auto;
+  }
+  .story-chapter {
+    position: relative;
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    gap: clamp(1.5rem, 5vw, 4rem);
+    padding: clamp(2.5rem, 6vw, 4.5rem) 0;
+    border-top: 1px solid var(--about-line);
+  }
+  .chapter-marker {
+    position: relative;
+    color: var(--about-blue);
+    font-size: .82rem;
+    font-weight: 700;
+    letter-spacing: .06em;
+    text-transform: uppercase;
+  }
+  .chapter-marker::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 2rem;
+    bottom: -5rem;
+    width: 1px;
+    background: var(--about-line);
+  }
+  .story-chapter:last-of-type .chapter-marker::after { display: none; }
+  .chapter-copy h2 {
+    max-width: 620px;
+    margin: -.25rem 0 1rem;
+    font-size: clamp(1.8rem, 4vw, 3rem);
+    line-height: 1.08;
+    letter-spacing: -.045em;
+  }
+  .chapter-copy p {
+    max-width: 650px;
+    margin: 0 0 1rem;
+    color: var(--about-muted);
+    font-size: 1.04rem;
+    line-height: 1.75;
+  }
+  .chapter-copy p:last-child { margin-bottom: 0; }
+  .story-note {
+    margin-top: 1.6rem;
+    padding: 1.25rem 1.4rem;
+    border: 1px solid var(--about-line);
+    border-radius: 18px;
+    background: var(--about-soft);
+    color: var(--about-muted);
+    line-height: 1.65;
+  }
+  .story-note strong { color: var(--about-ink); }
+  .story-facts {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .75rem;
+    margin-top: 1.7rem;
+  }
+  .story-fact {
+    min-height: 92px;
+    padding: 1rem 1.1rem;
+    border: 1px solid var(--about-line);
+    border-radius: 16px;
+    background: var(--about-surface);
+  }
+  .story-fact small {
+    display: block;
+    margin-bottom: .4rem;
+    color: var(--about-muted);
+    font-size: .74rem;
+    font-weight: 650;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+  }
+  .story-fact strong { font-size: .96rem; line-height: 1.4; }
+  .story-steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: .75rem;
+    margin: 1.7rem 0 0;
+    padding: 0;
+    list-style: none;
+  }
+  .story-steps li {
+    padding: 1.25rem;
+    border: 1px solid var(--about-line);
+    border-radius: 18px;
+    background: var(--about-surface);
+  }
+  .story-steps b {
+    display: block;
+    margin-bottom: .5rem;
+    font-size: 1rem;
+  }
+  .story-steps span {
+    color: var(--about-muted);
+    font-size: .9rem;
+    line-height: 1.55;
+  }
+  .license-card {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    margin-top: 1.7rem;
+    padding: 1.35rem 1.5rem;
+    border: 1px solid var(--about-line);
+    border-radius: 18px;
+    background: var(--about-surface);
+  }
+  .license-card small {
+    display: block;
+    margin-bottom: .35rem;
+    color: var(--about-muted);
+    font-size: .75rem;
+    font-weight: 650;
+    letter-spacing: .07em;
+    text-transform: uppercase;
+  }
+  .license-card strong { font-size: 1.15rem; }
+  .story-contact {
+    margin-top: 1.7rem;
+    padding: clamp(1.6rem, 4vw, 2.5rem);
+    border: 1px solid var(--about-line);
+    border-radius: var(--about-radius);
+    background: var(--about-surface);
+    box-shadow: var(--about-shadow);
+  }
+  .story-contact h3 {
+    margin: 0 0 .45rem;
+    font-size: 1.25rem;
+    letter-spacing: -.025em;
+  }
+  .story-contact p { margin: 0; color: var(--about-muted); line-height: 1.6; }
+  .story-contact a { color: var(--about-blue); font-weight: 600; text-decoration: none; }
+  .story-contact a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .story-ending {
+    margin: 1.5rem 0 0 150px;
+    padding: clamp(2rem, 5vw, 3rem);
+    border-radius: var(--about-radius);
+    background: var(--about-ink);
+    color: var(--about-bg);
+    text-align: center;
+  }
+  .story-ending h2 {
+    max-width: 600px;
+    margin: 0 auto .8rem;
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    line-height: 1.08;
+    letter-spacing: -.045em;
+  }
+  .story-ending p { margin: 0 auto 1.35rem; color: color-mix(in srgb, var(--about-bg) 72%, transparent); }
+  .story-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 46px;
+    padding: 0 1.35rem;
+    border: 0;
+    border-radius: 999px;
+    background: #0071e3;
+    color: #fff;
+    font: inherit;
+    font-weight: 650;
+    text-decoration: none;
+    transition: background-color .18s ease, transform .18s ease;
+  }
+  .story-button:hover { background: #0077ed; transform: translateY(-1px); }
+  @media (max-width: 680px) {
+    .story-main { width: min(100% - 2rem, 900px); }
+    .story-chapter { grid-template-columns: 1fr; gap: 1rem; }
+    .chapter-marker::after { display: none; }
+    .story-facts, .story-steps { grid-template-columns: 1fr; }
+    .story-ending { margin-left: 0; }
+    .license-card { align-items: flex-start; flex-direction: column; }
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { scroll-behavior: auto !important; transition-duration: .01ms !important; }
+  }
+</style>
+
+<article class="about-story">
+  <header class="story-hero">
+    <div class="story-eyebrow"><span class="story-eyebrow-dot" aria-hidden="true"></span> The AbhiHub story</div>
+    <h1>Learning gets better<br>when knowledge <span>moves.</span></h1>
+    <p>AbhiHub brings engineering study resources into one organised library—made to help students find what they need and share what they know.</p>
+    <a class="story-link" href="{{ url_for('library.pyq_landing') }}">Explore the library <span aria-hidden="true">→</span></a>
+  </header>
+
+  <div class="story-main">
+    <section class="story-chapter" aria-labelledby="chapter-origin">
+      <div class="chapter-marker">Chapter 01</div>
+      <div class="chapter-copy">
+        <h2 id="chapter-origin">It started with a familiar study problem.</h2>
+        <p>Useful notes, previous-year questions, and practical resources can end up scattered across chats and folders. Finding the right material becomes its own task.</p>
+        <p>AbhiHub began as a student initiative at G. H. Raisoni College of Engineering in Nagpur, with a simple idea: make shared academic material easier to find and use.</p>
+        <div class="story-facts" aria-label="AbhiHub origins">
+          <div class="story-fact"><small>Started</small><strong>2025</strong></div>
+          <div class="story-fact"><small>First campus</small><strong>G. H. Raisoni College of Engineering</strong></div>
+          <div class="story-fact"><small>City</small><strong>Nagpur, India</strong></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="story-chapter" aria-labelledby="chapter-library">
+      <div class="chapter-marker">Chapter 02</div>
+      <div class="chapter-copy">
+        <h2 id="chapter-library">A library built around how students study.</h2>
+        <p>Browse previous-year question papers, study notes, and practical resources. Find material through college, department, subject, and resource type.</p>
+        <div class="story-note"><strong>One place to begin.</strong> Search the library, narrow results by branch or type, and open the resource that fits your course.</div>
+      </div>
+    </section>
+
+    <section class="story-chapter" aria-labelledby="chapter-community">
+      <div class="chapter-marker">Chapter 03</div>
+      <div class="chapter-copy">
+        <h2 id="chapter-community">The community makes the library useful.</h2>
+        <p>Students find materials for their courses. Contributors can share papers and notes. Submitted resources go through review before they appear in the approved library.</p>
+        <ol class="story-steps">
+          <li><b>Find</b><span>Search by college, subject, branch, or resource type.</span></li>
+          <li><b>Contribute</b><span>Share useful academic material with fellow students.</span></li>
+          <li><b>Review</b><span>Submissions are checked before being added to the public archive.</span></li>
+        </ol>
+      </div>
+    </section>
+
+    <section class="story-chapter" aria-labelledby="chapter-open">
+      <div class="chapter-marker">Chapter 04</div>
+      <div class="chapter-copy">
+        <h2 id="chapter-open">Built in the open. Shared with care.</h2>
+        <p>AbhiHub’s platform code is licensed under the GNU Affero General Public License, version 3.0 (AGPL-3.0). Student-contributed materials remain attributed to their contributors and are shared under the platform’s submission terms.</p>
+        <div class="license-card">
+          <div><small>Platform code licence</small><strong>AGPL-3.0</strong></div>
+          <a class="story-link" href="https://www.gnu.org/licenses/agpl-3.0.html" target="_blank" rel="noopener noreferrer">Read AGPL-3.0 <span aria-hidden="true">↗</span></a>
+        </div>
+      </div>
+    </section>
+
+    <section class="story-chapter" aria-labelledby="chapter-contact">
+      <div class="chapter-marker">Chapter 05</div>
+      <div class="chapter-copy">
+        <h2 id="chapter-contact">Keep the conversation going.</h2>
+        <p>Questions, corrections, and copyright requests can reach the AbhiHub team through its official contact address.</p>
+        <div class="story-contact">
+          <h3>Official contact</h3>
+          <p>Official AbhiHub email addresses use the <strong>@abhihub.edu.eu.org</strong> domain.<br>
+            <a href="mailto:info@abhihub.edu.eu.org">info@abhihub.edu.eu.org</a>
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <footer class="story-ending">
+      <h2>Find something useful.<br>Pass it forward.</h2>
+      <p>Start with the library, then add something that helps the next student.</p>
+      <a class="story-button" href="{{ url_for('library.pyq_landing') }}">Browse study resources</a>
+    </footer>
+  </div>
+</article>
+{% endblock %}

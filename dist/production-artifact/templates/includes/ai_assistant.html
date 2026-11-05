@@ -1,0 +1,1472 @@
+<!-- AbhiHub Native AI Assistant Component (Tarika) -->
+<style>
+/* ── Tarika Design Tokens & Shell (Native AbhiHub System) ───────── */
+:root {
+  --tarika-bg: var(--v2-surface, #ffffff);
+  --tarika-bg-subtle: var(--v2-bg, #f5f6fa);
+  --tarika-ink: var(--v2-ink, #0f172a);
+  --tarika-muted: var(--v2-muted, #566079);
+  --tarika-line: var(--v2-line, #e1e5ee);
+  --tarika-brand: var(--v2-brand, #1d4ed8);
+  --tarika-brand-hover: var(--v2-brand-hover, #1e40af);
+  --tarika-font-sans: var(--v2-font-body, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  --tarika-radius-panel: var(--v2-radius-panel, 14px);
+  --tarika-radius-pill: var(--v2-radius-pill, 9999px);
+  --tarika-shadow: 0 12px 32px -4px rgba(15, 23, 42, 0.12), 0 4px 12px -2px rgba(15, 23, 42, 0.06);
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --tarika-bg: var(--v2-surface, #131b2d);
+    --tarika-bg-subtle: var(--v2-bg, #0b1120);
+    --tarika-ink: var(--v2-ink, #eaeef7);
+    --tarika-muted: var(--v2-muted, #98a3bb);
+    --tarika-line: var(--v2-line, #25304a);
+    --tarika-brand: var(--v2-brand, #7fa0ff);
+    --tarika-brand-hover: var(--v2-brand-hover, #9bb7ff);
+    --tarika-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  }
+}
+
+:root[data-theme="dark"],
+[data-theme="dark"] {
+  --tarika-bg: var(--v2-surface, #131b2d);
+  --tarika-bg-subtle: var(--v2-bg, #0b1120);
+  --tarika-ink: var(--v2-ink, #eaeef7);
+  --tarika-muted: var(--v2-muted, #98a3bb);
+  --tarika-line: var(--v2-line, #25304a);
+  --tarika-brand: var(--v2-brand, #7fa0ff);
+  --tarika-brand-hover: var(--v2-brand-hover, #9bb7ff);
+  --tarika-shadow: 0 16px 36px -4px rgba(0, 0, 0, 0.5), 0 0 0 1px rgba(255, 255, 255, 0.08);
+}
+
+/* ── Launcher Pill Button ───────────────────────────────────────── */
+#abhiAiLauncher {
+  position: fixed;
+  bottom: calc(var(--nav-bottom-height, 80px) + 8px);
+  right: 18px;
+  z-index: 9998;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 15px;
+  background: var(--tarika-brand);
+  color: #ffffff;
+  border-radius: var(--tarika-radius-pill);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 14px rgba(29, 78, 216, 0.28), 0 1px 3px rgba(0, 0, 0, 0.1);
+  cursor: pointer;
+  font-family: var(--tarika-font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  transition: transform 0.18s ease, box-shadow 0.18s ease, background-color 0.18s ease;
+  user-select: none;
+}
+#abhiAiLauncher:hover {
+  transform: translateY(-2px);
+  background: var(--tarika-brand-hover);
+  box-shadow: 0 6px 20px rgba(29, 78, 216, 0.38);
+}
+#abhiAiLauncher .ai-spark {
+  display: inline-block;
+  font-size: 13px;
+}
+
+/* ── Native Drawer Panel ───────────────────────────────────────── */
+#abhiAiDrawer {
+  position: fixed;
+  bottom: calc(var(--nav-bottom-height, 80px) + 8px);
+  right: 18px;
+  width: min(440px, calc(100vw - 32px));
+  max-width: calc(100vw - 24px);
+  max-height: calc(100% - var(--nav-bottom-height, 80px) - 20px);
+  height: min(600px, calc(100% - var(--nav-bottom-height, 80px) - 20px));
+  background: var(--tarika-bg);
+  color: var(--tarika-ink);
+  border-radius: var(--tarika-radius-panel);
+  border: 1px solid var(--tarika-line);
+  box-shadow: var(--tarika-shadow);
+  display: none;
+  flex-direction: column;
+  z-index: 9999;
+  overflow: hidden;
+  font-family: var(--tarika-font-sans);
+  animation: aiDrawerEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+#abhiAiDrawer.open {
+  display: flex;
+}
+@keyframes aiDrawerEnter {
+  from { opacity: 0; transform: translateY(12px) scale(0.98); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* App Shell Embedded mode adjustments (when rendered in PWA/App Shell iframe) */
+html.app-shell-embedded #abhiAiLauncher {
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+}
+
+html.app-shell-embedded #abhiAiDrawer {
+  top: 10px !important;
+  bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
+  max-height: none !important;
+  height: auto !important;
+}
+
+@media (min-width: 860px) {
+  html.app-shell-embedded #abhiAiLauncher {
+    bottom: 24px !important;
+  }
+  html.app-shell-embedded #abhiAiDrawer {
+    top: 16px !important;
+    bottom: 24px !important;
+    height: auto !important;
+  }
+}
+
+@media (max-width: 640px) {
+  #abhiAiLauncher {
+    bottom: calc(var(--nav-bottom-height, 80px) + 6px);
+    right: 14px;
+  }
+  #abhiAiDrawer {
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+    bottom: calc(var(--nav-bottom-height, 80px) + 6px);
+    max-height: calc(100% - var(--nav-bottom-height, 80px) - 14px);
+    height: min(560px, calc(100% - var(--nav-bottom-height, 80px) - 14px));
+  }
+  html.app-shell-embedded #abhiAiLauncher {
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+  }
+  html.app-shell-embedded #abhiAiDrawer {
+    top: 8px !important;
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+}
+
+/* ── Drawer Header ────────────────────────────────────────────── */
+.ai-drw-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--tarika-bg-subtle);
+  border-bottom: 1px solid var(--tarika-line);
+}
+.ai-drw-title {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-weight: 700;
+  font-size: 14.5px;
+  color: var(--tarika-ink);
+}
+.ai-drw-model-wrap {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.ai-drw-badge {
+  font-size: 10px;
+  background: rgba(29, 78, 216, 0.08);
+  color: var(--tarika-brand);
+  border: 1px solid rgba(29, 78, 216, 0.2);
+  padding: 2px 7px;
+  border-radius: var(--tarika-radius-pill);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  cursor: pointer;
+  user-select: none;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.ai-drw-badge:hover, .ai-drw-badge:focus-visible {
+  background: rgba(29, 78, 216, 0.16);
+  border-color: var(--tarika-brand);
+}
+.ai-drw-model-menu {
+  display: none;
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  min-width: 215px;
+  background: var(--tarika-bg, #ffffff);
+  border: 1px solid var(--tarika-line, #e2e8f0);
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.15), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  border-radius: 10px;
+  padding: 6px;
+  z-index: 10000;
+}
+[data-theme="dark"] .ai-drw-model-menu {
+  background: #181c24;
+  border-color: #2b3240;
+}
+.ai-drw-model-menu.show {
+  display: block;
+}
+.ai-menu-section-title {
+  font-size: 9px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--tarika-muted, #64748b);
+  padding: 5px 8px 3px;
+  font-weight: 700;
+}
+.ai-model-opt {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 6px 8px;
+  font-size: 11.5px;
+  color: var(--tarika-ink, #0f172a);
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+  font-family: inherit;
+}
+.ai-model-opt:hover, .ai-model-opt.active {
+  background: var(--tarika-bg-subtle, #f1f5f9);
+  color: var(--tarika-brand, #2563eb);
+  font-weight: 600;
+}
+.ai-model-opt.disabled {
+  opacity: 0.45;
+  cursor: not-allowed !important;
+}
+#aiSendBtn.stop {
+  background: #ef4444 !important;
+  color: #ffffff !important;
+}
+.ai-download-progress {
+  margin-top: 6px;
+  background: rgba(255, 255, 255, 0.15);
+  border-radius: 9999px;
+  height: 6px;
+  overflow: hidden;
+}
+.ai-download-progress-bar {
+  background: var(--tarika-brand, #2563eb);
+  height: 100%;
+  width: 0%;
+  transition: width 0.2s ease;
+}
+.ai-menu-divider {
+  height: 1px;
+  background: var(--tarika-line, #e2e8f0);
+  margin: 4px 0;
+}
+.ai-model-manage-link {
+  display: block;
+  font-size: 10.5px;
+  color: var(--tarika-muted, #64748b);
+  text-decoration: none;
+  padding: 5px 8px;
+  border-radius: 6px;
+}
+.ai-model-manage-link:hover {
+  color: var(--tarika-brand, #2563eb);
+  background: var(--tarika-bg-subtle, #f1f5f9);
+}
+.ai-drw-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.ai-drw-btn {
+  background: var(--tarika-bg);
+  border: 1px solid var(--tarika-line);
+  color: var(--tarika-muted);
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  transition: all 0.15s ease;
+  text-decoration: none;
+}
+.ai-drw-btn:hover {
+  color: var(--tarika-ink);
+  background: var(--tarika-bg-subtle);
+  border-color: var(--tarika-brand);
+}
+
+/* ── Context Bar ──────────────────────────────────────────────── */
+#aiContextBar {
+  background: #eff6ff;
+  padding: 9px 14px;
+  border-bottom: 1px solid #bfdbfe;
+  font-size: 12px;
+  display: none;
+}
+@media (prefers-color-scheme: dark) {
+  #aiContextBar {
+    background: rgba(29, 78, 216, 0.15);
+    border-bottom-color: rgba(127, 160, 255, 0.25);
+  }
+}
+[data-theme="dark"] #aiContextBar {
+  background: rgba(29, 78, 216, 0.15);
+  border-bottom-color: rgba(127, 160, 255, 0.25);
+}
+.ai-ctx-file {
+  font-weight: 600;
+  color: #1e40af;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 5px;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+@media (prefers-color-scheme: dark) {
+  .ai-ctx-file { color: #bfdbfe; }
+}
+.ai-ctx-actions {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.ai-ctx-chip {
+  background: #ffffff;
+  border: 1px solid #bfdbfe;
+  color: var(--tarika-brand);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 9px;
+  border-radius: var(--tarika-radius-pill);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+@media (prefers-color-scheme: dark) {
+  .ai-ctx-chip {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(127, 160, 255, 0.3);
+    color: #eaeef7;
+  }
+}
+.ai-ctx-chip:hover {
+  background: var(--tarika-brand);
+  border-color: var(--tarika-brand);
+  color: #ffffff;
+}
+
+/* ── Messages Stream ──────────────────────────────────────────── */
+#aiMsgList {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: var(--tarika-bg);
+}
+#aiMsgList::-webkit-scrollbar { width: 5px; }
+#aiMsgList::-webkit-scrollbar-thumb { background: var(--tarika-line); border-radius: 99px; }
+
+.ai-bubble {
+  max-width: 88%;
+  padding: 9px 13px;
+  border-radius: 12px;
+  font-size: 13px;
+  line-height: 1.55;
+  word-wrap: break-word;
+  animation: aiBubbleIn 0.18s ease forwards;
+}
+@keyframes aiBubbleIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.ai-bubble.user {
+  align-self: flex-end;
+  background: var(--tarika-brand);
+  color: #ffffff;
+  border-bottom-right-radius: 3px;
+}
+.ai-bubble.assistant {
+  align-self: flex-start;
+  background: var(--tarika-bg-subtle);
+  color: var(--tarika-ink);
+  border: 1px solid var(--tarika-line);
+  border-bottom-left-radius: 3px;
+  max-width: 96%;
+}
+.ai-bubble:empty {
+  display: none !important;
+}
+.ai-bubble.thinking {
+  align-self: flex-start;
+  background: var(--tarika-bg-subtle);
+  color: var(--tarika-muted);
+  font-size: 12.5px;
+}
+.ai-typing-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 3.5px;
+  vertical-align: middle;
+  padding: 0 4px;
+}
+.ai-typing-indicator span {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  background: currentColor;
+  border-radius: 50%;
+  animation: aiTypingBounce 1.4s infinite ease-in-out both;
+}
+.ai-typing-indicator span:nth-child(1) { animation-delay: -0.32s; }
+.ai-typing-indicator span:nth-child(2) { animation-delay: -0.16s; }
+.ai-typing-indicator span:nth-child(3) { animation-delay: 0s; }
+@keyframes aiTypingBounce {
+  0%, 80%, 100% { transform: scale(0.5); opacity: 0.35; }
+  40% { transform: scale(1.1); opacity: 1; }
+}
+
+/* Typography in Assistant Bubbles */
+.ai-bubble.assistant h1, .ai-bubble.assistant h2, .ai-bubble.assistant h3, .ai-bubble.assistant h4 {
+  color: var(--tarika-ink);
+  margin: 7px 0 3px 0;
+  font-weight: 700;
+}
+.ai-bubble.assistant h1 { font-size: 14.5px; border-bottom: 1px solid var(--tarika-line); padding-bottom: 3px; }
+.ai-bubble.assistant h2 { font-size: 13.5px; }
+.ai-bubble.assistant h3 { font-size: 12.5px; color: var(--tarika-brand); }
+.ai-bubble.assistant p { margin: 5px 0; }
+.ai-bubble.assistant ul, .ai-bubble.assistant ol { margin: 5px 0; padding-left: 18px; }
+.ai-bubble.assistant li { margin: 2px 0; }
+.ai-bubble.assistant strong { color: var(--tarika-ink); font-weight: 600; }
+.ai-bubble.assistant a { color: var(--tarika-brand); text-decoration: underline; }
+
+/* Markdown Tables */
+.ai-table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  margin: 8px 0;
+  border-radius: 7px;
+  border: 1px solid var(--tarika-line);
+  background: var(--tarika-bg);
+}
+.ai-bubble.assistant table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  text-align: left;
+}
+.ai-bubble.assistant th {
+  background: var(--tarika-bg-subtle);
+  color: var(--tarika-ink);
+  font-weight: 600;
+  padding: 6px 9px;
+  border-bottom: 2px solid var(--tarika-line);
+}
+.ai-bubble.assistant td {
+  padding: 5px 9px;
+  border-bottom: 1px solid var(--tarika-line);
+  color: var(--tarika-ink);
+}
+
+/* Code & Math Styling */
+.ai-bubble.assistant pre {
+  position: relative;
+  background: #0f172a;
+  border: 1px solid #1e293b;
+  border-radius: 7px;
+  padding: 9px 11px;
+  margin: 7px 0;
+  overflow-x: auto;
+  font-family: 'Fira Code', Consolas, Monaco, monospace;
+  font-size: 11.5px;
+  line-height: 1.45;
+  color: #f8fafc;
+}
+.ai-bubble.assistant pre code {
+  background: transparent;
+  padding: 0;
+  color: #e2e8f0;
+  border: none;
+}
+.ai-bubble.assistant code {
+  font-family: 'Fira Code', Consolas, Monaco, monospace;
+  font-size: 11.5px;
+  background: rgba(29, 78, 216, 0.08);
+  color: var(--tarika-brand);
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+.ai-bubble.assistant .katex {
+  font-size: 1.05em;
+  color: var(--tarika-ink) !important;
+}
+.ai-bubble.assistant .katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 4px 0;
+  margin: 5px 0;
+}
+.ai-code-copy-btn {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #94a3b8;
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ai-code-copy-btn:hover {
+  background: var(--tarika-brand);
+  color: #fff;
+}
+.ai-stream-cursor {
+  display: inline-block;
+  color: var(--tarika-brand);
+  font-weight: 900;
+  animation: aiCursorPulse 0.55s ease-in-out infinite alternate;
+  margin-left: 2px;
+}
+@keyframes aiCursorPulse {
+  0% { opacity: 0.3; }
+  100% { opacity: 1; }
+}
+
+/* Action Cards in Chat */
+.ai-action-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--tarika-bg);
+  border: 1px solid var(--tarika-line);
+  border-radius: 9px;
+  padding: 8px 11px;
+  margin-top: 7px;
+  gap: 8px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+.ai-card-title {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--tarika-ink);
+}
+.ai-card-badge {
+  font-size: 10px;
+  background: var(--tarika-brand);
+  color: #fff;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+.ai-bubble.assistant a.ai-card-btn,
+.ai-card-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  gap: 5px !important;
+  padding: 6px 12px !important;
+  border-radius: 8px !important;
+  font-size: 11.5px !important;
+  font-weight: 600 !important;
+  text-decoration: none !important;
+  transition: all 0.15s ease !important;
+  cursor: pointer !important;
+}
+
+.ai-bubble.assistant a.ai-card-btn-primary,
+.ai-card-btn-primary {
+  background: var(--tarika-brand, #1d4ed8) !important;
+  color: #ffffff !important;
+  border: 1px solid var(--tarika-brand, #1d4ed8) !important;
+  box-shadow: 0 2px 6px rgba(29, 78, 216, 0.25) !important;
+}
+.ai-bubble.assistant a.ai-card-btn-primary:hover,
+.ai-card-btn-primary:hover {
+  background: var(--tarika-brand-hover, #1e40af) !important;
+  color: #ffffff !important;
+}
+
+.ai-bubble.assistant a.ai-card-btn-secondary,
+.ai-card-btn-secondary {
+  background: var(--tarika-bg, #ffffff) !important;
+  color: var(--tarika-ink, #0f172a) !important;
+  border: 1px solid var(--tarika-line, #cbd5e1) !important;
+}
+.ai-bubble.assistant a.ai-card-btn-secondary:hover,
+.ai-card-btn-secondary:hover {
+  background: var(--tarika-bg-subtle, #f1f5f9) !important;
+  color: var(--tarika-brand, #1d4ed8) !important;
+  border-color: var(--tarika-brand, #1d4ed8) !important;
+}
+
+.ai-bubble.assistant a.ai-card-btn-outline,
+.ai-card-btn-outline {
+  background: rgba(29, 78, 216, 0.08) !important;
+  color: var(--tarika-brand, #1d4ed8) !important;
+  border: 1px solid rgba(29, 78, 216, 0.25) !important;
+}
+.ai-bubble.assistant a.ai-card-btn-outline:hover,
+.ai-card-btn-outline:hover {
+  background: var(--tarika-brand, #1d4ed8) !important;
+  color: #ffffff !important;
+}
+
+/* Quick Action Chips */
+.ai-quick-prompts {
+  display: flex;
+  gap: 6px;
+  padding: 7px 12px;
+  overflow-x: auto;
+  border-top: 1px solid var(--tarika-line);
+  background: var(--tarika-bg-subtle);
+}
+.ai-quick-prompts::-webkit-scrollbar { height: 0px; }
+.ai-qchip {
+  white-space: nowrap;
+  font-size: 11px;
+  font-weight: 500;
+  background: var(--tarika-bg);
+  color: var(--tarika-muted);
+  padding: 4px 9px;
+  border-radius: var(--tarika-radius-pill);
+  border: 1px solid var(--tarika-line);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.ai-qchip:hover {
+  color: var(--tarika-brand);
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+@media (prefers-color-scheme: dark) {
+  .ai-qchip:hover {
+    background: rgba(29, 78, 216, 0.2);
+    border-color: var(--tarika-brand);
+    color: #ffffff;
+  }
+}
+[data-theme="dark"] .ai-qchip:hover {
+  background: rgba(29, 78, 216, 0.2);
+  border-color: var(--tarika-brand);
+  color: #ffffff;
+}
+
+/* Input Row */
+.ai-drw-input-row {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 9px 12px;
+  background: var(--tarika-bg);
+  border-top: 1px solid var(--tarika-line);
+}
+#aiChatInput {
+  flex: 1;
+  background: var(--tarika-bg-subtle);
+  border: 1px solid var(--tarika-line);
+  border-radius: 10px;
+  color: var(--tarika-ink);
+  padding: 8px 11px;
+  font-size: 12.5px;
+  outline: none;
+  font-family: inherit;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+#aiChatInput:focus {
+  border-color: var(--tarika-brand);
+  background: var(--tarika-bg);
+}
+#aiSendBtn {
+  background: var(--tarika-brand);
+  color: #ffffff;
+  border: none;
+  border-radius: 9px;
+  width: 33px;
+  height: 33px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 13.5px;
+  transition: all 0.15s ease;
+}
+#aiSendBtn:hover:not(:disabled) {
+  background: var(--tarika-brand-hover);
+}
+#aiSendBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+/* ── Fullscreen Practice Exam Simulator ───────────────────────── */
+.ai-exam-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 999999;
+  background: var(--tarika-bg);
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  font-family: var(--tarika-font-sans);
+}
+.ai-exam-modal-box {
+  background: var(--tarika-bg);
+  width: 100%;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  color: var(--tarika-ink);
+}
+.ai-exam-modal-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 11px 20px;
+  background: var(--tarika-bg-subtle);
+  border-bottom: 1px solid var(--tarika-line);
+  gap: 14px;
+}
+.ai-exam-modal-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.ai-exam-modal-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--tarika-ink);
+  margin: 0;
+}
+.ai-exam-timer {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  background: rgba(29, 78, 216, 0.08);
+  border: 1px solid rgba(29, 78, 216, 0.25);
+  border-radius: var(--tarika-radius-pill);
+  font-weight: 700;
+  font-size: 13px;
+  color: var(--tarika-brand);
+  letter-spacing: 0.4px;
+}
+.ai-exam-timer.warning {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: #ef4444;
+  color: #dc2626;
+}
+.ai-exam-hdr-actions {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.ai-exam-hdr-btn {
+  background: var(--tarika-bg);
+  border: 1px solid var(--tarika-line);
+  color: var(--tarika-muted);
+  border-radius: 7px;
+  padding: 5px 10px;
+  cursor: pointer;
+  font-size: 11.5px;
+  font-weight: 600;
+}
+.ai-exam-hdr-btn:hover { background: var(--tarika-bg-subtle); color: var(--tarika-ink); }
+.ai-exam-modal-close {
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  color: #dc2626;
+  border-radius: 7px;
+  width: 29px;
+  height: 29px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  font-size: 14px;
+}
+.ai-exam-modal-close:hover { background: #ef4444; color: #fff; }
+
+.ai-exam-nav-strip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 20px;
+  background: var(--tarika-bg-subtle);
+  border-bottom: 1px solid var(--tarika-line);
+  overflow-x: auto;
+}
+.ai-exam-nav-pill {
+  min-width: 28px;
+  height: 26px;
+  padding: 0 6px;
+  border-radius: 6px;
+  border: 1px solid var(--tarika-line);
+  background: var(--tarika-bg);
+  color: var(--tarika-muted);
+  font-size: 11px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.ai-exam-nav-pill.active {
+  background: var(--tarika-brand) !important;
+  color: #fff !important;
+  border-color: var(--tarika-brand) !important;
+}
+.ai-exam-nav-pill.answered {
+  border-color: #10b981;
+  color: #059669;
+}
+
+.ai-exam-prog-track { height: 3px; background: var(--tarika-line); width: 100%; }
+.ai-exam-prog-fill { height: 100%; background: var(--tarika-brand); transition: width 0.3s ease; }
+
+.ai-exam-modal-body {
+  padding: 22px;
+  overflow-y: auto;
+  flex: 1;
+  background: var(--tarika-bg);
+  color: var(--tarika-ink);
+  display: flex;
+  justify-content: center;
+}
+.ai-exam-content-wrap { width: 100%; max-width: 820px; }
+.ai-exam-meta-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+}
+.ai-exam-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 5px;
+  background: rgba(29, 78, 216, 0.08);
+  color: var(--tarika-brand);
+  border: 1px solid rgba(29, 78, 216, 0.2);
+}
+.ai-exam-badge.marks {
+  background: rgba(16, 185, 129, 0.08);
+  color: #059669;
+  border-color: rgba(16, 185, 129, 0.25);
+}
+.ai-exam-step { margin-left: auto; font-size: 11.5px; color: var(--tarika-muted); font-weight: 600; }
+.ai-exam-qtext-lg { font-size: 15.5px; color: var(--tarika-ink); line-height: 1.6; font-weight: 600; margin-bottom: 16px; }
+
+.ai-exam-opt-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 14px;
+  background: var(--tarika-bg);
+  border: 1.5px solid var(--tarika-line);
+  border-radius: 10px;
+  cursor: pointer;
+  margin-bottom: 9px;
+  font-size: 13px;
+  color: var(--tarika-ink);
+  transition: all 0.15s ease;
+}
+.ai-exam-opt-card:hover { background: var(--tarika-bg-subtle); border-color: var(--tarika-brand); }
+.ai-exam-opt-card.selected {
+  background: #eff6ff !important;
+  border-color: var(--tarika-brand) !important;
+  color: var(--tarika-brand) !important;
+  font-weight: 600;
+}
+@media (prefers-color-scheme: dark) {
+  .ai-exam-opt-card.selected {
+    background: rgba(29, 78, 216, 0.2) !important;
+    border-color: var(--tarika-brand) !important;
+    color: #ffffff !important;
+  }
+}
+.ai-exam-opt-card.correct {
+  background: #ecfdf5 !important;
+  border-color: #10b981 !important;
+  color: #065f46 !important;
+}
+.ai-exam-opt-card.incorrect {
+  background: #fef2f2 !important;
+  border-color: #ef4444 !important;
+  color: #991b1b !important;
+}
+
+.ai-exam-input, .ai-exam-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--tarika-bg-subtle);
+  border: 1.5px solid var(--tarika-line);
+  border-radius: 9px;
+  padding: 9px 12px;
+  color: var(--tarika-ink);
+  font-size: 13px;
+  outline: none;
+  font-family: inherit;
+}
+.ai-exam-input:focus, .ai-exam-textarea:focus { border-color: var(--tarika-brand); background: var(--tarika-bg); }
+
+.ai-exam-exp-box {
+  margin-top: 16px;
+  padding: 12px 16px;
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
+  border-radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  .ai-exam-exp-box {
+    background: rgba(16, 185, 129, 0.1);
+    border-color: rgba(16, 185, 129, 0.3);
+  }
+}
+.ai-exam-exp-title { font-size: 12px; font-weight: 700; color: #059669; margin-bottom: 5px; }
+.ai-exam-exp-content { font-size: 13px; color: var(--tarika-ink); line-height: 1.55; }
+.ai-exam-keywords { margin-top: 6px; font-size: 11px; color: #047857; }
+
+.ai-exam-modal-ftr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 20px;
+  background: var(--tarika-bg-subtle);
+  border-top: 1px solid var(--tarika-line);
+}
+.ai-exam-btn {
+  border: none;
+  border-radius: 7px;
+  padding: 7px 14px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.ai-exam-btn.pri { background: var(--tarika-brand); color: #fff; }
+.ai-exam-btn.pri:hover { background: var(--tarika-brand-hover); }
+.ai-exam-btn.sec { background: var(--tarika-bg); color: var(--tarika-ink); border: 1px solid var(--tarika-line); }
+.ai-exam-btn.sec:hover { background: var(--tarika-bg-subtle); }
+
+/* In-Chat Launch Card */
+.ai-exam-launch-card {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 10px;
+  padding: 10px 12px;
+  margin: 7px 0;
+}
+@media (prefers-color-scheme: dark) {
+  .ai-exam-launch-card {
+    background: rgba(29, 78, 216, 0.15);
+    border-color: rgba(127, 160, 255, 0.3);
+  }
+}
+.ai-exam-launch-icon { font-size: 22px; flex-shrink: 0; }
+.ai-exam-launch-info { flex: 1; min-width: 0; }
+.ai-exam-launch-title { font-size: 12.5px; font-weight: 700; color: var(--tarika-ink); }
+.ai-exam-launch-sub { font-size: 11px; color: var(--tarika-muted); margin-top: 2px; }
+.ai-exam-launch-btn {
+  background: var(--tarika-brand);
+  color: #fff;
+  border: none;
+  font-size: 11.5px;
+  font-weight: 600;
+  padding: 5px 11px;
+  border-radius: 7px;
+  cursor: pointer;
+}
+.ai-exam-launch-btn:hover { background: var(--tarika-brand-hover); }
+
+/* ── Conversation History Slide-Over Panel ─────────────────────── */
+.ai-history-panel {
+  position: absolute;
+  inset: 0;
+  background: var(--tarika-bg);
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: aiHistorySlide 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes aiHistorySlide {
+  from { opacity: 0; transform: translateX(-100%); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.ai-history-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--tarika-bg-subtle);
+  border-bottom: 1px solid var(--tarika-line);
+}
+.ai-history-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.ai-history-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 12px;
+  background: var(--tarika-bg-subtle);
+  border: 1px solid var(--tarika-line);
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  text-align: left;
+}
+.ai-history-item:hover {
+  background: var(--tarika-bg);
+  border-color: var(--tarika-brand);
+}
+.ai-history-item.active {
+  border-color: var(--tarika-brand);
+  background: rgba(29, 78, 216, 0.08);
+}
+.ai-history-title {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--tarika-ink);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 250px;
+}
+.ai-history-date {
+  font-size: 10.5px;
+  color: var(--tarika-muted);
+  margin-top: 2px;
+}
+.ai-history-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.ai-history-action-btn {
+  background: transparent;
+  border: none;
+  color: var(--tarika-muted);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  font-size: 12px;
+  line-height: 1;
+  transition: color 0.15s, background 0.15s;
+}
+.ai-history-action-btn:hover {
+  background: var(--tarika-bg);
+  color: var(--tarika-ink);
+}
+.ai-history-action-btn.del:hover {
+  color: #ef4444;
+}
+.ai-history-retry-btn {
+  background: var(--tarika-brand);
+  color: #fff;
+  border: none;
+  padding: 5px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  margin-top: 8px;
+}
+.ai-toast {
+  position: absolute;
+  bottom: 60px;
+  left: 12px;
+  right: 12px;
+  background: #1e293b;
+  color: #f8fafc;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+  z-index: 1000;
+  animation: aiBubbleIn 0.2s ease;
+}
+.ai-toast a {
+  color: #60a5fa;
+  font-weight: 600;
+  text-decoration: underline;
+  margin-left: 8px;
+}
+
+/* Reduced Motion & Mobile */
+@media (prefers-reduced-motion: reduce) {
+  #abhiAiDrawer, #abhiAiLauncher, .ai-bubble, .ai-stream-cursor, .ai-spark, .ai-history-panel {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+@media (max-width: 640px) {
+  #abhiAiDrawer {
+    bottom: calc(var(--nav-bottom-height, 80px) + 6px);
+    right: 12px;
+    left: 12px;
+    width: auto;
+    max-width: none;
+    max-height: calc(100% - var(--nav-bottom-height, 80px) - 14px);
+    height: min(560px, calc(100% - var(--nav-bottom-height, 80px) - 14px));
+    border-radius: 16px;
+  }
+  html.app-shell-embedded #abhiAiDrawer {
+    top: 8px !important;
+    bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+    max-height: none !important;
+    height: auto !important;
+  }
+}
+
+/* ── Tarika OpenRouter API Key Setup Modal ── */
+.ai-key-modal {
+  position: absolute;
+  inset: 0;
+  background: var(--tarika-bg);
+  z-index: 50;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: aiModalFadeIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+@keyframes aiModalFadeIn {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: scale(1); }
+}
+.ai-key-modal-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: var(--tarika-bg-subtle);
+  border-bottom: 1px solid var(--tarika-line);
+}
+.ai-key-modal-body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.ai-key-step-card {
+  background: var(--tarika-bg-subtle);
+  border: 1px solid var(--tarika-line);
+  border-radius: 10px;
+  padding: 10px 12px;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+.ai-key-step-card:hover {
+  border-color: var(--tarika-brand);
+}
+.ai-key-step-num {
+  background: var(--tarika-brand);
+  color: #fff;
+  font-weight: 700;
+  font-size: 11px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.ai-key-step-title {
+  font-size: 12.5px;
+  font-weight: 700;
+  color: var(--tarika-ink);
+  margin-bottom: 2px;
+}
+.ai-key-step-desc {
+  font-size: 11.5px;
+  color: var(--tarika-muted);
+  line-height: 1.45;
+}
+.ai-key-openrouter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: #1d4ed8;
+  color: #ffffff !important;
+  font-size: 12.5px;
+  font-weight: 700;
+  padding: 9px 14px;
+  border-radius: 9px;
+  text-decoration: none;
+  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.25);
+  transition: transform 0.15s ease, background 0.15s ease;
+}
+.ai-key-openrouter-btn:hover {
+  background: #1e40af;
+  transform: translateY(-1px);
+}
+.ai-key-input-box {
+  display: flex;
+  gap: 6px;
+  margin-top: 4px;
+}
+.ai-key-input {
+  flex: 1;
+  background: var(--tarika-bg);
+  border: 1.5px solid var(--tarika-line);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-size: 12px;
+  font-family: monospace;
+  color: var(--tarika-ink);
+  outline: none;
+}
+.ai-key-input:focus {
+  border-color: var(--tarika-brand);
+}
+.ai-key-save-btn {
+  background: #10b981;
+  color: #ffffff;
+  border: none;
+  font-weight: 700;
+  font-size: 12px;
+  padding: 8px 14px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s ease;
+}
+.ai-key-save-btn:hover {
+  background: #059669;
+}
+</style>
+
+<!-- Floating Assistant Trigger -->
+<button type="button" id="abhiAiLauncher" onclick="toggleAbhiAiDrawer()" aria-label="Open Tarika Study Assistant" title="Tarika — Personal Study Assistant">
+  <span class="ai-spark" aria-hidden="true">✨</span>
+  <span>Tarika</span>
+</button>
+
+<!-- Sliding Assistant Drawer -->
+<section id="abhiAiDrawer" role="dialog" aria-label="Tarika AI Study Assistant" aria-modal="true" aria-hidden="true" style="position:fixed;">
+  <!-- OpenRouter API Key Setup Modal -->
+  <aside id="tarikaApiKeyModal" class="ai-key-modal" style="display:none;" aria-label="Setup OpenRouter API Key">
+    <div class="ai-key-modal-hdr">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span aria-hidden="true">🔑</span>
+        <span style="font-weight:700; font-size:13.5px; color:var(--tarika-ink);">Setup Free OpenRouter Key</span>
+      </div>
+      <button type="button" class="ai-drw-btn" onclick="closeTarikaApiKeyModal()" title="Close Setup" style="font-size:12px;">✕</button>
+    </div>
+    <div class="ai-key-modal-body">
+      <p style="font-size:12px; color:var(--tarika-muted); margin:0; line-height:1.5;">
+        Tarika connects with <strong>OpenRouter</strong> to give you <strong>100% free</strong> access to top AI models like Gemma 4, Llama 3.3, and DeepSeek R1. Follow these 4 quick steps:
+      </p>
+
+      <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer" class="ai-key-openrouter-btn" onclick="window.open(this.href, '_blank', 'noopener,noreferrer'); return false;">
+        <span>⚡</span> <span>Open openrouter.ai/settings/keys ↗</span>
+      </a>
+
+      <!-- Step Card 1 -->
+      <div class="ai-key-step-card">
+        <div class="ai-key-step-num">1</div>
+        <div>
+          <div class="ai-key-step-title">Log in to OpenRouter</div>
+          <div class="ai-key-step-desc">Open <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer" style="color:var(--tarika-brand);font-weight:600;" onclick="window.open(this.href, '_blank', 'noopener,noreferrer'); return false;">openrouter.ai</a> and sign in with Google or GitHub (free &amp; takes 10 seconds).</div>
+        </div>
+      </div>
+
+      <!-- Step Card 2 -->
+      <div class="ai-key-step-card">
+        <div class="ai-key-step-num">2</div>
+        <div>
+          <div class="ai-key-step-title">Create New Key (Name: AbhiHub)</div>
+          <div class="ai-key-step-desc">Click <strong>+ Create Key</strong> and enter name: <code style="background:rgba(29,78,216,0.1);color:var(--tarika-brand);padding:2px 5px;border-radius:4px;font-weight:700;">AbhiHub</code>.</div>
+        </div>
+      </div>
+
+      <!-- Step Card 3 -->
+      <div class="ai-key-step-card">
+        <div class="ai-key-step-num">3</div>
+        <div>
+          <div class="ai-key-step-title">Set Budget: 0 &amp; Expiry: Never</div>
+          <div class="ai-key-step-desc">Keep <strong>Credit Limit: 0</strong> (uses free models only with zero charges) and <strong>Expiry: Never</strong>. Click Create.</div>
+        </div>
+      </div>
+
+      <!-- Step Card 4 -->
+      <div class="ai-key-step-card">
+        <div class="ai-key-step-num">4</div>
+        <div>
+          <div class="ai-key-step-title">Copy &amp; Paste in Tarika</div>
+          <div class="ai-key-step-desc">Copy your key starting with <code style="font-size:11px;">sk-or-v1-...</code> and paste it in the box below:</div>
+          <div class="ai-key-input-box">
+            <input type="password" id="tarikaApiKeyModalInput" class="ai-key-input" placeholder="sk-or-v1-xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
+            <button type="button" class="ai-key-save-btn" onclick="saveTarikaApiKey()">Save 🚀</button>
+          </div>
+        </div>
+      </div>
+
+      <div style="font-size:11px; color:var(--tarika-muted); text-align:center; margin-top:4px;">
+        🔒 Stored locally in your browser. Never shared or billed.
+      </div>
+    </div>
+  </aside>
+
+  <!-- Conversation History Slide-Over Panel -->
+  <aside id="aiHistoryPanel" class="ai-history-panel" style="display:none;" aria-label="Chat History">
+    <div class="ai-history-hdr">
+      <div style="display:flex; align-items:center; gap:6px;">
+        <span aria-hidden="true">🕒</span>
+        <span style="font-weight:700; font-size:13.5px; color:var(--tarika-ink);">Chat History</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:6px;">
+        <button type="button" class="ai-drw-btn" onclick="startNewChat()" title="Start New Chat" style="font-size:12px;">➕</button>
+        <button type="button" class="ai-drw-btn" onclick="toggleHistoryPanel()" title="Close History" style="font-size:12px;">✕</button>
+      </div>
+    </div>
+    <div id="aiHistoryList" class="ai-history-list" role="list">
+      <div style="font-size:12px; color:var(--tarika-muted); padding:16px; text-align:center;">Loading conversation history...</div>
+    </div>
+  </aside>
+
+  <!-- Header -->
+  <header class="ai-drw-hdr">
+    <div class="ai-drw-title">
+      <span aria-hidden="true">✨</span>
+      <span>Tarika</span>
+      <div class="ai-drw-model-wrap">
+        <span class="ai-drw-badge" id="aiDrawerModelBadge" role="button" tabindex="0" title="Switch AI Model" aria-haspopup="true" aria-expanded="false">Gemma 4 ▾</span>
+        <div class="ai-drw-model-menu" id="aiDrawerModelMenu" role="menu" aria-label="Select AI Model">
+          <div class="ai-menu-section-title">🎁 Free Models on OpenRouter</div>
+          <div id="aiDrawerFreeModelsList">
+            <button type="button" class="ai-model-opt" data-model="google/gemma-4-31b-it:free" data-provider="openrouter" data-display="Gemma 4 31B">⚡ Gemma 4 31B (Default · Free)</button>
+            <button type="button" class="ai-model-opt" data-model="meta-llama/llama-3.3-70b-instruct:free" data-provider="openrouter" data-display="Llama 3.3 70B">🦙 Llama 3.3 70B (Free)</button>
+            <button type="button" class="ai-model-opt" data-model="deepseek/deepseek-r1:free" data-provider="openrouter" data-display="DeepSeek R1">🧠 DeepSeek R1 (Reasoning · Free)</button>
+            <button type="button" class="ai-model-opt" data-model="deepseek/deepseek-chat:free" data-provider="openrouter" data-display="DeepSeek V3">💬 DeepSeek V3 (Chat · Free)</button>
+            <button type="button" class="ai-model-opt" data-model="google/gemini-2.0-flash-exp:free" data-provider="openrouter" data-display="Gemini 2.0 Flash">✨ Gemini 2.0 Flash (Free)</button>
+            <button type="button" class="ai-model-opt" data-model="google/gemini-2.0-pro-exp-02-05:free" data-provider="openrouter" data-display="Gemini 2.0 Pro">🌟 Gemini 2.0 Pro (Free)</button>
+            <button type="button" class="ai-model-opt" data-model="qwen/qwen-2.5-72b-instruct:free" data-provider="openrouter" data-display="Qwen 2.5 72B">🌐 Qwen 2.5 72B (Free)</button>
+            <button type="button" class="ai-model-opt" data-model="mistralai/mistral-small-24b-instruct-2501:free" data-provider="openrouter" data-display="Mistral Small">💨 Mistral Small 24B (Free)</button>
+            <button type="button" class="ai-model-opt" data-model="meta-llama/llama-3.2-11b-vision-instruct:free" data-provider="openrouter" data-display="Llama 3.2 Vision">👁️ Llama 3.2 Vision (Free)</button>
+          </div>
+          
+          <div class="ai-menu-divider"></div>
+          <button type="button" class="ai-model-opt" onclick="openTarikaApiKeyModal()" style="color:var(--tarika-brand); font-weight:700;">
+            🔑 Manage OpenRouter Key
+          </button>
+
+          <details class="ai-dev-menu-wrap" style="margin-top:4px; border-top:1px solid var(--tarika-line, #e2e8f0); padding-top:4px;">
+            <summary style="font-size:10px; color:var(--tarika-muted, #64748b); padding:4px 6px; cursor:pointer; font-weight:600; list-style:none; display:flex; align-items:center; gap:4px;">
+              <span>🛠️</span> <span>Offline / Local Options</span>
+            </summary>
+            <div style="padding-top:4px;">
+              <button type="button" class="ai-model-opt" data-model="Llama-3.2-1B-Instruct-q4f16_1-MLC" data-provider="webllm" data-display="Tarika WebGPU">🌸 Tarika (WebGPU Offline)</button>
+              <button type="button" class="ai-model-opt" data-model="llama3.2:latest" data-provider="ollama" data-display="Ollama Local">💻 Ollama (Local Server)</button>
+            </div>
+          </details>
+        </div>
+      </div>
+    </div>
+    <div class="ai-drw-actions">
+      <button type="button" class="ai-drw-btn" onclick="startNewChat()" aria-label="Start New Chat" title="Start New Chat">➕</button>
+      <button type="button" class="ai-drw-btn" onclick="toggleHistoryPanel()" aria-label="Chat History" title="View Chat History">🕒</button>
+      <a href="/settings" class="ai-drw-btn" aria-label="AI Settings & Models" title="AI Settings & Models">⚙️</a>
+      <button type="button" class="ai-drw-btn" onclick="toggleAbhiAiDrawer()" aria-label="Close Assistant" title="Close">✕</button>
+    </div>
+  </header>
+
+  <!-- Active Document Context Bar -->
+  <aside id="aiContextBar" aria-label="Active Document Context">
+    <div class="ai-ctx-file" id="aiContextDocName">📄 Active Document</div>
+    <div class="ai-ctx-actions">
+      <button type="button" class="ai-ctx-chip" data-action="prompt" data-prompt="Start a practice exam on this paper with MCQ, MSQ, Short, and Brief questions.">🎯 Practice Exam</button>
+      <button type="button" class="ai-ctx-chip" data-action="prompt" data-prompt="Solve the questions in this paper step-by-step with complete explanations.">💡 Solve & Explain</button>
+      <button type="button" class="ai-ctx-chip" data-action="prompt" data-prompt="Summarize this paper thoroughly and outline its main topics.">⚡ Summarize</button>
+    </div>
+  </aside>
+
+  <!-- Chat Messages Stream -->
+  <div id="aiMsgList" role="log" aria-live="polite">
+    <div class="ai-bubble assistant" dir="auto">
+      👋 Hi! I'm <strong>Tarika</strong>, your personal study assistant for AbhiHub. Ask me to find PYQs, search notes, start a <strong>Practice Exam</strong>, or solve and explain any document you have open!
+    </div>
+  </div>
+
+  <!-- Quick Prompts Strip -->
+  <nav class="ai-quick-prompts" aria-label="Quick Prompts">
+    <button type="button" class="ai-qchip" data-action="prompt" data-prompt="Start a practice exam for me">🎯 Practice Exam</button>
+    <button type="button" class="ai-qchip" data-action="prompt" data-prompt="Find PYQs for Engineering Mathematics">🔍 Math PYQs</button>
+    <button type="button" class="ai-qchip" data-action="prompt" data-prompt="Find notes for Data Structures">📚 DSA Notes</button>
+    <button type="button" class="ai-qchip" data-action="prompt" data-prompt="Solve the paper on this page">📝 Solve This Paper</button>
+  </nav>
+
+  <!-- Input Form Composer -->
+  <footer class="ai-drw-input-row">
+    <label for="aiChatInput" class="sr-only" style="position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0;">Ask Tarika</label>
+    <input type="text" id="aiChatInput" dir="auto" placeholder="Ask Tarika or tell it what you want to do..." autocomplete="off">
+    <button type="button" id="aiSendBtn" aria-label="Send message">➔</button>
+  </footer>
+</section>
+
+<!-- Fullscreen Practice Exam Simulator Dialog -->
+<div id="tarikaExamModal" class="ai-exam-modal-overlay" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="examModalTitle">
+  <div class="ai-exam-modal-box">
+    <header class="ai-exam-modal-hdr">
+      <div class="ai-exam-modal-title-wrap">
+        <span style="font-size:20px;" aria-hidden="true">🎯</span>
+        <h3 id="examModalTitle" class="ai-exam-modal-title">Practice Exam Simulator</h3>
+      </div>
+      <div class="ai-exam-timer" id="aiExamTimerBadge" title="Time Remaining">
+        <span aria-hidden="true">⏱️</span>
+        <span id="aiExamTimerText">15:00</span>
+      </div>
+      <div class="ai-exam-hdr-actions">
+        <button type="button" class="ai-exam-hdr-btn" id="aiExamFullscreenBtn" onclick="toggleExamFullscreen()" aria-label="Toggle Fullscreen">⛶ Fullscreen</button>
+        <button type="button" class="ai-exam-modal-close" onclick="closeExamModal()" aria-label="Exit Exam">✕</button>
+      </div>
+    </header>
+    <div class="ai-exam-prog-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0">
+      <div id="examModalProgFill" class="ai-exam-prog-fill" style="width:0%;"></div>
+    </div>
+    <nav class="ai-exam-nav-strip" id="examNavStrip" aria-label="Question Navigation"></nav>
+    <main id="examModalBody" class="ai-exam-modal-body">
+      <div class="ai-exam-content-wrap" id="examContentWrap"></div>
+    </main>
+    <footer id="examModalFtr" class="ai-exam-modal-ftr"></footer>
+  </div>
+</div>
+
+<!-- KaTeX & Marked Assets -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" media="print" onload="this.media='all'">
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/contrib/auto-render.min.js" defer></script>
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js" defer></script>
+<script src="/static/js/ai/ai_router.js" defer></script>
+<script src="/static/js/ai/render.js" defer></script>
+<script src="/static/js/ai/history.js" defer></script>
+<script src="/static/js/ai/chat.js" defer></script>

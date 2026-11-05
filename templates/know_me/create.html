@@ -7,7 +7,7 @@
   <title>Create MemoryWall — AbhiHub</title>
   <meta name="description" content="Create your personal MemoryWall and let friends describe you in 3 words.">
   <meta name="robots" content="noindex">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
+  
   <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="{{ url_for('static', filename='premium/css/style.css', v='2.0.1') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/know-me.css') }}">
@@ -30,7 +30,7 @@
       <div class="km-alert km-alert--error">{{ error }}</div>
       {% endif %}
 
-      <form method="POST" action="{{ url_for('memorywall_create') }}" id="km-create-form">
+      <form method="POST" action="{{ url_for('app_pages.memorywall_create') }}" id="km-create-form">
     <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
 
         <div class="km-form-row">
@@ -68,7 +68,7 @@
       </form>
     </div>
 
-    <a href="{{ url_for('memorywall_dashboard') }}" class="km-btn km-btn--ghost"
+    <a href="{{ url_for('app_pages.memorywall_dashboard') }}" class="km-btn km-btn--ghost"
       style="display:block;text-align:center;margin-top:0.5rem;">
       ← Back
     </a>

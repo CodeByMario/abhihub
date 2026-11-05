@@ -163,10 +163,16 @@ const SearchManager = {
     displayLimit: 12,
     currentResults: [],
 
+    searchAbortController: null,
+    suggestAbortController: null,
+    suggestDebounceTimer: null,
+
     elements: {
         fileName: () => document.getElementById("searchFileName"),
         author: () => document.getElementById("searchAuthor"),
         college: () => document.getElementById("searchCollege"),
+        branch: () => document.getElementById("searchBranch"),
+        semester: () => document.getElementById("searchSemester"),
         type: () => document.getElementById("searchType"),
         subject: () => document.getElementById("searchSubject"),
         year: () => document.getElementById("searchYear"),
@@ -175,16 +181,39 @@ const SearchManager = {
         noResults: () => document.getElementById("noResults"),
         loader: () => document.getElementById("loader"),
         error: () => document.getElementById("error"),
-        history: () => document.getElementById("searchHistory")
+        history: () => document.getElementById("searchHistory"),
+        suggestions: () => document.getElementById("searchSuggestions"),
+        pills: () => document.getElementById("searchActivePills"),
+        relaxationBanner: () => document.getElementById("searchRelaxationBanner"),
+        typoBanner: () => document.getElementById("searchTypoBanner")
     },
+    activeSuggestionElements: [],
+    focusedSuggestionIndex: -1,
 
     async init() {
-        console.log('[SearchManager] Initializing...');
+        console.log('[SearchManager] Initializing v3 discovery engine...');
         this.loadSearchHistory();
         this.setupEventListeners();
-        await this.preloadData();
-        await this.performSearch();
-        console.log('[SearchManager] Init complete. Cache size:', this.cache?.length);
+
+        // If search results container is on page, preload data and perform initial search
+        if (this.elements.results()) {
+            this.preloadData().then(() => {
+                this.performSearch();
+            });
+        } else {
+            const triggerPreload = () => {
+                if (!this.cache && !this._preloading) {
+                    this._preloading = true;
+                    this.preloadData().finally(() => { this._preloading = false; });
+                }
+            };
+            const fileInput = this.elements.fileName();
+            if (fileInput) {
+                fileInput.addEventListener('focus', triggerPreload, { once: true });
+            }
+            document.getElementById('navSearchOverlay')?.addEventListener('click', triggerPreload, { once: true });
+            document.getElementById('navbarSearchIcon')?.addEventListener('click', triggerPreload, { once: true });
+        }
     },
 
     loadSearchHistory() {
@@ -224,7 +253,7 @@ const SearchManager = {
         container.innerHTML = '';
         this.searchHistory.forEach(query => {
             const tag = document.createElement('button');
-            tag.className = 'history-tag';
+            tag.className = 'ss-tag';
             tag.textContent = query;
             tag.addEventListener('click', () => {
                 const fileNameInput = this.elements.fileName();
@@ -241,32 +270,242 @@ const SearchManager = {
         // hidden btn still works for hero search form compatibility
         document.getElementById("searchBtn")?.addEventListener("click", () => this.performSearch());
 
-        // Clear button
+        // Search Input & Suggestions
         const clearBtn = document.getElementById('searchClearBtn');
         const fileInput = this.elements.fileName();
         if (fileInput && clearBtn) {
             fileInput.addEventListener('input', () => {
-                clearBtn.style.display = fileInput.value ? 'block' : 'none';
+                const val = fileInput.value.trim();
+                clearBtn.style.display = val ? 'block' : 'none';
+                this.fetchSuggestions(val);
                 this.debounceSearch();
             });
-            fileInput.addEventListener('keypress', e => {
-                if (e.key === 'Enter') this.performSearch();
+            fileInput.addEventListener('keydown', e => {
+                const sugBox = this.elements.suggestions();
+                const isSugVisible = sugBox && sugBox.style.display !== 'none';
+
+                if (e.key === 'ArrowDown' && isSugVisible) {
+                    e.preventDefault();
+                    this.navigateSuggestions(1);
+                } else if (e.key === 'ArrowUp' && isSugVisible) {
+                    e.preventDefault();
+                    this.navigateSuggestions(-1);
+                } else if (e.key === 'Enter') {
+                    if (isSugVisible && this.focusedSuggestionIndex >= 0 && this.activeSuggestionElements[this.focusedSuggestionIndex]) {
+                        e.preventDefault();
+                        this.applySuggestion(this.activeSuggestionElements[this.focusedSuggestionIndex].item);
+                    } else {
+                        this.closeSuggestions();
+                        this.performSearch();
+                    }
+                } else if (e.key === 'Escape') {
+                    this.closeSuggestions();
+                }
             });
             clearBtn.addEventListener('click', () => {
                 fileInput.value = '';
                 clearBtn.style.display = 'none';
+                this.closeSuggestions();
                 fileInput.focus();
                 this.performSearch();
             });
         }
 
+        // Close suggestions on outside click
+        document.addEventListener('click', (e) => {
+            const sug = this.elements.suggestions();
+            const inp = this.elements.fileName();
+            if (sug && !sug.contains(e.target) && e.target !== inp) {
+                this.closeSuggestions();
+            }
+        });
+
         // Selects — instant search on change
-        ['searchCollege','searchType','searchSubject','searchYear','searchSort'].forEach(id => {
+        ['searchCollege','searchBranch','searchSemester','searchType','searchSubject','searchYear','searchSort'].forEach(id => {
             document.getElementById(id)?.addEventListener('change', (e) => {
                 e.target.classList.toggle('active', !!e.target.value);
                 this.performSearch();
             });
         });
+    },
+
+    async fetchSuggestions(query) {
+        clearTimeout(this.suggestDebounceTimer);
+        const sugBox = this.elements.suggestions();
+        if (!query || query.length < 2) {
+            if (sugBox) sugBox.style.display = 'none';
+            return;
+        }
+
+        this.suggestDebounceTimer = setTimeout(async () => {
+            if (this.suggestAbortController) {
+                this.suggestAbortController.abort();
+            }
+            this.suggestAbortController = new AbortController();
+
+            try {
+                const colVal = this.elements.college()?.value || '';
+                const res = await fetch(`/api/v2/suggest?q=${encodeURIComponent(query)}&college_id=${encodeURIComponent(colVal)}`, {
+                    signal: this.suggestAbortController.signal
+                });
+                const data = await res.json();
+                if (data.success && (data.detected || (data.suggestions && data.suggestions.length))) {
+                    this.renderSuggestions(data);
+                } else {
+                    if (sugBox) sugBox.style.display = 'none';
+                }
+            } catch (err) {
+                if (err.name !== 'AbortError') {
+                    console.warn('[SearchManager] Suggest error:', err);
+                }
+            }
+        }, 120);
+    },
+
+    renderSuggestions(data) {
+        const box = this.elements.suggestions();
+        if (!box) return;
+        box.innerHTML = '';
+
+        const items = data.suggestions || (Array.isArray(data) ? data : []);
+        const detected = data.detected;
+        const groups = data.groups || {};
+
+        this.focusedSuggestionIndex = -1;
+        this.activeSuggestionElements = [];
+
+        // 1. Detected Intent (Top Row)
+        if (detected) {
+            const row = document.createElement('div');
+            row.className = 'ss-sug-detected';
+            row.tabIndex = 0;
+            row.innerHTML = `
+                <div style="display:flex;align-items:center;">
+                    <span class="ss-sug-detected-badge">⚡ Detected</span>
+                    <span class="ss-sug-title" style="color:#1d4ed8;">${detected.label}</span>
+                </div>
+                <span class="ss-sug-tag" style="background:#dbeafe;color:#1e40af;">Filter</span>
+            `;
+            row.addEventListener('click', () => {
+                this.applySuggestion(detected);
+            });
+            box.appendChild(row);
+            this.activeSuggestionElements.push({ el: row, item: detected });
+        }
+
+        // 2. Grouped Sections
+        const groupLabels = {
+            subjects: '📚 Subjects & Codes',
+            colleges: '🏫 Colleges',
+            branches: '🌿 Branches / Departments',
+            uploaders: '👤 Uploaders'
+        };
+
+        let hasGroups = false;
+        Object.entries(groupLabels).forEach(([groupKey, groupLabel]) => {
+            const list = groups[groupKey];
+            if (list && list.length) {
+                hasGroups = true;
+                const header = document.createElement('div');
+                header.className = 'ss-sug-group-header';
+                header.textContent = groupLabel;
+                box.appendChild(header);
+
+                list.forEach(item => {
+                    const row = document.createElement('div');
+                    row.className = 'ss-suggestion-item';
+                    row.tabIndex = 0;
+                    row.innerHTML = `
+                        <div>
+                            <span class="ss-sug-title">${item.title}</span>
+                            <span class="ss-sug-sub">${item.subtitle ? ' — ' + item.subtitle : ''}</span>
+                        </div>
+                        <span class="ss-sug-tag">${item.type}</span>
+                    `;
+                    row.addEventListener('click', () => {
+                        this.applySuggestion(item);
+                    });
+                    box.appendChild(row);
+                    this.activeSuggestionElements.push({ el: row, item: item });
+                });
+            }
+        });
+
+        // Fallback to flat items if no groups were rendered
+        if (!hasGroups && !detected && items.length) {
+            items.forEach(item => {
+                const row = document.createElement('div');
+                row.className = 'ss-suggestion-item';
+                row.tabIndex = 0;
+                row.innerHTML = `
+                    <div>
+                        <span class="ss-sug-title">${item.title}</span>
+                        <span class="ss-sug-sub">${item.subtitle ? ' — ' + item.subtitle : ''}</span>
+                    </div>
+                    <span class="ss-sug-tag">${item.type}</span>
+                `;
+                row.addEventListener('click', () => {
+                    this.applySuggestion(item);
+                });
+                box.appendChild(row);
+                this.activeSuggestionElements.push({ el: row, item: item });
+            });
+        }
+
+        box.style.display = this.activeSuggestionElements.length ? 'block' : 'none';
+    },
+
+    navigateSuggestions(step) {
+        if (!this.activeSuggestionElements || !this.activeSuggestionElements.length) return;
+        if (this.focusedSuggestionIndex >= 0 && this.activeSuggestionElements[this.focusedSuggestionIndex]) {
+            this.activeSuggestionElements[this.focusedSuggestionIndex].el.classList.remove('active');
+        }
+        this.focusedSuggestionIndex += step;
+        if (this.focusedSuggestionIndex >= this.activeSuggestionElements.length) this.focusedSuggestionIndex = 0;
+        if (this.focusedSuggestionIndex < 0) this.focusedSuggestionIndex = this.activeSuggestionElements.length - 1;
+
+        const target = this.activeSuggestionElements[this.focusedSuggestionIndex];
+        if (target) {
+            target.el.classList.add('active');
+            target.el.scrollIntoView({ block: 'nearest' });
+        }
+    },
+
+    applySuggestion(item) {
+        const input = this.elements.fileName();
+        if (item.chip) {
+            const chip = item.chip;
+            if (chip.type === 'college') {
+                const colEl = this.elements.college();
+                if (colEl) {
+                    const match = Array.from(colEl.options).find(o => o.value === chip.value || (o.textContent || '').toLowerCase().includes((chip.label || '').toLowerCase()));
+                    if (match) { colEl.value = match.value; colEl.classList.add('active'); }
+                }
+                if (input) input.value = '';
+            } else if (chip.type === 'branch') {
+                const bEl = this.elements.branch();
+                if (bEl) {
+                    const match = Array.from(bEl.options).find(o => o.value === chip.value || (o.textContent || '').toLowerCase().includes((chip.label || '').toLowerCase()));
+                    if (match) { bEl.value = match.value; bEl.classList.add('active'); }
+                }
+                if (input) input.value = '';
+            } else if (chip.type === 'subject') {
+                if (input) input.value = chip.value || chip.label;
+            } else {
+                if (input) input.value = item.query || item.title;
+            }
+        } else {
+            if (input) input.value = item.query || item.title;
+        }
+
+        this.closeSuggestions();
+        this.performSearch();
+    },
+
+    closeSuggestions() {
+        const box = this.elements.suggestions();
+        if (box) box.style.display = 'none';
+        this.focusedSuggestionIndex = -1;
     },
 
     async preloadData() {
@@ -315,37 +554,59 @@ const SearchManager = {
 
     async loadColleges() {
         try {
-            const res = await fetch('/api/colleges');
-            const data = await res.json();
-            if (!data.success) return;
+            let colData, branchData;
+            if (window.AbhiHubIDB) {
+                const [cols, depts] = await Promise.all([
+                    window.AbhiHubIDB.getColleges(),
+                    window.AbhiHubIDB.getDepartments()
+                ]);
+                if (cols && cols.length > 0) colData = { success: true, colleges: cols };
+                if (depts && depts.length > 0) branchData = { success: true, branches: depts };
+            }
+            if (!colData || !branchData) {
+                const [colRes, branchRes] = await Promise.all([
+                    colData ? Promise.resolve(null) : fetch('/api/colleges'),
+                    branchData ? Promise.resolve(null) : fetch('/api/branches')
+                ]);
+                if (colRes) colData = await colRes.json();
+                if (branchRes) branchData = await branchRes.json();
+            }
 
             const collegeSelect = document.getElementById('searchCollege');
-            if (!collegeSelect) return;
+            if (collegeSelect && colData.success) {
+                collegeSelect.innerHTML = '<option value="">🏫 All Colleges</option>';
+                colData.colleges.forEach(c => {
+                    const opt = document.createElement('option');
+                    opt.value = c.id || c.name;
+                    opt.textContent = c.name;
+                    collegeSelect.appendChild(opt);
+                });
 
-            collegeSelect.innerHTML = '<option value="">🏫 All Colleges</option>';
-            data.colleges.forEach(c => {
-                const opt = document.createElement('option');
-                opt.value = c.name;
-                opt.textContent = c.name;
-                collegeSelect.appendChild(opt);
-            });
-
-            // Auto-select user's college
-            const userCollege = window.ABHIHUB_USER_COLLEGE;
-            if (userCollege) {
-                const lc = userCollege.toLowerCase();
-                const options = Array.from(collegeSelect.options);
-                // Exact match first
-                let match = options.find(o => o.value.toLowerCase() === lc);
-                // Partial match fallback
-                if (!match) match = options.find(o => o.value && lc.includes(o.value.toLowerCase()));
-                if (match) {
-                    collegeSelect.value = match.value;
-                    console.log('[SearchManager] Auto-selected college:', match.value);
+                // Auto-select user's college if defined
+                const userCollege = window.ABHIHUB_USER_COLLEGE;
+                if (userCollege) {
+                    const lc = userCollege.toLowerCase();
+                    const options = Array.from(collegeSelect.options);
+                    let match = options.find(o => (o.textContent || '').toLowerCase() === lc || (o.value || '').toLowerCase() === lc);
+                    if (!match) match = options.find(o => o.textContent && lc.includes(o.textContent.toLowerCase()));
+                    if (match) {
+                        collegeSelect.value = match.value;
+                    }
                 }
             }
+
+            const branchSelect = document.getElementById('searchBranch');
+            if (branchSelect && branchData.success) {
+                branchSelect.innerHTML = '<option value="">🏛 All Branches</option>';
+                (branchData.branches || []).forEach(b => {
+                    const opt = document.createElement('option');
+                    opt.value = b.id || b.name;
+                    opt.textContent = b.name || b.abbreviation;
+                    branchSelect.appendChild(opt);
+                });
+            }
         } catch (e) {
-            console.warn('[SearchManager] Could not load colleges from API:', e);
+            console.warn('[SearchManager] Could not load colleges/branches from API:', e);
         }
     },
 
@@ -370,7 +631,66 @@ const SearchManager = {
 
     debounceSearch() {
         clearTimeout(this.searchDebounceTimer);
-        this.searchDebounceTimer = setTimeout(() => this.performSearch(), 300);
+        this.searchDebounceTimer = setTimeout(() => this.performSearch(), 250);
+    },
+
+    updateActivePills(params) {
+        const pillsContainer = this.elements.pills();
+        if (!pillsContainer) return;
+        pillsContainer.innerHTML = '';
+
+        const activeEntries = [];
+        if (params.college && params.college !== 'ALL') {
+            const colText = document.getElementById('searchCollege')?.selectedOptions[0]?.textContent || params.college;
+            activeEntries.push({ label: colText, key: 'college' });
+        } else if (params.college_abbr) {
+            activeEntries.push({ label: `🏫 ${params.college_abbr}`, key: 'college_abbr' });
+        }
+        if (params.branch) {
+            const branchText = document.getElementById('searchBranch')?.selectedOptions[0]?.textContent || params.branch;
+            activeEntries.push({ label: branchText, key: 'branch' });
+        }
+        if (params.semester) {
+            activeEntries.push({ label: `Sem ${params.semester}`, key: 'semester' });
+        }
+        if (params.type) {
+            activeEntries.push({ label: params.type, key: 'type' });
+        }
+        if (params.subject) {
+            activeEntries.push({ label: params.subject, key: 'subject' });
+        }
+        if (params.year) {
+            activeEntries.push({ label: params.year, key: 'year' });
+        }
+        if (params.author) {
+            activeEntries.push({ label: `👤 ${params.author}`, key: 'author' });
+        }
+
+        if (!activeEntries.length) {
+            pillsContainer.style.display = 'none';
+            return;
+        }
+
+        activeEntries.forEach(entry => {
+            const pill = document.createElement('span');
+            pill.className = 'ss-active-pill';
+            pill.innerHTML = `<span>${entry.label}</span><button type="button" aria-label="Remove filter">✕</button>`;
+            pill.querySelector('button').addEventListener('click', () => {
+                if (entry.key === 'college' || entry.key === 'college_abbr') document.getElementById('searchCollege').value = '';
+                if (entry.key === 'branch') document.getElementById('searchBranch').value = '';
+                if (entry.key === 'semester') document.getElementById('searchSemester').value = '';
+                if (entry.key === 'type') document.getElementById('searchType').value = '';
+                if (entry.key === 'subject') document.getElementById('searchSubject').value = '';
+                if (entry.key === 'year') document.getElementById('searchYear').value = '';
+                if (entry.key === 'author') {
+                    const aInput = document.getElementById('searchAuthor');
+                    if (aInput) aInput.value = '';
+                }
+                this.performSearch();
+            });
+            pillsContainer.appendChild(pill);
+        });
+        pillsContainer.style.display = 'flex';
     },
 
     async performSearch() {
@@ -379,20 +699,17 @@ const SearchManager = {
         const fileName = this.elements.fileName()?.value.trim();
         const author = this.elements.author()?.value.trim();
         const college = this.elements.college()?.value;
+        const branch = this.elements.branch()?.value;
+        const semester = this.elements.semester()?.value;
         const type = this.elements.type()?.value;
         const subject = this.elements.subject()?.value;
         const year = this.elements.year()?.value;
-        const sort = this.elements.sort()?.value;
+        const sort = this.elements.sort()?.value || 'relevance';
 
-        const searchTerms = {
-            fileName: fileName?.toLowerCase(),
-            author: author?.toLowerCase(),
-            college: college,
-            type: type,
-            subject: subject,
-            year: year,
-            sort: sort
-        };
+        // Guard against single character query unless filters are active
+        if (fileName && fileName.length === 1 && !author && !college && !branch && !semester && !type && !subject && !year) {
+            return;
+        }
 
         if (fileName) {
             this.addToSearchHistory(fileName);
@@ -401,68 +718,144 @@ const SearchManager = {
         const loader = this.elements.loader();
         const noResults = this.elements.noResults();
         const resultsContainer = this.elements.results();
+        const relaxationNotice = this.elements.relaxationBanner();
+        const typoNotice = this.elements.typoBanner();
 
         if (loader) loader.style.display = 'block';
         if (noResults) noResults.style.display = 'none';
-        if (resultsContainer) resultsContainer.innerHTML = '';
+        if (relaxationNotice) relaxationNotice.style.display = 'none';
+        if (typoNotice) typoNotice.style.display = 'none';
+
+        this.updateActivePills({ college, branch, semester, type, subject, year, author });
+
+        // Cancel previous pending search query
+        if (this.searchAbortController) {
+            this.searchAbortController.abort();
+        }
+        this.searchAbortController = new AbortController();
 
         try {
             let filtered = [];
             
-            // If we have a specific keyword, use the fast V2 Search API
-            if (fileName && fileName.length > 0) {
-                try {
-                    const res = await fetch(`/api/v2/search?q=${encodeURIComponent(fileName)}&college_id=${encodeURIComponent(college || 'ALL')}`);
-                    const data = await res.json();
-                    let serverResults = data.results || [];
-                    
-                    // Apply the dropdown filters to the server results locally
-                    filtered = serverResults.filter(file => {
-                        const matchesType = !type || file.type === type;
-                        const matchesSubject = !subject || file.subject === subject;
-                        const matchesYear = !year || file.year === year;
-                        const matchesCollege = !college || college === 'ALL' || file.college === college;
-                        // Author filter is legacy but keep for compatibility
-                        const matchesAuthor = !author || (file.author && file.author.toLowerCase().includes(author));
-                        return matchesType && matchesSubject && matchesYear && matchesCollege && matchesAuthor;
-                    });
-                } catch(e) {
-                    console.error("V2 search API error, falling back to local cache", e);
-                    filtered = this.filterResults(searchTerms);
+            // Build API query URL
+            const urlParams = new URLSearchParams();
+            if (fileName) urlParams.set('q', fileName);
+            if (college) urlParams.set('college_id', college);
+            if (branch) urlParams.set('branch', branch);
+            if (semester) urlParams.set('sem', semester);
+            if (type) urlParams.set('type', type);
+            if (subject) urlParams.set('subject', subject);
+            if (year) urlParams.set('year', year);
+            if (author) urlParams.set('author', author);
+            if (sort) urlParams.set('sort', sort);
+
+            const res = await fetch(`/api/v2/search?${urlParams.toString()}`, {
+                signal: this.searchAbortController.signal
+            });
+            const data = await res.json();
+            filtered = data.results || [];
+
+            // Auto-detect and sync compound entities into filter dropdowns & pills
+            if (data.meta && data.meta.parsed) {
+                const p = data.meta.parsed;
+                const colEl = document.getElementById('searchCollege');
+                const branchEl = document.getElementById('searchBranch');
+                const semEl = document.getElementById('searchSemester');
+                const typeEl = document.getElementById('searchType');
+                const yearEl = document.getElementById('searchYear');
+                const authorEl = document.getElementById('searchAuthor');
+
+                let changed = false;
+                if (colEl && !colEl.value) {
+                    if (p.college_id) {
+                        const match = Array.from(colEl.options).find(o => o.value === p.college_id || (p.college_name && o.textContent.toLowerCase().includes(p.college_name.toLowerCase())));
+                        if (match) { colEl.value = match.value; colEl.classList.add('active'); changed = true; }
+                    } else if (p.college_abbr) {
+                        const match = Array.from(colEl.options).find(o => o.textContent.toLowerCase().includes(`(${p.college_abbr.toLowerCase()})`) || (o.dataset?.abbr || '').toLowerCase() === p.college_abbr.toLowerCase());
+                        if (match) { colEl.value = match.value; colEl.classList.add('active'); changed = true; }
+                    }
                 }
-            } else {
-                // If no keyword, just use local cache filtering
-                if (window.Worker) {
-                    const worker = new Worker('/static/premium/js/search-worker.js');
-                    filtered = await new Promise((resolve) => {
-                        worker.postMessage({ fileData: this.cache, filters: searchTerms });
-                        worker.onmessage = (e) => {
-                            worker.terminate();
-                            resolve(e.data);
-                        };
-                    });
-                } else {
-                    filtered = this.filterResults(searchTerms);
+                if (p.department_id && branchEl && !branchEl.value) {
+                    const match = Array.from(branchEl.options).find(o => o.value === p.department_id || (p.department_abbr && o.textContent.toLowerCase().includes(p.department_abbr.toLowerCase())));
+                    if (match) { branchEl.value = match.value; branchEl.classList.add('active'); changed = true; }
                 }
+                if (p.semester && semEl && !semEl.value) {
+                    semEl.value = String(p.semester);
+                    semEl.classList.add('active');
+                    changed = true;
+                }
+                if (p.category && typeEl && !typeEl.value) {
+                    const match = Array.from(typeEl.options).find(o => o.textContent.toLowerCase().includes(p.category.toLowerCase()) || o.value.toLowerCase().includes(p.category.toLowerCase()));
+                    if (match) { typeEl.value = match.value; typeEl.classList.add('active'); changed = true; }
+                }
+                if (p.year && yearEl && !yearEl.value) {
+                    yearEl.value = String(p.year);
+                    yearEl.classList.add('active');
+                    changed = true;
+                }
+                if (p.author && authorEl) {
+                    authorEl.value = p.author;
+                    changed = true;
+                }
+
+                if (changed || p.author || p.college_abbr) {
+                    this.updateActivePills({
+                        college: colEl ? colEl.value : college,
+                        college_abbr: p.college_abbr,
+                        branch: branchEl ? branchEl.value : branch,
+                        semester: semEl ? semEl.value : semester,
+                        type: typeEl ? typeEl.value : type,
+                        subject: subject,
+                        year: yearEl ? yearEl.value : year,
+                        author: p.author || (authorEl ? authorEl.value : author)
+                    });
+                }
+            }
+
+            // Display graceful relaxation message if triggered by backend
+            if (relaxationNotice && data.meta && data.meta.relaxation_message) {
+                relaxationNotice.textContent = data.meta.relaxation_message;
+                relaxationNotice.style.display = 'block';
+            }
+
+            // Display typo correction message if did_you_mean is present
+            if (typoNotice && data.meta && data.meta.did_you_mean) {
+                const corrected = data.meta.did_you_mean;
+                const orig = fileName;
+                typoNotice.innerHTML = `Showing results for <strong>${corrected}</strong> instead of <em>${orig}</em>. <a id="searchSearchOriginal">Search "${orig}" instead</a>`;
+                typoNotice.style.display = 'block';
+                document.getElementById('searchSearchOriginal')?.addEventListener('click', () => {
+                    const inp = this.elements.fileName();
+                    if (inp) inp.value = orig;
+                    typoNotice.style.display = 'none';
+                    this.performSearch();
+                });
             }
 
             this.displayLimit = this.baseLimit;
             this.currentResults = filtered;
             this.displayResults(this.currentResults);
             
-            // Phase 4 Analytics Tracking: Log search query if provided
+            // Analytics Tracking
             if (fileName && fileName.length > 2) {
                 fetch('/api/v2/search/analytics', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         query: fileName,
-                        results_count: filtered.length
+                        results_count: filtered.length,
+                        relaxed: Boolean(data.meta && data.meta.relaxed)
                     })
                 }).catch(e => console.warn('Analytics logging failed', e));
             }
         } catch (error) {
-            console.error('Search error:', error);
+            if (error.name !== 'AbortError') {
+                console.error('Search error:', error);
+                // Fallback to local cache filtering if offline
+                filtered = this.filterResults({ fileName, author, college, type, subject, year, sort });
+                this.currentResults = filtered;
+                this.displayResults(this.currentResults);
+            }
         } finally {
             if (loader) loader.style.display = 'none';
         }
@@ -525,7 +918,16 @@ const SearchManager = {
         if (!container || !noResults) return;
 
         container.innerHTML = '';
-        noResults.style.display = results.length ? 'none' : 'block';
+        const hasNoResults = !results.length;
+        noResults.style.display = hasNoResults ? 'block' : 'none';
+
+        if (hasNoResults) {
+            const query = this.elements.fileName()?.value.trim() || '';
+            const srBtn = document.getElementById('searchStoreRoomBtn');
+            if (srBtn) {
+                srBtn.href = query ? `/store-room?search=${encodeURIComponent(query)}` : '/store-room';
+            }
+        }
 
         if (header) header.style.display = 'flex';
         if (countEl) countEl.textContent = `${results.length} result${results.length !== 1 ? 's' : ''}`;
@@ -535,7 +937,25 @@ const SearchManager = {
         if (results.length) {
             const fragment = document.createDocumentFragment();
             const visibleResults = results.slice(0, this.displayLimit);
+
+            const hasMultipleTiers = new Set(visibleResults.map(r => r.tier || 'exact')).size > 1;
+            let currentTier = null;
+
             visibleResults.forEach(file => {
+                const tier = file.tier || 'exact';
+                if (hasMultipleTiers && tier !== currentTier) {
+                    currentTier = tier;
+                    const divider = document.createElement('div');
+                    divider.className = 'ss-tier-divider';
+                    const tierLabel = tier === 'exact' ? '🟢 Exact Matches' : (tier === 'close' ? '🟡 Close Matches' : '🔵 Related Files');
+                    const tierClass = `tier-${tier}`;
+                    const countInTier = visibleResults.filter(r => (r.tier || 'exact') === tier).length;
+                    divider.innerHTML = `
+                        <span class="ss-tier-title ${tierClass}">${tierLabel}</span>
+                        <span class="ss-tier-count">${countInTier} file${countInTier !== 1 ? 's' : ''}</span>
+                    `;
+                    fragment.appendChild(divider);
+                }
                 const card = this.createResultCard(file);
                 fragment.appendChild(card);
             });
@@ -557,7 +977,7 @@ const SearchManager = {
     createResultCard(file) {
         const card = document.createElement('a');
         const typeClass = (file.type || 'default').toLowerCase();
-        card.className = 'search-file-card ' + typeClass;
+        card.className = 'ss-card ' + typeClass;
         card.href = this.getFileUrl(file);
 
         const s = str => str ? str.toString()
@@ -569,35 +989,50 @@ const SearchManager = {
         const isBookmarked = file.is_bookmarked ? 'active' : '';
         const likeFill = file.is_liked ? 'currentColor' : 'none';
         const bookmarkFill = file.is_bookmarked ? 'currentColor' : 'none';
+        const isPaid = Boolean(file.is_paid && (parseFloat(file.price) > 0));
+        const priceNum = parseFloat(file.price) || 0;
+        const premiumBadge = isPaid
+            ? `<span class="ss-badge ss-badge-premium" style="background:linear-gradient(135deg, #fef3c7, #fde68a);color:#92400e;border:1px solid #f59e0b;font-weight:800;padding:2px 8px;border-radius:6px;font-size:0.74rem;display:inline-flex;align-items:center;gap:3px;">⭐ Premium ₹${priceNum}</span>`
+            : '';
+
+        const tier = file.tier || 'exact';
+        const matchBadge = file.match_reason
+            ? `<div class="ss-match-badge tier-${tier}" style="font-size:0.73rem;padding:3px 8px;border-radius:6px;font-weight:700;margin-top:0.4rem;display:inline-block;width:fit-content;border:1px solid;">✓ ${s(file.match_reason)}</div>`
+            : '';
 
         card.innerHTML = `
-          <div class="search-card-top">
-            <span class="type-badge ${typeClass}">${s(file.type || 'File')}</span>
+          <div class="ss-card-top">
+            <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">
+              <span class="ss-badge ${typeClass}">${s(file.type || 'File')}</span>
+              ${premiumBadge}
+            </div>
             <span style="font-size:0.72rem;color:#94a3b8;">${s(file.year || '')}</span>
           </div>
-          <div class="search-file-card-title">${s(file.subject)}</div>
-          <div class="search-file-card-meta">${s(file['file-name'])}</div>
-          <div class="search-card-footer">
+          <div class="ss-title">${s(file.subject)}</div>
+          <div class="ss-meta">${s(file['file-name'])}</div>
+          ${matchBadge}
+          <div class="ss-footer">
             <span>👤 ${s(file.author)}</span>
-            <span class="search-card-stats">
+            <span class="ss-stats">
+              ${isPaid ? `<span style="color:#d97706;font-weight:800;font-size:0.8rem;margin-right:6px;">🔒 ₹${priceNum}</span>` : ''}
               <span>👁 ${file.view_count || 0}</span>
               <span>❤ ${file.like_count || 0}</span>
             </span>
           </div>
-          <div class="file-card-actions" onclick="event.preventDefault();event.stopPropagation();">
-            <button class="action-btn view-btn" data-id="${recordId}" onclick="window.location.href='${this.getFileUrl(file)}'">
+          <div class="ss-actions" onclick="event.preventDefault();event.stopPropagation();">
+            <button class="ss-btn view-btn" data-id="${recordId}" onclick="window.location.href='${this.getFileUrl(file)}'">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
               <span class="count">${file.view_count > 0 ? file.view_count : ''}</span>
             </button>
-            <button class="action-btn like-btn ${isLiked}" data-id="${recordId}" onclick="window.toggleFileAction(this,'like')">
+            <button class="ss-btn like-btn ${isLiked}" data-id="${recordId}" onclick="window.toggleFileAction(this,'like')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="${likeFill}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
               <span class="count">${file.like_count > 0 ? file.like_count : ''}</span>
             </button>
-            <button class="action-btn comment-btn" data-id="${recordId}" onclick="window.openComments(event,'${recordId}')">
+            <button class="ss-btn comment-btn" data-id="${recordId}" onclick="window.openComments(event,'${recordId}')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
               <span class="count">${file.comment_count > 0 ? file.comment_count : ''}</span>
             </button>
-            <button class="action-btn bookmark-btn ${isBookmarked}" data-id="${recordId}" onclick="window.toggleFileAction(this,'bookmark')">
+            <button class="ss-btn bookmark-btn ${isBookmarked}" data-id="${recordId}" onclick="window.toggleFileAction(this,'bookmark')">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="${bookmarkFill}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
               <span class="count">${file.bookmark_count > 0 ? file.bookmark_count : ''}</span>
             </button>
@@ -607,14 +1042,19 @@ const SearchManager = {
     },
 
     resetFilters() {
-        ['searchCollege','searchType','searchSubject','searchYear'].forEach(id => {
+        ['searchCollege','searchBranch','searchSemester','searchType','searchSubject','searchYear','searchAuthor'].forEach(id => {
             const el = document.getElementById(id);
             if (el) { el.value = ''; el.classList.remove('active'); }
         });
         const sort = document.getElementById('searchSort');
-        if (sort) sort.value = 'date_desc';
+        if (sort) sort.value = 'relevance';
         const input = this.elements.fileName();
         if (input) { input.value = ''; document.getElementById('searchClearBtn').style.display = 'none'; }
+        const pills = this.elements.pills();
+        if (pills) { pills.innerHTML = ''; pills.style.display = 'none'; }
+        const banner = this.elements.relaxationBanner();
+        if (banner) { banner.style.display = 'none'; }
+        this.closeSuggestions();
         this.performSearch();
     },
 
@@ -623,19 +1063,25 @@ const SearchManager = {
 
 
     getFileUrl(file) {
+        // Route ALL documents through the SEO landing page (/resource/<uuid>).
+        // The resource page proxies the actual file via /api/view-doc — one
+        // consistent viewer path for PDFs, images, Firebase and Cloudinary alike.
+        const recordId = file.record_id || file.id || '';
+        if (recordId) {
+            return `/resource/${encodeURIComponent(recordId)}`;
+        }
+        // Legacy fallback: no record id → old direct-viewer URLs
         const path = encodeURIComponent(file["file-path"] || '');
-        const recordId = file.record_id ? `&record_id=${encodeURIComponent(file.record_id)}` : '';
         const source = file.source ? `&source=${encodeURIComponent(file.source)}` : '';
 
-        // Safely determine PDF vs. Image format
         const formatStr = (file["file-type"] || file.format || '').toLowerCase();
         const fallbackIsPdf = typeof file["file-path"] === 'string' && file["file-path"].toLowerCase().endsWith('.pdf');
         const isPdf = formatStr === 'pdf' || (!formatStr && fallbackIsPdf);
 
         if (isPdf) {
-            return `/view_pdf?pdf_name=${path}${recordId}`;
+            return `/view_pdf?pdf_name=${path}`;
         } else {
-            return `/preview?file_path=${path}${recordId}${source}`;
+            return `/preview?file_path=${path}${source}`;
         }
     }
 };

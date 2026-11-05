@@ -1,0 +1,42 @@
+/* CSS Pipeline - Master Entry Point
+   ======================================================
+   Import order:
+   1. Variables & reset
+   2. Tokens & base typography
+   3. Components
+   4. Page-specific styles
+   5. Utilities & responsive
+   6. Animations
+   
+   Updated: 2026-09-02 by Hermes Agent
+*/
+
+@import "./00_variables.css";
+@import "./01_reset.css";
+@import "./02_base.css";
+@import "./03_components.css";
+@import "./04_layout.css";
+@import "./05_utilities.css";
+@import "./06_pages.css";
+@import "./07_responsive.css";
+@import "./08_animations.css";
+@import "./app-shell.css";
+@import "./navbar.css";
+@import "./notification-bell.css";
+@import "./feature-tour.css";
+@import "./profile-nudge.css";
+@import "./promo.css";
+@import "./pwa-install.css";
+
+/* Page-specific stylesheets */
+@import "../pages/dashboard.css";
+@import "../pages/p_account.css";
+@import "../pages/p_file_receiver.css";
+@import "../pages/p_store_room.css";
+@import "../pages/p_upload.css";
+@import "../pages/viewer.css";
+
+/* Feature-specific stylesheets */
+@import "./upload-page.css";
+@import "./dashboard-home.css";
+@import "./support-page.css";

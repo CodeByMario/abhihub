@@ -1,358 +1,1177 @@
 {% extends 'p_struct.html' %}
 {% block page_head %}
 <meta name="robots" content="noindex, follow">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
-<!-- OG tags for Instagram/Facebook rich preview (single source, brand domain) -->
-<meta property="og:title" content="{{ og_title | e }}">
+<meta property="og:title"       content="{{ og_title | e }}">
 <meta property="og:description" content="{{ og_description | e }}">
-<meta property="og:image" content="{{ og_image or url_for('static', filename='images/android-chrome-512x512.png', _external=True) }}">
-<meta property="og:url" content="https://abhihub.edu.eu.org{{ request.path }}">
-<link rel="canonical" href="https://abhihub.edu.eu.org{{ request.path }}">
-<meta property="og:type" content="profile">
-<meta property="profile:first_name" content="{{ (peer.get('name', 'Student').split(' ')[0] if peer and peer.get('name') else 'Student') | e }}">
-<meta property="profile:last_name" content="{{ (peer.get('name', 'Student').split(' ')[1] if peer and peer.get('name','').split(' ')|length > 1 else 'Hub') | e }}">
-<meta name="twitter:card" content="summary_large_image">
-<meta name="twitter:title" content="{{ og_title | e }}">
+<meta property="og:image"       content="{{ og_image or url_for('static', filename='images/android-chrome-512x512.png', _external=True) }}">
+<meta property="og:url"         content="{{ BASE_URL | default('https://www.abhihub.edu.eu.org') }}{{ request.path }}">
+<meta property="og:type"        content="profile">
+<meta name="twitter:card"       content="summary_large_image">
+<meta name="twitter:title"      content="{{ og_title | e }}">
 <meta name="twitter:description" content="{{ og_description | e }}">
-<meta name="twitter:image" content="{{ og_image or url_for('static', filename='images/android-chrome-512x512.png', _external=True) }}">
+<meta name="twitter:image"      content="{{ og_image or url_for('static', filename='images/android-chrome-512x512.png', _external=True) }}">
 {% endblock %}
-{% block page_styles %}
-<link rel="stylesheet" href="{{ url_for('static', filename='css/pages/dashboard.css') }}">
-{% endblock %}
+
 {% block content %}
-
 <style>
-/* ── Instagram-style Profile Page ── */
-.ig-profile {
-  max-width: 420px;
+/* ==========================================================================
+   AbhiHub Peer Profile — Modern Study Hub & Network Design
+   ========================================================================== */
+.up-page {
+  max-width: 820px;
   margin: 0 auto;
-  padding: 1.5rem 1rem 5rem;
-  font-family: 'Poppins', -apple-system, BlinkMacSystemFont, sans-serif;
-}
-
-/* Hero Section */
-.ig-hero {
-  text-align: center;
-  margin-bottom: 1.5rem;
-}
-.ig-avatar {
-  width: 88px;
-  height: 88px;
-  border-radius: 50%;
-  background: linear-gradient(135deg, #6366f1, #4f46e5);
-  color: #fff;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: 2.4rem;
-  font-weight: 800;
-  margin: 0 auto 0.75rem;
-  border: 3px solid rgba(99, 102, 245, 0.2);
+  padding: clamp(1rem, 2.5vw, 2rem) 1rem 6rem;
   box-sizing: border-box;
 }
-.ig-name {
-  font-size: 1.4rem;
-  font-weight: 800;
-  color: var(--text-primary, #1e293b);
-  margin-bottom: 0.2rem;
+
+/* ── Hero Profile Card ── */
+.up-hero {
+  background: linear-gradient(145deg, #091322 0%, #0f1d35 55%, #162a4d 100%);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: clamp(1.75rem, 4vw, 2.5rem) 1.5rem 1.75rem;
+  text-align: center;
+  position: relative;
+  overflow: hidden;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 16px 40px rgba(5, 12, 24, 0.35);
 }
-.ig-college {
-  font-size: 0.85rem;
-  color: #64748b;
-  margin-bottom: 0.75rem;
+.up-hero::before {
+  content: '';
+  position: absolute;
+  top: -40%;
+  right: -20%;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(0, 128, 105, 0.28), transparent 70%);
+  pointer-events: none;
 }
-.ig-rank {
+.up-hero::after {
+  content: '';
+  position: absolute;
+  bottom: -30%;
+  left: -15%;
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.22), transparent 70%);
+  pointer-events: none;
+}
+
+.up-avatar-wrap {
+  position: relative;
+  display: inline-block;
+  margin-bottom: 0.85rem;
+  z-index: 1;
+}
+.up-avatar {
+  width: 92px;
+  height: 92px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #008069, #4f46e5);
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 2.25rem;
+  font-weight: 900;
+  border: 3.5px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.up-avatar-status {
+  position: absolute;
+  bottom: 4px;
+  right: 4px;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: #22c55e;
+  border: 3px solid #0f1d35;
+  box-shadow: 0 0 0 2px rgba(34, 197, 94, 0.4);
+}
+
+.up-name {
+  font-size: clamp(1.4rem, 3.5vw, 1.85rem);
+  font-weight: 900;
+  color: #ffffff;
+  margin: 0 0 0.35rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  position: relative;
+  z-index: 1;
+}
+.up-verified-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.3rem;
-  background: linear-gradient(135deg, #0d9488, #10b981);
-  color: #fff;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #0284c7;
+  color: #ffffff;
   font-size: 0.72rem;
-  font-weight: 700;
-  padding: 0.25rem 0.7rem;
-  border-radius: 999px;
-}
-
-/* Stats Row */
-.ig-stats {
-  display: flex;
-  justify-content: center;
-  gap: 2.5rem;
-  margin-bottom: 1.5rem;
-  padding: 0.75rem 0;
-  border-top: 1px solid var(--border-light, #e2e8f0);
-  border-bottom: 1px solid var(--border-light, #e2e8f0);
-}
-.ig-stat-num {
-  font-size: 1.6rem;
   font-weight: 800;
-  color: var(--text-primary, #1e293b);
-}
-.ig-stat-label {
-  font-size: 0.7rem;
-  color: #94a3b8;
-  text-transform: uppercase;
-  letter-spacing: 0.03em;
 }
 
-/* CTA Buttons */
-.ig-ctas {
+.up-campus-pill {
+  font-size: 0.84rem;
+  color: rgba(255, 255, 255, 0.85);
+  margin-bottom: 0.75rem;
   display: flex;
+  align-items: center;
   justify-content: center;
-  gap: 0.75rem;
-  margin-bottom: 1.5rem;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+  position: relative;
+  z-index: 1;
 }
-.ig-btn {
+.up-rank-badge {
   display: inline-flex;
   align-items: center;
-  gap: 0.4rem;
-  padding: 0.55rem 1.1rem;
-  border-radius: 12px;
+  gap: 0.35rem;
+  background: rgba(255, 255, 255, 0.12);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  backdrop-filter: blur(8px);
+  border-radius: 999px;
+  padding: 0.25rem 0.85rem;
+  font-size: 0.75rem;
   font-weight: 700;
-  font-size: 0.85rem;
+  color: #fef08a;
+  margin-bottom: 1rem;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Hero Stats Row ── */
+.up-stats {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.75rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  padding-top: 1rem;
+  margin-top: 0.5rem;
+  position: relative;
+  z-index: 1;
+}
+.up-stat-box {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 0.65rem 0.5rem;
+  text-align: center;
+  transition: transform 0.15s ease;
+}
+.up-stat-box:hover {
+  transform: translateY(-2px);
+  background: rgba(255, 255, 255, 0.09);
+}
+.up-stat-num {
+  font-size: 1.35rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.1;
+}
+.up-stat-lbl {
+  font-size: 0.7rem;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 700;
+  margin-top: 0.25rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+/* ── Action Buttons ── */
+.up-actions {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 1.25rem;
+}
+.up-btn {
+  min-height: 52px;
+  padding: 0.75rem 1rem;
+  border-radius: 16px;
+  font-family: inherit;
+  font-size: 0.92rem;
+  font-weight: 700;
   text-decoration: none;
-  transition: all 0.2s;
+  text-align: center;
   border: none;
   cursor: pointer;
-}
-.ig-btn-primary {
-  background: linear-gradient(135deg, #0d9488, #10b981);
-  color: #fff;
-  box-shadow: 0 4px 14px rgba(13, 148, 136, 0.3);
-}
-.ig-btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 20px rgba(13, 148, 136, 0.4);
-}
-.ig-btn-secondary {
-  background: #f1f5f9;
-  color: #475569;
-  border: 1px solid var(--border-light, #e2e8f0);
-}
-.ig-btn-secondary:hover {
-  background: #e2e8f0;
-}
-
-/* Share-this-profile row (viral loop) */
-.ig-share-row {
-  display: flex; flex-wrap: wrap; align-items: center; gap: 0.5rem;
-  margin-bottom: 1.25rem; padding: 0.6rem 0.75rem;
-  background: #f8fafc; border: 1px solid var(--border-light, #e2e8f0); border-radius: 12px;
-}
-.ig-share-label { font-size: 0.72rem; font-weight: 700; color: #64748b; margin-right: 0.2rem; }
-.ig-share-btn {
-  display: inline-flex; align-items: center; gap: 0.3rem;
-  padding: 0.4rem 0.75rem; border-radius: 9px; font-size: 0.78rem; font-weight: 700;
-  text-decoration: none; cursor: pointer; border: none; color: #fff;
-}
-.ig-share-btn.wa { background: #25D366; }
-.ig-share-btn.wa:hover { background: #1ebe5b; }
-.ig-share-btn.ig { background: #E1306C; }
-.ig-share-btn.ig:hover { background: #c81d5a; }
-.ig-share-btn.copy { background: #4f46e5; }
-.ig-share-btn.copy:hover { background: #4338ca; }
-
-/* Section Headers */
-.ig-section-title {
-  font-size: 1.05rem;
-  font-weight: 800;
-  color: var(--text-primary, #1e293b);
-  margin-bottom: 1rem;
+  transition: all 0.15s ease;
   display: flex;
   align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  box-sizing: border-box;
+}
+.up-btn-chat {
+  background: linear-gradient(135deg, #008069, #075e54);
+  color: #ffffff !important;
+  box-shadow: 0 6px 20px rgba(0, 128, 105, 0.35);
+}
+.up-btn-chat:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(0, 128, 105, 0.45);
+}
+.up-btn-share {
+  background: var(--surface, #ffffff);
+  color: var(--text-primary, #0f172a);
+  border: 1.5px solid var(--border-light, #e2e8f0);
+}
+.up-btn-share:hover {
+  background: var(--bg-tertiary, #f8fafc);
+  transform: translateY(-2px);
+}
+.up-btn-wall {
+  background: linear-gradient(135deg, #7c3aed, #4f46e5);
+  color: #ffffff !important;
+  box-shadow: 0 6px 18px rgba(109, 40, 217, 0.22);
+}
+.up-btn-wall:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(109, 40, 217, 0.32);
+}
+.up-btn-wall.inactive {
+  color: #94a3b8 !important;
+  background: #f1f5f9;
+  border: 1.5px dashed #cbd5e1;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+.up-btn-wall small {
+  display: block;
+  font-size: 0.65rem;
+  font-weight: 700;
+  opacity: 0.9;
+}
+
+/* ── Content Cards ── */
+.up-card {
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 20px;
+  padding: 1.25rem 1.4rem;
+  margin-bottom: 1.25rem;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.04);
+}
+.up-card-title {
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: var(--text-tertiary, #64748b);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 0 0 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.up-card-badge {
+  background: #f1f5f9;
+  color: #475569;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+/* ── Academic Info Grid ── */
+.up-info-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.85rem;
+}
+.up-info-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  padding: 0.75rem 0.85rem;
+  background: var(--bg-secondary, #f8fafc);
+  border: 1px solid var(--border-light, #f1f5f9);
+  border-radius: 14px;
+}
+.up-info-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+.up-info-label {
+  font-size: 0.7rem;
+  color: var(--text-tertiary, #64748b);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  display: block;
+}
+.up-info-value {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  margin-top: 1px;
+  display: block;
+  word-break: break-word;
+}
+.up-info-value.empty {
+  color: var(--text-tertiary, #94a3b8);
+  font-weight: 500;
+  font-style: italic;
+}
+
+/* ── Campus Peers & Study Network ── */
+.up-peers-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 0.25rem;
+}
+.up-peers-sub {
+  font-size: 0.82rem;
+  color: var(--text-secondary, #64748b);
+  margin: 0 0 0.95rem 0;
+}
+.up-peers-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+  gap: 0.85rem;
+}
+.up-peer-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.95rem;
+  background: #ffffff;
+  border: 1px solid rgba(226, 232, 240, 0.95);
+  border-radius: 16px;
+  box-shadow: 0 2px 8px rgba(15, 23, 42, 0.04);
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  overflow: hidden;
+}
+.up-peer-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 3px;
+  background: linear-gradient(90deg, #008069, #0284c7);
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+.up-peer-card:hover {
+  transform: translateY(-3px);
+  border-color: rgba(0, 128, 105, 0.4);
+  box-shadow: 0 8px 24px rgba(0, 128, 105, 0.12);
+}
+.up-peer-card:hover::before {
+  opacity: 1;
+}
+.up-peer-top {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 0.65rem;
+}
+.up-peer-avatar-wrap {
+  position: relative;
+  flex-shrink: 0;
+}
+.up-peer-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-weight: 800;
+  font-size: 0.95rem;
+  color: #ffffff;
+  background: linear-gradient(135deg, #008069 0%, #0284c7 100%);
+  box-shadow: 0 3px 10px rgba(0, 128, 105, 0.22);
+}
+.up-peer-dot {
+  position: absolute;
+  bottom: 1px;
+  right: 1px;
+  width: 10px;
+  height: 10px;
+  background: #10b981;
+  border: 2px solid #ffffff;
+  border-radius: 50%;
+}
+.up-peer-main {
+  min-width: 0;
+  flex: 1;
+}
+.up-peer-name-row {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-bottom: 2px;
+}
+.up-peer-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: var(--text-primary, #0f172a);
+  text-decoration: none;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.up-peer-name:hover {
+  color: #008069;
+}
+.up-peer-verified {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  background: #0284c7;
+  color: #fff;
+  border-radius: 50%;
+  font-size: 0.62rem;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+.up-peer-tag {
+  display: inline-block;
+  font-size: 0.66rem;
+  font-weight: 700;
+  padding: 1px 7px;
+  border-radius: 999px;
+  letter-spacing: 0.02em;
+}
+.up-peer-tag.classmate {
+  background: #ecfdf5;
+  color: #065f46;
+  border: 1px solid #a7f3d0;
+}
+.up-peer-tag.campus-peer {
+  background: #eff6ff;
+  color: #1e40af;
+  border: 1px solid #bfdbfe;
+}
+.up-peer-tag.study-network {
+  background: #f5f3ff;
+  color: #5b21b6;
+  border: 1px solid #ddd6fe;
+}
+.up-peer-details {
+  font-size: 0.76rem;
+  color: var(--text-secondary, #64748b);
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-bottom: 0.75rem;
+}
+.up-peer-detail-item {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.up-peer-meta-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.65rem;
+  border-top: 1px dashed rgba(226, 232, 240, 0.9);
   gap: 0.5rem;
 }
-.ig-section-title i { color: #0d9488; font-size: 1.1rem; }
-
-/* Grid Layout for Materials */
-.ig-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 0.75rem;
+.up-peer-xp {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #d97706;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+.up-peer-btns {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+.up-peer-chat-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.36rem 0.8rem;
+  border-radius: 999px;
+  background: #008069;
+  color: #ffffff !important;
+  font-size: 0.76rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  box-shadow: 0 2px 6px rgba(0, 128, 105, 0.22);
+}
+.up-peer-chat-btn:hover {
+  background: #006a57;
+  transform: scale(1.03);
+}
+.up-peer-view-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.36rem 0.65rem;
+  border-radius: 999px;
+  background: var(--bg-secondary, #f8fafc);
+  border: 1px solid var(--border-light, #e2e8f0);
+  color: var(--text-primary, #334155) !important;
+  font-size: 0.76rem;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+.up-peer-view-btn:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
 }
 
-/* File Card */
-.ig-file-card {
-  background: #fff;
+/* ── Crush button ── */
+.up-crush-wrap { margin-bottom: 1.25rem; }
+.up-crush-btn {
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border-radius: 16px;
+  font-family: inherit;
+  font-size: 0.95rem;
+  font-weight: 800;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  transition: all 0.15s ease;
+}
+.up-crush-btn.default {
+  background: linear-gradient(135deg, #f43f5e, #e11d48);
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(244, 63, 94, 0.28);
+}
+.up-crush-btn.default:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 26px rgba(244, 63, 94, 0.38);
+}
+.up-crush-btn.active {
+  background: linear-gradient(135deg, #fda4af, #fecdd3);
+  color: #9f1239;
+}
+.up-crush-btn.active:hover { transform: translateY(-2px); }
+.up-crush-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none !important; }
+
+.up-crush-quota {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--text-tertiary, #64748b);
+  font-weight: 600;
+  margin-top: 0.4rem;
+}
+
+/* ── Match banner ── */
+.up-match-banner {
+  background: linear-gradient(135deg, #fdf2f8, #fce7f3);
+  border: 2px solid #f9a8d4;
+  border-radius: 18px;
+  padding: 1.1rem 1.25rem;
+  text-align: center;
+  margin-bottom: 1.25rem;
+  animation: matchPulse 2s ease-in-out infinite;
+}
+@keyframes matchPulse {
+  0%,100%{box-shadow:0 0 0 0 rgba(236,72,153,.3)}
+  50%{box-shadow:0 0 0 8px rgba(236,72,153,0)}
+}
+.up-match-banner .match-emoji { font-size: 2rem; display: block; margin-bottom: 0.35rem; }
+.up-match-banner h3 { font-size: 1.05rem; font-weight: 900; color: #be185d; margin: 0 0 0.2rem; }
+.up-match-banner p { font-size: 0.86rem; color: #9d174d; margin: 0; font-weight: 600; }
+
+/* ── MemoryWall Status Strip ── */
+.up-wall-status {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin: 0 0 1.25rem;
+  padding: 0.85rem 1rem;
+  border: 1px solid #ddd6fe;
+  border-radius: 16px;
+  color: #4c1d95;
+  background: linear-gradient(120deg, #f5f3ff, #eef2ff);
+  text-decoration: none;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+.up-wall-status[href]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(109, 40, 217, 0.13);
+}
+.up-wall-status-icon {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 12px;
+  background: #ffffff;
+  font-size: 1.2rem;
+  box-shadow: 0 3px 10px rgba(109, 40, 217, 0.12);
+  flex-shrink: 0;
+}
+.up-wall-status strong { display: block; font-size: 0.88rem; }
+.up-wall-status span { display: block; margin-top: 0.1rem; color: #6d5a9a; font-size: 0.75rem; }
+
+/* ── File Grid ── */
+.up-file-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 0.75rem;
+}
+.up-file-card {
+  background: var(--bg-secondary, #f8fafc);
   border: 1px solid var(--border-light, #e2e8f0);
   border-radius: 14px;
   padding: 0.85rem;
   text-decoration: none;
   color: inherit;
-  transition: all 0.2s;
+  transition: all 0.15s ease;
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.03);
 }
-.ig-file-card:hover {
+.up-file-card:hover {
   transform: translateY(-3px);
-  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
-  border-color: #0d9488;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  border-color: #008069;
+  background: #ffffff;
 }
-.ig-file-icon {
-  width: 36px;
-  height: 36px;
-  flex-shrink: 0;
-  object-fit: contain;
-}
-.ig-file-name {
-  font-size: 0.8rem;
+.up-file-icon { width: 32px; height: 32px; object-fit: contain; flex-shrink: 0; }
+.up-file-name {
+  font-size: 0.82rem;
   font-weight: 700;
-  color: var(--text-primary, #1e293b);
+  color: var(--text-primary, #0f172a);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
   margin: 0;
 }
-.ig-file-meta {
-  font-size: 0.68rem;
-  color: #94a3b8;
+.up-file-meta {
+  font-size: 0.7rem;
+  color: var(--text-tertiary, #64748b);
   display: flex;
+  gap: 0.35rem;
   align-items: center;
-  gap: 0.3rem;
 }
-.ig-file-views {
+.up-file-badge {
+  display: inline-block;
+  background: #f0fdf4;
+  color: #008069;
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid #bbf7d0;
+  text-transform: capitalize;
+  align-self: flex-start;
+}
+
+/* ── Share strip ── */
+.up-share-strip {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.6rem;
+  background: var(--surface, #ffffff);
+  border: 1px solid var(--border-light, #e2e8f0);
+  border-radius: 16px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.25rem;
+}
+.up-share-lbl { font-size: 0.78rem; font-weight: 700; color: var(--text-tertiary, #64748b); }
+.up-share-btn {
   display: inline-flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  text-decoration: none;
+  cursor: pointer;
+  border: none;
+  color: #fff;
+  transition: opacity 0.15s;
 }
+.up-share-btn:hover { opacity: 0.9; }
+.up-share-btn.wa { background: #25D366; }
+.up-share-btn.cp { background: #0284c7; }
 
-/* Empty State */
-.ig-empty {
-  text-align: center;
-  padding: 2rem 1rem;
-  color: #94a3b8;
-}
-.ig-empty i { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.5; }
+/* ── Empty State ── */
+.up-empty { text-align: center; padding: 2.25rem 1rem; color: var(--text-tertiary, #94a3b8); }
+.up-empty-icon { font-size: 2.25rem; opacity: 0.5; margin-bottom: 0.5rem; }
 
-/* Badge */
-.ig-badge {
-  background: #ede9fe;
-  color: #4f46e5;
-  font-size: 0.68rem;
-  font-weight: 800;
-  padding: 0.15rem 0.55rem;
-  border-radius: 20px;
+/* ── Toast ── */
+#up-toast {
+  position: fixed;
+  bottom: 5.5rem;
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  background: #0f172a;
+  color: #fff;
+  padding: 0.65rem 1.4rem;
+  border-radius: 999px;
+  font-size: 0.86rem;
+  font-weight: 700;
+  opacity: 0;
+  transition: all 0.25s ease;
+  pointer-events: none;
+  z-index: 99999;
   white-space: nowrap;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
 }
+#up-toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
-/* Mobile responsive */
-@media (max-width: 480px) {
-  .ig-stats { gap: 1.75rem; }
-  .ig-grid { grid-template-columns: 1fr; }
-  .ig-ctas { flex-direction: column; }
-  .ig-btn { width: 100%; justify-content: center; }
+@media (max-width: 640px) {
+  .up-page { padding: 0.75rem 0.65rem 6rem; }
+  .up-hero { border-radius: 20px; padding: 1.5rem 1rem 1.25rem; }
+  .up-stats { gap: 0.5rem; }
+  .up-stat-num { font-size: 1.15rem; }
+  .up-card { padding: 1rem; border-radius: 18px; }
+  .up-actions { grid-template-columns: 1fr; gap: 0.5rem; }
+  .up-info-grid { grid-template-columns: 1fr; }
+  .up-peers-grid { grid-template-columns: 1fr; }
+  .up-file-grid { grid-template-columns: 1fr; }
 }
 </style>
 
-<div class="ig-profile">
-  <!-- Hero -->
-  <div class="ig-hero">
-    <div class="ig-avatar">
-      {{ (peer.get('name') or 'S').split()[0][0].upper() if peer.get('name') else 'S' }}
+<div class="up-page">
+
+  <!-- ── Hero Profile Card ── -->
+  <div class="up-hero">
+    <div class="up-avatar-wrap">
+      <div class="up-avatar">
+        {{ (peer.get('name') or 'S').split()[0][0].upper() if peer.get('name') else 'S' }}
+      </div>
+      <div class="up-avatar-status" title="Active on AbhiHub"></div>
     </div>
-    <h1 class="ig-name">{{ peer.get('name') or 'Student' }}</h1>
-    <div class="ig-college">
-      {% if peer.get('college_name') %}🏫 {{ peer.get('college_name') }}{% else %}📚 AbhiHub Student{% endif %}
+
+    <h1 class="up-name">
+      {{ peer.get('name') or 'Student' }}
+      {% if peer.get('is_verified') %}
+      <span class="up-verified-badge" title="Verified Academic Contributor">✓</span>
+      {% endif %}
+    </h1>
+
+    <div class="up-campus-pill">
+      <span>🏛️ {{ peer.get('college_name') or 'AbhiHub Student' }}</span>
+      {% if peer.get('department_name') %}
+      <span>· 🔬 {{ peer.get('department_name') }}</span>
+      {% endif %}
     </div>
+
     {% if peer.get('rank_title') %}
-    <div class="ig-rank">🏆 {{ peer.get('rank_title') }}</div>
+    <div class="up-rank-badge">🏆 {{ peer.get('rank_title') }}</div>
     {% endif %}
+
+    <div class="up-stats">
+      <div class="up-stat-box">
+        <div class="up-stat-num">{{ uploads|length }}</div>
+        <div class="up-stat-lbl">Shared</div>
+      </div>
+      <div class="up-stat-box">
+        <div class="up-stat-num">{{ peer.get('reputation_score', 0) }}</div>
+        <div class="up-stat-lbl">Study XP</div>
+      </div>
+      <div class="up-stat-box">
+        <div class="up-stat-num">{{ referred|length }}</div>
+        <div class="up-stat-lbl">Viewed</div>
+      </div>
+    </div>
   </div>
 
-  <!-- Stats -->
-  <div class="ig-stats">
-    <div style="text-align: center;">
-      <div class="ig-stat-num">{{ uploads|length }}</div>
-      <div class="ig-stat-label">Shared</div>
-    </div>
-    <div style="text-align: center;">
-      <div class="ig-stat-num">{{ peer.get('reputation_score', 0) }}</div>
-      <div class="ig-stat-label">Reputation</div>
-    </div>
-    <div style="text-align: center;">
-      <div class="ig-stat-num">{{ referred|length }}</div>
-      <div class="ig-stat-label">Viewed</div>
-    </div>
+  <!-- ── MemoryWall availability ── -->
+  {% if memory_wall.get('exists') and memory_wall.get('is_open') %}
+  <a class="up-wall-status" href="{{ memory_wall.get('url') }}" aria-label="Open {{ peer.get('name', 'student') }}'s MemoryWall">
+    <span class="up-wall-status-icon" aria-hidden="true">🧠</span>
+    <span><strong>MemoryWall is open</strong><span>{{ memory_wall.get('response_count', 0) }} memory {{ 'entry' if memory_wall.get('response_count', 0) == 1 else 'entries' }} collected · Leave a message</span></span>
+  </a>
+  {% elif memory_wall.get('exists') %}
+  <div class="up-wall-status" aria-label="MemoryWall is closed">
+    <span class="up-wall-status-icon" aria-hidden="true">🔒</span>
+    <span><strong>MemoryWall is closed</strong><span>This student has finished collecting memories.</span></span>
   </div>
+  {% endif %}
 
-  <!-- CTAs -->
-  <div class="ig-ctas">
-    {# Primary CTA converts cold Instagram/WhatsApp traffic into signups
-       (carries the owner's referral code so the invite credits). #}
-    <a href="/signup?ref={{ peer.get('referral_code', '') }}" class="ig-btn ig-btn-primary">
-      <i class="fas fa-user-plus"></i> Join AbhiHub Free
+  <!-- ── Match banner (shown only on mutual crush) ── -->
+  {% if crush_state.get('is_match') %}
+  <div class="up-match-banner" id="matchBanner">
+    <span class="match-emoji">💞</span>
+    <h3>It's a Match!</h3>
+    <p>You and {{ peer.get('name', 'this student') }} both have a crush on each other 🎉</p>
+  </div>
+  {% endif %}
+
+  <!-- ── Action buttons ── -->
+  <div class="up-actions">
+    {% if not crush_state.get('is_self') %}
+    <a href="/chat/{{ peer.get('id') }}" class="up-btn up-btn-chat">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"/></svg>
+      <span>Chat with {{ peer.get('name', 'Peer').split()[0] }}</span>
     </a>
-    <a href="/upload" class="ig-btn ig-btn-secondary">
-      <i class="fas fa-upload"></i> Share Yours
+    {% endif %}
+    {% if memory_wall.get('exists') and memory_wall.get('is_open') %}
+    <a href="{{ memory_wall.get('url') }}" class="up-btn up-btn-wall" aria-label="Open MemoryWall">
+      🧠 <span>Memory Wall<small>{{ memory_wall.get('response_count', 0) }} entries</small></span>
     </a>
+    {% else %}
+    <span class="up-btn up-btn-wall inactive" role="button" aria-disabled="true" title="This student has not created an open MemoryWall">
+      🧠 <span>Memory Wall<small>{% if memory_wall.get('exists') %}Wall closed{% else %}Not created yet{% endif %}</small></span>
+    </span>
+    {% endif %}
+    <button class="up-btn up-btn-share" id="shareProfileBtn"
+      data-url="{{ request.url_root.rstrip('/') }}/u/{{ peer.get('id') }}">
+      🔗 Share Profile
+    </button>
   </div>
 
-  <!-- Share this profile (viral loop) -->
-  <div class="ig-share-row">
-    <span class="ig-share-label">Share this profile:</span>
-    <a class="ig-share-btn wa" target="_blank" rel="noopener"
-       href="https://wa.me/?text={{ ('Join me on AbhiHub for free engineering PYQs & notes: ' ~ request.url_root.rstrip('/') ~ '/signup?ref=' ~ peer.get('referral_code','')) | urlencode }}">
-       <i class="fab fa-whatsapp"></i> WhatsApp</a>
-    <button class="ig-share-btn ig" type="button" data-share-url="{{ request.url_root.rstrip('/') }}/signup?ref={{ peer.get('referral_code','') }}" onclick="(async()=>{const u=this.dataset.shareUrl;try{await navigator.clipboard.writeText(u);alert('Invite link copied! Paste it in your Instagram bio or DM:\\n'+u);}catch(e){alert('Your invite link: '+u);}window.open('https://instagram.com/','_blank','noopener');})()">
-       <i class="fab fa-instagram"></i> Instagram</button>
-    <button class="ig-share-btn copy" type="button" data-share-url="{{ request.url_root.rstrip('/') }}/signup?ref={{ peer.get('referral_code','') }}" onclick="(async()=>{const u=this.dataset.shareUrl;try{await navigator.clipboard.writeText(u);this.textContent='Copied!';setTimeout(()=>this.textContent='Copy',1500);}catch(e){alert(u);}})()">
-       <i class="fas fa-copy"></i> Copy</button>
-  </div>
-
-  <!-- Shared Materials -->
-  <div>
-    <div class="ig-section-title">
-      <i class="fas fa-share-nodes"></i> Shared Materials ({{ uploads|length }})
+  <!-- ── Academic Credentials ── -->
+  <div class="up-card">
+    <div class="up-card-title">
+      <span>🎓 Academic Credentials</span>
+      <span class="up-card-badge">Verified Campus</span>
     </div>
-
-    {% if uploads %}
-    <div class="ig-grid">
-      {% for file in uploads %}
-      {% set ft = file.get('type', 'Papers').lower() %}
-      <a href="/preview/{{ file['record_id'] }}" class="ig-file-card">
-        <img src="/static/premium/icon/{% if 'notes' in ft %}notes.gif{% elif 'practical' in ft %}practicals.gif{% else %}papers.gif{% endif %}"
-             class="ig-file-icon" alt="{{ file.get('type', 'Paper') }}">
-        <p class="ig-file-name" title="{{ file.get('file-name', 'Untitled') }}">{{ file.get('file-name', 'Untitled') }}</p>
-        <div class="ig-file-meta">
-          <span><i class="fas fa-book"></i> {{ file.get('subject', 'General') }}</span>
-          <span class="ig-file-views"><i class="fas fa-eye"></i> {{ file.get('views', 0) }}</span>
+    <div class="up-info-grid">
+      <div class="up-info-item">
+        <span class="up-info-icon">🏛️</span>
+        <div>
+          <span class="up-info-label">College / University</span>
+          <span class="up-info-value {% if not peer.get('college_name') %}empty{% endif %}">
+            {{ peer.get('college_name') or 'Not set' }}
+          </span>
         </div>
-        <span class="ig-badge">{{ file.get('type', 'Paper') }}</span>
+      </div>
+      <div class="up-info-item">
+        <span class="up-info-icon">🔬</span>
+        <div>
+          <span class="up-info-label">Department / Branch</span>
+          <span class="up-info-value {% if not peer.get('department_name') %}empty{% endif %}">
+            {{ peer.get('department_name') or 'Not set' }}
+          </span>
+        </div>
+      </div>
+      <div class="up-info-item">
+        <span class="up-info-icon">📚</span>
+        <div>
+          <span class="up-info-label">Year of Study</span>
+          <span class="up-info-value {% if not peer.get('pursuing_year') %}empty{% endif %}">
+            {% if peer.get('pursuing_year') %}Year {{ peer.get('pursuing_year') }}{% else %}Not set{% endif %}
+          </span>
+        </div>
+      </div>
+      <div class="up-info-item">
+        <span class="up-info-icon">📅</span>
+        <div>
+          <span class="up-info-label">Admission / Joined</span>
+          <span class="up-info-value {% if not peer.get('year_of_joining') %}empty{% endif %}">
+            {{ peer.get('year_of_joining') or 'Not set' }}
+          </span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ── Campus Peers & Study Network ── -->
+  {% if campus_peers %}
+  <div class="up-card">
+    <div class="up-peers-header">
+      <div class="up-card-title" style="margin-bottom:0;">
+        <span>👥 Campus Peers & Study Network</span>
+      </div>
+      <span class="up-card-badge">{{ campus_peers|length }} active</span>
+    </div>
+    <p class="up-peers-sub">Connect, exchange study materials, and chat directly with students in your network.</p>
+    <div class="up-peers-grid">
+      {% for cp in campus_peers %}
+      {% set cp_initial = (cp.name or 'S').split()[0][0].upper() %}
+      {% set tag_cls = 'classmate' if cp.get('network_tag') == 'Classmate' else ('campus-peer' if cp.get('network_tag') == 'Campus Peer' else 'study-network') %}
+      <div class="up-peer-card">
+        <div>
+          <div class="up-peer-top">
+            <div class="up-peer-avatar-wrap">
+              <div class="up-peer-avatar">
+                {{ cp_initial }}
+              </div>
+              <div class="up-peer-dot" title="Active Peer"></div>
+            </div>
+            <div class="up-peer-main">
+              <div class="up-peer-name-row">
+                <a href="/u/{{ cp.id }}" class="up-peer-name" title="{{ cp.name }}">
+                  {{ cp.name }}
+                </a>
+                {% if cp.is_verified %}
+                <span class="up-peer-verified" title="Verified Contributor">✓</span>
+                {% endif %}
+              </div>
+              <span class="up-peer-tag {{ tag_cls }}">{{ cp.get('network_tag', 'Peer') }}</span>
+            </div>
+          </div>
+
+          <div class="up-peer-details">
+            {% if cp.college_name %}
+            <div class="up-peer-detail-item" title="{{ cp.college_name }}">
+              <span>🏛️</span>
+              <span>{{ cp.college_name }}</span>
+            </div>
+            {% endif %}
+            {% if cp.department_name %}
+            <div class="up-peer-detail-item" title="{{ cp.department_name }}">
+              <span>🔬</span>
+              <span>{{ cp.department_name }}</span>
+            </div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div class="up-peer-meta-row">
+          <div class="up-peer-xp" title="Study XP & Contribution Score">
+            <span>⚡ {{ cp.reputation_score }} XP</span>
+          </div>
+          <div class="up-peer-btns">
+            <a href="/u/{{ cp.id }}" class="up-peer-view-btn" title="View Profile">
+              Profile
+            </a>
+            <a href="/chat/{{ cp.id }}" class="up-peer-chat-btn" title="Chat with {{ cp.name }}">
+              <span>💬</span> Chat
+            </a>
+          </div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Crush button ── -->
+  {% if not crush_state.get('is_self') %}
+  <div class="up-crush-wrap">
+    <button
+      id="crushBtn"
+      class="up-crush-btn {% if crush_state.get('is_crush') %}active{% else %}default{% endif %}"
+      data-target="{{ peer.get('id') }}"
+      data-crushed="{{ 'true' if crush_state.get('is_crush') else 'false' }}"
+      {% if not crush_state.get('is_crush') and crush_state.get('crushes_remaining', 2) == 0 %}disabled{% endif %}
+    >
+      {% if crush_state.get('is_crush') %}
+        💖 You have a crush on {{ peer.get('name', 'them').split()[0] }}
+      {% else %}
+        🤍 Mark as Crush
+      {% endif %}
+    </button>
+    <div class="up-crush-quota" id="crushQuota">
+      {% if crush_state.get('is_crush') %}
+        Tap to remove crush
+      {% elif crush_state.get('crushes_remaining', 2) == 0 %}
+        💔 No crushes left this year
+      {% else %}
+        {{ crush_state.get('crushes_remaining', 2) }} crush{{ 'es' if crush_state.get('crushes_remaining', 2) != 1 else '' }} remaining this year
+      {% endif %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Share strip ── -->
+  <div class="up-share-strip">
+    <span class="up-share-lbl">Invite to Campus Hub:</span>
+    <a class="up-share-btn wa" target="_blank" rel="noopener"
+       href="https://wa.me/?text={{ ('Join me on AbhiHub: ' ~ request.url_root.rstrip('/') ~ '/signup?ref=' ~ peer.get('referral_code','')) | urlencode }}">
+      📲 WhatsApp
+    </a>
+    <button class="up-share-btn cp"
+      data-url="{{ request.url_root.rstrip('/') }}/signup?ref={{ peer.get('referral_code','') }}"
+      onclick="copyLink(this.dataset.url, 'Invite link copied!')">
+      📋 Copy Invite
+    </button>
+  </div>
+
+  <!-- ── Shared Materials ── -->
+  <div class="up-card">
+    <div class="up-card-title">
+      <span>📤 Shared Materials</span>
+      <span class="up-card-badge">{{ uploads|length }} items</span>
+    </div>
+    {% if uploads %}
+    <div class="up-file-grid">
+      {% for f in uploads %}
+      {% set ft = f.get('type','papers').lower() %}
+      <a href="/resource/{{ f['record_id'] }}" class="up-file-card">
+        <img src="/static/premium/icon/{% if 'notes' in ft %}notes.gif{% elif 'practical' in ft %}practicals.gif{% else %}papers.gif{% endif %}"
+             class="up-file-icon" alt="{{ f.get('type','Paper') }}">
+        <p class="up-file-name" title="{{ f.get('file-name','') }}">{{ f.get('file-name','Untitled') }}</p>
+        <div class="up-file-meta">
+          <span>{{ f.get('subject','') }}</span>
+          {% if f.get('views') %}<span>· 👁 {{ f.get('views') }}</span>{% endif %}
+        </div>
+        <span class="up-file-badge">{{ f.get('type','paper') }}</span>
       </a>
       {% endfor %}
     </div>
     {% else %}
-    <div class="ig-empty">
-      <i class="fas fa-folder-open"></i>
+    <div class="up-empty">
+      <div class="up-empty-icon">📂</div>
       <p>No shared materials yet.</p>
     </div>
     {% endif %}
   </div>
 
-  <!-- Recently Viewed -->
+  <!-- ── Referred Materials ── -->
   {% if referred %}
-  <div style="margin-top: 1.75rem;">
-    <div class="ig-section-title">
-      <i class="fas fa-clock"></i> Recently Viewed ({{ referred|length }})
+  <div class="up-card">
+    <div class="up-card-title">
+      <span>📖 Recently Studied & Viewed</span>
+      <span class="up-card-badge">{{ referred|length }} items</span>
     </div>
-    <div class="ig-grid">
-      {% for file in referred %}
-      {% set ft = file.get('type', 'Notes').lower() %}
-      <a href="/preview/{{ file['record_id'] }}" class="ig-file-card">
+    <div class="up-file-grid">
+      {% for f in referred %}
+      {% set ft = f.get('type','notes').lower() %}
+      <a href="/resource/{{ f['record_id'] }}" class="up-file-card">
         <img src="/static/premium/icon/{% if 'notes' in ft %}notes.gif{% elif 'practical' in ft %}practicals.gif{% else %}papers.gif{% endif %}"
-             class="ig-file-icon" alt="{{ file.get('type', 'Notes') }}">
-        <p class="ig-file-name" title="{{ file.get('file-name', 'Untitled') }}">{{ file.get('file-name', 'Untitled') }}</p>
-        <div class="ig-file-meta">
-          <span><i class="fas fa-book"></i> {{ file.get('subject', 'General') }}</span>
-        </div>
-        <span class="ig-badge">{{ file.get('type', 'Notes') }}</span>
+             class="up-file-icon" alt="{{ f.get('type','Notes') }}">
+        <p class="up-file-name" title="{{ f.get('file-name','') }}">{{ f.get('file-name','Untitled') }}</p>
+        <div class="up-file-meta"><span>{{ f.get('subject','') }}</span></div>
+        <span class="up-file-badge">{{ f.get('type','notes') }}</span>
       </a>
       {% endfor %}
     </div>
   </div>
   {% endif %}
+
 </div>
 
+<div id="up-toast"></div>
+
+<script>
+const PEER_ID = '{{ peer.get("id") }}';
+
+// ── Toast helper ──
+function showToast(msg, duration = 2800) {
+  const t = document.getElementById('up-toast');
+  if (!t) return;
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+// ── Copy link ──
+function copyLink(url, msg) {
+  if (navigator.clipboard?.writeText) {
+    navigator.clipboard.writeText(url).then(() => showToast('✅ ' + msg)).catch(() => showToast(url));
+    return;
+  }
+  const input = document.createElement('textarea');
+  input.value = url;
+  input.setAttribute('readonly', '');
+  input.style.position = 'fixed';
+  input.style.opacity = '0';
+  document.body.appendChild(input);
+  input.select();
+  try {
+    document.execCommand('copy');
+    showToast('✅ ' + msg);
+  } catch (e) {
+    showToast(url);
+  }
+  input.remove();
+}
+
+// ── Share profile button ──
+document.getElementById('shareProfileBtn')?.addEventListener('click', function() {
+  const url = this.dataset.url;
+  if (navigator.share) {
+    navigator.share({ title: '{{ peer.get("name","Student") }} on AbhiHub', url }).catch(() => {});
+  } else {
+    copyLink(url, 'Profile link copied!');
+  }
+});
+
+// ── Crush toggle ──
+const crushBtn = document.getElementById('crushBtn');
+if (crushBtn) {
+  crushBtn.addEventListener('click', async function() {
+    if (this.disabled) return;
+    this.disabled = true;
+    const wasCrushed = this.dataset.crushed === 'true';
+
+    try {
+      const res = await fetch(`/api/crush/${PEER_ID}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
+      const data = await res.json();
+
+      if (!data.success) {
+        showToast('❌ ' + (data.message || 'Could not update crush'));
+        this.disabled = false;
+        return;
+      }
+
+      const isCrush = data.is_crush;
+      const isMatch = data.is_match;
+      const peerName = '{{ peer.get("name","them").split()[0] }}';
+
+      this.dataset.crushed = isCrush ? 'true' : 'false';
+      this.className = 'up-crush-btn ' + (isCrush ? 'active' : 'default');
+      this.innerHTML = isCrush
+        ? `💖 You have a crush on ${peerName}`
+        : '🤍 Mark as Crush';
+
+      // Update quota text
+      const quota = document.getElementById('crushQuota');
+      if (quota) {
+        if (isCrush) {
+          quota.textContent = 'Tap to remove crush';
+        } else {
+          // Re-fetch remaining count
+          const sr = await fetch(`/api/crush/status/${PEER_ID}`);
+          const sd = await sr.json();
+          const rem = sd.crushes_remaining ?? 2;
+          quota.textContent = rem === 0
+            ? '💔 No crushes left this year'
+            : `${rem} crush${rem !== 1 ? 'es' : ''} remaining this year`;
+          if (rem === 0) this.disabled = true;
+        }
+      }
+
+      // Match banner
+      if (isMatch) {
+        let banner = document.getElementById('matchBanner');
+        if (!banner) {
+          banner = document.createElement('div');
+          banner.id = 'matchBanner';
+          banner.className = 'up-match-banner';
+          banner.innerHTML = `<span class="match-emoji">💞</span><h3>It's a Match!</h3><p>You and ${peerName} both have a crush on each other 🎉</p>`;
+          crushBtn.closest('.up-crush-wrap').insertAdjacentElement('beforebegin', banner);
+        }
+        showToast('💞 It\'s a match! You both like each other!', 4000);
+      } else if (!isCrush) {
+        document.getElementById('matchBanner')?.remove();
+        showToast('💔 Crush removed');
+      } else {
+        showToast('💖 Crush marked!');
+      }
+
+    } catch (e) {
+      showToast('❌ Network error');
+    } finally {
+      if (this.dataset.crushed !== 'false' || (document.getElementById('crushQuota')?.textContent || '').includes('remaining')) {
+        this.disabled = false;
+      }
+    }
+  });
+}
+</script>
 {% endblock %}

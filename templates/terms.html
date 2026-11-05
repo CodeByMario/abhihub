@@ -1,52 +1,468 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Terms of Service | AbhiHub - Engineering Study Resources</title>
-  <meta name="description" content="AbhiHub Terms of Service - Review our terms, acceptable use policy, liability disclaimers, and user responsibilities.">
-  <meta name="robots" content="index, follow">
-  <link rel="canonical" href="https://abhihub.edu.eu.org/terms">
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+{% set seo_title = 'Terms of Service | AbhiHub' %}
+{% set seo_description = 'User Agreement, Content Licensing, and Platform Terms for AbhiHub academic network.' %}
+{% extends 'p_struct.html' %}
+{% block content %}
+<style>
+  /* ─── Apple Physics & Smooth Scrolling ─── */
+  html {
+    scroll-behavior: smooth;
+    scroll-padding-top: calc(48px + var(--strip-h, 0px) + 1.25rem);
+    -webkit-overflow-scrolling: touch;
+  }
 
-  {% include 'favicon.html' %}
+  .apple-scroll-reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+    will-change: opacity, transform;
+  }
 
+  .apple-scroll-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
 
-  {% set user_profile_json = get_full_profile_json() | tojson %}
+  @media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .apple-scroll-reveal { opacity: 1 !important; transform: none !important; transition: none !important; }
+  }
 
-  {% include 'google_tag.html' %}
-</head>
+  /* ─── Edge-to-Edge Reset ─── */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    background: var(--apple-bg, #FBFBFD) !important;
+  }
 
-  <body>
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    gap: 0 !important;
+    background: var(--apple-bg, #FBFBFD) !important;
+  }
 
-    {% include 'navbar_public.html' %}
+  /* ─── Apple Design Tokens ─── */
+  :root {
+    --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --apple-blue: #0071E3;
+    --apple-blue-hover: #0077ED;
+    --apple-blue-subtle: rgba(0, 113, 227, 0.08);
+    --apple-dark: #1D1D1F;
+    --apple-gray: #86868B;
+    --apple-gray-light: #F5F5F7;
+    --apple-border: rgba(0, 0, 0, 0.08);
+    --apple-surface: #FFFFFF;
+    --apple-surface-card: #FFFFFF;
+    --apple-surface-subtle: #F5F5F7;
+    --apple-bg: #FBFBFD;
+    --apple-shadow: 0 4px 24px rgba(0, 0, 0, 0.04);
+    --apple-shadow-hover: 0 12px 36px rgba(0, 0, 0, 0.08);
+  }
 
-    <main class="container my-5">
-      <div class="row">
-        <div class="col-lg-8 mx-auto bg-white p-5 rounded-4 shadow-sm border">
+  [data-theme="dark"], .dark {
+    --apple-dark: #F5F5F7;
+    --apple-gray: #A1A1A6;
+    --apple-gray-light: #1D1D1F;
+    --apple-border: rgba(255, 255, 255, 0.12);
+    --apple-surface: #121214;
+    --apple-surface-card: #18181B;
+    --apple-surface-subtle: #1C1C1E;
+    --apple-bg: #000000;
+    --apple-shadow: 0 4px 24px rgba(0, 0, 0, 0.4);
+    --apple-shadow-hover: 0 12px 36px rgba(0, 0, 0, 0.6);
+    --apple-blue: #2997FF;
+    --apple-blue-hover: #40A9FF;
+    --apple-blue-subtle: rgba(41, 151, 255, 0.15);
+  }
 
-      <h1>Terms of Service</h1>
+  .info-page-wrap {
+    font-family: var(--apple-font);
+    background: var(--apple-bg);
+    color: var(--apple-dark);
+    min-height: 100vh;
+    padding-bottom: 5rem;
+  }
 
-      <p>The main aim of this service is to facilitate knowledge sharing in a reliable manner, ensuring that accurate information is being passed forward.</p>
-      <p>Users are required to share data that is true to the best of their knowledge. They must not upload content that violates copyright, privacy, or other applicable laws. They must not use data from this site for commercial purposes without the permission of the resource owner.</p>
-      <p>While ownership is not guaranteed, the individual who uploads the data will be considered the owner of that content, and AbhiHub may remove content that appears unlawful, harmful, or inappropriate.</p>
-      <p>The service provider shall not be liable for any damages arising from the use of the service, including but not limited to direct, indirect, incidental, or consequential damages.</p>
-      <p>These terms are intended to support a safe, educational, and respectful community experience. Users are expected to comply with all applicable laws and platform rules.</p>
+  .info-hero {
+    padding: 4.5rem 1.5rem 3rem;
+    text-align: center;
+    max-width: 840px;
+    margin: 0 auto;
+  }
 
-        </div>
+  .info-hero-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    padding: 0.35rem 0.95rem;
+    border-radius: 980px;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--apple-blue);
+    letter-spacing: -0.01em;
+    margin-bottom: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
+  }
+
+  .info-hero h1 {
+    font-size: clamp(2.2rem, 5vw, 3.4rem);
+    font-weight: 700;
+    line-height: 1.15;
+    letter-spacing: -0.03em;
+    color: var(--apple-dark);
+    margin: 0 0 1rem;
+  }
+
+  .info-hero p {
+    font-size: clamp(1rem, 2vw, 1.15rem);
+    color: var(--apple-gray);
+    max-width: 600px;
+    margin: 0 auto;
+    line-height: 1.6;
+    font-weight: 400;
+  }
+
+  .info-body {
+    max-width: 860px;
+    margin: 0 auto;
+    padding: 0 1.5rem;
+  }
+
+  .updated-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    background: var(--apple-surface-subtle);
+    border: 1px solid var(--apple-border);
+    border-radius: 980px;
+    padding: 0.35rem 0.85rem;
+    font-size: 0.78rem;
+    color: var(--apple-gray);
+    font-weight: 500;
+    margin-bottom: 1.5rem;
+  }
+
+  .info-card {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: 20px;
+    padding: 2.25rem;
+    box-shadow: var(--apple-shadow);
+    margin-bottom: 1.5rem;
+    transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.25s ease;
+  }
+
+  .info-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--apple-shadow-hover);
+  }
+
+  .section-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.3rem 0.85rem;
+    border-radius: 980px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    margin-bottom: 0.85rem;
+    background: var(--apple-blue-subtle);
+    color: var(--apple-blue);
+  }
+
+  .info-card h2 {
+    font-size: 1.35rem;
+    font-weight: 700;
+    color: var(--apple-dark);
+    letter-spacing: -0.02em;
+    margin: 0 0 0.85rem;
+  }
+
+  .info-card p {
+    color: var(--apple-gray);
+    line-height: 1.7;
+    margin: 0 0 0.85rem;
+    font-size: 0.95rem;
+  }
+
+  .info-card p strong {
+    color: var(--apple-dark);
+  }
+
+  .info-card p:last-child {
+    margin: 0;
+  }
+
+  .info-card a {
+    color: var(--apple-blue);
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity 0.2s;
+  }
+
+  .info-card a:hover {
+    text-decoration: underline;
+  }
+
+  .info-card ul {
+    padding-left: 1.25rem;
+    margin: 0.75rem 0;
+    color: var(--apple-gray);
+    line-height: 1.7;
+    font-size: 0.95rem;
+  }
+
+  .info-card ul strong {
+    color: var(--apple-dark);
+  }
+
+  .info-card ul li {
+    margin-bottom: 0.5rem;
+  }
+
+  .toc {
+    background: var(--apple-surface-subtle);
+    border: 1px solid var(--apple-border);
+    border-radius: 18px;
+    padding: 1.5rem 1.75rem;
+    margin-bottom: 1.75rem;
+  }
+
+  .toc h3 {
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: var(--apple-dark);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin: 0 0 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 0.45rem;
+  }
+
+  .toc ol {
+    padding-left: 1.25rem;
+    margin: 0;
+  }
+
+  .toc ol li {
+    margin-bottom: 0.4rem;
+  }
+
+  .toc ol li a {
+    color: var(--apple-blue);
+    font-size: 0.9rem;
+    font-weight: 500;
+    text-decoration: none;
+    transition: opacity 0.15s;
+  }
+
+  .toc ol li a:hover {
+    text-decoration: underline;
+  }
+
+  .legal-box {
+    background: var(--apple-surface-subtle);
+    border: 1px solid var(--apple-border);
+    border-radius: 14px;
+    padding: 1.25rem 1.5rem;
+    margin-top: 1rem;
+  }
+
+  @media (max-width: 600px) {
+    .info-card { padding: 1.5rem; border-radius: 16px; }
+    .info-body { padding: 0 1rem; }
+    .info-hero { padding: 3rem 1rem 2rem; }
+  }
+</style>
+
+<div class="info-page-wrap">
+  <!-- Hero -->
+  <div class="info-hero apple-scroll-reveal">
+    <div class="info-hero-chip">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+        <polyline points="14 2 14 8 20 8"></polyline>
+        <line x1="16" y1="13" x2="8" y2="13"></line>
+        <line x1="16" y1="17" x2="8" y2="17"></line>
+        <polyline points="10 9 9 9 8 9"></polyline>
+      </svg>
+      <span>Terms &amp; Conditions</span>
+    </div>
+    <h1>Terms of Service.</h1>
+    <p>User Agreement, Content Licensing, and Platform Terms for AbhiHub.</p>
+  </div>
+
+  <div class="info-body">
+    <div class="updated-badge apple-scroll-reveal">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+        <line x1="16" y1="2" x2="16" y2="6"></line>
+        <line x1="8" y1="2" x2="8" y2="6"></line>
+        <line x1="3" y1="10" x2="21" y2="10"></line>
+      </svg>
+      <span>Last updated: October 2026 · Effective immediately</span>
+    </div>
+
+    <!-- TOC -->
+    <div class="toc apple-scroll-reveal">
+      <h3>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="8" y1="6" x2="21" y2="6"></line>
+          <line x1="8" y1="12" x2="21" y2="12"></line>
+          <line x1="8" y1="18" x2="21" y2="18"></line>
+          <line x1="3" y1="6" x2="3.01" y2="6"></line>
+          <line x1="3" y1="12" x2="3.01" y2="12"></line>
+          <line x1="3" y1="18" x2="3.01" y2="18"></line>
+        </svg>
+        <span>Table of Contents</span>
+      </h3>
+      <ol>
+        <li><a href="#t-acceptable">1. Acceptable Use &amp; All-Ages Access Policy</a></li>
+        <li><a href="#t-license">2. Uploads, IP Ownership &amp; Non-Exclusive Licensing</a></li>
+        <li><a href="#t-dmca">3. DMCA &amp; Copyright Takedown Procedure</a></li>
+        <li><a href="#t-credits">4. Purchases, Orders &amp; Strict No-Refund Policy</a></li>
+        <li><a href="#t-disclaimer">5. Document Accuracy Disclaimer &amp; Liability Limitation</a></li>
+        <li><a href="#t-termination">6. Account Termination &amp; Suspension</a></li>
+        <li><a href="#t-jurisdiction">7. Governing Law &amp; Jurisdiction (India)</a></li>
+      </ol>
+    </div>
+
+    <div class="info-card apple-scroll-reveal" id="t-acceptable">
+      <div class="section-pill">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <polyline points="20 6 9 17 4 12"></polyline>
+        </svg>
+        <span>Section 1</span>
       </div>
-    </main>
+      <h2>1. Acceptable Use &amp; All-Ages Access Policy</h2>
+      <p>AbhiHub is an online platform and academic marketplace designed for students and learners. By accessing or using the platform, you agree to:</p>
+      <ul>
+        <li><strong>All-Ages Accessibility:</strong> AbhiHub does not impose any minimum age limit and welcomes learners of all age groups. Minor users under 18 years of age are encouraged to access services under parental or guardian guidance, especially when making digital payments or submitting user-generated content.</li>
+        <li><strong>Lawful Use:</strong> Use the service solely for lawful educational, study, and platform-related purposes.</li>
+        <li><strong>Prohibited Content:</strong> Refrain from uploading copyrighted commercial textbooks without permission, paid test-prep material without rights, defamatory, or illegal content.</li>
+        <li><strong>Platform Integrity:</strong> Refrain from unauthorized scraping, automated API abuse, denial of service attacks, or bypassing payment and access quota systems.</li>
+        <li><strong>Community Decorum:</strong> Maintain respectful conduct across interactive features including direct messaging, memory walls, and discussion comments.</li>
+      </ul>
+    </div>
 
-    {% include 'footer.html' %}
+    <div class="info-card apple-scroll-reveal" id="t-license">
+      <div class="section-pill">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+        </svg>
+        <span>Section 2</span>
+      </div>
+      <h2>2. Uploads, IP Ownership &amp; Licensing</h2>
+      <p><strong>Contributor Ownership:</strong> You retain full copyright ownership of all original study notes, handwritten solutions, and academic resources you upload to AbhiHub.</p>
+      <p><strong>Non-Exclusive License to AbhiHub:</strong> By submitting content to AbhiHub, you grant AbhiHub Technologies a worldwide, non-exclusive, royalty-free, sublicensable, and transferable license to host, store, index, format, OCR process, publicly display, and distribute the content solely for operating, promoting, and improving the platform.</p>
+      <p>This license enables AbhiHub to render web previews, generate AI OCR study assists, and present curated study materials to fellow engineering students.</p>
+    </div>
 
+    <div class="info-card apple-scroll-reveal" id="t-dmca">
+      <div class="section-pill">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
+        <span>Section 3</span>
+      </div>
+      <h2>3. DMCA &amp; Copyright Takedown Procedure</h2>
+      <p>AbhiHub respects intellectual property rights and acts promptly upon copyright notices. If you believe your copyrighted work has been uploaded without authorization, send a notice to our Copyright Agent:</p>
+      <div class="legal-box">
+        <p style="margin-bottom: 0.35rem;"><strong>Copyright Agent:</strong> AbhiHub Legal Team</p>
+        <p style="margin-bottom: 0.35rem;"><strong>Email:</strong> <a href="mailto:info@abhihub.edu.in">info@abhihub.edu.in</a></p>
+        <p style="margin-bottom: 0.35rem;"><strong>Required Notice Elements:</strong></p>
+        <ul style="margin: 0; font-size: 0.88rem; color: var(--apple-gray);">
+          <li>Identification of the copyrighted work claimed to be infringed.</li>
+          <li>URL or exact document ID of the material on AbhiHub.</li>
+          <li>Your contact details (Name, Email, Phone Number, Physical Address).</li>
+          <li>A statement of good-faith belief that the use is unauthorized.</li>
+        </ul>
+      </div>
+    </div>
 
+    <div class="info-card apple-scroll-reveal" id="t-credits">
+      <div class="section-pill">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+          <line x1="1" y1="10" x2="23" y2="10"></line>
+        </svg>
+        <span>Section 4</span>
+      </div>
+      <h2>4. Purchases, Orders &amp; Strict No-Refund Policy</h2>
+      <p>AbhiHub provides digital access, view credits, study resources, and online services:</p>
+      <ul>
+        <li><strong>Orders &amp; Payments:</strong> All online purchases (including view quota packages, digital subscriptions, and services) are processed securely via third-party payment gateways.</li>
+        <li><strong>Strict No Refunds / All Sales Final:</strong> All purchases and payments on AbhiHub are <strong>100% FINAL and NON-REFUNDABLE</strong>. Due to the immediate delivery, digital availability, and consumable nature of digital credits and educational access, we do not offer returns, cancellations, exchanges, or chargeback refunds under any circumstances once transaction processing is complete.</li>
+        <li><strong>Token Nature of Credits:</strong> Purchased credits and view quotas represent platform utility tokens for accessing digital resources; they hold no monetary cash value, cannot be redeemed for legal tender, and are non-transferable between accounts.</li>
+      </ul>
+    </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha3/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ url_for('static', filename='scripts.js') }}" type="module"></script>
-  </body>
+    <div class="info-card apple-scroll-reveal" id="t-disclaimer">
+      <div class="section-pill">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path>
+          <line x1="12" y1="9" x2="12" y2="13"></line>
+          <line x1="12" y1="17" x2="12.01" y2="17"></line>
+        </svg>
+        <span>Section 5</span>
+      </div>
+      <h2>5. Document Accuracy Disclaimer &amp; Liability Limitation</h2>
+      <p>AbhiHub is provided on an <strong>"AS IS"</strong> and <strong>"AS AVAILABLE"</strong> basis. Study materials and products are submitted by student peers and educators; AbhiHub does not guarantee that uploaded notes or solutions are free of academic error or fully aligned with specific university marking schemes.</p>
+      <p>To the maximum extent permitted by Indian law, AbhiHub Technologies shall not be liable for any indirect, incidental, or consequential damages arising from reliance on platform content or service interruptions.</p>
+    </div>
 
-</html>
+    <div class="info-card apple-scroll-reveal" id="t-termination">
+      <div class="section-pill">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line>
+        </svg>
+        <span>Section 6</span>
+      </div>
+      <h2>6. Account Termination &amp; Suspension</h2>
+      <p>AbhiHub reserves the right to suspend or terminate user accounts immediately, without prior notice, for violations of these terms, copyright infringement, or fraudulent activity.</p>
+      <p>Users may terminate their account at any time via <a href="{{ url_for('app_pages.delete_account') }}">Delete Account</a>.</p>
+    </div>
+
+    <div class="info-card apple-scroll-reveal" id="t-jurisdiction">
+      <div class="section-pill">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="2" y1="12" x2="22" y2="12"></line>
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"></path>
+        </svg>
+        <span>Section 7</span>
+      </div>
+      <h2>7. Governing Law &amp; Jurisdiction</h2>
+      <p>These terms shall be governed by and construed in accordance with the laws of the <strong>Republic of India</strong>.</p>
+      <p>Any disputes arising under or in connection with these Terms of Service shall be subject to the exclusive jurisdiction of the competent courts located in <strong>Nagpur, Maharashtra, India</strong>.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+  (function(){
+    var obs = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          entry.target.classList.add('is-visible');
+          obs.unobserve(entry.target);
+        }
+      });
+    }, { threshold: 0.08 });
+    document.querySelectorAll('.apple-scroll-reveal').forEach(function(el) {
+      obs.observe(el);
+    });
+  })();
+</script>
+{% endblock %}

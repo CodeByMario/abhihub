@@ -1,0 +1,1206 @@
+/**
+ * AbhiHub Service Worker
+ * Production-ready PWA service worker with:
+ * - Offline-first caching strategy
+ * - Encrypted PDF caching (AES-GCM, 24h TTL)
+ * - Image runtime caching
+ * - Upload/auth exclusion
+ * - Widget update support
+ * - Background sync
+ */
+
+const CACHE_VERSION = 'v2.0.14';
+const CACHE_NAME = `abhihub-${CACHE_VERSION}`;
+const STATIC_CACHE = `abhihub-static-${CACHE_VERSION}`;
+const DYNAMIC_CACHE = `abhihub-dynamic-${CACHE_VERSION}`;
+const IMAGE_CACHE = `abhihub-images-${CACHE_VERSION}`;
+const AI_MODEL_CACHE = 'abhihub-ai-models-v1'; // Permanent on-device WebLLM model weights cache
+
+// Private document requests must not be persisted in a shared service-worker
+// cache: a signed storage URL is not a user-isolation boundary. This map only
+// coalesces identical requests while they are in flight.
+const inFlightFileRequests = new Map();
+
+function dedupeFileRequest(request) {
+  const key = request.url + '|' + (request.headers.get('Range') || '');
+  const existing = inFlightFileRequests.get(key);
+  if (existing) return existing.then(response => response.clone());
+  const pending = fetch(request).finally(() => inFlightFileRequests.delete(key));
+  inFlightFileRequests.set(key, pending);
+  return pending.then(response => response.clone());
+}
+
+// ==================== ENCRYPTED PDF CACHE ====================
+const PDF_IDB_NAME = 'abhihub-pdf-cache';
+const PDF_IDB_STORE = 'encrypted-pdfs';
+const PDF_CACHE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+
+/** Open (or create) the PDF IndexedDB */
+function openPdfDb() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open(PDF_IDB_NAME, 1);
+    req.onupgradeneeded = (e) => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains(PDF_IDB_STORE)) {
+        db.createObjectStore(PDF_IDB_STORE, { keyPath: 'key' });
+      }
+    };
+    req.onsuccess = (e) => resolve(e.target.result);
+    req.onerror = (e) => reject(e.target.error);
+  });
+}
+
+/** Get or create a persistent AES-GCM CryptoKey stored in IDB */
+async function getOrCreateCryptoKey(db) {
+  const existing = await new Promise((res) => {
+    try {
+      const tx = db.transaction(PDF_IDB_STORE, 'readonly');
+      const store = tx.objectStore(PDF_IDB_STORE);
+      const r = store.get('__cryptokey__');
+      r.onsuccess = () => res(r.result);
+      r.onerror = () => res(null);
+    } catch {
+      res(null);
+    }
+  });
+  if (existing && existing.keyData) {
+    try {
+      return await crypto.subtle.importKey('raw', existing.keyData, { name: 'AES-GCM' }, false, ['encrypt', 'decrypt']);
+    } catch (e) {}
+  }
+  const key = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt', 'decrypt']);
+  const raw = await crypto.subtle.exportKey('raw', key);
+  await new Promise((res, rej) => {
+    try {
+      const tx = db.transaction(PDF_IDB_STORE, 'readwrite');
+      const store = tx.objectStore(PDF_IDB_STORE);
+      const r = store.put({ key: '__cryptokey__', keyData: raw });
+      r.onsuccess = res; r.onerror = rej;
+    } catch (err) {
+      rej(err);
+    }
+  });
+  return key;
+}
+
+/** Encrypt ArrayBuffer -> { iv, data } */
+async function encryptPdf(cryptoKey, buffer) {
+  const iv = crypto.getRandomValues(new Uint8Array(12));
+  const data = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, cryptoKey, buffer);
+  return { iv, data };
+}
+
+/** Decrypt { iv, data } -> ArrayBuffer */
+async function decryptPdf(cryptoKey, iv, data) {
+  return crypto.subtle.decrypt({ name: 'AES-GCM', iv }, cryptoKey, data);
+}
+
+/** Store encrypted PDF in IDB with timestamp */
+async function storePdfInIdb(db, cacheKey, encryptedPayload, contentType) {
+  const tx = db.transaction(PDF_IDB_STORE, 'readwrite');
+  const store = tx.objectStore(PDF_IDB_STORE);
+  await new Promise((res, rej) => {
+    const r = store.put({
+      key: cacheKey,
+      iv: encryptedPayload.iv,
+      data: encryptedPayload.data,
+      contentType,
+      cachedAt: Date.now()
+    });
+    r.onsuccess = res; r.onerror = rej;
+  });
+}
+
+/** Retrieve and validate PDF from IDB */
+async function getPdfFromIdb(db, cacheKey) {
+  return new Promise((res) => {
+    const tx = db.transaction(PDF_IDB_STORE, 'readonly');
+    const r = tx.objectStore(PDF_IDB_STORE).get(cacheKey);
+    r.onsuccess = () => res(r.result || null);
+    r.onerror = () => res(null);
+  });
+}
+
+/** Delete a single PDF entry from IDB */
+async function deletePdfFromIdb(db, cacheKey) {
+  const tx = db.transaction(PDF_IDB_STORE, 'readwrite');
+  tx.objectStore(PDF_IDB_STORE).delete(cacheKey);
+}
+
+/** Evict all IDB PDF entries older than TTL */
+async function evictExpiredPdfs(db) {
+  const now = Date.now();
+  const tx = db.transaction(PDF_IDB_STORE, 'readwrite');
+  const store = tx.objectStore(PDF_IDB_STORE);
+  const req = store.openCursor();
+  req.onsuccess = (e) => {
+    const cursor = e.target.result;
+    if (!cursor) return;
+    const entry = cursor.value;
+    if (entry.key !== '__cryptokey__' && entry.cachedAt && (now - entry.cachedAt) > PDF_CACHE_TTL_MS) {
+      cursor.delete();
+    }
+    cursor.continue();
+  };
+}
+
+/**
+ * Fetch and cache a cross-origin PDF (Firebase/Cloudinary signed URL)
+ * Encrypts bytes into IDB. Returns decrypted Response.
+ */
+async function handleEncryptedPdfFetch(originalUrl) {
+  const db = await openPdfDb();
+  const cryptoKey = await getOrCreateCryptoKey(db);
+  const cacheKey = originalUrl; // use full URL as key
+
+  // Evict stale entries opportunistically
+  evictExpiredPdfs(db);
+
+  // Check IDB cache
+  const cached = await getPdfFromIdb(db, cacheKey);
+  if (cached) {
+    if ((Date.now() - cached.cachedAt) < PDF_CACHE_TTL_MS) {
+      try {
+        const decrypted = await decryptPdf(cryptoKey, cached.iv, cached.data);
+        return new Response(decrypted, {
+          headers: { 'Content-Type': cached.contentType || 'application/pdf' }
+        });
+      } catch {
+        await deletePdfFromIdb(db, cacheKey); // corrupt entry
+      }
+    } else {
+      await deletePdfFromIdb(db, cacheKey); // expired
+    }
+  }
+
+  // Fetch fresh
+  let networkResponse;
+  try {
+    networkResponse = await fetch(originalUrl, { mode: 'cors' });
+  } catch {
+    return new Response('PDF unavailable offline', { status: 503 });
+  }
+
+  if (!networkResponse.ok) return networkResponse;
+
+  const buffer = await networkResponse.clone().arrayBuffer();
+  const contentType = networkResponse.headers.get('Content-Type') || 'application/octet-stream';
+  const encrypted = await encryptPdf(cryptoKey, buffer);
+  await storePdfInIdb(db, cacheKey, encrypted, contentType);
+
+  return new Response(buffer, { headers: { 'Content-Type': contentType } });
+}
+// Alias for clarity — handles ALL file types, not just PDFs
+const handleEncryptedFileFetch = handleEncryptedPdfFetch;
+// ==================== END ENCRYPTED FILE CACHE ====================
+
+// Core files to cache immediately on install
+const PRECACHE_URLS = [
+  '/',
+  '/dashboard',
+  '/login',
+  '/signup',
+  '/offline',
+  '/game',
+  '/static/manifest.json',
+  '/static/premium/css/style.css',
+  '/static/images/android-chrome-192x192.png',
+  '/static/images/android-chrome-512x512.png',
+  '/static/images/apple-touch-icon.png',
+  '/static/images/logo.png',
+  '/static/widget/template.json',
+  '/static/widget/data.json',
+  // Key app pages — cached on install for offline access
+  '/dashboard',
+  '/account',
+  '/profile',
+  '/settings',
+  '/leaderboard',
+  // App Shell static assets (precache static bundle, HTML runtime-cached network-first)
+  '/static/js/app-shell.js',
+  '/static/js/bridge.js',
+  '/static/css/app-shell-frame.css',
+];
+
+// Paths that should NEVER be cached (security-sensitive)
+const NEVER_CACHE_PATTERNS = [
+  /\/api\/(?!profile-status|view-doc)/,  // block all /api/ except profile-status and view-doc
+  /\/auth\//,
+  /\/login/,
+  /\/logout/,
+  /\/signup/,
+  /\/upload/,
+  /\/admin/,
+  /\/session/,
+  /\/password/,
+  /\/token/,
+  /\/premium\/share-receiver/
+];
+
+// Lightweight API responses to cache with stale-while-revalidate (short TTL)
+const CACHEABLE_API_PATHS = [
+  '/api/profile-status',
+];
+const API_CACHE = `abhihub-api-${CACHE_VERSION}`;
+const API_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+
+// File extensions eligible for caching
+const CACHEABLE_EXTENSIONS = [
+  '.html', '.css', '.js', '.json',
+  '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico',
+  '.woff', '.woff2', '.ttf', '.eot',
+  '.pdf'
+];
+
+// Maximum cache sizes
+const MAX_DYNAMIC_CACHE_ITEMS = 50;
+const MAX_IMAGE_CACHE_ITEMS = 100;
+
+/**
+ * Check if a request should never be cached
+ */
+function shouldNeverCache(url) {
+  return NEVER_CACHE_PATTERNS.some(pattern => pattern.test(url.pathname));
+}
+
+/**
+ * Check if a URL is cacheable based on extension
+ */
+function isCacheableUrl(url) {
+  const pathname = url.pathname.toLowerCase();
+  return CACHEABLE_EXTENSIONS.some(ext => pathname.endsWith(ext));
+}
+
+// All file types to cache for user access
+const USER_FILE_EXTS = new Set([
+  '.pdf', '.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico',
+  '.doc', '.docx', '.ppt', '.pptx', '.xls', '.xlsx', '.txt',
+  '.zip', '.rar', '.7z'
+]);
+
+/**
+ * Check if URL is an image
+ */
+function isImageUrl(url) {
+  const imageExts = ['.png', '.jpg', '.jpeg', '.gif', '.webp', '.svg', '.ico'];
+  return imageExts.some(ext => url.pathname.toLowerCase().endsWith(ext));
+}
+
+/**
+ * Check if URL is a user-accessible file (any type we cache)
+ */
+function isUserFile(url) {
+  const p = url.pathname.toLowerCase();
+  return Array.from(USER_FILE_EXTS).some(ext => p.endsWith(ext));
+}
+
+/**
+ * Check if cross-origin URL is a Firebase/Cloudinary file
+ */
+function isCrossOriginFile(url) {
+  // Cloudinary: res.cloudinary.com, Firebase Storage, or signed URL patterns
+  return isUserFile(url)
+    || url.hostname.includes('cloudinary.com')
+    || url.hostname.includes('firebasestorage.googleapis.com')
+    || url.hostname.includes('storage.googleapis.com')
+    || url.searchParams.has('alt')
+    || url.pathname.includes('/object/');
+}
+
+/**
+ * Limit cache size by removing oldest entries
+ */
+async function limitCacheSize(cacheName, maxItems) {
+  const cache = await caches.open(cacheName);
+  const keys = await cache.keys();
+  if (keys.length > maxItems) {
+    // Remove oldest entries (first in cache)
+    const deleteCount = keys.length - maxItems;
+    for (let i = 0; i < deleteCount; i++) {
+      await cache.delete(keys[i]);
+    }
+  }
+}
+
+// ==================== INSTALL EVENT ====================
+self.addEventListener('install', (event) => {
+  self.skipWaiting();
+  console.log('[SW] Installing version:', CACHE_VERSION);
+
+  event.waitUntil(
+    caches.open(STATIC_CACHE)
+      .then((cache) => {
+        console.log('[SW] Precaching core assets');
+        // Use addAll with error handling for individual fails
+        return Promise.allSettled(
+          PRECACHE_URLS.map(url =>
+            cache.add(url).catch(err => {
+              console.warn(`[SW] Failed to cache: ${url}`, err);
+            })
+          )
+        );
+      })
+      .then(() => {
+        console.log('[SW] Install complete');
+        return self.skipWaiting();
+      })
+      .catch((error) => {
+        console.error('[SW] Install failed:', error);
+      })
+  );
+});
+
+// ==================== ACTIVATE EVENT ====================
+self.addEventListener('activate', (event) => {
+  console.log('[SW] Activating version:', CACHE_VERSION);
+
+  event.waitUntil(
+    caches.keys()
+      .then((cacheNames) => {
+        return Promise.all(
+          cacheNames
+            .filter((name) => {
+              // Delete old caches that don't match current version, preserving AI_MODEL_CACHE and WebLLM caches
+              return name.startsWith('abhihub-') &&
+                name !== STATIC_CACHE &&
+                name !== DYNAMIC_CACHE &&
+                name !== IMAGE_CACHE &&
+                name !== AI_MODEL_CACHE &&
+                !name.startsWith('webllm');
+            })
+            .map((name) => {
+              console.log('[SW] Deleting old cache:', name);
+              return caches.delete(name);
+            })
+        );
+      })
+      .then(() => new Promise((resolve) => {
+        // Remove legacy private-file entries now that private bytes are no
+        // longer persisted in the service worker.
+        const request = indexedDB.deleteDatabase(PDF_IDB_NAME);
+        request.onsuccess = request.onerror = request.onblocked = resolve;
+      }))
+      .then(() => {
+        console.log('[SW] Activation complete');
+        return self.clients.claim();
+      })
+  );
+});
+
+/**
+ * Check if request is for WebLLM model weights, WASM, or MLC CDN
+ */
+function isAiModelAsset(url) {
+  const p = url.pathname.toLowerCase();
+  const host = url.hostname.toLowerCase();
+  return (
+    p.endsWith('.wasm') ||
+    p.endsWith('.bin') ||
+    p.endsWith('.safetensors') ||
+    p.includes('ndarray-cache') ||
+    p.includes('mlc-chat-config') ||
+    p.includes('tokenizer') ||
+    p.startsWith('/static/js/ai/') ||
+    host.includes('huggingface.co') ||
+    host.includes('mlc.ai') ||
+    host.includes('esm.run') ||
+    (host.includes('jsdelivr.net') && p.includes('web-llm'))
+  );
+}
+
+/**
+ * Handle WebLLM AI model asset caching (Cache-First strategy)
+ */
+async function handleAiModelFetch(request) {
+  // Check primary AI model cache and standard WebLLM cache
+  const aiCache = await caches.open(AI_MODEL_CACHE);
+  let cachedResponse = await aiCache.match(request);
+  if (cachedResponse) return cachedResponse;
+
+  try {
+    const webllmCache = await caches.open('webllm/model');
+    cachedResponse = await webllmCache.match(request);
+    if (cachedResponse) return cachedResponse;
+  } catch (e) {}
+
+  try {
+    const networkResponse = await fetch(request, { mode: 'cors' }).catch(() => fetch(request));
+    if (networkResponse && (networkResponse.ok || networkResponse.type === 'opaque')) {
+      aiCache.put(request, networkResponse.clone()).catch(() => {});
+      try {
+        const webllmCache = await caches.open('webllm/model');
+        webllmCache.put(request, networkResponse.clone()).catch(() => {});
+      } catch (e) {}
+    }
+    return networkResponse;
+  } catch (err) {
+    if (cachedResponse) return cachedResponse;
+    throw err;
+  }
+}
+
+// ==================== PERSISTENT BACKGROUND AI MODEL DOWNLOADER ====================
+let activeAiPrecache = null;
+
+async function broadcastToClients(msg) {
+  try {
+    const allClients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true });
+    for (const client of allClients) {
+      client.postMessage(msg);
+    }
+  } catch (e) {}
+}
+
+async function startAiModelPrecache(modelId, baseUrl) {
+  if (activeAiPrecache && activeAiPrecache.modelId === modelId && activeAiPrecache.status === 'downloading') {
+    broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+    return;
+  }
+
+  activeAiPrecache = {
+    modelId,
+    status: 'downloading',
+    progress: 0,
+    text: 'Connecting to model repository in background...'
+  };
+
+  broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+
+  try {
+    const cache = await caches.open(AI_MODEL_CACHE);
+    const webllmCache = await caches.open('webllm/model');
+
+    // 1. Fetch & Cache Manifest
+    const manifestUrl = `${baseUrl}/ndarray-cache.json`;
+    let manifestRes = await cache.match(manifestUrl);
+    if (!manifestRes) {
+      manifestRes = await fetch(manifestUrl, { mode: 'cors' });
+      if (manifestRes.ok) {
+        await cache.put(manifestUrl, manifestRes.clone());
+        await webllmCache.put(manifestUrl, manifestRes.clone());
+      }
+    }
+
+    if (!manifestRes || !manifestRes.ok) {
+      throw new Error('Unable to connect to model manifest');
+    }
+
+    const manifest = await manifestRes.json();
+    const records = manifest.records || [];
+    
+    // Additional ancillary files (config, tokenizers)
+    const ancillaryFiles = [
+      'mlc-chat-config.json',
+      'tokenizer.json',
+      'tokenizer_config.json',
+      'vocab.json',
+      'merges.txt',
+      'special_tokens_map.json'
+    ];
+
+    const totalRecords = records.length + ancillaryFiles.length;
+    let completed = 0;
+
+    // 2. Fetch ancillary files in parallel
+    await Promise.all(ancillaryFiles.map(async (file) => {
+      const fileUrl = `${baseUrl}/${file}`;
+      const existing = await cache.match(fileUrl);
+      if (!existing) {
+        try {
+          const res = await fetch(fileUrl, { mode: 'cors' });
+          if (res.ok) {
+            await cache.put(fileUrl, res.clone());
+            await webllmCache.put(fileUrl, res.clone());
+          }
+        } catch (e) {}
+      }
+      completed++;
+      const pct = Math.round((completed / totalRecords) * 100);
+      activeAiPrecache.progress = pct;
+      activeAiPrecache.text = `Caching model metadata (${completed}/${totalRecords})...`;
+      broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+    }));
+
+    // 3. Download shards in parallel batches (concurrency = 8) for maximum download speed
+    const CONCURRENCY = 8;
+    const shardUrls = [];
+    for (const rec of records) {
+      const shardPath = rec.dataPath || rec.name;
+      if (shardPath) shardUrls.push(`${baseUrl}/${shardPath}`);
+    }
+
+    let shardIndex = 0;
+    async function worker() {
+      while (shardIndex < shardUrls.length) {
+        const idx = shardIndex++;
+        const sUrl = shardUrls[idx];
+        const existing = await cache.match(sUrl);
+        if (!existing) {
+          try {
+            const shardRes = await fetch(sUrl, { mode: 'cors' });
+            if (shardRes.ok) {
+              await cache.put(sUrl, shardRes.clone());
+              await webllmCache.put(sUrl, shardRes.clone());
+            }
+          } catch (e) {}
+        }
+        completed++;
+        const pct = Math.round((completed / totalRecords) * 100);
+        activeAiPrecache.progress = pct;
+        activeAiPrecache.text = `Downloading model shard ${completed}/${totalRecords} (${pct}%)...`;
+        broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+      }
+    }
+
+    const workers = [];
+    for (let i = 0; i < CONCURRENCY; i++) {
+      workers.push(worker());
+    }
+    await Promise.all(workers);
+
+    activeAiPrecache.status = 'ready';
+    activeAiPrecache.progress = 100;
+    activeAiPrecache.text = 'Model cached permanently on device!';
+    broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+  } catch (err) {
+    activeAiPrecache.status = 'error';
+    activeAiPrecache.text = `Download notice: ${err.message}`;
+    broadcastToClients({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+  }
+}
+
+self.addEventListener('message', async (event) => {
+  const { type, payload } = event.data || {};
+  if (type === 'START_AI_MODEL_PRECACHE') {
+    startAiModelPrecache(payload.modelId, payload.baseUrl);
+  } else if (type === 'GET_AI_MODEL_CACHE_STATUS') {
+    if (activeAiPrecache) {
+      event.source?.postMessage({ type: 'AI_MODEL_PRECACHE_PROGRESS', payload: activeAiPrecache });
+    }
+  } else if (type === 'CLEAR_AI_MODEL_CACHE') {
+    await caches.delete(AI_MODEL_CACHE);
+    await caches.delete('webllm/model').catch(() => {});
+    await caches.delete('webllm/wasm').catch(() => {});
+    await caches.delete('webllm/config').catch(() => {});
+    activeAiPrecache = null;
+    event.source?.postMessage({ type: 'AI_MODEL_CACHE_CLEARED', success: true });
+  }
+});
+
+// ==================== FETCH EVENT ====================
+self.addEventListener('fetch', (event) => {
+  const { request } = event;
+  const url = new URL(request.url);
+
+  // Skip non-GET requests (POST, PUT, DELETE should never be cached)
+  if (request.method !== 'GET') {
+    return;
+  }
+
+  // 1. Intercept AI Model Weights & WASM (Cache-First for permanent local device residency)
+  if (isAiModelAsset(url)) {
+    event.respondWith(handleAiModelFetch(request));
+    return;
+  }
+
+  // Cross-origin cloud storage (Cloudinary, Firebase) requests bypass the SW
+  // so the browser network stack can natively handle CORS, HTTP Range requests,
+  // 206 Partial Content streaming, and CDN cache validators without interference.
+  if (url.origin !== self.location.origin) {
+    return;
+  }
+
+  // Document delivery and authorization endpoints bypass the SW to ensure
+  // authorization headers/cookies, range requests, and 302 redirects are handled natively.
+  if (url.pathname.startsWith('/api/view-doc/') || url.pathname.startsWith('/api/documents/')) {
+    return;
+  }
+
+  // Skip chrome extensions and dev tools
+  if (url.protocol === 'chrome-extension:' || url.pathname.includes('__')) {
+    return;
+  }
+
+  // Never cache security-sensitive endpoints - bypass SW directly
+  if (shouldNeverCache(url)) {
+    return;
+  }
+
+  // Cacheable API endpoints (profile-status etc.) — stale-while-revalidate
+  if (CACHEABLE_API_PATHS.some(p => url.pathname === p)) {
+    event.respondWith(handleCacheableApiRequest(request));
+    return;
+  }
+
+  // Static images and icons (app UI) -> standard image cache
+  if (url.pathname.startsWith('/static/images/') || url.pathname === '/favicon.ico' || (isImageUrl(url) && url.pathname.startsWith('/static/'))) {
+    event.respondWith(handleImageRequest(request));
+    return;
+  }
+
+  // User uploaded files on the origin (non-static) bypass the service worker
+  // to ensure server-side access control, ETag validators, and Range requests work cleanly.
+  if (isUserFile(url) && !url.pathname.startsWith('/static/')) {
+    return;
+  }
+
+  // Handle navigation requests
+  if (request.mode === 'navigate') {
+    if (url.pathname === '/app-shell') {
+      event.respondWith(handleAppShellRequest(request));
+      return;
+    }
+    event.respondWith(
+      (async () => {
+        // Try navigation preload first
+        try {
+          const preloadResponse = await event.preloadResponse;
+          if (preloadResponse) return preloadResponse;
+        } catch {}
+        return handleNavigationRequest(request);
+      })()
+    );
+    return;
+  }
+
+  // Handle other requests
+  // /api/view-doc/ image endpoints: bypass SW cache entirely, go direct to network.
+  if (url.pathname.startsWith('/api/view-doc/') && isImageUrl(url)) {
+    event.respondWith(fetch(request));
+    return;
+  }
+
+  // JS and CSS code: Network-First to ensure code updates are instantly reflected
+  if (url.pathname.endsWith('.js') || url.pathname.endsWith('.mjs') || url.pathname.endsWith('.css')) {
+    event.respondWith(handleNetworkFirstRequest(request));
+    return;
+  }
+
+  event.respondWith(handleStandardRequest(request));
+});
+
+/**
+ * Handle image requests with stale-while-revalidate
+ */
+async function handleImageRequest(request) {
+  const cache = await caches.open(IMAGE_CACHE);
+  const cachedResponse = await cache.match(request, { ignoreSearch: true });
+
+  // Start network fetch in background
+  const networkFetch = fetch(request).then(async (networkResponse) => {
+    if (networkResponse.ok) {
+      await cache.put(request, networkResponse.clone());
+      await limitCacheSize(IMAGE_CACHE, MAX_IMAGE_CACHE_ITEMS);
+    }
+    return networkResponse;
+  }).catch(() => null);
+
+  // Return cached immediately if available
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  // Wait for network if no cache
+  const response = await networkFetch;
+  if (response) {
+    return response;
+  }
+
+  // Return placeholder for failed image loads
+  return new Response('', { status: 404, statusText: 'Image not found' });
+}
+
+/**
+ * Handle PDF requests with cache-first strategy
+ */
+async function handlePdfRequest(request) {
+  const cache = await caches.open(DYNAMIC_CACHE);
+  const cachedResponse = await cache.match(request, { ignoreSearch: true });
+
+  if (cachedResponse) {
+    // Update cache in background
+    fetch(request).then(async (networkResponse) => {
+      if (networkResponse.ok) {
+        await cache.put(request, networkResponse.clone());
+      }
+    }).catch(() => { });
+    return cachedResponse;
+  }
+
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse.ok) {
+      await cache.put(request, networkResponse.clone());
+      await limitCacheSize(DYNAMIC_CACHE, MAX_DYNAMIC_CACHE_ITEMS);
+    }
+    return networkResponse;
+  } catch (error) {
+    return new Response('PDF not available offline', {
+      status: 503,
+      statusText: 'Service Unavailable',
+      headers: { 'Content-Type': 'text/plain' }
+    });
+  }
+}
+
+/**
+ * Handle App Shell navigation requests:
+ * Network-first runtime caching. Only caches 200 non-redirected responses.
+ * Offline fallback: cached shell HTML or /offline fallback page.
+ */
+async function handleAppShellRequest(request) {
+  const cache = await caches.open(DYNAMIC_CACHE);
+  try {
+    const networkResponse = await fetch(request);
+    // Runtime-cache only 200 non-redirected responses
+    if (networkResponse && networkResponse.status === 200 && !networkResponse.redirected) {
+      await cache.put(request, networkResponse.clone());
+      await cache.put('/app-shell', networkResponse.clone());
+    }
+    return networkResponse;
+  } catch (err) {
+    const cached = (await cache.match(request, { ignoreSearch: true })) || (await cache.match('/app-shell'));
+    if (cached) {
+      return cached;
+    }
+    const offlinePage = await caches.match('/offline');
+    return offlinePage || new Response('Offline — AbhiHub', {
+      headers: { 'Content-Type': 'text/html' }
+    });
+  }
+}
+
+/**
+ * Handle navigation requests — stale-while-revalidate for offline-first UX.
+ * Serves cached page immediately, refreshes cache in background.
+ */
+async function handleNavigationRequest(request) {
+  const cache = await caches.open(DYNAMIC_CACHE);
+  // Query parameters drive search, filters, pagination, and embedded app routes.
+  // Reusing a cached response without its query string serves the wrong page.
+  const cachedResponse = await cache.match(request);
+
+  // Kick off network refresh in background
+  const networkFetch = fetch(request).then(async (networkResponse) => {
+    if (networkResponse.ok) {
+      await cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  }).catch(() => null);
+
+  // Serve cached immediately if available (instant load)
+  if (cachedResponse) {
+    // Safety: don't serve HTML for non-HTML requests
+    const cachedType = cachedResponse.headers.get('Content-Type') || '';
+    if (cachedType.includes('text/html')) {
+      return cachedResponse;
+    }
+  }
+
+  // No cache — wait for network
+  const networkResponse = await networkFetch;
+  if (networkResponse) return networkResponse;
+
+  // Fully offline fallback
+  const offlinePage = await caches.match('/offline');
+  return offlinePage || new Response(
+    `<!DOCTYPE html><html><head><title>Offline — AbhiHub</title><style>
+      body{font-family:sans-serif;display:flex;align-items:center;justify-content:center;min-height:100vh;margin:0;background:#0f172a;color:#e2e8f0;text-align:center;}
+      .card{background:#1e293b;border-radius:16px;padding:2rem;max-width:360px;}
+      h1{font-size:1.5rem;margin-bottom:.5rem;} p{color:#94a3b8;}
+      a{display:inline-block;margin-top:1rem;padding:.7rem 1.5rem;background:#2563eb;color:#fff;border-radius:8px;text-decoration:none;}
+    </style></head><body>
+      <div class="card">
+        <div style="font-size:3rem">📚</div>
+        <h1>You're Offline</h1>
+        <p>AbhiHub isn't available right now. Previously visited pages are still accessible.</p>
+        <a href="/dashboard">Go to Dashboard</a>
+      </div>
+    </body></html>`,
+    { headers: { 'Content-Type': 'text/html' } }
+  );
+}
+
+/**
+ * Stale-while-revalidate handler for lightweight cacheable API responses.
+ */
+async function handleCacheableApiRequest(request) {
+  const cache = await caches.open(API_CACHE);
+  const cacheKey = request.url;
+  const cachedResponse = await cache.match(cacheKey);
+
+  // Refresh in background
+  const networkFetch = fetch(request, { credentials: 'same-origin' }).then(async (networkResponse) => {
+    if (networkResponse.ok) {
+      await cache.put(cacheKey, networkResponse.clone());
+    }
+    return networkResponse;
+  }).catch(() => null);
+
+  // Serve stale immediately if available
+  if (cachedResponse) {
+    return cachedResponse;
+  }
+
+  // No cache yet — wait for network
+  const networkResponse = await networkFetch;
+  return networkResponse || new Response(JSON.stringify({ profile_completed: false }), {
+    headers: { 'Content-Type': 'application/json' }
+  });
+}
+
+/**
+ * Handle JS and CSS requests with Network-First strategy
+ */
+async function handleNetworkFirstRequest(request) {
+  try {
+    const networkResponse = await fetch(request);
+    if (networkResponse && networkResponse.ok) {
+      const cache = await caches.open(DYNAMIC_CACHE);
+      cache.put(request, networkResponse.clone());
+    }
+    return networkResponse;
+  } catch (error) {
+    const cachedResponse = await caches.match(request);
+    if (cachedResponse) return cachedResponse;
+    return new Response('', { status: 404 });
+  }
+}
+
+/**
+ * Handle standard requests with stale-while-revalidate
+ */
+async function handleStandardRequest(request) {
+  const url = new URL(request.url);
+
+  // Determine which cache to use
+  const cacheName = isCacheableUrl(url) ? DYNAMIC_CACHE : STATIC_CACHE;
+  const cache = await caches.open(cacheName);
+  const cachedResponse = await cache.match(request);
+
+  // Safety: verify cached response content type matches expected type
+  if (cachedResponse) {
+    const cachedType = cachedResponse.headers.get('Content-Type') || '';
+    const isJsOrCss = url.pathname.endsWith('.js') || url.pathname.endsWith('.css');
+    if (isJsOrCss && cachedType.includes('text/html')) {
+      // Don't serve HTML for JS/CSS requests — delete bad cache and fetch fresh
+      await cache.delete(request);
+      return fetch(request);
+    } else {
+      // Start background fetch
+      const fetchPromise = fetch(request).then(async (networkResponse) => {
+        if (networkResponse.ok && isCacheableUrl(url)) {
+          await cache.put(request, networkResponse.clone());
+          await limitCacheSize(cacheName, MAX_DYNAMIC_CACHE_ITEMS);
+        }
+        return networkResponse;
+      }).catch(() => null);
+
+      // If this is a non-cacheable request (e.g. /api/view-doc/), always go network
+      if (!isCacheableUrl(url)) {
+        return fetch(request);
+      }
+
+      return cachedResponse;
+    }
+  }
+
+  // Start background fetch
+  const fetchPromise = fetch(request).then(async (networkResponse) => {
+    if (networkResponse.ok && isCacheableUrl(url)) {
+      await cache.put(request, networkResponse.clone());
+      await limitCacheSize(cacheName, MAX_DYNAMIC_CACHE_ITEMS);
+    }
+    return networkResponse;
+  }).catch(() => null);
+
+  // Wait for network
+  const networkResponse = await fetchPromise;
+  if (networkResponse) {
+    return networkResponse;
+  }
+
+  // Fallback for CSS/JS
+  return new Response('', { status: 404 });
+}
+
+// ==================== MESSAGE EVENT ====================
+self.addEventListener('message', (event) => {
+  if (event.data) {
+    switch (event.data.type) {
+      case 'SKIP_WAITING':
+        self.skipWaiting();
+        break;
+
+      case 'CLEAR_CACHE':
+        caches.keys().then(names => {
+          names.forEach(name => caches.delete(name));
+        });
+        break;
+
+      case 'UPDATE_WIDGET':
+        updateWidgetData(event.data.data);
+        break;
+    }
+  }
+});
+
+// ==================== BACKGROUND SYNC ====================
+self.addEventListener('sync', (event) => {
+  console.log('[SW] Sync event:', event.tag);
+
+  switch (event.tag) {
+    case 'sync-widget':
+      event.waitUntil(syncWidgetData());
+      break;
+    case 'sync-offline-actions':
+      event.waitUntil(syncOfflineActions());
+      break;
+  }
+});
+
+/**
+ * Sync widget data from server
+ */
+async function syncWidgetData() {
+  try {
+    const response = await fetch('/api/widget-data');
+    if (response.ok) {
+      const data = await response.json();
+      await updateWidgetData(data);
+    }
+  } catch (error) {
+    console.warn('[SW] Widget sync failed:', error);
+  }
+}
+
+/**
+ * Update widget data in cache
+ */
+async function updateWidgetData(data) {
+  try {
+    const cache = await caches.open(STATIC_CACHE);
+    const response = new Response(JSON.stringify(data), {
+      headers: { 'Content-Type': 'application/json' }
+    });
+    await cache.put('/static/widget/data.json', response);
+    console.log('[SW] Widget data updated');
+  } catch (error) {
+    console.error('[SW] Widget update failed:', error);
+  }
+}
+
+/**
+ * Sync offline actions (placeholder for future queued actions)
+ */
+async function syncOfflineActions() {
+  console.log('[SW] Syncing offline actions...');
+  // Implement queued action sync here
+  return Promise.resolve();
+}
+
+// ==================== PERIODIC SYNC ====================
+self.addEventListener('periodicsync', (event) => {
+  console.log('[SW] Periodic sync:', event.tag);
+
+  if (event.tag === 'widget-update') {
+    event.waitUntil(syncWidgetData());
+  }
+});
+
+// ==================== WIDGET EVENTS ====================
+// Handle widget install (experimental API)
+self.addEventListener('widgetinstall', (event) => {
+  console.log('[SW] Widget installed:', event.widget.definition.name);
+  event.waitUntil(syncWidgetData());
+});
+
+// Handle widget uninstall
+self.addEventListener('widgetuninstall', (event) => {
+  console.log('[SW] Widget uninstalled:', event.widget.definition.name);
+});
+
+// Handle widget resume
+self.addEventListener('widgetresume', (event) => {
+  console.log('[SW] Widget resumed');
+  event.waitUntil(syncWidgetData());
+});
+
+// Handle widget click
+self.addEventListener('widgetclick', (event) => {
+  console.log('[SW] Widget clicked:', event.action);
+
+  if (event.action === 'open-app') {
+    event.waitUntil(
+      clients.openWindow('/dashboard')
+    );
+  }
+});
+
+console.log('[SW] Service Worker loaded - version:', CACHE_VERSION);
+
+// ==================== DEPLOYMENT UPDATE MESSAGES ====================
+self.addEventListener('message', (event) => {
+  if (event.data) {
+    switch (event.data.type) {
+      case 'SKIP_WAITING':
+        self.skipWaiting();
+        break;
+
+      case 'CLEAR_CACHE':
+        // Clear all caches and trigger update
+        caches.keys().then(names => {
+          names.forEach(name => caches.delete(name));
+        });
+        // Claim clients to force refresh
+        self.clients.claim();
+        break;
+
+      case 'SHOW_UPDATE_NOTIFICATION':
+        // Show notification about available update
+          self.registration.showNotification(
+            'AbhiHub Update Available',
+            {
+              body: 'A new version is available. Click to refresh the app.',
+              icon: '/static/images/android-chrome-192x192.png',
+              badge: '/static/images/favicon-32x32.png',
+              tag: 'abhihub-update',
+              data: { url: '/' }
+            }
+          );
+        break;
+
+      case 'SHOW_INSTALL_PROMPT':
+        // Show the install prompt UI
+        // This is sent from the main page after beforeinstallprompt event
+        event.waitUntil(
+          self.registration.showNotification(
+            'AbhiHub Install',
+            {
+              body: 'Install AbhiHub for offline access and faster loading.',
+              icon: '/static/images/android-chrome-192x192.png',
+              badge: '/static/images/favicon-32x32.png',
+              tag: 'abhihub-install',
+              data: { url: '/' }
+            }
+          )
+        );
+        break;
+
+      default:
+        break;
+    }
+  }
+});
+
+// ==================== PUSH NOTIFICATIONS ====================
+
+/**
+ * Handle incoming push notifications
+ */
+self.addEventListener("push", (event) => {
+  console.log('[SW] Push received');
+  let data = {
+    title: 'AbhiHub',
+    body: 'You have a new notification',
+    icon: '/static/images/android-chrome-192x192.png',
+    badge: '/static/images/favicon-32x32.png',
+    url: '/dashboard',
+    tag: 'abhihub-notification',
+    notification_id: null
+  };
+
+  // Parse push data if available
+  if (event.data) {
+    try {
+      const payload = event.data.json();
+      data = { ...data, ...payload };
+    } catch (e) {
+      // If not JSON, use text
+      data.body = event.data.text() || data.body;
+    }
+  }
+
+  const options = {
+    body: data.body,
+    icon: data.icon,
+    badge: data.badge,
+    tag: data.tag,
+    data: {
+      url: data.url,
+      notification_id: data.notification_id,
+      timestamp: Date.now()
+    },
+    vibrate: [100, 50, 100],
+    requireInteraction: false,
+    actions: [
+      { action: 'open', title: 'Open' },
+      { action: 'dismiss', title: 'Dismiss' }
+    ]
+  };
+
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+/**
+ * Handle notification click
+ */
+self.addEventListener('notificationclick', (event) => {
+  console.log('[SW] Notification clicked:', event.action);
+
+  event.notification.close();
+
+  // Handle dismiss action
+  if (event.action === 'dismiss' || event.action === 'close') {
+    return;
+  }
+
+  // Record open if notification_id exists
+  const notifData = event.notification.data || {};
+  if (notifData.notification_id) {
+    try {
+      fetch(`/api/notifications/${encodeURIComponent(notifData.notification_id)}/open`, {
+        method: 'POST',
+        credentials: 'same-origin'
+      }).catch(() => {});
+    } catch (e) {}
+  }
+
+  // Sanitize allowlisted URL
+  let rawUrl = notifData.url ? notifData.url : '/dashboard';
+  let urlToOpen = '/dashboard';
+  if (typeof rawUrl === 'string' && rawUrl.startsWith('/') && !rawUrl.startsWith('//') && !rawUrl.includes('\\')) {
+    const ALLOWED = ['/dashboard', '/profile', '/resource', '/chat', '/settings', '/notifications', '/pyqs', '/notes'];
+    if (ALLOWED.some(prefix => rawUrl === prefix || rawUrl.startsWith(prefix + '/') || rawUrl.startsWith(prefix + '?') || rawUrl.startsWith(prefix + '#'))) {
+      urlToOpen = rawUrl;
+    }
+  }
+
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        // Check if any app window from same origin is already open
+        for (const client of clientList) {
+          if (client.url && client.url.includes(self.location.origin) && 'focus' in client) {
+            if ('navigate' in client && urlToOpen) {
+              client.navigate(urlToOpen);
+            }
+            return client.focus();
+          }
+        }
+        // Open new window if no active tab found
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      })
+  );
+});
+
+/**
+ * Handle notification close
+ */
+self.addEventListener('notificationclose', (event) => {
+  console.log('[SW] Notification closed');
+});

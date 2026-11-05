@@ -1,0 +1,383 @@
+<!-- Apple HIG Interactive UI Feedback Modal -->
+<style>
+  .ui-feedback-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99998;
+    background: rgba(15, 23, 42, 0.65);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    animation: uiFeedbackFade 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+  .ui-feedback-backdrop.active {
+    display: flex;
+  }
+  @keyframes uiFeedbackFade {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+  .ui-feedback-card {
+    background: #ffffff;
+    max-width: 440px;
+    width: 100%;
+    border-radius: 20px;
+    padding: 1.75rem 1.6rem;
+    box-shadow: 0 20px 40px -15px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.08);
+    position: relative;
+    text-align: left;
+    color: #1d1d1f;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  }
+  [data-theme="dark"] .ui-feedback-card {
+    background: #1c1c1e;
+    color: #f5f5f7;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+  }
+  .ui-feedback-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.28rem 0.75rem;
+    background: rgba(0, 113, 227, 0.08);
+    color: #0071E3;
+    border-radius: 980px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-bottom: 0.75rem;
+  }
+  .ui-feedback-title {
+    font-size: 1.35rem;
+    font-weight: 700;
+    margin: 0 0 0.35rem 0;
+    letter-spacing: -0.02em;
+    color: inherit;
+  }
+  .ui-feedback-subtitle {
+    font-size: 0.86rem;
+    color: #6e6e73;
+    line-height: 1.45;
+    margin: 0 0 1.25rem 0;
+  }
+  [data-theme="dark"] .ui-feedback-subtitle {
+    color: #a1a1a6;
+  }
+  .ui-feedback-q {
+    margin-bottom: 1.15rem;
+  }
+  .ui-feedback-label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 600;
+    margin-bottom: 0.45rem;
+    color: #1d1d1f;
+  }
+  [data-theme="dark"] .ui-feedback-label {
+    color: #e5e5ea;
+  }
+  .ui-feedback-stars {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .ui-feedback-star-btn {
+    background: none;
+    border: none;
+    padding: 0.2rem;
+    cursor: pointer;
+    color: #d1d5db;
+    transition: transform 0.15s, color 0.15s;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .ui-feedback-star-btn:hover,
+  .ui-feedback-star-btn.active {
+    color: #f59e0b;
+    transform: scale(1.15);
+  }
+  .ui-feedback-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.45rem;
+  }
+  .ui-feedback-chip {
+    background: #f5f5f7;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 980px;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.78rem;
+    font-weight: 500;
+    color: #48484a;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+  [data-theme="dark"] .ui-feedback-chip {
+    background: #2c2c2e;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #d1d1d6;
+  }
+  .ui-feedback-chip.selected {
+    background: #0071E3;
+    color: #ffffff;
+    border-color: #0071E3;
+  }
+  .ui-feedback-input {
+    width: 100%;
+    padding: 0.55rem 0.75rem;
+    border-radius: 10px;
+    border: 1px solid rgba(0, 0, 0, 0.12);
+    font-size: 0.84rem;
+    box-sizing: border-box;
+    background: #ffffff;
+    color: #1d1d1f;
+  }
+  [data-theme="dark"] .ui-feedback-input {
+    background: #2c2c2e;
+    border-color: rgba(255, 255, 255, 0.15);
+    color: #f5f5f7;
+  }
+  .ui-feedback-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.65rem;
+    margin-top: 1.35rem;
+  }
+  .ui-feedback-btn-cancel {
+    background: none;
+    border: none;
+    font-size: 0.84rem;
+    color: #86868b;
+    cursor: pointer;
+    padding: 0.55rem 0.9rem;
+    border-radius: 980px;
+  }
+  .ui-feedback-btn-submit {
+    background: #0071E3;
+    color: #ffffff;
+    border: none;
+    padding: 0.55rem 1.25rem;
+    border-radius: 980px;
+    font-size: 0.85rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+  .ui-feedback-btn-submit:hover {
+    background: #0077ED;
+    transform: translateY(-1px);
+  }
+  .ui-feedback-close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: #f5f5f7;
+    border: none;
+    border-radius: 50%;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #86868b;
+    font-size: 1.1rem;
+  }
+  [data-theme="dark"] .ui-feedback-close-btn {
+    background: #2c2c2e;
+    color: #a1a1a6;
+  }
+  .ui-feedback-success {
+    display: none;
+    text-align: center;
+    padding: 1.5rem 0.5rem;
+  }
+  .ui-feedback-success.active {
+    display: block;
+  }
+</style>
+
+<div class="ui-feedback-backdrop" id="uiFeedbackModal" role="dialog" aria-modal="true" aria-labelledby="uiFeedbackTitle">
+  <div class="ui-feedback-card">
+    <button type="button" class="ui-feedback-close-btn" id="uiFeedbackCloseBtn" aria-label="Dismiss">&times;</button>
+
+    <div id="uiFeedbackFormBody">
+      <div class="ui-feedback-badge">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+        <span>QUICK 30-SEC CHECK-IN</span>
+      </div>
+
+      <h2 class="ui-feedback-title" id="uiFeedbackTitle">How is the New Experience?</h2>
+      <p class="ui-feedback-subtitle">Help us tune AbhiHub. Your 3 quick answers guide the next update.</p>
+
+      <!-- Question 1: Rating -->
+      <div class="ui-feedback-q">
+        <span class="ui-feedback-label">1. Rate your overall experience</span>
+        <div class="ui-feedback-stars" id="uiFeedbackStars">
+          {% for r in range(1, 6) %}
+          <button type="button" class="ui-feedback-star-btn {% if r <= 5 %}active{% endif %}" data-score="{{ r }}" aria-label="{{ r }} star">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="1.5"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+          </button>
+          {% endfor %}
+        </div>
+      </div>
+
+      <!-- Question 2: Favorite Improvement -->
+      <div class="ui-feedback-q">
+        <span class="ui-feedback-label">2. What feels best about the new design?</span>
+        <div class="ui-feedback-chips" id="uiFeedbackChips">
+          <button type="button" class="ui-feedback-chip selected" data-val="Fast & Offline Ready">Fast & Offline Ready</button>
+          <button type="button" class="ui-feedback-chip" data-val="Clean Apple Layout">Clean Apple Layout</button>
+          <button type="button" class="ui-feedback-chip" data-val="Smooth Navigation">Smooth Navigation</button>
+          <button type="button" class="ui-feedback-chip" data-val="Document Viewer">Document Viewer</button>
+        </div>
+      </div>
+
+      <!-- Question 3: Optional Suggestion -->
+      <div class="ui-feedback-q" style="margin-bottom:0.5rem;">
+        <span class="ui-feedback-label">3. Any suggestion for the next release? (Optional)</span>
+        <input type="text" class="ui-feedback-input" id="uiFeedbackText" placeholder="e.g. Add dark mode toggle in reader, more PYQs..." maxlength="180" />
+      </div>
+
+      <div class="ui-feedback-actions">
+        <button type="button" class="ui-feedback-btn-cancel" id="uiFeedbackDismiss">Later</button>
+        <button type="button" class="ui-feedback-btn-submit" id="uiFeedbackSubmit">
+          <span>Send Feedback</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+        </button>
+      </div>
+    </div>
+
+    <!-- Success confirmation state -->
+    <div class="ui-feedback-success" id="uiFeedbackSuccess">
+      <svg width="44" height="44" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 0.75rem auto;display:block;" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="16 12 12 8 8 12"></polyline><line x1="12" y1="16" x2="12" y2="8"></line></svg>
+      <h3 style="font-size:1.15rem;font-weight:700;margin:0 0 0.35rem 0;">Thank You!</h3>
+      <p style="font-size:0.85rem;color:#6e6e73;margin:0;">Your feedback helps us continuously elevate AbhiHub.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const STORAGE_KEY = 'abhihub_ui_feedback_v2';
+  const modal = document.getElementById('uiFeedbackModal');
+  if (!modal) return;
+
+  const formBody = document.getElementById('uiFeedbackFormBody');
+  const successBody = document.getElementById('uiFeedbackSuccess');
+  const closeBtn = document.getElementById('uiFeedbackCloseBtn');
+  const dismissBtn = document.getElementById('uiFeedbackDismiss');
+  const submitBtn = document.getElementById('uiFeedbackSubmit');
+  const starsContainer = document.getElementById('uiFeedbackStars');
+  const chipsContainer = document.getElementById('uiFeedbackChips');
+  const textInput = document.getElementById('uiFeedbackText');
+
+  let currentRating = 5;
+  let selectedHighlight = 'Fast & Offline Ready';
+
+  // Check past submission or dismissal cooldown (14 days)
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.status === 'submitted') return;
+      if (parsed.status === 'dismissed' && (Date.now() - parsed.ts < 14 * 24 * 3600 * 1000)) return;
+    }
+  } catch(e) {}
+
+  // Star rating handling
+  if (starsContainer) {
+    const starBtns = Array.from(starsContainer.querySelectorAll('.ui-feedback-star-btn'));
+    starBtns.forEach(btn => {
+      btn.addEventListener('click', () => {
+        currentRating = parseInt(btn.getAttribute('data-score') || '5', 10);
+        starBtns.forEach(b => {
+          const s = parseInt(b.getAttribute('data-score') || '0', 10);
+          b.classList.toggle('active', s <= currentRating);
+        });
+      });
+    });
+  }
+
+  // Chip single selection
+  if (chipsContainer) {
+    const chips = Array.from(chipsContainer.querySelectorAll('.ui-feedback-chip'));
+    chips.forEach(chip => {
+      chip.addEventListener('click', () => {
+        chips.forEach(c => c.classList.remove('selected'));
+        chip.classList.add('selected');
+        selectedHighlight = chip.getAttribute('data-val') || '';
+      });
+    });
+  }
+
+  function closeModal(status = 'dismissed') {
+    modal.classList.remove('active');
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify({ status: status, ts: Date.now() }));
+    } catch(e) {}
+  }
+
+  if (closeBtn) closeBtn.addEventListener('click', () => closeModal('dismissed'));
+  if (dismissBtn) dismissBtn.addEventListener('click', () => closeModal('dismissed'));
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closeModal('dismissed');
+  });
+
+  // Submit feedback
+  if (submitBtn) {
+    submitBtn.addEventListener('click', function() {
+      const customNote = (textInput ? textInput.value : '').trim();
+      const combinedMessage = `[Recent UI Redesign] Favorite: ${selectedHighlight}${customNote ? ' | Suggestion: ' + customNote : ''}`;
+
+      submitBtn.disabled = true;
+      submitBtn.innerText = 'Sending...';
+
+      fetch('/api/feedback', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          rating: currentRating,
+          message: combinedMessage
+        })
+      })
+      .then(res => res.json())
+      .catch(() => ({ success: true })) // graceful handling
+      .then(() => {
+        if (formBody) formBody.style.display = 'none';
+        if (successBody) successBody.classList.add('active');
+        setTimeout(() => closeModal('submitted'), 1400);
+      });
+    });
+  }
+
+  // Engagement trigger: cumulative session time >= 120s OR page visit count >= 3
+  try {
+    let sessionVisits = parseInt(sessionStorage.getItem('abhihub_session_visits') || '0', 10) + 1;
+    sessionStorage.setItem('abhihub_session_visits', sessionVisits);
+
+    let activeSeconds = parseInt(sessionStorage.getItem('abhihub_active_sec') || '0', 10);
+    const timer = setInterval(() => {
+      activeSeconds += 5;
+      sessionStorage.setItem('abhihub_active_sec', activeSeconds);
+
+      // Trigger condition: used long enough (>= 120 seconds active OR >= 3 pages viewed)
+      if (activeSeconds >= 120 || sessionVisits >= 3) {
+        clearInterval(timer);
+        setTimeout(() => {
+          if (!document.querySelector('.auth-gate-backdrop.active')) {
+            modal.classList.add('active');
+          }
+        }, 1500);
+      }
+    }, 5000);
+  } catch(e) {}
+})();
+</script>

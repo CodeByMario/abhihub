@@ -1,0 +1,410 @@
+{# 
+  Psychological Auth Gate Overlay Component (Metered 2-File Trial Soft-Wall)
+  Usage: {% include 'includes/auth_gate_overlay.html' %}
+#}
+{% if not session.get('user') %}
+<style>
+  .auth-gate-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(15, 23, 42, 0.76);
+    backdrop-filter: blur(14px) saturate(180%);
+    -webkit-backdrop-filter: blur(14px) saturate(180%);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    animation: authGateFadeIn 0.25s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .auth-gate-backdrop.active {
+    display: flex;
+  }
+
+  @keyframes authGateFadeIn {
+    from { opacity: 0; transform: scale(0.97); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .auth-gate-card {
+    background: #ffffff;
+    max-width: 440px;
+    width: 100%;
+    border-radius: 22px;
+    padding: 2.25rem 2rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.35), 0 0 0 1px rgba(0, 0, 0, 0.06);
+    text-align: center;
+    position: relative;
+  }
+
+  [data-theme="dark"] .auth-gate-card {
+    background: #1c1c1e;
+    color: #f5f5f7;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  }
+
+  .auth-gate-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.35rem 0.95rem;
+    background: rgba(0, 113, 227, 0.08);
+    color: #0071E3;
+    border-radius: 980px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    margin-bottom: 1.15rem;
+    border: 1px solid rgba(0, 113, 227, 0.2);
+  }
+
+  .auth-gate-dot {
+    width: 7px;
+    height: 7px;
+    background: #0071E3;
+    border-radius: 50%;
+    animation: authDotPulse 1.5s infinite;
+  }
+
+  @keyframes authDotPulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.35; transform: scale(0.8); }
+  }
+
+  .auth-gate-title {
+    font-size: 1.5rem;
+    font-weight: 750;
+    color: #1d1d1f;
+    line-height: 1.22;
+    letter-spacing: -0.025em;
+    margin: 0 0 0.65rem;
+  }
+
+  [data-theme="dark"] .auth-gate-title {
+    color: #f5f5f7;
+  }
+
+  .auth-gate-subtitle {
+    font-size: 0.92rem;
+    color: #6e6e73;
+    line-height: 1.5;
+    margin: 0 0 1.5rem;
+  }
+
+  [data-theme="dark"] .auth-gate-subtitle {
+    color: #a1a1a6;
+  }
+
+  .auth-gate-perks {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.6rem;
+    margin-bottom: 1.6rem;
+    text-align: left;
+  }
+
+  .auth-gate-perk-item {
+    background: #fbfbfd;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 12px;
+    padding: 0.65rem 0.75rem;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: #1d1d1f;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+  }
+
+  [data-theme="dark"] .auth-gate-perk-item {
+    background: #2c2c2e;
+    border-color: rgba(255, 255, 255, 0.1);
+    color: #f5f5f7;
+  }
+
+  .auth-gate-perk-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: #0071E3;
+    flex-shrink: 0;
+  }
+
+  [data-theme="dark"] .auth-gate-perk-icon {
+    color: #38bdf8;
+  }
+
+  .auth-gate-btn-google {
+    width: 100%;
+    min-height: 44px;
+    padding: 0.75rem 1rem;
+    background: #ffffff;
+    border: 1px solid rgba(0, 0, 0, 0.14);
+    border-radius: 980px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.65rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #1d1d1f;
+    text-decoration: none;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .auth-gate-btn-google:hover {
+    background: #f5f5f7;
+    border-color: #0071E3;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 113, 227, 0.15);
+  }
+
+  .auth-gate-btn-email {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 44px;
+    margin-top: 0.65rem;
+    padding: 0.75rem 1rem;
+    background: #0071E3;
+    color: #ffffff !important;
+    border-radius: 980px;
+    text-decoration: none;
+    font-size: 0.92rem;
+    font-weight: 600;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .auth-gate-btn-email:hover {
+    background: #0077ED;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.35);
+  }
+
+  .auth-gate-micro-copy {
+    margin-top: 0.95rem;
+    font-size: 0.75rem;
+    color: #86868b;
+  }
+
+  .auth-gate-close-btn {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    background: #f5f5f7;
+    border: none;
+    border-radius: 50%;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    color: #86868b;
+    font-size: 1.15rem;
+    transition: all 0.2s;
+  }
+
+  [data-theme="dark"] .auth-gate-close-btn {
+    background: #2c2c2e;
+    color: #a1a1a6;
+  }
+
+  .auth-gate-close-btn:hover {
+    background: #e5e5ea;
+    color: #1d1d1f;
+  }
+
+  /* Compulsory lock mode overrides */
+  .auth-gate-backdrop.compulsory .auth-gate-close-btn {
+    display: none !important;
+  }
+</style>
+
+<div class="auth-gate-backdrop" id="psychologicalAuthGate">
+  <div class="auth-gate-card">
+    <button type="button" class="auth-gate-close-btn" id="authGateCloseBtn" aria-label="Dismiss">&times;</button>
+    
+    <div class="auth-gate-badge">
+      <span class="auth-gate-dot"></span>
+      <span id="authGateBadgeText">2/2 FREE TRIAL PREVIEWS USED</span>
+    </div>
+
+    <h2 class="auth-gate-title" id="authGateTitle">Sign In to Continue Reading</h2>
+    <p class="auth-gate-subtitle" id="authGateSubtitle">
+      You've explored 2 free document previews. Create a free account or log in to access papers on any device, track your file history, and see what classmates refer during exams.
+    </p>
+
+    <div class="auth-gate-perks">
+      <div class="auth-gate-perk-item">
+        <span class="auth-gate-perk-icon" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+        </span>
+        <span>Access on Any Device</span>
+      </div>
+      <div class="auth-gate-perk-item">
+        <span class="auth-gate-perk-icon" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"></path><line x1="12" y1="6" x2="12" y2="8"></line><line x1="12" y1="16" x2="12" y2="18"></line></svg>
+        </span>
+        <span>Sell Notes & Earn</span>
+      </div>
+      <div class="auth-gate-perk-item">
+        <span class="auth-gate-perk-icon" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        </span>
+        <span>File Access History</span>
+      </div>
+      <div class="auth-gate-perk-item">
+        <span class="auth-gate-perk-icon" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        </span>
+        <span>Friends' Exam Picks</span>
+      </div>
+    </div>
+
+    {% set cur_path = request.full_path if request.query_string else request.path %}
+    <a href="{{ url_for('auth.login') }}?next={{ cur_path | urlencode }}" class="auth-gate-btn-google" id="authGateGoogleBtn">
+      <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/>
+        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/>
+      </svg>
+      <span>Continue with Google (1-Tap)</span>
+    </a>
+
+    <a href="{{ url_for('auth.signup') }}?next={{ cur_path | urlencode }}" class="auth-gate-btn-email">
+      Create Free Account
+    </a>
+
+    <p class="auth-gate-micro-copy">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:-1px;margin-right:4px;" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>100% free · No credit card required · Instant access
+    </p>
+  </div>
+</div>
+
+<script>
+  window.PsychologicalAuthGate = (function() {
+    const modal = document.getElementById('psychologicalAuthGate');
+    const titleEl = document.getElementById('authGateTitle');
+    const subEl = document.getElementById('authGateSubtitle');
+    const badgeEl = document.getElementById('authGateBadgeText');
+    const closeBtn = document.getElementById('authGateCloseBtn');
+
+    if (closeBtn && modal) {
+      closeBtn.addEventListener('click', () => {
+        if (!modal.classList.contains('compulsory')) {
+          modal.classList.remove('active');
+        }
+      });
+    }
+
+    // Dismiss only if non-compulsory
+    if (modal) {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal && !modal.classList.contains('compulsory')) {
+          modal.classList.remove('active');
+        }
+      });
+      document.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape' && modal.classList.contains('active') && !modal.classList.contains('compulsory')) {
+          modal.classList.remove('active');
+        }
+      });
+    }
+
+    const CONTEXT_PRESETS = {
+      trial_exhausted: {
+        badge: "2/2 FREE PREVIEWS USED",
+        title: "Sign In to Keep Reading",
+        subtitle: "You've explored 2 free document previews. Log in to access papers on any device, track your file history, and see what classmates refer during exams."
+      },
+      reader: {
+        badge: "24 STUDENTS READING RIGHT NOW",
+        title: "Unlock The Full Study Document",
+        subtitle: "Join 12,000+ peers. Create a free account in 5 seconds to read all pages, make highlights, and save to your personal store room."
+      },
+      ai_summary: {
+        badge: "50 FREE AI CREDITS WAITING",
+        title: "Extract Exam Answers with AI",
+        subtitle: "Get smart instant summaries, key formula cards, and revision flashcards generated directly from this document."
+      },
+      exit_intent: {
+        badge: "DON'T LOSE YOUR PROGRESS",
+        title: "Save This Paper For Later?",
+        subtitle: "One tap with Google saves this document to your library so you won't have to search for it again before exams."
+      }
+    };
+
+    function trigger(type, options = {}) {
+      if (!modal) return;
+      const isCompulsory = !!options.compulsory || type === 'trial_exhausted';
+      if (isCompulsory) {
+        modal.classList.add('compulsory');
+        document.body.style.overflow = 'hidden';
+      } else {
+        modal.classList.remove('compulsory');
+      }
+
+      const preset = CONTEXT_PRESETS[type] || CONTEXT_PRESETS.trial_exhausted;
+      if (titleEl) titleEl.textContent = preset.title;
+      if (subEl) subEl.textContent = preset.subtitle;
+      if (badgeEl) badgeEl.textContent = preset.badge;
+      modal.classList.add('active');
+    }
+
+    // Auto-meter trial access across document viewing pages
+    (function checkDocumentMeter() {
+      const p = window.location.pathname;
+      const isDocView = p.startsWith('/resource/') || p.startsWith('/pdf/') || !!window.__CURRENT_DOC__;
+      if (!isDocView) return;
+
+      const docId = (window.__CURRENT_DOC__ && window.__CURRENT_DOC__.id) || p.split('/')[2] || p;
+      if (!docId) return;
+
+      const STORAGE_KEY = 'abhihub_opened_docs';
+      const MAX_FREE_FILES = 2;
+
+      try {
+        let viewed = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]');
+        if (!Array.isArray(viewed)) viewed = [];
+
+        if (!viewed.includes(docId)) {
+          if (viewed.length >= MAX_FREE_FILES) {
+            // Reached quota! Compulsorily block file 3+
+            setTimeout(() => {
+              trigger('trial_exhausted', { compulsory: true });
+            }, 300);
+            return;
+          } else {
+            viewed.push(docId);
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(viewed));
+          }
+        }
+      } catch (e) {
+        console.warn('[DocMeter] Error checking guest quota:', e);
+      }
+    })();
+
+    // Non-compulsory exit intent on desktop
+    let exitTriggered = false;
+    document.addEventListener('mouseleave', (e) => {
+      if (e.clientY <= 0 && !exitTriggered && modal && !modal.classList.contains('active')) {
+        exitTriggered = true;
+        trigger('exit_intent');
+      }
+    });
+
+    return { trigger };
+  })();
+</script>
+{% else %}
+<script>
+  try { localStorage.removeItem('abhihub_opened_docs'); } catch(e) {}
+</script>
+{% endif %}

@@ -3,13 +3,18 @@ Admin analytics dashboard API endpoints.
 Requires admin authentication (uses @admin_required decorator).
 """
 
+import os
 import logging
+from functools import wraps
 from flask import request, jsonify, session
+
+from routes.auth import admin_required
 
 def register_reporter_routes(app):
     """Register admin analytics dashboard API endpoints."""
     
     @app.route('/api/admin/analytics/overview', methods=['GET'])
+    @admin_required
     def api_admin_analytics_overview():
         """Return overview KPIs for the analytics dashboard."""
         from methods.analytics_reporter import get_overview_kpis
@@ -19,6 +24,7 @@ def register_reporter_routes(app):
         return jsonify(result), 200 if result.get('success') else 500
     
     @app.route('/api/admin/analytics/trending-files', methods=['GET'])
+    @admin_required
     def api_admin_trending_files():
         """Return most viewed files."""
         from methods.analytics_reporter import get_trending_files
@@ -29,6 +35,7 @@ def register_reporter_routes(app):
         return jsonify(result), 200 if result.get('success') else 500
     
     @app.route('/api/admin/analytics/demographics', methods=['GET'])
+    @admin_required
     def api_admin_demographics():
         """Return user demographics breakdown."""
         from methods.analytics_reporter import get_user_demographics
@@ -38,6 +45,7 @@ def register_reporter_routes(app):
         return jsonify(result), 200 if result.get('success') else 500
     
     @app.route('/api/admin/analytics/usage-patterns', methods=['GET'])
+    @admin_required
     def api_admin_usage_patterns():
         """Return hourly/daily usage patterns."""
         from methods.analytics_reporter import get_usage_patterns
@@ -47,6 +55,7 @@ def register_reporter_routes(app):
         return jsonify(result), 200 if result.get('success') else 500
     
     @app.route('/api/admin/analytics/traffic-sources', methods=['GET'])
+    @admin_required
     def api_admin_traffic_sources():
         """Return top referrer URLs."""
         from methods.analytics_reporter import get_traffic_sources
@@ -57,6 +66,7 @@ def register_reporter_routes(app):
         return jsonify(result), 200 if result.get('success') else 500
     
     @app.route('/api/admin/analytics/devices', methods=['GET'])
+    @admin_required
     def api_admin_devices():
         """Return device type distribution."""
         from methods.analytics_reporter import get_device_breakdown
@@ -66,6 +76,7 @@ def register_reporter_routes(app):
         return jsonify(result), 200 if result.get('success') else 500
     
     @app.route('/api/admin/analytics/recent-activity', methods=['GET'])
+    @admin_required
     def api_admin_recent_activity():
         """Return recent file view activity feed."""
         from methods.analytics_reporter import get_recent_activity
@@ -75,6 +86,7 @@ def register_reporter_routes(app):
         return jsonify(result), 200 if result.get('success') else 500
     
     @app.route('/api/admin/analytics/trending-subjects', methods=['GET'])
+    @admin_required
     def api_admin_trending_subjects():
         """Return most viewed subjects."""
         from methods.analytics_reporter import get_trending_subjects
@@ -85,6 +97,7 @@ def register_reporter_routes(app):
         return jsonify(result), 200 if result.get('success') else 500
     
     @app.route('/api/admin/analytics/errors', methods=['GET'])
+    @admin_required
     def api_admin_errors():
         """Return recent errors."""
         from methods.analytics_reporter import get_error_summary
@@ -95,10 +108,22 @@ def register_reporter_routes(app):
         return jsonify(result), 200 if result.get('success') else 500
     
     @app.route('/api/admin/analytics/daily-views', methods=['GET'])
+    @admin_required
     def api_admin_daily_views():
         """Return daily view counts for chart."""
         from methods.analytics_reporter import get_daily_views
         
         days = min(int(request.args.get('days', 30)), 365)
         result = get_daily_views(days=days)
+        return jsonify(result), 200 if result.get('success') else 500
+
+    @app.route('/api/admin/analytics/sentiment', methods=['GET'])
+    @admin_required
+    def api_admin_sentiment_analytics():
+        """Return real-time content sentiment, likes, dislikes, and unmet demand."""
+        from methods.analytics_reporter import get_content_sentiment_analysis
+        
+        days = min(int(request.args.get('days', 30)), 365)
+        limit = min(int(request.args.get('limit', 20)), 100)
+        result = get_content_sentiment_analysis(days=days, limit=limit)
         return jsonify(result), 200 if result.get('success') else 500

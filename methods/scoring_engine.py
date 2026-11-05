@@ -8,6 +8,7 @@ award_contribution_xp() pipeline in methods/supabase_helper.py.
 Phase 1 scope: config loader + event processing with unique-view dedupe.
 """
 import logging
+import os
 import time
 from typing import Dict, Optional
 
@@ -355,34 +356,151 @@ def check_upload_quota(user_id: str) -> Dict:
         return {"allowed": True, "remaining": None}
 
 
-def get_ad_decision(user_id: Optional[str] = None) -> Dict:
+def get_ad_decision(
+    user_id: Optional[str] = None,
+    email: Optional[str] = None,
+    page_path: Optional[str] = None,
+) -> Dict:
     """
-    Server-side ad decision for the current user, from their access level.
-    Returns {'show_ads': bool, 'density': str}. Anonymous users get default
-    (show, high) — never manipulate ad rendering beyond frequency reduction.
+    Server-side ad decision based on the user's remaining file-view credits.
+
+    Ads reduce as remaining credits increase: 0 = high, 1-4 = moderate,
+    5-9 = low, 10-19 = minimum, and 20+ = one opportunity per calendar
+    month. Verified contributors receive an additional benefit: users with
+    1-2 approved uploads are capped at minimum density, while users with 3+
+    approved uploads are ad-free.
     """
-    default_levels = {"explorer": "high", "member": "medium", "contributor": "low",
-                      "power_contributor": "very_low", "community_leader": "minimal"}
-    density_map = get_config("ad_density") or default_levels
+    verification_emails = {
+        value.strip().lower()
+        for value in os.getenv(
+            "AD_VERIFICATION_EMAILS", "vaibhavi@abhihub.com"
+        ).split(",")
+        if value.strip()
+    }
+    if email and email.strip().lower() in verification_emails:
+        decision = {
+            "show_ads": True,
+            "density": "high",
+            "level": None,
+            "view_count": 0,
+            "view_credits_remaining": 0,
+            "verification_mode": True,
+        }
+        from methods.ad_control import apply_ad_override, get_ad_override
+        return apply_ad_override(decision, get_ad_override(user_id, email, page_path))
+
+    if not user_id:
+        decision = {
+            "show_ads": True,
+            "density": "high",
+            "level": None,
+            "view_count": 0,
+            "view_credits_remaining": 0,
+        }
+        from methods.ad_control import apply_ad_override, get_ad_override
+        return apply_ad_override(decision, get_ad_override(None, email, page_path))
+
     try:
-        if not user_id:
-            return {"show_ads": True, "density": "high", "level": None}
         client = _get_client()
-        res = (
-            client.table("profiles")
-            .select("access_level")
-            .eq("id", user_id)
-            .limit(1)
-            .execute()
-        )
-        level = (res.data or [{}])[0].get("access_level") or "explorer"
-        density = density_map.get(level, "high")
-        # 'minimal' still shows occasional ads; only a future explicit opt-out
-        # (e.g. premium tier) would set show_ads False.
-        return {"show_ads": True, "density": density, "level": level}
+        if not client:
+            logging.warning("[ScoringEngine] ad decision unavailable: database client missing")
+            decision = {
+                "show_ads": True,
+                "density": "high",
+                "level": None,
+                "view_count": 0,
+                "view_credits_remaining": 0,
+            }
+            from methods.ad_control import apply_ad_override, get_ad_override
+            return apply_ad_override(decision, get_ad_override(user_id, email, page_path))
+
+        # Check L1 cache to avoid redundant Supabase queries on every navigation (bypass during pytest runs)
+        user_metrics = None
+        cache = None
+        try:
+            is_testing = bool(os.environ.get('PYTEST_CURRENT_TEST'))
+            if not is_testing:
+                from cache_manager import get_cache
+                cache = get_cache()
+                user_metrics, _ = cache.l1.get(f"user_ad_metrics:{user_id}")
+        except Exception:
+            cache = None
+
+        if user_metrics is not None:
+            remaining_credits, verified_upload_count = user_metrics
+        else:
+            profile = client.table("profiles").select(
+                "paper_quota_remaining"
+            ).eq("id", user_id).limit(1).execute()
+            if not profile.data:
+                logging.warning("[ScoringEngine] no quota profile found for user %s", user_id)
+                remaining_credits = 0
+            else:
+                remaining_credits = max(
+                    0, int(profile.data[0].get("paper_quota_remaining") or 0)
+                )
+
+            verified_upload_count = 0
+            try:
+                uploads = client.table("documents").select(
+                    "id", count="exact"
+                ).eq("uploader_id", user_id).eq("status", "approved").limit(1).execute()
+                verified_upload_count = int(
+                    getattr(uploads, "count", None)
+                    if getattr(uploads, "count", None) is not None
+                    else len(uploads.data or [])
+                )
+            except Exception as upload_error:
+                logging.warning(
+                    "[ScoringEngine] verified upload lookup failed for %s: %s",
+                    user_id,
+                    upload_error,
+                )
+            if cache:
+                cache.l1.set(f"user_ad_metrics:{user_id}", (remaining_credits, verified_upload_count), ttl=90)
+
+        if remaining_credits == 0:
+            density = "high"
+        elif remaining_credits < 5:
+            density = "medium"
+        elif remaining_credits < 10:
+            density = "low"
+        elif remaining_credits < 20:
+            density = "minimum"
+        else:
+            density = "monthly"
+
+        if verified_upload_count >= 3:
+            show_ads = False
+            density = "off"
+        elif verified_upload_count >= 1:
+            show_ads = True
+            density = "minimum"
+        else:
+            show_ads = True
+
+        decision = {
+            "show_ads": show_ads,
+            "density": density,
+            "level": None,
+            "view_count": remaining_credits,
+            "view_credits_remaining": remaining_credits,
+            "verified_upload_count": verified_upload_count,
+            "ad_free_contributor": verified_upload_count >= 3,
+        }
+        from methods.ad_control import apply_ad_override, get_ad_override
+        return apply_ad_override(decision, get_ad_override(user_id, email, page_path))
     except Exception as e:
         logging.warning(f"[ScoringEngine] ad decision failed, defaulting: {e}")
-        return {"show_ads": True, "density": "high", "level": None}
+        decision = {
+            "show_ads": True,
+            "density": "high",
+            "level": None,
+            "view_count": 0,
+            "view_credits_remaining": 0,
+        }
+        from methods.ad_control import apply_ad_override, get_ad_override
+        return apply_ad_override(decision, get_ad_override(user_id, email, page_path))
 
 
 def process_event(user_id: str, event_type: str, entity_id: Optional[str] = None,
@@ -419,7 +537,7 @@ def process_event(user_id: str, event_type: str, entity_id: Optional[str] = None
             return {"success": True, "scored": False,
                     "reason": "rate limit exceeded"}
 
-        base = float(point_map[event_type])
+        base = int(round(float(point_map[event_type])))
         if base <= 0:
             return {"success": True, "scored": False}
 
