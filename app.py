@@ -316,7 +316,7 @@ from flask import make_response, request
 import time
 
 # Valid production domains for security checks
-VALID_DOMAINS = {'www.abhihub.edu.eu.org', 'abhihub.edu.eu.org'}
+VALID_DOMAINS = {'www.abhihub.edu.eu.org', 'abhihub.edu.eu.org', 'beta.abhihub.edu.eu.org'}
 AI_CRAWLER_USER_AGENTS = (
     'GPTBot',
     'ChatGPT-User',
@@ -469,7 +469,7 @@ def handle_canonical_and_subdomain_routing():
         return redirect(f"https://{BASE_DOMAIN}/dashboard", code=301)
         
     # 2. Skip redirect for local development & internal health checks
-    if host in ('localhost', '127.0.0.1', '0.0.0.0') or host.startswith('192.168.') or host.startswith('10.'):
+    if host in ('localhost', '127.0.0.1', '0.0.0.0', 'beta.abhihub.edu.eu.org') or host.endswith('.vercel.app') or host.startswith('192.168.') or host.startswith('10.'):
         return None
     if request.path in ('/health', '/api/health'):
         return None
