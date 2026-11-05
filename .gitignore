@@ -40,7 +40,6 @@ Thumbs.db
 
 # Sensitive data files
 docs
-docs/*
 data/admin_users.json
 data/contact_messages.json
 data/push_subscriptions.json
@@ -48,6 +47,7 @@ data/suspects.json
 data/notification_history.json
 cors.json
 icons.json
+.documentation
 
 # Test/trash artifacts
 trash/
