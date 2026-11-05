@@ -17,6 +17,17 @@ def get_ad_override(
     page_path: Optional[str] = None,
 ):
     """Return the highest-priority active override, or None if unset."""
+    try:
+        from cache_manager import get_cache
+        cache = get_cache()
+        c_key = f"ad_override:{user_id or '*'}:{email or '*'}:{page_path or '*'}"
+        cached_val, _ = cache.l1.get(c_key)
+        if cached_val is not None:
+            return None if cached_val == '__NONE__' else cached_val
+    except Exception:
+        cache = None
+        c_key = None
+
     client = _client()
     if not client:
         return None
@@ -36,10 +47,15 @@ def get_ad_override(
                 "scope_type, scope_key, enabled, note, updated_at"
             ).eq("scope_type", scope_type).eq("scope_key", scope_key).limit(1).execute()
             if result.data:
-                return result.data[0]
+                val = result.data[0]
+                if cache and c_key:
+                    cache.l1.set(c_key, val, ttl=300)
+                return val
     except Exception as exc:
-        # The migration may not have been applied yet; preserve normal ad logic.
         log.warning("[Ads] override lookup unavailable: %s", exc)
+
+    if cache and c_key:
+        cache.l1.set(c_key, '__NONE__', ttl=120)
     return None
 
 

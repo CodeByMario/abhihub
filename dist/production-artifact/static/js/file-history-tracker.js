@@ -3,7 +3,14 @@
  * Call this function whenever a file is viewed/accessed
  */
 
+const fileAccessRequests = new Map();
+
 async function trackFileAccess(fileName, fileType, filePath = '', fileUrl = '') {
+    const requestKey = [fileName, fileType, filePath, fileUrl].join('|');
+    const existing = fileAccessRequests.get(requestKey);
+    if (existing) return existing;
+
+    const requestPromise = (async () => {
     try {
         const startTime = performance.now();
         const response = await fetch('/api/events', {
@@ -37,6 +44,10 @@ async function trackFileAccess(fileName, fileType, filePath = '', fileUrl = '') 
     } catch (error) {
         console.error('Error tracking file access:', error);
     }
+    })();
+    fileAccessRequests.set(requestKey, requestPromise);
+    requestPromise.finally(() => fileAccessRequests.delete(requestKey));
+    return requestPromise;
 }
 
 // Export for use in other scripts

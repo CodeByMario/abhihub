@@ -9,301 +9,186 @@
 
 {% block content %}
 <style>
+  /* ─── Edge-to-Edge Reset ─── */
+  body {
+    margin: 0 !important;
+    padding: 0 !important;
+    width: 100% !important;
+    max-width: 100vw !important;
+    background: var(--apple-bg, #FBFBFD) !important;
+  }
+
+  main {
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    gap: 0 !important;
+    background: var(--apple-bg, #FBFBFD) !important;
+  }
+
+  /* ─── Apple Design Tokens ─── */
   :root {
-    --auth-ink-900: #0a0f1d;
-    --auth-ink-800: #131c31;
-    --auth-ink-600: #475569;
-    --auth-ink-400: #94a3b8;
-    --auth-surface: #ffffff;
-    --auth-surface-soft: #f8fafc;
-    --auth-surface-subtle: #f1f5f9;
-    --auth-border: #e2e8f0;
-    --auth-border-focus: #1d4ed8;
-    --auth-cobalt: #1d4ed8;
-    --auth-cobalt-deep: #1e40af;
-    --auth-cobalt-wash: rgba(29, 78, 216, 0.08);
-    --auth-crimson: #dc2626;
-    --auth-crimson-wash: #fef2f2;
-    --auth-emerald: #047857;
-    --auth-emerald-wash: #ecfdf5;
-    --auth-emerald-border: #a7f3d0;
+    --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    --apple-blue: #0071E3;
+    --apple-blue-hover: #0077ED;
+    --apple-blue-subtle: rgba(0, 113, 227, 0.08);
+    --apple-dark: #1D1D1F;
+    --apple-gray: #86868B;
+    --apple-gray-light: #F5F5F7;
+    --apple-border: rgba(0, 0, 0, 0.08);
+    --apple-surface: #FFFFFF;
+    --apple-surface-card: #FFFFFF;
+    --apple-surface-subtle: #F5F5F7;
+    --apple-bg: #FBFBFD;
+    --apple-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.08);
+    --apple-red: #E03E3E;
+    --apple-green: #107C41;
+    --apple-green-wash: rgba(16, 124, 65, 0.08);
+    --apple-green-border: rgba(16, 124, 65, 0.2);
+    --apple-amber: #B45309;
+    --apple-amber-wash: #FFFBEB;
+    --apple-amber-border: #FDE68A;
   }
 
   [data-theme="dark"], .dark {
-    --auth-ink-900: #f8fafc;
-    --auth-ink-800: #f1f5f9;
-    --auth-ink-600: #cbd5e1;
-    --auth-ink-400: #94a3b8;
-    --auth-surface: #0f172a;
-    --auth-surface-soft: #131e36;
-    --auth-surface-subtle: #1e293b;
-    --auth-border: #22324f;
-    --auth-border-focus: #3b82f6;
-    --auth-cobalt: #3b82f6;
-    --auth-cobalt-deep: #60a5fa;
-    --auth-cobalt-wash: rgba(59, 130, 246, 0.12);
-    --auth-crimson: #f87171;
-    --auth-crimson-wash: rgba(220, 38, 38, 0.12);
-    --auth-emerald: #34d399;
-    --auth-emerald-wash: rgba(4, 120, 87, 0.14);
-    --auth-emerald-border: rgba(52, 211, 153, 0.25);
+    --apple-dark: #F5F5F7;
+    --apple-gray: #A1A1A6;
+    --apple-gray-light: #1D1D1F;
+    --apple-border: rgba(255, 255, 255, 0.12);
+    --apple-surface: #121214;
+    --apple-surface-card: #18181B;
+    --apple-surface-subtle: #1C1C1E;
+    --apple-bg: #000000;
+    --apple-shadow: 0 10px 30px -10px rgba(0, 0, 0, 0.5);
+    --apple-blue: #2997FF;
+    --apple-blue-hover: #40A9FF;
+    --apple-blue-subtle: rgba(41, 151, 255, 0.15);
+    --apple-red: #FF453A;
+    --apple-green: #30D158;
+    --apple-green-wash: rgba(48, 209, 88, 0.15);
+    --apple-green-border: rgba(48, 209, 88, 0.3);
+    --apple-amber: #FFD60A;
+    --apple-amber-wash: rgba(255, 214, 10, 0.12);
+    --apple-amber-border: rgba(255, 214, 10, 0.25);
   }
 
+  /* ─── Focused Single-Card Authentication ─── */
   .auth-stage {
-    font-family: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
-    min-height: calc(100vh - 72px);
+    font-family: var(--apple-font);
+    min-height: calc(100vh - 48px);
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
-    padding: 2.5rem 1.25rem;
-    background: var(--auth-surface-soft);
+    padding: 3rem 1.25rem 4rem;
+    background: var(--apple-bg);
+    box-sizing: border-box;
   }
 
-  .auth-split-card {
-    max-width: 1040px;
+  .auth-focus-card {
+    max-width: 440px;
     width: 100%;
-    background: var(--auth-surface);
-    border: 1px solid var(--auth-border);
-    border-radius: 20px;
-    overflow: hidden;
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    box-shadow: 0 20px 45px -10px rgba(15, 23, 42, 0.1);
+    background: var(--apple-surface-card);
+    border: 1px solid var(--apple-border);
+    border-radius: 24px;
+    padding: 2.75rem 2.25rem;
+    box-shadow: var(--apple-shadow);
+    box-sizing: border-box;
+    transition: box-shadow 0.3s ease;
   }
 
-  @media (max-width: 860px) {
-    .auth-split-card {
-      grid-template-columns: 1fr;
-      max-width: 480px;
+  @media (max-width: 480px) {
+    .auth-stage {
+      padding: 1.5rem 1rem 3rem;
+    }
+    .auth-focus-card {
+      padding: 2rem 1.5rem;
+      border-radius: 20px;
     }
   }
 
-  /* ─── Left Side: Institutional Dossier & Launch Covenant ─── */
-  .auth-dossier-panel {
-    background: linear-gradient(145deg, #090e1a 0%, #111a30 100%);
-    color: #ffffff;
-    padding: 3rem 2.5rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    position: relative;
-    border-right: 1px solid rgba(255, 255, 255, 0.08);
-  }
-
-  @media (max-width: 860px) {
-    .auth-dossier-panel {
-      padding: 2rem 1.75rem;
-      border-right: none;
-      border-bottom: 1px solid var(--auth-border);
-    }
-  }
-
-  .dossier-top-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 0.35rem 0.85rem;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 999px;
-    font-size: 0.76rem;
-    font-weight: 700;
-    color: #93c5fd;
-    letter-spacing: 0.03em;
-    margin-bottom: 1.5rem;
-    width: fit-content;
-  }
-
-  .dossier-lead-title {
-    font-size: clamp(1.6rem, 2.8vw, 2.1rem);
-    font-weight: 800;
-    color: #ffffff;
-    line-height: 1.2;
-    letter-spacing: -0.025em;
-    margin: 0 0 0.85rem;
-  }
-
-  .dossier-lead-desc {
-    font-size: 0.92rem;
-    color: #cbd5e1;
-    line-height: 1.55;
-    margin: 0 0 1.75rem;
-  }
-
-  /* Countdown Urgency Module */
-  .auth-countdown-card {
-    background: rgba(15, 23, 42, 0.75);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    border-radius: 14px;
-    padding: 1.1rem 1.25rem;
-    margin-bottom: 1.75rem;
-  }
-
-  .auth-countdown-header {
-    display: flex;
-    align-items: center;
-    gap: 0.4rem;
-    margin-bottom: 0.6rem;
-    font-size: 0.72rem;
-    font-weight: 800;
-    color: #f87171;
-    letter-spacing: 0.05em;
-  }
-
-  .pulse-red-dot {
-    width: 7px;
-    height: 7px;
-    background: #f87171;
-    border-radius: 50%;
-    animation: urgentPulse 1.2s infinite ease-in-out;
-  }
-
-  .auth-countdown-grid {
-    display: flex;
-    align-items: center;
-    gap: 0.35rem;
-  }
-
-  .auth-time-unit {
-    background: #020617;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    border-radius: 6px;
-    padding: 0.35rem 0.55rem;
+  .auth-header {
     text-align: center;
-    min-width: 44px;
+    margin-bottom: 2rem;
   }
 
-  .auth-time-digits {
-    font-size: 1.15rem;
-    font-weight: 800;
-    font-variant-numeric: tabular-nums;
-    color: #ffffff;
-    line-height: 1;
-    display: block;
-  }
-
-  .auth-time-digits.seconds {
-    color: #f87171;
-  }
-
-  .auth-time-tag {
-    font-size: 0.55rem;
-    font-weight: 700;
-    color: #94a3b8;
-    margin-top: 0.15rem;
-    display: block;
-  }
-
-  .auth-time-sep {
-    font-size: 1rem;
-    font-weight: 800;
-    color: #f87171;
-  }
-
-  /* Quota Covenant Highlights */
-  .auth-covenant-perks {
-    display: flex;
-    flex-direction: column;
-    gap: 0.65rem;
-    margin-bottom: 1.5rem;
-  }
-
-  .perk-row {
-    display: flex;
-    align-items: flex-start;
-    gap: 0.65rem;
-    font-size: 0.85rem;
-    color: #e2e8f0;
-  }
-
-  .perk-icon-pill {
-    background: rgba(37, 99, 235, 0.25);
-    color: #60a5fa;
-    width: 22px;
-    height: 22px;
-    border-radius: 6px;
+  .auth-icon-badge {
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--apple-surface-subtle);
+    border: 1px solid var(--apple-border);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-size: 0.75rem;
-    font-weight: 800;
-    flex-shrink: 0;
-    margin-top: 0.1rem;
+    margin: 0 auto 1.25rem;
+    color: var(--apple-blue);
   }
 
-  .dossier-footer-note {
-    font-size: 0.76rem;
-    color: #94a3b8;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-    padding-top: 1rem;
-  }
-
-  /* ─── Right Side: Auth Admission Form ─── */
-  .auth-form-panel {
-    padding: 3rem 2.5rem;
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  @media (max-width: 860px) {
-    .auth-form-panel {
-      padding: 2.25rem 1.75rem;
-    }
-  }
-
-  .auth-form-title {
+  .auth-title {
     font-size: 1.65rem;
-    font-weight: 800;
-    color: var(--auth-ink-900);
+    font-weight: 700;
+    color: var(--apple-dark);
     letter-spacing: -0.025em;
-    margin: 0 0 0.35rem;
+    margin: 0 0 0.4rem;
   }
 
-  .auth-form-subhead {
-    font-size: 0.88rem;
-    color: var(--auth-ink-600);
-    margin: 0 0 1.75rem;
+  .auth-subhead {
+    font-size: 0.92rem;
+    color: var(--apple-gray);
+    margin: 0;
+    line-height: 1.5;
   }
 
-  /* Google Button */
+  /* ─── Google Button ─── */
   .p-google-btn {
     width: 100%;
-    padding: 0.85rem 1rem;
-    background: var(--auth-surface);
-    border: 1px solid var(--auth-border);
-    border-radius: 12px;
+    height: 44px;
+    padding: 0 1rem;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: 980px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
     cursor: pointer;
     font-size: 0.92rem;
-    font-weight: 700;
-    color: var(--auth-ink-900);
-    transition: all 0.15s ease;
-    margin-bottom: 1.25rem;
+    font-weight: 600;
+    color: var(--apple-dark);
+    font-family: var(--apple-font);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-sizing: border-box;
   }
 
   .p-google-btn:hover {
-    background: var(--auth-surface-subtle);
-    border-color: var(--auth-ink-400);
+    background: var(--apple-surface-subtle);
+    border-color: rgba(0, 0, 0, 0.16);
+    transform: translateY(-1px);
+  }
+
+  [data-theme="dark"] .p-google-btn:hover,
+  .dark .p-google-btn:hover {
+    border-color: rgba(255, 255, 255, 0.22);
   }
 
   .p-google-btn img {
-    width: 20px;
-    height: 20px;
+    width: 18px;
+    height: 18px;
   }
 
-  /* Divider */
+  /* ─── Divider ─── */
   .auth-divider-line {
     display: flex;
     align-items: center;
     gap: 0.85rem;
-    margin: 0.25rem 0 1.25rem;
-    color: var(--auth-ink-400);
-    font-size: 0.76rem;
+    margin: 1.35rem 0;
+    color: var(--apple-gray);
+    font-size: 0.72rem;
     font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
   }
 
   .auth-divider-line::before,
@@ -311,223 +196,189 @@
     content: '';
     flex: 1;
     height: 1px;
-    background: var(--auth-border);
+    background: var(--apple-border);
   }
 
-  /* Inputs */
+  /* ─── Form Elements ─── */
   .input-field-wrap {
-    margin-bottom: 1rem;
+    margin-bottom: 1.15rem;
   }
 
   .input-label-text {
-    font-size: 0.8rem;
-    font-weight: 700;
-    color: var(--auth-ink-900);
-    margin-bottom: 0.35rem;
+    font-size: 0.82rem;
+    font-weight: 600;
+    color: var(--apple-dark);
+    margin-bottom: 0.4rem;
     display: block;
   }
 
   .p-input-field {
     width: 100%;
-    padding: 0.85rem 1rem;
-    background: var(--auth-surface);
-    border: 1px solid var(--auth-border);
-    border-radius: 10px;
+    height: 44px;
+    padding: 0 1rem;
+    background: var(--apple-surface-subtle);
+    border: 1px solid var(--apple-border);
+    border-radius: 12px;
     font-size: 0.92rem;
-    color: var(--auth-ink-900);
+    color: var(--apple-dark);
+    font-family: var(--apple-font);
     outline: none;
-    transition: border-color 0.15s, box-shadow 0.15s;
+    transition: border-color 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
     box-sizing: border-box;
   }
 
   .p-input-field:focus {
-    border-color: var(--auth-cobalt);
-    box-shadow: 0 0 0 3px var(--auth-cobalt-wash);
+    background: var(--apple-surface);
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px var(--apple-blue-subtle);
   }
 
   /* Live Domain Benefit Detector Chip */
   #domain-perk-hint {
     display: none;
-    padding: 0.65rem 0.85rem;
-    border-radius: 8px;
-    font-size: 0.8rem;
-    font-weight: 600;
-    margin-bottom: 1rem;
+    padding: 0.75rem 0.95rem;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-weight: 500;
+    margin-bottom: 1.15rem;
     line-height: 1.45;
   }
 
   /* Submit Button */
   .p-signin-btn {
     width: 100%;
-    padding: 0.85rem 1.25rem;
-    background: var(--auth-cobalt);
-    color: #ffffff;
+    height: 44px;
+    padding: 0 1.25rem;
+    background: var(--apple-blue);
+    color: #FFFFFF;
     border: none;
-    border-radius: 12px;
+    border-radius: 980px;
     font-size: 0.95rem;
-    font-weight: 700;
+    font-weight: 600;
+    font-family: var(--apple-font);
     cursor: pointer;
-    transition: background 0.15s ease, transform 0.15s ease;
+    transition: background-color 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
     margin-top: 0.5rem;
     margin-bottom: 1.25rem;
   }
 
   .p-signin-btn:hover {
-    background: var(--auth-cobalt-deep);
+    background: var(--apple-blue-hover);
     transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.3);
   }
 
   /* Error messages */
   .error-msg {
-    color: var(--auth-crimson);
+    color: var(--apple-red);
     font-size: 0.8rem;
-    font-weight: 600;
-    margin-top: -0.5rem;
+    font-weight: 500;
+    margin-top: -0.4rem;
     margin-bottom: 0.85rem;
     min-height: 1rem;
   }
 
-  /* Footer links */
+  /* Footer Links */
   .auth-links-footer {
     display: flex;
-    justify-content: space-between;
+    flex-direction: column;
     align-items: center;
-    font-size: 0.84rem;
-    color: var(--auth-ink-600);
-    flex-wrap: wrap;
-    gap: 0.5rem;
+    gap: 0.65rem;
+    font-size: 0.86rem;
+    color: var(--apple-gray);
+    text-align: center;
   }
 
   .auth-links-footer a {
-    color: var(--auth-cobalt);
-    font-weight: 700;
+    color: var(--apple-blue);
+    font-weight: 600;
     text-decoration: none;
+    transition: opacity 0.2s ease;
   }
 
   .auth-links-footer a:hover {
     text-decoration: underline;
   }
+
+  /* Trust Banner */
+  .auth-trust-note {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.45rem;
+    font-size: 0.78rem;
+    color: var(--apple-gray);
+    margin-top: 2rem;
+    text-align: center;
+  }
+
+  .auth-trust-note svg {
+    flex-shrink: 0;
+    color: var(--apple-gray);
+  }
 </style>
 
 <div class="auth-stage">
-  <div class="auth-split-card">
-    <!-- ─── Left: Institutional Dossier & Launch Covenant ─── -->
-    <div class="auth-dossier-panel">
-      <div>
-        <div class="dossier-top-badge">
-          <span>🏛️ GHRCE & Autonomous College Exchange</span>
-        </div>
-
-        <h1 class="dossier-lead-title">
-          Sign in to your verified student exam vault.
-        </h1>
-
-        <p class="dossier-lead-desc">
-          Instant access to verified semester question papers, handwritten solution sets, and your creator royalty wallet.
-        </p>
-
-        <!-- Live Desperation Countdown Box -->
-        <div class="auth-countdown-card">
-          <div class="auth-countdown-header">
-            <span class="pulse-red-dot"></span>
-            <span>90% LAUNCH DEAL EXPIRES IN</span>
-          </div>
-          <div class="auth-countdown-grid">
-            <div class="auth-time-unit">
-              <span class="auth-time-digits" id="loginCdDays">00</span>
-              <span class="auth-time-tag">DAYS</span>
-            </div>
-            <span class="auth-time-sep">:</span>
-            <div class="auth-time-unit">
-              <span class="auth-time-digits" id="loginCdHours">00</span>
-              <span class="auth-time-tag">HOURS</span>
-            </div>
-            <span class="auth-time-sep">:</span>
-            <div class="auth-time-unit">
-              <span class="auth-time-digits" id="loginCdMins">00</span>
-              <span class="auth-time-tag">MINS</span>
-            </div>
-            <span class="auth-time-sep">:</span>
-            <div class="auth-time-unit">
-              <span class="auth-time-digits seconds" id="loginCdSecs">00</span>
-              <span class="auth-time-tag">SECS</span>
-            </div>
-          </div>
-        </div>
-
-        <!-- Quota Covenants -->
-        <div class="auth-covenant-perks">
-          <div class="perk-row">
-            <span class="perk-icon-pill">✓</span>
-            <div><strong>20 Free Views:</strong> Granted instantly with your official college email.</div>
-          </div>
-          <div class="perk-row">
-            <span class="perk-icon-pill">✓</span>
-            <div><strong>90% Off Packs:</strong> 10 Views for ₹4, 65 Views for ₹13 during launch.</div>
-          </div>
-          <div class="perk-row">
-            <span class="perk-icon-pill">✓</span>
-            <div><strong>Keep 90% of Sales:</strong> Creators keep 90% of amounts with T+9 payouts.</div>
-          </div>
-          <div class="perk-row">
-            <span class="perk-icon-pill">✓</span>
-            <div><strong>Fair Credits Rule:</strong> Free materials use credits; paid notes never cost views.</div>
-          </div>
-        </div>
+  <div class="auth-focus-card">
+    <div class="auth-header">
+      <div class="auth-icon-badge" aria-hidden="true">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+        </svg>
       </div>
-
-      <div class="dossier-footer-note">
-        Official campus security: 256-bit encryption & DRM document shield enabled.
-      </div>
+      <h1 class="auth-title">Sign in to AbhiHub</h1>
+      <p class="auth-subhead">Access verified engineering exam papers and notes.</p>
     </div>
 
-    <!-- ─── Right: Authentication Terminal ─── -->
-    <div class="auth-form-panel">
-      <h2 class="auth-form-title">Student Sign In</h2>
-      <p class="auth-form-subhead">Continue with your college credentials or Google account.</p>
+    <!-- 1-Click Google Sign In -->
+    <button type="button" id="sign-in-with-google-btn" class="p-google-btn">
+      <img src="{{ url_for('static', filename='images/google-icon.png') }}" alt="Google logo">
+      <span>Continue with Google</span>
+    </button>
 
-      <!-- 1-Click Google Sign In -->
-      <button type="button" id="sign-in-with-google-btn" class="p-google-btn">
-        <img src="{{ url_for('static', filename='images/google-icon.png') }}" alt="Google logo">
-        <span>Continue with Google</span>
-      </button>
+    <div class="auth-divider-line">OR</div>
 
-      <div class="auth-divider-line">OR SIGN IN WITH EMAIL</div>
+    <!-- Domain benefit detector banner -->
+    <div id="domain-perk-hint"></div>
 
-      <!-- Domain benefit detector banner -->
-      <div id="domain-perk-hint"></div>
+    <div id="google-signin-error-message" class="error-msg" role="alert" aria-live="assertive"></div>
 
-      <div id="google-signin-error-message" class="error-msg" role="alert" aria-live="assertive"></div>
-
-      <!-- Email Field -->
-      <div class="input-field-wrap">
-        <label for="email-input" class="input-label-text">College or Personal Email</label>
-        <input type="email" id="email-input" class="p-input-field" placeholder="you@ghrce.raisoni.net" required autocomplete="email">
-        <div id="email-error-message" class="error-msg" role="alert" aria-live="assertive"></div>
-      </div>
-
-      <!-- Password Field -->
-      <div class="input-field-wrap">
-        <label for="password-input" class="input-label-text">Password</label>
-        <input type="password" id="password-input" class="p-input-field" placeholder="••••••••" required autocomplete="current-password">
-        <div id="password-error-message" class="error-msg" role="alert" aria-live="assertive"></div>
-      </div>
-
-      {% if TURNSTILE_SITEKEY %}
-      <div style="display: flex; justify-content: center; margin-bottom: 0.75rem;">
-        <div class="cf-turnstile" data-sitekey="{{ TURNSTILE_SITEKEY }}" data-action="turnstile-spin-v2"></div>
-      </div>
-      {% endif %}
-
-      <!-- Action Button -->
-      <button type="button" id="sign-in-btn" class="p-signin-btn">Sign In to Exam Vault</button>
-
-      <!-- Navigation Links -->
-      <div class="auth-links-footer">
-        <div>New to AbhiHub? <a href="{{ url_for('auth.signup') }}">Create Account</a></div>
-        <div><a href="{{ url_for('auth.reset_password') }}">Forgot Password?</a></div>
-      </div>
+    <!-- Email Field -->
+    <div class="input-field-wrap">
+      <label for="email-input" class="input-label-text">Student or College Email</label>
+      <input type="email" id="email-input" class="p-input-field" placeholder="you@ghrce.raisoni.net" required autocomplete="email">
+      <div id="email-error-message" class="error-msg" role="alert" aria-live="assertive"></div>
     </div>
+
+    <!-- Password Field -->
+    <div class="input-field-wrap">
+      <label for="password-input" class="input-label-text">Password</label>
+      <input type="password" id="password-input" class="p-input-field" placeholder="••••••••" required autocomplete="current-password">
+      <div id="password-error-message" class="error-msg" role="alert" aria-live="assertive"></div>
+    </div>
+
+    {% if TURNSTILE_SITEKEY %}
+    <div style="display: flex; justify-content: center; margin-bottom: 0.75rem;">
+      <div class="cf-turnstile" data-sitekey="{{ TURNSTILE_SITEKEY }}" data-action="turnstile-spin-v2"></div>
+    </div>
+    {% endif %}
+
+    <!-- Action Button -->
+    <button type="button" id="sign-in-btn" class="p-signin-btn">Sign In</button>
+
+    <!-- Navigation Links -->
+    <div class="auth-links-footer">
+      <div>New to AbhiHub? <a href="{{ url_for('auth.signup') }}">Create Account</a></div>
+      <div><a href="{{ url_for('auth.reset_password') }}">Forgot Password?</a></div>
+    </div>
+  </div>
+
+  <div class="auth-trust-note">
+    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+      <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+    </svg>
+    <span>Protected with 256-bit encryption &amp; verified student network.</span>
   </div>
 </div>
 
@@ -536,7 +387,7 @@
   style="display: none; position: fixed; inset: 0; background: rgba(10, 15, 29, 0.85); backdrop-filter: blur(8px); z-index: 5000; align-items: center; justify-content: center; flex-direction: column; color: #ffffff;">
   <div style="width: 44px; height: 44px; border: 3px solid rgba(255,255,255,0.2); border-top: 3px solid #3b82f6; border-radius: 50%; animation: spin 0.8s linear infinite; margin-bottom: 16px;"></div>
   <h3 style="color: #ffffff; font-weight: 700; font-size: 1.15rem; margin: 0 0 6px;">Verifying Student Credentials...</h3>
-  <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Logging you into the exam exchange.</p>
+  <p style="color: #94a3b8; font-size: 0.85rem; margin: 0;">Logging you into your account.</p>
 </div>
 
 <script>
@@ -563,51 +414,21 @@
 
         if (collegeMatch) {
           perkHint.style.display = 'block';
-          perkHint.style.background = 'var(--auth-emerald-wash)';
-          perkHint.style.border = '1px solid var(--auth-emerald-border)';
-          perkHint.style.color = 'var(--auth-emerald)';
-          perkHint.innerHTML = '🎓 <strong>Verified Campus Email:</strong> 20 Free Study Views unlocked + 90% Launch Pack Discounts (₹4 Chai Top-up)!';
+          perkHint.style.background = 'var(--apple-green-wash)';
+          perkHint.style.border = '1px solid var(--apple-green-border)';
+          perkHint.style.color = 'var(--apple-green)';
+          perkHint.innerHTML = '<div style="display:flex;align-items:center;gap:0.5rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg><span><strong>Verified Campus Email:</strong> 20 Free Study Views unlocked.</span></div>';
         } else if (gmailMatch) {
           perkHint.style.display = 'block';
-          perkHint.style.background = '#fef3c7';
-          perkHint.style.border = '1px solid #fde68a';
-          perkHint.style.color = '#92400e';
-          perkHint.innerHTML = '⚡ <strong>Personal Gmail:</strong> 5 Free Views unlocked. <em>(Tip: Sign in with your college email to receive 20 Free Views!)</em>';
+          perkHint.style.background = 'var(--apple-amber-wash)';
+          perkHint.style.border = '1px solid var(--apple-amber-border)';
+          perkHint.style.color = 'var(--apple-amber)';
+          perkHint.innerHTML = '<div style="display:flex;align-items:center;gap:0.5rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg><span>Personal email recognized. Use college email for 20 free views.</span></div>';
         } else {
-          perkHint.style.display = 'block';
-          perkHint.style.background = 'var(--auth-surface-subtle)';
-          perkHint.style.border = '1px solid var(--auth-border)';
-          perkHint.style.color = 'var(--auth-ink-600)';
-          perkHint.innerHTML = 'ℹ️ Use your official college email (@raisoni.net / .ac.in / .edu) to qualify for 20 free views and student rates.';
+          perkHint.style.display = 'none';
         }
       });
     }
-  })();
-
-  // ─── Ticking Launch Countdown Timer ─────────────────────────────
-  (function() {
-    var target = new Date('2026-11-08T23:59:59Z').getTime();
-    function tick() {
-      var now = new Date().getTime();
-      var delta = Math.max(0, target - now);
-
-      var d = Math.floor(delta / (1000 * 60 * 60 * 24));
-      var h = Math.floor((delta % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      var m = Math.floor((delta % (1000 * 60 * 60)) / (1000 * 60));
-      var s = Math.floor((delta % (1000 * 60)) / 1000);
-
-      var dEl = document.getElementById('loginCdDays');
-      var hEl = document.getElementById('loginCdHours');
-      var mEl = document.getElementById('loginCdMins');
-      var sEl = document.getElementById('loginCdSecs');
-
-      if (dEl) dEl.textContent = String(d).padStart(2, '0');
-      if (hEl) hEl.textContent = String(h).padStart(2, '0');
-      if (mEl) mEl.textContent = String(m).padStart(2, '0');
-      if (sEl) sEl.textContent = String(s).padStart(2, '0');
-    }
-    tick();
-    setInterval(tick, 1000);
   })();
 
   // ─── OAuth Overlay Management ────────────────────────────────────

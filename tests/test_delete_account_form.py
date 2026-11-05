@@ -8,10 +8,17 @@ from app import app
 class DeleteAccountFormTests(unittest.TestCase):
     def setUp(self):
         app.testing = True
+        self._orig_csrf = app.config.get('WTF_CSRF_ENABLED', True)
+        app.config['WTF_CSRF_ENABLED'] = False
         self.client = app.test_client()
+        with self.client.session_transaction() as sess:
+            sess['user'] = {'uid': 'u-jane', 'email': 'jane@example.com'}
         self.request_file = 'data/account_deletion_requests.json'
         if os.path.exists(self.request_file):
             os.remove(self.request_file)
+
+    def tearDown(self):
+        app.config['WTF_CSRF_ENABLED'] = self._orig_csrf
 
     def test_delete_account_form_stores_user_details(self):
         response = self.client.post('/delete-account', data={

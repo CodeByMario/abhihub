@@ -5,6 +5,7 @@ and student onboarding APIs.
 """
 import os
 import json
+import hashlib
 import logging
 from datetime import datetime, timezone
 
@@ -563,6 +564,66 @@ def get_profile():
         return jsonify({'success': False, 'message': str(e)}), 500
 
 
+@api_bp.route('/api/sync/versions', methods=['GET'])
+def api_sync_versions():
+    """Return lightweight version hashes/timestamps for client-side IndexedDB delta invalidation."""
+    import time
+    import hashlib
+    from cache_manager import get_cache
+    from methods.supabase_helper import init_supabase
+    cache = get_cache()
+
+    def fetch_global_versions():
+        try:
+            client = init_supabase()
+            c_cnt = client.table('colleges').select('id', count='exact').limit(1).execute().count or 0
+            s_cnt = client.table('subjects').select('id', count='exact').limit(1).execute().count or 0
+            return {
+                'colleges': f"c_v{c_cnt}",
+                'subjects': f"s_v{s_cnt}",
+                'users': "u_v1"
+            }
+        except Exception:
+            return {'colleges': 'c_v1', 'subjects': 's_v1', 'users': 'u_v1'}
+
+    global_vers = cache.get_cached('sync:global_versions', level=cache.L1, ttl=300, fetcher=fetch_global_versions) if cache else fetch_global_versions()
+
+    user_info = session.get('user', {})
+    user_id = user_info.get('uid') or user_info.get('id')
+    user_version = None
+    files_version = None
+
+    if user_id:
+        profile_ts = session.get('profile', {}).get('updated_at') or ''
+        user_version = hashlib.md5(f"{user_id}:{profile_ts}".encode('utf-8')).hexdigest()[:12]
+        try:
+            client = init_supabase()
+            latest_access = client.table('document_views').select('accessed_at').eq('user_id', user_id).order('accessed_at', desc=True).limit(1).execute()
+            latest_ts = latest_access.data[0].get('accessed_at') if latest_access.data else 'none'
+            files_version = hashlib.md5(f"files:{user_id}:{latest_ts}".encode('utf-8')).hexdigest()[:12]
+        except Exception:
+            files_version = f"files:{user_id}"
+
+    return jsonify({
+        'success': True,
+        'user_id': user_id,
+        'versions': {
+            'colleges': global_vers.get('colleges'),
+            'subjects': global_vers.get('subjects'),
+            'users': global_vers.get('users'),
+            'recent_files': files_version,
+            'user_meta': user_version
+        },
+        'endpoints': {
+            'colleges': '/api/colleges',
+            'subjects': '/api/subjects',
+            'recent_files': '/api/file-access-history?limit=25',
+            'user_meta': '/api/profile'
+        },
+        'timestamp': int(time.time())
+    }), 200
+
+
 @api_bp.route('/api/profile/update', methods=['POST'])
 @auth_required
 def api_update_profile():
@@ -1107,18 +1168,37 @@ def api_save_document():
         public_id = data.get('public_id', '')
         secure_url = data.get('secure_url', '')
         file_size = data.get('bytes', 0)
-        file_type = data.get('format', 'pdf')
         original_filename = os.path.basename(
             str(data.get('original_filename') or data.get('file_name') or '')
         )
-        is_pdf_upload = (
-            original_filename.lower().endswith('.pdf')
-            or str(data.get('file_type') or '').lower() == 'pdf'
-            or str(public_id).lower().endswith('.txt')
+        orig_lower = original_filename.lower()
+        pub_lower = str(public_id).lower()
+        raw_format = str(data.get('format') or '').lower()
+        raw_type = str(data.get('file_type') or '').lower()
+        secure_url_lower = str(secure_url).lower()
+
+        # Categorize images vs PDFs accurately
+        image_extensions = ('.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.bmp', '.tiff')
+        is_image_upload = (
+            any(orig_lower.endswith(ext) for ext in image_extensions)
+            or raw_format in ('png', 'jpg', 'jpeg', 'webp', 'gif', 'bmp', 'svg')
+            or raw_type in ('image', 'img')
+            or '/image/upload/' in secure_url_lower
         )
-        if is_pdf_upload:
-            # Cloudinary must store PDFs as raw assets with a .txt public ID.
-            # Do not persist a provider response URL that still contains .pdf.
+
+        is_pdf_upload = (
+            not is_image_upload and (
+                orig_lower.endswith('.pdf')
+                or raw_type == 'pdf'
+                or pub_lower.endswith('.txt')
+                or '/raw/upload/' in secure_url_lower
+            )
+        )
+
+        if is_image_upload:
+            file_type = 'image'
+        elif is_pdf_upload:
+            # Cloudinary stores PDFs as raw assets with a .txt public ID.
             public_id = str(public_id)
             if public_id.lower().endswith('.txt.pdf'):
                 public_id = public_id[:-4]
@@ -1130,6 +1210,8 @@ def api_save_document():
                     f"https://res.cloudinary.com/{cloud_name}/raw/upload/{public_id}"
                 )
             file_type = 'pdf'
+        else:
+            file_type = raw_type if raw_type in ('pdf', 'image', 'document', 'archive') else 'document'
         
         # Document metadata
         title = (data.get('title') or '').strip()
@@ -1189,7 +1271,7 @@ def api_save_document():
             user_email=user_email,
             file_name=original_filename or (public_id.split('/')[-1].split('.')[0] if '/' in public_id else public_id),
             file_url=secure_url,
-            file_type=file_type if file_type in ('pdf', 'image', 'document') else 'pdf',
+            file_type=file_type,
             file_size=file_size,
             cloudinary_public_id=public_id,
             subject_name=subject,
@@ -1668,7 +1750,8 @@ def api_get_file_access_history():
             return jsonify({'success': False, 'message': 'User not authenticated'}), 401
         limit = min(request.args.get('limit', 20, type=int), 100)
         from methods.supabase_helper import get_user_file_history
-        result = get_user_file_history(user_email=user_email, limit=limit)
+        user_id = user_info.get('uid') or user_info.get('id')
+        result = get_user_file_history(user_email=user_email, user_id=user_id, limit=limit)
         if result.get('success'):
             data = result.get('data', [])
             return jsonify({'success': True, 'data': data, 'count': len(data)}), 200
@@ -1916,10 +1999,187 @@ def proxy_file():
         abort(502)
 
 
+def authorize_document_access(doc_id, filename=None):
+    """Authenticate user, verify document permissions, and generate direct storage URL.
+
+    Never downloads or proxies the PDF bytes.
+    Returns:
+        (data_dict, status_code)
+    """
+    import re
+    from datetime import timedelta
+    from urllib.parse import urlparse
+    from cache_manager import get_cache
+    from methods.supabase_helper import get_document_by_id_rich
+    cache = get_cache()
+
+    token = request.args.get('token', '')
+    if token and not _verify_pdf_token(doc_id, token):
+        return {'success': False, 'error': 'forbidden', 'message': 'Invalid or expired access token'}, 403
+
+    doc_res = get_document_by_id_rich(doc_id)
+    if not doc_res.get('success'):
+        return {'success': False, 'error': 'not_found', 'message': 'Document not found'}, 404
+    document = doc_res.get('data', {})
+
+    current_uid = session.get('user', {}).get('uid') or session.get('user', {}).get('id')
+    has_access = has_document_access(current_uid, doc_id, document)
+    is_preview_mode = False
+
+    pricing = extract_document_pricing(document)
+    is_paid_doc = bool(pricing.get('is_paid')) and float(pricing.get('price', 0)) > 0
+
+    if not has_access:
+        if is_paid_doc and request.args.get('preview') == '1' and (document.get('file_type') == 'pdf' or '.pdf' in str(document.get('file_url', '')).lower()):
+            is_preview_mode = True
+        else:
+            return {
+                'success': False,
+                'error': 'payment_required' if is_paid_doc else 'forbidden',
+                'message': 'Payment required to view or download this document.' if is_paid_doc else 'You do not have permission to view this document.',
+                'document_id': doc_id,
+                'price': pricing.get('price', 0),
+                'is_paid': is_paid_doc,
+                'is_preview_available': is_paid_doc and (document.get('file_type') == 'pdf' or '.pdf' in str(document.get('file_url', '')).lower())
+            }, (402 if is_paid_doc else 403)
+
+    document_version = '|'.join(
+        str(document.get(field) or '')
+        for field in ('updated_at', 'file_hash', 'file_size', 'file_url')
+    )
+    version_identifier = hashlib.sha256(
+        f"{doc_id}:{document_version}".encode('utf-8')
+    ).hexdigest()[:16]
+
+    file_url = document.get('file_url', '')
+    if isinstance(file_url, (list, tuple)):
+        file_url = file_url[0] if file_url else ''
+    if not file_url or not isinstance(file_url, str):
+        return {'success': False, 'error': 'not_found', 'message': 'File URL not found for document'}, 404
+
+    cache_key = f"auth-url:{doc_id}:{version_identifier}:{int(is_preview_mode)}"
+    try:
+        cached_signed, _ = cache.l1.get(cache_key)
+        if cached_signed:
+            return cached_signed, 200
+    except Exception:
+        pass
+
+    signed_target_url = file_url
+    if not file_url.startswith('http') and not (file_url.startswith('/static/') or file_url.startswith('static/')):
+        try:
+            from firebase_admin import storage
+            bucket = storage.bucket()
+            blob = bucket.blob(file_url)
+            signed = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
+            signed_target_url = signed[0] if isinstance(signed, (list, tuple)) else signed
+        except Exception as e:
+            logging.warning(f"[AUTH-DOC] Firebase sign error: {e}")
+            bucket_name = os.getenv('FIREBASE_STORAGE_BUCKET', 'abhi-hub.appspot.com')
+            import urllib.parse
+            encoded_path = urllib.parse.quote(file_url, safe='')
+            signed_target_url = f"https://firebasestorage.googleapis.com/v0/b/{bucket_name}/o/{encoded_path}?alt=media"
+    elif 'res.cloudinary.com' in file_url:
+        try:
+            import cloudinary
+            import cloudinary.utils as _cld_utils
+            import time as _time
+            cloudinary.config(
+                cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+                api_key=os.getenv('CLOUDINARY_API_KEY'),
+                api_secret=os.getenv('CLOUDINARY_API_SECRET'),
+                secure=True,
+            )
+            pub_id = (
+                document.get('provider_public_id')
+                or document.get('cloudinary_public_id')
+                or document.get('public_id')
+                or ''
+            )
+            parsed_cld = urlparse(file_url)
+            if not pub_id:
+                m = re.search(r'/upload/(?:v\d+/)?(.+)$', parsed_cld.path)
+                pub_id = m.group(1) if m else ''
+            if pub_id:
+                rtype = 'raw' if '/raw/' in parsed_cld.path else ('image' if '/image/' in parsed_cld.path else 'raw')
+                cld_signed, _ = _cld_utils.cloudinary_url(
+                    pub_id, resource_type=rtype, type='upload',
+                    sign_url=True, expires_at=int(_time.time()) + 3600
+                )
+                if cld_signed:
+                    signed_target_url = cld_signed
+        except Exception as cld_err:
+            logging.warning(f"[AUTH-DOC] Cloudinary sign error: {cld_err}")
+
+    filename_doc = document.get('title') or document.get('file_name') or 'document.pdf'
+    filename_doc = re.sub(r'[^a-z0-9_\-\.]+', '_', filename_doc, flags=re.I)
+    if not filename_doc.lower().endswith('.pdf'):
+        filename_doc = filename_doc.rsplit('.', 1)[0] + '.pdf'
+
+    raw_lower = file_url.lower().split('?')[0]
+    is_img_ext = any(raw_lower.endswith(ext) for ext in ('.jpg', '.jpeg', '.png', '.webp', '.gif'))
+
+    is_pdf_doc = not is_img_ext and (
+        document.get('file_type') == 'pdf' or
+        '.pdf' in file_url.lower() or
+        file_url.lower().endswith('.txt') or
+        (filename and filename.lower().endswith('.pdf')) or
+        str(document.get('file_name', '')).lower().endswith('.pdf')
+    )
+
+    if is_pdf_doc:
+        resolved_file_type = 'application/pdf'
+    elif raw_lower.endswith('.jpg') or raw_lower.endswith('.jpeg'):
+        resolved_file_type = 'image/jpeg'
+    elif raw_lower.endswith('.png'):
+        resolved_file_type = 'image/png'
+    elif raw_lower.endswith('.webp'):
+        resolved_file_type = 'image/webp'
+    else:
+        resolved_file_type = document.get('file_type') or 'application/octet-stream'
+
+    payload = {
+        'success': True,
+        'document_id': doc_id,
+        'file_url': signed_target_url,
+        'file_type': resolved_file_type,
+        'file_version': version_identifier,
+        'filename': filename_doc,
+        'is_preview': is_preview_mode,
+        'title': document.get('title') or filename_doc
+    }
+    try:
+        cache.l1.set(cache_key, payload, ttl=300)
+    except Exception:
+        pass
+
+    return payload, 200
+
+
+@api_bp.route('/api/documents/<doc_id>/authorize', methods=['GET', 'POST'])
+@api_bp.route('/api/view-doc/<doc_id>/authorize', methods=['GET', 'POST'])
+@api_bp.route('/api/view-doc/<doc_id>/auth', methods=['GET', 'POST'])
+def api_authorize_document(doc_id):
+    """Authorization endpoint for direct cloud storage document delivery."""
+    payload, status = authorize_document_access(doc_id)
+    return jsonify(payload), status
+
+
+
 @api_bp.route('/api/view-doc/<doc_id>')
 @api_bp.route('/api/view-doc/<doc_id>/<filename>')
 def view_doc(doc_id, filename=None):
     """Clean proxy endpoint for streaming documents to PDF.js."""
+    wants_json = (
+        request.args.get('format') == 'json' or
+        request.headers.get('Accept') == 'application/json' or
+        request.path.endswith('/auth') or
+        request.path.endswith('/authorize')
+    )
+    if wants_json:
+        payload, status = authorize_document_access(doc_id, filename=filename)
+        return jsonify(payload), status
+
     import re
     import requests
     from datetime import timedelta
@@ -1953,6 +2213,23 @@ def view_doc(doc_id, filename=None):
                 'message': 'Payment required to view or download this document.'
             }), 402
 
+    # The document id is stable, while this version changes whenever the
+    # backing record/file is changed. This lets each browser revalidate a
+    # private response without downloading the document again.
+    document_version = '|'.join(
+        str(document.get(field) or '')
+        for field in ('updated_at', 'file_hash', 'file_size', 'file_url')
+    )
+    document_etag = '"' + hashlib.sha256(
+        f"{doc_id}:{document_version}".encode('utf-8')
+    ).hexdigest() + '"'
+    if request.headers.get('If-None-Match') == document_etag and not request.headers.get('Range'):
+        response = Response(status=304)
+        response.headers['ETag'] = document_etag
+        response.headers['Cache-Control'] = 'private, max-age=300, must-revalidate'
+        response.headers['Vary'] = 'Cookie, Authorization, Range'
+        return response
+
     file_url = document.get('file_url', '')
     if isinstance(file_url, (list, tuple)):
         file_url = file_url[0] if file_url else ''
@@ -1968,8 +2245,21 @@ def view_doc(doc_id, filename=None):
             mimetype = 'application/pdf' if local_disk_path.lower().endswith('.pdf') else None
             return send_file(local_disk_path, mimetype=mimetype)
 
+    # In production environments without stream=1 flag, redirect directly to cloud storage
+    allow_streaming_fallback = (
+        request.args.get('stream') == '1' or
+        (current_app.config.get('TESTING') and request.args.get('redirect') != '1') or
+        is_preview_mode
+    )
+    if not allow_streaming_fallback and file_url.startswith('http'):
+        auth_payload, _ = authorize_document_access(doc_id, filename=filename)
+        direct_url = auth_payload.get('file_url') if auth_payload else file_url
+        redirect_resp = redirect(direct_url, code=302)
+        redirect_resp.headers['Cache-Control'] = 'private, no-cache'
+        return redirect_resp
+
     if not file_url.startswith('http'):
-        cache_key = f"signed-url:{doc_id}"
+        cache_key = f"signed-url:{doc_id}:{document_version}"
         try:
             cached_url, _ = cache.l1.get(cache_key)
             if cached_url is not None:
@@ -2034,13 +2324,20 @@ def view_doc(doc_id, filename=None):
                 m = re.search(r'/upload/(?:v\d+/)?(.+)$', parsed.path)
                 pub_id = m.group(1) if m else ''
             if pub_id:
-                rtype = 'raw' if '/raw/' in parsed.path else ('image' if '/image/' in parsed.path else 'raw')
-                signed_url, _ = _cld_utils.cloudinary_url(
-                    pub_id, resource_type=rtype, type='upload', sign_url=True, expires_at=int(_time.time()) + 3600
-                )
-                if signed_url:
-                    file_url = signed_url
-                    parsed = urlparse(file_url)
+                cloudinary_cache_key = f"cloudinary-signed-url:{doc_id}:{document_version}"
+                cached_signed = cache.l1.get(cloudinary_cache_key)[0]
+                if cached_signed:
+                    file_url = cached_signed
+                else:
+                    rtype = 'raw' if '/raw/' in parsed.path else ('image' if '/image/' in parsed.path else 'raw')
+                    signed_url, _ = _cld_utils.cloudinary_url(
+                        pub_id, resource_type=rtype, type='upload',
+                        sign_url=True, expires_at=int(_time.time()) + 3600
+                    )
+                    if signed_url:
+                        file_url = signed_url
+                        cache.l1.set(cloudinary_cache_key, signed_url, ttl=300)
+                parsed = urlparse(file_url)
         except Exception as _e:
             logging.warning(f"[VIEW-DOC] Cloudinary pre-sign failed for {doc_id}: {_e}")
 
@@ -2072,7 +2369,7 @@ def view_doc(doc_id, filename=None):
 
     if upstream.status_code in (403, 404) and parsed.hostname in ('firebasestorage.googleapis.com', 'storage.googleapis.com'):
         try:
-            cache.l1.delete(f"signed-url:{doc_id}")
+            cache.l1.delete(f"signed-url:{doc_id}:{document_version}")
         except Exception:
             pass
         raw_path = document.get('file_url', '')
@@ -2090,7 +2387,7 @@ def view_doc(doc_id, filename=None):
                 signed = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
                 fresh_url = signed[0] if isinstance(signed, (list, tuple)) else signed
                 try:
-                    cache.l1.set(f"signed-url:{doc_id}", fresh_url, ttl=300)
+                    cache.l1.set(f"signed-url:{doc_id}:{document_version}", fresh_url, ttl=300)
                 except Exception:
                     pass
                 upstream.close()
@@ -2170,6 +2467,9 @@ def view_doc(doc_id, filename=None):
             preview_headers['Accept-Ranges'] = 'bytes'
             preview_headers['X-AbhiHub-Preview'] = 'page-1-only'
             preview_headers['Content-Length'] = str(preview_len)
+            preview_headers['ETag'] = document_etag
+            preview_headers['Cache-Control'] = 'private, max-age=300, must-revalidate'
+            preview_headers['Vary'] = 'Cookie, Authorization, Range'
             return Response(preview_data, status=200, content_type='application/pdf', headers=preview_headers)
 
         def generate():
@@ -2181,6 +2481,11 @@ def view_doc(doc_id, filename=None):
                 logging.error(f"[VIEW-DOC] Stream interrupted: {e}")
 
         response_headers = _secure_file_headers()
+        response_headers['ETag'] = document_etag
+        response_headers['Cache-Control'] = 'private, max-age=300, must-revalidate'
+        response_headers['Vary'] = 'Cookie, Authorization, Range'
+        if document.get('updated_at'):
+            response_headers['Last-Modified'] = str(document['updated_at'])
         if is_pdf_doc:
             response_headers['Content-Disposition'] = f"inline; filename*=UTF-8''{filename_doc}"
         if 'Content-Length' in upstream.headers:
@@ -2618,7 +2923,17 @@ def api_get_material_requests():
             })
         return jsonify({'success': True, 'requests': items}), 200
     except Exception as e:
-        return jsonify({'success': True, 'requests': []}), 200
+        err_msg = str(e)
+        if 'PGRST205' in err_msg or 'material_requests' in err_msg:
+            logging.warning("[MaterialRequests] Table 'material_requests' not found in schema cache. Migration pending: migrations/017_material_requests_table.sql")
+            return jsonify({
+                'success': False,
+                'error': 'table_not_found',
+                'message': 'Database table material_requests has not been migrated yet. Please apply migrations/017_material_requests_table.sql',
+                'requests': []
+            }), 404
+        logging.error(f"[MaterialRequests] Unexpected error: {e}")
+        return jsonify({'success': False, 'message': 'Database error', 'requests': []}), 500
 
 
 @api_bp.route('/api/material-request/respond', methods=['POST'])

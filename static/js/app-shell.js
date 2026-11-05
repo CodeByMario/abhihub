@@ -252,7 +252,12 @@
                 return;
             }
 
-            // Security & Auth escape check
+            // Landing & Security escape check: escape shell to full screen
+            if (innerWin.location.pathname === '/' || innerWin.location.pathname === '/landing') {
+                escapeShellTo('/');
+                return;
+            }
+
             if (/^\/(login|signup|logout|auth(\/|$))/i.test(innerWin.location.pathname)) {
                 let targetLoginUrl = innerWin.location.pathname + innerWin.location.search;
                 if (!innerWin.location.search.includes('next=')) {

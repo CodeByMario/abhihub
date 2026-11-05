@@ -32,8 +32,8 @@ VIEW_EARNING_RATE_INR = 0.20
 
 # Monetization & Commission Configuration
 # Standard: 30% platform commission (creator keeps 70%)
-# Launch Promo: 10% platform commission (creator keeps 90%) for first 90 days if registered before 8 Nov 2026
-PROMO_REGISTRATION_CUTOFF = datetime(2026, 11, 8, 23, 59, 59, tzinfo=timezone.utc)
+# Launch Promo: 10% platform commission (creator keeps 90%) for first 90 days for accounts created on or after 2 Nov 2026
+PROMO_REGISTRATION_START = datetime(2026, 11, 2, 0, 0, 0, tzinfo=timezone.utc)
 PROMO_DURATION_DAYS = 90
 STANDARD_CREATOR_PCT = 70
 PROMO_CREATOR_PCT = 90
@@ -56,7 +56,7 @@ def get_creator_commission_pct(creator_id: str = None) -> dict:
     """
     Computes file sales commission percentage:
     - Base: 70% creator share (30% platform commission)
-    - Early Creator Promo: 90% creator share (10% platform commission) for first 90 days if registered before 8 Nov 2026.
+    - Early Creator Promo: 90% creator share (10% platform commission) for first 90 days for accounts created on or after 2 Nov 2026.
     """
     if not creator_id:
         return {'creator_pct': STANDARD_CREATOR_PCT, 'is_promo': False, 'reason': 'Standard Creator (70%)'}
@@ -75,7 +75,7 @@ def get_creator_commission_pct(creator_id: str = None) -> dict:
                     reg_date = reg_date.replace(tzinfo=timezone.utc)
 
                 now = datetime.now(timezone.utc)
-                if reg_date <= PROMO_REGISTRATION_CUTOFF:
+                if reg_date >= PROMO_REGISTRATION_START:
                     days_active = (now - reg_date).total_seconds() / 86400.0
                     if 0 <= days_active <= PROMO_DURATION_DAYS:
                         remaining = max(0, int(PROMO_DURATION_DAYS - days_active))
@@ -83,7 +83,7 @@ def get_creator_commission_pct(creator_id: str = None) -> dict:
                             'creator_pct': PROMO_CREATOR_PCT,
                             'is_promo': True,
                             'promo_days_remaining': remaining,
-                            'reason': f'Early Creator Promo: 90% share ({remaining} days remaining)'
+                            'reason': f'Launch Creator Promo: 90% share ({remaining} days remaining)'
                         }
     except Exception as e:
         logging.error(f"[WALLET] Error checking creator registration for {creator_id}: {e}")

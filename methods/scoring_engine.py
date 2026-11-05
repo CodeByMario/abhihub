@@ -414,16 +414,50 @@ def get_ad_decision(
             from methods.ad_control import apply_ad_override, get_ad_override
             return apply_ad_override(decision, get_ad_override(user_id, email, page_path))
 
-        profile = client.table("profiles").select(
-            "paper_quota_remaining"
-        ).eq("id", user_id).limit(1).execute()
-        if not profile.data:
-            logging.warning("[ScoringEngine] no quota profile found for user %s", user_id)
-            remaining_credits = 0
+        # Check L1 cache to avoid redundant Supabase queries on every navigation (bypass during pytest runs)
+        user_metrics = None
+        cache = None
+        try:
+            is_testing = bool(os.environ.get('PYTEST_CURRENT_TEST'))
+            if not is_testing:
+                from cache_manager import get_cache
+                cache = get_cache()
+                user_metrics, _ = cache.l1.get(f"user_ad_metrics:{user_id}")
+        except Exception:
+            cache = None
+
+        if user_metrics is not None:
+            remaining_credits, verified_upload_count = user_metrics
         else:
-            remaining_credits = max(
-                0, int(profile.data[0].get("paper_quota_remaining") or 0)
-            )
+            profile = client.table("profiles").select(
+                "paper_quota_remaining"
+            ).eq("id", user_id).limit(1).execute()
+            if not profile.data:
+                logging.warning("[ScoringEngine] no quota profile found for user %s", user_id)
+                remaining_credits = 0
+            else:
+                remaining_credits = max(
+                    0, int(profile.data[0].get("paper_quota_remaining") or 0)
+                )
+
+            verified_upload_count = 0
+            try:
+                uploads = client.table("documents").select(
+                    "id", count="exact"
+                ).eq("uploader_id", user_id).eq("status", "approved").limit(1).execute()
+                verified_upload_count = int(
+                    getattr(uploads, "count", None)
+                    if getattr(uploads, "count", None) is not None
+                    else len(uploads.data or [])
+                )
+            except Exception as upload_error:
+                logging.warning(
+                    "[ScoringEngine] verified upload lookup failed for %s: %s",
+                    user_id,
+                    upload_error,
+                )
+            if cache:
+                cache.l1.set(f"user_ad_metrics:{user_id}", (remaining_credits, verified_upload_count), ttl=90)
 
         if remaining_credits == 0:
             density = "high"
@@ -435,23 +469,6 @@ def get_ad_decision(
             density = "minimum"
         else:
             density = "monthly"
-
-        verified_upload_count = 0
-        try:
-            uploads = client.table("documents").select(
-                "id", count="exact"
-            ).eq("uploader_id", user_id).eq("status", "approved").limit(1).execute()
-            verified_upload_count = int(
-                getattr(uploads, "count", None)
-                if getattr(uploads, "count", None) is not None
-                else len(uploads.data or [])
-            )
-        except Exception as upload_error:
-            logging.warning(
-                "[ScoringEngine] verified upload lookup failed for %s: %s",
-                user_id,
-                upload_error,
-            )
 
         if verified_upload_count >= 3:
             show_ads = False

@@ -214,7 +214,7 @@ def sitemap_colleges():
         c_slug = college_slugs.get(c_id)
         d_slug = dept_slugs.get(d_id)
         if c_slug and d_slug:
-            add_u(f"/college/{c_slug}/{d_slug}", priority="0.85", changefreq="weekly")
+            add_u(f"/college/{c_slug}/files?branch={d_slug}", priority="0.85", changefreq="weekly")
 
     seen_subjects = set()
     for s in subjects:
@@ -292,7 +292,9 @@ def service_worker_root():
     """Serve service worker from root with proper headers"""
     from flask import make_response, send_file
     response = make_response(send_file('static/sw.js', mimetype='application/javascript'))
-    response.headers['Cache-Control'] = 'no-cache'
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
     response.headers['Service-Worker-Allowed'] = '/'
     return response
 

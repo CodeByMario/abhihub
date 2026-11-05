@@ -424,64 +424,79 @@
     }, 2500);
   }
 
-  /* ── 4. Block Developer Tools & Shortcuts ─────────────────────────────────── */
-  document.addEventListener('keydown', function (e) {
-    const key   = (e.key  || '').toLowerCase();
-    const code  = (e.code || '');
-    const ctrl  = e.ctrlKey  || e.metaKey;
-    const shift = e.shiftKey;
-
-    // F12 – DevTools
-    if (key === 'f12') {
-      e.preventDefault();
-      showToast('⚠️ Developer Tools are disabled on AbhiHub.');
-      return false;
-    }
-
-    // Ctrl/Cmd + Shift + I/J/C/K/M (DevTools & Inspector)
-    if (ctrl && shift && (key === 'i' || key === 'j' || key === 'c' || key === 'k' || key === 'm')) {
-      e.preventDefault();
-      showToast('⚠️ Developer Tools are disabled on AbhiHub.');
-      return false;
-    }
-
-    // Ctrl/Cmd + U (View Source)
-    if (ctrl && !shift && key === 'u') {
-      e.preventDefault();
-      showToast('⚠️ View Source is disabled.');
-      return false;
-    }
-
-    // Ctrl/Cmd + S (Save page)
-    if (ctrl && !shift && key === 's') {
-      e.preventDefault();
-      return false;
-    }
-  }, { capture: true });
-
-  /* ── 5. Console Protection & Anti-Scripting Trap ─────────────────────────── */
-  function protectConsole() {
+  function isDeveloperMode() {
     try {
-      const banner = 'color: #ff3344; font-size: 26px; font-weight: bold;';
-      const text = 'color: #fbbf24; font-size: 13px; font-weight: 500;';
-      console.log('%c⚡ AbhiHub Security', banner);
-      console.log('%cRunning untrusted scripts in this console violates AbhiHub Terms of Service.', text);
-
-      // Periodically clean console
-      setInterval(function () {
-        try { console.clear(); } catch(e) {}
-      }, 5000);
-
-      // DevTools debugger trap: pauses execution if inspector is opened
-      setInterval(function () {
-        const start = performance.now();
-        (function () { return true; }["constructor"]("debugger")());
-        if (performance.now() - start > 100) {
-          showToast('⚠️ DevTools detected.');
-        }
-      }, 2500);
+      if (window.__IS_DEVELOPER__ === true) return true;
+      const script = document.currentScript || document.querySelector('script[src*="security.js"]');
+      if (script && (script.getAttribute('data-env') === 'developer' || script.getAttribute('data-developer') === 'true')) return true;
+      const envMeta = document.querySelector('meta[name="app-env"], meta[name="environment"]');
+      if (envMeta && ['developer', 'development', 'dev'].includes((envMeta.content || '').toLowerCase())) return true;
+      if (['developer', 'development', 'dev'].includes((document.documentElement.getAttribute('data-env') || '').toLowerCase())) return true;
+      if (typeof window !== 'undefined' && window.location && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) return true;
     } catch (e) {}
+    return false;
   }
-  protectConsole();
+
+  /* ── 4. Block Developer Tools & Shortcuts (Disabled in Developer Mode) ────── */
+  if (!isDeveloperMode()) {
+    document.addEventListener('keydown', function (e) {
+      const key   = (e.key  || '').toLowerCase();
+      const code  = (e.code || '');
+      const ctrl  = e.ctrlKey  || e.metaKey;
+      const shift = e.shiftKey;
+
+      // F12 – DevTools
+      if (key === 'f12') {
+        e.preventDefault();
+        showToast('⚠️ Developer Tools are disabled on AbhiHub.');
+        return false;
+      }
+
+      // Ctrl/Cmd + Shift + I/J/C/K/M (DevTools & Inspector)
+      if (ctrl && shift && (key === 'i' || key === 'j' || key === 'c' || key === 'k' || key === 'm')) {
+        e.preventDefault();
+        showToast('⚠️ Developer Tools are disabled on AbhiHub.');
+        return false;
+      }
+
+      // Ctrl/Cmd + U (View Source)
+      if (ctrl && !shift && key === 'u') {
+        e.preventDefault();
+        showToast('⚠️ View Source is disabled.');
+        return false;
+      }
+
+      // Ctrl/Cmd + S (Save page)
+      if (ctrl && !shift && key === 's') {
+        e.preventDefault();
+        return false;
+      }
+    }, { capture: true });
+
+    /* ── 5. Console Protection & Anti-Scripting Trap ─────────────────────────── */
+    function protectConsole() {
+      try {
+        const banner = 'color: #ff3344; font-size: 26px; font-weight: bold;';
+        const text = 'color: #fbbf24; font-size: 13px; font-weight: 500;';
+        console.log('%c⚡ AbhiHub Security', banner);
+        console.log('%cRunning untrusted scripts in this console violates AbhiHub Terms of Service.', text);
+
+        // Periodically clean console
+        setInterval(function () {
+          try { console.clear(); } catch(e) {}
+        }, 5000);
+
+        // DevTools debugger trap: pauses execution if inspector is opened
+        setInterval(function () {
+          const start = performance.now();
+          (function () { return true; }["constructor"]("debugger")());
+          if (performance.now() - start > 100) {
+            showToast('⚠️ DevTools detected.');
+          }
+        }, 2500);
+      } catch (e) {}
+    }
+    protectConsole();
+  }
 
 })();

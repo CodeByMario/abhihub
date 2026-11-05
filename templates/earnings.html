@@ -67,14 +67,25 @@
     margin-top: 1rem;
   }
   .earn-btn {
-    padding: 0.7rem 1rem;
-    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 44px;
+    padding: 0.7rem 1.4rem;
+    border-radius: 980px;
     border: 0;
     font-weight: 600;
     cursor: pointer;
     text-decoration: none;
-    color: #fff;
-    background: linear-gradient(135deg, var(--primary-600), var(--primary-700));
+    color: #fff !important;
+    background: #0071E3;
+    box-shadow: 0 4px 14px rgba(0, 113, 227, 0.25);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .earn-btn:hover {
+    background: #0077ED;
+    transform: scale(1.02);
+    box-shadow: 0 6px 18px rgba(0, 113, 227, 0.35);
   }
   .earn-btn-secondary {
     background: #f1f5f9;
@@ -89,7 +100,7 @@
   .wallet-cat-card {
     background: #f8fafc;
     border: 1.5px solid #e2e8f0;
-    border-radius: 14px;
+    border-radius: 18px;
     padding: 1rem;
     text-align: left;
     cursor: pointer;
@@ -154,7 +165,7 @@
 <div class="earn-page">
   <div class="earn-hero">
     <div class="earn-title">Creator Earnings Wall</div>
-    <p class="earn-sub">Earn from selling your study notes (70% standard share, or 90% for early creators). Verified creators also receive view earnings.</p>
+    <p class="earn-sub">Earn from selling your study notes (90% royalty for first 90 days for accounts created on or after 2 Nov 2026, then 70% standard). Verified creators also receive view earnings.</p>
     <div class="earn-badge" style="background:rgba(16, 185, 129, 0.2); border-color:rgba(16, 185, 129, 0.4); color:#a7f3d0;">● Monetization Active</div>
   </div>
 

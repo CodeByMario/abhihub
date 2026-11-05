@@ -19,7 +19,7 @@ import os
 import logging
 import hashlib
 import json
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Optional, Any
 
 log = logging.getLogger(__name__)
@@ -213,7 +213,7 @@ def save_message_supabase(sender_id: str, recipient_id: str,
         'recipient_id': str(recipient_id),
         'ciphertext': enc['ciphertext'],
         'nonce': nonce_val,
-        'created_at': datetime.utcnow().isoformat() + 'Z',
+        'created_at': datetime.now(timezone.utc).isoformat() + 'Z',
         'status': 'sent',
     }
 
@@ -309,7 +309,7 @@ def mark_message_delivered(msg_id: str, recipient_id: str) -> bool:
         return False
     try:
         client.table('chat_messages') \
-            .update({'status': 'delivered', 'delivered_at': datetime.utcnow().isoformat() + 'Z'}) \
+            .update({'status': 'delivered', 'delivered_at': datetime.now(timezone.utc).isoformat() + 'Z'}) \
             .eq('id', msg_id) \
             .eq('recipient_id', str(recipient_id)) \
             .execute()
@@ -325,7 +325,7 @@ def mark_message_read(msg_id: str, recipient_id: str) -> bool:
         return False
     try:
         client.table('chat_messages') \
-            .update({'status': 'read', 'read_at': datetime.utcnow().isoformat() + 'Z'}) \
+            .update({'status': 'read', 'read_at': datetime.now(timezone.utc).isoformat() + 'Z'}) \
             .eq('id', msg_id) \
             .eq('recipient_id', str(recipient_id)) \
             .execute()

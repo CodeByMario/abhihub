@@ -9,12 +9,26 @@
  * - Background sync
  */
 
-const CACHE_VERSION = 'v2.0.10';
+const CACHE_VERSION = 'v2.0.14';
 const CACHE_NAME = `abhihub-${CACHE_VERSION}`;
 const STATIC_CACHE = `abhihub-static-${CACHE_VERSION}`;
 const DYNAMIC_CACHE = `abhihub-dynamic-${CACHE_VERSION}`;
 const IMAGE_CACHE = `abhihub-images-${CACHE_VERSION}`;
 const AI_MODEL_CACHE = 'abhihub-ai-models-v1'; // Permanent on-device WebLLM model weights cache
+
+// Private document requests must not be persisted in a shared service-worker
+// cache: a signed storage URL is not a user-isolation boundary. This map only
+// coalesces identical requests while they are in flight.
+const inFlightFileRequests = new Map();
+
+function dedupeFileRequest(request) {
+  const key = request.url + '|' + (request.headers.get('Range') || '');
+  const existing = inFlightFileRequests.get(key);
+  if (existing) return existing.then(response => response.clone());
+  const pending = fetch(request).finally(() => inFlightFileRequests.delete(key));
+  inFlightFileRequests.set(key, pending);
+  return pending.then(response => response.clone());
+}
 
 // ==================== ENCRYPTED PDF CACHE ====================
 const PDF_IDB_NAME = 'abhihub-pdf-cache';
@@ -310,6 +324,7 @@ async function limitCacheSize(cacheName, maxItems) {
 
 // ==================== INSTALL EVENT ====================
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   console.log('[SW] Installing version:', CACHE_VERSION);
 
   event.waitUntil(
@@ -359,6 +374,12 @@ self.addEventListener('activate', (event) => {
             })
         );
       })
+      .then(() => new Promise((resolve) => {
+        // Remove legacy private-file entries now that private bytes are no
+        // longer persisted in the service worker.
+        const request = indexedDB.deleteDatabase(PDF_IDB_NAME);
+        request.onsuccess = request.onerror = request.onblocked = resolve;
+      }))
       .then(() => {
         console.log('[SW] Activation complete');
         return self.clients.claim();
@@ -582,11 +603,16 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Intercept cross-origin file requests (Firebase/Cloudinary signed URLs — all types)
+  // Cross-origin cloud storage (Cloudinary, Firebase) requests bypass the SW
+  // so the browser network stack can natively handle CORS, HTTP Range requests,
+  // 206 Partial Content streaming, and CDN cache validators without interference.
   if (url.origin !== self.location.origin) {
-    if (isCrossOriginFile(url)) {
-      event.respondWith(handleEncryptedFileFetch(request.url));
-    }
+    return;
+  }
+
+  // Document delivery and authorization endpoints bypass the SW to ensure
+  // authorization headers/cookies, range requests, and 302 redirects are handled natively.
+  if (url.pathname.startsWith('/api/view-doc/') || url.pathname.startsWith('/api/documents/')) {
     return;
   }
 
@@ -612,10 +638,9 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // All same-origin user files (uploaded PDFs, study docs) → encrypted IDB cache-first
-  // EXCLUDE /api/view-doc/ — these are proxied through Flask and should not be cached by SW
-  if (isUserFile(url) && !url.pathname.startsWith('/api/view-doc/') && !url.pathname.startsWith('/static/')) {
-    event.respondWith(handleEncryptedFileFetch(request.url));
+  // User uploaded files on the origin (non-static) bypass the service worker
+  // to ensure server-side access control, ETag validators, and Range requests work cleanly.
+  if (isUserFile(url) && !url.pathname.startsWith('/static/')) {
     return;
   }
 
@@ -751,7 +776,9 @@ async function handleAppShellRequest(request) {
  */
 async function handleNavigationRequest(request) {
   const cache = await caches.open(DYNAMIC_CACHE);
-  const cachedResponse = await cache.match(request, { ignoreSearch: true });
+  // Query parameters drive search, filters, pagination, and embedded app routes.
+  // Reusing a cached response without its query string serves the wrong page.
+  const cachedResponse = await cache.match(request);
 
   // Kick off network refresh in background
   const networkFetch = fetch(request).then(async (networkResponse) => {
@@ -1177,4 +1204,3 @@ self.addEventListener('notificationclick', (event) => {
 self.addEventListener('notificationclose', (event) => {
   console.log('[SW] Notification closed');
 });
-

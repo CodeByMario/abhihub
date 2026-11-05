@@ -1446,7 +1446,8 @@ async function uploadOne(item, retries) {
                           exam_type: preparedValue('exam_type'),
                           subject_code: preparedValue('subject_code'),
                           program: preparedValue('program', 'b.tech'),
-                          file_hash: item.fileHash || ''
+                          file_hash: item.fileHash || '',
+                          file_type: (item.file?.type?.startsWith('image/') || /\.(png|jpe?g|webp|gif|bmp|svg)$/i.test(item.name || '')) ? 'image' : (/\.pdf$/i.test(item.name || '') ? 'pdf' : (uploadResult.format || 'pdf'))
                         })
                       });
           

@@ -104,11 +104,6 @@ def support():
 @sitemap_page(priority="1.00", changefreq="daily")
 def features():
     """Root route - public landing page with crawlable university, subject, and resource hubs"""
-    if 'user' in session:
-        if request.headers.get('Sec-Fetch-Dest') == 'iframe':
-            return redirect(url_for('app_pages.dashboard'))
-        return redirect(url_for('app_pages.app_shell'))
-    
     import logging
     from methods.supabase_helper import get_all_colleges, get_all_branches, init_supabase
     from routes.seo import slugify

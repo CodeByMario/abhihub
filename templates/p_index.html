@@ -20,7 +20,7 @@
   :root {
     --deck-navy: #0b1329;
     --deck-navy-light: #152244;
-    --deck-cobalt: #0284c7;
+    --deck-cobalt: #0071E3;
     --deck-cobalt-light: #e0f2fe;
     --deck-cobalt-text: #0369a1;
     --deck-emerald: #059669;
@@ -257,11 +257,12 @@
     align-items: center;
   }
   .deck-btn-primary {
-    background: #0284c7;
+    background: #0071E3;
     color: #ffffff;
-    border: 1px solid #38bdf8;
-    padding: 0.65rem 1.25rem;
-    border-radius: 10px;
+    border: 1px solid #0071E3;
+    padding: 0.7rem 1.5rem;
+    border-radius: 980px;
+    min-height: 44px;
     font-weight: 700;
     font-size: 0.88rem;
     text-decoration: none;
@@ -280,8 +281,9 @@
     background: #d97706;
     color: #ffffff;
     border: 1px solid #f59e0b;
-    padding: 0.65rem 1.25rem;
-    border-radius: 10px;
+    padding: 0.7rem 1.5rem;
+    border-radius: 980px;
+    min-height: 44px;
     font-weight: 700;
     font-size: 0.88rem;
     text-decoration: none;
@@ -388,7 +390,7 @@
     flex: 0 0 280px;
     scroll-snap-align: start;
     background: #ffffff;
-    border-radius: 16px;
+    border-radius: 18px;
     border: 1px solid #e2e8f0;
     box-shadow: 0 3px 8px rgba(15, 23, 42, 0.04), 0 1px 2px rgba(15, 23, 42, 0.02);
     display: flex;
@@ -913,35 +915,6 @@
       <button type="button" onclick="openBuyCreditsModal()" class="deck-btn-gold" style="padding:0.45rem 0.85rem; font-size:0.8rem;">
         Recharge
       </button>
-    </div>
-  </div>
-
-  <!-- Launch Urgency Covenant Bar (Ticking to 8 Nov 2026) -->
-  <div class="deck-urgency-banner">
-    <div class="deck-urgency-left">
-      <div class="deck-urgency-icon">⏳</div>
-      <div>
-        <div class="deck-urgency-title">90% Launch Covenant Active · Special Launch Rates</div>
-        <div class="deck-urgency-sub">Keep 90% note earnings (T+9 payouts) & 90% off view packs (₹4, ₹13, ₹30)</div>
-      </div>
-    </div>
-    <div class="deck-countdown-clock" id="heroCovenantCountdown">
-      <div class="deck-clock-segment">
-        <span class="deck-clock-val" id="covDays">--</span>
-        <span class="deck-clock-label">Days</span>
-      </div>
-      <div class="deck-clock-segment">
-        <span class="deck-clock-val" id="covHours">--</span>
-        <span class="deck-clock-label">Hours</span>
-      </div>
-      <div class="deck-clock-segment">
-        <span class="deck-clock-val" id="covMins">--</span>
-        <span class="deck-clock-label">Mins</span>
-      </div>
-      <div class="deck-clock-segment">
-        <span class="deck-clock-val" id="covSecs">--</span>
-        <span class="deck-clock-label">Secs</span>
-      </div>
     </div>
   </div>
 

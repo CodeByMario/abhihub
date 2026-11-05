@@ -20,7 +20,7 @@ def get_db():
     if client:
         return client
     url = os.getenv("SUPABASE_URL")
-    key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
+    key = os.getenv("SUPABASE_SECRET_API_KEY")
     if not url or not key:
         return None
     return create_client(url, key, options=ClientOptions(schema="abhihub"))

@@ -269,25 +269,33 @@
   /* Google Button */
   .p-google-btn {
     width: 100%;
+    min-height: 48px;
     padding: 0.85rem 1rem;
     background: var(--auth-surface);
-    border: 1px solid var(--auth-border);
-    border-radius: 12px;
+    border: 1.5px solid var(--auth-border);
+    border-radius: 980px;
     display: flex;
     align-items: center;
     justify-content: center;
     gap: 0.75rem;
     cursor: pointer;
     font-size: 0.92rem;
-    font-weight: 700;
+    font-weight: 600;
     color: var(--auth-ink-900);
-    transition: all 0.15s ease;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     margin-bottom: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
   }
 
   .p-google-btn:hover {
     background: var(--auth-surface-subtle);
-    border-color: var(--auth-ink-400);
+    border-color: #0071E3;
+    transform: scale(1.01);
+  }
+
+  .p-google-btn:focus-visible {
+    outline: 2px solid #0071E3;
+    outline-offset: 2px;
   }
 
   .p-google-btn img {

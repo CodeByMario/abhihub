@@ -106,7 +106,14 @@ const AbhiHubSelect = {
             let json;
             if (this.apiCache['/api/colleges'] && (this.apiCache['/api/colleges'].colleges || []).length > 0) {
                 json = this.apiCache['/api/colleges'];
-            } else {
+            } else if (window.AbhiHubIDB) {
+                const cached = await window.AbhiHubIDB.getColleges();
+                if (cached && cached.length > 0) {
+                    json = { success: true, colleges: cached };
+                    this.apiCache['/api/colleges'] = json;
+                }
+            }
+            if (!json) {
                 const res = await fetch('/api/colleges');
                 json = await res.json();
                 if (json && (json.colleges || []).length > 0) {
@@ -145,7 +152,14 @@ const AbhiHubSelect = {
             let json;
             if (this.apiCache['/api/departments'] && (this.apiCache['/api/departments'].departments || []).length > 0) {
                 json = this.apiCache['/api/departments'];
-            } else {
+            } else if (window.AbhiHubIDB) {
+                const cached = await window.AbhiHubIDB.getDepartments();
+                if (cached && cached.length > 0) {
+                    json = { success: true, departments: cached };
+                    this.apiCache['/api/departments'] = json;
+                }
+            }
+            if (!json) {
                 const res = await fetch('/api/departments');
                 json = await res.json();
                 if (json && (json.departments || []).length > 0) {
@@ -209,7 +223,14 @@ const AbhiHubSelect = {
             let json;
             if (this.apiCache['/api/subjects:all'] && (this.apiCache['/api/subjects:all'].subjects || []).length > 0) {
                 json = this.apiCache['/api/subjects:all'];
-            } else {
+            } else if (window.AbhiHubIDB) {
+                const cached = await window.AbhiHubIDB.getSubjects();
+                if (cached && cached.length > 0) {
+                    json = { success: true, subjects: cached };
+                    this.apiCache['/api/subjects:all'] = json;
+                }
+            }
+            if (!json) {
                 const res = await fetch('/api/subjects');
                 json = await res.json();
                 if (json && (json.subjects || []).length > 0) {
@@ -276,7 +297,22 @@ const AbhiHubSelect = {
             let json;
             if (this.apiCache[url]) {
                 json = this.apiCache[url];
-            } else {
+            } else if (window.AbhiHubIDB && (entity === 'department' || entity === 'branch')) {
+                const cachedDepts = await window.AbhiHubIDB.getDepartments(parentValue);
+                if (cachedDepts && cachedDepts.length > 0) {
+                    json = { success: true, departments: cachedDepts };
+                    this.apiCache[url] = json;
+                }
+            } else if (window.AbhiHubIDB && entity === 'subject') {
+                const deptEl = parentEl || document.getElementById(el.dataset.parent);
+                const deptId = deptEl ? deptEl.value : null;
+                const cachedSubs = await window.AbhiHubIDB.getSubjects(deptId);
+                if (cachedSubs && cachedSubs.length > 0) {
+                    json = { success: true, subjects: cachedSubs };
+                    this.apiCache[url] = json;
+                }
+            }
+            if (!json) {
                 const response = await fetch(url);
                 json = await response.json();
                 this.apiCache[url] = json;

@@ -5,15 +5,34 @@
     }
 
     .app-footer {
-        background: var(--bg-secondary);
-        border-top: 1px solid var(--border-light);
-        padding: var(--space-12) 0 var(--space-8);
-        margin-top: var(--space-12);
-        font-family: var(--font-primary);
+        background: var(--apple-surface, var(--bg-secondary, #f8fafc));
+        border-top: 1px solid var(--apple-border, var(--border-light, rgba(0, 0, 0, 0.08)));
+        padding: 3.5rem 0 2rem;
+        margin-top: 3.5rem;
+        font-family: var(--apple-font, var(--font-primary, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif));
         position: relative;
         z-index: 10;
-        /* Ensure it doesn't overlap with the bottom mobile nav */
-        padding-bottom: calc(var(--nav-bottom-height) + var(--space-8));
+        padding-bottom: calc(var(--nav-bottom-height, 60px) + 2rem);
+    }
+
+    [data-theme="dark"] .app-footer, .dark .app-footer {
+        background: var(--apple-surface, #121214);
+        border-top-color: var(--apple-border, rgba(255, 255, 255, 0.08));
+    }
+
+    [data-theme="dark"] .app-footer__col-title, .dark .app-footer__col-title {
+        color: #f5f5f7;
+    }
+
+    [data-theme="dark"] .app-footer__link, .dark .app-footer__link,
+    [data-theme="dark"] .app-footer__desc, .dark .app-footer__desc {
+        color: #a1a1a6;
+    }
+
+    [data-theme="dark"] .app-footer__social-link, .dark .app-footer__social-link {
+        background: #1c1c1e;
+        border-color: rgba(255, 255, 255, 0.12);
+        color: #f5f5f7;
     }
 
     .app-footer__container {
@@ -41,29 +60,29 @@
     }
 
     .app-footer__title {
-        font-size: var(--text-2xl);
+        font-size: 1.25rem;
         font-weight: 700;
+        letter-spacing: -0.025em;
+        margin-bottom: 0.65rem;
         background: var(--gradient-primary);
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: var(--space-4);
-        letter-spacing: -0.025em;
     }
 
     .app-footer__desc {
-        color: var(--text-secondary);
-        font-size: var(--text-sm);
-        line-height: 1.6;
+        color: var(--apple-gray, #6e6e73);
+        font-size: 0.8125rem;
+        line-height: 1.55;
         max-width: 300px;
     }
 
     .app-footer__col-title {
-        font-size: var(--text-sm);
+        font-size: 0.75rem;
         font-weight: 600;
-        color: var(--text-primary);
-        text-transform: uppercase;
         letter-spacing: 0.05em;
-        margin-bottom: var(--space-4);
+        text-transform: uppercase;
+        color: var(--apple-dark, #1d1d1f);
+        margin-bottom: 0.75rem;
     }
 
     .app-footer__list {
@@ -72,57 +91,57 @@
         margin: 0;
         display: flex;
         flex-direction: column;
-        gap: var(--space-3);
+        gap: 0.5rem;
     }
 
     .app-footer__link {
-        color: var(--text-secondary);
-        font-size: var(--text-sm);
+        color: var(--apple-gray, #6e6e73);
+        font-size: 0.78125rem;
+        font-weight: 400;
+        line-height: 1.45;
         text-decoration: none;
-        transition: color var(--transition-fast), transform var(--transition-fast);
+        transition: color 0.15s ease, transform 0.15s ease;
         display: inline-flex;
         align-items: center;
     }
 
     .app-footer__link:hover {
-        color: var(--primary-600);
-        transform: translateX(4px);
+        color: var(--apple-blue, #0071e3);
+        transform: translateX(3px);
     }
 
     .app-footer__social {
         display: flex;
-        gap: var(--space-4);
-        margin-top: var(--space-2);
+        gap: 0.65rem;
+        margin-top: 0.5rem;
     }
 
     .app-footer__social-link {
-        color: var(--text-secondary);
-        font-size: var(--text-sm);
+        color: var(--apple-dark, #1d1d1f);
+        font-size: 0.75rem;
         font-weight: 500;
         text-decoration: none;
-        padding: var(--space-2) var(--space-4);
-        background: var(--surface);
-        border: 1px solid var(--border-light);
-        border-radius: var(--radius-full);
-        transition: all var(--transition-fast);
-        box-shadow: var(--shadow-sm);
+        padding: 0.35rem 0.75rem;
+        background: var(--apple-surface, #ffffff);
+        border: 1px solid var(--apple-border, rgba(0, 0, 0, 0.08));
+        border-radius: 980px;
+        transition: all 0.15s ease;
     }
 
     .app-footer__social-link:hover {
-        border-color: var(--primary-400);
-        color: var(--primary-600);
-        box-shadow: var(--shadow-md);
-        transform: translateY(-2px);
+        border-color: var(--apple-blue, #0071e3);
+        color: var(--apple-blue, #0071e3);
+        transform: translateY(-1px);
     }
 
     .app-footer__bottom {
         max-width: var(--max-content-width);
-        margin: var(--space-12) auto 0;
-        padding: var(--space-6) var(--space-6) 0;
-        border-top: 1px solid var(--border-light);
+        margin: 2.5rem auto 0;
+        padding: 1.5rem 1rem 0;
+        border-top: 1px solid var(--apple-border, rgba(0, 0, 0, 0.08));
         text-align: center;
-        color: var(--text-tertiary);
-        font-size: var(--text-xs);
+        color: var(--apple-light-gray, #86868b);
+        font-size: 0.72rem;
     }
 
     .app-footer__ownership {
@@ -130,20 +149,27 @@
         flex-wrap: wrap;
         justify-content: center;
         align-items: center;
-        gap: var(--space-3);
-        font-size: var(--text-xs);
-        margin-bottom: var(--space-2);
+        gap: 0.6rem;
+        font-size: 0.72rem;
+        margin-bottom: 0.4rem;
+        color: var(--apple-light-gray, #86868b);
     }
 
     .app-footer__separator {
-        color: var(--text-quaternary);
+        color: var(--apple-border, rgba(0, 0, 0, 0.15));
     }
 
     .app-footer__rights {
-        font-size: var(--text-2xs);
-        color: var(--text-quaternary);
-        line-height: 1.5;
-        margin-top: var(--space-2);
+        font-size: 0.6875rem;
+        color: var(--apple-light-gray, #86868b);
+        line-height: 1.55;
+        margin-top: 0.35rem;
+    }
+
+    .app-footer__version {
+        font-size: 0.6875rem;
+        color: var(--apple-light-gray, #86868b);
+        margin-top: 0.4rem;
     }
 
     .app-footer__dev-link {
@@ -233,7 +259,7 @@
 
     <div class="app-footer__bottom">
         <div class="app-footer__ownership">
-            <span>&copy; 2025 AbhiHub. All rights reserved.</span>
+            <span>&copy; 2026 AbhiHub. All rights reserved.</span>
             <span class="app-footer__separator">·</span>
             <span>AbhiHub™ is a trademark of AbhiHub Technologies.</span>
             <span class="app-footer__separator">·</span>
@@ -247,18 +273,7 @@
                 class="app-footer__email">info@abhihub.edu.eu.org</a>
         </div>
         <div class="app-footer__version">
-            Version: <span id="app-version">Loading...</span>
+            Version: <span id="app-version">v{{ APP_VERSION }}</span>
         </div>
     </div>
 </footer>
-<script>
-    // Fetch and display app version in footer
-    fetch('/api/version')
-        .then(response => response.json())
-        .then(data => {
-            document.getElementById('app-version').textContent = data.version || '1.0.0';
-        })
-        .catch(() => {
-            document.getElementById('app-version').textContent = '1.0.0';
-        });
-</script>

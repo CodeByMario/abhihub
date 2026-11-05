@@ -8,6 +8,7 @@ from flask import (
 )
 from routes.auth import is_admin_user, auth_required, log_admin_action
 from routes.seo import sitemap_page, slugify
+from cache_manager import get_cache, TTL
 from methods.supabase_helper import (
     init_supabase, init_supabase_admin, get_all_colleges, get_all_branches, get_college_by_slug,
     get_colleges_by_brand, get_college_stats, get_waitlist_count,
@@ -167,24 +168,37 @@ def leaderboard():
 @library_bp.route('/college')
 @sitemap_page(priority="0.95", changefreq="daily")
 def pyq_landing():
-    """SEO landing page targeting 'PYQ' and '[college] PYQ' searches"""
-    colleges_res = get_all_colleges()
-    colleges = colleges_res.get('data', [])
-    try:
-        client = init_supabase_admin() or init_supabase()
-        if client:
-            raw = client.table('documents').select('college_id').eq('status', 'approved').execute()
-            count_map = {}
-            for row in (raw.data or []):
-                cid = row.get('college_id')
-                if cid:
-                    count_map[cid] = count_map.get(cid, 0) + 1
-            for c in colleges:
-                c['doc_count'] = count_map.get(c.get('id'), 0)
-    except Exception:
-        pass
-    colleges.sort(key=lambda c: c.get('doc_count', 0), reverse=True)
-    return render_template('pyq_landing.html', colleges=colleges)
+    """SEO landing page targeting 'PYQ' and '[college] PYQ' searches with L1 cache and minimal field projection."""
+    import app
+    cache = getattr(app, 'cache', None)
+
+    def fetch_colleges_summary():
+        from methods.supabase_helper import get_colleges_with_document_counts
+        res = get_colleges_with_document_counts()
+        items = res.get('data', []) if res.get('success') else []
+        clean = []
+        for c in items:
+            clean.append({
+                'id': c.get('id'),
+                'name': c.get('name'),
+                'abbreviation': c.get('abbreviation') or '',
+                'popular_name': c.get('popular_name') or '',
+                'city': c.get('city') or '',
+                'doc_count': c.get('doc_count', 0),
+                'waitlist_count': c.get('waitlist_count', 0),
+            })
+        clean.sort(key=lambda x: (x.get('doc_count', 0), x.get('waitlist_count', 0)), reverse=True)
+        return clean
+
+    if cache:
+        colleges = cache.get_cached('colleges:summary:v3', level=cache.L1, ttl=cache.LONG, fetcher=fetch_colleges_summary)
+    else:
+        colleges = fetch_colleges_summary()
+
+    response = make_response(render_template('pyq_landing.html', colleges=colleges))
+    if cache:
+        cache.set_cache_headers(response, max_age=cache.LONG, stale_while_revalidate=True)
+    return response
 
 
 @library_bp.route('/pyq_landing')
@@ -303,7 +317,7 @@ def college_files(college_slug):
     except (TypeError, ValueError):
         abort(400, description='page must be a positive integer')
     page_size = 16
-    offset = (page - 1) * page_size
+    requested_page = page
 
     dept_res = {'success': False, 'data': {}}
     if department_slug:
@@ -320,9 +334,38 @@ def college_files(college_slug):
     if dept_res.get('success') and dept_res.get('data', {}).get('college_id') == college_id:
         q = q.eq('department_id', dept_res['data']['id'])
     if search_query:
-        q = q.or_(f"title.ilike.%{search_query}%,description.ilike.%{search_query}%")
+        search_terms = [
+            f"title.ilike.%{search_query}%",
+            f"description.ilike.%{search_query}%",
+            f"search_text.ilike.%{search_query}%",
+        ]
+        # Subject names and codes live in the related subjects table. Resolve
+        # their IDs first so they can participate in the same document OR.
+        try:
+            subject_matches = client.table('subjects') \
+                .select('id') \
+                .or_(f"name.ilike.%{search_query}%,subject_code.ilike.%{search_query}%") \
+                .limit(100) \
+                .execute().data or []
+            subject_ids = [row.get('id') for row in subject_matches if row.get('id')]
+            if subject_ids:
+                search_terms.append(f"subject_id.in.({','.join(subject_ids)})")
+        except Exception as search_err:
+            logging.warning(f"[college_files] subject search lookup failed: {search_err}")
+        q = q.or_(','.join(search_terms))
 
-    try:
+    # Level 1 cached department list (1 hr TTL)
+    dept_cache_key = f"col_depts:{college_id}"
+    departments = get_cache().get_cached(
+        dept_cache_key,
+        ttl=TTL.LONG,
+        fetcher=lambda: get_departments_by_college(college_id).get('data', [])
+    ) or []
+
+    # Level 1 cached college files query (180s TTL)
+    cache_key = f"col_files:{college_id}:{doc_type}:{department_slug}:{search_query}:{page}:{page_size}"
+
+    def _fetch_college_files():
         count_resp = client.table('documents') \
             .select('id', count='exact') \
             .eq('college_id', college_id) \
@@ -332,19 +375,33 @@ def college_files(college_slug):
         if dept_res.get('success') and dept_res.get('data', {}).get('college_id') == college_id:
             count_resp = count_resp.eq('department_id', dept_res['data']['id'])
         if search_query:
-            count_resp = count_resp.or_(f"title.ilike.%{search_query}%,description.ilike.%{search_query}%")
-        total_count = count_resp.execute().count or 0
+            count_resp = count_resp.or_(','.join(search_terms))
+        total_cnt = count_resp.execute().count or 0
 
-        items_resp = q.limit(page_size).offset(offset).execute()
-        files = items_resp.data or []
+        tot_pages = max(1, (total_cnt + page_size - 1) // page_size)
+        cur_page = min(page, tot_pages)
+        offset = (cur_page - 1) * page_size
+        items = q.limit(page_size).offset(offset).execute().data or []
+        return {'files': items, 'total_count': total_cnt, 'page': cur_page, 'total_pages': tot_pages}
+
+    query_error = False
+    try:
+        cached_result = get_cache().get_cached(cache_key, ttl=180, fetcher=_fetch_college_files)
+        files = cached_result.get('files', [])
+        total_count = cached_result.get('total_count', 0)
+        actual_page = cached_result.get('page', page)
+        if actual_page != requested_page:
+            corrected_args = request.args.to_dict(flat=True)
+            corrected_args['page'] = actual_page
+            return redirect(url_for('library.college_files', college_slug=college_slug, **corrected_args), code=302)
+        page = actual_page
     except Exception as e:
         logging.error(f"[college_files] query failed: {e}")
         files = []
         total_count = 0
+        query_error = True
 
-    departments = get_departments_by_college(college_id).get('data', [])
-
-    return render_template('college_files.html',
+    response = make_response(render_template('college_files.html',
                            college=college,
                            files=files,
                            departments=departments,
@@ -354,69 +411,17 @@ def college_files(college_slug):
                                'search': search_query,
                                'page': page,
                                'page_size': page_size,
-                               'total': total_count
-                           })
+                               'total': total_count,
+                               'query_error': query_error
+                           }))
+    get_cache().set_cache_headers(response, max_age=180, stale_while_revalidate=True)
+    return response
 
 
 @library_bp.route('/pyq/<college_slug>/files')
 def pyq_college_files_legacy_redirect(college_slug):
     """Permanent 301 redirect from legacy /pyq/<college_slug>/files to canonical /college/<college_slug>/files."""
     return redirect(url_for('library.college_files', college_slug=college_slug, **request.args), code=301)
-
-
-@library_bp.route('/college/<college_slug>/<department_slug>')
-def department_landing(college_slug, department_slug):
-    """Dynamic SEO-optimized department landing page"""
-    college_res = get_college_by_slug(college_slug)
-    if not college_res.get('success'):
-        abort(404)
-    college = college_res.get('data')
-    college_id = college.get('id')
-
-    dept_res = get_department_by_slug(department_slug, college_id=college_id)
-    if not dept_res.get('success'):
-        abort(404)
-    department = dept_res.get('data')
-    dept_id = department.get('id')
-
-    canonical_college_slug = slugify(college.get('abbreviation') or college.get('name'))
-    canonical_department_slug = slugify(department.get('abbreviation') or department.get('name'))
-    if college_slug != canonical_college_slug or department_slug != canonical_department_slug:
-        return redirect(url_for(
-            'library.department_landing',
-            college_slug=canonical_college_slug,
-            department_slug=canonical_department_slug
-        ), code=301)
-
-    # Do not render a department under a college unless the relationship is
-    # explicitly present; otherwise valid-looking links can show false data.
-    client = init_supabase_admin() or init_supabase()
-    if not client:
-        abort(503, description='Database client unavailable')
-    mapping = client.table('college_departments') \
-        .select('department_id') \
-        .eq('college_id', college_id) \
-        .eq('department_id', dept_id) \
-        .limit(1) \
-        .execute()
-    if not mapping.data:
-        abort(404)
-
-    stats = get_department_stats(college_id, dept_id).get('data', {})
-    recent_files = get_recent_department_files(college_id, dept_id, limit=6).get('data', [])
-
-    return render_template('department.html',
-                           college=college,
-                           department=department,
-                           stats=stats,
-                           recent_files=recent_files)
-
-
-@library_bp.route('/pyq/<college_slug>/<department_slug>')
-def pyq_department_legacy_redirect(college_slug, department_slug):
-    """Permanent 301 redirect from legacy /pyq/<college_slug>/<department_slug> to canonical /college/<college_slug>/<department_slug>."""
-    return redirect(url_for('library.department_landing', college_slug=college_slug, department_slug=department_slug), code=301)
-
 
 @library_bp.route('/subject/<subject_slug>')
 def subject_landing(subject_slug):
@@ -489,12 +494,18 @@ def resource_landing(slug):
 
     file_url = document.get('file_url', '')
     if file_url:
-        ext = ''
-        if document.get('file_type') == 'pdf':
-            ext = '.pdf'
-        elif '.' in file_url.split('/')[-1]:
-            ext = '.' + file_url.split('/')[-1].split('.')[-1].split('?')[0]
-        document['file_url'] = f'/api/view-doc/{doc_id}/file{ext}'
+        document['raw_cloud_url'] = file_url
+        clean_ext = ''
+        if '.' in file_url.split('/')[-1]:
+            clean_ext = '.' + file_url.split('/')[-1].split('.')[-1].split('?')[0].lower()
+        if clean_ext in ('.jpg', '.jpeg', '.png', '.webp', '.gif'):
+            document['file_type'] = 'image'
+            document['is_image'] = True
+        elif clean_ext == '.pdf' or document.get('file_type') == 'pdf':
+            clean_ext = '.pdf'
+            document['file_type'] = 'pdf'
+            document['is_image'] = False
+        document['file_url'] = f'/api/view-doc/{doc_id}/file{clean_ext}'
 
     college_data = document.get('college') or {}
     dept_data = document.get('department') or {}
@@ -645,9 +656,20 @@ def resource_landing(slug):
     is_uploader_verified = is_creator_verified(document.get('uploader_id'))
     view_earnings = round(recorded_views * 0.20, 2) if is_uploader_verified else 0.0
 
+    direct_pdf_url = None
+    if has_access:
+        try:
+            from routes.api import authorize_document_access
+            auth_payload, auth_status = authorize_document_access(doc_id)
+            if auth_status == 200 and auth_payload and auth_payload.get('file_url'):
+                direct_pdf_url = auth_payload.get('file_url')
+        except Exception as auth_err:
+            logging.warning(f"[resource_landing] Could not pre-authorize direct PDF URL for {doc_id}: {auth_err}")
+
     return app.render_template(
         'resource.html',
         document=document,
+        direct_pdf_url=direct_pdf_url,
         pricing=pricing,
         has_access=has_access,
         can_manage=can_manage,

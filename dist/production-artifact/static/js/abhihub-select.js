@@ -106,7 +106,14 @@ const AbhiHubSelect = {
             let json;
             if (this.apiCache['/api/colleges'] && (this.apiCache['/api/colleges'].colleges || []).length > 0) {
                 json = this.apiCache['/api/colleges'];
-            } else {
+            } else if (window.AbhiHubIDB) {
+                const cached = await window.AbhiHubIDB.getAll('colleges');
+                if (cached && cached.length > 0) {
+                    json = { success: true, colleges: cached };
+                    this.apiCache['/api/colleges'] = json;
+                }
+            }
+            if (!json) {
                 const res = await fetch('/api/colleges');
                 json = await res.json();
                 if (json && (json.colleges || []).length > 0) {
@@ -209,7 +216,14 @@ const AbhiHubSelect = {
             let json;
             if (this.apiCache['/api/subjects:all'] && (this.apiCache['/api/subjects:all'].subjects || []).length > 0) {
                 json = this.apiCache['/api/subjects:all'];
-            } else {
+            } else if (window.AbhiHubIDB) {
+                const cached = await window.AbhiHubIDB.getAll('subjects');
+                if (cached && cached.length > 0) {
+                    json = { success: true, subjects: cached };
+                    this.apiCache['/api/subjects:all'] = json;
+                }
+            }
+            if (!json) {
                 const res = await fetch('/api/subjects');
                 json = await res.json();
                 if (json && (json.subjects || []).length > 0) {

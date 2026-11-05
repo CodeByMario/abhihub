@@ -4,7 +4,8 @@
   window.__CURRENT_DOC__ = {
     id: "{{ file_meta.get('id', '') or record_id or '' }}",
     title: {{ file_meta.get('file-name', pdf_name) | tojson }},
-    category: "{{ file_meta.get('document_category', 'pdf') }}"
+    category: "{{ file_meta.get('document_category', 'pdf') }}",
+    version: {{ (file_meta.get('updated_at') or file_meta.get('file_hash') or '') | tojson }}
   };
 </script>
 
@@ -15,16 +16,24 @@
   :root {
     --reader-bar-h: 52px;
     --bottom-nav-h: 64px;
-    /* p_nav.html mobile bar height */
-    --blue: #2563eb;
-    --blue-light: #dbeafe;
-    --surface: #f8fafc;
-    --card: #ffffff;
-    --text: #1e293b;
-    --muted: #64748b;
-    --border: #e2e8f0;
-    --radius: 14px;
-    --shadow: 0 4px 24px rgba(37, 99, 235, .08);
+    --blue: #0071E3;
+    --blue-light: rgba(0, 113, 227, 0.10);
+    --surface: #F5F5F7;
+    --card: #FFFFFF;
+    --text: #1D1D1F;
+    --muted: #6E6E73;
+    --border: rgba(0, 0, 0, 0.08);
+    --radius: 980px;
+    --shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+  }
+
+  [data-theme="dark"], .dark {
+    --surface: #000000;
+    --card: #1C1C1E;
+    --text: #F5F5F7;
+    --muted: #8E8E93;
+    --border: rgba(255, 255, 255, 0.12);
+    --shadow: 0 4px 24px rgba(0, 0, 0, 0.5);
   }
 
   /* ── Full-height page layout ─────────────────────────────── */
@@ -968,7 +977,8 @@
   window.__CURRENT_DOC__ = {
     id: "{{ file_meta.get('id', '') }}",
     title: {{ file_meta.get('file-name', pdf_name) | tojson }},
-    category: "{{ file_meta.get('document_category', '') }}"
+    category: "{{ file_meta.get('document_category', '') }}",
+    version: {{ (file_meta.get('updated_at') or file_meta.get('file_hash') or '') | tojson }}
   };
 
   function fillPdfQuestion(q) {
@@ -1038,7 +1048,8 @@
   (function initPdfViewer() {
     const overlay = document.getElementById('loadingOverlay');
     const viewport = document.querySelector('.reader-viewport');
-    const pdfUrl = "/api/view-doc/{{ file_meta.get('id', '') }}/document.pdf";
+    const pdfVersion = {{ (file_meta.get('updated_at') or file_meta.get('file_hash') or '') | tojson }};
+    const pdfUrl = "/api/view-doc/{{ file_meta.get('id', '') }}/document.pdf?v=" + encodeURIComponent(pdfVersion);
     const pdfName = "{{ file_meta.get('file-name', pdf_name) }}";
 
     /* ── Height-fit: measure actual available space ───────── */
@@ -1072,10 +1083,13 @@
         '</div>';
     }
 
-    /* ── Primary viewer: PDF.js (self-hosted, no external dependency) ── */
-    function mountPdfJs() {
+    const docId = "{{ file_meta.get('id', '') or record_id or '' }}";
+
+    /* ── Primary viewer: PDF.js (self-hosted, direct cloud storage delivery) ── */
+    function mountPdfJs(targetUrl) {
+      const deliveryUrl = targetUrl || pdfUrl;
       viewport.innerHTML =
-        '<iframe id="pdfFrame" src="/static/pdfjs-6.1.200-dist/web/viewer.html?file=' + encodeURIComponent(pdfUrl) + '&download=false" ' +
+        '<iframe id="pdfFrame" src="/static/pdfjs-6.1.200-dist/web/viewer.html?file=' + encodeURIComponent(deliveryUrl) + '&download=false" ' +
         'style="border:none;display:block;width:100%;height:100%;background:#525659;" ' +
         'title="' + pdfName + '" ' +
         'onload="document.getElementById(\'loadingOverlay\').classList.add(\'hidden\');" ' +
@@ -1087,7 +1101,36 @@
       }, 50);
     }
 
-    mountPdfJs();
+    if (docId) {
+      fetch('/api/documents/' + encodeURIComponent(docId) + '/authorize')
+        .then(function (res) {
+          if (res.status === 402) {
+            throw new Error('Payment required to view or download this document.');
+          }
+          if (res.status === 403) {
+            throw new Error('You do not have permission to view this document.');
+          }
+          if (res.status === 404) {
+            throw new Error('Document not found or no longer available.');
+          }
+          if (!res.ok) {
+            throw new Error('Failed to authorize document access (status ' + res.status + ').');
+          }
+          return res.json();
+        })
+        .then(function (data) {
+          if (data && data.success && data.file_url) {
+            mountPdfJs(data.file_url);
+          } else {
+            mountPdfJs(pdfUrl);
+          }
+        })
+        .catch(function (err) {
+          showError(err.message || 'Unable to open document.');
+        });
+    } else {
+      mountPdfJs(pdfUrl);
+    }
   })();
 
   /* ── AdBlock detection ──────────────────────────────────── */

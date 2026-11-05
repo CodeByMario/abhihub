@@ -82,60 +82,54 @@
   color: var(--primary-color) !important;
 }
 
-/* --- Custom app navigation --- */
+/* --- Apple Design System Navigation Items --- */
 .navbar__item {
-  display:inline-flex;
-  position:relative;
-  color:var(--text-tertiary);
-  text-decoration:none;
+  display: inline-flex;
+  position: relative;
+  color: #6E6E73 !important;
+  text-decoration: none;
+  font-family: -apple-system, BlinkMacSystemFont, "Plus Jakarta Sans", sans-serif;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-.navbar__item.-blue {
-  color: var(--primary-color) !important;
+.navbar__item:hover {
+  color: #0071E3 !important;
 }
 
-.navbar__item.-blue:hover {
-  color: var(--secondary-color) !important;
-}
-
-.navbar__item.-orange {
-  color: var(--secondary-color) !important;
-}
-
-.navbar__item.-orange:hover {
-  color: var(--primary-color) !important;  
-}
-
-.navbar__item.-navy-blue {
-  color: var(--primary-color) !important;
-}
-
-.navbar__item.-purple {
-  color: var(--primary-color) !important;
-}
-
-.navbar__item.-green {
-  color: var(--success) !important;
-}
-
-.navbar__item.-chat {
-  color: #0891b2 !important;
-}
-.navbar__item.-chat:hover {
-  color: #0e7490 !important;
-}
-
-.navbar__item.-yellow {
-  color: #d97706 !important;
-}
-
+/* Harmonized color overrides - neutral base across all badges */
+.navbar__item.-blue,
+.navbar__item.-orange,
+.navbar__item.-navy-blue,
+.navbar__item.-purple,
+.navbar__item.-green,
+.navbar__item.-chat,
+.navbar__item.-yellow,
 .navbar__item.-red {
-  color: var(--error) !important;
+  color: #6E6E73 !important;
+}
+
+.navbar__item.-blue:hover,
+.navbar__item.-orange:hover,
+.navbar__item.-navy-blue:hover,
+.navbar__item.-purple:hover,
+.navbar__item.-green:hover,
+.navbar__item.-chat:hover,
+.navbar__item.-yellow:hover,
+.navbar__item.-red:hover {
+  color: #0071E3 !important;
 }
 
 /* Active state */
-.navbar__item--active {
-  color: var(--primary-color) !important;
+.navbar__item--active,
+.navbar__item--active.-blue,
+.navbar__item--active.-orange,
+.navbar__item--active.-navy-blue,
+.navbar__item--active.-purple,
+.navbar__item--active.-green,
+.navbar__item--active.-chat,
+.navbar__item--active.-yellow,
+.navbar__item--active.-red {
+  color: #0071E3 !important;
 }
 
 /* Bottom nav layout: a compact floating rail on larger screens, an edge-to-edge
@@ -214,16 +208,19 @@
 }
 
 .navbar--bottom .navbar__item--active {
-  background:linear-gradient(135deg, #eff6ff, #eef2ff);
-  color:var(--primary-700) !important;
-  box-shadow:inset 0 0 0 1px rgba(37,99,235,.11);
+  background: rgba(0, 113, 227, 0.08) !important;
+  color: #0071E3 !important;
+  box-shadow: inset 0 0 0 1px rgba(0, 113, 227, 0.15);
 }
 .navbar--bottom .navbar__item--active .navbar__icon {
-  background:var(--primary-600);
-  color:#fff;
-  box-shadow:0 3px 8px rgba(37,99,235,.25);
+  background: #0071E3;
+  color: #ffffff;
+  box-shadow: 0 4px 10px rgba(0, 113, 227, 0.3);
 }
-.navbar--bottom .navbar__item--active .navbar__label { font-weight:750; }
+.navbar--bottom .navbar__item--active .navbar__label {
+  font-weight: 700;
+  color: #0071E3;
+}
 
 @media (min-width:641px) {
   .app-footer { padding-bottom:calc(var(--nav-bottom-height) + var(--space-10)); }

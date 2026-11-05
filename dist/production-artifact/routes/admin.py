@@ -204,8 +204,11 @@ def admin_delete_ads_override():
 @admin_required
 def admin_developer_panel():
     """Admin Developer Panel: cloud stats, feature health, live logs."""
-    env_name = os.getenv('FLASK_ENV', os.getenv('APP_ENV', 'development')).lower()
-    if env_name in ('production', 'prod'):
+    prod_env = os.getenv('PRODUCTION_ENVIRONMENT', os.getenv('PRODUCTION_ENV', '')).lower()
+    if prod_env in ('developer', 'development', 'dev'):
+        return render_template('admin_developer.html')
+    env_name = os.getenv('FLASK_ENV', os.getenv('APP_ENV', os.getenv('ENV', 'development'))).lower()
+    if env_name in ('production', 'prod') and env_name != 'developer':
         abort(403, description="Developer panel is disabled in production mode.")
     return render_template('admin_developer.html')
 

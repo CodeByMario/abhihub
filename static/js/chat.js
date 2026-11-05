@@ -1918,10 +1918,14 @@ async function initChatAcademicTaxonomy() {
           newColInput.value = '';
         }
         try {
-          const res = await fetch(`/api/departments?college_id=${encodeURIComponent(colSelect.value)}`);
-          const data = await res.json();
-          if (data.success && data.departments && data.departments.length > 0) {
-            renderBranches(data.departments);
+          let depts = window.AbhiHubIDB ? await window.AbhiHubIDB.getDepartments(colSelect.value) : null;
+          if (!depts || depts.length === 0) {
+            const res = await fetch(`/api/departments?college_id=${encodeURIComponent(colSelect.value)}`);
+            const data = await res.json();
+            depts = (data.success && data.departments && data.departments.length > 0) ? data.departments : null;
+          }
+          if (depts && depts.length > 0) {
+            renderBranches(depts);
           } else {
             renderBranches(academicTaxonomy.departments);
           }
@@ -1977,12 +1981,16 @@ async function initChatAcademicTaxonomy() {
       }
     });
 
-    // Initial fetch of colleges, departments, and user profile
+    // Initial fetch of colleges, departments, and user profile (Cache-First)
     try {
+      let cachedCols = window.AbhiHubIDB ? await window.AbhiHubIDB.getColleges() : null;
+      let cachedDepts = window.AbhiHubIDB ? await window.AbhiHubIDB.getDepartments() : null;
+      let cachedProf = window.AbhiHubIDB ? await window.AbhiHubIDB.getUserDetails() : null;
+
       const [colRes, deptRes, profRes] = await Promise.all([
-        fetch('/api/colleges').then(r => r.json()).catch(() => ({})),
-        fetch('/api/departments').then(r => r.json()).catch(() => ({})),
-        fetch('/api/profile').then(r => r.json()).catch(() => ({}))
+        (cachedCols && cachedCols.length > 0) ? Promise.resolve({ colleges: cachedCols }) : fetch('/api/colleges').then(r => r.json()).catch(() => ({})),
+        (cachedDepts && cachedDepts.length > 0) ? Promise.resolve({ departments: cachedDepts }) : fetch('/api/departments').then(r => r.json()).catch(() => ({})),
+        cachedProf ? Promise.resolve({ user: cachedProf }) : fetch('/api/profile').then(r => r.json()).catch(() => ({}))
       ]);
 
       academicTaxonomy.colleges = colRes.colleges || [];

@@ -31,36 +31,17 @@ except ImportError:
 SUPABASE_URL = os.getenv("SUPABASE_URL")
 # Public/anon key — accepts legacy name SUPABASE_KEY or new SUPABASE_PUBLIC_API_KEY
 SUPABASE_KEY = os.getenv("SUPABASE_KEY") or os.getenv("SUPABASE_PUBLIC_API_KEY") or ""
-# Service key for admin access (new-style name preferred)
+# Supabase secret key for server-side admin access. Keep it out of browser code.
 SUPABASE_SECRET_API_KEY = os.getenv("SUPABASE_SECRET_API_KEY") or ""
-# Admin/service credential — bypasses RLS for tables like user_crushes where
-# anon access is denied. Accepts either:
-#   - SUPABASE_JWT = the JWT *signing secret* (raw string) → we mint a
-#     service_role token from it (Supabase legacy JWT secret auth), or
-#   - SUPABASE_JWT / SUPABASE_SERVICE_ROLE = an eyJ... API key (used as-is).
-# Falls back to SUPABASE_KEY if neither is set.
-_RAW_ADMIN_SECRET = os.getenv("SUPABASE_JWT") or os.getenv("SUPABASE_SERVICE_ROLE") or ""
 
 def _resolve_admin_key() -> str:
-    """Return a valid Supabase API key for admin access."""
-    # Preferred: real service_role / secret API key
-    if SUPABASE_SECRET_API_KEY:
-        return SUPABASE_SECRET_API_KEY
-    if _RAW_ADMIN_SECRET.startswith("eyJ"):
-        return _RAW_ADMIN_SECRET  # already a real API key (service_role)
-    if _RAW_ADMIN_SECRET:
-        # Raw signing secret — mint a service_role HS256 token.
-        try:
-            import jwt as pyjwt
-            return pyjwt.encode(
-                {"role": "service_role", "iss": "supabase", "iat": int(time.time()),
-                 "exp": int(time.time()) + 10 * 365 * 24 * 3600},
-                _RAW_ADMIN_SECRET,
-                algorithm="HS256",
-            )
-        except Exception as e:
-            logging.error(f"❌ Could not mint service_role token from secret: {e}")
-    return SUPABASE_KEY or ""
+    """Return the explicitly configured server-side Supabase secret key.
+
+    Never derive an elevated credential from the project JWT signing secret,
+    accept ambiguous legacy environment variables, or fall back to the public
+    key for an admin client.
+    """
+    return SUPABASE_SECRET_API_KEY
 
 import threading
 
@@ -76,7 +57,7 @@ def reset_thread_client():
 
 
 def init_supabase_admin():
-    """Supabase client using the service/JWT key (bypasses RLS).
+    """Supabase client using the server-side secret key (bypasses RLS).
 
     Use ONLY for tables blocked by RLS for the anon key (e.g. user_crushes).
     Thread-safe: assigns each thread its own client to avoid WinError 10035.
@@ -87,7 +68,7 @@ def init_supabase_admin():
         return None
     admin_key = _resolve_admin_key()
     if not SUPABASE_URL or not admin_key:
-        logging.error("❌ init_supabase_admin: SUPABASE_URL or admin key missing")
+        logging.error("❌ init_supabase_admin: SUPABASE_URL or SUPABASE_SECRET_API_KEY missing")
         return None
 
     client = getattr(_local_context, 'admin_client', None)
@@ -223,20 +204,46 @@ def get_colleges_with_document_counts() -> Dict:
         return {"success": False, "data": []}
 
     try:
-        response = client.table('documents') \
-            .select('college_id') \
-            .eq('status', 'approved') \
-            .execute()
         counts = {}
-        for document in response.data or []:
-            college_id = document.get('college_id')
-            if college_id:
-                counts[college_id] = counts.get(college_id, 0) + 1
+        offset = 0
+        chunk = 1000
+        while True:
+            response = client.table('documents') \
+                .select('college_id') \
+                .eq('status', 'approved') \
+                .range(offset, offset + chunk - 1) \
+                .execute()
+            rows = response.data or []
+            for document in rows:
+                college_id = document.get('college_id')
+                if college_id:
+                    counts[college_id] = counts.get(college_id, 0) + 1
+            if len(rows) < chunk:
+                break
+            offset += chunk
+
+        waitlist_counts = {}
+        wl_offset = 0
+        while True:
+            wl_resp = client.table('college_waitlist') \
+                .select('college_id') \
+                .range(wl_offset, wl_offset + chunk - 1) \
+                .execute()
+            wl_rows = wl_resp.data or []
+            for item in wl_rows:
+                cid = item.get('college_id')
+                if cid:
+                    waitlist_counts[cid] = waitlist_counts.get(cid, 0) + 1
+            if len(wl_rows) < chunk:
+                break
+            wl_offset += chunk
 
         for college in colleges:
             count = counts.get(college.get('id'), 0)
             college['document_count'] = count
             college['doc_count'] = count
+            college['waitlist_count'] = waitlist_counts.get(college.get('id'), 0)
+        colleges.sort(key=lambda x: (x.get('doc_count', 0), x.get('waitlist_count', 0)), reverse=True)
         return {"success": True, "data": colleges}
     except Exception as e:
         log.error("[Supabase] get_colleges_with_document_counts failed: %s", e)
@@ -439,13 +446,15 @@ def get_department_by_slug(slug: str, college_id: str = None) -> Dict:
         else:
             response = client.table("departments").select("*").execute()
         import re
+        normalized_slug = re.sub(r'[^a-z0-9]+', '-', str(slug).lower()).strip('-')
+        collapsed_slug = re.sub(r'[^a-z0-9]+', '', str(slug).lower())
         for c in response.data:
             abbr = (c.get('abbreviation') or '').lower()
-            normalized_slug = re.sub(r'[^a-z0-9]+', '-', str(slug).lower()).strip('-')
-            if abbr and (abbr == slug or abbr == normalized_slug):
+            if abbr and (abbr == slug or abbr == normalized_slug or abbr == collapsed_slug):
                 return {"success": True, "data": c}
             name_slug = re.sub(r'[^a-z0-9]+', '-', (c.get('name') or '').lower()).strip('-')
-            if name_slug == normalized_slug:
+            name_collapsed = re.sub(r'[^a-z0-9]+', '', (c.get('name') or '').lower())
+            if name_slug == normalized_slug or name_collapsed == collapsed_slug:
                 return {"success": True, "data": c}
         return {"success": False, "message": "Department not found"}
     except Exception as e:
@@ -1017,7 +1026,16 @@ def save_file_record(
             'file_url': file_url,
             'storage_provider': storage_provider,
             'provider_public_id': cloudinary_public_id,
-            'file_type': file_type,
+            'file_type': 'image' if (
+                any((final_file_name or file_name or '').lower().endswith(ext) for ext in ('.png', '.jpg', '.jpeg', '.webp', '.gif', '.svg', '.bmp'))
+                or file_type == 'image'
+                or '/image/upload/' in str(file_url or '').lower()
+            ) else ('pdf' if (
+                (final_file_name or file_name or '').lower().endswith('.pdf')
+                or str(cloudinary_public_id or '').lower().endswith('.txt')
+                or file_type == 'pdf'
+                or '/raw/upload/' in str(file_url or '').lower()
+            ) else (file_type or 'pdf')),
             'file_size_bytes': file_size,
             'search_text': search_text,
             'status': 'pending',  # All new uploads start as pending
@@ -1455,12 +1473,18 @@ def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dic
         # foreign-key relationship in PostgREST must not take down the entire
         # catalogue. Retry with progressively simpler projections.
         projections = (
-            '*, profiles!documents_uploader_id_fkey(full_name, email), '
-            'subjects(name, subject_code), colleges(name, abbreviation), '
-            'document_votes(user_id), bookmarks(user_id), document_comments(id)',
-            '*, profiles!documents_uploader_id_fkey(full_name, email), '
+            'id, title, storage_provider, file_url, view_count, status, '
+            'college_id, subject_id, branch_id, semester, exam_type, year, created_at, '
+            'updated_at, is_bookmarked, uploader_id, price, '
+            'profiles!documents_uploader_id_fkey(full_name, email), '
             'subjects(name, subject_code), colleges(name, abbreviation)',
-            '*',
+            'id, title, storage_provider, file_url, view_count, status, '
+            'college_id, subject_id, branch_id, semester, exam_type, year, created_at, '
+            'updated_at, is_bookmarked, uploader_id, price, '
+            'subjects(name, subject_code), colleges(name, abbreviation)',
+            'id, title, storage_provider, file_url, view_count, status, '
+            'college_id, subject_id, branch_id, semester, exam_type, year, created_at, '
+            'updated_at, is_bookmarked, uploader_id, price',
         )
         res = None
         last_error = None
@@ -2872,8 +2896,21 @@ def save_file_access(user_email: str, file_name: str, file_type: str = 'pdf', fi
 
 def get_user_file_history(user_email: str = '', user_id: str = None, limit: int = 10) -> Dict:
     """
-    Get file access history for a user using document_views table.
+    Get file access history for a user using document_views table with L1 caching.
     """
+    cache = None
+    c_key = None
+    try:
+        from cache_manager import get_cache
+        cache = get_cache()
+        if user_id:
+            c_key = f"user_file_history:{user_id}:{limit}"
+            cached_data, _ = cache.l1.get(c_key)
+            if cached_data is not None:
+                return {'success': True, 'data': cached_data, 'count': len(cached_data)}
+    except Exception:
+        cache = None
+
     client = init_supabase()
     if not client: 
         return {'success': False, 'data': []}
@@ -2888,7 +2925,13 @@ def get_user_file_history(user_email: str = '', user_id: str = None, limit: int 
         if not user_id:
             return {'success': False, 'data': [], 'message': 'User not found'}
         
-        # Query document_views with document details
+        if not c_key and cache:
+            c_key = f"user_file_history:{user_id}:{limit}"
+            cached_data, _ = cache.l1.get(c_key)
+            if cached_data is not None:
+                return {'success': True, 'data': cached_data, 'count': len(cached_data)}
+
+        # Query document_views with document details (project specific columns)
         res = client.table('document_views') \
             .select('id, document_id, accessed_at, documents(id, title, file_url, file_type, document_category)') \
             .eq('user_id', user_id) \

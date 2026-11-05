@@ -1,7 +1,7 @@
 /**
  * Interactive In-App Guide Engine for AbhiHub
- * Fixed: SVG Spotlight Cutout (crystal-clear target, no blur on highlighted element)
- * Added: Post-Guide Completion Menu (allows immediately selecting another guide)
+ * Apple HIG Redesign: Clean typography, vector SVG icons, zero emojis.
+ * Context-Aware: Strictly displays guides relevant to the active page and present DOM elements.
  */
 (function () {
   'use strict';
@@ -16,15 +16,53 @@
       this.spotlightSvg = null;
       this.tooltipEl = null;
       this.menuEl = null;
+      this.toastEl = null;
       this._keyHandler = null;
       this._resizeHandler = null;
       this._currentTarget = null;
       this._currentStep = null;
       this._channel = null;
+
       this.initStyles();
       this.initSyncChannel();
       this.initAuthListeners();
       this.initGlobalTriggers();
+    }
+
+    getCurrentScreen() {
+      let rawPath = window.location.pathname || '';
+      if (rawPath.startsWith('/app-shell')) {
+        const p = new URLSearchParams(window.location.search).get('p');
+        if (p) rawPath = p.split('?')[0];
+      }
+      const seg = rawPath.replace(/^\/|\/$/g, '').toLowerCase() || 'dashboard';
+
+      if (seg.startsWith('resource/') || seg.startsWith('pdf/')) return 'pdf-reader';
+      if (seg.startsWith('college/')) return 'college';
+      if (seg.startsWith('department/')) return 'department';
+
+      const aliases = {
+        '': 'dashboard',
+        'home': 'dashboard',
+        'index': 'dashboard',
+        'dashboard': 'dashboard',
+        'rank': 'leaderboard',
+        'ranking': 'leaderboard',
+        'leaderboard': 'leaderboard',
+        'profile': 'account',
+        'settings': 'account',
+        'account': 'account',
+        'dashboard/setting': 'account',
+        'dashboard/profile': 'account',
+        'view': 'pdf-reader',
+        'dashboard/view': 'pdf-reader',
+        'reader': 'pdf-reader',
+        'local-viewer': 'pdf-reader',
+        'storeroom': 'store-room',
+        'store-room': 'store-room',
+        'upload': 'upload'
+      };
+      return aliases[seg] || seg;
     }
 
     initSyncChannel() {
@@ -66,32 +104,31 @@
       });
     }
 
-
     initStyles() {
       if (document.getElementById('guide-engine-styles')) return;
       const style = document.createElement('style');
       style.id = 'guide-engine-styles';
       style.textContent = `
-        /* SVG Spotlight Overlay */
+        /* Apple HIG Spotlight Overlay */
         .guide-spotlight-svg {
           position: fixed;
           top: 0; left: 0;
           width: 100vw; height: 100vh;
           z-index: 99980;
           pointer-events: none;
-          transition: all 0.25s ease;
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
         }
         .guide-spotlight-svg path {
-          fill: rgba(15, 23, 42, 0.78);
+          fill: rgba(15, 23, 42, 0.72);
           pointer-events: auto;
         }
         .guide-highlight-target {
           position: relative !important;
           z-index: 99985 !important;
-          outline: 3px solid #6366f1 !important;
+          outline: 2.5px solid #0071E3 !important;
           outline-offset: 4px !important;
-          border-radius: 8px !important;
-          box-shadow: 0 0 20px rgba(99, 102, 241, 0.6) !important;
+          border-radius: 12px !important;
+          box-shadow: 0 0 25px rgba(0, 113, 227, 0.45) !important;
           filter: none !important;
           backdrop-filter: none !important;
         }
@@ -100,19 +137,30 @@
           overflow: hidden !important;
         }
 
-        /* Tooltip styling */
+        /* Apple HIG Step Tooltip */
         .guide-tooltip {
           position: fixed;
           z-index: 99990;
-          background: #1e293b;
-          color: #f8fafc;
-          border: 1px solid #334155;
-          border-radius: 12px;
-          padding: 16px;
-          width: 300px;
+          background: #ffffff;
+          color: #1d1d1f;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 16px;
+          padding: 16px 18px;
+          width: 310px;
           max-width: calc(100vw - 32px);
-          box-shadow: 0 10px 30px rgba(0, 0, 0, 0.6);
-          font-family: inherit;
+          box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.04);
+          font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+          animation: guideTooltipIn 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        [data-theme="dark"] .guide-tooltip {
+          background: #1c1c1e;
+          color: #f5f5f7;
+          border-color: rgba(255, 255, 255, 0.12);
+          box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.6);
+        }
+        @keyframes guideTooltipIn {
+          from { opacity: 0; transform: translateY(4px) scale(0.98); }
+          to { opacity: 1; transform: translateY(0) scale(1); }
         }
         @media (prefers-reduced-motion: reduce) {
           .guide-spotlight-svg, .guide-tooltip, .guide-menu-card, .guide-backdrop {
@@ -121,153 +169,385 @@
           }
         }
         .guide-tooltip h4 {
-          margin: 0 0 6px 0;
-          font-size: 15px;
-          font-weight: 600;
-          color: #ffffff;
+          margin: 0 0 5px 0;
+          font-size: 0.95rem;
+          font-weight: 700;
+          letter-spacing: -0.015em;
+          color: inherit;
         }
         .guide-aim-badge {
-          display: inline-block;
-          background: rgba(99, 102, 241, 0.18);
-          color: #818cf8;
-          border: 1px solid rgba(99, 102, 241, 0.35);
-          font-size: 11px;
-          font-weight: 500;
-          border-radius: 4px;
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          background: rgba(0, 113, 227, 0.08);
+          color: #0071E3;
+          border-radius: 6px;
+          font-size: 0.72rem;
+          font-weight: 600;
           padding: 2px 7px;
           margin-bottom: 8px;
           line-height: 1.3;
         }
+        [data-theme="dark"] .guide-aim-badge {
+          background: rgba(56, 189, 248, 0.15);
+          color: #38bdf8;
+        }
         .guide-tooltip p {
           margin: 0 0 14px 0;
-          font-size: 13px;
-          line-height: 1.4;
-          color: #94a3b8;
+          font-size: 0.83rem;
+          line-height: 1.45;
+          color: #6e6e73;
+        }
+        [data-theme="dark"] .guide-tooltip p {
+          color: #a1a1a6;
         }
         .guide-tooltip-footer {
           display: flex;
           align-items: center;
           justify-content: space-between;
-          font-size: 12px;
+          font-size: 0.78rem;
+          padding-top: 4px;
+          border-top: 1px solid rgba(0, 0, 0, 0.06);
+        }
+        [data-theme="dark"] .guide-tooltip-footer {
+          border-top-color: rgba(255, 255, 255, 0.08);
         }
         .guide-counter {
-          color: #64748b;
+          color: #86868b;
           font-weight: 500;
         }
         .guide-actions {
           display: flex;
-          gap: 8px;
+          align-items: center;
+          gap: 6px;
         }
         .guide-btn {
           border: none;
-          border-radius: 6px;
-          padding: 6px 12px;
-          font-size: 12px;
+          border-radius: 980px;
+          padding: 5px 12px;
+          font-size: 0.78rem;
           cursor: pointer;
-          font-weight: 500;
-          transition: background 0.15s ease;
+          font-weight: 600;
+          transition: all 0.15s ease;
         }
         .guide-btn-skip {
           background: transparent;
-          color: #94a3b8;
+          color: #86868b;
         }
-        .guide-btn-skip:hover { color: #f8fafc; }
+        .guide-btn-skip:hover {
+          color: #1d1d1f;
+          background: rgba(0, 0, 0, 0.05);
+        }
+        [data-theme="dark"] .guide-btn-skip:hover {
+          color: #f5f5f7;
+          background: rgba(255, 255, 255, 0.08);
+        }
         .guide-btn-next {
-          background: #6366f1;
+          background: #0071E3;
           color: #ffffff;
         }
-        .guide-btn-next:hover { background: #4f46e5; }
+        .guide-btn-next:hover {
+          background: #0077ED;
+          transform: translateY(-1px);
+        }
 
-        /* Feature Directory & Completion Modal */
+        /* Apple HIG Redesigned Feature Directory Modal */
         .guide-backdrop {
           position: fixed;
           top: 0; left: 0; width: 100vw; height: 100vh;
-          background: rgba(15, 23, 42, 0.75);
+          background: rgba(15, 23, 42, 0.65);
+          backdrop-filter: blur(14px) saturate(180%);
+          -webkit-backdrop-filter: blur(14px) saturate(180%);
           z-index: 99980;
+          animation: guideBackdropFade 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        @keyframes guideBackdropFade {
+          from { opacity: 0; }
+          to { opacity: 1; }
         }
         .guide-menu-card {
           position: fixed;
           top: 50%; left: 50%;
           transform: translate(-50%, -50%);
           z-index: 99992;
-          background: #1e293b;
-          border: 1px solid #334155;
-          border-radius: 14px;
-          width: 90%;
-          max-width: 440px;
-          padding: 20px;
-          color: #f8fafc;
-          box-shadow: 0 20px 35px rgba(0, 0, 0, 0.6);
-          font-family: inherit;
+          background: #ffffff;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          border-radius: 20px;
+          width: 92%;
+          max-width: 460px;
+          padding: 22px 24px;
+          color: #1d1d1f;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(0, 0, 0, 0.04);
+          font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+          animation: guideCardScale 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+        [data-theme="dark"] .guide-menu-card {
+          background: #1c1c1e;
+          border-color: rgba(255, 255, 255, 0.12);
+          color: #f5f5f7;
+          box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.65);
+        }
+        @keyframes guideCardScale {
+          from { opacity: 0; transform: translate(-50%, -48%) scale(0.96); }
+          to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        .guide-top-badge {
+          display: inline-flex;
+          align-items: center;
+          gap: 5px;
+          padding: 3px 9px;
+          background: rgba(0, 113, 227, 0.08);
+          color: #0071E3;
+          border-radius: 980px;
+          font-size: 0.72rem;
+          font-weight: 700;
+          letter-spacing: 0.04em;
+          margin-bottom: 10px;
+        }
+        [data-theme="dark"] .guide-top-badge {
+          background: rgba(56, 189, 248, 0.12);
+          color: #38bdf8;
         }
         .guide-menu-header {
           display: flex;
           justify-content: space-between;
-          align-items: center;
-          margin-bottom: 10px;
+          align-items: flex-start;
+          margin-bottom: 4px;
         }
         .guide-menu-header h3 {
           margin: 0;
-          font-size: 17px;
+          font-size: 1.28rem;
           font-weight: 700;
-          color: #f8fafc;
+          letter-spacing: -0.025em;
+          color: inherit;
         }
         .guide-menu-close {
-          background: transparent;
+          background: #f5f5f7;
           border: none;
-          color: #94a3b8;
-          font-size: 20px;
+          border-radius: 50%;
+          width: 28px;
+          height: 28px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #86868b;
+          font-size: 1.15rem;
           cursor: pointer;
+          transition: all 0.15s ease;
           line-height: 1;
         }
-        .guide-menu-close:hover { color: #ffffff; }
+        [data-theme="dark"] .guide-menu-close {
+          background: #2c2c2e;
+          color: #a1a1a6;
+        }
+        .guide-menu-close:hover {
+          background: #e5e5ea;
+          color: #1d1d1f;
+        }
+        [data-theme="dark"] .guide-menu-close:hover {
+          background: #3a3a3c;
+          color: #ffffff;
+        }
         .guide-menu-desc {
           margin: 0 0 16px 0;
-          font-size: 13px;
-          color: #94a3b8;
-          line-height: 1.4;
+          font-size: 0.85rem;
+          color: #6e6e73;
+          line-height: 1.45;
+        }
+        [data-theme="dark"] .guide-menu-desc {
+          color: #a1a1a6;
         }
         .guide-menu-list {
           list-style: none;
           padding: 0;
           margin: 0 0 16px 0;
-          max-height: 280px;
+          max-height: 310px;
           overflow-y: auto;
           display: flex;
           flex-direction: column;
-          gap: 10px;
+          gap: 9px;
         }
         .guide-menu-item {
-          background: #0f172a;
-          border: 1px solid #334155;
-          border-radius: 8px;
-          padding: 12px;
+          background: #fbfbfd;
+          border: 1px solid rgba(0, 0, 0, 0.06);
+          border-radius: 14px;
+          padding: 13px 15px;
           display: flex;
           justify-content: space-between;
           align-items: center;
           gap: 12px;
+          transition: all 0.15s ease;
+        }
+        [data-theme="dark"] .guide-menu-item {
+          background: #2c2c2e;
+          border-color: rgba(255, 255, 255, 0.08);
+        }
+        .guide-menu-item:hover {
+          border-color: rgba(0, 113, 227, 0.25);
+        }
+        .guide-menu-info {
+          flex: 1;
+          min-width: 0;
+        }
+        .guide-title-row {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          margin-bottom: 3px;
+          flex-wrap: wrap;
         }
         .guide-menu-info h5 {
-          margin: 0 0 4px 0;
-          font-size: 14px;
-          color: #f1f5f9;
-        }
-        .guide-menu-info p {
           margin: 0;
-          font-size: 12px;
-          color: #64748b;
+          font-size: 0.92rem;
+          font-weight: 650;
+          color: inherit;
+        }
+        .guide-tag-completed {
+          display: inline-flex;
+          align-items: center;
+          gap: 3px;
+          font-size: 0.7rem;
+          font-weight: 600;
+          color: #10b981;
+          background: rgba(16, 185, 129, 0.1);
+          padding: 2px 7px;
+          border-radius: 980px;
+        }
+        .guide-item-aim {
+          margin: 0 0 4px 0;
+          font-size: 0.8rem;
+          color: #6e6e73;
+          line-height: 1.38;
+        }
+        [data-theme="dark"] .guide-item-aim {
+          color: #a1a1a6;
+        }
+        .guide-item-meta {
+          display: inline-flex;
+          align-items: center;
+          gap: 4px;
+          font-size: 0.72rem;
+          color: #86868b;
+          font-weight: 500;
         }
         .guide-menu-actions {
           display: flex;
+          align-items: center;
           gap: 6px;
+          flex-shrink: 0;
+        }
+        .btn-guide-start {
+          background: #0071E3;
+          color: #ffffff;
+          padding: 6px 14px;
+          font-size: 0.8rem;
+        }
+        .btn-guide-start:hover {
+          background: #0077ED;
+          transform: translateY(-1px);
+        }
+        .guide-menu-footer {
+          display: flex;
+          justify-content: flex-end;
+          padding-top: 6px;
+        }
+        .guide-btn-done {
+          background: #f5f5f7;
+          color: #1d1d1f;
+          border: 1px solid rgba(0, 0, 0, 0.08);
+          padding: 6px 16px;
+          font-size: 0.82rem;
+        }
+        [data-theme="dark"] .guide-btn-done {
+          background: #2c2c2e;
+          color: #f5f5f7;
+          border-color: rgba(255, 255, 255, 0.1);
+        }
+        .guide-btn-done:hover {
+          background: #e5e5ea;
+        }
+        [data-theme="dark"] .guide-btn-done:hover {
+          background: #3a3a3c;
+        }
+
+        /* Minimal Toast for Single Tour Completion */
+        .guide-toast-pill {
+          position: fixed;
+          bottom: 24px;
+          left: 50%;
+          transform: translateX(-50%) translateY(20px);
+          opacity: 0;
+          z-index: 99995;
+          background: #1d1d1f;
+          color: #f5f5f7;
+          border-radius: 980px;
+          padding: 8px 18px;
+          font-size: 0.82rem;
+          font-weight: 500;
+          display: inline-flex;
+          align-items: center;
+          gap: 8px;
+          box-shadow: 0 10px 25px rgba(0, 0, 0, 0.35);
+          transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+          pointer-events: none;
+        }
+        [data-theme="dark"] .guide-toast-pill {
+          background: #ffffff;
+          color: #1d1d1f;
+        }
+        .guide-toast-pill.show {
+          opacity: 1;
+          transform: translateX(-50%) translateY(0);
         }
       `;
       document.head.appendChild(style);
     }
 
+    showToast(message) {
+      if (this.toastEl) this.toastEl.remove();
+      const toast = document.createElement('div');
+      toast.className = 'guide-toast-pill';
+      toast.innerHTML = `
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        <span>${message}</span>
+      `;
+      document.body.appendChild(toast);
+      this.toastEl = toast;
+      requestAnimationFrame(() => toast.classList.add('show'));
+      setTimeout(() => {
+        toast.classList.remove('show');
+        setTimeout(() => toast.remove(), 250);
+      }, 2200);
+    }
+
+    filterGuidesForCurrentPage(guides) {
+      const currentScreen = this.getCurrentScreen();
+      return (guides || []).filter(g => {
+        // 1. Strict screen match
+        const triggerScreen = g.trigger?.screen;
+        if (triggerScreen && triggerScreen !== currentScreen) {
+          return false;
+        }
+        // 2. DOM validation: at least one step target must exist on this page right now
+        if (g.steps && g.steps.length > 0) {
+          const hasTarget = g.steps.some(step => {
+            if (!step.target) return false;
+            try {
+              const el = document.querySelector(step.target);
+              return !!(el && (el.offsetWidth > 0 || el.offsetHeight > 0 || el.getClientRects().length > 0));
+            } catch(e) {
+              return false;
+            }
+          });
+          if (!hasTarget) return false;
+        }
+        return true;
+      });
+    }
+
     async init(screenName) {
       this.cleanup();
-      this.screenName = screenName || '';
+      this.screenName = screenName || this.getCurrentScreen();
       const urlParams = new URLSearchParams(window.location.search);
       let isUrlTriggered = urlParams.has('guide') || urlParams.has('tour') || window.location.hash === '#guide';
       if (!isUrlTriggered && urlParams.has('p')) {
@@ -281,8 +561,10 @@
         const res = await fetch(`/api/guides/eligible?screen=${encodeURIComponent(this.screenName)}`);
         if (!res.ok) return;
         const data = await res.json();
-        this.allScreenGuides = data.guides || [];
+        const rawGuides = data.guides || [];
 
+        // Filter strictly to current page and verifiable DOM elements
+        this.allScreenGuides = this.filterGuidesForCurrentPage(rawGuides);
         if (this.allScreenGuides.length === 0) return;
 
         if (isUrlTriggered) {
@@ -292,7 +574,7 @@
           if (pending) {
             const hasActiveModal = () => {
               const el = document.querySelector(
-                '.popup-overlay:not([style*="display: none"]):not([style*="display:none"]), .file-info-modal-overlay.show, [role="dialog"].show, .modal.show'
+                '.auth-gate-backdrop.active, .ui-feedback-backdrop.active, .popup-overlay:not([style*="display: none"]):not([style*="display:none"]), .file-info-modal-overlay.show, [role="dialog"].show, .modal.show'
               );
               return !!(el && (el.offsetWidth > 0 || el.offsetHeight > 0));
             };
@@ -316,8 +598,16 @@
       }
     }
 
-    showFeatureMenu(guides, title = 'Features on this Page', subtitle = 'Select a feature to explore its interactive guide, or skip.') {
+    showFeatureMenu(guides, title = 'Features on This Page', subtitle = 'Explore interactive guides for the tools on this screen.') {
       this.cleanup();
+
+      // Filter to ensure only current page guides are presented
+      const validGuides = this.filterGuidesForCurrentPage(guides);
+      if (!validGuides || validGuides.length === 0) {
+        this.showToast('Guide completed');
+        return;
+      }
+
       document.body.classList.add('guide-body-locked');
 
       const backdrop = document.createElement('div');
@@ -334,45 +624,56 @@
       this.menuEl = card;
 
       let itemsHtml = '';
-      guides.forEach((g, idx) => {
+      validGuides.forEach((g, idx) => {
         const name = g.name || g.steps?.[0]?.title || g.id;
         const count = g.steps?.length || 0;
-        const aimText = g.aim ? `<p style="color:#a5b4fc; font-weight:500; margin-bottom:2px;">🎯 ${g.aim}</p>` : '';
+        const aimText = g.aim ? `<p class="guide-item-aim">${g.aim}</p>` : '';
         const isCompleted = g.status === 'completed';
         const isDismissed = g.status === 'dismissed';
-        const badge = isCompleted ? ' <span style="color:#10b981;font-size:11px;">(Completed)</span>' : '';
+        const badge = isCompleted
+          ? `<span class="guide-tag-completed"><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"></polyline></svg>Completed</span>`
+          : '';
 
         itemsHtml += `
           <li class="guide-menu-item" style="${isDismissed ? 'opacity:0.4;' : ''}">
             <div class="guide-menu-info">
-              <h5>${name}${badge}</h5>
+              <div class="guide-title-row">
+                <h5>${name}</h5>
+                ${badge}
+              </div>
               ${aimText}
-              <p>${count} interactive ${count === 1 ? 'step' : 'steps'}</p>
+              <span class="guide-item-meta">
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+                <span>${count} interactive ${count === 1 ? 'step' : 'steps'}</span>
+              </span>
             </div>
             <div class="guide-menu-actions">
               <button class="guide-btn guide-btn-skip btn-guide-skip" data-id="${g.id}">Skip</button>
-              <button class="guide-btn guide-btn-next btn-guide-start" data-idx="${idx}">${isCompleted ? 'Replay' : 'Start'}</button>
+              <button class="guide-btn btn-guide-start" data-idx="${idx}">${isCompleted ? 'Replay' : 'Start'}</button>
             </div>
           </li>
         `;
       });
 
       card.innerHTML = `
+        <div class="guide-top-badge">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+          <span>PAGE GUIDE</span>
+        </div>
         <div class="guide-menu-header">
           <h3 id="guide-menu-title">${title}</h3>
           <button class="guide-menu-close" id="guide-menu-close" aria-label="Close guides menu">&times;</button>
         </div>
         <p class="guide-menu-desc">${subtitle}</p>
         <ul class="guide-menu-list">${itemsHtml}</ul>
-        <div style="display:flex; justify-content:flex-end;">
-          <button class="guide-btn guide-btn-skip" id="guide-menu-dismiss-all">Close</button>
+        <div class="guide-menu-footer">
+          <button class="guide-btn guide-btn-done" id="guide-menu-dismiss-all">Done</button>
         </div>
       `;
 
       document.body.appendChild(card);
       this._attachEscape();
 
-      // Focus trap and initial focus
       const focusableEls = card.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
       if (focusableEls.length > 0) focusableEls[0].focus();
 
@@ -397,7 +698,7 @@
       card.querySelectorAll('.btn-guide-start').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const idx = parseInt(e.currentTarget.getAttribute('data-idx'), 10);
-          const selected = guides[idx];
+          const selected = validGuides[idx];
           this.cleanup();
           this.startGuide(selected);
         });
@@ -407,7 +708,7 @@
         btn.addEventListener('click', async (e) => {
           const gid = e.currentTarget.getAttribute('data-id');
           await this.syncProgressDirect(gid, 'dismissed', 0, 1);
-          const guideObj = guides.find(x => x.id === gid);
+          const guideObj = validGuides.find(x => x.id === gid);
           if (guideObj) guideObj.status = 'dismissed';
           const li = e.currentTarget.closest('.guide-menu-item');
           if (li) li.style.opacity = '0.35';
@@ -435,11 +736,10 @@
       const y = Math.max(0, rect.top - padding);
       const w = rect.width + (padding * 2);
       const h = rect.height + (padding * 2);
-      const r = 8;
+      const r = 10;
       const vw = window.innerWidth;
       const vh = window.innerHeight;
 
-      // SVG path cutout with rounded rectangle hole
       const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
       svg.setAttribute('class', 'guide-spotlight-svg');
       svg.setAttribute('viewBox', `0 0 ${vw} ${vh}`);
@@ -493,7 +793,6 @@
 
       target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
 
-      // Wait until smooth scrolling settles before capturing rects
       let lastTop = null;
       let sameCount = 0;
       const checkScrollSettled = () => {
@@ -519,7 +818,6 @@
         }
       };
 
-      // Start check with initial raf
       requestAnimationFrame(checkScrollSettled);
     }
 
@@ -533,7 +831,12 @@
       tooltip.setAttribute('aria-label', `Guide step: ${step.title}`);
 
       const isLast = idx === total - 1;
-      const aimBadge = this.currentGuide?.aim ? `<div class="guide-aim-badge">🎯 Aim: ${this.currentGuide.aim}</div>` : '';
+      const aimBadge = this.currentGuide?.aim ? `
+        <div class="guide-aim-badge">
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"></polygon></svg>
+          <span>Aim: ${this.currentGuide.aim}</span>
+        </div>` : '';
+
       tooltip.innerHTML = `
         ${aimBadge}
         <h4>${step.title}</h4>
@@ -551,10 +854,9 @@
       this.tooltipEl = tooltip;
 
       const tooltipH = tooltip.offsetHeight || 180;
-      const tooltipW = tooltip.offsetWidth || 300;
+      const tooltipW = tooltip.offsetWidth || 310;
       const margin = 12;
 
-      // Position: fixed uses viewport coordinates directly
       const below = rect.bottom + margin;
       const above = rect.top - tooltipH - margin;
       const fitsBelow = below + tooltipH <= window.innerHeight - 8;
@@ -661,13 +963,19 @@
         this.currentGuide.status = 'completed';
       }
       this.cleanup();
-      // After finishing one guide, re-open feature menu to let user take another guide
-      if (this.allScreenGuides && this.allScreenGuides.length > 1) {
+
+      // Check remaining valid guides strictly for the current page
+      const pageGuides = this.filterGuidesForCurrentPage(this.allScreenGuides);
+      const remaining = pageGuides.filter(g => g.status !== 'completed' && g.status !== 'dismissed');
+
+      if (remaining.length > 0) {
         this.showFeatureMenu(
-          this.allScreenGuides,
-          'Guide Finished! 🎉',
-          'Explore another feature on this page or tap Close.'
+          pageGuides,
+          'Guide Finished',
+          'Explore another interactive feature on this page or tap Done.'
         );
+      } else {
+        this.showToast('Tour completed');
       }
     }
 
@@ -677,21 +985,24 @@
         this.currentGuide.status = 'dismissed';
       }
       this.cleanup();
-      // On skip/dismiss, offer other page guides
-      if (this.allScreenGuides && this.allScreenGuides.length > 1) {
+
+      const pageGuides = this.filterGuidesForCurrentPage(this.allScreenGuides);
+      const remaining = pageGuides.filter(g => g.status !== 'completed' && g.status !== 'dismissed');
+      if (remaining.length > 0) {
         this.showFeatureMenu(
-          this.allScreenGuides,
-          'Features on this Page',
-          'Choose another feature to explore, or tap Close.'
+          pageGuides,
+          'Features on This Page',
+          'Choose another feature to explore, or tap Done.'
         );
       }
     }
 
     openMenu() {
-      if (this.allScreenGuides && this.allScreenGuides.length > 0) {
-        this.showFeatureMenu(this.allScreenGuides);
+      const pageGuides = this.filterGuidesForCurrentPage(this.allScreenGuides);
+      if (pageGuides && pageGuides.length > 0) {
+        this.showFeatureMenu(pageGuides);
       } else {
-        this.init(this.screenName);
+        this.init(this.getCurrentScreen());
       }
     }
 

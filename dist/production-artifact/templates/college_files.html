@@ -32,117 +32,110 @@
   ]
 }
 </script>
-{% endblock %}
-
-{% block content %}
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
 
 <style>
   :root {
-    --cf-bg: #0b0f19;
-    --cf-surface: #ffffff;
-    --cf-surface-sub: #f8fafc;
-    --cf-border: #e2e8f0;
-    --cf-ink: #0f172a;
-    --cf-ink-muted: #64748b;
-    --cf-brand: #0284c7;
-    --cf-emerald: #059669;
-    --cf-amber: #d97706;
-    --cf-violet: #6366f1;
-    --cf-font-display: 'Space Grotesk', -apple-system, sans-serif;
-    --cf-font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
-    --cf-font-mono: 'JetBrains Mono', monospace;
+    --apple-bg: #fbfbfd;
+    --apple-surface: #ffffff;
+    --apple-surface-sub: #f5f5f7;
+    --apple-border: rgba(0, 0, 0, 0.08);
+    --apple-border-strong: rgba(0, 0, 0, 0.14);
+    --apple-text: #1d1d1f;
+    --apple-text-muted: #86868b;
+    --apple-blue: #0071E3;
+    --apple-blue-hover: #0077ED;
+    --apple-amber: #d97706;
+    --apple-violet: #6366f1;
+    --apple-emerald: #059669;
+    --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
 
-  .dark :root {
-    --cf-surface: #131b2e;
-    --cf-surface-sub: #0f172a;
-    --cf-border: #1e293b;
-    --cf-ink: #f8fafc;
-    --cf-ink-muted: #94a3b8;
+  .dark :root, :root[data-theme="dark"] {
+    --apple-bg: #000000;
+    --apple-surface: #141416;
+    --apple-surface-sub: #1c1c1e;
+    --apple-border: rgba(255, 255, 255, 0.1);
+    --apple-border-strong: rgba(255, 255, 255, 0.2);
+    --apple-text: #f5f5f7;
+    --apple-text-muted: #86868b;
+  }
+
+  body:has(.arch-catalog-wrap),
+  body:has(.arch-catalog-wrap) .app-shell,
+  body:has(.arch-catalog-wrap) main {
+    background-color: var(--apple-bg) !important;
+  }
+
+  body:has(.arch-catalog-wrap) main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
   .arch-catalog-wrap {
-    font-family: var(--cf-font-body);
-    color: var(--cf-ink);
-    padding: 0 0 5rem;
-    background: transparent;
+    font-family: var(--apple-font);
+    color: var(--apple-text);
+    background-color: var(--apple-bg);
+    min-height: 100vh;
+    padding-bottom: 5rem;
   }
 
-  /* Architectural Technical Banner */
+  /* Apple Showcase Hero */
   .arch-hero {
-    background: linear-gradient(180deg, #0b0f19 0%, #111827 100%);
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-    color: #ffffff;
-    padding: 5rem 1.5rem 3.5rem;
+    background: linear-gradient(180deg, rgba(0, 113, 227, 0.04) 0%, transparent 100%);
+    border-bottom: 1px solid var(--apple-border);
+    padding: 4.5rem 1.5rem 3.5rem;
+    text-align: center;
     position: relative;
-    overflow: hidden;
-  }
-
-  .arch-hero::before {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: 
-      linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px),
-      linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
-    background-size: 32px 32px;
-    pointer-events: none;
   }
 
   .arch-hero-inner {
-    max-width: 1140px;
+    max-width: 980px;
     margin: 0 auto;
-    position: relative;
-    z-index: 1;
   }
 
   .arch-spec-tag {
     display: inline-flex;
     align-items: center;
     gap: 8px;
-    font-family: var(--cf-font-mono);
-    font-size: 0.72rem;
-    font-weight: 700;
-    color: #38bdf8;
-    background: rgba(56, 189, 248, 0.1);
-    border: 1px solid rgba(56, 189, 248, 0.25);
-    padding: 4px 10px;
-    border-radius: 4px;
+    font-size: 13px;
+    font-weight: 600;
     text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 1rem;
+    letter-spacing: 0.06em;
+    color: var(--apple-blue);
+    background: rgba(0, 113, 227, 0.08);
+    border: 1px solid rgba(0, 113, 227, 0.16);
+    padding: 5px 14px;
+    border-radius: 980px;
+    margin-bottom: 1.25rem;
   }
 
   .arch-spec-tag .pulse-dot {
     width: 6px;
     height: 6px;
     border-radius: 50%;
-    background: #38bdf8;
-    box-shadow: 0 0 8px #38bdf8;
+    background: var(--apple-blue);
+    box-shadow: 0 0 8px var(--apple-blue);
   }
 
   .arch-hero h1 {
-    font-family: var(--cf-font-display);
-    font-size: clamp(1.75rem, 4vw, 2.75rem);
+    font-size: clamp(2.2rem, 4.8vw, 3.5rem);
     font-weight: 700;
-    line-height: 1.15;
-    letter-spacing: -0.02em;
-    margin: 0 0 0.8rem;
-    color: #ffffff;
+    line-height: 1.08;
+    letter-spacing: -0.03em;
+    margin: 0 0 1rem;
+    color: var(--apple-text);
   }
 
   .arch-hero p {
-    font-size: clamp(0.92rem, 1.8vw, 1.05rem);
-    color: #94a3b8;
-    max-width: 680px;
-    line-height: 1.6;
-    margin: 0;
+    font-size: 1.1rem;
+    color: var(--apple-text-muted);
+    max-width: 640px;
+    line-height: 1.55;
+    margin: 0 auto;
   }
 
-  /* Architectural Controls Rack */
+  /* Apple Controls Rack */
   .arch-rack-container {
     max-width: 1140px;
     margin: -1.75rem auto 2.5rem;
@@ -152,10 +145,10 @@
   }
 
   .arch-rack-card {
-    background: var(--cf-surface);
-    border: 1px solid var(--cf-border);
-    border-radius: 12px;
-    box-shadow: 0 12px 30px rgba(0, 0, 0, 0.06);
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.04);
     padding: 1.25rem 1.5rem;
     display: flex;
     flex-direction: column;
@@ -177,50 +170,53 @@
 
   .arch-search-icon {
     position: absolute;
-    left: 1rem;
-    color: var(--cf-ink-muted);
-    font-size: 1rem;
+    left: 1.1rem;
+    color: var(--apple-text-muted);
     pointer-events: none;
+    display: flex;
+    align-items: center;
   }
 
   .arch-search-input {
     width: 100%;
-    padding: 0.85rem 1rem 0.85rem 2.75rem;
-    border-radius: 8px;
-    border: 1px solid var(--cf-border);
-    background: var(--cf-surface-sub);
-    color: var(--cf-ink);
-    font-family: var(--cf-font-body);
-    font-size: 0.95rem;
+    min-height: 48px;
+    padding: 0.75rem 1rem 0.75rem 2.85rem;
+    border-radius: 980px;
+    border: 1px solid var(--apple-border);
+    background: var(--apple-surface-sub);
+    color: var(--apple-text);
+    font-family: inherit;
+    font-size: 15px;
     outline: none;
-    transition: all 0.2s ease;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .arch-search-input:focus {
-    border-color: var(--cf-brand);
-    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
-    background: var(--cf-surface);
+    border-color: var(--apple-blue);
+    background: var(--apple-surface);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18);
   }
 
   .arch-btn-primary {
-    padding: 0.85rem 1.5rem;
-    border-radius: 8px;
+    min-height: 48px;
+    padding: 0 1.75rem;
+    border-radius: 980px;
     border: none;
-    background: #0284c7;
+    background: var(--apple-blue);
     color: #ffffff;
-    font-family: var(--cf-font-display);
-    font-weight: 700;
-    font-size: 0.9rem;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 14px;
     cursor: pointer;
-    letter-spacing: 0.02em;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    transition: background 0.15s ease, transform 0.15s ease;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    white-space: nowrap;
   }
 
   .arch-btn-primary:hover {
-    background: #0369a1;
+    background: var(--apple-blue-hover);
     transform: translateY(-1px);
   }
 
@@ -231,7 +227,7 @@
     flex-wrap: wrap;
     gap: 1rem;
     padding-top: 0.85rem;
-    border-top: 1px solid var(--cf-border);
+    border-top: 1px solid var(--apple-border);
   }
 
   .arch-chip-group {
@@ -252,52 +248,48 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    padding: 0.45rem 0.95rem;
-    border-radius: 6px;
-    border: 1px solid var(--cf-border);
-    background: var(--cf-surface-sub);
-    color: var(--cf-ink);
+    padding: 0.5rem 1.15rem;
+    border-radius: 980px;
+    border: 1px solid var(--apple-border);
+    background: var(--apple-surface-sub);
+    color: var(--apple-text);
     text-decoration: none;
-    font-size: 0.82rem;
-    font-weight: 700;
+    font-size: 13px;
+    font-weight: 600;
     white-space: nowrap;
-    transition: all 0.15s ease;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    min-height: 38px;
   }
 
   .arch-chip:hover {
-    border-color: var(--cf-brand);
-    color: var(--cf-brand);
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
   }
 
   .arch-chip.active {
-    background: #0f172a;
-    color: #ffffff;
-    border-color: #0f172a;
-    box-shadow: 0 2px 6px rgba(15, 23, 42, 0.2);
-  }
-
-  .dark .arch-chip.active {
-    background: #38bdf8;
-    color: #090d16;
-    border-color: #38bdf8;
+    background: var(--apple-text);
+    color: var(--apple-bg);
+    border-color: var(--apple-text);
   }
 
   .arch-select {
-    padding: 0.5rem 0.85rem;
-    border-radius: 6px;
-    border: 1px solid var(--cf-border);
-    background: var(--cf-surface);
-    color: var(--cf-ink);
-    font-family: var(--cf-font-body);
-    font-size: 0.85rem;
+    min-height: 38px;
+    padding: 0.4rem 1rem;
+    border-radius: 980px;
+    border: 1px solid var(--apple-border);
+    background: var(--apple-surface);
+    color: var(--apple-text);
+    font-family: inherit;
+    font-size: 13px;
     font-weight: 600;
     cursor: pointer;
     outline: none;
-    max-width: 240px;
+    max-width: 250px;
+    transition: border-color 0.2s ease;
   }
 
   .arch-select:focus {
-    border-color: var(--cf-brand);
+    border-color: var(--apple-blue);
   }
 
   /* Catalog Dossier Grid */
@@ -313,102 +305,112 @@
     gap: 1.25rem;
   }
 
-  /* Dossier Card System */
+    /* Dossier Card System - Apple Tangible Card UX */
   .arch-card-dossier {
-    background: var(--cf-surface);
-    border: 1px solid var(--cf-border);
-    border-radius: 8px;
-    padding: 1.2rem;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: 20px;
+    padding: 1.5rem;
     text-decoration: none;
     color: inherit;
     display: flex;
     flex-direction: column;
     position: relative;
-    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
-    border-left: 3.5px solid var(--cf-brand);
+    transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.28s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+    border-left: 4px solid var(--apple-blue);
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
+    min-height: 200px;
   }
 
   .arch-card-dossier.type-pyq {
-    border-left-color: var(--cf-amber);
+    border-left-color: var(--apple-amber);
   }
 
   .arch-card-dossier.type-notes {
-    border-left-color: var(--cf-brand);
+    border-left-color: var(--apple-blue);
   }
 
   .arch-card-dossier.type-practical {
-    border-left-color: var(--cf-violet);
+    border-left-color: var(--apple-violet);
   }
 
   .arch-card-dossier:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.08);
-    border-color: #cbd5e1;
+    transform: translateY(-4px) scale(1.008);
+    box-shadow: 0 16px 36px -10px rgba(0, 113, 227, 0.12), 0 4px 12px rgba(0, 0, 0, 0.04);
+    border-color: rgba(0, 113, 227, 0.35);
+  }
+
+  .arch-card-dossier:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.45);
   }
 
   .arch-card-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.85rem;
+    margin-bottom: 0.9rem;
     gap: 0.5rem;
   }
 
   .arch-badge-stamp {
-    font-family: var(--cf-font-mono);
-    font-size: 0.68rem;
+    font-size: 11.5px;
     font-weight: 700;
-    letter-spacing: 0.04em;
-    padding: 3px 7px;
-    border-radius: 4px;
+    letter-spacing: 0.03em;
+    padding: 3.5px 9px;
+    border-radius: 980px;
     text-transform: uppercase;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
   }
 
   .arch-badge-stamp.pyq {
-    background: #fffbeb;
+    background: rgba(217, 119, 6, 0.08);
     color: #b45309;
-    border: 1px solid #fde68a;
+    border: 1px solid rgba(217, 119, 6, 0.22);
   }
 
   .arch-badge-stamp.notes {
-    background: #eff6ff;
-    color: #1d4ed8;
-    border: 1px solid #bfdbfe;
+    background: rgba(0, 113, 227, 0.08);
+    color: var(--apple-blue);
+    border: 1px solid rgba(0, 113, 227, 0.2);
   }
 
   .arch-badge-stamp.practical {
-    background: #f5f3ff;
-    color: #6d28d9;
-    border: 1px solid #ddd6fe;
+    background: rgba(99, 102, 241, 0.08);
+    color: var(--apple-violet);
+    border: 1px solid rgba(99, 102, 241, 0.22);
   }
 
   .arch-doc-id-pill {
-    font-family: var(--cf-font-mono);
-    font-size: 0.68rem;
-    color: var(--cf-ink-muted);
+    font-size: 11px;
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    color: var(--apple-text-muted);
+    background: var(--apple-surface-sub);
+    padding: 2px 7px;
+    border-radius: 6px;
+    border: 1px solid var(--apple-border);
   }
 
   .arch-card-subject {
-    font-family: var(--cf-font-display);
-    font-size: 1.02rem;
+    font-size: 16.5px;
     font-weight: 700;
     line-height: 1.35;
-    color: var(--cf-ink);
-    margin-bottom: 0.35rem;
+    color: var(--apple-text);
+    margin-bottom: 0.4rem;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+    letter-spacing: -0.015em;
   }
 
   .arch-card-title {
-    font-size: 0.84rem;
-    color: var(--cf-ink-muted);
-    line-height: 1.45;
-    margin-bottom: 1.25rem;
+    font-size: 13px;
+    color: var(--apple-text-muted);
+    line-height: 1.5;
+    margin-bottom: 1.35rem;
     display: -webkit-box;
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
@@ -420,17 +422,17 @@
     justify-content: space-between;
     align-items: center;
     margin-top: auto;
-    padding-top: 0.75rem;
-    border-top: 1px dashed var(--cf-border);
-    font-size: 0.76rem;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--apple-border);
+    font-size: 12px;
   }
 
   .arch-card-uploader {
-    color: var(--cf-ink-muted);
-    font-weight: 600;
+    color: var(--apple-text-muted);
+    font-weight: 500;
     display: inline-flex;
     align-items: center;
-    gap: 4px;
+    gap: 5px;
     max-width: 160px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -438,69 +440,124 @@
   }
 
   .arch-card-views {
-    font-family: var(--cf-font-mono);
-    font-weight: 700;
-    color: var(--cf-brand);
+    font-weight: 600;
+    color: var(--apple-blue);
     display: inline-flex;
     align-items: center;
-    gap: 3px;
+    gap: 4px;
+    font-size: 12px;
+  }
+
+  .arch-view-arrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-weight: 600;
+    color: var(--apple-blue);
+    font-size: 12.5px;
+    transition: transform 0.2s ease;
+  }
+
+  .arch-card-dossier:hover .arch-view-arrow svg {
+    transform: translateX(3px);
   }
 
   /* Architectural Pagination */
   .arch-pagination {
     display: flex;
-    justify-content: space-between;
+    justify-content: center;
     align-items: center;
-    margin-top: 2.5rem;
-    gap: 1rem;
+    margin-top: 3.5rem;
+    gap: 0.75rem;
     flex-wrap: wrap;
-    padding: 1.25rem 0 0;
-    border-top: 1px solid var(--cf-border);
+    padding: 1.5rem 0 0;
+    border-top: 1px solid var(--apple-border);
   }
 
   .arch-page-btn {
-    padding: 0.65rem 1.1rem;
-    border-radius: 6px;
-    border: 1px solid var(--cf-border);
-    background: var(--cf-surface);
-    color: var(--cf-ink);
-    font-family: var(--cf-font-display);
-    font-weight: 700;
-    font-size: 0.85rem;
+    min-height: 42px;
+    padding: 0 1.25rem;
+    border-radius: 980px;
+    border: 1px solid var(--apple-border);
+    background: var(--apple-surface);
+    color: var(--apple-text);
+    font-weight: 600;
+    font-size: 13.5px;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    transition: all 0.15s ease;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
   }
 
   .arch-page-btn:hover:not(:disabled) {
-    border-color: var(--cf-brand);
-    color: var(--cf-brand);
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 113, 227, 0.12);
   }
 
   .arch-page-btn:disabled, button.arch-page-btn[disabled] {
-    opacity: 0.45;
+    opacity: 0.35;
     cursor: not-allowed;
+    pointer-events: none;
+    transform: none;
+    box-shadow: none;
   }
 
   .arch-page-indicator {
-    font-family: var(--cf-font-mono);
-    font-size: 0.82rem;
-    color: var(--cf-ink-muted);
+    min-height: 42px;
+    padding: 0 1.25rem;
+    border-radius: 980px;
+    background: var(--apple-surface-sub);
+    border: 1px solid var(--apple-border);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--apple-text);
+    display: inline-flex;
+    align-items: center;
+  }
+
+  .arch-empty-state {
+    grid-column: 1 / -1;
+    padding: clamp(2rem, 6vw, 4rem) 1.5rem;
+    border: 1px solid var(--apple-border);
+    border-radius: 22px;
+    background: var(--apple-surface);
+    text-align: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+  }
+  .arch-empty-state h2 {
+    margin: 0 0 0.5rem;
+    color: var(--apple-text);
+    font-size: clamp(1.25rem, 3vw, 1.75rem);
+    letter-spacing: -0.035em;
+  }
+  .arch-empty-state p {
+    max-width: 34rem;
+    margin: 0 auto 1.25rem;
+    color: var(--apple-text-muted);
+    line-height: 1.55;
+  }
+  .arch-empty-state .arch-btn-primary {
+    min-height: 44px;
+    padding: 0 1.35rem;
+    border-radius: 980px;
+    text-decoration: none;
   }
 
   /* Mobile Adjustments */
   @media (max-width: 768px) {
     .arch-hero {
-      padding: 4.25rem 1.25rem 2.75rem;
+      padding: 3.5rem 1.25rem 2.5rem;
     }
     .arch-rack-container {
       margin-top: -1.25rem;
       padding: 0 1rem;
     }
     .arch-rack-card {
-      padding: 1rem;
+      padding: 1.15rem;
     }
     .arch-content-container {
       padding: 0 1rem;
@@ -526,7 +583,9 @@
     }
   }
 </style>
+{% endblock %}
 
+{% block content %}
 <div class="arch-catalog-wrap">
   <!-- Architectural Hero Banner -->
   <section class="arch-hero">
@@ -551,10 +610,15 @@
         <input type="hidden" name="branch" value="{{ filters.branch }}">
         {% endif %}
         <div class="arch-input-group">
-          <span class="arch-search-icon">🔍</span>
+          <span class="arch-search-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </span>
           <input type="text" name="search" class="arch-search-input" value="{{ filters.search }}" placeholder="Search files, subject name, exam code...">
         </div>
-        <button type="submit" class="arch-btn-primary">Search Archive</button>
+        <button type="submit" class="arch-btn-primary">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <span>Search Archive</span>
+        </button>
       </form>
 
       <form class="arch-filter-row" action="{{ request.path }}" method="get">
@@ -565,14 +629,23 @@
         <!-- Horizontal scrollable filter chips -->
         <div class="arch-chip-group" role="tablist" aria-label="Resource Category Filters">
           <a class="arch-chip {{ 'active' if not filters.type }}" href="{{ request.path }}?{% if filters.search %}search={{ filters.search | urlencode }}&{% endif %}page=1">All Items</a>
-          <a class="arch-chip {{ 'active' if filters.type in ['pyq', 'papers', 'paper'] }}" href="{{ request.path }}?type=pyq{% if filters.search %}&search={{ filters.search | urlencode }}{% endif %}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}&page=1">📄 PYQ Papers</a>
-          <a class="arch-chip {{ 'active' if filters.type == 'notes' }}" href="{{ request.path }}?type=notes{% if filters.search %}&search={{ filters.search | urlencode }}{% endif %}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}&page=1">📝 Notes</a>
-          <a class="arch-chip {{ 'active' if filters.type in ['practical', 'practicals'] }}" href="{{ request.path }}?type=practical{% if filters.search %}&search={{ filters.search | urlencode }}{% endif %}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}&page=1">🧪 Practicals</a>
+          <a class="arch-chip {{ 'active' if filters.type in ['pyq', 'papers', 'paper'] }}" href="{{ request.path }}?type=pyq{% if filters.search %}&search={{ filters.search | urlencode }}{% endif %}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}&page=1">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <span>PYQ Papers</span>
+          </a>
+          <a class="arch-chip {{ 'active' if filters.type == 'notes' }}" href="{{ request.path }}?type=notes{% if filters.search %}&search={{ filters.search | urlencode }}{% endif %}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}&page=1">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+            <span>Notes</span>
+          </a>
+          <a class="arch-chip {{ 'active' if filters.type in ['practical', 'practicals'] }}" href="{{ request.path }}?type=practical{% if filters.search %}&search={{ filters.search | urlencode }}{% endif %}{% if filters.branch %}&branch={{ filters.branch }}{% endif %}&page=1">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"></path><path d="M14 9.3V2"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path><path d="M5.52 16h12.96"></path></svg>
+            <span>Practicals</span>
+          </a>
         </div>
 
         <!-- Branch Selector -->
         <select class="arch-select" name="branch" onchange="this.form.submit()" aria-label="Filter by Branch">
-          <option value="">All Branches & Departments</option>
+          <option value="">All Branches &amp; Departments</option>
           {% for dept in departments %}
             {% set dept_slug = (dept.abbreviation or dept.name)|lower|replace(' ', '-') %}
             {% set selected = 'selected' if filters.branch == dept_slug else '' %}
@@ -590,6 +663,24 @@
   <!-- Document Dossier Grid -->
   <main class="arch-content-container">
     <div class="arch-catalog-grid">
+      {% if filters.query_error %}
+        <section class="arch-empty-state" role="status">
+          <h2>We couldn’t load this archive</h2>
+          <p>Please try again in a moment. Your search and filters are still here.</p>
+          <a class="arch-btn-primary" href="{{ request.path }}">Reload archive</a>
+        </section>
+      {% elif filters.total == 0 and (filters.search or filters.type or filters.branch) %}
+        <section class="arch-empty-state" role="status">
+          <h2>No matching materials</h2>
+          <p>Try a different subject, course code, branch, or resource type.</p>
+          <a class="arch-btn-primary" href="{{ request.path }}">Show all materials</a>
+        </section>
+      {% elif filters.total == 0 %}
+        <div style="grid-column: 1/-1;">
+          {% set queue_target_name = (college.name ~ ' (' ~ _abbr ~ ')') if college is defined else 'this filter criteria' %}
+          {% include 'includes/psychological_queue.html' %}
+        </div>
+      {% else %}
       {% for file in files %}
         {% set cat = (file.get('document_category', '') | string | lower) %}
         {% set is_pyq = cat in ['pyq', 'papers', 'paper'] %}
@@ -599,11 +690,20 @@
         <a href="{{ furl }}" class="arch-card-dossier {% if is_pyq %}type-pyq{% elif is_practical %}type-practical{% else %}type-notes{% endif %}">
           <div class="arch-card-header">
             {% if is_pyq %}
-              <span class="arch-badge-stamp pyq">📄 [DOC·PYQ]</span>
+              <span class="arch-badge-stamp pyq">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                Exam Paper
+              </span>
             {% elif is_practical %}
-              <span class="arch-badge-stamp practical">🧪 [DOC·LAB]</span>
+              <span class="arch-badge-stamp practical">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M10 2v7.31"></path><path d="M14 9.3V2"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path></svg>
+                Lab Manual
+              </span>
             {% else %}
-              <span class="arch-badge-stamp notes">📝 [DOC·NOTE]</span>
+              <span class="arch-badge-stamp notes">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+                Study Notes
+              </span>
             {% endif %}
             <span class="arch-doc-id-pill">#{{ file.get('id', '')[:6] }}</span>
           </div>
@@ -613,19 +713,22 @@
 
           <div class="arch-card-footer">
             <span class="arch-card-uploader" title="{{ file.get('profiles', {}).get('full_name', 'Student Contributor') if file.get('profiles') else 'Student Contributor' }}">
-              👤 {{ file.get('profiles', {}).get('full_name', 'Student Contributor') if file.get('profiles') else 'Student Contributor' }}
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              <span>{{ file.get('profiles', {}).get('full_name', 'Student Contributor') if file.get('profiles') else 'Student Contributor' }}</span>
             </span>
-            <span class="arch-card-views">
-              👁 {{ file.get('view_count', 0) }}
-            </span>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <span class="arch-card-views">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <span>{{ file.get('view_count', 0) }}</span>
+              </span>
+              <span class="arch-view-arrow">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </span>
+            </div>
           </div>
         </a>
-      {% else %}
-        <div style="grid-column: 1/-1;">
-          {% set queue_target_name = (college.name ~ ' (' ~ _abbr ~ ')') if college is defined else 'this filter criteria' %}
-          {% include 'includes/psychological_queue.html' %}
-        </div>
       {% endfor %}
+      {% endif %}
     </div>
 
     <!-- Pagination Controls -->
@@ -633,9 +736,15 @@
     <nav class="arch-pagination" aria-label="Page navigation">
       {% set prev_page = filters.page - 1 %}
       {% if prev_page >= 1 %}
-        <a class="arch-page-btn" href="{{ request.path }}?type={{ filters.type }}&branch={{ filters.branch }}&search={{ filters.search | urlencode }}&page={{ prev_page }}">← Previous Page</a>
+        <a class="arch-page-btn" href="{{ request.path }}?type={{ filters.type }}&branch={{ filters.branch }}&search={{ filters.search | urlencode }}&page={{ prev_page }}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          <span>Previous</span>
+        </a>
       {% else %}
-        <button class="arch-page-btn" disabled>← Previous Page</button>
+        <button class="arch-page-btn" disabled>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+          <span>Previous</span>
+        </button>
       {% endif %}
 
       <div class="arch-page-indicator">
@@ -644,9 +753,15 @@
 
       {% set next_page = filters.page + 1 %}
       {% if next_page * filters.page_size <= filters.total or (next_page - 1) * filters.page_size < filters.total %}
-        <a class="arch-page-btn" href="{{ request.path }}?type={{ filters.type }}&branch={{ filters.branch }}&search={{ filters.search | urlencode }}&page={{ next_page }}">Next Page →</a>
+        <a class="arch-page-btn" href="{{ request.path }}?type={{ filters.type }}&branch={{ filters.branch }}&search={{ filters.search | urlencode }}&page={{ next_page }}">
+          <span>Next</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </a>
       {% else %}
-        <button class="arch-page-btn" disabled>Next Page →</button>
+        <button class="arch-page-btn" disabled>
+          <span>Next</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
       {% endif %}
     </nav>
     {% endif %}

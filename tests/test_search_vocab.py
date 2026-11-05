@@ -4,19 +4,21 @@ UITL201, ML, UHV, and GHRCE.
 """
 import os
 import sys
+import pytest
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 from methods.supabase_helper import init_supabase, init_supabase_admin
 
+
 def test_vocab_lookup():
     client = init_supabase_admin() or init_supabase()
     if not client:
-        print("[FAIL] Supabase client could not be initialized.")
-        return False
+        pytest.skip("Supabase client not configured or unavailable")
 
     targets = ['uitl201', 'ml', 'uhv', 'ghrce']
     all_passed = True
+    network_error = False
 
     print("\n--- Verifying Phase 1 Search Vocab ---")
     for term in targets:
@@ -29,10 +31,17 @@ def test_vocab_lookup():
                 print(f"[NOTE] Vocab term '{term}' not found in DB table yet (Run migration & seed script).")
                 all_passed = False
         except Exception as e:
-            print(f"[ERR] Query error for '{term}': {e}")
+            err_msg = str(e)
+            print(f"[ERR] Query error for '{term}': {err_msg}")
+            if "getaddrinfo" in err_msg or "11001" in err_msg or "ConnectTimeout" in err_msg:
+                network_error = True
             all_passed = False
 
-    return all_passed
+    if network_error:
+        pytest.skip("Live Supabase database host unreachable from local test environment (DNS getaddrinfo)")
+
+    assert all_passed, "Some search vocab terms were not resolved in DB table"
+
 
 if __name__ == '__main__':
     test_vocab_lookup()

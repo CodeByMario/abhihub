@@ -1121,7 +1121,7 @@ uploader_name %}
             <div class="preview-loading-progress" id="pdfLoadingProgress"></div>
           </div>
           <iframe class="r2-preview-iframe preview-iframe"
-            src="{{ url_for('static', filename='pdfjs-6.1.200-dist/web/viewer.html') }}?file=/api/view-doc/{{ document.id }}/document.pdf&download=false"
+            src="{{ url_for('static', filename='pdfjs-6.1.200-dist/web/viewer.html') }}?file={{ (direct_pdf_url or ('/api/view-doc/' ~ document.id ~ '/document.pdf')) | urlencode }}&download=false"
             title="{{ document.title }} (Preview)" data-feature="PDF Viewer Preview"
             onload="var b=document.getElementById('pdfLoadingBar'); if(b) b.classList.add('hidden');"
             onerror="var b=document.getElementById('pdfLoadingBar'); if(b){ b.classList.remove('hidden'); b.classList.add('error'); }"></iframe>
@@ -1149,7 +1149,7 @@ uploader_name %}
             <a href="/payment?amount={{ pricing.price }}&purpose=Document-{{ document.id }}" id="lockedPayBtn" style="display:inline-block; padding:0.8rem 2rem; background:linear-gradient(135deg, #2563eb, #1d4ed8); color:#fff; font-weight:700; font-size:0.95rem; border-radius:12px; text-decoration:none; box-shadow:0 4px 14px rgba(37,99,235,0.35);">⚡ Unlock Complete Notes (All Pages)</a>
           </div>
         </div>
-        {% elif document.file_type == 'pdf' or '.pdf' in (document.file_url|lower) %}
+        {% elif (document.file_type == 'pdf' or '.pdf' in (document.raw_cloud_url|default(document.file_url)|lower)) and not document.is_image and not ('.jpg' in (document.raw_cloud_url|default('')|lower) or '.jpeg' in (document.raw_cloud_url|default('')|lower) or '.png' in (document.raw_cloud_url|default('')|lower) or '.webp' in (document.raw_cloud_url|default('')|lower)) %}
         <div class="preview-iframe-wrap">
           <div class="r2-watermark-overlay" aria-hidden="true">
             <span class="r2-watermark-item">AbhiHub</span>
@@ -1163,11 +1163,29 @@ uploader_name %}
             <div class="preview-loading-progress" id="pdfLoadingProgress"></div>
           </div>
           <iframe class="r2-preview-iframe preview-iframe"
-            src="{{ url_for('static', filename='pdfjs-6.1.200-dist/web/viewer.html') }}?file=/api/view-doc/{{ document.id }}/document.pdf&download=false"
+            src="{{ url_for('static', filename='pdfjs-6.1.200-dist/web/viewer.html') }}?file={{ (direct_pdf_url or ('/api/view-doc/' ~ document.id ~ '/document.pdf')) | urlencode }}&download=false"
             title="{{ document.title }}" data-feature="PDF Viewer"
             onload="var b=document.getElementById('pdfLoadingBar'); if(b) b.classList.add('hidden');"
             onerror="var b=document.getElementById('pdfLoadingBar'); if(b){ b.classList.remove('hidden'); b.classList.add('error'); }"></iframe>
         </div>
+        <script>
+          (function() {
+            var f = document.querySelector('.preview-iframe');
+            if (!f) return;
+            var s = f.getAttribute('src') || '';
+            if (s.indexOf('/api/view-doc/') !== -1) {
+              fetch('/api/documents/{{ document.id }}/authorize')
+                .then(function(r) { return r.json(); })
+                .then(function(d) {
+                  if (d && d.success && d.file_url) {
+                    var viewerBase = "{{ url_for('static', filename='pdfjs-6.1.200-dist/web/viewer.html') }}";
+                    f.src = viewerBase + '?file=' + encodeURIComponent(d.file_url) + '&download=false';
+                  }
+                })
+                .catch(function() {});
+            }
+          })();
+        </script>
         {% else %}
         <div class="r2-viewer-stage image-viewer-wrap" data-feature="Image Viewer">
           <div class="r2-watermark-overlay" aria-hidden="true">
@@ -1187,7 +1205,7 @@ uploader_name %}
             </div>
             {% set image_fname = (document.file_url.split('/')[-1] if document.file_url and '/' in document.file_url
             else 'image.jpg') %}
-            <img id="previewImage" src="/api/view-doc/{{ document.id }}/{{ image_fname }}"
+            <img id="previewImage" src="{{ direct_pdf_url or ('/api/view-doc/' ~ document.id ~ '/' ~ image_fname) }}"
               alt="{{ document.title }} - {{ subj_name }} {{ file_type }}"
               style="max-width:100%;height:auto;opacity:0;transition:opacity 0.2s;"
               onload="var s=document.getElementById('imageSkeleton'); if(s) s.style.display='none'; this.style.opacity='1'; if(typeof window.imageLoaded==='function') window.imageLoaded();"

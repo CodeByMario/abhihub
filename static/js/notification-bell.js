@@ -255,11 +255,22 @@
 
         document.addEventListener('click', onDocumentClick);
 
-        // Initial fetch + poll
+        // Initial fetch + visibility-aware polling
         if (window.__CURRENT_USER__ && window.__CURRENT_USER__.uid) {
             fetchNotifications(true);
-            // Poll every 60s (sensible interval; 10min was too infrequent)
-            _pollTimer = setInterval(function () { fetchNotifications(true); }, 60 * 1000);
+            // Poll every 60s only when document is actively visible
+            _pollTimer = setInterval(function () {
+                if (!document.hidden) {
+                    fetchNotifications(true);
+                }
+            }, 60 * 1000);
+
+            // Refetch when user returns to tab after being hidden
+            document.addEventListener('visibilitychange', function () {
+                if (!document.hidden) {
+                    fetchNotifications(false);
+                }
+            });
         }
 
         // Also try to init push notifications if supported

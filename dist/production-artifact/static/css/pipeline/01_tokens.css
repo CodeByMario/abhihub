@@ -100,7 +100,7 @@
     --space-20: 5rem;
 
     /* ── Typography ── */
-    --font-primary:  'Kanit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    --font-primary:  "SF Pro Display", "SF Pro Text", -apple-system, BlinkMacSystemFont, "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
 
     --text-3xs:  0.625rem;
     --text-2xs:  0.7rem;

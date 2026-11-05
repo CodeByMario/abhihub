@@ -554,12 +554,23 @@ const SearchManager = {
 
     async loadColleges() {
         try {
-            const [colRes, branchRes] = await Promise.all([
-                fetch('/api/colleges'),
-                fetch('/api/branches')
-            ]);
-            const colData = await colRes.json();
-            const branchData = await branchRes.json();
+            let colData, branchData;
+            if (window.AbhiHubIDB) {
+                const [cols, depts] = await Promise.all([
+                    window.AbhiHubIDB.getColleges(),
+                    window.AbhiHubIDB.getDepartments()
+                ]);
+                if (cols && cols.length > 0) colData = { success: true, colleges: cols };
+                if (depts && depts.length > 0) branchData = { success: true, branches: depts };
+            }
+            if (!colData || !branchData) {
+                const [colRes, branchRes] = await Promise.all([
+                    colData ? Promise.resolve(null) : fetch('/api/colleges'),
+                    branchData ? Promise.resolve(null) : fetch('/api/branches')
+                ]);
+                if (colRes) colData = await colRes.json();
+                if (branchRes) branchData = await branchRes.json();
+            }
 
             const collegeSelect = document.getElementById('searchCollege');
             if (collegeSelect && colData.success) {

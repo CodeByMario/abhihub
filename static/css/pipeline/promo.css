@@ -4,23 +4,31 @@
  * Extracted from p_struct.html inline <style> block.
  */
 
-/* ── Promo Strip ── */
+/* ── Apple Ribbon / Promo Strip ── */
 #promoStrip {
     z-index: 8500;
-    background: linear-gradient(90deg, #7c3aed 0%, var(--primary-600) 50%, #06b6d4 100%);
-    color: var(--text-inverse);
-    font-size: var(--text-sm);
-    font-weight: 600;
+    background: var(--apple-surface, #F5F5F7);
+    color: var(--apple-dark, #1D1D1F);
+    border-bottom: 1px solid var(--apple-border-subtle, rgba(0, 0, 0, 0.08));
+    font-size: 0.8125rem;
+    font-weight: 500;
+    letter-spacing: -0.01em;
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: var(--space-2);
-    padding: 0.55rem 3rem 0.55rem var(--space-4);
+    gap: 0.65rem;
+    padding: 0.5rem 2.5rem 0.5rem 1rem;
     text-align: center;
-    animation: promoSlideDown 0.45s cubic-bezier(0.4, 0, 0.2, 1);
-    box-shadow: 0 2px 12px rgba(37, 99, 235, 0.18);
+    animation: promoSlideDown 0.35s ease-out;
+    box-shadow: none;
     transition: transform 0.3s, opacity 0.3s, visibility 0.3s;
     position: relative;
+}
+
+[data-theme="dark"] #promoStrip {
+    background: #161617;
+    color: #F5F5F7;
+    border-bottom-color: rgba(255, 255, 255, 0.08);
 }
 
 #promoStrip.hidden {
@@ -31,42 +39,66 @@
 }
 
 #promoStrip a {
-    color: var(--brand-yellow);
-    text-decoration: underline;
-    font-weight: 700;
-    transition: opacity var(--transition-fast);
+    color: var(--apple-blue, #0071E3);
+    text-decoration: none;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.2rem;
+    transition: color 0.15s ease, transform 0.15s ease;
 }
 
-#promoStrip a:hover { opacity: 0.8; }
+#promoStrip a:hover {
+    color: var(--apple-blue-hover, #0077ED);
+    text-decoration: none;
+    transform: translateX(2px);
+}
 
 #promoStrip .promo-tag {
-    background: rgba(255, 255, 255, 0.22);
-    border-radius: 30px;
-    padding: 0.15rem 0.7rem;
-    font-size: var(--text-xs);
-    letter-spacing: 0.04em;
+    background: rgba(0, 113, 227, 0.08);
+    color: var(--apple-blue, #0071E3);
+    border: 1px solid rgba(0, 113, 227, 0.18);
+    border-radius: 980px;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
     text-transform: uppercase;
     white-space: nowrap;
 }
 
+[data-theme="dark"] #promoStrip .promo-tag {
+    background: rgba(0, 113, 227, 0.18);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.3);
+}
+
 #promoStripClose {
     position: absolute;
-    right: var(--space-3);
-    background: rgba(255, 255, 255, 0.18);
+    right: 1rem;
+    background: transparent;
     border: none;
-    color: var(--text-inverse);
-    font-size: 1.1rem;
-    width: 28px;
-    height: 28px;
+    color: var(--apple-gray, #86868B);
+    font-size: 0.95rem;
+    width: 24px;
+    height: 24px;
     border-radius: 50%;
     cursor: pointer;
     display: flex;
     align-items: center;
     justify-content: center;
-    transition: background var(--transition-fast);
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
-#promoStripClose:hover { background: rgba(255, 255, 255, 0.35); }
+#promoStripClose:hover {
+    background: rgba(0, 0, 0, 0.06);
+    color: var(--apple-dark, #1D1D1F);
+}
+
+[data-theme="dark"] #promoStripClose:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #F5F5F7;
+}
 
 /* ── Promo Card Modal ── */
 #promoCardOverlay {

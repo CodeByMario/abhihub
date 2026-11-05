@@ -26,6 +26,13 @@ def init_scheduler(app=None):
         BackgroundScheduler instance
     """
     global scheduler
+    import os
+    if os.environ.get('WERKZEUG_RUN_MAIN') not in (None, 'true') or (os.environ.get('FLASK_DEBUG') == '1' and os.environ.get('WERKZEUG_RUN_MAIN') != 'true'):
+        logging.info('Skipping scheduler initialization in Werkzeug monitor process')
+        return None
+    if os.environ.get('DISABLE_BACKGROUND_SCHEDULER', '').lower() in ('true', '1', 'yes'):
+        logging.info('Background scheduler explicitly disabled by environment variable')
+        return None
     
     if scheduler is not None:
         logging.warning("Scheduler already initialized")

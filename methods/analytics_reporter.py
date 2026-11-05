@@ -12,7 +12,7 @@ All queries use the abhihub schema via supabase helper.
 """
 
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from collections import Counter
 
 # ============================================================================
@@ -31,11 +31,11 @@ def _client():
 
 def _safe_ts(col="accessed_at"):
     """Return ISO timestamp for 30 days ago."""
-    return (datetime.utcnow() - timedelta(days=30)).isoformat() + "Z"
+    return (datetime.now(timezone.utc) - timedelta(days=30)).isoformat() + "Z"
 
 
 def _safe_ts_days(days=30):
-    return (datetime.utcnow() - timedelta(days=days)).isoformat() + "Z"
+    return (datetime.now(timezone.utc) - timedelta(days=days)).isoformat() + "Z"
 
 
 # ============================================================================
@@ -87,7 +87,7 @@ def get_overview_kpis(days=30):
                 "total_sessions": total_sessions,
                 "avg_session_minutes": avg_duration,
                 "period_days": days,
-                "generated_at": datetime.utcnow().isoformat() + "Z"
+                "generated_at": datetime.now(timezone.utc).isoformat() + "Z"
             }
         }
     except Exception as e:
@@ -616,7 +616,7 @@ def get_daily_views(days=30):
         # Fill missing dates with 0
         result = []
         for i in range(days):
-            d = (datetime.utcnow() - timedelta(days=days - 1 - i)).strftime('%Y-%m-%d')
+            d = (datetime.now(timezone.utc) - timedelta(days=days - 1 - i)).strftime('%Y-%m-%d')
             result.append({"date": d, "views": date_counter.get(d, 0)})
         
         return {

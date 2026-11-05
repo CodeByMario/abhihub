@@ -5,7 +5,7 @@ Handles sending notifications to users 1 hour after successful file upload.
 
 import os
 import logging
-from datetime import datetime, timedelta
+from datetime import datetime, timezone, timedelta
 from typing import Dict, List
 from methods.supabase_helper import init_supabase
 
@@ -27,7 +27,7 @@ def get_files_needing_notification() -> List[Dict]:
     
     try:
         # Calculate time range: 55-65 minutes ago
-        now = datetime.utcnow()
+        now = datetime.now(timezone.utc)
         one_hour_ago_start = now - timedelta(minutes=65)
         one_hour_ago_end = now - timedelta(minutes=55)
         
@@ -132,7 +132,7 @@ def mark_as_notified(file_record_id: str) -> bool:
             response = (client.table('documents')
                        .update({
                            'upload_notified': True,
-                           'notified_at': datetime.utcnow().isoformat()
+                           'notified_at': datetime.now(timezone.utc).isoformat()
                        })
                        .eq('id', file_record_id)
                        .execute())

@@ -292,7 +292,9 @@ def service_worker_root():
     """Serve service worker from root with proper headers"""
     from flask import make_response, send_file
     response = make_response(send_file('static/sw.js', mimetype='application/javascript'))
-    response.headers['Cache-Control'] = 'no-cache'
+    response.headers['Cache-Control'] = 'no-cache, no-store, must-revalidate'
+    response.headers['Pragma'] = 'no-cache'
+    response.headers['Expires'] = '0'
     response.headers['Service-Worker-Allowed'] = '/'
     return response
 

@@ -440,10 +440,49 @@ def p_profile_deprecated():
     return redirect(url_for('app_pages.profile'))
 
 
-@app_pages_bp.route('/delete-account')
+@app_pages_bp.route('/delete-account', methods=['GET', 'POST'])
 @auth_required
 def delete_account():
-    """Account deletion request page"""
+    """Account deletion request page and form submission handler."""
+    if request.method == 'POST':
+        full_name = request.form.get('full_name', '').strip()
+        email = request.form.get('email', '').strip()
+        username = request.form.get('username', '').strip()
+        reason = request.form.get('reason', '').strip()
+        details = request.form.get('details', '').strip()
+        confirm = request.form.get('confirm_deletion')
+
+        if not confirm or not email:
+            flash('Please confirm deletion and provide an email.', 'error')
+            return render_template('delete_account.html'), 400
+
+        import json, datetime
+        from datetime import timezone
+        req_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'data', 'account_deletion_requests.json')
+        existing = []
+        if os.path.exists(req_file):
+            try:
+                with open(req_file, 'r', encoding='utf-8') as fh:
+                    existing = json.load(fh)
+            except Exception:
+                existing = []
+
+        record = {
+            'full_name': full_name,
+            'email': email,
+            'username': username,
+            'reason': reason,
+            'details': details,
+            'created_at': datetime.datetime.now(timezone.utc).isoformat()
+        }
+        existing.append(record)
+        os.makedirs(os.path.dirname(req_file), exist_ok=True)
+        with open(req_file, 'w', encoding='utf-8') as fh:
+            json.dump(existing, fh, indent=2)
+
+        flash('Request received. Our team will verify and process your deletion request.', 'success')
+        return render_template('delete_account.html', success=True), 200
+
     return render_template('delete_account.html')
 
 
@@ -469,6 +508,9 @@ def app_shell():
     path_only = target_path.split('?')[0].split('#')[0].rstrip('/')
     if not path_only:
         path_only = '/'
+
+    if path_only in ('/', '/landing'):
+        return redirect('/')
 
     blocked_prefixes = (
         '/app-shell', '/login', '/signup', '/logout', '/auth',

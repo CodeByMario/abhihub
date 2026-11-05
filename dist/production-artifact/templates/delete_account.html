@@ -225,6 +225,11 @@ body { background: var(--del-bg); }
   <a href="/account" class="del-back">← Back to Account</a>
 
   <div class="del-card">
+    {% if success %}
+    <div class="alert alert-success" style="padding: 1rem 1.25rem; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 12px; color: #065f46; margin-bottom: 1.5rem; font-weight: 700;">
+      ✓ Request received. Our team will verify and process your deletion request.
+    </div>
+    {% endif %}
     <div class="del-icon">🗑️</div>
     <h1>Delete Your Account</h1>
     <p class="del-lead">

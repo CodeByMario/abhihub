@@ -18,13 +18,10 @@ load_dotenv(_ROOT / ".env")
 supabase_url = os.environ.get("SUPABASE_URL")
 supabase_key = (
     os.environ.get("SUPABASE_SECRET_API_KEY")
-    or os.environ.get("SUPABASE_SERVICE_ROLE_KEY")
-    or os.environ.get("SUPABASE_JWT")
-    or os.environ.get("SUPABASE_KEY")
 )
 
 if not supabase_url or not supabase_key:
-    print("❌ ERROR: SUPABASE_URL or SUPABASE_SERVICE_ROLE_KEY is missing in environment.")
+    print("❌ ERROR: SUPABASE_URL or SUPABASE_SECRET_API_KEY is missing in environment.")
     sys.exit(1)
 
 db = create_client(supabase_url, supabase_key, options=ClientOptions(schema="abhihub"))

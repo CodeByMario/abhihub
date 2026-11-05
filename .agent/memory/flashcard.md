@@ -43,3 +43,8 @@ Flask monolith with 155 routes, Supabase (Postgres + RLS), Cloudinary file stora
 - Route documentation in `ROUTES.md` — 148 REST routes + 6 Socket.IO events
 - PDF proxy `/pdf-proxy/` requires auth after security fixes
 - Admin emails from `ADMIN_EMAILS` env var, not hardcoded
+
+- Direct Cloudinary PDF delivery: Flask authorizes via `/api/documents/<id>/authorize`; browser loads direct; zero proxy bytes
+- Image papers (.webp/.jpg) bypass PDF.js to load in native Image Viewer
+- Client IndexedDB (`static/js/idb-sync-store.js`) caches colleges, subjects, and recent files with account switch isolation
+- Centralized L1/L2 Cache: `cache_manager.py` caches ad overrides (300s), user ad metrics (90s), and guide progress (180s)

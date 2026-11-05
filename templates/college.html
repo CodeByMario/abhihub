@@ -20,101 +20,746 @@
   "url": request.base_url
 }|tojson }}
 </script>
+
 <style>
-  :root { --college-ink:#0f172a; --college-muted:#64748b; --college-line:#e2e8f0; --college-blue:#2563eb; --college-bg:#f8fafc; }
-  body { background:var(--college-bg); }
-  .college-page { max-width:1180px; margin:0 auto; padding:1rem 1.25rem 5rem; color:var(--college-ink); }
-  .college-hero { display:flex; justify-content:space-between; gap:2rem; align-items:flex-end; padding:2.5rem; border-radius:24px; color:#fff; background:linear-gradient(135deg,#0f172a,#1d4ed8); box-shadow:0 20px 45px rgba(30,64,175,.22); }
-  .college-kicker { color:#bfdbfe; font-size:.75rem; font-weight:800; letter-spacing:.12em; text-transform:uppercase; }
-  .college-hero h1 { margin:.55rem 0 .75rem; font-size:clamp(2rem,5vw,3.8rem); line-height:1.04; letter-spacing:-.04em; }
-  .college-hero p { max-width:700px; margin:0; color:#dbeafe; line-height:1.6; }
-  .college-actions { display:flex; flex-wrap:wrap; gap:.7rem; margin-top:1.4rem; }
-  .college-action { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:.7rem 1rem; border-radius:10px; text-decoration:none; font-weight:800; }
-  .college-action.primary { background:#fff; color:#1d4ed8; }
-  .college-action.secondary { border:1px solid rgba(255,255,255,.3); color:#fff; }
-  .college-location { white-space:nowrap; align-self:flex-start; padding:.55rem .8rem; border:1px solid rgba(255,255,255,.25); border-radius:999px; color:#dbeafe; font-size:.85rem; font-weight:700; }
-  .college-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:1rem; margin:-1.6rem 1.5rem 2.8rem; position:relative; }
-  .college-stat { background:#fff; border:1px solid var(--college-line); border-radius:16px; padding:1.15rem; box-shadow:0 12px 30px rgba(15,23,42,.08); }
-  .college-stat strong { display:block; font-size:1.8rem; color:var(--college-blue); }
-  .college-stat span { color:var(--college-muted); font-size:.75rem; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
-  .college-section { margin-top:2.5rem; }
-  .college-section-head { display:flex; justify-content:space-between; gap:1rem; align-items:end; margin-bottom:1rem; }
-  .college-section h2 { margin:0; font-size:1.5rem; letter-spacing:-.03em; }
-  .college-section-head p { margin:.35rem 0 0; color:var(--college-muted); }
-  .college-link { color:var(--college-blue); font-weight:800; text-decoration:none; }
-  .college-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(230px,1fr)); gap:1rem; }
-  .college-card { display:flex; flex-direction:column; min-height:160px; padding:1.1rem; background:#fff; border:1px solid var(--college-line); border-radius:16px; color:inherit; text-decoration:none; transition:.2s ease; }
-  .college-card:hover, .college-card:focus-visible { transform:translateY(-3px); border-color:#93c5fd; box-shadow:0 14px 28px rgba(37,99,235,.12); outline:none; }
-  .college-card-top { display:flex; justify-content:space-between; gap:.75rem; align-items:center; }
-  .college-badge { padding:.3rem .5rem; border-radius:6px; background:#eff6ff; color:#1d4ed8; font-size:.7rem; font-weight:900; text-transform:uppercase; }
-  .college-card h3 { margin:1.1rem 0 .35rem; font-size:1rem; line-height:1.35; }
-  .college-card p { margin:0; color:var(--college-muted); font-size:.82rem; }
-  .college-card-footer { display:flex; justify-content:space-between; gap:.5rem; align-items:center; margin-top:auto; padding-top:.9rem; color:var(--college-muted); font-size:.75rem; }
-  .college-empty { grid-column:1/-1; padding:2rem; text-align:center; background:#fff; border:1px dashed #cbd5e1; border-radius:16px; color:var(--college-muted); }
-  @media (max-width:760px) { .college-hero { display:block; padding:1.5rem; } .college-location { display:inline-block; margin-bottom:1rem; } .college-stats { grid-template-columns:1fr; margin:1rem 0 2rem; } .college-section-head { display:block; } .college-section-head .college-link { display:inline-block; margin-top:.75rem; } }
+  :root {
+    --apple-bg: #f5f5f7;
+    --apple-surface: #ffffff;
+    --apple-surface-sub: #fbfbfd;
+    --apple-border: rgba(0, 0, 0, 0.08);
+    --apple-border-hover: rgba(0, 113, 227, 0.35);
+    --apple-text: #1d1d1f;
+    --apple-text-secondary: #6e6e73;
+    --apple-text-muted: #86868b;
+    --apple-blue: #0071E3;
+    --apple-blue-hover: #0077ED;
+    --apple-blue-subtle: rgba(0, 113, 227, 0.08);
+    --apple-amber: #b45309;
+    --apple-amber-bg: rgba(217, 119, 6, 0.08);
+    --apple-emerald: #059669;
+    --apple-emerald-bg: rgba(5, 150, 105, 0.08);
+    --apple-violet: #6366f1;
+    --apple-violet-bg: rgba(99, 102, 241, 0.08);
+    --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Arial, sans-serif;
+    --radius-card: 18px;
+    --radius-pill: 980px;
+    --radius-doc: 12px;
+    --card-shadow: 0 2px 10px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
+    --card-shadow-hover: 0 16px 36px -8px rgba(0, 0, 0, 0.09), 0 4px 12px rgba(0, 0, 0, 0.03);
+  }
+
+  .dark :root, :root[data-theme="dark"] {
+    --apple-bg: #000000;
+    --apple-surface: #1c1c1e;
+    --apple-surface-sub: #2c2c2e;
+    --apple-border: rgba(255, 255, 255, 0.1);
+    --apple-border-hover: rgba(0, 113, 227, 0.45);
+    --apple-text: #f5f5f7;
+    --apple-text-secondary: #a1a1a6;
+    --apple-text-muted: #86868b;
+    --apple-blue-subtle: rgba(0, 113, 227, 0.2);
+    --apple-amber-bg: rgba(245, 158, 11, 0.16);
+    --apple-emerald-bg: rgba(16, 185, 129, 0.16);
+    --apple-violet-bg: rgba(99, 102, 241, 0.16);
+    --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+    --card-shadow-hover: 0 18px 42px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(0, 113, 227, 0.4);
+  }
+
+  body:has(.college-page-wrap),
+  body:has(.college-page-wrap) .app-shell,
+  body:has(.college-page-wrap) main {
+    background-color: var(--apple-bg) !important;
+  }
+
+  body:has(.college-page-wrap) > main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .college-page-wrap {
+    font-family: var(--apple-font);
+    color: var(--apple-text);
+    background-color: var(--apple-bg);
+    min-height: 100vh;
+    padding-bottom: 5rem;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* ─── Apple Keynote Hero ─── */
+  .college-hero-section {
+    background: radial-gradient(circle at 50% 0%, rgba(0, 113, 227, 0.09) 0%, transparent 70%);
+    padding: clamp(3rem, 6vw, 4.75rem) 1.5rem 2.5rem;
+    text-align: center;
+    border-bottom: 1px solid var(--apple-border);
+  }
+
+  .college-hero-inner {
+    max-width: 840px;
+    margin: 0 auto;
+  }
+
+  .college-spec-tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--apple-blue);
+    background: var(--apple-blue-subtle);
+    border: 1px solid rgba(0, 113, 227, 0.16);
+    padding: 4px 13px;
+    border-radius: var(--radius-pill);
+    margin-bottom: 1.15rem;
+  }
+
+  .college-spec-tag .pulse-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--apple-blue);
+    box-shadow: 0 0 8px var(--apple-blue);
+  }
+
+  .college-hero-inner h1 {
+    font-size: clamp(2.2rem, 4.6vw, 3.4rem);
+    font-weight: 700;
+    line-height: 1.08;
+    letter-spacing: -0.035em;
+    margin: 0 0 0.85rem;
+    color: var(--apple-text);
+  }
+
+  .college-hero-inner p {
+    font-size: clamp(1rem, 1.8vw, 1.15rem);
+    color: var(--apple-text-secondary);
+    max-width: 600px;
+    line-height: 1.5;
+    margin: 0 auto 2rem;
+  }
+
+  .college-hero-ctas {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.85rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+  }
+
+  .college-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    min-height: 44px;
+    padding: 0 1.5rem;
+    border-radius: var(--radius-pill);
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .college-btn.primary {
+    background: var(--apple-blue);
+    color: #ffffff !important;
+    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.25);
+  }
+
+  .college-btn.primary:hover {
+    background: var(--apple-blue-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 18px rgba(0, 113, 227, 0.35);
+  }
+
+  .college-btn.secondary {
+    background: var(--apple-surface);
+    color: var(--apple-text) !important;
+    border: 1px solid var(--apple-border);
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  }
+
+  .college-btn.secondary:hover {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue) !important;
+    transform: translateY(-1px);
+  }
+
+  /* Spotlight Search Capsule */
+  .college-search-form {
+    max-width: 580px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-pill);
+    padding: 4px 6px 4px 18px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .college-search-form:focus-within {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.22), 0 8px 26px rgba(0, 0, 0, 0.07);
+  }
+
+  .college-search-ico {
+    color: var(--apple-text-muted);
+    flex-shrink: 0;
+    margin-right: 12px;
+  }
+
+  .college-search-input {
+    flex: 1;
+    min-height: 42px;
+    border: none;
+    background: transparent;
+    font-family: inherit;
+    font-size: 14.5px;
+    color: var(--apple-text);
+    outline: none;
+  }
+
+  .college-search-input::placeholder {
+    color: var(--apple-text-muted);
+  }
+
+  .college-search-btn {
+    min-height: 40px;
+    padding: 0 1.35rem;
+    border-radius: var(--radius-pill);
+    border: none;
+    background: var(--apple-blue);
+    color: #ffffff;
+    font-family: inherit;
+    font-weight: 600;
+    font-size: 13.5px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: background 0.18s ease, transform 0.15s ease;
+    flex-shrink: 0;
+  }
+
+  .college-search-btn:hover {
+    background: var(--apple-blue-hover);
+    transform: scale(1.01);
+  }
+
+  /* ─── Content Container ─── */
+  .college-main-container {
+    max-width: 1280px;
+    margin: 0 auto;
+    padding: 2rem clamp(1rem, 3vw, 2.5rem) 0;
+    box-sizing: border-box;
+  }
+
+  /* ─── Apple Metric Bento Strip ─── */
+  .college-stats-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1.25rem;
+    margin-bottom: 3.5rem;
+  }
+
+  .college-stat-tile {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    padding: 1.5rem 1.75rem;
+    box-shadow: var(--card-shadow);
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  .college-stat-tile:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--card-shadow-hover);
+  }
+
+  .college-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--radius-doc);
+    background: var(--apple-blue-subtle);
+    color: var(--apple-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .college-stat-value {
+    font-size: 1.9rem;
+    font-weight: 750;
+    line-height: 1.1;
+    color: var(--apple-text);
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -0.02em;
+  }
+
+  .college-stat-label {
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--apple-text-secondary);
+    margin-top: 2px;
+  }
+
+  /* ─── Shelf / Section Headers ─── */
+  .college-section {
+    margin-bottom: 4rem;
+  }
+
+  .college-shelf-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .college-shelf-header h2 {
+    font-size: 1.5rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--apple-text);
+    margin: 0 0 0.25rem;
+  }
+
+  .college-shelf-header p {
+    font-size: 13.5px;
+    color: var(--apple-text-secondary);
+    margin: 0;
+  }
+
+  .college-shelf-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--apple-blue);
+    text-decoration: none;
+    transition: gap 0.18s ease;
+  }
+
+  .college-shelf-link:hover {
+    gap: 8px;
+  }
+
+  /* ─── Departments Grid ─── */
+  .college-dept-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .college-dept-card {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    padding: 1.35rem 1.4rem;
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: var(--card-shadow);
+    transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.22s ease, border-color 0.2s ease;
+    min-height: 135px;
+  }
+
+  .college-dept-card:hover {
+    transform: translateY(-3px);
+    box-shadow: var(--card-shadow-hover);
+    border-color: var(--apple-border-hover);
+  }
+
+  .college-dept-card-top {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.85rem;
+  }
+
+  .college-dept-badge {
+    font-size: 11px;
+    font-weight: 700;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    background: var(--apple-blue-subtle);
+    color: var(--apple-blue);
+    border: 1px solid rgba(0, 113, 227, 0.2);
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .college-dept-card h3 {
+    font-size: 1.05rem;
+    font-weight: 650;
+    line-height: 1.32;
+    color: var(--apple-text);
+    margin: 0 0 0.35rem;
+    letter-spacing: -0.015em;
+  }
+
+  .college-dept-card p {
+    font-size: 12px;
+    color: var(--apple-text-secondary);
+    margin: 0;
+  }
+
+  /* ─── Media Cards (Apple Documents / Music) ─── */
+  .college-media-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.35rem;
+  }
+
+  .college-media-card {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    text-decoration: none;
+    color: inherit;
+    display: flex;
+    flex-direction: column;
+    box-shadow: var(--card-shadow);
+    overflow: hidden;
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s ease, border-color 0.2s ease;
+  }
+
+  .college-media-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--card-shadow-hover);
+    border-color: var(--apple-border-hover);
+  }
+
+  .college-media-plate {
+    padding: 1.15rem 1.15rem 0.95rem;
+    border-bottom: 1px solid var(--apple-border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .college-media-card.type-pyq .college-media-plate {
+    background: linear-gradient(135deg, var(--apple-amber-bg) 0%, rgba(217, 119, 6, 0.02) 100%);
+  }
+
+  .college-media-card.type-notes .college-media-plate {
+    background: linear-gradient(135deg, var(--apple-blue-subtle) 0%, rgba(0, 113, 227, 0.02) 100%);
+  }
+
+  .college-media-card.type-practical .college-media-plate {
+    background: linear-gradient(135deg, var(--apple-violet-bg) 0%, rgba(99, 102, 241, 0.02) 100%);
+  }
+
+  .college-media-icon {
+    width: 34px;
+    height: 34px;
+    border-radius: var(--radius-doc);
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  }
+
+  .college-media-card.type-pyq .college-media-icon { color: var(--apple-amber); }
+  .college-media-card.type-notes .college-media-icon { color: var(--apple-blue); }
+  .college-media-card.type-practical .college-media-icon { color: var(--apple-violet); }
+
+  .college-media-type-pill {
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    padding: 3px 8px;
+    border-radius: var(--radius-pill);
+    text-transform: uppercase;
+  }
+
+  .college-media-card.type-pyq .college-media-type-pill {
+    background: var(--apple-amber-bg);
+    color: var(--apple-amber);
+    border: 1px solid rgba(217, 119, 6, 0.25);
+  }
+
+  .college-media-card.type-notes .college-media-type-pill {
+    background: var(--apple-blue-subtle);
+    color: var(--apple-blue);
+    border: 1px solid rgba(0, 113, 227, 0.25);
+  }
+
+  .college-media-card.type-practical .college-media-type-pill {
+    background: var(--apple-violet-bg);
+    color: var(--apple-violet);
+    border: 1px solid rgba(99, 102, 241, 0.25);
+  }
+
+  .college-media-body {
+    padding: 1.15rem 1.15rem 1.1rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .college-media-body h3 {
+    font-size: 1.02rem;
+    font-weight: 650;
+    line-height: 1.32;
+    color: var(--apple-text);
+    margin: 0 0 0.45rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.65rem;
+    letter-spacing: -0.015em;
+  }
+
+  .college-media-body p {
+    font-size: 12.5px;
+    color: var(--apple-text-secondary);
+    margin: 0 0 1.1rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .college-media-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--apple-border);
+    font-size: 11.5px;
+    color: var(--apple-text-secondary);
+  }
+
+  .college-action-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--apple-blue);
+    background: var(--apple-blue-subtle);
+    padding: 5px 12px;
+    border-radius: var(--radius-pill);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .college-media-card:hover .college-action-cta {
+    background: var(--apple-blue);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 113, 227, 0.3);
+  }
+
+  .college-empty-card {
+    grid-column: 1 / -1;
+    padding: 3rem 1.5rem;
+    text-align: center;
+    background: var(--apple-surface);
+    border: 1px dashed var(--apple-border);
+    border-radius: var(--radius-card);
+    color: var(--apple-text-secondary);
+    font-size: 14px;
+  }
+
+  /* ─── Responsive Adjustments ─── */
+  @media (max-width: 980px) {
+    .college-media-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 768px) {
+    .college-hero-section {
+      padding: 2.5rem 1.25rem 2rem;
+    }
+    .college-stats-grid {
+      grid-template-columns: 1fr;
+      gap: 0.85rem;
+      margin-bottom: 2.5rem;
+    }
+    .college-media-grid {
+      grid-template-columns: 1fr;
+    }
+    .college-shelf-header {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<main class="college-page">
-  <section class="college-hero">
-    <div>
-      <div class="college-kicker">Verified academic archive · {{ _abbr }}</div>
-      <h1>{{ college.name }}</h1>
-      <p>Find approved previous-year papers, notes, practicals and department resources shared by students from this college.</p>
-      <div class="college-actions">
-        <a class="college-action primary" href="{{ url_for('library.college_files', college_slug=college_slug) }}">Browse all files</a>
-        <a class="college-action secondary" href="{{ url_for('app_pages.upload') }}">Upload a resource</a>
+<div class="college-page-wrap">
+  <!-- Apple Keynote Hero -->
+  <section class="college-hero-section">
+    <div class="college-hero-inner">
+      <div class="college-spec-tag">
+        <span class="pulse-dot" aria-hidden="true"></span>
+        <span>ACADEMIC VAULT · {{ _abbr }} · {{ _city }}</span>
       </div>
-    </div>
-    <div class="college-location">📍 {{ _city }}</div>
-  </section>
+      <h1>{{ college.name }}</h1>
+      <p>Access verified previous-year question papers, toppers' handwritten notes, and autonomous curriculum solutions.</p>
 
-  <section class="college-stats" aria-label="College archive statistics">
-    <div class="college-stat"><strong>{{ stats.total_documents|default(0) }}</strong><span>Approved resources</span></div>
-    <div class="college-stat"><strong>{{ stats.total_subjects|default(0) }}</strong><span>Subjects covered</span></div>
-    <div class="college-stat"><strong>{{ departments|length }}</strong><span>Departments</span></div>
-  </section>
-
-  <section class="college-section">
-    <div class="college-section-head">
-      <div><h2>Explore departments</h2><p>Only departments mapped to {{ _abbr }} are shown.</p></div>
-      <a class="college-link" href="{{ url_for('library.college_files', college_slug=college_slug) }}">View complete archive →</a>
-    </div>
-    <div class="college-grid">
-      {% for dept in departments %}
-        <a class="college-card" href="{{ url_for('library.department_landing', college_slug=college_slug, department_slug=dept.slug) }}">
-          <div class="college-card-top"><span class="college-badge">{{ dept.abbreviation or 'DEPT' }}</span><span aria-hidden="true">→</span></div>
-          <h3>{{ dept.name }}</h3>
-          <p>Browse papers and notes for this department.</p>
+      <!-- Action Buttons -->
+      <div class="college-hero-ctas">
+        <a class="college-btn primary" href="{{ url_for('library.college_files', college_slug=college_slug) }}">
+          <span>Browse all files</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </a>
-      {% else %}
-        <div class="college-empty">No departments are mapped to this college yet.</div>
-      {% endfor %}
+        <a class="college-btn secondary" href="{{ url_for('app_pages.upload') }}">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2 2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+          <span>Upload material</span>
+        </a>
+      </div>
+
+      <!-- Spotlight Search Form -->
+      <form class="college-search-form" action="{{ url_for('library.college_files', college_slug=college_slug) }}" method="get">
+        <input type="hidden" name="page" value="1">
+        <svg class="college-search-ico" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <input type="text" name="search" class="college-search-input" placeholder="Search subjects, codes (e.g. CS401), or topics in {{ _abbr }}...">
+        <button type="submit" class="college-search-btn">
+          <span>Search</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </button>
+      </form>
     </div>
   </section>
 
-  <section class="college-section">
-    <div class="college-section-head">
-      <div><h2>Latest approved resources</h2><p>Every card opens the exact document page.</p></div>
-      <a class="college-link" href="{{ url_for('library.college_files', college_slug=college_slug) }}">Filter resources →</a>
-    </div>
-    <div class="college-grid">
-      {% for file in recent_files %}
-        {% set file_id = file.get('id') or file.get('record_id') %}
-        {% set subject = file.get('subject') or file.get('subjects') or {} %}
-        {% set uploader = file.get('uploader') or file.get('profiles') or {} %}
-        {% set category = (file.get('document_category') or file.get('file_type') or 'resource')|lower %}
-        <a class="college-card" href="{{ url_for('library.resource_landing', slug=file_id) if file_id else url_for('library.college_files', college_slug=college_slug) }}">
-          <div class="college-card-top"><span class="college-badge">{{ category }}</span><span aria-hidden="true">↗</span></div>
-          <h3>{{ file.get('title') or 'Untitled resource' }}</h3>
-          <p>{{ subject.get('name') or 'General subject' }}</p>
-          <div class="college-card-footer"><span>{{ uploader.get('full_name') or 'Student contributor' }}</span><span>👁 {{ file.get('view_count', 0) }}</span></div>
+  <div class="college-main-container">
+    <!-- Apple Metric Bento Strip -->
+    <section class="college-stats-grid" aria-label="College statistics">
+      <div class="college-stat-tile">
+        <div class="college-stat-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+        </div>
+        <div>
+          <div class="college-stat-value">{{ stats.total_documents|default(0) }}</div>
+          <div class="college-stat-label">Verified Resources</div>
+        </div>
+      </div>
+      <div class="college-stat-tile">
+        <div class="college-stat-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+        </div>
+        <div>
+          <div class="college-stat-value">{{ stats.total_subjects|default(0) }}</div>
+          <div class="college-stat-label">Subjects Covered</div>
+        </div>
+      </div>
+      <div class="college-stat-tile">
+        <div class="college-stat-icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="14" y="14" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect></svg>
+        </div>
+        <div>
+          <div class="college-stat-value">{{ departments|length }}</div>
+          <div class="college-stat-label">Engineering Departments</div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Departments Section -->
+    <section class="college-section">
+      <div class="college-shelf-header">
+        <div>
+          <h2>Explore departments</h2>
+          <p>Curated engineering disciplines under {{ _abbr }}.</p>
+        </div>
+        <a class="college-shelf-link" href="{{ url_for('library.college_files', college_slug=college_slug) }}">
+          <span>View all files</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </a>
-      {% else %}
-        <div class="college-empty">No approved resources are available for this college yet.</div>
-      {% endfor %}
-    </div>
-  </section>
-</main>
+      </div>
+
+      <div class="college-dept-grid">
+        {% for dept in departments %}
+          {% set dept_slug = (dept.abbreviation or dept.name)|lower|replace(' ', '-') %}
+          <a class="college-dept-card" href="{{ url_for('library.college_files', college_slug=college_slug, branch=dept_slug) }}">
+            <div class="college-dept-card-top">
+              <span class="college-dept-badge">{{ dept.abbreviation or 'DEPT' }}</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="color:var(--apple-blue);"><polyline points="9 18 15 12 9 6"></polyline></svg>
+            </div>
+            <div>
+              <h3>{{ dept.name }}</h3>
+              <p>Browse semester papers & notes</p>
+            </div>
+          </a>
+        {% else %}
+          <div class="college-empty-card">No departments mapped to this college yet.</div>
+        {% endfor %}
+      </div>
+    </section>
+
+    <!-- Latest Approved Resources Section -->
+    <section class="college-section">
+      <div class="college-shelf-header">
+        <div>
+          <h2>Latest verified resources</h2>
+          <p>Recently added study materials and previous-year examination papers.</p>
+        </div>
+        <a class="college-shelf-link" href="{{ url_for('library.college_files', college_slug=college_slug) }}">
+          <span>See all resources</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </a>
+      </div>
+
+      <div class="college-media-grid">
+        {% for file in recent_files %}
+          {% set file_id = file.get('id') or file.get('record_id') %}
+          {% set subject = file.get('subject') or file.get('subjects') or {} %}
+          {% set uploader = file.get('uploader') or file.get('profiles') or {} %}
+          {% set cat = (file.get('document_category') or file.get('file_type') or 'pyq')|lower %}
+          {% set is_pyq = cat in ['pyq', 'papers', 'paper'] %}
+          {% set is_practical = cat in ['practical', 'practicals'] %}
+          <a class="college-media-card {% if is_pyq %}type-pyq{% elif is_practical %}type-practical{% else %}type-notes{% endif %}" href="{{ url_for('library.resource_landing', slug=file_id) if file_id else url_for('library.college_files', college_slug=college_slug) }}">
+            <div class="college-media-plate">
+              <div class="college-media-icon" aria-hidden="true">
+                {% if is_pyq %}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                {% elif is_practical %}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"></path><path d="M14 9.3V2"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path></svg>
+                {% else %}
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+                {% endif %}
+              </div>
+              <span class="college-media-type-pill">
+                {% if is_pyq %}PYQ{% elif is_practical %}Lab{% else %}Notes{% endif %}
+              </span>
+            </div>
+
+            <div class="college-media-body">
+              <h3>{{ file.get('title') or 'Untitled resource' }}</h3>
+              <p>{{ subject.get('name') or 'General Engineering' }}</p>
+
+              <div class="college-media-footer">
+                <span>{{ uploader.get('full_name') or 'Student contributor' }}</span>
+                <div class="college-action-cta">
+                  <span>View</span>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </div>
+              </div>
+            </div>
+          </a>
+        {% else %}
+          <div class="college-empty-card">No approved resources available for this college yet.</div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+</div>
 {% endblock %}

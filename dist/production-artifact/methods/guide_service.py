@@ -33,39 +33,64 @@ def load_guides():
 
 
 def get_user_guide_progress(user_id):
-    """Fetch all guide progress records for a user with session fallback."""
+    """Fetch all guide progress records for a user with L1 cache and session fallback."""
     from flask import session
     session_progress = session.get('guide_progress', {})
+    if not user_id:
+        return session_progress
+
+    # Check L1 cache
+    cache = None
+    try:
+        from cache_manager import get_cache
+        cache = get_cache()
+        cached, _ = cache.l1.get(f"user_guide_progress:{user_id}")
+        if cached is not None:
+            return cached
+    except Exception:
+        cache = None
 
     client = init_supabase_admin() or init_supabase()
-    if not client or not user_id:
+    if not client:
         return session_progress
     try:
         tbl = _get_table(client)
-        res = tbl.select('*').eq('user_id', str(user_id)).execute()
+        # Select explicit fields required by guide evaluator (avoids SELECT *)
+        res = tbl.select('guide_id, status, current_step, version, updated_at').eq('user_id', str(user_id)).execute()
         if res.data:
             merged = dict(session_progress)
             merged.update({row['guide_id']: row for row in res.data})
+            if cache:
+                cache.l1.set(f"user_guide_progress:{user_id}", merged, ttl=180)
             return merged
     except Exception as e:
         logging.warning(f"[GUIDE] Progress fetch error: {e}")
+    if cache:
+        cache.l1.set(f"user_guide_progress:{user_id}", session_progress, ttl=60)
     return session_progress
 
 
 SCREEN_ALIASES = {
+    '': 'dashboard',
     'rank': 'leaderboard',
     'ranking': 'leaderboard',
+    'leaderboard': 'leaderboard',
     'home': 'dashboard',
     'index': 'dashboard',
+    'dashboard': 'dashboard',
     'profile': 'account',
     'settings': 'account',
+    'account': 'account',
     'dashboard/setting': 'account',
     'dashboard/profile': 'account',
     'view': 'pdf-reader',
     'dashboard/view': 'pdf-reader',
     'reader': 'pdf-reader',
     'local-viewer': 'pdf-reader',
+    'pdf-reader': 'pdf-reader',
     'storeroom': 'store-room',
+    'store-room': 'store-room',
+    'upload': 'upload',
 }
 
 
@@ -77,7 +102,14 @@ def get_eligible_guides(user_id, screen=None):
 
     if screen:
         screen_clean = str(screen).strip().strip('/').lower()
-        screen = SCREEN_ALIASES.get(screen_clean, screen_clean)
+        if screen_clean.startswith('resource/') or screen_clean.startswith('pdf/'):
+            screen = 'pdf-reader'
+        elif screen_clean.startswith('college/'):
+            screen = 'college'
+        elif screen_clean.startswith('department/'):
+            screen = 'department'
+        else:
+            screen = SCREEN_ALIASES.get(screen_clean, screen_clean)
 
     progress_map = get_user_guide_progress(user_id) if user_id else {}
     eligible = []

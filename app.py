@@ -1,3 +1,4 @@
+from version import APP_VERSION
 # Gevent monkey patch must be executed at the very beginning
 try:
     from gevent import monkey
@@ -486,14 +487,18 @@ def handle_canonical_and_subdomain_routing():
 
 @app.context_processor
 def inject_seo_globals():
+    prod_env = os.getenv('PRODUCTION_ENVIRONMENT', os.getenv('PRODUCTION_ENV', '')).lower()
     env_name = os.getenv('FLASK_ENV', os.getenv('APP_ENV', os.getenv('ENV', 'development'))).lower()
-    is_prod = env_name in ('production', 'prod')
+    is_developer = prod_env in ('developer', 'development', 'dev') or env_name in ('developer', 'development', 'dev')
+    is_prod = env_name in ('production', 'prod') and not is_developer
     return {
         'BASE_URL': f"https://{BASE_DOMAIN}",
         'BASE_DOMAIN': BASE_DOMAIN,
         'CANONICAL_DOMAIN': f"https://{BASE_DOMAIN}",
         'IS_PRODUCTION': is_prod,
+        'IS_DEVELOPER': is_developer,
         'APP_ENV': env_name,
+        'APP_VERSION': APP_VERSION,
         'GOOGLE_SITE_VERIFICATION': os.getenv('GOOGLE_SITE_VERIFICATION', ''),
         'BING_SITE_VERIFICATION': os.getenv('BING_SITE_VERIFICATION', '')
     }
@@ -713,6 +718,8 @@ app.config['WTF_CSRF_CHECK_DEFAULT'] = False
 
 @app.before_request
 def check_csrf():
+    if not app.config.get('WTF_CSRF_ENABLED', True):
+        return
     if request.method not in ['GET', 'HEAD', 'OPTIONS', 'TRACE']:
         if request.path.startswith('/api/') or request.path.startswith('/auth') or request.path.startswith('/store-room/api/'):
             return
@@ -1012,7 +1019,8 @@ def inject_ad_decision():
             or 'view' in purpose and 'document' not in purpose
         )
     )
-    if request.path.startswith(no_ad_prefixes) and not is_credit_purchase:
+    is_local_dev = request.host.startswith(('localhost', '127.0.0.1'))
+    if (request.path.startswith(no_ad_prefixes) or is_local_dev) and not is_credit_purchase:
         ad_decision = {
             **ad_decision,
             'show_ads': False,

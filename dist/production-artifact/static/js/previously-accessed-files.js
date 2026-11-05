@@ -64,11 +64,54 @@ class PreviouslyAccessedFiles {
       this.showLoading(true);
       this.hideError();
 
-      const response = await fetch(`/api/file-access-history?limit=${limit}`);
-      const data = await response.json();
+      // Check IndexedDB first for instant rendering before network request
+      if (window.AbhiHubIDB) {
+        try {
+          const idbFiles = await window.AbhiHubIDB.getAll('files');
+          if (idbFiles && idbFiles.length > 0) {
+            this.renderHistory(idbFiles);
+            this.showLoading(false);
+          }
+        } catch (_) {}
+      }
 
-      if (data.success && data.count > 0) {
-        this.renderHistory(data.data);
+      const cacheKey = `abhihub:file-history:${limit}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        const parsed = JSON.parse(cached);
+        if (parsed.expiresAt > Date.now()) {
+          this.renderHistory(parsed.data);
+          return;
+        }
+        sessionStorage.removeItem(cacheKey);
+      }
+
+      if (PreviouslyAccessedFiles.inFlight.has(cacheKey)) {
+        this.renderHistory(await PreviouslyAccessedFiles.inFlight.get(cacheKey));
+        return;
+      }
+
+      const request = fetch(`/api/file-access-history?limit=${limit}`)
+        .then(response => {
+          if (!response.ok) throw new Error(`History request failed (${response.status})`);
+          return response.json();
+        })
+        .then(data => {
+          const files = data.success ? (data.data || []) : [];
+          sessionStorage.setItem(cacheKey, JSON.stringify({
+            data: files,
+            expiresAt: Date.now() + 60 * 1000
+          }));
+          if (window.AbhiHubIDB && files.length > 0) {
+            window.AbhiHubIDB.putMany('files', files, true).catch(() => {});
+          }
+          return files;
+        })
+        .finally(() => PreviouslyAccessedFiles.inFlight.delete(cacheKey));
+      PreviouslyAccessedFiles.inFlight.set(cacheKey, request);
+      const files = await request;
+      if (files.length > 0) {
+        this.renderHistory(files);
       } else {
         this.showEmpty();
       }
@@ -78,6 +121,7 @@ class PreviouslyAccessedFiles {
     } finally {
       this.showLoading(false);
     }
+
   }
 
   renderHistory(files) {
@@ -158,6 +202,8 @@ class PreviouslyAccessedFiles {
     return div.innerHTML;
   }
 }
+
+PreviouslyAccessedFiles.inFlight = new Map();
 
 // Initialize and load on page ready
 document.addEventListener('DOMContentLoaded', function() {

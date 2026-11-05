@@ -24,76 +24,101 @@
 
 <style>
   :root {
-    --pyq-primary: #6366f1;
-    --pyq-primary-dark: #4f46e5;
-    --pyq-accent: #8b5cf6;
-    --pyq-amber: #d97706;
-    --pyq-amber-bg: #fffbeb;
-    --pyq-card-bg: #ffffff;
-    --pyq-text-main: #0f172a;
-    --pyq-text-muted: #64748b;
-    --pyq-border: #e2e8f0;
+    --apple-bg: #fbfbfd;
+    --apple-surface: #ffffff;
+    --apple-surface-sub: #f5f5f7;
+    --apple-border: rgba(0, 0, 0, 0.08);
+    --apple-border-strong: rgba(0, 0, 0, 0.14);
+    --apple-text: #1d1d1f;
+    --apple-text-muted: #86868b;
+    --apple-blue: #0071E3;
+    --apple-blue-hover: #0077ED;
+    --apple-amber: #d97706;
+    --apple-emerald: #059669;
+    --apple-font: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Plus Jakarta Sans", "Helvetica Neue", Helvetica, Arial, sans-serif;
   }
 
-  .dark :root {
-    --pyq-card-bg: #1e293b;
-    --pyq-text-main: #f8fafc;
-    --pyq-text-muted: #94a3b8;
-    --pyq-border: #334155;
-    --pyq-amber-bg: rgba(217, 119, 6, 0.12);
+  .dark :root, :root[data-theme="dark"] {
+    --apple-bg: #000000;
+    --apple-surface: #141416;
+    --apple-surface-sub: #1c1c1e;
+    --apple-border: rgba(255, 255, 255, 0.1);
+    --apple-border-strong: rgba(255, 255, 255, 0.2);
+    --apple-text: #f5f5f7;
+    --apple-text-muted: #86868b;
   }
 
-  /* Hero Hub */
+  body:has(.pyq-page-wrap),
+  body:has(.pyq-page-wrap) .app-shell,
+  body:has(.pyq-page-wrap) main {
+    background-color: var(--apple-bg) !important;
+  }
+
+  body:has(.pyq-page-wrap) main {
+    max-width: 100% !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .pyq-page-wrap {
+    font-family: var(--apple-font);
+    color: var(--apple-text);
+    background-color: var(--apple-bg);
+    min-height: 100vh;
+  }
+
+  /* Apple Hero */
   .pyq-hero {
     position: relative;
     padding: 5rem 1.5rem 4rem;
-    background: radial-gradient(circle at 10% 20%, rgba(99, 102, 241, 0.15), transparent 40%),
-                radial-gradient(circle at 90% 80%, rgba(139, 92, 246, 0.15), transparent 45%),
-                linear-gradient(135deg, #0f172a 0%, #1e1b4b 60%, #312e81 100%);
-    color: #ffffff;
     text-align: center;
-    border-bottom-left-radius: 40px;
-    border-bottom-right-radius: 40px;
-    box-shadow: 0 20px 40px -15px rgba(15, 23, 42, 0.3);
+    background: linear-gradient(180deg, rgba(0, 113, 227, 0.04) 0%, transparent 100%);
+    border-bottom: 1px solid var(--apple-border);
+  }
+
+  .pyq-hero-inner {
+    max-width: 980px;
+    margin: 0 auto;
   }
 
   .pyq-chip-tag {
     display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.25);
-    backdrop-filter: blur(10px);
-    padding: 0.35rem 1rem;
-    border-radius: 999px;
-    font-size: 0.82rem;
-    font-weight: 700;
-    letter-spacing: 0.04em;
+    background: rgba(0, 113, 227, 0.08);
+    border: 1px solid rgba(0, 113, 227, 0.18);
+    padding: 0.4rem 1.15rem;
+    border-radius: 980px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--apple-blue);
     margin-bottom: 1.5rem;
+    letter-spacing: -0.01em;
   }
 
   .pyq-headline {
-    font-size: clamp(2.3rem, 5.5vw, 3.8rem);
-    font-weight: 900;
-    line-height: 1.12;
-    margin: 0 auto 1rem;
+    font-size: clamp(2.4rem, 5.5vw, 4rem);
+    font-weight: 700;
+    line-height: 1.05;
+    margin: 0 auto 1.25rem;
     max-width: 860px;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
+    color: var(--apple-text);
   }
 
   .pyq-subtext {
-    font-size: 1.1rem;
-    color: rgba(255, 255, 255, 0.85);
-    max-width: 620px;
+    font-size: 1.15rem;
+    color: var(--apple-text-muted);
+    max-width: 660px;
     margin: 0 auto 2.25rem;
-    line-height: 1.6;
+    line-height: 1.55;
   }
 
   /* Metric Chips */
   .metric-bar {
     display: flex;
     justify-content: center;
-    gap: 1.25rem;
+    gap: 0.75rem;
     flex-wrap: wrap;
     margin-bottom: 2.5rem;
   }
@@ -102,16 +127,17 @@
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    padding: 0.5rem 1.2rem;
-    border-radius: 12px;
-    font-size: 0.9rem;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    padding: 0.5rem 1.25rem;
+    border-radius: 980px;
+    font-size: 13px;
     font-weight: 600;
-    backdrop-filter: blur(6px);
+    color: var(--apple-text);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.03);
   }
 
-  /* Floating Search Container */
+  /* Apple Pill Search */
   .search-container {
     max-width: 580px;
     margin: 0 auto;
@@ -120,66 +146,80 @@
 
   .search-input-wrap {
     position: relative;
-    background: #ffffff;
-    border-radius: 16px;
-    box-shadow: 0 16px 36px rgba(0, 0, 0, 0.25);
-    padding: 0.4rem 0.5rem 0.4rem 1.25rem;
+    background: var(--apple-surface);
+    border-radius: 980px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+    padding: 0.4rem 0.75rem 0.4rem 1.35rem;
     display: flex;
     align-items: center;
+    border: 1px solid var(--apple-border-strong);
+    min-height: 50px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .search-input-wrap:focus-within {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.18);
   }
 
   .search-input-wrap input {
     width: 100%;
     border: none;
     outline: none;
-    font-size: 1.05rem;
+    font-size: 15px;
     font-family: inherit;
-    color: #0f172a;
+    color: var(--apple-text);
+    background: transparent;
     font-weight: 500;
-    padding: 0.6rem 0;
+    padding: 0.5rem 0;
   }
 
   .search-input-wrap input::placeholder {
-    color: #94a3b8;
+    color: var(--apple-text-muted);
   }
 
   /* Quick Shortcut Tags */
   .shortcut-tags {
     display: flex;
     justify-content: center;
+    align-items: center;
     gap: 0.5rem;
     flex-wrap: wrap;
-    margin-top: 1rem;
-    font-size: 0.82rem;
+    margin-top: 1.25rem;
+    font-size: 13px;
   }
 
   .shortcut-tags span {
-    color: rgba(255, 255, 255, 0.7);
-    margin-right: 0.25rem;
+    color: var(--apple-text-muted);
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
   }
 
   .shortcut-btn {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 999px;
-    padding: 0.2rem 0.75rem;
+    background: var(--apple-surface-sub);
+    color: var(--apple-text);
+    border: 1px solid var(--apple-border);
+    border-radius: 980px;
+    padding: 0.3rem 0.85rem;
     cursor: pointer;
-    font-size: 0.78rem;
+    font-size: 12px;
     font-weight: 600;
     transition: all 0.15s ease;
   }
 
   .shortcut-btn:hover {
-    background: rgba(255, 255, 255, 0.25);
-    transform: translateY(-1px);
+    background: var(--apple-text);
+    color: var(--apple-bg);
+    border-color: var(--apple-text);
   }
 
   /* Section Body */
   .pyq-content-wrap {
     max-width: 1200px;
     margin: 0 auto;
-    padding: 3rem 1.25rem 5rem;
+    padding: 3rem 1.5rem 5rem;
   }
 
   /* Tabbed Filters */
@@ -191,226 +231,289 @@
     gap: 1rem;
     margin-bottom: 2rem;
     padding-bottom: 1.25rem;
-    border-bottom: 1px solid var(--pyq-border);
+    border-bottom: 1px solid var(--apple-border);
   }
 
   .filter-tabs {
     display: flex;
-    gap: 0.5rem;
-    background: rgba(0, 0, 0, 0.04);
+    gap: 0.4rem;
+    background: var(--apple-surface-sub);
     padding: 0.35rem;
-    border-radius: 12px;
-  }
-
-  .dark .filter-tabs {
-    background: rgba(255, 255, 255, 0.05);
+    border-radius: 980px;
+    border: 1px solid var(--apple-border);
   }
 
   .filter-tab-btn {
     border: none;
     background: transparent;
-    padding: 0.5rem 1rem;
-    border-radius: 8px;
-    font-weight: 700;
-    font-size: 0.88rem;
-    color: var(--pyq-text-muted);
+    padding: 0.45rem 1.15rem;
+    border-radius: 980px;
+    font-weight: 600;
+    font-size: 13px;
+    color: var(--apple-text-muted);
     cursor: pointer;
-    transition: all 0.2s;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
   }
 
   .filter-tab-btn.active {
-    background: #ffffff;
-    color: var(--pyq-primary);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-  }
-
-  .dark .filter-tab-btn.active {
-    background: #1e293b;
-    color: #818cf8;
+    background: var(--apple-surface);
+    color: var(--apple-text);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
   }
 
   .results-count {
-    font-size: 0.9rem;
-    color: var(--pyq-text-muted);
-    font-weight: 600;
+    font-size: 13px;
+    color: var(--apple-text-muted);
+    font-weight: 500;
   }
-
-  /* College Cards Grid */
+  /* ─── Apple Campus Card (Apple Music & Documents Style) ─── */
   .college-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 1.5rem;
+    gap: 1.35rem;
   }
 
   .college-card {
-    background: var(--pyq-card-bg);
-    border: 1px solid var(--pyq-border);
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
     border-radius: 18px;
-    padding: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03), 0 1px 3px rgba(0, 0, 0, 0.02);
     text-decoration: none;
-    color: var(--pyq-text-main);
+    color: var(--apple-text);
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
-    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-    position: relative;
     overflow: hidden;
+    position: relative;
+    transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
   }
 
   .college-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 18px 36px -10px rgba(99, 102, 241, 0.15);
-    border-color: var(--pyq-primary);
+    transform: translateY(-4px);
+    box-shadow: 0 16px 36px -8px rgba(0, 0, 0, 0.09), 0 4px 12px rgba(0, 0, 0, 0.03);
+    border-color: rgba(0, 113, 227, 0.35);
   }
 
-  /* Card Header */
-  .card-top {
+  /* Visual Hero Plate */
+  .college-card-plate {
+    padding: 1.15rem 1.25rem 1rem;
+    border-bottom: 1px solid var(--apple-border);
+    background: linear-gradient(135deg, rgba(0, 113, 227, 0.08) 0%, rgba(0, 113, 227, 0.01) 100%);
     display: flex;
-    align-items: flex-start;
-    gap: 1rem;
-    margin-bottom: 1rem;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .card-waitlist .college-card-plate {
+    background: linear-gradient(135deg, rgba(217, 119, 6, 0.08) 0%, rgba(217, 119, 6, 0.01) 100%);
+  }
+
+  .college-plate-left {
+    display: flex;
+    align-items: center;
+    gap: 0.85rem;
+    width: 100%;
+    justify-content: space-between;
   }
 
   .college-icon-box {
-    width: 48px;
-    height: 48px;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    color: #ffffff;
+    width: 40px;
+    height: 40px;
+    border-radius: 12px;
+    background: var(--apple-surface);
+    color: var(--apple-blue);
+    border: 1px solid var(--apple-border);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
     display: flex;
     align-items: center;
     justify-content: center;
-    font-weight: 800;
-    font-size: 1.15rem;
+    font-weight: 750;
+    font-size: 1.05rem;
     flex-shrink: 0;
-    box-shadow: 0 6px 14px rgba(99, 102, 241, 0.3);
-  }
-
-  .card-top-info {
-    flex: 1;
-    min-width: 0;
-  }
-
-  .card-abbr {
-    font-size: 1.35rem;
-    font-weight: 800;
-    color: var(--pyq-primary);
-    line-height: 1.2;
-    margin-bottom: 0.2rem;
-  }
-
-  .card-title {
-    font-size: 0.88rem;
-    color: var(--pyq-text-muted);
-    line-height: 1.4;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
-
-  /* Badges & Meta */
-  .card-meta-row {
-    display: flex;
-    align-items: center;
-    gap: 0.6rem;
-    flex-wrap: wrap;
-    margin-bottom: 1.25rem;
-  }
-
-  .pill-papers {
-    background: rgba(16, 185, 129, 0.1);
-    color: #059669;
-    padding: 0.25rem 0.65rem;
-    border-radius: 6px;
-    font-size: 0.78rem;
-    font-weight: 700;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-  }
-
-  .pill-tarika {
-    background: rgba(99, 102, 241, 0.1);
-    color: var(--pyq-primary);
-    padding: 0.25rem 0.65rem;
-    border-radius: 6px;
-    font-size: 0.78rem;
-    font-weight: 700;
-  }
-
-  .pill-city {
-    color: var(--pyq-text-muted);
-    font-size: 0.78rem;
-    font-weight: 500;
-  }
-
-  /* Card Action Button */
-  .card-btn {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border-radius: 10px;
-    font-weight: 700;
-    font-size: 0.88rem;
-    text-align: center;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 0.4rem;
-    transition: all 0.15s ease;
-    background: #f8fafc;
-    color: var(--pyq-primary);
-    border: 1px solid var(--pyq-border);
-  }
-
-  .dark .card-btn {
-    background: #0f172a;
-  }
-
-  .college-card:hover .card-btn {
-    background: var(--pyq-primary);
-    color: #ffffff;
-    border-color: var(--pyq-primary);
-  }
-
-  /* 0-File Waitlist Card Style */
-  .card-waitlist {
-    border: 1.5px dashed #f59e0b;
-    background: var(--pyq-amber-bg);
   }
 
   .card-waitlist .college-icon-box {
-    background: linear-gradient(135deg, #f59e0b, #d97706);
-    box-shadow: 0 6px 14px rgba(217, 119, 6, 0.25);
+    color: var(--apple-amber);
   }
 
-  .card-waitlist .card-abbr {
-    color: #d97706;
+  .college-badge-group {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
   }
 
-  .card-waitlist .pill-waitlist {
-    background: rgba(217, 119, 6, 0.15);
-    color: #b45309;
-    padding: 0.25rem 0.65rem;
-    border-radius: 6px;
-    font-size: 0.78rem;
+  .badge-top-campus {
+    background: rgba(0, 113, 227, 0.08);
+    color: var(--apple-blue);
+    border: 1px solid rgba(0, 113, 227, 0.2);
+    padding: 3px 9px;
+    border-radius: 980px;
+    font-size: 11px;
     font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .badge-verified-campus {
+    background: rgba(5, 150, 105, 0.08);
+    color: var(--apple-emerald);
+    border: 1px solid rgba(5, 150, 105, 0.2);
+    padding: 3px 9px;
+    border-radius: 980px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .badge-waitlist-campus {
+    background: rgba(217, 119, 6, 0.08);
+    color: var(--apple-amber);
+    border: 1px solid rgba(217, 119, 6, 0.2);
+    padding: 3px 9px;
+    border-radius: 980px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+  }
+
+  .pill-city {
+    color: var(--apple-text-muted);
+    font-size: 11.5px;
+    font-weight: 500;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    padding: 2.5px 8px;
+    border-radius: 980px;
+  }
+
+  /* Card Body */
+  .college-card-body {
+    padding: 1.25rem 1.25rem 1.15rem;
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+  }
+
+  .card-abbr {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--apple-text);
+    line-height: 1.2;
+    margin-bottom: 0.3rem;
+    letter-spacing: -0.02em;
+  }
+
+  .card-title {
+    font-size: 13px;
+    color: var(--apple-text-muted);
+    line-height: 1.45;
+    margin-bottom: 1.15rem;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    min-height: 2.6rem;
+  }
+
+  .card-meta-row {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.15rem;
+  }
+
+  .pill-papers {
+    background: rgba(5, 150, 105, 0.08);
+    color: var(--apple-emerald);
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid rgba(5, 150, 105, 0.2);
+  }
+
+  .pill-tarika {
+    background: rgba(0, 113, 227, 0.08);
+    color: var(--apple-blue);
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgba(0, 113, 227, 0.2);
+  }
+
+  .pill-waitlist {
+    background: rgba(217, 119, 6, 0.08);
+    color: #b45309;
+    padding: 3px 9px;
+    border-radius: 6px;
+    font-size: 11.5px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid rgba(217, 119, 6, 0.2);
+  }
+
+  /* Card Footer / Apple Action CTA */
+  .college-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    margin-top: auto;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--apple-border);
+  }
+
+  .card-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--apple-blue);
+    background: rgba(0, 113, 227, 0.08);
+    padding: 5px 14px;
+    border-radius: 980px;
+    border: 1px solid transparent;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .card-btn svg {
+    transition: transform 0.2s ease;
+  }
+
+  .college-card:hover .card-btn {
+    background: var(--apple-blue);
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(0, 113, 227, 0.3);
+  }
+
+  .college-card:hover .card-btn svg {
+    transform: translateX(2px);
   }
 
   .card-waitlist .card-btn {
-    background: #ffffff;
-    color: #b45309;
-    border-color: #fde68a;
-  }
-
-  .dark .card-waitlist .card-btn {
-    background: #1e293b;
-    color: #fbbf24;
+    color: var(--apple-amber);
+    background: rgba(217, 119, 6, 0.08);
   }
 
   .card-waitlist:hover .card-btn {
-    background: #d97706;
+    background: var(--apple-amber);
     color: #ffffff;
-    border-color: #d97706;
+    box-shadow: 0 4px 12px rgba(217, 119, 6, 0.3);
   }
 
   /* FAQ Accordion */
@@ -425,13 +528,15 @@
   }
 
   .faq-header h2 {
-    font-size: 2rem;
-    font-weight: 800;
+    font-size: clamp(1.8rem, 3.5vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--apple-text);
   }
 
   .faq-card {
-    background: var(--pyq-card-bg);
-    border: 1px solid var(--pyq-border);
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
     border-radius: 14px;
     margin-bottom: 0.85rem;
     overflow: hidden;
@@ -446,17 +551,17 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
-    font-weight: 700;
-    font-size: 1rem;
-    color: var(--pyq-text-main);
+    font-weight: 600;
+    font-size: 15px;
+    color: var(--apple-text);
     cursor: pointer;
   }
 
   .faq-content {
     display: none;
     padding: 0 1.25rem 1.25rem;
-    color: var(--pyq-text-muted);
-    font-size: 0.95rem;
+    color: var(--apple-text-muted);
+    font-size: 14px;
     line-height: 1.6;
   }
 
@@ -466,257 +571,440 @@
 
   /* Contributor CTA */
   .creator-strip {
-    background: linear-gradient(135deg, #4f46e5, #7c3aed);
+    background: linear-gradient(135deg, #0071E3, #0077ED);
     color: #ffffff;
-    border-radius: 24px;
+    border-radius: 20px;
     padding: 3rem 2rem;
     text-align: center;
     margin-top: 5rem;
-    box-shadow: 0 20px 40px -10px rgba(79, 70, 229, 0.4);
+    box-shadow: 0 12px 36px rgba(0, 113, 227, 0.25);
   }
+
+  /* Apple Pagination System */
+  .apple-pagination-wrap {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 0.6rem;
+    margin-top: 3.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--apple-border);
+    flex-wrap: wrap;
+  }
+
+  .apple-page-btn {
+    min-height: 42px;
+    padding: 0 1.25rem;
+    border-radius: 980px;
+    border: 1px solid var(--apple-border);
+    background: var(--apple-surface);
+    color: var(--apple-text);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
+  }
+
+  .apple-page-btn:hover:not(:disabled) {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 113, 227, 0.12);
+  }
+
+  .apple-page-btn:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+    pointer-events: none;
+    transform: none;
+    box-shadow: none;
+  }
+
+  .apple-page-numbers {
+    display: flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .apple-page-num {
+    min-width: 38px;
+    height: 38px;
+    padding: 0 6px;
+    border-radius: 980px;
+    border: 1px solid var(--apple-border);
+    background: var(--apple-surface);
+    color: var(--apple-text);
+    font-weight: 600;
+    font-size: 13px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .apple-page-num:hover:not(.active) {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+  }
+
+  .apple-page-num.active {
+    background: var(--apple-text);
+    color: var(--apple-bg);
+    border-color: var(--apple-text);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
+  }
+
+  .apple-page-ellipsis {
+    color: var(--apple-text-muted);
+    font-weight: 600;
+    padding: 0 4px;
+    user-select: none;
+  }
+
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- HERO WITH STATS & SMART SEARCH -->
-<section class="pyq-hero">
-  <div class="pyq-chip-tag">
-    <span>✨ WORLD'S #1 ENGINEERING PYQ HUB</span>
-  </div>
+<div class="pyq-page-wrap">
+  <!-- HERO WITH STATS & SMART SEARCH -->
+  <section class="pyq-hero">
+    <div class="pyq-hero-inner">
+      <div class="pyq-chip-tag">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+        <span>Verified Autonomous &amp; University Question Papers</span>
+      </div>
 
-  <h1 class="pyq-headline">
-    Previous Year Papers &amp; Notes.<br/>
-    <span style="background: linear-gradient(135deg, #a5b4fc, #c4b5fd); -webkit-background-clip:text; -webkit-text-fill-color:transparent;">
-      Organized by Your College.
-    </span>
-  </h1>
+      <h1 class="pyq-headline">
+        Previous Year Papers &amp; Notes.<br/>
+        <span style="color: var(--apple-blue);">
+          Organized by Your College.
+        </span>
+      </h1>
 
-  <p class="pyq-subtext">
-    Browse verified question papers, study toppers' handwritten solutions, or use AI Co-founder Tarika to break down solutions step-by-step.
-  </p>
+      <p class="pyq-subtext">
+        Browse verified question papers, study toppers' handwritten solutions, or use AI Co-founder Tarika to break down solutions step-by-step.
+      </p>
 
-  <div class="metric-bar">
-    <div class="metric-chip">
-      <svg width="18" height="18" fill="none" stroke="#34d399" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-      <span>3,000+ Verified Papers</span>
+      <div class="metric-bar">
+        <div class="metric-chip">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#059669" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          <span>Authentic Marking Schemes</span>
+        </div>
+        <div class="metric-chip">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0071E3" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21V5a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v5m-4 0h4"></path></svg>
+          <span>Autonomous Institutes</span>
+        </div>
+        <div class="metric-chip">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#d97706" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+          <span>Instant AI Solutions</span>
+        </div>
+      </div>
+
+      <div class="search-container">
+        <div class="search-input-wrap">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="margin-right:0.75rem; color: var(--apple-text-muted); flex-shrink: 0;"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input type="text" id="collegeFilterInput" placeholder="Search college name, short code or city (e.g. GHRCE, Nagpur)..." oninput="applyFilters()">
+        </div>
+
+        <div class="shortcut-tags">
+          <span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+            Popular:
+          </span>
+          <button class="shortcut-btn" onclick="quickSelect('GHRCE')">GHRCE</button>
+          <button class="shortcut-btn" onclick="quickSelect('RCOEM')">RCOEM</button>
+          <button class="shortcut-btn" onclick="quickSelect('VNIT')">VNIT</button>
+          <button class="shortcut-btn" onclick="quickSelect('COEP')">COEP</button>
+          <button class="shortcut-btn" onclick="quickSelect('VIT')">VIT</button>
+        </div>
+      </div>
     </div>
-    <div class="metric-chip">
-      <svg width="18" height="18" fill="none" stroke="#60a5fa" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg>
-      <span>50+ Top Colleges</span>
-    </div>
-    <div class="metric-chip">
-      <svg width="18" height="18" fill="none" stroke="#fbbf24" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-      <span>Instant AI Solutions</span>
-    </div>
-  </div>
+  </section>
 
-  <div class="search-container">
-    <div class="search-input-wrap">
-      <svg width="22" height="22" fill="none" stroke="#94a3b8" viewBox="0 0 24 24" style="margin-right:0.6rem;"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
-      <input type="text" id="collegeFilterInput" placeholder="Search college name, short code or city (e.g. GHRCE, Nagpur)..." oninput="applyFilters()">
-    </div>
+  <!-- MAIN DIRECTORY & TAB FILTERS -->
+  <div class="pyq-content-wrap">
+    <div class="filter-controls">
+      <div class="filter-tabs">
+        <button class="filter-tab-btn active" id="tabAll" onclick="setTab('all')">All Colleges</button>
+        <button class="filter-tab-btn" id="tabActive" onclick="setTab('active')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+          Active PYQs
+        </button>
+        <button class="filter-tab-btn" id="tabWaitlist" onclick="setTab('waitlist')">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+          Waitlist Open
+        </button>
+      </div>
 
-    <div class="shortcut-tags">
-      <span>🔥 Popular:</span>
-      <button class="shortcut-btn" onclick="quickSelect('GHRCE')">GHRCE</button>
-      <button class="shortcut-btn" onclick="quickSelect('RCOEM')">RCOEM</button>
-      <button class="shortcut-btn" onclick="quickSelect('VNIT')">VNIT</button>
-      <button class="shortcut-btn" onclick="quickSelect('COEP')">COEP</button>
-      <button class="shortcut-btn" onclick="quickSelect('VIT')">VIT</button>
-    </div>
-  </div>
-</section>
-
-<!-- MAIN DIRECTORY & TAB FILTERS -->
-<div class="pyq-content-wrap">
-  <div class="filter-controls">
-    <div class="filter-tabs">
-      <button class="filter-tab-btn active" id="tabAll" onclick="setTab('all')">All Colleges</button>
-      <button class="filter-tab-btn" id="tabActive" onclick="setTab('active')">🔥 Active PYQs</button>
-      <button class="filter-tab-btn" id="tabWaitlist" onclick="setTab('waitlist')">⏳ Waitlist Open</button>
+      <div class="results-count" id="resultsCount">
+        Showing {{ colleges|length }} colleges (sorted by papers)
+      </div>
     </div>
 
-    <div class="results-count" id="resultsCount">
-      Showing {{ colleges|length }} colleges (sorted by papers)
-    </div>
-  </div>
-
-  <!-- COLLEGE CARDS GRID -->
-  <div class="college-grid" id="collegeGrid">
-    {% for college in colleges %}
-    {% set is_empty = not college.doc_count or college.doc_count < 1 %}
-    <div class="college-card-wrapper" 
-         data-count="{{ college.doc_count or 0 }}"
-         data-search="{{ (college.name or '') | lower }} {{ (college.abbreviation or '') | lower }} {{ (college.popular_name or '') | lower }} {{ (college.city or '') | lower }}">
-      <a href="{% if is_empty %}/college/{{ (college.abbreviation or college.name) | lower | replace(' ', '-') }}{% else %}/college/{{ (college.abbreviation or college.name) | lower | replace(' ', '-') }}/files?page=1{% endif %}" 
-         class="college-card {% if is_empty %}card-waitlist{% endif %}">
-        
-        <div class="card-top">
-          <div class="college-icon-box">
-            {{ (college.abbreviation or college.name)[:2] | upper }}
+    <!-- COLLEGE CARDS GRID -->
+    <div class="college-grid" id="collegeGrid">
+      {% for college in colleges %}
+      {% set is_empty = not college.doc_count or college.doc_count < 1 %}
+      <div class="college-card-wrapper" 
+           data-count="{{ college.doc_count or 0 }}"
+           data-waitlist="{{ college.waitlist_count or 0 }}"
+           data-search="{{ (college.name or '') | lower }} {{ (college.abbreviation or '') | lower }} {{ (college.popular_name or '') | lower }} {{ (college.city or '') | lower }}">
+        <a href="{% if is_empty %}/college/{{ (college.abbreviation or college.name) | lower | replace(' ', '-') }}{% else %}/college/{{ (college.abbreviation or college.name) | lower | replace(' ', '-') }}/files?page=1{% endif %}" 
+           class="college-card {% if is_empty %}card-waitlist{% endif %}">
+          
+          <!-- Visual Hero Plate (Apple Documents / Music Style) -->
+          <div class="college-card-plate">
+            <div class="college-plate-left">
+              <div class="college-icon-box" aria-hidden="true">
+                {{ (college.abbreviation or college.name)[:2] | upper }}
+              </div>
+              <div class="college-badge-group">
+                {% if college.doc_count and college.doc_count >= 500 %}
+                  <span class="badge-top-campus">Top Vault</span>
+                {% elif college.doc_count and college.doc_count > 0 %}
+                  <span class="badge-verified-campus">Verified</span>
+                {% else %}
+                  <span class="badge-waitlist-campus">Waitlist Open</span>
+                {% endif %}
+                {% if college.city %}
+                  <span class="pill-city">{{ college.city }}</span>
+                {% endif %}
+              </div>
+            </div>
           </div>
-          <div class="card-top-info">
-            <div class="card-abbr">{{ college.abbreviation or college.name[:8] }}</div>
+
+          <!-- Card Body Content -->
+          <div class="college-card-body">
+            <div class="card-abbr">{{ college.abbreviation or college.name[:10] }}</div>
             <div class="card-title" title="{{ college.name }}">{{ college.name }}</div>
+
+            <div class="card-meta-row">
+              {% if is_empty %}
+                <span class="pill-waitlist">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+                  <span>{{ college.waitlist_count or 0 }} Waiting</span>
+                </span>
+              {% else %}
+                <span class="pill-papers">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                  <span>{{ college.doc_count }} Papers</span>
+                </span>
+                <span class="pill-tarika">
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>
+                  <span>AI Solvable</span>
+                </span>
+              {% endif %}
+            </div>
+
+            <!-- Card Footer: Apple Pill Button -->
+            <div class="college-card-footer">
+              <div class="card-btn">
+                {% if is_empty %}
+                  <span>Join Waitlist</span>
+                {% else %}
+                  <span>Open Archive</span>
+                {% endif %}
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+              </div>
+            </div>
           </div>
+        </a>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Apple Capsule Pagination Controls -->
+    <nav class="apple-pagination-wrap" id="collegePagination" aria-label="Campus Directory Navigation">
+      <button class="apple-page-btn" id="prevPageBtn" onclick="changePage(currentPage - 1)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+        <span>Previous</span>
+      </button>
+
+      <div class="apple-page-numbers" id="pageNumberPills"></div>
+
+      <button class="apple-page-btn" id="nextPageBtn" onclick="changePage(currentPage + 1)">
+        <span>Next</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+      </button>
+    </nav>
+
+    <!-- FAQ Accordion -->
+    <div class="faq-wrap">
+      <div class="faq-header">
+        <h2>Frequently Asked Questions</h2>
+      </div>
+      <div class="faq-card">
+        <button class="faq-trigger" onclick="toggleFaq(this)">
+          <span>Are the previous year papers verified and official?</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="faq-content">
+          Yes! Papers are contributed by top scoring students and verified by academic moderators against official university curriculum standards before being approved.
         </div>
-
-        <div class="card-meta-row">
-          {% if is_empty %}
-            <span class="pill-waitlist">⏳ 0 Papers • Waitlist Open</span>
-          {% else %}
-            <span class="pill-papers">📄 {{ college.doc_count }} Papers</span>
-            <span class="pill-tarika">⚡ AI Solvable</span>
-          {% endif %}
-          {% if college.city %}
-            <span class="pill-city">📍 {{ college.city }}</span>
-          {% endif %}
+      </div>
+      <div class="faq-card">
+        <button class="faq-trigger" onclick="toggleFaq(this)">
+          <span>Can I access question papers for free?</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+        </button>
+        <div class="faq-content">
+          All question papers, semester schemes, and department syllabus lists are 100% free to view, search, and download without any subscription paywalls.
         </div>
-
-        <div class="card-btn">
-          {% if is_empty %}
-            <span>🔔 Join Waitlist</span>
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"/></svg>
-          {% else %}
-            <span>Browse PYQs</span>
-            <svg width="16" height="16" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/></svg>
-          {% endif %}
-        </div>
-      </a>
-    </div>
-    {% endfor %}
-  </div>
-
-  <div id="noResultsBox" style="display:none; text-align:center; padding:4rem 1.5rem;">
-    <div style="font-size:2.5rem; margin-bottom:0.5rem;">🔍</div>
-    <h3 style="font-size:1.3rem; font-weight:800; margin-bottom:0.5rem;">No Colleges Found</h3>
-    <p style="color:var(--pyq-text-muted); max-width:400px; margin:0 auto 1.5rem;">
-      Can't find your college? Help us add it by uploading your previous year question paper.
-    </p>
-    <a href="{{ url_for('site.contribute_page') }}" class="btn-primary-hero" style="background:var(--pyq-primary); color:#fff; padding:0.6rem 1.5rem; border-radius:10px; text-decoration:none; font-weight:700;">
-      Add Your College Now
-    </a>
-  </div>
-
-  <!-- FAQ SECTION -->
-  <div class="faq-wrap">
-    <div class="faq-header">
-      <h2>Frequently Asked Questions</h2>
-      <p style="color:var(--pyq-text-muted);">Everything you need to know about downloading and solving PYQs on AbhiHub.</p>
-    </div>
-
-    <div class="faq-card">
-      <button class="faq-trigger" onclick="toggleFaq(this)">
-        <span>Are all Previous Year Question Papers free on AbhiHub?</span>
-        <span>▼</span>
-      </button>
-      <div class="faq-content">
-        Yes! All university question papers uploaded on AbhiHub are 100% free to browse and download. Verified solution notes and study guides created by toppers are available with free previews.
       </div>
     </div>
-
-    <div class="faq-card">
-      <button class="faq-trigger" onclick="toggleFaq(this)">
-        <span>How does Tarika AI solve exam questions?</span>
-        <span>▼</span>
-      </button>
-      <div class="faq-content">
-        Tarika is AbhiHub's AI Co-founder trained on engineering curricula. When viewing any paper or topic, you can ask Tarika to break down complex mathematical proofs, circuit designs, or algorithmic questions step-by-step.
-      </div>
-    </div>
-
-    <div class="faq-card">
-      <button class="faq-trigger" onclick="toggleFaq(this)">
-        <span>What if my college shows 0 papers?</span>
-        <span>▼</span>
-      </button>
-      <div class="faq-content">
-        Click "Join Waitlist" on your college card! Once you join, our campus ambassador network prioritizes sourcing PYQs for your university. You can also upload papers yourself and earn 85% royalties when juniors purchase your solution notes.
-      </div>
-    </div>
-
-    <div class="faq-card">
-      <button class="faq-trigger" onclick="toggleFaq(this)">
-        <span>How are uploaded papers verified?</span>
-        <span>▼</span>
-      </button>
-      <div class="faq-content">
-        Every uploaded paper is inspected by student moderators and cross-referenced with university syllabus codes to guarantee accuracy before going live.
-      </div>
-    </div>
-  </div>
-
-  <!-- CONTRIBUTOR STRIP -->
-  <div class="creator-strip">
-    <h2 style="font-size:2.2rem; font-weight:900; margin-bottom:0.75rem; color:#fff;">Have Question Papers for Your College?</h2>
-    <p style="max-width:580px; margin:0 auto 1.75rem; font-size:1.05rem; opacity:0.9;">
-      Help your classmates, unlock senior badges on the leaderboard, and earn royalties when sharing your solved notes.
-    </p>
-    <a href="{{ url_for('site.contribute_page') }}" style="background:#ffffff; color:#4f46e5; padding:0.85rem 2rem; border-radius:12px; font-weight:800; text-decoration:none; display:inline-block; box-shadow:0 10px 20px rgba(0,0,0,0.2);">
-      Upload Papers &amp; Notes →
-    </a>
   </div>
 </div>
 
 <script>
   let activeTab = 'all';
+  let currentPage = 1;
+  const PAGE_SIZE = 12;
+  let filteredCards = [];
 
   function setTab(tab) {
     activeTab = tab;
-    document.getElementById('tabAll').classList.toggle('active', tab === 'all');
-    document.getElementById('tabActive').classList.toggle('active', tab === 'active');
-    document.getElementById('tabWaitlist').classList.toggle('active', tab === 'waitlist');
+    currentPage = 1;
+    document.querySelectorAll('.filter-tab-btn').forEach(btn => btn.classList.remove('active'));
+    if (tab === 'all') document.getElementById('tabAll').classList.add('active');
+    if (tab === 'active') document.getElementById('tabActive').classList.add('active');
+    if (tab === 'waitlist') document.getElementById('tabWaitlist').classList.add('active');
     applyFilters();
   }
 
-  function quickSelect(text) {
-    document.getElementById('collegeFilterInput').value = text;
+  function quickSelect(code) {
+    document.getElementById('collegeFilterInput').value = code;
+    currentPage = 1;
     applyFilters();
   }
 
   function applyFilters() {
     const query = (document.getElementById('collegeFilterInput').value || '').toLowerCase().trim();
-    const cards = document.querySelectorAll('.college-card-wrapper');
-    let visibleCount = 0;
-
-    cards.forEach(card => {
+    const cards = Array.from(document.querySelectorAll('.college-card-wrapper'));
+    
+    // First, filter matching cards
+    filteredCards = cards.filter(card => {
       const searchData = card.getAttribute('data-search') || '';
-      const count = parseInt(card.getAttribute('data-count') || '0');
-
-      let matchesSearch = !query || searchData.includes(query);
+      const docCount = parseInt(card.getAttribute('data-count') || '0', 10);
+      const matchesSearch = !query || searchData.includes(query);
       let matchesTab = true;
 
       if (activeTab === 'active') {
-        matchesTab = count > 0;
+        matchesTab = docCount > 0;
       } else if (activeTab === 'waitlist') {
-        matchesTab = count === 0;
+        matchesTab = docCount === 0;
       }
 
-      if (matchesSearch && matchesTab) {
-        card.style.display = '';
-        visibleCount++;
-      } else {
-        card.style.display = 'none';
-      }
+      return matchesSearch && matchesTab;
     });
 
-    document.getElementById('resultsCount').innerText = `Showing ${visibleCount} colleges`;
-    document.getElementById('noResultsBox').style.display = visibleCount === 0 ? 'block' : 'none';
+    const totalMatches = filteredCards.length;
+    const totalPages = Math.ceil(totalMatches / PAGE_SIZE) || 1;
+    if (currentPage > totalPages) currentPage = totalPages;
+    if (currentPage < 1) currentPage = 1;
+
+    // Render current page visibility
+    const startIdx = (currentPage - 1) * PAGE_SIZE;
+    const endIdx = startIdx + PAGE_SIZE;
+
+    cards.forEach(card => card.style.display = 'none');
+    const gridEl = document.getElementById('collegeGrid');
+    filteredCards.slice(startIdx, endIdx).forEach(card => {
+      card.style.display = '';
+      if (gridEl) gridEl.appendChild(card);
+    });
+
+    const resultsEl = document.getElementById('resultsCount');
+    if (resultsEl) {
+      resultsEl.textContent = `Showing ${Math.min(startIdx + 1, totalMatches)}–${Math.min(endIdx, totalMatches)} of ${totalMatches} colleges`;
+    }
+
+    renderPaginationControls(totalPages);
+  }
+
+  function renderPaginationControls(totalPages) {
+    const nav = document.getElementById('collegePagination');
+    if (!nav) return;
+
+    if (filteredCards.length <= PAGE_SIZE) {
+      nav.style.display = 'none';
+      return;
+    }
+    nav.style.display = 'flex';
+
+    const prevBtn = document.getElementById('prevPageBtn');
+    const nextBtn = document.getElementById('nextPageBtn');
+    if (prevBtn) prevBtn.disabled = currentPage <= 1;
+    if (nextBtn) nextBtn.disabled = currentPage >= totalPages;
+
+    const pillsContainer = document.getElementById('pageNumberPills');
+    if (!pillsContainer) return;
+    pillsContainer.innerHTML = '';
+
+    // Generate responsive Apple page numbers with ellipsis
+    const maxVisibleButtons = 5;
+    let startPage = Math.max(1, currentPage - 2);
+    let endPage = Math.min(totalPages, startPage + maxVisibleButtons - 1);
+    if (endPage - startPage < maxVisibleButtons - 1) {
+      startPage = Math.max(1, endPage - maxVisibleButtons + 1);
+    }
+
+    if (startPage > 1) {
+      addPageNumBtn(1, pillsContainer);
+      if (startPage > 2) addEllipsis(pillsContainer);
+    }
+
+    for (let p = startPage; p <= endPage; p++) {
+      addPageNumBtn(p, pillsContainer);
+    }
+
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) addEllipsis(pillsContainer);
+      addPageNumBtn(totalPages, pillsContainer);
+    }
+  }
+
+  function addPageNumBtn(pageNum, container) {
+    const btn = document.createElement('button');
+    btn.className = `apple-page-num ${pageNum === currentPage ? 'active' : ''}`;
+    btn.textContent = pageNum;
+    btn.onclick = () => changePage(pageNum);
+    container.appendChild(btn);
+  }
+
+  function addEllipsis(container) {
+    const span = document.createElement('span');
+    span.className = 'apple-page-ellipsis';
+    span.textContent = '…';
+    container.appendChild(span);
+  }
+
+  function changePage(newPage) {
+    const totalPages = Math.ceil(filteredCards.length / PAGE_SIZE) || 1;
+    if (newPage < 1 || newPage > totalPages) return;
+    currentPage = newPage;
+    applyFilters();
+
+    const gridEl = document.getElementById('collegeGrid');
+    if (gridEl) {
+      const topOffset = gridEl.getBoundingClientRect().top + window.scrollY - 80;
+      window.scrollTo({ top: topOffset, behavior: 'smooth' });
+    }
   }
 
   function toggleFaq(btn) {
     const content = btn.nextElementSibling;
-    const arrow = btn.querySelector('span:last-child');
-    const isOpen = content.classList.contains('open');
+    content.classList.toggle('open');
+  }
 
-    // Close all other FAQs
-    document.querySelectorAll('.faq-content').forEach(c => c.classList.remove('open'));
-    document.querySelectorAll('.faq-trigger span:last-child').forEach(a => a.innerText = '▼');
-
-    if (!isOpen) {
-      content.classList.add('open');
-      arrow.innerText = '▲';
-    }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', applyFilters);
+  } else {
+    applyFilters();
   }
 </script>
 {% endblock %}
