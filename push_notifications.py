@@ -112,14 +112,18 @@ def check_frequency_cap(user_id: str, tag: Optional[str] = None, bypass_throttle
     _USER_DELIVERY_TIMESTAMPS[user_id] = history
 
     if len(history) >= MAX_PUSH_PER_24H:
-        logging.info(f"[NOTIFICATION_SERVICE] Throttled push for {user_id[:8]}: Exceeded daily cap ({MAX_PUSH_PER_24H}/day). Protected from Google Safe Browsing spam flags.")
+        logging.info(f"[NOTIFICATION_SERVICE] Throttled push: daily cap ({MAX_PUSH_PER_24H}/day)")
         return False
 
     if history:
         last_sent = history[-1]
         cooldown = CHAT_USER_COOLDOWN_SECONDS if (tag and tag.startswith('chat-')) else DEFAULT_USER_COOLDOWN_SECONDS
         if now - last_sent < cooldown:
-            logging.info(f"[NOTIFICATION_SERVICE] Throttled push for {user_id[:8]}: Cooldown active ({int(now - last_sent)}s < {cooldown}s).")
+            logging.info(
+                "[NOTIFICATION_SERVICE] Throttled push: cooldown active (%ss < %ss)",
+                int(now - last_sent),
+                cooldown,
+            )
             return False
 
     return True
@@ -512,7 +516,7 @@ class NotificationService:
         now = time.time()
         if effective_dedupe_key in _DEDUPE_CACHE:
             if now - _DEDUPE_CACHE[effective_dedupe_key] < _DEDUPE_WINDOW_SECONDS:
-                logging.info(f"[NOTIFICATION_SERVICE] Suppressed duplicate notification for {user_id[:8] if user_id else 'unknown'}")
+                logging.info("[NOTIFICATION_SERVICE] Suppressed duplicate notification")
                 return {'success': True, 'suppressed': True, 'reason': 'deduplicated'}
         _DEDUPE_CACHE[effective_dedupe_key] = now
 
@@ -526,7 +530,7 @@ class NotificationService:
         # 2. Preference Check
         prefs = self.get_notification_preferences(user_id)
         if not prefs.get('push', True):
-            logging.info(f"[NOTIFICATION_SERVICE] User {user_id[:8] if user_id else 'unknown'} disabled push notifications")
+            logging.info("[NOTIFICATION_SERVICE] Push disabled by user preference")
             return {'success': True, 'suppressed': True, 'reason': 'user_preference_disabled'}
         if category and not prefs.get(category, True):
             logging.info(f"[NOTIFICATION_SERVICE] User opted out of category '{category}'")
@@ -602,13 +606,20 @@ class NotificationService:
                     delivered = True
                     self.record_delivery_attempt(endpoint, 'success')
                     record_user_delivery(user_id)
-                    logging.info(f"[NOTIFICATION_SERVICE] Successfully delivered push to device={device_type} ({platform}) endpoint={endpoint[:45]}...")
+                    logging.info(
+                        "[NOTIFICATION_SERVICE] Push delivered (device=%s platform=%s)",
+                        device_type,
+                        platform,
+                    )
                     break
                 elif res.get('expired'):
                     remove_subscription_by_endpoint(endpoint)
                     expired_count += 1
                     self.record_delivery_attempt(endpoint, 'failed', failure_code='expired_410')
-                    logging.info(f"[NOTIFICATION_SERVICE] Pruned expired token (404/410) for device={device_type} endpoint={endpoint[:45]}...")
+                    logging.info(
+                        "[NOTIFICATION_SERVICE] Pruned expired push subscription (device=%s)",
+                        device_type,
+                    )
                     break
                 elif res.get('retryable') and attempt == 0:
                     time.sleep(0.5)
@@ -617,7 +628,10 @@ class NotificationService:
                     failed_count += 1
                     err_msg = res.get('error', 'send_error')
                     self.record_delivery_attempt(endpoint, 'failed', failure_code=err_msg)
-                    logging.warning(f"[NOTIFICATION_SERVICE] Failed push delivery to endpoint={endpoint[:45]}...: {err_msg}")
+                    logging.warning(
+                        "[NOTIFICATION_SERVICE] Push delivery failed (device=%s)",
+                        device_type,
+                    )
                     break
 
         return {

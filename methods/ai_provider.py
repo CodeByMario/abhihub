@@ -213,12 +213,20 @@ class OpenRouterAdapter:
                             import time as _t
                             _t.sleep(1.0)
                             continue
-                        log.warning("[ai_provider] %s HTTP %s: %s", model_id, resp.status_code, resp.text[:120])
+                        log.warning(
+                            "[ai_provider] Provider returned HTTP status=%s model=%s",
+                            resp.status_code,
+                            model_id,
+                        )
                         last_err = ProviderError(f"{model_id} HTTP {resp.status_code}")
                         break
 
                     if not resp.ok:
-                        log.warning("[ai_provider] %s HTTP %s: %s", model_id, resp.status_code, resp.text[:120])
+                        log.warning(
+                            "[ai_provider] Provider returned HTTP status=%s model=%s",
+                            resp.status_code,
+                            model_id,
+                        )
                         last_err = ProviderError(f"{model_id} HTTP {resp.status_code}")
                         break
 
@@ -252,9 +260,12 @@ class OpenRouterAdapter:
                     last_err = ProviderError(f"{model_id} timed out")
                     break
                 except Exception as exc:
-                    safe_msg = _strip_key(str(exc))
-                    log.warning("[ai_provider] %s error: %s", model_id, safe_msg)
-                    last_err = ProviderError(safe_msg)
+                    log.warning(
+                        "[ai_provider] Provider request failed (model=%s error_type=%s)",
+                        model_id,
+                        type(exc).__name__,
+                    )
+                    last_err = ProviderError("Remote provider request failed")
                     break
 
         # All remote models exhausted — try local Ollama as absolute last resort
@@ -264,7 +275,10 @@ class OpenRouterAdapter:
             try:
                 return OllamaLocalAdapter(model=local_model).complete(messages, max_tokens=max_tokens, temperature=temperature)
             except ProviderError as local_err:
-                log.warning("[ai_provider] Ollama local fallback failed: %s", local_err)
+                log.warning(
+                    "[ai_provider] Ollama local fallback failed (error_type=%s)",
+                    type(local_err).__name__,
+                )
 
         raise (last_err or ProviderError("All models failed"))
 
@@ -552,7 +566,7 @@ class OllamaLocalAdapter:
             raise ProviderError("Ollama timed out")
 
         if not resp.ok:
-            raise ProviderError(f"Ollama HTTP {resp.status_code}: {resp.text[:120]}")
+            raise ProviderError(f"Ollama HTTP {resp.status_code}")
 
         body = resp.json()
         msg = body.get("message", {}).get("content", "").strip()
@@ -845,7 +859,10 @@ def resolve_provider(ai_profile: dict, preferred_model: str | None = None) -> tu
                 key_enc = user_key_record["key_ciphertext"]
                 plan = "byok"
         except Exception as err:
-            log.warning("[ai_provider] Failed to lookup user_ai_keys for %s: %s", user_id, err)
+            log.warning(
+                "[ai_provider] Failed to look up BYOK configuration (error_type=%s)",
+                type(err).__name__,
+            )
 
     if provider in ("webllm", "ondevice", "browser") or (preferred_model and ("webllm" in preferred_model.lower() or "mlc" in preferred_model.lower())):
         clean_model = preferred_model.replace("webllm:", "").strip() if preferred_model else None
@@ -856,7 +873,10 @@ def resolve_provider(ai_profile: dict, preferred_model: str | None = None) -> tu
             key = decrypt_key(key_enc)
             return get_adapter(provider, key, preferred_model), None
         except Exception as exc:
-            log.error("[ai_provider] BYOK decrypt failed: %s", exc)
+            log.error(
+                "[ai_provider] BYOK decrypt failed (error_type=%s)",
+                type(exc).__name__,
+            )
             raise KeyInvalidError("Could not decrypt stored key — please re-enter it in Settings")
 
     # Free tier: use platform Gemini key, OpenRouter key, or NVIDIA fallback
@@ -919,7 +939,10 @@ def validate_startup() -> None:
             _fernet()  # will raise if malformed
             log.info("[ai_provider] FERNET_KEY: valid")
         except Exception as exc:
-            log.error("[ai_provider] FERNET_KEY invalid: %s", exc)
+            log.error(
+                "[ai_provider] FERNET_KEY validation failed (error_type=%s)",
+                type(exc).__name__,
+            )
     else:
         log.info("[ai_provider] FERNET_KEY: not set (BYOK unavailable)")
 

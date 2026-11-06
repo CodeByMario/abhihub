@@ -68,7 +68,7 @@ def create_wall(user_id: str, title: str, college: str = None,
             }).execute()
 
         if res.data:
-            logging.info(f"[MemoryWall] Wall created: {slug} for user {user_id}")
+            logging.info("[MemoryWall] Wall created")
             return {"success": True, "data": res.data[0]}
         return {"success": False, "message": "Insert returned no data"}
     except Exception as e:

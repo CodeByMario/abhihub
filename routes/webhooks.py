@@ -45,7 +45,11 @@ def _async_compress_and_update(public_id, secure_url, resource_type, filename):
     """Background worker task: downloads uploaded file, applies compression, and updates storage."""
     try:
         if not _is_safe_storage_url(secure_url):
-            logging.warning(f"[SECURITY] Refusing to fetch unsafe/non-whitelisted URL in async worker: {secure_url}")
+            rejected_host = urlparse(secure_url).hostname if isinstance(secure_url, str) else None
+            logging.warning(
+                "[SECURITY] Refusing to fetch unsafe/non-whitelisted storage URL (host=%s)",
+                rejected_host or "unknown",
+            )
             return
 
         import requests
@@ -74,7 +78,10 @@ def _async_compress_and_update(public_id, secure_url, resource_type, filename):
             )
             logging.info(f"✓ Async background compression complete for {public_id}: {len(file_bytes)} ➔ {len(compressed_bytes)} bytes")
     except Exception as e:
-        logging.error(f"Async post-upload worker error for {public_id}: {e}")
+        logging.error(
+            "Async post-upload worker failed (error_type=%s)",
+            type(e).__name__,
+        )
 
 
 @webhooks_bp.route('/api/webhooks/cloudinary-upload', methods=['POST'])
@@ -179,9 +186,12 @@ def fulfill_order_transaction(order_id: str, verified_amount: float, doc_id: str
                     cache = get_cache()
                     if cache and hasattr(cache, 'l1'):
                         cache.l1.delete(f"user:quota:{eff_uid}")
-                    logging.info(f"[_fulfill_phonepe_transaction] Added {pack_size} credits to user {eff_uid}. New quota: {new_q}")
+                    logging.info("[PHONEPE] Credit pack applied")
                 except Exception as cred_err:
-                    logging.error(f"[_fulfill_phonepe_transaction] Error crediting quota: {cred_err}")
+                    logging.error(
+                        "[PHONEPE] Error applying credit pack (error_type=%s)",
+                        type(cred_err).__name__,
+                    )
     elif not doc_id and not is_credits:
         try:
             from data.tea_supporters import add_tea_supporter

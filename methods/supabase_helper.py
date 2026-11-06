@@ -1064,7 +1064,7 @@ def save_file_record(
                 'college_id', 'department_id', 'subject_id', 'title', 'document_category'
             ))
             if is_labeled:
-                logging.info(f"[Supabase] Duplicate registration prevented for URL: {file_url}")
+                logging.info("[Supabase] Duplicate document registration prevented")
                 return {
                     'success': False,
                     'message': 'File is already labeled and registered in the system.',
@@ -1096,7 +1096,7 @@ def save_file_record(
         
         if res.data:
             doc_id = res.data[0].get('id')
-            logging.info(f"[Supabase] Successfully saved document record: {doc_id}")
+            logging.info("[Supabase] Document record saved")
             
             # --- Push to new Background Search Queue (Phase 2 Migration) ---
             try:
@@ -1110,9 +1110,12 @@ def save_file_record(
                     'normalized_title': _normalize(search_text) if '_normalize' in globals() else search_text.lower(),
                     'status': 'pending'
                 }).execute()
-                logging.info(f"[Supabase] Queued {doc_id} for background search indexing.")
+                logging.info("[Supabase] Document queued for background search indexing")
             except Exception as search_q_err:
-                logging.error(f"[Supabase] Warning: Could not queue for indexing: {search_q_err}")
+                logging.error(
+                    "[Supabase] Could not queue document for indexing (error_type=%s)",
+                    type(search_q_err).__name__,
+                )
             try:
                 from methods.search_api import invalidate_search_cache
                 invalidate_search_cache()
@@ -1361,7 +1364,7 @@ def log_label_audit(user_id: str, document_id: str, action: str, details: dict) 
             except Exception:
                 pass
         if not resolved_uid:
-            logging.warning(f"[Supabase] log_label_audit skipped: No valid UUID for user {user_id}")
+            logging.warning("[Supabase] Label audit skipped because user identity was invalid")
             return False
 
         client.table('label_audit_logs').insert({
@@ -1988,7 +1991,7 @@ def create_or_update_student_profile(user_id: str, profile_data: dict) -> Dict:
             try: return int(val) if val not in (None, '') else None
             except (ValueError, TypeError): return None
 
-        logging.info(f"[Profile] Upserting profile for user_id={user_id}, role={role}, college={valid_college_id}, dept={valid_department_id}")
+        logging.info("[Profile] Upserting profile")
 
         prof_payload = {
             'id':            user_id,
@@ -2478,11 +2481,14 @@ def recalculate_and_persist_user_rank(user_id: str) -> Dict:
         # Invalidate in-memory ranks cache so leaderboard updates immediately
         _RANKS_CACHE['timestamp'] = 0
 
-        logging.info(f"[Ranking] Persisted reputation_score={score} for user {user_id}")
+        logging.info("[Ranking] Persisted reputation score")
         return {'success': True, 'score': score}
 
     except Exception as e:
-        logging.error(f"[Ranking] Error persisting rank for {user_id}: {e}")
+        logging.error(
+            "[Ranking] Error persisting rank (error_type=%s)",
+            type(e).__name__,
+        )
         return {'success': False, 'message': str(e)}
 
 def get_reputation_stats(user_id: str) -> Dict:
@@ -2524,7 +2530,10 @@ def get_reputation_stats(user_id: str) -> Dict:
             'badges': badges
         }
     except Exception as e:
-        logging.error(f"[Ranking] Error calculating reputation stats for {user_id}: {e}")
+        logging.error(
+            "[Ranking] Error calculating reputation stats (error_type=%s)",
+            type(e).__name__,
+        )
         return {'success': False, 'message': str(e)}
 
 def get_contribution_timeline(user_id: str) -> Dict:
@@ -2737,10 +2746,13 @@ def _notify_uploader_of_view(doc_id: str, viewer_id: str, viewer_email: str):
             'action_url': None,
             'is_read': False
         }).execute()
-        logging.info(f'[NOTIFY] Sent file_view notification to uploader {uploader_id[:8]} from {viewer_name}')
+        logging.info('[NOTIFY] Sent file-view notification')
 
     except Exception as e:
-        logging.error(f'[NOTIFY] Non-critical notify error: {e}')
+        logging.error(
+            '[NOTIFY] Non-critical notification error (error_type=%s)',
+            type(e).__name__,
+        )
 
 
 def get_user_notifications(user_id: str, limit: int = 20, offset: int = 0) -> List[Dict]:
@@ -2827,10 +2839,20 @@ def notify_all_new_upload(doc_id: str, title: str, uploader_id: str = None, subj
                         continue
                     except Exception as fe:
                         e = fe
-                logging.warning(f"[NOTIFY_UPLOAD] In-app batch insert failed chunk {i}: {e}")
-        logging.info(f"[NOTIFY_UPLOAD] Created in-app notifications for {len(records)} users for doc {doc_id}")
+                logging.warning(
+                    "[NOTIFY_UPLOAD] In-app batch insert failed (chunk=%s error_type=%s)",
+                    i,
+                    type(e).__name__,
+                )
+        logging.info(
+            "[NOTIFY_UPLOAD] Created in-app notifications for %s recipients",
+            len(records),
+        )
     except Exception as e:
-        logging.error(f"[NOTIFY_UPLOAD] Failed to broadcast in-app notifications: {e}")
+        logging.error(
+            "[NOTIFY_UPLOAD] Failed to broadcast in-app notifications (error_type=%s)",
+            type(e).__name__,
+        )
 
     # 2. Web Push Notification: Send to all push subscribers
     try:
@@ -2900,13 +2922,16 @@ def save_file_access(user_email: str, file_name: str, file_type: str = 'pdf', fi
                     device_type=''
                 )
                 if result.get('success'):
-                    logging.info(f"[FILE_ACCESS] Logged view for {user_email}: {file_name} (doc={doc_id[:8]})")
+                    logging.info("[FILE_ACCESS] Document view recorded")
                 else:
-                    logging.warning(f"[FILE_ACCESS] Failed to log view: {result.get('message')}")
+                    logging.warning("[FILE_ACCESS] Failed to record document view")
             except Exception as dv_err:
-                logging.warning(f"Warning: Could not log to document_views: {dv_err}")
+                logging.warning(
+                    "[FILE_ACCESS] Could not record document view (error_type=%s)",
+                    type(dv_err).__name__,
+                )
         else:
-            logging.debug(f"[FILE_ACCESS] Skipped logging - doc_id={doc_id}, user_id={user_id}, file={file_name}")
+            logging.debug("[FILE_ACCESS] Skipped document view recording")
 
         return {'success': True}
         

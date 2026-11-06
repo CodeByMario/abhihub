@@ -66,7 +66,10 @@ def get_files_needing_notification() -> List[Dict]:
                 reset_thread_client()
             except Exception:
                 pass
-        logging.error(f"Error querying files for notification: {e}")
+        logging.error(
+            "Error querying files for notification (error_type=%s)",
+            type(e).__name__,
+        )
         return []
 
 
@@ -94,20 +97,23 @@ def send_upload_notification(user_id: str, user_email: str, file_name: str, subj
         icon = "/static/images/android-chrome-192x192.png"
         tag = "upload-success"
         
-        logging.info(f"Sending upload notification to {user_email} for file: {file_name}")
+        logging.info("Sending upload notification (document_type=%s)", doc_type)
         
         # Send notification
         result = send_notification(user_id, title, body, url, icon, tag)
         
         if result.get('success'):
-            logging.info(f"✅ Notification sent successfully to {user_email}")
+            logging.info("✅ Upload notification sent successfully")
             return True
         else:
-            logging.warning(f"⚠️ Failed to send notification to {user_email}: {result.get('error')}")
+            logging.warning("⚠️ Upload notification delivery failed")
             return False
     
     except Exception as e:
-        logging.error(f"❌ Error sending notification to {user_email}: {e}")
+        logging.error(
+            "❌ Error sending upload notification (error_type=%s)",
+            type(e).__name__,
+        )
         return False
 
 
@@ -138,16 +144,22 @@ def mark_as_notified(file_record_id: str) -> bool:
                        .execute())
             
             if response.data:
-                logging.info(f"✅ Marked document {file_record_id} as notified")
+                logging.info("✅ Marked upload notification as complete")
                 return True
         except Exception as e:
-            logging.warning(f"Could not mark upload_notified for {file_record_id}: {e}")
+            logging.warning(
+                "Could not mark upload notification as complete (error_type=%s)",
+                type(e).__name__,
+            )
             return True  # Return true so we don't spam errors in scheduler
             
         return False
     
     except Exception as e:
-        logging.error(f"❌ Error marking record {file_record_id} as notified: {e}")
+        logging.error(
+            "❌ Error marking upload notification as complete (error_type=%s)",
+            type(e).__name__,
+        )
         return False
 
 

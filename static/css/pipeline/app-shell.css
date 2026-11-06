@@ -234,3 +234,134 @@ main {
 .btn-apple-nav-signup:hover {
     background: #0077ED !important;
 }
+
+/* ==========================================================================
+   APPLE NAVIGATION CLUSTER & ICON TOOLBAR SYSTEM
+   ========================================================================== */
+
+.nav-right-cluster {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-left: auto;
+    white-space: nowrap;
+}
+
+.ap-nav-icon-btn,
+#headerSearchBtn,
+#notifBell,
+.theme-toggle-nav-btn {
+    width: 34px !important;
+    height: 34px !important;
+    border-radius: 50% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    background: transparent !important;
+    border: 1px solid transparent !important;
+    color: var(--apple-gray, #6e6e73) !important;
+    cursor: pointer !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    line-height: 1 !important;
+    position: relative !important;
+    box-sizing: border-box !important;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1) !important;
+}
+
+.ap-nav-icon-btn svg,
+#headerSearchBtn svg,
+#notifBell svg,
+.theme-toggle-nav-btn svg {
+    stroke: currentColor !important;
+    transition: stroke 0.15s ease;
+}
+
+.ap-nav-icon-btn:hover,
+#headerSearchBtn:hover,
+#notifBell:hover,
+.theme-toggle-nav-btn:hover {
+    background: rgba(0, 0, 0, 0.05) !important;
+    color: #0071E3 !important;
+    border-color: rgba(0, 113, 227, 0.15) !important;
+}
+
+[data-theme="dark"] .ap-nav-icon-btn,
+[data-theme="dark"] #headerSearchBtn,
+[data-theme="dark"] #notifBell,
+[data-theme="dark"] .theme-toggle-nav-btn {
+    color: var(--apple-gray, #A1A1A6) !important;
+    border-color: transparent !important;
+}
+
+[data-theme="dark"] .ap-nav-icon-btn:hover,
+[data-theme="dark"] #headerSearchBtn:hover,
+[data-theme="dark"] #notifBell:hover,
+[data-theme="dark"] .theme-toggle-nav-btn:hover {
+    background: rgba(255, 255, 255, 0.08) !important;
+    color: #38bdf8 !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+}
+
+#notifBellWrap {
+    position: relative;
+    margin: 0 !important;
+}
+
+#notifBadge {
+    display: none;
+    position: absolute;
+    top: 3px;
+    right: 3px;
+    background: #ff3b30;
+    color: #ffffff;
+    border-radius: 980px;
+    font-size: 9.5px;
+    font-weight: 700;
+    min-width: 15px;
+    height: 15px;
+    line-height: 15px;
+    text-align: center;
+    padding: 0 3px;
+    border: 2px solid #ffffff;
+    box-sizing: border-box;
+}
+
+[data-theme="dark"] #notifBadge {
+    border-color: #000000;
+}
+
+#notifPanel {
+    background: var(--surface, #ffffff);
+    border: 1px solid var(--apple-border-subtle, rgba(0,0,0,0.08));
+    border-radius: 18px;
+    box-shadow: 0 16px 48px rgba(0, 0, 0, 0.15);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+}
+
+[data-theme="dark"] #notifPanel {
+    background: #161618 !important;
+    border-color: rgba(255, 255, 255, 0.12) !important;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.6) !important;
+    color: #f5f5f7 !important;
+}
+
+[data-theme="dark"] .notif-panel-header,
+[data-theme="dark"] .notif-panel-footer,
+[data-theme="dark"] .notif-item {
+    border-color: rgba(255, 255, 255, 0.08) !important;
+}
+
+[data-theme="dark"] .notif-panel-title,
+[data-theme="dark"] .notif-item-title {
+    color: #f5f5f7 !important;
+}
+
+[data-theme="dark"] .notif-item.unread {
+    background: rgba(0, 113, 227, 0.12) !important;
+}
+
+[data-theme="dark"] .notif-item.unread:hover {
+    background: rgba(0, 113, 227, 0.18) !important;
+}

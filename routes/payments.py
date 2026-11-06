@@ -103,9 +103,12 @@ def payment_status_api():
                         cache.l1.delete(f"user:quota:{user_id}")
                 except Exception:
                     pass
-                logging.info(f"[PAYMENT_STATUS] Added {pack_size} credits to user {user_id}. New quota: {new_q}")
+                logging.info("[PAYMENT_STATUS] Credit pack applied")
             except Exception as cred_err:
-                logging.warning(f"[PAYMENT_STATUS] Could not add credits: {cred_err}")
+                logging.warning(
+                    "[PAYMENT_STATUS] Could not apply credit pack (error_type=%s)",
+                    type(cred_err).__name__,
+                )
 
     if doc_id:
         try:

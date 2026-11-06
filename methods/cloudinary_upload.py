@@ -289,7 +289,7 @@ def upload_file_to_cloudinary(
             daemon=True
         ).start()
 
-        logging.info(f"✅ Upload successful: {result.get('secure_url')}")
+        logging.info("✅ Upload successful")
 
         return {
             'success': True,

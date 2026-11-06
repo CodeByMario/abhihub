@@ -1,6 +1,6 @@
 {% extends 'p_struct.html' %}
 {% block page_styles %}
-  <link rel="stylesheet" href="{{ url_for('static', filename='css/pipeline/03_components.css') }}">
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/apple-card.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/p_upload.css') }}">
   <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/p_upload_status_modal.css') }}">
 {% endblock %}
@@ -12,1250 +12,1846 @@
   <div class="apple-segment-wrapper">
     <div class="apple-segmented-control" role="tablist" aria-label="Upload view selector">
       <button type="button" class="apple-segment-btn active" id="tabUploadBtn" data-tab-target="uploadWorkspaceTab" role="tab" aria-selected="true">
-        <span class="segment-icon">📤</span>
-        <span class="segment-text">Upload Workspace</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+        <span>Upload</span>
       </button>
       <button type="button" class="apple-segment-btn" id="tabHistoryBtn" data-tab-target="uploadHistorySection" role="tab" aria-selected="false">
-        <span class="segment-icon">📜</span>
-        <span class="segment-text">My Upload History</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+        <span>My Uploads</span>
         <span class="apple-tab-badge" id="historyTabBadge">0</span>
       </button>
     </div>
   </div>
 
-  <div class="grid-layout" id="uploadWorkspaceTab">
+  <!-- Upload Workspace (2-Step Apple Wizard) -->
+  <div class="upload-centered-workspace" id="uploadWorkspaceTab">
 
-    <!-- Left: Apple Bento Showcase -->
-    <div class="visuals-col">
-      <div class="apple-hero-badge">
-        <span class="apple-pulse-dot"></span>
-        <span>AbhiHub Creator Studio</span>
-      </div>
-      <h1 class="hero-title">Turn Your Study Notes Into<br><span class="hero-gradient-text">Impact &amp; Standing</span></h1>
-      <p class="hero-text">Share previous question papers, notes, and lab manuals. Help your college peers ace their exams while leveling up your contributor tier.</p>
-
-      <!-- Apple Bento Card 1: XP Progress -->
-      <div class="apple-bento-card xp-bento-card">
-        <div class="bento-card-header">
-          <div class="bento-ring-wrap">
-            <svg class="bento-ring-svg" viewBox="0 0 36 36">
-              <path class="ring-bg" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-              <path class="ring-fill" stroke-dasharray="75, 100" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" />
-            </svg>
-            <span class="bento-ring-emoji">⚡</span>
-          </div>
-          <div>
-            <div class="bento-badge-title">Contributor Standing</div>
-            <div class="bento-badge-subtitle">Earn <strong>+25 XP</strong> for every verified document</div>
-          </div>
-        </div>
-        <div class="bento-perk-row">
-          <span class="bento-perk">🎯 90% Creator Royalties</span>
-          <span class="bento-perk">🏆 Profile Hall of Fame</span>
-        </div>
-      </div>
-
-      <!-- Apple Bento Card 2: Student Demand Pulse -->
-      <div class="apple-bento-card demand-bento-card">
-        <div class="demand-header">
-          <span class="demand-flame">🔥</span>
-          <span class="demand-title">High Demand Right Now</span>
-        </div>
-        <div class="demand-chips">
-          <span class="demand-chip">Mid-Sem PYQ 2024-25</span>
-          <span class="demand-chip">Unit 3 &amp; 4 Notes</span>
-          <span class="demand-chip">Lab Practicals</span>
-        </div>
-        <div class="demand-caption">Juniors in your department are actively searching for these materials.</div>
-      </div>
-
-      <!-- Features Pill Row -->
-      <div class="apple-feature-pills">
-        <div class="apple-pill"><span class="pill-icon">✨</span> AI Auto-Detection</div>
-        <div class="apple-pill"><span class="pill-icon">🔒</span> Monetization Control</div>
-        <div class="apple-pill"><span class="pill-icon">📷</span> Mobile Cam Scanner</div>
-      </div>
+  <!-- Stepper Navigation (3 Interactive Steps) -->
+  <div class="apple-stepper">
+    <div class="apple-step active" id="stepIndicator1">
+      <span class="step-num">1</span>
+      <span class="step-label">Select &amp; Compress</span>
     </div>
-
-    <!-- Right: Upload form -->
-    <div class="upload-form-container">
-      <div class="form-card">
-        <div class="mobile-header">
-          <span class="mobile-title">Upload Files</span>
-          <span class="mobile-subtitle">Share resources with friends</span>
-        </div>
-
-        <!-- Psychological Social Proof & Impact Banner -->
-        <div class="social-proof-strip">
-          <span class="social-proof-item">📚 <strong>Peer-Verified</strong> academic repository</span>
-          <span class="social-proof-dot">•</span>
-          <span class="social-proof-item">⚡ Earn <strong class="text-xp">+25 XP</strong></span>
-        </div>
-
-        <form id="uploadForm" data-event-submit="startBulkUpload" novalidate>
-    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
-
-          <!-- Drop zone -->
-          <div class="drop-zone" id="dropArea" data-action="openFileInput" tabindex="0" role="button" aria-label="Select files or drag and drop to upload" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
-            <div class="drop-reward-pill">✨ Instant +25 XP Reward</div>
-            <span class="drop-icon">📂</span>
-            <span class="drop-label">Drop files here or <span class="drop-browse-text">Browse</span></span>
-            <span class="drop-hint" id="fileHint">Images &amp; PDFs accepted • Max 50 MB each</span>
-            <input type="file" id="fileInput" name="upload_document" hidden multiple accept="image/*,application/pdf"
-                   data-event-change="handleFilesSelected">
-          </div>
-
-          <!-- Scan / camera row -->
-          <div class="scan-row">
-            <button type="button" class="scan-btn" data-action="openCameraInput">
-              📷 Scan / Camera
-            </button>
-            <button type="button" class="scan-btn" data-action="openFileInput">
-              🗂 Browse Files
-            </button>
-            <button type="button" class="scan-btn" data-action="openAppGuide" title="Explore Upload Features">
-              🧭 Tour
-            </button>
-          </div>
-          <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden
-                 data-event-change="handleFilesSelected">
-
-
-          <!-- File Filmstrip / Quick Navigation Bar -->
-          <div id="uploadFilmstrip" class="upload-filmstrip" style="display: none;">
-            <div class="filmstrip-header">
-              <span class="filmstrip-title">📂 Selected Files (<span id="filmstripCount">0</span>)</span>
-              <button type="button" class="filmstrip-add-btn" data-action="openFileInput" title="Add more files">+ Add Files</button>
-            </div>
-            <div id="filmstripList" class="filmstrip-list"></div>
-          </div>
-
-          <!-- Upload Carousel (Hidden by default) -->
-          <div id="uploadCarousel" class="upload-carousel" style="display: none;">
-            <!-- Left: Image Panel -->
-            <div class="carousel-image-panel">
-              <div class="carousel-header">
-                <span class="carousel-filename" id="carouselFilename">image.png</span>
-                <span class="carousel-metric" id="carouselMetric" style="display:none;"></span>
-              </div>
-              <div class="carousel-canvas">
-                <img id="carouselImg" loading="lazy" src="" alt="preview">
-                <button type="button" class="remove-img-btn" data-action="removeCarouselImage" title="Remove this image" aria-label="Remove image">✕</button>
-              </div>
-              <div class="carousel-controls">
-                <button type="button" class="img-ctrl-btn" data-action="rotateCarousel" data-direction="-90" title="Rotate Left" aria-label="Rotate Left">↺</button>
-                <button type="button" class="img-ctrl-btn" data-action="rotateCarousel" data-direction="90" title="Rotate Right" aria-label="Rotate Right">↻</button>
-                <button type="button" class="img-ctrl-btn" data-action="toggleCarouselCrop" id="cropToggleBtn" title="Crop" aria-label="Crop">✂️</button>
-                <button type="button" class="img-ctrl-btn" data-action="openFullPreview" id="fullPreviewBtn" title="Open Full Preview" aria-label="Full Preview">🔍 View</button>
-              </div>
-            </div>
-
-            <!-- Right: Meta Panel -->
-            <div class="carousel-meta-panel">
-              <div class="meta-panel-top-actions">
-                <button type="button" class="tarika-suggest-btn" data-action="analyzeCurrentFileWithAi" id="tarikaUploadAnalyzeBtn" title="Ask Tarika to extract title, semester, year, and subject suggestions from this file">
-                  <span>✨ Analyze with Tarika</span>
-                </button>
-                <button type="button" class="batch-apply-btn" data-action="copyLabelsToAll" title="Copy College, Department, Semester, and Subject to all other selected files">
-                  ⚡ Copy details to all files
-                </button>
-              </div>
-              <div id="metaFormsContainer"></div>
-              
-              <template id="metaFormTemplate">
-                <div class="meta-form-wrap">
-
-                  <!-- ── 1. Academic Hierarchy ── -->
-                  <div class="meta-section-label">
-                    <span class="meta-section-icon">🏛️</span> 1. Academic Location
-                    <span class="meta-autofill-badge">Auto-filled</span>
-                  </div>
-
-                  <div class="meta-field">
-                    <label style="display:flex; justify-content:space-between; align-items:center;">
-                      <span>College *</span>
-                      <span style="display:flex; align-items:center; gap:6px;">
-                        <span class="field-autofill-pill" data-field="college" style="display:none;">✓ saved</span>
-                        <button type="button" class="btn-add-new-entity" data-entity="college" style="background:none; border:none; color:#2563eb; font-size:0.75rem; font-weight:600; cursor:pointer; padding:0;" title="Add new college">+ Add New</button>
-                      </span>
-                    </label>
-                    <select name="college_id" class="abhihub-select college-select" data-entity="college" required>
-                      <option value="">Select College...</option>
-                    </select>
-                  </div>
-                  <div class="meta-field">
-                    <label style="display:flex; justify-content:space-between; align-items:center;">
-                      <span>Department *</span>
-                      <span style="display:flex; align-items:center; gap:6px;">
-                        <span class="field-autofill-pill" data-field="branch" style="display:none;">✓ saved</span>
-                        <button type="button" class="btn-add-new-entity" data-entity="branch" style="background:none; border:none; color:#2563eb; font-size:0.75rem; font-weight:600; cursor:pointer; padding:0;" title="Add new department">+ Add New</button>
-                      </span>
-                    </label>
-                    <select name="branch_id" class="abhihub-select branch-select" data-entity="branch" data-parent-class="college-select" required>
-                      <option value="">Select Department...</option>
-                    </select>
-                  </div>
-                  <div class="meta-field">
-                    <label>
-                      Program *
-                      <span class="field-autofill-pill" data-field="program" style="display:none;">✓ saved</span>
-                    </label>
-                    <select name="program" class="abhihub-select program-select" required>
-                      <option value="">Select Program...</option>
-                      <option value="b.tech" selected>B.Tech (Engineering)</option>
-                      <option value="m.tech">M.Tech</option>
-                      <option value="mba">MBA</option>
-                      <option value="bsc">B.Sc</option>
-                      <option value="msc">M.Sc</option>
-                      <option value="bca">BCA</option>
-                      <option value="mca">MCA</option>
-                      <option value="dip">Diploma</option>
-                      <option value="phd">PhD</option>
-                      <option value="other">Other Course</option>
-                    </select>
-                  </div>
-                  <div class="meta-field">
-                    <label>Semester</label>
-                    <select name="semester" class="abhihub-select semester-select" data-entity="semester" data-parent-class="branch-select">
-                      <option value="">Select Semester...</option>
-                      <option value="1">Semester 1</option>
-                      <option value="2">Semester 2</option>
-                      <option value="3">Semester 3</option>
-                      <option value="4">Semester 4</option>
-                      <option value="5">Semester 5</option>
-                      <option value="6">Semester 6</option>
-                      <option value="7">Semester 7</option>
-                      <option value="8">Semester 8</option>
-                    </select>
-                  </div>
-                  <div class="meta-field">
-                    <label style="display:flex; justify-content:space-between; align-items:center;">
-                      <span>Subject *</span>
-                      <span style="display:flex; align-items:center; gap:6px;">
-                        <span class="field-autofill-pill field-ai-pill" data-field="subject" style="display:none;">✨ Suggested</span>
-                        <button type="button" class="btn-add-new-entity" data-entity="subject" style="background:none; border:none; color:#2563eb; font-size:0.75rem; font-weight:600; cursor:pointer; padding:0;" title="Add new subject">+ Add New</button>
-                      </span>
-                    </label>
-                    <select name="subject_id" class="abhihub-select subject-select" data-entity="subject" data-parent-class="semester-select" required>
-                      <option value="">Search or select subject...</option>
-                    </select>
-                  </div>
-
-                  <!-- ── 2. Resource Type & Timeline ── -->
-                  <div class="meta-section-label" style="margin-top: 1rem; border-top: 1px dashed #e2e8f0; padding-top: 0.75rem;">
-                    <span class="meta-section-icon">📑</span> 2. Resource Identification
-                    <span class="meta-autofill-badge meta-ai-status-badge" style="display:none; background:#eff6ff; color:#2563eb; border:1px solid #bfdbfe;">🤖 Analyzing…</span>
-                  </div>
-
-                  <div class="meta-field">
-                    <label>
-                      Category *
-                      <span class="field-autofill-pill field-ai-pill" data-field="type" style="display:none;">✨ Suggested</span>
-                    </label>
-                    <select class="modern-select meta-type" required>
-                      <option value="" disabled selected>Select type...</option>
-                      <option value="papers">Papers 📄</option>
-                      <option value="notes">Notes 📝</option>
-                      <option value="practical">Practical 🧪</option>
-                      <option value="syllabus">Syllabus 📋</option>
-                      <option value="assisment">Assignment 📝</option>
-                      <option value="timetable">Timetable 📅</option>
-                      <option value="question_bank">Question Bank 🎯</option>
-                    </select>
-                  </div>
-                  <div class="meta-field">
-                    <label>
-                      Year *
-                      <span class="field-autofill-pill field-ai-pill" data-field="year" style="display:none;">✨ Suggested</span>
-                    </label>
-                    <select class="modern-select meta-year">
-                      <option value="2022">2022</option>
-                      <option value="2023">2023</option>
-                      <option value="2024">2024</option>
-                      <option value="2025" selected>2025</option>
-                      <option value="2026">2026</option>
-                    </select>
-                  </div>
-                  <div class="meta-field upload-hidden-section meta-unit-wrap">
-                    <label>
-                      Exam / Unit *
-                      <span class="field-autofill-pill field-ai-pill" data-field="unit" style="display:none;">✨ Suggested</span>
-                    </label>
-                    <select class="modern-select meta-unit"></select>
-                  </div>
-
-                  <!-- ── 3. Study Details & Indexing ── -->
-                  <div class="meta-section-label" style="margin-top: 1rem; border-top: 1px dashed #e2e8f0; padding-top: 0.75rem;">
-                    <span class="meta-section-icon">✍️</span> 3. Resource Details
-                  </div>
-
-                  <div class="meta-field">
-                    <label>
-                      Resource Title *
-                      <span class="field-autofill-pill field-ai-pill" data-field="title" style="display:none;">✨ Suggested</span>
-                    </label>
-                    <input type="text" class="modern-input meta-title" name="title" placeholder="e.g. Data Structures End-Sem PYQ 2025" required minlength="3" style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:8px;" />
-                  </div>
-                  <div class="meta-field">
-                    <label>Study Description <span style="font-size:0.75rem; color:#64748b; font-weight:normal;">(Optional - helps indexing & search)</span></label>
-                    <textarea class="modern-input meta-description" name="description" rows="2" placeholder="Brief summary of units, topics, or questions covered..." style="width:100%; padding:0.6rem; border:1px solid #cbd5e1; border-radius:8px; resize:vertical; font-family:inherit;"></textarea>
-                  </div>
-                  <div class="meta-field upload-hidden-section qb-tags-wrap" style="display:none;">
-                    <label>Subject Tags</label>
-                    <input type="text" class="modern-input qb-tags" placeholder="e.g. AI, ML, Data Structures" />
-                    <small style="color:#64748b;">Comma-separated tags for this question bank</small>
-                  </div>
-
-                  <!-- ── 4. Document Access & Monetization ── -->
-                  <div class="meta-section-label" style="margin-top: 1rem; border-top: 1px dashed #e2e8f0; padding-top: 0.75rem;">
-                    <span class="meta-section-icon">💎</span> 4. Access &amp; Pricing
-                  </div>
-
-                  <div class="meta-field pricing-control-section" style="margin-top:0.4rem; padding:0.85rem; border:1.5px solid #e2e8f0; border-radius:12px; background:#f8fafc;">
-                    <label style="display:block; font-size:0.78rem; font-weight:700; color:#1e293b; margin-bottom:0.45rem;">
-                      Document Access Option *
-                    </label>
-
-                    <!-- Segmented Buttons -->
-                    <div class="pricing-toggle-group" style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem; margin-bottom:0.5rem;">
-                      <button type="button" class="access-choice-btn access-free-btn active" data-action="setAccessType" data-type="free"
-                              style="padding:0.6rem 0.75rem; border-radius:10px; border:1.5px solid #10b981; background:#ecfdf5; color:#065f46; font-weight:700; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.35rem; transition:all 0.15s;">
-                        <span>🟢 Free Access</span>
-                      </button>
-
-                      <button type="button" class="access-choice-btn access-paid-btn" data-action="setAccessType" data-type="paid"
-                              style="padding:0.6rem 0.75rem; border-radius:10px; border:1.5px solid #cbd5e1; background:#ffffff; color:#64748b; font-weight:700; font-size:0.82rem; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:0.35rem; transition:all 0.15s;">
-                        <span class="paid-btn-label">🔒 Paid (Locked)</span>
-                      </button>
-                    </div>
-
-                    <!-- Ineligibility Notice (Visible if not eligible) -->
-                    <div class="ineligibility-notice" style="display:none; padding:0.6rem 0.75rem; background:#fffbeb; border:1px solid #fef3c7; border-radius:8px; font-size:0.76rem; color:#92400e; line-height:1.45; margin-bottom:0.5rem;">
-                      <span>🔒 <strong>Monetization Locked:</strong> Creator pricing requires <strong>Contributor Rank</strong> (Score 30+). Share helpful notes to level up! <a href="/earnings" target="_blank" style="color:#b45309; font-weight:700; text-decoration:underline;">View Earnings &amp; Eligibility →</a></span>
-                    </div>
-
-                    <!-- Paid Details Panel (Revealed when Paid is selected) -->
-                    <div class="paid-details-panel" style="display:none; padding-top:0.65rem; border-top:1px dashed #cbd5e1;">
-                      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.4rem;">
-                        <label style="font-size:0.78rem; font-weight:700; color:#1e293b;">Set Unlock Price (₹) *</label>
-                        <span class="earnings-estimate-badge" style="font-size:0.72rem; color:#166534; font-weight:700; background:#dcfce7; padding:2px 7px; border-radius:6px; border:1px solid #bbf7d0;">
-                          💰 You keep 80% (₹23.20)
-                        </span>
-                      </div>
-
-                      <div style="position:relative; margin-bottom:0.5rem;">
-                        <span style="position:absolute; left:12px; top:50%; transform:translateY(-50%); font-weight:800; color:#94a3b8; font-size:1.05rem; pointer-events:none;">₹</span>
-                        <input type="number" class="modern-input meta-price" name="price" min="0" max="5000" step="1" value="0" placeholder="e.g. 29"
-                               style="width:100%; box-sizing:border-box; padding:0.55rem 0.75rem 0.55rem 2.1rem; border:1.5px solid #3b82f6; border-radius:8px; font-weight:800; font-size:1.05rem; color:#0f172a; outline:none; background:#ffffff;">
-                      </div>
-
-                      <!-- Quick Price Presets -->
-                      <div style="display:flex; gap:0.35rem; margin-bottom:0.5rem; flex-wrap:wrap;">
-                        <button type="button" class="price-chip-btn" data-action="setPricePreset" data-price="19" style="border:1px solid #cbd5e1; background:#ffffff; padding:0.2rem 0.55rem; border-radius:6px; font-size:0.75rem; font-weight:700; color:#334155; cursor:pointer;">₹19</button>
-                        <button type="button" class="price-chip-btn" data-action="setPricePreset" data-price="29" style="border:1px solid #cbd5e1; background:#ffffff; padding:0.2rem 0.55rem; border-radius:6px; font-size:0.75rem; font-weight:700; color:#334155; cursor:pointer;">₹29</button>
-                        <button type="button" class="price-chip-btn" data-action="setPricePreset" data-price="49" style="border:1px solid #cbd5e1; background:#ffffff; padding:0.2rem 0.55rem; border-radius:6px; font-size:0.75rem; font-weight:700; color:#334155; cursor:pointer;">₹49</button>
-                        <button type="button" class="price-chip-btn" data-action="setPricePreset" data-price="99" style="border:1px solid #cbd5e1; background:#ffffff; padding:0.2rem 0.55rem; border-radius:6px; font-size:0.75rem; font-weight:700; color:#334155; cursor:pointer;">₹99</button>
-                      </div>
-
-                      <!-- Platform Expense Breakdown -->
-                      <div style="font-size:0.72rem; color:#475569; background:#f8fafc; border:1px solid #e2e8f0; border-radius:6px; padding:0.45rem 0.65rem; margin-bottom:0.65rem; line-height:1.45;">
-                        <span style="font-weight:700; color:#1e293b;">📊 Fee Breakdown:</span> You receive <strong>80%</strong> net payout. <strong>20%</strong> covers operational expenses:
-                        <div style="display:flex; flex-wrap:wrap; gap:0.4rem; margin-top:0.25rem; font-size:0.7rem; color:#64748b;">
-                          <span>• 2% Payment Gateway</span>
-                          <span>• 4% Storage</span>
-                          <span>• 4% Hosting</span>
-                          <span>• 4% Advertisement</span>
-                          <span>• 6% Platform Revenue</span>
-                        </div>
-                      </div>
-
-                      <!-- Coupon Section -->
-                      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.5rem;">
-                        <div>
-                          <label style="font-size:0.75rem; color:#475569; font-weight:600;">Coupon Code (Optional)</label>
-                          <input type="text" class="modern-input meta-coupon-code" name="coupon_code" maxlength="12" placeholder="e.g. EXAM20"
-                                 style="width:100%; box-sizing:border-box; padding:0.45rem; border:1px solid #cbd5e1; border-radius:6px; text-transform:uppercase; font-size:0.82rem;">
-                        </div>
-                        <div>
-                          <label style="font-size:0.75rem; color:#475569; font-weight:600;">Discount (%)</label>
-                          <input type="number" class="modern-input meta-coupon-discount" name="coupon_discount" min="1" max="90" placeholder="20"
-                                 style="width:100%; box-sizing:border-box; padding:0.45rem; border:1px solid #cbd5e1; border-radius:6px; font-size:0.82rem;">
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-
-                </div>
-              </template>
-              
-              <div class="carousel-nav-row">
-                <button type="button" class="nav-btn" id="cPrevBtn" data-action="navigateCarousel" data-direction="-1" disabled aria-label="Previous image">❮</button>
-                <span class="nav-counter" id="cCounter">1 / 1</span>
-                <button type="button" class="nav-btn" id="cNextBtn" data-action="navigateCarousel" data-direction="1" disabled aria-label="Next image">❯</button>
-              </div>
-            </div>
-          </div>
-
-          <!-- Review Summary Checklist -->
-          <div id="uploadReviewSummary" class="upload-review-summary" style="display:none;">
-            <div style="font-size: 0.85rem; font-weight: 700; color: #1e293b; margin-bottom: 0.5rem; display: flex; align-items: center; justify-content: space-between;">
-              <span>📋 Step 4: Verification Review</span>
-              <span id="reviewStatusPill" style="font-size:0.75rem; padding:2px 8px; border-radius:12px; background:#dcfce7; color:#166534; font-weight:600;">✓ Ready</span>
-            </div>
-            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; font-size: 0.8rem; color: #475569;">
-              <div id="chkFile">✓ File Selected</div>
-              <div id="chkType">✓ Category Selected</div>
-              <div id="chkSubject">✓ Subject Verified</div>
-              <div id="chkTitle">✓ Title Formatted</div>
-            </div>
-          </div>
-
-          <div class="meta-field" style="margin: 1rem 0; font-size: 0.85rem; color: #475569;">
-            <label style="display: flex; align-items: flex-start; gap: 0.5rem; cursor: pointer; font-weight: normal;">
-              <input type="checkbox" required name="copyright_ack" style="margin-top: 0.2rem;" checked>
-              <span>I confirm this document is my own original study material or an open university resource, and complies with AbhiHub's <a href="{{ url_for('site.dmca') }}" target="_blank" style="color: #2563eb; text-decoration: underline;">DMCA &amp; Copyright Policy</a>.</span>
-            </label>
-          </div>
-
-          <!-- Submit -->
-          <button type="submit" class="upload-btn" id="submitBtn" data-action="trackUploadStart" aria-live="polite">
-            <span class="btn-spinner" id="btnSpinner" style="display:none;" aria-hidden="true"></span>
-            <span class="btn-icon">🚀</span>
-            <span id="submitBtnText">Upload &amp; Earn XP</span>
-            <span class="btn-xp-badge">+25 XP</span>
-          </button>
-
-          <!-- ── Material Requests (inline, below submit) ── -->
-          <button id="showRequestsBtn" title="Show material requests" data-action="toggleRequestsPanel">📥 Respond to a material request</button>
-          <div id="materialRequestsPanel" style="display:none;">
-            <div class="requests-panel-header" style="padding:0.75rem 1rem; font-weight:700; font-size:0.9rem; border-bottom:1px solid #e2e8f0;">Incoming Requests</div>
-            <div id="requestsList" class="requests-list" style="max-height:280px; overflow-y:auto;"></div>
-            <div style="padding:0.75rem 1rem; border-top:1px solid #f1f5f9; text-align:right;"><button type="button" data-action="hideRequestsPanel" class="xp-action-btn" style="min-width:80px; padding:0.5rem 1rem;">Close</button></div>
-          </div>
-
-        </form>
-      </div>
+    <div class="step-divider" id="stepDivider1"></div>
+    <div class="apple-step" id="stepIndicator2">
+      <span class="step-num">2</span>
+      <span class="step-label">Document Details</span>
+    </div>
+    <div class="step-divider" id="stepDivider2"></div>
+    <div class="apple-step" id="stepIndicator3">
+      <span class="step-num">3</span>
+      <span class="step-label">Price &amp; Coupon</span>
     </div>
   </div>
 
+  <form id="uploadForm" class="upload-wizard-form" novalidate>
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+
+    <!-- ── STEP 1: SELECT & COMPRESS FILE ── -->
+    <div id="stepPane1" class="wizard-step-pane">
+      <div class="step-card">
+        <div class="apple-card-header">
+          <h1 class="apple-card-title">Select &amp; Compress File</h1>
+          <p class="apple-card-subtitle">Upload PDF or images. Large image notes are automatically compressed client-side before uploading.</p>
+        </div>
+
+        <!-- Drop Zone State: Empty/Staging -->
+        <div class="drop-zone" id="dropArea" tabindex="0" role="button" aria-label="Drop file here or browse">
+          <div class="drop-reward-pill">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2L15.09 8.26L22 9.27L17 14.14L18.18 21.02L12 17.77L5.82 21.02L7 14.14L2 9.27L8.91 8.26L12 2Z"/></svg>
+            <span>+25 XP Reward</span>
+          </div>
+          <div class="apple-drop-icon-wrap">
+            <svg class="apple-drop-svg" width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+              <path d="M12 12v9"/>
+              <path d="m16 16-4-4-4 4"/>
+            </svg>
+          </div>
+          <div class="drop-label">Drag &amp; drop file here, or <span class="drop-browse-text">Browse</span></div>
+          <div class="drop-hint">PDF, PNG, JPG, WEBP &bull; Max 50 MB</div>
+          <input type="file" id="fileInput" name="upload_document" hidden accept="application/pdf,image/*">
+          <input type="file" id="cameraInput" accept="image/*" capture="environment" hidden>
+        </div>
+
+        <div class="scan-row" id="scanActionRow">
+          <button type="button" class="scan-btn" id="browseFilesBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span>Browse Files</span>
+          </button>
+          <button type="button" class="scan-btn" id="cameraBtn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+            <span>Scan / Camera</span>
+          </button>
+        </div>
+
+        <!-- Compression Progress Pill -->
+        <div id="compressionStatusRow" class="compression-status-pill" style="display: none;">
+          <div class="btn-spinner" style="width: 14px; height: 14px; border-width: 2px;"></div>
+          <span>Compressing image notes on device…</span>
+        </div>
+
+        <!-- Live File Preview & Verification Card -->
+        <div class="apple-preview-card" id="filePreviewCard" style="display: none;">
+          <div class="preview-media-box" id="previewMediaBox">
+            <img id="imagePreviewEl" class="preview-img-thumb" src="" alt="File preview" style="display: none;">
+            <div id="pdfPreviewFallback" class="pdf-preview-badge">
+              <svg width="36" height="36" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span class="preview-file-type-pill" id="fileTypeIcon">PDF</span>
+            </div>
+          </div>
+          <div class="preview-details">
+            <span class="preview-filename" id="selectedFileName">document.pdf</span>
+            <div class="preview-submeta">
+              <span class="preview-filesize" id="selectedFileSize">0 KB</span>
+              <span class="preview-status-tag" id="compressionSavingsTag">Ready to upload</span>
+            </div>
+          </div>
+          <button type="button" class="apple-change-btn" id="changeFileBtn" title="Choose a different file">Change</button>
+        </div>
+
+        <!-- Step 1 Actions -->
+        <div class="apple-actions-row" style="margin-top: 1.5rem;">
+          <button type="button" class="apple-btn-primary" id="goToStep2Btn" disabled>
+            <span>Continue to Details</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: FILL DOCUMENT DETAILS (With Live Image Reference) ── -->
+    <div id="stepPane2" class="wizard-step-pane" style="display: none;">
+      <div class="step2-split-grid">
+        
+        <!-- LEFT: Live Document Reference Canvas (Always Visible While Filling) -->
+        <div class="step2-doc-ref-pane">
+          <div class="ref-pane-header">
+            <div class="ref-pane-title">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8z"/><circle cx="12" cy="12" r="3"/></svg><span>Document Reference</span>
+            </div>
+            <button type="button" class="ribbon-change-btn" id="ribbonChangeBtn">Replace File</button>
+          </div>
+          
+          <div class="ref-doc-img-container">
+            <img id="step2DocImg" class="ref-doc-img" src="" alt="Staged document notes" style="display: none;">
+            <div id="step2PdfFallback" class="ref-pdf-fallback" style="display: none;">
+              <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              <span class="ref-pdf-name" id="ribbonFileName">document.pdf</span>
+              <span class="ref-pdf-size" id="ribbonFileSize">0 KB &bull; PDF</span>
+            </div>
+          </div>
+          <p class="ref-doc-hint">Look at the cover page or question paper above to verify subject name, exam code, and semester details.</p>
+
+          <!-- Generated Title Directly Under Staged File -->
+          <div class="ref-title-card">
+            <div class="ref-title-header">
+              <label class="ref-title-label" for="docTitle">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg><span>Real-Time Generated Title</span>
+              </label>
+              <button type="button" id="refreshTitleBtn" class="title-sync-btn" title="Auto-regenerate title from details">↻ Refresh</button>
+            </div>
+            <input type="text" id="docTitle" name="title" class="apple-input ref-title-input" placeholder="e.g. Data Structures - Notes (Unit 1, 2) - Sem 3 (2025)" required minlength="3">
+            <p class="ref-doc-hint" style="margin-top: 5px; text-align: left; font-size: 11px;">Title auto-updates as you change options. You can also edit it directly.</p>
+          </div>
+        </div>
+
+        <!-- RIGHT: Interactive Form with Smart Chips (Ordered by Importance) -->
+        <div class="step-card">
+          
+          <!-- Section 1 (Highest Priority): What is this material? -->
+          <div class="apple-form-section">
+            <div class="apple-section-title">1. Material Classification</div>
+
+            <!-- Category Icon Cards (Replacing dropdown) -->
+            <div class="apple-field">
+              <label class="apple-label">Category</label>
+              <div class="category-chips-grid" id="categoryChipGroup">
+                <button type="button" class="cat-chip-btn active" data-val="notes">
+                  <span class="cat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg></span>
+                  <span class="cat-name">Notes</span>
+                </button>
+                <button type="button" class="cat-chip-btn" data-val="papers">
+                  <span class="cat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg></span>
+                  <span class="cat-name">PYQ Papers</span>
+                </button>
+                <button type="button" class="cat-chip-btn" data-val="practical">
+                  <span class="cat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31L4.69 18.5A2 2 0 0 0 6.42 21h11.16a2 2 0 0 0 1.73-2.5L14 9.31V2"/></svg></span>
+                  <span class="cat-name">Lab / Practical</span>
+                </button>
+                <button type="button" class="cat-chip-btn" data-val="syllabus">
+                  <span class="cat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg></span>
+                  <span class="cat-name">Syllabus</span>
+                </button>
+                <button type="button" class="cat-chip-btn" data-val="assisment">
+                  <span class="cat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg></span>
+                  <span class="cat-name">Assignment</span>
+                </button>
+                <button type="button" class="cat-chip-btn" data-val="question_bank">
+                  <span class="cat-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg></span>
+                  <span class="cat-name">Question Bank</span>
+                </button>
+              </div>
+              <input type="hidden" id="docCategory" name="type" value="notes">
+            </div>
+
+            <!-- Dynamic Category-Specific Information Section -->
+            <div id="categorySpecificSection" class="category-specific-box">
+              <!-- NOTES: Units Covered Checkboxes -->
+              <div id="catPaneNotes" class="cat-pane-detail">
+                <div class="cat-sec-title">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg><span>Covered Units (Select all included)</span>
+                </div>
+                <div class="unit-checkbox-group" id="unitCheckboxGroup">
+                  <label class="unit-pill-label active"><input type="checkbox" value="Unit 1" class="unit-check-input" checked><span>Unit 1</span></label>
+                  <label class="unit-pill-label active"><input type="checkbox" value="Unit 2" class="unit-check-input" checked><span>Unit 2</span></label>
+                  <label class="unit-pill-label"><input type="checkbox" value="Unit 3" class="unit-check-input"><span>Unit 3</span></label>
+                  <label class="unit-pill-label"><input type="checkbox" value="Unit 4" class="unit-check-input"><span>Unit 4</span></label>
+                  <label class="unit-pill-label"><input type="checkbox" value="Unit 5" class="unit-check-input"><span>Unit 5</span></label>
+                  <label class="unit-pill-label" id="allUnitsPill"><input type="checkbox" value="All Units" class="unit-check-input" id="allUnitsCheck"><svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg><span>All Units</span></label>
+                </div>
+                <div class="sub-chips-wrap" id="notesFormatGroup" style="margin-top: 8px;">
+                  <button type="button" class="sub-chip-btn active" data-type="notes_format" data-val="Handwritten"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Handwritten</span></button>
+                  <button type="button" class="sub-chip-btn" data-type="notes_format" data-val="Digital Typed"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg><span>Digital / Typed</span></button>
+                </div>
+              </div>
+
+              <!-- PAPERS / PYQ: Exam Type -->
+              <div id="catPanePapers" class="cat-pane-detail" style="display: none;">
+                <div class="cat-sec-title">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/></svg><span>Exam Type</span>
+                </div>
+                <div class="sub-chips-wrap" id="examTypeGroup">
+                  <button type="button" class="sub-chip-btn active" data-type="exam_type" data-val="End-Sem (ESE)">End-Sem (ESE)</button>
+                  <button type="button" class="sub-chip-btn" data-type="exam_type" data-val="Mid-Sem (CAE 1)">Mid-Sem (CAE 1)</button>
+                  <button type="button" class="sub-chip-btn" data-type="exam_type" data-val="CAE 2">CAE 2</button>
+                  <button type="button" class="sub-chip-btn" data-type="exam_type" data-val="Backlog / Re-Exam">Backlog / Re-Exam</button>
+                  <button type="button" class="sub-chip-btn" data-type="exam_type" data-val="Class Test">Class Test</button>
+                </div>
+                <div class="sub-chips-wrap" id="solutionsGroup" style="margin-top: 8px;">
+                  <button type="button" class="sub-chip-btn active" data-type="solutions" data-val="With Solutions"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span>With Solutions</span></button>
+                  <button type="button" class="sub-chip-btn" data-type="solutions" data-val="Question Paper Only"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg><span>Questions Only</span></button>
+                </div>
+              </div>
+
+              <!-- PRACTICAL / LAB -->
+              <div id="catPanePractical" class="cat-pane-detail" style="display: none;">
+                <div class="cat-sec-title">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 2v7.31L4.69 18.5A2 2 0 0 0 6.42 21h11.16a2 2 0 0 0 1.73-2.5L14 9.31V2"/></svg><span>Practical / Lab Content</span>
+                </div>
+                <div class="sub-chips-wrap" id="practicalTypeGroup">
+                  <button type="button" class="sub-chip-btn active" data-type="practical_type" data-val="Full Lab Manual">Full Lab Manual</button>
+                  <button type="button" class="sub-chip-btn" data-type="practical_type" data-val="Code & Output">Code &amp; Output Only</button>
+                  <button type="button" class="sub-chip-btn" data-type="practical_type" data-val="Viva Q&A">Viva Q&amp;A</button>
+                </div>
+              </div>
+
+              <!-- ASSIGNMENT -->
+              <div id="catPaneAssignment" class="cat-pane-detail" style="display: none;">
+                <div class="cat-sec-title">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg><span>Assignment Number</span>
+                </div>
+                <div class="sub-chips-wrap" id="assignmentTypeGroup">
+                  <button type="button" class="sub-chip-btn active" data-type="assignment_num" data-val="Assignment 1">Assignment 1</button>
+                  <button type="button" class="sub-chip-btn" data-type="assignment_num" data-val="Assignment 2">Assignment 2</button>
+                  <button type="button" class="sub-chip-btn" data-type="assignment_num" data-val="Assignment 3">Assignment 3</button>
+                  <button type="button" class="sub-chip-btn" data-type="assignment_num" data-val="Complete Assignment">Complete Assignment</button>
+                </div>
+              </div>
+
+              <!-- QUESTION BANK -->
+              <div id="catPaneQuestionBank" class="cat-pane-detail" style="display: none;">
+                <div class="cat-sec-title">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg><span>Question Bank Scope</span>
+                </div>
+                <div class="sub-chips-wrap" id="qbTypeGroup">
+                  <button type="button" class="sub-chip-btn active" data-type="qb_type" data-val="Unit-Wise Important Questions">Unit-Wise Important Qs</button>
+                  <button type="button" class="sub-chip-btn" data-type="qb_type" data-val="Previous 5 Years Compilation">Prev 5 Years Compilation</button>
+                  <button type="button" class="sub-chip-btn" data-type="qb_type" data-val="2-Marks Short Answers">2-Marks Q&amp;A</button>
+                </div>
+              </div>
+
+              <!-- SYLLABUS -->
+              <div id="catPaneSyllabus" class="cat-pane-detail" style="display: none;">
+                <div class="cat-sec-title">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg><span>Syllabus Detail</span>
+                </div>
+                <div class="sub-chips-wrap" id="syllabusTypeGroup">
+                  <button type="button" class="sub-chip-btn active" data-type="syllabus_type" data-val="Complete Official Syllabus">Complete Official Syllabus</button>
+                  <button type="button" class="sub-chip-btn" data-type="syllabus_type" data-val="Unit-Wise Outline">Unit Outline</button>
+                </div>
+              </div>
+
+              <input type="hidden" id="unitHiddenInput" name="unit" value="Unit 1, Unit 2">
+              <input type="hidden" id="examTypeHiddenInput" name="exam_type" value="End-Sem (ESE)">
+            </div>
+          </div>
+
+          <div class="apple-hairline-divider"></div>
+
+          <!-- Section 2: Subject & Academic Curriculum -->
+          <div class="apple-form-section">
+            <div class="apple-section-title">2. Subject &amp; Curriculum</div>
+
+            <div class="apple-field">
+              <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 5px;">
+                <label class="apple-label" for="subjectSelect" style="margin: 0; font-weight: 600;">Subject *</label>
+                <button type="button" id="triggerAddSubjectBtn" class="add-subject-pill-btn" title="Create a new subject if not in list">
+                  <span style="font-size: 13px; font-weight: 700;">＋</span>
+                  <span>Add New Subject</span>
+                </button>
+              </div>
+              <select id="subjectSelect" name="subject_id" class="abhihub-select subject-select" data-entity="subject" data-parent-class="semester-select" required>
+                <option value="">Search or select subject...</option>
+              </select>
+              
+              <div class="subject-quick-hint" style="display: none;">
+                <span>Can't find your subject? Click <strong id="linkAddSubject" style="color: #0071e3; cursor: pointer; text-decoration: underline;">+ Add New Subject</strong> to create it.</span>
+              </div>
+
+              <!-- Inline Quick-Add Subject Card (Collapsible) -->
+              <div id="inlineAddSubjectBox" class="inline-add-subject-box" style="display: none;">
+                <div class="inline-subj-header">
+                  <div class="inline-subj-title">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg><span>Add New Subject</span>
+                  </div>
+                  <button type="button" id="closeInlineSubjBtn" class="inline-subj-close-btn" title="Close">&times;</button>
+                </div>
+                <div style="display: flex; flex-direction: column; gap: 8px;">
+                  <div>
+                    <input type="text" id="newSubjectNameInput" class="apple-input" placeholder="Subject Name (e.g. Distributed Systems) *" style="font-size: 13.5px; padding: 9px 12px; width: 100%; box-sizing: border-box;">
+                  </div>
+                  <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+                    <input type="text" id="newSubjectCodeInput" class="apple-input uppercase-input" placeholder="Code (e.g. CS702)" style="font-size: 12.5px; padding: 8px 10px; width: 100%; box-sizing: border-box;">
+                    <span id="newSubjectBranchBadge" style="font-size: 11.5px; color: #64748b; display: flex; align-items: center; padding: 0 4px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">Linked to your branch</span>
+                  </div>
+                  <div style="display: flex; gap: 8px; margin-top: 4px;">
+                    <button type="button" id="cancelInlineSubjBtn" class="apple-btn-secondary" style="padding: 7px 16px; font-size: 13px;">Cancel</button>
+                    <button type="button" id="saveInlineSubjBtn" class="apple-btn-primary" style="padding: 7px 18px; font-size: 13px;">
+                      <span>Save &amp; Select</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Academic Year Chips -->
+            <div class="apple-field" style="margin-top: 0.25rem;">
+              <label class="apple-label">Academic Year</label>
+              <div class="year-chips-wrap" id="yearChipGroup">
+                <button type="button" class="year-chip-btn" data-val="2026">2026</button>
+                <button type="button" class="year-chip-btn active" data-val="2025">2025</button>
+                <button type="button" class="year-chip-btn" data-val="2024">2024</button>
+                <button type="button" class="year-chip-btn" data-val="2023">2023</button>
+                <button type="button" class="year-chip-btn" data-val="2022">2022</button>
+              </div>
+              <input type="hidden" id="docYear" name="year" value="2025">
+            </div>
+
+            <div class="apple-field" style="margin-top: 0.25rem;">
+              <label class="apple-label" for="docDescription">Description <span class="apple-opt">Optional</span></label>
+              <textarea id="docDescription" name="description" rows="2" class="apple-input apple-textarea" placeholder="Brief summary of topics covered in this document..."></textarea>
+            </div>
+          </div>
+
+          <div class="apple-hairline-divider"></div>
+
+          <!-- Section 3: College, Branch, Program & Semester (Progressive Disclosure - Collapsed Whole by Default) -->
+          <div class="apple-form-section program-inst-wrapper">
+            <button type="button" id="toggleInstSectionBtn" class="apple-disclosure-card-btn" aria-expanded="false">
+              <div class="inst-btn-left">
+                <div class="inst-btn-title-row">
+                  <span class="inst-btn-title">3. Program &amp; Institution</span>
+                  <span class="inst-autofill-badge">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                    <span>Auto-filled</span>
+                  </span>
+                </div>
+                <div id="instSummaryPill" class="inst-summary-preview">Auto-filled from your student profile</div>
+              </div>
+              <div class="inst-btn-right">
+                <span id="instToggleActionText">More details</span>
+                <svg id="instToggleChevron" class="disclosure-chevron" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+              </div>
+            </button>
+
+            <div id="instSectionCollapse" class="inst-section-collapse" style="display: none;">
+              <div class="apple-grid-2">
+                <div class="apple-field">
+                  <label class="apple-label" for="collegeSelect">College</label>
+                  <select id="collegeSelect" name="college_id" class="abhihub-select college-select" data-entity="college" required>
+                    <option value="">Select College...</option>
+                  </select>
+                </div>
+                <div class="apple-field">
+                  <label class="apple-label" for="branchSelect">Department / Branch</label>
+                  <select id="branchSelect" name="branch_id" class="abhihub-select branch-select" data-entity="branch" data-parent-class="college-select" required>
+                    <option value="">Select Department...</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Program Chips -->
+              <div class="apple-field" style="margin-top: 0.75rem;">
+                <label class="apple-label" style="font-size: 11.5px; color: #64748b; margin-bottom: 5px;">Program / Degree</label>
+                <div class="chip-options-wrap" id="programChipGroup">
+                  <button type="button" class="chip-option-btn active" data-val="b.tech">B.Tech</button>
+                  <button type="button" class="chip-option-btn" data-val="bca">BCA</button>
+                  <button type="button" class="chip-option-btn" data-val="mca">MCA</button>
+                  <button type="button" class="chip-option-btn" data-val="m.tech">M.Tech</button>
+                  <button type="button" class="chip-option-btn" data-val="mba">MBA</button>
+                  <button type="button" class="chip-option-btn" data-val="diploma">Diploma</button>
+                  <button type="button" class="chip-option-btn" data-val="other">Other</button>
+                </div>
+                <input type="hidden" id="programSelect" name="program" value="b.tech">
+              </div>
+
+              <!-- Semester Badge Selector -->
+              <div class="apple-field" style="margin-top: 0.75rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between;">
+                  <label class="apple-label" style="margin: 0;">Semester</label>
+                  <span id="semProgramHint" style="font-size: 11px; color: #64748b;">8 Semesters (B.Tech)</span>
+                </div>
+                <div class="sem-badges-wrap" id="semesterBadgeGroup" style="margin-top: 5px;">
+                  <button type="button" class="sem-badge-btn active" data-val="1">Sem 1</button>
+                  <button type="button" class="sem-badge-btn" data-val="2">Sem 2</button>
+                  <button type="button" class="sem-badge-btn" data-val="3">Sem 3</button>
+                  <button type="button" class="sem-badge-btn" data-val="4">Sem 4</button>
+                  <button type="button" class="sem-badge-btn" data-val="5">Sem 5</button>
+                  <button type="button" class="sem-badge-btn" data-val="6">Sem 6</button>
+                  <button type="button" class="sem-badge-btn" data-val="7">Sem 7</button>
+                  <button type="button" class="sem-badge-btn" data-val="8">Sem 8</button>
+                </div>
+                <input type="hidden" id="semesterSelect" name="semester" value="1" data-entity="semester">
+              </div>
+            </div>
+          </div>
+
+          <!-- Step 2 Actions -->
+          <div class="apple-actions-row">
+            <button type="button" class="apple-btn-secondary" id="backToStep1Btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+              <span>Back</span>
+            </button>
+            <button type="button" class="apple-btn-primary" id="goToStep3Btn">
+              <span>Set Price &amp; Coupon</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+            </button>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ── STEP 3: PRICE, COUPON & PUBLISH ── -->
+    <div id="stepPane3" class="wizard-step-pane" style="display: none;">
+      <div class="step-card">
+        <!-- Section: Access & Monetization -->
+        <div class="apple-form-section">
+          <div class="apple-section-title">Access &amp; Pricing</div>
+          <div class="apple-segmented-pricing" role="tablist">
+            <button type="button" class="apple-pricing-seg active" id="btnAccessFree">Free Access</button>
+            <button type="button" class="apple-pricing-seg" id="btnAccessPaid">Paid (Locked)</button>
+          </div>
+
+          <div id="paidSettingsPanel" class="apple-paid-panel" style="display: none;">
+            <div class="apple-paid-row">
+              <label class="apple-label" for="inputPrice" style="margin:0;">Unlock Price (₹)</label>
+              <span id="earningsBadge" class="apple-earnings-badge">Calculating earnings…</span>
+            </div>
+            <div class="apple-currency-input-wrap">
+              <span class="apple-currency-symbol">₹</span>
+              <input type="number" id="inputPrice" name="price" min="0" max="5000" step="1" value="0" class="apple-input apple-currency-input">
+            </div>
+            <div class="apple-chip-group">
+              <button type="button" class="apple-chip-btn price-chip-btn" data-price="19">₹19</button>
+              <button type="button" class="apple-chip-btn price-chip-btn" data-price="29">₹29</button>
+              <button type="button" class="apple-chip-btn price-chip-btn" data-price="49">₹49</button>
+              <button type="button" class="apple-chip-btn price-chip-btn" data-price="99">₹99</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Section: Classmate Coupon Code Builder (Only visible when Paid) -->
+        <div id="couponSection" class="apple-form-section" style="display: none;">
+          <div class="apple-hairline-divider" style="margin-bottom: 1.25rem;"></div>
+          <div class="apple-section-title">Friend / Classmate Coupon (Optional)</div>
+          <p class="coupon-subnote">Give your classmates a discount code so they can unlock your study material for less or free.</p>
+
+          <div class="coupon-builder-grid">
+            <div class="apple-field">
+              <label class="apple-label" for="couponCode">Coupon Code</label>
+              <div class="coupon-input-wrap">
+                <input type="text" id="couponCode" name="coupon_code" class="apple-input uppercase-input" placeholder="e.g. BATCH2025" maxlength="12">
+                <button type="button" id="generateCouponBtn" class="coupon-gen-btn" title="Generate random coupon"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="vertical-align: middle; margin-right: 2px;"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"/><circle cx="8.5" cy="8.5" r="1.5"/><circle cx="15.5" cy="15.5" r="1.5"/><circle cx="15.5" cy="8.5" r="1.5"/><circle cx="8.5" cy="15.5" r="1.5"/></svg><span>Auto</span></button>
+              </div>
+            </div>
+            <div class="apple-field">
+              <label class="apple-label" for="couponDiscount">Discount (% Off)</label>
+              <select id="couponDiscount" name="coupon_discount" class="apple-select">
+                <option value="10">10% Off</option>
+                <option value="25">25% Off</option>
+                <option value="50" selected>50% Off (Recommended)</option>
+                <option value="90">90% Off</option>
+              </select>
+            </div>
+          </div>
+        </div>
+
+        <div class="apple-hairline-divider"></div>
+
+        <!-- Copyright Acknowledgment -->
+        <div class="apple-ack-card">
+          <label class="apple-ack-label">
+            <input type="checkbox" required name="copyright_ack" id="copyrightAck" class="apple-ack-checkbox" checked>
+            <span class="apple-ack-text">I confirm this document is my original study material or university resource, complying with AbhiHub's <a href="{{ url_for('site.dmca') }}" target="_blank">DMCA Policy</a>.</span>
+          </label>
+        </div>
+
+        <!-- Inline Upload Progress Bar -->
+        <div id="uploadProgressContainer" class="apple-progress-container" style="display: none;">
+          <div class="progress-info-row">
+            <span id="uploadStatusText">Uploading document…</span>
+            <span id="uploadPercentText">0%</span>
+          </div>
+          <div class="apple-progress-bar-track">
+            <div id="uploadProgressBar" class="apple-progress-bar-fill" style="width: 0%;"></div>
+          </div>
+        </div>
+
+        <!-- Step 3 Actions -->
+        <div class="apple-actions-row">
+          <button type="button" class="apple-btn-secondary" id="backToStep2Btn">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="15 18 9 12 15 6"/></svg>
+            <span>Back</span>
+          </button>
+          <button type="submit" class="apple-btn-primary" id="submitBtn">
+            <span class="btn-spinner" id="btnSpinner" style="display:none;"></span>
+            <span id="submitBtnText">Publish Material</span>
+            <span class="apple-btn-xp">+25 XP</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+  </form>
+  </div>
+
   <!-- ── Upload History Section (Apple Tab Pane) ── -->
-  <section class="upload-history-section apple-tab-pane" id="uploadHistorySection" style="display:none; width:100%; max-width:1120px; margin:1rem auto 3rem;">
+  <section class="upload-history-section apple-tab-pane" id="uploadHistorySection" style="display:none;">
     <div class="apple-history-card">
       <div class="apple-history-header">
         <div>
-          <h2 class="apple-history-title">
-            <span>📜</span> Creator Insights &amp; Performance
-          </h2>
-          <p class="apple-history-subtitle">Track real-time student reach, engagement metrics, and approval status for all your uploads.</p>
+          <h2 class="apple-history-title">Creator Insights</h2>
+          <p class="apple-history-subtitle">Track student views, upvotes, and publication status for all your uploads.</p>
         </div>
         <button type="button" id="refreshHistoryBtn" onclick="loadUploadHistory()" class="apple-refresh-btn">
-          🔄 Refresh
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg><span>Refresh</span>
         </button>
       </div>
 
-      <!-- 🌟 Creator Engagement & Highlights Dashboard -->
+      <!-- Analytics Dashboard -->
       <div id="historyAnalyticsDashboard" class="history-analytics-grid" style="display:none;">
-        <div class="analytics-card metric-card">
-          <div class="metric-icon">👁️</div>
-          <div class="metric-info">
-            <span class="metric-number" id="statTotalViews">0</span>
-            <span class="metric-label">Total Student Views</span>
-          </div>
+        <div class="analytics-card">
+          <div class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+          <div class="metric-number" id="statTotalViews">0</div>
+          <div class="metric-label">Total Student Views</div>
         </div>
-
-        <div class="analytics-card metric-card">
-          <div class="metric-icon">❤️</div>
-          <div class="metric-info">
-            <span class="metric-number" id="statTotalLikes">0</span>
-            <span class="metric-label">Helpful Upvotes</span>
-          </div>
+        <div class="analytics-card">
+          <div class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+          <div class="metric-number" id="statTotalLikes">0</div>
+          <div class="metric-label">Helpful Upvotes</div>
         </div>
-
-        <div class="analytics-card highlight-card" id="topViewedCard" style="display:none;">
-          <div class="highlight-badge">🏆 Most Popular Resource</div>
-          <div class="highlight-title" id="statTopTitle">—</div>
-          <div class="highlight-sub" id="statTopSub">0 views</div>
+        <div class="analytics-card" id="topViewedCard" style="display:none;">
+          <div class="metric-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 9H4.5a2.5 2.5 0 0 1 0-5H6"/><path d="M18 9h1.5a2.5 2.5 0 0 0 0-5H18"/><path d="M4 22h16"/><path d="M18 2H6v7a6 6 0 0 0 12 0V2z"/></svg></div>
+          <div class="metric-number" id="statTopTitle" style="font-size:1.15rem; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">—</div>
+          <div class="metric-label" id="statTopSub">0 views</div>
         </div>
       </div>
 
-      <!-- Filter & Sort Bar -->
+      <!-- Filter & Search Bar -->
       <div class="history-filter-bar">
         <div class="filter-pills" id="historyFilterPills">
           <button type="button" class="history-filter-pill active" data-filter="all">All (<span id="uploadHistoryCount">0</span>)</button>
-          <button type="button" class="history-filter-pill" data-filter="most_viewed">🔥 Most Viewed</button>
-          <button type="button" class="history-filter-pill" data-filter="most_liked">❤️ Most Liked</button>
-          <button type="button" class="history-filter-pill" data-filter="approved">✓ Approved</button>
+          <button type="button" class="history-filter-pill" data-filter="most_viewed"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg><span>Most Viewed</span></button>
+          <button type="button" class="history-filter-pill" data-filter="approved"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg><span>Approved</span></button>
           <button type="button" class="history-filter-pill" data-filter="pending">⏳ In Review</button>
         </div>
         <div class="history-search-box">
-          <span class="search-lens-icon">🔍</span>
-          <input type="text" id="historySearchInput" placeholder="Filter by title or subject..." class="history-search-field" />
+          <input type="text" id="historySearchInput" placeholder="Filter uploads..." class="history-search-field" />
         </div>
       </div>
 
-      <!-- History Loading State -->
-      <div id="historyLoading" style="text-align:center;padding:2.5rem 1rem;color:#64748b;font-size:0.9rem;">
-        <div class="btn-spinner" style="display:inline-block;border-color:#2563eb;border-top-color:transparent;width:24px;height:24px;border-width:2.5px;margin-bottom:0.6rem;"></div>
-        <div>Loading your creator analytics…</div>
+      <!-- Loading State -->
+      <div id="historyLoading" style="text-align:center;padding:2rem 1rem;color:#86868b;font-size:0.9rem;">
+        <div class="btn-spinner" style="display:inline-block;border-color:#0071e3;border-top-color:transparent;width:24px;height:24px;border-width:2.5px;margin-bottom:0.6rem;"></div>
+        <div>Loading your uploads…</div>
       </div>
 
-      <!-- History Empty State -->
-      <div id="historyEmpty" style="display:none;text-align:center;padding:3rem 1.5rem;color:#64748b;background:#f8fafc;border-radius:16px;border:1px dashed #cbd5e1;">
-        <div style="font-size:2.6rem;margin-bottom:0.5rem;">📂</div>
-        <div style="font-weight:700;font-size:1rem;color:#1e293b;margin-bottom:0.35rem;">No files uploaded yet</div>
-        <p style="font-size:0.85rem;max-width:380px;margin:0 auto;color:#64748b;">Upload your first document above. Once submitted, its review status, view metrics, and live access link will appear here!</p>
+      <!-- Empty State -->
+      <div id="historyEmpty" style="display:none;text-align:center;padding:3rem 1.5rem;color:#86868b;">
+        <div style="margin-bottom:0.5rem; color:#94a3b8;"><svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg></div>
+        <div style="font-weight:700;font-size:1rem;color:#1d1d1f;margin-bottom:0.35rem;">No files uploaded yet</div>
+        <p style="font-size:0.85rem;max-width:360px;margin:0 auto;color:#86868b;">Uploaded study resources, review status, and student views will appear here.</p>
       </div>
 
       <!-- History Items Container -->
-      <div id="historyList" class="history-items-container" style="display:none;display:flex;flex-direction:column;gap:0.75rem;"></div>
+      <div id="historyList" class="history-items-container" style="display:none;"></div>
     </div>
   </section>
 
 </div>
 
-<!-- ── Shared Popup Modal ── -->
-<div id="popupModal" class="popup-overlay" style="display:none;" data-action="dismissIfClicked" role="dialog" aria-modal="true" aria-labelledby="xpModalTitle">
+<!-- ── Apple Success XP & Share Modal ── -->
+<div id="popupModal" class="popup-overlay" style="display:none;" role="dialog" aria-modal="true">
   <div class="popup-card">
+    <div id="popupXp">
+      <div class="xp-card-header">
+        <div class="xp-emoji"><svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="#eab308" stroke-width="1.8"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg></div>
+        <h2 class="xp-title">Material Published!</h2>
+        <p class="xp-copy">Your document is live in the student repository.</p>
+      </div>
 
-    <section id="popupXp" class="popup-section">
-      <div id="xpCard">
-        <div class="xp-card-header">
-          <div id="xpEmoji" class="xp-emoji">🎉</div>
-          <h2 class="xp-title" id="xpModalTitle">Contribution Complete!</h2>
-          <p id="xpSubtitle" class="xp-copy" style="margin-bottom: 0.5rem;">Your resource is live and available to students.</p>
-          <script>if(window.gtag){gtag('event', 'upload_funnel', {'funnel_step': '4_upload_completed'});}</script>
+      <div class="xp-stats-row">
+        <div class="xp-value-card">
+          <div id="xpGainedVal" class="xp-value-number">+25</div>
+          <div class="xp-value-label">XP EARNED</div>
         </div>
-        <div class="xp-card-body">
-          <div id="xpFilesMsg" class="xp-resource-list" style="margin-bottom: 1rem;"></div>
-
-          <div class="xp-stats-row">
-            <div class="xp-value-card">
-              <div id="xpGainedVal" class="xp-value-number">+0</div>
-              <div class="xp-value-label">XP EARNED</div>
-            </div>
-            <div class="xp-value-card xp-card-soft">
-              <div id="xpScoreVal" class="xp-value-number">0</div>
-              <div class="xp-value-label">TOTAL SCORE</div>
-            </div>
-          </div>
-
-          <div class="xp-actions" style="margin-top: 1.25rem; display: flex; flex-wrap: wrap; gap: 0.75rem; justify-content: center;">
-            <a href="/profile" id="viewResourceBtn" class="xp-action-btn" style="text-decoration:none; background:#2563eb; color:#ffffff; padding:0.75rem 1.4rem; border-radius:14px; font-weight:700; box-shadow:0 10px 25px rgba(37,99,235,0.25);">🚀 View Live Resource</a>
-            <button type="button" class="xp-action-btn" data-action="closeXpModal" onclick="if(window.loadUploadHistory) window.loadUploadHistory();" style="background:#f8fafc; color:#334155; border:1px solid #cbd5e1; padding:0.75rem 1.4rem; border-radius:14px; font-weight:700; cursor:pointer;">Upload Another</button>
-          </div>
+        <div class="xp-value-card xp-card-soft">
+          <div id="xpScoreVal" class="xp-value-number">0</div>
+          <div class="xp-value-label">TOTAL SCORE</div>
         </div>
       </div>
-    </section>
-   </div>
-</div>
 
-<!-- ── Top Sticky Background Upload Notification Banner ── -->
-<div id="uploadTopBanner" class="upload-top-banner" style="display:none;" role="status" aria-live="polite">
-  <div class="utb-content">
-    <div class="utb-left">
-      <div class="utb-spinner" id="utbSpinner"></div>
-      <div class="utb-text-wrap">
-        <div class="utb-title-row">
-          <span class="utb-title" id="utbTitle">Uploading in background…</span>
-          <span class="utb-badge" id="utbBadge">1 remaining</span>
+      <!-- Action 1: Open / View Resource -->
+      <a href="#" id="viewResourceBtn" target="_blank" class="xp-action-btn primary-btn" style="display: flex; align-items: center; justify-content: center; gap: 8px;">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg><span>Open / View Material</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6M15 3h6v6M10 14L21 3"/></svg>
+      </a>
+
+      <!-- Action 2: Share with Friends & Coupon -->
+      <div class="xp-share-card" id="xpShareCard">
+        <div class="share-card-title">Share with Friends &amp; Coupon</div>
+        <p class="share-card-sub" id="shareCouponSub">Friends get special discount access with your link:</p>
+        
+        <div class="share-url-row">
+          <input type="text" id="shareCouponUrl" class="share-url-input" readonly>
+          <button type="button" id="copyShareUrlBtn" class="share-copy-btn"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copy</span></button>
         </div>
-        <div class="utb-sub" id="utbSub">You can continue using the app while your files upload.</div>
+
+        <a href="#" id="shareWhatsappBtn" target="_blank" class="share-whatsapp-btn">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          <span>Share with Classmates on WhatsApp</span>
+        </a>
       </div>
-    </div>
-    <div class="utb-mid">
-      <div class="utb-progress-bar">
-        <div class="utb-progress-fill" id="utbProgressFill" style="width: 0%;"></div>
+
+      <div class="xp-actions" style="margin-top: 1rem;">
+        <button type="button" class="xp-action-btn secondary-btn" id="uploadAnotherBtn">Upload Another Document</button>
       </div>
-      <span class="utb-percent" id="utbPercent">0%</span>
-    </div>
-    <div class="utb-right">
-      <button type="button" class="utb-btn utb-btn-secondary" id="utbDetailsBtn" onclick="openStatusModal()">Details</button>
-      <button type="button" class="utb-btn-icon" id="utbCloseBtn" onclick="dismissTopBanner()" title="Dismiss notification">✕</button>
     </div>
   </div>
 </div>
 
-<!-- ── Toast container ── -->
-<div id="toastContainer"></div>
-
-<!-- ── Upload Status Modal ── -->
-<div id="uploadStatusModal" class="upload-status-overlay" style="display:none;" data-action="dismissIfClicked">
-  <div class="upload-status-card" onclick="event.stopPropagation()">
-    <div class="upload-status-header">
-      <div>
-        <div class="upload-status-title" id="usTitle">Uploading…</div>
-        <div class="upload-status-subtitle" id="usSubtitle">Please keep this window open</div>
-      </div>
-      <div class="upload-status-actions">
-        <button type="button" class="upload-status-minimize" id="usMinimize" aria-label="Minimize">−</button>
-        <button type="button" class="upload-status-close" id="usClose" aria-label="Close" style="display:none;">✕</button>
-      </div>
-    </div>
-    <div class="upload-status-summary" id="usSummary"></div>
-    <div class="upload-status-list" id="uploadStatusList"></div>
-  </div>
-</div>
-
-<!-- ── Floating upload indicator ── -->
-<div id="uploadFloat">
-  <div class="mini-spin"></div>
-  <span id="uploadFloatText">Uploading…</span>
-</div>
-
-<script src="{{ url_for('static', filename='js/pages/p_upload.js') }}"></script>
-<script src="{{ url_for('static', filename='js/bulk_upload.js') }}?v=2.2"></script>
+<!-- ── Core 3-Step Wizard & Compression Script ── -->
 <script>
-  /* ── Dynamic fields ── */
-  function updateDynamicFields() {
-    // Type is now per-file (each meta-form has its own .meta-type select).
-    // This function updates the global drop-zone hint based on the
-    // currently-active file's category, or falls back to the generic hint.
-    const activeForm = document.querySelector('.meta-form-wrap:not([style*="display: none"])') || document.querySelector('.meta-form-wrap');
-    const typeEl = activeForm ? activeForm.querySelector('.meta-type') : null;
-    const type = typeEl ? (typeEl.value || '').toLowerCase() : '';
+document.addEventListener('DOMContentLoaded', function () {
+  let stagedFile = null;
+  let compressedFile = null;
 
-    // Update file hint + file input accept based on active file's category
-    const hint = document.getElementById('fileHint');
-    const fileInput = document.getElementById('fileInput');
-    if (hint && fileInput) {
-      if (['papers', 'practical', 'question_bank'].includes(type)) {
-        hint.textContent = 'PDF or Images • Max 50 MB each';
-        fileInput.accept = 'application/pdf,image/*';
+  // Wizard Stepper & Panes
+  const stepPane1 = document.getElementById('stepPane1');
+  const stepPane2 = document.getElementById('stepPane2');
+  const stepPane3 = document.getElementById('stepPane3');
+  const stepIndicator1 = document.getElementById('stepIndicator1');
+  const stepIndicator2 = document.getElementById('stepIndicator2');
+  const stepIndicator3 = document.getElementById('stepIndicator3');
+
+  const goToStep2Btn = document.getElementById('goToStep2Btn');
+  const goToStep3Btn = document.getElementById('goToStep3Btn');
+  const backToStep1Btn = document.getElementById('backToStep1Btn');
+  const backToStep2Btn = document.getElementById('backToStep2Btn');
+  const ribbonChangeBtn = document.getElementById('ribbonChangeBtn');
+
+  // Step 1 Elements
+  const dropArea = document.getElementById('dropArea');
+  const fileInput = document.getElementById('fileInput');
+  const cameraInput = document.getElementById('cameraInput');
+  const browseFilesBtn = document.getElementById('browseFilesBtn');
+  const cameraBtn = document.getElementById('cameraBtn');
+  const scanActionRow = document.getElementById('scanActionRow');
+  const changeFileBtn = document.getElementById('changeFileBtn');
+  const filePreviewCard = document.getElementById('filePreviewCard');
+  const imagePreviewEl = document.getElementById('imagePreviewEl');
+  const pdfPreviewFallback = document.getElementById('pdfPreviewFallback');
+  const selectedFileName = document.getElementById('selectedFileName');
+  const selectedFileSize = document.getElementById('selectedFileSize');
+  const fileTypeIcon = document.getElementById('fileTypeIcon');
+  const compressionSavingsTag = document.getElementById('compressionSavingsTag');
+  const compressionStatusRow = document.getElementById('compressionStatusRow');
+
+  // Step 2 & Ribbon
+  const ribbonFileName = document.getElementById('ribbonFileName');
+  const ribbonFileSize = document.getElementById('ribbonFileSize');
+  const docTitle = document.getElementById('docTitle');
+
+  // Step 3 Pricing & Coupons
+  const uploadForm = document.getElementById('uploadForm');
+  const submitBtn = document.getElementById('submitBtn');
+  const submitBtnText = document.getElementById('submitBtnText');
+  const btnSpinner = document.getElementById('btnSpinner');
+  const couponCodeInput = document.getElementById('couponCode');
+  const couponDiscountSelect = document.getElementById('couponDiscount');
+  const generateCouponBtn = document.getElementById('generateCouponBtn');
+
+  const progressContainer = document.getElementById('uploadProgressContainer');
+  const progressBar = document.getElementById('uploadProgressBar');
+  const progressText = document.getElementById('uploadPercentText');
+  const statusText = document.getElementById('uploadStatusText');
+
+  // Format bytes
+  function formatSize(bytes) {
+    if (!bytes || bytes === 0) return '0 KB';
+    const k = 1024;
+    const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  }
+
+  // Step navigation helper
+  function setStep(step) {
+    stepPane1.style.display = step === 1 ? 'block' : 'none';
+    stepPane2.style.display = step === 2 ? 'block' : 'none';
+    stepPane3.style.display = step === 3 ? 'block' : 'none';
+
+    if (uploadWorkspace) {
+      if (step === 2) {
+        uploadWorkspace.classList.add('step-2-active');
       } else {
-        hint.textContent = 'PDF or Images • Max 50 MB each';
-        fileInput.accept = 'application/pdf,image/*';
+        uploadWorkspace.classList.remove('step-2-active');
       }
+    }
+
+    stepIndicator1.className = 'apple-step ' + (step === 1 ? 'active' : 'done');
+    stepIndicator2.className = 'apple-step ' + (step === 2 ? 'active' : (step > 2 ? 'done' : ''));
+    stepIndicator3.className = 'apple-step ' + (step === 3 ? 'active' : '');
+
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+
+    if (step === 2 && window.AbhiHubSelect && typeof window.AbhiHubSelect.init === 'function') {
+      window.AbhiHubSelect.init();
     }
   }
 
-  /* ── Profile autofill: fetch once, apply to every cloned meta-form ── */
-  window.userCollegeId  = null;
-  window.userBranchId   = null;
-  window.userProgram    = null;
-  window.userSemester   = null;
+  // Real-Time Title Generation State
+  let manualTitleEdited = false;
+  if (docTitle) {
+    docTitle.addEventListener('input', () => {
+      manualTitleEdited = true;
+    });
+  }
 
-  /**
-   * Applies saved profile defaults to a cloned meta-form.
-   * Uses TomSelect API so cascade dropdowns react correctly.
-   */
-  async function autofillMetaForm(formWrap) {
-    if (!formWrap) return;
-    const { userCollegeId, userBranchId, userProgram, userSemester } = window;
+  function getSubjectName() {
+    const sel = document.getElementById('subjectSelect');
+    if (!sel) return '';
+    if (sel.tomselect && sel.tomselect.getItem) {
+      const activeItem = sel.tomselect.getItem(sel.value);
+      if (activeItem && activeItem.textContent) return activeItem.textContent.trim();
+    }
+    if (sel.selectedIndex >= 0 && sel.options[sel.selectedIndex]) {
+      const txt = sel.options[sel.selectedIndex].text;
+      if (txt && !txt.includes('Search') && !txt.includes('Select')) return txt.trim();
+    }
+    return '';
+  }
 
-    // Helper: show the ✓ saved pill for a given data-field
-    const showPill = (field) => {
-      const pill = formWrap.querySelector(`.field-autofill-pill[data-field="${field}"]`);
-      if (pill) pill.style.display = 'inline-flex';
+  function getCategoryLabel(cat) {
+    const map = {
+      'notes': 'Notes',
+      'papers': 'PYQ',
+      'practical': 'Lab Manual',
+      'syllabus': 'Syllabus',
+      'assisment': 'Assignment',
+      'question_bank': 'Question Bank'
     };
-
-    // 1. Program (plain select — no TomSelect)
-    if (userProgram) {
-      const progEl = formWrap.querySelector('.program-select');
-      if (progEl) { progEl.value = userProgram; showPill('program'); }
-    }
-
-    // 2. College — use TomSelect so the cascade fires
-    if (userCollegeId) {
-      const colEl = formWrap.querySelector('.college-select');
-      if (colEl) {
-        const tsCol = window.AbhiHubSelect?.instances[colEl.id];
-        if (tsCol) {
-          if (!tsCol.options[userCollegeId]) {
-            try {
-              const colleges = window.AbhiHubIDB ? await window.AbhiHubIDB.getColleges() : (await fetch('/api/colleges').then(r => r.json())).colleges || [];
-              const match = colleges.find(c => c.id === userCollegeId);
-              if (match) tsCol.addOption({ value: match.id, text: match.name });
-            } catch(_) {}
-          }
-          tsCol.setValue(userCollegeId, false);
-          showPill('college');
-        } else {
-          colEl.value = userCollegeId;
-          colEl.dispatchEvent(new Event('change'));
-          showPill('college');
-        }
-
-        if (userBranchId) {
-          const branchEl = formWrap.querySelector('.branch-select');
-          if (branchEl) {
-            const trySetBranch = (attempts) => {
-              const tsBranch = window.AbhiHubSelect?.instances[branchEl.id];
-              if (tsBranch) {
-                if (tsBranch.options[userBranchId]) {
-                  tsBranch.setValue(userBranchId, false);
-                  showPill('branch');
-                  if (userSemester) {
-                    const semEl = formWrap.querySelector('.semester-select');
-                    if (semEl) setTimeout(() => {
-                      const tsSem = window.AbhiHubSelect?.instances[semEl.id];
-                      if (tsSem && tsSem.options[String(userSemester)]) tsSem.setValue(String(userSemester), false);
-                      else if (semEl) { semEl.value = userSemester; semEl.dispatchEvent(new Event('change')); }
-                    }, 400);
-                  }
-                } else if (attempts > 0) {
-                  setTimeout(() => trySetBranch(attempts - 1), 300);
-                }
-              } else if (attempts > 0) {
-                setTimeout(() => trySetBranch(attempts - 1), 300);
-              }
-            };
-            setTimeout(() => trySetBranch(10), 500);
-          }
-        }
-      }
-    }
+    return map[cat] || 'Notes';
   }
 
-  document.addEventListener('DOMContentLoaded', async () => {
-    updateDynamicFields();
+  function getCategoryDetail(cat) {
+    if (cat === 'notes') {
+      const allCheck = document.getElementById('allUnitsCheck');
+      if (allCheck && allCheck.checked) return 'All Units';
+      const checked = [];
+      document.querySelectorAll('#unitCheckboxGroup .unit-check-input:checked').forEach(c => {
+        if (c.value !== 'All Units') checked.push(c.value.replace('Unit ', 'U'));
+      });
+      return checked.length > 0 ? ('Unit ' + checked.join(',')) : '';
+    } else if (cat === 'papers') {
+      const activeExam = document.querySelector('#examTypeGroup .sub-chip-btn.active');
+      return activeExam ? activeExam.getAttribute('data-val') : 'End-Sem (ESE)';
+    } else if (cat === 'practical') {
+      const activePrac = document.querySelector('#practicalTypeGroup .sub-chip-btn.active');
+      return activePrac ? activePrac.getAttribute('data-val') : 'Lab Manual';
+    } else if (cat === 'assisment') {
+      const activeAss = document.querySelector('#assignmentTypeGroup .sub-chip-btn.active');
+      return activeAss ? activeAss.getAttribute('data-val') : 'Assignment';
+    } else if (cat === 'question_bank') {
+      const activeQb = document.querySelector('#qbTypeGroup .sub-chip-btn.active');
+      return activeQb ? activeQb.getAttribute('data-val') : 'Important Qs';
+    } else if (cat === 'syllabus') {
+      return 'Official Syllabus';
+    }
+    return '';
+  }
 
-    // Fast-path: use embedded session profile if present
-    if (window.__CURRENT_USER__) {
-      window.userCollegeId = window.__CURRENT_USER__.college || null;
-      window.userBranchId  = window.__CURRENT_USER__.branch || null;
-      window.userProgram   = window.__CURRENT_USER__.degree || null;
-      window.userSemester  = window.__CURRENT_USER__.year || null;
+  function syncRealTimeTitle(force = false) {
+    if (manualTitleEdited && !force) return;
+
+    const subject = getSubjectName();
+    const cat = document.getElementById('docCategory')?.value || 'notes';
+    const catLabel = getCategoryLabel(cat);
+    const catDetail = getCategoryDetail(cat);
+    const sem = document.getElementById('semesterSelect')?.value || '1';
+    const yr = document.getElementById('docYear')?.value || '2025';
+
+    let parts = [];
+    if (subject) {
+      parts.push(subject);
+    } else if (stagedFile) {
+      const cleanBase = stagedFile.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+      parts.push(cleanBase.charAt(0).toUpperCase() + cleanBase.slice(1));
+    } else {
+      const prog = (document.getElementById('programSelect')?.value || 'B.Tech').toUpperCase();
+      parts.push(prog);
     }
 
-    if (!window.userCollegeId) {
-      try {
-        const p = await fetch('/api/profile').then(r => r.json());
-        if (p.success && p.user) {
-          window.userCollegeId = p.user.college_id || p.user.user_metadata?.college_id || null;
-          window.userBranchId  = p.user.department_id || p.user.user_metadata?.branch_id || null;
-          window.userProgram   = p.user.user_metadata?.program || null;
-          window.userSemester  = p.user.user_metadata?.semester || null;
-        }
-      } catch (err) {
-        console.warn('[Upload] Could not load profile defaults', err);
+    let mid = catLabel;
+    if (catDetail) mid += ' (' + catDetail + ')';
+    parts.push(mid);
+
+    parts.push('Sem ' + sem + ' (' + yr + ')');
+
+    const generated = parts.join(' - ');
+    if (docTitle) {
+      docTitle.value = generated;
+    }
+
+    const unitInput = document.getElementById('unitHiddenInput');
+    const examInput = document.getElementById('examTypeHiddenInput');
+    if (cat === 'notes' && unitInput) unitInput.value = catDetail || 'Complete Syllabus';
+    if (cat === 'papers' && examInput) examInput.value = catDetail || 'End-Sem (ESE)';
+  }
+
+  // Refresh Title Button
+  const refreshTitleBtn = document.getElementById('refreshTitleBtn');
+  if (refreshTitleBtn) {
+    refreshTitleBtn.addEventListener('click', () => {
+      manualTitleEdited = false;
+      syncRealTimeTitle(true);
+      refreshTitleBtn.textContent = 'Synced!';
+      setTimeout(() => { refreshTitleBtn.textContent = 'Auto-Sync Title'; }, 1500);
+    });
+  }
+
+  // Category Panes Switcher
+  function onCategoryChange(cat) {
+    const paneNotes = document.getElementById('catPaneNotes');
+    const panePapers = document.getElementById('catPanePapers');
+    const panePractical = document.getElementById('catPanePractical');
+    const paneAssignment = document.getElementById('catPaneAssignment');
+    const paneQuestionBank = document.getElementById('catPaneQuestionBank');
+    const paneSyllabus = document.getElementById('catPaneSyllabus');
+
+    if (paneNotes) paneNotes.style.display = (cat === 'notes') ? 'block' : 'none';
+    if (panePapers) panePapers.style.display = (cat === 'papers') ? 'block' : 'none';
+    if (panePractical) panePractical.style.display = (cat === 'practical') ? 'block' : 'none';
+    if (paneAssignment) paneAssignment.style.display = (cat === 'assisment') ? 'block' : 'none';
+    if (paneQuestionBank) paneQuestionBank.style.display = (cat === 'question_bank') ? 'block' : 'none';
+    if (paneSyllabus) paneSyllabus.style.display = (cat === 'syllabus') ? 'block' : 'none';
+
+    syncRealTimeTitle();
+  }
+
+  // Unit Checkbox Listeners
+  document.querySelectorAll('#unitCheckboxGroup .unit-check-input').forEach(chk => {
+    chk.addEventListener('change', () => {
+      const label = chk.closest('.unit-pill-label');
+      if (chk.id === 'allUnitsCheck') {
+        const isAll = chk.checked;
+        document.querySelectorAll('#unitCheckboxGroup .unit-check-input').forEach(other => {
+          if (other !== chk) {
+            other.checked = isAll;
+            const p = other.closest('.unit-pill-label');
+            if (p) p.classList.toggle('active', isAll);
+          }
+        });
       }
-    }
+      if (label) label.classList.toggle('active', chk.checked);
+      syncRealTimeTitle();
+    });
   });
 
-  /* ── Success Modal & Direct Resource Navigation ── */
-  let redirectTimer = null;
-
-  async function showXpModal(xpGained, newScore, fileCount, uploadedItems) {
-    const overlay = document.getElementById('popupModal');
-    const card    = document.getElementById('xpCard');
-    if (!overlay) return;
-    
-    // Set XP stats
-    document.getElementById('xpGainedVal').textContent = '+' + (Math.round(xpGained * 100) / 100);
-    document.getElementById('xpScoreVal').textContent  = Math.round(newScore * 100) / 100;
-    
-    // Render list of verified uploaded resources
-    const items = Array.isArray(uploadedItems) ? uploadedItems : [];
-    const firstUrl = items[0]?.resource_url || (items[0]?.id ? '/resource/' + items[0].id : (items[0]?.resource_id ? '/resource/' + items[0].resource_id : '/profile'));
-    
-    let resourcesHtml = '';
-    if (items.length > 0) {
-      resourcesHtml = `
-        <div style="text-align:left; background: #f8fafc; border: 1px solid #e2e8f0; padding: 14px; border-radius: 16px; margin-bottom: 14px;">
-          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-            <span style="font-size:0.82rem; color:#2563eb; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">✓ PUBLISHED ON ABHIHUB (${items.length})</span>
-            <span style="font-size:0.8rem; color:#64748b; font-weight:600;" id="countdownNotice">Redirecting in 3s…</span>
-          </div>
-          <div style="display:flex; flex-direction:column; gap:8px; max-height:160px; overflow-y:auto;">
-            ${items.map(it => {
-              const u = it.resource_url || (it.id ? '/resource/' + it.id : (it.resource_id ? '/resource/' + it.resource_id : '/profile'));
-              return `
-                <a href="${u}" style="display:flex; align-items:center; justify-content:space-between; text-decoration:none; padding:10px 14px; background:#ffffff; border-radius:12px; border:1px solid #e2e8f0; color:#1e293b; font-size:0.92rem; font-weight:700; box-shadow:0 1px 3px rgba(0,0,0,0.04); transition:all 0.2s;">
-                  <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap; max-width:75%;">📄 ${it.title || it.name || 'Academic Resource'}</span>
-                  <span style="font-size:0.8rem; color:#2563eb; font-weight:700; white-space:nowrap; background:#eff6ff; padding:4px 10px; border-radius:8px; border:1px solid #bfdbfe;">View ➔</span>
-                </a>
-              `;
-            }).join('')}
-          </div>
-        </div>
-      `;
-    }
-
-    let userStatsHtml = '';
-    try {
-      const p = await fetch('/api/profile').then(r => r.json());
-      if (p && p.success && p.user) {
-        const totalContribs = p.user.uploads_count || p.user.documents_uploaded || fileCount;
-        const rank = p.user.rank_title || 'Contributor';
-        userStatsHtml = `
-          <div style="text-align:center; margin-bottom: 12px; font-size: 0.92rem; color: #cbd5e1;">
-            🏅 You are a <strong style="color:#f59e0b;">${rank}</strong> &bull; Total Contributions: <strong>${totalContribs}</strong>
-          </div>
-        `;
+  // Sub-chip button listeners (exam types, formats, practical types)
+  document.querySelectorAll('.sub-chips-wrap .sub-chip-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const parent = btn.closest('.sub-chips-wrap');
+      if (parent) {
+        parent.querySelectorAll('.sub-chip-btn').forEach(b => b.classList.remove('active'));
       }
-    } catch(err) {
-      console.warn('[Upload] Could not fetch profile summary:', err);
-    }
+      btn.classList.add('active');
+      syncRealTimeTitle();
+    });
+  });
 
-    const viewBtn = document.getElementById('viewResourceBtn');
-    if (viewBtn) {
-      viewBtn.href = firstUrl;
-      viewBtn.innerHTML = `🚀 View Live Resource`;
-    }
+  // Chip Selector Binding Helper
+  function bindChipGroup(groupId, hiddenInputId, onChange) {
+    const group = document.getElementById(groupId);
+    const hiddenInput = document.getElementById(hiddenInputId);
+    if (!group || !hiddenInput) return;
 
-    document.getElementById('xpFilesMsg').innerHTML = resourcesHtml + userStatsHtml;
-    document.getElementById('popupXp').style.display = 'block';
-    overlay.style.display = 'flex';
-
-    // Auto-redirect countdown to recent resource
-    let timeLeft = 3;
-    const cdEl = document.getElementById('countdownNotice');
-    if (redirectTimer) clearInterval(redirectTimer);
-    redirectTimer = setInterval(() => {
-      timeLeft--;
-      if (cdEl) cdEl.textContent = `Redirecting in ${timeLeft}s…`;
-      if (timeLeft <= 0) {
-        clearInterval(redirectTimer);
-        window.location.href = firstUrl;
-      }
-    }, 1000);
+    group.querySelectorAll('button').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        group.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const val = btn.getAttribute('data-val');
+        hiddenInput.value = val;
+        hiddenInput.dispatchEvent(new Event('change', { bubbles: true }));
+        if (typeof onChange === 'function') onChange(val);
+        syncRealTimeTitle();
+      });
+    });
   }
 
-  function closeXpModal() {
-    if (redirectTimer) {
-      clearInterval(redirectTimer);
-      redirectTimer = null;
+  // Dynamic Program-Specific Semester Mapping
+  const PROGRAM_SEMESTERS = {
+    'b.tech': { count: 8, label: '8 Semesters (B.Tech)' },
+    'm.tech': { count: 4, label: '4 Semesters (M.Tech)' },
+    'bca': { count: 6, label: '6 Semesters (BCA)' },
+    'mca': { count: 4, label: '4 Semesters (MCA)' },
+    'mba': { count: 4, label: '4 Semesters (MBA)' },
+    'diploma': { count: 6, label: '6 Semesters (Diploma)' },
+    'other': { count: 8, label: '8 Semesters (General)' }
+  };
+
+  function updateSemestersForProgram(programVal) {
+    const cleanProg = (programVal || 'b.tech').toLowerCase().replace(/[^a-z.]/g, '');
+    const progMeta = PROGRAM_SEMESTERS[cleanProg] || { count: 8, label: '8 Semesters' };
+    const maxSem = progMeta.count;
+    const semContainer = document.getElementById('semesterBadgeGroup');
+    const semInput = document.getElementById('semesterSelect');
+    const hintEl = document.getElementById('semProgramHint');
+    if (hintEl) hintEl.textContent = progMeta.label;
+    const progLabelEl = document.getElementById('currentProgramLabel');
+    if (progLabelEl) {
+      const activeBtn = document.querySelector(`#programChipGroup button[data-val="${cleanProg}"]`);
+      if (activeBtn) progLabelEl.textContent = activeBtn.textContent.trim();
     }
-    const overlay = document.getElementById('popupModal');
-    const card    = document.getElementById('xpCard');
-    if (!overlay) return;
-    if (card) card.style.transform = 'scale(.85)';
-    overlay.style.display = 'none';
-    const popupXp = document.getElementById('popupXp');
-    if (popupXp) popupXp.style.display = 'none';
-    setTimeout(() => {
-      // Reset form and upload state
-      document.getElementById('uploadForm')?.reset();
-      if (typeof selectedFiles !== 'undefined') { selectedFiles.length = 0; }
-      if (typeof resetUploadButton === 'function') { resetUploadButton(); }
-      const carousel = document.getElementById('uploadCarousel');
-      if (carousel) carousel.style.display = 'none';
-      const filmstrip = document.getElementById('uploadFilmstrip');
-      if (filmstrip) filmstrip.style.display = 'none';
-    }, 250);
+    if (!semContainer) return;
+
+    let currentVal = parseInt(semInput?.value || '1', 10);
+    if (isNaN(currentVal) || currentVal < 1 || currentVal > maxSem) {
+      currentVal = 1;
+      if (semInput) {
+        semInput.value = '1';
+        semInput.dispatchEvent(new Event('change', { bubbles: true }));
+      }
+    }
+
+    let badges = '';
+    for (let i = 1; i <= maxSem; i++) {
+      const active = i === currentVal ? ' active' : '';
+      badges += `<button type="button" class="sem-badge-btn${active}" data-val="${i}">Sem ${i}</button>`;
+    }
+    semContainer.innerHTML = badges;
+
+    // Attach listeners to new buttons
+    semContainer.querySelectorAll('.sem-badge-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        semContainer.querySelectorAll('.sem-badge-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        const val = btn.getAttribute('data-val');
+        if (semInput) {
+          semInput.value = val;
+          semInput.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+        syncRealTimeTitle();
+      });
+    });
+
+    syncRealTimeTitle();
   }
-</script>
-<script>
-  async function fetchMaterialRequests() {
-    try {
-      const res = await fetch('/api/material-requests');
-      const data = await res.json();
-      if (!data.success) return;
-      const list = document.getElementById('requestsList');
-      const btn = document.getElementById('showRequestsBtn');
-      if (!data.requests || data.requests.length === 0) {
-        list.innerHTML = '<div style="padding:12px; color:#64748b;">No pending requests</div>';
-        if (btn) btn.style.display = 'none';
+
+  // Whole Institution & Program Section Progressive Disclosure (Collapsed Whole by default)
+  const toggleInstSectionBtn = document.getElementById('toggleInstSectionBtn');
+  const instSectionCollapse = document.getElementById('instSectionCollapse');
+  const instToggleActionText = document.getElementById('instToggleActionText');
+
+  if (toggleInstSectionBtn && instSectionCollapse) {
+    toggleInstSectionBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      const isClosed = instSectionCollapse.style.display === 'none';
+      instSectionCollapse.style.display = isClosed ? 'block' : 'none';
+      toggleInstSectionBtn.classList.toggle('expanded', isClosed);
+      toggleInstSectionBtn.setAttribute('aria-expanded', isClosed ? 'true' : 'false');
+      if (instToggleActionText) {
+        instToggleActionText.textContent = isClosed ? 'Hide details' : 'More details';
+      }
+    });
+  }
+
+  function updateInstSummaryPreview() {
+    const collSel = document.getElementById('collegeSelect');
+    const branchSel = document.getElementById('branchSelect');
+    const progInput = document.getElementById('programSelect');
+    const semInput = document.getElementById('semesterSelect');
+
+    let collegeTxt = '';
+    if (collSel && collSel.selectedOptions && collSel.selectedOptions.length > 0) {
+      collegeTxt = collSel.selectedOptions[0].text || collSel.selectedOptions[0].textContent || '';
+    }
+    if ((!collegeTxt || collegeTxt === 'Select College...') && window.SERVER_PROFILE_DATA) {
+      collegeTxt = window.SERVER_PROFILE_DATA.college_abbreviation || window.SERVER_PROFILE_DATA.college_name || '';
+    }
+
+    let branchTxt = '';
+    if (branchSel && branchSel.selectedOptions && branchSel.selectedOptions.length > 0) {
+      branchTxt = branchSel.selectedOptions[0].text || branchSel.selectedOptions[0].textContent || '';
+    }
+    if ((!branchTxt || branchTxt === 'Select Department...') && window.SERVER_PROFILE_DATA) {
+      branchTxt = window.SERVER_PROFILE_DATA.branch_name || '';
+    }
+
+    if (collegeTxt && collegeTxt.includes('(')) {
+      const match = collegeTxt.match(/\(([^)]+)\)/);
+      if (match) collegeTxt = match[1];
+    }
+    if (collegeTxt.length > 18) collegeTxt = collegeTxt.slice(0, 16) + '...';
+
+    if (branchTxt.length > 22) {
+      if (branchTxt.includes('-')) {
+        branchTxt = branchTxt.split('-')[0].trim();
+      }
+      if (branchTxt.length > 22) branchTxt = branchTxt.slice(0, 20) + '...';
+    }
+
+    const progVal = progInput ? (progInput.value || 'b.tech').toUpperCase() : 'B.TECH';
+    const semVal = semInput ? ('Sem ' + (semInput.value || '1')) : 'Sem 1';
+
+    const parts = [];
+    if (collegeTxt && collegeTxt !== 'Select College...') parts.push(collegeTxt);
+    if (branchTxt && branchTxt !== 'Select Department...') parts.push(branchTxt);
+    if (progVal) parts.push(progVal);
+    if (semVal) parts.push(semVal);
+
+    const pill = document.getElementById('instSummaryPill');
+    if (pill) {
+      pill.textContent = parts.length > 0 ? parts.join(' • ') : 'Auto-filled from your student profile';
+    }
+  }
+
+  bindChipGroup('programChipGroup', 'programSelect', (val) => {
+    updateSemestersForProgram(val);
+    updateInstSummaryPreview();
+  });
+  bindChipGroup('semesterBadgeGroup', 'semesterSelect', () => {
+    updateInstSummaryPreview();
+  });
+
+  const collegeSelEl = document.getElementById('collegeSelect');
+  if (collegeSelEl) collegeSelEl.addEventListener('change', updateInstSummaryPreview);
+  const branchSelEl = document.getElementById('branchSelect');
+  if (branchSelEl) branchSelEl.addEventListener('change', updateInstSummaryPreview);
+  bindChipGroup('categoryChipGroup', 'docCategory', onCategoryChange);
+  bindChipGroup('yearChipGroup', 'docYear');
+
+  // Listen to Subject selection for Title generation
+  const subjectSelectEl = document.getElementById('subjectSelect');
+  if (subjectSelectEl) {
+    subjectSelectEl.addEventListener('change', () => syncRealTimeTitle());
+  }
+
+  // Quick Inline Add-Subject Handlers
+  const triggerAddSubjectBtn = document.getElementById('triggerAddSubjectBtn');
+  const linkAddSubject = document.getElementById('linkAddSubject');
+  const inlineAddSubjectBox = document.getElementById('inlineAddSubjectBox');
+  const closeInlineSubjBtn = document.getElementById('closeInlineSubjBtn');
+  const cancelInlineSubjBtn = document.getElementById('cancelInlineSubjBtn');
+  const saveInlineSubjBtn = document.getElementById('saveInlineSubjBtn');
+  const newSubjectNameInput = document.getElementById('newSubjectNameInput');
+  const newSubjectCodeInput = document.getElementById('newSubjectCodeInput');
+  const newSubjectBranchBadge = document.getElementById('newSubjectBranchBadge');
+
+  function openInlineSubjectBox(initialText = '') {
+    if (!inlineAddSubjectBox) return;
+    inlineAddSubjectBox.style.display = 'block';
+    if (newSubjectNameInput) {
+      if (initialText) newSubjectNameInput.value = initialText;
+      newSubjectNameInput.focus();
+    }
+    const deptSel = document.getElementById('branchSelect');
+    const deptText = deptSel ? (deptSel.options[deptSel.selectedIndex]?.text || '') : '';
+    if (newSubjectBranchBadge && deptText) {
+      newSubjectBranchBadge.textContent = 'Branch: ' + deptText;
+      newSubjectBranchBadge.title = deptText;
+    }
+  }
+
+  // Hook Subject TomSelect so choosing "Add New Subject" in the dropdown list
+  // uses the EXACT SAME inline box below the subject — with NO POPUP!
+  function hookSubjectTomSelectNoPopup() {
+    const el = document.getElementById('subjectSelect');
+    if (!el) return;
+    const ts = el.tomselect || (window.AbhiHubSelect && window.AbhiHubSelect.instances && window.AbhiHubSelect.instances[el.id]);
+    if (ts) {
+      ts.settings.create = function(input, callback) {
+        ts.close();
+        openInlineSubjectBox(input);
+        if (callback) callback();
+      };
+      if (!ts.settings.render) ts.settings.render = {};
+      ts.settings.render.option_create = function(data, escape) {
+        return '<div class="create create-new-option"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" style="vertical-align: middle; margin-right: 5px;"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>Add New Subject: <strong>' + escape(data.input) + '</strong></div>';
+      };
+    } else {
+      setTimeout(hookSubjectTomSelectNoPopup, 200);
+    }
+  }
+  setTimeout(hookSubjectTomSelectNoPopup, 100);
+
+  function closeInlineSubjectBox() {
+    if (!inlineAddSubjectBox) return;
+    inlineAddSubjectBox.style.display = 'none';
+    if (newSubjectNameInput) newSubjectNameInput.value = '';
+    if (newSubjectCodeInput) newSubjectCodeInput.value = '';
+  }
+
+  if (triggerAddSubjectBtn) triggerAddSubjectBtn.addEventListener('click', openInlineSubjectBox);
+  if (linkAddSubject) linkAddSubject.addEventListener('click', openInlineSubjectBox);
+  if (closeInlineSubjBtn) closeInlineSubjBtn.addEventListener('click', closeInlineSubjectBox);
+  if (cancelInlineSubjBtn) cancelInlineSubjBtn.addEventListener('click', closeInlineSubjectBox);
+
+  if (saveInlineSubjBtn) {
+    saveInlineSubjBtn.addEventListener('click', async () => {
+      const name = (newSubjectNameInput?.value || '').trim();
+      const code = (newSubjectCodeInput?.value || '').trim().toUpperCase();
+      const deptId = document.getElementById('branchSelect')?.value || '';
+      const sem = document.getElementById('semesterSelect')?.value || '1';
+
+      if (!name) {
+        alert('Please enter a subject name.');
+        if (newSubjectNameInput) newSubjectNameInput.focus();
         return;
       }
-      if (btn) btn.style.display = 'block';
-      list.innerHTML = data.requests.map(r => `
-        <div style="padding:10px 1rem; border-bottom:1px solid #f1f5f9;">
-          <div style="font-weight:700; font-size:0.9rem;">${r.requester_name || r.requester_email}</div>
-          <div style="font-size:0.85rem; color:#64748b; margin-top:2px;">Subject: ${r.subject}</div>
-          <div style="margin-top:4px; font-size:0.85rem; color:#475569;">${r.details || ''}</div>
-          <div style="margin-top:8px; display:flex; gap:6px; flex-wrap:wrap;">
-            <button onclick="respondRequest('${r.id}', 'accept')" style="background:#10b981; color:white; border:none; padding:5px 10px; border-radius:8px; font-size:0.82rem; cursor:pointer;">Accept & Upload</button>
-            <button onclick="respondRequest('${r.id}', 'reject')" style="background:#ef4444; color:white; border:none; padding:5px 10px; border-radius:8px; font-size:0.82rem; cursor:pointer;">Reject</button>
-            <button onclick="prefillUploadForRequest('${r.id}', '${(r.subject||'').replace(/'/g,"\\'") }')" style="background:#6366f1; color:white; border:none; padding:5px 10px; border-radius:8px; font-size:0.82rem; cursor:pointer;">Upload File</button>
-          </div>
-        </div>
-      `).join('');
-    } catch(e) {
-      console.warn('Could not fetch requests', e);
+
+      if (!deptId) {
+        alert('Please select a department / branch first.');
+        return;
+      }
+
+      saveInlineSubjBtn.disabled = true;
+      saveInlineSubjBtn.innerHTML = '<span>Saving...</span>';
+
+      try {
+        const res = await fetch('/api/subjects', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: name,
+            subject_code: code,
+            department_id: deptId,
+            semester: sem
+          })
+        });
+
+        const data = await res.json();
+        if (data && data.success && data.subject) {
+          const subj = data.subject;
+          const subjectSelect = document.getElementById('subjectSelect');
+          const dispText = subj.subject_code ? (subj.name + ' (' + subj.subject_code + ')') : subj.name;
+
+          injectAndSelectOption(subjectSelect, subj.id, dispText);
+          syncRealTimeTitle();
+          closeInlineSubjectBox();
+
+          if (triggerAddSubjectBtn) {
+            const oldHtml = triggerAddSubjectBtn.innerHTML;
+            triggerAddSubjectBtn.style.background = '#dcfce7';
+            triggerAddSubjectBtn.style.color = '#15803d';
+            triggerAddSubjectBtn.style.borderColor = '#86efac';
+            triggerAddSubjectBtn.innerHTML = 'Added: ' + subj.name;
+            setTimeout(() => {
+              triggerAddSubjectBtn.innerHTML = oldHtml;
+              triggerAddSubjectBtn.style.background = '';
+              triggerAddSubjectBtn.style.color = '';
+              triggerAddSubjectBtn.style.borderColor = '';
+            }, 3000);
+          }
+        } else {
+          alert(data.message || 'Failed to add subject.');
+        }
+      } catch (err) {
+        alert('Network error while adding subject. Please try again.');
+      } finally {
+        saveInlineSubjBtn.disabled = false;
+        saveInlineSubjBtn.innerHTML = '<span>Save &amp; Select</span>';
+      }
+    });
+  }
+
+  // Client-Side Image Compression with Canvas
+  async function compressImageFile(file, maxWidth = 1920, quality = 0.82) {
+    if (!file.type || file.type.indexOf('image/') !== 0) {
+      return { file: file, originalSize: file.size, compressedSize: file.size, savedPct: 0, previewUrl: null };
+    }
+
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        const img = new Image();
+        img.onload = function () {
+          let w = img.width;
+          let h = img.height;
+          if (w > maxWidth || h > maxWidth) {
+            if (w > h) {
+              h = Math.round((h * maxWidth) / w);
+              w = maxWidth;
+            } else {
+              w = Math.round((w * maxWidth) / h);
+              h = maxWidth;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext('2d');
+          ctx.drawImage(img, 0, 0, w, h);
+
+          canvas.toBlob((blob) => {
+            if (blob && blob.size < file.size) {
+              const compFile = new File([blob], file.name.replace(/\.[^/.]+$/, '') + '.jpg', {
+                type: 'image/jpeg',
+                lastModified: Date.now()
+              });
+              const saved = Math.round((1 - blob.size / file.size) * 100);
+              resolve({ file: compFile, originalSize: file.size, compressedSize: blob.size, savedPct: saved, previewUrl: e.target.result });
+            } else {
+              resolve({ file: file, originalSize: file.size, compressedSize: file.size, savedPct: 0, previewUrl: e.target.result });
+            }
+          }, 'image/jpeg', quality);
+        };
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  // Handle selected file with client-side compression
+  async function handleSelectedFile(file) {
+    if (!file) return;
+    stagedFile = file;
+
+    const isPdf = file.type === 'application/pdf' || file.name.toLowerCase().endsWith('.pdf');
+    const isImg = file.type && file.type.indexOf('image/') === 0;
+
+    selectedFileName.textContent = file.name;
+    fileTypeIcon.textContent = isPdf ? 'PDF' : (isImg ? 'IMG' : 'DOC');
+
+    dropArea.style.display = 'none';
+    if (scanActionRow) scanActionRow.style.display = 'none';
+    if (compressionStatusRow) compressionStatusRow.style.display = isImg ? 'inline-flex' : 'none';
+
+    if (isImg) {
+      const result = await compressImageFile(file);
+      compressedFile = result.file;
+      if (compressionStatusRow) compressionStatusRow.style.display = 'none';
+
+      imagePreviewEl.src = result.previewUrl;
+      imagePreviewEl.style.display = 'block';
+      pdfPreviewFallback.style.display = 'none';
+
+      if (result.savedPct > 0) {
+        selectedFileSize.textContent = formatSize(result.compressedSize) + ' (was ' + formatSize(result.originalSize) + ')';
+        compressionSavingsTag.textContent = 'Saved ' + result.savedPct + '%';
+        compressionSavingsTag.style.background = '#dcfce7';
+        compressionSavingsTag.style.color = '#15803d';
+      } else {
+        selectedFileSize.textContent = formatSize(file.size);
+        compressionSavingsTag.textContent = 'Optimized';
+      }
+    } else {
+      compressedFile = file;
+      imagePreviewEl.style.display = 'none';
+      pdfPreviewFallback.style.display = 'flex';
+      selectedFileSize.textContent = formatSize(file.size);
+      compressionSavingsTag.textContent = 'PDF Verified &bull; Ready';
+    }
+
+    filePreviewCard.style.display = 'flex';
+    goToStep2Btn.disabled = false;
+
+    // Prefill Title from clean filename
+    if (!docTitle.value.trim()) {
+      const cleanName = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+      docTitle.value = cleanName.charAt(0).toUpperCase() + cleanName.slice(1);
     }
   }
 
-  // ── Pricing & Creator Monetization Eligibility Logic ──
-  window.isEligibleCreator = true;
+  // Clear staged file & reset Step 1
+  function resetDropzone() {
+    stagedFile = null;
+    compressedFile = null;
+    fileInput.value = '';
+    cameraInput.value = '';
+    imagePreviewEl.src = '';
+    filePreviewCard.style.display = 'none';
+    dropArea.style.display = 'flex';
+    if (scanActionRow) scanActionRow.style.display = 'flex';
+    if (compressionStatusRow) compressionStatusRow.style.display = 'none';
+    goToStep2Btn.disabled = true;
+    setStep(1);
+  }
 
-  window.refreshPricingUI = function(root) {
-    const scope = root || document;
-    scope.querySelectorAll('.pricing-control-section').forEach(sec => {
-      const paidBtn = sec.querySelector('.access-paid-btn');
-      const paidLabel = sec.querySelector('.paid-btn-label');
-      const ineligibilityNotice = sec.querySelector('.ineligibility-notice');
-      const priceInput = sec.querySelector('.meta-price');
-      const earningsBadge = sec.querySelector('.earnings-estimate-badge');
+  // Event Listeners for Step Navigation
+  goToStep2Btn.addEventListener('click', () => {
+    if (!stagedFile) return;
+    ribbonFileName.textContent = stagedFile.name;
+    ribbonFileSize.textContent = formatSize((compressedFile || stagedFile).size);
 
-      if (paidLabel) paidLabel.textContent = '💰 Paid (Premium)';
-      if (paidBtn) {
-        paidBtn.style.opacity = '1';
-        paidBtn.style.cursor = 'pointer';
-      }
-      if (ineligibilityNotice) ineligibilityNotice.style.display = 'none';
+    // Populate live reference preview in Step 2
+    const isImg = stagedFile.type && stagedFile.type.indexOf('image/') === 0;
+    const step2DocImg = document.getElementById('step2DocImg');
+    const step2PdfFallback = document.getElementById('step2PdfFallback');
 
-      if (priceInput && earningsBadge) {
-        const val = parseFloat(priceInput.value) || 0;
-        const net = Math.round(val * 0.8 * 100) / 100;
-        earningsBadge.textContent = `💰 You keep 80% (₹${net.toFixed(2)})`;
+    if (isImg && imagePreviewEl && imagePreviewEl.src) {
+      step2DocImg.src = imagePreviewEl.src;
+      step2DocImg.style.display = 'block';
+      step2PdfFallback.style.display = 'none';
+    } else {
+      step2DocImg.style.display = 'none';
+      step2PdfFallback.style.display = 'flex';
+    }
+
+    setStep(2);
+  });
+
+  goToStep3Btn.addEventListener('click', () => {
+    // Validate Step 2 inputs
+    const requiredInputs = stepPane2.querySelectorAll('select[required], input[required]');
+    let valid = true;
+    requiredInputs.forEach(input => {
+      if (!input.checkValidity()) {
+        if (instSectionCollapse && instSectionCollapse.style.display === 'none') {
+          instSectionCollapse.style.display = 'block';
+          if (toggleInstSectionBtn) toggleInstSectionBtn.classList.add('expanded');
+          if (instToggleActionText) instToggleActionText.textContent = 'Hide details';
+        }
+        input.reportValidity();
+        valid = false;
       }
     });
-  };
+    if (valid) setStep(3);
+  });
 
-  // Event delegation for Pricing & Access Controls
-  document.addEventListener('click', (e) => {
-    // 1. Access choice toggle (Free vs Paid)
-    const accessBtn = e.target.closest('[data-action="setAccessType"]');
-    if (accessBtn) {
-      const type = accessBtn.getAttribute('data-type');
-      const sec = accessBtn.closest('.pricing-control-section');
-      if (!sec) return;
+  backToStep1Btn.addEventListener('click', () => setStep(1));
+  ribbonChangeBtn.addEventListener('click', () => setStep(1));
+  backToStep2Btn.addEventListener('click', () => setStep(2));
+  changeFileBtn.addEventListener('click', resetDropzone);
 
-      const freeBtn = sec.querySelector('.access-free-btn');
-      const paidBtn = sec.querySelector('.access-paid-btn');
-      const paidPanel = sec.querySelector('.paid-details-panel');
-      const priceInput = sec.querySelector('.meta-price');
+  // Apple Stepper Interactive Click Navigation
+  stepIndicator1.addEventListener('click', () => {
+    if (currentStep > 1) setStep(1);
+  });
+  stepIndicator2.addEventListener('click', () => {
+    if (currentStep === 3) setStep(2);
+    else if (currentStep === 1 && stagedFile) goToStep2Btn.click();
+  });
 
-      if (type === 'paid') {
-        // Active state for Paid
-        paidBtn.classList.add('active');
-        paidBtn.style.border = '1.5px solid #2563eb';
-        paidBtn.style.background = '#eff6ff';
-        paidBtn.style.color = '#1d4ed8';
+  // Drag & drop listeners
+  if (dropArea) {
+    dropArea.addEventListener('click', () => fileInput.click());
+    dropArea.addEventListener('dragover', (e) => { e.preventDefault(); dropArea.classList.add('dragover'); });
+    dropArea.addEventListener('dragleave', () => dropArea.classList.remove('dragover'));
+    dropArea.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropArea.classList.remove('dragover');
+      if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+        handleSelectedFile(e.dataTransfer.files[0]);
+      }
+    });
+  }
 
-        freeBtn.classList.remove('active');
-        freeBtn.style.border = '1.5px solid #cbd5e1';
-        freeBtn.style.background = '#ffffff';
-        freeBtn.style.color = '#64748b';
+  if (browseFilesBtn) browseFilesBtn.addEventListener('click', () => fileInput.click());
+  if (cameraBtn) cameraBtn.addEventListener('click', () => cameraInput.click());
+  if (fileInput) fileInput.addEventListener('change', () => { if (fileInput.files[0]) handleSelectedFile(fileInput.files[0]); });
+  if (cameraInput) cameraInput.addEventListener('change', () => { if (cameraInput.files[0]) handleSelectedFile(cameraInput.files[0]); });
 
-        if (paidPanel) paidPanel.style.display = 'block';
-        if (priceInput && (parseFloat(priceInput.value) <= 0 || !priceInput.value)) {
-          priceInput.value = '29';
-          priceInput.dispatchEvent(new Event('input', { bubbles: true }));
-        }
+  // Coupon Generator Button
+  if (generateCouponBtn) {
+    generateCouponBtn.addEventListener('click', () => {
+      const prefixes = ['STUDY', 'NOTES', 'TOPPER', 'BATCH', 'EXAM'];
+      const randomPrefix = prefixes[Math.floor(Math.random() * prefixes.length)];
+      const randomNum = Math.floor(100 + Math.random() * 900);
+      couponCodeInput.value = randomPrefix + randomNum;
+    });
+  }
+
+  // Pricing toggle controls
+  const btnFree = document.getElementById('btnAccessFree');
+  const btnPaid = document.getElementById('btnAccessPaid');
+  const paidPanel = document.getElementById('paidSettingsPanel');
+  const couponSection = document.getElementById('couponSection');
+  const inputPrice = document.getElementById('inputPrice');
+  const earningsBadge = document.getElementById('earningsBadge');
+
+  if (btnFree && btnPaid) {
+    btnFree.addEventListener('click', () => {
+      btnFree.classList.add('active');
+      btnPaid.classList.remove('active');
+      if (paidPanel) paidPanel.style.display = 'none';
+      if (couponSection) couponSection.style.display = 'none';
+      if (inputPrice) inputPrice.value = '0';
+      if (couponCodeInput) couponCodeInput.value = '';
+    });
+    btnPaid.addEventListener('click', () => {
+      btnPaid.classList.add('active');
+      btnFree.classList.remove('active');
+      if (paidPanel) paidPanel.style.display = 'block';
+      if (couponSection) couponSection.style.display = 'block';
+      if (!inputPrice.value || parseFloat(inputPrice.value) <= 0) {
+        inputPrice.value = '29';
+        updateEarnings(29);
+      }
+    });
+  }
+
+  let creatorPct = 70;
+  let isPromo = false;
+  let promoDays = 0;
+
+  function updateEarnings(val) {
+    const net = Math.round((parseFloat(val) || 0) * (creatorPct / 100.0) * 100) / 100;
+    if (earningsBadge) {
+      if (isPromo) {
+        earningsBadge.textContent = '90% Royalties (' + promoDays + 'd bonus left) — You keep ₹' + net.toFixed(2);
+        earningsBadge.style.background = '#dbeafe';
+        earningsBadge.style.color = '#1e40af';
       } else {
-        // Active state for Free
-        freeBtn.classList.add('active');
-        freeBtn.style.border = '1.5px solid #10b981';
-        freeBtn.style.background = '#ecfdf5';
-        freeBtn.style.color = '#065f46';
+        earningsBadge.textContent = 'Standard 70% — You keep ₹' + net.toFixed(2);
+        earningsBadge.style.background = '#f1f5f9';
+        earningsBadge.style.color = '#475569';
+      }
+    }
+  }
 
-        paidBtn.classList.remove('active');
-        paidBtn.style.border = '1.5px solid #cbd5e1';
-        paidBtn.style.background = '#ffffff';
-        paidBtn.style.color = '#64748b';
+  if (inputPrice) {
+    inputPrice.addEventListener('input', () => updateEarnings(inputPrice.value));
+  }
 
-        if (paidPanel) paidPanel.style.display = 'none';
-        if (priceInput) {
-          priceInput.value = '0';
-          priceInput.dispatchEvent(new Event('input', { bubbles: true }));
+  document.querySelectorAll('.price-chip-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const p = btn.getAttribute('data-price');
+      if (inputPrice) {
+        inputPrice.value = p;
+        updateEarnings(p);
+      }
+    });
+  });
+
+  // Server-injected student profile data (Phase 1 immediate populate)
+  const SERVER_PROFILE_DATA = {{ profile_data | tojson if profile_data else 'null' }};
+
+  function injectAndSelectOption(selectEl, idVal, textVal) {
+    if (!selectEl || !idVal) return;
+    const strId = String(idVal);
+    const displayText = textVal || strId;
+
+    let opt = selectEl.querySelector('option[value="' + strId + '"]');
+    if (!opt) {
+      opt = document.createElement('option');
+      opt.value = strId;
+      opt.textContent = displayText;
+      selectEl.appendChild(opt);
+    }
+    opt.selected = true;
+    selectEl.value = strId;
+
+    const ts = selectEl.tomselect || (window.AbhiHubSelect && window.AbhiHubSelect.instances && window.AbhiHubSelect.instances[selectEl.id]);
+    if (ts) {
+      ts.addOption({ value: strId, text: displayText });
+      ts.setValue(strId, true);
+    }
+    selectEl.dispatchEvent(new Event('change', { bubbles: true }));
+  }
+
+  function applyProfileData(profile) {
+    if (!profile) return;
+    const user = profile.user || {};
+    const colId = profile.college_id || user.college_id || (user.user_metadata || {}).college_id;
+    const colName = profile.college_name || user.college_name || (profile.colleges && profile.colleges.name);
+    const colAbbr = profile.college_abbreviation || user.college_abbreviation;
+    const deptId = profile.branch_id || profile.department_id || user.branch_id || user.department_id || (user.user_metadata || {}).branch_id;
+    const deptName = profile.branch_name || user.branch_name || (profile.departments && profile.departments.name);
+    const prog = profile.degree || profile.program || user.degree;
+    const semRaw = profile.semester || user.semester;
+    const pursuingYear = profile.pursuing_year || user.pursuing_year;
+
+    // 1. College Auto-Fill
+    const colSel = document.getElementById('collegeSelect');
+    if (colSel && colId) {
+      const colLabel = colAbbr ? (colName ? colName + ' (' + colAbbr + ')' : colAbbr) : (colName || 'My College');
+      injectAndSelectOption(colSel, colId, colLabel);
+    }
+
+    // 2. Department Auto-Fill
+    const deptSel = document.getElementById('branchSelect');
+    if (deptSel && deptId) {
+      const deptLabel = deptName || 'My Department';
+      injectAndSelectOption(deptSel, deptId, deptLabel);
+    }
+
+    // 3. Program Chips & Dynamic Semesters
+    const effectiveProg = (prog || 'b.tech').toLowerCase().replace(/[^a-z.]/g, '');
+    const progInput = document.getElementById('programSelect');
+    const progBtn = document.querySelector('#programChipGroup button[data-val="' + effectiveProg + '"]');
+    if (progBtn) {
+      document.querySelectorAll('#programChipGroup button').forEach(b => b.classList.remove('active'));
+      progBtn.classList.add('active');
+      if (progInput) progInput.value = effectiveProg;
+    }
+    updateSemestersForProgram(effectiveProg);
+
+    // 4. Semester Auto-Fill (From semester string or pursuing_year)
+    let semNum = null;
+    if (semRaw) {
+      const parsed = String(semRaw).replace(/\D/g, '');
+      if (parsed) semNum = Number(parsed);
+    } else if (pursuingYear) {
+      const yrNum = parseInt(pursuingYear, 10);
+      if (!isNaN(yrNum) && yrNum >= 1 && yrNum <= 4) {
+        semNum = yrNum * 2 - 1; // e.g. 4th year -> 7th semester
+      }
+    }
+
+    if (semNum && semNum >= 1 && semNum <= 8) {
+      const semInput = document.getElementById('semesterSelect');
+      const semBtn = document.querySelector('#semesterBadgeGroup button[data-val="' + semNum + '"]');
+      if (semBtn) {
+        document.querySelectorAll('#semesterBadgeGroup button').forEach(b => b.classList.remove('active'));
+        semBtn.classList.add('active');
+        if (semInput) {
+          semInput.value = String(semNum);
+          semInput.dispatchEvent(new Event('change', { bubbles: true }));
         }
       }
     }
 
-    // 2. Preset Price Chip Click
-    const chipBtn = e.target.closest('[data-action="setPricePreset"]');
-    if (chipBtn) {
-      const sec = chipBtn.closest('.pricing-control-section');
-      const price = chipBtn.getAttribute('data-price');
-      if (sec && price) {
-        const paidBtn = sec.querySelector('.access-paid-btn');
-        if (paidBtn && !paidBtn.classList.contains('active')) {
-          paidBtn.click();
-        }
-        const input = sec.querySelector('.meta-price');
-        if (input) {
-          input.value = price;
-          input.dispatchEvent(new Event('input', { bubbles: true }));
-        }
-      }
+    // 5. Creator Commission & Royalties
+    const commPct = profile.creator_commission_pct || (profile.creator_commission && profile.creator_commission.creator_pct) || user.creator_commission_pct;
+    if (commPct) {
+      creatorPct = Number(commPct) || 70;
+      isPromo = Boolean(profile.is_promo !== undefined ? profile.is_promo : (user.is_promo));
+      promoDays = Number(profile.promo_days_remaining !== undefined ? profile.promo_days_remaining : (user.promo_days_remaining)) || 0;
+      if (inputPrice) updateEarnings(inputPrice.value);
     }
-  });
 
-  // Live input update for earnings breakdown
-  document.addEventListener('input', (e) => {
-    if (e.target && e.target.classList.contains('meta-price')) {
-      const sec = e.target.closest('.pricing-control-section');
-      if (sec) {
-        const badge = sec.querySelector('.earnings-estimate-badge');
-        const val = parseFloat(e.target.value) || 0;
-        const net = Math.round(val * 0.8 * 100) / 100;
-        if (badge) {
-          badge.textContent = `💰 You keep 80% (₹${net.toFixed(2)})`;
-        }
-      }
-    }
-  });
+    updateInstSummaryPreview();
+    syncRealTimeTitle();
+  }
 
-  // Check for pending requests, creator eligibility & load upload history on page load
-  document.addEventListener('DOMContentLoaded', () => {
-    fetchMaterialRequests();
-    loadUploadHistory();
-    fetch('/api/my-access')
-      .then(r => r.json())
-      .then(d => {
-        if (d.success && d.can_monetize) {
-          window.isEligibleCreator = true;
-        } else if (d.success && ['contributor', 'power_contributor', 'community_leader', 'admin'].includes((d.level || '').toLowerCase())) {
-          window.isEligibleCreator = true;
-        }
-        window.refreshPricingUI();
-        const tpl = document.getElementById('metaFormTemplate');
-        if (tpl) window.refreshPricingUI(tpl.content);
-      }).catch(() => {
-        window.refreshPricingUI();
-      });
-  });
-
-  /* ── Creator Engagement & Upload History Engine ── */
-  window._userUploadsCache = [];
-  let _currentHistoryFilter = 'all';
-
-  function renderHistoryCards(items, topViewedId, topLikedId) {
-    const list = document.getElementById('historyList');
-    const empty = document.getElementById('historyEmpty');
-    if (!list) return;
-
-    list.innerHTML = '';
-    if (!items || items.length === 0) {
-      if (empty) {
-        empty.style.display = 'block';
-        empty.querySelector('p').textContent = 'No materials match your current search or filter.';
-      }
+  function loadUserProfileWithCache() {
+    // 1. First priority: Server-injected student profile data
+    if (SERVER_PROFILE_DATA && (SERVER_PROFILE_DATA.college_id || SERVER_PROFILE_DATA.student_id)) {
+      try {
+        localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({
+          data: SERVER_PROFILE_DATA,
+          timestamp: Date.now()
+        }));
+      } catch (e) {}
+      applyProfileData(SERVER_PROFILE_DATA);
       return;
     }
-    if (empty) empty.style.display = 'none';
 
-    items.forEach(item => {
-      const isTopViewed = (item.id === topViewedId && (item.views || 0) > 0);
-      const isTopLiked = (item.id === topLikedId && (item.likes || 0) > 0);
-
-      const row = document.createElement('div');
-      row.className = 'history-item-row' + (isTopViewed ? ' is-top-performer' : '');
-
-      let statusBadge = '<span class="hist-badge status-in-review">⏳ In Review</span>';
-      if (item.status === 'approved') {
-        statusBadge = '<span class="hist-badge status-approved">✓ Approved</span>';
-      } else if (item.status === 'rejected') {
-        statusBadge = '<span class="hist-badge status-rejected">✕ Rejected</span>';
-      }
-
-      const priceBadge = item.is_paid && item.price > 0
-        ? `<span class="hist-badge price-paid">₹${item.price.toFixed(0)}</span>`
-        : '<span class="hist-badge price-free">Free</span>';
-
-      let topPill = '';
-      if (isTopViewed) {
-        topPill = `<span class="hist-badge top-viewed-pill">🏆 #1 Most Viewed</span>`;
-      } else if (isTopLiked) {
-        topPill = `<span class="hist-badge top-liked-pill">❤️ Community Choice</span>`;
-      }
-
-      // Icon by Category
-      let catIcon = '📄';
-      const catLower = (item.category || '').toLowerCase();
-      if (catLower.includes('note')) catIcon = '📝';
-      else if (catLower.includes('practical')) catIcon = '🧪';
-      else if (catLower.includes('syllabus')) catIcon = '📋';
-      else if (catLower.includes('assign')) catIcon = '✍️';
-      else if (catLower.includes('question')) catIcon = '🎯';
-
-      const uploadDate = item.created_at ? new Date(item.created_at).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'}) : '';
-
-      row.innerHTML = `
-        <div class="hist-main-col">
-          <div class="hist-title-row">
-            <span class="hist-type-icon">${catIcon}</span>
-            <a href="/resource/${item.id}" target="_blank" class="hist-title-link">${item.title}</a>
-            ${topPill}
-            ${statusBadge}
-            ${priceBadge}
-          </div>
-          <div class="hist-meta-row">
-            <span class="hist-meta-item">📚 <strong>${item.subject}</strong></span>
-            <span class="hist-meta-item">• ${item.category}</span>
-            <span class="hist-meta-item stat-view-pill">👁️ <strong>${item.views || 0}</strong> views</span>
-            ${(item.likes && item.likes > 0) ? `<span class="hist-meta-item stat-like-pill">❤️ <strong>${item.likes}</strong></span>` : ''}
-            ${uploadDate ? `<span class="hist-meta-item">• 📅 ${uploadDate}</span>` : ''}
-          </div>
-        </div>
-        <div class="hist-action-col">
-          <a href="/resource/${item.id}" target="_blank" class="hist-action-btn">
-            View Material ↗
-          </a>
-        </div>
-      `;
-      list.appendChild(row);
-    });
-    list.style.display = 'flex';
-  }
-
-  function applyHistoryFilter() {
-    let filtered = [...(window._userUploadsCache || [])];
-
-    // 1. Text Search
-    const searchVal = (document.getElementById('historySearchInput')?.value || '').toLowerCase().trim();
-    if (searchVal) {
-      filtered = filtered.filter(item => 
-        (item.title || '').toLowerCase().includes(searchVal) ||
-        (item.subject || '').toLowerCase().includes(searchVal) ||
-        (item.category || '').toLowerCase().includes(searchVal)
-      );
-    }
-
-    // 2. Tab Filter
-    if (_currentHistoryFilter === 'most_viewed') {
-      filtered.sort((a,b) => (b.views || 0) - (a.views || 0));
-    } else if (_currentHistoryFilter === 'most_liked') {
-      filtered.sort((a,b) => (b.likes || 0) - (a.likes || 0));
-    } else if (_currentHistoryFilter === 'approved') {
-      filtered = filtered.filter(item => item.status === 'approved');
-    } else if (_currentHistoryFilter === 'pending') {
-      filtered = filtered.filter(item => item.status === 'pending');
-    }
-
-    const topViewedId = (window._userUploadsCache && window._userUploadsCache.length > 0)
-      ? [...window._userUploadsCache].sort((a,b) => (b.views || 0) - (a.views || 0))[0]?.id
-      : null;
-    const topLikedId = (window._userUploadsCache && window._userUploadsCache.length > 0)
-      ? [...window._userUploadsCache].sort((a,b) => (b.likes || 0) - (a.likes || 0))[0]?.id
-      : null;
-
-    renderHistoryCards(filtered, topViewedId, topLikedId);
-  }
-
-  window.loadUploadHistory = async function() {
-    const loading = document.getElementById('historyLoading');
-    const empty = document.getElementById('historyEmpty');
-    const list = document.getElementById('historyList');
-    const countEl = document.getElementById('uploadHistoryCount');
-    const tabBadge = document.getElementById('historyTabBadge');
-    if (!loading || !empty || !list) return;
-
-    loading.style.display = 'block';
-    empty.style.display = 'none';
-    list.style.display = 'none';
-
+    // 2. Second priority: Client localStorage cached profile
+    let cached = null;
     try {
-      const res = await fetch('/api/user/uploads');
-      const data = await res.json();
-      loading.style.display = 'none';
-
-      if (data.success && Array.isArray(data.data) && data.data.length > 0) {
-        window._userUploadsCache = data.data;
-        if (countEl) countEl.textContent = data.data.length;
-        if (tabBadge) tabBadge.textContent = data.data.length;
-
-        // Calculate Totals & Insights
-        const totalViews = data.data.reduce((acc, it) => acc + (it.views || 0), 0);
-        const totalLikes = data.data.reduce((acc, it) => acc + (it.likes || 0), 0);
-        const sortedByViews = [...data.data].sort((a,b) => (b.views || 0) - (a.views || 0));
-        const mostViewedItem = sortedByViews[0];
-
-        const statViews = document.getElementById('statTotalViews');
-        const statLikes = document.getElementById('statTotalLikes');
-        const dash = document.getElementById('historyAnalyticsDashboard');
-        const topCard = document.getElementById('topViewedCard');
-        const statTopTitle = document.getElementById('statTopTitle');
-        const statTopSub = document.getElementById('statTopSub');
-
-        if (statViews) statViews.textContent = totalViews.toLocaleString();
-        if (statLikes) statLikes.textContent = totalLikes.toLocaleString();
-
-        if (mostViewedItem && (mostViewedItem.views || 0) > 0 && topCard) {
-          topCard.style.display = 'flex';
-          if (statTopTitle) statTopTitle.textContent = mostViewedItem.title;
-          if (statTopSub) statTopSub.textContent = `🔥 ${mostViewedItem.views} total reads • ${mostViewedItem.subject}`;
+      const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        if (parsed && parsed.timestamp && (Date.now() - parsed.timestamp < PROFILE_CACHE_TTL) && parsed.data) {
+          cached = parsed.data;
         }
-        if (dash) dash.style.display = 'grid';
-
-        applyHistoryFilter();
-      } else {
-        window._userUploadsCache = [];
-        if (countEl) countEl.textContent = '0';
-        if (tabBadge) tabBadge.textContent = '0';
-        empty.style.display = 'block';
       }
-    } catch(err) {
-      console.warn('Error loading upload history:', err);
-      loading.style.display = 'none';
-      empty.style.display = 'block';
-    }
-  };
-
-  // Wire Filter Pills & Search
-  document.addEventListener('DOMContentLoaded', () => {
-    const pillContainer = document.getElementById('historyFilterPills');
-    if (pillContainer) {
-      pillContainer.addEventListener('click', (e) => {
-        const btn = e.target.closest('.history-filter-pill');
-        if (!btn) return;
-        pillContainer.querySelectorAll('.history-filter-pill').forEach(b => b.classList.remove('active'));
-        btn.classList.add('active');
-        _currentHistoryFilter = btn.dataset.filter || 'all';
-        applyHistoryFilter();
-      });
+    } catch (e) {
+      cached = null;
     }
 
-    const searchInput = document.getElementById('historySearchInput');
-    if (searchInput) {
-      searchInput.addEventListener('input', () => {
-        applyHistoryFilter();
-      });
+    if (cached) {
+      applyProfileData(cached);
+      return;
     }
-  });
 
-  function toggleRequestsPanel(){
-    const p = document.getElementById('materialRequestsPanel');
-    if(p.style.display==='none'){ p.style.display='block'; fetchMaterialRequests(); }
-    else p.style.display='none';
-  }
-  function hideRequestsPanel(){ document.getElementById('materialRequestsPanel').style.display='none'; }
-
-  async function respondRequest(id, action){
-    const msg = action === 'reject' ? prompt('Optional rejection message:','') : '';
-    try{
-      const res = await fetch('/api/material-request/respond', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({id, action, message: msg})});
-      const d = await res.json();
-      alert(d.message || 'Done');
-      fetchMaterialRequests();
-    }catch(e){ alert('Failed to respond'); }
-  }
-
-  function prefillUploadForRequest(reqId, subject){
-    // Open upload form and store material_request_id so uploader can include it
-    toggleRequestsPanel();
-    document.getElementById('dropArea').scrollIntoView({behavior:'smooth'});
-    // Store request id in a hidden input; create if missing
-    let hid = document.getElementById('material_request_id_input');
-    if(!hid){ hid = document.createElement('input'); hid.type='hidden'; hid.name='material_request_id'; hid.id='material_request_id_input'; document.getElementById('uploadForm').appendChild(hid); }
-    hid.value = reqId;
-    // Optionally prefill subject field in first meta form if present
-    const subjSelect = document.querySelector('.meta-year') || null;
-    // Show a toast to notify
-    alert('Upload form prefilled for request: '+subject);
+    // 3. Third priority: Fetch from /api/profile and persist to cache
+    fetch('/api/profile')
+      .then(r => r.json())
+      .then(data => {
+        if (data && (data.success || data.user || data.college_id)) {
+          try {
+            localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({
+              data: data,
+              timestamp: Date.now()
+            }));
+          } catch (e) {}
+          applyProfileData(data);
+        }
+      })
+      .catch(() => {});
   }
 
-  /* ── Apple Segmented Tab Switcher ── */
-  document.addEventListener('DOMContentLoaded', () => {
-    const tabUploadBtn = document.getElementById('tabUploadBtn');
-    const tabHistoryBtn = document.getElementById('tabHistoryBtn');
-    const uploadWorkspace = document.getElementById('uploadWorkspaceTab');
-    const historySection = document.getElementById('uploadHistorySection');
+  loadUserProfileWithCache();
 
-    function switchTab(activeTab) {
-      if (activeTab === 'upload') {
-        tabUploadBtn.classList.add('active');
-        tabUploadBtn.setAttribute('aria-selected', 'true');
-        tabHistoryBtn.classList.remove('active');
-        tabHistoryBtn.setAttribute('aria-selected', 'false');
-        if (uploadWorkspace) uploadWorkspace.style.display = 'grid';
-        if (historySection) historySection.style.display = 'none';
+  // Form Submission with Progress Tracking
+  if (uploadForm) {
+    uploadForm.addEventListener('submit', function (e) {
+      e.preventDefault();
+      const uploadFile = compressedFile || stagedFile;
+      if (!uploadFile) {
+        alert('Please select or capture a file to upload.');
+        setStep(1);
+        return;
+      }
+
+      if (!uploadForm.checkValidity()) {
+        uploadForm.reportValidity();
+        return;
+      }
+
+      const formData = new FormData(uploadForm);
+      formData.set('upload_document', uploadFile, uploadFile.name);
+
+      submitBtn.disabled = true;
+      btnSpinner.style.display = 'inline-block';
+      submitBtnText.textContent = 'Uploading…';
+
+      if (progressContainer) {
+        progressContainer.style.display = 'block';
+        progressBar.style.width = '0%';
+        progressText.textContent = '0%';
+        statusText.textContent = 'Uploading material…';
+      }
+
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', '/upload', true);
+
+      xhr.upload.onprogress = function (event) {
+        if (event.lengthComputable && progressContainer) {
+          const percent = Math.round((event.loaded / event.total) * 100);
+          progressBar.style.width = percent + '%';
+          progressText.textContent = percent + '%';
+          if (percent >= 100) {
+            statusText.textContent = 'Saving & verifying…';
+          }
+        }
+      };
+
+      xhr.onload = function () {
+        submitBtn.disabled = false;
+        btnSpinner.style.display = 'none';
+        submitBtnText.textContent = 'Publish Material';
+
+        try {
+          const json = JSON.parse(xhr.responseText);
+          if (xhr.status === 200 && (json.success || !json.error)) {
+            if (progressContainer) progressContainer.style.display = 'none';
+            showSuccessModal(json);
+          } else {
+            alert('Upload failed: ' + (json.message || json.error || 'Please check required fields.'));
+          }
+        } catch (err) {
+          if (xhr.status === 200) {
+            if (progressContainer) progressContainer.style.display = 'none';
+            showSuccessModal({});
+          } else {
+            alert('Upload failed. Unexpected server response.');
+          }
+        }
+      };
+
+      xhr.onerror = function () {
+        submitBtn.disabled = false;
+        btnSpinner.style.display = 'none';
+        submitBtnText.textContent = 'Publish Material';
+        alert('Upload failed. Please check your internet connection.');
+      };
+
+      xhr.send(formData);
+    });
+  }
+
+  // Step 4: Success Modal with Open File & Coupon Sharing
+  function showSuccessModal(data) {
+    const modal = document.getElementById('popupModal');
+    const xpVal = document.getElementById('xpGainedVal');
+    const scoreVal = document.getElementById('xpScoreVal');
+    const viewBtn = document.getElementById('viewResourceBtn');
+    const shareUrlInput = document.getElementById('shareCouponUrl');
+    const shareWhatsappBtn = document.getElementById('shareWhatsappBtn');
+    const shareCouponSub = document.getElementById('shareCouponSub');
+
+    const resourceId = data.document?.id || data.data?.record_id || data.id || '';
+    const resourceUrl = resourceId ? (window.location.origin + '/resource/' + resourceId) : window.location.origin;
+
+    const coupon = (couponCodeInput ? couponCodeInput.value.trim().toUpperCase() : '');
+    const discount = couponDiscountSelect ? couponDiscountSelect.value : '50';
+    const finalShareUrl = coupon ? (resourceUrl + '?coupon=' + encodeURIComponent(coupon)) : resourceUrl;
+
+    if (xpVal) xpVal.textContent = '+' + (data.contribution?.xp_earned || data.data?.xp_gained || '25');
+    if (scoreVal) scoreVal.textContent = data.contribution?.total_xp || data.data?.new_score || '25';
+
+    if (viewBtn) {
+      viewBtn.href = resourceUrl;
+    }
+
+    if (shareUrlInput) {
+      shareUrlInput.value = finalShareUrl;
+    }
+
+    if (shareCouponSub) {
+      if (coupon) {
+        shareCouponSub.textContent = 'Friends get ' + discount + '% off using coupon: ' + coupon;
       } else {
-        tabHistoryBtn.classList.add('active');
-        tabHistoryBtn.setAttribute('aria-selected', 'true');
-        tabUploadBtn.classList.remove('active');
-        tabUploadBtn.setAttribute('aria-selected', 'false');
-        if (uploadWorkspace) uploadWorkspace.style.display = 'none';
-        if (historySection) historySection.style.display = 'block';
-        if (window.loadUploadHistory) window.loadUploadHistory();
+        shareCouponSub.textContent = 'Share this resource link directly with your friends:';
       }
     }
 
-    if (tabUploadBtn) tabUploadBtn.addEventListener('click', () => switchTab('upload'));
-    if (tabHistoryBtn) tabHistoryBtn.addEventListener('click', () => switchTab('history'));
-  });
+    if (shareWhatsappBtn) {
+      const title = docTitle.value.trim() || 'study material';
+      let msg = 'Hey! Check out my uploaded notes on AbhiHub: *' + title + '*.\n';
+      if (coupon) {
+        msg += 'Use my coupon code *' + coupon + '* to get ' + discount + '% off!\n';
+      }
+      msg += finalShareUrl;
+      shareWhatsappBtn.href = 'https://api.whatsapp.com/send?text=' + encodeURIComponent(msg);
+    }
+
+    if (modal) modal.style.display = 'flex';
+  }
+
+  // Copy share URL button
+  const copyShareUrlBtn = document.getElementById('copyShareUrlBtn');
+  if (copyShareUrlBtn) {
+    copyShareUrlBtn.addEventListener('click', () => {
+      const shareUrlInput = document.getElementById('shareCouponUrl');
+      if (shareUrlInput) {
+        shareUrlInput.select();
+        navigator.clipboard.writeText(shareUrlInput.value).then(() => {
+          copyShareUrlBtn.innerHTML = '<span>Copied!</span>';
+          setTimeout(() => { copyShareUrlBtn.innerHTML = '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg><span>Copy</span>'; }, 2000);
+        });
+      }
+    });
+  }
+
+  const uploadAnotherBtn = document.getElementById('uploadAnotherBtn');
+  if (uploadAnotherBtn) {
+    uploadAnotherBtn.addEventListener('click', () => {
+      document.getElementById('popupModal').style.display = 'none';
+      uploadForm.reset();
+      resetDropzone();
+    });
+  }
+
+  // Segmented Tabs (Upload vs My Uploads)
+  const tabUploadBtn = document.getElementById('tabUploadBtn');
+  const tabHistoryBtn = document.getElementById('tabHistoryBtn');
+  const uploadWorkspace = document.getElementById('uploadWorkspaceTab');
+  const historySection = document.getElementById('uploadHistorySection');
+
+  function switchTab(target) {
+    if (target === 'upload') {
+      tabUploadBtn.classList.add('active');
+      tabUploadBtn.setAttribute('aria-selected', 'true');
+      tabHistoryBtn.classList.remove('active');
+      tabHistoryBtn.setAttribute('aria-selected', 'false');
+      uploadWorkspace.style.display = 'block';
+      historySection.style.display = 'none';
+    } else {
+      tabHistoryBtn.classList.add('active');
+      tabHistoryBtn.setAttribute('aria-selected', 'true');
+      tabUploadBtn.classList.remove('active');
+      tabUploadBtn.setAttribute('aria-selected', 'false');
+      uploadWorkspace.style.display = 'none';
+      historySection.style.display = 'block';
+      loadUploadHistory();
+    }
+  }
+
+  if (tabUploadBtn) tabUploadBtn.addEventListener('click', () => switchTab('upload'));
+  if (tabHistoryBtn) tabHistoryBtn.addEventListener('click', () => switchTab('history'));
+});
+
+// Upload History Loader
+window.loadUploadHistory = async function () {
+  const loading = document.getElementById('historyLoading');
+  const empty = document.getElementById('historyEmpty');
+  const list = document.getElementById('historyList');
+  const countEl = document.getElementById('uploadHistoryCount');
+  const tabBadge = document.getElementById('historyTabBadge');
+
+  if (loading) loading.style.display = 'block';
+  if (empty) empty.style.display = 'none';
+  if (list) list.style.display = 'none';
+
+  try {
+    const res = await fetch('/api/user/uploads');
+    const data = await res.json();
+    if (loading) loading.style.display = 'none';
+
+    if (data.success && Array.isArray(data.data) && data.data.length > 0) {
+      if (countEl) countEl.textContent = data.data.length;
+      if (tabBadge) tabBadge.textContent = data.data.length;
+
+      const totalViews = data.data.reduce((acc, it) => acc + (it.views || 0), 0);
+      const totalLikes = data.data.reduce((acc, it) => acc + (it.likes || 0), 0);
+      const statViews = document.getElementById('statTotalViews');
+      const statLikes = document.getElementById('statTotalLikes');
+      const dash = document.getElementById('historyAnalyticsDashboard');
+
+      if (statViews) statViews.textContent = totalViews.toLocaleString();
+      if (statLikes) statLikes.textContent = totalLikes.toLocaleString();
+      if (dash) dash.style.display = 'grid';
+
+      if (list) {
+        list.innerHTML = data.data.map(item => `
+          <div class="history-item-row">
+            <div class="hist-main-col">
+              <div class="hist-title-row">
+                <a href="/resource/${item.id}" target="_blank" class="hist-title-link">${item.title}</a>
+                <span class="hist-badge ${item.status === 'approved' ? 'status-approved' : 'status-in-review'}">${item.status === 'approved' ? 'Published' : 'Review'}</span>
+              </div>
+              <div class="hist-meta-row">
+                <span>${item.subject || 'Subject'}</span>
+                <span>• ${item.views || 0} reads</span>
+                <span>• ${item.likes || 0} likes</span>
+              </div>
+            </div>
+            <a href="/resource/${item.id}" target="_blank" class="hist-action-btn">View ↗</a>
+          </div>
+        `).join('');
+        list.style.display = 'flex';
+        list.style.flexDirection = 'column';
+      }
+    } else {
+      if (countEl) countEl.textContent = '0';
+      if (tabBadge) tabBadge.textContent = '0';
+      if (empty) empty.style.display = 'block';
+    }
+  } catch (err) {
+    if (loading) loading.style.display = 'none';
+    if (empty) empty.style.display = 'block';
+  }
+};
 </script>
 
 {% endblock %}

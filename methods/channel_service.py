@@ -246,7 +246,7 @@ def ensure_seed_channels():
                 handle=target['handle'],
                 bio=target['bio']
             )
-            logger.info(f"[CHANNEL SEED] Created channel @{target['handle']} for {user_id}")
+            logger.info("[CHANNEL SEED] Created seeded creator channel")
 
 def get_featured_channels(limit=10):
     """Fetches list of active creator channels with note counts for dashboard moving cards."""

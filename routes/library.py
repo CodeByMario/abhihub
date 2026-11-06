@@ -664,11 +664,43 @@ def resource_landing(slug):
             if auth_status == 200 and auth_payload and auth_payload.get('file_url'):
                 direct_pdf_url = auth_payload.get('file_url')
         except Exception as auth_err:
-            logging.warning(f"[resource_landing] Could not pre-authorize direct PDF URL for {doc_id}: {auth_err}")
+            logging.warning(
+                "[resource_landing] Could not pre-authorize direct PDF URL (error_type=%s)",
+                type(auth_err).__name__,
+            )
+
+    # Format user-friendly display title: "<Subject Name>: <Category> (<Specifics>)"
+    subject_display = ''
+    if document.get('subject') and isinstance(document.get('subject'), dict):
+        subject_display = document['subject'].get('name') or ''
+    if not subject_display:
+        subject_display = document.get('subject_name') or ''
+
+    doc_raw_title = document.get('title') or ''
+    clean_cat_part = ''
+    cat_match = re.search(r'-\s*(Notes|PYQ|Paper|Papers|Practical|Syllabus|Assignment|Question Bank)\s*(?:\(([^)]+)\))?\s*-', doc_raw_title, re.IGNORECASE)
+    if cat_match:
+        c_name = cat_match.group(1).strip()
+        c_detail = cat_match.group(2).strip() if cat_match.group(2) else ''
+        if c_name.lower() in ('papers', 'pyq'):
+            c_name = 'Paper'
+        clean_cat_part = f"{c_name} ({c_detail})" if c_detail else c_name
+    else:
+        c_type = (document.get('document_category') or document.get('file_type') or 'Material').capitalize()
+        c_detail = document.get('exam_type') or document.get('unit') or document.get('assignment_num') or ''
+        clean_cat_part = f"{c_type} ({c_detail})" if c_detail else c_type
+
+    if subject_display:
+        display_title = f"{subject_display}: {clean_cat_part}"
+    elif ':' in doc_raw_title:
+        display_title = doc_raw_title
+    else:
+        display_title = f"{clean_cat_part} - {doc_raw_title}"
 
     return app.render_template(
         'resource.html',
         document=document,
+        display_title=display_title,
         direct_pdf_url=direct_pdf_url,
         pricing=pricing,
         has_access=has_access,

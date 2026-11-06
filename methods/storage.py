@@ -30,7 +30,7 @@ def upload_file(file_path, destination_blob_name, chunk_size=15 * 1024 * 1024, t
     blob.chunk_size = chunk_size  # Set the chunk size to 15 MB
     retry = Retry(deadline=timeout)  # Set the retry deadline to handle timeouts
     blob.upload_from_filename(file_path, timeout=timeout, retry=retry)
-    logging.info(f'File {file_path} uploaded to {destination_blob_name}.')
+    logging.info('File uploaded to storage.')
 
     # Add file details to data/data.json
     info_temp = destination_blob_name.split('/')
@@ -162,11 +162,11 @@ def download_file(destination_blob_name, file_path='static/test/', timeout=600):
     blob = _get_bucket().blob(destination_blob_name)
     retry = Retry(deadline=timeout)  # Set the retry deadline to handle timeouts
     blob.download_to_filename(file_path, timeout=timeout, retry=retry)
-    logging.info(f'File {destination_blob_name} downloaded to {file_path}.')
+    logging.info('File downloaded from storage.')
 
 def delete_file(destination_blob_name, timeout=600):
     blob = _get_bucket().blob(destination_blob_name)
     retry = Retry(deadline=timeout)  # Set the retry deadline to handle timeouts
     blob.delete(timeout=timeout, retry=retry)
-    logging.info(f'File {destination_blob_name} deleted.')
+    logging.info('File deleted from storage.')
 

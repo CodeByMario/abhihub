@@ -24,7 +24,7 @@ def get_user_uploaded_files(user_email: str, limit: int = 20) -> Dict:
         }
     
     try:
-        logging.info(f"[get_user_uploaded_files] Fetching files for user: {user_email}")
+        logging.info("[get_user_uploaded_files] Fetching files for authenticated user")
         
         # Query documents table for user's uploaded files in abhihub schema
         # Resolve user_id from email first to be safe, or join profiles
@@ -57,11 +57,12 @@ def get_user_uploaded_files(user_email: str, limit: int = 20) -> Dict:
             }
     
     except Exception as e:
-        logging.error(f"[get_user_uploaded_files] ERROR: {e}")
-        import traceback
-        traceback.print_exc()
+        logging.error(
+            "[get_user_uploaded_files] Lookup failed (error_type=%s)",
+            type(e).__name__,
+        )
         return {
             'success': False,
-            'message': f'Error fetching user files: {str(e)}',
+            'message': 'Error fetching user files',
             'data': []
         }

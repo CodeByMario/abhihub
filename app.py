@@ -929,7 +929,10 @@ def log_document_view(file_name, file_url, record_id=None,
         )
         return True
     except Exception as e:
-        logging.warning(f"[VIEW-LOG] could not record view for {file_name}: {e}")
+        logging.warning(
+            "[VIEW-LOG] Could not record document view (error_type=%s)",
+            type(e).__name__,
+        )
         return False
 
 

@@ -1942,7 +1942,7 @@ def api_admin_economy_override_user(user_id):
                 return jsonify({'success': False, 'message': f'User "{user_id}" not found'}), 404
 
         client.table('profiles').update({'access_level': level}).eq('id', target_uid).execute()
-        logging.info(f"[ECONOMY] admin set user {target_uid} access_level={level}")
+        logging.info("[ECONOMY] Admin updated user access level (level=%s)", level)
         return jsonify({'success': True}), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500

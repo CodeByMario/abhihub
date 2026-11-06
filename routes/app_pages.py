@@ -807,485 +807,449 @@ def store_room():
     return redirect(url_for('channels.creator_hub'))
 
 
+_ACRONYM_CACHE = {}
+
+
+def _resolve_abbreviations(college_id, branch_id, subject_id, subject_name, program):
+    """Resolve college, department, and subject abbreviations efficiently with caching."""
+    from methods.supabase_helper import init_supabase, make_acronym
+
+    col_abbr = _ACRONYM_CACHE.get(f"col:{college_id}", "") if college_id else ""
+    dept_abbr = _ACRONYM_CACHE.get(f"dept:{branch_id}", "") if branch_id else ""
+    subj_abbr = _ACRONYM_CACHE.get(f"subj:{subject_id}", "") if subject_id else ""
+    subject_code = _ACRONYM_CACHE.get(f"code:{subject_id}", "") if subject_id else ""
+
+    if (not col_abbr and college_id) or (not dept_abbr and branch_id) or (subject_id and (not subj_abbr or not subject_code)):
+        client_sb = init_supabase()
+        if client_sb:
+            if not col_abbr and college_id:
+                try:
+                    c_row = client_sb.table('colleges').select('name, abbreviation').eq('id', college_id).limit(1).execute()
+                    if c_row.data:
+                        col_abbr = (c_row.data[0].get('abbreviation') or make_acronym(c_row.data[0].get('name'))).strip().upper()
+                        _ACRONYM_CACHE[f"col:{college_id}"] = col_abbr
+                except Exception:
+                    pass
+            if not dept_abbr and branch_id:
+                try:
+                    d_row = client_sb.table('departments').select('name, abbreviation').eq('id', branch_id).limit(1).execute()
+                    if d_row.data:
+                        dept_abbr = (d_row.data[0].get('abbreviation') or make_acronym(d_row.data[0].get('name'))).strip().upper()
+                        _ACRONYM_CACHE[f"dept:{branch_id}"] = dept_abbr
+                except Exception:
+                    pass
+            if subject_id and (not subj_abbr or not subject_code):
+                try:
+                    s_row = client_sb.table('subjects').select('name, subject_code').eq('id', subject_id).limit(1).execute()
+                    if s_row.data:
+                        if not subject_code:
+                            subject_code = (s_row.data[0].get('subject_code') or '').strip().upper()
+                            _ACRONYM_CACHE[f"code:{subject_id}"] = subject_code
+                        if not subj_abbr:
+                            subj_abbr = make_acronym(s_row.data[0].get('name') or subject_name)
+                            _ACRONYM_CACHE[f"subj:{subject_id}"] = subj_abbr
+                except Exception:
+                    pass
+
+    if not subj_abbr and subject_name:
+        subj_abbr = make_acronym(subject_name)
+
+    if program and str(program).lower() != 'b.tech':
+        prog_clean = re.sub(r'[^a-zA-Z0-9]', '', str(program)).upper()
+        if not dept_abbr or dept_abbr in ('ALL', 'ABA', 'ALLBRANCHES'):
+            dept_abbr = prog_clean
+
+    if col_abbr == 'GHRCEG':
+        col_abbr = 'GHRCE'
+    if dept_abbr == 'ABA' and program and str(program).lower() == 'mba':
+        dept_abbr = 'MBA'
+
+    return col_abbr, dept_abbr, subj_abbr, subject_code
+
+
 @app_pages_bp.route('/upload', methods=['GET', 'POST'])
 @auth_required
 def upload():
+    if request.method != 'POST':
+        user_info = session.get('user', {})
+        user_id = user_info.get('uid')
+        prof_data = None
+        if user_id:
+            try:
+                from methods.supabase_helper import get_student_profile
+                sp_res = get_student_profile(user_id)
+                if sp_res and sp_res.get('success'):
+                    prof_data = sp_res.get('data')
+            except Exception:
+                pass
+        return render_template('app/upload.html', profile_data=prof_data)
+
     import app
-    if request.method == 'POST':
-        if 'upload_document' not in request.files:
-            return jsonify(success=False, message="No file provided"), 400
-        
-        file = request.files['upload_document']
-        if file.filename == '':
-            return jsonify(success=False, message="No file selected"), 400
-        
-        if not app.validate_file_content(file, file.filename):
-            return jsonify(success=False, message="File type not allowed or invalid file content. Allowed types: PDF, PNG, JPG, JPEG, WEBP, GIF"), 400
-        
-        file.seek(0, os.SEEK_END)
-        file_size = file.tell()
-        file.seek(0)
-        
-        if file_size > app.MAX_FILE_SIZE:
-            return jsonify(success=False, message=f"File too large. Maximum size is {app.MAX_FILE_SIZE // (1024*1024)}MB"), 400
-        
-        if file_size == 0:
-            return jsonify(success=False, message="File is empty"), 400
-        
-        try:
-            import re
-            import time
-            from methods.supabase_helper import save_file_record, init_supabase, recalculate_and_persist_user_rank, track_user_event
-            user_info = session['user']
-            user_id = user_info.get('uid', '')
-            user_email = user_info.get('email', '')
-            user_name = user_info.get('name', '')
-            
-            subject = request.form.get('subject', '').strip()
-            year = (request.form.get('Year') or request.form.get('year') or '').strip()
-            doc_type = request.form.get('type', 'Other')
-            document_type = request.form.get('document_type') or request.form.get('type') or 'Other'
-            college_id = request.form.get('college_id', '').strip()
-            branch_id = request.form.get('branch_id', '').strip()
-            subject_id = request.form.get('subject_id', '').strip()
-            semester_raw = request.form.get('semester', '').strip()
-            semester = int(semester_raw) if semester_raw.isdigit() and 1 <= int(semester_raw) <= 8 else None
-            title_val = (request.form.get('title') or subject or '').strip()
-            description_val = request.form.get('description', '').strip()
-            program = request.form.get('program', 'b.tech').strip() or 'b.tech'
-            unit = request.form.get('unit', '')
-            exam_type = request.form.get('exam_type', '').strip() or ''
-            subject_code = request.form.get('subject_code', '').strip().upper()
+    if 'upload_document' not in request.files:
+        return jsonify(success=False, message="No file provided"), 400
 
-            price_raw = request.form.get('price', '').strip()
-            coupon_raw = request.form.get('coupon_code', '').strip().upper()
-            disc_raw = request.form.get('coupon_discount', '').strip()
-            pricing_data = None
+    file = request.files['upload_document']
+    if not file or not file.filename:
+        return jsonify(success=False, message="No file selected"), 400
 
-            if price_raw:
-                try:
-                    price_val = round(float(price_raw), 2)
-                    if price_val > 0:
-                        price_val = max(1.0, min(5000.0, price_val))
-                        pricing_data = {'is_paid': True, 'price': price_val, 'seller_id': user_id}
-                        if coupon_raw and coupon_raw.isalnum():
-                            try:
-                                disc_val = max(1, min(90, int(disc_raw or 10)))
-                                pricing_data['coupon_code'] = coupon_raw[:12]
-                                pricing_data['coupon_discount'] = disc_val
-                            except (ValueError, TypeError):
-                                pass
-                except (ValueError, TypeError):
-                    pass
+    if not app.validate_file_content(file, file.filename):
+        return jsonify(success=False, message="File type not allowed or invalid file content. Allowed types: PDF, PNG, JPG, JPEG, WEBP, GIF"), 400
 
-            if pricing_data:
-                desc_payload = {
-                    'text_description': description_val,
-                    'pricing': pricing_data
-                }
-                description_val = json.dumps(desc_payload)
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
 
-            _ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
-            folder_map = {
-                'papers': 'pyq',
-                'notes': 'notes',
-                'practical': 'practical',
-                'syllabus': 'syllabus',
-                'assisment': 'other',
-                'timetable': 'other',
-                'question_bank': 'pyq'
-            }
-            cloudinary_folder = folder_map.get(doc_type, 'uploads')
+    if file_size > app.MAX_FILE_SIZE:
+        return jsonify(success=False, message=f"File too large. Maximum size is {app.MAX_FILE_SIZE // (1024*1024)}MB"), 400
 
-            # Verification of metadata and academic requirements
-            verification_issues = []
-            if (not subject_id or subject_id == '__other__') and document_type.lower() != 'question_bank':
-                verification_issues.append(f"Subject selection is required (provided subject: '{subject or 'None'}')")
+    if file_size == 0:
+        return jsonify(success=False, message="File is empty"), 400
 
-            if semester is None:
-                semester = 1
+    try:
+        import time
+        import threading
+        from methods.cloudinary_upload import upload_file_to_cloudinary
+        from methods.supabase_helper import (
+            save_file_record, init_supabase, recalculate_and_persist_user_rank,
+            track_user_event, notify_all_new_upload
+        )
+        from methods.search_api import invalidate_search_cache
+        from cache_manager import get_cache
 
-            if not (year.isdigit() and len(year) == 4 and 1990 <= int(year) <= 2035):
-                verification_issues.append(f"Academic year '{year}' invalid or requires verification")
+        user_info = session.get('user', {})
+        user_id = user_info.get('uid', '')
+        user_email = user_info.get('email', '')
+        user_name = user_info.get('name', '')
 
-            if not title_val or len(title_val) < 3:
-                title_val = f"{subject or 'Study Material'} {document_type.replace('_', ' ').title()} {year}".strip()
+        subject = request.form.get('subject', '').strip()
+        year = (request.form.get('Year') or request.form.get('year') or '').strip()
+        doc_type = request.form.get('type', 'Other')
+        document_type = request.form.get('document_type') or request.form.get('type') or 'Other'
+        college_id = request.form.get('college_id', '').strip() or user_info.get('college_id') or (user_info.get('user_metadata') or {}).get('college_id', '')
+        branch_id = request.form.get('branch_id', '').strip()
+        subject_id = request.form.get('subject_id', '').strip()
+        semester_raw = request.form.get('semester', '').strip()
+        semester = int(semester_raw) if semester_raw.isdigit() and 1 <= int(semester_raw) <= 8 else 1
+        title_val = (request.form.get('title') or subject or '').strip()
+        description_val = request.form.get('description', '').strip()
+        program = request.form.get('program', 'b.tech').strip() or 'b.tech'
+        unit = request.form.get('unit', '').strip()
+        exam_type = request.form.get('exam_type', '').strip()
+        subject_code = request.form.get('subject_code', '').strip().upper()
+        file_hash = request.form.get('file_hash', '').strip() or None
+        material_request_id = request.form.get('material_request_id')
 
-            if not college_id:
-                college_id = user_info.get('college_id') or (user_info.get('user_metadata') or {}).get('college_id', '')
+        # Pricing data
+        price_raw = request.form.get('price', '').strip()
+        coupon_raw = request.form.get('coupon_code', '').strip().upper()
+        disc_raw = request.form.get('coupon_discount', '').strip()
+        pricing_data = None
+        if price_raw:
+            try:
+                price_val = round(float(price_raw), 2)
+                if price_val > 0:
+                    price_val = max(1.0, min(5000.0, price_val))
+                    pricing_data = {'is_paid': True, 'price': price_val, 'seller_id': user_id}
+                    if coupon_raw and coupon_raw.isalnum():
+                        try:
+                            disc_val = max(1, min(90, int(disc_raw or 10)))
+                            pricing_data['coupon_code'] = coupon_raw[:12]
+                            pricing_data['coupon_discount'] = disc_val
+                        except (ValueError, TypeError):
+                            pass
+            except (ValueError, TypeError):
+                pass
 
-            # Abbreviation resolution for College, Department, Subject, and Subject Code
-            col_abbr = (request.form.get('college_abbr') or '').strip().upper()
-            dept_abbr = (request.form.get('branch_abbr') or request.form.get('department_abbr') or '').strip().upper()
-            subj_abbr = (request.form.get('subject_abbr') or '').strip().upper()
+        if pricing_data:
+            description_val = json.dumps({'text_description': description_val, 'pricing': pricing_data})
 
-            # Fast cache lookup for College, Department, Subject abbreviations
-            global _ACRONYM_CACHE
-            if '_ACRONYM_CACHE' not in globals():
-                _ACRONYM_CACHE = {}
+        _ext = file.filename.rsplit('.', 1)[-1].lower() if '.' in file.filename else 'jpg'
+        folder_map = {
+            'papers': 'pyq',
+            'notes': 'notes',
+            'practical': 'practical',
+            'syllabus': 'syllabus',
+            'assisment': 'other',
+            'timetable': 'other',
+            'question_bank': 'pyq'
+        }
+        cloudinary_folder = folder_map.get(doc_type, 'uploads')
 
-            if not col_abbr and college_id:
-                col_abbr = _ACRONYM_CACHE.get(f"col:{college_id}", "")
-            if not dept_abbr and branch_id:
-                dept_abbr = _ACRONYM_CACHE.get(f"dept:{branch_id}", "")
-            if not subj_abbr and subject_id:
-                subj_abbr = _ACRONYM_CACHE.get(f"subj:{subject_id}", "")
-            if not subject_code and subject_id:
-                subject_code = _ACRONYM_CACHE.get(f"code:{subject_id}", "")
+        # Academic verification checks
+        verification_issues = []
+        if (not subject_id or subject_id == '__other__') and document_type.lower() != 'question_bank':
+            verification_issues.append(f"Subject selection is required (provided subject: '{subject or 'None'}')")
 
-            # Query DB only if any required abbreviation is not yet cached
-            if (not col_abbr and college_id) or (not dept_abbr and branch_id) or (subject_id and (not subj_abbr or not subject_code)):
-                from methods.supabase_helper import init_supabase, make_acronym
+        if not (year.isdigit() and len(year) == 4 and 1990 <= int(year) <= 2035):
+            verification_issues.append(f"Academic year '{year}' invalid or requires verification")
+
+        # Resolve acronyms and abbreviations
+        col_abbr_form = (request.form.get('college_abbr') or '').strip().upper()
+        dept_abbr_form = (request.form.get('branch_abbr') or request.form.get('department_abbr') or '').strip().upper()
+        subj_abbr_form = (request.form.get('subject_abbr') or '').strip().upper()
+
+        col_abbr, dept_abbr, subj_abbr, resolved_code = _resolve_abbreviations(college_id, branch_id, subject_id, subject, program)
+        col_abbr = col_abbr_form or col_abbr
+        dept_abbr = dept_abbr_form or dept_abbr
+        subj_abbr = subj_abbr_form or subj_abbr
+        subject_code = subject_code or resolved_code
+
+        # Build standardized descriptive title
+        prefix_tags = [p for p in [col_abbr, dept_abbr, subj_abbr] if p]
+        header = " - ".join(prefix_tags)
+        if subject_code and subject_code not in header:
+            header = f"{header} ({subject_code})" if header else subject_code
+
+        cat_title = document_type.replace('_', ' ').title()
+        unit_clean = re.sub(r'[^a-zA-Z0-9]', '', unit or '')
+
+        if not title_val or len(title_val) < 3 or title_val.lower() == (subject or '').lower():
+            detail_parts = [p for p in [unit, cat_title, year] if p]
+            title_val = f"{header} - {' • '.join(detail_parts)}" if header else " • ".join(detail_parts)
+        elif header and not title_val.startswith(col_abbr) and not title_val.startswith(header) and header not in title_val:
+            title_val = f"{header} - {title_val}"
+
+        if title_val:
+            title_val = re.sub(r'\bGHRCEG\b', 'GHRCE', title_val)
+            if program and str(program).lower() == 'mba':
+                title_val = re.sub(r'\bABA\b', 'MBA', title_val)
+
+        # Standardized file name
+        fn_components = [p for p in [
+            col_abbr, dept_abbr, subj_abbr, subject_code, exam_type,
+            unit_clean, cat_title.replace(' ', ''), str(year)
+        ] if p]
+        _base = "_".join(re.sub(r'[^a-zA-Z0-9]', '', c) for c in fn_components) if fn_components else f"upload_{int(time.time())}"
+        original_filename = f"{_base}.{_ext}"
+        original_filename = re.sub(r'\bGHRCEG\b', 'GHRCE', original_filename)
+        if program and str(program).lower() == 'mba':
+            original_filename = re.sub(r'\bABA\b', 'MBA', original_filename)
+
+        file_type_category = {
+            'pdf': 'pdf',
+            'doc': 'document', 'docx': 'document', 'txt': 'document',
+            'ppt': 'presentation', 'pptx': 'presentation',
+            'xls': 'spreadsheet', 'xlsx': 'spreadsheet',
+            'png': 'image', 'jpg': 'image', 'jpeg': 'image', 'gif': 'image', 'webp': 'image',
+            'zip': 'archive', 'rar': 'archive', '7z': 'archive'
+        }.get(_ext, 'file')
+
+        # 1. Cloudinary upload
+        upload_result = upload_file_to_cloudinary(
+            file_data=file,
+            filename=original_filename,
+            user_id=user_id or user_name.replace(' ', '_'),
+            folder=cloudinary_folder,
+            compress=True
+        )
+
+        if not upload_result.get('success'):
+            return jsonify(
+                success=False,
+                message=f"Upload failed: {upload_result.get('error', 'Unknown error')}"
+            ), 500
+
+        logging.info("[UPLOAD] Upload stored; saving document record")
+
+        # 2. Save record to DB
+        _save_fn = getattr(app, 'save_file_record', None) or save_file_record
+        file_record_result = _save_fn(
+            user_id=user_id,
+            user_email=user_email,
+            file_name=original_filename,
+            file_url=upload_result['secure_url'],
+            file_type=file_type_category,
+            file_size=upload_result.get('bytes') or file_size,
+            cloudinary_public_id=upload_result['public_id'],
+            subject_name=subject,
+            document_type=document_type.lower(),
+            year=year,
+            college_id=college_id if college_id else None,
+            branch_id=branch_id if branch_id else None,
+            title=title_val,
+            description=description_val,
+            subject_id=subject_id if subject_id else None,
+            semester=semester,
+            program=program,
+            exam_type=exam_type,
+            subject_code=subject_code,
+            file_hash=file_hash
+        )
+
+        record_saved = bool(file_record_result.get('success'))
+        doc_id = file_record_result.get('data', {}).get('id') if record_saved else None
+        err_detail = '; '.join(verification_issues) if verification_issues else (file_record_result.get('message', '') if not record_saved else '')
+        pending_admin = bool(verification_issues or not record_saved)
+
+        # Flag for admin review if needed
+        if pending_admin:
+            logging.warning(f"[UPLOAD FLAGGED FOR ADMIN] File: {upload_result['public_id']} Reason: {err_detail}")
+            try:
                 client_sb = init_supabase()
                 if client_sb:
-                    if not col_abbr and college_id:
-                        try:
-                            c_row = client_sb.table('colleges').select('name, abbreviation').eq('id', college_id).limit(1).execute()
-                            if c_row.data:
-                                col_abbr = (c_row.data[0].get('abbreviation') or make_acronym(c_row.data[0].get('name'))).strip().upper()
-                                _ACRONYM_CACHE[f"col:{college_id}"] = col_abbr
-                        except Exception:
-                            pass
-                    if not dept_abbr and branch_id:
-                        try:
-                            d_row = client_sb.table('departments').select('name, abbreviation').eq('id', branch_id).limit(1).execute()
-                            if d_row.data:
-                                dept_abbr = (d_row.data[0].get('abbreviation') or make_acronym(d_row.data[0].get('name'))).strip().upper()
-                                _ACRONYM_CACHE[f"dept:{branch_id}"] = dept_abbr
-                        except Exception:
-                            pass
-                    if subject_id and (not subj_abbr or not subject_code):
-                        try:
-                            s_row = client_sb.table('subjects').select('name, subject_code').eq('id', subject_id).limit(1).execute()
-                            if s_row.data:
-                                if not subject_code:
-                                    subject_code = (s_row.data[0].get('subject_code') or '').strip().upper()
-                                    _ACRONYM_CACHE[f"code:{subject_id}"] = subject_code
-                                if not subj_abbr:
-                                    subj_abbr = make_acronym(s_row.data[0].get('name') or subject)
-                                    _ACRONYM_CACHE[f"subj:{subject_id}"] = subj_abbr
-                        except Exception:
-                            pass
+                    client_sb.table('storage_assets').upsert({
+                        'provider': 'cloudinary',
+                        'provider_public_id': upload_result.get('public_id'),
+                        'filename': original_filename,
+                        'public_url': upload_result.get('secure_url'),
+                        'mime': upload_result.get('format', 'unknown'),
+                        'status': 'NEEDS_ADMIN_REVIEW',
+                        'notes': f"Verification note: {err_detail}"
+                    }, on_conflict='provider,provider_public_id').execute()
 
-            if not subj_abbr and subject:
-                subj_abbr = make_acronym(subject)
+                    client_sb.table('notifications').insert({
+                        'user_id': user_id,
+                        'type': 'upload_flagged_for_admin',
+                        'title': f"Upload needs verification: {original_filename[:35]}",
+                        'message': f"Uploaded file ({upload_result.get('secure_url')}) flagged: {err_detail}. Admin review to keep or delete.",
+                        'is_read': False
+                    }).execute()
 
-            # Program-aware department abbreviation override
-            if program and str(program).lower() != 'b.tech':
-                prog_clean = re.sub(r'[^a-zA-Z0-9]', '', str(program)).upper()
-                if not dept_abbr or dept_abbr in ('ALL', 'ABA', 'ALLBRANCHES'):
-                    dept_abbr = prog_clean
+                    if doc_id:
+                        client_sb.table('documents').update({
+                            'status': 'pending',
+                            'verification_notes': err_detail
+                        }).eq('id', doc_id).execute()
+            except Exception as admin_rep_err:
+                logging.warning(f"[UPLOAD ADMIN REPORT NOTE] {admin_rep_err}")
 
-            # Override known corrupted acronym artifacts
-            if col_abbr == 'GHRCEG':
-                col_abbr = 'GHRCE'
-            if dept_abbr == 'ABA' and program and str(program).lower() == 'mba':
-                dept_abbr = 'MBA'
-
-            # Build standardized descriptive title: CollegeAbbr - DeptAbbr - SubjAbbr (SubjectCode) - Topic/Unit/Category Year
-            prefix_tags = [p for p in [col_abbr, dept_abbr, subj_abbr] if p]
-            header = " - ".join(prefix_tags)
-            if subject_code and subject_code not in header:
-                header = f"{header} ({subject_code})" if header else subject_code
-
-            cat_title = document_type.replace('_', ' ').title()
-            unit_clean = re.sub(r'[^a-zA-Z0-9]', '', unit or '')
-
-            if not title_val or len(title_val) < 3 or title_val.lower() == (subject or '').lower():
-                detail_parts = [p for p in [unit, cat_title, year] if p]
-                title_val = f"{header} - {' · '.join(detail_parts)}" if header else " · ".join(detail_parts)
-            elif header and not title_val.startswith(col_abbr) and not title_val.startswith(header) and header not in title_val:
-                title_val = f"{header} - {title_val}"
-
-            if title_val:
-                title_val = re.sub(r'\bGHRCEG\b', 'GHRCE', title_val)
-                if program and str(program).lower() == 'mba':
-                    title_val = re.sub(r'\bABA\b', 'MBA', title_val)
-
-            fn_components = [p for p in [
-                col_abbr, dept_abbr, subj_abbr, subject_code, exam_type,
-                unit_clean, cat_title.replace(' ', ''), str(year)
-            ] if p]
-            if fn_components:
-                _base = "_".join(re.sub(r'[^a-zA-Z0-9]', '', c) for c in fn_components)
-            else:
-                _base = f"upload_{int(time.time())}"
-            original_filename = f"{_base}.{_ext}"
-            original_filename = re.sub(r'\bGHRCEG\b', 'GHRCE', original_filename)
-            if program and str(program).lower() == 'mba':
-                original_filename = re.sub(r'\bABA\b', 'MBA', original_filename)
-
-            ext = _ext
-            file_type_category = {
-                'pdf': 'pdf',
-                'doc': 'document', 'docx': 'document', 'txt': 'document',
-                'ppt': 'presentation', 'pptx': 'presentation',
-                'xls': 'spreadsheet', 'xlsx': 'spreadsheet',
-                'png': 'image', 'jpg': 'image', 'jpeg': 'image', 'gif': 'image', 'webp': 'image',
-                'zip': 'archive', 'rar': 'archive', '7z': 'archive'
-            }.get(ext, 'file')
-
-            # Upload only after the canonical filename has been generated.
-            # The Cloudinary adapter stores PDFs under a .txt public id while
-            # preserving their PDF bytes and application/pdf delivery type.
-            from methods.cloudinary_upload import upload_file_to_cloudinary
-            upload_result = upload_file_to_cloudinary(
-                file_data=file,
-                filename=original_filename,
-                user_id=user_id or user_name.replace(' ', '_'),
-                folder=cloudinary_folder,
-                compress=True
-            )
-
-            if not upload_result.get('success'):
-                return jsonify(
-                    success=False,
-                    message=f"Upload failed: {upload_result.get('error', 'Unknown error')}"
-                ), 500
-
-            logging.info(f"[UPLOAD] Uploader:{user_id} College:{college_id} Branch:{branch_id} Semester:{semester} Subject:{subject!r} SubjectID:{subject_id}")
-
-            file_hash = request.form.get('file_hash', '').strip() or None
-
-            _save_fn = getattr(app, 'save_file_record', None) or save_file_record
-            file_record_result = _save_fn(
-                user_id=user_id,
-                user_email=user_email,
-                file_name=original_filename,
-                file_url=upload_result['secure_url'],
-                file_type=file_type_category,
-                file_size=upload_result.get('bytes') or file_size,
-                cloudinary_public_id=upload_result['public_id'],
-                subject_name=subject,
-                document_type=document_type.lower(),
-                year=year,
-                college_id=college_id if college_id else None,
-                branch_id=branch_id if branch_id else None,
-                title=title_val,
-                description=description_val,
-                subject_id=subject_id if subject_id else None,
-                semester=semester,
-                program=program,
-                exam_type=exam_type,
-                subject_code=subject_code,
-                file_hash=file_hash
-            )
-
-            # 3. IF ANY VERIFICATION ISSUES OR DB RECORD ERROR: Report to admin (Admin decides to keep or delete)
-            if not file_record_result.get('success') or verification_issues:
-                err_detail = '; '.join(verification_issues) if verification_issues else file_record_result.get('message', 'Database record creation deferred')
-                logging.warning(f"[UPLOAD FLAGGED FOR ADMIN] File: {upload_result['public_id']} Reason: {err_detail}")
-                try:
-                    from methods.supabase_helper import init_supabase
-                    client_sb = init_supabase()
-                    if client_sb:
-                        client_sb.table('storage_assets').upsert({
-                            'provider': 'cloudinary',
-                            'provider_public_id': upload_result.get('public_id'),
-                            'filename': original_filename,
-                            'public_url': upload_result.get('secure_url'),
-                            'mime': upload_result.get('format', 'unknown'),
-                            'status': 'NEEDS_ADMIN_REVIEW',
-                            'notes': f"Verification note: {err_detail}"
-                        }, on_conflict='provider,provider_public_id').execute()
-
-                        client_sb.table('notifications').insert({
-                            'user_id': user_id,
-                            'type': 'upload_flagged_for_admin',
-                            'title': f"Upload needs verification: {original_filename[:35]}",
-                            'message': f"Uploaded file ({upload_result.get('secure_url')}) flagged: {err_detail}. Admin review to keep or delete.",
-                            'is_read': False
-                        }).execute()
-
-                        doc_id_flagged = file_record_result.get('data', {}).get('id') if file_record_result.get('success') else None
-                        if doc_id_flagged:
-                            client_sb.table('documents').update({
-                                'status': 'pending',
-                                'verification_notes': err_detail
-                            }).eq('id', doc_id_flagged).execute()
-                except Exception as admin_rep_err:
-                    logging.warning(f"[UPLOAD ADMIN REPORT NOTE] {admin_rep_err}")
-
-            if not file_record_result.get('success'):
-                return jsonify(
-                    success=True,
-                    pending_admin=True,
-                    message=f"File uploaded to cloud storage and queued for admin review ({err_detail}).",
-                    file_url=upload_result['secure_url'],
-                    public_id=upload_result['public_id'],
-                    data={
-                        'record_id': None,
-                        'url': upload_result['secure_url'],
-                        'file_type': file_type_category,
-                        'is_paid': bool(pricing_data),
-                        'price': float(pricing_data.get('price', 0)) if pricing_data else 0.0,
-                        'public_id': upload_result['public_id']
-                    }
-                ), 200
-
-            if file_record_result.get('success'):
-                try:
-                    from methods.search_api import invalidate_search_cache
-                    invalidate_search_cache()
-                except Exception as cache_err:
-                    logging.warning(f"[UPLOAD] Search cache invalidation failed: {cache_err}")
-
-                doc_id = file_record_result.get('data', {}).get('id') if file_record_result.get('success') else None
-                upload_message = (
-                    f"File uploaded to cloud storage successfully! Flagged for admin verification ({err_detail})."
-                    if verification_issues else
-                    "File uploaded and published successfully."
-                )
-                return jsonify(
-                    success=True,
-                    pending_admin=True,
-                    message=upload_message,
-                    file_url=upload_result['secure_url'],
-                    public_id=upload_result['public_id'],
-                    document={'id': doc_id, 'title': title_val, 'url': upload_result['secure_url']},
-                    data={
-                        'record_id': doc_id,
-                        'url': upload_result['secure_url'],
-                        'file_type': file_type_category,
-                        'is_paid': bool(pricing_data),
-                        'price': float(pricing_data.get('price', 0)) if pricing_data else 0.0,
-                        'public_id': upload_result['public_id']
-                    }
-                ), 200
-
-            doc_id = file_record_result.get('data', {}).get('id')
-            material_request_id = request.form.get('material_request_id')
-
-            def _bg_post_upload(u_id, u_email, d_id, s_id, sem, d_type, m_req_id, d_title, s_name):
-                try:
-                    track_user_event(u_id, 'UPLOAD', {
-                        'document_id': d_id,
-                        'subject_id': s_id,
-                        'semester': sem,
-                        'document_type': d_type
-                    })
-                except Exception:
-                    pass
-                if m_req_id and d_id:
-                    try:
-                        c = init_supabase()
-                        if c:
-                            c.table('material_requests').update({
-                                'status': 'accepted',
-                                'responder_id': u_id,
-                                'responder_email': u_email,
-                                'response_message': f"Uploaded file {d_id}",
-                                'response_document_id': d_id,
-                                'responded_at': 'now()'
-                            }).eq('id', m_req_id).execute()
-                    except Exception:
-                        pass
-                try:
-                    app._trigger_indexnow([
-                        f"https://{app.BASE_DOMAIN}/pyq",
-                        f"https://{app.BASE_DOMAIN}/resource/{d_id}" if d_id else None,
-                    ])
-                except Exception:
-                    pass
-                try:
-                    recalculate_and_persist_user_rank(u_id)
-                except Exception:
-                    pass
-                try:
-                    from methods.supabase_helper import notify_all_new_upload
-                    notify_all_new_upload(doc_id=d_id, title=d_title, uploader_id=u_id, subject=s_name)
-                except Exception as ex:
-                    logging.warning(f"[UPLOAD NOTIFY] notify_all_new_upload failed: {ex}")
-
-            import threading
-            threading.Thread(
-                target=_bg_post_upload,
-                args=(user_id, user_email, doc_id, subject_id or None, semester, document_type.lower(), material_request_id, title_val, subject),
-                daemon=True
-            ).start()
-
-            cat = document_type.lower()
+        # 3. Post-upload XP, quota & cache invalidation
+        cat = document_type.lower()
+        try:
             app._grant_upload_credits(cat)
-            raw_pts = app.POINTS_MAP.get(cat, app.DEFAULT_POINTS)
-            xp_gained = round(raw_pts * 0.5, 2)
-            new_score = 0.0
-            try:
-                profile_row = session.get('profile') or {}
-                new_score = round(float(profile_row.get('reputation_score') or 0.0) + xp_gained, 2)
-            except Exception:
-                pass
+        except Exception:
+            pass
 
-            try:
-                from cache_manager import get_cache
-                c_mgr = get_cache()
-                if c_mgr:
-                    c_mgr.invalidate_files()
-                    c_mgr.invalidate_dropdowns()
-                    c_mgr.bump_version()
-            except Exception:
-                pass
+        raw_pts = getattr(app, 'POINTS_MAP', {}).get(cat, getattr(app, 'DEFAULT_POINTS', 50))
+        xp_gained = round(raw_pts * 0.5, 2)
+        new_score = 0.0
+        try:
+            profile_row = session.get('profile') or {}
+            new_score = round(float(profile_row.get('reputation_score') or 0.0) + xp_gained, 2)
+        except Exception:
+            pass
 
+        try:
+            invalidate_search_cache()
+            c_mgr = get_cache()
+            if c_mgr:
+                c_mgr.invalidate_files()
+                c_mgr.invalidate_dropdowns()
+                c_mgr.bump_version()
+        except Exception as cache_err:
+            logging.warning(f"[UPLOAD] Cache invalidation note: {cache_err}")
+
+        total_uploads = 1
+        try:
+            prof = session.get('profile') or {}
+            cached_cnt = prof.get('total_contributions') or prof.get('total_uploads')
+            total_uploads = int(cached_cnt) + 1 if cached_cnt is not None else 1
+        except Exception:
             total_uploads = 1
-            try:
-                prof = session.get('profile') or {}
-                cached_cnt = prof.get('total_contributions') or prof.get('total_uploads')
-                total_uploads = int(cached_cnt) + 1 if cached_cnt is not None else 1
-            except Exception:
-                total_uploads = 1
 
-            document_payload = {
+        # 4. Async background worker for analytics, notifications, indexing
+        def _bg_post_upload(u_id, u_email, d_id, s_id, sem, d_type, m_req_id, d_title, s_name):
+            try:
+                track_user_event(u_id, 'UPLOAD', {
+                    'document_id': d_id,
+                    'subject_id': s_id,
+                    'semester': sem,
+                    'document_type': d_type
+                })
+            except Exception:
+                pass
+            if m_req_id and d_id:
+                try:
+                    c = init_supabase()
+                    if c:
+                        c.table('material_requests').update({
+                            'status': 'accepted',
+                            'responder_id': u_id,
+                            'responder_email': u_email,
+                            'response_message': f"Uploaded file {d_id}",
+                            'response_document_id': d_id,
+                            'responded_at': 'now()'
+                        }).eq('id', m_req_id).execute()
+                except Exception:
+                    pass
+            try:
+                trigger_fn = getattr(app, '_trigger_indexnow', None)
+                if trigger_fn:
+                    trigger_fn([
+                        f"https://{getattr(app, 'BASE_DOMAIN', 'abhihub.com')}/pyq",
+                        f"https://{getattr(app, 'BASE_DOMAIN', 'abhihub.com')}/resource/{d_id}" if d_id else None,
+                    ])
+            except Exception:
+                pass
+            try:
+                recalculate_and_persist_user_rank(u_id)
+            except Exception:
+                pass
+            try:
+                notify_all_new_upload(doc_id=d_id, title=d_title, uploader_id=u_id, subject=s_name)
+            except Exception as ex:
+                logging.warning(f"[UPLOAD NOTIFY] notify_all_new_upload failed: {ex}")
+
+        threading.Thread(
+            target=_bg_post_upload,
+            args=(user_id, user_email, doc_id, subject_id or None, semester, cat, material_request_id, title_val, subject),
+            daemon=True
+        ).start()
+
+        upload_message = (
+            f"File uploaded to cloud storage successfully! Flagged for admin verification ({err_detail})."
+            if pending_admin else
+            "File uploaded and published successfully."
+        )
+
+        return jsonify(
+            success=True,
+            pending_admin=pending_admin,
+            message=upload_message,
+            file_url=upload_result['secure_url'],
+            public_id=upload_result['public_id'],
+            document={
                 'id': doc_id,
                 'title': title_val,
                 'url': f"/resource/{doc_id}" if doc_id else upload_result['secure_url'],
                 'subject': subject,
                 'semester': semester,
-                'document_type': document_type.lower()
-            }
-            contribution_payload = {
+                'document_type': cat
+            },
+            contribution={
                 'xp_earned': xp_gained,
                 'total_xp': new_score,
                 'total_contributions': total_uploads
+            },
+            data={
+                'record_id': doc_id,
+                'resource_id': doc_id,
+                'resource_url': f"/resource/{doc_id}" if doc_id else None,
+                'url': upload_result['secure_url'],
+                'title': title_val,
+                'subject': subject,
+                'semester': semester,
+                'document_type': cat,
+                'public_id': upload_result['public_id'],
+                'file_size': upload_result.get('bytes') or file_size,
+                'file_type': file_type_category,
+                'is_paid': bool(pricing_data),
+                'price': float(pricing_data.get('price', 0)) if pricing_data else 0.0,
+                'compressed': bool(upload_result.get('bytes') and upload_result['bytes'] < file_size),
+                'credits_granted': getattr(app, 'QUOTA_PER_UPLOAD', 1),
+                'credits_remaining': (getattr(app, '_get_quota', lambda: {})() or {}).get('credits', 0),
+                'xp_gained': xp_gained,
+                'new_score': new_score,
+                'total_contributions': total_uploads
             }
+        ), 200
 
-            return jsonify(
-                success=True,
-                message="Contribution uploaded and published successfully! 🎉",
-                document=document_payload,
-                contribution=contribution_payload,
-                data={
-                    'url': upload_result['secure_url'],
-                    'record_id': doc_id,
-                    'resource_id': doc_id,
-                    'resource_url': f"/resource/{doc_id}" if doc_id else None,
-                    'title': title_val,
-                    'subject': subject,
-                    'semester': semester,
-                    'document_type': document_type.lower(),
-                    'public_id': upload_result['public_id'],
-                    'file_size': upload_result.get('bytes') or file_size,
-                    'file_type': file_type_category,
-                    'is_paid': bool(pricing_data),
-                    'price': float(pricing_data.get('price', 0)) if pricing_data else 0.0,
-                    'compressed': bool(upload_result.get('bytes') and upload_result['bytes'] < file_size),
-                    'credits_granted': app.QUOTA_PER_UPLOAD,
-                    'credits_remaining': app._get_quota().get('credits', 0),
-                    'xp_gained': xp_gained,
-                    'new_score': new_score,
-                    'total_contributions': total_uploads
-                }
-            ), 200
-            
-        except Exception as e:
-            logging.error(f"[UPLOAD EXCEPTION] Upload error: {e}")
-            return jsonify(
-                success=False,
-                message=f"Upload failed: {str(e)}"
-            ), 500
-
-    if 'user' in session:
-        return render_template('app/upload.html')
-    else:
-        return render_template('site/login.html')
+    except Exception as e:
+        logging.error(f"[UPLOAD EXCEPTION] Upload error: {e}")
+        return jsonify(
+            success=False,
+            message=f"Upload failed: {str(e)}"
+        ), 500
 
 
 @app_pages_bp.route('/dashboard/suggest')

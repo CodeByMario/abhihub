@@ -102,7 +102,11 @@ def _resolve_signed_url(file_url, log_tag="AI"):
         signed = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
         return signed[0] if isinstance(signed, (list, tuple)) else signed
     except Exception as e:
-        logging.warning(f"[{log_tag}] Failed signing URL: {e}")
+        logging.warning(
+            "[%s] Failed signing storage URL (error_type=%s)",
+            log_tag,
+            type(e).__name__,
+        )
         return file_url
 
 
@@ -152,7 +156,7 @@ def extract_pdf_info(pdf_bytes, max_pages=3):
                 except Exception:
                     pass
     except Exception as e:
-        logging.warning(f"[extract_pdf_info] pypdf error: {e}")
+        logging.warning("[extract_pdf_info] pypdf failed (error_type=%s)", type(e).__name__)
 
     if not img_bytes:
         try:
@@ -169,7 +173,7 @@ def extract_pdf_info(pdf_bytes, max_pages=3):
                 img_bytes = pix.tobytes("png")
                 mime_type = "image/png"
         except Exception as e:
-            logging.warning(f"[extract_pdf_info] fitz error: {e}")
+            logging.warning("[extract_pdf_info] fitz failed (error_type=%s)", type(e).__name__)
 
     if extracted_text and total_pages > 0:
         extracted_text = f"[Read pages 1 to {pages_read} of {total_pages}]\n" + extracted_text
@@ -190,7 +194,10 @@ def extract_pdf_info(pdf_bytes, max_pages=3):
                         text_chunks.append(sub.group(1).decode('latin1', errors='ignore'))
             extracted_text = re.sub(r'\s+', ' ', ' '.join(text_chunks)).strip()
         except Exception as e:
-            logging.warning(f"[extract_pdf_info] raw stream extraction error: {e}")
+            logging.warning(
+                "[extract_pdf_info] raw stream extraction failed (error_type=%s)",
+                type(e).__name__,
+            )
 
     return extracted_text.strip(), img_bytes, mime_type
 
@@ -290,7 +297,10 @@ def api_ai_key_set(user_data=None):
                 'message': f'{provider.capitalize()} API key validation failed — provider rejected the key.'
             }), 401
         except Exception as exc:
-            logging.warning(f'[ai/key] Validation call error (saving anyway): {exc}')
+            logging.warning(
+                '[ai/key] Validation call failed (error_type=%s); saving anyway',
+                type(exc).__name__,
+            )
     elif provider in ('ollama', 'local', 'ollama_local'):
         validation_warning = 'Local Ollama endpoint configured. Probing will be performed directly from your browser.'
     else:
@@ -309,7 +319,7 @@ def api_ai_key_set(user_data=None):
     masked_key = f"...{raw_key[-4:]}" if len(raw_key) >= 4 and not raw_key.startswith('http') and raw_key != 'browser_webgpu' else 'Configured'
     set_user_ai_key(user_id, provider, key_enc, key_hint=masked_key)
 
-    logging.info(f'[ai/key] BYOK key saved for user {user_id} provider={provider}')
+    logging.info('[ai/key] BYOK key saved (provider=%s)', provider)
     success_msg = validation_warning or f'{provider.capitalize()} API key verified & saved.'
     return jsonify({'success': True, 'message': success_msg, 'provider': provider, 'key_masked': masked_key}), 200
 
@@ -352,13 +362,13 @@ def api_ai_key_delete(user_data=None):
     provider = (request.args.get('provider') or (request.get_json(silent=True) or {}).get('provider') or '').strip().lower()
     if provider:
         delete_user_ai_key(user_id, provider)
-        logging.info(f'[ai/key] BYOK key removed for user {user_id} provider={provider}')
+        logging.info('[ai/key] BYOK key removed (provider=%s)', provider)
         return jsonify({'success': True, 'message': f'{provider.capitalize()} key removed.'}), 200
 
     if not clear_ai_key(user_id):
         return jsonify({'success': False, 'message': 'Failed to remove key'}), 500
 
-    logging.info(f'[ai/key] BYOK key removed for user {user_id}')
+    logging.info('[ai/key] BYOK keys removed')
     return jsonify({'success': True, 'message': 'API key removed. Reverted to free tier.'}), 200
 
 
@@ -458,7 +468,10 @@ def api_ai_assistant(user_data=None):
                     context_snapshot={'doc_id': doc_id, 'doc_title': doc_title_req}
                 )
         except Exception as convo_err:
-            logging.debug(f"[AI Assistant] Convo init error: {convo_err}")
+            logging.debug(
+                "[AI Assistant] Conversation initialization failed (error_type=%s)",
+                type(convo_err).__name__,
+            )
 
     safety_in = check_input(message)
     if not safety_in.passed:
@@ -552,7 +565,7 @@ def api_ai_assistant(user_data=None):
                     'url': f"/resource/{d.get('id')}"
                 })
         except Exception as err:
-            logging.warning(f"[AI Assistant] Search error: {err}")
+            logging.warning("[AI Assistant] Search failed (error_type=%s)", type(err).__name__)
 
     doc_context = ""
     image_url = None
@@ -634,12 +647,18 @@ def api_ai_assistant(user_data=None):
                                             sanitized_text = sanitized_text[:char_limit] + "\n\n[NOTE: Document truncated. Only the first 5,000 characters were read.]\n"
                                         doc_context += f"DOCUMENT CONTENT & QUESTIONS (Extracted text):\n{sanitized_text}\n"
                         except Exception as fetch_err:
-                            logging.warning(f"[Tarika] File fetch error: {fetch_err}")
+                            logging.warning(
+                                "[Tarika] File context fetch failed (error_type=%s)",
+                                type(fetch_err).__name__,
+                            )
                     doc_context += "</untrusted_document_context>\n"
                 elif target_uuid or doc_id:
                     doc_context = "\n\n[NOTE: The document previously opened is no longer available on AbhiHub. Proceeding with general study assistance.]\n"
         except Exception as doc_err:
-            logging.warning(f"[Tarika] Doc context error: {doc_err}")
+            logging.warning(
+                "[Tarika] Document context lookup failed (error_type=%s)",
+                type(doc_err).__name__,
+            )
 
     system_prompt = (
         "You are Tarika — an authentic, warm, and playful college girl and study companion on AbhiHub (https://abhihub.edu.eu.org).\n"
@@ -748,7 +767,10 @@ def api_ai_assistant(user_data=None):
         ])
         return jsonify({'success': False, 'message': msg}), 429
     except Exception as exc:
-        logging.error(f"[AI Assistant] Provider error: {exc}")
+        logging.error(
+            "[AI Assistant] Provider request failed (error_type=%s)",
+            type(exc).__name__,
+        )
         return jsonify({'success': False, 'message': "Temporary service unavailable, please try again."}), 503
     finally:
         with _tarika_lock:
@@ -791,7 +813,10 @@ def api_ai_assistant(user_data=None):
                 finish_reason=resp.finish_reason
             )
         except Exception as log_err:
-            logging.warning(f"[AI Assistant] log_turn error: {log_err}")
+            logging.warning(
+                "[AI Assistant] Usage record failed (error_type=%s)",
+                type(log_err).__name__,
+            )
 
     auto_open = None
     if actions and re.search(r'\b(open it|open the|open this|take me to|navigate)\b', message, re.IGNORECASE):

@@ -184,10 +184,21 @@ def api_my_access():
             progress = get_access_progress(uid)
         level = (gate.get('level') or '').lower()
         can_monetize = level in ['contributor', 'power_contributor', 'community_leader'] or session.get('user', {}).get('role') == 'admin' or session.get('is_admin', False)
+        comm_info = {'creator_pct': 70, 'is_promo': False, 'promo_days_remaining': 0}
+        if uid:
+            try:
+                from methods.wallet_service import get_creator_commission_pct
+                comm_info = get_creator_commission_pct(uid)
+            except Exception:
+                pass
         return jsonify({
             'success': True,
             'level': gate.get('level'),
             'can_monetize': can_monetize,
+            'creator_commission': comm_info,
+            'creator_commission_pct': comm_info.get('creator_pct', 70),
+            'is_promo': comm_info.get('is_promo', False),
+            'promo_days_remaining': comm_info.get('promo_days_remaining', 0),
             'limits': {k: v for k, v in gate.items() if k != 'level'},
             'uploads_today_remaining': quota.get('remaining'),
             'progress': progress,
@@ -501,7 +512,10 @@ def get_profile():
         students_helped = 0
         badges = []
         college_id = None
+        college_name = None
+        college_abbreviation = None
         department_id = None
+        branch_name = None
         degree = None
         pursuing_year = None
 
@@ -512,18 +526,30 @@ def get_profile():
                 badges = rep_stats.get('badges', [])
 
             try:
-                client = init_supabase()
-                pres = client.table('profiles').select('college_id, department_id, degree').eq('id', user_id).single().execute()
-                if pres.data:
-                    college_id = pres.data.get('college_id')
-                    department_id = pres.data.get('department_id')
-                    degree = pres.data.get('degree')
+                from methods.supabase_helper import get_student_profile
+                sp_res = get_student_profile(user_id)
+                if sp_res and sp_res.get('success') and sp_res.get('data'):
+                    sp = sp_res['data']
+                    college_id = sp.get('college_id') or college_id
+                    college_name = sp.get('college_name')
+                    college_abbreviation = sp.get('college_abbreviation')
+                    department_id = sp.get('branch_id') or sp.get('department_id') or department_id
+                    branch_name = sp.get('branch_name')
+                    degree = sp.get('degree') or degree
+                    pursuing_year = sp.get('pursuing_year') or pursuing_year
+                else:
+                    client = init_supabase()
+                    pres = client.table('profiles').select('college_id, department_id, degree').eq('id', user_id).single().execute()
+                    if pres.data:
+                        college_id = pres.data.get('college_id')
+                        department_id = pres.data.get('department_id')
+                        degree = pres.data.get('degree')
 
-                sres = client.table('students').select('pursuing_year, year_of_joining, degree').eq('profile_id', user_id).limit(1).execute()
-                if sres.data:
-                    pursuing_year = sres.data[0].get('pursuing_year')
-                    if not degree:
-                        degree = sres.data[0].get('degree')
+                    sres = client.table('students').select('pursuing_year, year_of_joining, degree').eq('profile_id', user_id).limit(1).execute()
+                    if sres.data:
+                        pursuing_year = sres.data[0].get('pursuing_year')
+                        if not degree:
+                            degree = sres.data[0].get('degree')
             except Exception:
                 pass
 
@@ -537,15 +563,35 @@ def get_profile():
             except Exception:
                 pass
 
+        comm_info = {'creator_pct': 70, 'is_promo': False, 'promo_days_remaining': 0}
+        if user_id:
+            try:
+                from methods.wallet_service import get_creator_commission_pct
+                comm_info = get_creator_commission_pct(user_id)
+            except Exception:
+                pass
+
         return jsonify({
             'success': True,
             'college_id': college_id,
+            'college_name': college_name,
+            'college_abbreviation': college_abbreviation,
             'department_id': department_id,
+            'branch_id': department_id,
+            'branch_name': branch_name,
             'degree': degree,
             'program': degree,
             'semester': semester,
             'pursuing_year': pursuing_year,
+            'creator_commission': comm_info,
+            'creator_commission_pct': comm_info.get('creator_pct', 70),
+            'is_promo': comm_info.get('is_promo', False),
+            'promo_days_remaining': comm_info.get('promo_days_remaining', 0),
             'user': {
+                'creator_commission': comm_info,
+                'creator_commission_pct': comm_info.get('creator_pct', 70),
+                'is_promo': comm_info.get('is_promo', False),
+                'promo_days_remaining': comm_info.get('promo_days_remaining', 0),
                 'uid': user_info.get('uid'),
                 'email': user_info.get('email'),
                 'name': user_info.get('name'),
@@ -1434,7 +1480,10 @@ def api_extract_upload_metadata():
                 file.filename = file_name
                 file.mimetype = r.headers.get('content-type') or ('application/pdf' if file_name.endswith('.pdf') else 'image/jpeg')
         except Exception as e:
-            logging.warning(f"[extract-upload-metadata] Download from url failed: {e}")
+            logging.warning(
+                "[extract-upload-metadata] Download failed (error_type=%s)",
+                type(e).__name__,
+            )
 
     if not file or not getattr(file, 'filename', None):
         return jsonify({'success': False, 'message': 'No file provided'}), 400
@@ -1505,7 +1554,10 @@ def api_extract_upload_metadata():
                 img_bytes = pdf_img_bytes
                 mime_type = pdf_img_mime or 'image/png'
         except Exception as e:
-            logging.warning(f"[AI Extract] PDF extract info failed: {e}")
+            logging.warning(
+                "[AI Extract] PDF extraction failed (error_type=%s)",
+                type(e).__name__,
+            )
     else:
         img_bytes = content_bytes
         mime_type = content_type if content_type.startswith('image/') else 'image/jpeg'
@@ -1567,7 +1619,7 @@ def api_extract_upload_metadata():
                 route='/api/ai/extract-upload-metadata',
             )
         except Exception as l_err:
-            logging.debug(f"[ai_log] log_turn notice: {l_err}")
+            logging.debug("[ai_log] log_turn notice (error_type=%s)", type(l_err).__name__)
 
         filled = [k for k, v in validated.items() if v]
 
@@ -1596,7 +1648,7 @@ def api_extract_upload_metadata():
                 route='/api/ai/extract-upload-metadata',
             )
         except Exception as l_err:
-            logging.debug(f"[ai_log] log_turn error notice: {l_err}")
+            logging.debug("[ai_log] log_turn error notice (error_type=%s)", type(l_err).__name__)
         return jsonify({
             'success': True,
             'source': 'heuristic_fallback',
@@ -1612,7 +1664,10 @@ def api_extract_upload_metadata():
             'cost_usd': 0.0,
         }), 200
     except Exception as exc:
-        logging.error(f"[AI Extract] Unexpected error: {exc}")
+        logging.error(
+            "[AI Extract] Unexpected failure (error_type=%s)",
+            type(exc).__name__,
+        )
         return jsonify({'success': True, 'source': 'heuristic_fallback', 'metadata': known_fields, 'fields_filled': []}), 200
 
 
@@ -2002,7 +2057,11 @@ def proxy_file():
         resp.headers.update(_secure_file_headers())
         return resp
     except Exception as e:
-        logging.error(f"[PROXY] Error for {file_url}: {e}")
+        logging.error(
+            "[PROXY] Fetch failed for host=%s error_type=%s",
+            parsed.hostname or "unknown",
+            type(e).__name__,
+        )
         abort(502)
 
 
@@ -2284,7 +2343,10 @@ def view_doc(doc_id, filename=None):
                 except Exception:
                     pass
             except Exception as e:
-                logging.error(f"[VIEW-DOC] Firebase sign setup error for {doc_id}: {e}")
+                logging.error(
+                    "[VIEW-DOC] Firebase sign setup failed (error_type=%s)",
+                    type(e).__name__,
+                )
 
     if isinstance(file_url, (list, tuple)):
         file_url = file_url[0] if file_url else ''
@@ -2346,7 +2408,10 @@ def view_doc(doc_id, filename=None):
                         cache.l1.set(cloudinary_cache_key, signed_url, ttl=300)
                 parsed = urlparse(file_url)
         except Exception as _e:
-            logging.warning(f"[VIEW-DOC] Cloudinary pre-sign failed for {doc_id}: {_e}")
+            logging.warning(
+                "[VIEW-DOC] Cloudinary pre-sign failed (error_type=%s)",
+                type(_e).__name__,
+            )
 
     upstream = _fetch(file_url)
 
@@ -2372,7 +2437,10 @@ def view_doc(doc_id, filename=None):
                     file_url = retry_url
                     parsed = urlparse(retry_url)
         except Exception as retry_error:
-            logging.warning(f"[VIEW-DOC] Cloudinary raw .txt retry failed for {doc_id}: {retry_error}")
+            logging.warning(
+                "[VIEW-DOC] Cloudinary raw-file retry failed (error_type=%s)",
+                type(retry_error).__name__,
+            )
 
     if upstream.status_code in (403, 404) and parsed.hostname in ('firebasestorage.googleapis.com', 'storage.googleapis.com'):
         try:
@@ -2400,7 +2468,10 @@ def view_doc(doc_id, filename=None):
                 upstream.close()
                 upstream = _fetch(fresh_url)
             except Exception as e:
-                logging.error(f"[VIEW-DOC] Re-sign failed for {doc_id}: {e}")
+                logging.error(
+                    "[VIEW-DOC] Re-sign failed (error_type=%s)",
+                    type(e).__name__,
+                )
 
     if upstream.status_code == 401 and parsed.hostname == 'res.cloudinary.com':
         try:
@@ -2417,7 +2488,10 @@ def view_doc(doc_id, filename=None):
                     upstream.close()
                     upstream = _fetch(signed_url)
         except Exception as _e:
-            logging.error(f"[VIEW-DOC] Cloudinary sign failed for {doc_id}: {_e}")
+            logging.error(
+                "[VIEW-DOC] Cloudinary sign failed (error_type=%s)",
+                type(_e).__name__,
+            )
 
     try:
         if upstream.status_code == 204:
@@ -2503,7 +2577,10 @@ def view_doc(doc_id, filename=None):
 
         return Response(generate(), status=upstream.status_code, content_type=content_type, headers=response_headers)
     except Exception as e:
-        logging.error(f"[VIEW-DOC] Exception streaming {doc_id}: {e}")
+        logging.error(
+            "[VIEW-DOC] Exception streaming document (error_type=%s)",
+            type(e).__name__,
+        )
         abort(502)
 
 
@@ -2628,7 +2705,7 @@ def pdf_proxy(pdf_name):
         response.headers.update(_secure_file_headers())
         return response
     except Exception as e:
-        logging.error(f"Error proxying PDF {pdf_name}: {e}")
+        logging.error("Error proxying PDF (error_type=%s)", type(e).__name__)
         abort(404, description="PDF not found")
 
 
