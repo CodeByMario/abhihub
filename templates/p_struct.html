@@ -366,9 +366,12 @@
                 padding-bottom: 24px !important;
             }
         }
-        html.app-shell-embedded main {
-            padding-top: 0 !important;
-            margin-top: 0 !important;
+        html.app-shell-embedded body > main {
+            padding: 0 !important;
+            margin: 0 !important;
+            max-width: 100% !important;
+            width: 100% !important;
+            display: block !important;
         }
         html.app-shell-embedded body > header,
         html.app-shell-embedded #main-header,
@@ -634,8 +637,8 @@
                     </svg>
                 </button>
                 <a href="{{ url_for('site.careers') }}" class="nav-careers-link">Careers</a>
-                <a href="{{ url_for('app_pages.dashboard') }}" class="btn-apple-nav-signup" style="padding:0.4rem 1.15rem; gap:0.35rem;">
-                    <span>Dashboard</span>
+                <a href="{{ url_for('app_pages.home') }}" class="btn-apple-nav-signup" style="padding:0.4rem 1.15rem; gap:0.35rem;">
+                    <span>Home</span>
                     <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </a>
             </div>

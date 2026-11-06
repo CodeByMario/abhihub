@@ -1109,6 +1109,13 @@ def _get_quota():
     if not user_id:
         return {'credits': default_quota, 'total_views': 0}
 
+    try:
+        from methods.supabase_helper import validate_uuid
+        if not validate_uuid(str(user_id)):
+            return {'credits': default_quota, 'total_views': 0}
+    except Exception:
+        pass
+
     # Check L1 cache for quota (short TTL since it changes on every paper open)
     cached_quota = cache.l1.get(f"user:quota:{user_id}")
     if cached_quota[0] is not None:

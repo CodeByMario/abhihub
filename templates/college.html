@@ -21,6 +21,7 @@
 }|tojson }}
 </script>
 
+<link rel="stylesheet" href="{{ url_for('static', filename='css/apple-card.css') }}">
 <style>
   :root {
     --apple-bg: #f5f5f7;
@@ -719,42 +720,9 @@
       </div>
 
       <div class="college-media-grid">
+        {% from 'components/media_card.html' import render_apple_card %}
         {% for file in recent_files %}
-          {% set file_id = file.get('id') or file.get('record_id') %}
-          {% set subject = file.get('subject') or file.get('subjects') or {} %}
-          {% set uploader = file.get('uploader') or file.get('profiles') or {} %}
-          {% set cat = (file.get('document_category') or file.get('file_type') or 'pyq')|lower %}
-          {% set is_pyq = cat in ['pyq', 'papers', 'paper'] %}
-          {% set is_practical = cat in ['practical', 'practicals'] %}
-          <a class="college-media-card {% if is_pyq %}type-pyq{% elif is_practical %}type-practical{% else %}type-notes{% endif %}" href="{{ url_for('library.resource_landing', slug=file_id) if file_id else url_for('library.college_files', college_slug=college_slug) }}">
-            <div class="college-media-plate">
-              <div class="college-media-icon" aria-hidden="true">
-                {% if is_pyq %}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
-                {% elif is_practical %}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"></path><path d="M14 9.3V2"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path></svg>
-                {% else %}
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
-                {% endif %}
-              </div>
-              <span class="college-media-type-pill">
-                {% if is_pyq %}PYQ{% elif is_practical %}Lab{% else %}Notes{% endif %}
-              </span>
-            </div>
-
-            <div class="college-media-body">
-              <h3>{{ file.get('title') or 'Untitled resource' }}</h3>
-              <p>{{ subject.get('name') or 'General Engineering' }}</p>
-
-              <div class="college-media-footer">
-                <span>{{ uploader.get('full_name') or 'Student contributor' }}</span>
-                <div class="college-action-cta">
-                  <span>View</span>
-                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-                </div>
-              </div>
-            </div>
-          </a>
+          {{ render_apple_card(file, college_abbr) }}
         {% else %}
           <div class="college-empty-card">No approved resources available for this college yet.</div>
         {% endfor %}

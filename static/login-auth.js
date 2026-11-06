@@ -89,6 +89,8 @@ let _isProcessingAuth = !!(window.__IS_PROCESSING_OAUTH__);
 // This handles the redirect from Google/OAuth providers
 async function handleOAuthCallback() {
     if (_isProcessingAuth || window.__IS_PROCESSING_OAUTH__) return;
+    _isProcessingAuth = true;
+    window.__IS_PROCESSING_OAUTH__ = true;
 
     const hash = window.location.hash ? window.location.hash.substring(1) : '';
     const hashParams = new URLSearchParams(hash);
@@ -101,6 +103,8 @@ async function handleOAuthCallback() {
 
     // Handle OAuth/Email callback errors (e.g., expired token, user cancel)
     if (errorParam) {
+        _isProcessingAuth = false;
+        window.__IS_PROCESSING_OAUTH__ = false;
         console.warn('Auth callback error:', errorParam, errorDesc);
         let msg = errorDesc ? decodeURIComponent(errorDesc).replace(/\+/g, ' ') : 'Authentication failed';
         if (msg.toLowerCase().includes('expired') || errorParam.includes('otp_expired')) {

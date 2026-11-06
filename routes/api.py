@@ -1748,6 +1748,8 @@ def api_get_recent_documents():
 @auth_required
 def api_get_file_access_history():
     """Get file access history from file_access_history table."""
+    if request.accept_mimetypes.accept_html and not request.is_json and request.headers.get('Sec-Fetch-Dest') in ('document', 'iframe'):
+        return redirect(url_for('app_pages.history'))
     try:
         user_info = session.get('user', {})
         user_email = user_info.get('email')

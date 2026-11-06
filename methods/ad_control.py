@@ -42,15 +42,18 @@ def get_ad_override(
     keys.append(("global", "*"))
 
     try:
-        for scope_type, scope_key in keys:
-            result = client.table("ad_overrides").select(
-                "scope_type, scope_key, enabled, note, updated_at"
-            ).eq("scope_type", scope_type).eq("scope_key", scope_key).limit(1).execute()
-            if result.data:
-                val = result.data[0]
-                if cache and c_key:
-                    cache.l1.set(c_key, val, ttl=300)
-                return val
+        scope_keys = [k[1] for k in keys]
+        result = client.table("ad_overrides").select(
+            "scope_type, scope_key, enabled, note, updated_at"
+        ).in_("scope_key", scope_keys).execute()
+        if result.data:
+            lookup = {(r.get("scope_type"), r.get("scope_key")): r for r in result.data}
+            for scope_type, scope_key in keys:
+                if (scope_type, scope_key) in lookup:
+                    val = lookup[(scope_type, scope_key)]
+                    if cache and c_key:
+                        cache.l1.set(c_key, val, ttl=300)
+                    return val
     except Exception as exc:
         log.warning("[Ads] override lookup unavailable: %s", exc)
 

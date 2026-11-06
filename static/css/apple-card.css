@@ -1,0 +1,338 @@
+/**
+ * Apple Design System - Reusable Media Card
+ * Conforms to Apple Product Showcase & Conversion UI Tokens
+ */
+
+:root {
+  --apple-surface: #ffffff;
+  --apple-surface-sub: #f5f5f7;
+  --apple-border: rgba(0, 0, 0, 0.08);
+  --apple-border-hover: rgba(0, 113, 227, 0.35);
+  --apple-text: #1d1d1f;
+  --apple-text-secondary: #6e6e73;
+  --apple-text-muted: #86868b;
+  --apple-blue: #0071e3;
+  --apple-blue-subtle: rgba(0, 113, 227, 0.08);
+  --apple-amber: #d97706;
+  --apple-amber-bg: rgba(217, 119, 6, 0.08);
+  --apple-violet: #6366f1;
+  --apple-violet-bg: rgba(99, 102, 241, 0.08);
+  --apple-emerald: #059669;
+  --apple-emerald-bg: rgba(5, 150, 105, 0.08);
+  --radius-card: 18px;
+  --radius-pill: 980px;
+  --radius-doc: 10px;
+  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
+  --card-shadow-hover: 0 12px 32px rgba(0, 0, 0, 0.09), 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+[data-theme="dark"] {
+  --apple-surface: #1c1c1e;
+  --apple-surface-sub: #2c2c2e;
+  --apple-border: rgba(255, 255, 255, 0.1);
+  --apple-border-hover: rgba(41, 151, 255, 0.45);
+  --apple-text: #f5f5f7;
+  --apple-text-secondary: #a1a1a6;
+  --apple-text-muted: #6e6e73;
+  --apple-blue: #2997ff;
+  --apple-blue-subtle: rgba(41, 151, 255, 0.12);
+  --apple-amber: #fbbf24;
+  --apple-amber-bg: rgba(251, 191, 36, 0.12);
+  --apple-violet: #818cf8;
+  --apple-violet-bg: rgba(129, 140, 248, 0.12);
+  --apple-emerald: #34d399;
+  --apple-emerald-bg: rgba(52, 211, 153, 0.12);
+  --card-shadow: 0 4px 20px rgba(0, 0, 0, 0.35);
+  --card-shadow-hover: 0 12px 36px rgba(0, 0, 0, 0.55);
+}
+
+/* ── Apple Card Container ────────────────────────── */
+.arch-apple-card {
+  background: var(--apple-surface);
+  border: 1px solid var(--apple-border);
+  border-radius: var(--radius-card);
+  text-decoration: none;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  transition: transform 0.24s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.24s cubic-bezier(0.16, 1, 0.3, 1), border-color 0.2s ease;
+  box-shadow: var(--card-shadow);
+  overflow: hidden;
+  outline: none;
+}
+
+.arch-apple-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--card-shadow-hover);
+  border-color: var(--apple-border-hover);
+}
+
+.arch-apple-card:focus-visible {
+  box-shadow: 0 0 0 3px rgba(0, 113, 227, 0.45);
+}
+
+/* Document Visual Plate / Hero Canvas */
+.arch-card-plate {
+  position: relative;
+  padding: 1.15rem 1.15rem 0.95rem;
+  border-bottom: 1px solid var(--apple-border);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 94px;
+  transition: background-color 0.2s ease;
+}
+
+.arch-apple-card.type-pyq .arch-card-plate {
+  background: linear-gradient(135deg, var(--apple-amber-bg) 0%, rgba(217, 119, 6, 0.02) 100%);
+}
+
+.arch-apple-card.type-notes .arch-card-plate {
+  background: linear-gradient(135deg, var(--apple-blue-subtle) 0%, rgba(0, 113, 227, 0.02) 100%);
+}
+
+.arch-apple-card.type-practical .arch-card-plate {
+  background: linear-gradient(135deg, var(--apple-violet-bg) 0%, rgba(99, 102, 241, 0.02) 100%);
+}
+
+.arch-plate-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.arch-doc-icon-wrap {
+  width: 34px;
+  height: 34px;
+  border-radius: var(--radius-doc);
+  background: var(--apple-surface);
+  border: 1px solid var(--apple-border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+  flex-shrink: 0;
+}
+
+.arch-apple-card.type-pyq .arch-doc-icon-wrap { color: var(--apple-amber); }
+.arch-apple-card.type-notes .arch-doc-icon-wrap { color: var(--apple-blue); }
+.arch-apple-card.type-practical .arch-doc-icon-wrap { color: var(--apple-violet); }
+
+.arch-badge-group {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.arch-type-pill {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  text-transform: uppercase;
+  line-height: 1;
+}
+
+.arch-apple-card.type-pyq .arch-type-pill {
+  background: var(--apple-amber-bg);
+  color: var(--apple-amber);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+}
+
+.arch-apple-card.type-notes .arch-type-pill {
+  background: var(--apple-blue-subtle);
+  color: var(--apple-blue);
+  border: 1px solid rgba(0, 113, 227, 0.25);
+}
+
+.arch-apple-card.type-practical .arch-type-pill {
+  background: var(--apple-violet-bg);
+  color: var(--apple-violet);
+  border: 1px solid rgba(99, 102, 241, 0.25);
+}
+
+.arch-price-tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: var(--radius-pill);
+  line-height: 1;
+  background: var(--apple-emerald-bg);
+  color: var(--apple-emerald);
+  border: 1px solid rgba(5, 150, 105, 0.2);
+}
+
+.arch-price-tag.paid {
+  background: var(--apple-blue-subtle);
+  color: var(--apple-blue);
+  border-color: rgba(0, 113, 227, 0.25);
+}
+
+.arch-plate-bottom {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 0.75rem;
+  font-size: 11px;
+  color: var(--apple-text-secondary);
+  font-weight: 500;
+}
+
+.arch-code-capsule {
+  font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--apple-text);
+  background: var(--apple-surface);
+  border: 1px solid var(--apple-border);
+  padding: 2px 7px;
+  border-radius: 6px;
+}
+
+/* Card Content Details */
+.arch-card-body {
+  padding: 1.15rem 1.15rem 1.1rem;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.arch-card-title {
+  font-size: 1.02rem;
+  font-weight: 650;
+  line-height: 1.32;
+  color: var(--apple-text);
+  margin: 0 0 0.5rem;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  letter-spacing: -0.015em;
+  min-height: 2.65rem;
+}
+
+.arch-card-desc {
+  font-size: 12.5px;
+  color: var(--apple-text-secondary);
+  line-height: 1.4;
+  margin-bottom: 1.1rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.arch-card-desc svg {
+  flex-shrink: 0;
+  color: var(--apple-text-muted);
+}
+
+/* Card Footer (Author & Action Button) */
+.arch-card-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: auto;
+  padding-top: 0.85rem;
+  border-top: 1px solid var(--apple-border);
+}
+
+.arch-uploader-info {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 135px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--apple-text-secondary);
+}
+
+.arch-avatar {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--apple-surface-sub);
+  border: 1px solid var(--apple-border);
+  color: var(--apple-text);
+  font-size: 9.5px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.arch-apple-card:hover .arch-avatar {
+  border-color: var(--apple-blue);
+  color: var(--apple-blue);
+}
+
+.arch-verified-icon {
+  color: var(--apple-blue);
+  flex-shrink: 0;
+}
+
+.arch-footer-right {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.arch-views-count {
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--apple-text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.arch-action-cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--apple-blue);
+  background: var(--apple-blue-subtle);
+  padding: 5px 12px;
+  border-radius: var(--radius-pill);
+  border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.arch-action-cta svg {
+  transition: transform 0.2s ease;
+}
+
+.arch-apple-card:hover .arch-action-cta {
+  background: var(--apple-blue);
+  color: #ffffff;
+  box-shadow: 0 4px 12px rgba(0, 113, 227, 0.3);
+}
+
+.arch-apple-card:hover .arch-action-cta svg {
+  transform: translateX(2px);
+}
+
+/* ── Responsive Card Grid ────────────────────────── */
+.apple-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 1.25rem;
+}
+
+@media (max-width: 768px) {
+  .apple-cards-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+}

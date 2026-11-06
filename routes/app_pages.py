@@ -12,16 +12,22 @@ from methods.supabase_helper import (
     get_student_profile, get_all_colleges, get_all_branches,
     create_or_update_student_profile, get_user_file_history,
     get_reputation_stats, get_user_notifications, get_peer_recommended_files,
-    get_dashboard_summary_data, init_supabase
+    get_dashboard_summary_data, init_supabase, validate_uuid
 )
 
 app_pages_bp = Blueprint('app_pages', __name__)
 
 
-@app_pages_bp.route('/dashboard')
+@app_pages_bp.route('/dashboard', endpoint='dashboard')
+@app_pages_bp.route('/dashboard/')
+def redirect_dashboard():
+    return redirect(url_for('app_pages.home'), code=301)
+
+
+@app_pages_bp.route('/home')
 @auth_required
-def dashboard():
-    """Dashboard for authenticated users (cached summary architecture)."""
+def home():
+    """Home for authenticated users (cached summary architecture)."""
     import app
 
     user_info = session.get('user', {})
@@ -36,20 +42,34 @@ def dashboard():
         user_name = user_info.get('name', '')
         user_email = user_info.get('email', '')
         user_id = user_info.get('uid', '')
+        if user_id and not validate_uuid(str(user_id)):
+            user_id = ''
 
-        # Fast indexed query for user's own uploads
+        # Fast indexed query for user's own uploads with L1 cache
+        cache = None
+        try:
+            from cache_manager import get_cache
+            cache = get_cache()
+        except Exception:
+            pass
+
         user_files = []
         user_notes_count = 0
         user_papers_count = 0
         user_practicals_count = 0
         user_subjects = set()
-        if user_id:
+
+        uploads_c_key = f"home:uploads:{user_id}"
+        cached_uploads, _ = cache.l1.get(uploads_c_key) if cache else (None, False)
+        if cached_uploads is not None:
+            user_files, user_notes_count, user_papers_count, user_practicals_count, user_subjects = cached_uploads
+        elif user_id:
             try:
                 client = init_supabase()
                 if client:
                     u_res = client.table('documents').select(
-                        'id, title, document_category, file_type, created_at, view_count, status, subjects(name)'
-                    ).eq('uploader_id', user_id).order('created_at', desc=True).limit(50).execute()
+                        'id, title, document_category, file_type, file_url, price, is_paid, created_at, view_count, status, subjects(name, subject_code), profiles!documents_uploader_id_fkey(full_name), colleges(abbreviation)'
+                    ).eq('uploader_id', user_id).order('created_at', desc=True).limit(8).execute()
                     for d in (u_res.data or []):
                         cat = (d.get('document_category') or '').lower()
                         ft = (d.get('file_type') or '').lower()
@@ -59,23 +79,81 @@ def dashboard():
                             user_papers_count += 1
                         elif cat == 'practical' or ft == 'practical':
                             user_practicals_count += 1
-                        subj = (d.get('subjects') or {}).get('name') if isinstance(d.get('subjects'), dict) else ''
+                        subj_data = d.get('subjects') or {}
+                        subj = subj_data.get('name') if isinstance(subj_data, dict) else ''
                         if subj:
                             user_subjects.add(subj)
-                        user_files.append({
+                        norm_doc = dict(d)
+                        norm_doc.update({
                             'record_id': d.get('id'),
+                            'document_id': d.get('id'),
                             'file-name': d.get('title') or 'Document',
+                            'file_name': d.get('title') or 'Document',
+                            'title': d.get('title') or 'Document',
                             'type': cat or 'papers',
+                            'document_category': cat or 'papers',
                             'subject': subj or 'General',
+                            'subject_name': subj or 'General',
                             'view_count': d.get('view_count', 0),
-                            'date': (d.get('created_at') or '')[:10]
+                            'date': (d.get('created_at') or '')[:10],
+                            'price_inr': d.get('price', 0)
                         })
+                        user_files.append(norm_doc)
+                    if cache:
+                        cache.l1.set(uploads_c_key, (user_files, user_notes_count, user_papers_count, user_practicals_count, user_subjects), ttl=300)
             except Exception as e:
                 logging.warning(f"[Dashboard] Error fetching user uploads: {e}")
         user_uploads_count = len(user_files)
 
-        history_result = get_user_file_history(user_email=user_email, user_id=user_id, limit=12)
+        history_result = get_user_file_history(user_email=user_email, user_id=user_id, limit=8)
         file_history = history_result.get('data', []) if history_result.get('success') else []
+
+        purchased_files = []
+        purch_c_key = f"home:purchased:{user_id}"
+        cached_purch, _ = cache.l1.get(purch_c_key) if cache else (None, False)
+        if cached_purch is not None:
+            purchased_files = cached_purch
+        else:
+            purchased_doc_ids = list(session.get('purchased_documents', []))
+            try:
+                from data.transactions import TRANSACTIONS_FILE
+                if os.path.exists(TRANSACTIONS_FILE):
+                    with open(TRANSACTIONS_FILE, 'r', encoding='utf-8') as tf:
+                        all_tx = json.load(tf)
+                        for tx in all_tx.values():
+                            if tx.get('status') in ['completed', 'verified'] and str(tx.get('user_id') or '') == str(user_id):
+                                d_id = tx.get('document_id') or tx.get('doc_id')
+                                if not d_id and tx.get('admin_notes'):
+                                    m = re.search(r'doc_id=([a-f0-9\-]+)', str(tx.get('admin_notes')))
+                                    if m:
+                                        d_id = m.group(1)
+                                if d_id and d_id not in purchased_doc_ids:
+                                    purchased_doc_ids.append(d_id)
+            except Exception:
+                pass
+
+            if purchased_doc_ids:
+                try:
+                    client = init_supabase()
+                    if client:
+                        p_res = client.table('documents').select(
+                            'id, title, document_category, file_type, file_url, price, is_paid, view_count, subjects(name, subject_code), profiles!documents_uploader_id_fkey(full_name), colleges(abbreviation)'
+                        ).in_('id', purchased_doc_ids[:8]).execute()
+                        purchased_files = []
+                        for p in (p_res.data or []):
+                            np = dict(p)
+                            np.update({
+                                'record_id': p.get('id'),
+                                'document_id': p.get('id'),
+                                'file-name': p.get('title'),
+                                'file_name': p.get('title'),
+                                'price_inr': p.get('price', 0)
+                            })
+                            purchased_files.append(np)
+                        if cache:
+                            cache.l1.set(purch_c_key, purchased_files, ttl=300)
+                except Exception as e:
+                    logging.warning(f"[Dashboard] Error fetching purchased files: {e}")
 
         try:
             profile_data = session.get('profile')
@@ -90,14 +168,28 @@ def dashboard():
                 flash("Welcome to AbhiHub! Please complete your profile to access all personalized features.", "warning")
                 return redirect(url_for('app_pages.settings'))
 
-            rank_list = app.calculate_user_ranks()
-            _rank_lookup = {e['uploader_id']: (str(i + 1), e.get('points', 0)) for i, e in enumerate(rank_list)}
-            global_rank = _rank_lookup.get(user_id, ('-', 0))[0]
-            computed_score = _rank_lookup.get(user_id, ('-', 0))[1]
+            rank_c_key = f"home:user_rank:{user_id}"
+            cached_rank, _ = cache.l1.get(rank_c_key) if cache else (None, False)
+            if cached_rank is not None:
+                global_rank, computed_score = cached_rank
+            else:
+                rank_list = app.calculate_user_ranks()
+                _rank_lookup = {e['uploader_id']: (str(i + 1), e.get('points', 0)) for i, e in enumerate(rank_list)}
+                global_rank = _rank_lookup.get(user_id, ('-', 0))[0]
+                computed_score = _rank_lookup.get(user_id, ('-', 0))[1]
+                if cache:
+                    cache.l1.set(rank_c_key, (global_rank, computed_score), ttl=600)
 
             rep_stats = session.get('rep_stats')
             if not rep_stats:
-                rep_stats = get_reputation_stats(user_id) or {}
+                rep_c_key = f"home:rep_stats:{user_id}"
+                cached_rep, _ = cache.l1.get(rep_c_key) if cache else (None, False)
+                if cached_rep is not None:
+                    rep_stats = cached_rep
+                else:
+                    rep_stats = get_reputation_stats(user_id) or {}
+                    if cache and rep_stats.get('success'):
+                        cache.l1.set(rep_c_key, rep_stats, ttl=600)
                 if rep_stats.get('success'):
                     session['rep_stats'] = rep_stats
             students_helped = rep_stats.get('students_helped', 0) if rep_stats.get('success') else 0
@@ -179,6 +271,7 @@ def dashboard():
     file_lookup = {f.get('record_id'): f for f in file_pool if f.get('record_id')}
     user_viewed_ids = set()
     recently_viewed_files = []
+    missing_history = []
     for h in file_history:
         did = h.get('document_id')
         if did and did not in user_viewed_ids:
@@ -186,14 +279,67 @@ def dashboard():
             if did in file_lookup:
                 recently_viewed_files.append(file_lookup[did])
             else:
+                missing_history.append((did, h))
+
+    if missing_history:
+        missing_ids = [m[0] for m in missing_history]
+        try:
+            client = init_supabase()
+            if client:
+                m_res = client.table('documents').select(
+                    'id, title, document_category, file_type, file_url, price, is_paid, view_count, subjects(name, subject_code), profiles!documents_uploader_id_fkey(full_name), colleges(abbreviation)'
+                ).in_('id', missing_ids).execute()
+                fetched_map = {doc['id']: doc for doc in (m_res.data or [])}
+                for did, h in missing_history:
+                    if did in fetched_map:
+                        doc = dict(fetched_map[did])
+                        doc.update({
+                            'record_id': did,
+                            'document_id': did,
+                            'file-name': doc.get('title'),
+                            'file_name': doc.get('title'),
+                            'price_inr': doc.get('price', 0)
+                        })
+                        recently_viewed_files.append(doc)
+                    else:
+                        recently_viewed_files.append({
+                            'id': did,
+                            'document_id': did,
+                            'record_id': did,
+                            'title': h.get('file_name', 'Document'),
+                            'file_name': h.get('file_name', 'Document'),
+                            'file-name': h.get('file_name', 'Document'),
+                            'document_category': h.get('document_category', 'papers'),
+                            'type': h.get('document_category', 'papers'),
+                            'file_url': h.get('file_url', ''),
+                            'subject': 'Recent',
+                            'subject_name': 'Recent',
+                            'view_count': 0,
+                            'date': (h.get('accessed_at') or '')[:10],
+                            'file_type': h.get('file_type', 'pdf'),
+                            'price': 0,
+                            'is_paid': False
+                        })
+        except Exception as e:
+            logging.warning(f"[Dashboard] Error resolving missing recent docs: {e}")
+            for did, h in missing_history:
                 recently_viewed_files.append({
+                    'id': did,
+                    'document_id': did,
                     'record_id': did,
+                    'title': h.get('file_name', 'Document'),
+                    'file_name': h.get('file_name', 'Document'),
                     'file-name': h.get('file_name', 'Document'),
+                    'document_category': h.get('document_category', 'papers'),
                     'type': h.get('document_category', 'papers'),
+                    'file_url': h.get('file_url', ''),
                     'subject': 'Recent',
+                    'subject_name': 'Recent',
                     'view_count': 0,
                     'date': (h.get('accessed_at') or '')[:10],
-                    'file-type': h.get('file_type', 'pdf')
+                    'file_type': h.get('file_type', 'pdf'),
+                    'price': 0,
+                    'is_paid': False
                 })
 
     recommended_files = []
@@ -216,18 +362,11 @@ def dashboard():
                 if len(recommended_files) >= 8:
                     break
 
-    from data.tea_supporters import get_recent_feedbacks
-    community_feedbacks = get_recent_feedbacks(limit=8)
-
+    community_feedbacks = []
     featured_channels = []
-    try:
-        from methods.channel_service import get_featured_channels
-        featured_channels = get_featured_channels(limit=10)
-    except Exception as e:
-        logging.warning(f"[Dashboard] Featured channels error: {e}")
 
     return render_template(
-        'app/dashboard.html',
+        'app/home.html',
         data=preview_pool,
         seo_keywords=seo_keywords,
         top_subjects=top_subjects,
@@ -236,6 +375,8 @@ def dashboard():
         user_data=user_data,
         file_history=file_history,
         recently_viewed_files=recently_viewed_files,
+        purchased_files=purchased_files,
+        user_uploads=user_files,
         recommended_files=recommended_files,
         recently_added_files=recently_added_files,
         premium_files=premium_files,
@@ -250,6 +391,106 @@ def dashboard():
         recent_notes=recent_notes,
         community_feedbacks=community_feedbacks,
         featured_channels=featured_channels
+    )
+
+
+@app_pages_bp.route('/history')
+@auth_required
+def history():
+    user = session.get('user', {})
+    user_id = user.get('uid')
+    user_email = user.get('email', '')
+    profile_data = session.get('profile', {})
+    default_college_abbr = profile_data.get('college_abbreviation') or 'GHRCE'
+
+    page = max(1, request.args.get('page', 1, type=int))
+    per_page = 12
+
+    history_result = get_user_file_history(user_email=user_email, user_id=user_id, limit=120)
+    file_history = history_result.get('data', []) if history_result.get('success') else []
+
+    total_items = len(file_history)
+    total_pages = max(1, (total_items + per_page - 1) // per_page)
+    if page > total_pages:
+        page = total_pages
+
+    start_idx = (page - 1) * per_page
+    end_idx = start_idx + per_page
+    paged_history = file_history[start_idx:end_idx]
+
+    doc_ids = [h.get('document_id') for h in paged_history if h.get('document_id')]
+    history_files = []
+    if doc_ids:
+        try:
+            client = init_supabase()
+            if client:
+                m_res = client.table('documents').select(
+                    'id, title, document_category, file_type, file_url, price, is_paid, view_count, subjects(name, subject_code), profiles!documents_uploader_id_fkey(full_name), colleges(abbreviation)'
+                ).in_('id', doc_ids).execute()
+                fetched_map = {doc['id']: doc for doc in (m_res.data or [])}
+                for h in paged_history:
+                    did = h.get('document_id')
+                    if did in fetched_map:
+                        doc = dict(fetched_map[did])
+                        doc.update({
+                            'record_id': did,
+                            'document_id': did,
+                            'file-name': doc.get('title'),
+                            'file_name': doc.get('title'),
+                            'price_inr': doc.get('price', 0),
+                            'date': (h.get('accessed_at') or '')[:10]
+                        })
+                        history_files.append(doc)
+                    else:
+                        history_files.append({
+                            'id': did,
+                            'document_id': did,
+                            'record_id': did,
+                            'title': h.get('file_name', 'Document'),
+                            'file_name': h.get('file_name', 'Document'),
+                            'file-name': h.get('file_name', 'Document'),
+                            'document_category': h.get('document_category', 'papers'),
+                            'type': h.get('document_category', 'papers'),
+                            'file_url': h.get('file_url', ''),
+                            'subject': 'Recent',
+                            'subject_name': 'Recent',
+                            'view_count': 0,
+                            'date': (h.get('accessed_at') or '')[:10],
+                            'file_type': h.get('file_type', 'pdf'),
+                            'price': 0,
+                            'is_paid': False
+                        })
+        except Exception as e:
+            logging.warning(f"[History] Error resolving history docs: {e}")
+            for h in paged_history:
+                did = h.get('document_id')
+                history_files.append({
+                    'id': did,
+                    'document_id': did,
+                    'record_id': did,
+                    'title': h.get('file_name', 'Document'),
+                    'file_name': h.get('file_name', 'Document'),
+                    'file-name': h.get('file_name', 'Document'),
+                    'document_category': h.get('document_category', 'papers'),
+                    'type': h.get('document_category', 'papers'),
+                    'file_url': h.get('file_url', ''),
+                    'subject': 'Recent',
+                    'view_count': 0,
+                    'date': (h.get('accessed_at') or '')[:10],
+                    'file_type': h.get('file_type', 'pdf')
+                })
+
+    return render_template(
+        'app/history.html',
+        history_files=history_files,
+        default_college_abbr=default_college_abbr,
+        page=page,
+        total_pages=total_pages,
+        total_items=total_items,
+        has_prev=(page > 1),
+        has_next=(page < total_pages),
+        prev_page=(page - 1),
+        next_page=(page + 1)
     )
 
 
@@ -491,9 +732,9 @@ def delete_account():
 def app_shell():
     """Native-like App Shell container for authenticated users."""
     if not current_app.config.get('APP_SHELL_ENABLED', True):
-        return redirect(url_for('app_pages.dashboard'))
+        return redirect(url_for('app_pages.home'))
 
-    target_path = request.args.get('p', '/dashboard').strip()
+    target_path = request.args.get('p', '/home').strip()
     if (
         not target_path.startswith('/')
         or target_path.startswith('//')
@@ -503,7 +744,7 @@ def app_shell():
         or 'data:' in target_path.lower()
         or 'vbscript:' in target_path.lower()
     ):
-        target_path = '/dashboard'
+        target_path = '/home'
 
     path_only = target_path.split('?')[0].split('#')[0].rstrip('/')
     if not path_only:
@@ -518,10 +759,10 @@ def app_shell():
         '/offline', '/api'
     )
     if path_only in blocked_prefixes or any(path_only.startswith(p + '/') for p in blocked_prefixes):
-        target_path = '/dashboard'
+        target_path = '/home'
 
     if request.headers.get('Sec-Fetch-Dest') == 'iframe':
-        return redirect(target_path if target_path != '/app-shell' else url_for('app_pages.dashboard'))
+        return redirect(target_path if target_path != '/app-shell' else url_for('app_pages.home'))
 
     return render_template('app_shell.html', initial_path=target_path)
 
@@ -1066,10 +1307,7 @@ def suggest():
         return jsonify({"subjects": [], "types": [], "authors": []})
 
 
-@app_pages_bp.route('/dashboard/')
-@auth_required
-def index():
-    return redirect(url_for('app_pages.dashboard'), code=301)
+
 
 
 @app_pages_bp.route('/dashboard/search', methods=['POST', 'GET'])
@@ -1078,7 +1316,7 @@ def search():
     """Search entry point — redirects to the SPA search page with query."""
     search_query = request.form.get('search') or request.args.get('search', '')
     if not search_query:
-        return redirect(url_for('app_pages.dashboard'))
+        return redirect(url_for('app_pages.home'))
     # Redirect to SPA search view (frontend reads ?q= and calls /api/v2/search)
     from urllib.parse import quote_plus
     return redirect(f"/app-shell?p=/search&q={quote_plus(search_query)}")
@@ -1459,3 +1697,7 @@ def instagram_profile(user_id):
                            og_title=og_title,
                            og_description=og_description,
                            og_image=None)
+
+
+# Backwards compatibility alias
+dashboard = home

@@ -1474,16 +1474,16 @@ def get_all_files_merged(include_file_records=True, current_user_id=None) -> Dic
         # catalogue. Retry with progressively simpler projections.
         projections = (
             'id, title, storage_provider, file_url, view_count, status, '
-            'college_id, subject_id, branch_id, semester, exam_type, year, created_at, '
-            'updated_at, is_bookmarked, uploader_id, price, '
+            'college_id, subject_id, department_id, exam_type, created_at, '
+            'updated_at, bookmark_count, uploader_id, price, '
             'profiles!documents_uploader_id_fkey(full_name, email), '
             'subjects(name, subject_code), colleges(name, abbreviation)',
             'id, title, storage_provider, file_url, view_count, status, '
-            'college_id, subject_id, branch_id, semester, exam_type, year, created_at, '
-            'updated_at, is_bookmarked, uploader_id, price, '
+            'college_id, subject_id, department_id, exam_type, created_at, '
+            'updated_at, bookmark_count, uploader_id, price, '
             'subjects(name, subject_code), colleges(name, abbreviation)',
             'id, title, storage_provider, file_url, view_count, status, '
-            'college_id, subject_id, branch_id, semester, exam_type, year, created_at, '
+            'college_id, subject_id, department_id, exam_type, created_at, '
             'updated_at, is_bookmarked, uploader_id, price',
         )
         res = None
@@ -1866,6 +1866,26 @@ def get_comments(document_id: str) -> Dict:
         return {'success': False, 'data': [], 'message': str(e)}
 
 def get_student_profile(user_id: str) -> Dict:
+    if not user_id:
+        return {'success': False, 'data': None}
+    try:
+        from flask import g, has_request_context
+        if has_request_context():
+            cached = getattr(g, f"_req_cache_student_profile_{user_id}", None)
+            if cached is not None:
+                return cached
+    except Exception:
+        pass
+
+    def _set_req_cache(res):
+        try:
+            from flask import g, has_request_context
+            if has_request_context():
+                setattr(g, f"_req_cache_student_profile_{user_id}", res)
+        except Exception:
+            pass
+        return res
+
     client = init_supabase()
     if not client: return {'success': False, 'data': None}
     try:
@@ -1900,7 +1920,7 @@ def get_student_profile(user_id: str) -> Dict:
                 'branch_name':           dept.get('name', ''),
             }
             logging.info(f"[Profile] student row found -> {flat}")
-            return {'success': True, 'data': flat}
+            return _set_req_cache({'success': True, 'data': flat})
 
         # Fallback: teacher role or no students row yet — read from profiles directly
         prof_res = client.table('profiles') \
@@ -1931,9 +1951,9 @@ def get_student_profile(user_id: str) -> Dict:
                 'branch_name':           dept.get('name', ''),
             }
             logging.warning(f"[Profile] profiles fallback -> {flat}")
-            return {'success': True, 'data': flat}
+            return _set_req_cache({'success': True, 'data': flat})
 
-        return {'success': True, 'data': None, 'message': 'Not found'}
+        return _set_req_cache({'success': True, 'data': None, 'message': 'Not found'})
     except Exception as e:
         logging.error(f"[supabase_helper] operation failed: {e}", exc_info=True)
         return {'success': False, 'data': None, 'message': str(e)}
@@ -2967,6 +2987,17 @@ def get_peer_recommended_files(user_id: str = None, college_id: str = None, depa
     """
     Get document IDs recommended based on what other students from the same college or department viewed.
     """
+    cache = None
+    c_key = f"peer_recs:{college_id or '*'}:{department_id or '*'}:{limit}"
+    try:
+        from cache_manager import get_cache
+        cache = get_cache()
+        cached, _ = cache.l1.get(c_key)
+        if cached is not None:
+            return cached
+    except Exception:
+        pass
+
     client = init_supabase()
     if not client:
         return []
@@ -3004,7 +3035,10 @@ def get_peer_recommended_files(user_id: str = None, college_id: str = None, depa
 
         from collections import Counter
         counts = Counter(v['document_id'] for v in views_res.data if v.get('document_id'))
-        return [doc_id for doc_id, _ in counts.most_common(limit)]
+        res_list = [doc_id for doc_id, _ in counts.most_common(limit)]
+        if cache:
+            cache.l1.set(c_key, res_list, ttl=600)
+        return res_list
     except Exception as e:
         logging.warning(f"[Recommendations] Error in get_peer_recommended_files: {e}")
         return []

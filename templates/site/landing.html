@@ -1295,9 +1295,9 @@
 
       <div class="hero-actions">
         {% if session.get('user') %}
-        <a href="{{ url_for('app_pages.dashboard') }}" class="btn-apple-primary"
+        <a href="{{ url_for('app_pages.home') }}" class="btn-apple-primary"
            onclick="trackLandingEvent('landing_cta_click', {cta_name:'dashboard', position:'hero'})">
-          <span>Go to Dashboard</span>
+          <span>Go to Home</span>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
         </a>
         <a href="{{ url_for('library.pyq_landing') }}" class="btn-apple-secondary"
@@ -1709,8 +1709,8 @@
       </p>
 
       {% if session.get('user') %}
-      <a href="{{ url_for('app_pages.dashboard') }}" class="btn-apple-primary" style="font-size:1.05rem; padding:0.95rem 2.25rem;">
-        <span>Open Your Dashboard</span>
+      <a href="{{ url_for('app_pages.home') }}" class="btn-apple-primary" style="font-size:1.05rem; padding:0.95rem 2.25rem;">
+        <span>Open Home</span>
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
       </a>
       {% else %}

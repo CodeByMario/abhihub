@@ -1,0 +1,264 @@
+{% extends 'p_struct.html' %}
+{% from 'components/media_card.html' import render_apple_card %}
+
+{% block title %}Reading History — AbhiHub{% endblock %}
+
+{% block page_head %}
+<title>Reading History — AbhiHub</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='css/apple-card.css') }}">
+{% endblock %}
+
+{% block page_styles %}
+<style>
+  :root {
+    --apple-bg: #f5f5f7;
+    --apple-surface: #ffffff;
+    --apple-text: #1d1d1f;
+    --apple-text-secondary: #6e6e73;
+    --apple-blue: #0071e3;
+    --apple-border: rgba(0, 0, 0, 0.08);
+    --radius-pill: 980px;
+    --radius-card: 18px;
+    --container-max: 1240px;
+  }
+
+  [data-theme="dark"] {
+    --apple-bg: #000000;
+    --apple-surface: #1c1c1e;
+    --apple-text: #f5f5f7;
+    --apple-text-secondary: #a1a1a6;
+    --apple-blue: #2997ff;
+    --apple-border: rgba(255, 255, 255, 0.1);
+  }
+
+  body {
+    background-color: var(--apple-bg);
+    color: var(--apple-text);
+  }
+
+  .apple-history-wrapper {
+    width: 100%;
+    min-height: 100vh;
+    padding-top: clamp(1.25rem, 2.5vw, 2.25rem);
+    padding-bottom: 5rem;
+    box-sizing: border-box;
+  }
+
+  .apple-container {
+    max-width: var(--container-max, 1240px);
+    margin-left: auto !important;
+    margin-right: auto !important;
+    padding-left: clamp(1.2rem, 3.5vw, 2.5rem) !important;
+    padding-right: clamp(1.2rem, 3.5vw, 2.5rem) !important;
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .apple-history-header {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: flex-start !important;
+    justify-content: flex-start !important;
+    margin-bottom: 2rem !important;
+    gap: 0.35rem !important;
+    width: 100% !important;
+  }
+
+  .apple-history-header h1 {
+    font-size: clamp(24px, 3.2vw, 34px) !important;
+    font-weight: 700 !important;
+    letter-spacing: -0.025em !important;
+    margin: 0 !important;
+    color: var(--apple-text) !important;
+    line-height: 1.2 !important;
+    display: block !important;
+  }
+
+  .apple-history-header p {
+    font-size: 14.5px !important;
+    color: var(--apple-text-secondary) !important;
+    margin: 0 !important;
+    line-height: 1.5 !important;
+    display: block !important;
+  }
+
+  /* ── Empty State ── */
+  .apple-empty-state {
+    text-align: center;
+    padding: 4rem 2rem;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    margin-top: 1.5rem;
+  }
+
+  .apple-empty-state h3 {
+    font-size: 19px;
+    font-weight: 600;
+    margin: 0 0 0.5rem;
+    color: var(--apple-text);
+  }
+
+  .apple-empty-state p {
+    font-size: 14px;
+    color: var(--apple-text-secondary);
+    margin: 0 0 1.5rem;
+  }
+
+  .btn-apple-cta {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.65rem 1.4rem;
+    background: var(--apple-blue);
+    color: #ffffff;
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: var(--radius-pill);
+    text-decoration: none;
+    transition: background 0.18s ease;
+  }
+
+  .btn-apple-cta:hover {
+    background: #0077ed;
+    color: #ffffff;
+  }
+
+  /* ── Apple Pagination Bar ── */
+  .apple-pagination-bar {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 1rem;
+    margin-top: 3rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--apple-border);
+  }
+
+  .apple-page-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.5rem 1.15rem;
+    border-radius: var(--radius-pill);
+    background: var(--apple-surface);
+    color: var(--apple-text);
+    border: 1px solid var(--apple-border);
+    text-decoration: none;
+    font-size: 13.5px;
+    font-weight: 600;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+    transition: all 0.2s ease;
+  }
+
+  .apple-page-btn:hover:not(.disabled) {
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  }
+
+  .apple-page-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+    pointer-events: none;
+  }
+
+  .apple-page-indicator {
+    font-size: 13.5px;
+    color: var(--apple-text-secondary);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .apple-page-indicator strong {
+    color: var(--apple-text);
+    font-weight: 700;
+  }
+
+  .apple-page-count {
+    color: var(--apple-text-secondary);
+    font-size: 12.5px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/apple-card.css') }}">
+
+<div class="apple-history-wrapper">
+  <div class="apple-container">
+    <!-- Header Title & Subtitle -->
+    <header class="apple-history-header">
+      <h1>Your Reading History</h1>
+      <p>All previously viewed examination papers, topper notes, and lab manuals associated with your account.</p>
+    </header>
+
+    {% if history_files and history_files|length > 0 %}
+      <div class="apple-cards-grid">
+        {% for file in history_files %}
+          {{ render_apple_card(file, default_college_abbr or 'Verified') }}
+        {% endfor %}
+      </div>
+
+      <!-- Pagination Controls -->
+      {% if total_pages > 1 %}
+        <nav class="apple-pagination-bar" aria-label="Reading history pagination">
+          {% if has_prev %}
+            <a href="{{ url_for('app_pages.history', page=prev_page) }}" class="apple-page-btn">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+              <span>Previous</span>
+            </a>
+          {% else %}
+            <span class="apple-page-btn disabled" aria-disabled="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="19" y1="12" x2="5" y2="12"></line><polyline points="12 19 5 12 12 5"></polyline></svg>
+              <span>Previous</span>
+            </span>
+          {% endif %}
+
+          <div class="apple-page-indicator">
+            <span>Page <strong>{{ page }}</strong> of {{ total_pages }}</span>
+            <span class="apple-page-count">({{ total_items }} total)</span>
+          </div>
+
+          {% if has_next %}
+            <a href="{{ url_for('app_pages.history', page=next_page) }}" class="apple-page-btn">
+              <span>Next</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </a>
+          {% else %}
+            <span class="apple-page-btn disabled" aria-disabled="true">
+              <span>Next</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </span>
+          {% endif %}
+        </nav>
+      {% endif %}
+
+    {% else %}
+      <div class="apple-empty-state">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom: 1rem; color: var(--apple-text-secondary, #6e6e73);"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+        <h3>No reading history yet</h3>
+        <p>Explore question papers, practicals, or topper notes to build your academic queue.</p>
+        <a href="/college" class="btn-apple-cta">
+          <span>Explore College Library</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </a>
+      </div>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+  // Sync document title with App Shell header
+  document.title = 'Reading History — AbhiHub';
+  if (window.parent && window.parent !== window) {
+    try {
+      window.parent.postMessage({ type: 'TITLE_CHANGE', title: 'Reading History' }, '*');
+      var shellTitle = window.parent.document.getElementById('shellPageTitle');
+      if (shellTitle) shellTitle.textContent = 'Reading History';
+    } catch (e) {}
+  }
+</script>
+{% endblock %}

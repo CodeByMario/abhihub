@@ -96,7 +96,7 @@ def contact():
 @auth_required
 def support():
     # Hidden till future notice
-    return redirect(url_for('app_pages.dashboard'))
+    return redirect(url_for('app_pages.home'))
 
 
 

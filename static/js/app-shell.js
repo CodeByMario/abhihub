@@ -12,6 +12,7 @@
 
     // ── Tab Configuration ──
     const TABS = {
+        '/home': { id: 'home', label: 'Home', selector: '[data-page="home"]', keepAlive: false },
         '/dashboard': { id: 'home', label: 'Home', selector: '[data-page="home"]', keepAlive: false },
         '/upload': { id: 'upload', label: 'Upload', selector: '[data-page="upload"]', keepAlive: true },
         '/leaderboard': { id: 'ranking', label: 'Ranking', selector: '[data-page="ranking"]', keepAlive: false },
@@ -89,7 +90,7 @@
 
     if (homeFallbackBtn) {
         homeFallbackBtn.addEventListener('click', function () {
-            navigateTo('/dashboard');
+            navigateTo('/home');
         });
     }
 
@@ -247,7 +248,7 @@
             // Prevent app-shell nested inside iframe
             if (innerWin.location.pathname.startsWith('/app-shell')) {
                 const innerParams = new URLSearchParams(innerWin.location.search);
-                const redirectTarget = innerParams.get('p') || '/dashboard';
+                const redirectTarget = innerParams.get('p') || '/home';
                 innerWin.location.replace(redirectTarget);
                 return;
             }
@@ -363,10 +364,10 @@
                 if (activeIframe.contentWindow.history.length > 1) {
                     activeIframe.contentWindow.history.back();
                 } else {
-                    navigateTo('/dashboard', true);
+                    navigateTo('/home', true);
                 }
             } catch (e) {
-                navigateTo('/dashboard', true);
+                navigateTo('/home', true);
             }
         });
     }
@@ -378,7 +379,7 @@
             navigateTo(event.state.path, true);
         } else {
             const urlParams = new URLSearchParams(window.location.search);
-            const p = urlParams.get('p') || '/dashboard';
+            const p = urlParams.get('p') || '/home';
             navigateTo(p, true);
         }
     });
@@ -396,7 +397,7 @@
                 break;
 
             case 'AUTH_EXPIRED':
-                destroyIframesAndEscape('/login?next=' + encodeURIComponent(msg.url || '/dashboard'));
+                destroyIframesAndEscape('/login?next=' + encodeURIComponent(msg.url || '/home'));
                 break;
 
             case 'MODAL_OPEN':
@@ -583,7 +584,7 @@
             } catch (e) {}
 
             if (!handled) {
-                navigateTo('/dashboard#dashboardSearchSection', true);
+                navigateTo('/home', true);
             }
         });
     }
@@ -673,7 +674,7 @@
 
     // ── Initial Boot ──
     const urlParams = new URLSearchParams(window.location.search);
-    const initialPath = urlParams.get('p') || '/dashboard';
+    const initialPath = urlParams.get('p') || '/home';
     if (iframeMain.getAttribute('src') !== initialPath) {
         iframeMain.src = initialPath;
     }

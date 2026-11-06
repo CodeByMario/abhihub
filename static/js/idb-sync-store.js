@@ -247,7 +247,11 @@
       }
     },
 
+    _lastSyncTime: 0,
     async syncAll(force = false) {
+      const now = Date.now();
+      if (!force && now - this._lastSyncTime < 60000) return;
+      this._lastSyncTime = now;
       try {
         const res = await fetch('/api/sync/versions', { headers: { 'Accept': 'application/json' } });
         if (!res.ok) return;

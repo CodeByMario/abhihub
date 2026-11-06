@@ -1,0 +1,96 @@
+{# 
+  Reusable Apple Media Card Macro
+  Conforms to Apple Product Showcase Design System
+#}
+{% macro render_apple_card(file, college_abbr='GHRCE') %}
+  {% set cat = (file.get('document_category') or file.get('type') or file.get('category') or 'notes')|lower %}
+  {% set is_pyq = ('pyq' in cat or 'paper' in cat) %}
+  {% set is_practical = ('practical' in cat or 'lab' in cat) %}
+  {% set doc_id = file.get('document_id') or file.get('id') or file.get('doc_id') or file.get('record_id') %}
+  {% set furl = file.get('file_url') or (url_for('library.resource_landing', slug=doc_id) if doc_id else '#') %}
+  {% set price_val = file.get('price_inr') if file.get('price_inr') is not none else file.get('price', 0) %}
+  {% set is_paid = file.get('is_paid') or (price_val and (price_val|float > 0)) %}
+  
+  {# Subject / Title extraction #}
+  {% set subj_obj = file.get('subjects') %}
+  {% set dept_obj = file.get('departments') %}
+  {% set subj_code = (subj_obj.subject_code if subj_obj and subj_obj.subject_code else None) or (dept_obj.abbreviation if dept_obj and dept_obj.abbreviation else None) or file.get('subject_code') or file.get('branch_name') or 'ENG' %}
+  {% set file_title = file.get('title') or file.get('file_name') or file.get('file-name') or 'Document' %}
+  {% set raw_subj = (subj_obj.name if subj_obj and subj_obj.name else None) or file.get('subject_name') or file.get('subject') %}
+  {% set display_subject = raw_subj if (raw_subj and raw_subj != 'General Engineering' and raw_subj != 'General') else file_title %}
+  
+  {# Author / Uploader extraction #}
+  {% set prof_obj = file.get('profiles') %}
+  {% set uploader_name = (prof_obj.full_name if prof_obj and prof_obj.full_name else None) or file.get('uploader_name') or file.get('author') or 'Student Contributor' %}
+  {% set initial = (uploader_name[:1] or 'S')|upper %}
+
+  <a href="{{ furl }}" class="arch-apple-card {% if is_pyq %}type-pyq{% elif is_practical %}type-practical{% else %}type-notes{% endif %}">
+    <!-- Visual Hero Plate -->
+    <div class="arch-card-plate">
+      <div class="arch-plate-top">
+        <div class="arch-doc-icon-wrap" aria-hidden="true">
+          {% if is_pyq %}
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+          {% elif is_practical %}
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"></path><path d="M14 9.3V2"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path></svg>
+          {% else %}
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+          {% endif %}
+        </div>
+
+        <div class="arch-badge-group">
+          <span class="arch-type-pill">
+            {% if is_pyq %}PYQ{% elif is_practical %}Lab{% else %}Notes{% endif %}
+          </span>
+          {% if is_paid %}
+            <span class="arch-price-tag paid">₹{{ price_val|int if price_val == price_val|int else price_val }}</span>
+          {% else %}
+            <span class="arch-price-tag">Free</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Subject Code & Curriculum Sub-line -->
+      <div class="arch-plate-bottom">
+        <span class="arch-code-capsule">{{ subj_code }}</span>
+        <span>•</span>
+        <span>{{ college_abbr or 'Verified' }} Curriculum</span>
+      </div>
+    </div>
+
+    <!-- Card Body Content -->
+    <div class="arch-card-body">
+      <h3 class="arch-card-title">{{ display_subject }}</h3>
+
+      <div class="arch-card-desc">
+        {% if file_title and file_title != display_subject %}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+          <span>{{ file_title }}</span>
+        {% else %}
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+          <span>Verified Semester Resource</span>
+        {% endif %}
+      </div>
+
+      <!-- Card Footer -->
+      <div class="arch-card-footer">
+        <span class="arch-uploader-info" title="{{ uploader_name }}">
+          <span class="arch-avatar" aria-hidden="true">{{ initial }}</span>
+          <span>{{ uploader_name }}</span>
+          <svg class="arch-verified-icon" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-label="Verified Contributor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+        </span>
+
+        <div class="arch-footer-right">
+          <span class="arch-views-count" title="Total Views">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            <span>{{ file.get('view_count', 0) }}</span>
+          </span>
+          <div class="arch-action-cta">
+            <span>View</span>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </a>
+{% endmacro %}
