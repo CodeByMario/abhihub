@@ -11,28 +11,28 @@ from methods.ai_provider import OpenRouterAdapter, ProviderError
 from routes.webhooks import _async_compress_and_update
 
 
-def test_proxy_failure_does_not_log_signed_url(monkeypatch, caplog):
+def test_proxy_file_requires_document_id_instead_of_signed_url():
     signed_url = (
         "https://res.cloudinary.com/abhihub/private/document.pdf"
         "?signature=do-not-log-this"
     )
 
-    def fail_request(url, **kwargs):
-        raise RuntimeError(f"upstream request failed for {url}")
-
-    monkeypatch.setattr(requests, "get", fail_request)
     app.config["TESTING"] = True
     client = app.test_client()
     with client.session_transaction() as session:
         session["user"] = {"uid": "audit-test-user"}
 
-    with caplog.at_level(logging.ERROR):
-        response = client.get("/api/proxy-file", query_string={"url": signed_url})
+    response = client.get("/api/proxy-file", query_string={"url": signed_url})
+    assert response.status_code == 400
+    assert response.get_json()["success"] is False
 
-    assert response.status_code == 502
-    assert "do-not-log-this" not in caplog.text
-    assert "res.cloudinary.com" in caplog.text
-    assert "RuntimeError" in caplog.text
+    response = client.get(
+        "/api/proxy-file", query_string={"doc_id": "123e4567-e89b-12d3-a456-426614174000"}
+    )
+    assert response.status_code == 302
+    assert response.headers["Location"].endswith(
+        "/resources/123e4567-e89b-12d3-a456-426614174000"
+    )
 
 
 def test_post_upload_worker_does_not_log_exception_url(monkeypatch, caplog):

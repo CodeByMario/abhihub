@@ -7,21 +7,26 @@
   {% set is_pyq = ('pyq' in cat or 'paper' in cat) %}
   {% set is_practical = ('practical' in cat or 'lab' in cat) %}
   {% set doc_id = file.get('document_id') or file.get('id') or file.get('doc_id') or file.get('record_id') %}
-  {% set furl = file.get('file_url') or (url_for('library.resource_landing', slug=doc_id) if doc_id else '#') %}
+  {% set furl = ('/resources/' ~ doc_id) if doc_id else (file.get('file_url') or '#') %}
   {% set price_val = file.get('price_inr') if file.get('price_inr') is not none else file.get('price', 0) %}
   {% set is_paid = file.get('is_paid') or (price_val and (price_val|float > 0)) %}
   
   {# Subject / Title extraction #}
-  {% set subj_obj = file.get('subjects') %}
-  {% set dept_obj = file.get('departments') %}
-  {% set subj_code = (subj_obj.subject_code if subj_obj and subj_obj.subject_code else None) or (dept_obj.abbreviation if dept_obj and dept_obj.abbreviation else None) or file.get('subject_code') or file.get('branch_name') or 'ENG' %}
+  {% set subj_val = file.get('subject') or file.get('subjects') %}
+  {% set subj_dict = subj_val if subj_val is mapping else (subj_val[0] if (subj_val is iterable and subj_val is not string and subj_val|length > 0) else {}) %}
+  {% set subj_name = (subj_dict.get('name') if subj_dict is mapping else None) or (subj_val if subj_val is string else None) or file.get('subject_name') %}
+  {% set dept_val = file.get('department') or file.get('departments') %}
+  {% set dept_dict = dept_val if dept_val is mapping else (dept_val[0] if (dept_val is iterable and dept_val is not string and dept_val|length > 0) else {}) %}
+  {% set dept_code = (dept_dict.get('abbreviation') or dept_dict.get('name')) if dept_dict is mapping else (dept_val if dept_val is string else None) %}
+  {% set subj_code = (subj_dict.get('subject_code') if subj_dict is mapping else None) or dept_code or file.get('subject_code') or file.get('search_code') or file.get('branch_name') or 'ENG' %}
   {% set file_title = file.get('title') or file.get('file_name') or file.get('file-name') or 'Document' %}
-  {% set raw_subj = (subj_obj.name if subj_obj and subj_obj.name else None) or file.get('subject_name') or file.get('subject') %}
+  {% set raw_subj = subj_name or (file.get('subject') if file.get('subject') is string else None) %}
   {% set display_subject = raw_subj if (raw_subj and raw_subj != 'General Engineering' and raw_subj != 'General') else file_title %}
   
   {# Author / Uploader extraction #}
-  {% set prof_obj = file.get('profiles') %}
-  {% set uploader_name = (prof_obj.full_name if prof_obj and prof_obj.full_name else None) or file.get('uploader_name') or file.get('author') or 'Student Contributor' %}
+  {% set prof_val = file.get('uploader') or file.get('profiles') %}
+  {% set prof_dict = prof_val if prof_val is mapping else (prof_val[0] if (prof_val is iterable and prof_val is not string and prof_val|length > 0) else {}) %}
+  {% set uploader_name = (prof_dict.get('full_name') if prof_dict is mapping else None) or (prof_val if prof_val is string else None) or file.get('uploader_name') or file.get('author') or 'Student Contributor' %}
   {% set initial = (uploader_name[:1] or 'S')|upper %}
 
   <a href="{{ furl }}" class="arch-apple-card {% if is_pyq %}type-pyq{% elif is_practical %}type-practical{% else %}type-notes{% endif %}">

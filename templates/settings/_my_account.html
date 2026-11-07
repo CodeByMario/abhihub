@@ -1,0 +1,135 @@
+      <div class="st-section active" id="section-my-account">
+        <form id="settingsAccountForm" onsubmit="handleAccountFormSubmit(event)">
+          <input type="hidden" name="csrf_token" value="{{ csrf_token() }}" />
+
+          <!-- Personal Information Card -->
+          <div class="st-card">
+            <h2><span class="st-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></span> Personal Information</h2>
+            
+            <div class="st-form-row">
+              <label for="st_student_name" class="st-form-label">Full Name <span style="color:var(--st-red);">*</span></label>
+              <input type="text" id="st_student_name" name="student_name" class="st-form-input" 
+                value="{{ profile.student_name if (profile and profile.student_name) else (user.name if user else '') }}" 
+                placeholder="Enter full name" required>
+            </div>
+
+            <div class="st-form-row">
+              <label for="st_student_email" class="st-form-label">Email Address</label>
+              <input type="email" id="st_student_email" name="student_email" class="st-form-input" 
+                value="{{ profile.student_email if (profile and profile.student_email) else (user.email if user else '') }}" 
+                readonly>
+              <div class="st-form-sublabel">Your email is linked to your authentication provider.</div>
+            </div>
+
+            <div class="st-form-row">
+              <label for="st_student_mobile" class="st-form-label">Mobile Number <span style="color:var(--st-red);">*</span></label>
+              <input type="tel" id="st_student_mobile" name="student_moblie_number" class="st-form-input" 
+                value="{{ profile.student_moblie_number if (profile and profile.student_moblie_number) else '' }}" 
+                placeholder="10-digit mobile number" pattern="[0-9]{10}" maxlength="10" required>
+            </div>
+          </div>
+
+          <!-- Role Selection Card -->
+          <div class="st-card">
+            <h2><span class="st-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></span> I am a…</h2>
+            <div class="st-role-grid">
+              <label class="st-role-card">
+                <input type="radio" name="user_role" value="student" id="st_role_student" {% if not profile or profile.user_role=='student' %}checked{% endif %} onchange="toggleSettingsStudentFields()">
+                <span class="st-role-label">‍<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg> Student</span>
+              </label>
+
+              <label class="st-role-card">
+                <input type="radio" name="user_role" value="teacher" id="st_role_teacher" {% if profile and profile.user_role=='teacher' %}checked{% endif %} onchange="toggleSettingsStudentFields()">
+                <span class="st-role-label"> Teacher</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- Academic Details Card -->
+          <div class="st-card">
+            <h2><span class="st-card-icon"></span> Academic Details</h2>
+
+            <div class="st-form-row">
+              <label for="st_college_id" class="st-form-label">College <span style="color:var(--st-red);">*</span></label>
+              <select id="st_college_id" name="college_id" class="st-form-select" required>
+                <option value="">Select College</option>
+                {% for college in colleges %}
+                <option value="{{ college.id }}" {% if profile and profile.college_id|string==college.id|string %}selected{% endif %}>
+                  {{ college.name }}{% if college.short_name %} ({{ college.short_name }}){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="st-form-row">
+              <label for="st_branch_id" class="st-form-label">Branch <span style="color:var(--st-red);">*</span></label>
+              <select id="st_branch_id" name="branch_id" class="st-form-select" required>
+                <option value="">Select Branch</option>
+                {% for branch in branches %}
+                <option value="{{ branch.branch_id }}" {% if profile and profile.branch_id|string==branch.branch_id|string %}selected{% endif %}>
+                  {{ branch.name }}{% if branch.short_name %} ({{ branch.short_name }}){% endif %}
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="st-form-row">
+              <label for="st_degree" class="st-form-label">Degree / Course <span style="color:var(--st-red);">*</span></label>
+              <select id="st_degree" name="degree" class="st-form-select" required onchange="filterSettingsBranches()">
+                <option value="">Select Degree / Course</option>
+                {% set degrees = ['B.Tech', 'M.Tech', 'MBA', 'MCA', 'BCA', 'BBA', 'B.Sc', 'M.Sc', 'Diploma', 'Ph.D', 'Other'] %}
+                {% for d in degrees %}
+                <option value="{{ d }}" {% if profile and profile.degree==d %}selected{% endif %}>{{ d }}</option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="st-form-row">
+              <label for="st_year_of_joining" class="st-form-label">Year of Joining <span style="color:var(--st-red);">*</span></label>
+              <input type="number" id="st_year_of_joining" name="year_of_joining" class="st-form-input" 
+                value="{{ profile.year_of_joining if (profile and profile.year_of_joining) else '' }}" 
+                min="2000" max="2030" placeholder="e.g. 2024" required oninput="autoCalculateSettingsPursuingYear()">
+            </div>
+
+            <div class="st-form-row" id="st_pursuing_year_group">
+              <label for="st_pursuing_year" class="st-form-label">Current Year <span style="color:var(--st-red);">*</span></label>
+              <select id="st_pursuing_year" name="pursuing_year" class="st-form-select">
+                <option value="">Select Year</option>
+                {% for year in [1,2,3,4,5] %}
+                <option value="{{ year }}" {% if profile and profile.pursuing_year==year %}selected{% endif %}>
+                  {{ year }}{% if year==1 %}st{% elif year==2 %}nd{% elif year==3 %}rd{% else %}th{% endif %} Year
+                </option>
+                {% endfor %}
+              </select>
+            </div>
+
+            <div class="st-form-row" id="st_registration_number_group">
+              <label for="st_registration_number" class="st-form-label">Registration / Enrollment Number</label>
+              <input type="text" id="st_registration_number" name="registration_number" class="st-form-input" 
+                value="{{ profile.registration_number if (profile and profile.registration_number) else '' }}" 
+                placeholder="Enrollment / Reg No. (Optional)">
+            </div>
+
+            <div class="st-btn-row">
+              <button type="submit" id="stSaveAccountBtn" class="st-btn st-btn-primary">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path><polyline points="17 21 17 13 7 13 7 21"></polyline><polyline points="7 3 7 8 15 8"></polyline></svg> Save Account Details
+              </button>
+              <span id="stAccountSaveStatus" style="font-size:0.875rem; font-weight:600; align-self:center;"></span>
+            </div>
+          </div>
+        </form>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><circle cx="7.5" cy="15.5" r="5.5"></circle><path d="m21 2-9.6 9.6"></path><path d="m15.5 7.5 3 3L22 7l-3-3"></path></svg></span> Password & Security</h2>
+          <div class="st-form-row">
+            <label class="st-form-label">Current Password</label>
+            <input type="password" class="st-form-input" placeholder="••••••••" readonly>
+            <div class="st-form-sublabel">Password management is handled securely via email verification.</div>
+          </div>
+          <div class="st-btn-row">
+            <button type="button" class="st-btn st-btn-primary" onclick="forgotPassword()">Reset Password via Email</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Notifications -->

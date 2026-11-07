@@ -77,7 +77,7 @@ def _trigger_indexnow_helper(urls: list):
         )
         return submission.status_code in (200, 202)
     except Exception as e:
-        logging.error(f"[IndexNow helper] {e}")
+        logging.error("[IndexNow helper] internal error")
         return False
 
 
@@ -266,7 +266,7 @@ def admin_get_top_incidents():
             'id': 'db-err',
             'type': 'SYSTEM_ERROR',
             'title': 'Database Query Warning',
-            'description': str(e),
+            'description': 'An internal error occurred.',
             'severity': 'warning',
             'created_at': datetime.utcnow().isoformat()
         })
@@ -288,7 +288,7 @@ def admin_get_payment_transactions():
         res = supabase.table('credit_transactions').select('*').order('created_at', desc=True).limit(50).execute()
         return jsonify({'success': True, 'transactions': res.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/payment/transaction', methods=['POST'])
@@ -324,7 +324,7 @@ def admin_set_payment_transaction():
         res = query.execute()
         return jsonify({'success': True, 'data': res.data})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/payouts', methods=['GET'])
@@ -391,7 +391,7 @@ def admin_kyc_list():
         res = q.order('submitted_at', desc=True).limit(100).execute()
         return jsonify({'success': True, 'data': res.data or []})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/kyc/<kyc_id>/action', methods=['POST'])
@@ -438,7 +438,7 @@ def admin_kyc_verify(kyc_id):
         log_admin_action('kyc_verify', target=kyc_id, details={'action': action, 'reason': reason})
         return jsonify({'success': True, 'message': f'KYC application {action}d successfully'})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/audit/export', methods=['GET'])
@@ -464,7 +464,7 @@ def admin_audit_export():
             headers={'Content-Disposition': f'attachment; filename=audit_export_{timestamp}.xlsx'}
         )
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 
@@ -542,7 +542,7 @@ def admin_creator_wallets():
         merged_wallets.sort(key=lambda x: (x['withdrawable_balance'] + x['pending_balance'], x['total_views']), reverse=True)
         return jsonify({'success': True, 'wallets': merged_wallets})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e), 'wallets': []}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred.', 'wallets': []}), 500
 
 
 @admin_bp.route('/api/admin/creator/wallet/adjust', methods=['POST'])
@@ -603,7 +603,7 @@ def get_admin_subscribers():
             'subscribers': subscribers
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/send-notification', methods=['POST'])
@@ -651,8 +651,8 @@ def send_admin_notification():
             'error': result.get('error')
         })
     except Exception as e:
-        logging.error(f"Error sending notification: {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logging.error("Error sending notification: internal error")
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/notification-history', methods=['GET'])
@@ -664,7 +664,7 @@ def get_admin_notification_history():
         history = get_notification_history()
         return jsonify({'success': True, 'history': history})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/broadcast-stats', methods=['GET'])
@@ -677,8 +677,8 @@ def get_admin_broadcast_stats():
         stats = get_admin_broadcast_delivery_stats(limit=limit)
         return jsonify({'success': True, **stats})
     except Exception as e:
-        logging.error(f"[admin broadcast-stats] {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logging.error("[admin broadcast-stats] internal error")
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 # ─── System Health & Logs ───────────────────────────────────────────────────
@@ -740,8 +740,8 @@ def get_system_health():
             }
         })
     except Exception as e:
-        logging.error(f"[admin system-health] {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logging.error("[admin system-health] internal error")
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/cloud-stats', methods=['GET'])
@@ -770,7 +770,7 @@ def api_admin_cloud_stats():
             'credits_limit': usage.get('credits', {}).get('limit'),
         }
     except Exception as e:
-        result['cloudinary']['error'] = str(e)
+        result['cloudinary']['error'] = 'An internal error occurred.'
     try:
         client = init_supabase()
         if client:
@@ -778,7 +778,7 @@ def api_admin_cloud_stats():
             if res.data:
                 result['supabase']['db_size_bytes'] = res.data
     except Exception as e:
-        err_str = str(e)
+        err_str = 'An internal error occurred.'
         if 'PGRST202' in err_str or 'get_db_size' in err_str:
             result['supabase']['db_size_bytes'] = None
             result['supabase']['error'] = None
@@ -812,7 +812,7 @@ def api_admin_feature_health():
             fn()
             return {'name': name, 'status': 'ok', 'latency_ms': round((time.time()-t0)*1000)}
         except Exception as e:
-            return {'name': name, 'status': 'error', 'latency_ms': round((time.time()-t0)*1000), 'error': str(e)[:120]}
+            return {'name': name, 'status': 'error', 'latency_ms': round((time.time()-t0)*1000), 'error': 'An internal error occurred.'[:120]}
 
     client = init_supabase()
     checks.append(_check('Supabase DB', lambda: client.table('profiles').select('id').limit(1).execute()))
@@ -965,8 +965,8 @@ def admin_get_users():
             'top_students': top_students
         })
     except Exception as e:
-        logging.error(f"[admin_get_users] {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logging.error("[admin_get_users] internal error")
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/verify-user', methods=['POST'])
@@ -1002,8 +1002,8 @@ def admin_verify_user():
 
         return jsonify({'success': True, 'message': msg})
     except Exception as e:
-        logging.error(f"[admin_verify_user] {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logging.error("[admin_verify_user] internal error")
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/update-user-role', methods=['POST'])
@@ -1026,8 +1026,8 @@ def admin_update_user_role():
 
         return jsonify({'success': True, 'message': msg})
     except Exception as e:
-        logging.error(f"[admin_update_user_role] {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logging.error("[admin_update_user_role] internal error")
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/users/<user_id>/block', methods=['POST'])
@@ -1211,8 +1211,8 @@ def admin_update_user_level():
             'profile': res.data[0]
         })
     except Exception as e:
-        logging.error(f"[admin_update_user_level] {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logging.error("[admin_update_user_level] internal error")
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/users/<user_id>/stats', methods=['GET'])
@@ -1264,7 +1264,7 @@ def admin_get_user_stats(user_id):
             }
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/update-user-credits', methods=['POST'])
@@ -1326,7 +1326,7 @@ def admin_update_user_credits():
         log_admin_action('update_user_credits', target=user_id, details=update_payload)
         return jsonify({'success': True, 'message': 'Credits updated successfully', 'updated': update_payload})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/stats', methods=['GET'])
@@ -1381,7 +1381,7 @@ def get_admin_stats():
             }
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 # ─── Moderation & Content Management ────────────────────────────────────────
@@ -1425,8 +1425,8 @@ def get_pending_documents():
 
         return jsonify({'success': True, 'documents': docs})
     except Exception as e:
-        logging.error(f'[pending-documents] {e}')
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logging.error('[pending-documents] internal error')
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/approve-document', methods=['POST'])
@@ -1484,7 +1484,7 @@ def approve_document():
         log_admin_action('approve_document', target=doc_id, details={'uploader_id': uploader_id, 'remark': remark})
         return jsonify({'success': True, 'message': 'Document approved successfully'})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/reject-document', methods=['POST'])
@@ -1548,7 +1548,7 @@ def reject_document():
         log_admin_action('reject_document', target=doc_id, details={'uploader_id': uploader_id, 'reason': reason})
         return jsonify({'success': True, 'message': 'Document rejected successfully'})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/file-reports')
@@ -1630,8 +1630,8 @@ def admin_file_reports():
         }), 200
         
     except Exception as e:
-        logging.error(f"Error fetching admin file reports: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logging.error("Error fetching admin file reports: internal error")
+        return jsonify({'success': False, 'message': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/file-reports/<report_id>/status', methods=['POST'])
@@ -1664,8 +1664,8 @@ def admin_update_file_report_status(report_id):
             'message': f"Report successfully marked as {new_status}."
         }), 200
     except Exception as e:
-        logging.error(f"[admin_update_file_report_status] {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logging.error("[admin_update_file_report_status] internal error")
+        return jsonify({'success': False, 'message': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/file-reports/<report_id>/delete-file', methods=['POST', 'DELETE'])
@@ -1804,8 +1804,8 @@ def admin_delete_file_completely(report_id):
         }), 200
 
     except Exception as e:
-        logging.error(f"[admin_delete_file_completely] Error: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logging.error("[admin_delete_file_completely] Error: internal error")
+        return jsonify({'success': False, 'message': 'An internal error occurred.'}), 500
 
 
 
@@ -1848,7 +1848,7 @@ def api_admin_economy_get_config():
         res = init_supabase().table('scoring_config').select('*').order('key').execute()
         return jsonify({'success': True, 'config': res.data or []}), 200
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/economy/config', methods=['POST'])
@@ -1879,7 +1879,7 @@ def api_admin_economy_update_config():
         logging.info(f"[ECONOMY] admin updated scoring_config['{key}']")
         return jsonify({'success': True}), 200
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/economy/overview', methods=['GET'])
@@ -1918,7 +1918,7 @@ def api_admin_economy_overview():
             'recent_events': logs_res.data or [],
         }), 200
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/economy/user/<user_id>', methods=['POST'])
@@ -1945,7 +1945,7 @@ def api_admin_economy_override_user(user_id):
         logging.info("[ECONOMY] Admin updated user access level (level=%s)", level)
         return jsonify({'success': True}), 200
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        return jsonify({'success': False, 'message': 'An internal error occurred.'}), 500
 
 
 # ─── IndexNow Search Submission ─────────────────────────────────────────────
@@ -1966,8 +1966,8 @@ def api_indexnow_submit():
             return jsonify({'success': True, 'message': f'Submitted {len(urls)} URLs successfully'})
         return jsonify({'success': False, 'message': 'IndexNow submission failed or key not configured'}), 400
     except Exception as e:
-        logging.error(f'[api_indexnow_submit] {e}')
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logging.error('[api_indexnow_submit] internal error')
+        return jsonify({'success': False, 'message': 'An internal error occurred.'}), 500
 
 
 # ─── File & Storage Management Endpoints ────────────────────────────────────
@@ -1987,8 +1987,8 @@ def admin_get_files():
         result = list_files(search=search, status=status, page=page, limit=limit)
         return jsonify(result)
     except Exception as e:
-        logging.error(f"[admin_get_files] {e}")
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logging.error("[admin_get_files] internal error")
+        return jsonify({'success': False, 'error': 'An internal error occurred.'}), 500
 
 
 @admin_bp.route('/api/admin/files/<doc_id>', methods=['DELETE', 'POST'])

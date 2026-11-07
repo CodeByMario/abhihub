@@ -1,0 +1,20 @@
+.abhihub-context-menu {
+    position: fixed;
+    z-index: 2147483000;
+    min-width: 250px;
+    max-width: min(340px, calc(100vw - 16px));
+    padding: 12px;
+    border: 1px solid rgba(100, 116, 139, 0.35);
+    border-radius: 12px;
+    background: #fff;
+    color: #172033;
+    box-shadow: 0 12px 36px rgba(15, 23, 42, 0.2);
+    font: 14px/1.45 system-ui, sans-serif;
+}
+
+[data-theme="dark"] .abhihub-context-menu { background: #111827; color: #f3f4f6; }
+.abhihub-context-menu[hidden] { display: none; }
+.abhihub-context-menu-title { margin: 0 0 8px; font-weight: 800; }
+.abhihub-context-menu-row { margin: 5px 0; overflow-wrap: anywhere; }
+.abhihub-context-menu-close { margin-top: 10px; padding: 6px 10px; border: 0; border-radius: 7px; cursor: pointer; }
+

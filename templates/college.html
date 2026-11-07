@@ -722,7 +722,7 @@
       <div class="college-media-grid">
         {% from 'components/media_card.html' import render_apple_card %}
         {% for file in recent_files %}
-          {{ render_apple_card(file, college_abbr) }}
+          {{ render_apple_card(file, _abbr) }}
         {% else %}
           <div class="college-empty-card">No approved resources available for this college yet.</div>
         {% endfor %}

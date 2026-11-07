@@ -1,38 +1,10 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    {% if IS_PRODUCTION %}
-    <!-- Production Mode: Prevent Opening DevTools & Inspect Elements -->
-    <script>
-        (function() {
-            document.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-                return false;
-            }, { capture: true });
-
-            document.addEventListener('keydown', function(e) {
-                if (e.key === 'F12' || e.keyCode === 123) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                }
-                if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['I', 'i', 'J', 'j', 'C', 'c'].includes(e.key)) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                }
-                if ((e.ctrlKey || e.metaKey) && (e.key === 'u' || e.key === 'U')) {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    return false;
-                }
-            }, { capture: true });
-        })();
-    </script>
-    {% endif %}
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="csrf-token" content="{{ csrf_token() if csrf_token is defined else '' }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/site-protection.css') }}">
     <title>{% block title %}Admin Command Center{% endblock %} | AbhiHub</title>
     <!-- Google Fonts & Font Awesome 6 -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -720,5 +692,16 @@
         });
     </script>
     {% block extra_scripts %}{% endblock %}
+    {% set admin_user = session.get('user', {}) %}
+    {% set admin_profile = session.get('profile', {}) %}
+    <script>
+        window.__CURRENT_USER__ = {
+            uid: {{ admin_user.get('uid', '') | tojson }},
+            email: {{ admin_user.get('email', '') | tojson }},
+            registrationNumber: {{ admin_profile.get('registration_number', '') | tojson }},
+            studentId: {{ admin_profile.get('student_id', '') | tojson }}
+        };
+    </script>
+    <script src="{{ url_for('static', filename='js/site-protection.js') }}" defer></script>
 </body>
 </html>

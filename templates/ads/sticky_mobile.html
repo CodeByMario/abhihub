@@ -21,26 +21,37 @@
 <style>
 .ad-sticky-wrapper {
     position: fixed;
-    /* Sits 110px from bottom — 20px clear gap above the 90px floating navbar pill */
     bottom: 110px !important;
     left: 50%;
     transform: translateX(-50%);
     width: calc(100% - 32px);
     max-width: 400px;
-    background: #fff;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    border-radius: 16px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.12);
     z-index: 990;
     border: 1px solid rgba(0,0,0,0.08);
     overflow: hidden;
+    transition: all 0.25s ease;
+}
+[data-theme="dark"] .ad-sticky-wrapper {
+    background: rgba(20, 20, 24, 0.92);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow: 0 12px 36px rgba(0,0,0,0.55);
 }
 .ad-sticky-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 4px 12px;
-    background: #f8fafc;
+    padding: 6px 12px;
+    background: rgba(0, 0, 0, 0.02);
     border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+[data-theme="dark"] .ad-sticky-header {
+    background: rgba(255, 255, 255, 0.03);
+    border-bottom-color: rgba(255, 255, 255, 0.06);
 }
 .ad-sticky-label {
     font-size: 10px;

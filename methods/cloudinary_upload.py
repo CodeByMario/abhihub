@@ -76,7 +76,7 @@ def compress_pdf(file_data: bytes) -> bytes:
             logging.info(f"✓ PDF compression produced no size reduction; keeping original ({len(file_data)} bytes)")
             return file_data
     except Exception as e:
-        logging.warning(f"PDF metadata strip failed, keeping original: {e}")
+        logging.warning("PDF metadata strip failed, keeping original (error_type=%s)", type(e).__name__)
         return file_data
 
 def compress_image(file_data: bytes, format: str = 'JPEG', quality: int = 75) -> bytes:
@@ -127,7 +127,7 @@ def compress_image(file_data: bytes, format: str = 'JPEG', quality: int = 75) ->
             draw.text((x + 1, y + 1), text, fill=(0, 0, 0), font=font)
             draw.text((x, y), text, fill=(255, 255, 255), font=font)
         except Exception as wm_err:
-            logging.warning(f"Watermark error: {wm_err}")
+            logging.warning("Watermark operation failed (error_type=%s)", type(wm_err).__name__)
 
         output = io.BytesIO()
         save_kwargs = {'format': format, 'optimize': True}
@@ -139,7 +139,7 @@ def compress_image(file_data: bytes, format: str = 'JPEG', quality: int = 75) ->
         logging.info(f"✓ Document image converted to grayscale & compressed to {len(compressed)} bytes")
         return compressed
     except Exception as e:
-        logging.error(f"Error compressing image: {e}")
+        logging.error("Image compression failed (error_type=%s)", type(e).__name__)
         return file_data
 
 def sanitize_filename(filename: str) -> str:
@@ -245,11 +245,11 @@ def upload_file_to_cloudinary(
         upload_params = {
             'public_id': public_id,
             'resource_type': resource_type,
+            'type': 'authenticated',
             'folder': folder,
             'overwrite': False,
             'use_filename': False,
             'unique_filename': False,
-            'access_control': [{'access_type': 'anonymous'}]  # Ensure public access for proxied delivery
         }
 
         # Add optimization for different resource types
@@ -259,8 +259,6 @@ def upload_file_to_cloudinary(
         elif resource_type == 'raw':
             # For PDFs and documents
             upload_params['resource_type'] = 'raw'
-        upload_params['access_mode'] = 'public'
-
         logging.info(f"📤 Uploading to Cloudinary: {public_id}")
         if is_pdf and not public_id.lower().endswith('.txt'):
             raise ValueError("PDF Cloudinary public ID must use a .txt suffix")
@@ -315,7 +313,7 @@ def upload_file_to_cloudinary(
             'supabase_public_id': result.get('supabase_public_id')
         }
     except Exception as e:
-        logging.error(f"❌ Cloudinary upload error: {e}")
+        logging.error("Cloudinary upload failed (error_type=%s)", type(e).__name__)
         return {
             'success': False,
             'error': str(e),
@@ -334,13 +332,20 @@ def delete_file_from_cloudinary(public_id: str, resource_type: str = 'raw') -> D
         dict: {'success': bool, 'result': str}
     """
     try:
-        result = cloudinary.uploader.destroy(public_id, resource_type=resource_type)
+        result = cloudinary.uploader.destroy(
+            public_id, resource_type=resource_type, type='authenticated'
+        )
+        if result.get('result') != 'ok':
+            # Older assets were uploaded with Cloudinary's default public type.
+            result = cloudinary.uploader.destroy(
+                public_id, resource_type=resource_type, type='upload'
+            )
         return {
             'success': result.get('result') == 'ok',
             'result': result.get('result')
         }
     except Exception as e:
-        logging.error(f"Error deleting from Cloudinary: {e}")
+        logging.error("Cloudinary delete failed (error_type=%s)", type(e).__name__)
         return {
             'success': False,
             'error': str(e)

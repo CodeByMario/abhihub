@@ -229,6 +229,9 @@ class TestCloudinaryResourceTypeRouting(unittest.TestCase):
         result, m = self._upload_and_capture(PDF_BYTES, "lecture.pdf")
         self.assertTrue(result["success"])
         self.assertEqual(m.call_args.kwargs["resource_type"], "raw")
+        self.assertEqual(m.call_args.kwargs["type"], "authenticated")
+        self.assertNotIn("access_control", m.call_args.kwargs)
+        self.assertNotIn("access_mode", m.call_args.kwargs)
 
     def test_pdf_public_id_ends_with_txt(self):
         """PDFs get a .txt extension to bypass Cloudinary free-tier PDF restrictions."""

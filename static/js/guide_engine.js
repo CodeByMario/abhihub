@@ -6,6 +6,16 @@
 (function () {
   'use strict';
 
+  // Guide feature disabled
+  window.GuideEngine = {
+    init: function () {},
+    cleanup: function () {},
+    startGuide: function () {},
+    showFeatureMenu: function () {},
+    showGlobalMenu: function () {}
+  };
+  return;
+
   class GuideEngine {
     constructor() {
       this.currentGuide = null;

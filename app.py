@@ -411,6 +411,63 @@ def validate_api_domain():
         except Exception as e:
             logging.debug(f"[SECURITY] Origin parse error: {e}")
 
+
+@app.before_request
+def enforce_api_rate_limit():
+    """Apply a per-principal API request limit before route/database work."""
+    api_prefixes = ('/api/', '/admin/api/', '/store-room/api/', '/pdf-proxy/')
+    legacy_api_paths = {'/auth', '/verify-file', '/get-file-url', '/update-file-metadata'}
+    is_api_request = request.path.startswith(api_prefixes) or request.path in legacy_api_paths
+    if not is_api_request or request.method == 'OPTIONS':
+        return None
+
+    # Payment/storage providers retry webhooks independently; they need signature
+    # validation and provider-specific controls rather than a browser-user quota.
+    if request.path.startswith('/api/webhooks/') or request.path in ('/api/health', '/health'):
+        return None
+
+    from methods.api_rate_limiter import check_api_rate_limit
+
+    user = session.get('user')
+    user_id = (user.get('uid') or user.get('email')) if isinstance(user, dict) else None
+    if user_id:
+        kind = 'user'
+        principal = str(user_id).strip().lower()
+        limit_name = 'API_RATE_LIMIT_PER_USER'
+        default_limit = 300
+    else:
+        # Use only the socket peer address here. X-Forwarded-For is untrusted
+        # unless the deployment explicitly normalizes it at the WSGI boundary.
+        kind = 'ip'
+        principal = request.remote_addr or 'unknown'
+        limit_name = 'API_RATE_LIMIT_PER_IP'
+        default_limit = 60
+
+    try:
+        max_requests = max(1, int(os.getenv(limit_name, str(default_limit))))
+    except (TypeError, ValueError):
+        max_requests = default_limit
+    try:
+        window_seconds = max(1, int(os.getenv('API_RATE_LIMIT_WINDOW_SECONDS', '60')))
+    except (TypeError, ValueError):
+        window_seconds = 60
+
+    allowed, retry_after = check_api_rate_limit(
+        kind,
+        principal,
+        max_requests=max_requests,
+        window_seconds=window_seconds,
+    )
+    if not allowed:
+        response = jsonify({
+            'success': False,
+            'message': 'Too many API requests. Please wait and try again.',
+            'retry_after': retry_after,
+        })
+        response.status_code = 429
+        response.headers['Retry-After'] = str(retry_after)
+        return response
+
 @app.after_request
 def apply_security_and_cache_headers(response):
     """Add security and cache control headers to all responses."""
@@ -738,9 +795,13 @@ init_push_api(app)
 
 # Initialize background scheduler for upload notifications
 try:
-    from scheduled_tasks import init_scheduler
-    init_scheduler(app)
-    logging.info("✅ Background task scheduler initialized")
+    import os
+    if os.environ.get("WERKZEUG_RUN_MAIN") == "true" or not app.debug:
+        from scheduled_tasks import init_scheduler
+        init_scheduler(app)
+        logging.info("✅ Background task scheduler initialized")
+    else:
+        logging.info("ℹ️ Skipping scheduler in Werkzeug watcher process")
 except ImportError as e:
     logging.warning(f"⚠️ Background scheduler not available (missing dependency): {e}")
     logging.info("Upload notifications will not be sent automatically")
@@ -869,6 +930,9 @@ def log_document_view(file_name, file_url, record_id=None,
 
         if not already_viewed_today:
             viewed_dict = session.get('viewed_today', {})
+            if not isinstance(viewed_dict, dict):
+                viewed_dict = {}
+                session['viewed_today'] = viewed_dict
             if viewed_dict.get(doc_key) == today_str:
                 already_viewed_today = True
 
@@ -929,10 +993,7 @@ def log_document_view(file_name, file_url, record_id=None,
         )
         return True
     except Exception as e:
-        logging.warning(
-            "[VIEW-LOG] Could not record document view (error_type=%s)",
-            type(e).__name__,
-        )
+        logging.exception("[VIEW-LOG] Could not record document view:")
         return False
 
 
@@ -1127,7 +1188,7 @@ def _get_quota():
     # Fetch from Supabase
     res = supabase.table('profiles').select('paper_quota_remaining, last_quota_reset').eq('id', user_id).execute()
     db_quota = default_quota
-    _default_month = datetime.utcnow().strftime('%Y-%m')
+    _default_month = datetime.now(timezone.utc).strftime('%Y-%m')
     last_reset = _default_month
     if res.data:
         db_quota = res.data[0].get('paper_quota_remaining')
@@ -1135,7 +1196,7 @@ def _get_quota():
             db_quota = default_quota
         last_reset = res.data[0].get('last_quota_reset') or _default_month
 
-    current_month = datetime.utcnow().strftime('%Y-%m')
+    current_month = datetime.now(timezone.utc).strftime('%Y-%m')
     if last_reset != current_month:
         db_quota = default_quota
         last_reset = current_month
@@ -1216,7 +1277,12 @@ def _consume_credit(doc_name="Document"):
         return False
 
     from methods.payment_engine import engine
-    allowed, new_credits = engine.deduct_view(user_id, doc_name=doc_name)
+    deduct_res = engine.deduct_view(user_id, doc_name=doc_name)
+    if isinstance(deduct_res, (tuple, list)):
+        allowed, new_credits = bool(deduct_res[0]), int(deduct_res[1])
+    else:
+        allowed = bool(deduct_res)
+        new_credits = max(0, q.get('credits', 1) - 1)
     if not allowed:
         return False
 
@@ -1238,6 +1304,8 @@ from PIL import Image
 
 # Configure logging
 logging.basicConfig(level=logging.DEBUG)
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 import traceback
 
@@ -1514,6 +1582,11 @@ def send_upload_notifications_command():
 # Error Handlers
 @app.errorhandler(404)
 def page_not_found(e):
+    path = (request.path or '').lower()
+    if any(path.startswith(prefix) for prefix in ['/resources/', '/resource/', '/file/']):
+        from routes.library import report_resource_404, render_resource_404
+        report_resource_404(request.path, reason="404 Route Not Found")
+        return render_resource_404(slug=request.path)
     return render_template('p_error.html', error="Page Not Found"), 404
 
 @app.errorhandler(500)
@@ -1626,7 +1699,7 @@ def _get_chat_history(uid_a, uid_b):
     from methods.encrypted_chat import load_conversation_supabase
     from datetime import datetime, timedelta
 
-    cutoff_iso = (datetime.utcnow() - timedelta(days=3)).isoformat()
+    cutoff_iso = (datetime.now(timezone.utc) - timedelta(days=3)).isoformat()
 
     try:
         my_keys = {}
@@ -1754,7 +1827,7 @@ def join_admin_room(data):
         socketio.emit('admin_snapshot', {
             'broadcast_stats': stats.get_json() if hasattr(stats, 'get_json') else stats,
             'system_health': health.get_json() if hasattr(health, 'get_json') else health,
-            'ts': datetime.utcnow().isoformat() + 'Z'
+            'ts': datetime.now(timezone.utc).isoformat() + 'Z'
         }, room='admin-room')
     except Exception as e:
         logging.error(f"[admin] snapshot error: {e}")
@@ -1763,7 +1836,7 @@ def join_admin_room(data):
 def _emit_admin_activity_event(event_type, **kwargs):
     """Push a real-time activity event to the admin dashboard."""
     try:
-        payload = {'event': event_type, 'ts': datetime.utcnow().isoformat() + 'Z'}
+        payload = {'event': event_type, 'ts': datetime.now(timezone.utc).isoformat() + 'Z'}
         payload.update(kwargs)
         socketio.emit('admin_activity', payload, room='admin-room')
     except Exception as e:
@@ -1842,7 +1915,7 @@ def _relay_chat_message(uid, data):
         'from': uid,
         'to': peer_id,
         'text': text,
-        'ts': (data or {}).get('ts') or datetime.utcnow().isoformat() + 'Z',
+        'ts': (data or {}).get('ts') or datetime.now(timezone.utc).isoformat() + 'Z',
         'msg_id': (data or {}).get('msg_id') or '',
         'msg_type': (data or {}).get('msg_type') or 'text',
         'file_req': (data or {}).get('file_req') or None,

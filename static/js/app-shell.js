@@ -490,13 +490,25 @@
     function renderNotifications(items) {
         if (!notifList) return;
         if (!items || !items.length) {
-            notifList.innerHTML = '<div class="notif-loading" style="padding:16px;text-align:center;color:#64748b;">No notifications yet 🎉</div>';
+            notifList.innerHTML = `
+              <div class="notif-empty-state" style="text-align:center; padding:2rem 1rem; color:#64748b;">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 0.5rem; display:block; opacity:0.6;">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                </svg>
+                <div style="font-weight:600; font-size:0.85rem; color:#1e293b;">All caught up!</div>
+                <div style="font-size:0.75rem; margin-top:2px;">No new notifications</div>
+              </div>`;
             return;
         }
 
+        const iconSvg = n => n.type === 'file_view' 
+            ? '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="7" r="3"></circle></svg>'
+            : '<svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>';
+
         notifList.innerHTML = items.map(n => `
-            <div class="notif-item ${n.is_read ? '' : 'unread'}" data-notif-id="${n.id}" data-link="${n.target_url || '/notifications'}" style="padding:10px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;display:flex;gap:10px;">
-                <div style="font-size:1.2rem;">${n.type === 'file_view' ? '👁' : '🔔'}</div>
+            <div class="notif-item ${n.is_read ? '' : 'unread'}" data-notif-id="${n.id}" data-link="${n.target_url || '/notifications'}" style="padding:10px 14px;border-bottom:1px solid #f1f5f9;cursor:pointer;display:flex;gap:10px;align-items:flex-start;">
+                <div style="margin-top:2px;color:#2563eb;">${iconSvg(n)}</div>
                 <div style="flex:1;min-width:0;">
                     <div style="font-weight:600;font-size:0.875rem;color:#1e293b;">${n.title}</div>
                     <div style="font-size:0.8rem;color:#64748b;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${n.message}</div>
@@ -559,7 +571,7 @@
     if (notifBell) {
         notifBell.addEventListener('click', function () {
             notifOpen = !notifOpen;
-            if (notifPanel) notifPanel.style.display = notifOpen ? 'block' : 'none';
+            if (notifPanel) notifPanel.style.display = notifOpen ? 'flex' : 'none';
             if (notifOpen) {
                 fetchNotifications(false);
             }

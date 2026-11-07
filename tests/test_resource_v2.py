@@ -24,6 +24,7 @@ def mock_sample_doc():
         "success": True,
         "data": {
             "id": "c0007903-5e53-4e06-95b1-5169e7a4dece",
+            "status": "approved",
             "title": "Daa - CAE2",
             "file_type": "image",
             "file_url": "https://example.com/sample-paper.jpg",
@@ -115,6 +116,9 @@ def test_mock_study_kit_ignored_in_production(test_client, mock_sample_doc, monk
 
 def test_pdf_viewer_disables_downloads(test_client, mock_sample_doc):
     """When document is a PDF, the viewer iframe is loaded with download=false."""
+    with test_client.session_transaction() as sess:
+        sess['user'] = {'uid': 'student-123', 'email': 'reader@example.test'}
+        sess['profile'] = {'registration_number': 'REG-42'}
     pdf_doc = dict(mock_sample_doc)
     pdf_doc["data"] = dict(mock_sample_doc["data"])
     pdf_doc["data"]["file_type"] = "pdf"
@@ -126,6 +130,54 @@ def test_pdf_viewer_disables_downloads(test_client, mock_sample_doc):
         assert res.status_code == 200
         html = res.data.decode("utf-8")
         assert "&download=false" in html
+        assert 'data-feature="PDF Viewer"' in html
+        assert '/static/vendor/viewerjs/viewer.min.js' not in html
+        assert "r2-watermark-overlay" in html
+        assert "AbhiHub · reader@example.test · REG-42" in html
+        assert 'data-feature="Image Viewer"' not in html
+
+
+def test_image_resource_uses_image_viewer_and_personalized_watermark(test_client, mock_sample_doc):
+    with test_client.session_transaction() as sess:
+        sess['user'] = {'uid': 'student-123', 'email': 'reader@example.test'}
+        sess['profile'] = {'registration_number': 'REG-42'}
+    with patch("app.get_document_by_id_rich", return_value=mock_sample_doc), \
+         patch("app.log_document_view"):
+        res = test_client.get("/resources/ghrce-cse-design-and-analysis-of-algorithms-daa-cae2-c0007903-5e53-4e06-95b1-5169e7a4dece")
+    html = res.get_data(as_text=True)
+    assert res.status_code == 200
+    assert 'data-feature="Image Viewer"' in html
+    assert 'id="previewImage"' in html
+    assert '/static/vendor/viewerjs/viewer.min.js' in html
+    assert '/static/vendor/viewerjs/viewer.min.css' in html
+    assert "AbhiHub · reader@example.test · REG-42" in html
+    assert 'data-feature="PDF Viewer"' not in html
+    assert test_client.get('/static/vendor/viewerjs/viewer.min.js').status_code == 200
+    assert test_client.get('/static/vendor/viewerjs/viewer.min.css').status_code == 200
+
+
+def test_shared_pages_do_not_show_document_watermark(test_client):
+    response = test_client.get('/login')
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert 'abhihub-watermark-layer' not in html
+    assert 'r2-watermark-overlay' not in html
+
+
+def test_paid_locked_image_renders_limited_viewer_preview(test_client, mock_sample_doc):
+    paid_doc = dict(mock_sample_doc)
+    paid_doc['data'] = dict(mock_sample_doc['data'])
+    paid_doc['data'].update({'is_paid': True, 'price': 20})
+    with patch("app.get_document_by_id_rich", return_value=paid_doc), \
+         patch("app.log_document_view"), \
+         patch("data.pricing.has_document_access", return_value=False):
+        response = test_client.get("/resources/ghrce-cse-design-and-analysis-of-algorithms-daa-cae2-c0007903-5e53-4e06-95b1-5169e7a4dece")
+    html = response.get_data(as_text=True)
+    assert response.status_code == 200
+    assert 'data-feature="Image Viewer Preview"' in html
+    assert 'src="/api/view-doc/c0007903-5e53-4e06-95b1-5169e7a4dece/file?preview=1"' in html
+    assert 'Top 20% is clear. Unlock to view the full image.' in html
+    assert 'data-feature="PDF Viewer Preview"' not in html
 
 
 def test_questions_rendered_when_present_and_omitted_when_absent(test_client, mock_sample_doc):

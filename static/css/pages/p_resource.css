@@ -812,29 +812,103 @@
     overflow-wrap: anywhere;
   }
 
-  /* Watermark Overlay */
+  /* Watermark Overlay - Optimized Anti-Exfiltration & Reading Comfort */
   .r2-watermark-overlay {
     position: absolute;
     inset: 0;
     pointer-events: none;
     user-select: none;
     z-index: 10;
-    display: flex;
-    flex-wrap: wrap;
-    align-content: space-around;
-    justify-content: space-around;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    grid-template-rows: repeat(4, 1fr);
+    align-items: center;
+    justify-items: center;
     overflow: hidden;
-    opacity: 0.08;
+    opacity: 0.055;
+    mix-blend-mode: multiply;
   }
   .r2-watermark-item {
-    font-family: var(--v2-font-heading);
-    font-size: 1.6rem;
-    font-weight: 800;
-    color: var(--v2-ink);
-    transform: rotate(-25deg);
-    letter-spacing: 2px;
-    padding: 1.5rem;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, "Liberation Mono", monospace;
+    font-size: clamp(0.72rem, 1.05vw, 0.88rem);
+    font-weight: 600;
+    color: #0f172a;
+    transform: rotate(-28deg);
+    letter-spacing: 0.12em;
+    padding: 0.75rem;
     text-transform: uppercase;
+    text-align: center;
+    text-shadow: 0 0 0.8px rgba(15, 23, 42, 0.45);
+    white-space: nowrap;
+    line-height: 1.4;
+  }
+  .r2-watermark-overlay .r2-watermark-item:nth-child(even) {
+    transform: rotate(-28deg) translateY(10px);
+  }
+
+  .viewer-container .abhihub-viewer-watermark {
+    position: absolute;
+    inset: 0;
+    z-index: 10;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: repeat(4, minmax(0, 1fr));
+    align-items: center;
+    justify-items: center;
+    overflow: hidden;
+    pointer-events: none;
+    user-select: none;
+  }
+
+  .viewer-container .abhihub-viewer-watermark span {
+    max-width: 90%;
+    color: rgba(255, 255, 255, 0.30);
+    font: 800 clamp(0.65rem, 1.3vw, 1rem)/1.4 var(--v2-font-heading);
+    letter-spacing: 0.04em;
+    text-align: center;
+    overflow-wrap: anywhere;
+    transform: rotate(-25deg);
+    text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+  }
+
+  .resource-locked-image,
+  .resource-unsupported-file {
+    min-height: 320px;
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    text-align: center;
+    color: var(--v2-ink);
+    background: var(--v2-surface);
+  }
+
+  .paid-image-preview-note {
+    position: absolute;
+    z-index: 11;
+    inset-inline: 0.75rem;
+    bottom: 0.75rem;
+    width: fit-content;
+    max-width: calc(100% - 1.5rem);
+    margin-inline: auto;
+    padding: 0.55rem 0.8rem;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 999px;
+    background: rgba(15, 23, 42, 0.78);
+    color: #fff;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-align: center;
+    pointer-events: none;
+  }
+
+  @media (max-width: 600px) {
+    .viewer-container .abhihub-viewer-watermark {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      grid-template-rows: repeat(6, minmax(0, 1fr));
+    }
   }
 
   /* Helpful Feedback Row */
@@ -1033,11 +1107,15 @@
       width: 100%;
     }
     .r2-watermark-overlay {
-      opacity: 0.05;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(8, 1fr);
+      opacity: 0.06;
     }
     .r2-watermark-item {
-      font-size: 1.15rem;
-      padding: 1rem;
+      font-size: 0.68rem;
+      letter-spacing: 0.08em;
+      white-space: normal;
+      padding: 0.5rem;
     }
     .r2-action-bar {
       gap: 0.45rem;
@@ -1048,22 +1126,82 @@
       min-height: 36px;
     }
 
-    /* Mobile Sticky Bottom Fast Utility Dock */
+    /* Mobile Sticky Bottom Fast Utility Dock - Dynamic Theme Compatible */
     .r2-mobile-dock {
       display: flex;
       position: fixed;
       bottom: 0; left: 0; right: 0;
-      background: rgba(11, 19, 41, 0.94);
-      backdrop-filter: blur(14px);
-      -webkit-backdrop-filter: blur(14px);
-      border-top: 1px solid rgba(255, 255, 255, 0.12);
-      padding: 0.65rem 1rem calc(0.65rem + env(safe-area-inset-bottom, 0px));
+      background: rgba(255, 255, 255, 0.88);
+      color: var(--ap-ink, #0f172a);
+      backdrop-filter: blur(20px) saturate(180%);
+      -webkit-backdrop-filter: blur(20px) saturate(180%);
+      border-top: 1px solid rgba(0, 0, 0, 0.08);
+      padding: 0.55rem 0.85rem calc(0.55rem + env(safe-area-inset-bottom, 0px));
       z-index: 8000;
       align-items: center;
       justify-content: space-around;
       gap: 0.5rem;
-      box-shadow: 0 -8px 24px rgba(0, 0, 0, 0.25);
+      box-shadow: 0 -4px 20px rgba(0, 0, 0, 0.06);
     }
+
+    [data-theme="dark"] .r2-mobile-dock,
+    .reading-theme-dark .r2-mobile-dock {
+      background: rgba(12, 12, 16, 0.92);
+      color: #f1f5f9;
+      border-top-color: rgba(255, 255, 255, 0.1);
+      box-shadow: 0 -6px 28px rgba(0, 0, 0, 0.6);
+    }
+
+    .r2-mobile-dock-btn {
+      flex: 1;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      background: rgba(0, 0, 0, 0.04);
+      border: 1px solid rgba(0, 0, 0, 0.06);
+      border-radius: 9999px;
+      color: inherit;
+      padding: 0.55rem 0.65rem;
+      font-size: 0.82rem;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      min-height: 42px;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      transition: all 0.15s ease;
+    }
+
+    .r2-mobile-dock-btn:active {
+      transform: scale(0.96);
+      background: rgba(0, 0, 0, 0.08);
+    }
+
+    [data-theme="dark"] .r2-mobile-dock-btn,
+    .reading-theme-dark .r2-mobile-dock-btn {
+      background: rgba(255, 255, 255, 0.06);
+      border-color: rgba(255, 255, 255, 0.08);
+      color: #f1f5f9;
+    }
+
+    [data-theme="dark"] .r2-mobile-dock-btn:active,
+    .reading-theme-dark .r2-mobile-dock-btn:active {
+      background: rgba(255, 255, 255, 0.12);
+    }
+
+    .r2-mobile-dock-btn.liked {
+      background: rgba(239, 68, 68, 0.12);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: #ef4444 !important;
+    }
+
+    .r2-mobile-dock-btn.bookmarked {
+      background: rgba(59, 130, 246, 0.12);
+      border-color: rgba(59, 130, 246, 0.3);
+      color: #3b82f6 !important;
+    }
+
     .r2-dock-btn {
       flex: 1;
       display: flex;
@@ -1082,18 +1220,6 @@
       text-decoration: none;
       min-height: 44px;
       touch-action: manipulation;
-    }
-    .r2-dock-btn:active {
-      background: rgba(255, 255, 255, 0.15);
-      transform: scale(0.97);
-    }
-    .r2-dock-btn.primary {
-      background: #0284c7;
-      border-color: #38bdf8;
-    }
-    .r2-dock-icon {
-      font-size: 1.05rem;
-      line-height: 1;
     }
   }
 
@@ -2549,7 +2675,7 @@ main {
 .ap-segment-control {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 6px;
   background: var(--ap-surface-alt) !important;
   border: 1px solid var(--ap-border) !important;
@@ -2558,7 +2684,24 @@ main {
   max-width: fit-content;
   margin: 0 auto 2rem;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
   scrollbar-width: none;
+}
+
+@media (max-width: 768px) {
+  .ap-segment-control {
+    width: 100%;
+    max-width: 100%;
+    margin: 0 0 1.5rem;
+    padding: 4px 8px;
+    box-sizing: border-box;
+    scroll-snap-type: x mandatory;
+    scroll-padding: 0 12px;
+  }
+  .ap-segment-btn {
+    scroll-snap-align: start;
+    flex-shrink: 0;
+  }
 }
 
 .ap-segment-btn {

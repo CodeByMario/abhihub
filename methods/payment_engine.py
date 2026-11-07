@@ -282,6 +282,15 @@ class PaymentEngine:
             db = _db()
             if not db:
                 return False
+            # Attempt atomic RPC first if present
+            try:
+                rpc_res = db.rpc('consume_view_credit_atomic', {'p_user_id': user_id, 'p_doc_name': doc_name[:80] if doc_name else 'Document'}).execute()
+                if rpc_res.data and isinstance(rpc_res.data, dict) and rpc_res.data.get('success'):
+                    self._invalidate_quota_cache(user_id)
+                    return True, rpc_res.data.get('new_balance', 0)
+            except Exception:
+                pass  # Fall back to optimistic Python check below
+
             res = db.table('profiles').select('paper_quota_remaining, email').eq('id', user_id).limit(1).execute()
             curr = 0
             if res.data:
@@ -292,17 +301,19 @@ class PaymentEngine:
                     from methods.domain_tier_service import classify_email
                     curr = classify_email(res.data[0].get('email', ''))['starting_views']
             if curr <= 0:
-                return False
+                return False, curr
             new_bal = curr - 1
-            db.table('profiles').update({'paper_quota_remaining': new_bal}).eq('id', user_id).execute()
+            up_res = db.table('profiles').update({'paper_quota_remaining': new_bal}).eq('id', user_id).gt('paper_quota_remaining', 0).execute()
+            if not up_res.data:
+                return False, 0  # Race condition prevented: balance was already 0
             self._ledger_credit(user_id, -1, 'view_spend',
                                 ref_id=doc_name[:80] if doc_name else None,
                                 source='system', balance=new_bal)
             self._invalidate_quota_cache(user_id)
-            return True
+            return True, new_bal
         except Exception as e:
             log.error(f"[ENGINE] deduct_view error: {e}")
-            return False
+            return False, 0
 
     def get_view_balance(self, user_id: str) -> int:
         """Returns current paper_quota_remaining for user."""

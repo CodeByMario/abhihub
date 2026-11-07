@@ -1,0 +1,30 @@
+      <div class="st-section" id="section-privacy">
+        <div class="st-card">
+          <h2><span class="st-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></span> Privacy Controls</h2>
+          {% if session.user %}
+          <div class="st-toggle-row">
+            <div>
+              <label for="toggleNoIndex" class="st-form-label">Hide profile from search engines</label>
+              <div class="st-form-sublabel">Prevent Google/Bing from indexing your public profile</div>
+            </div>
+            <label class="st-toggle">
+              <input type="checkbox" id="toggleNoIndex" aria-label="Hide profile from search engines" onchange="savePrivacySetting('no_index', this.checked)">
+              <span class="st-slide"></span>
+            </label>
+          </div>
+          {% else %}
+          <div class="st-form-sublabel">You must be logged in to manage privacy settings.</div>
+          {% endif %}
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg></span> Legal</h2>
+          <div style="display:flex; flex-direction:column; gap:0.5rem;">
+            <a href="/privacy" class="st-nav-item" style="background:var(--st-surface-hover);"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg> Privacy Policy</a>
+            <a href="/terms" class="st-nav-item" style="background:var(--st-surface-hover);"> Terms of Service</a>
+            <a href="/open-source" class="st-nav-item" style="background:var(--st-surface-hover);"> Open Source</a>
+          </div>
+        </div>
+      </div>
+
+      <!-- App Settings -->

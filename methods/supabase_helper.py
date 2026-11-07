@@ -420,7 +420,7 @@ def get_recent_college_files(college_id: str, limit: int = 5) -> Dict:
     if not client: return {"success": False}
     try:
         response = client.table('documents')\
-            .select('*, subject:subjects(name), uploader:profiles!documents_uploader_id_fkey(full_name)')\
+            .select('*, subject:subjects(name, subject_code), uploader:profiles!documents_uploader_id_fkey(full_name)')\
             .eq('college_id', college_id)\
             .eq('status', 'approved')\
             .order('created_at', desc=True)\
@@ -489,7 +489,7 @@ def get_recent_department_files(college_id: str, dept_id: str, limit: int = 6) -
     if not client: return {"success": False}
     try:
         response = client.table('documents')\
-            .select('*, subject:subjects(name), uploader:profiles!documents_uploader_id_fkey(full_name)')\
+            .select('*, subject:subjects(name, subject_code), uploader:profiles!documents_uploader_id_fkey(full_name)')\
             .eq('college_id', college_id)\
             .eq('department_id', dept_id)\
             .eq('status', 'approved')\
@@ -1746,7 +1746,7 @@ def _get_document_uploader(document_id: str):
 
 
 def toggle_like(user_email: str, document_id: str) -> Dict:
-    client = init_supabase()
+    client = init_supabase_admin() or init_supabase()
     if not client: return {'success': False, 'message': 'No client'}
     try:
         p_res = client.table('profiles').select('id').eq('email', user_email).execute()
@@ -1763,24 +1763,35 @@ def toggle_like(user_email: str, document_id: str) -> Dict:
             return {'success': True, 'is_liked': False, 'like_count': count}
         else:
             # Like: DB trigger trg_doc_vote_sync automatically increments like_count
-            client.table('document_votes').insert({'document_id': document_id, 'user_id': u_id, 'vote': 'like'}).execute()
-            doc_res = client.table('documents').select('like_count').eq('id', document_id).execute()
-            count = max(0, doc_res.data[0].get('like_count') or 0) if doc_res.data else 1
-            # Scoring: reward receiving a like (skip self-likes)
             try:
-                from methods.scoring_engine import process_event
-                uploader = _get_document_uploader(document_id)
-                process_event(user_id=uploader, event_type='resource_liked', entity_id=document_id,
-                              entity_type='document', actor_is_owner=(uploader == u_id),
-                              description='Received a like')
-            except Exception as e:
-                logging.warning(f"[SCORING] like scoring skipped: {e}")
-            return {'success': True, 'is_liked': True, 'like_count': count}
+                client.table('document_votes').insert({'document_id': document_id, 'user_id': u_id, 'vote': 'like'}).execute()
+                is_liked = True
+            except Exception as ins_err:
+                err_s = str(ins_err).lower()
+                if '23505' in err_s or 'duplicate key' in err_s or 'already exists' in err_s:
+                    client.table('document_votes').delete().eq('document_id', document_id).eq('user_id', u_id).execute()
+                    is_liked = False
+                else:
+                    raise ins_err
+
+            doc_res = client.table('documents').select('like_count').eq('id', document_id).execute()
+            count = max(0, doc_res.data[0].get('like_count') or 0) if doc_res.data else (1 if is_liked else 0)
+            if is_liked:
+                # Scoring: reward receiving a like (skip self-likes)
+                try:
+                    from methods.scoring_engine import process_event
+                    uploader = _get_document_uploader(document_id)
+                    process_event(user_id=uploader, event_type='resource_liked', entity_id=document_id,
+                                  entity_type='document', actor_is_owner=(uploader == u_id),
+                                  description='Received a like')
+                except Exception as e:
+                    logging.warning(f"[SCORING] like scoring skipped: {e}")
+            return {'success': True, 'is_liked': is_liked, 'like_count': count}
     except Exception as e:
-        return {'success': False, 'message': str(e)}
+        return {'success': False, 'message': 'Unable to update like. Please try again.'}
 
 def toggle_bookmark(user_email: str, document_id: str) -> Dict:
-    client = init_supabase()
+    client = init_supabase_admin() or init_supabase()
     if not client: return {'success': False, 'message': 'No client'}
     try:
         p_res = client.table('profiles').select('id').eq('email', user_email).execute()
@@ -1796,21 +1807,32 @@ def toggle_bookmark(user_email: str, document_id: str) -> Dict:
             return {'success': True, 'is_bookmarked': False, 'bookmark_count': count}
         else:
             # Add bookmark: DB trigger trg_doc_bookmark_sync automatically increments bookmark_count
-            client.table('bookmarks').insert({'document_id': document_id, 'user_id': u_id}).execute()
-            doc_res = client.table('documents').select('bookmark_count').eq('id', document_id).execute()
-            count = max(0, doc_res.data[0].get('bookmark_count') or 0) if doc_res.data else 1
-            # Scoring: reward receiving a bookmark (skip self-bookmarks)
             try:
-                from methods.scoring_engine import process_event
-                uploader = _get_document_uploader(document_id)
-                process_event(user_id=uploader, event_type='resource_bookmarked', entity_id=document_id,
-                              entity_type='document', actor_is_owner=(uploader == u_id),
-                              description='Received a bookmark')
-            except Exception as e:
-                logging.warning(f"[SCORING] bookmark scoring skipped: {e}")
-            return {'success': True, 'is_bookmarked': True, 'bookmark_count': count}
+                client.table('bookmarks').insert({'document_id': document_id, 'user_id': u_id}).execute()
+                is_bm = True
+            except Exception as ins_err:
+                err_s = str(ins_err).lower()
+                if '23505' in err_s or 'duplicate key' in err_s or 'already exists' in err_s:
+                    client.table('bookmarks').delete().eq('document_id', document_id).eq('user_id', u_id).execute()
+                    is_bm = False
+                else:
+                    raise ins_err
+
+            doc_res = client.table('documents').select('bookmark_count').eq('id', document_id).execute()
+            count = max(0, doc_res.data[0].get('bookmark_count') or 0) if doc_res.data else (1 if is_bm else 0)
+            if is_bm:
+                # Scoring: reward receiving a bookmark (skip self-bookmarks)
+                try:
+                    from methods.scoring_engine import process_event
+                    uploader = _get_document_uploader(document_id)
+                    process_event(user_id=uploader, event_type='resource_bookmarked', entity_id=document_id,
+                                  entity_type='document', actor_is_owner=(uploader == u_id),
+                                  description='Received a bookmark')
+                except Exception as e:
+                    logging.warning(f"[SCORING] bookmark scoring skipped: {e}")
+            return {'success': True, 'is_bookmarked': is_bm, 'bookmark_count': count}
     except Exception as e:
-        return {'success': False, 'message': str(e)}
+        return {'success': False, 'message': 'Unable to update bookmark. Please try again.'}
 
 def add_comment(user_email: str, document_id: str, content: str) -> Dict:
     client = init_supabase()
@@ -1922,7 +1944,7 @@ def get_student_profile(user_id: str) -> Dict:
                 'college_slug':          (college.get('abbreviation') or '').lower() or re.sub(r'[^a-z0-9]+', '-', (college.get('name') or '').lower()).strip('-'),
                 'branch_name':           dept.get('name', ''),
             }
-            logging.info(f"[Profile] student row found -> {flat}")
+            logging.info("[Profile] student profile loaded")
             return _set_req_cache({'success': True, 'data': flat})
 
         # Fallback: teacher role or no students row yet — read from profiles directly
@@ -1953,7 +1975,7 @@ def get_student_profile(user_id: str) -> Dict:
                 'college_slug':          (college.get('abbreviation') or '').lower() or re.sub(r'[^a-z0-9]+', '-', (college.get('name') or '').lower()).strip('-'),
                 'branch_name':           dept.get('name', ''),
             }
-            logging.warning(f"[Profile] profiles fallback -> {flat}")
+            logging.info("[Profile] profile fallback loaded")
             return _set_req_cache({'success': True, 'data': flat})
 
         return _set_req_cache({'success': True, 'data': None, 'message': 'Not found'})

@@ -3,163 +3,220 @@
 {% block content %}
 
 <style>
-  .offline-container {
+  .offline-page-wrap {
     display: flex;
     flex-direction: column;
     align-items: center;
-    justify-content: center;
-    min-height: calc(100vh - 180px);
-    padding: 2rem;
+    justify-content: flex-start;
+    min-height: calc(100vh - 140px);
+    padding: 2.5rem 1rem 3rem;
     text-align: center;
+    background: var(--bg-primary, #ffffff);
   }
 
-  .offline-icon {
-    width: 120px;
-    height: 120px;
-    margin-bottom: 2rem;
-    background: #F3F4F6;
+  [data-theme="dark"] .offline-page-wrap {
+    background: #090d16;
+  }
+
+  .offline-icon-wrap {
+    width: 68px;
+    height: 68px;
     border-radius: 50%;
+    background: var(--bg-secondary, rgba(0, 0, 0, 0.04));
     display: flex;
     align-items: center;
     justify-content: center;
+    color: var(--text-secondary, #64748b);
+    margin-bottom: 1.25rem;
+    border: 1px solid var(--border-light, rgba(0, 0, 0, 0.06));
   }
 
-  .offline-icon svg {
-    width: 64px;
-    height: 64px;
-    color: #6B7280;
+  [data-theme="dark"] .offline-icon-wrap {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(255, 255, 255, 0.08);
+    color: #94a3b8;
+  }
+
+  .offline-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 14px;
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    border-radius: 980px;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    margin-bottom: 1.25rem;
+  }
+
+  .offline-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ef4444;
+    box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7);
+    animation: offlinePulse 2s infinite;
+  }
+
+  @keyframes offlinePulse {
+    0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
+    70% { transform: scale(1); box-shadow: 0 0 0 6px rgba(239, 68, 68, 0); }
+    100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
   }
 
   .offline-title {
-    font-size: 2rem;
-    font-weight: 600;
-    color: #1F2937;
-    margin-bottom: 1rem;
+    font-size: clamp(1.8rem, 4vw, 2.4rem);
+    font-weight: 800;
+    color: var(--text-primary, #0f172a);
+    margin: 0 0 0.5rem;
+    letter-spacing: -0.02em;
+  }
+
+  [data-theme="dark"] .offline-title {
+    color: #f8fafc;
   }
 
   .offline-message {
-    font-size: 1.1rem;
-    color: #6B7280;
-    margin-bottom: 2rem;
-    max-width: 500px;
+    font-size: 0.95rem;
+    color: var(--text-secondary, #64748b);
+    max-width: 480px;
+    margin: 0 auto 1.5rem;
+    line-height: 1.5;
+  }
+
+  [data-theme="dark"] .offline-message {
+    color: #94a3b8;
   }
 
   .offline-actions {
     display: flex;
-    gap: 1rem;
+    gap: 0.75rem;
     flex-wrap: wrap;
     justify-content: center;
+    margin-bottom: 2rem;
   }
 
   .offline-button {
-    padding: 0.75rem 1.5rem;
-    border-radius: 8px;
-    font-weight: 500;
-    display: flex;
+    padding: 0.7rem 1.4rem;
+    border-radius: 980px;
+    font-size: 0.88rem;
+    font-weight: 600;
+    display: inline-flex;
     align-items: center;
     gap: 0.5rem;
-    transition: transform 0.2s;
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
     cursor: pointer;
+    border: none;
+    text-decoration: none;
   }
 
   .retry-btn {
-    background: linear-gradient(90deg, #2563eb 60%, #1d4ed8 100%);
-    color: white;
+    background: #0071E3;
+    color: #ffffff;
+    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.25);
+  }
+
+  .retry-btn:hover {
+    background: #0077ED;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 113, 227, 0.35);
   }
 
   .cached-btn {
-    background: #F3F4F6;
-    color: #374151;
-    border: 1px solid #D1D5DB;
+    background: var(--bg-secondary, rgba(0, 0, 0, 0.05));
+    color: var(--text-primary, #1e293b);
+    border: 1px solid var(--border-light, rgba(0, 0, 0, 0.1));
   }
 
-  .offline-button:hover {
-    transform: translateY(-2px);
+  [data-theme="dark"] .cached-btn {
+    background: rgba(255, 255, 255, 0.06);
+    color: #e2e8f0;
+    border-color: rgba(255, 255, 255, 0.12);
   }
 
-  .offline-arcade {
-    width: min(100%, 520px);
-    margin: 0 0 2rem;
-    border: 0;
-    border-radius: 16px;
-    overflow: hidden;
-    background: #020617;
-    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.18);
+  .cached-btn:hover {
+    background: var(--border-light, rgba(0, 0, 0, 0.08));
+    transform: translateY(-1px);
   }
 
-  .offline-arcade iframe {
-    display: block;
-    width: 100%;
-    height: 680px;
-    border: 0;
+  .offline-divider {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    width: min(100%, 420px);
+    margin: 0 auto 0.5rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: var(--text-tertiary, #94a3b8);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
   }
 
-  @media (max-width: 640px) {
-    .offline-container {
-      padding: 1rem;
-    }
+  .offline-divider::before,
+  .offline-divider::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border-light, rgba(0, 0, 0, 0.1));
+  }
 
-    .offline-icon {
-      width: 90px;
-      height: 90px;
-    }
-
-    .offline-icon svg {
-      width: 48px;
-      height: 48px;
-    }
-
-    .offline-title {
-      font-size: 1.5rem;
-    }
+  [data-theme="dark"] .offline-divider::before,
+  [data-theme="dark"] .offline-divider::after {
+    background: rgba(255, 255, 255, 0.1);
   }
 </style>
 
-<div class="offline-container">
-  <div class="offline-icon">
-    <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-        d="M18.364 5.636a9 9 0 010 12.728m0 0l-2.829-2.829m2.829 2.829L21 21M15.536 8.464a5 5 0 010 7.072m0 0l-2.829-2.829m-4.243 2.829a4.978 4.978 0 01-1.757-2.43">
-      </path>
+<div class="offline-page-wrap">
+  <div class="offline-icon-wrap" aria-hidden="true">
+    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <line x1="1" y1="1" x2="23" y2="23"></line>
+      <path d="M16.72 11.06A10.94 10.94 0 0 1 19 12.55"></path>
+      <path d="M5 12.55a10.94 10.94 0 0 1 5.17-2.39"></path>
+      <path d="M10.71 5.05A16 16 0 0 1 22.58 9"></path>
+      <path d="M1.42 9a15.91 15.91 0 0 1 4.7-2.88"></path>
+      <path d="M8.53 16.11a6 6 0 0 1 6.95 0"></path>
+      <line x1="12" y1="20" x2="12.01" y2="20"></line>
     </svg>
+  </div>
+
+  <div class="offline-status-badge">
+    <span class="offline-dot"></span>
+    <span>No Connection Detected</span>
   </div>
 
   <h1 class="offline-title">You're Offline</h1>
 
   <p class="offline-message">
-    It seems you've lost your internet connection. Don't worry - you can still access your cached content or try
-    reconnecting.
+    It seems you've lost internet connection. Don't worry — you can still access your cached papers or try reconnecting.
   </p>
 
-  <div class="offline-arcade" aria-label="Offline arcade">
-    <iframe
-      src="{{ url_for('site.game_page') }}"
-      title="Snake and Flappy Bird offline arcade"
-      loading="eager"
-      allow="autoplay"></iframe>
-  </div>
-
   <div class="offline-actions">
-    <button class="offline-button retry-btn" type="button" data-action="retryConnection" aria-label="Retry connection">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="20"
-        height="20">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15">
-        </path>
+    <button class="offline-button retry-btn" type="button" onclick="retryConnection()" data-action="retryConnection" aria-label="Retry connection">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <polyline points="23 4 23 10 17 10"></polyline>
+        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
       </svg>
       Try Again
     </button>
 
-    <button class="offline-button cached-btn" type="button" data-action="showCachedContent" aria-label="View cached content">
-      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="20"
-        height="20">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
-          d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z">
-        </path>
+    <button class="offline-button cached-btn" type="button" onclick="showCachedContent()" data-action="showCachedContent" aria-label="View cached content">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
       </svg>
       View Cached Content
     </button>
   </div>
+
+  <div class="offline-divider">
+    <span>Quick Study Break Game</span>
+  </div>
+
+  {# Directly integrated retro game via Jinja2 — NO IFRAME #}
+  {% set show_game_back_btn = false %}
+  {% include 'includes/_retro_arcade.html' %}
 </div>
 
 <script>
@@ -168,7 +225,6 @@
   }
 
   function showCachedContent() {
-    // Navigate to the last cached page or home
     if (window.history.length > 2) {
       window.history.back();
     } else {
@@ -176,15 +232,14 @@
     }
   }
 
-  // Check connection status
   window.addEventListener('online', () => {
-    document.querySelector('.offline-title').textContent = "You're Back Online!";
-    document.querySelector('.offline-message').textContent =
-      "Your connection has been restored. You can continue browsing.";
-
+    const title = document.querySelector('.offline-title');
+    const msg = document.querySelector('.offline-message');
+    if (title) title.textContent = "You're Back Online!";
+    if (msg) msg.textContent = "Connection restored. Resuming your study session…";
     setTimeout(() => {
       window.location.reload();
-    }, 1500);
+    }, 1200);
   });
 </script>
 

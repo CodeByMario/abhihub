@@ -208,14 +208,14 @@ def fulfill_order_transaction(order_id: str, verified_amount: float, doc_id: str
 
             add_tea_supporter(order_id, s_name or 'Generous Friend', verified_amount, s_msg, user_id=eff_uid)
         except Exception as e:
-            logging.warning(f"[_fulfill_phonepe_transaction] Tea supporter recording: {e}")
+            logging.warning("[_fulfill_phonepe_transaction] Tea supporter recording failed (error_type=%s)", type(e).__name__)
 
     if doc_id and not is_already_completed:
         try:
             from methods.payment_engine import engine
             engine.credit_creator(order_id, doc_id, verified_amount)
         except Exception as e:
-            logging.error(f"[_fulfill_phonepe_transaction] Creator credit error: {e}")
+            logging.error("[_fulfill_phonepe_transaction] Creator credit failed (error_type=%s)", type(e).__name__)
 
     if doc_id and session is not None:
         try:

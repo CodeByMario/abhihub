@@ -2,36 +2,28 @@
 <html lang="en">
 
 <head>
-    <!-- Security Shield: Prevent Extension Injection, Downloads, Screenshots & DevTools -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/site-protection.css') }}">
     <style>
-        /* Anti-Download: Disable text selection and callouts, preserve form fields */
-        body, html {
-            -webkit-user-select: none;
-            -moz-user-select: none;
-            -ms-user-select: none;
-            user-select: none;
-            -webkit-touch-callout: none;
+        /* Native Mobile Fluidity & Touch Responsiveness */
+        html {
+            scroll-behavior: smooth;
+            -webkit-overflow-scrolling: touch;
         }
-        input, textarea, [contenteditable="true"] {
-            -webkit-user-select: text;
-            -moz-user-select: text;
-            -ms-user-select: text;
-            user-select: text;
+        body {
+            min-height: 100dvh;
         }
-        /* Anti-Screenshot / Anti-Print Blanking */
-        @media print {
-            html, body {
-                display: none !important;
-                visibility: hidden !important;
-            }
+        button, a, input, select, textarea, [role="button"], .r2-btn, .ap-segment-btn {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
         }
-        /* Screen shield used only for an explicit screenshot shortcut. */
-        .screen-shield-active {
-            filter: blur(50px) !important;
-            opacity: 0.05 !important;
-            pointer-events: none !important;
+        button:active, [role="button"]:active, .interactive-tap:active {
+            transform: scale(0.965);
+            transition: transform 0.08s cubic-bezier(0.16, 1, 0.3, 1);
         }
-    
+        .modal, [role="dialog"], .sheet-content {
+            overscroll-behavior-y: contain;
+        }
+
         .app-version-badge {
             display: inline-flex;
             align-items: center;
@@ -53,95 +45,23 @@
             border-color: rgba(56, 189, 248, 0.3);
         }
     </style>
-    <script>
-        (function() {
-            // 1. Anti-Download: Prevent context menu & dragging
-            document.addEventListener('contextmenu', function(e) {
-                e.preventDefault();
-                return false;
-            }, { capture: true });
-
-            document.addEventListener('dragstart', function(e) {
-                e.preventDefault();
-                return false;
-            }, { capture: true });
-
-            // 2. Anti-Download & Anti-Inspect & Anti-Screenshot Shortcut Interception
-            document.addEventListener('keydown', function(e) {
-                var k = (e.key || '').toLowerCase();
-                var code = e.keyCode || e.which;
-
-                {% if IS_PRODUCTION and not IS_DEVELOPER %}
-                // F12 / DevTools
-                if (e.key === 'F12' || code === 123) {
-                    e.preventDefault(); e.stopPropagation(); return false;
-                }
-                // Ctrl+Shift+I / J / C (DevTools)
-                if ((e.ctrlKey || e.metaKey) && e.shiftKey && ['i', 'j', 'c'].includes(k)) {
-                    e.preventDefault(); e.stopPropagation(); return false;
-                }
-                {% endif %}
-                // Ctrl+U (View Source)
-                if ((e.ctrlKey || e.metaKey) && k === 'u') {
-                    e.preventDefault(); e.stopPropagation(); return false;
-                }
-                // Ctrl+S / Cmd+S (Save Page / Download)
-                if ((e.ctrlKey || e.metaKey) && k === 's') {
-                    e.preventDefault(); e.stopPropagation(); return false;
-                }
-                // Ctrl+P / Cmd+P (Print to PDF / Save as PDF)
-                if ((e.ctrlKey || e.metaKey) && k === 'p') {
-                    e.preventDefault(); e.stopPropagation(); return false;
-                }
-                // PrintScreen or Screenshot combos (Meta+Shift+S / Meta+Shift+3,4,5)
-                if (e.key === 'PrintScreen' || code === 44 || ((e.metaKey || e.ctrlKey) && e.shiftKey && ['s', '3', '4', '5'].includes(k))) {
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        try { navigator.clipboard.writeText(''); } catch(err) {}
-                    }
-                    if (document.body) {
-                        document.body.classList.add('screen-shield-active');
-                        setTimeout(function() { document.body.classList.remove('screen-shield-active'); }, 1200);
-                    }
-                    e.preventDefault(); e.stopPropagation(); return false;
-                }
-            }, { capture: true });
-
-            // Clear clipboard on PrintScreen keyup
-            window.addEventListener('keyup', function(e) {
-                if (e.key === 'PrintScreen' || (e.keyCode || e.which) === 44) {
-                    if (navigator.clipboard && navigator.clipboard.writeText) {
-                        try { navigator.clipboard.writeText(''); } catch(err) {}
-                    }
-                }
-            }, { capture: true });
-
-            // 3. Anti-Extension: Strip injected extension DOM nodes
-            try {
-                var extObserver = new MutationObserver(function(mutations) {
-                    for (var i = 0; i < mutations.length; i++) {
-                        var added = mutations[i].addedNodes;
-                        for (var j = 0; j < added.length; j++) {
-                            var node = added[j];
-                            if (node && node.nodeType === 1) {
-                                var src = (node.getAttribute('src') || '').toLowerCase();
-                                var href = (node.getAttribute('href') || '').toLowerCase();
-                                var id = (node.id || '').toLowerCase();
-                                var cls = (node.className || '').toString().toLowerCase();
-                                if (src.indexOf('extension://') !== -1 || href.indexOf('extension://') !== -1 ||
-                                    id.indexOf('extension') !== -1 || cls.indexOf('extension') !== -1) {
-                                    node.remove();
-                                }
-                            }
-                        }
-                    }
-                });
-                extObserver.observe(document.documentElement, { childList: true, subtree: true });
-            } catch(e) {}
-        })();
-    </script>
-
     <!-- Instant Theme Detection & Application (prevents theme flash) -->
     <script>
+        // Universal 0ms Mobile Haptic Micro-Engine
+        window.triggerHaptic = function(pattern) {
+            if (typeof navigator !== 'undefined' && 'vibrate' in navigator) {
+                try { navigator.vibrate(pattern || [8]); } catch(e) {}
+            }
+        };
+        document.addEventListener('pointerdown', function(e) {
+            if (e.pointerType === 'touch') {
+                var t = e.target.closest('button, a[href], [role="button"], input[type="submit"], .r2-mobile-dock-btn, .ap-segment-btn');
+                if (t && !t.disabled) {
+                    window.triggerHaptic([8]);
+                }
+            }
+        }, { passive: true });
+
         (function() {
             try {
                 var savedTheme = localStorage.getItem('abhihub_theme') || 'system';
@@ -619,28 +539,103 @@
                 </button>
 
                 {% if session.get('user') %}
-                <!-- Notification Bell -->
+                <!-- Account & Notification Drawer Button -->
                 <div id="notifBellWrap">
-                    <button id="notifBell" type="button" data-action="toggleNotifPanel" class="ap-nav-icon-btn" aria-label="Notifications" aria-expanded="false" title="Notifications">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                            <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
-                            <path d="M13.73 21a2 2 0 0 1-3.46 0" />
+                    <button id="notifBell" type="button" data-action="toggleNotifPanel" class="ap-nav-icon-btn ap-account-nav-btn" aria-label="Account & Notifications" aria-expanded="false" title="Account & Notifications">
+                        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                            <circle cx="12" cy="7" r="4"></circle>
                         </svg>
                         <span id="notifBadge"></span>
                     </button>
 
-                    <div id="notifPanel">
+                    <!-- Dimming backdrop for drawer -->
+                    <div id="notifBackdrop" class="notif-backdrop" onclick="window.toggleNotifPanel && window.toggleNotifPanel()"></div>
+
+                    <!-- Full height right sidebar (laptop) / full screen (phone) -->
+                    <div id="notifPanel" class="notif-side-drawer" role="dialog" aria-modal="true" aria-label="Account Overview and Notifications">
+                        <!-- Drawer Header & User Snapshot -->
+                        <div class="notif-drawer-header">
+                            <div class="notif-user-brief">
+                                <div class="notif-user-avatar">
+                                    {{ (session.get('user', {}).get('name') or session.get('user', {}).get('email') or 'U')[:1] | upper }}
+                                </div>
+                                <div class="notif-user-info">
+                                    <span class="notif-user-name">{{ session.get('user', {}).get('name') or 'Student Account' }}</span>
+                                    <span class="notif-user-email">{{ session.get('user', {}).get('email') or '' }}</span>
+                                    <div class="notif-user-tags">
+                                        <span class="notif-tag notif-tag-role" id="drawerAccountType">{{ (session.get('user', {}).get('role') or 'Student') | capitalize }}</span>
+                                        <span class="notif-tag notif-tag-tier" id="drawerSubTier">{{ (session.get('user', {}).get('subscription_tier') or 'Free') | capitalize }}</span>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" class="notif-close-btn" onclick="window.toggleNotifPanel && window.toggleNotifPanel()" aria-label="Close notification drawer">
+                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                            </button>
+                        </div>
+
+                        <!-- Views, Credits & Wallet Row -->
+                        <div class="notif-stats-container">
+                            <div class="notif-stat-card">
+                                <div class="notif-stat-label">Paper Views</div>
+                                <div class="notif-stat-val" id="drawerUserCredits">
+                                    {{ session.get('paper_quota', {}).get('credits', 15) }}
+                                </div>
+                                <div class="notif-stat-sub">Remaining</div>
+                            </div>
+                            <div class="notif-stat-card">
+                                <div class="notif-stat-label">Wallet</div>
+                                <div class="notif-stat-val" id="drawerUserWallet">₹0.00</div>
+                                <div class="notif-stat-sub">Balance</div>
+                            </div>
+                            <div class="notif-stat-card">
+                                <div class="notif-stat-label">Creator Share</div>
+                                <div class="notif-stat-val" id="drawerCreatorPct">90%</div>
+                                <div class="notif-stat-sub">Launch Deal</div>
+                            </div>
+                        </div>
+
+                        <!-- Exclusive Offer & Deadline Box -->
+                        <div class="notif-offer-box" id="drawerOfferBox">
+                            <div class="notif-offer-badge">
+                                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon></svg>
+                                <span>LAUNCH DEAL EXCLUSIVE</span>
+                            </div>
+                            <div class="notif-offer-text">
+                                <strong>90% Creator Royalties & Free Paper View Packs</strong>
+                            </div>
+                            <div class="notif-offer-footer">
+                                <div class="notif-offer-deadline">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                                    <span>Offer status:</span> <span id="drawerOfferDays">90 Days Available</span>
+                                </div>
+                                <div id="drawerClaimWrap">
+                                    <button type="button" id="btnClaimPromo" class="notif-claim-btn" onclick="window.claimCreatorPromo && window.claimCreatorPromo()">Claim 90%</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Notification Subheader -->
                         <div class="notif-panel-header">
                             <span class="notif-panel-title">Notifications</span>
                             <button type="button" data-action="markAllRead" class="notif-mark-read-btn">Mark all read</button>
                         </div>
+
+                        <!-- Scrollable Notifications -->
                         <div id="notifList">
                             <div class="notif-loading">Loading…</div>
                         </div>
-                        <div class="notif-panel-footer">
-                            <button type="button" id="notifEnablePushBtn" class="notif-mark-read-btn" style="margin-right:auto;">Enable push</button>
-                            <a href="/notifications" class="notif-view-all">View All</a>
-                            <span>Updates every 1 min</span>
+
+                        <!-- Drawer Footer & Sign Out -->
+                        <div class="notif-drawer-footer">
+                            <div class="notif-footer-actions">
+                                <a href="/notifications" class="notif-footer-link">All Notifications</a>
+                                <a href="{{ url_for('channels.creator_hub') }}" class="notif-footer-link">Creator Hub</a>
+                            </div>
+                            <a href="{{ url_for('auth.logout') }}" class="notif-signout-btn">
+                                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                                <span>Sign Out</span>
+                            </a>
                         </div>
                     </div>
                 </div>
@@ -754,26 +749,47 @@
                 return Math.floor(h / 24) + 'd ago';
             }
 
+            let _cachedNotifs = null;
+
             function _renderNotifs(items) {
                 const list = document.getElementById('notifList');
                 if (!list) return;
-                if (!items.length) {
-                    list.innerHTML = '<div class="notif-loading">No notifications yet 🎉</div>';
+                if (!items || !items.length) {
+                    list.innerHTML = `
+                      <div class="notif-empty-state" style="text-align:center; padding:2.5rem 1rem; color:var(--text-tertiary, #64748b);">
+                        <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="margin:0 auto 0.5rem; display:block; opacity:0.6;">
+                          <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                          <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                        </svg>
+                        <div style="font-weight:600; font-size:0.85rem; color:var(--text-primary, #0f172a);">All caught up!</div>
+                        <div style="font-size:0.75rem; margin-top:2px;">No new notifications right now</div>
+                      </div>`;
                     return;
                 }
-                list.innerHTML = items.map(n => `
-              <div class="notif-item ${n.is_read ? '' : 'unread'}" data-notif-id="${n.id}" data-read="${n.is_read}" ${n.action_url ? `style="cursor:pointer;" onclick="if(window.markNotificationRead)markNotificationRead('${n.id}');window.location.href='${n.action_url}';"` : ''}>
+                const iconMap = {
+                    file_view: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>',
+                    new_upload: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>',
+                    chat_message: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>',
+                    achievement: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="7"></circle><polyline points="8.21 13.89 7 23 12 20 17 23 15.79 13.88"></polyline></svg>',
+                    default: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>'
+                };
+                list.innerHTML = items.map(n => {
+                    const iconSvg = iconMap[n.type] || iconMap.default;
+                    const actionUrl = n.action_url ? String(n.action_url) : '';
+                    return `
+              <div class="notif-item ${n.is_read ? '' : 'unread'}" data-notif-id="${n.id}" data-read="${n.is_read}" ${actionUrl ? `style="cursor:pointer;" onclick="if(window.markNotificationRead)markNotificationRead('${n.id}');window.location.href='${actionUrl}';"` : ''}>
                 <div class="notif-item-icon ${n.type === 'file_view' ? 'view' : (n.type === 'new_upload' ? 'upload' : 'default')}">
-                  ${n.type === 'file_view' ? '👁' : (n.type === 'new_upload' ? '📄' : '🔔')}
+                  ${iconSvg}
                 </div>
                 <div class="notif-item-content">
-                  <div class="notif-item-title">${n.title}</div>
-                  <div class="notif-item-message">${n.message}</div>
+                  <div class="notif-item-title">${n.title || ''}</div>
+                  <div class="notif-item-message">${n.message || ''}</div>
                   <div class="notif-item-time">${_timeAgo(n.created_at)}</div>
-                  ${n.action_url ? `<a href="${n.action_url}" class="notif-item-link" style="font-size:0.75rem; color:#2563eb; font-weight:600; text-decoration:none; margin-top:4px; display:inline-block;" onclick="event.stopPropagation();if(window.markNotificationRead)markNotificationRead('${n.id}');">Open File &rarr;</a>` : ''}
+                  ${actionUrl ? `<a href="${actionUrl}" class="notif-item-link" style="font-size:0.75rem; color:#0071E3; font-weight:600; text-decoration:none; margin-top:4px; display:inline-block;" onclick="event.stopPropagation();if(window.markNotificationRead)markNotificationRead('${n.id}');">Open File &rarr;</a>` : ''}
                 </div>
                 ${!n.is_read ? '<div class="notif-unread-dot"></div>' : ''}
-              </div>`).join('');
+              </div>`;
+                }).join('');
             }
 
             function _updateBadge(unread) {
@@ -791,13 +807,96 @@
             window._fetchNotifications = async function (silent) {
                 try {
                     const r = await fetch('/api/my-notifications?limit=20', { signal: AbortSignal.timeout(8000) });
-                    if (!r.ok) return;
+                    if (!r.ok) {
+                        if (_notifOpen) _renderNotifs(_cachedNotifs || []);
+                        return;
+                    }
                     const d = await r.json();
                     if (d.success) {
+                        _cachedNotifs = d.data || [];
                         _updateBadge(d.unread || 0);
-                        if (_notifOpen || !silent) _renderNotifs(d.data || []);
+                        _renderNotifs(_cachedNotifs);
+                        if (d.user_meta) {
+                            const credEl = document.getElementById('drawerUserCredits');
+                            if (credEl && d.user_meta.credits !== undefined) credEl.textContent = d.user_meta.credits;
+                            const wallEl = document.getElementById('drawerUserWallet');
+                            if (wallEl && d.user_meta.wallet_balance !== undefined) wallEl.textContent = '₹' + Number(d.user_meta.wallet_balance).toFixed(2);
+                            const pctEl = document.getElementById('drawerCreatorPct');
+                            if (pctEl && d.user_meta.creator_pct) pctEl.textContent = d.user_meta.creator_pct + '%';
+                            if (d.user_meta.account_type) {
+                                const accEl = document.getElementById('drawerAccountType');
+                                if (accEl) accEl.textContent = d.user_meta.account_type;
+                            }
+                            if (d.user_meta.subscription_tier) {
+                                const subEl = document.getElementById('drawerSubTier');
+                                if (subEl) {
+                                    subEl.textContent = d.user_meta.subscription_tier;
+                                    subEl.classList.toggle('premium', d.user_meta.subscription_tier.toLowerCase() === 'premium');
+                                }
+                            }
+                            if (window._renderOfferClaimState) {
+                                window._renderOfferClaimState(
+                                    !!d.user_meta.is_claimed,
+                                    d.user_meta.promo_days_remaining || 0,
+                                    d.user_meta.creator_pct || 70
+                                );
+                            }
+                        }
+                    } else if (_notifOpen) {
+                        _renderNotifs(_cachedNotifs || []);
                     }
-                } catch (e) { /* non-critical */ }
+                } catch (e) {
+                    if (_notifOpen) _renderNotifs(_cachedNotifs || []);
+                }
+            };
+
+            window._renderOfferClaimState = function (isClaimed, daysRemaining, creatorPct) {
+                const dayEl = document.getElementById('drawerOfferDays');
+                const claimWrap = document.getElementById('drawerClaimWrap');
+                const pctEl = document.getElementById('drawerCreatorPct');
+                if (pctEl) pctEl.textContent = (creatorPct || (isClaimed ? 90 : 70)) + '%';
+
+                if (isClaimed && daysRemaining > 0) {
+                    if (dayEl) dayEl.innerHTML = `<strong style="color:#0071E3;">${daysRemaining} days remaining</strong>`;
+                    if (claimWrap) {
+                        claimWrap.innerHTML = `<span class="notif-active-pill"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg> Active</span>`;
+                    }
+                } else if (isClaimed && daysRemaining <= 0) {
+                    if (dayEl) dayEl.textContent = 'Promo Expired';
+                    if (claimWrap) {
+                        claimWrap.innerHTML = `<span style="font-size:0.72rem;color:var(--text-secondary,#64748b);">Standard 70%</span>`;
+                    }
+                } else {
+                    if (dayEl) dayEl.textContent = '90 Days Available';
+                    if (claimWrap) {
+                        claimWrap.innerHTML = `<button type="button" id="btnClaimPromo" class="notif-claim-btn" onclick="window.claimCreatorPromo && window.claimCreatorPromo()">Claim 90%</button>`;
+                    }
+                }
+            };
+
+            window.claimCreatorPromo = async function () {
+                const btn = document.getElementById('btnClaimPromo');
+                if (!btn || btn.disabled) return;
+                btn.disabled = true;
+                btn.innerHTML = `<svg class="spinner" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="2" x2="12" y2="6"></line><line x1="12" y1="18" x2="12" y2="22"></line><line x1="4.93" y1="4.93" x2="7.76" y2="7.76"></line><line x1="16.24" y1="16.24" x2="19.07" y2="19.07"></line><line x1="2" y1="12" x2="6" y2="12"></line><line x1="18" y1="12" x2="22" y2="12"></line><line x1="4.93" y1="19.07" x2="7.76" y2="16.24"></line><line x1="16.24" y1="7.76" x2="19.07" y2="4.93"></line></svg> Activating…`;
+                try {
+                    const r = await fetch('/api/claim-promo', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' }
+                    });
+                    const d = await r.json();
+                    if (d.success) {
+                        window._renderOfferClaimState(true, d.promo_days_remaining || 90, d.creator_pct || 90);
+                    } else {
+                        btn.disabled = false;
+                        btn.textContent = 'Claim 90%';
+                        alert(d.message || 'Unable to activate offer. Please try again.');
+                    }
+                } catch (e) {
+                    btn.disabled = false;
+                    btn.textContent = 'Claim 90%';
+                    alert('Network error. Please try again.');
+                }
             };
 
             window.openSearchSection = function () {
@@ -816,11 +915,20 @@
             window.toggleNotifPanel = function () {
                 const panel = document.getElementById('notifPanel');
                 const bell = document.getElementById('notifBell');
+                const backdrop = document.getElementById('notifBackdrop');
                 if (!panel) return;
                 _notifOpen = !_notifOpen;
-                panel.style.display = _notifOpen ? 'block' : 'none';
+                panel.style.display = _notifOpen ? 'flex' : 'none';
+                if (backdrop) {
+                    backdrop.style.display = _notifOpen ? 'block' : 'none';
+                    backdrop.classList.toggle('active', _notifOpen);
+                }
+                document.body.style.overflow = _notifOpen ? 'hidden' : '';
                 if (bell) bell.setAttribute('aria-expanded', String(_notifOpen));
                 if (_notifOpen) {
+                    if (_cachedNotifs !== null) {
+                        _renderNotifs(_cachedNotifs);
+                    }
                     _fetchNotifications(false);
                     // GA4 tracking
                     if (typeof window.AbhiHubTracking !== 'undefined') {
@@ -858,15 +966,17 @@
                 } catch (e) { }
             };
 
-            // Close panel on outside click
+            // Close panel on outside click or backdrop click
             document.addEventListener('click', function (e) {
                 const wrap = document.getElementById('notifBellWrap');
-                if (wrap && !wrap.contains(e.target) && _notifOpen) {
-                    _notifOpen = false;
-                    const panel = document.getElementById('notifPanel');
-                    const bell = document.getElementById('notifBell');
-                    if (panel) panel.style.display = 'none';
-                    if (bell) bell.setAttribute('aria-expanded', 'false');
+                const backdrop = document.getElementById('notifBackdrop');
+                if (_notifOpen && ((wrap && !wrap.contains(e.target)) || (backdrop && e.target === backdrop))) {
+                    window.toggleNotifPanel();
+                }
+            });
+            document.addEventListener('keydown', function (e) {
+                if (e.key === 'Escape' && _notifOpen) {
+                    window.toggleNotifPanel();
                 }
             });
 
@@ -914,16 +1024,11 @@
 
             // ── Rotating strip messages (one per day-of-month) ────────────
             var STRIP_MSGS = [
-                { text: 'Help your juniors — upload a paper this month!', link: 'Upload now →' },
-                { text: 'May Upload Drive 🎯 — one paper from you helps hundreds!', link: 'Start uploading →' },
-                { text: 'Your papers = someone else\'s rank boost. Share them!', link: 'Upload a paper →' },
-                { text: 'Uploaders earn 2× reputation this month. Don\'t miss out!', link: 'Upload today →' },
-                { text: 'Be a contributor — upload your exam papers on AbhiHub!', link: 'Upload now →' },
-                { text: 'Did you save your question papers? Share them with AbhiHub!', link: 'Share a paper →' },
-                { text: '60 seconds is all it takes to help a fellow student. Upload!', link: 'Go upload →' },
-                { text: 'Your upload today could be someone\'s lifesaver in exams!', link: 'Upload now →' },
-                { text: 'May Drive: every upload boosts your rank + helps peers!', link: 'Upload now →' },
-                { text: 'Give back to the community — upload your saved papers!', link: 'Share papers →' },
+                { text: 'AbhiHub is built by students, for students — own your campus legacy, share past papers & build our community together!', link: 'Lead Your Campus →' },
+                { text: 'This is our platform. Upload past papers, invite your batch, and represent your college on AbhiHub!', link: 'Contribute Now →' },
+                { text: 'Own your college page on AbhiHub — share verified papers and guide your juniors to success!', link: 'Share Papers →' },
+                { text: 'Students powering students. Represent your branch and bring your college to the top!', link: 'Represent Branch →' },
+                { text: 'Every paper you share strengthens our community. Be the champion your campus needs!', link: 'Join Movement →' }
             ];
             function todayMsg() {
                 var day = new Date().getDate(); // 1-31
@@ -1226,74 +1331,404 @@
         });
     </script>
 
-    <!-- Global Buy Credits Modal (₹2 / view) -->
+    <!-- Global Buy Credits Modal (Redesigned High-Conversion UI) -->
     <div id="buyCreditsModal" class="buy-credits-modal-overlay" style="display: none;" onclick="if(event.target===this)closeBuyCreditsModal();">
       <div class="buy-credits-modal" role="dialog" aria-modal="true" aria-labelledby="buyCreditsTitle">
         <style>
-          .buy-credits-modal { max-width: 720px !important; width: 95% !important; }
-          .buy-credits-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(145px, 1fr)); gap: 0.75rem; margin-top: 0.5rem; }
-          .pack-orig { text-decoration: line-through; color: #94a3b8; font-size: 0.82rem; font-weight: 500; margin-right: 0.25rem; }
-          .pack-discount-tag { display: inline-block; background: #dcfce7; color: #15803d; font-size: 0.68rem; font-weight: 800; padding: 0.12rem 0.45rem; border-radius: 999px; }
-          .pack-bonus-tag { display: inline-block; background: #ede9fe; color: #6d28d9; font-size: 0.7rem; font-weight: 700; padding: 0.1rem 0.35rem; border-radius: 4px; margin-top: 0.25rem; }
-          .pack-badge.urgency-badge { color: #dc2626; font-weight: 800; }
+          .buy-credits-modal {
+            max-width: 680px !important;
+            width: 95% !important;
+            max-height: 92vh !important;
+            overflow-y: auto !important;
+            border-radius: 24px !important;
+            padding: 1.5rem !important;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.28) !important;
+            border: 1px solid rgba(0, 0, 0, 0.08) !important;
+          }
+          [data-theme="dark"] .buy-credits-modal {
+            background: #0d1117 !important;
+            border-color: rgba(255, 255, 255, 0.12) !important;
+            box-shadow: 0 24px 60px rgba(0, 0, 0, 0.6) !important;
+          }
+          .pay-top-tag-wrap {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 0.45rem;
+          }
+          .pay-campus-tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 0.68rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            color: #0071E3;
+            background: rgba(0, 113, 227, 0.08);
+            border: 1px solid rgba(0, 113, 227, 0.2);
+            padding: 2px 8px;
+            border-radius: 980px;
+          }
+          [data-theme="dark"] .pay-campus-tag {
+            color: #38bdf8;
+            background: rgba(56, 189, 248, 0.12);
+            border-color: rgba(56, 189, 248, 0.3);
+          }
+          .buy-credits-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 0.75rem;
+            margin: 0.9rem 0;
+          }
+          @media (max-width: 640px) {
+            .buy-credits-grid {
+              grid-template-columns: repeat(2, 1fr) !important;
+              gap: 0.6rem !important;
+            }
+            .buy-credits-modal {
+              padding: 1.15rem 1rem !important;
+            }
+          }
+          .buy-pack-card {
+            border: 1.5px solid rgba(0, 0, 0, 0.08);
+            border-radius: 16px;
+            padding: 1rem 0.7rem;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+          }
+          [data-theme="dark"] .buy-pack-card {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(255, 255, 255, 0.08);
+          }
+          .buy-pack-card:hover {
+            transform: translateY(-2px);
+            border-color: #0071E3;
+            box-shadow: 0 8px 24px rgba(0, 113, 227, 0.12);
+          }
+          .buy-pack-card.featured {
+            border: 2px solid #0071E3 !important;
+            background: #ffffff !important;
+            box-shadow: 0 10px 28px rgba(0, 113, 227, 0.18) !important;
+            position: relative;
+          }
+          [data-theme="dark"] .buy-pack-card.featured {
+            background: rgba(0, 113, 227, 0.08) !important;
+            border-color: #38bdf8 !important;
+          }
+          .pack-badge {
+            font-size: 0.68rem;
+            font-weight: 800;
+            color: #64748b;
+            text-transform: uppercase;
+            letter-spacing: 0.03em;
+            margin-bottom: 0.25rem;
+          }
+          .featured-badge {
+            color: #0071E3;
+          }
+          [data-theme="dark"] .featured-badge {
+            color: #38bdf8;
+          }
+          .pack-views {
+            font-size: 1.12rem;
+            font-weight: 800;
+            color: var(--text-primary, #0f172a);
+            margin: 0.15rem 0;
+          }
+          [data-theme="dark"] .pack-views {
+            color: #f8fafc;
+          }
+          .pack-price {
+            font-size: 1.35rem;
+            font-weight: 800;
+            color: var(--text-primary, #0f172a);
+            margin: 0.2rem 0;
+          }
+          [data-theme="dark"] .pack-price {
+            color: #ffffff;
+          }
+          .pack-orig {
+            text-decoration: line-through;
+            color: #94a3b8;
+            font-size: 0.8rem;
+            font-weight: 500;
+            margin-right: 0.25rem;
+          }
+          .pack-unit {
+            font-size: 0.7rem;
+            color: #64748b;
+            margin-bottom: 0.55rem;
+          }
+          .pack-discount-tag {
+            display: inline-block;
+            background: #dcfce7;
+            color: #15803d;
+            font-size: 0.65rem;
+            font-weight: 800;
+            padding: 0.1rem 0.4rem;
+            border-radius: 980px;
+          }
+          [data-theme="dark"] .pack-discount-tag {
+            background: rgba(34, 197, 94, 0.2);
+            color: #4ade80;
+          }
+          .pack-bonus-tag {
+            display: inline-block;
+            background: #ede9fe;
+            color: #6d28d9;
+            font-size: 0.65rem;
+            font-weight: 700;
+            padding: 0.1rem 0.35rem;
+            border-radius: 6px;
+            margin-top: 0.2rem;
+          }
+          [data-theme="dark"] .pack-bonus-tag {
+            background: rgba(139, 92, 246, 0.2);
+            color: #c084fc;
+          }
+          .pack-buy-btn {
+            width: 100%;
+            padding: 0.5rem;
+            border: none;
+            border-radius: 10px;
+            font-size: 0.78rem;
+            font-weight: 700;
+            background: #1e293b;
+            color: #ffffff;
+            cursor: pointer;
+            transition: all 0.15s ease;
+          }
+          .pack-buy-btn:hover {
+            background: #0f172a;
+          }
+          .featured-btn {
+            background: #0071E3 !important;
+            color: #ffffff !important;
+          }
+          .featured-btn:hover {
+            background: #005bb5 !important;
+          }
+          /* Trust strip */
+          .pay-trust-strip {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 12px;
+            font-size: 0.72rem;
+            color: #64748b;
+            margin: 0.75rem 0 0.5rem;
+          }
+          [data-theme="dark"] .pay-trust-strip {
+            color: #94a3b8;
+          }
+          .pay-trust-item {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+          }
+          /* Integrated Sponsor Advertisement */
+          .pay-sponsor-ad {
+            margin-top: 0.75rem;
+            padding: 0.75rem 0.9rem;
+            background: linear-gradient(135deg, rgba(0, 113, 227, 0.05), rgba(56, 189, 248, 0.08));
+            border: 1px dashed rgba(0, 113, 227, 0.35);
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+          }
+          [data-theme="dark"] .pay-sponsor-ad {
+            background: rgba(255, 255, 255, 0.03);
+            border-color: rgba(56, 189, 248, 0.3);
+          }
+          .pay-sponsor-info {
+            display: flex;
+            flex-direction: column;
+            min-width: 0;
+            text-align: left;
+          }
+          .pay-sponsor-badge {
+            font-size: 0.62rem;
+            font-weight: 800;
+            color: #0071E3;
+            letter-spacing: 0.04em;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+          }
+          [data-theme="dark"] .pay-sponsor-badge {
+            color: #38bdf8;
+          }
+          .pay-sponsor-text {
+            font-size: 0.76rem;
+            font-weight: 600;
+            color: var(--text-primary, #0f172a);
+            line-height: 1.3;
+            margin-top: 2px;
+          }
+          [data-theme="dark"] .pay-sponsor-text {
+            color: #f1f5f9;
+          }
+          .pay-sponsor-sub {
+            font-size: 0.68rem;
+            color: #64748b;
+          }
+          .pay-sponsor-btn {
+            flex-shrink: 0;
+            font-size: 0.72rem;
+            font-weight: 700;
+            color: #0071E3;
+            background: rgba(0, 113, 227, 0.1);
+            border: 1px solid rgba(0, 113, 227, 0.25);
+            padding: 5px 10px;
+            border-radius: 980px;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            white-space: nowrap;
+            transition: all 0.15s ease;
+          }
+          .pay-sponsor-btn:hover {
+            background: #0071E3;
+            color: #ffffff;
+          }
         </style>
-        <div class="buy-credits-header">
-          <h3 id="buyCreditsTitle" style="margin: 0; font-size: 1.25rem; color: inherit; font-weight: 800;">💎 Buy View Credits</h3>
-          <button type="button" onclick="closeBuyCreditsModal()" class="buy-credits-close" aria-label="Close">&times;</button>
+
+        <!-- Header -->
+        <div class="pay-top-tag-wrap">
+          <span class="pay-campus-tag">
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            <span>OFFICIAL CAMPUS ACCESS</span>
+          </span>
+          <button type="button" onclick="closeBuyCreditsModal()" class="buy-credits-close" aria-label="Close">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
         </div>
-        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin: 0.35rem 0 0.85rem 0; gap: 0.5rem;">
-          <p id="buyCreditsSubtitle" style="font-size: 0.85rem; color: #64748b; margin: 0;">
+
+        <div class="buy-credits-header">
+          <h3 id="buyCreditsTitle" style="margin: 0; font-size: 1.25rem; font-weight: 800;">💎 Unlock Full Study Pack</h3>
+        </div>
+
+        <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; margin: 0.25rem 0 0.75rem 0; gap: 0.5rem;">
+          <p id="buyCreditsSubtitle" style="font-size: 0.82rem; color: #64748b; margin: 0;">
             ⚡ <strong>Limited Exam Offer:</strong> Up to <strong>72% OFF</strong> + free bonus views included.
           </p>
-          <span id="buyCreditsSaleBadge" style="font-size: 0.75rem; font-weight: 700; color: #dc2626; background: #fee2e2; padding: 0.2rem 0.5rem; border-radius: 6px;">⏱️ Flash Sale Active</span>
+          <span id="buyCreditsSaleBadge" style="font-size: 0.72rem; font-weight: 700; color: #dc2626; background: #fee2e2; padding: 0.15rem 0.5rem; border-radius: 6px;">⏱️ Flash Sale Active</span>
         </div>
+
+        <!-- Dynamic Grid of Credit Packs -->
         <div id="buyCreditsGrid" class="buy-credits-grid">
-          <!-- Tier 1: Chai Top-up (Micro-commit) -->
+          <!-- Tier 1: Chai Top-up -->
           <div class="buy-pack-card" onclick="selectCreditPack(10, 19)">
-            <div class="pack-badge">Chai Pack</div>
-            <span class="pack-discount-tag">51% OFF</span>
-            <div class="pack-views">10 Views</div>
-            <div class="pack-price"><span class="pack-orig">₹39</span>₹19</div>
-            <div class="pack-unit">₹1.90 / view</div>
-            <button type="button" class="pack-buy-btn" onclick="event.stopPropagation(); selectCreditPack(10, 19)">Get 10 Views</button>
+            <div>
+              <div class="pack-badge">Chai Pack</div>
+              <span class="pack-discount-tag">51% OFF</span>
+              <div class="pack-views">10 Views</div>
+            </div>
+            <div>
+              <div class="pack-price"><span class="pack-orig">₹39</span>₹19</div>
+              <div class="pack-unit">₹1.90 / view</div>
+              <button type="button" class="pack-buy-btn" onclick="event.stopPropagation(); selectCreditPack(10, 19)">Get 10 Views</button>
+            </div>
           </div>
 
-          <!-- Tier 2: Decoy / Most Popular (62% OFF) -->
+          <!-- Tier 2: Most Popular (62% OFF) -->
           <div class="buy-pack-card featured" onclick="selectCreditPack(65, 49)">
-            <div class="pack-badge featured-badge urgency-badge">🔥 82% Pick This</div>
-            <span class="pack-discount-tag">62% OFF</span>
-            <div class="pack-views">65 Views</div>
-            <span class="pack-bonus-tag">+15 Free Views</span>
-            <div class="pack-price"><span class="pack-orig">₹129</span>₹49</div>
-            <div class="pack-unit">₹0.75 / view</div>
-            <button type="button" class="pack-buy-btn featured-btn" onclick="event.stopPropagation(); selectCreditPack(65, 49)">Claim 65 Views</button>
+            <div>
+              <div class="pack-badge featured-badge urgency-badge">🔥 82% Pick This</div>
+              <div style="display:flex; justify-content:center; gap:4px; flex-wrap:wrap;">
+                <span class="pack-discount-tag">62% OFF</span>
+                <span class="pack-bonus-tag">+15 Free</span>
+              </div>
+              <div class="pack-views">65 Views</div>
+            </div>
+            <div>
+              <div class="pack-price"><span class="pack-orig">₹129</span>₹49</div>
+              <div class="pack-unit">₹0.75 / view</div>
+              <button type="button" class="pack-buy-btn featured-btn" onclick="event.stopPropagation(); selectCreditPack(65, 49)">Claim 65 Views</button>
+            </div>
           </div>
 
           <!-- Tier 3: Semester Pro (Best Value) -->
           <div class="buy-pack-card" onclick="selectCreditPack(160, 99)">
-            <div class="pack-badge featured-badge">⭐ Best Value</div>
-            <span class="pack-discount-tag">67% OFF</span>
-            <div class="pack-views">160 Views</div>
-            <span class="pack-bonus-tag">+40 Free Views</span>
-            <div class="pack-price"><span class="pack-orig">₹299</span>₹99</div>
-            <div class="pack-unit">₹0.61 / view</div>
-            <button type="button" class="pack-buy-btn" onclick="event.stopPropagation(); selectCreditPack(160, 99)">Get 160 Views</button>
+            <div>
+              <div class="pack-badge featured-badge">⭐ Best Value</div>
+              <div style="display:flex; justify-content:center; gap:4px; flex-wrap:wrap;">
+                <span class="pack-discount-tag">67% OFF</span>
+                <span class="pack-bonus-tag">+40 Free</span>
+              </div>
+              <div class="pack-views">160 Views</div>
+            </div>
+            <div>
+              <div class="pack-price"><span class="pack-orig">₹299</span>₹99</div>
+              <div class="pack-unit">₹0.61 / view</div>
+              <button type="button" class="pack-buy-btn" onclick="event.stopPropagation(); selectCreditPack(160, 99)">Get 160 Views</button>
+            </div>
           </div>
 
-          <!-- Tier 4: Ultimate Exam Destroyer Pass (Anchor) -->
+          <!-- Tier 4: Ultimate Exam Destroyer Pass -->
           <div class="buy-pack-card" onclick="selectCreditPack(500, 199)">
-            <div class="pack-badge">👑 Ultimate Pass</div>
-            <span class="pack-discount-tag">72% OFF</span>
-            <div class="pack-views">500 Views</div>
-            <span class="pack-bonus-tag">+100 Free Views</span>
-            <div class="pack-price"><span class="pack-orig">₹699</span>₹199</div>
-            <div class="pack-unit">₹0.39 / view</div>
-            <button type="button" class="pack-buy-btn" onclick="event.stopPropagation(); selectCreditPack(500, 199)">Get 500 Views</button>
+            <div>
+              <div class="pack-badge">👑 Ultimate Pass</div>
+              <div style="display:flex; justify-content:center; gap:4px; flex-wrap:wrap;">
+                <span class="pack-discount-tag">72% OFF</span>
+                <span class="pack-bonus-tag">+100 Free</span>
+              </div>
+              <div class="pack-views">500 Views</div>
+            </div>
+            <div>
+              <div class="pack-price"><span class="pack-orig">₹699</span>₹199</div>
+              <div class="pack-unit">₹0.39 / view</div>
+              <button type="button" class="pack-buy-btn" onclick="event.stopPropagation(); selectCreditPack(500, 199)">Get 500 Views</button>
+            </div>
           </div>
         </div>
-        <div id="buyCreditsStatus" style="margin-top: 1rem; font-size: 0.85rem; text-align: center; font-weight: 600;"></div>
-        <div id="buyCreditsAlt" style="margin-top: 0.85rem; text-align: center; font-size: 0.82rem; color: #64748b;">
-          Want views for free? <a href="/upload" style="color: #2563eb; font-weight: 600; text-decoration: none;">Upload a paper</a> to earn +3 views!
+
+        <!-- Trust Badges Row -->
+        <div class="pay-trust-strip">
+          <span class="pay-trust-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"></polyline></svg>
+            Instant UPI QR & Apps
+          </span>
+          <span>•</span>
+          <span class="pay-trust-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            Never Expires
+          </span>
+          <span>•</span>
+          <span class="pay-trust-item">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            Verified Solutions
+          </span>
+        </div>
+
+        <!-- Integrated Sponsored Partner Advertisement & Student Perk -->
+        <div class="pay-sponsor-ad">
+          <div class="pay-sponsor-info">
+            <span class="pay-sponsor-badge">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              SPONSORED PARTNER PERK
+            </span>
+            <div class="pay-sponsor-text">Get 0% Gateway Fees on Google Pay, PhonePe & Paytm</div>
+            <div class="pay-sponsor-sub">Supports free campus peer access • Instant activation on payment</div>
+          </div>
+          <a href="https://araplhn.org/4/6fb79dd9f780432692f5cdf35bfb4dcf" target="_blank" rel="noopener noreferrer sponsored" class="pay-sponsor-btn" title="Academic resource partner">
+            <span>Explore Partner</span>
+            <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </a>
+        </div>
+
+        <div id="buyCreditsStatus" style="margin-top: 0.75rem; font-size: 0.82rem; text-align: center; font-weight: 600;"></div>
+        <div id="buyCreditsAlt" style="margin-top: 0.65rem; text-align: center; font-size: 0.8rem; color: #64748b;">
+          Want views for free? <a href="/upload" style="color: #0071E3; font-weight: 600; text-decoration: none;">Upload a paper</a> to earn +3 views!
         </div>
       </div>
     </div>
@@ -1354,16 +1789,24 @@
             var origHtml = (p.original && p.original > p.price) ? '<span class="pack-orig">₹' + p.original + '</span>' : '';
             var unitPrice = (p.price / p.views).toFixed(2);
 
+            var tagRow = '';
+            if (discountHtml || bonusHtml) {
+              tagRow = '<div style="display:flex; justify-content:center; gap:4px; flex-wrap:wrap; margin-bottom:0.2rem;">' + discountHtml + bonusHtml + '</div>';
+            }
+
             html += '<div class="' + cardClass + '" onclick="selectCreditPack(' + p.pack + ', ' + p.price + ')">' +
-              (badgeText ? '<div class="pack-badge' + (isFeatured ? ' featured-badge urgency-badge' : '') + '">' + badgeText + '</div>' : '') +
-              discountHtml +
-              '<div class="pack-views">' + p.views + ' Views</div>' +
-              bonusHtml +
-              '<div class="pack-price">' + origHtml + '₹' + Math.round(p.price) + '</div>' +
-              '<div class="pack-unit">₹' + unitPrice + ' / view</div>' +
-              '<button type="button" class="' + btnClass + '" onclick="event.stopPropagation(); selectCreditPack(' + p.pack + ', ' + p.price + ')">' +
-                (p.pack === 65 ? 'Claim ' : 'Get ') + p.views + ' Views' +
-              '</button>' +
+              '<div>' +
+                (badgeText ? '<div class="pack-badge' + (isFeatured ? ' featured-badge urgency-badge' : '') + '">' + badgeText + '</div>' : '') +
+                tagRow +
+                '<div class="pack-views">' + p.views + ' Views</div>' +
+              '</div>' +
+              '<div>' +
+                '<div class="pack-price">' + origHtml + '₹' + Math.round(p.price) + '</div>' +
+                '<div class="pack-unit">₹' + unitPrice + ' / view</div>' +
+                '<button type="button" class="' + btnClass + '" onclick="event.stopPropagation(); selectCreditPack(' + p.pack + ', ' + p.price + ')">' +
+                  (p.pack === 65 ? 'Claim ' : 'Get ') + p.views + ' Views' +
+                '</button>' +
+              '</div>' +
             '</div>';
           });
           grid.innerHTML = html;
@@ -1598,45 +2041,7 @@
     <!-- Chat UI -->
     <script src="{{ url_for('static', filename='js/chat.js') }}" defer></script>
 
-    <!-- Interactive In-App Guide Engine -->
-    <script src="{{ url_for('static', filename='js/guide_engine.js') }}" defer></script>
-    <script>
-        function initAppGuide() {
-            if (window.__IS_PROCESSING_OAUTH__ || (window.location.hash && window.location.hash.includes('access_token')) || (window.location.search && window.location.search.includes('access_token='))) {
-                return;
-            }
-            var rawPath = window.location.pathname;
-            if (rawPath.startsWith('/app-shell')) {
-                var p = new URLSearchParams(window.location.search).get('p');
-                if (p) rawPath = p.split('?')[0];
-            }
-            var seg = rawPath.replace(/^\/|\/$/g, '').toLowerCase() || 'dashboard';
-            var aliases = {
-                'rank': 'leaderboard',
-                'ranking': 'leaderboard',
-                'home': 'dashboard',
-                'index': 'dashboard',
-                'profile': 'account',
-                'settings': 'account',
-                'dashboard/setting': 'account',
-                'dashboard/profile': 'account',
-                'view': 'pdf-reader',
-                'dashboard/view': 'pdf-reader',
-                'reader': 'pdf-reader',
-                'local-viewer': 'pdf-reader',
-                'storeroom': 'store-room'
-            };
-            var screen = aliases[seg] || seg;
-            if (window.GuideEngine) {
-                window.GuideEngine.init(screen);
-            }
-        }
-        if ('requestIdleCallback' in window) {
-            requestIdleCallback(initAppGuide, { timeout: 4000 });
-        } else {
-            setTimeout(initAppGuide, 3000);
-        }
-    </script>
+    <!-- Interactive In-App Guide Engine: Disabled -->
 
     <!-- Security & AI Assistant: expose current student profile to client -->
     <script>
@@ -1650,7 +2055,9 @@
             branch: "{{ profile_data.get('branch_id', '') | e }}",
             degree: "{{ profile_data.get('degree', '') | e }}",
             year: "{{ profile_data.get('pursuing_year', '') | e }}",
-            role: "{{ profile_data.get('user_role', 'student') | e }}"
+            role: "{{ profile_data.get('user_role', 'student') | e }}",
+            registrationNumber: {{ profile_data.get('registration_number', '') | tojson }},
+            studentId: {{ profile_data.get('student_id', '') | tojson }}
         };
     </script>
 
@@ -1890,6 +2297,8 @@
     </script>
     {% endif %}
 
+    <script src="{{ url_for('static', filename='js/site-protection.js') }}" defer></script>
+    <script src="{{ url_for('static', filename='js/feature_tracker.js') }}" defer></script>
 </body>
 <amp-auto-ads type="adsense" data-ad-client="ca-pub-8274846157272362">
 </amp-auto-ads>

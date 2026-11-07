@@ -32,8 +32,7 @@ VIEW_EARNING_RATE_INR = 0.20
 
 # Monetization & Commission Configuration
 # Standard: 30% platform commission (creator keeps 70%)
-# Launch Promo: 10% platform commission (creator keeps 90%) for first 90 days for accounts created on or after 2 Nov 2026
-PROMO_REGISTRATION_START = datetime(2026, 11, 2, 0, 0, 0, tzinfo=timezone.utc)
+# Launch Promo: 10% platform commission (creator keeps 90%) for 90 days starting from activation/claim moment
 PROMO_DURATION_DAYS = 90
 STANDARD_CREATOR_PCT = 70
 PROMO_CREATOR_PCT = 90
@@ -48,7 +47,7 @@ def is_creator_verified(creator_id) -> bool:
         if res and res.data and isinstance(res.data, list) and len(res.data) > 0:
             return bool(res.data[0].get('is_verified', False))
     except Exception as e:
-        logging.error(f"[WALLET] Error checking creator verification: {e}")
+        logging.error("[WALLET] Creator verification lookup failed (error_type=%s)", type(e).__name__)
     return False
 
 
@@ -56,39 +55,98 @@ def get_creator_commission_pct(creator_id: str = None) -> dict:
     """
     Computes file sales commission percentage:
     - Base: 70% creator share (30% platform commission)
-    - Early Creator Promo: 90% creator share (10% platform commission) for first 90 days for accounts created on or after 2 Nov 2026.
+    - Active Promo: 90% creator share for 90 days from activation date (subscription_expires_at).
     """
     if not creator_id:
-        return {'creator_pct': STANDARD_CREATOR_PCT, 'is_promo': False, 'reason': 'Standard Creator (70%)'}
+        return {'creator_pct': STANDARD_CREATOR_PCT, 'is_promo': False, 'is_claimed': False, 'promo_days_remaining': 0, 'reason': 'Standard Creator (70%)'}
 
     try:
-        res = supabase.table('profiles').select('created_at').eq('id', str(creator_id)).limit(1).execute()
+        res = supabase.table('profiles').select('created_at, subscription_tier, subscription_expires_at').eq('id', str(creator_id)).limit(1).execute()
         if res and res.data and isinstance(res.data, list) and len(res.data) > 0:
-            raw_dt = res.data[0].get('created_at')
-            if raw_dt:
-                if isinstance(raw_dt, str):
-                    reg_date = datetime.fromisoformat(raw_dt.replace('Z', '+00:00'))
+            row = res.data[0]
+            expires_raw = row.get('subscription_expires_at')
+            now = datetime.now(timezone.utc)
+            if expires_raw:
+                exp_date = datetime.fromisoformat(expires_raw.replace('Z', '+00:00')) if isinstance(expires_raw, str) else expires_raw
+                if exp_date.tzinfo is None:
+                    exp_date = exp_date.replace(tzinfo=timezone.utc)
+                if exp_date > now:
+                    remaining = max(1, int(((exp_date - now).total_seconds() + 86399) // 86400))
+                    return {
+                        'creator_pct': PROMO_CREATOR_PCT,
+                        'is_promo': True,
+                        'is_claimed': True,
+                        'promo_days_remaining': remaining,
+                        'reason': f'Launch Creator Promo: 90% share ({remaining} days remaining)'
+                    }
                 else:
-                    reg_date = raw_dt
+                    return {
+                        'creator_pct': STANDARD_CREATOR_PCT,
+                        'is_promo': False,
+                        'is_claimed': True,
+                        'is_expired': True,
+                        'promo_days_remaining': 0,
+                        'reason': 'Promo Expired (70%)'
+                    }
 
-                if reg_date.tzinfo is None:
-                    reg_date = reg_date.replace(tzinfo=timezone.utc)
-
-                now = datetime.now(timezone.utc)
-                if reg_date >= PROMO_REGISTRATION_START:
-                    days_active = (now - reg_date).total_seconds() / 86400.0
-                    if 0 <= days_active <= PROMO_DURATION_DAYS:
-                        remaining = max(0, int(PROMO_DURATION_DAYS - days_active))
-                        return {
-                            'creator_pct': PROMO_CREATOR_PCT,
-                            'is_promo': True,
-                            'promo_days_remaining': remaining,
-                            'reason': f'Launch Creator Promo: 90% share ({remaining} days remaining)'
-                        }
+            # Claimed only when the user explicitly clicks Claim 90%
+            return {
+                'creator_pct': STANDARD_CREATOR_PCT,
+                'is_promo': False,
+                'is_claimed': False,
+                'promo_days_remaining': 0,
+                'reason': 'Launch Creator Promo: 90% available upon claiming'
+            }
     except Exception as e:
-        logging.error(f"[WALLET] Error checking creator registration for {creator_id}: {e}")
+        logging.error("[WALLET] Creator registration lookup failed (error_type=%s)", type(e).__name__)
 
-    return {'creator_pct': STANDARD_CREATOR_PCT, 'is_promo': False, 'reason': 'Standard Creator (70%)'}
+    return {'creator_pct': STANDARD_CREATOR_PCT, 'is_promo': False, 'is_claimed': False, 'promo_days_remaining': 0, 'reason': 'Standard Creator (70%)'}
+
+
+def claim_creator_promo(creator_id: str) -> dict:
+    """
+    Activates the 90-day 90% creator royalty promo starting from activation moment.
+    """
+    if not creator_id:
+        return {'success': False, 'message': 'Invalid creator ID'}
+    try:
+        res = supabase.table('profiles').select('subscription_tier, subscription_expires_at').eq('id', str(creator_id)).limit(1).execute()
+        if res and res.data and len(res.data) > 0:
+            existing = res.data[0]
+            existing_exp = existing.get('subscription_expires_at')
+            now = datetime.now(timezone.utc)
+            if existing_exp:
+                exp_dt = datetime.fromisoformat(existing_exp.replace('Z', '+00:00')) if isinstance(existing_exp, str) else existing_exp
+                if exp_dt.tzinfo is None:
+                    exp_dt = exp_dt.replace(tzinfo=timezone.utc)
+                if exp_dt > now:
+                    days_left = max(1, int(((exp_dt - now).total_seconds() + 86399) // 86400))
+                    return {
+                        'success': True,
+                        'already_claimed': True,
+                        'is_claimed': True,
+                        'promo_days_remaining': days_left,
+                        'creator_pct': PROMO_CREATOR_PCT,
+                        'message': f'Offer is already active ({days_left} days remaining).'
+                    }
+
+            expires_at = now + timedelta(days=PROMO_DURATION_DAYS)
+            supabase.table('profiles').update({
+                'subscription_expires_at': expires_at.isoformat()
+            }).eq('id', str(creator_id)).execute()
+
+            return {
+                'success': True,
+                'already_claimed': False,
+                'is_claimed': True,
+                'promo_days_remaining': PROMO_DURATION_DAYS,
+                'creator_pct': PROMO_CREATOR_PCT,
+                'message': f'90% Creator Royalties activated for the next {PROMO_DURATION_DAYS} days!'
+            }
+        return {'success': False, 'message': 'User profile not found'}
+    except Exception as e:
+        logging.error("[WALLET] Failed to claim creator promo: %s", e)
+        return {'success': False, 'message': 'Failed to activate offer. Please try again.'}
 
 
 def get_document_creator(doc_id):
@@ -98,7 +156,7 @@ def get_document_creator(doc_id):
         if res.data:
             return res.data[0].get('uploader_id')
     except Exception as e:
-        logging.error(f"[WALLET] Error getting document creator: {e}")
+        logging.error("[WALLET] Document creator lookup failed (error_type=%s)", type(e).__name__)
     return None
 
 
@@ -183,8 +241,8 @@ def credit_creator_for_purchase(order_id, doc_id, amount):
 
         return True, "Credited"
     except Exception as e:
-        logging.error(f"[WALLET] Credit failed: {e}")
-        return False, str(e)
+        logging.error("[WALLET] Credit failed (error_type=%s)", type(e).__name__)
+        return False, "Could not credit creator wallet"
 
 
 def unlock_eligible_entries(creator_id=None):
@@ -228,7 +286,7 @@ def unlock_eligible_entries(creator_id=None):
 
         return len(entries)
     except Exception as e:
-        logging.error(f"[WALLET] Unlock error: {e}")
+        logging.error("[WALLET] Unlock failed (error_type=%s)", type(e).__name__)
         return 0
 
 
@@ -270,7 +328,7 @@ def get_creator_views_and_earnings(creator_id):
         view_earnings = round(unique_views * VIEW_EARNING_RATE_INR, 2)
         return unique_views, view_earnings
     except Exception as e:
-        logging.error(f"[WALLET] Error calculating view earnings for {creator_id}: {e}")
+        logging.error("[WALLET] View earnings calculation failed (error_type=%s)", type(e).__name__)
         return 0, 0.0
 
 
@@ -378,8 +436,8 @@ def get_creator_wallet(creator_id):
             'payouts': payouts
         }
     except Exception as e:
-        logging.error(f"[WALLET] Fetch error: {e}")
-        return {'success': False, 'error': str(e)}
+        logging.error("[WALLET] Fetch failed (error_type=%s)", type(e).__name__)
+        return {'success': False, 'error': 'Wallet information is temporarily unavailable'}
 
 
 def request_withdrawal(creator_id, amount, payout_method=None, payout_details=None):
@@ -527,8 +585,8 @@ def request_withdrawal(creator_id, amount, payout_method=None, payout_details=No
 
         return True, req.data[0] if req.data else "Submitted"
     except Exception as e:
-        logging.error(f"[WALLET] Withdrawal request error: {e}")
-        return False, str(e)
+        logging.error("[WALLET] Withdrawal request failed (error_type=%s)", type(e).__name__)
+        return False, "Could not submit withdrawal request"
 
 
 
@@ -541,8 +599,8 @@ def get_all_payout_requests(status=None, limit=50):
         res = query.execute()
         return {'success': True, 'payouts': res.data or []}
     except Exception as e:
-        logging.error(f"[WALLET] Error fetching payout requests: {e}")
-        return {'success': False, 'error': str(e), 'payouts': []}
+        logging.error("[WALLET] Payout request fetch failed (error_type=%s)", type(e).__name__)
+        return {'success': False, 'error': 'Payout requests are temporarily unavailable', 'payouts': []}
 
 
 def process_payout_request(payout_id, action, admin_notes=""):
@@ -617,8 +675,8 @@ def process_payout_request(payout_id, action, admin_notes=""):
 
         return True, f"Payout request marked as {action}"
     except Exception as e:
-        logging.error(f"[WALLET] Error processing payout {payout_id}: {e}")
-        return False, str(e)
+        logging.error("[WALLET] Payout processing failed (error_type=%s)", type(e).__name__)
+        return False, "Could not process payout request"
 
 
 def admin_adjust_creator_wallet(creator_id, amount: float, adjustment_type: str, reason: str = ""):
@@ -701,6 +759,6 @@ def admin_adjust_creator_wallet(creator_id, amount: float, adjustment_type: str,
             'message': f"Wallet successfully updated. New withdrawable balance: ₹{new_effective_bal:.2f}"
         }
     except Exception as e:
-        logging.error(f"[WALLET] Error adjusting wallet for {creator_id}: {e}")
-        return False, str(e)
+        logging.error("[WALLET] Wallet adjustment failed (error_type=%s)", type(e).__name__)
+        return False, "Could not update creator wallet"
 

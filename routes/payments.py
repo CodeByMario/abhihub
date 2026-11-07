@@ -67,7 +67,7 @@ def payment_status_api():
         if client:
             client.table('credit_transactions').insert(insert_payload).execute()
     except Exception as e:
-        logging.warning(f"[PAYMENT_STATUS] Failed logging transaction: {e}")
+        logging.warning("[PAYMENT_STATUS] Failed logging transaction (error_type=%s)", type(e).__name__)
 
     # Credit pack fulfillment
     is_credits = 'Credits-' in purpose or 'pack=' in purpose or 'credits' in purpose.lower()
@@ -184,7 +184,7 @@ def initiate_payment():
                     if not user_name:
                         user_name = (prof.get('full_name') or '').strip()
         except Exception as p_err:
-            logging.warning(f"[PAYMENT] Profile sync error: {p_err}")
+            logging.warning("[PAYMENT] Profile sync failed (error_type=%s)", type(p_err).__name__)
 
     if not user_phone:
         user_phone = (user.get('user_metadata') or {}).get('phone') or ''
@@ -267,8 +267,8 @@ def initiate_payment():
             }
         )
     except Exception as e:
-        logging.error(f"[RZP] Order creation failed: {e}")
-        return jsonify({'success': False, 'error': f'Failed to create order: {str(e)}'}), 500
+        logging.error("[RZP] Order creation failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'error': 'Payment provider unavailable. Please try again.'}), 500
 
     rzp_order_id = order['id']
     save_transaction_record(rzp_order_id, {
@@ -345,7 +345,7 @@ def verify_payment():
                     'created_at': datetime.now(timezone.utc).isoformat()
                 }).execute()
         except Exception as err_log:
-            logging.debug(f"[RZP] Could not log payment error to DB: {err_log}")
+            logging.debug("[RZP] Could not log payment error to DB (error_type=%s)", type(err_log).__name__)
         return jsonify({'success': False, 'error': 'Signature verification failed'}), 400
 
     amount = float(rec.get('amount', 0))
@@ -479,7 +479,7 @@ def api_creator_earnings():
                     'coupon_code': p.get('coupon_code', '')
                 })
     except Exception as e:
-        logging.error(f"[CREATOR_EARNINGS] Error loading documents: {e}")
+        logging.error("[CREATOR_EARNINGS] Error loading documents (error_type=%s)", type(e).__name__)
 
     is_eligible = is_rank_eligible or (len(paid_docs) > 0)
 
@@ -622,7 +622,8 @@ def get_document_pricing(doc_id):
             'seller_id': pricing.get('seller_id')
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logging.error("[DOCUMENT_PRICING] Lookup failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'error': 'Document pricing is temporarily unavailable'}), 500
 
 
 @payments_bp.route('/api/document/<doc_id>/coupon', methods=['POST'])
@@ -666,7 +667,8 @@ def apply_document_coupon(doc_id):
             'payment_url': payment_url
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logging.error("[DOCUMENT_COUPON] Lookup failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'error': 'Coupon validation is temporarily unavailable'}), 500
 
 
 # ─── KYC & Passbook Endpoints ──────────────────────────────────────────────────

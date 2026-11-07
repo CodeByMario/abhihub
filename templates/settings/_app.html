@@ -1,0 +1,47 @@
+      <div class="st-section" id="section-app">
+        <div class="st-card">
+          <h2><span class="st-card-icon"></span> Appearance</h2>
+          <div class="st-form-row">
+            <label for="selectTheme" class="st-form-label">Theme</label>
+            <select class="st-form-select" id="selectTheme" onchange="saveTheme(this.value)">
+              <option value="system">System Default (auto)</option>
+              <option value="light">Light Mode</option>
+              <option value="dark">Dark Mode</option>
+            </select>
+            <div class="st-form-sublabel">Choose how AbhiHub looks for you.</div>
+          </div>
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon"></span> Language</h2>
+          <div class="st-form-row">
+            <label for="selectLang" class="st-form-label">Display Language</label>
+            <select class="st-form-select" id="selectLang" onchange="saveLang(this.value)">
+              <option value="en">English</option>
+              <option value="hi">हिंदी (Hindi)</option>
+              <option value="mr">मराठी (Marathi)</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon"></span> Storage</h2>
+          <div class="st-stat-row">
+            <span class="st-stat-label">Used by cached resources</span>
+            <span class="st-stat-value" id="cacheSize">—</span>
+          </div>
+          <div class="st-btn-row">
+            <button type="button" class="st-btn st-btn-outline" onclick="clearCache()">Clear Cache</button>
+          </div>
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon"></span> Interactive Feature Tours</h2>
+          <div class="st-form-sublabel" style="margin-bottom: 12px;">Explore or replay step-by-step interactive walk-throughs for study search, uploads, and profile features.</div>
+          <div class="st-btn-row">
+            <button type="button" class="st-btn st-btn-primary" data-action="openAppGuide">Explore Page Guides</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Danger Zone -->

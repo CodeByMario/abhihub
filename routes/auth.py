@@ -112,7 +112,7 @@ def log_admin_action(action: str, target: str = None, details: dict = None):
             user_agent=user_agent
         )
     except Exception as e:
-        logging.warning(f"Failed to record admin audit log: {e}")
+        logging.warning("Failed to record admin audit log (error_type=%s)", type(e).__name__)
 
 
 @auth_bp.route('/auth-callback')
@@ -126,7 +126,7 @@ def auth_callback():
         else:
             return render_template('site/login.html')
     except Exception as e:
-        logging.debug(f"Auth callback failed: {e}")
+        logging.debug("Auth callback failed (error_type=%s)", type(e).__name__)
         return redirect(url_for('auth.login'))
 
 
@@ -171,7 +171,7 @@ def reset_password_confirm():
     try:
         return render_template('reset_password_form.html')
     except Exception as e:
-        logging.debug(f"Password reset confirm failed: {e}")
+        logging.debug("Password reset confirm failed (error_type=%s)", type(e).__name__)
         return redirect(url_for('auth.reset_password'))
 
 
@@ -183,7 +183,7 @@ def logout():
             from data.profiles import UserSession
             UserSession.log_logout(session_id)
         except Exception as e:
-            logging.warning(f"Failed to log session logout: {e}")
+            logging.warning("Failed to log session logout (error_type=%s)", type(e).__name__)
     session.clear()
     response = make_response(render_template('logout_clear.html'))
     response.set_cookie(current_app.config.get('SESSION_COOKIE_NAME', 'session'), '', expires=0, path='/')

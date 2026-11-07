@@ -315,6 +315,50 @@
       <div class="chart-container"><canvas id="devicesChart"></canvas></div>
     </div>
   </div>
+
+  <!-- Feature Intelligence & Granular Action Tracker (Recorded in Supabase) -->
+  <div class="section-title">
+    <span>Feature Adoption & App Usage Intelligence</span>
+    <span class="badge badge-loved" id="featureTotalBadge">0 Events</span>
+  </div>
+
+  <div class="chart-grid">
+    <div class="chart-card">
+      <div class="chart-title">Top Features Used by Students</div>
+      <div class="chart-container"><canvas id="featuresChart"></canvas></div>
+    </div>
+    <div class="chart-card">
+      <div class="chart-title">Network Type & Connection Distribution</div>
+      <div class="chart-container"><canvas id="networksChart"></canvas></div>
+    </div>
+  </div>
+
+  <!-- Detailed User Action Stream Table -->
+  <div class="chart-card" style="margin-bottom: 2rem;">
+    <div class="chart-title">
+      <span>Granular User Action Log (Live Supabase Stream)</span>
+      <span style="font-size: 0.75rem; color: var(--dash-muted); font-weight: normal;">Device, Network, Action &amp; Location Record</span>
+    </div>
+    <div style="overflow-x: auto; max-height: 380px;">
+      <table class="data-table" id="featureActionsTable">
+        <thead>
+          <tr>
+            <th>Time</th>
+            <th>Feature</th>
+            <th>Action</th>
+            <th>Path</th>
+            <th>Device / OS</th>
+            <th>Network</th>
+            <th>Location</th>
+            <th>IP Address</th>
+          </tr>
+        </thead>
+        <tbody id="featureActionsBody">
+          <tr><td colspan="8" class="loading">Loading action telemetry from Supabase...</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -527,12 +571,83 @@
     });
   }
 
+  async function loadFeatureAnalytics() {
+    const days = getDays();
+    const r = await fetchEndpoint(`/api/admin/feature-analytics?days=${days}`);
+    if (!r.success || !r.data) return;
+    const d = r.data;
+
+    const totalBadge = document.getElementById('featureTotalBadge');
+    if (totalBadge) totalBadge.textContent = (d.total_events || 0) + ' Events';
+
+    // 1. Features Bar Chart
+    destroyChart('features');
+    const featLabels = Object.keys(d.features || {});
+    const featCounts = Object.values(d.features || {});
+    const featCtx = document.getElementById('featuresChart');
+    if (featCtx && featLabels.length > 0) {
+      charts.features = new Chart(featCtx.getContext('2d'), {
+        type: 'bar',
+        data: {
+          labels: featLabels.map(l => l.replace(/_/g, ' ')),
+          datasets: [{
+            label: 'Uses',
+            data: featCounts,
+            backgroundColor: COLORS.blue
+          }]
+        },
+        options: { ...CHART_DEFAULTS, indexAxis: 'y' }
+      });
+    }
+
+    // 2. Networks Doughnut Chart
+    destroyChart('networks');
+    const netLabels = Object.keys(d.networks || {});
+    const netCounts = Object.values(d.networks || {});
+    const netCtx = document.getElementById('networksChart');
+    if (netCtx && netLabels.length > 0) {
+      charts.networks = new Chart(netCtx.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+          labels: netLabels.map(n => n.toUpperCase()),
+          datasets: [{
+            data: netCounts,
+            backgroundColor: [COLORS.cyan, COLORS.green, COLORS.orange, COLORS.purple, COLORS.yellow]
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#94a3b8' } } } }
+      });
+    }
+
+    // 3. Granular Actions Table
+    const tbody = document.getElementById('featureActionsBody');
+    if (tbody && d.recent) {
+      if (d.recent.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;color:var(--dash-muted)">No feature events recorded yet.</td></tr>';
+      } else {
+        tbody.innerHTML = d.recent.map(row => `
+          <tr>
+            <td style="white-space:nowrap;font-size:0.75rem;color:var(--dash-muted);">${row.time ? new Date(row.time).toLocaleTimeString() : '—'}</td>
+            <td><strong style="color:var(--dash-accent);">${row.feature || '—'}</strong></td>
+            <td><span class="badge badge-blue">${row.action || 'view'}</span></td>
+            <td style="font-family:monospace;font-size:0.8rem;">${row.path || '/'}</td>
+            <td style="white-space:nowrap;">${row.device || 'Unknown'}</td>
+            <td style="white-space:nowrap;color:var(--dash-success);font-weight:600;">${row.network || '—'}</td>
+            <td style="white-space:nowrap;">${row.geo || 'Unknown'}</td>
+            <td style="font-family:monospace;font-size:0.75rem;color:var(--dash-muted);">${row.ip || '—'}</td>
+          </tr>
+        `).join('');
+      }
+    }
+  }
+
   function loadAllData() {
     loadSentimentAnalytics();
     loadKPIs();
     loadDailyViews();
     loadColleges();
     loadDevices();
+    loadFeatureAnalytics();
   }
 
   // Auto-refresh every 20 seconds for real-time live monitoring

@@ -26,21 +26,17 @@ def get_files_needing_notification() -> List[Dict]:
         return []
     
     try:
-        # Calculate time range: 55-65 minutes ago
+        # Gap-proof notification query: Any unnotified file created at least 55 minutes ago
         now = datetime.now(timezone.utc)
-        one_hour_ago_start = now - timedelta(minutes=65)
-        one_hour_ago_end = now - timedelta(minutes=55)
+        one_hour_ago_cutoff = now - timedelta(minutes=55)
         
-        logging.info(f"Checking for files uploaded between {one_hour_ago_start} and {one_hour_ago_end} in abhihub schema")
+        logging.info(f"Checking for unnotified files uploaded before {one_hour_ago_cutoff} in abhihub schema")
         
-        # Query documents for unnotified files in the time range
-        # Note: 'upload_notified' column might need to be added to abhihub.documents
-        # For now, we query the new table to fulfill the "nothing relies on public" requirement.
         response = (client.table('documents')
                    .select('id, uploader_id, title, document_category, created_at, profiles!documents_uploader_id_fkey(email)')
-                   .gte('created_at', one_hour_ago_start.isoformat())
-                   .lte('created_at', one_hour_ago_end.isoformat())
+                   .lte('created_at', one_hour_ago_cutoff.isoformat())
                    .is_('upload_notified', 'null')
+                   .limit(50)
                    .execute())
         
         files = []

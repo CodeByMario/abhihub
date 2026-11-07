@@ -27,7 +27,7 @@ def init_scheduler(app=None):
     """
     global scheduler
     import os
-    if os.environ.get('WERKZEUG_RUN_MAIN') not in (None, 'true') or (os.environ.get('FLASK_DEBUG') == '1' and os.environ.get('WERKZEUG_RUN_MAIN') != 'true'):
+    if (app and getattr(app, 'debug', False) and os.environ.get('WERKZEUG_RUN_MAIN') != 'true') or (os.environ.get('FLASK_DEBUG') == '1' and os.environ.get('WERKZEUG_RUN_MAIN') != 'true'):
         logging.info('Skipping scheduler initialization in Werkzeug monitor process')
         return None
     if os.environ.get('DISABLE_BACKGROUND_SCHEDULER', '').lower() in ('true', '1', 'yes'):

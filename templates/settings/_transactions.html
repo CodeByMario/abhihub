@@ -1,0 +1,49 @@
+      <div class="st-section" id="section-transactions">
+        <div class="st-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
+            <h2 style="margin:0;"><span class="st-card-icon"></span> Payment History</h2>
+            <button type="button" onclick="loadTransactionHistory(true)" class="st-btn st-btn-outline" style="padding:0.35rem 0.8rem;font-size:0.78rem;min-height:32px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> Refresh
+            </button>
+          </div>
+          <div class="st-form-sublabel" style="margin-bottom:1.25rem;">
+            View all your past purchases, document unlocks, support contributions, and official bank receipts.
+          </div>
+
+          <!-- Transaction Metrics Grid -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:1.25rem;">
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-text-muted);font-weight:700;text-transform:uppercase;">Total Orders</div>
+              <div id="stTxTotalOrders" style="font-size:1.35rem;font-weight:800;color:var(--st-text-main);margin-top:0.25rem;">0</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-success);font-weight:700;text-transform:uppercase;">Successful</div>
+              <div id="stTxSuccessOrders" style="font-size:1.35rem;font-weight:800;color:var(--st-success);margin-top:0.25rem;">0</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:#1d4ed8;font-weight:700;text-transform:uppercase;">Gateway</div>
+              <div style="font-size:1.05rem;font-weight:800;color:#1d4ed8;margin-top:0.35rem;">Razorpay Secure</div>
+            </div>
+          </div>
+
+          <!-- Transaction Table Container -->
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+              <thead>
+                <tr style="text-align:left;border-bottom:1.5px solid var(--st-border);color:var(--st-text-muted);">
+                  <th style="padding:0.6rem 0.5rem;">Order Reference</th>
+                  <th style="padding:0.6rem 0.5rem;">Item / Purpose</th>
+                  <th style="padding:0.6rem 0.5rem;">Amount</th>
+                  <th style="padding:0.6rem 0.5rem;">Status</th>
+                  <th style="padding:0.6rem 0.5rem;text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="stTransactionsTbody">
+                <tr><td colspan="5" style="padding:1.5rem;text-align:center;color:var(--st-text-muted);">Loading payment history...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Privacy -->

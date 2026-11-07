@@ -14,7 +14,7 @@
     border-bottom: 1px solid rgba(0, 0, 0, 0.08);
     font-size: 13px;
     font-weight: 400;
-    font-family: var(--apple-font, -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif);
+    font-family: var(--apple-font, system-ui, -apple-system, Roboto, "SF Pro Text", sans-serif);
     letter-spacing: -0.01em;
     display: flex;
     align-items: center;
@@ -27,6 +27,39 @@
     position: relative;
     box-shadow: none;
     transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease, visibility 0.3s;
+}
+
+@media (max-width: 768px) {
+    #promoStrip {
+        padding: 0.5rem 2.6rem 0.5rem 0.85rem;
+        font-size: 12px;
+        gap: 0.45rem 0.55rem;
+        flex-wrap: wrap;
+        min-height: 42px;
+        line-height: 1.35;
+    }
+
+    #promoStrip .promo-tag {
+        font-size: 10px;
+        padding: 2px 7px;
+    }
+
+    #promoStrip a {
+        padding: 2px 8px;
+        background: rgba(0, 113, 227, 0.08);
+        border-radius: 999px;
+        font-weight: 600;
+    }
+
+    [data-theme="dark"] #promoStrip a {
+        background: rgba(56, 189, 248, 0.12);
+    }
+
+    #promoStripClose {
+        right: 0.4rem;
+        width: 32px;
+        height: 32px;
+    }
 }
 
 [data-theme="dark"] #promoStrip {

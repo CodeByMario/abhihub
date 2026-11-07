@@ -105,15 +105,25 @@ def support():
 def features():
     """Root route - public landing page with crawlable university, subject, and resource hubs"""
     import logging
-    from methods.supabase_helper import get_all_colleges, get_all_branches, init_supabase
+    from methods.supabase_helper import get_colleges_with_document_counts, get_all_branches, init_supabase
     from routes.seo import slugify
     from data.pricing import extract_document_pricing
+    from cache_manager import get_cache
 
-    colleges_res = get_all_colleges()
-    all_colleges = colleges_res.get('data', []) if colleges_res.get('success') else []
-    
-    for c in all_colleges:
-        c['slug'] = slugify(c.get('abbreviation') or c.get('name'))
+    cache = get_cache()
+    def _fetch_colleges_with_docs():
+        colleges_res = get_colleges_with_document_counts()
+        raw_colleges = colleges_res.get('data', []) if colleges_res.get('success') else []
+        populated = []
+        for c in raw_colleges:
+            doc_count = int(c.get('doc_count') or c.get('document_count') or 0)
+            if doc_count > 0:
+                c_copy = dict(c)
+                c_copy['slug'] = slugify(c.get('abbreviation') or c.get('name'))
+                populated.append(c_copy)
+        return populated
+
+    colleges = cache.get_cached('landing:colleges_with_docs', ttl=600, fetcher=_fetch_colleges_with_docs) or []
         
     branches_res = get_all_branches()
     branches = branches_res.get('data', []) if branches_res.get('success') else []
@@ -146,7 +156,7 @@ def features():
 
     return render_template(
         'site/landing.html',
-        colleges=all_colleges[:8],
+        colleges=colleges[:10],
         branches=branches[:8],
         recent_docs=recent_docs,
         seo_title="AbhiHub — Engineering PYQs, Handwritten Notes & Creator Marketplace",

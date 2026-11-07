@@ -1379,21 +1379,18 @@
       </form>
 
       <!-- Verified Autonomous Colleges Quick Strip (Institutional Credibility) -->
+      {% if colleges and colleges|length > 0 %}
       <div class="hero-colleges-strip">
         <span class="colleges-strip-label">Verified papers for:</span>
         <div class="colleges-pills-wrap">
           {% for c in colleges %}
-          <a href="{{ url_for('library.college_landing', college_slug=c.slug) }}" class="college-apple-pill" title="{{ c.name }}">
+          <a href="{{ url_for('library.college_landing', college_slug=c.slug) }}" class="college-apple-pill" title="{{ c.name }}{% if c.doc_count %} ({{ c.doc_count }} documents){% endif %}">
             {{ c.abbreviation or c.name }}
           </a>
-          {% else %}
-          <a href="{{ url_for('library.pyq_landing') }}" class="college-apple-pill">GHRCEN (Autonomous)</a>
-          <a href="{{ url_for('library.pyq_landing') }}" class="college-apple-pill">SPPU</a>
-          <a href="{{ url_for('library.pyq_landing') }}" class="college-apple-pill">DBATU</a>
-          <a href="{{ url_for('library.pyq_landing') }}" class="college-apple-pill">RTMNU</a>
           {% endfor %}
         </div>
       </div>
+      {% endif %}
 
       <!-- Hero Product Showcase Canvas (Apple Playbook Rule 3: Make the Product the Hero) -->
       <div class="hero-showcase-canvas">

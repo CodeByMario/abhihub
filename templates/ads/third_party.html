@@ -1,56 +1,120 @@
 {#
-  Adaptive third-party placements.
-  The server supplies ad_density from the user's remaining file-view credits:
+  Adaptive third-party placements — Native AbhiHub Design System Integration.
+  The server supplies ad_density from user's remaining file-view credits:
   high (0), medium (1-4), low (5-9), minimum (10-19), monthly (20+).
 #}
 {% if ad_density in ('high', 'medium', 'low', 'minimum', 'monthly') %}
-  <div class="ad-native-shell" aria-label="Advertisement">
-    <span class="ad-native-label">Advertisement</span>
+  <aside class="ad-native-shell" aria-label="Partner Spotlight">
+    <div class="ad-native-header">
+      <span class="ad-native-badge">
+        <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <circle cx="12" cy="12" r="10"></circle>
+          <line x1="12" y1="16" x2="12" y2="12"></line>
+          <line x1="12" y1="8" x2="12.01" y2="8"></line>
+        </svg>
+        <span>Partner Spotlight</span>
+      </span>
+      <span class="ad-native-sub">Supports Free Campus Access</span>
+    </div>
+
     <div class="ad-native-banner">
       <script async="async" data-cfasync="false" src="https://bauval.org/21/5491b644188aaa93b979ae86d0742d00"></script>
       <div id="container-5491b644188aaa93b979ae86d0742d00"></div>
     </div>
+
     {% if ad_density in ('high', 'medium') %}
-      <a class="ad-native-smart-link"
-         href="https://araplhn.org/4/6fb79dd9f780432692f5cdf35bfb4dcf"
-         target="_blank" rel="noopener noreferrer sponsored">
-        Sponsored resource
-      </a>
+      <div class="ad-native-footer">
+        <a class="ad-native-smart-link"
+           href="https://araplhn.org/4/6fb79dd9f780432692f5cdf35bfb4dcf"
+           target="_blank" rel="noopener noreferrer sponsored">
+          <span>Explore Academic Resource</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 18 15 12 9 6"></polyline></svg>
+        </a>
+      </div>
     {% endif %}
-  </div>
+  </aside>
 {% endif %}
 
 <style>
   .ad-native-shell {
-    width: min(100% - 2rem, 760px);
-    margin: .75rem auto;
-    padding: .6rem .75rem .7rem;
-    border: 1px solid var(--border, #e2e8f0);
-    border-radius: 14px;
-    background: var(--card, #fff);
-    box-shadow: 0 4px 16px rgba(15, 23, 42, .06);
+    width: min(100% - 2rem, 800px);
+    margin: 1rem auto;
+    padding: 0.75rem 1rem 0.85rem;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.82);
+    backdrop-filter: blur(20px) saturate(180%);
+    -webkit-backdrop-filter: blur(20px) saturate(180%);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
     box-sizing: border-box;
+    transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  .ad-native-label {
-    display: block;
-    margin-bottom: .35rem;
-    color: var(--text-tertiary, #64748b);
-    font-size: .62rem;
-    letter-spacing: .08em;
-    text-transform: uppercase;
+  [data-theme="dark"] .ad-native-shell {
+    background: rgba(22, 22, 26, 0.82);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 8px 28px rgba(0, 0, 0, 0.45);
+  }
+  .ad-native-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin-bottom: 0.55rem;
+  }
+  .ad-native-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 2px 8px;
+    background: rgba(0, 113, 227, 0.08);
+    color: #0071E3;
+    border: 1px solid rgba(0, 113, 227, 0.16);
+    border-radius: 980px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    line-height: 1.4;
+  }
+  [data-theme="dark"] .ad-native-badge {
+    background: rgba(56, 189, 248, 0.12);
+    color: #38bdf8;
+    border-color: rgba(56, 189, 248, 0.24);
+  }
+  .ad-native-sub {
+    font-size: 11px;
+    color: #86868b;
+    font-weight: 500;
+  }
+  [data-theme="dark"] .ad-native-sub {
+    color: #94a3b8;
   }
   .ad-native-banner {
     min-height: 60px;
     display: grid;
     place-items: center;
     overflow: hidden;
+    border-radius: 12px;
+  }
+  .ad-native-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 0.45rem;
   }
   .ad-native-smart-link {
-    display: block;
-    margin-top: .35rem;
-    color: var(--primary-600, #2563eb);
-    font-size: .75rem;
-    text-align: right;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    color: #0071E3;
+    font-size: 0.78rem;
+    font-weight: 600;
     text-decoration: none;
+    transition: color 0.15s ease;
+  }
+  .ad-native-smart-link:hover {
+    text-decoration: underline;
+    color: #0077ED;
+  }
+  [data-theme="dark"] .ad-native-smart-link {
+    color: #38bdf8;
   }
 </style>

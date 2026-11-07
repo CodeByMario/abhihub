@@ -24,7 +24,7 @@ from flask import (
     url_for,
 )
 
-from routes.auth import auth_required, admin_required
+from routes.auth import auth_required, admin_required, is_admin_user
 from methods.supabase_helper import (
     init_supabase,
     check_profile_completed,
@@ -326,7 +326,7 @@ def authorize():
                     'user_metadata': u_meta
                 }
         except Exception as e:
-            logging.warning(f"[AUTH] client.auth.get_user failed: {e}")
+            logging.warning("[AUTH] Supabase token verification failed (error_type=%s)", type(e).__name__)
 
     # 2. Fallback: Parse claims directly if JWT signature is valid or network was unreachable
     if not user_data:
@@ -347,7 +347,7 @@ def authorize():
                     'user_metadata': user_meta
                 }
         except Exception as jwt_err:
-            logging.error(f"[AUTH] JWT fallback parsing error: {jwt_err}")
+            logging.error("[AUTH] JWT fallback parsing failed (error_type=%s)", type(jwt_err).__name__)
 
     if not user_data or not user_data.get('email'):
         return jsonify({'success': False, 'message': 'Unauthorized: Invalid token or expired session'}), 401
@@ -376,7 +376,7 @@ def authorize():
         if session_result and session_result.get('success'):
             session['session_id'] = session_result.get('session_id')
     except Exception as sess_err:
-        logging.warning(f"[AUTH] Logging login session failed: {sess_err}")
+        logging.warning("[AUTH] Login session audit write failed (error_type=%s)", type(sess_err).__name__)
 
     # Set initial paper view credits based on strict domain policy:
     # @ghrce.raisoni.net / approved college -> 20 views
@@ -400,7 +400,7 @@ def authorize():
             }).execute()
             session['paper_quota'] = {'credits': init_views, 'total_views': 0}
     except Exception as q_err:
-        logging.warning(f"[AUTH] Initial quota setup note: {q_err}")
+        logging.warning("[AUTH] Initial quota setup failed (error_type=%s)", type(q_err).__name__)
 
     # Process referral reward if referral code was provided at authorization
     payload = request.get_json(silent=True) or {}
@@ -410,7 +410,7 @@ def authorize():
             ensure_referral_code(user_data['id'])
             register_referral(user_data['id'], ref_code)
         except Exception as ref_err:
-            logging.warning(f"[AUTH] Referral crediting failed: {ref_err}")
+            logging.warning("[AUTH] Referral crediting failed (error_type=%s)", type(ref_err).__name__)
 
     return jsonify({'success': True, 'message': 'Authenticated', 'user': session['user']}), 200
 
@@ -1795,8 +1795,8 @@ def api_get_recent_documents():
             'count': 0
         }), 500
     except Exception as e:
-        logging.error(f"[HISTORY] Exception retrieving recent documents: {e}")
-        return jsonify({'success': False, 'message': str(e), 'data': [], 'count': 0}), 500
+        logging.error("[HISTORY] Recent document lookup failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'message': 'Failed to retrieve recent documents', 'data': [], 'count': 0}), 500
 
 
 @api_bp.route('/api/file-access-history', methods=['GET'])
@@ -1817,10 +1817,10 @@ def api_get_file_access_history():
         if result.get('success'):
             data = result.get('data', [])
             return jsonify({'success': True, 'data': data, 'count': len(data)}), 200
-        return jsonify({'success': False, 'message': result.get('message', 'Failed'), 'data': [], 'count': 0}), 500
+        return jsonify({'success': False, 'message': 'Failed to retrieve file access history', 'data': [], 'count': 0}), 500
     except Exception as e:
-        logging.error(f"[FILE_HISTORY] Exception: {e}")
-        return jsonify({'success': False, 'message': str(e), 'data': [], 'count': 0}), 500
+        logging.error("[FILE_HISTORY] Lookup failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'message': 'Failed to retrieve file access history', 'data': [], 'count': 0}), 500
 
 
 @api_bp.route('/api/my-notifications', methods=['GET'])
@@ -1835,7 +1835,96 @@ def api_get_my_notifications():
     offset = request.args.get('offset', 0, type=int)
     items = get_user_notifications(user_id, limit=limit, offset=offset)
     unread = sum(1 for n in items if not n.get('is_read'))
-    return jsonify({'success': True, 'data': items, 'unread': unread}), 200
+
+    user_meta = {}
+    try:
+        import app as main_app
+        q = main_app._get_quota() if hasattr(main_app, '_get_quota') else {}
+        user_meta['credits'] = q.get('credits', 0)
+        user_meta['total_views'] = q.get('total_views', 0)
+    except Exception:
+        pass
+
+    try:
+        from methods.wallet_service import get_creator_commission_pct, get_creator_wallet
+        comm = get_creator_commission_pct(user_id)
+        user_meta['creator_pct'] = comm.get('creator_pct', 70)
+        user_meta['promo_days_remaining'] = comm.get('promo_days_remaining', 0)
+        user_meta['is_promo'] = comm.get('is_promo', False)
+        user_meta['is_claimed'] = comm.get('is_claimed', False)
+        wallet = get_creator_wallet(user_id)
+        user_meta['wallet_balance'] = wallet.get('withdrawable_balance', 0.0)
+    except Exception:
+        pass
+
+    try:
+        from methods.wallet_service import _get_client
+        prof_res = _get_client().table('profiles').select('role, subscription_tier').eq('id', user_id).limit(1).execute()
+        if prof_res and prof_res.data and len(prof_res.data) > 0:
+            p_data = prof_res.data[0]
+            user_meta['account_type'] = (p_data.get('role') or 'student').capitalize()
+            user_meta['subscription_tier'] = (p_data.get('subscription_tier') or 'free').capitalize()
+        else:
+            user_meta['account_type'] = 'Student'
+            user_meta['subscription_tier'] = 'Free'
+    except Exception:
+        user_meta['account_type'] = 'Student'
+        user_meta['subscription_tier'] = 'Free'
+
+    return jsonify({'success': True, 'data': items, 'unread': unread, 'user_meta': user_meta}), 200
+
+
+@api_bp.route('/api/claim-promo', methods=['POST'])
+@auth_required
+def api_claim_promo():
+    """Activates the 90-day 90% creator royalties launch promotion for the user."""
+    user_id = session.get('user', {}).get('uid')
+    if not user_id:
+        return jsonify({'success': False, 'message': 'Unauthorized'}), 401
+    from methods.wallet_service import claim_creator_promo
+    result = claim_creator_promo(user_id)
+    status_code = 200 if result.get('success') else 400
+    return jsonify(result), status_code
+
+
+@api_bp.route('/api/telemetry/track', methods=['POST'])
+def api_telemetry_track():
+    """Ingests batched feature usage, device, and network telemetry."""
+    data = request.get_json(silent=True) or {}
+    events = data.get('events') or ([data] if data.get('feature') else [])
+    if not events:
+        return jsonify({'success': False, 'message': 'No events'}), 400
+
+    from methods.feature_telemetry import log_feature_event
+    user_id = session.get('user', {}).get('uid') if 'user' in session else None
+
+    count = 0
+    for ev in events[:25]:
+        feat = ev.get('feature')
+        if feat:
+            log_feature_event(
+                user_id=user_id,
+                feature=feat,
+                action=ev.get('action', 'interact'),
+                device_info=ev.get('device'),
+                network_info=ev.get('network'),
+                path=ev.get('path', '/'),
+                metadata=ev.get('metadata'),
+                req=request
+            )
+            count += 1
+
+    return jsonify({'success': True, 'count': count}), 200
+
+
+@api_bp.route('/api/admin/feature-analytics', methods=['GET'])
+@auth_required
+def api_admin_feature_analytics():
+    """Returns aggregated feature adoption metrics, device distribution, and network breakdown."""
+    days = min(request.args.get('days', 30, type=int), 90)
+    from methods.feature_telemetry import get_feature_analytics_summary
+    data = get_feature_analytics_summary(days=days)
+    return jsonify({'success': True, 'data': data}), 200
 
 
 @api_bp.route('/api/my-notifications/read', methods=['POST'])
@@ -2029,55 +2118,30 @@ def get_all_files():
         result = get_all_files_merged(include_file_records=True, current_user_id=current_user_id)
         if result.get('success'):
             return jsonify({'success': True, 'data': result.get('data', []), 'count': result.get('count', 0)}), 200
-        return jsonify({'success': False, 'message': result.get('message', 'Failed'), 'data': [], 'count': 0}), 500
+        return jsonify({'success': False, 'message': 'Failed to retrieve files', 'data': [], 'count': 0}), 500
     except Exception as e:
-        logging.error(f"[API /api/files/all] Exception: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logging.error("[API /api/files/all] Lookup failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'message': 'Failed to retrieve files'}), 500
 
 
 @api_bp.route('/api/proxy-file')
 @auth_required
 def proxy_file():
-    """Server-side proxy for Firebase/Cloudinary files to bypass browser CORS."""
-    import requests
-    file_url = request.args.get('url', '').strip()
-    if not file_url:
-        abort(400)
-    from urllib.parse import urlparse
-    parsed = urlparse(file_url)
-    if parsed.hostname not in _ALLOWED_PROXY_HOSTS:
-        abort(403)
-    try:
-        upstream = requests.get(file_url, timeout=30, verify=True, headers={'User-Agent': 'AbhiHub-Proxy/1.0'})
-        if not upstream.ok:
-            abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
-        content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
-        resp = make_response(upstream.content)
-        resp.headers['Content-Type'] = content_type
-        resp.headers.update(_secure_file_headers())
-        return resp
-    except Exception as e:
-        logging.error(
-            "[PROXY] Fetch failed for host=%s error_type=%s",
-            parsed.hostname or "unknown",
-            type(e).__name__,
-        )
-        abort(502)
+    """Compatibility redirect to the resource page; raw URL proxying is disabled."""
+    doc_id = str(request.args.get('doc_id') or '').strip()
+    if not validate_uuid(doc_id):
+        return jsonify({'success': False, 'message': 'A valid document ID is required'}), 400
+    return redirect(f"/resources/{doc_id}", code=302)
 
 
 def authorize_document_access(doc_id, filename=None):
-    """Authenticate user, verify document permissions, and generate direct storage URL.
+    """Authorize a document and return a short-lived provider URL when supported.
 
-    Never downloads or proxies the PDF bytes.
     Returns:
         (data_dict, status_code)
     """
     import re
-    from datetime import timedelta
-    from urllib.parse import urlparse
-    from cache_manager import get_cache
     from methods.supabase_helper import get_document_by_id_rich
-    cache = get_cache()
 
     token = request.args.get('token', '')
     if token and not _verify_pdf_token(doc_id, token):
@@ -2087,6 +2151,9 @@ def authorize_document_access(doc_id, filename=None):
     if not doc_res.get('success'):
         return {'success': False, 'error': 'not_found', 'message': 'Document not found'}, 404
     document = doc_res.get('data', {})
+
+    if not _document_is_visible(document):
+        return {'success': False, 'error': 'not_found', 'message': 'Document not found'}, 404
 
     current_uid = session.get('user', {}).get('uid') or session.get('user', {}).get('id')
     has_access = has_document_access(current_uid, doc_id, document)
@@ -2123,59 +2190,12 @@ def authorize_document_access(doc_id, filename=None):
     if not file_url or not isinstance(file_url, str):
         return {'success': False, 'error': 'not_found', 'message': 'File URL not found for document'}, 404
 
-    cache_key = f"auth-url:{doc_id}:{version_identifier}:{int(is_preview_mode)}"
-    try:
-        cached_signed, _ = cache.l1.get(cache_key)
-        if cached_signed:
-            return cached_signed, 200
-    except Exception:
-        pass
-
-    signed_target_url = file_url
-    if not file_url.startswith('http') and not (file_url.startswith('/static/') or file_url.startswith('static/')):
-        try:
-            from firebase_admin import storage
-            bucket = storage.bucket()
-            blob = bucket.blob(file_url)
-            signed = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1), method="GET")
-            signed_target_url = signed[0] if isinstance(signed, (list, tuple)) else signed
-        except Exception as e:
-            logging.warning(f"[AUTH-DOC] Firebase sign error: {e}")
-            bucket_name = os.getenv('FIREBASE_STORAGE_BUCKET', 'abhi-hub.appspot.com')
-            import urllib.parse
-            encoded_path = urllib.parse.quote(file_url, safe='')
-            signed_target_url = f"https://firebasestorage.googleapis.com/v0/b/{bucket_name}/o/{encoded_path}?alt=media"
-    elif 'res.cloudinary.com' in file_url:
-        try:
-            import cloudinary
-            import cloudinary.utils as _cld_utils
-            import time as _time
-            cloudinary.config(
-                cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
-                api_key=os.getenv('CLOUDINARY_API_KEY'),
-                api_secret=os.getenv('CLOUDINARY_API_SECRET'),
-                secure=True,
-            )
-            pub_id = (
-                document.get('provider_public_id')
-                or document.get('cloudinary_public_id')
-                or document.get('public_id')
-                or ''
-            )
-            parsed_cld = urlparse(file_url)
-            if not pub_id:
-                m = re.search(r'/upload/(?:v\d+/)?(.+)$', parsed_cld.path)
-                pub_id = m.group(1) if m else ''
-            if pub_id:
-                rtype = 'raw' if '/raw/' in parsed_cld.path else ('image' if '/image/' in parsed_cld.path else 'raw')
-                cld_signed, _ = _cld_utils.cloudinary_url(
-                    pub_id, resource_type=rtype, type='upload',
-                    sign_url=True, expires_at=int(_time.time()) + 3600
-                )
-                if cld_signed:
-                    signed_target_url = cld_signed
-        except Exception as cld_err:
-            logging.warning(f"[AUTH-DOC] Cloudinary sign error: {cld_err}")
+    # Paid previews must remain server-side because the viewer strips every page
+    # except the first. Full entitled documents are delivered directly by the
+    # provider so PDF.js does not route file bytes through the Flask host.
+    signed_target_url = f"/api/view-doc/{doc_id}/file?preview=1" if is_preview_mode else None
+    if not is_preview_mode:
+        signed_target_url = _create_document_delivery_url(document, file_url, doc_id)
 
     filename_doc = document.get('title') or document.get('file_name') or 'document.pdf'
     filename_doc = re.sub(r'[^a-z0-9_\-\.]+', '_', filename_doc, flags=re.I)
@@ -2214,12 +2234,107 @@ def authorize_document_access(doc_id, filename=None):
         'is_preview': is_preview_mode,
         'title': document.get('title') or filename_doc
     }
-    try:
-        cache.l1.set(cache_key, payload, ttl=300)
-    except Exception:
-        pass
-
     return payload, 200
+
+
+def _create_document_delivery_url(document, file_url, doc_id):
+    """Create a short-lived provider URL; use the protected viewer as fallback."""
+    import re
+    from datetime import timedelta
+    from urllib.parse import unquote, urlparse
+
+    viewer_fallback = f"/api/view-doc/{doc_id}/file?stream=1"
+    if file_url.startswith(('/static/', 'static/')):
+        return file_url
+
+    parsed = urlparse(file_url)
+    provider = str(document.get('storage_provider') or '').strip().lower()
+    if provider == 'firebase' or not parsed.scheme:
+        try:
+            from firebase_admin import storage
+            path = file_url
+            bucket_name = os.getenv('FIREBASE_STORAGE_BUCKET', 'abhi-hub.appspot.com')
+            if parsed.hostname in ('firebasestorage.googleapis.com', 'storage.googleapis.com'):
+                match = re.search(r'/b/([^/]+)/o/(.+?)(?:\?|$)', file_url)
+                if not match:
+                    return viewer_fallback
+                bucket_name = match.group(1)
+                path = unquote(match.group(2))
+            blob = storage.bucket(name=bucket_name).blob(path)
+            return blob.generate_signed_url(
+                version='v4', expiration=timedelta(minutes=10), method='GET'
+            )
+        except Exception as exc:
+            logging.warning('[AUTH-DOC] Firebase signing failed (error_type=%s)', type(exc).__name__)
+            return viewer_fallback
+
+    if parsed.hostname == 'res.cloudinary.com' or provider == 'cloudinary':
+        try:
+            import time
+            import cloudinary
+            import cloudinary.utils
+            cloudinary.config(
+                cloud_name=os.getenv('CLOUDINARY_CLOUD_NAME'),
+                api_key=os.getenv('CLOUDINARY_API_KEY'),
+                api_secret=os.getenv('CLOUDINARY_API_SECRET'),
+                secure=True,
+            )
+            public_id = (
+                document.get('provider_public_id')
+                or document.get('cloudinary_public_id')
+                or document.get('public_id')
+            )
+            if not public_id:
+                match = re.search(r'/upload/(?:v\d+/)?(.+)$', parsed.path)
+                public_id = match.group(1) if match else None
+            if not public_id:
+                return viewer_fallback
+            resource_type = 'image' if '/image/' in parsed.path else ('video' if '/video/' in parsed.path else 'raw')
+            # New uploads use authenticated delivery. Preserve the stored type
+            # for legacy assets so existing records remain readable.
+            delivery_type = 'authenticated' if '/authenticated/' in parsed.path else 'upload'
+            signed, _ = cloudinary.utils.cloudinary_url(
+                public_id,
+                resource_type=resource_type,
+                type=delivery_type,
+                sign_url=True,
+                expires_at=int(time.time()) + 600,
+            )
+            return signed or viewer_fallback
+        except Exception as exc:
+            logging.warning('[AUTH-DOC] Cloudinary signing failed (error_type=%s)', type(exc).__name__)
+            return viewer_fallback
+
+    if parsed.hostname and parsed.hostname.endswith('.supabase.co'):
+        try:
+            match = re.search(r'/storage/v1/object/(?:public|sign)/([^/]+)/(.+)$', parsed.path)
+            if match:
+                from methods.supabase_helper import init_supabase
+                client = init_supabase()
+                if client:
+                    result = client.storage.from_(match.group(1)).create_signed_url(
+                        unquote(match.group(2)), 600
+                    )
+                    signed = result.get('signedURL') or result.get('signedUrl')
+                    if signed and signed.startswith('/'):
+                        signed = f"{parsed.scheme}://{parsed.netloc}{signed}"
+                    if signed:
+                        return signed
+        except Exception as exc:
+            logging.warning('[AUTH-DOC] Supabase signing failed (error_type=%s)', type(exc).__name__)
+        return viewer_fallback
+
+    return viewer_fallback
+
+
+def _document_is_visible(document):
+    """Published documents are public; unpublished records are private to owner/admin."""
+    if str((document or {}).get('status') or '').strip().lower() == 'approved':
+        return True
+    user = session.get('user', {})
+    user_id = user.get('uid') or user.get('id')
+    is_owner = bool(user_id and str(user_id) == str((document or {}).get('uploader_id') or ''))
+    return is_owner or is_admin_user(user)
 
 
 @api_bp.route('/api/documents/<doc_id>/authorize', methods=['GET', 'POST'])
@@ -2230,6 +2345,79 @@ def api_authorize_document(doc_id):
     payload, status = authorize_document_access(doc_id)
     return jsonify(payload), status
 
+
+
+_MAX_PAID_IMAGE_PREVIEW_BYTES = 25 * 1024 * 1024
+_MAX_PAID_IMAGE_PREVIEW_PIXELS = 20_000_000
+
+
+class ImagePreviewTooLarge(ValueError):
+    """Raised when a paid image cannot be safely decoded within preview limits."""
+
+
+def _read_image_preview_source(upstream):
+    content_length = upstream.headers.get('Content-Length')
+    if content_length:
+        try:
+            if int(content_length) > _MAX_PAID_IMAGE_PREVIEW_BYTES:
+                raise ImagePreviewTooLarge('Image exceeds preview size limit')
+        except ValueError as exc:
+            if isinstance(exc, ImagePreviewTooLarge):
+                raise
+
+    output = bytearray()
+    for chunk in upstream.iter_content(chunk_size=65536):
+        if not chunk:
+            continue
+        output.extend(chunk)
+        if len(output) > _MAX_PAID_IMAGE_PREVIEW_BYTES:
+            raise ImagePreviewTooLarge('Image exceeds preview size limit')
+    if not output:
+        raise ValueError('Image content is empty')
+    return bytes(output)
+
+
+def _create_paid_image_preview(image_bytes):
+    """Return a low-resolution JPEG with only the top fifth clear."""
+    import io
+    from PIL import Image, ImageFilter, ImageOps
+
+    if not image_bytes or len(image_bytes) > _MAX_PAID_IMAGE_PREVIEW_BYTES:
+        raise ImagePreviewTooLarge('Image exceeds preview size limit')
+
+    with Image.open(io.BytesIO(image_bytes)) as source:
+        width, height = source.size
+        if width <= 0 or height <= 0 or width * height > _MAX_PAID_IMAGE_PREVIEW_PIXELS:
+            raise ImagePreviewTooLarge('Image dimensions exceed preview limit')
+        source.seek(0)
+        image = ImageOps.exif_transpose(source).convert('RGB')
+
+    image.thumbnail((1600, 1600), Image.Resampling.LANCZOS)
+    width, height = image.size
+    clear_height = max(1, min(height, round(height * 0.20)))
+    clear_top = image.crop((0, 0, width, clear_height))
+    blurred_lower = image.crop((0, clear_height, width, height))
+    blur_radius = max(10, min(36, round(min(width, height) * 0.035)))
+    blurred_lower = blurred_lower.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+
+    preview = Image.new('RGB', (width, height), color='white')
+    preview.paste(clear_top, (0, 0))
+    if blurred_lower.height:
+        preview.paste(blurred_lower, (0, clear_height))
+    result = io.BytesIO()
+    preview.save(result, format='JPEG', quality=76, optimize=True)
+    return result.getvalue()
+
+
+def _image_preview_response(preview_data, document_etag):
+    headers = _secure_file_headers()
+    headers['Content-Disposition'] = "inline; filename*=UTF-8''paid-image-preview.jpg"
+    headers['Content-Length'] = str(len(preview_data))
+    headers['X-AbhiHub-Preview'] = 'top-20-clear-rest-blurred'
+    headers['ETag'] = document_etag
+    headers['Cache-Control'] = 'private, max-age=60, must-revalidate'
+    headers['Vary'] = 'Cookie, Authorization'
+    return Response(preview_data, status=200, content_type='image/jpeg', headers=headers)
 
 
 @api_bp.route('/api/view-doc/<doc_id>')
@@ -2263,15 +2451,39 @@ def view_doc(doc_id, filename=None):
         abort(404)
     document = doc_res.get('data', {})
 
+    if not _document_is_visible(document):
+        abort(404)
+
     current_uid = session.get('user', {}).get('uid') or session.get('user', {}).get('id')
     has_access = has_document_access(current_uid, doc_id, document)
     is_preview_mode = False
+    is_image_preview = False
 
     pricing = extract_document_pricing(document)
     is_paid_doc = bool(pricing.get('is_paid')) and float(pricing.get('price', 0)) > 0
+    source_url = document.get('file_url') or ''
+    if isinstance(source_url, (list, tuple)):
+        source_url = source_url[0] if source_url else ''
+    from urllib.parse import urlsplit
+    source_ext = os.path.splitext(urlsplit(str(source_url)).path)[1].lower()
+    source_type = str(document.get('file_type') or '').strip().lower()
+    paid_image_types = {'image', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'bmp', 'avif'}
+    is_image_document = (
+        source_ext in {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.bmp', '.avif'} or
+        source_type in paid_image_types or source_type.startswith('image/') or
+        bool(document.get('is_image'))
+    )
 
-    if not has_access:
-        if is_paid_doc and (document.get('file_type') == 'pdf' or '.pdf' in str(document.get('file_url', '')).lower()):
+    is_pdf_document = (
+        str(document.get('file_type') or '').strip().lower() in {'pdf', 'application/pdf'} or
+        '.pdf' in str(source_url).lower()
+    )
+    if is_paid_doc and is_pdf_document and request.args.get('preview') == '1':
+        is_preview_mode = True
+    elif is_paid_doc and is_image_document and request.args.get('preview') == '1':
+        is_image_preview = True
+    elif not has_access:
+        if is_paid_doc and is_pdf_document:
             is_preview_mode = True
         else:
             return jsonify({
@@ -2286,8 +2498,9 @@ def view_doc(doc_id, filename=None):
         str(document.get(field) or '')
         for field in ('updated_at', 'file_hash', 'file_size', 'file_url')
     )
+    response_variant = 'image-preview' if is_image_preview else ('pdf-preview' if is_preview_mode else 'full')
     document_etag = '"' + hashlib.sha256(
-        f"{doc_id}:{document_version}".encode('utf-8')
+        f"{doc_id}:{document_version}:{response_variant}".encode('utf-8')
     ).hexdigest() + '"'
     if request.headers.get('If-None-Match') == document_etag and not request.headers.get('Range'):
         response = Response(status=304)
@@ -2308,22 +2521,22 @@ def view_doc(doc_id, filename=None):
         local_disk_path = os.path.join(current_app.root_path, clean_rel)
         if os.path.exists(local_disk_path):
             from flask import send_file
+            if is_image_preview:
+                try:
+                    with open(local_disk_path, 'rb') as local_file:
+                        original = local_file.read(_MAX_PAID_IMAGE_PREVIEW_BYTES + 1)
+                    if len(original) > _MAX_PAID_IMAGE_PREVIEW_BYTES:
+                        return jsonify({'success': False, 'message': 'Preview is unavailable for this image.'}), 413
+                    preview_data = _create_paid_image_preview(original)
+                except ImagePreviewTooLarge:
+                    return jsonify({'success': False, 'message': 'Preview is too large to process.'}), 413
+                except (OSError, ValueError):
+                    return jsonify({'success': False, 'message': 'Preview is unavailable for this image.'}), 415
+                return _image_preview_response(preview_data, document_etag)
             mimetype = 'application/pdf' if local_disk_path.lower().endswith('.pdf') else None
             return send_file(local_disk_path, mimetype=mimetype)
 
     # In production environments without stream=1 flag, redirect directly to cloud storage
-    allow_streaming_fallback = (
-        request.args.get('stream') == '1' or
-        (current_app.config.get('TESTING') and request.args.get('redirect') != '1') or
-        is_preview_mode
-    )
-    if not allow_streaming_fallback and file_url.startswith('http'):
-        auth_payload, _ = authorize_document_access(doc_id, filename=filename)
-        direct_url = auth_payload.get('file_url') if auth_payload else file_url
-        redirect_resp = redirect(direct_url, code=302)
-        redirect_resp.headers['Cache-Control'] = 'private, no-cache'
-        return redirect_resp
-
     if not file_url.startswith('http'):
         cache_key = f"signed-url:{doc_id}:{document_version}"
         try:
@@ -2360,13 +2573,13 @@ def view_doc(doc_id, filename=None):
 
     from urllib.parse import urlparse
     parsed = urlparse(file_url)
-    if parsed.hostname not in _ALLOWED_PROXY_HOSTS:
+    if parsed.hostname not in _ALLOWED_PROXY_HOSTS and not (parsed.hostname or '').endswith('.supabase.co'):
         abort(403)
 
     upstream_headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36'
     }
-    if request.headers.get('Range') and not is_preview_mode:
+    if request.headers.get('Range') and not (is_preview_mode or is_image_preview):
         upstream_headers['Range'] = request.headers['Range']
 
     def _fetch(url):
@@ -2399,8 +2612,9 @@ def view_doc(doc_id, filename=None):
                     file_url = cached_signed
                 else:
                     rtype = 'raw' if '/raw/' in parsed.path else ('image' if '/image/' in parsed.path else 'raw')
+                    delivery_type = 'authenticated' if '/authenticated/' in parsed.path else 'upload'
                     signed_url, _ = _cld_utils.cloudinary_url(
-                        pub_id, resource_type=rtype, type='upload',
+                        pub_id, resource_type=rtype, type=delivery_type,
                         sign_url=True, expires_at=int(_time.time()) + 3600
                     )
                     if signed_url:
@@ -2481,8 +2695,9 @@ def view_doc(doc_id, filename=None):
             if m:
                 pub = m.group(1)
                 rtype = 'raw' if '/raw/' in parsed.path else ('image' if '/image/' in parsed.path else 'raw')
+                delivery_type = 'authenticated' if '/authenticated/' in parsed.path else 'upload'
                 signed_url, _ = _cld_utils.cloudinary_url(
-                    pub, resource_type=rtype, type='upload', sign_url=True, expires_at=int(_time.time()) + 3600
+                    pub, resource_type=rtype, type=delivery_type, sign_url=True, expires_at=int(_time.time()) + 3600
                 )
                 if signed_url:
                     upstream.close()
@@ -2499,6 +2714,18 @@ def view_doc(doc_id, filename=None):
             return Response(msg, status=404, content_type='application/json', headers=_secure_file_headers())
         if not upstream.ok:
             abort(upstream.status_code if upstream.status_code in (403, 404) else 502)
+
+        if is_image_preview:
+            try:
+                original_image = _read_image_preview_source(upstream)
+                preview_image = _create_paid_image_preview(original_image)
+            except ImagePreviewTooLarge:
+                return jsonify({'success': False, 'message': 'Preview is too large to process.'}), 413
+            except Exception:
+                return jsonify({'success': False, 'message': 'Preview is unavailable for this image.'}), 415
+            finally:
+                upstream.close()
+            return _image_preview_response(preview_image, document_etag)
 
         content_type = upstream.headers.get('Content-Type', 'application/octet-stream')
         is_pdf_doc = (
@@ -2654,64 +2881,30 @@ def api_contact():
 @api_bp.route('/pdf-proxy/<path:pdf_name>')
 @auth_required
 def pdf_proxy(pdf_name):
-    """Proxy PDF from Firebase Storage with inline disposition."""
-    from firebase_admin import storage
-    base_domain = os.getenv('BASE_DOMAIN', 'www.abhihub.edu.eu.org').strip().lower()
-    referer = request.headers.get('Referer', '')
-    if referer:
-        ref_host = referer.split('/')[2] if len(referer.split('/')) > 2 else ''
-        allowed = (ref_host == base_domain or ref_host.endswith('.' + base_domain) or
-                   'localhost' in ref_host or '127.0.0.1' in ref_host or '0.0.0.0' in ref_host)
-        if not allowed:
-            abort(403, description="Access denied")
+    """Resolve a legacy file path to its resource page; never serve raw paths."""
     try:
-        if '..' in pdf_name or pdf_name.startswith('/'):
-            abort(400, description="Invalid file path")
-        if pdf_name.startswith(('http://', 'https://')):
-            from urllib.parse import urlparse
-            if urlparse(pdf_name).hostname not in _ALLOWED_PROXY_HOSTS:
-                abort(403, description="Remote host not allowed")
-            return redirect(pdf_name)
-
-        bucket = storage.bucket()
-        blob = bucket.blob(pdf_name)
-        import mimetypes
-        pdf_content = blob.download_as_bytes()
-        file_size = len(pdf_content)
-        content_type, _ = mimetypes.guess_type(pdf_name)
-        if not content_type or pdf_name.lower().endswith('.txt'):
-            content_type = 'application/pdf'
-
-        range_header = request.headers.get('Range')
-        if range_header:
-            byte_range = range_header.replace('bytes=', '').split('-')
-            start = int(byte_range[0]) if byte_range[0] else 0
-            end = int(byte_range[1]) if len(byte_range) > 1 and byte_range[1] else file_size - 1
-            end = min(end, file_size - 1)
-            response = make_response(pdf_content[start:end+1])
-            response.status_code = 206
-            response.headers['Content-Type'] = content_type
-            response.headers['Content-Range'] = f'bytes {start}-{end}/{file_size}'
-            response.headers['Content-Length'] = str(end - start + 1)
-        else:
-            response = make_response(pdf_content)
-            response.status_code = 200
-            response.headers['Content-Type'] = content_type
-            response.headers['Content-Length'] = str(file_size)
-
-        response.headers['Access-Control-Allow-Origin'] = _get_safe_cors_origin()
-        response.headers['Content-Disposition'] = f'inline; filename="{os.path.basename(pdf_name)}"'
-        response.headers['Accept-Ranges'] = 'bytes'
-        response.headers.update(_secure_file_headers())
-        return response
+        client = init_supabase()
+        if not client:
+            return jsonify({'success': False, 'message': 'Resource not found'}), 404
+        result = (client.table('documents')
+                  .select('id')
+                  .eq('file_url', pdf_name)
+                  .limit(1)
+                  .execute())
+        rows = getattr(result, 'data', None) or []
+        if not rows or not rows[0].get('id'):
+            return jsonify({'success': False, 'message': 'Resource not found'}), 404
+        return redirect(f"/resources/{rows[0]['id']}", code=302)
     except Exception as e:
-        logging.error("Error proxying PDF (error_type=%s)", type(e).__name__)
-        abort(404, description="PDF not found")
+        logging.warning("[PDF_PROXY] Resource lookup failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'message': 'Resource not found'}), 404
 
 
 @api_bp.route('/verify-file', methods=['POST'])
+@auth_required
+@admin_required
 def verify_file():
-    """Verify a file and ensure it exists in Supabase documents."""
+    """Admin-only legacy utility to register a file after it is verified in storage."""
     try:
         from firebase_admin import storage
         data = request.get_json() or {}
@@ -2745,28 +2938,30 @@ def verify_file():
                 }).execute()
         return jsonify({'success': True, 'message': 'File verified', 'file_info': file_info}), 200
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logging.error("[VERIFY_FILE] Verification failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'message': 'File verification failed'}), 500
 
 
 @api_bp.route('/get-file-url', methods=['POST'])
 @auth_required
 def get_file_url():
-    """Generate a signed URL for a storage file without storing it."""
+    """Return a signed URL only after the document viewer access policy allows it."""
     try:
-        from datetime import timedelta
-        from firebase_admin import storage
         data = request.get_json() or {}
-        file_path = (data.get('file_path') or '').strip()
-        if not file_path or '..' in file_path or file_path.startswith('/'):
-            return jsonify({'success': False, 'message': 'Valid file path is required'}), 400
-        bucket = storage.bucket()
-        blob = bucket.blob(file_path)
-        if not blob.exists():
-            return jsonify({'success': False, 'message': 'File does not exist in storage'}), 404
-        url = blob.generate_signed_url(version="v4", expiration=timedelta(hours=1))
-        return jsonify({'success': True, 'url': url}), 200
+        doc_id = str(data.get('doc_id') or '').strip()
+        if not doc_id:
+            return jsonify({'success': False, 'message': 'Document ID is required'}), 400
+
+        payload, status = authorize_document_access(doc_id)
+        if status != 200:
+            return jsonify(payload), status
+        signed_url = payload.get('file_url') if isinstance(payload, dict) else None
+        if not signed_url:
+            return jsonify({'success': False, 'message': 'File URL is unavailable'}), 404
+        return jsonify({'success': True, 'url': signed_url, 'document_id': doc_id}), 200
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logging.error("[GET_FILE_URL] Signing failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'message': 'File URL is temporarily unavailable'}), 500
 
 
 @api_bp.route('/update-file-metadata', methods=['POST'])
@@ -2782,7 +2977,8 @@ def update_file_metadata_route():
         res = update_document_metadata(file_path, data)
         return jsonify(res), 200 if res.get('success') else 404
     except Exception as e:
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logging.error("[UPDATE_FILE_METADATA] Update failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'message': 'File metadata update failed'}), 500
 
 
 # ─── MemoryWall (know_me) APIs ───────────────────────────────────────────────
@@ -2856,8 +3052,8 @@ def api_memorywall_upload_signature():
         blob.make_public()
         return jsonify({'success': True, 'url': blob.public_url}), 200
     except Exception as e:
-        logging.error(f"[MemoryWall] Signature upload error: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logging.error("[MemoryWall] Signature upload failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'message': 'Signature upload failed'}), 500
 
 
 @api_bp.route('/api/memorywall/stats/<wall_id>', methods=['GET'])
@@ -3081,7 +3277,8 @@ def chat_search_peers():
             })
         return jsonify({'success': True, 'users': users, 'suggested': _getSuggestedPeers(client, uid)})
     except Exception as e:
-        return jsonify({'success': False, 'users': [], 'suggested': [], 'error': str(e)}), 500
+        logging.error("[CHAT] Peer search failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'users': [], 'suggested': [], 'error': 'Peer search failed'}), 500
 
 
 @api_bp.route('/api/chat/history/<peer_id>')
@@ -3097,7 +3294,8 @@ def api_chat_history(peer_id):
         history = history_func(me, peer_id) if history_func else []
         return jsonify({'success': True, 'messages': history})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logging.error("[CHAT] History lookup failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'error': 'Chat history is temporarily unavailable'}), 500
 
 
 @api_bp.route('/api/chat/messages', methods=['POST'])
@@ -3373,7 +3571,8 @@ def api_resolve_chat_doc():
                     'resource_url': f"/resources/{d_id}"
                 })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logging.error("[CHAT] Document resolution failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'error': 'Document resolution failed'}), 500
     return jsonify({'success': False, 'error': 'Not found'}), 404
 
 
@@ -3471,8 +3670,8 @@ def api_crush_toggle(target_id):
         is_match = bool(mutual.data)
         return jsonify({'success': True, 'action': 'added', 'is_crush': True, 'is_match': is_match}), 200
     except Exception as e:
-        logging.error(f"[CRUSH] {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logging.error("[CRUSH] Request failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'message': 'Request could not be completed'}), 500
 
 
 @api_bp.route('/api/crush/status/<target_id>', methods=['GET'])
@@ -3523,7 +3722,8 @@ def chat_user_info(user_id):
             }
         })
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+        logging.error("[CHAT] User info lookup failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'error': 'User information is temporarily unavailable'}), 500
 
 
 # ─── Search API V2 & V3 (In-Memory Discovery + Autocomplete) ───────────────
@@ -3602,8 +3802,8 @@ def api_get_user_uploads():
 
         return jsonify({'success': True, 'data': items, 'count': len(items)}), 200
     except Exception as e:
-        logging.error(f"[API /api/user/uploads] Error: {e}")
-        return jsonify({'success': False, 'data': [], 'message': str(e)}), 500
+        logging.error("[API /api/user/uploads] Lookup failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'data': [], 'message': 'Failed to retrieve uploads'}), 500
 
 
 @api_bp.route('/api/feedback', methods=['GET', 'POST'])
@@ -3664,5 +3864,5 @@ def dashboard_summary_api():
             'recently_added': summary.get('recently_added_files', [])
         }), 200
     except Exception as e:
-        logging.error(f"[API /api/dashboard/summary] Error: {e}")
-        return jsonify({'success': False, 'message': str(e)}), 500
+        logging.error("[API /api/dashboard/summary] Lookup failed (error_type=%s)", type(e).__name__)
+        return jsonify({'success': False, 'message': 'Dashboard summary is temporarily unavailable'}), 500

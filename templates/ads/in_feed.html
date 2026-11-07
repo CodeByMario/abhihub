@@ -1,36 +1,63 @@
 {# 
-  Premium In-Feed Ad Unit
-  Usage: Place this between resource cards or lists.
-  Goal: Blends natively with the content. Maximizes CTR without breaking UX.
+  Premium In-Feed Ad Unit — Native Card Integration
+  Blends seamlessly into the media card grid.
 #}
 <div class="ad-container ad-infeed">
-  <div class="ad-label">Advertisement</div>
-  <!-- Placeholder AbhiHub Logo -->
-  <img src="{{ url_for('static', filename='images/apple-touch-icon.png') }}" 
-       alt="AbhiHub Ad Placeholder" 
-       style="width:auto; height:100px; opacity: 0.5;">
+  <div class="ad-infeed-header">
+    <span class="ad-infeed-badge">Sponsored • Student Partner</span>
+  </div>
+  <div class="ad-infeed-body">
+    <img src="{{ url_for('static', filename='images/apple-touch-icon.png') }}" 
+         alt="AbhiHub Ad Placeholder" 
+         style="width:auto; height:80px; opacity: 0.7; border-radius: 12px;">
+  </div>
 </div>
 
 <style>
 .ad-infeed {
-    background: #f1f5f9;
-    border: 2px dashed #94a3b8;
-    border-radius: 8px;
-    padding: var(--space-4);
-    margin: var(--space-6) 0;
-    min-height: 150px; /* Prevents CLS */
+    background: rgba(255, 255, 255, 0.85);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 18px;
+    padding: 1.25rem;
+    margin: 1.25rem 0;
+    min-height: 150px;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.04);
     position: relative;
-    box-shadow: none;
-    overflow: hidden;
+    box-sizing: border-box;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
-.ad-infeed .ad-label {
+[data-theme="dark"] .ad-infeed {
+    background: rgba(22, 22, 26, 0.85);
+    border-color: rgba(255, 255, 255, 0.08);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
+}
+.ad-infeed:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+.ad-infeed-header {
     position: absolute;
-    top: 8px;
-    right: 12px;
+    top: 12px;
+    left: 14px;
+}
+.ad-infeed-badge {
     font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    color: var(--text-tertiary, #64748b);
     text-transform: uppercase;
-    color: var(--text-tertiary);
-    letter-spacing: 0.05em;
-    z-index: 2;
+    background: rgba(0, 0, 0, 0.04);
+    padding: 2px 7px;
+    border-radius: 980px;
+}
+[data-theme="dark"] .ad-infeed-badge {
+    color: #94a3b8;
+    background: rgba(255, 255, 255, 0.06);
 }
 </style>

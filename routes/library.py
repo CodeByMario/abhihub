@@ -2,9 +2,11 @@ import os
 import re
 import json
 import logging
+import time
+from urllib.parse import urlsplit
 from flask import (
     Blueprint, request, session, redirect, url_for, render_template,
-    abort, make_response, current_app, jsonify
+    abort, make_response, current_app, jsonify, has_request_context
 )
 from routes.auth import is_admin_user, auth_required, log_admin_action
 from routes.seo import sitemap_page, slugify
@@ -459,6 +461,63 @@ def resources_index_catalog():
     return redirect(url_for('library.pyq_landing'))
 
 
+_reported_404_cache = {}
+
+
+def report_resource_404(slug, doc_id=None, reason="404 Not Found"):
+    """Log missing/deleted resource incidents to viewer_failure_reports for admin dashboard."""
+    try:
+        now = time.time()
+        cache_key = str(slug or '').lower().strip()
+        if cache_key in _reported_404_cache and (now - _reported_404_cache[cache_key]) < 300:
+            return
+
+        _reported_404_cache[cache_key] = now
+        if len(_reported_404_cache) > 1000:
+            expired = [k for k, v in _reported_404_cache.items() if now - v > 300]
+            for k in expired:
+                _reported_404_cache.pop(k, None)
+
+        client = init_supabase_admin() or init_supabase()
+        if not client:
+            return
+
+        user = session.get('user', {}) if has_request_context() else {}
+        user_id = user.get('uid') or user.get('id')
+        user_email = user.get('email')
+
+        page_url = request.url if has_request_context() else f"/resources/{slug}"
+        identifier = str(doc_id or slug or 'Unknown')
+
+        report_data = {
+            'doc_id': None,  # NULL prevents foreign key violation on non-existent documents
+            'file_name': f"Missing Resource: {identifier[:80]}",
+            'file_url': '',
+            'file_type': 'resource',
+            'issue_type': '404 Missing Resource',
+            'error_msg': f"404 Resource Not Found ({reason}): {page_url}",
+            'page_url': page_url,
+            'reporter_email': user_email or 'system_404_monitor@abhihub.com',
+            'reporter_id': user_id,
+            'viewer_type': 'resource_landing',
+            'status': 'open'
+        }
+        client.table('viewer_failure_reports').insert(report_data).execute()
+        logging.info(f"[Resource 404] Logged missing resource {identifier} to viewer_failure_reports")
+    except Exception as e:
+        logging.warning(f"[Resource 404] Could not record missing resource report: {e}")
+
+
+def render_resource_404(slug=None, doc_id=None, is_unapproved=False):
+    """Render the redesigned 404 page specifically for study resources / files."""
+    return render_template(
+        'resource_not_found.html',
+        slug=slug,
+        doc_id=doc_id,
+        is_unapproved=is_unapproved
+    ), 404
+
+
 @library_bp.route('/resource/<path:slug>')
 @library_bp.route('/resources/<path:slug>')
 def resource_landing(slug):
@@ -472,7 +531,8 @@ def resource_landing(slug):
     uuid_pattern = r'[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
     match = re.search(uuid_pattern, clean_slug)
     if not match:
-        abort(404)
+        report_resource_404(slug, reason="Invalid resource format / UUID missing")
+        return render_resource_404(slug=slug)
 
     doc_id = match.group(0)
     cache = getattr(app, 'cache', None)
@@ -488,23 +548,54 @@ def resource_landing(slug):
             cache.set_cached(f"doc_rich:{doc_id}", doc_res, ttl=300)
 
     if not doc_res or not doc_res.get('success'):
-        abort(404)
+        report_resource_404(slug, doc_id=doc_id, reason="Document ID not found in database")
+        return render_resource_404(slug=slug, doc_id=doc_id)
 
     document = dict(doc_res.get('data') or {})
+    if str(document.get('status') or '').strip().lower() != 'approved':
+        viewer = session.get('user', {})
+        viewer_id = viewer.get('uid') or viewer.get('id')
+        is_owner = bool(viewer_id and str(viewer_id) == str(document.get('uploader_id') or ''))
+        if not is_owner and not is_admin_user(viewer):
+            report_resource_404(slug, doc_id=doc_id, reason="Unapproved document access attempt")
+            return render_resource_404(slug=slug, doc_id=doc_id, is_unapproved=True)
 
     file_url = document.get('file_url', '')
     if file_url:
         document['raw_cloud_url'] = file_url
-        clean_ext = ''
-        if '.' in file_url.split('/')[-1]:
-            clean_ext = '.' + file_url.split('/')[-1].split('.')[-1].split('?')[0].lower()
-        if clean_ext in ('.jpg', '.jpeg', '.png', '.webp', '.gif'):
-            document['file_type'] = 'image'
-            document['is_image'] = True
-        elif clean_ext == '.pdf' or document.get('file_type') == 'pdf':
-            clean_ext = '.pdf'
+        clean_ext = os.path.splitext(urlsplit(str(file_url)).path)[1].lower()
+        raw_type = str(document.get('file_type') or '').strip().lower()
+        raw_mime = str(document.get('mime_type') or document.get('content_type') or '').strip().lower()
+        image_extensions = {'.jpg', '.jpeg', '.png', '.webp', '.gif', '.avif', '.bmp'}
+        image_types = {'image', 'jpg', 'jpeg', 'png', 'webp', 'gif', 'avif', 'bmp'}
+        image_mimes = {
+            'image/jpeg', 'image/png', 'image/webp', 'image/gif',
+            'image/avif', 'image/bmp',
+        }
+        if clean_ext in image_extensions:
+            is_image = True
+            is_pdf = False
+        elif clean_ext == '.pdf':
+            is_pdf = True
+            is_image = False
+        else:
+            is_pdf = raw_type in {'pdf', 'application/pdf'} or raw_mime == 'application/pdf'
+            is_image = (
+                raw_type in image_types or
+                raw_type in image_mimes or raw_mime in image_mimes or
+                bool(document.get('is_image'))
+            )
+        if is_pdf:
             document['file_type'] = 'pdf'
             document['is_image'] = False
+            document['viewer_type'] = 'pdf'
+            clean_ext = '.pdf'
+        elif is_image:
+            document['file_type'] = 'image'
+            document['is_image'] = True
+            document['viewer_type'] = 'image'
+        else:
+            document['viewer_type'] = 'unsupported'
         document['file_url'] = f'/api/view-doc/{doc_id}/file{clean_ext}'
 
     college_data = document.get('college') or {}
@@ -543,15 +634,15 @@ def resource_landing(slug):
         except Exception:
             ai_chat_allowed = False
 
-    client = init_supabase()
+    client = init_supabase_admin() or init_supabase()
     if current_user_id and client:
         try:
-            like_check = client.table('document_votes').select('id').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
+            like_check = client.table('document_votes').select('document_id').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
             document['is_liked'] = bool(like_check.data)
         except Exception:
             pass
         try:
-            bm_check = client.table('bookmarks').select('id').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
+            bm_check = client.table('bookmarks').select('document_id').eq('document_id', doc_id).eq('user_id', current_user_id).execute()
             document['is_bookmarked'] = bool(bm_check.data)
         except Exception:
             pass
@@ -657,7 +748,7 @@ def resource_landing(slug):
     view_earnings = round(recorded_views * 0.20, 2) if is_uploader_verified else 0.0
 
     direct_pdf_url = None
-    if has_access:
+    if has_access and document.get('viewer_type') in {'pdf', 'image'}:
         try:
             from routes.api import authorize_document_access
             auth_payload, auth_status = authorize_document_access(doc_id)

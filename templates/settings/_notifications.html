@@ -1,0 +1,95 @@
+      <div class="st-section" id="section-notifications">
+        <!-- iOS PWA Guidance Banner -->
+        <div id="iosPwaBanner" class="st-banner st-banner-info" style="display:none;">
+          <h3 style="margin:0 0 0.5rem; font-size:1rem; font-weight:700; color:var(--st-navy); display:flex; align-items:center; gap:0.5rem;">
+             iOS Notifications Setup
+          </h3>
+          <div class="st-form-sublabel" style="line-height:1.6;">
+            On iPhone/iPad (iOS 16.4+), Apple requires web apps to be added to your Home Screen to deliver push notifications when the browser is closed.
+            <div style="margin-top:0.5rem; font-weight:600;">
+              1. Tap the <strong>Share</strong> button (square with arrow) at the bottom of Safari.<br>
+              2. Select <strong>"Add to Home Screen"</strong>.<br>
+              3. Open AbhiHub from your Home Screen and enable push notifications!
+            </div>
+          </div>
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></span> Notification Preferences</h2>
+          
+          <div class="st-toggle-row">
+            <div>
+              <label for="togglePush" class="st-form-label">Push Notifications</label>
+              <div class="st-form-sublabel">Receive real-time alerts on this browser/device</div>
+            </div>
+            <label class="st-toggle">
+              <input type="checkbox" id="togglePush" aria-label="Push Notifications" checked onchange="saveNotifSetting('push', this.checked)">
+              <span class="st-slide"></span>
+            </label>
+          </div>
+
+          <div class="st-toggle-row">
+            <div>
+              <label for="toggleUploads" class="st-form-label">Upload & Material Alerts</label>
+              <div class="st-form-sublabel">Notifications when new notes, PYQs, or syllabus files are published</div>
+            </div>
+            <label class="st-toggle">
+              <input type="checkbox" id="toggleUploads" aria-label="Upload and Material Alerts" checked onchange="saveNotifSetting('uploads', this.checked)">
+              <span class="st-slide"></span>
+            </label>
+          </div>
+
+          <div class="st-toggle-row">
+            <div>
+              <label for="toggleChat" class="st-form-label">Chat & Direct Messages</label>
+              <div class="st-form-sublabel">Alerts for incoming chat messages and peer connections</div>
+            </div>
+            <label class="st-toggle">
+              <input type="checkbox" id="toggleChat" aria-label="Chat and Direct Messages" checked onchange="saveNotifSetting('chat', this.checked)">
+              <span class="st-slide"></span>
+            </label>
+          </div>
+
+          <div class="st-toggle-row">
+            <div>
+              <label for="toggleCrush" class="st-form-label">Crush Match Alerts</label>
+              <div class="st-form-sublabel">Get notified when someone has a mutual crush with you</div>
+            </div>
+            <label class="st-toggle">
+              <input type="checkbox" id="toggleCrush" aria-label="Crush Match Alerts" checked onchange="saveNotifSetting('crush', this.checked)">
+              <span class="st-slide"></span>
+            </label>
+          </div>
+
+          <div class="st-toggle-row">
+            <div>
+              <label for="toggleEmail" class="st-form-label">Email Notifications</label>
+              <div class="st-form-sublabel">Weekly summary of your uploads and reputation</div>
+            </div>
+            <label class="st-toggle">
+              <input type="checkbox" id="toggleEmail" aria-label="Email Notifications" onchange="saveNotifSetting('email', this.checked)">
+              <span class="st-slide"></span>
+            </label>
+          </div>
+
+          <div class="st-btn-row" style="margin-top:1.5rem; border-top:1px solid var(--st-border); padding-top:1rem;">
+            <button type="button" class="st-btn st-btn-outline" id="sendTestNotifBtn" onclick="sendTestNotification()">
+               Send Test Notification
+            </button>
+          </div>
+        </div>
+
+        <div class="st-card">
+          <h2><span class="st-card-icon"></span> Device Settings</h2>
+          <div class="st-form-row">
+            <label class="st-form-label">Install App (PWA)</label>
+            <div class="st-form-sublabel">Add AbhiHub to your home screen for a native app experience with offline support.</div>
+          </div>
+          <div class="st-btn-row">
+            <button type="button" class="st-btn st-btn-primary" id="installPwaBtn" style="display:none;"> Install Now</button>
+            <button type="button" class="st-btn st-btn-outline" onclick="checkPWALocal()">Check Installation</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Study Credits -->
