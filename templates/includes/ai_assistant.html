@@ -72,81 +72,123 @@
   font-size: 13px;
 }
 
-/* ── Native Drawer Panel ───────────────────────────────────────── */
+/* ── Native Drawer Panel (Left Docked 30% on Desktop / Full Screen on Mobile) ── */
 #abhiAiDrawer {
   position: fixed;
-  bottom: calc(var(--nav-bottom-height, 80px) + 8px);
-  right: 18px;
-  width: min(440px, calc(100vw - 32px));
-  max-width: calc(100vw - 24px);
-  max-height: calc(100% - var(--nav-bottom-height, 80px) - 20px);
-  height: min(600px, calc(100% - var(--nav-bottom-height, 80px) - 20px));
+  top: 0;
+  left: 0;
+  bottom: 0;
+  height: 100vh;
+  height: 100dvh;
+  max-height: 100dvh;
   background: var(--tarika-bg);
   color: var(--tarika-ink);
-  border-radius: var(--tarika-radius-panel);
-  border: 1px solid var(--tarika-line);
-  box-shadow: var(--tarika-shadow);
-  display: none;
+  z-index: 10000;
+  display: flex;
   flex-direction: column;
-  z-index: 9999;
   overflow: hidden;
   font-family: var(--tarika-font-sans);
-  animation: aiDrawerEnter 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 8px 0 32px rgba(0, 0, 0, 0.14);
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1), visibility 0.28s ease;
+  visibility: hidden;
+  pointer-events: none;
 }
 #abhiAiDrawer.open {
-  display: flex;
-}
-@keyframes aiDrawerEnter {
-  from { opacity: 0; transform: translateY(12px) scale(0.98); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
+  transform: translateX(0);
+  visibility: visible;
+  pointer-events: auto;
 }
 
-/* App Shell Embedded mode adjustments (when rendered in PWA/App Shell iframe) */
-html.app-shell-embedded #abhiAiLauncher {
-  bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
-}
-
-html.app-shell-embedded #abhiAiDrawer {
-  top: 10px !important;
-  bottom: calc(76px + env(safe-area-inset-bottom, 0px)) !important;
-  max-height: none !important;
-  height: auto !important;
-}
-
-@media (min-width: 860px) {
-  html.app-shell-embedded #abhiAiLauncher {
-    bottom: 24px !important;
-  }
-  html.app-shell-embedded #abhiAiDrawer {
-    top: 16px !important;
-    bottom: 24px !important;
-    height: auto !important;
-  }
-}
-
-@media (max-width: 640px) {
-  #abhiAiLauncher {
-    bottom: calc(var(--nav-bottom-height, 80px) + 6px);
-    right: 14px;
-  }
+/* Desktop Docked Left: Tarika takes exactly 30% width of page, whole app uses 70% (fully visible & accessible) */
+@media (min-width: 769px) {
   #abhiAiDrawer {
-    right: 12px;
-    left: 12px;
-    width: auto;
-    max-width: none;
-    bottom: calc(var(--nav-bottom-height, 80px) + 6px);
-    max-height: calc(100% - var(--nav-bottom-height, 80px) - 14px);
-    height: min(560px, calc(100% - var(--nav-bottom-height, 80px) - 14px));
+    width: 30vw !important;
+    max-width: 30vw !important;
+    min-width: 30vw !important;
+    left: 0 !important;
+    top: 0 !important;
+    bottom: 0 !important;
+    right: auto !important;
+    height: 100vh !important;
+    height: 100dvh !important;
+    box-sizing: border-box !important;
+    border-radius: 0 !important;
+    border-top: none !important;
+    border-bottom: none !important;
+    border-left: none !important;
+    border-right: 1px solid var(--tarika-line) !important;
+    z-index: 10000 !important;
   }
-  html.app-shell-embedded #abhiAiLauncher {
-    bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
+
+  body {
+    transition: margin-left 0.28s cubic-bezier(0.16, 1, 0.3, 1), width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
   }
-  html.app-shell-embedded #abhiAiDrawer {
-    top: 8px !important;
-    bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
-    max-height: none !important;
-    height: auto !important;
+
+  body.tarika-docked-open {
+    margin-left: 30vw !important;
+    width: 70vw !important;
+    max-width: 70vw !important;
+    min-width: 70vw !important;
+    box-sizing: border-box !important;
+    overflow-x: hidden !important;
   }
+
+  /* Reset all potential 100vw child wrappers so they conform strictly to the 70% body width without clipping */
+  body.tarika-docked-open .app-shell-viewport,
+  body.tarika-docked-open .shell-main-area,
+  body.tarika-docked-open .shell-iframe,
+  body.tarika-docked-open .apple-shell,
+  body.tarika-docked-open .apple-container,
+  body.tarika-docked-open .container,
+  body.tarika-docked-open main,
+  body.tarika-docked-open header,
+  body.tarika-docked-open .main-nav,
+  body.tarika-docked-open .site-header,
+  body.tarika-docked-open .shell-header {
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    left: auto !important;
+    right: auto !important;
+    margin-left: 0 !important;
+  }
+
+  /* Center the floating bottom navbar within the remaining 70% app area (30vw offset + 35vw center) */
+  body.tarika-docked-open .navbar--bottom {
+    left: calc(30vw + 35vw) !important;
+    transform: translateX(-50%) !important;
+    max-width: calc(70vw - 2rem) !important;
+    transition: left 0.28s cubic-bezier(0.16, 1, 0.3, 1), max-width 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Hide floating launcher pill button while Tarika is docked so it doesn't obstruct the remaining page */
+  body.tarika-docked-open #abhiAiLauncher {
+    display: none !important;
+  }
+}
+
+/* Mobile Slide-In: Full screen width (100vw) & height (100dvh) */
+@media (max-width: 768px) {
+  #abhiAiDrawer {
+    width: 100vw !important;
+    max-width: 100vw !important;
+    right: 0 !important;
+    border-radius: 0 !important;
+    border: none !important;
+  }
+  .ai-mobile-swipe-handle {
+    display: block;
+    width: 38px;
+    height: 4px;
+    background: var(--tarika-line, rgba(0, 0, 0, 0.2));
+    border-radius: 99px;
+    margin: 6px auto 2px;
+  }
+}
+
+.ai-mobile-swipe-handle {
+  display: none;
 }
 
 /* ── Drawer Header ────────────────────────────────────────────── */
@@ -365,6 +407,83 @@ html.app-shell-embedded #abhiAiDrawer {
   color: #ffffff;
 }
 
+/* ── Welcome Hero & Realtime Status System ── */
+.ai-welcome-hero {
+  padding: 24px 16px 12px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  animation: aiBubbleIn 0.22s ease forwards;
+}
+.ai-welcome-spark-wrap {
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, rgba(29, 78, 216, 0.12), rgba(16, 185, 129, 0.12));
+  border: 1px solid rgba(29, 78, 216, 0.2);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  margin-bottom: 8px;
+}
+.ai-welcome-heading {
+  font-size: 16.5px;
+  font-weight: 800;
+  color: var(--tarika-ink);
+  margin: 0 0 4px;
+}
+.ai-welcome-tagline {
+  font-size: 12px;
+  color: var(--tarika-muted);
+  margin: 0 0 10px;
+  line-height: 1.45;
+  max-width: 290px;
+}
+.ai-status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px;
+  border-radius: var(--tarika-radius-pill);
+  background: rgba(16, 185, 129, 0.08);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+  font-size: 11px;
+  font-weight: 600;
+  color: #10b981;
+}
+.ai-status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: pulse 1.2s infinite alternate;
+}
+.ai-drw-status-sub {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 11px;
+  color: var(--apple-text-muted, #86868b);
+  padding: 0 4px;
+}
+.ai-thinking-indicator-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12.5px;
+  color: var(--tarika-ink);
+}
+.ai-thinking-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #10b981;
+  animation: pulse 1s infinite alternate;
+  display: inline-block;
+}
+
 /* ── Messages Stream ──────────────────────────────────────────── */
 #aiMsgList {
   flex: 1;
@@ -374,6 +493,7 @@ html.app-shell-embedded #abhiAiDrawer {
   flex-direction: column;
   gap: 10px;
   background: var(--tarika-bg);
+  scroll-behavior: smooth;
 }
 #aiMsgList::-webkit-scrollbar { width: 5px; }
 #aiMsgList::-webkit-scrollbar-thumb { background: var(--tarika-line); border-radius: 99px; }
@@ -1124,24 +1244,7 @@ html.app-shell-embedded #abhiAiDrawer {
     transition: none !important;
   }
 }
-@media (max-width: 640px) {
-  #abhiAiDrawer {
-    bottom: calc(var(--nav-bottom-height, 80px) + 6px);
-    right: 12px;
-    left: 12px;
-    width: auto;
-    max-width: none;
-    max-height: calc(100% - var(--nav-bottom-height, 80px) - 14px);
-    height: min(560px, calc(100% - var(--nav-bottom-height, 80px) - 14px));
-    border-radius: 16px;
-  }
-  html.app-shell-embedded #abhiAiDrawer {
-    top: 8px !important;
-    bottom: calc(74px + env(safe-area-inset-bottom, 0px)) !important;
-    max-height: none !important;
-    height: auto !important;
-  }
-}
+/* Responsive drawer layout handled in unified left-dock / mobile full-screen rules */
 
 /* ── Tarika OpenRouter API Key Setup Modal ── */
 .ai-key-modal {
@@ -1162,7 +1265,7 @@ html.app-shell-embedded #abhiAiDrawer {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 14px 18px;
   background: var(--tarika-bg-subtle);
   border-bottom: 1px solid var(--tarika-line);
 }
@@ -1172,68 +1275,67 @@ html.app-shell-embedded #abhiAiDrawer {
   padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
 }
-.ai-key-step-card {
+.ai-setup-card {
   background: var(--tarika-bg-subtle);
-  border: 1px solid var(--tarika-line);
-  border-radius: 10px;
-  padding: 10px 12px;
-  display: flex;
-  align-items: flex-start;
-  gap: 10px;
-  transition: border-color 0.15s ease, background 0.15s ease;
+  border: 1.5px solid var(--tarika-line);
+  border-radius: 12px;
+  padding: 13px 15px;
+  transition: all 0.18s ease;
 }
-.ai-key-step-card:hover {
+.ai-setup-card.active {
   border-color: var(--tarika-brand);
+  background: rgba(29, 78, 216, 0.04);
 }
-.ai-key-step-num {
-  background: var(--tarika-brand);
-  color: #fff;
-  font-weight: 700;
-  font-size: 11px;
-  width: 22px;
-  height: 22px;
-  border-radius: 50%;
+.ai-setup-card-hdr {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.ai-setup-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-size: 15px;
   flex-shrink: 0;
 }
-.ai-key-step-title {
-  font-size: 12.5px;
+.ai-setup-title {
+  font-size: 13px;
   font-weight: 700;
   color: var(--tarika-ink);
-  margin-bottom: 2px;
 }
-.ai-key-step-desc {
+.ai-setup-sub {
+  font-size: 11px;
+  color: var(--tarika-muted);
+}
+.ai-setup-status-badge {
+  font-size: 10.5px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 99px;
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--tarika-muted);
+}
+.ai-setup-status-badge.active {
+  background: rgba(16, 185, 129, 0.15);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+.ai-setup-desc {
   font-size: 11.5px;
   color: var(--tarika-muted);
   line-height: 1.45;
-}
-.ai-key-openrouter-btn {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 6px;
-  background: #1d4ed8;
-  color: #ffffff !important;
-  font-size: 12.5px;
-  font-weight: 700;
-  padding: 9px 14px;
-  border-radius: 9px;
-  text-decoration: none;
-  box-shadow: 0 2px 8px rgba(29, 78, 216, 0.25);
-  transition: transform 0.15s ease, background 0.15s ease;
-}
-.ai-key-openrouter-btn:hover {
-  background: #1e40af;
-  transform: translateY(-1px);
+  margin: 0;
 }
 .ai-key-input-box {
   display: flex;
   gap: 6px;
-  margin-top: 4px;
+  margin-top: 8px;
 }
 .ai-key-input {
   flex: 1;
@@ -1263,6 +1365,27 @@ html.app-shell-embedded #abhiAiDrawer {
 .ai-key-save-btn:hover {
   background: #059669;
 }
+.ai-btn-cta {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  background: var(--tarika-brand);
+  color: #ffffff !important;
+  font-size: 13px;
+  font-weight: 700;
+  padding: 10px 16px;
+  border-radius: 10px;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  box-shadow: 0 2px 10px rgba(29, 78, 216, 0.25);
+  transition: all 0.18s ease;
+}
+.ai-btn-cta:hover {
+  background: var(--tarika-brand-hover);
+  transform: translateY(-1px);
+}
 </style>
 
 <!-- Floating Assistant Trigger -->
@@ -1272,67 +1395,85 @@ html.app-shell-embedded #abhiAiDrawer {
 </button>
 
 <!-- Sliding Assistant Drawer -->
-<section id="abhiAiDrawer" role="dialog" aria-label="Tarika AI Study Assistant" aria-modal="true" aria-hidden="true" style="position:fixed;">
-  <!-- OpenRouter API Key Setup Modal -->
-  <aside id="tarikaApiKeyModal" class="ai-key-modal" style="display:none;" aria-label="Setup OpenRouter API Key">
+<section id="abhiAiDrawer" role="dialog" aria-label="Tarika AI Study Assistant" aria-modal="true" aria-hidden="true">
+  <div class="ai-mobile-swipe-handle" aria-hidden="true" title="Swipe left to close"></div>
+  <!-- Tarika AI Setup & Preferences Modal (Frictionless Apple-style) -->
+  <aside id="tarikaApiKeyModal" class="ai-key-modal" style="display:none;" aria-label="Tarika AI Setup">
     <div class="ai-key-modal-hdr">
-      <div style="display:flex; align-items:center; gap:6px;">
-        <span aria-hidden="true">🔑</span>
-        <span style="font-weight:700; font-size:13.5px; color:var(--tarika-ink);">Setup Free OpenRouter Key</span>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <span aria-hidden="true" style="font-size:16px;">⚙️</span>
+        <span style="font-weight:700; font-size:14px; color:var(--tarika-ink);">Tarika AI Setup</span>
       </div>
       <button type="button" class="ai-drw-btn" onclick="closeTarikaApiKeyModal()" title="Close Setup" style="font-size:12px;">✕</button>
     </div>
+
     <div class="ai-key-modal-body">
-      <p style="font-size:12px; color:var(--tarika-muted); margin:0; line-height:1.5;">
-        Tarika connects with <strong>OpenRouter</strong> to give you <strong>100% free</strong> access to top AI models like Gemma 4, Llama 3.3, and DeepSeek R1. Follow these 4 quick steps:
-      </p>
-
-      <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer" class="ai-key-openrouter-btn" onclick="window.open(this.href, '_blank', 'noopener,noreferrer'); return false;">
-        <span>⚡</span> <span>Open openrouter.ai/settings/keys ↗</span>
-      </a>
-
-      <!-- Step Card 1 -->
-      <div class="ai-key-step-card">
-        <div class="ai-key-step-num">1</div>
-        <div>
-          <div class="ai-key-step-title">Log in to OpenRouter</div>
-          <div class="ai-key-step-desc">Open <a href="https://openrouter.ai" target="_blank" rel="noopener noreferrer" style="color:var(--tarika-brand);font-weight:600;" onclick="window.open(this.href, '_blank', 'noopener,noreferrer'); return false;">openrouter.ai</a> and sign in with Google or GitHub (free &amp; takes 10 seconds).</div>
-        </div>
-      </div>
-
-      <!-- Step Card 2 -->
-      <div class="ai-key-step-card">
-        <div class="ai-key-step-num">2</div>
-        <div>
-          <div class="ai-key-step-title">Create New Key (Name: AbhiHub)</div>
-          <div class="ai-key-step-desc">Click <strong>+ Create Key</strong> and enter name: <code style="background:rgba(29,78,216,0.1);color:var(--tarika-brand);padding:2px 5px;border-radius:4px;font-weight:700;">AbhiHub</code>.</div>
-        </div>
-      </div>
-
-      <!-- Step Card 3 -->
-      <div class="ai-key-step-card">
-        <div class="ai-key-step-num">3</div>
-        <div>
-          <div class="ai-key-step-title">Set Budget: 0 &amp; Expiry: Never</div>
-          <div class="ai-key-step-desc">Keep <strong>Credit Limit: 0</strong> (uses free models only with zero charges) and <strong>Expiry: Never</strong>. Click Create.</div>
-        </div>
-      </div>
-
-      <!-- Step Card 4 -->
-      <div class="ai-key-step-card">
-        <div class="ai-key-step-num">4</div>
-        <div>
-          <div class="ai-key-step-title">Copy &amp; Paste in Tarika</div>
-          <div class="ai-key-step-desc">Copy your key starting with <code style="font-size:11px;">sk-or-v1-...</code> and paste it in the box below:</div>
-          <div class="ai-key-input-box">
-            <input type="password" id="tarikaApiKeyModalInput" class="ai-key-input" placeholder="sk-or-v1-xxxxxxxxxxxxxxxxxxxx" autocomplete="off">
-            <button type="button" class="ai-key-save-btn" onclick="saveTarikaApiKey()">Save 🚀</button>
+      <!-- Option 1: Built-in AbhiHub Cloud (Default & Free) -->
+      <div class="ai-setup-card active" id="aiSetupCloudCard">
+        <div class="ai-setup-card-hdr">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="ai-setup-icon" style="background:rgba(29,78,216,0.1); color:var(--tarika-brand);">⚡</span>
+            <div>
+              <div class="ai-setup-title">AbhiHub Free Cloud AI</div>
+              <div class="ai-setup-sub">Ready immediately · No setup required</div>
+            </div>
           </div>
+          <span class="ai-setup-status-badge active" id="aiCloudStatusBadge">● Active</span>
+        </div>
+        <p class="ai-setup-desc">
+          High-speed access to Gemma 4 31B, DeepSeek R1, and Gemini Flash. Maintained directly by AbhiHub for verified students.
+        </p>
+      </div>
+
+      <!-- Option 2: Optional Custom OpenRouter Key -->
+      <div class="ai-setup-card" id="aiSetupByokCard">
+        <div class="ai-setup-card-hdr">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="ai-setup-icon" style="background:rgba(16,185,129,0.1); color:#10b981;">🔑</span>
+            <div>
+              <div class="ai-setup-title">Personal OpenRouter Key (Optional)</div>
+              <div class="ai-setup-sub">For power users who want custom personal quotas</div>
+            </div>
+          </div>
+          <span class="ai-setup-status-badge" id="aiByokStatusBadge">Optional</span>
+        </div>
+        <p class="ai-setup-desc">
+          Paste your free key if you prefer using your own OpenRouter rate limits:
+        </p>
+        <div class="ai-key-input-box">
+          <input type="password" id="tarikaApiKeyModalInput" class="ai-key-input" placeholder="sk-or-v1-xxxxxxxxxxxxxxxx" autocomplete="off">
+          <button type="button" class="ai-key-save-btn" onclick="saveTarikaApiKey()">Save 🚀</button>
+          <button type="button" id="tarikaClearKeyBtn" class="ai-drw-btn" onclick="clearTarikaApiKey()" title="Remove saved key" style="display:none; color:#ef4444; width:34px; height:34px;">🗑️</button>
+        </div>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-top:8px; font-size:11px;">
+          <a href="https://openrouter.ai/settings/keys" target="_blank" rel="noopener noreferrer" style="color:var(--tarika-brand); font-weight:600; text-decoration:none;">
+            Get free key at openrouter.ai ↗
+          </a>
+          <span style="color:var(--tarika-muted);">🔒 Stored locally in your browser</span>
         </div>
       </div>
 
-      <div style="font-size:11px; color:var(--tarika-muted); text-align:center; margin-top:4px;">
-        🔒 Stored locally in your browser. Never shared or billed.
+      <!-- Option 3: Offline On-Device (WebGPU) -->
+      <div class="ai-setup-card" id="aiSetupOfflineCard">
+        <div class="ai-setup-card-hdr">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="ai-setup-icon" style="background:rgba(168,85,247,0.1); color:#a855f7;">🌸</span>
+            <div>
+              <div class="ai-setup-title">On-Device Offline (WebGPU)</div>
+              <div class="ai-setup-sub">100% private in browser · Zero internet needed</div>
+            </div>
+          </div>
+          <button type="button" class="ai-ctx-chip" onclick="selectWebGpuOffline()" id="aiWebGpuToggleBtn">Run Offline</button>
+        </div>
+        <p class="ai-setup-desc">
+          Runs local Llama 3.2 on your device GPU using WebLLM for private studying during network outages.
+        </p>
+      </div>
+
+      <div style="margin-top:auto; padding-top:8px;">
+        <button type="button" class="ai-btn-cta" onclick="closeTarikaApiKeyModal()">
+          <span>Done &amp; Return to Chat</span> ➔
+        </button>
       </div>
     </div>
   </aside>
@@ -1362,40 +1503,25 @@ html.app-shell-embedded #abhiAiDrawer {
       <div class="ai-drw-model-wrap">
         <span class="ai-drw-badge" id="aiDrawerModelBadge" role="button" tabindex="0" title="Switch AI Model" aria-haspopup="true" aria-expanded="false">Gemma 4 ▾</span>
         <div class="ai-drw-model-menu" id="aiDrawerModelMenu" role="menu" aria-label="Select AI Model">
-          <div class="ai-menu-section-title">🎁 Free Models on OpenRouter</div>
+          <div class="ai-menu-section-title">⚡ Academic AI Models</div>
           <div id="aiDrawerFreeModelsList">
-            <button type="button" class="ai-model-opt" data-model="google/gemma-4-31b-it:free" data-provider="openrouter" data-display="Gemma 4 31B">⚡ Gemma 4 31B (Default · Free)</button>
-            <button type="button" class="ai-model-opt" data-model="meta-llama/llama-3.3-70b-instruct:free" data-provider="openrouter" data-display="Llama 3.3 70B">🦙 Llama 3.3 70B (Free)</button>
-            <button type="button" class="ai-model-opt" data-model="deepseek/deepseek-r1:free" data-provider="openrouter" data-display="DeepSeek R1">🧠 DeepSeek R1 (Reasoning · Free)</button>
-            <button type="button" class="ai-model-opt" data-model="deepseek/deepseek-chat:free" data-provider="openrouter" data-display="DeepSeek V3">💬 DeepSeek V3 (Chat · Free)</button>
-            <button type="button" class="ai-model-opt" data-model="google/gemini-2.0-flash-exp:free" data-provider="openrouter" data-display="Gemini 2.0 Flash">✨ Gemini 2.0 Flash (Free)</button>
-            <button type="button" class="ai-model-opt" data-model="google/gemini-2.0-pro-exp-02-05:free" data-provider="openrouter" data-display="Gemini 2.0 Pro">🌟 Gemini 2.0 Pro (Free)</button>
-            <button type="button" class="ai-model-opt" data-model="qwen/qwen-2.5-72b-instruct:free" data-provider="openrouter" data-display="Qwen 2.5 72B">🌐 Qwen 2.5 72B (Free)</button>
-            <button type="button" class="ai-model-opt" data-model="mistralai/mistral-small-24b-instruct-2501:free" data-provider="openrouter" data-display="Mistral Small">💨 Mistral Small 24B (Free)</button>
-            <button type="button" class="ai-model-opt" data-model="meta-llama/llama-3.2-11b-vision-instruct:free" data-provider="openrouter" data-display="Llama 3.2 Vision">👁️ Llama 3.2 Vision (Free)</button>
+            <button type="button" class="ai-model-opt" data-model="google/gemma-4-31b-it:free" data-provider="openrouter" data-display="Gemma 4 31B">⚡ Gemma 4 31B (Default · Recommended)</button>
+            <button type="button" class="ai-model-opt" data-model="deepseek/deepseek-r1:free" data-provider="openrouter" data-display="DeepSeek R1">🧠 DeepSeek R1 (Math &amp; Reasoning)</button>
+            <button type="button" class="ai-model-opt" data-model="google/gemini-2.0-flash-exp:free" data-provider="openrouter" data-display="Gemini 2.0 Flash">✨ Gemini 2.0 Flash (Fast Answers)</button>
+            <button type="button" class="ai-model-opt" data-model="meta-llama/llama-3.3-70b-instruct:free" data-provider="openrouter" data-display="Llama 3.3 70B">🦙 Llama 3.3 70B (Comprehensive)</button>
           </div>
           
           <div class="ai-menu-divider"></div>
           <button type="button" class="ai-model-opt" onclick="openTarikaApiKeyModal()" style="color:var(--tarika-brand); font-weight:700;">
-            🔑 Manage OpenRouter Key
+            ⚙️ AI Setup &amp; Preferences
           </button>
-
-          <details class="ai-dev-menu-wrap" style="margin-top:4px; border-top:1px solid var(--tarika-line, #e2e8f0); padding-top:4px;">
-            <summary style="font-size:10px; color:var(--tarika-muted, #64748b); padding:4px 6px; cursor:pointer; font-weight:600; list-style:none; display:flex; align-items:center; gap:4px;">
-              <span>🛠️</span> <span>Offline / Local Options</span>
-            </summary>
-            <div style="padding-top:4px;">
-              <button type="button" class="ai-model-opt" data-model="Llama-3.2-1B-Instruct-q4f16_1-MLC" data-provider="webllm" data-display="Tarika WebGPU">🌸 Tarika (WebGPU Offline)</button>
-              <button type="button" class="ai-model-opt" data-model="llama3.2:latest" data-provider="ollama" data-display="Ollama Local">💻 Ollama (Local Server)</button>
-            </div>
-          </details>
         </div>
       </div>
     </div>
     <div class="ai-drw-actions">
       <button type="button" class="ai-drw-btn" onclick="startNewChat()" aria-label="Start New Chat" title="Start New Chat">➕</button>
       <button type="button" class="ai-drw-btn" onclick="toggleHistoryPanel()" aria-label="Chat History" title="View Chat History">🕒</button>
-      <a href="/settings" class="ai-drw-btn" aria-label="AI Settings & Models" title="AI Settings & Models">⚙️</a>
+      <button type="button" class="ai-drw-btn" onclick="openTarikaApiKeyModal()" aria-label="Tarika AI Setup" title="Tarika AI Setup & Preferences">⚙️</button>
       <button type="button" class="ai-drw-btn" onclick="toggleAbhiAiDrawer()" aria-label="Close Assistant" title="Close">✕</button>
     </div>
   </header>
@@ -1412,8 +1538,14 @@ html.app-shell-embedded #abhiAiDrawer {
 
   <!-- Chat Messages Stream -->
   <div id="aiMsgList" role="log" aria-live="polite">
-    <div class="ai-bubble assistant" dir="auto">
-      👋 Hi! I'm <strong>Tarika</strong>, your personal study assistant for AbhiHub. Ask me to find PYQs, search notes, start a <strong>Practice Exam</strong>, or solve and explain any document you have open!
+    <div class="ai-welcome-hero">
+      <div class="ai-welcome-spark-wrap"><span class="ai-welcome-spark">✨</span></div>
+      <h3 class="ai-welcome-heading">Hi! I'm Tarika</h3>
+      <p class="ai-welcome-tagline">Your personal engineering study partner on AbhiHub.</p>
+      <div class="ai-status-pill">
+        <span class="ai-status-dot"></span>
+        <span id="aiStatusPillText">Ready · Gemma 4 Cloud AI</span>
+      </div>
     </div>
   </div>
 
@@ -1426,10 +1558,19 @@ html.app-shell-embedded #abhiAiDrawer {
   </nav>
 
   <!-- Input Form Composer -->
-  <footer class="ai-drw-input-row">
-    <label for="aiChatInput" class="sr-only" style="position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0;">Ask Tarika</label>
-    <input type="text" id="aiChatInput" dir="auto" placeholder="Ask Tarika or tell it what you want to do..." autocomplete="off">
-    <button type="button" id="aiSendBtn" aria-label="Send message">➔</button>
+  <footer class="ai-drw-input-row" style="flex-direction:column;gap:6px;align-items:stretch;">
+    <div style="display:flex;width:100%;align-items:center;gap:6px;">
+      <label for="aiChatInput" class="sr-only" style="position:absolute; width:1px; height:1px; padding:0; margin:-1px; overflow:hidden; clip:rect(0,0,0,0); border:0;">Ask Tarika</label>
+      <input type="text" id="aiChatInput" dir="auto" placeholder="Ask any question, or type / to choose..." autocomplete="off">
+      <button type="button" id="aiSendBtn" aria-label="Send message" title="Send (Enter)">➔</button>
+    </div>
+    <div class="ai-drw-status-sub">
+      <span style="display:inline-flex; align-items:center; gap:4px;">
+        <span class="ai-thinking-dot" style="width:6px; height:6px; background:#10b981; border-radius:50%; display:inline-block;"></span>
+        <span>Free Academic AI</span>
+      </span>
+      <span>Press Enter ↵ to send</span>
+    </div>
   </footer>
 </section>
 
@@ -1460,6 +1601,105 @@ html.app-shell-embedded #abhiAiDrawer {
     <footer id="examModalFtr" class="ai-exam-modal-ftr"></footer>
   </div>
 </div>
+
+<!-- Instant Gesture & Left-Docking Handler -->
+<script>
+(function() {
+  window.openAbhiAiDrawer = function() {
+    const drw = document.getElementById('abhiAiDrawer');
+    if (!drw) return;
+    drw.classList.add('open');
+    drw.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('tarika-docked-open');
+    document.documentElement.classList.add('tarika-docked-open');
+    if (typeof detectOpenDocument === 'function') detectOpenDocument();
+    if (typeof window.updateModelBadgeDisplay === 'function') window.updateModelBadgeDisplay();
+    setTimeout(() => document.getElementById('aiChatInput')?.focus(), 150);
+  };
+
+  window.closeAbhiAiDrawer = function() {
+    const drw = document.getElementById('abhiAiDrawer');
+    if (!drw) return;
+    drw.classList.remove('open');
+    drw.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('tarika-docked-open');
+    document.documentElement.classList.remove('tarika-docked-open');
+  };
+
+  window.toggleAbhiAiDrawer = function() {
+    const drw = document.getElementById('abhiAiDrawer');
+    if (!drw) return;
+    if (drw.classList.contains('open')) {
+      window.closeAbhiAiDrawer();
+    } else {
+      window.openAbhiAiDrawer();
+    }
+  };
+
+  // Mobile edge swipe-to-open and swipe-back-to-close
+  let touchStartX = 0;
+  let touchStartY = 0;
+  let isTrackingEdgeSwipe = false;
+  let isTrackingDrawerSwipe = false;
+
+  window.addEventListener('touchstart', function(e) {
+    if (!e.touches || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    touchStartX = t.clientX;
+    touchStartY = t.clientY;
+
+    const drw = document.getElementById('abhiAiDrawer');
+    const isOpen = drw && drw.classList.contains('open');
+
+    if (!isOpen) {
+      if (touchStartX <= 45) {
+        isTrackingEdgeSwipe = true;
+      }
+    } else {
+      if (drw.contains(e.target)) {
+        isTrackingDrawerSwipe = true;
+      }
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchmove', function(e) {
+    if (!isTrackingEdgeSwipe && !isTrackingDrawerSwipe) return;
+    if (!e.touches || e.touches.length !== 1) return;
+    const t = e.touches[0];
+    const dy = Math.abs(t.clientY - touchStartY);
+    const dx = t.clientX - touchStartX;
+
+    if (dy > 35 && dy > Math.abs(dx)) {
+      isTrackingEdgeSwipe = false;
+      isTrackingDrawerSwipe = false;
+    }
+  }, { passive: true });
+
+  window.addEventListener('touchend', function(e) {
+    if (!isTrackingEdgeSwipe && !isTrackingDrawerSwipe) return;
+    const t = e.changedTouches ? e.changedTouches[0] : null;
+    if (!t) {
+      isTrackingEdgeSwipe = false;
+      isTrackingDrawerSwipe = false;
+      return;
+    }
+    const dx = t.clientX - touchStartX;
+    const dy = Math.abs(t.clientY - touchStartY);
+
+    if (isTrackingEdgeSwipe) {
+      if (dx > 50 && dy < 60) {
+        window.openAbhiAiDrawer();
+      }
+      isTrackingEdgeSwipe = false;
+    } else if (isTrackingDrawerSwipe) {
+      if (dx < -50 && dy < 60) {
+        window.closeAbhiAiDrawer();
+      }
+      isTrackingDrawerSwipe = false;
+    }
+  }, { passive: true });
+})();
+</script>
 
 <!-- KaTeX & Marked Assets -->
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.9/dist/katex.min.css" media="print" onload="this.media='all'">

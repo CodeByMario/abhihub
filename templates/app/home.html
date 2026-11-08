@@ -145,30 +145,146 @@
     font-weight: 650;
   }
 
-  /* ── Spotlight Search Capsule ────────────────────────── */
-  .apple-search-capsule {
-    width: 100%;
-    max-width: 620px;
+  /* ── Apple Welcome Celebration Modal/Banner ─────────── */
+  .apple-welcome-celebration {
+    position: fixed;
+    top: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 999999;
+    width: min(92vw, 560px);
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(28px);
+    -webkit-backdrop-filter: blur(28px);
+    border: 1px solid rgba(0, 113, 227, 0.22);
+    border-radius: 20px;
+    padding: 1.25rem 1.4rem;
+    box-shadow: 0 20px 50px rgba(0, 0, 0, 0.16), 0 0 0 1px rgba(0, 113, 227, 0.1);
+    display: none;
+    align-items: flex-start;
+    gap: 14px;
+    animation: slideDownToast 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes slideDownToast {
+    from { opacity: 0; transform: translate(-50%, -20px); }
+    to { opacity: 1; transform: translate(-50%, 0); }
+  }
+
+  [data-theme="dark"] .apple-welcome-celebration {
+    background: rgba(28, 28, 30, 0.94);
+    border-color: rgba(0, 113, 227, 0.35);
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+  }
+
+  .apple-welcome-icon {
+    font-size: 2rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+
+  .apple-welcome-info {
+    flex: 1;
+  }
+
+  .apple-welcome-info h3 {
+    margin: 0 0 4px;
+    font-size: 15.5px;
+    font-weight: 700;
+    color: var(--apple-text);
     display: flex;
     align-items: center;
-    background: var(--apple-surface);
+    gap: 8px;
+  }
+
+  .apple-welcome-info p {
+    margin: 0 0 10px;
+    font-size: 13px;
+    color: var(--apple-text-secondary);
+    line-height: 1.45;
+  }
+
+  .apple-welcome-actions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .apple-welcome-btn {
+    background: var(--apple-blue);
+    color: #ffffff;
+    border: none;
+    padding: 5px 14px;
+    border-radius: var(--radius-pill);
+    font-size: 12.5px;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    transition: background 0.18s ease;
+  }
+
+  .apple-welcome-btn:hover {
+    background: var(--apple-blue-hover);
+  }
+
+  .apple-welcome-close {
+    background: transparent;
+    border: none;
+    color: var(--apple-text-muted);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 4px 8px;
+    line-height: 1;
+    border-radius: 50%;
+  }
+
+  .apple-welcome-close:hover {
+    color: var(--apple-text);
+  }
+
+  /* ── Spotlight Search Capsule (Apple HIG) ─────────────── */
+  .apple-search-capsule {
+    width: 100%;
+    max-width: 640px;
+    display: flex;
+    align-items: center;
+    background: rgba(255, 255, 255, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--apple-border);
     border-radius: var(--radius-pill);
     padding: 5px 6px 5px 18px;
-    box-shadow: 0 8px 30px rgba(0, 0, 0, 0.05);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04), 0 1px 3px rgba(0, 0, 0, 0.02);
     transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
-    margin-bottom: 1.25rem;
+    margin-bottom: 0.85rem;
+    position: relative;
+  }
+
+  [data-theme="dark"] .apple-search-capsule {
+    background: rgba(28, 28, 30, 0.85);
+    border-color: rgba(255, 255, 255, 0.12);
+    box-shadow: 0 4px 24px rgba(0, 0, 0, 0.35);
   }
 
   .apple-search-capsule:focus-within {
     border-color: var(--apple-blue);
-    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.16), 0 12px 36px rgba(0, 0, 0, 0.08);
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.16), 0 14px 34px rgba(0, 0, 0, 0.07);
+    transform: translateY(-1px);
+    background: var(--apple-surface);
   }
 
-  .apple-search-capsule svg {
+  .apple-search-capsule svg.search-lens {
     color: var(--apple-text-muted);
     flex-shrink: 0;
     margin-right: 12px;
+    transition: color 0.18s ease;
+  }
+
+  .apple-search-capsule:focus-within svg.search-lens {
+    color: var(--apple-blue);
   }
 
   .apple-search-capsule input {
@@ -180,15 +296,32 @@
     font-size: 15px;
     color: var(--apple-text);
     outline: none;
+    letter-spacing: -0.01em;
   }
 
   .apple-search-capsule input::placeholder {
     color: var(--apple-text-muted);
+    font-weight: 400;
   }
 
-  .apple-search-capsule button {
-    height: 42px;
-    padding: 0 1.4rem;
+  .apple-search-kbd {
+    display: inline-flex;
+    align-items: center;
+    padding: 3px 7px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--apple-text-muted);
+    background: var(--apple-surface-sub);
+    border: 1px solid var(--apple-border);
+    border-radius: 6px;
+    margin-right: 8px;
+    user-select: none;
+    pointer-events: none;
+  }
+
+  .apple-search-capsule button.apple-search-btn {
+    height: 40px;
+    padding: 0 1.25rem;
     border-radius: var(--radius-pill);
     border: none;
     background: var(--apple-blue);
@@ -196,11 +329,55 @@
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
-    transition: background 0.18s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    box-shadow: 0 2px 8px rgba(0, 113, 227, 0.25);
+    transition: background 0.18s ease, transform 0.15s ease;
   }
 
-  .apple-search-capsule button:hover {
+  .apple-search-capsule button.apple-search-btn:hover {
     background: var(--apple-blue-hover);
+    transform: scale(1.02);
+  }
+
+  .apple-search-chips {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-bottom: 1.5rem;
+  }
+
+  .apple-search-chips-label {
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--apple-text-muted);
+    margin-right: 4px;
+  }
+
+  .apple-search-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-pill);
+    padding: 4px 12px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: var(--apple-text-sub);
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.16s ease;
+  }
+
+  .apple-search-chip:hover {
+    background: var(--apple-surface-sub);
+    color: var(--apple-blue);
+    border-color: rgba(0, 113, 227, 0.3);
+    transform: translateY(-1px);
   }
 
   /* ── Apple Segmented Interactive Filter ──────────────── */
@@ -307,6 +484,411 @@
     margin: 0 auto 1.25rem;
   }
 
+  /* ── Psychological Dynamic State Tiles ─────────────────── */
+  .apple-psych-box {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    position: relative;
+    overflow: hidden;
+  }
+  .apple-psych-box.vault-box,
+  .apple-psych-box.creator-box {
+    border-left: 1px solid var(--apple-border);
+  }
+  .psych-hero-strip {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+  }
+  .psych-badge-row {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .psych-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 11.5px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    text-transform: uppercase;
+  }
+  .psych-pill.blue {
+    background: var(--apple-blue-subtle);
+    color: var(--apple-blue);
+  }
+  .psych-pill.gold {
+    background: rgba(245, 158, 11, 0.12);
+    color: #d97706;
+  }
+  .psych-pill.subtle {
+    background: var(--apple-surface-sub);
+    color: var(--apple-text-secondary);
+    border: 1px solid var(--apple-border);
+    text-transform: none;
+    font-weight: 600;
+  }
+  .psych-social-proof {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--apple-text-secondary);
+    margin-left: auto;
+  }
+  .psych-loss-tag {
+    font-size: 12px;
+    font-weight: 700;
+    color: #ef4444;
+    background: rgba(239, 68, 68, 0.08);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    margin-left: auto;
+  }
+  .psych-content-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 1.25rem;
+  }
+  .psych-text-block {
+    flex: 1;
+    min-width: 260px;
+  }
+  .psych-text-block h3 {
+    margin: 0 0 0.35rem;
+    font-size: 1.15rem;
+    font-weight: 700;
+    color: var(--apple-text);
+    letter-spacing: -0.015em;
+  }
+  .psych-text-block p {
+    margin: 0;
+    font-size: 13.5px;
+    line-height: 1.5;
+    color: var(--apple-text-secondary);
+  }
+  .psych-perks-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--apple-border);
+  }
+  .psych-perk {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    background: var(--apple-surface-sub);
+    border: 1px solid var(--apple-border);
+    border-radius: 10px;
+    padding: 0.65rem 0.85rem;
+  }
+  .psych-perk .perk-icon {
+    font-size: 1.2rem;
+    line-height: 1;
+    flex-shrink: 0;
+  }
+  .psych-perk .perk-label {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+    font-size: 12px;
+  }
+  .psych-perk .perk-label strong {
+    color: var(--apple-text);
+    font-weight: 700;
+  }
+  .psych-perk .perk-label span {
+    color: var(--apple-text-secondary);
+    font-size: 11px;
+  }
+  .psych-sample-shelf {
+    display: flex;
+    flex-direction: column;
+    gap: 0.85rem;
+    padding-top: 1rem;
+    border-top: 1px dashed var(--apple-border);
+  }
+  .psych-shelf-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    font-size: 12.5px;
+    font-weight: 700;
+    color: var(--apple-text);
+  }
+  .psych-shelf-sub {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--apple-text-secondary);
+  }
+  .psych-milestones-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--apple-border);
+  }
+  .milestone-card {
+    background: var(--apple-surface-sub);
+    border: 1px solid var(--apple-border);
+    border-radius: 10px;
+    padding: 0.75rem 0.85rem;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    transition: border-color 0.15s ease;
+  }
+  .milestone-card.active-next {
+    border-color: var(--apple-blue);
+    background: var(--apple-blue-subtle);
+  }
+  .milestone-step {
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--apple-blue);
+  }
+  .milestone-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--apple-text);
+  }
+  .milestone-reward {
+    font-size: 11.5px;
+    color: var(--apple-text-secondary);
+  }
+
+
+  /* ── Apple Native Quickstart Onboarding Grid ──────────── */
+  .apple-quickstart-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .apple-quickstart-card {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    padding: 1.6rem 1.5rem;
+    display: flex;
+    flex-direction: column;
+    text-align: left;
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+  }
+
+  .apple-quickstart-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.06);
+  }
+
+  .qs-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .qs-step-badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: var(--apple-blue);
+    background: var(--apple-blue-subtle);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+  }
+
+  .qs-icon-bubble {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--apple-surface-sub);
+    border: 1px solid var(--apple-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--apple-blue);
+    flex-shrink: 0;
+  }
+
+  .apple-quickstart-card h3 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--apple-text);
+    margin: 0 0 0.4rem;
+  }
+
+  .apple-quickstart-card p {
+    font-size: 13.5px;
+    color: var(--apple-text-secondary);
+    line-height: 1.5;
+    margin: 0 0 1.25rem;
+    flex: 1;
+  }
+
+  .qs-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  .apple-qs-btn {
+    height: 40px;
+    padding: 0 1.25rem;
+    border-radius: var(--radius-pill);
+    font-size: 13px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.18s ease;
+    border: none;
+    box-sizing: border-box;
+  }
+
+  .apple-qs-btn.primary {
+    background: var(--apple-blue);
+    color: #ffffff;
+  }
+  .apple-qs-btn.primary:hover {
+    background: var(--apple-blue-hover);
+  }
+
+  .apple-qs-btn.secondary {
+    background: var(--apple-surface-sub);
+    color: var(--apple-text);
+    border: 1px solid var(--apple-border);
+  }
+  .apple-qs-btn.secondary:hover {
+    background: var(--apple-border);
+  }
+
+  .qs-chips-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .apple-chip {
+    font-size: 11.5px;
+    font-weight: 500;
+    color: var(--apple-text);
+    background: var(--apple-surface-sub);
+    border: 1px solid var(--apple-border);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .apple-chip:hover {
+    background: var(--apple-blue-subtle);
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+  }
+
+  .qs-done-status {
+    height: 40px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #107c41;
+    background: rgba(16, 124, 65, 0.08);
+    border: 1px solid rgba(16, 124, 65, 0.2);
+    border-radius: var(--radius-pill);
+  }
+
+  /* ── Apple Showcase Feature Callout (Paid Exam Pack) ── */
+  .apple-showcase-banner {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    padding: 1.5rem 1.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    flex-wrap: wrap;
+  }
+
+  .sb-tag {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    color: #b45309;
+    background: rgba(180, 83, 9, 0.1);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    display: inline-block;
+    margin-bottom: 0.45rem;
+  }
+
+  .sb-info h4 {
+    font-size: 16px;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+    color: var(--apple-text);
+    margin: 0 0 0.3rem;
+  }
+
+  .sb-info p {
+    font-size: 13.5px;
+    color: var(--apple-text-secondary);
+    line-height: 1.45;
+    margin: 0;
+    max-width: 580px;
+  }
+
+  .sb-pricing {
+    display: flex;
+    align-items: center;
+    gap: 1.25rem;
+    flex-shrink: 0;
+  }
+
+  .sb-price-block {
+    text-align: right;
+  }
+
+  .sb-price-main {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--apple-text);
+    line-height: 1;
+  }
+
+  .sb-price-sub {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--apple-text-secondary);
+    margin-top: 2px;
+  }
   /* ── Trust & Simplicity Footer Badges ─────────────────── */
   .apple-trust-strip {
     margin-top: 3.5rem;
@@ -330,6 +912,175 @@
     color: var(--apple-text-secondary);
     margin: 0;
   }
+
+  /* ── Creator Channel Showcase ────────────────────── */
+  .channel-cards-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .apple-creator-card {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    padding: 1.35rem 1.4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.02);
+    transition: transform 0.2s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.2s ease, border-color 0.2s ease;
+    position: relative;
+    overflow: hidden;
+  }
+
+  .apple-creator-card:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 10px 24px rgba(0, 0, 0, 0.05);
+    border-color: rgba(0, 113, 227, 0.25);
+  }
+
+  .apple-creator-card.campus-match {
+    border-color: rgba(0, 113, 227, 0.2);
+    background: linear-gradient(180deg, var(--apple-blue-subtle) 0%, var(--apple-surface) 35%);
+  }
+
+  .ch-card-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 0.95rem;
+    gap: 8px;
+  }
+
+  .ch-avatar-wrap {
+    position: relative;
+    width: 44px;
+    height: 44px;
+    flex-shrink: 0;
+  }
+
+  .ch-avatar-img {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    object-fit: cover;
+    background: var(--apple-surface-sub);
+    border: 1px solid var(--apple-border);
+  }
+
+  .ch-verified-dot {
+    position: absolute;
+    bottom: -1px;
+    right: -1px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--apple-blue);
+    border: 2px solid var(--apple-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .ch-pill {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 3px 9px;
+    border-radius: var(--radius-pill);
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    letter-spacing: 0.02em;
+    white-space: nowrap;
+  }
+
+  .pill-campus {
+    background: var(--apple-blue-subtle);
+    color: var(--apple-blue);
+    border: 1px solid rgba(0, 113, 227, 0.18);
+  }
+
+  .pill-hub {
+    background: var(--apple-surface-sub);
+    color: var(--apple-text-secondary);
+    border: 1px solid var(--apple-border);
+  }
+
+  .ch-card-body {
+    flex: 1;
+    margin-bottom: 1.15rem;
+  }
+
+  .ch-card-title {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: var(--apple-text);
+    margin: 0 0 2px;
+    letter-spacing: -0.015em;
+    line-height: 1.3;
+  }
+
+  .ch-card-handle {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--apple-blue);
+    margin-bottom: 0.45rem;
+  }
+
+  .ch-card-bio {
+    font-size: 12.5px;
+    color: var(--apple-text-secondary);
+    line-height: 1.45;
+    margin: 0;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .ch-card-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 0.85rem;
+    border-top: 1px solid var(--apple-border);
+    gap: 8px;
+  }
+
+  .ch-meta-counts {
+    font-size: 12px;
+    color: var(--apple-text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .ch-meta-counts strong {
+    color: var(--apple-text);
+    font-weight: 600;
+  }
+
+  .ch-explore-btn {
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--apple-blue) !important;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 12px;
+    border-radius: var(--radius-pill);
+    background: var(--apple-surface-sub);
+    border: 1px solid var(--apple-border);
+    transition: all 0.16s ease;
+  }
+
+  .ch-explore-btn:hover {
+    background: var(--apple-blue);
+    color: #ffffff !important;
+    border-color: var(--apple-blue);
+  }
 </style>
 {% endblock %}
 
@@ -341,6 +1092,20 @@
 
   <!-- 1. Attention & Outcome Hero Section -->
   <header class="apple-hero apple-container">
+  <!-- Celebration Modal (Triggered via ?welcome=1) -->
+  <div class="apple-welcome-celebration" id="appleWelcomeCelebration" role="alertdialog" aria-live="assertive">
+    <div class="apple-welcome-icon">🎉</div>
+    <div class="apple-welcome-info">
+      <h3>Study Vault Personalization Active! <span style="font-size: 11px; background: rgba(52, 199, 89, 0.15); color: #248a3d; padding: 2px 8px; border-radius: 980px;">+{{ starting_views or user_data.get('paper_quota_remaining', 5) }} Free Views</span></h3>
+      <p>Your campus syllabus and semester papers are synchronized. All features and verified peer notes are unlocked.</p>
+      <div class="apple-welcome-actions">
+        <button type="button" class="apple-welcome-btn" onclick="dismissWelcomeModal(true)">Start Exploring &rarr;</button>
+        <button type="button" class="apple-welcome-btn" style="background: var(--apple-surface-sub); color: var(--apple-text); border: 1px solid var(--apple-border);" onclick="dismissWelcomeModal(false)">Got It</button>
+      </div>
+    </div>
+    <button type="button" class="apple-welcome-close" onclick="dismissWelcomeModal(false)" aria-label="Close">✕</button>
+  </div>
+
     <div class="apple-hero-eyebrow">
       <span class="pulse-dot"></span>
       <span>{{ user_data.get('college_abbreviation') or 'Curriculum Sync Active' }}</span>
@@ -371,17 +1136,32 @@
       </div>
     </div>
 
-    <!-- Dominant Search Capsule -->
-    <form action="{{ url_for('app_pages.search') }}" method="GET" class="apple-search-capsule">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      <input type="text" name="search" placeholder="Search subjects in {{ user_data.get('branch_name') or 'your syllabus' }} (e.g. Operating Systems, 22412)..." autocomplete="off" required>
-      <button type="submit">Search</button>
+    <!-- Dominant Search Capsule (Apple Spotlight) -->
+    <form action="{{ url_for('app_pages.search') }}" method="GET" class="apple-search-capsule" id="homeSearchForm">
+      <svg class="search-lens" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" name="search" id="homeSearchInput" placeholder="Search subjects in {{ user_data.get('branch_name') or 'your syllabus' }} (e.g. Operating Systems, 22412)..." autocomplete="off" required>
+      <kbd class="apple-search-kbd" title="Shortcut">⌘K</kbd>
+      <button type="submit" class="apple-search-btn" aria-label="Search">
+        <span>Search</span>
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"/></svg>
+      </button>
     </form>
+
+    <!-- Quick Subject & Query Chips -->
+    <div class="apple-search-chips">
+      <span class="apple-search-chips-label">Popular:</span>
+      <button type="button" class="apple-search-chip" onclick="executeFirstSearch('Question Bank')">Question Bank</button>
+      <button type="button" class="apple-search-chip" onclick="executeFirstSearch('Java')">Java</button>
+      <button type="button" class="apple-search-chip" onclick="executeFirstSearch('DAA')">DAA</button>
+      <button type="button" class="apple-search-chip" onclick="executeFirstSearch('Solved Papers')">Solved Papers</button>
+      <a href="{{ url_for('app_pages.campus_network') }}" class="apple-search-chip" style="color: var(--apple-blue); font-weight: 600;">🎓 Faculty &amp; Peers &rarr;</a>
+    </div>
 
     <!-- Apple Segmented Control for Fast Filtering -->
     <div class="apple-segmented-bar">
       <div class="apple-segmented-control" role="tablist">
         <button type="button" class="apple-segment-btn active" onclick="switchHomeTab('all', this)">All For You</button>
+        <button type="button" class="apple-segment-btn" onclick="switchHomeTab('creators', this)">Campus Creators</button>
         <button type="button" class="apple-segment-btn" onclick="switchHomeTab('recents', this)">Recently Viewed</button>
         <button type="button" class="apple-segment-btn" onclick="switchHomeTab('purchased', this)">Unlocked ({{ (purchased_files or [])|length }})</button>
         <button type="button" class="apple-segment-btn" onclick="switchHomeTab('uploads', this)">My Uploads ({{ user_data.get('uploads_count', 0) }})</button>
@@ -413,13 +1193,91 @@
         {% endfor %}
       </div>
       {% else %}
-      <div class="apple-empty-tile">
-        <h3>No viewing history yet</h3>
-        <p>Explore question papers or notes to start building your personalized study queue.</p>
-        <a href="{{ url_for('library.college_landing', college_slug=user_data.get('college_slug', 'ghrce')) if user_data and user_data.get('college_slug') else '/college' }}" class="apple-section-link">
-          <span>Browse College Library</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        </a>
+      <!-- ── Apple Native Quickstart Guidance ── -->
+      <div class="apple-quickstart-grid">
+        <!-- Step 1: Profile & Campus Setup -->
+        <div class="apple-quickstart-card">
+          <div class="qs-card-top">
+            <span class="qs-step-badge">Step 1</span>
+            <div class="qs-icon-bubble" aria-hidden="true">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 10v6M2 10l10-5 10 5-10 5z"></path><path d="M6 12v5c3 3 9 3 12 0v-5"></path></svg>
+            </div>
+          </div>
+          <h3>Campus &amp; Branch Setup</h3>
+          <p>Link your university and engineering department to calibrate exam archives and unlock up to 20 free views.</p>
+          <div class="qs-actions">
+            {% if user_data and user_data.get('college_id') %}
+              <div class="qs-done-status">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                <span>Campus Profile Active</span>
+              </div>
+              <a href="{{ url_for('app_pages.campus_network') }}" class="apple-qs-btn secondary" style="margin-top: 8px; text-decoration: none;">
+                Find Faculty &amp; Seniors &rarr;
+              </a>
+            {% else %}
+              <button type="button" class="apple-qs-btn primary" onclick="if(window.OnboardingWizard){window.OnboardingWizard.open();}else{window.location.href='/settings';}">
+                Complete Onboarding →
+              </button>
+            {% endif %}
+          </div>
+        </div>
+
+        <!-- Step 2: Search Your Syllabus -->
+        <div class="apple-quickstart-card">
+          <div class="qs-card-top">
+            <span class="qs-step-badge">Step 2</span>
+            <div class="qs-icon-bubble" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+            </div>
+          </div>
+          <h3>Search Your Syllabus</h3>
+          <p>Find exam questions, subject codes, and handwritten formulas across your curriculum.</p>
+          <div class="qs-actions">
+            <div class="qs-chips-row">
+              <button type="button" class="apple-chip" onclick="executeFirstSearch('Question Bank')">Question Bank</button>
+              <button type="button" class="apple-chip" onclick="executeFirstSearch('Java')">Java</button>
+              <button type="button" class="apple-chip" onclick="executeFirstSearch('DAA')">DAA</button>
+            </div>
+            <button type="button" class="apple-qs-btn secondary" onclick="focusHomeSearch()">
+              Focus Search Bar
+            </button>
+          </div>
+        </div>
+
+        <!-- Step 3: Open Recommended Resource -->
+        <div class="apple-quickstart-card">
+          <div class="qs-card-top">
+            <span class="qs-step-badge">Step 3</span>
+            <div class="qs-icon-bubble" aria-hidden="true">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            </div>
+          </div>
+          <h3>Open Your First File</h3>
+          <p>Explore verified notes and university questions handpicked for Year {{ user_data.get('pursuing_year') or '1' }}.</p>
+          <div class="qs-actions">
+            <button type="button" class="apple-qs-btn secondary" onclick="scrollToRecommended()">
+              Browse Recommended Notes ↓
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 4: Apple Feature Callout for Premium Exam Pack -->
+      <div class="apple-showcase-banner">
+        <div class="sb-info">
+          <span class="sb-tag">Handpicked for {{ user_data.get('branch_name') or 'Engineering' }} • Year {{ user_data.get('pursuing_year') or '1' }}</span>
+          <h4>Solved University PYQ Blueprint &amp; Solutions Pack</h4>
+          <p>Instant UPI unlock: access 5-year solved university question papers and concise formula sheets calibrated to your semester exams.</p>
+        </div>
+        <div class="sb-pricing">
+          <div class="sb-price-block">
+            <div class="sb-price-main">₹19</div>
+            <div class="sb-price-sub">One-Time Access</div>
+          </div>
+          <a href="#section-recommended" id="ftExplorePaidBtn" class="apple-qs-btn primary" onclick="openTopPaidRecommendation(event)">
+            Explore Pack →
+          </a>
+        </div>
       </div>
       {% endif %}
     </section>
@@ -440,9 +1298,63 @@
         {% endfor %}
       </div>
       {% else %}
-      <div class="apple-empty-tile">
-        <h3>No unlocked documents yet</h3>
-        <p>Any premium papers or creator study materials you unlock will stay permanently here.</p>
+      <div class="apple-psych-box vault-box">
+        <div class="psych-hero-strip">
+          <div class="psych-badge-row">
+            <span class="psych-pill subtle">Offline Vault</span>
+          </div>
+
+          <div class="psych-content-row">
+            <div class="psych-text-block">
+              <h3>Study offline. Anytime, anywhere.</h3>
+              <p>
+                Save exam papers and verified formula sheets to your personal vault for reliable revision, even without internet access.
+              </p>
+            </div>
+            <a href="#section-recommended" class="apple-qs-btn primary" onclick="scrollToRecommended(); return false;" style="text-decoration:none; white-space:nowrap;">
+              Browse Essentials →
+            </a>
+          </div>
+
+          <!-- Feature perks -->
+          <div class="psych-perks-row">
+            <div class="psych-perk">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--apple-text); flex-shrink:0;"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"></rect><line x1="12" y1="18" x2="12.01" y2="18"></line></svg>
+              <div class="perk-label">
+                <strong>Offline Access</strong>
+                <span>Study anywhere without cellular data</span>
+              </div>
+            </div>
+            <div class="psych-perk">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--apple-text); flex-shrink:0;"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+              <div class="perk-label">
+                <strong>Verified Solutions</strong>
+                <span>Step-by-step PYQ answers</span>
+              </div>
+            </div>
+            <div class="psych-perk">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--apple-text); flex-shrink:0;"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              <div class="perk-label">
+                <strong>Lifetime Ownership</strong>
+                <span>Permanent access in your library</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {% if recommended_files and recommended_files|length > 0 %}
+        <div class="psych-sample-shelf">
+          <div class="psych-shelf-header">
+            <span>⚡ Recommended for your vault (Year {{ user_data.get('pursuing_year') or '1' }} • {{ user_data.get('branch_name') or 'Engineering' }}):</span>
+            <span class="psych-shelf-sub">Unlock to store permanently</span>
+          </div>
+          <div class="apple-cards-grid">
+            {% for file in recommended_files[:2] %}
+              {{ render_apple_card(file, default_college_abbr) }}
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
       </div>
       {% endif %}
     </section>
@@ -467,16 +1379,102 @@
         {% endfor %}
       </div>
       {% else %}
-      <div class="apple-empty-tile">
-        <h3>Share your first notes or papers</h3>
-        <p>Contribute past exam papers or topper notes to help peers and build your academic reputation score.</p>
-        <a href="/upload" class="apple-section-link">
-          <span>Share a Document</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-        </a>
+      <div class="apple-psych-box creator-box">
+        <div class="psych-hero-strip">
+          <div class="psych-badge-row">
+            <span class="psych-pill subtle">Contributor Network</span>
+          </div>
+
+          <div class="psych-content-row">
+            <div class="psych-text-block">
+              <h3>Turn your notes into income.</h3>
+              <p>
+                Share verified notes and lab files. Earn credits immediately and receive royalties every time classmates study your work.
+              </p>
+            </div>
+            <a href="/upload" class="apple-qs-btn primary" style="white-space:nowrap; text-decoration:none;">
+              Share a Document →
+            </a>
+          </div>
+
+          <!-- Goal Gradient / Milestone Ladder -->
+          <div class="psych-milestones-grid">
+            <div class="milestone-card active-next">
+              <div class="milestone-step">Step 1 • Start Here</div>
+              <div class="milestone-title">Upload 1 File</div>
+              <div class="milestone-reward">+10 Credits &amp; Contributor Badge</div>
+            </div>
+            <div class="milestone-card">
+              <div class="milestone-step">Step 2</div>
+              <div class="milestone-title">Reach 25 Views</div>
+              <div class="milestone-reward">Campus Top 20% Contributor</div>
+            </div>
+            <div class="milestone-card">
+              <div class="milestone-step">Step 3</div>
+              <div class="milestone-title">Reach 50 Views</div>
+              <div class="milestone-reward">Direct UPI Payouts</div>
+            </div>
+          </div>
+        </div>
       </div>
       {% endif %}
     </section>
+
+    <!-- 4. Featured Creator Channels (Prioritizing User's College First) -->
+    {% if featured_channels %}
+    <section class="apple-section tab-section" id="section-creators">
+      <div class="apple-section-header">
+        <div>
+          <h2>Campus &amp; Creator Channels</h2>
+          <p>Study notes, solved blueprints, and PYQ solutions from verified creators at <strong>{{ user_data.get('college_name') or 'your campus' }}</strong> and AbhiHub.</p>
+        </div>
+        <a href="{{ url_for('app_pages.campus_network') }}" class="apple-section-link">
+          <span>Explore Campus Network</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+        </a>
+      </div>
+
+      <div class="channel-cards-grid">
+        {% for ch in featured_channels %}
+        <div class="apple-creator-card {% if ch.is_campus_match %}campus-match{% endif %}">
+          <div class="ch-card-top">
+            <div class="ch-avatar-wrap">
+              <img src="{{ ch.avatar_url or 'https://api.dicebear.com/7.x/bottts/svg?seed=' ~ (ch.handle or 'creator') }}" alt="{{ ch.title }}" class="ch-avatar-img" loading="lazy" />
+              {% if ch.verified %}
+              <span class="ch-verified-dot" title="Verified Creator">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+              </span>
+              {% endif %}
+            </div>
+            <span class="ch-pill {% if ch.is_campus_match %}pill-campus{% else %}pill-hub{% endif %}">
+              {% if ch.is_campus_match %}
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 10v6M2 10l10-5 10 5-10 5z"/><path d="M6 12v5c3 3 9 3 12 0v-5"/></svg>
+              {% endif %}
+              {{ ch.badge_label }}
+            </span>
+          </div>
+
+          <div class="ch-card-body">
+            <h3 class="ch-card-title">{{ ch.title }}</h3>
+            <div class="ch-card-handle">@{{ ch.handle }}</div>
+            <p class="ch-card-bio">{{ ch.bio or 'Comprehensive study resources, formula sheets, and solved PYQs for college exams.' }}</p>
+          </div>
+
+          <div class="ch-card-footer">
+            <div class="ch-meta-counts">
+              <span class="ch-meta-item"><strong>{{ ch.notes_count }}</strong> Notes</span>
+              <span class="ch-meta-sep">&bull;</span>
+              <span class="ch-meta-item"><strong>{{ ch.views_count or 0 }}</strong> Reads</span>
+            </div>
+            <a href="{{ url_for('channels.public_channel_view', handle=ch.handle) }}" class="ch-explore-btn">
+              Explore &rarr;
+            </a>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+    </section>
+    {% endif %}
 
     <!-- 5. Curated Recommendations for User's Exact Semester -->
     <section class="apple-section tab-section" id="section-recommended">
@@ -524,6 +1522,112 @@
 </div>
 
 <script>
+  // Trigger Celebration Modal if ?welcome=1
+  function dismissWelcomeModal(scrollToNotes = false) {
+    const modal = document.getElementById('appleWelcomeCelebration');
+    if (modal) {
+      modal.style.transition = 'opacity 0.25s, transform 0.25s';
+      modal.style.opacity = '0';
+      modal.style.transform = 'translate(-50%, -15px)';
+      setTimeout(() => modal.remove(), 260);
+    }
+    if (scrollToNotes) {
+      scrollToRecommended();
+    }
+  }
+
+  function checkWelcomeTrigger() {
+    const params = new URLSearchParams(window.location.search);
+    let isWelcome = params.get('welcome') === '1';
+
+    // Also detect if running inside iframe and parent URL has welcome=1
+    try {
+      if (!isWelcome && window.parent && window.parent !== window) {
+        const parentParams = new URLSearchParams(window.parent.location.search);
+        if (parentParams.get('welcome') === '1' || (parentParams.get('p') || '').includes('welcome=1')) {
+          isWelcome = true;
+        }
+      }
+    } catch (_) {}
+
+    if (isWelcome) {
+      const modal = document.getElementById('appleWelcomeCelebration');
+      if (modal) {
+        modal.style.display = 'flex';
+      }
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', checkWelcomeTrigger);
+
+  // ⌘K or Ctrl+K shortcut to focus search
+  window.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+      e.preventDefault();
+      focusHomeSearch();
+    }
+  });
+
+  function focusHomeSearch() {
+    const searchForm = document.querySelector('.apple-search-capsule');
+    const input = searchForm?.querySelector('input[name="search"]');
+    if (input && searchForm) {
+      searchForm.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      input.focus();
+      searchForm.style.transition = 'box-shadow 0.3s, border-color 0.3s';
+      searchForm.style.borderColor = 'var(--apple-blue)';
+      searchForm.style.boxShadow = '0 0 0 4px var(--apple-blue-subtle)';
+      setTimeout(() => {
+        searchForm.style.borderColor = '';
+        searchForm.style.boxShadow = '';
+      }, 2000);
+    }
+  }
+
+  function executeFirstSearch(term) {
+    const searchForm = document.querySelector('.apple-search-capsule');
+    const input = searchForm?.querySelector('input[name="search"]');
+    if (input && searchForm) {
+      input.value = term;
+      searchForm.submit();
+    }
+  }
+
+  function scrollToRecommended() {
+    const recSection = document.getElementById('section-recommended');
+    if (recSection) {
+      recSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      const firstCard = recSection.querySelector('.arch-apple-card');
+      if (firstCard) {
+        firstCard.style.transition = 'transform 0.3s, box-shadow 0.3s';
+        firstCard.style.transform = 'translateY(-6px)';
+        firstCard.style.boxShadow = '0 12px 30px rgba(0, 113, 227, 0.25)';
+        setTimeout(() => {
+          firstCard.style.transform = '';
+          firstCard.style.boxShadow = '';
+        }, 2200);
+      }
+    }
+  }
+
+  function openTopPaidRecommendation(e) {
+    e.preventDefault();
+    const paidCard = document.querySelector('#section-recommended .arch-apple-card .arch-price-tag.paid');
+    if (paidCard) {
+      const cardLink = paidCard.closest('a');
+      if (cardLink && cardLink.href) {
+        window.location.href = cardLink.href;
+        return;
+      }
+    }
+    const firstCard = document.querySelector('#section-recommended .arch-apple-card');
+    if (firstCard && firstCard.href) {
+      window.location.href = firstCard.href;
+      return;
+    }
+    window.location.href = '/college';
+  }
+
   function switchHomeTab(tabName, btn) {
     document.querySelectorAll('.apple-segment-btn').forEach(b => b.classList.remove('active'));
     btn.classList.add('active');
@@ -532,27 +1636,38 @@
     const purchasedSec = document.getElementById('section-purchased');
     const uploadsSec = document.getElementById('section-uploads');
     const recommendedSec = document.getElementById('section-recommended');
+    const creatorsSec = document.getElementById('section-creators');
 
     if (tabName === 'all') {
       recentsSec.style.display = '';
       purchasedSec.style.display = '';
       uploadsSec.style.display = '';
       recommendedSec.style.display = '';
+      if (creatorsSec) creatorsSec.style.display = '';
+    } else if (tabName === 'creators') {
+      recentsSec.style.display = 'none';
+      purchasedSec.style.display = 'none';
+      uploadsSec.style.display = 'none';
+      recommendedSec.style.display = 'none';
+      if (creatorsSec) creatorsSec.style.display = '';
     } else if (tabName === 'recents') {
       recentsSec.style.display = '';
       purchasedSec.style.display = 'none';
       uploadsSec.style.display = 'none';
       recommendedSec.style.display = 'none';
+      if (creatorsSec) creatorsSec.style.display = 'none';
     } else if (tabName === 'purchased') {
       recentsSec.style.display = 'none';
       purchasedSec.style.display = '';
       uploadsSec.style.display = 'none';
       recommendedSec.style.display = 'none';
+      if (creatorsSec) creatorsSec.style.display = 'none';
     } else if (tabName === 'uploads') {
       recentsSec.style.display = 'none';
       purchasedSec.style.display = 'none';
       uploadsSec.style.display = '';
       recommendedSec.style.display = 'none';
+      if (creatorsSec) creatorsSec.style.display = 'none';
     }
   }
 </script>

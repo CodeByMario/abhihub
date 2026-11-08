@@ -47,7 +47,33 @@ def get_creator_customer_stats(creator_id: str) -> Dict[str, Any]:
             # Fallback to wallet ledger if customer relations table is fresh
             wl = db.table('wallet_ledger').select('amount').eq('creator_id', creator_id).execute()
             wl_rows = wl.data or []
-            stats['total_revenue'] = round(sum(float(w.get('amount', 0)) for w in wl_rows), 2)
+            if wl_rows:
+                stats['total_revenue'] = round(sum(float(w.get('amount', 0)) for w in wl_rows), 2)
+                stats['total_customers'] = len(wl_rows)
+
+        # Synchronize with creator_wallets balance if present
+        try:
+            cw = db.table('creator_wallets').select('*').eq('user_id', creator_id).limit(1).execute()
+            if cw.data:
+                w_row = cw.data[0]
+                withdrawable = float(w_row.get('withdrawable_balance', 0) or 0)
+                pending = float(w_row.get('pending_balance', 0) or 0)
+                withdrawn = float(w_row.get('total_withdrawn', 0) or 0)
+                tot = withdrawable + pending + withdrawn
+                if tot > stats['total_revenue']:
+                    stats['total_revenue'] = round(tot, 2)
+                stats['withdrawable_balance'] = round(withdrawable, 2)
+                stats['pending_balance'] = round(pending, 2)
+        except Exception as e_cw:
+            logger.debug(f"[CREATOR_CRM] Wallets check note: {e_cw}")
+
+        # Fetch total published notes count
+        try:
+            doc_res = db.table('documents').select('id', count='exact').eq('uploader_id', creator_id).execute()
+            stats['total_uploads'] = doc_res.count if doc_res.count is not None else len(doc_res.data or [])
+        except Exception:
+            pass
+
     except Exception as e:
         logger.warning(f"[CREATOR_CRM] Error fetching stats: {e}")
 
@@ -73,6 +99,10 @@ def get_creator_top_customers(creator_id: str, limit: int = 20) -> List[Dict[str
         if res.data:
             for r in res.data:
                 prof = r.get('profiles') or {}
+                if isinstance(prof, list) and prof:
+                    prof = prof[0]
+                elif not isinstance(prof, dict):
+                    prof = {}
                 name = prof.get('full_name') or r.get('customer_name') or 'Student Supporter'
                 email = prof.get('email') or r.get('customer_email') or ''
                 spent = float(r.get('total_spent', 0))
@@ -96,7 +126,7 @@ def get_creator_top_customers(creator_id: str, limit: int = 20) -> List[Dict[str
             return customers
 
         # 2. Resilient backfill fallback from transactions/ledger if fresh
-        wl = db.table('wallet_ledger').select('*').eq('creator_id', creator_id).limit(limit).execute()
+        wl = db.table('wallet_ledger').select('*').eq('creator_id', creator_id).order('created_at', desc=True).limit(limit).execute()
         if wl.data:
             for idx, item in enumerate(wl.data):
                 amt = float(item.get('amount', 0))
@@ -188,6 +218,14 @@ def record_creator_customer_purchase(creator_id: str, customer_id: str, amount: 
                 'last_interacted_at': now_iso
             }).eq('id', row['id']).execute()
         else:
+            if not customer_name or not customer_email:
+                try:
+                    p_res = db.table('profiles').select('full_name, email').eq('id', str(customer_id)).limit(1).execute()
+                    if p_res.data:
+                        customer_name = customer_name or p_res.data[0].get('full_name')
+                        customer_email = customer_email or p_res.data[0].get('email')
+                except Exception:
+                    pass
             tier = 'superfan' if amt >= 250 else ('vip' if amt >= 100 else 'regular')
             db.table('creator_customer_relations').insert({
                 'creator_id': str(creator_id),

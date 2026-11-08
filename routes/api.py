@@ -948,6 +948,7 @@ def api_get_credit_packs():
 
 
 @api_bp.route('/api/credit-history', methods=['GET'])
+@api_bp.route('/api/user/credits/history', methods=['GET'])
 @auth_required
 def api_credit_history():
     """Retrieve user credit transactions (spend & earn history) and current quota balance."""
@@ -958,19 +959,46 @@ def api_credit_history():
         remaining = quota_info.get('credits', 0)
         txs = []
         client = init_supabase()
-        if client:
+        if client and uid:
             try:
-                res = client.table('credit_transactions').select('*').eq('user_id', uid).order('created_at', desc=True).limit(50).execute()
+                res = client.table('user_credit_ledger').select('*').eq('user_id', uid).order('created_at', desc=True).limit(50).execute()
                 if res.data:
-                    txs = res.data
+                    for row in res.data:
+                        txs.append({
+                            'id': row.get('id'),
+                            'delta': row.get('delta', 0),
+                            'balance': row.get('balance', remaining),
+                            'reason': row.get('reason') or 'Usage',
+                            'source': row.get('source'),
+                            'ref_id': row.get('ref_id'),
+                            'created_at': row.get('created_at')
+                        })
             except Exception:
                 pass
+            if not txs:
+                try:
+                    res = client.table('credit_transactions').select('*').eq('user_id', uid).order('created_at', desc=True).limit(50).execute()
+                    if res.data:
+                        for row in res.data:
+                            amt = row.get('amount', 0)
+                            txs.append({
+                                'id': row.get('id'),
+                                'delta': int(amt / 2) if row.get('status') == 'completed' else 0,
+                                'balance': remaining,
+                                'reason': row.get('admin_notes') or 'Credit Pack Purchase',
+                                'source': 'razorpay',
+                                'ref_id': row.get('order_id'),
+                                'created_at': row.get('created_at')
+                            })
+                except Exception:
+                    pass
         if not txs:
             txs = session.get('credit_history', [])
         return jsonify({
             'success': True,
             'remaining_credits': remaining,
-            'transactions': txs
+            'transactions': txs,
+            'history': txs
         }), 200
     except Exception as e:
         return jsonify({'success': False, 'message': str(e)}), 500

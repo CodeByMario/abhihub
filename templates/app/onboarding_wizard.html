@@ -1,0 +1,676 @@
+{% extends 'p_struct.html' %}
+{% set hide_popups = true %}
+{% set is_auth_page = true %}
+
+{% block title %}Welcome to AbhiHub • Personalize Your Study Vault{% endblock %}
+
+{% block content %}
+<style>
+  :root {
+    --wiz-bg: #f5f5f7;
+    --wiz-surface: #ffffff;
+    --wiz-text: #1d1d1f;
+    --wiz-text-sub: #6e6e73;
+    --wiz-text-muted: #86868b;
+    --wiz-border: rgba(0, 0, 0, 0.08);
+    --wiz-blue: #0071e3;
+    --wiz-blue-hover: #0077ed;
+    --wiz-blue-subtle: rgba(0, 113, 227, 0.08);
+    --wiz-green: #34c759;
+    --wiz-radius: 20px;
+    --wiz-radius-pill: 980px;
+  }
+
+  [data-theme="dark"] {
+    --wiz-bg: #000000;
+    --wiz-surface: #1c1c1e;
+    --wiz-text: #f5f5f7;
+    --wiz-text-sub: #a1a1a6;
+    --wiz-text-muted: #86868b;
+    --wiz-border: rgba(255, 255, 255, 0.12);
+    --wiz-blue-subtle: rgba(0, 113, 227, 0.18);
+  }
+
+  .onboard-viewport {
+    min-height: calc(100vh - 80px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2.5rem 1.25rem 4rem;
+    background: var(--wiz-bg);
+  }
+
+  .onboard-card {
+    width: 100%;
+    max-width: 660px;
+    background: var(--wiz-surface);
+    border: 1px solid var(--wiz-border);
+    border-radius: var(--wiz-radius);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.06);
+    overflow: hidden;
+    position: relative;
+    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Progress Line */
+  .onboard-progress-track {
+    width: 100%;
+    height: 4px;
+    background: rgba(0, 0, 0, 0.05);
+  }
+
+  .onboard-progress-fill {
+    height: 100%;
+    width: 25%;
+    background: var(--wiz-blue);
+    transition: width 0.35s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  /* Card Header */
+  .onboard-header {
+    padding: 2rem 2.25rem 1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .onboard-step-badge {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--wiz-blue);
+    background: var(--wiz-blue-subtle);
+    padding: 4px 10px;
+    border-radius: var(--wiz-radius-pill);
+  }
+
+  .onboard-step-counter {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--wiz-text-muted);
+  }
+
+  /* Form Body */
+  .onboard-body {
+    padding: 0.5rem 2.25rem 2.25rem;
+  }
+
+  .onboard-step-pane {
+    display: none;
+    animation: fadeIn 0.28s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  .onboard-step-pane.active {
+    display: block;
+  }
+
+  @keyframes fadeIn {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .onboard-title {
+    font-size: 1.75rem;
+    font-weight: 700;
+    letter-spacing: -0.025em;
+    color: var(--wiz-text);
+    margin: 0 0 0.4rem;
+  }
+
+  .onboard-subtitle {
+    font-size: 0.95rem;
+    color: var(--wiz-text-sub);
+    line-height: 1.5;
+    margin: 0 0 1.75rem;
+  }
+
+  /* Input Elements */
+  .onboard-form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .onboard-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--wiz-text);
+    margin-bottom: 0.45rem;
+  }
+
+  .onboard-label span.req {
+    color: var(--wiz-blue);
+  }
+
+  .onboard-input,
+  .onboard-select {
+    width: 100%;
+    min-height: 46px;
+    padding: 0.6rem 0.95rem;
+    background: var(--wiz-surface);
+    border: 1px solid var(--wiz-border);
+    border-radius: 12px;
+    font-size: 14.5px;
+    color: var(--wiz-text);
+    font-family: inherit;
+    outline: none;
+    transition: all 0.2s ease;
+  }
+
+  .onboard-input:focus,
+  .onboard-select:focus {
+    border-color: var(--wiz-blue);
+    box-shadow: 0 0 0 3px var(--wiz-blue-subtle);
+  }
+
+  .onboard-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  /* Goal Selector Cards */
+  .onboard-goals-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+
+  .onboard-goal-card {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 1rem 1.15rem;
+    border: 1px solid var(--wiz-border);
+    border-radius: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--wiz-surface);
+  }
+
+  .onboard-goal-card:hover {
+    border-color: rgba(0, 113, 227, 0.4);
+    background: var(--wiz-blue-subtle);
+  }
+
+  .onboard-goal-card.selected {
+    border-color: var(--wiz-blue);
+    background: var(--wiz-blue-subtle);
+    box-shadow: 0 0 0 2px var(--wiz-blue);
+  }
+
+  .onboard-goal-icon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+
+  .onboard-goal-info h4 {
+    margin: 0 0 2px;
+    font-size: 14.5px;
+    font-weight: 600;
+    color: var(--wiz-text);
+  }
+
+  .onboard-goal-info p {
+    margin: 0;
+    font-size: 12.5px;
+    color: var(--wiz-text-sub);
+  }
+
+  /* Step 4 Reveal Summary */
+  .onboard-summary-box {
+    background: var(--wiz-blue-subtle);
+    border: 1px solid rgba(0, 113, 227, 0.2);
+    border-radius: 16px;
+    padding: 1.25rem 1.4rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .onboard-summary-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: var(--wiz-surface);
+    border: 1px solid var(--wiz-border);
+    padding: 5px 12px;
+    border-radius: var(--wiz-radius-pill);
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--wiz-text);
+    margin: 4px 4px 4px 0;
+  }
+
+  .onboard-perk-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13.5px;
+    font-weight: 500;
+    color: var(--wiz-text);
+    margin-bottom: 8px;
+  }
+
+  /* Actions Bar */
+  .onboard-actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--wiz-border);
+    margin-top: 1.5rem;
+  }
+
+  .onboard-btn-back {
+    background: transparent;
+    border: 1px solid var(--wiz-border);
+    color: var(--wiz-text-sub);
+    padding: 0.65rem 1.25rem;
+    border-radius: var(--wiz-radius-pill);
+    font-weight: 600;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .onboard-btn-back:hover {
+    background: rgba(0, 0, 0, 0.04);
+    color: var(--wiz-text);
+  }
+
+  .onboard-btn-primary {
+    background: var(--wiz-blue);
+    border: none;
+    color: #ffffff;
+    padding: 0.75rem 1.6rem;
+    border-radius: var(--wiz-radius-pill);
+    font-weight: 600;
+    font-size: 14.5px;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(0, 113, 227, 0.25);
+  }
+
+  .onboard-btn-primary:hover {
+    background: var(--wiz-blue-hover);
+    transform: translateY(-1px);
+  }
+
+  .onboard-alert {
+    padding: 0.75rem 1rem;
+    border-radius: 12px;
+    font-size: 13px;
+    margin-bottom: 1rem;
+    display: none;
+  }
+
+  .onboard-alert.error {
+    display: block;
+    background: rgba(255, 59, 48, 0.1);
+    color: #ff3b30;
+    border: 1px solid rgba(255, 59, 48, 0.2);
+  }
+
+  @media (max-width: 600px) {
+    .onboard-header, .onboard-body { padding: 1.25rem; }
+    .onboard-row { grid-template-columns: 1fr; }
+    .onboard-title { font-size: 1.4rem; }
+  }
+</style>
+
+<div class="onboard-viewport">
+  <div class="onboard-card">
+    <div class="onboard-progress-track">
+      <div class="onboard-progress-fill" id="wizardProgress"></div>
+    </div>
+
+    <div class="onboard-header">
+      <span class="onboard-step-badge" id="stepBadge">Step 1 • Campus</span>
+      <span class="onboard-step-counter" id="stepCounter">1 of 4</span>
+    </div>
+
+    <div class="onboard-body">
+      <div id="wizardAlert" class="onboard-alert"></div>
+
+      <form id="onboardingWizardForm" onsubmit="return false;">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- STEP 1: Campus & Program -->
+        <div class="onboard-step-pane active" id="paneStep1">
+          <h1 class="onboard-title">Where do you study?</h1>
+          <p class="onboard-subtitle">We will link your verified semester syllabus, PYQs, and topper notes.</p>
+
+          <div class="onboard-form-group">
+            <label class="onboard-label">Your Full Name <span class="req">*</span></label>
+            <input type="text" name="student_name" id="studentName" class="onboard-input"
+                   placeholder="Enter your full name"
+                   value="{{ user_info.get('name') or profile.get('full_name') or user_info.get('email', '').split('@')[0] }}" required>
+          </div>
+
+          <div class="onboard-form-group">
+            <label class="onboard-label">University / College <span class="req">*</span></label>
+            <select name="college_id" id="collegeSelect" class="onboard-select" required>
+              <option value="">Select your university or college</option>
+              {% for c in colleges %}
+              <option value="{{ c.id }}" {% if profile.get('college_id') == c.id %}selected{% endif %}>
+                {{ c.name }}{% if c.abbreviation %} ({{ c.abbreviation }}){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+
+          <div class="onboard-form-group">
+            <label class="onboard-label">Branch / Department <span class="req">*</span></label>
+            <select name="branch_id" id="branchSelect" class="onboard-select" required>
+              <option value="">Select your branch</option>
+              {% for b in branches %}
+              <option value="{{ b.id }}" {% if profile.get('branch_id') == b.id %}selected{% endif %}>
+                {{ b.name }}{% if b.abbreviation %} ({{ b.abbreviation }}){% endif %}
+              </option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+
+        <!-- STEP 2: Academic Stage & Target -->
+        <div class="onboard-step-pane" id="paneStep2">
+          <h1 class="onboard-title">Your Academic Stage</h1>
+          <p class="onboard-subtitle">Tailoring upcoming semester exam schedules and formula blueprints.</p>
+
+          <div class="onboard-row">
+            <div class="onboard-form-group">
+              <label class="onboard-label">Current Year <span class="req">*</span></label>
+              <select name="current_year" id="currentYear" class="onboard-select" required>
+                <option value="1st Year">1st Year</option>
+                <option value="2nd Year" selected>2nd Year</option>
+                <option value="3rd Year">3rd Year</option>
+                <option value="4th Year">4th Year</option>
+              </select>
+            </div>
+            <div class="onboard-form-group">
+              <label class="onboard-label">Current Semester <span class="req">*</span></label>
+              <select name="current_semester" id="currentSemester" class="onboard-select" required>
+                {% for sem in range(1, 9) %}
+                <option value="Semester {{ sem }}" {% if sem == 3 %}selected{% endif %}>Semester {{ sem }}</option>
+                {% endfor %}
+              </select>
+            </div>
+          </div>
+
+          <div class="onboard-form-group">
+            <label class="onboard-label">Joining / Admission Year</label>
+            <input type="number" name="joining_year" id="joiningYear" class="onboard-input" value="2025" min="2018" max="2028">
+          </div>
+
+          <div class="onboard-form-group">
+            <label class="onboard-label">Primary Academic Target</label>
+            <div class="onboard-goals-grid">
+              <div class="onboard-goal-card selected" onclick="selectGoal(this, 'top_cgpa')">
+                <span class="onboard-goal-icon">🎯</span>
+                <div class="onboard-goal-info">
+                  <h4>Top My Class (9+ CGPA)</h4>
+                  <p>In-depth toppers' handwritten notes, question banks, and formulas.</p>
+                </div>
+              </div>
+              <div class="onboard-goal-card" onclick="selectGoal(this, 'exam_ace')">
+                <span class="onboard-goal-icon">⚡</span>
+                <div class="onboard-goal-info">
+                  <h4>Ace Semester Exams</h4>
+                  <p>Fast-track 5-year solved past papers & high-yield blueprints.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- STEP 3: Student Badge / Verification -->
+        <div class="onboard-step-pane" id="paneStep3">
+          <h1 class="onboard-title">Campus Verification</h1>
+          <p class="onboard-subtitle">Verified campus peers unlock unlimited topper note downloads and priority peer help.</p>
+
+          <div class="onboard-summary-box">
+            <div class="onboard-perk-item">
+              <span>🛡️</span>
+              <span><strong>Verified Student Badge:</strong> Added directly to your profile.</span>
+            </div>
+            <div class="onboard-perk-item">
+              <span>🎁</span>
+              <span><strong>Campus Pass:</strong> {{ starting_views }} free document views unlocked for your email.</span>
+            </div>
+          </div>
+
+          <div class="onboard-form-group">
+            <label class="onboard-label">College Email or Student Roll No (Optional)</label>
+            <input type="text" name="student_id_proof" id="studentIdProof" class="onboard-input"
+                   placeholder="e.g. roll number or campus email">
+            <p style="font-size: 12px; color: var(--wiz-text-muted); margin: 6px 0 0;">You can also verify later from Profile Settings.</p>
+          </div>
+        </div>
+
+        <!-- STEP 4: Reveal & Ready -->
+        <div class="onboard-step-pane" id="paneStep4">
+          <h1 class="onboard-title">Your Study Vault is Ready! 🎉</h1>
+          <p class="onboard-subtitle">We personalized your library based on your campus curriculum.</p>
+
+          <div class="onboard-summary-box">
+            <div style="margin-bottom: 0.75rem;">
+              <span class="onboard-summary-pill" id="pillCollege">University</span>
+              <span class="onboard-summary-pill" id="pillBranch">Engineering</span>
+              <span class="onboard-summary-pill" id="pillStage">Semester 3</span>
+            </div>
+            <div class="onboard-perk-item">
+              <span>✅</span>
+              <span><strong>{{ starting_views }} Free Document Views:</strong> Credited to your account immediately.</span>
+            </div>
+            {% if not is_campus_email %}
+            <div style="font-size: 12px; color: var(--wiz-text-sub); margin-top: 4px; padding-left: 26px;">
+              💡 <em>Note: Starter view quota varies by email tier. Official campus emails (.edu / .ac.in) unlock up to 20 free views!</em>
+            </div>
+            {% endif %}
+            <div class="onboard-perk-item">
+              <span>✅</span>
+              <span><strong>Curriculum Synced:</strong> Year & semester papers mapped to your home feed.</span>
+            </div>
+            <div class="onboard-perk-item">
+              <span>✅</span>
+              <span><strong>Spotlight Search Activated:</strong> Press <code>⌘K</code> anywhere on home to search.</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Actions Bar -->
+        <div class="onboard-actions">
+          <button type="button" class="onboard-btn-back" id="btnBack" style="visibility: hidden;" onclick="prevStep()">← Back</button>
+          <button type="button" class="onboard-btn-primary" id="btnNext" onclick="nextStep()">
+            <span id="btnNextText">Continue</span>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"/></svg>
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+  let currentStep = {{ initial_step or 1 }};
+  const totalSteps = 4;
+
+  function getStepData(step) {
+    if (step === 1) {
+      return {
+        student_name: document.getElementById('studentName')?.value || '',
+        college_id: document.getElementById('collegeSelect')?.value || '',
+        branch_id: document.getElementById('branchSelect')?.value || ''
+      };
+    } else if (step === 2) {
+      return {
+        current_year: document.getElementById('currentYear')?.value || '',
+        current_semester: document.getElementById('currentSemester')?.value || '',
+        joining_year: document.getElementById('joiningYear')?.value || ''
+      };
+    } else if (step === 3) {
+      return {
+        student_id_proof: document.getElementById('studentIdProof')?.value || ''
+      };
+    }
+    return {};
+  }
+
+  function saveStepTelemetry(step) {
+    try {
+      fetch('/api/onboarding/step', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          step: step,
+          data: getStepData(step)
+        })
+      }).catch(() => {});
+    } catch (_) {}
+  }
+  const stepTitles = [
+    "Step 1 • Campus",
+    "Step 2 • Academic Stage",
+    "Step 3 • Verification",
+    "Step 4 • Study Vault"
+  ];
+
+  function selectGoal(el, goal) {
+    document.querySelectorAll('.onboard-goal-card').forEach(c => c.classList.remove('selected'));
+    el.classList.add('selected');
+  }
+
+  function updateStepUI() {
+    // Hide all panes
+    for (let i = 1; i <= totalSteps; i++) {
+      const pane = document.getElementById(`paneStep${i}`);
+      if (pane) pane.classList.toggle('active', i === currentStep);
+    }
+
+    // Progress bar
+    const progressPct = (currentStep / totalSteps) * 100;
+    document.getElementById('wizardProgress').style.width = `${progressPct}%`;
+    document.getElementById('stepBadge').textContent = stepTitles[currentStep - 1];
+    document.getElementById('stepCounter').textContent = `${currentStep} of ${totalSteps}`;
+
+    // Back button visibility
+    const btnBack = document.getElementById('btnBack');
+    btnBack.style.visibility = (currentStep === 1) ? 'hidden' : 'visible';
+
+    // Next button label
+    const btnText = document.getElementById('btnNextText');
+    if (currentStep === totalSteps) {
+      btnText.textContent = "Enter My Study Vault";
+    } else {
+      btnText.textContent = "Continue";
+    }
+
+    // Populate Step 4 summary
+    if (currentStep === 4) {
+      const colEl = document.getElementById('collegeSelect');
+      const branchEl = document.getElementById('branchSelect');
+      const semEl = document.getElementById('currentSemester');
+
+      const colName = colEl.options[colEl.selectedIndex]?.text?.trim() || 'Your College';
+      const branchName = branchEl.options[branchEl.selectedIndex]?.text?.trim() || 'Your Branch';
+      const semName = semEl.value || 'Semester';
+
+      document.getElementById('pillCollege').textContent = colName.split('(')[0].trim();
+      document.getElementById('pillBranch').textContent = branchName.split('(')[0].trim();
+      document.getElementById('pillStage').textContent = semName;
+    }
+  }
+
+  function validateStep(step) {
+    const alertBox = document.getElementById('wizardAlert');
+    alertBox.className = 'onboard-alert';
+    alertBox.style.display = 'none';
+
+    if (step === 1) {
+      const name = document.getElementById('studentName').value.trim();
+      const college = document.getElementById('collegeSelect').value;
+      const branch = document.getElementById('branchSelect').value;
+
+      if (!name) {
+        showError("Please enter your full name.");
+        return false;
+      }
+      if (!college) {
+        showError("Please choose your university or college.");
+        return false;
+      }
+      if (!branch) {
+        showError("Please select your engineering branch.");
+        return false;
+      }
+    }
+    return true;
+  }
+
+  function showError(msg) {
+    const alertBox = document.getElementById('wizardAlert');
+    alertBox.textContent = msg;
+    alertBox.className = 'onboard-alert error';
+  }
+
+  function prevStep() {
+    if (currentStep > 1) {
+      currentStep--;
+      updateStepUI();
+    }
+  }
+
+  async function nextStep() {
+    if (!validateStep(currentStep)) return;
+
+    // Persist step data & event telemetry asynchronously
+    saveStepTelemetry(currentStep);
+
+    if (currentStep < totalSteps) {
+      currentStep++;
+      updateStepUI();
+      return;
+    }
+
+    // Final step: Submit form to /account/update
+    const form = document.getElementById('onboardingWizardForm');
+    const formData = new FormData(form);
+    const btn = document.getElementById('btnNext');
+    btn.disabled = true;
+    document.getElementById('btnNextText').textContent = "Saving Vault...";
+
+    try {
+      const csrfToken = form.querySelector('input[name="csrf_token"]')?.value || '';
+      const resp = await fetch('/account/update', {
+        method: 'POST',
+        headers: {
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-CSRFToken': csrfToken
+        },
+        body: formData
+      });
+
+      const data = await resp.json().catch(() => null);
+      if (resp.ok && (!data || data.success !== false)) {
+        window.location.href = '/home?welcome=1';
+      } else {
+        showError(data?.message || 'Could not complete onboarding. Redirecting to home...');
+        setTimeout(() => { window.location.href = '/home?skip_onboarding=1'; }, 1500);
+      }
+    } catch (err) {
+      window.location.href = '/home?welcome=1';
+    } finally {
+      btn.disabled = false;
+    }
+  }
+
+  // Initialize
+  document.addEventListener('DOMContentLoaded', updateStepUI);
+</script>
+{% endblock %}

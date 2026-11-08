@@ -183,7 +183,7 @@ def calculate_fee_breakdown(gross_amount: float, creator_id: str = None) -> dict
     }
 
 
-def credit_creator_for_purchase(order_id, doc_id, amount):
+def credit_creator_for_purchase(order_id, doc_id, amount, customer_id=None):
     """
     Credits creator's wallet with 30-day locked status (70% standard or 90% early creator promo).
     """
@@ -238,6 +238,14 @@ def credit_creator_for_purchase(order_id, doc_id, amount):
                 'total_withdrawn': 0.00,
                 'updated_at': now.isoformat()
             }).execute()
+
+        # Record in creator_customer_relations so Creator Hub tracks supporters & CRM metrics
+        try:
+            if customer_id and creator_id and str(customer_id) != str(creator_id):
+                from methods.creator_crm_service import record_creator_customer_purchase
+                record_creator_customer_purchase(str(creator_id), str(customer_id), creator_amt)
+        except Exception as e_crm:
+            logging.debug(f"[WALLET] CRM record hook note: {e_crm}")
 
         return True, "Credited"
     except Exception as e:

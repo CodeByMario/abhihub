@@ -1,0 +1,590 @@
+<!-- Guided Multi-Step Student Onboarding Modal -->
+<style>
+  .onboarding-backdrop {
+    position: fixed;
+    inset: 0;
+    z-index: 99999;
+    background: rgba(15, 23, 42, 0.72);
+    backdrop-filter: blur(12px) saturate(160%);
+    -webkit-backdrop-filter: blur(12px) saturate(160%);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Plus Jakarta Sans", Roboto, sans-serif;
+  }
+  .onboarding-backdrop.active {
+    display: flex;
+  }
+  .onboarding-card {
+    background: #ffffff;
+    max-width: 480px;
+    width: 100%;
+    border-radius: 24px;
+    padding: 2.25rem 2rem;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25), 0 0 0 1px rgba(0, 0, 0, 0.08);
+    position: relative;
+    color: #1d1d1f;
+    box-sizing: border-box;
+    animation: obSlideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  [data-theme="dark"] .onboarding-card {
+    background: #18181b;
+    color: #f4f4f5;
+    box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(255, 255, 255, 0.12);
+  }
+  @keyframes obSlideUp {
+    from { opacity: 0; transform: translateY(24px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+
+  /* Progress track */
+  .ob-progress-wrap {
+    margin-bottom: 1.5rem;
+  }
+  .ob-progress-meta {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+    color: #64748b;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 0.5rem;
+  }
+  .ob-progress-track {
+    height: 6px;
+    background: #e2e8f0;
+    border-radius: 999px;
+    overflow: hidden;
+  }
+  [data-theme="dark"] .ob-progress-track { background: #27272a; }
+  .ob-progress-fill {
+    height: 100%;
+    width: 33%;
+    background: linear-gradient(90deg, #3b82f6, #6366f1);
+    border-radius: 999px;
+    transition: width 0.3s ease;
+  }
+
+  /* Step layout */
+  .ob-step { display: none; }
+  .ob-step.active { display: block; }
+
+  .ob-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 999px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    background: rgba(37, 99, 235, 0.1);
+    color: #2563eb;
+    margin-bottom: 0.75rem;
+  }
+  .ob-title {
+    font-size: 1.45rem;
+    font-weight: 800;
+    margin: 0 0 0.4rem;
+    letter-spacing: -0.025em;
+    color: inherit;
+  }
+  .ob-sub {
+    font-size: 0.88rem;
+    color: #64748b;
+    line-height: 1.45;
+    margin: 0 0 1.5rem;
+  }
+  [data-theme="dark"] .ob-sub { color: #a1a1aa; }
+
+  /* Form Elements */
+  .ob-form-group {
+    margin-bottom: 1.25rem;
+    text-align: left;
+  }
+  .ob-label {
+    display: block;
+    font-size: 0.82rem;
+    font-weight: 700;
+    color: inherit;
+    margin-bottom: 0.45rem;
+  }
+  .ob-select, .ob-input {
+    width: 100%;
+    padding: 0.75rem 0.9rem;
+    border-radius: 12px;
+    border: 1.5px solid #cbd5e1;
+    font-size: 0.92rem;
+    background: #ffffff;
+    color: #1e293b;
+    box-sizing: border-box;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  [data-theme="dark"] .ob-select, [data-theme="dark"] .ob-input {
+    background: #27272a;
+    border-color: #3f3f46;
+    color: #f4f4f5;
+  }
+  .ob-select:focus, .ob-input:focus {
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+  }
+
+  /* Micro celebration badge */
+  .ob-delight-box {
+    display: none;
+    background: #f0fdf4;
+    border: 1px solid #bbf7d0;
+    color: #166534;
+    padding: 0.65rem 0.85rem;
+    border-radius: 12px;
+    font-size: 0.82rem;
+    font-weight: 600;
+    line-height: 1.4;
+    margin-top: 0.75rem;
+    animation: obFadeIn 0.25s ease;
+  }
+  [data-theme="dark"] .ob-delight-box {
+    background: rgba(22, 101, 52, 0.2);
+    border-color: rgba(34, 197, 94, 0.3);
+    color: #86efac;
+  }
+  @keyframes obFadeIn { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: translateY(0); } }
+
+  /* Role toggles */
+  .ob-role-wrap {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0.75rem;
+    margin-bottom: 1.25rem;
+  }
+  .ob-role-btn {
+    border: 1.5px solid #cbd5e1;
+    border-radius: 12px;
+    padding: 0.75rem;
+    background: transparent;
+    cursor: pointer;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.88rem;
+    color: inherit;
+    transition: all 0.2s ease;
+  }
+  [data-theme="dark"] .ob-role-btn { border-color: #3f3f46; }
+  .ob-role-btn.active {
+    border-color: #3b82f6;
+    background: rgba(59, 130, 246, 0.08);
+    color: #2563eb;
+  }
+  [data-theme="dark"] .ob-role-btn.active {
+    background: rgba(59, 130, 246, 0.18);
+    color: #60a5fa;
+  }
+
+  /* Action buttons */
+  .ob-actions {
+    display: flex;
+    gap: 0.75rem;
+    margin-top: 1.75rem;
+  }
+  .ob-btn {
+    flex: 1;
+    padding: 0.85rem;
+    border-radius: 14px;
+    font-size: 0.95rem;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    transition: transform 0.1s, opacity 0.2s, background 0.2s;
+  }
+  .ob-btn:active { transform: scale(0.98); }
+  .ob-btn-primary {
+    background: #0071E3;
+    color: #ffffff;
+  }
+  .ob-btn-primary:hover { background: #0077ED; }
+  .ob-btn-primary:disabled { opacity: 0.5; cursor: not-allowed; }
+  .ob-btn-secondary {
+    flex: 0 0 auto;
+    width: auto;
+    padding: 0.85rem 1.15rem;
+    background: #f1f5f9;
+    color: #475569;
+  }
+  [data-theme="dark"] .ob-btn-secondary { background: #27272a; color: #a1a1aa; }
+  .ob-skip-btn {
+    display: block;
+    width: 100%;
+    margin-top: 0.85rem;
+    background: none;
+    border: none;
+    color: #94a3b8;
+    font-size: 0.82rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+  }
+  .ob-skip-btn:hover { text-decoration: underline; }
+</style>
+
+<div id="onboardingModal" class="onboarding-backdrop" role="dialog" aria-modal="true" aria-labelledby="obModalTitle">
+  <div class="onboarding-card">
+    <input type="hidden" id="obCsrfToken" name="csrf_token" value="{{ csrf_token() if csrf_token is defined else '' }}">
+
+    <!-- Progress Tracker (Hidden on Intro / Celebration) -->
+    <div id="obProgressWrap" class="ob-progress-wrap" style="display:none;">
+      <div class="ob-progress-meta">
+        <span id="obStepIndicator">Step 1 of 3</span>
+        <span id="obStepName">Academic Home</span>
+      </div>
+      <div class="ob-progress-track">
+        <div id="obProgressFill" class="ob-progress-fill"></div>
+      </div>
+    </div>
+
+    <!-- ── SCREEN 0: WELCOME & PERKS INTRO ── -->
+    <div id="obStep0" class="ob-step active">
+      <div class="ob-badge">✨ Student Welcome</div>
+      <h2 id="obModalTitle" class="ob-title">Welcome to AbhiHub! 🎓</h2>
+      <p class="ob-sub">Let's set up your personal exam vault so your question papers, handwritten notes, and campus quota are calibrated for you.</p>
+
+      <div style="background: rgba(37,99,235,0.06); border: 1px solid rgba(37,99,235,0.18); border-radius: 16px; padding: 1.15rem; margin-bottom: 1.5rem; text-align: left;">
+        <div style="font-size: 0.88rem; font-weight: 700; color: #1e40af; margin-bottom: 0.6rem;">What unlocks for you:</div>
+        <div style="display: flex; flex-direction: column; gap: 0.45rem; font-size: 0.82rem; color: #334155;">
+          <div>🎁 <strong>{{ starting_views or (user_data.get('paper_quota_remaining', 5) if user_data else 5) }} Free Study Views:</strong> Instant unlock (up to 20 for campus emails)</div>
+          <div>📚 <strong>Curriculum Match:</strong> Branch &amp; semester archives</div>
+          <div>⚡ <strong>Zero Clutter:</strong> Only relevant papers for your exams</div>
+        </div>
+      </div>
+
+      <button type="button" class="ob-btn ob-btn-primary" style="width:100%;" onclick="OnboardingWizard.goToStep(1)">
+        Begin 1-Minute Setup →
+      </button>
+      <button type="button" class="ob-skip-btn" onclick="OnboardingWizard.dismiss()">
+        I'll set this up later in Settings
+      </button>
+    </div>
+
+    <!-- ── STEP 1: ROLE & COLLEGE (Hierarchy 1) ── -->
+    <div id="obStep1" class="ob-step">
+      <div class="ob-badge">Step 1 • Institution</div>
+      <h2 class="ob-title">Select Your College</h2>
+      <p class="ob-sub">Your papers and notes will be mapped to your campus syllabus.</p>
+
+      <div class="ob-form-group">
+        <label class="ob-label">I am a</label>
+        <div class="ob-role-wrap">
+          <button type="button" class="ob-role-btn active" id="obRoleStudent" onclick="OnboardingWizard.setRole('student')">👨‍🎓 Student</button>
+          <button type="button" class="ob-role-btn" id="obRoleTeacher" onclick="OnboardingWizard.setRole('teacher')">👨‍🏫 Faculty</button>
+        </div>
+      </div>
+
+      <div class="ob-form-group">
+        <label for="obCollegeSelect" class="ob-label">College / University <span style="color:#ef4444;">*</span></label>
+        <select id="obCollegeSelect" class="ob-select" onchange="OnboardingWizard.onCollegeSelected(this)">
+          <option value="">Loading colleges...</option>
+        </select>
+        <div id="obCollegeDelight" class="ob-delight-box"></div>
+      </div>
+
+      <div class="ob-actions">
+        <button type="button" class="ob-btn ob-btn-secondary" onclick="OnboardingWizard.goToStep(0)">← Back</button>
+        <button type="button" id="obStep1Next" class="ob-btn ob-btn-primary" disabled onclick="OnboardingWizard.goToStep(2)">
+          Next: Choose Program →
+        </button>
+      </div>
+    </div>
+
+    <!-- ── STEP 2: DEGREE & BRANCH (Hierarchy 2) ── -->
+    <div id="obStep2" class="ob-step">
+      <div class="ob-badge">Step 2 • Program</div>
+      <h2 class="ob-title">Degree &amp; Branch</h2>
+      <p class="ob-sub">Tailors exam papers specifically to your engineering branch.</p>
+
+      <div class="ob-form-group">
+        <label for="obDegreeSelect" class="ob-label">Degree / Course <span style="color:#ef4444;">*</span></label>
+        <select id="obDegreeSelect" class="ob-select" onchange="OnboardingWizard.onDegreeSelected()">
+          <option value="B.Tech" selected>B.Tech / B.E.</option>
+          <option value="M.Tech">M.Tech</option>
+          <option value="MBA">MBA</option>
+          <option value="MCA">MCA</option>
+          <option value="BCA">BCA</option>
+          <option value="BBA">BBA</option>
+          <option value="Diploma">Diploma</option>
+          <option value="Other">Other</option>
+        </select>
+      </div>
+
+      <div class="ob-form-group">
+        <label for="obBranchSelect" class="ob-label">Branch / Department <span style="color:#ef4444;">*</span></label>
+        <select id="obBranchSelect" class="ob-select" onchange="OnboardingWizard.onBranchSelected(this)">
+          <option value="">Loading branches...</option>
+        </select>
+        <div id="obBranchDelight" class="ob-delight-box"></div>
+      </div>
+
+      <div class="ob-actions">
+        <button type="button" class="ob-btn ob-btn-secondary" onclick="OnboardingWizard.goToStep(1)">← Back</button>
+        <button type="button" id="obStep2Next" class="ob-btn ob-btn-primary" disabled onclick="OnboardingWizard.goToStep(3)">
+          Next: Year &amp; Semester →
+        </button>
+      </div>
+    </div>
+
+    <!-- ── STEP 3: YEAR & SEMESTER (Hierarchy 3) ── -->
+    <div id="obStep3" class="ob-step">
+      <div class="ob-badge">Step 3 • Academic Stage</div>
+      <h2 class="ob-title">Current Year &amp; Semester</h2>
+      <p class="ob-sub">We'll highlight upcoming semester resources on your homepage.</p>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap:0.75rem;">
+        <div class="ob-form-group">
+          <label for="obYearSelect" class="ob-label">Current Year <span style="color:#ef4444;">*</span></label>
+          <select id="obYearSelect" class="ob-select" onchange="OnboardingWizard.onYearChange(this.value)">
+            <option value="1">1st Year</option>
+            <option value="2">2nd Year</option>
+            <option value="3" selected>3rd Year</option>
+            <option value="4">4th Year</option>
+          </select>
+        </div>
+
+        <div class="ob-form-group">
+          <label for="obJoiningYear" class="ob-label">Joining Year</label>
+          <input type="number" id="obJoiningYear" class="ob-input" value="2024" min="2018" max="2030">
+        </div>
+      </div>
+
+      <div class="ob-form-group">
+        <label for="obSemSelect" class="ob-label">Current Semester <span style="color:#ef4444;">*</span></label>
+        <select id="obSemSelect" class="ob-select" onchange="OnboardingWizard.onSemChange(this.value)">
+          <option value="5" selected>Semester 5</option>
+          <option value="6">Semester 6</option>
+        </select>
+      </div>
+
+      <div id="obFinalDelight" class="ob-delight-box" style="display:block;">
+        🚀 Vault ready: {{ starting_views or (user_data.get('paper_quota_remaining', 5) if user_data else 5) }} free views + papers mapped for your semester!
+      </div>
+
+      <div class="ob-actions">
+        <button type="button" class="ob-btn ob-btn-secondary" onclick="OnboardingWizard.goToStep(2)">← Back</button>
+        <button type="button" id="obSubmitBtn" class="ob-btn ob-btn-primary" onclick="OnboardingWizard.submitProfile()">
+          Complete &amp; Enter Vault 🎉
+        </button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  window.OnboardingWizard = (function() {
+    let currentRole = 'student';
+    let collegesLoaded = false;
+    let branchesLoaded = false;
+
+    function open() {
+      const modal = document.getElementById('onboardingModal');
+      if (modal) {
+        modal.classList.add('active');
+        loadDropdownData();
+      }
+    }
+
+    function dismiss() {
+      const modal = document.getElementById('onboardingModal');
+      if (modal) modal.classList.remove('active');
+    }
+
+    function setRole(role) {
+      currentRole = role;
+      document.getElementById('obRoleStudent')?.classList.toggle('active', role === 'student');
+      document.getElementById('obRoleTeacher')?.classList.toggle('active', role === 'teacher');
+    }
+
+    async function loadDropdownData() {
+      if (!collegesLoaded) {
+        try {
+          const res = await fetch('/api/colleges');
+          const data = await res.json();
+          if (data && data.colleges) {
+            const sel = document.getElementById('obCollegeSelect');
+            sel.innerHTML = '<option value="">Select your College...</option>' +
+              data.colleges.map(c => `<option value="${c.id}">${c.name}${c.abbreviation ? ' (' + c.abbreviation + ')' : ''}</option>`).join('');
+            collegesLoaded = true;
+          }
+        } catch(e) {}
+      }
+
+      if (!branchesLoaded) {
+        try {
+          const res = await fetch('/api/branches');
+          const data = await res.json();
+          if (data && data.branches) {
+            const bSel = document.getElementById('obBranchSelect');
+            bSel.innerHTML = '<option value="">Select your Branch...</option>' +
+              data.branches.map(b => `<option value="${b.branch_id || b.id}">${b.name || b.branch_name}${b.short_name ? ' (' + b.short_name + ')' : ''}</option>`).join('');
+            branchesLoaded = true;
+          }
+        } catch(e) {}
+      }
+    }
+
+    function onCollegeSelected(sel) {
+      const delight = document.getElementById('obCollegeDelight');
+      const nextBtn = document.getElementById('obStep1Next');
+      if (sel.value) {
+        if (nextBtn) nextBtn.disabled = false;
+        if (delight) {
+          const selectedText = sel.options[sel.selectedIndex].text;
+          delight.style.display = 'block';
+          delight.innerHTML = '🎓 <strong>Campus Selected:</strong> ' + selectedText + '<br>✨ Study Views unlocked for your campus vault!';
+        }
+      } else {
+        if (nextBtn) nextBtn.disabled = true;
+        if (delight) delight.style.display = 'none';
+      }
+    }
+
+    function onBranchSelected(sel) {
+      const delight = document.getElementById('obBranchDelight');
+      const nextBtn = document.getElementById('obStep2Next');
+      if (sel.value) {
+        if (nextBtn) nextBtn.disabled = false;
+        if (delight) {
+          const selectedText = sel.options[sel.selectedIndex].text;
+          delight.style.display = 'block';
+          delight.innerHTML = '🎯 <strong>Curriculum Synced:</strong> ' + selectedText + '<br>Exam archives and top student notes mapped.';
+        }
+      } else {
+        if (nextBtn) nextBtn.disabled = true;
+        if (delight) delight.style.display = 'none';
+      }
+    }
+
+    function onYearChange(year) {
+      const semSel = document.getElementById('obSemSelect');
+      const joiningIn = document.getElementById('obJoiningYear');
+      const currentCalendarYear = new Date().getFullYear();
+      const yrNum = parseInt(year, 10) || 1;
+
+      if (joiningIn) joiningIn.value = currentCalendarYear - (yrNum - 1);
+
+      if (semSel) {
+        const s1 = (yrNum * 2) - 1;
+        const s2 = yrNum * 2;
+        semSel.innerHTML = `<option value="${s1}" selected>Semester ${s1}</option><option value="${s2}">Semester ${s2}</option>`;
+      }
+    }
+
+    function goToStep(step) {
+      document.querySelectorAll('.ob-step').forEach(el => el.classList.remove('active'));
+      const target = document.getElementById('obStep' + step);
+      if (target) target.classList.add('active');
+
+      const progressWrap = document.getElementById('obProgressWrap');
+      const fill = document.getElementById('obProgressFill');
+      const indicator = document.getElementById('obStepIndicator');
+      const stepName = document.getElementById('obStepName');
+
+      if (step === 0) {
+        if (progressWrap) progressWrap.style.display = 'none';
+      } else {
+        if (progressWrap) progressWrap.style.display = 'block';
+        if (step === 1) {
+          if (fill) fill.style.width = '33%';
+          if (indicator) indicator.textContent = 'Step 1 of 3';
+          if (stepName) stepName.textContent = 'Academic Home';
+        } else if (step === 2) {
+          if (fill) fill.style.width = '66%';
+          if (indicator) indicator.textContent = 'Step 2 of 3';
+          if (stepName) stepName.textContent = 'Degree & Branch';
+        } else if (step === 3) {
+          if (fill) fill.style.width = '100%';
+          if (indicator) indicator.textContent = 'Step 3 of 3';
+          if (stepName) stepName.textContent = 'Year & Semester';
+        }
+      }
+    }
+
+    async function submitProfile() {
+      const btn = document.getElementById('obSubmitBtn');
+      if (btn) { btn.disabled = true; btn.textContent = 'Personalizing Vault...'; }
+
+      const collegeId = document.getElementById('obCollegeSelect')?.value;
+      const branchId = document.getElementById('obBranchSelect')?.value;
+      const degree = document.getElementById('obDegreeSelect')?.value || 'B.Tech';
+      const year = document.getElementById('obYearSelect')?.value || '1';
+      const joiningYear = document.getElementById('obJoiningYear')?.value || new Date().getFullYear().toString();
+
+      const currentName = (window.__CURRENT_USER__ && window.__CURRENT_USER__.name) || '';
+      const fd = new FormData();
+      if (currentName) fd.append('student_name', currentName);
+      fd.append('college_id', collegeId);
+      fd.append('branch_id', branchId);
+      fd.append('degree', degree);
+      fd.append('user_role', currentRole);
+      fd.append('pursuing_year', year);
+      fd.append('year_of_joining', joiningYear);
+
+      const csrfToken = document.getElementById('obCsrfToken')?.value ||
+                        document.querySelector('input[name="csrf_token"]')?.value ||
+                        document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') ||
+                        '';
+      if (csrfToken) {
+        fd.append('csrf_token', csrfToken);
+      }
+
+      const headers = { 'X-Requested-With': 'XMLHttpRequest' };
+      if (csrfToken) {
+        headers['X-CSRFToken'] = csrfToken;
+      }
+
+      try {
+        const res = await fetch('/account/update', {
+          method: 'POST',
+          body: fd,
+          headers: headers
+        });
+
+        if (res.ok) {
+          if (btn) btn.textContent = '🎉 Vault Ready!';
+          setTimeout(() => {
+            window.location.reload();
+          }, 800);
+        } else {
+          throw new Error('Could not save details');
+        }
+      } catch(e) {
+        if (btn) { btn.disabled = false; btn.textContent = 'Try Again'; }
+        alert('Could not save profile details right now. You can also update them in Settings.');
+      }
+    }
+
+    // Auto-trigger if user is logged in but hasn't completed college/profile
+    document.addEventListener('DOMContentLoaded', function() {
+      const u = window.__CURRENT_USER__;
+      const path = window.location.pathname;
+      const isAuthOrPayment = /^\/(login|signup|register|payment|checkout|auth|forgot-password|reset-password)/i.test(path);
+
+      if (u && u.uid && !u.college && !isAuthOrPayment) {
+        setTimeout(open, 800);
+      }
+    });
+
+    return {
+      open,
+      dismiss,
+      setRole,
+      goToStep,
+      onCollegeSelected,
+      onBranchSelected,
+      onDegreeSelected: () => {},
+      onYearChange,
+      submitProfile
+    };
+  })();
+</script>

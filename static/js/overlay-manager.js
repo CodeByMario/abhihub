@@ -83,6 +83,9 @@
     if (_activeOverlay) return; // something already showing
     if (_queue.length === 0) return;
 
+    const isAuthOrPayment = /^\/(login|signup|register|payment|checkout|auth|forgot-password|reset-password)/i.test(window.location.pathname);
+    if (isAuthOrPayment) return;
+
     const next = _queue[0];
 
     // Suppress non-critical overlays during studying

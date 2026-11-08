@@ -1,4 +1,6 @@
 {% set hide_header_tools = true %}
+{% set hide_popups = true %}
+{% set is_auth_page = true %}
 {% extends 'p_struct.html' %}
 
 {% block page_head %}
@@ -355,7 +357,7 @@
     <!-- Password Field -->
     <div class="input-field-wrap">
       <label for="password-input" class="input-label-text">Password</label>
-      <input type="password" id="password-input" class="p-input-field" placeholder="••••••••" required autocomplete="new-password">
+      <input type="password" id="password-input" class="p-input-field" placeholder="Min. 6 chars with special character (e.g. !@#$)" required autocomplete="new-password">
       <div id="password-error-message" class="error-msg" role="alert" aria-live="assertive"></div>
     </div>
 

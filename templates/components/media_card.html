@@ -53,7 +53,11 @@
           {% if is_paid %}
             <span class="arch-price-tag paid">₹{{ price_val|int if price_val == price_val|int else price_val }}</span>
           {% else %}
-            <span class="arch-price-tag">Free</span>
+            {% set raw_sz = file.get('file_size') or file.get('size') or 1500000 %}
+            {% set fsize = raw_sz|float if (raw_sz|float > 0) else 1500000 %}
+            {% set mb = (fsize / 1048576)|round(1) %}
+            {% set cr = 3 if mb > 25 else (2 if mb > 10 else 1) %}
+            <span class="arch-price-tag" title="Costs {{ cr }} Credit{{ 's' if cr > 1 else '' }} to unlock ({{ mb }} MB egress + 35% safety buffer)">⚡ {{ cr }} Cr</span>
           {% endif %}
         </div>
       </div>

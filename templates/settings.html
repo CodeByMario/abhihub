@@ -7,46 +7,60 @@
 {% endblock %}
 
 {% block content %}
-<!-- Apple System Settings Header -->
-<div class="st-hero">
-  <div class="st-hero-inner">
-    <div class="st-hero-user">
-      <div class="st-hero-avatar">
-        {{ (user.get('name') or user.get('email') or 'U')[:1] | upper }}
-      </div>
-      <div class="st-hero-titles">
-        <h1>Settings</h1>
-        <p>{{ user.get('name') or 'Account' }} &bull; {{ user.get('email') }} &bull; <span style="text-transform: capitalize;">{{ user_data.get('role', 'student') }}</span></p>
+<div class="st-page-shell">
+  <!-- Accessibility: Skip Link -->
+  <a href="#stMainContent" style="position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden;" onfocus="this.style.position='static';this.style.width='auto';this.style.height='auto';this.style.padding='8px 16px';this.style.background='var(--st-navy)';this.style.color='#fff';">
+    Skip to settings content
+  </a>
+
+  <!-- Account Profile Header (AbhiHub Standard v2.0.0) -->
+  <header class="st-hero" role="banner">
+    <div class="st-hero-inner">
+      <div class="st-hero-user">
+        <div class="st-hero-avatar" aria-hidden="true">
+          {{ (user.get('name') or user.get('email') or 'U')[:1] | upper }}
+        </div>
+        <div class="st-hero-titles">
+          <div style="display:flex;align-items:center;gap:0.6rem;flex-wrap:wrap;">
+            <h1 style="margin:0;font-size:1.6rem;font-weight:700;">{{ user.get('name') or 'Account' }}</h1>
+            <span class="st-badge st-badge-primary">
+              {{ user_data.get('role', 'student') }}
+            </span>
+          </div>
+          <p style="margin:0.25rem 0 0;font-size:0.875rem;color:var(--st-text-muted);">
+            {{ user.get('email') }} {% if profile and profile.college_name %}&bull; {{ profile.college_name }}{% endif %}
+          </p>
+        </div>
       </div>
     </div>
-  </div>
-</div>
+  </header>
 
-<div class="st-container">
-  <div class="st-grid">
+  <!-- Main Settings Workspace -->
+  <div class="st-container">
+    <div class="st-grid">
 
-    <!-- Sidebar Navigation -->
-    {% include 'settings/_nav.html' %}
+      <!-- Navigation Sidebar -->
+      <aside class="st-sidebar" aria-label="Settings categories">
+        {% include 'settings/_nav.html' %}
+      </aside>
 
-    <!-- Main Content Sections -->
-    <div class="st-content">
-      {% include 'settings/_my_account.html' %}
-      {% include 'settings/_notifications.html' %}
-      {% include 'settings/_study_credits.html' %}
-      {% include 'settings/_payout.html' %}
-      {% include 'settings/_transactions.html' %}
-      {% include 'settings/_privacy.html' %}
-      {% include 'settings/_app.html' %}
-      {% include 'settings/_danger.html' %}
-      {% include 'settings/_ai_assistant.html' %}
+      <!-- Main Content Sections (6 Unified Functional Domains) -->
+      <main class="st-content" id="stMainContent" role="main" aria-label="Settings section details">
+        {% include 'settings/_my_account.html' %}
+        {% include 'settings/_study_credits.html' %}
+        {% include 'settings/_payout.html' %}
+        {% include 'settings/_notifications.html' %}
+        {% include 'settings/_ai_assistant.html' %}
+        {% include 'settings/_app.html' %}
+      </main>
+
     </div>
-
   </div>
+
+  <!-- Toast Notification Container (WCAG 2.2 Live Region) -->
+  <div id="st-toast" class="st-toast" role="status" aria-live="polite"></div>
+
+  <!-- Settings Logic Script -->
+  <script src="{{ url_for('static', filename='js/settings.js') }}"></script>
 </div>
-
-<!-- Toast Container -->
-<div id="st-toast" class="st-toast" role="status" aria-live="polite"></div>
-
-<!-- Settings Logic Script -->
-<script src="{{ url_for('static', filename='js/settings.js') }}"></script>
 {% endblock %}

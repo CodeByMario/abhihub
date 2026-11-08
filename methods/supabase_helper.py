@@ -2015,11 +2015,23 @@ def create_or_update_student_profile(user_id: str, profile_data: dict) -> Dict:
 
         logging.info("[Profile] Upserting profile")
 
+        full_name = (profile_data.get('student_name') or '').strip()
+        if not full_name:
+            try:
+                existing = client.table('profiles').select('full_name').eq('id', user_id).limit(1).execute()
+                if existing.data and existing.data[0].get('full_name'):
+                    full_name = existing.data[0]['full_name']
+            except Exception:
+                pass
+        if not full_name:
+            email_val = profile_data.get('student_email') or ''
+            full_name = email_val.split('@')[0] if email_val else 'Student'
+
         prof_payload = {
             'id':            user_id,
             'role':          role,
             'email':         profile_data.get('student_email'),
-            'full_name':     profile_data.get('student_name'),
+            'full_name':     full_name,
             'college_id':    valid_college_id,
             'department_id': valid_department_id,
             'phone_number':  str(profile_data.get('student_moblie_number', '') or ''),

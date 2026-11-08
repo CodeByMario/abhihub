@@ -133,32 +133,102 @@ def _get_user_standing(user_id, leaderboard_data):
 
 @library_bp.route('/leaderboard', methods=['GET'])
 def leaderboard():
-    """Global Gamification Leaderboard — Apple UI/UX redesign with personal standing."""
+    """Global Gamification Leaderboard with Apple HIG UI/UX, rate limiting, multi-level caching & pagination."""
     import app
     cache = app.cache
 
+    # 1. Rate Limiting Protection (per user or per IP)
+    user_info = session.get('user')
+    user_uid = (user_info.get('uid') or user_info.get('id')) if isinstance(user_info, dict) else None
+    principal = str(user_uid or (user_info.get('email') if isinstance(user_info, dict) else None) or request.remote_addr or 'anon').strip().lower()
+    kind = 'user' if user_uid else 'ip'
+    max_reqs = 120 if user_uid else 60
+
+    try:
+        from methods.api_rate_limiter import check_api_rate_limit
+        allowed, retry_after = check_api_rate_limit(
+            f"leaderboard_{kind}",
+            principal,
+            max_requests=max_reqs,
+            window_seconds=60
+        )
+        if not allowed:
+            if request.headers.get('Accept') == 'application/json' or request.args.get('format') == 'json':
+                return jsonify({
+                    'success': False,
+                    'message': 'Rate limit exceeded. Please wait a moment and try again.',
+                    'retry_after': retry_after
+                }), 429, {'Retry-After': str(retry_after)}
+            resp = make_response(render_template(
+                'p_error.html',
+                error_message="Too Many Requests",
+                error_description=f"Please wait {retry_after} seconds before refreshing the leaderboard."
+            ))
+            resp.status_code = 429
+            resp.headers['Retry-After'] = str(retry_after)
+            return resp
+    except Exception:
+        pass  # Fail open if rate limiter encounters transient error
+
+    # 2. Multi-Level Caching (L1/L2)
     college_id = request.args.get('college_id')
-    cache_key = f"leaderboard:{college_id or 'all'}"
+    cache_key = f"leaderboard:v4:{college_id or 'all'}"
 
     def fetch_lb():
-        result = get_leaderboard_data(college_id=college_id, limit=50)
+        result = get_leaderboard_data(college_id=college_id, limit=100)
         return result.get('data', []) if result.get('success') else []
 
-    leaderboard_data = cache.get_cached(cache_key, level=cache.L2, ttl=cache.LONG, fetcher=fetch_lb)
-    user_info = session.get('user')
-    user_uid = (user_info.get('uid') or user_info.get('id')) if user_info else None
+    leaderboard_data = cache.get_cached(cache_key, level=cache.L2, ttl=cache.LONG, fetcher=fetch_lb) or []
     user_standing = _get_user_standing(user_uid, leaderboard_data) if user_uid else None
 
     # Guarantee uid field exists for template checks
     if user_info and user_uid and 'uid' not in user_info:
         user_info['uid'] = user_uid
 
+    # 3. Server-side & Query-driven Pagination
+    try:
+        page = max(1, int(request.args.get('page', 1)))
+    except (ValueError, TypeError):
+        page = 1
+    try:
+        per_page = min(50, max(5, int(request.args.get('per_page', 20))))
+    except (ValueError, TypeError):
+        per_page = 20
+
+    total_items = len(leaderboard_data)
+    total_pages = max(1, (total_items + per_page - 1) // per_page)
+    page = min(page, total_pages)
+
+    start_idx = (page - 1) * per_page
+    end_idx = min(start_idx + per_page, total_items)
+    paged_items = leaderboard_data[start_idx:end_idx]
+
+    # JSON response support for dynamic pagination or mobile clients
+    if request.headers.get('Accept') == 'application/json' or request.args.get('format') == 'json':
+        return jsonify({
+            'success': True,
+            'page': page,
+            'per_page': per_page,
+            'total_items': total_items,
+            'total_pages': total_pages,
+            'data': paged_items
+        }), 200
+
     response = make_response(render_template(
         'leaderboard.html',
         leaderboard=leaderboard_data,
+        paged_leaderboard=paged_items,
+        current_page=page,
+        total_pages=total_pages,
+        total_items=total_items,
+        per_page=per_page,
+        start_idx=start_idx + 1 if total_items > 0 else 0,
+        end_idx=end_idx,
+        college_id=college_id,
         current_user=user_info,
         user_standing=user_standing
     ))
+
     if user_info:
         response.headers['Cache-Control'] = 'private, no-cache, no-store, must-revalidate'
     else:
@@ -213,7 +283,7 @@ def pyq_landing_legacy_redirect():
 def search_page():
     """Public search page. Accepts ?q=... to prefill + auto-run search on load."""
     q = request.args.get('q', '').strip()
-    return render_template('site/search.html', initial_query=q)
+    return render_template('p_search.html', initial_query=q)
 
 
 def _canonical_college_redirect(college, requested_slug, suffix=''):
@@ -697,13 +767,68 @@ def resource_landing(slug):
 
     if not suggested_docs:
         try:
+            select_rich_fields = (
+                'id, title, document_category, file_type, file_url, price, is_paid, view_count, '
+                'subjects(name, subject_code), colleges(name, abbreviation), '
+                'uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)'
+            )
             if subj_id and client:
-                sug_res = client.table('documents').select('id, title, file_type, view_count, uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)').eq('subject_id', subj_id).neq('id', doc_id).limit(4).execute()
+                sug_res = client.table('documents').select(select_rich_fields).eq('subject_id', subj_id).neq('id', doc_id).limit(4).execute()
                 suggested_docs = sug_res.data or []
+
+            # If fewer than 4 suggestions, complement with documents from the same college
+            if len(suggested_docs) < 4 and client:
+                col_id = document.get('college_id')
+                q = client.table('documents').select(select_rich_fields).neq('id', doc_id)
+                if col_id:
+                    q = q.eq('college_id', col_id)
+                fb_res = q.order('created_at', desc=True).limit(4 - len(suggested_docs)).execute()
+                seen_s_ids = {d['id'] for d in suggested_docs}
+                for fd in (fb_res.data or []):
+                    if fd['id'] not in seen_s_ids:
+                        suggested_docs.append(fd)
+                        seen_s_ids.add(fd['id'])
+
             if cache and suggested_docs:
                 cache.set_cached(sug_cache_key, suggested_docs, ttl=600)
         except Exception as e:
             logging.error(f"[Supabase] Error fetching suggestions: {e}")
+
+    # Fetch recent files (user session recent trail + latest campus uploads)
+    recent_files = []
+    try:
+        recent_view_ids = [str(i) for i in session.get('recent_views', []) if str(i) != str(doc_id)]
+        if recent_view_ids and client:
+            rv_res = client.table('documents').select(
+                'id, title, document_category, file_type, file_url, price, is_paid, view_count, '
+                'subjects(name, subject_code), colleges(name, abbreviation), '
+                'uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)'
+            ).in_('id', recent_view_ids[:4]).execute()
+            recent_files = rv_res.data or []
+
+        if len(recent_files) < 4 and client:
+            rf_res = client.table('documents').select(
+                'id, title, document_category, file_type, file_url, price, is_paid, view_count, '
+                'subjects(name, subject_code), colleges(name, abbreviation), '
+                'uploader:profiles!documents_uploader_id_fkey(full_name, is_verified)'
+            ).neq('id', doc_id).order('created_at', desc=True).limit(4 - len(recent_files)).execute()
+            seen_r_ids = {d['id'] for d in recent_files}
+            for rd in (rf_res.data or []):
+                if rd['id'] not in seen_r_ids:
+                    recent_files.append(rd)
+                    seen_r_ids.add(rd['id'])
+    except Exception as e_rf:
+        logging.debug(f"[RESOURCE] Recent files fetch note: {e_rf}")
+
+    # Track doc_id in session recent_views
+    try:
+        cur_views = session.get('recent_views', [])
+        if doc_id in cur_views:
+            cur_views.remove(doc_id)
+        cur_views.insert(0, doc_id)
+        session['recent_views'] = cur_views[:12]
+    except Exception:
+        pass
 
     from methods.seo_helper import is_resource_indexable
     is_thin = not is_resource_indexable(document)
@@ -811,8 +936,9 @@ def resource_landing(slug):
         ai_chat_allowed=ai_chat_allowed,
         noindex=render_noindex,
         mock_study_kit=mock_study_kit,
-        custom_recommendations=custom_recommendations
-        ,redesign_preview=redesign_preview
+        custom_recommendations=custom_recommendations,
+        recent_files=recent_files,
+        redesign_preview=redesign_preview
     )
 
 

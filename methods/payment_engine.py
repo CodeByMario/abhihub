@@ -215,7 +215,7 @@ class PaymentEngine:
         # ── Document purchase → credit creator ──────────────────────────────
         elif doc_id:
             try:
-                self.credit_creator(order_id, doc_id, amount)
+                self.credit_creator(order_id, doc_id, amount, customer_id=user_id)
             except Exception as e:
                 log.error(f"[ENGINE] credit_creator failed: {e}")
 
@@ -271,10 +271,9 @@ class PaymentEngine:
             log.error(f"[ENGINE] credit_views error: {e}")
             return False
 
-    def deduct_view(self, user_id: str, doc_name: str = '') -> bool:
+    def deduct_view(self, user_id: str, doc_name: str = '', amount: int = 1) -> bool:
         """
-        Deduct 1 view credit when user opens a document.
-        Replaces log_credit_transaction(user_id, -1, 'spend', ...) call sites.
+        Deduct metered view credits (based on infra storage, egress bandwidth, and 35% safety buffer).
         """
         if not user_id:
             return False
@@ -282,9 +281,11 @@ class PaymentEngine:
             db = _db()
             if not db:
                 return False
+            amount = max(1, int(amount or 1))
+
             # Attempt atomic RPC first if present
             try:
-                rpc_res = db.rpc('consume_view_credit_atomic', {'p_user_id': user_id, 'p_doc_name': doc_name[:80] if doc_name else 'Document'}).execute()
+                rpc_res = db.rpc('consume_view_credit_atomic', {'p_user_id': user_id, 'p_doc_name': doc_name[:80] if doc_name else 'Document', 'p_amount': amount}).execute()
                 if rpc_res.data and isinstance(rpc_res.data, dict) and rpc_res.data.get('success'):
                     self._invalidate_quota_cache(user_id)
                     return True, rpc_res.data.get('new_balance', 0)
@@ -300,13 +301,13 @@ class PaymentEngine:
                 else:
                     from methods.domain_tier_service import classify_email
                     curr = classify_email(res.data[0].get('email', ''))['starting_views']
-            if curr <= 0:
+            if curr < amount:
                 return False, curr
-            new_bal = curr - 1
-            up_res = db.table('profiles').update({'paper_quota_remaining': new_bal}).eq('id', user_id).gt('paper_quota_remaining', 0).execute()
+            new_bal = curr - amount
+            up_res = db.table('profiles').update({'paper_quota_remaining': new_bal}).eq('id', user_id).gte('paper_quota_remaining', amount).execute()
             if not up_res.data:
-                return False, 0  # Race condition prevented: balance was already 0
-            self._ledger_credit(user_id, -1, 'view_spend',
+                return False, 0  # Race condition prevented: balance was already insufficient
+            self._ledger_credit(user_id, -amount, 'view_spend',
                                 ref_id=doc_name[:80] if doc_name else None,
                                 source='system', balance=new_bal)
             self._invalidate_quota_cache(user_id)
@@ -332,10 +333,10 @@ class PaymentEngine:
     # CREATOR WALLET (INR)
     # ──────────────────────────────────────────────────────────────────────────
 
-    def credit_creator(self, order_id: str, doc_id: str, gross_amount: float) -> bool:
+    def credit_creator(self, order_id: str, doc_id: str, gross_amount: float, customer_id: str = None) -> bool:
         """Credits creator's wallet with 30-day lock. Delegates to wallet_service."""
         from methods.wallet_service import credit_creator_for_purchase
-        ok, msg = credit_creator_for_purchase(order_id, doc_id, gross_amount)
+        ok, msg = credit_creator_for_purchase(order_id, doc_id, gross_amount, customer_id=customer_id)
         if not ok:
             log.error(f"[ENGINE] credit_creator failed: {msg}")
         return ok

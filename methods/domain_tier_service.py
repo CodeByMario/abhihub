@@ -103,7 +103,7 @@ def classify_email(email: str, created_at: Any = None) -> Dict[str, Any]:
     is_college = False
     if domain in APPROVED_COLLEGE_DOMAINS or domain.endswith('.raisoni.net'):
         is_college = True
-    elif domain.endswith(('.edu', '.ac.in', '.edu.in', '.res.in')):
+    elif domain.endswith(('.edu', '.ac.in', '.edu.in', '.res.in', '.edu.eu.org')) or '.edu.' in domain or domain.startswith('edu.'):
         is_college = True
 
     tier = 'college' if is_college else 'gmail'

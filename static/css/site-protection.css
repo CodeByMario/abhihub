@@ -1,20 +1,66 @@
 .abhihub-context-menu {
     position: fixed;
-    z-index: 2147483000;
+    z-index: 2147483647;
     min-width: 250px;
-    max-width: min(340px, calc(100vw - 16px));
-    padding: 12px;
-    border: 1px solid rgba(100, 116, 139, 0.35);
-    border-radius: 12px;
-    background: #fff;
-    color: #172033;
-    box-shadow: 0 12px 36px rgba(15, 23, 42, 0.2);
-    font: 14px/1.45 system-ui, sans-serif;
+    max-width: min(320px, calc(100vw - 24px));
+    padding: 14px;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.94);
+    backdrop-filter: blur(24px);
+    -webkit-backdrop-filter: blur(24px);
+    color: #1d1d1f;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.16);
+    font: 13.5px/1.45 -apple-system, BlinkMacSystemFont, "SF Pro Text", system-ui, sans-serif;
+    user-select: none;
 }
 
-[data-theme="dark"] .abhihub-context-menu { background: #111827; color: #f3f4f6; }
-.abhihub-context-menu[hidden] { display: none; }
-.abhihub-context-menu-title { margin: 0 0 8px; font-weight: 800; }
-.abhihub-context-menu-row { margin: 5px 0; overflow-wrap: anywhere; }
-.abhihub-context-menu-close { margin-top: 10px; padding: 6px 10px; border: 0; border-radius: 7px; cursor: pointer; }
+[data-theme="dark"] .abhihub-context-menu {
+    background: rgba(28, 28, 30, 0.94);
+    border-color: rgba(255, 255, 255, 0.12);
+    color: #f5f5f7;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+}
 
+.abhihub-context-menu[hidden] {
+    display: none !important;
+}
+
+.abhihub-context-menu-title {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 600;
+    color: inherit;
+    letter-spacing: -0.01em;
+}
+
+.abhihub-context-menu-row {
+    margin: 4px 0;
+    font-size: 12px;
+    color: #86868b;
+    overflow-wrap: anywhere;
+}
+
+.abhihub-context-menu-close {
+    margin-top: 10px;
+    padding: 6px 14px;
+    border: 1px solid rgba(0, 0, 0, 0.1);
+    border-radius: 980px;
+    background: rgba(0, 0, 0, 0.05);
+    color: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+}
+
+[data-theme="dark"] .abhihub-context-menu-close {
+    border-color: rgba(255, 255, 255, 0.14);
+    background: rgba(255, 255, 255, 0.08);
+}
+
+.abhihub-context-menu-close:hover {
+    background: #0071e3;
+    color: #fff;
+    border-color: #0071e3;
+}

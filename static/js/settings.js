@@ -23,16 +23,21 @@ function showStToast(msg, duration = 2500) {
       'earnings': 'payout',
       'payouts': 'payout',
       'wallet': 'payout',
-      'payments': 'transactions',
-      'history': 'transactions',
-      'transaction': 'transactions',
-      'privacy': 'privacy',
+      'payments': 'payout',
+      'history': 'payout',
+      'transaction': 'payout',
+      'transactions': 'payout',
+      'receipts': 'payout',
+      'receipt': 'payout',
+      'privacy': 'app',
       'app': 'app',
+      'system': 'app',
+      'security': 'app',
+      'danger': 'app',
+      'delete': 'app',
       'ai': 'ai-assistant',
       'models': 'ai-assistant',
-      'byok': 'ai-assistant',
-      'danger': 'danger',
-      'delete': 'danger'
+      'byok': 'ai-assistant'
     };
     return aliases[s] || s;
   }
@@ -57,11 +62,23 @@ function showStToast(msg, duration = 2500) {
       section.classList.toggle('active', section.id === 'section-' + sectionId);
     });
 
-    if (sectionId === 'payout' && typeof loadPayoutSettings === 'function') {
-      loadPayoutSettings();
+    if (sectionId === 'payout') {
+      const requestedRaw = String(rawSectionId || '').toLowerCase();
+      if (requestedRaw.includes('transaction') || requestedRaw.includes('receipt') || requestedRaw.includes('payment') || requestedRaw.includes('history')) {
+        if (typeof switchWalletView === 'function') switchWalletView('receipts');
+      } else {
+        if (typeof loadPayoutSettings === 'function') loadPayoutSettings();
+      }
     }
-    if (sectionId === 'transactions' && typeof loadTransactionHistory === 'function') {
-      loadTransactionHistory();
+    if (sectionId === 'app') {
+      const requestedRaw = String(rawSectionId || '').toLowerCase();
+      if (requestedRaw.includes('privacy')) {
+        const el = document.getElementById('st-privacy-card');
+        if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 100);
+      } else if (requestedRaw.includes('danger') || requestedRaw.includes('delete')) {
+        const el = document.getElementById('st-danger-card');
+        if (el) setTimeout(() => el.scrollIntoView({ behavior: 'smooth' }), 100);
+      }
     }
 
     if (updateUrl && history.replaceState) {

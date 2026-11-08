@@ -574,7 +574,7 @@ const SearchManager = {
 
             const collegeSelect = document.getElementById('searchCollege');
             if (collegeSelect && colData.success) {
-                collegeSelect.innerHTML = '<option value="">🏫 All Colleges</option>';
+                collegeSelect.innerHTML = '<option value="">All Colleges</option>';
                 colData.colleges.forEach(c => {
                     const opt = document.createElement('option');
                     opt.value = c.id || c.name;
@@ -976,66 +976,102 @@ const SearchManager = {
 
     createResultCard(file) {
         const card = document.createElement('a');
-        const typeClass = (file.type || 'default').toLowerCase();
-        card.className = 'ss-card ' + typeClass;
-        card.href = this.getFileUrl(file);
-
         const s = str => str ? str.toString()
             .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;').replace(/'/g, '&#039;') : '';
 
-        const recordId = s(file.record_id || '');
-        const isLiked = file.is_liked ? 'active' : '';
-        const isBookmarked = file.is_bookmarked ? 'active' : '';
-        const likeFill = file.is_liked ? 'currentColor' : 'none';
-        const bookmarkFill = file.is_bookmarked ? 'currentColor' : 'none';
+        const cat = (file.type || file.document_category || 'notes').toLowerCase();
+        const isPyq = cat.includes('pyq') || cat.includes('paper');
+        const isPractical = cat.includes('practical') || cat.includes('lab');
+        const typeClass = isPyq ? 'type-pyq' : (isPractical ? 'type-practical' : 'type-notes');
+        const typeLabel = isPyq ? 'PYQ' : (isPractical ? 'Lab' : 'Notes');
+
+        const docSvg = isPyq
+            ? `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>`
+            : (isPractical
+                ? `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 2v7.31"></path><path d="M14 9.3V2"></path><path d="M8.5 2h7"></path><path d="M14 9.3a6.5 6.5 0 1 1-4 0"></path></svg>`
+                : `<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>`
+            );
+
+        card.className = `arch-apple-card note-card ${typeClass}`;
+        card.href = this.getFileUrl(file);
+
         const isPaid = Boolean(file.is_paid && (parseFloat(file.price) > 0));
         const priceNum = parseFloat(file.price) || 0;
-        const premiumBadge = isPaid
-            ? `<span class="ss-badge ss-badge-premium" style="background:linear-gradient(135deg, #fef3c7, #fde68a);color:#92400e;border:1px solid #f59e0b;font-weight:800;padding:2px 8px;border-radius:6px;font-size:0.74rem;display:inline-flex;align-items:center;gap:3px;">⭐ Premium ₹${priceNum}</span>`
-            : '';
+        const priceBadge = isPaid
+            ? `<span class="arch-price-tag paid">₹${priceNum}</span>`
+            : `<span class="arch-price-tag">● Free</span>`;
+
+        const rawSubj = file.subject || file.title || 'Document';
+        const fileTitle = file['file-name'] || file.file_name || file.title || 'Verified Resource';
+        const displaySubject = (rawSubj && rawSubj !== 'General Engineering' && rawSubj !== 'General') ? rawSubj : fileTitle;
+        const subjCode = file.subject_code || file.search_code || file.branch || 'ENG';
+        const collegeAbbr = file.college || file.college_abbreviation || file.year || 'Verified';
+        const uploaderName = file.author || file.uploader_name || 'Student Contributor';
+        const initial = (uploaderName.charAt(0) || 'S').toUpperCase();
+        const viewsCount = file.view_count || 0;
 
         const tier = file.tier || 'exact';
         const matchBadge = file.match_reason
-            ? `<div class="ss-match-badge tier-${tier}" style="font-size:0.73rem;padding:3px 8px;border-radius:6px;font-weight:700;margin-top:0.4rem;display:inline-block;width:fit-content;border:1px solid;">✓ ${s(file.match_reason)}</div>`
+            ? `<div class="arch-match-pill tier-${tier}" style="display:inline-flex;align-items:center;gap:4px;font-size:11px;font-weight:600;padding:2px 8px;border-radius:980px;margin-bottom:8px;background:rgba(52, 199, 89, 0.1);color:#15803d;border:1px solid rgba(52, 199, 89, 0.2);">
+                <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                ${s(file.match_reason)}
+               </div>`
             : '';
 
+        card.setAttribute('data-title', (fileTitle || '').toLowerCase());
+        card.setAttribute('data-subject', displaySubject);
+        card.setAttribute('data-category', cat);
+
         card.innerHTML = `
-          <div class="ss-card-top">
-            <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">
-              <span class="ss-badge ${typeClass}">${s(file.type || 'File')}</span>
-              ${premiumBadge}
+          <!-- Visual Hero Plate -->
+          <div class="arch-card-plate">
+            <div class="arch-plate-top">
+              <div class="arch-doc-icon-wrap" aria-hidden="true">
+                ${docSvg}
+              </div>
+              <div class="arch-badge-group">
+                <span class="arch-type-pill">${typeLabel}</span>
+                ${priceBadge}
+              </div>
             </div>
-            <span style="font-size:0.72rem;color:#94a3b8;">${s(file.year || '')}</span>
+            <div class="arch-plate-bottom">
+              <span class="arch-code-capsule">${s(subjCode)}</span>
+              <span>•</span>
+              <span>${s(collegeAbbr)} Curriculum</span>
+            </div>
           </div>
-          <div class="ss-title">${s(file.subject)}</div>
-          <div class="ss-meta">${s(file['file-name'])}</div>
-          ${matchBadge}
-          <div class="ss-footer">
-            <span>👤 ${s(file.author)}</span>
-            <span class="ss-stats">
-              ${isPaid ? `<span style="color:#d97706;font-weight:800;font-size:0.8rem;margin-right:6px;">🔒 ₹${priceNum}</span>` : ''}
-              <span>👁 ${file.view_count || 0}</span>
-              <span>❤ ${file.like_count || 0}</span>
-            </span>
-          </div>
-          <div class="ss-actions" onclick="event.preventDefault();event.stopPropagation();">
-            <button class="ss-btn view-btn" data-id="${recordId}" onclick="window.location.href='${this.getFileUrl(file)}'">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-              <span class="count">${file.view_count > 0 ? file.view_count : ''}</span>
-            </button>
-            <button class="ss-btn like-btn ${isLiked}" data-id="${recordId}" onclick="window.toggleFileAction(this,'like')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="${likeFill}" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
-              <span class="count">${file.like_count > 0 ? file.like_count : ''}</span>
-            </button>
-            <button class="ss-btn comment-btn" data-id="${recordId}" onclick="window.openComments(event,'${recordId}')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-              <span class="count">${file.comment_count > 0 ? file.comment_count : ''}</span>
-            </button>
-            <button class="ss-btn bookmark-btn ${isBookmarked}" data-id="${recordId}" onclick="window.toggleFileAction(this,'bookmark')">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="${bookmarkFill}" stroke="currentColor" stroke-width="2"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-              <span class="count">${file.bookmark_count > 0 ? file.bookmark_count : ''}</span>
-            </button>
+
+          <!-- Card Body Content -->
+          <div class="arch-card-body">
+            <h3 class="arch-card-title">${s(displaySubject)}</h3>
+            <div class="arch-card-desc">
+              ${fileTitle && fileTitle !== displaySubject ? `
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+                <span>${s(fileTitle)}</span>
+              ` : `
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 14 14"></polyline></svg>
+                <span>Verified Semester Resource</span>
+              `}
+            </div>
+            ${matchBadge}
+            <div class="arch-card-footer">
+              <span class="arch-uploader-info" title="${s(uploaderName)}">
+                <span class="arch-avatar" aria-hidden="true">${s(initial)}</span>
+                <span>${s(uploaderName)}</span>
+                <svg class="arch-verified-icon" width="13" height="13" viewBox="0 0 24 24" fill="currentColor" aria-label="Verified Contributor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+              </span>
+              <div class="arch-footer-right">
+                <span class="arch-views-count" title="Total Views">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                  <span>${viewsCount}</span>
+                </span>
+                <div class="arch-action-cta">
+                  <span>View</span>
+                  <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+                </div>
+              </div>
+            </div>
           </div>
         `;
         return card;

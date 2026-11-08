@@ -53,6 +53,10 @@
 
         // Only inspect same-origin 401 responses
         if (isSameOrigin && response && response.status === 401) {
+            const curPath = window.location.pathname;
+            if (/^\/(login|signup|register|payment|checkout|auth|forgot-password|reset-password)/i.test(curPath)) {
+                return response;
+            }
             try {
                 const reqPath = new URL(requestUrl, window.location.origin).pathname;
                 // Exclude explicit credential validation endpoints (e.g. submitting login form)

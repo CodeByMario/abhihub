@@ -375,6 +375,51 @@ async function authSignUpWithGoogle() {
 
 
 
+
+function checkResendRateLimit(email) {
+    if (!email) return { allowed: false, message: 'Invalid email address.' };
+    const cleanEmail = email.trim().toLowerCase();
+    const storageKey = 'abhi_resend_limit_' + encodeURIComponent(cleanEmail);
+    const today = new Date().toISOString().slice(0, 10);
+    const MAX_PER_DAY = 3;
+    const MIN_INTERVAL_MS = 60 * 1000;
+
+    try {
+        const raw = localStorage.getItem(storageKey);
+        let record = raw ? JSON.parse(raw) : { date: today, count: 0, lastSent: 0 };
+        if (record.date !== today) {
+            record = { date: today, count: 0, lastSent: 0 };
+        }
+
+        const elapsed = Date.now() - (record.lastSent || 0);
+        if (elapsed < MIN_INTERVAL_MS) {
+            const waitSec = Math.ceil((MIN_INTERVAL_MS - elapsed) / 1000);
+            return {
+                allowed: false,
+                message: 'Please wait ' + waitSec + 's before requesting another verification email.'
+            };
+        }
+
+        if (record.count >= MAX_PER_DAY) {
+            return {
+                allowed: false,
+                message: 'Daily verification email limit reached (' + MAX_PER_DAY + '/' + MAX_PER_DAY + '). Please check spam or try again tomorrow.'
+            };
+        }
+
+        return {
+            allowed: true,
+            recordSend: () => {
+                record.count += 1;
+                record.lastSent = Date.now();
+                localStorage.setItem(storageKey, JSON.stringify(record));
+            }
+        };
+    } catch (e) {
+        return { allowed: true, recordSend: () => {} };
+    }
+}
+
 function authSignInWithEmail() {
     const email = emailInputEl?.value?.trim();
     const password = passwordInputEl?.value;
@@ -436,8 +481,14 @@ function authSignInWithEmail() {
                     errorMsgEmail.innerHTML = 'Email not confirmed yet. <a href="#" id="resend-login-confirm" style="color:#4285f4;text-decoration:underline;">Resend link</a>';
                     document.getElementById('resend-login-confirm')?.addEventListener('click', async (e) => {
                         e.preventDefault();
+                        const limit = checkResendRateLimit(email);
+                        if (!limit.allowed) {
+                            errorMsgEmail.textContent = limit.message;
+                            return;
+                        }
                         try {
                             await supabase.auth.resend({ type: 'signup', email: email });
+                            limit.recordSend();
                             errorMsgEmail.textContent = 'Confirmation link resent! Please check your inbox (and spam).';
                         } catch (resendErr) {
                             errorMsgEmail.textContent = resendErr.message || 'Could not resend email right now. Try again later.';
@@ -480,6 +531,11 @@ function authCreateAccountWithEmail() {
     }
     if (password.length < 6) {
         if (errorMsgPassword) errorMsgPassword.textContent = 'Password must be at least 6 characters';
+        return;
+    }
+    const hasSpecialChar = /[^A-Za-z0-9]/.test(password);
+    if (!hasSpecialChar) {
+        if (errorMsgPassword) errorMsgPassword.textContent = 'Password must contain at least one special character (e.g. !@#$%^&*)';
         return;
     }
 
@@ -565,8 +621,14 @@ function authCreateAccountWithEmail() {
                     if (resendLink) {
                         resendLink.addEventListener('click', async (ev) => {
                             ev.preventDefault();
+                            const limit = checkResendRateLimit(user.email);
+                            if (!limit.allowed) {
+                                errorMsgEmail.textContent = limit.message;
+                                return;
+                            }
                             try {
                                 await supabase.auth.resend({ type: 'signup', email: user.email });
+                                limit.recordSend();
                                 errorMsgEmail.innerHTML = '📨 Confirmation email resent. Check your inbox (and spam).';
                             } catch (e) {
                                 errorMsgEmail.textContent = 'Could not resend email. Try again later.';
@@ -592,7 +654,7 @@ function authCreateAccountWithEmail() {
             } else if (errStr.includes('invalid email')) {
                 if (errorMsgEmail) errorMsgEmail.textContent = 'Invalid email format';
             } else if (errStr.includes('password')) {
-                if (errorMsgPassword) errorMsgPassword.textContent = 'Password must be at least 6 characters';
+                if (errorMsgPassword) errorMsgPassword.textContent = error.message || 'Password must be at least 6 characters and contain a special character';
             } else if (errStr.includes('rate limit')) {
                 if (errorMsgEmail) errorMsgEmail.textContent = 'Too many signup attempts. Please try again later.';
             } else {

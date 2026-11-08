@@ -580,24 +580,9 @@
 
     const shellSearchBtn = document.getElementById('shellSearchBtn');
     if (shellSearchBtn) {
-        shellSearchBtn.addEventListener('click', function () {
-            let handled = false;
-            try {
-                const innerDoc = activeIframe.contentDocument || activeIframe.contentWindow.document;
-                const sec = innerDoc.getElementById('dashboardSearchSection') || innerDoc.querySelector('.container_search') || innerDoc.querySelector('.ss-search');
-                const inp = innerDoc.getElementById('searchFileName') || innerDoc.getElementById('heroSearchInput');
-                if (sec) {
-                    sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    if (inp) {
-                        setTimeout(() => inp.focus(), 350);
-                    }
-                    handled = true;
-                }
-            } catch (e) {}
-
-            if (!handled) {
-                navigateTo('/home', true);
-            }
+        shellSearchBtn.addEventListener('click', function (e) {
+            e.preventDefault();
+            navigateTo('/search', true);
         });
     }
 

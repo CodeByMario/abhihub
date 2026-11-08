@@ -1,47 +1,126 @@
+      <!-- System & Privacy Section -->
       <div class="st-section" id="section-app">
+        <!-- Appearance & Language Card -->
         <div class="st-card">
-          <h2><span class="st-card-icon"></span> Appearance</h2>
+          <h2>
+            <span class="st-card-icon" style="color:var(--st-navy);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"></circle><line x1="12" y1="1" x2="12" y2="3"></line><line x1="12" y1="21" x2="12" y2="23"></line><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line><line x1="1" y1="12" x2="3" y2="12"></line><line x1="21" y1="12" x2="23" y2="12"></line><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line></svg>
+            </span>
+            Appearance &amp; Display
+          </h2>
+          
           <div class="st-form-row">
-            <label for="selectTheme" class="st-form-label">Theme</label>
+            <label for="selectTheme" class="st-form-label">Theme Mode</label>
             <select class="st-form-select" id="selectTheme" onchange="saveTheme(this.value)">
-              <option value="system">System Default (auto)</option>
+              <option value="system">Auto / System Default</option>
               <option value="light">Light Mode</option>
-              <option value="dark">Dark Mode</option>
+              <option value="dark">Dark Mode (True Black)</option>
             </select>
-            <div class="st-form-sublabel">Choose how AbhiHub looks for you.</div>
+            <div class="st-form-sublabel">Adapts to your operating system or locks your preferred appearance.</div>
           </div>
-        </div>
 
-        <div class="st-card">
-          <h2><span class="st-card-icon"></span> Language</h2>
           <div class="st-form-row">
             <label for="selectLang" class="st-form-label">Display Language</label>
             <select class="st-form-select" id="selectLang" onchange="saveLang(this.value)">
-              <option value="en">English</option>
+              <option value="en">English (Default)</option>
               <option value="hi">हिंदी (Hindi)</option>
               <option value="mr">मराठी (Marathi)</option>
             </select>
+            <div class="st-form-sublabel">Select interface language for menus and academic guides.</div>
           </div>
         </div>
 
+        <!-- Offline Storage & Guided Tours Card -->
         <div class="st-card">
-          <h2><span class="st-card-icon"></span> Storage</h2>
+          <h2>
+            <span class="st-card-icon" style="color:#d97706;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><ellipse cx="12" cy="5" rx="9" ry="3"></ellipse><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3"></path><path d="M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"></path></svg>
+            </span>
+            Offline Storage &amp; Cache
+          </h2>
           <div class="st-stat-row">
-            <span class="st-stat-label">Used by cached resources</span>
+            <span class="st-stat-label">Device Cache for Notes &amp; Offline PDFs</span>
             <span class="st-stat-value" id="cacheSize">—</span>
           </div>
           <div class="st-btn-row">
-            <button type="button" class="st-btn st-btn-outline" onclick="clearCache()">Clear Cache</button>
+            <button type="button" class="st-btn st-btn-outline" onclick="clearCache()">
+              <span>Clear Cached Data</span>
+            </button>
+            <button type="button" class="st-btn st-btn-primary" data-action="openAppGuide">
+              <span>Explore Interactive Page Guides</span>
+            </button>
           </div>
         </div>
 
-        <div class="st-card">
-          <h2><span class="st-card-icon"></span> Interactive Feature Tours</h2>
-          <div class="st-form-sublabel" style="margin-bottom: 12px;">Explore or replay step-by-step interactive walk-throughs for study search, uploads, and profile features.</div>
-          <div class="st-btn-row">
-            <button type="button" class="st-btn st-btn-primary" data-action="openAppGuide">Explore Page Guides</button>
+        <!-- Privacy & Search Engine Visibility Card (Unified from _privacy.html) -->
+        <div class="st-card" id="st-privacy-card">
+          <h2>
+            <span class="st-card-icon" style="color:#16a34a;">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            </span>
+            Privacy &amp; Web Visibility
+          </h2>
+          {% if session.user %}
+          <div class="st-toggle-row">
+            <div>
+              <label for="toggleNoIndex" class="st-form-label">Hide Profile from Search Engines</label>
+              <div class="st-form-sublabel">Prevents Google, Bing, and public web crawlers from indexing your student profile</div>
+            </div>
+            <label class="st-toggle">
+              <input type="checkbox" id="toggleNoIndex" aria-label="Hide profile from search engines" onchange="savePrivacySetting('no_index', this.checked)">
+              <span class="st-slide"></span>
+            </label>
+          </div>
+          {% else %}
+          <div class="st-form-sublabel">Sign in to manage your public profile visibility.</div>
+          {% endif %}
+
+          <div style="margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--st-border);">
+            <div style="font-size:0.825rem;font-weight:700;color:var(--st-text-muted);text-transform:uppercase;letter-spacing:0.04em;margin-bottom:0.6rem;">
+              Legal &amp; Transparency
+            </div>
+            <div style="display:flex;gap:0.75rem;flex-wrap:wrap;">
+              <a href="/privacy" class="st-btn st-btn-outline" style="font-size:0.8rem;padding:0.35rem 0.75rem;min-height:34px;text-decoration:none;">📄 Privacy Policy</a>
+              <a href="/terms" class="st-btn st-btn-outline" style="font-size:0.8rem;padding:0.35rem 0.75rem;min-height:34px;text-decoration:none;">⚖️ Terms of Service</a>
+              <a href="/open-source" class="st-btn st-btn-outline" style="font-size:0.8rem;padding:0.35rem 0.75rem;min-height:34px;text-decoration:none;">💻 Open Source</a>
+            </div>
+          </div>
+        </div>
+
+        <!-- Account Security & Danger Zone Card (Unified from _danger.html) -->
+        <div class="st-card st-danger-zone" id="st-danger-card">
+          <h2>
+            <span class="st-card-icon" style="color:var(--st-red);">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+            </span>
+            Account Security &amp; Danger Zone
+          </h2>
+          <div class="st-form-sublabel" style="margin-bottom:1.25rem;">
+            Manage active sessions or permanently purge your account data.
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:0.85rem;">
+            <!-- Sign Out -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:0.85rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;flex-wrap:wrap;gap:0.75rem;">
+              <div>
+                <div style="font-weight:700;color:var(--st-text-main);font-size:0.925rem;">Sign Out of AbhiHub</div>
+                <div style="font-size:0.8rem;color:var(--st-text-muted);">End your active login session on this browser.</div>
+              </div>
+              <a href="/logout" target="_top" class="st-btn st-btn-outline" style="min-height:36px;padding:0.4rem 0.95rem;text-decoration:none;">
+                Sign Out
+              </a>
+            </div>
+
+            <!-- Delete Account -->
+            <div style="display:flex;align-items:center;justify-content:space-between;padding:0.85rem 1rem;background:var(--st-red-tint);border:1px solid var(--st-red-border);border-radius:12px;flex-wrap:wrap;gap:0.75rem;">
+              <div>
+                <div style="font-weight:700;color:var(--st-red);font-size:0.925rem;">Permanently Delete Account</div>
+                <div style="font-size:0.8rem;color:var(--st-text-muted);">Purges all uploads, bookmarks, study points, and creator royalties. This cannot be undone.</div>
+              </div>
+              <a href="/delete-account" class="st-btn danger" style="min-height:36px;padding:0.4rem 0.95rem;text-decoration:none;">
+                Delete Account
+              </a>
+            </div>
           </div>
         </div>
       </div>
-
-      <!-- Danger Zone -->

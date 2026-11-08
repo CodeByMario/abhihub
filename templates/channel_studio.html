@@ -1,291 +1,608 @@
 {% extends 'p_struct.html' %}
-{% block content %}
+{% block title %}Creator Channel Studio • AbhiHub{% endblock %}
 
+{% block content %}
 <style>
-  .studio-container {
-    max-width: 1000px;
-    margin: 1.5rem auto 5rem;
-    padding: 0 1rem;
-    font-family: inherit;
+  :root {
+    --apple-bg: #f5f5f7;
+    --apple-surface: #ffffff;
+    --apple-surface-sub: #fbfbfd;
+    --apple-text: #1d1d1f;
+    --apple-text-secondary: #6e6e73;
+    --apple-text-muted: #86868b;
+    --apple-blue: #0071e3;
+    --apple-blue-hover: #0077ed;
+    --apple-blue-subtle: rgba(0, 113, 227, 0.08);
+    --apple-border: rgba(0, 0, 0, 0.08);
+    --radius-pill: 980px;
+    --radius-card: 18px;
   }
-  .studio-header {
-    background: linear-gradient(135deg, #1e1b4b, #312e81 60%, #4338ca);
-    border-radius: 20px;
-    padding: 2rem;
-    color: #ffffff;
+
+  [data-theme="dark"] {
+    --apple-bg: #000000;
+    --apple-surface: #1c1c1e;
+    --apple-surface-sub: #2c2c2e;
+    --apple-text: #f5f5f7;
+    --apple-text-secondary: #a1a1a6;
+    --apple-text-muted: #6e6e73;
+    --apple-blue: #2997ff;
+    --apple-blue-hover: #3ca2ff;
+    --apple-blue-subtle: rgba(41, 151, 255, 0.12);
+    --apple-border: rgba(255, 255, 255, 0.12);
+  }
+
+  .cs-container {
+    max-width: 1100px;
+    margin: 2rem auto 5rem;
+    padding: 0 1.25rem;
+  }
+
+  /* ── Apple Hero Banner ────────────────────────────── */
+  .cs-hero {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    padding: 2.25rem 2.25rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
     margin-bottom: 2rem;
-  }
-  .studio-header h1 {
-    font-size: 1.6rem;
-    font-weight: 800;
-    margin: 0 0 0.5rem;
-  }
-  .studio-header p {
-    margin: 0;
-    color: #c7d2fe;
-    font-size: 0.95rem;
-  }
-  
-  .studio-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
     gap: 1.5rem;
   }
-  @media (max-width: 768px) {
-    .studio-grid {
+
+  .cs-hero-content {
+    max-width: 640px;
+  }
+
+  .cs-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--apple-blue);
+    background: var(--apple-blue-subtle);
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    margin-bottom: 0.75rem;
+  }
+
+  .cs-title {
+    font-size: clamp(1.8rem, 3.2vw, 2.3rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--apple-text);
+    margin: 0 0 0.65rem;
+    line-height: 1.2;
+  }
+
+  .cs-subtitle {
+    font-size: 15px;
+    color: var(--apple-text-secondary);
+    line-height: 1.5;
+    margin: 0;
+  }
+
+  /* ── Main Studio Grid ─────────────────────────────── */
+  .cs-grid {
+    display: grid;
+    grid-template-columns: 1.35fr 1fr;
+    gap: 1.5rem;
+  }
+
+  @media (max-width: 880px) {
+    .cs-grid {
       grid-template-columns: 1fr;
     }
   }
 
-  .card-box {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 16px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.02);
+  .cs-card {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    padding: 1.75rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.02);
+    margin-bottom: 1.5rem;
   }
-  .card-box h2 {
-    font-size: 1.15rem;
-    font-weight: 700;
-    color: #0f172a;
-    margin: 0 0 1.25rem;
+
+  .cs-card-header {
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+    padding-bottom: 0.85rem;
+    border-bottom: 1px solid var(--apple-border);
   }
 
-  .form-group {
-    margin-bottom: 1rem;
+  .cs-card-title {
+    font-size: 1.2rem;
+    font-weight: 650;
+    color: var(--apple-text);
+    letter-spacing: -0.015em;
+    margin: 0;
   }
-  .form-label {
-    display: block;
-    font-size: 0.85rem;
+
+  .cs-card-badge {
+    font-size: 11px;
     font-weight: 600;
-    color: #334155;
-    margin-bottom: 0.35rem;
+    color: var(--apple-text-muted);
+    background: var(--apple-surface-sub);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--apple-border);
   }
-  .form-input {
+
+  /* ── Form Section Grouping ────────────────────────── */
+  .cs-section-group {
+    background: var(--apple-surface-sub);
+    border: 1px solid var(--apple-border);
+    border-radius: 14px;
+    padding: 1.25rem 1.35rem;
+    margin-bottom: 1.35rem;
+  }
+
+  .cs-section-title {
+    font-size: 13.5px;
+    font-weight: 650;
+    color: var(--apple-text);
+    margin: 0 0 0.35rem;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .cs-section-desc {
+    font-size: 12px;
+    color: var(--apple-text-secondary);
+    margin: 0 0 1rem;
+    line-height: 1.45;
+  }
+
+  .cs-form-row-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+  }
+
+  @media (max-width: 600px) {
+    .cs-form-row-2 {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .cs-form-group {
+    margin-bottom: 1.15rem;
+  }
+
+  .cs-form-group:last-child {
+    margin-bottom: 0;
+  }
+
+  .cs-form-label {
+    display: flex;
+    align-items: center;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--apple-text);
+    margin-bottom: 0.4rem;
+  }
+
+  .cs-badge-req {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--apple-blue);
+    background: var(--apple-blue-subtle);
+    padding: 2px 7px;
+    border-radius: var(--radius-pill);
+    margin-left: 6px;
+  }
+
+  .cs-badge-opt {
+    font-size: 10px;
+    font-weight: 500;
+    color: var(--apple-text-muted);
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    padding: 2px 7px;
+    border-radius: var(--radius-pill);
+    margin-left: 6px;
+  }
+
+  .cs-handle-wrap {
+    display: flex;
+    align-items: center;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: 10px;
+    overflow: hidden;
+    transition: all 0.16s ease;
+  }
+
+  .cs-handle-wrap:focus-within {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px var(--apple-blue-subtle);
+  }
+
+  .cs-handle-prefix {
+    padding: 0 0.75rem;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--apple-text-muted);
+    user-select: none;
+    border-right: 1px solid var(--apple-border);
+    background: var(--apple-surface-sub);
+  }
+
+  .cs-handle-input {
+    flex: 1;
+    border: none;
+    outline: none;
+    background: transparent;
+    padding: 0.65rem 0.85rem;
+    font-size: 13.5px;
+    color: var(--apple-text);
+    font-family: inherit;
+  }
+
+  .cs-live-preview {
+    font-size: 11.5px;
+    color: var(--apple-text-secondary);
+    margin-top: 5px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .cs-live-preview strong {
+    color: var(--apple-blue);
+    font-weight: 600;
+  }
+
+  .cs-input,
+  .cs-textarea {
     width: 100%;
     padding: 0.65rem 0.85rem;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    box-sizing: border-box;
-    transition: border-color 0.2s;
-  }
-  .form-input:focus {
-    border-color: #4f46e5;
-    outline: none;
-  }
-  .form-textarea {
-    resize: vertical;
-    min-height: 80px;
-  }
-
-  .save-btn {
-    background: #4f46e5;
-    color: #ffffff;
-    font-weight: 700;
-    font-size: 0.9rem;
-    border: none;
-    border-radius: 8px;
-    padding: 0.75rem 1.5rem;
-    cursor: pointer;
-    width: 100%;
-    transition: background 0.2s;
-  }
-  .save-btn:hover {
-    background: #4338ca;
-  }
-
-  .link-copy-box {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
+    border: 1px solid var(--apple-border);
     border-radius: 10px;
+    background: var(--apple-surface);
+    color: var(--apple-text);
+    font-size: 13.5px;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.16s ease;
+  }
+
+  .cs-input:focus,
+  .cs-textarea:focus {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 3px var(--apple-blue-subtle);
+  }
+
+  .cs-btn-primary {
+    width: 100%;
+    height: 44px;
+    padding: 0 20px;
+    border-radius: var(--radius-pill);
+    background: var(--apple-blue);
+    color: #ffffff !important;
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: none;
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+
+  .cs-btn-primary:hover {
+    background: var(--apple-blue-hover);
+    transform: scale(1.01);
+  }
+
+  .cs-btn-secondary {
+    height: 38px;
+    padding: 0 16px;
+    border-radius: var(--radius-pill);
+    background: var(--apple-surface-sub);
+    color: var(--apple-text) !important;
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--apple-border);
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+
+  .cs-btn-secondary:hover {
+    background: var(--apple-border);
+  }
+
+  /* ── Link Copy Card ───────────────────────────────── */
+  .cs-link-box {
+    background: var(--apple-surface-sub);
+    border: 1px solid var(--apple-border);
+    border-radius: 12px;
     padding: 0.75rem 1rem;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 1.25rem;
+    margin-bottom: 1rem;
   }
-  .link-text {
-    font-family: monospace;
-    font-size: 0.85rem;
-    color: #0f172a;
+
+  .cs-link-text {
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+    font-size: 12.5px;
+    color: var(--apple-text);
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    max-width: 75%;
-  }
-  .copy-btn {
-    background: #e2e8f0;
-    color: #0f172a;
-    border: none;
-    border-radius: 6px;
-    padding: 0.35rem 0.75rem;
-    font-size: 0.75rem;
-    font-weight: 700;
-    cursor: pointer;
-  }
-  .copy-btn:hover {
-    background: #cbd5e1;
+    max-width: 72%;
   }
 
-  /* Note list */
-  .note-item {
-    border-bottom: 1px solid #f1f5f9;
-    padding: 0.85rem 0;
+  .cs-copy-btn {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    color: var(--apple-text);
+    border-radius: var(--radius-pill);
+    padding: 4px 12px;
+    font-size: 11.5px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .cs-copy-btn:hover {
+    background: var(--apple-blue);
+    border-color: var(--apple-blue);
+    color: #ffffff;
+  }
+
+  /* ── Notes Library Rows ───────────────────────────── */
+  .cs-note-item {
+    border-bottom: 1px solid var(--apple-border);
+    padding: 0.9rem 0;
     display: flex;
     justify-content: space-between;
     align-items: center;
-    gap: 0.5rem;
+    gap: 12px;
   }
-  .note-item:last-child {
+
+  .cs-note-item:last-child {
     border-bottom: none;
+    padding-bottom: 0;
   }
-  .note-item-title {
-    font-size: 0.9rem;
+
+  .cs-note-title {
+    font-size: 13.5px;
     font-weight: 600;
-    color: #0f172a;
-    margin: 0 0 0.2rem;
+    color: var(--apple-text);
+    margin: 0 0 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
-  .note-item-meta {
-    font-size: 0.75rem;
-    color: #64748b;
+
+  .cs-note-meta {
+    font-size: 11.5px;
+    color: var(--apple-text-secondary);
   }
 
   #status-msg {
     padding: 0.75rem 1rem;
-    border-radius: 8px;
-    font-size: 0.85rem;
-    margin-bottom: 1rem;
+    border-radius: 12px;
+    font-size: 13px;
+    font-weight: 550;
+    margin-bottom: 1.25rem;
     display: none;
   }
-  .msg-success { background: #dcfce7; color: #15803d; border: 1px solid #bbf7d0; }
-  .msg-error { background: #fee2e2; color: #b91c1c; border: 1px solid #fecaca; }
+  .msg-success { background: rgba(34, 197, 94, 0.1); color: #16a34a; border: 1px solid rgba(34, 197, 94, 0.2); }
+  .msg-error { background: rgba(239, 68, 68, 0.1); color: #dc2626; border: 1px solid rgba(239, 68, 68, 0.2); }
 </style>
 
-<div class="studio-container">
-  <div class="studio-header">
-    <h1>Creator Channel Studio</h1>
-    <p>Set up your branded hub, grab direct links for YouTube/Telegram, and sell notes on your terms.</p>
+<div class="cs-container">
+  <!-- Top Apple Hero Banner -->
+  <div class="cs-hero">
+    <div class="cs-hero-content">
+      <span class="cs-eyebrow">Creator Branding Studio</span>
+      <h1 class="cs-title">Build your branded channel.</h1>
+      <p class="cs-subtitle">
+        Claim your personalized student handle, import YouTube branding, and generate direct links to monetize your study material.
+      </p>
+    </div>
+    {% if channel %}
+    <div>
+      <a href="/c/{{ channel.handle }}" target="_blank" class="cs-btn-secondary">
+        View Live Channel &rarr;
+      </a>
+    </div>
+    {% endif %}
   </div>
 
-  <div class="studio-grid">
-    <!-- Channel Settings Form -->
-    <div class="card-box">
-      <h2>⚙ Channel Settings (1 per Account)</h2>
+  <div class="cs-grid">
+    <!-- Channel Settings Form: Prioritized Layout -->
+    <div class="cs-card">
+      <div class="cs-card-header">
+        <h2 class="cs-card-title">Channel Settings</h2>
+        <span class="cs-card-badge">1 Channel / Account</span>
+      </div>
       <div id="status-msg"></div>
 
       <form id="channel-form">
-        <div class="form-group">
-          <label class="form-label">Channel Handle (vanity slug)</label>
-          <div style="display: flex; align-items: center; gap: 0.25rem;">
-            <span style="font-weight: 700; color: #64748b; font-size: 0.9rem;">abhihub.com/c/</span>
-            <input type="text" id="handle" class="form-input" placeholder="e.g. physics_topper" value="{{ channel.handle if channel else '' }}" required>
+        <!-- 1. Primary Required Identity -->
+        <div class="cs-section-group">
+          <div class="cs-section-title">
+            <span>1. Core Identity</span>
+          </div>
+          <div class="cs-section-desc">The essential public details required to set up your study channel.</div>
+
+          <div class="cs-form-group">
+            <label class="cs-form-label">
+              Channel Title / Brand Name
+              <span class="cs-badge-req">Required</span>
+            </label>
+            <input type="text" id="title" class="cs-input" placeholder="e.g. Physics With Rohit" value="{{ channel.title if channel else '' }}" required oninput="handleTitleInput(this)">
+          </div>
+
+          <div class="cs-form-group">
+            <label class="cs-form-label">
+              Channel Handle (Vanity URL)
+              <span class="cs-badge-req">Required</span>
+            </label>
+            <div class="cs-handle-wrap">
+              <span class="cs-handle-prefix">abhihub.com/c/</span>
+              <input type="text" id="handle" class="cs-handle-input" placeholder="e.g. physics_topper" value="{{ channel.handle if channel else '' }}" required oninput="handleCustomSlug(this)">
+            </div>
+            <div class="cs-live-preview">
+              Public link: <strong id="live-slug-preview">abhihub.com/c/{{ channel.handle if channel else 'your_handle' }}</strong>
+            </div>
+          </div>
+
+          <div class="cs-form-group">
+            <label class="cs-form-label">
+              Bio / Tagline
+              <span class="cs-badge-opt">Optional</span>
+            </label>
+            <textarea id="bio" class="cs-textarea" rows="2" placeholder="Briefly describe what subjects, exams, or departments your notes cover...">{{ channel.bio if channel else '' }}</textarea>
           </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Channel Title / Brand Name</label>
-          <input type="text" id="title" class="form-input" placeholder="e.g. Physics With Rohit" value="{{ channel.title if channel else '' }}" required>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Bio / Tagline</label>
-          <textarea id="bio" class="form-input form-textarea" placeholder="Describe the subjects or exams your notes cover...">{{ channel.bio if channel else '' }}</textarea>
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Avatar Image URL</label>
-          <input type="url" id="avatar_url" class="form-input" placeholder="https://..." value="{{ channel.avatar_url if channel else '' }}">
-        </div>
-
-        <div class="form-group">
-          <label class="form-label">Banner Image URL</label>
-          <input type="url" id="banner_url" class="form-input" placeholder="https://..." value="{{ channel.banner_url if channel else '' }}">
-        </div>
-
-        <h3 style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 1.25rem 0 0.75rem;">Social Media Links</h3>
-
-        <div class="form-group">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
-            <label class="form-label" style="margin-bottom: 0;">YouTube Channel Link</label>
-            <button type="button" id="btn-fetch-yt" class="btn-sub" style="font-size: 0.75rem; padding: 0.2rem 0.6rem; background: #fee2e2; color: #dc2626; border: 1px solid #fca5a5; border-radius: 6px; cursor: pointer; font-weight: 600;" onclick="autoFetchFromYouTube()">⚡ Auto-Fetch Branding</button>
+        <!-- 2. Fast YouTube Sync Shortcut -->
+        <div class="cs-section-group">
+          <div class="cs-section-title">
+            <span>2. Fast YouTube Auto-Import</span>
+            <span class="cs-badge-opt">Quick Shortcut</span>
           </div>
-          <input type="url" id="youtube" class="form-input" placeholder="https://youtube.com/@channel" value="{{ channel.social_links.get('youtube', '') if channel and channel.social_links else '' }}" onblur="checkAutoFetchYT(this)">
-          <div id="yt-fetch-status" style="display: none; font-size: 0.8rem; margin-top: 0.35rem;"></div>
+          <div class="cs-section-desc">Paste your YouTube channel link to automatically extract and populate your logo, banner, and channel bio.</div>
+
+          <div class="cs-form-group">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.35rem;">
+              <label class="cs-form-label" style="margin-bottom: 0;">YouTube Channel Link</label>
+              <button type="button" id="btn-fetch-yt" class="cs-copy-btn" onclick="autoFetchFromYouTube()">⚡ Auto-Fetch Branding</button>
+            </div>
+            <input type="url" id="youtube" class="cs-input" placeholder="https://youtube.com/@channel" value="{{ channel.social_links.get('youtube', '') if channel and channel.social_links else '' }}" onblur="checkAutoFetchYT(this)">
+            <div id="yt-fetch-status" style="display: none; font-size: 12px; margin-top: 0.35rem;"></div>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Telegram Channel Link</label>
-          <input type="url" id="telegram" class="form-input" placeholder="https://t.me/channel" value="{{ channel.social_links.get('telegram', '') if channel and channel.social_links else '' }}">
+        <!-- 3. Visual Assets (Avatar & Banner) -->
+        <div class="cs-section-group">
+          <div class="cs-section-title">
+            <span>3. Visual Assets</span>
+            <span class="cs-badge-opt">Optional</span>
+          </div>
+          <div class="cs-section-desc">Direct image URLs for your channel avatar logo and background banner.</div>
+
+          <div class="cs-form-row-2">
+            <div class="cs-form-group">
+              <label class="cs-form-label">Avatar Image URL</label>
+              <input type="url" id="avatar_url" class="cs-input" placeholder="https://..." value="{{ channel.avatar_url if channel else '' }}">
+            </div>
+            <div class="cs-form-group">
+              <label class="cs-form-label">Banner Image URL</label>
+              <input type="url" id="banner_url" class="cs-input" placeholder="https://..." value="{{ channel.banner_url if channel else '' }}">
+            </div>
+          </div>
         </div>
 
-        <div class="form-group">
-          <label class="form-label">Instagram Profile Link</label>
-          <input type="url" id="instagram" class="form-input" placeholder="https://instagram.com/profile" value="{{ channel.social_links.get('instagram', '') if channel and channel.social_links else '' }}">
+        <!-- 4. Community & Social Links -->
+        <div class="cs-section-group">
+          <div class="cs-section-title">
+            <span>4. Community Links</span>
+            <span class="cs-badge-opt">Optional</span>
+          </div>
+          <div class="cs-section-desc">Help students connect with your discussion groups on Telegram or Instagram.</div>
+
+          <div class="cs-form-row-2">
+            <div class="cs-form-group">
+              <label class="cs-form-label">Telegram Channel / Group</label>
+              <input type="url" id="telegram" class="cs-input" placeholder="https://t.me/channel" value="{{ channel.social_links.get('telegram', '') if channel and channel.social_links else '' }}">
+            </div>
+            <div class="cs-form-group">
+              <label class="cs-form-label">Instagram Profile</label>
+              <input type="url" id="instagram" class="cs-input" placeholder="https://instagram.com/profile" value="{{ channel.social_links.get('instagram', '') if channel and channel.social_links else '' }}">
+            </div>
+          </div>
         </div>
 
-        <button type="submit" class="save-btn" id="save-btn">
-          {{ 'Save Changes' if channel else 'Launch My Channel' }}
+        <button type="submit" class="cs-btn-primary" id="save-btn">
+          {{ 'Save Channel Changes &rarr;' if channel else 'Launch My Channel &rarr;' }}
         </button>
       </form>
     </div>
 
-    <!-- Links & Content Area -->
+    <!-- Right Side: Links & Library -->
     <div>
       {% if channel %}
-        <div class="card-box" style="margin-bottom: 1.5rem;">
-          <h2>🔗 Shareable Channel Link</h2>
-          <p style="font-size: 0.85rem; color: #64748b; margin-top: -0.5rem; margin-bottom: 0.75rem;">
-            Add this link to your YouTube video descriptions, Telegram channel bio, and Instagram bio:
-          </p>
-          <div class="link-copy-box">
-            <span class="link-text" id="channel-link-text">https://www.abhihub.edu.eu.org/c/{{ channel.handle }}</span>
-            <button class="copy-btn" onclick="copyToClipboard('https://www.abhihub.edu.eu.org/c/{{ channel.handle }}', this)">Copy</button>
-          </div>
-          <div style="display: flex; gap: 0.5rem;">
-            <a href="/c/{{ channel.handle }}" target="_blank" class="save-btn" style="text-align: center; text-decoration: none; background: #0f172a; font-size: 0.85rem; padding: 0.5rem 1rem;">
-              View Live Channel ↗
-            </a>
-          </div>
+      <div class="cs-card">
+        <div class="cs-card-header">
+          <h2 class="cs-card-title">Shareable Channel Link</h2>
+          <span class="cs-card-badge">Public Hub</span>
         </div>
+        <p style="font-size: 12.5px; color: var(--apple-text-secondary); margin: 0 0 0.85rem; line-height: 1.45;">
+          Add this link to your YouTube descriptions, Telegram bio, and social posts:
+        </p>
+        <div class="cs-link-box">
+          <span class="cs-link-text" id="channel-link-text">https://www.abhihub.edu.eu.org/c/{{ channel.handle }}</span>
+          <button type="button" class="cs-copy-btn" onclick="copyToClipboard('https://www.abhihub.edu.eu.org/c/{{ channel.handle }}', this)">Copy</button>
+        </div>
+        <div style="display: flex; gap: 8px;">
+          <a href="/c/{{ channel.handle }}" target="_blank" class="cs-btn-secondary" style="width: 100%; text-align: center;">
+            View Public Channel &rarr;
+          </a>
+        </div>
+      </div>
       {% endif %}
 
-      <div class="card-box">
-        <h2>📚 Your Notes ({{ notes|length }})</h2>
-        <p style="font-size: 0.85rem; color: #64748b; margin-top: -0.5rem; margin-bottom: 1rem;">
-          Direct links to paste into specific YouTube video descriptions:
+      <div class="cs-card">
+        <div class="cs-card-header">
+          <h2 class="cs-card-title">Uploaded Material</h2>
+          <span class="cs-card-badge">{{ notes|length }} Note{{ 's' if notes|length != 1 else '' }}</span>
+        </div>
+        <p style="font-size: 12.5px; color: var(--apple-text-secondary); margin: 0 0 1rem; line-height: 1.45;">
+          Direct links to paste into specific video descriptions or study groups:
         </p>
 
         {% if not notes %}
-          <div style="text-align: center; color: #94a3b8; padding: 2rem 0; font-size: 0.9rem;">
-            You have not uploaded any notes yet.
-            <div style="margin-top: 0.75rem;">
-              <a href="/upload" style="color: #4f46e5; font-weight: 700; text-decoration: underline;">Upload Study Notes</a>
+          <div style="text-align: center; color: var(--apple-text-muted); padding: 2.5rem 1rem; font-size: 13px;">
+            <div>No study notes uploaded yet.</div>
+            <div style="margin-top: 0.85rem;">
+              <a href="/upload" class="cs-btn-primary" style="display: inline-flex; width: auto; height: 38px; padding: 0 18px;">
+                + Upload Notes &rarr;
+              </a>
             </div>
           </div>
         {% else %}
-          {% for note in notes %}
-            <div class="note-item">
-              <div style="max-width: 65%;">
-                <div class="note-item-title">{{ note.title }}</div>
-                <div class="note-item-meta">
-                  {{ note.category }} • {{ note.views }} views • 
+          <div style="display: flex; flex-direction: column;">
+            {% for note in notes %}
+            <div class="cs-note-item">
+              <div style="max-width: 68%;">
+                <div class="cs-note-title">{{ note.title }}</div>
+                <div class="cs-note-meta">
+                  {{ note.category }} &bull; {{ note.views }} views &bull; 
                   {% if note.is_paid and note.price > 0 %}
-                    <strong style="color: #ca8a04;">₹{{ '%.0f'|format(note.price) }}</strong>
+                    <strong style="color: var(--apple-blue);">₹{{ '%.0f'|format(note.price) }}</strong>
                   {% else %}
-                    <span style="color: #16a34a; font-weight: 700;">Free</span>
+                    <span style="color: #16a34a; font-weight: 600;">Free</span>
                   {% endif %}
                 </div>
               </div>
               <div>
                 {% set direct_url = 'https://www.abhihub.edu.eu.org/resource/' ~ note.id %}
-                <button class="copy-btn" onclick="copyToClipboard('{{ direct_url }}', this)">Copy Link</button>
+                <button type="button" class="cs-copy-btn" onclick="copyToClipboard('{{ direct_url }}', this)">Copy Link</button>
               </div>
             </div>
-          {% endfor %}
+            {% endfor %}
+          </div>
         {% endif %}
       </div>
     </div>
@@ -293,24 +610,56 @@
 </div>
 
 <script>
+  let isHandleManuallyEdited = false;
+
+  function handleTitleInput(titleInput) {
+    const handleInput = document.getElementById('handle');
+    const preview = document.getElementById('live-slug-preview');
+    if (!handleInput) return;
+
+    if (!isHandleManuallyEdited && (!handleInput.value.trim() || handleInput.dataset.autoGenerated === 'true')) {
+      const slug = titleInput.value
+        .toLowerCase()
+        .replace(/[^a-z0-9_]/g, '_')
+        .replace(/_+/g, '_')
+        .replace(/^_|_$/g, '');
+      handleInput.value = slug;
+      handleInput.dataset.autoGenerated = 'true';
+      if (preview) preview.textContent = `abhihub.com/c/${slug || 'your_handle'}`;
+    }
+  }
+
+  function handleCustomSlug(handleInput) {
+    isHandleManuallyEdited = true;
+    handleInput.dataset.autoGenerated = 'false';
+    const clean = handleInput.value.toLowerCase().replace(/[^a-z0-9_]/g, '_');
+    handleInput.value = clean;
+    const preview = document.getElementById('live-slug-preview');
+    if (preview) preview.textContent = `abhihub.com/c/${clean || 'your_handle'}`;
+  }
+
   function copyToClipboard(text, btn) {
     if (!text) return;
     navigator.clipboard.writeText(text).then(function() {
       const orig = btn.innerText;
       btn.innerText = 'Copied!';
-      btn.style.background = '#86efac';
+      btn.style.background = 'var(--apple-blue)';
+      btn.style.borderColor = 'var(--apple-blue)';
+      btn.style.color = '#ffffff';
       setTimeout(function() {
         btn.innerText = orig;
         btn.style.background = '';
+        btn.style.borderColor = '';
+        btn.style.color = '';
       }, 2000);
     });
   }
 
-  document.getElementById('channel-form').addEventListener('submit', async function(e) {
+  document.getElementById('channel-form')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const btn = document.getElementById('save-btn');
     const msg = document.getElementById('status-msg');
-    
+
     btn.disabled = true;
     btn.innerText = 'Saving...';
     msg.style.display = 'none';
@@ -343,14 +692,14 @@
         msg.innerText = data.error || 'Failed to save channel.';
         msg.style.display = 'block';
         btn.disabled = false;
-        btn.innerText = 'Save Changes';
+        btn.innerText = 'Save Channel Changes →';
       }
     } catch (err) {
       msg.className = 'msg-error';
       msg.innerText = 'Network error. Please try again.';
       msg.style.display = 'block';
       btn.disabled = false;
-      btn.innerText = 'Save Changes';
+      btn.innerText = 'Save Channel Changes →';
     }
   });
 
@@ -375,7 +724,7 @@
     }
     if (statusEl) {
       statusEl.style.display = 'block';
-      statusEl.style.color = '#2563eb';
+      statusEl.style.color = 'var(--apple-blue)';
       statusEl.innerText = 'Scanning YouTube channel for branding...';
     }
 
@@ -391,23 +740,16 @@
         if (data.avatar_url) {
           const avatarInput = document.getElementById('avatar_url');
           if (avatarInput) avatarInput.value = data.avatar_url;
-          const avatarPreview = document.querySelector('.channel-avatar');
-          if (avatarPreview) {
-            avatarPreview.innerHTML = `<img src="${data.avatar_url}" style="width: 100%; height: 100%; border-radius: 50%; object-fit: cover;">`;
-          }
         }
         if (data.banner_url) {
           const bannerInput = document.getElementById('banner_url');
           if (bannerInput) bannerInput.value = data.banner_url;
-          const bannerPreview = document.querySelector('.channel-banner');
-          if (bannerPreview) {
-            bannerPreview.style.backgroundImage = `url('${data.banner_url}')`;
-          }
         }
         if (data.title) {
           const titleInput = document.getElementById('title');
           if (titleInput && !titleInput.value.trim()) {
             titleInput.value = data.title;
+            handleTitleInput(titleInput);
           }
         }
         if (data.description) {
@@ -419,7 +761,7 @@
 
         if (statusEl) {
           statusEl.style.color = '#16a34a';
-          statusEl.innerText = '✓ YouTube logo & background banner auto-imported!';
+          statusEl.innerText = '✓ YouTube branding auto-imported!';
         }
       } else {
         if (statusEl) {
@@ -446,5 +788,4 @@
     }
   }
 </script>
-
 {% endblock %}

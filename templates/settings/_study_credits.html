@@ -1,142 +1,270 @@
+      <!-- Study Credits Section -->
       <div class="st-section" id="section-study-credits">
-        <!-- Main Balance Card -->
-        <div class="st-card" style="background:linear-gradient(135deg, rgba(79, 169, 224, 0.08) 0%, rgba(27, 58, 107, 0.04) 100%);border:1px solid rgba(79, 169, 224, 0.25);">
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:1rem;">
-            <h2 style="margin:0;"><span class="st-card-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg></span> Study Credits & Daily Quota</h2>
-            <span class="st-stat-value" style="background:var(--st-success-tint);color:var(--st-success);font-size:0.8rem;padding:0.25rem 0.65rem;border-radius:20px;">● Resets Daily at Midnight</span>
+        <!-- Main Universal Credit Card -->
+        <div class="st-card">
+          <div class="st-card-header">
+            <h2>
+              <span class="st-card-icon">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path>
+                  <path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path>
+                </svg>
+              </span>
+              Universal Study Credits
+            </h2>
+            <span class="st-badge st-badge-success">● Active Balance</span>
           </div>
 
-          <div style="display:flex;align-items:baseline;gap:0.5rem;margin-bottom:0.75rem;">
-            <span style="font-size:2.25rem;font-weight:800;color:var(--st-navy);line-height:1;">
-              {{ user_data.paper_quota_remaining if user_data and user_data.paper_quota_remaining is not none else 19 }}
+          <div class="st-credit-balance-row">
+            <span id="creditBalanceNumber" class="st-credit-hero-num">
+              {{ user_data.paper_quota_remaining if user_data and user_data.paper_quota_remaining is not none else 20 }}
             </span>
-            <span style="font-size:1.1rem;font-weight:600;color:var(--st-text-muted);">/ 20 Credits Available Today</span>
+            <span class="st-credit-hero-unit">Credits Available</span>
           </div>
 
-          <!-- Progress Bar -->
-          {% set cur_quota = user_data.paper_quota_remaining if user_data and user_data.paper_quota_remaining is not none else 19 %}
-          {% set quota_pct = ((cur_quota / 20) * 100) if cur_quota <= 20 else 100 %}
-          <div style="width:100%;height:8px;background:var(--st-border);border-radius:999px;overflow:hidden;margin-bottom:0.75rem;">
-            <div style="width:{{ [quota_pct, 100]|min }}%;height:100%;background:linear-gradient(90deg, #4FA9E0, #16A34A);border-radius:999px;transition:width 0.4s ease;"></div>
+          <p class="st-form-sublabel" style="margin-top:0.25rem;">
+            Unified credit balance for notes, downloads, and AI queries. Credits do not expire.
+          </p>
+
+          <div class="st-credit-meter-grid">
+            <div class="st-credit-meter-item">
+              <div class="st-credit-meter-title">Notes &amp; Papers</div>
+              <div class="st-credit-meter-cost">1 – 3 Cr / file</div>
+              <div class="st-credit-meter-desc">Metered by size &amp; CDN egress (+ 35% safety buffer)</div>
+            </div>
+            <div class="st-credit-meter-item">
+              <div class="st-credit-meter-title">Tarika AI</div>
+              <div class="st-credit-meter-cost">1 Cr / answer</div>
+              <div class="st-credit-meter-desc">LLM reasoning &amp; syllabus contextual synthesis</div>
+            </div>
+            <div class="st-credit-meter-item">
+              <div class="st-credit-meter-title">Catalog &amp; Search</div>
+              <div class="st-credit-meter-cost" style="color:var(--st-success);">Always 0 Cr</div>
+              <div class="st-credit-meter-desc">Full preview, curriculum search &amp; subject navigation</div>
+            </div>
           </div>
 
-          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;font-size:0.825rem;color:var(--st-text-muted);">
-            <span>Each document view or download costs <strong>1 credit</strong>.</span>
-            {% if user_data and user_data.referral_credits and user_data.referral_credits > 0 %}
-            <span style="color:#d97706;font-weight:700;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line></svg> +{{ user_data.referral_credits }} Referral Bonus Credits in reserve</span>
-            {% endif %}
+          {% if user_data and user_data.referral_credits and user_data.referral_credits > 0 %}
+          <div style="font-size:0.8rem;color:var(--st-amber);font-weight:700;display:flex;align-items:center;gap:0.4rem;padding-top:0.75rem;margin-top:0.75rem;border-top:1px dashed var(--st-border);">
+            <span>🎁</span> +{{ user_data.referral_credits }} Referral Bonus Credits in reserve
           </div>
+          {% endif %}
         </div>
 
-        <!-- Earn More Credits -->
+        <!-- Ways to Earn More Credits -->
         <div class="st-card">
-          <h2><span class="st-card-icon"></span> Ways to Earn More Credits</h2>
-          <div class="st-form-sublabel" style="margin-bottom:1rem;">Complete quick activities to replenish your credits and unlock exclusive creator earnings.</div>
+          <div class="st-card-header">
+            <h2><span class="st-card-icon">⚡</span> Ways to Earn More Credits</h2>
+          </div>
+          <p class="st-form-sublabel" style="margin-bottom:1rem;">Complete academic contributions to replenish credits and earn creator payouts.</p>
           
-          <div style="display:flex;flex-direction:column;gap:0.85rem;">
+          <div style="display:flex;flex-direction:column;gap:0.75rem;">
             <!-- Store Room -->
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.85rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;flex-wrap:wrap;">
-              <div style="display:flex;align-items:center;gap:0.85rem;min-width:240px;flex:1;">
-                <div style="font-size:1.6rem;"></div>
+            <div class="st-action-row">
+              <div style="display:flex;align-items:center;gap:0.85rem;min-width:220px;flex:1;">
+                <div style="font-size:1.35rem;">🏷️</div>
                 <div>
-                  <div style="font-weight:700;color:var(--st-text-main);font-size:0.95rem;">Store Room File Labeling</div>
-                  <div style="font-size:0.8rem;color:var(--st-text-muted);">Categorize uncategorized question papers & syllabus docs</div>
+                  <div style="font-weight:700;color:var(--st-text-main);font-size:0.9rem;">Store Room File Labeling</div>
+                  <div style="font-size:0.775rem;color:var(--st-text-muted);">Categorize unverified exam papers &amp; syllabus files</div>
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:0.75rem;">
-                <span style="font-weight:700;color:var(--st-navy);background:var(--st-sky-tint);padding:0.25rem 0.6rem;border-radius:6px;font-size:0.85rem;">+5 Credits / Paper</span>
-                <a href="/store-room" class="st-btn st-btn-primary" style="padding:0.35rem 0.85rem;font-size:0.825rem;min-height:34px;text-decoration:none;">Go to Store Room →</a>
+                <span class="st-badge st-badge-primary">+5 Cr / Paper</span>
+                <a href="/store-room" class="st-btn st-btn-primary" style="padding:0.4rem 0.85rem;font-size:0.8rem;min-height:36px;text-decoration:none;">Go to Store Room →</a>
               </div>
             </div>
 
             <!-- Upload Resource -->
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.85rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;flex-wrap:wrap;">
-              <div style="display:flex;align-items:center;gap:0.85rem;min-width:240px;flex:1;">
-                <div style="font-size:1.6rem;"></div>
+            <div class="st-action-row">
+              <div style="display:flex;align-items:center;gap:0.85rem;min-width:220px;flex:1;">
+                <div style="font-size:1.35rem;">📤</div>
                 <div>
-                  <div style="font-weight:700;color:var(--st-text-main);font-size:0.95rem;">Upload Study Material</div>
-                  <div style="font-size:0.8rem;color:var(--st-text-muted);">Share notes, PYQs, or practical manuals (+ creator royalties)</div>
+                  <div style="font-weight:700;color:var(--st-text-main);font-size:0.9rem;">Upload Study Material</div>
+                  <div style="font-size:0.775rem;color:var(--st-text-muted);">Share notes, PYQs, or practicals (+ lifetime royalties)</div>
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:0.75rem;">
-                <span style="font-weight:700;color:var(--st-success);background:var(--st-success-tint);padding:0.25rem 0.6rem;border-radius:6px;font-size:0.85rem;">+10 Credits + ₹0.20/view</span>
-                <a href="/upload" class="st-btn st-btn-outline" style="padding:0.35rem 0.85rem;font-size:0.825rem;min-height:34px;text-decoration:none;">Upload Now →</a>
+                <span class="st-badge st-badge-success">+10 Cr + ₹0.20/view</span>
+                <a href="/upload" class="st-btn st-btn-outline" style="padding:0.4rem 0.85rem;font-size:0.8rem;min-height:36px;text-decoration:none;">Upload Now →</a>
               </div>
             </div>
 
-            <!-- Invite Friend -->
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.85rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;flex-wrap:wrap;">
-              <div style="display:flex;align-items:center;gap:0.85rem;min-width:240px;flex:1;">
-                <div style="font-size:1.6rem;"></div>
+            <!-- Invite Classmates -->
+            <div class="st-action-row">
+              <div style="display:flex;align-items:center;gap:0.85rem;min-width:220px;flex:1;">
+                <div style="font-size:1.35rem;">🤝</div>
                 <div>
-                  <div style="font-weight:700;color:var(--st-text-main);font-size:0.95rem;">Invite Classmates</div>
-                  <div style="font-size:0.8rem;color:var(--st-text-muted);">Share your referral link with college friends</div>
+                  <div style="font-weight:700;color:var(--st-text-main);font-size:0.9rem;">Invite Classmates</div>
+                  <div style="font-size:0.775rem;color:var(--st-text-muted);">Share your unique link with batchmates</div>
                 </div>
               </div>
               <div style="display:flex;align-items:center;gap:0.75rem;">
-                <span style="font-weight:700;color:#d97706;background:#fef3c7;padding:0.25rem 0.6rem;border-radius:6px;font-size:0.85rem;">+50 Credits / Friend</span>
-                <button type="button" class="st-btn st-btn-outline" onclick="copySettingsReferralLink(this)" style="padding:0.35rem 0.85rem;font-size:0.825rem;min-height:34px;"> Copy Link</button>
-              </div>
-            </div>
-
-            <!-- Daily Login Bonus -->
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.85rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;flex-wrap:wrap;">
-              <div style="display:flex;align-items:center;gap:0.85rem;min-width:240px;flex:1;">
-                <div style="font-size:1.6rem;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line></svg></div>
-                <div>
-                  <div style="font-weight:700;color:var(--st-text-main);font-size:0.95rem;">Daily Login Bonus</div>
-                  <div style="font-size:0.8rem;color:var(--st-text-muted);">Daily study streak reward awarded on active visits</div>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:0.75rem;">
-                <span style="font-weight:700;color:var(--st-navy);background:var(--st-sky-tint);padding:0.25rem 0.6rem;border-radius:6px;font-size:0.85rem;">+5 Credits Daily</span>
-                <span style="font-size:0.8rem;font-weight:600;color:var(--st-success);"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="20 6 9 17 4 12"></polyline></svg> Automatic</span>
-              </div>
-            </div>
-
-            <!-- Enable Notifications -->
-            <div style="display:flex;align-items:center;justify-content:space-between;gap:0.75rem;padding:0.85rem 1rem;background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:10px;flex-wrap:wrap;">
-              <div style="display:flex;align-items:center;gap:0.85rem;min-width:240px;flex:1;">
-                <div style="font-size:1.6rem;"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg></div>
-                <div>
-                  <div style="font-weight:700;color:var(--st-text-main);font-size:0.95rem;">Push Notifications</div>
-                  <div style="font-size:0.8rem;color:var(--st-text-muted);">Stay alert for new question papers & department uploads</div>
-                </div>
-              </div>
-              <div style="display:flex;align-items:center;gap:0.75rem;">
-                <span style="font-weight:700;color:var(--st-navy);background:var(--st-sky-tint);padding:0.25rem 0.6rem;border-radius:6px;font-size:0.85rem;">+25 Credits</span>
-                <button type="button" class="st-btn st-btn-outline" onclick="document.querySelector('[data-section=\'notifications\']').click()" style="padding:0.35rem 0.85rem;font-size:0.825rem;min-height:34px;">Settings →</button>
+                <span class="st-badge st-badge-warning">+50 Cr / Join</span>
+                <button type="button" class="st-btn st-btn-outline" onclick="copySettingsReferralLink(this)" style="padding:0.4rem 0.85rem;font-size:0.8rem;min-height:36px;">📋 Copy Link</button>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Reputation & Statistics -->
+        <!-- Academic Reputation & Impact Stats -->
         <div class="st-card">
-          <h2><span class="st-card-icon"></span> Academic Reputation & Impact</h2>
+          <div class="st-card-header">
+            <h2><span class="st-card-icon">🎓</span> Academic Reputation &amp; Impact</h2>
+          </div>
           <div class="st-stat-list">
             <div class="st-stat-row">
               <span class="st-stat-label">⭐ Reputation Score</span>
               <span class="st-stat-value">{{ user_data.reputation_score if user_data and user_data.reputation_score is not none else 0 }}</span>
             </div>
             <div class="st-stat-row">
-              <span class="st-stat-label"> Students Helped</span>
+              <span class="st-stat-label">👥 Students Helped</span>
               <span class="st-stat-value">{{ user_data.students_helped if user_data and user_data.students_helped is not none else 0 }}</span>
             </div>
             <div class="st-stat-row">
-              <span class="st-stat-label"> Your Uploads</span>
+              <span class="st-stat-label">📚 Your Uploads</span>
               <span class="st-stat-value">{{ user_data.uploads_count if user_data and user_data.uploads_count is not none else 0 }}</span>
             </div>
             <div class="st-stat-row">
-              <span class="st-stat-label"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="20 12 20 22 4 22 4 12"></polyline><rect x="2" y="7" width="20" height="5"></rect><line x1="12" y1="22" x2="12" y2="7"></line></svg> Referral Bonus Credits Earned</span>
-              <span class="st-stat-value" style="color:#f59e0b;font-weight:700;">{{ user_data.referral_credits if user_data and user_data.referral_credits is not none else 0 }}</span>
+              <span class="st-stat-label">🎁 Referral Bonus Credits Earned</span>
+              <span class="st-stat-value">{{ user_data.referral_credits if user_data and user_data.referral_credits is not none else 0 }}</span>
             </div>
             <div class="st-stat-row">
-              <span class="st-stat-label"> Friends Joined via Your Link</span>
+              <span class="st-stat-label">🤝 Friends Joined via Your Link</span>
               <span class="st-stat-value">{{ user_data.referral_count if user_data and user_data.referral_count is not none else 0 }}</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Live Credit Activity & Spend History -->
+        <div class="st-card">
+          <div class="st-card-header">
+            <h2><span class="st-card-icon">📜</span> Credit Activity &amp; Spend History</h2>
+            <button type="button" class="st-btn st-btn-outline" onclick="loadCreditLedgerHistory(true)" style="padding:0.3rem 0.75rem;font-size:0.775rem;min-height:30px;">
+              🔄 Refresh
+            </button>
+          </div>
+          <p class="st-form-sublabel" style="margin-bottom:1rem;">Real-time audit log of all credit spend, paper opens, AI answers, and activity rewards.</p>
+
+          <div id="creditLedgerContainer" style="display:flex;flex-direction:column;gap:0.5rem;">
+            <div id="creditLedgerLoading" style="padding:1.5rem;text-align:center;color:var(--st-text-muted);font-size:0.875rem;">
+              <span style="display:inline-block;animation:spin 1s linear infinite;margin-right:0.5rem;">⚙️</span> Loading recent transactions...
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Payouts & Earnings -->
+      <script>
+      (function() {
+        window.loadCreditLedgerHistory = async function(force = false) {
+          const container = document.getElementById('creditLedgerContainer');
+          if (!container) return;
+          
+          if (force) {
+            container.innerHTML = '<div style="padding:1.5rem;text-align:center;color:var(--st-text-muted);font-size:0.875rem;"><span style="display:inline-block;animation:spin 1s linear infinite;margin-right:0.5rem;">⚙️</span> Refreshing transactions...</div>';
+          }
+
+          try {
+            const res = await fetch('/api/user/credits/history', { headers: { 'Accept': 'application/json' } });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const data = await res.json();
+            if (!data || !data.success) throw new Error(data ? data.message : 'Failed');
+
+            if (data.remaining_credits !== undefined) {
+              const balEl = document.getElementById('creditBalanceNumber');
+              if (balEl) balEl.textContent = data.remaining_credits;
+            }
+
+            const txs = data.transactions || data.history || [];
+            if (!txs || txs.length === 0) {
+              container.innerHTML = `
+                <div style="padding:2rem 1rem;text-align:center;background:var(--st-surface-hover);border:1px dashed var(--st-border);border-radius:12px;">
+                  <div style="font-size:1.8rem;margin-bottom:0.4rem;">🧾</div>
+                  <div style="font-weight:700;color:var(--st-text-main);font-size:0.95rem;">No Credit Activity Yet</div>
+                  <div style="font-size:0.8rem;color:var(--st-text-muted);margin-top:0.25rem;">
+                    When you open study notes, ask Tarika AI, or earn credits in Store Room, real-time entries will show here.
+                  </div>
+                </div>`;
+              return;
+            }
+
+            let html = '';
+            txs.forEach(tx => {
+              const delta = Number(tx.delta || 0);
+              const isPositive = delta > 0;
+              const iconClass = isPositive ? 'earn' : 'spend';
+              const iconSymbol = isPositive ? '↗' : '↘';
+              const deltaColor = isPositive ? 'var(--st-success)' : 'var(--st-text-muted)';
+              const deltaSign = isPositive ? `+${delta}` : `${delta}`;
+              
+              let label = tx.reason || 'Study Activity';
+              if (label === 'view_spend') label = 'Document View';
+              else if (label === 'pack_purchase') label = 'Credit Pack Purchase';
+              else if (label === 'store_room_label') label = 'Store Room Labeling Reward';
+              else if (label === 'referral_bonus') label = 'Referral Bonus';
+              else if (label === 'upload_bonus') label = 'Study Material Upload';
+
+              let refInfo = tx.ref_id ? `<div class="st-ledger-ref">${escapeHtml(tx.ref_id)}</div>` : '';
+              
+              let dateStr = '';
+              if (tx.created_at) {
+                try {
+                  const d = new Date(tx.created_at);
+                  dateStr = d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ' ' + d.toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' });
+                } catch(e) {
+                  dateStr = tx.created_at;
+                }
+              }
+
+              const balSnap = (tx.balance !== undefined && tx.balance !== null) ? `<span style="font-size:0.75rem;color:var(--st-text-muted);font-weight:600;">Bal: ${tx.balance} Cr</span>` : '';
+
+              html += `
+                <div class="st-ledger-item">
+                  <div style="display:flex;align-items:center;gap:0.75rem;min-width:0;flex:1;">
+                    <div class="st-ledger-icon ${iconClass}">
+                      ${iconSymbol}
+                    </div>
+                    <div style="min-width:0;flex:1;">
+                      <div class="st-ledger-title">${escapeHtml(label)}</div>
+                      ${refInfo}
+                      <div class="st-ledger-time">${dateStr}</div>
+                    </div>
+                  </div>
+                  <div class="st-ledger-delta">
+                    <div style="color:${deltaColor};font-weight:800;font-size:0.9rem;">
+                      ${deltaSign} Cr
+                    </div>
+                    ${balSnap}
+                  </div>
+                </div>`;
+            });
+
+            container.innerHTML = html;
+          } catch (err) {
+            container.innerHTML = `
+              <div style="padding:1rem;background:var(--st-red-tint);border:1px solid var(--st-red-border);border-radius:10px;color:var(--st-red);font-size:0.825rem;display:flex;justify-content:space-between;align-items:center;">
+                <span>Could not load credit activity.</span>
+                <button type="button" class="st-btn st-btn-outline" onclick="loadCreditLedgerHistory(true)" style="padding:0.25rem 0.5rem;font-size:0.75rem;">Retry</button>
+              </div>`;
+          }
+        };
+
+        function escapeHtml(str) {
+          if (!str) return '';
+          const div = document.createElement('div');
+          div.textContent = str;
+          return div.innerHTML;
+        }
+
+        // Auto-load when section is active or when tab opens
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', () => loadCreditLedgerHistory());
+        } else {
+          setTimeout(loadCreditLedgerHistory, 150);
+        }
+
+        // Hook tab change if settings nav is clicked
+        document.querySelectorAll('[data-section="study-credits"], [data-section="credits"]').forEach(el => {
+          el.addEventListener('click', () => setTimeout(loadCreditLedgerHistory, 100));
+        });
+      })();
+      </script>

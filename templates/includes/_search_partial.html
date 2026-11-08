@@ -1,3 +1,4 @@
+<link rel="stylesheet" href="/static/css/apple-card.css">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
@@ -5,19 +6,19 @@
 <style>
   /* Architectural Engineering Search Console — High-density, tactile & responsive */
   .ss-search {
-    --ss-ink: #0f172a;
-    --ss-muted: #64748b;
-    --ss-line: #e2e8f0;
+    --ss-ink: #1d1d1f;
+    --ss-muted: #86868b;
+    --ss-line: rgba(0, 0, 0, 0.08);
     --ss-surface: #ffffff;
-    --ss-surface-sub: #f8fafc;
-    --ss-primary: #0284c7;
-    --ss-primary-hover: #0369a1;
-    --ss-emerald: #059669;
-    --ss-amber: #d97706;
-    --ss-violet: #6366f1;
-    --ss-font-display: 'Space Grotesk', -apple-system, sans-serif;
-    --ss-font-body: 'Plus Jakarta Sans', -apple-system, sans-serif;
-    --ss-font-mono: 'JetBrains Mono', monospace;
+    --ss-surface-sub: #fbfbfd;
+    --ss-primary: #0071e3;
+    --ss-primary-hover: #0077ed;
+    --ss-emerald: #34c759;
+    --ss-amber: #ff9500;
+    --ss-violet: #5856d6;
+    --ss-font-display: -apple-system, BlinkMacSystemFont, "SF Pro Display", sans-serif;
+    --ss-font-body: -apple-system, BlinkMacSystemFont, "SF Pro Text", sans-serif;
+    --ss-font-mono: "SF Mono", Menlo, monospace;
     width: min(100%, 1180px);
     margin: 1.5rem auto 4rem;
     color: var(--ss-ink);
@@ -43,11 +44,7 @@
   }
 
   .ss-panel::before {
-    content: '';
-    position: absolute;
-    top: 0; left: 0; right: 0;
-    height: 3px;
-    background: linear-gradient(90deg, #0284c7 0%, #38bdf8 50%, #059669 100%);
+    display: none;
   }
 
   .ss-intro {
@@ -63,27 +60,27 @@
     display: inline-flex;
     align-items: center;
     gap: 6px;
-    margin-bottom: 0.5rem;
-    font-family: var(--ss-font-mono);
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.06em;
+    margin-bottom: 0.65rem;
+    font-family: var(--ss-font-body);
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.05em;
     color: var(--ss-primary);
-    background: rgba(2, 132, 199, 0.08);
-    border: 1px solid rgba(2, 132, 199, 0.2);
-    padding: 3px 8px;
-    border-radius: 4px;
+    background: rgba(0, 113, 227, 0.08);
+    border: 1px solid rgba(0, 113, 227, 0.18);
+    padding: 4px 12px;
+    border-radius: 980px;
     text-transform: uppercase;
   }
 
   .ss-heading {
-    margin: 0;
+    margin: 0 0 0.5rem;
     color: var(--ss-ink);
     font-family: var(--ss-font-display);
-    font-size: clamp(1.4rem, 3vw, 2.2rem);
+    font-size: clamp(1.85rem, 3.2vw, 2.4rem);
     font-weight: 700;
     line-height: 1.2;
-    letter-spacing: -0.02em;
+    letter-spacing: -0.03em;
   }
 
   .ss-intro-copy {
@@ -96,13 +93,13 @@
 
   .ss-tip {
     flex: 0 0 auto;
-    font-family: var(--ss-font-mono);
-    font-size: 0.74rem;
-    font-weight: 700;
-    padding: 0.4rem 0.85rem;
-    border-radius: 6px;
+    font-family: var(--ss-font-body);
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 980px;
     background: var(--ss-surface-sub);
-    color: var(--ss-primary);
+    color: var(--ss-muted);
     border: 1px solid var(--ss-line);
     white-space: nowrap;
     display: inline-flex;
@@ -110,23 +107,26 @@
     gap: 6px;
   }
 
-  /* Command Search Bar */
+  /* Command Search Bar (Apple Spotlight) */
   .ss-bar {
     display: flex;
     align-items: center;
     gap: 0.85rem;
-    min-height: 56px;
-    padding: 0.6rem 0.85rem 0.6rem 1.15rem;
-    border: 1.5px solid var(--ss-line);
-    border-radius: 10px;
-    background: var(--ss-surface-sub);
-    box-shadow: 0 2px 8px rgba(15, 23, 42, 0.03);
-    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+    min-height: 54px;
+    padding: 0.5rem 1rem 0.5rem 1.35rem;
+    border: 1px solid var(--ss-line);
+    border-radius: 980px;
+    background: rgba(255, 255, 255, 0.88);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+    transition: all 0.24s cubic-bezier(0.16, 1, 0.3, 1);
   }
 
   .ss-bar:focus-within {
     border-color: var(--ss-primary);
-    box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.15);
+    box-shadow: 0 0 0 4px rgba(0, 113, 227, 0.16), 0 12px 32px rgba(0, 0, 0, 0.08);
+    transform: translateY(-1px);
     background: var(--ss-surface);
   }
 
@@ -184,10 +184,10 @@
   }
 
   .ss-filter-title {
-    font-family: var(--ss-font-mono);
-    font-size: 0.72rem;
-    font-weight: 700;
-    letter-spacing: 0.05em;
+    font-family: var(--ss-font-body);
+    font-size: 11.5px;
+    font-weight: 650;
+    letter-spacing: 0.06em;
     text-transform: uppercase;
     color: var(--ss-muted);
     display: flex;
@@ -206,13 +206,13 @@
     width: 100%;
     min-width: 0;
     min-height: 40px;
-    padding: 0.5rem 2rem 0.5rem 0.8rem;
+    padding: 0.5rem 2rem 0.5rem 0.9rem;
     appearance: none;
     border: 1px solid var(--ss-line);
-    border-radius: 6px;
+    border-radius: 980px;
     outline: 0;
     color: var(--ss-ink);
-    background: var(--ss-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%230284c7'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") no-repeat right 0.7rem center/0.9em;
+    background: var(--ss-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%230071e3'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'/%3E%3C/svg%3E") no-repeat right 0.7rem center/0.9em;
     font-family: var(--ss-font-body);
     font-size: 0.83rem;
     font-weight: 600;
@@ -450,15 +450,16 @@
 
   .ss-tag {
     min-height: 32px;
-    padding: 0.3rem 0.75rem;
+    padding: 0.35rem 0.95rem;
     border: 1px solid var(--ss-line);
-    border-radius: 6px;
+    border-radius: 980px;
     color: var(--ss-muted);
     background: var(--ss-surface-sub);
-    font-family: var(--ss-font-mono);
-    font-size: 0.76rem;
+    font-family: var(--ss-font-body);
+    font-size: 12.5px;
+    font-weight: 500;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.16s ease;
   }
 
   .ss-tag:hover {
@@ -480,28 +481,28 @@
   }
 
   .ss-count {
-    font-family: var(--ss-font-mono);
-    font-size: 0.8rem;
-    font-weight: 700;
+    font-family: var(--ss-font-body);
+    font-size: 12px;
+    font-weight: 600;
     color: var(--ss-ink);
     background: var(--ss-surface-sub);
     border: 1px solid var(--ss-line);
-    padding: 0.35rem 0.75rem;
-    border-radius: 6px;
+    padding: 4px 14px;
+    border-radius: 980px;
   }
 
   #searchResetBtn {
-    min-height: 34px;
-    padding: 0.35rem 0.85rem;
+    min-height: 32px;
+    padding: 4px 14px;
     border: 1px solid var(--ss-line);
-    border-radius: 6px;
+    border-radius: 980px;
     color: var(--ss-muted);
     background: var(--ss-surface);
     font-family: var(--ss-font-body);
-    font-size: 0.78rem;
-    font-weight: 700;
+    font-size: 12px;
+    font-weight: 600;
     cursor: pointer;
-    transition: all 0.15s ease;
+    transition: all 0.16s ease;
   }
 
   #searchResetBtn:hover {
@@ -513,8 +514,9 @@
   /* Results Grid & Cards */
   .ss-results {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
     gap: 1.25rem;
+    margin-top: 1.25rem;
   }
 
   .ss-card {

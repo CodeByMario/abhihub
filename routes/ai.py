@@ -437,6 +437,18 @@ def api_ai_assistant(user_data=None):
         except CostCeilingError as exc:
             return jsonify({'success': False, 'message': str(exc)}), 402
 
+        # Check Universal Points quota
+        try:
+            import app
+            q = app._get_quota()
+            if q.get('credits', 0) <= 0:
+                return jsonify({
+                    'success': False,
+                    'message': 'Study Credits exhausted! Tarika AI requires 1 Credit per response (real-time LLM inference compute + 35% safety buffer). Earn credits by uploading notes or labeling papers in Store Room.'
+                }), 402
+        except Exception:
+            pass
+
     data = request.get_json(silent=True) or {}
     message = (data.get('message') or data.get('question') or '').strip()
     doc_id = (data.get('doc_id') or '').strip()
@@ -850,6 +862,17 @@ def api_ai_assistant(user_data=None):
         except Exception:
             pass
 
+    # Deduct 1 credit for AI inference + 35% safety buffer
+    credits_remaining = None
+    try:
+        import app
+        from methods.cost_metering_engine import cost_engine
+        ai_cost = cost_engine.calculate_ai_credits(len(message) // 4, len(final_text) // 4)
+        app._consume_credit(doc_name=f"Tarika AI ({ai_cost['breakdown_text']})", amount=ai_cost['credits'])
+        credits_remaining = app._get_quota().get('credits')
+    except Exception:
+        pass
+
     return jsonify({
         'success': True,
         'reply': final_text,
@@ -858,7 +881,10 @@ def api_ai_assistant(user_data=None):
         'actions': actions,
         'cards': cards,
         'auto_open': auto_open,
-        'model_used': resp.model_used
+        'model_used': resp.model_used,
+        'credits_deducted': 1,
+        'credits_remaining': credits_remaining,
+        'cost_notice': '1 Credit (real-time compute + 35% safety buffer)'
     }), 200
 
 

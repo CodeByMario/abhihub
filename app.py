@@ -778,7 +778,7 @@ def check_csrf():
     if not app.config.get('WTF_CSRF_ENABLED', True):
         return
     if request.method not in ['GET', 'HEAD', 'OPTIONS', 'TRACE']:
-        if request.path.startswith('/api/') or request.path.startswith('/auth') or request.path.startswith('/store-room/api/'):
+        if request.path.startswith('/api/') or request.path.startswith('/auth') or request.path.startswith('/store-room/api/') or request.path == '/account/update':
             return
         csrf.protect()
 
@@ -951,7 +951,20 @@ def log_document_view(file_name, file_url, record_id=None,
 
         # Deduct credit ONLY on FREE material, if user is not the uploader, AND has not viewed today
         if not is_owner and not already_viewed_today and not is_paid_doc:
-            allowed = _consume_credit()
+            from methods.cost_metering_engine import cost_engine
+            doc_size_bytes = 0
+            if record_id:
+                try:
+                    d_chk = supabase.table('documents').select('file_size, size').eq('id', record_id).limit(1).execute()
+                    if d_chk.data:
+                        doc_size_bytes = d_chk.data[0].get('file_size') or d_chk.data[0].get('size') or 0
+                except Exception:
+                    pass
+
+            cost_meta = cost_engine.calculate_file_credits(doc_size_bytes)
+            credits_to_deduct = cost_meta['credits']
+
+            allowed = _consume_credit(doc_name=file_name or "Document", amount=credits_to_deduct)
             if allowed:
                 try:
                     cache.l1.set(cache_view_key, True, ttl=86400)
@@ -962,11 +975,11 @@ def log_document_view(file_name, file_url, record_id=None,
                 session['viewed_today'] = viewed_dict
                 session.modified = True
 
-                # Send notification for credit deduction
+                # Send transparent notification with real-time infra cost & safety buffer
                 try:
                     doc_title = file_name or "document"
-                    notif_title = "Resource unlocked! ⚡ Quick tip inside..."
-                    notif_msg = f"You unlocked '{doc_title}'. Your academic streak is active—see the key formulas inside!"
+                    notif_title = f"Unlocked: {doc_title[:30]} ({credits_to_deduct} Cr)"
+                    notif_msg = f"Deducted {credits_to_deduct} Credit{'s' if credits_to_deduct > 1 else ''} ({cost_meta['breakdown_text']}). Academic streak active!"
                     action_url = f"/resource/{record_id}" if record_id else None
 
                     if user_id:
@@ -1258,9 +1271,9 @@ def _grant_upload_credits(document_type='papers'):
         f"for {category} (quota={new_quota}) and +1 rep to {user.get('email')}"
     )
 
-def _consume_credit(doc_name="Document"):
+def _consume_credit(doc_name="Document", amount: int = 1):
     """
-    Deduct 1 credit for a paper open.
+    Deduct dynamic metered credits (based on real-time infra cost + 35% safety buffer).
     Returns True if the open is allowed, False if quota is exhausted.
     Admins always pass.
     """
@@ -1272,17 +1285,18 @@ def _consume_credit(doc_name="Document"):
     if user_email in ADMIN_EMAILS:
         return True
 
+    amount = max(1, int(amount or 1))
     q = _get_quota()
-    if q.get('credits', 0) <= 0:
+    if q.get('credits', 0) < amount:
         return False
 
     from methods.payment_engine import engine
-    deduct_res = engine.deduct_view(user_id, doc_name=doc_name)
+    deduct_res = engine.deduct_view(user_id, doc_name=doc_name, amount=amount)
     if isinstance(deduct_res, (tuple, list)):
         allowed, new_credits = bool(deduct_res[0]), int(deduct_res[1])
     else:
         allowed = bool(deduct_res)
-        new_credits = max(0, q.get('credits', 1) - 1)
+        new_credits = max(0, q.get('credits', amount) - amount)
     if not allowed:
         return False
 

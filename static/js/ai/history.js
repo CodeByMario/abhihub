@@ -138,8 +138,14 @@
     const msgList = document.getElementById('aiMsgList');
     if (msgList) {
       msgList.innerHTML = `
-        <div class="ai-bubble assistant">
-          👋 Hi! I'm <strong>Tarika</strong>, your personal study assistant for AbhiHub. Started a fresh conversation for you. What would you like to study or find today?
+        <div class="ai-welcome-hero">
+          <div class="ai-welcome-spark-wrap"><span class="ai-welcome-spark">✨</span></div>
+          <h3 class="ai-welcome-heading">New Chat Started</h3>
+          <p class="ai-welcome-tagline">Ask any academic question, solve exam papers, or generate revision tests.</p>
+          <div class="ai-status-pill">
+            <span class="ai-status-dot"></span>
+            <span>Ready · Cloud AI</span>
+          </div>
         </div>
       `;
     }

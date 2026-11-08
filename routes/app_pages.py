@@ -164,9 +164,9 @@ def home():
                     session['profile'] = profile_data
             college_name = profile_data.get('college_name') or ''
 
-            if not profile_data or not profile_data.get('college_id'):
-                flash("Welcome to AbhiHub! Please complete your profile to access all personalized features.", "warning")
-                return redirect(url_for('app_pages.settings'))
+            needs_onboarding = bool(not profile_data or not profile_data.get('college_id'))
+            if needs_onboarding and not request.args.get('skip_onboarding') and not request.args.get('welcome'):
+                return redirect(url_for('app_pages.onboarding'))
 
             rank_c_key = f"home:user_rank:{user_id}"
             cached_rank, _ = cache.l1.get(rank_c_key) if cache else (None, False)
@@ -363,10 +363,20 @@ def home():
                     break
 
     community_feedbacks = []
-    featured_channels = []
+    user_college_id = user_data.get('college_id') or None
+    from methods.channel_service import get_featured_channels
+    featured_channels = get_featured_channels(limit=8, user_college_id=user_college_id)
+
+    from methods.domain_tier_service import classify_email
+    email = user_info.get('email', '')
+    tier_info = classify_email(email)
+    starting_views = user_data.get('paper_quota_remaining', tier_info.get('starting_views', 5))
+    is_campus_email = (tier_info.get('tier') == 'college')
 
     return render_template(
         'app/home.html',
+        starting_views=starting_views,
+        is_campus_email=is_campus_email,
         data=preview_pool,
         seo_keywords=seo_keywords,
         top_subjects=top_subjects,
@@ -522,8 +532,12 @@ def update_account():
     user_id = user_info.get('uid')
     user_email = user_info.get('email')
 
+    student_name = (request.form.get('student_name') or '').strip()
+    if not student_name:
+        student_name = user_info.get('name') or user_info.get('full_name') or (user_email.split('@')[0] if user_email else 'Student')
+
     profile_data = {
-        'student_name': request.form.get('student_name'),
+        'student_name': student_name,
         'student_email': user_email,
         'student_moblie_number': request.form.get('student_moblie_number'),
         'college_id': request.form.get('college_id'),
@@ -536,6 +550,9 @@ def update_account():
     }
 
     result = create_or_update_student_profile(user_id, profile_data)
+    if result.get('success'):
+        session.pop('onboarding_step', None)
+        session.pop('onboarding_data', None)
     msg_type = 'success' if result.get('success') else 'error'
     msg = result.get('message') or ('Profile updated!' if result.get('success') else 'Failed to update profile')
 
@@ -544,6 +561,81 @@ def update_account():
 
     flash(msg, msg_type)
     return redirect(url_for('app_pages.settings'))
+
+
+@app_pages_bp.route('/api/onboarding/step', methods=['POST'])
+@auth_required
+def api_onboarding_step():
+    """Persist intermediate onboarding step and log telemetry event."""
+    user_info = session.get('user', {})
+    user_id = user_info.get('uid')
+    payload = request.get_json(silent=True) or {}
+    step = int(payload.get('step', 1))
+    step_data = payload.get('data', {})
+
+    session['onboarding_step'] = step
+    existing = session.get('onboarding_data', {})
+    if isinstance(existing, dict):
+        existing.update(step_data)
+        session['onboarding_data'] = existing
+
+    logging.info(f"[onboarding_telemetry] user_id={user_id} step={step} event=step_advance keys={list(step_data.keys())}")
+
+    try:
+        client = init_supabase()
+        if client:
+            client.table('search_analytics').insert({
+                'query': f"onboarding_step_{step}",
+                'results_count': step
+            }).execute()
+    except Exception:
+        pass
+
+    return jsonify({'success': True, 'step': step})
+
+
+@app_pages_bp.route('/onboarding')
+@auth_required
+def onboarding():
+    """Full-screen Apple HIG Onboarding Wizard for new students."""
+    user_info = session.get('user', {})
+    user_id = user_info.get('uid')
+    profile_result = get_student_profile(user_id)
+    profile = profile_result.get('data') if profile_result.get('success') else {}
+    
+    colleges_result = get_all_colleges()
+    branches_result = get_all_branches()
+    colleges = colleges_result.get('data', []) if colleges_result.get('success') else []
+    branches = branches_result.get('data', []) if branches_result.get('success') else []
+
+    saved_data = session.get('onboarding_data', {})
+    if saved_data and profile:
+        profile.update(saved_data)
+    initial_step = session.get('onboarding_step', 1)
+
+    from methods.domain_tier_service import classify_email
+    import app
+    email = user_info.get('email', '')
+    tier_info = classify_email(email)
+    quota = app._get_quota()
+    starting_views = quota.get('credits', tier_info.get('starting_views', 5))
+    is_campus_email = (tier_info.get('tier') == 'college')
+
+    merged_user_data = dict(user_info)
+    if profile:
+        merged_user_data.update(profile)
+
+    return render_template(
+        'app/onboarding_wizard.html',
+        user_info=merged_user_data,
+        profile=profile or {},
+        colleges=colleges,
+        branches=branches,
+        initial_step=initial_step,
+        saved_data=saved_data,
+        starting_views=starting_views,
+        is_campus_email=is_campus_email
+    )
 
 
 @app_pages_bp.route('/settings')
@@ -765,6 +857,164 @@ def app_shell():
         return redirect(target_path if target_path != '/app-shell' else url_for('app_pages.home'))
 
     return render_template('app_shell.html', initial_path=target_path)
+
+
+def get_campus_network_roster(college_id=None, branch_id=None, user_year=None, current_user_id=None):
+    """Fetch faculty, seniors, classmates, and peers for the campus hierarchy."""
+    roster = {
+        'faculty': [],
+        'seniors': [],
+        'classmates': [],
+        'college_peers': []
+    }
+    client = init_supabase()
+    if not client:
+        return roster
+
+    try:
+        select_fields = (
+            'id, full_name, role, rank_title, reputation_score, is_verified, '
+            'college_id, colleges(id, name, abbreviation), '
+            'department_id, departments(id, name, abbreviation), degree, '
+            'students(pursuing_year, year_of_joining)'
+        )
+        query = client.table('profiles').select(select_fields)
+        if college_id:
+            query = query.eq('college_id', college_id)
+        if current_user_id:
+            query = query.neq('id', current_user_id)
+
+        res = query.order('reputation_score', desc=True).limit(100).execute()
+        rows = res.data or []
+
+        # If user college query yielded no peers, surface active peer scholars across the network
+        if len(rows) == 0:
+            fallback_query = client.table('profiles').select(select_fields)
+            if current_user_id:
+                fallback_query = fallback_query.neq('id', current_user_id)
+            res = fallback_query.order('reputation_score', desc=True).limit(60).execute()
+            rows = res.data or []
+
+        u_yr_num = 1
+        if user_year:
+            m = re.search(r'\d+', str(user_year))
+            if m:
+                u_yr_num = int(m.group(0))
+
+        for row in rows:
+            role = (row.get('role') or 'student').lower()
+            dept_obj = row.get('departments') or {}
+            col_obj = row.get('colleges') or {}
+            st_list = row.get('students') or [{}]
+            st_obj = st_list[0] if (isinstance(st_list, list) and len(st_list) > 0) else (st_list if isinstance(st_list, dict) else {})
+
+            p_year = st_obj.get('pursuing_year')
+            row_yr_num = int(p_year) if (p_year and str(p_year).isdigit()) else 1
+
+            member = {
+                'id': row.get('id'),
+                'name': (row.get('full_name') or 'Campus Scholar').strip(),
+                'role': role,
+                'rank_title': row.get('rank_title') or ('Faculty' if role in ['faculty', 'teacher', 'professor'] else 'Scholar'),
+                'reputation_score': int(float(row.get('reputation_score') or 0)),
+                'is_verified': bool(row.get('is_verified', False)),
+                'avatar_url': None,
+                'department_name': dept_obj.get('name') or dept_obj.get('abbreviation') or 'Engineering',
+                'college_name': col_obj.get('name') or col_obj.get('abbreviation') or 'Campus',
+                'current_year': f"Year {row_yr_num}" if row_yr_num else "Student",
+                'current_semester': f"Semester {row_yr_num * 2}" if row_yr_num else "Engineering",
+                'total_uploads': 0
+            }
+
+            same_branch = bool(branch_id and (row.get('department_id') == branch_id or str(row.get('department_id')) == str(branch_id)))
+
+            if role in ['faculty', 'teacher', 'professor', 'mentor', 'admin']:
+                member['hierarchy_tag'] = 'Faculty / Mentor'
+                member['hierarchy_badge'] = 'Faculty'
+                roster['faculty'].append(member)
+            elif same_branch and row_yr_num > u_yr_num:
+                member['hierarchy_tag'] = f'Senior (Year {row_yr_num})'
+                member['hierarchy_badge'] = f'Senior • Yr {row_yr_num}'
+                roster['seniors'].append(member)
+            elif same_branch and row_yr_num == u_yr_num:
+                member['hierarchy_tag'] = 'Classmate'
+                member['hierarchy_badge'] = 'Classmate'
+                roster['classmates'].append(member)
+            else:
+                member['hierarchy_tag'] = f'Year {row_yr_num} • {member["department_name"]}'
+                member['hierarchy_badge'] = 'Campus Peer'
+                roster['college_peers'].append(member)
+
+    except Exception as e:
+        logging.error(f"[get_campus_network_roster] {e}")
+
+    return roster
+
+
+@app_pages_bp.route('/campus/network')
+@auth_required
+def campus_network():
+    """Campus Directory categorized by hierarchy (Faculty, Seniors, Classmates)."""
+    user_info = session.get('user', {})
+    user_id = user_info.get('uid')
+    profile_result = get_student_profile(user_id)
+    profile = profile_result.get('data') if profile_result.get('success') else {}
+
+    college_id = profile.get('college_id') or session.get('profile', {}).get('college_id')
+    branch_id = profile.get('branch_id') or profile.get('department_id') or session.get('profile', {}).get('branch_id') or session.get('profile', {}).get('department_id')
+    user_year = profile.get('pursuing_year') or profile.get('current_year') or session.get('profile', {}).get('pursuing_year')
+
+    roster = get_campus_network_roster(college_id, branch_id=branch_id, user_year=user_year, current_user_id=user_id)
+    total_count = len(roster['faculty']) + len(roster['seniors']) + len(roster['classmates']) + len(roster['college_peers'])
+
+    return render_template(
+        'app/campus_network.html',
+        user_info=user_info,
+        profile=profile,
+        roster=roster,
+        total_count=total_count,
+        college_name=profile.get('college_name') or 'Your College'
+    )
+
+
+@app_pages_bp.route('/api/campus/request-notes', methods=['POST'])
+@auth_required
+def api_request_notes():
+    """Send an in-app note request notification to a peer/faculty member."""
+    user_info = session.get('user', {})
+    user_id = user_info.get('uid')
+    user_name = user_info.get('name') or user_info.get('email', 'A peer').split('@')[0]
+
+    payload = request.get_json(silent=True) or request.form.to_dict()
+    target_id = payload.get('target_user_id')
+    subject = payload.get('subject', 'Semester Notes')
+    note_type = payload.get('note_type', 'Study Notes & PYQs')
+    message_text = payload.get('message', '').strip()
+
+    if not target_id:
+        return jsonify({'success': False, 'message': 'Missing recipient'}), 400
+
+    notif_msg = f"{user_name} requested {note_type} for '{subject}'."
+    if message_text:
+        notif_msg += f"\nNote: \"{message_text}\""
+
+    try:
+        log_notification(
+            user_email=target_id,
+            notification_type='study_request',
+            title=f"Study Request: {subject}",
+            message=notif_msg,
+            url=f"/chat/{user_id}"
+        )
+    except Exception as e:
+        logging.warning(f"[api_request_notes] Notification log error: {e}")
+
+    chat_url = url_for('app_pages.chat_with_peer', peer_id=target_id)
+    return jsonify({
+        'success': True,
+        'message': 'Study request sent successfully!',
+        'chat_url': f"{chat_url}?msg=Hi!%20Could%20you%20please%20share%20notes%20for%20{quote_plus(subject)}%3F"
+    })
 
 
 @app_pages_bp.route('/chat')

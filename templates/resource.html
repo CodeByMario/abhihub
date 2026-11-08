@@ -1,3 +1,4 @@
+{% from 'components/media_card.html' import render_apple_card %}
 {% set cat_lower = ((document.document_category or '') ~ ' ' ~ (document.title or '') ~ ' ' ~ (document.description or
 '')) | lower %}
 {% set file_type = 'PYQ' if ('pyq' in cat_lower or 'paper' in cat_lower or 'exam' in cat_lower or 'ese' in cat_lower or
@@ -131,6 +132,7 @@ uploader_name %}
 <link rel="stylesheet" href="{{ url_for('static', filename='css/pages/p_resource.css') }}?v=2.0">
 
 
+<link rel="stylesheet" href="{{ url_for('static', filename='css/apple-card.css') }}">
 <style>
 /* Fullscreen Document Card Experience */
 .preview-card.fullscreen-doc-card {
@@ -823,18 +825,11 @@ body.zen-active .image-canvas img {
         {% endif %}
 
         {% if suggested_docs and suggested_docs|length > 0 %}
-        {% for sdoc in suggested_docs %}
-        <a href="/resource/{{ sdoc.slug or sdoc.id }}" class="ap-pillar-card" style="text-decoration:none; color:inherit; padding:1.25rem;">
-          <div style="font-size:0.75rem; font-weight:700; color:var(--ap-blue); margin-bottom:0.35rem;">{{ sdoc.file_type or 'PYQ' }}</div>
-          <div style="font-weight:600; font-size:1rem; color:var(--ap-ink); margin-bottom:0.5rem; line-height:1.35;">{{ sdoc.title }}</div>
-          <div style="font-size:0.8rem; color:var(--ap-secondary); display:flex; justify-content:space-between;">
-            <span>{{ subj_name }}</span>
-            <span>👁 {{ sdoc.view_count or 0 }}</span>
-          </div>
-        </a>
-        {% endfor %}
+          {% for sdoc in suggested_docs %}
+            {{ render_apple_card(sdoc, coll_abbr) }}
+          {% endfor %}
         {% elif not (custom_recommendations and custom_recommendations.get('papers')) %}
-        <div style="grid-column:1 / -1; text-align:center; padding:2rem; color:var(--ap-secondary); font-size:14.5px;">No additional papers cataloged for this subject yet.</div>
+          <div style="grid-column:1 / -1; text-align:center; padding:2.5rem; color:var(--ap-secondary); font-size:14px;">No additional papers cataloged for this subject yet.</div>
         {% endif %}
       </div>
       <div style="text-align:center; margin-top:1.5rem;">
@@ -947,6 +942,22 @@ body.zen-active .image-canvas img {
     </div>
     {% endif %}
   </section>
+
+  <!-- 7. Section: Recently Viewed & Campus Resources -->
+  {% if recent_files and recent_files|length > 0 %}
+  <section class="ap-ecosystem-section" id="recentFilesPanel" style="margin-top: 3.5rem;">
+    <div class="ap-section-header">
+      <h2 class="ap-section-title">Recently Viewed &amp; Campus Uploads</h2>
+      <p class="ap-section-sub">Quickly return to files from your study trail or explore newly contributed materials from {{ coll_name }}.</p>
+    </div>
+
+    <div class="apple-cards-grid" style="display:grid; grid-template-columns:repeat(auto-fill, minmax(280px, 1fr)); gap:1.25rem;">
+      {% for rdoc in recent_files %}
+        {{ render_apple_card(rdoc, coll_abbr) }}
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
 
   {% if can_manage %}
   <!-- Floating Admin Quick Launcher Dock -->

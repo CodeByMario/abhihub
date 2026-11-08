@@ -1,0 +1,812 @@
+{% extends 'p_struct.html' %}
+
+{% block title %}Campus Study Network • {{ college_name }}{% endblock %}
+
+{% block content %}
+<style>
+  :root {
+    --apple-bg: #f5f5f7;
+    --apple-surface: #ffffff;
+    --apple-surface-sub: #fbfbfd;
+    --apple-text: #1d1d1f;
+    --apple-text-secondary: #6e6e73;
+    --apple-text-muted: #86868b;
+    --apple-blue: #0071e3;
+    --apple-blue-hover: #0077ed;
+    --apple-blue-subtle: rgba(0, 113, 227, 0.08);
+    --apple-border: rgba(0, 0, 0, 0.08);
+    --radius-pill: 980px;
+    --radius-card: 18px;
+  }
+
+  [data-theme="dark"] {
+    --apple-bg: #000000;
+    --apple-surface: #1c1c1e;
+    --apple-surface-sub: #2c2c2e;
+    --apple-text: #f5f5f7;
+    --apple-text-secondary: #a1a1a6;
+    --apple-text-muted: #6e6e73;
+    --apple-blue: #2997ff;
+    --apple-blue-hover: #3ca2ff;
+    --apple-blue-subtle: rgba(41, 151, 255, 0.12);
+    --apple-border: rgba(255, 255, 255, 0.12);
+  }
+
+  .cn-container {
+    max-width: 1140px;
+    margin: 2rem auto 5rem;
+    padding: 0 1.25rem;
+  }
+
+  /* ── Apple Hero Header (Fixed: not using header element) ── */
+  .cn-hero {
+    text-align: center;
+    max-width: 720px;
+    margin: 0 auto 3rem;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    position: static;
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
+  }
+
+  .cn-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--apple-blue);
+    background: var(--apple-blue-subtle);
+    padding: 4px 14px;
+    border-radius: var(--radius-pill);
+    margin-bottom: 0.85rem;
+  }
+
+  .cn-title {
+    font-size: clamp(2rem, 3.8vw, 2.75rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--apple-text);
+    margin: 0 0 0.75rem;
+    line-height: 1.15;
+    text-align: center;
+  }
+
+  .cn-subtitle {
+    font-size: 15.5px;
+    color: var(--apple-text-secondary);
+    line-height: 1.5;
+    margin: 0;
+    text-align: center;
+    max-width: 600px;
+  }
+
+  /* ── Search & Filter Controls ────────────────────── */
+  .cn-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 2.5rem;
+  }
+
+  .cn-search-bar {
+    flex: 1;
+    min-width: 260px;
+    max-width: 440px;
+    display: flex;
+    align-items: center;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-pill);
+    padding: 8px 16px;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+    transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .cn-search-bar:focus-within {
+    border-color: var(--apple-blue);
+    box-shadow: 0 0 0 4px var(--apple-blue-subtle);
+  }
+
+  .cn-search-bar svg {
+    color: var(--apple-text-muted);
+    flex-shrink: 0;
+  }
+
+  .cn-search-bar input {
+    border: none;
+    outline: none;
+    background: transparent;
+    font-size: 14px;
+    color: var(--apple-text);
+    width: 100%;
+    margin-left: 10px;
+    font-family: inherit;
+  }
+
+  .cn-filter-pills {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    overflow-x: auto;
+    padding-bottom: 4px;
+  }
+
+  .cn-filter-pill {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-pill);
+    padding: 7px 16px;
+    font-size: 13px;
+    font-weight: 550;
+    color: var(--apple-text);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all 0.16s ease;
+  }
+
+  [data-theme="dark"] .cn-filter-pill {
+    background: #1c1c1e;
+    color: #f5f5f7;
+    border-color: rgba(255, 255, 255, 0.14);
+  }
+
+  .cn-filter-pill:hover {
+    background: var(--apple-surface-sub);
+    color: var(--apple-text);
+  }
+
+  .cn-filter-pill.active {
+    background: var(--apple-blue) !important;
+    border-color: var(--apple-blue) !important;
+    color: #ffffff !important;
+  }
+
+  /* ── Hierarchy Groups ────────────────────────────── */
+  .cn-group {
+    margin-bottom: 3.5rem;
+  }
+
+  .cn-group-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.25rem;
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid var(--apple-border);
+  }
+
+  .cn-group-title {
+    font-size: 1.2rem;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+    color: var(--apple-text);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0;
+  }
+
+  .cn-group-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--apple-text-secondary);
+    background: var(--apple-surface-sub);
+    padding: 3px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--apple-border);
+  }
+
+  /* ── Member Card Grid ────────────────────────────── */
+  .cn-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+
+  .cn-card {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    padding: 1.4rem;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.03);
+    transition: all 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+    position: relative;
+  }
+
+  .cn-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.07);
+    border-color: rgba(0, 113, 227, 0.28);
+  }
+
+  .cn-card-top {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    margin-bottom: 1rem;
+  }
+
+  .cn-avatar {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--apple-surface-sub);
+    color: var(--apple-blue);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 16px;
+    flex-shrink: 0;
+    border: 1px solid var(--apple-border);
+    overflow: hidden;
+  }
+
+  .cn-avatar img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .cn-card-meta {
+    flex: 1;
+    min-width: 0;
+  }
+
+  .cn-card-name {
+    font-size: 15px;
+    font-weight: 650;
+    color: var(--apple-text);
+    margin: 0 0 3px;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cn-badge-role {
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: var(--radius-pill);
+    display: inline-block;
+    margin-bottom: 4px;
+    letter-spacing: 0.02em;
+  }
+
+  .badge-faculty { background: rgba(88, 86, 214, 0.1); color: #5856d6; }
+  .badge-senior { background: rgba(255, 149, 0, 0.1); color: #b45309; }
+  .badge-classmate { background: rgba(52, 199, 89, 0.1); color: #248a3d; }
+  .badge-peer { background: var(--apple-blue-subtle); color: var(--apple-blue); }
+
+  .cn-dept-text {
+    font-size: 12px;
+    color: var(--apple-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .cn-card-stats {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 12px;
+    color: var(--apple-text-secondary);
+    padding: 10px 0;
+    border-top: 1px solid var(--apple-border);
+    margin-bottom: 1rem;
+  }
+
+  .cn-card-btn {
+    width: 100%;
+    height: 40px;
+    padding: 0 16px;
+    border-radius: var(--radius-pill);
+    border: none;
+    background: var(--apple-blue);
+    color: #ffffff !important;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    transition: all 0.18s ease;
+    text-decoration: none;
+  }
+
+  .cn-card-btn:hover {
+    background: var(--apple-blue-hover);
+    transform: scale(1.01);
+  }
+
+  /* ── Interactive Modal ────────────────────────────── */
+  .cn-modal-backdrop {
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.45);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    padding: 1.25rem;
+  }
+
+  .cn-modal-card {
+    width: 100%;
+    max-width: 480px;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: 20px;
+    box-shadow: 0 24px 60px rgba(0, 0, 0, 0.16);
+    overflow: hidden;
+    animation: modalIn 0.24s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  }
+
+  @keyframes modalIn {
+    from { opacity: 0; transform: scale(0.96); }
+    to { opacity: 1; transform: scale(1); }
+  }
+
+  .cn-modal-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid var(--apple-border);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .cn-modal-header h3 {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--apple-text);
+  }
+
+  .cn-modal-close {
+    background: transparent;
+    border: none;
+    color: var(--apple-text-muted);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 4px;
+    line-height: 1;
+    border-radius: 50%;
+  }
+
+  .cn-modal-body {
+    padding: 1.4rem 1.5rem;
+  }
+
+  .cn-modal-form-group {
+    margin-bottom: 1.15rem;
+  }
+
+  .cn-modal-label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--apple-text);
+    margin-bottom: 0.4rem;
+  }
+
+  .cn-modal-input,
+  .cn-modal-textarea {
+    width: 100%;
+    padding: 0.65rem 0.9rem;
+    border: 1px solid var(--apple-border);
+    border-radius: 10px;
+    font-size: 13.5px;
+    color: var(--apple-text);
+    background: var(--apple-surface-sub);
+    font-family: inherit;
+    outline: none;
+    transition: all 0.16s ease;
+  }
+
+  .cn-modal-input:focus,
+  .cn-modal-textarea:focus {
+    border-color: var(--apple-blue);
+    background: var(--apple-surface);
+    box-shadow: 0 0 0 3px var(--apple-blue-subtle);
+  }
+
+  .cn-preset-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 0.85rem;
+  }
+
+  .cn-preset-pill {
+    background: var(--apple-surface-sub);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-pill);
+    padding: 5px 12px;
+    font-size: 12px;
+    font-weight: 500;
+    color: var(--apple-text-secondary);
+    cursor: pointer;
+    transition: all 0.15s ease;
+  }
+
+  .cn-preset-pill:hover,
+  .cn-preset-pill.selected {
+    background: var(--apple-blue-subtle);
+    border-color: var(--apple-blue);
+    color: var(--apple-blue);
+  }
+
+  .cn-modal-footer {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--apple-border);
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 8px;
+  }
+
+  .cn-empty-state {
+    text-align: center;
+    padding: 4rem 1.5rem;
+    color: var(--apple-text);
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    margin: 2rem 0;
+  }
+
+  .cn-empty-state h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--apple-text);
+  }
+
+  .cn-empty-state p {
+    margin: 0 0 1.25rem;
+    font-size: 14px;
+    color: var(--apple-text-secondary);
+  }
+</style>
+
+<div class="cn-container">
+  <!-- Hero Section -->
+  <div class="cn-hero">
+    <span class="cn-eyebrow">Campus Study Network</span>
+    <h1 class="cn-title">Study together. Excel together.</h1>
+    <p class="cn-subtitle">Connect with verified mentors, senior toppers, and peers at {{ college_name }} to request notes, PYQ solutions, and exam blueprints.</p>
+  </div>
+
+  <!-- Controls -->
+  <div class="cn-toolbar">
+    <div class="cn-search-bar">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <input type="text" id="cnSearchInput" placeholder="Filter by name, department, or subject..." onkeyup="filterNetwork()">
+    </div>
+
+    <div class="cn-filter-pills">
+      <button type="button" class="cn-filter-pill active" onclick="filterGroup('all', this)">All ({{ total_count }})</button>
+      {% if roster['faculty'] %}
+      <button type="button" class="cn-filter-pill" onclick="filterGroup('faculty', this)">Faculty ({{ roster['faculty']|length }})</button>
+      {% endif %}
+      {% if roster['seniors'] %}
+      <button type="button" class="cn-filter-pill" onclick="filterGroup('seniors', this)">Seniors ({{ roster['seniors']|length }})</button>
+      {% endif %}
+      {% if roster['classmates'] %}
+      <button type="button" class="cn-filter-pill" onclick="filterGroup('classmates', this)">Classmates ({{ roster['classmates']|length }})</button>
+      {% endif %}
+      {% if roster['college_peers'] %}
+      <button type="button" class="cn-filter-pill" onclick="filterGroup('peers', this)">Peers ({{ roster['college_peers']|length }})</button>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- GROUP 1: Faculty & Mentors -->
+  {% if roster['faculty'] %}
+  <section class="cn-group" data-group="faculty">
+    <div class="cn-group-header">
+      <h2 class="cn-group-title">Faculty &amp; Mentors</h2>
+      <span class="cn-group-count">{{ roster['faculty']|length }} Verified</span>
+    </div>
+    <div class="cn-grid">
+      {% for m in roster['faculty'] %}
+      <div class="cn-card" data-name="{{ m.name|lower }}" data-dept="{{ m.department_name|lower }}">
+        <div>
+          <div class="cn-card-top">
+            <div class="cn-avatar">
+              {{ m.name[:1]|upper }}
+            </div>
+            <div class="cn-card-meta">
+              <span class="cn-badge-role badge-faculty">Faculty</span>
+              <div class="cn-card-name">{{ m.name }}</div>
+              <div class="cn-dept-text">{{ m.department_name }}</div>
+            </div>
+          </div>
+          <div class="cn-card-stats">
+            <span>{{ m.reputation_score }} Rep</span>
+            <span>&bull;</span>
+            <span>Verified Mentor</span>
+          </div>
+        </div>
+        <button type="button" class="cn-card-btn" onclick="openRequestModal('{{ m.id }}', '{{ m.name }}', 'Faculty')">
+          Ask for Notes / Help &rarr;
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- GROUP 2: Seniors -->
+  {% if roster['seniors'] %}
+  <section class="cn-group" data-group="seniors">
+    <div class="cn-group-header">
+      <h2 class="cn-group-title">Senior Toppers &amp; Mentors</h2>
+      <span class="cn-group-count">{{ roster['seniors']|length }} Seniors</span>
+    </div>
+    <div class="cn-grid">
+      {% for m in roster['seniors'] %}
+      <div class="cn-card" data-name="{{ m.name|lower }}" data-dept="{{ m.department_name|lower }}">
+        <div>
+          <div class="cn-card-top">
+            <div class="cn-avatar">
+              {{ m.name[:1]|upper }}
+            </div>
+            <div class="cn-card-meta">
+              <span class="cn-badge-role badge-senior">{{ m.hierarchy_tag }}</span>
+              <div class="cn-card-name">{{ m.name }}</div>
+              <div class="cn-dept-text">{{ m.department_name }} &bull; {{ m.current_year }}</div>
+            </div>
+          </div>
+          <div class="cn-card-stats">
+            <span>{{ m.reputation_score }} Rep</span>
+            <span>&bull;</span>
+            <span>Campus Contributor</span>
+          </div>
+        </div>
+        <button type="button" class="cn-card-btn" onclick="openRequestModal('{{ m.id }}', '{{ m.name }}', 'Senior')">
+          Ask for Past Papers &rarr;
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- GROUP 3: Classmates -->
+  {% if roster['classmates'] %}
+  <section class="cn-group" data-group="classmates">
+    <div class="cn-group-header">
+      <h2 class="cn-group-title">Classmates &amp; Department Batch</h2>
+      <span class="cn-group-count">{{ roster['classmates']|length }} Classmates</span>
+    </div>
+    <div class="cn-grid">
+      {% for m in roster['classmates'] %}
+      <div class="cn-card" data-name="{{ m.name|lower }}" data-dept="{{ m.department_name|lower }}">
+        <div>
+          <div class="cn-card-top">
+            <div class="cn-avatar">
+              {{ m.name[:1]|upper }}
+            </div>
+            <div class="cn-card-meta">
+              <span class="cn-badge-role badge-classmate">Classmate</span>
+              <div class="cn-card-name">{{ m.name }}</div>
+              <div class="cn-dept-text">{{ m.department_name }} &bull; {{ m.current_year }}</div>
+            </div>
+          </div>
+          <div class="cn-card-stats">
+            <span>{{ m.reputation_score }} Rep</span>
+            <span>&bull;</span>
+            <span>Batch Study</span>
+          </div>
+        </div>
+        <button type="button" class="cn-card-btn" onclick="openRequestModal('{{ m.id }}', '{{ m.name }}', 'Classmate')">
+          Ask for Notes &rarr;
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- GROUP 4: Campus Peers & Collaborators -->
+  {% if roster['college_peers'] %}
+  <section class="cn-group" data-group="peers">
+    <div class="cn-group-header">
+      <h2 class="cn-group-title">Campus Peers &amp; Study Collaborators</h2>
+      <span class="cn-group-count">{{ roster['college_peers']|length }} Peers</span>
+    </div>
+    <div class="cn-grid">
+      {% for m in roster['college_peers'] %}
+      <div class="cn-card" data-name="{{ m.name|lower }}" data-dept="{{ m.department_name|lower }}">
+        <div>
+          <div class="cn-card-top">
+            <div class="cn-avatar">
+              {{ m.name[:1]|upper }}
+            </div>
+            <div class="cn-card-meta">
+              <span class="cn-badge-role badge-peer">Campus Peer</span>
+              <div class="cn-card-name">{{ m.name }}</div>
+              <div class="cn-dept-text">{{ m.department_name }} &bull; {{ m.current_year }}</div>
+            </div>
+          </div>
+          <div class="cn-card-stats">
+            <span>{{ m.reputation_score }} Rep</span>
+            <span>&bull;</span>
+            <span>Study Network</span>
+          </div>
+        </div>
+        <button type="button" class="cn-card-btn" onclick="openRequestModal('{{ m.id }}', '{{ m.name }}', 'Peer')">
+          Connect &amp; Request Notes &rarr;
+        </button>
+      </div>
+      {% endfor %}
+    </div>
+  </section>
+  {% endif %}
+
+  <!-- Fallback empty state -->
+  <div id="noResultsNotice" class="cn-empty-state" style="display: {% if total_count == 0 %}block{% else %}none{% endif %};">
+    <h3>No campus members found</h3>
+    <p>Invite your batchmates or browse verified university essentials in the library.</p>
+    <a href="/college" class="cn-card-btn" style="display: inline-flex; width: auto; padding: 0 24px; text-decoration: none;">
+      Explore College Library &rarr;
+    </a>
+  </div>
+</div>
+
+<!-- "Ask for Notes" Modal Dialog -->
+<div class="cn-modal-backdrop" id="requestModalBackdrop" onclick="closeRequestModal(event)">
+  <div class="cn-modal-card" onclick="event.stopPropagation()">
+    <div class="cn-modal-header">
+      <h3 id="modalRecipientTitle">Ask for Study Help</h3>
+      <button type="button" class="cn-modal-close" onclick="closeRequestModal()">&times;</button>
+    </div>
+    <div class="cn-modal-body">
+      <input type="hidden" id="reqTargetId">
+
+      <div class="cn-modal-form-group">
+        <label class="cn-modal-label">Choose Request Type:</label>
+        <div class="cn-preset-pills">
+          <button type="button" class="cn-preset-pill selected" onclick="selectPresetPill(this, 'Handwritten Notes & Formulas')">Notes & Formulas</button>
+          <button type="button" class="cn-preset-pill" onclick="selectPresetPill(this, 'Past 5-Year Solved PYQs')">Solved PYQs</button>
+          <button type="button" class="cn-preset-pill" onclick="selectPresetPill(this, 'Lab Manual & Practicals')">Lab Manual</button>
+          <button type="button" class="cn-preset-pill" onclick="selectPresetPill(this, 'Exam Blueprint & Important Questions')">Exam Blueprint</button>
+        </div>
+      </div>
+
+      <div class="cn-modal-form-group">
+        <label class="cn-modal-label">Subject / Topic <span style="color:var(--apple-blue)">*</span></label>
+        <input type="text" id="reqSubject" class="cn-modal-input" placeholder="e.g. Operating Systems, DBMS Unit 3" required>
+      </div>
+
+      <div class="cn-modal-form-group">
+        <label class="cn-modal-label">Optional Note</label>
+        <textarea id="reqMessage" class="cn-modal-textarea" rows="2" placeholder="Hi! Do you have the latest exam notes for this? Thanks!"></textarea>
+      </div>
+    </div>
+    <div class="cn-modal-footer">
+      <button type="button" class="cn-filter-pill" onclick="closeRequestModal()">Cancel</button>
+      <button type="button" class="cn-card-btn" id="btnSendRequest" onclick="sendStudyRequest()" style="width: auto; padding: 0 20px;">
+        <span>Send Request &amp; Open Chat &rarr;</span>
+      </button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let selectedNoteType = 'Handwritten Notes & Formulas';
+
+  function filterGroup(groupName, btn) {
+    document.querySelectorAll('.cn-filter-pills .cn-filter-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+
+    const sections = document.querySelectorAll('.cn-group');
+    sections.forEach(sec => {
+      if (groupName === 'all' || sec.getAttribute('data-group') === groupName) {
+        sec.style.display = 'block';
+      } else {
+        sec.style.display = 'none';
+      }
+    });
+  }
+
+  function filterNetwork() {
+    const q = document.getElementById('cnSearchInput').value.trim().toLowerCase();
+    const cards = document.querySelectorAll('.cn-card');
+    let visibleCount = 0;
+
+    cards.forEach(card => {
+      const name = card.getAttribute('data-name') || '';
+      const dept = card.getAttribute('data-dept') || '';
+      if (!q || name.includes(q) || dept.includes(q)) {
+        card.style.display = 'flex';
+        visibleCount++;
+      } else {
+        card.style.display = 'none';
+      }
+    });
+
+    document.getElementById('noResultsNotice').style.display = (visibleCount === 0) ? 'block' : 'none';
+  }
+
+  function selectPresetPill(el, type) {
+    document.querySelectorAll('.cn-preset-pill').forEach(p => p.classList.remove('selected'));
+    el.classList.add('selected');
+    selectedNoteType = type;
+  }
+
+  function openRequestModal(targetId, targetName, targetRole) {
+    document.getElementById('reqTargetId').value = targetId;
+    document.getElementById('modalRecipientTitle').textContent = `Ask ${targetName} (${targetRole})`;
+    document.getElementById('requestModalBackdrop').style.display = 'flex';
+    document.getElementById('reqSubject').focus();
+  }
+
+  function closeRequestModal(e) {
+    if (e && e.target !== e.currentTarget) return;
+    document.getElementById('requestModalBackdrop').style.display = 'none';
+  }
+
+  async function sendStudyRequest() {
+    const targetId = document.getElementById('reqTargetId').value;
+    const subject = document.getElementById('reqSubject').value.trim();
+    const message = document.getElementById('reqMessage').value.trim();
+
+    if (!subject) {
+      alert("Please enter a subject or topic name.");
+      document.getElementById('reqSubject').focus();
+      return;
+    }
+
+    const btn = document.getElementById('btnSendRequest');
+    btn.disabled = true;
+    btn.textContent = "Sending...";
+
+    try {
+      const resp = await fetch('/api/campus/request-notes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+          target_user_id: targetId,
+          subject: subject,
+          note_type: selectedNoteType,
+          message: message
+        })
+      });
+
+      const resData = await resp.json().catch(() => null);
+      if (resData && resData.chat_url) {
+        window.location.href = resData.chat_url;
+      } else {
+        window.location.href = `/chat/${targetId}`;
+      }
+    } catch (_) {
+      window.location.href = `/chat/${targetId}`;
+    }
+  }
+</script>
+{% endblock %}

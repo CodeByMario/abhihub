@@ -1,9 +1,23 @@
+      <!-- Wallet, Royalties & Receipts Section -->
       <div class="st-section" id="section-payout">
+        <!-- Apple HIG Segmented Switcher -->
+        <div class="st-segmented-bar" style="margin-bottom:1.25rem;">
+          <button type="button" id="btnTabCreatorWallet" onclick="switchWalletView('creator')" class="st-segmented-btn active">
+            💰 Creator Royalties &amp; Payouts
+          </button>
+          <button type="button" id="btnTabOrderReceipts" onclick="switchWalletView('receipts')" class="st-segmented-btn">
+            🧾 Purchase Receipts &amp; Invoices
+          </button>
+        </div>
+
+        <!-- Subview 1: Creator Royalties & Bank Payouts -->
+        <div id="viewCreatorWallet">
+
         <!-- Card 1: Creator Monetization Eligibility -->
         <div class="st-card">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
             <h2 style="margin:0;"><span class="st-card-icon"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg></span> Creator Eligibility</h2>
-            <span id="stPayoutEligibilityBadge" class="st-stat-value" style="background:#fef3c7;color:#92400e;">Checking...</span>
+            <span id="stPayoutEligibilityBadge" class="st-stat-value" class="st-badge st-badge-warning">Checking...</span>
           </div>
           <div id="stPayoutEligibilityMsg" class="st-form-sublabel" style="line-height:1.5;">
             Evaluating your current rank and monetization privileges...
@@ -318,7 +332,7 @@
         <div class="st-card" id="stKycCard">
           <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
             <h2 style="margin:0;"><span class="st-card-icon"></span> Payout KYC &amp; Bank / UPI Details</h2>
-            <span id="stKycStatusBadge" class="st-stat-value" style="background:#fef3c7;color:#92400e;">Checking KYC...</span>
+            <span id="stKycStatusBadge" class="st-stat-value" class="st-badge st-badge-warning">Checking KYC...</span>
           </div>
           <div class="st-form-sublabel" style="margin-bottom:1rem;line-height:1.5;">
             Identity and bank account verification is required for security and automated payouts. When your balance reaches <strong>₹10+</strong>, payouts are scheduled automatically and credited within <strong>7 business days</strong>.
@@ -449,6 +463,82 @@
             </table>
           </div>
         </div>
+        </div>
+
+        <!-- Subview 2: Purchase Receipts & Orders (Consolidated from _transactions.html) -->
+        <div id="viewOrderReceipts" style="display:none;">
+
+        <div class="st-card">
+          <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:0.5rem;margin-bottom:0.75rem;">
+            <h2 style="margin:0;"><span class="st-card-icon"></span> Payment History</h2>
+            <button type="button" onclick="loadTransactionHistory(true)" class="st-btn st-btn-outline" style="padding:0.35rem 0.8rem;font-size:0.78rem;min-height:32px;">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="vertical-align:middle;"><polyline points="23 4 23 10 17 10"></polyline><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path></svg> Refresh
+            </button>
+          </div>
+          <div class="st-form-sublabel" style="margin-bottom:1.25rem;">
+            View all your past purchases, document unlocks, support contributions, and official bank receipts.
+          </div>
+
+          <!-- Transaction Metrics Grid -->
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:0.75rem;margin-bottom:1.25rem;">
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-text-muted);font-weight:700;text-transform:uppercase;">Total Orders</div>
+              <div id="stTxTotalOrders" style="font-size:1.35rem;font-weight:800;color:var(--st-text-main);margin-top:0.25rem;">0</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:var(--st-success);font-weight:700;text-transform:uppercase;">Successful</div>
+              <div id="stTxSuccessOrders" style="font-size:1.35rem;font-weight:800;color:var(--st-success);margin-top:0.25rem;">0</div>
+            </div>
+            <div style="background:var(--st-surface-hover);border:1px solid var(--st-border);border-radius:12px;padding:0.85rem;text-align:center;">
+              <div style="font-size:0.75rem;color:#1d4ed8;font-weight:700;text-transform:uppercase;">Gateway</div>
+              <div style="font-size:1.05rem;font-weight:800;color:#1d4ed8;margin-top:0.35rem;">Razorpay Secure</div>
+            </div>
+          </div>
+
+          <!-- Transaction Table Container -->
+          <div style="overflow-x:auto;">
+            <table style="width:100%;border-collapse:collapse;font-size:0.85rem;">
+              <thead>
+                <tr style="text-align:left;border-bottom:1.5px solid var(--st-border);color:var(--st-text-muted);">
+                  <th style="padding:0.6rem 0.5rem;">Order Reference</th>
+                  <th style="padding:0.6rem 0.5rem;">Item / Purpose</th>
+                  <th style="padding:0.6rem 0.5rem;">Amount</th>
+                  <th style="padding:0.6rem 0.5rem;">Status</th>
+                  <th style="padding:0.6rem 0.5rem;text-align:right;">Actions</th>
+                </tr>
+              </thead>
+              <tbody id="stTransactionsTbody">
+                <tr><td colspan="5" style="padding:1.5rem;text-align:center;color:var(--st-text-muted);">Loading payment history...</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        </div>
+
+        <!-- Backward Compatibility Stub for #transactions URL anchors -->
+        <div id="section-transactions" style="display:none;"></div>
       </div>
 
-      <!-- Payment & Transaction History -->
+      <script>
+      window.switchWalletView = function(view) {
+        const creatorView = document.getElementById('viewCreatorWallet');
+        const receiptsView = document.getElementById('viewOrderReceipts');
+        const btnCreator = document.getElementById('btnTabCreatorWallet');
+        const btnReceipts = document.getElementById('btnTabOrderReceipts');
+        if (!creatorView || !receiptsView) return;
+
+        if (view === 'receipts') {
+          creatorView.style.display = 'none';
+          receiptsView.style.display = 'block';
+          if (btnCreator) btnCreator.classList.remove('active');
+          if (btnReceipts) btnReceipts.classList.add('active');
+          if (typeof loadTransactionHistory === 'function') loadTransactionHistory();
+        } else {
+          receiptsView.style.display = 'none';
+          creatorView.style.display = 'block';
+          if (btnReceipts) btnReceipts.classList.remove('active');
+          if (btnCreator) btnCreator.classList.add('active');
+          if (typeof loadPayoutSettings === 'function') loadPayoutSettings();
+        }
+      };
+      </script>

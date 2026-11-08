@@ -7,6 +7,15 @@
 
   // Task 5.6: Ensure single instance when loaded inside app_shell iframe
   if (window.self !== window.top) {
+    window.toggleAbhiAiDrawer = function() {
+      try { if (window.top && window.top.toggleAbhiAiDrawer) window.top.toggleAbhiAiDrawer(); } catch (e) {}
+    };
+    window.openAbhiAiDrawer = function() {
+      try { if (window.top && window.top.openAbhiAiDrawer) window.top.openAbhiAiDrawer(); } catch (e) {}
+    };
+    window.closeAbhiAiDrawer = function() {
+      try { if (window.top && window.top.closeAbhiAiDrawer) window.top.closeAbhiAiDrawer(); } catch (e) {}
+    };
     const launcher = document.getElementById('abhiAiLauncher');
     const drawer = document.getElementById('abhiAiDrawer');
     if (launcher) launcher.style.display = 'none';
@@ -254,6 +263,41 @@
   }
   window.routeAppUrl = routeAppUrl;
 
+  window.updateTarikaSetupUi = function() {
+    const key = localStorage.getItem('openrouter_api_key');
+    const cloudCard = document.getElementById('aiSetupCloudCard');
+    const byokCard = document.getElementById('aiSetupByokCard');
+    const cloudBadge = document.getElementById('aiCloudStatusBadge');
+    const byokBadge = document.getElementById('aiByokStatusBadge');
+    const clearBtn = document.getElementById('tarikaClearKeyBtn');
+
+    if (key) {
+      if (cloudCard) cloudCard.classList.remove('active');
+      if (byokCard) byokCard.classList.add('active');
+      if (cloudBadge) {
+        cloudBadge.textContent = 'Available';
+        cloudBadge.classList.remove('active');
+      }
+      if (byokBadge) {
+        byokBadge.textContent = '● Key Active';
+        byokBadge.classList.add('active');
+      }
+      if (clearBtn) clearBtn.style.display = 'inline-flex';
+    } else {
+      if (cloudCard) cloudCard.classList.add('active');
+      if (byokCard) byokCard.classList.remove('active');
+      if (cloudBadge) {
+        cloudBadge.textContent = '● Active';
+        cloudBadge.classList.add('active');
+      }
+      if (byokBadge) {
+        byokBadge.textContent = 'Optional';
+        byokBadge.classList.remove('active');
+      }
+      if (clearBtn) clearBtn.style.display = 'none';
+    }
+  };
+
   window.openTarikaApiKeyModal = function() {
     const modal = document.getElementById('tarikaApiKeyModal');
     if (modal) {
@@ -261,14 +305,41 @@
       const input = document.getElementById('tarikaApiKeyModalInput');
       if (input) {
         input.value = localStorage.getItem('openrouter_api_key') || '';
-        setTimeout(() => input.focus(), 150);
       }
+      window.updateTarikaSetupUi();
     }
   };
 
   window.closeTarikaApiKeyModal = function() {
     const modal = document.getElementById('tarikaApiKeyModal');
     if (modal) modal.style.display = 'none';
+  };
+
+  window.clearTarikaApiKey = async function() {
+    localStorage.removeItem('openrouter_api_key');
+    const input = document.getElementById('tarikaApiKeyModalInput');
+    if (input) input.value = '';
+    try {
+      await fetch('/api/ai/key', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider: 'openrouter' })
+      });
+    } catch (e) {}
+    window.updateTarikaSetupUi();
+    if (window.showAiToast) {
+      window.showAiToast('Switched back to AbhiHub Free Cloud AI!');
+    }
+  };
+
+  window.selectWebGpuOffline = function() {
+    localStorage.setItem('ai_preferred_model', 'Llama-3.2-1B-Instruct-q4f16_1-MLC');
+    localStorage.setItem('ai_provider', 'webllm');
+    window.updateModelBadgeDisplay();
+    window.closeTarikaApiKeyModal();
+    if (window.showAiToast) {
+      window.showAiToast('Switched to Tarika WebGPU Offline mode!');
+    }
   };
 
   window.saveTarikaApiKey = async function() {
@@ -291,28 +362,43 @@
       console.debug('Backend key sync error:', e);
     }
 
+    window.updateTarikaSetupUi();
     window.closeTarikaApiKeyModal();
     if (window.showAiToast) {
-      window.showAiToast('OpenRouter API Key saved! Tarika is ready.');
+      window.showAiToast('Personal API Key saved! Tarika is ready.');
     }
     const chatInput = document.getElementById('aiChatInput');
     if (chatInput) chatInput.focus();
   };
 
+  window.openAbhiAiDrawer = function() {
+    const drw = document.getElementById('abhiAiDrawer');
+    if (!drw) return;
+    drw.classList.add('open');
+    drw.setAttribute('aria-hidden', 'false');
+    document.body.classList.add('tarika-docked-open');
+    document.documentElement.classList.add('tarika-docked-open');
+    detectOpenDocument();
+    if (typeof window.updateModelBadgeDisplay === 'function') window.updateModelBadgeDisplay();
+    setTimeout(() => document.getElementById('aiChatInput')?.focus(), 150);
+  };
+
+  window.closeAbhiAiDrawer = function() {
+    const drw = document.getElementById('abhiAiDrawer');
+    if (!drw) return;
+    drw.classList.remove('open');
+    drw.setAttribute('aria-hidden', 'true');
+    document.body.classList.remove('tarika-docked-open');
+    document.documentElement.classList.remove('tarika-docked-open');
+  };
+
   window.toggleAbhiAiDrawer = function() {
     const drw = document.getElementById('abhiAiDrawer');
     if (!drw) return;
-    const isOpen = drw.classList.toggle('open');
-    drw.setAttribute('aria-hidden', String(!isOpen));
-    if (isOpen) {
-      detectOpenDocument();
-      window.updateModelBadgeDisplay();
-      const savedKey = localStorage.getItem('openrouter_api_key');
-      if (!savedKey) {
-        window.openTarikaApiKeyModal();
-      } else {
-        setTimeout(() => document.getElementById('aiChatInput')?.focus(), 150);
-      }
+    if (drw.classList.contains('open')) {
+      window.closeAbhiAiDrawer();
+    } else {
+      window.openAbhiAiDrawer();
     }
   };
 
@@ -367,12 +453,12 @@
 
     const thinking = document.createElement('div');
     thinking.className = 'ai-bubble thinking';
-    const docNote = window.TarikaState.activeDocId ? ' analyzing document &' : '';
+    const docNote = window.TarikaState.activeDocId ? 'analyzing document & answering' : 'thinking';
     thinking.innerHTML = `
-      <div style="display:inline-flex; align-items:center; gap:6px;">
-        <span class="ai-thinking-dot" style="display:inline-block; width:7px; height:7px; border-radius:50%; background:#10b981; animation:pulse 1s infinite alternate;"></span>
-        <span>🌸 <strong>${activeModelName}</strong> is${docNote} typing...</span>
-        <span class="ai-typing-indicator" title="Typing response..."><span></span><span></span><span></span></span>
+      <div class="ai-thinking-indicator-row">
+        <span class="ai-thinking-pulse-dot"></span>
+        <span>Tarika is ${docNote}...</span>
+        <span class="ai-typing-indicator" title="Generating response..."><span></span><span></span><span></span></span>
       </div>
     `;
     msgList.appendChild(thinking);

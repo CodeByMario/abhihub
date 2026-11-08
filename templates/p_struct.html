@@ -3,6 +3,23 @@
 
 <head>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/site-protection.css') }}">
+    {% set is_auth_or_payment = hide_popups or is_auth_page or (request and request.path and (
+        request.path.startswith('/login') or
+        request.path.startswith('/signup') or
+        request.path.startswith('/register') or
+        request.path.startswith('/payment') or
+        request.path.startswith('/checkout') or
+        request.path.startswith('/auth') or
+        request.path.startswith('/forgot-password') or
+        request.path.startswith('/reset-password')
+    )) %}
+    {% if is_auth_or_payment %}
+    <style>
+      .popup, .popup-overlay, .auth-gate-backdrop, .ui-feedback-backdrop, #global-auth-modal, #profileNudgeOverlay, #pwaInstallPopup, [id$="-popup"] {
+        display: none !important;
+      }
+    </style>
+    {% endif %}
     <style>
         /* Native Mobile Fluidity & Touch Responsiveness */
         html {
@@ -401,6 +418,7 @@
     </div>
 
     <!-- Search Overlay -->
+{% if not is_auth_or_payment %}
     <!-- PWA Install Popup -->
     <div id="pwaInstallPopup" class="popup-overlay pwa-install-popup" data-action="dismissIfClicked">
         <div class="pwa-popup-content">
@@ -501,6 +519,7 @@
 
         </div>
     </div>
+    {% endif %}
 
 
     <header>
@@ -512,13 +531,13 @@
 
             <!-- Apple Unified Right Navigation Cluster -->
             <div class="nav-right-cluster">
-                <!-- Search Button (Scrolls to Search / triggers search modal) -->
-                <button id="headerSearchBtn" type="button" data-action="openSearchSection" class="ap-nav-icon-btn" aria-label="Search library" title="Search library & papers">
+                <!-- Search Link (Redirects to Search Page) -->
+                <a href="{{ url_for('library.search_page') }}" id="headerSearchBtn" class="ap-nav-icon-btn" aria-label="Search library" title="Search library & papers" style="text-decoration:none;">
                     <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                         <circle cx="11" cy="11" r="8"></circle>
                         <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
                     </svg>
-                </button>
+                </a>
 
                 <!-- Theme Toggle Button -->
                 <button type="button" class="theme-toggle-nav-btn ap-nav-icon-btn" onclick="toggleGlobalTheme()" aria-label="Toggle light and dark theme" title="Toggle theme">
@@ -643,7 +662,7 @@
 
                 <a href="{{ url_for('site.careers') }}" class="nav-careers-link">Careers</a>
 
-                {% if not session.get('user') %}
+                {% if not session.get('user') and not is_auth_or_payment %}
                 {% set cur_req_path = request.full_path if request.query_string else request.path %}
                 {% if cur_req_path and cur_req_path.strip() not in ('/', '/landing') %}
                 <a href="{{ url_for('auth.login', next=cur_req_path.strip()) }}" class="nav-login-link">Log In</a>
@@ -671,8 +690,13 @@
     {% include 'p_footer.html' ignore missing %}
     {% endif %}
     {% include 'nav.html' ignore missing %}
+    {% if not is_auth_or_payment %}
     {% include 'includes/auth_gate_overlay.html' ignore missing %}
+    {% if session.get('user') and not is_auth_or_payment and not (profile_data and profile_data.get('college_id')) %}
+    {% include 'includes/_onboarding_modal.html' ignore missing %}
+    {% endif %}
     {% include 'includes/ui_feedback_modal.html' ignore missing %}
+    {% endif %}
 
     <!-- Global Entity Add Modal -->
     <div id="globalEntityModal" class="global-entity-modal">
@@ -900,16 +924,7 @@
             };
 
             window.openSearchSection = function () {
-                const sec = document.getElementById('dashboardSearchSection') || document.querySelector('.container_search') || document.querySelector('.ss-search');
-                const inp = document.getElementById('searchFileName') || document.getElementById('heroSearchInput');
-                if (sec) {
-                    sec.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                    if (inp) {
-                        setTimeout(() => inp.focus(), 350);
-                    }
-                } else {
-                    window.location.href = '/dashboard#dashboardSearchSection';
-                }
+                window.location.href = "{{ url_for('library.search_page') }}";
             };
 
             window.toggleNotifPanel = function () {
@@ -1134,6 +1149,7 @@
         })();
     </script>
 
+{% if not is_auth_or_payment %}
     <!-- ===== PROFILE NUDGE + NOTIFICATION POPUP LOGIC ===== -->
     <script>
         (function () {
@@ -1295,6 +1311,7 @@
             }
         })();
     </script>
+    {% endif %}
 
     <!-- Global overlay helpers (make some common popup controls available on every page) -->
     <script>
@@ -1969,6 +1986,7 @@
         }
     </script>
 
+{% if not is_auth_or_payment %}
     <!-- PWA Install Popup Script (skipped when embedded in App Shell) -->
     <script>
         // PWA Install Prompt Handler
@@ -2027,6 +2045,7 @@
             deferredPrompt = null;
         });
     </script>
+    {% endif %}
 
     <!-- Google Tag & Analytics -->
     {% set user_profile_json = get_full_profile_json() | tojson %}
@@ -2064,7 +2083,7 @@
 
     <!-- Ad placements are disabled by default until consent and AdSense approval are in place. -->
 
-    {% if not session.get('user') %}
+    {% if not session.get('user') and not is_auth_or_payment %}
     <!-- Global Auth Modal -->
     <div id="global-auth-modal" style="display:none; position:fixed; inset:0; z-index:999999; background:rgba(15,23,42,0.65); backdrop-filter:blur(4px); align-items:center; justify-content:center; padding:1rem;" role="dialog" aria-modal="true" aria-labelledby="gam-title">
       <div style="background:#ffffff; border-radius:18px; width:100%; max-width:440px; padding:1.75rem; box-shadow:0 20px 25px -5px rgba(0,0,0,0.1), 0 8px 10px -6px rgba(0,0,0,0.1); position:relative; font-family:inherit;">

@@ -268,29 +268,67 @@ def ensure_seed_channels():
             )
             logger.info("[CHANNEL SEED] Created seeded creator channel")
 
-def get_featured_channels(limit=10):
-    """Fetches list of active creator channels with note counts for dashboard moving cards."""
+def get_featured_channels(limit=10, user_college_id=None):
+    """Fetches active creator channels, prioritizing user's college first then AbhiHub."""
     try:
         ensure_seed_channels()
     except Exception as e:
         logger.warning(f"[CHANNEL] ensure_seed_channels failed: {e}")
 
     def _query(client):
-        res = client.table('channels').select('*').order('views_count', desc=True).limit(limit).execute()
+        res = client.table('channels').select('*').order('views_count', desc=True).limit(25).execute()
         return res.data or []
 
     channels = []
     try:
         raw_channels = _execute_with_schema_fallback(_query) or []
+        user_ids = [ch['user_id'] for ch in raw_channels if ch.get('user_id')]
+        prof_map = {}
+        if user_ids:
+            try:
+                client = _get_client("abhihub")
+                if client:
+                    p_res = client.table('profiles').select('id, college_id, full_name, colleges(name, abbreviation)').in_('id', user_ids).execute()
+                    for p in (p_res.data or []):
+                        prof_map[p['id']] = p
+            except Exception as e_p:
+                logger.debug(f"[CHANNEL] Profile lookup for channels: {e_p}")
+
+        campus_channels = []
+        other_channels = []
+
         for ch in raw_channels:
             u_id = ch.get('user_id')
+            prof = prof_map.get(u_id, {})
+            col_info = prof.get('colleges') or {}
+            ch_col_id = prof.get('college_id')
+            col_name = col_info.get('name') or ''
+            col_abbr = col_info.get('abbreviation') or ''
+
+            ch['college_name'] = col_name
+            ch['college_abbr'] = col_abbr
+            ch['creator_name'] = prof.get('full_name') or ch.get('title')
+
             notes = get_channel_notes(u_id) if u_id else []
             ch['notes_count'] = len(notes)
-            channels.append(ch)
+
+            # Preference: creator from user's college first, then AbhiHub
+            if user_college_id and ch_col_id and str(ch_col_id) == str(user_college_id):
+                ch['is_campus_match'] = True
+                ch['badge_label'] = f"Your Campus • {col_abbr}" if col_abbr else "Campus Creator"
+                campus_channels.append(ch)
+            else:
+                ch['is_campus_match'] = False
+                ch['badge_label'] = f"{col_abbr} • Creator" if col_abbr else "AbhiHub Creator"
+                other_channels.append(ch)
+
+        channels = (campus_channels + other_channels)[:limit]
     except Exception as e:
         logger.error(f"[CHANNEL] get_featured_channels error: {e}")
 
     return channels
+
+get_home_creator_channels = get_featured_channels
 
 
 

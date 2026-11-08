@@ -452,6 +452,69 @@
     border: 1px solid var(--apple-border);
   }
 
+  .cr-badge--intern {
+    background: rgba(0, 113, 227, 0.1);
+    color: var(--apple-blue);
+    border: 1px solid rgba(0, 113, 227, 0.25);
+  }
+
+  .cr-program-banner {
+    background: linear-gradient(135deg, rgba(0, 113, 227, 0.05) 0%, rgba(16, 185, 129, 0.05) 100%), var(--apple-surface-card);
+    border: 1px solid rgba(0, 113, 227, 0.18);
+    border-radius: var(--radius-card);
+    padding: 2rem 1.75rem;
+    margin-bottom: 2.25rem;
+    box-shadow: var(--apple-shadow);
+  }
+
+  .cr-program-meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 1rem;
+    margin-top: 1.25rem;
+    padding-top: 1.25rem;
+    border-top: 1px solid var(--apple-border);
+  }
+
+  .cr-program-meta-item {
+    font-size: 0.85rem;
+    line-height: 1.4;
+  }
+
+  .cr-program-meta-label {
+    font-size: 0.68rem;
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--apple-blue);
+    margin-bottom: 3px;
+  }
+
+  .cr-program-meta-val {
+    font-weight: 700;
+    color: var(--apple-dark);
+  }
+
+  .cr-perks-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+    margin-top: 1rem;
+  }
+
+  .cr-perk-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.3rem 0.75rem;
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-pill);
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--apple-dark);
+  }
+
   .cr-card-title {
     font-size: 1.35rem;
     font-weight: 800;
@@ -673,12 +736,166 @@
   <!-- 3. Vacancy Filter Bar -->
   <div class="apple-container cr-filter-bar">
     <div class="cr-filter-wrap" role="tablist" aria-label="Vacancy Status Filters">
-      <button class="cr-filter-btn active" data-filter="all">All Positions (8)</button>
-      <button class="cr-filter-btn" data-filter="live">● Actively Hiring (3)</button>
+      <button class="cr-filter-btn active" data-filter="all">All Positions (11)</button>
+      <button class="cr-filter-btn" data-filter="internship">🎓 Creator Internships (3)</button>
+      <button class="cr-filter-btn" data-filter="live">● Actively Hiring (6)</button>
       <button class="cr-filter-btn" data-filter="soon"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg> Opening Soon (3)</button>
       <button class="cr-filter-btn" data-filter="filled"><svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg> Position Filled (2)</button>
     </div>
   </div>
+
+  <!-- 3.5 Featured: Creator Partnerships Internship Program -->
+  <section class="cr-role-section cr-internship-program-section" id="creator-internships">
+    <div class="apple-container">
+      <div class="apple-section-header">
+        <span class="apple-eyebrow">Marketing &amp; Business Development</span>
+        <h2 class="apple-section-title">Creator Partnerships Internship Program</h2>
+        <p class="apple-section-desc">
+          Join our 6-week remote learning cohort exploring educational partnerships with YouTube educators, university professors, and independent teachers across India.
+        </p>
+      </div>
+
+      <!-- Program Overview Card -->
+      <div class="cr-program-banner">
+        <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+          <div>
+            <span class="cr-badge cr-badge--intern" style="margin-bottom:0.5rem;">🎓 6-Week Learning Opportunity</span>
+            <h3 style="font-size:1.35rem; font-weight:800; margin:0 0 0.4rem; color:var(--apple-dark);">AbhiHub × Creator Partnerships Cohort</h3>
+            <p style="font-size:0.9rem; color:var(--apple-gray); margin:0; max-width:760px; line-height:1.5;">
+              AbhiHub is organizing academic resources (notes, PYQs, lab manuals) across Indian colleges. We are partnering with educational YouTube creators, professors, and subject toppers to publish and distribute verified study materials. We are welcoming motivated undergraduate students to learn business development, outreach, and creator relations.
+            </p>
+          </div>
+          <div style="text-align:right;">
+            <span style="font-size:0.75rem; text-transform:uppercase; font-weight:700; color:var(--apple-gray); display:block;">Applications Status</span>
+            <span style="font-size:1.05rem; font-weight:800; color:#10B981;">Open for Cohort 2026</span>
+          </div>
+        </div>
+
+        <div class="cr-program-meta-grid">
+          <div class="cr-program-meta-item">
+            <div class="cr-program-meta-label">Department</div>
+            <div class="cr-program-meta-val">Marketing &amp; BD</div>
+          </div>
+          <div class="cr-program-meta-item">
+            <div class="cr-program-meta-label">Work Mode</div>
+            <div class="cr-program-meta-val">100% Remote</div>
+          </div>
+          <div class="cr-program-meta-item">
+            <div class="cr-program-meta-label">Weekly Hours</div>
+            <div class="cr-program-meta-val">5–8 hrs / week</div>
+          </div>
+          <div class="cr-program-meta-item">
+            <div class="cr-program-meta-label">Duration</div>
+            <div class="cr-program-meta-val">6 Weeks (Initial)</div>
+          </div>
+          <div class="cr-program-meta-item">
+            <div class="cr-program-meta-label">Positions Open</div>
+            <div class="cr-program-meta-val">3 Openings</div>
+          </div>
+          <div class="cr-program-meta-item">
+            <div class="cr-program-meta-label">Experience</div>
+            <div class="cr-program-meta-val">Freshers Welcome</div>
+          </div>
+        </div>
+
+        <div style="margin-top:1.25rem;">
+          <div style="font-size:0.75rem; font-weight:700; text-transform:uppercase; color:var(--apple-gray); margin-bottom:0.4rem;">What You Will Receive:</div>
+          <div class="cr-perks-list">
+            <span class="cr-perk-chip">📜 Official Internship Completion Certificate</span>
+            <span class="cr-perk-chip">🚀 Hands-on Early-Stage EdTech Experience</span>
+            <span class="cr-perk-chip">🤝 Direct Mentorship &amp; Feedback from Founder</span>
+            <span class="cr-perk-chip">💼 Verified Professional Portfolio Additions</span>
+            <span class="cr-perk-chip">🎯 Creator Network &amp; Partnership Experience</span>
+          </div>
+        </div>
+
+        <div style="margin-top:1.25rem; padding:0.85rem 1rem; border-radius:10px; background:var(--apple-surface); border:1px solid var(--apple-border); font-size:0.78rem; color:var(--apple-gray); line-height:1.45;">
+          ⚖️ <strong>Legal &amp; Transparency Disclosure:</strong> This is a voluntary learning opportunity. No fees or charges will ever be requested. Interns are never required to make purchases or handle personal funds.
+        </div>
+      </div>
+
+      <!-- 3 Positions Grid -->
+      <div class="cr-roles-grid">
+        <!-- Position 1 -->
+        <article class="cr-card" data-status="live" data-category="internship">
+          <div>
+            <div class="cr-card-badges">
+              <span class="cr-badge cr-badge--live">● Actively Hiring</span>
+              <span class="cr-badge cr-badge--intern">1 Opening</span>
+              <span class="cr-badge cr-badge--pill">Remote</span>
+              <span class="cr-badge cr-badge--pill">Freshers Welcome</span>
+            </div>
+            <h3 class="cr-card-title">Creator Research Intern</h3>
+            <p class="cr-card-desc">
+              Discover educational YouTube channels, independent professors, and teachers across India with original notes, PDFs, and exam solutions.
+            </p>
+            <ul class="cr-card-points">
+              <li>Discover educational YouTube creators &amp; faculty across Indian states</li>
+              <li>Identify creators with original notes, question papers, and study guides</li>
+              <li>Find publicly available business contacts and maintain structured databases</li>
+              <li>Categorize creators according to subject, university, and content type</li>
+              <li><strong>Deliverable:</strong> Researched &amp; verified creator partner database with source links</li>
+            </ul>
+          </div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Creator%20Research%20Intern%20-%20AbhiHub&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Creator%20Research%20Intern%20position%20(Creator%20Partnerships%20Program).%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20Current%20Year%3A%0A3.%20Academic%20Stream%20(e.g.%20BBA%2FB.Tech%2FBCA%2FB.Com)%3A%0A4.%20Short%20Introduction%3A%0A5.%20Relevant%20Skills%20(Research%2C%20Google%20Sheets%2C%20YouTube)%3A%0A6.%20Why%20you%20want%20to%20join%20AbhiHub%3A%0A7.%20Weekly%20Availability%20(approx%205-8%20hrs%2Fweek)%3A%0A%0AThank%20you!" class="cr-btn-apply">
+            Apply for Position 1 →
+          </a>
+        </article>
+
+        <!-- Position 2 -->
+        <article class="cr-card" data-status="live" data-category="internship">
+          <div>
+            <div class="cr-card-badges">
+              <span class="cr-badge cr-badge--live">● Actively Hiring</span>
+              <span class="cr-badge cr-badge--intern">1 Opening</span>
+              <span class="cr-badge cr-badge--pill">Remote</span>
+              <span class="cr-badge cr-badge--pill">Freshers Welcome</span>
+            </div>
+            <h3 class="cr-card-title">Creator Outreach Intern</h3>
+            <p class="cr-card-desc">
+              Research educator distribution methods, draft personalized partnership messages, and manage professional communication with creators.
+            </p>
+            <ul class="cr-card-points">
+              <li>Draft personalized outreach messages for educators and YouTube teachers</li>
+              <li>Send approved partnership pitches via authorized professional channels</li>
+              <li>Follow up politely, record responses, and track partnership interest</li>
+              <li>Schedule introductory creator discovery calls with founder approval</li>
+              <li><strong>Deliverable:</strong> Updated outreach tracker with responses and qualified partnerships</li>
+            </ul>
+          </div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Creator%20Outreach%20Intern%20-%20AbhiHub&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Creator%20Outreach%20Intern%20position%20(Creator%20Partnerships%20Program).%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20Current%20Year%3A%0A3.%20Academic%20Stream%3A%0A4.%20Short%20Introduction%3A%0A5.%20Relevant%20Skills%20(Outreach%2C%20Copywriting%2C%20Communication)%3A%0A6.%20Why%20you%20want%20to%20join%20AbhiHub%3A%0A7.%20Weekly%20Availability%20(approx%205-8%20hrs%2Fweek)%3A%0A%0AThank%20you!" class="cr-btn-apply">
+            Apply for Position 2 →
+          </a>
+        </article>
+
+        <!-- Position 3 -->
+        <article class="cr-card" data-status="live" data-category="internship">
+          <div>
+            <div class="cr-card-badges">
+              <span class="cr-badge cr-badge--live">● Actively Hiring</span>
+              <span class="cr-badge cr-badge--intern">1 Opening</span>
+              <span class="cr-badge cr-badge--pill">Remote</span>
+              <span class="cr-badge cr-badge--pill">Freshers Welcome</span>
+            </div>
+            <h3 class="cr-card-title">Creator Onboarding Intern</h3>
+            <p class="cr-card-desc">
+              Guide onboarded educators on publishing notes, organize educator study resources, gather platform feedback, and support creator channels.
+            </p>
+            <ul class="cr-card-points">
+              <li>Help interested educators understand AbhiHub platform features &amp; studio</li>
+              <li>Collect and organize creator-submitted educational materials and notes</li>
+              <li>Maintain onboarding documentation and identify creator difficulties</li>
+              <li>Coordinate directly with the founder and gather faculty feedback</li>
+              <li><strong>Deliverable:</strong> Creator onboarding tracker, feedback summaries &amp; progress logs</li>
+            </ul>
+          </div>
+          <a href="mailto:careers@abhihub.edu.eu.org?subject=Application%3A%20Creator%20Onboarding%20Intern%20-%20AbhiHub&body=Hi%20AbhiHub%20Team%2C%0A%0AI%20am%20applying%20for%20the%20Creator%20Onboarding%20Intern%20position%20(Creator%20Partnerships%20Program).%0A%0A1.%20Full%20Name%3A%0A2.%20College%20%26%20Current%20Year%3A%0A3.%20Academic%20Stream%3A%0A4.%20Short%20Introduction%3A%0A5.%20Relevant%20Skills%20(Communication%2C%20Google%20Drive%2FDocs%2C%20Canva)%3A%0A6.%20Why%20you%20want%20to%20join%20AbhiHub%3A%0A7.%20Weekly%20Availability%20(approx%205-8%20hrs%2Fweek)%3A%0A%0AThank%20you!" class="cr-btn-apply">
+            Apply for Position 3 →
+          </a>
+        </article>
+      </div>
+    </div>
+  </section>
 
   <!-- 4. Actively Hiring Positions -->
   <section class="cr-role-section">
@@ -960,7 +1177,14 @@
         const filter = this.dataset.filter;
 
         cards.forEach(card => {
-          if (filter === 'all' || card.dataset.status === filter) {
+          const status = card.dataset.status;
+          const category = card.dataset.category;
+          if (
+            filter === 'all' ||
+            (filter === 'internship' && category === 'internship') ||
+            (filter === 'live' && status === 'live') ||
+            (filter !== 'internship' && status === filter)
+          ) {
             card.style.display = 'flex';
           } else {
             card.style.display = 'none';

@@ -1,518 +1,582 @@
 {% extends 'p_struct.html' %}
-{% block content %}
+{% block title %}Creator Hub • AbhiHub{% endblock %}
 
+{% block content %}
 <style>
-  .creator-hub-container {
-    max-width: 1040px;
-    margin: 1.5rem auto 5rem;
-    padding: 0 1rem;
-    font-family: inherit;
+  :root {
+    --apple-bg: #f5f5f7;
+    --apple-surface: #ffffff;
+    --apple-surface-sub: #fbfbfd;
+    --apple-text: #1d1d1f;
+    --apple-text-secondary: #6e6e73;
+    --apple-text-muted: #86868b;
+    --apple-blue: #0071e3;
+    --apple-blue-hover: #0077ed;
+    --apple-blue-subtle: rgba(0, 113, 227, 0.08);
+    --apple-border: rgba(0, 0, 0, 0.08);
+    --radius-pill: 980px;
+    --radius-card: 18px;
   }
-  .hub-banner {
-    background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #312e81 100%);
-    border-radius: 20px;
-    padding: 2rem;
-    color: #ffffff;
+
+  [data-theme="dark"] {
+    --apple-bg: #000000;
+    --apple-surface: #1c1c1e;
+    --apple-surface-sub: #2c2c2e;
+    --apple-text: #f5f5f7;
+    --apple-text-secondary: #a1a1a6;
+    --apple-text-muted: #6e6e73;
+    --apple-blue: #2997ff;
+    --apple-blue-hover: #3ca2ff;
+    --apple-blue-subtle: rgba(41, 151, 255, 0.12);
+    --apple-border: rgba(255, 255, 255, 0.12);
+  }
+
+  .ch-container {
+    max-width: 1100px;
+    margin: 2rem auto 5rem;
+    padding: 0 1.25rem;
+  }
+
+  /* ── Apple Hero Banner ────────────────────────────── */
+  .ch-hero {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    padding: 2.5rem 2.25rem;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
     margin-bottom: 2rem;
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     flex-wrap: wrap;
     gap: 1.5rem;
-    box-shadow: 0 10px 25px -5px rgba(30, 27, 75, 0.4);
+    position: relative;
+    overflow: hidden;
   }
-  .hub-banner h1 {
-    font-size: 1.75rem;
-    font-weight: 800;
-    margin: 0 0 0.5rem;
+
+  .ch-hero-content {
+    max-width: 620px;
+  }
+
+  .ch-eyebrow {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--apple-blue);
+    background: var(--apple-blue-subtle);
+    padding: 4px 12px;
+    border-radius: var(--radius-pill);
+    margin-bottom: 0.85rem;
+  }
+
+  .ch-title {
+    font-size: clamp(1.85rem, 3.2vw, 2.4rem);
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--apple-text);
+    margin: 0 0 0.65rem;
+    line-height: 1.2;
+  }
+
+  .ch-subtitle {
+    font-size: 15px;
+    color: var(--apple-text-secondary);
+    line-height: 1.55;
+    margin: 0;
+  }
+
+  .ch-hero-actions {
     display: flex;
     align-items: center;
-    gap: 0.6rem;
+    gap: 10px;
+    flex-wrap: wrap;
   }
-  .hub-banner p {
-    margin: 0;
-    color: #c7d2fe;
-    font-size: 0.95rem;
-    max-width: 580px;
-    line-height: 1.5;
-  }
-  .hub-banner-actions {
-    display: flex;
-    gap: 0.75rem;
-  }
-  .btn-banner {
-    padding: 0.65rem 1.25rem;
-    border-radius: 12px;
+
+  .ch-btn-primary {
+    height: 42px;
+    padding: 0 20px;
+    border-radius: var(--radius-pill);
+    background: var(--apple-blue);
+    color: #ffffff !important;
+    font-size: 13.5px;
     font-weight: 600;
-    font-size: 0.9rem;
     text-decoration: none;
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    transition: all 0.2s;
-  }
-  .btn-banner-primary {
-    background: #6366f1;
-    color: #ffffff;
+    justify-content: center;
+    gap: 6px;
     border: none;
-  }
-  .btn-banner-primary:hover {
-    background: #4f46e5;
-  }
-  .btn-banner-secondary {
-    background: rgba(255, 255, 255, 0.1);
-    color: #ffffff;
-    border: 1px solid rgba(255, 255, 255, 0.2);
-  }
-  .btn-banner-secondary:hover {
-    background: rgba(255, 255, 255, 0.2);
+    cursor: pointer;
+    transition: all 0.18s ease;
   }
 
-  /* Metric cards */
-  .metrics-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
-    gap: 1rem;
-    margin-bottom: 2rem;
+  .ch-btn-primary:hover {
+    background: var(--apple-blue-hover);
+    transform: scale(1.01);
   }
-  .metric-card {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
+
+  .ch-btn-secondary {
+    height: 42px;
+    padding: 0 18px;
+    border-radius: var(--radius-pill);
+    background: var(--apple-surface-sub);
+    color: var(--apple-text) !important;
+    font-size: 13.5px;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid var(--apple-border);
+    cursor: pointer;
+    transition: all 0.18s ease;
+  }
+
+  .ch-btn-secondary:hover {
+    background: var(--apple-border);
+  }
+
+  /* ── 4 Metric Cards Grid ──────────────────────────── */
+  .ch-metrics-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2.25rem;
+  }
+
+  .ch-metric-card {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
     border-radius: 16px;
-    padding: 1.25rem 1.5rem;
-    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.02);
-  }
-  .metric-label {
-    font-size: 0.82rem;
-    font-weight: 600;
-    color: #64748b;
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 0.4rem;
-  }
-  .metric-val {
-    font-size: 1.7rem;
-    font-weight: 800;
-    color: #0f172a;
+    padding: 1.4rem 1.5rem;
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.02);
     display: flex;
-    align-items: baseline;
-    gap: 0.35rem;
-  }
-  .metric-val small {
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #10b981;
+    flex-direction: column;
+    gap: 6px;
+    transition: all 0.2s ease;
   }
 
-  /* Main layout */
-  .hub-main-grid {
-    display: grid;
-    grid-template-columns: 1.6fr 1fr;
-    gap: 1.75rem;
+  .ch-metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.04);
   }
+
+  .ch-metric-label {
+    font-size: 11.5px;
+    font-weight: 600;
+    color: var(--apple-text-secondary);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .ch-metric-val {
+    font-size: 1.85rem;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--apple-text);
+    margin: 0;
+  }
+
+  .ch-metric-sub {
+    font-size: 12px;
+    color: var(--apple-text-muted);
+  }
+
+  /* ── Main Two-Column Layout ──────────────────────── */
+  .ch-main-grid {
+    display: grid;
+    grid-template-columns: 1.55fr 1fr;
+    gap: 1.5rem;
+  }
+
   @media (max-width: 900px) {
-    .hub-main-grid {
+    .ch-main-grid {
       grid-template-columns: 1fr;
     }
   }
 
-  .hub-box {
-    background: #ffffff;
-    border: 1px solid #e2e8f0;
-    border-radius: 18px;
-    padding: 1.5rem;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  .ch-panel {
+    background: var(--apple-surface);
+    border: 1px solid var(--apple-border);
+    border-radius: var(--radius-card);
+    padding: 1.6rem;
+    box-shadow: 0 4px 18px rgba(0, 0, 0, 0.02);
   }
-  .hub-box-header {
+
+  .ch-panel-header {
     display: flex;
-    justify-content: space-between;
     align-items: center;
+    justify-content: space-between;
     margin-bottom: 1.25rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid var(--apple-border);
   }
-  .hub-box-title {
-    font-size: 1.2rem;
-    font-weight: 700;
-    color: #0f172a;
+
+  .ch-panel-title {
+    font-size: 1.15rem;
+    font-weight: 650;
+    color: var(--apple-text);
+    letter-spacing: -0.015em;
     margin: 0;
     display: flex;
     align-items: center;
-    gap: 0.5rem;
+    gap: 8px;
   }
 
-  /* Customer Leaderboard Table */
-  .customer-list {
-    display: flex;
-    flex-direction: column;
-    gap: 0.85rem;
-  }
-  .customer-row {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 0.9rem 1rem;
-    border-radius: 12px;
-    background: #f8fafc;
-    border: 1px solid #f1f5f9;
-    transition: all 0.2s;
-  }
-  .customer-row:hover {
-    background: #f1f5f9;
-    border-color: #e2e8f0;
-  }
-  .customer-meta {
-    display: flex;
-    align-items: center;
-    gap: 0.85rem;
-  }
-  .customer-rank {
-    font-size: 0.85rem;
-    font-weight: 800;
-    color: #6366f1;
-    width: 20px;
-    text-align: center;
-  }
-  .customer-avatar {
-    width: 42px;
-    height: 42px;
-    border-radius: 50%;
-    background: #e2e8f0;
-    object-fit: cover;
-  }
-  .customer-info h4 {
-    margin: 0;
-    font-size: 0.95rem;
-    font-weight: 700;
-    color: #0f172a;
-  }
-  .customer-info span {
-    font-size: 0.78rem;
-    color: #64748b;
-  }
-  .tier-badge {
-    display: inline-block;
-    padding: 0.15rem 0.5rem;
-    border-radius: 6px;
-    font-size: 0.72rem;
-    font-weight: 700;
-    text-transform: uppercase;
-  }
-  .tier-superfan {
-    background: #fef3c7;
-    color: #b45309;
-    border: 1px solid #fde68a;
-  }
-  .tier-vip {
-    background: #ede9fe;
-    color: #6d28d9;
-    border: 1px solid #ddd6fe;
-  }
-  .tier-regular {
-    background: #f1f5f9;
-    color: #475569;
-  }
-  .customer-stats {
-    text-align: right;
-  }
-  .customer-spent {
-    font-size: 0.95rem;
-    font-weight: 800;
-    color: #059669;
-  }
-  .customer-notes {
-    font-size: 0.75rem;
-    color: #64748b;
-  }
-  .customer-actions {
-    display: flex;
-    gap: 0.4rem;
-    margin-left: 0.75rem;
-  }
-  .btn-connect {
-    padding: 0.4rem 0.65rem;
-    border-radius: 8px;
-    font-size: 0.78rem;
+  .ch-panel-badge {
+    font-size: 11.5px;
     font-weight: 600;
-    text-decoration: none;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.3rem;
-  }
-  .btn-connect-email {
-    background: #e0e7ff;
-    color: #3730a3;
-  }
-  .btn-connect-email:hover {
-    background: #c7d2fe;
-  }
-  .btn-connect-wa {
-    background: #dcfce7;
-    color: #166534;
-  }
-  .btn-connect-wa:hover {
-    background: #bbf7d0;
+    color: var(--apple-text-muted);
+    background: var(--apple-surface-sub);
+    padding: 2px 10px;
+    border-radius: var(--radius-pill);
+    border: 1px solid var(--apple-border);
   }
 
-  /* Broadcast Form */
-  .form-group {
-    margin-bottom: 1rem;
-  }
-  .form-label {
-    display: block;
-    font-size: 0.85rem;
-    font-weight: 600;
-    color: #334155;
-    margin-bottom: 0.35rem;
-  }
-  .form-input, .form-textarea, .form-select {
-    width: 100%;
-    padding: 0.65rem 0.85rem;
-    border: 1px solid #cbd5e1;
-    border-radius: 10px;
-    font-size: 0.9rem;
-    background: #f8fafc;
-    box-sizing: border-box;
-    transition: border-color 0.15s;
-  }
-  .form-input:focus, .form-textarea:focus, .form-select:focus {
-    outline: none;
-    border-color: #6366f1;
-    background: #ffffff;
-  }
-  .btn-submit {
-    width: 100%;
-    background: #4f46e5;
-    color: #ffffff;
-    border: none;
-    border-radius: 10px;
-    padding: 0.75rem;
-    font-weight: 700;
-    cursor: pointer;
-    transition: background 0.2s;
-  }
-  .btn-submit:hover {
-    background: #4338ca;
-  }
-
-  /* Broadcast feed */
-  .broadcast-feed {
-    margin-top: 1.5rem;
+  /* ── Customer / Supporter Rows ────────────────────── */
+  .ch-customer-list {
     display: flex;
     flex-direction: column;
     gap: 0.75rem;
   }
-  .broadcast-item {
-    background: #f8fafc;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    padding: 0.9rem;
+
+  .ch-customer-row {
+    background: var(--apple-surface-sub);
+    border: 1px solid var(--apple-border);
+    border-radius: 14px;
+    padding: 0.95rem 1.1rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    transition: all 0.16s ease;
   }
-  .broadcast-item h5 {
-    margin: 0 0 0.25rem;
-    font-size: 0.9rem;
+
+  .ch-customer-row:hover {
+    border-color: rgba(0, 113, 227, 0.3);
+    background: var(--apple-surface);
+  }
+
+  .ch-cust-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-width: 0;
+  }
+
+  .ch-cust-rank {
+    font-size: 12px;
     font-weight: 700;
-    color: #1e293b;
+    color: var(--apple-text-muted);
+    width: 22px;
+    text-align: center;
   }
-  .broadcast-item p {
+
+  .ch-cust-avatar {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    background: var(--apple-surface);
+    color: var(--apple-blue);
+    border: 1px solid var(--apple-border);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 14px;
+    flex-shrink: 0;
+  }
+
+  .ch-cust-info {
+    min-width: 0;
+  }
+
+  .ch-cust-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--apple-text);
+    margin: 0 0 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .ch-cust-sub {
+    font-size: 11.5px;
+    color: var(--apple-text-secondary);
+  }
+
+  .ch-cust-spent {
+    text-align: right;
+  }
+
+  .ch-cust-amount {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--apple-text);
+  }
+
+  .ch-cust-spent-label {
+    font-size: 10.5px;
+    color: var(--apple-text-muted);
+    text-transform: uppercase;
+  }
+
+  .ch-tier-pill {
+    font-size: 10px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: var(--radius-pill);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+  .tier-vip { background: rgba(245, 158, 11, 0.12); color: #d97706; }
+  .tier-superfan { background: rgba(147, 51, 234, 0.12); color: #9333ea; }
+  .tier-regular { background: var(--apple-blue-subtle); color: var(--apple-blue); }
+
+  /* ── Form & Broadcast Panel ───────────────────────── */
+  .ch-form-group {
+    margin-bottom: 1rem;
+  }
+
+  .ch-form-label {
+    display: block;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: var(--apple-text);
+    margin-bottom: 0.35rem;
+  }
+
+  .ch-input,
+  .ch-textarea,
+  .ch-select {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid var(--apple-border);
+    border-radius: 10px;
+    background: var(--apple-surface-sub);
+    color: var(--apple-text);
+    font-size: 13.5px;
+    font-family: inherit;
+    outline: none;
+    transition: all 0.16s ease;
+  }
+
+  .ch-input:focus,
+  .ch-textarea:focus,
+  .ch-select:focus {
+    border-color: var(--apple-blue);
+    background: var(--apple-surface);
+    box-shadow: 0 0 0 3px var(--apple-blue-subtle);
+  }
+
+  .ch-broadcast-item {
+    background: var(--apple-surface-sub);
+    border: 1px solid var(--apple-border);
+    border-radius: 12px;
+    padding: 0.85rem 1rem;
+    margin-top: 0.85rem;
+  }
+
+  .ch-broadcast-item h5 {
+    margin: 0 0 4px;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--apple-text);
+  }
+
+  .ch-broadcast-item p {
+    margin: 0 0 6px;
+    font-size: 12.5px;
+    color: var(--apple-text-secondary);
+    line-height: 1.45;
+  }
+
+  .ch-broadcast-meta {
+    font-size: 11px;
+    color: var(--apple-text-muted);
+  }
+
+  .ch-empty-box {
+    text-align: center;
+    padding: 3rem 1.5rem;
+    color: var(--apple-text-secondary);
+  }
+
+  .ch-empty-box h4 {
     margin: 0 0 0.4rem;
-    font-size: 0.82rem;
-    color: #475569;
-    line-height: 1.4;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--apple-text);
   }
-  .broadcast-item small {
-    color: #94a3b8;
-    font-size: 0.72rem;
+
+  .ch-empty-box p {
+    font-size: 13px;
+    color: var(--apple-text-secondary);
+    margin: 0 0 1.25rem;
+    max-width: 340px;
+    margin-inline: auto;
   }
 </style>
 
-<div class="creator-hub-container">
-  <!-- Coming Soon Launch Hero Section -->
-  <div class="creator-cs-hero" style="background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 45%, #4338ca 100%); border-radius: 24px; padding: 3rem 1.75rem; color: #ffffff; text-align: center; margin-bottom: 2rem; position: relative; overflow: hidden; box-shadow: 0 20px 40px -15px rgba(30, 27, 75, 0.5);">
-    <div style="position: absolute; top: -50px; right: -50px; width: 220px; height: 220px; background: radial-gradient(circle, rgba(99,102,241,0.25) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
-    <div style="position: absolute; bottom: -60px; left: -30px; width: 200px; height: 200px; background: radial-gradient(circle, rgba(168,85,247,0.2) 0%, transparent 70%); border-radius: 50%; pointer-events: none;"></div>
-
-    <div style="display: inline-flex; align-items: center; gap: 0.5rem; background: rgba(99, 102, 241, 0.25); border: 1px solid rgba(165, 180, 252, 0.35); padding: 0.35rem 1rem; border-radius: 999px; font-size: 0.82rem; font-weight: 800; color: #c7d2fe; text-transform: uppercase; letter-spacing: 0.8px; margin-bottom: 1.25rem;">
-      <span style="display: inline-block; width: 8px; height: 8px; background: #34d399; border-radius: 50%;"></span>
-      🚀 Official Launch Coming Soon · Fall 2026
+<div class="ch-container">
+  <!-- Top Apple Hero Banner -->
+  <div class="ch-hero">
+    <div class="ch-hero-content">
+      <span class="ch-eyebrow">Creator Network{% if stats.total_uploads %} &bull; {{ stats.total_uploads }} Material{{ 's' if stats.total_uploads != 1 else '' }} Published{% endif %}</span>
+      <h1 class="ch-title">Monetize your study library.</h1>
+      <p class="ch-subtitle">
+        Share handwritten notes, verified lab reports, and PYQ solutions. Keep <strong>90% of royalties</strong> with direct account payouts in T+9 days.
+        {% if channel and channel.handle %}
+        <br><span style="display: inline-block; margin-top: 6px; font-size: 13.5px; color: var(--apple-blue); font-weight: 550;">Live Channel: @{{ channel.handle }}</span>
+        {% endif %}
+      </p>
     </div>
-
-    <h1 style="font-size: 2.25rem; font-weight: 900; margin: 0 0 1rem; line-height: 1.25; letter-spacing: -0.5px;">
-      Creator Hub & VIP Student CRM
-    </h1>
-    <p style="font-size: 1.05rem; color: #cbd5e1; max-width: 640px; margin: 0 auto 1.75rem; line-height: 1.6;">
-      Monetize your handwritten notes: <strong>keep 90% of amounts</strong> (only 10% commission for first 90 days for accounts registered before 8 Nov; standard 30% commission), with money sent to your account in <strong>T+9 days or earlier</strong>.
-    </p>
-
-    <!-- Early Access Waitlist Box -->
-    <div style="max-width: 480px; margin: 0 auto 1.25rem; background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 16px; padding: 0.55rem; display: flex; gap: 0.5rem; flex-wrap: wrap;">
-      <input type="email" id="cs-creator-email" value="{{ user.get('email', '') }}" placeholder="Enter your college email" style="flex: 1; min-width: 220px; padding: 0.75rem 1rem; background: rgba(15, 23, 42, 0.7); border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 10px; color: #ffffff; font-size: 0.9rem; outline: none;" />
-      <button type="button" onclick="joinCreatorWaitlist()" id="cs-join-btn" style="padding: 0.75rem 1.4rem; background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%); color: #ffffff; border: none; border-radius: 10px; font-weight: 700; font-size: 0.9rem; cursor: pointer; transition: all 0.2s; white-space: nowrap;">
-        Claim VIP Early Access ✨
-      </button>
-    </div>
-    <div id="cs-waitlist-status" style="font-size: 0.85rem; font-weight: 700; margin-bottom: 1.25rem; min-height: 20px;"></div>
-
-    <div style="display: flex; justify-content: center; align-items: center; gap: 1.25rem; flex-wrap: wrap; font-size: 0.85rem; color: #94a3b8;">
-      <span style="display: flex; align-items: center; gap: 0.4rem;">
-        <strong style="color: #38bdf8;">🔥 142 creators</strong> on waitlist
-      </span>
-      <span>•</span>
-      <span style="display: flex; align-items: center; gap: 0.4rem;">
-        <strong style="color: #34d399;">₹0 Listing Fees</strong>
-      </span>
-      <span>•</span>
-      <span style="display: flex; align-items: center; gap: 0.4rem;">
-        <strong style="color: #fbbf24;">90% for first 90 days (Nov 2+ signups, Std 70%)</strong>
-      </span>
-      <span>•</span>
-      <span style="display: flex; align-items: center; gap: 0.4rem;">
-        <strong style="color: #60a5fa;">T+9 Days Payouts</strong>
-      </span>
-    </div>
-
-    <!-- Toggle to view Live Dashboard Preview -->
-    <div style="margin-top: 1.85rem;">
-      <button type="button" onclick="toggleCreatorDashboard()" id="cs-toggle-btn" style="background: rgba(255, 255, 255, 0.12); border: 1px solid rgba(255, 255, 255, 0.25); color: #e2e8f0; padding: 0.5rem 1.2rem; border-radius: 999px; font-size: 0.82rem; font-weight: 700; cursor: pointer; transition: all 0.2s;">
-        👀 Explore Live Dashboard Preview ↓
-      </button>
+    <div class="ch-hero-actions">
+      {% if channel and channel.handle %}
+      <a href="{{ url_for('channels.public_channel_view', handle=channel.handle) }}" target="_blank" class="ch-btn-secondary">
+        View Live Channel &nearr;
+      </a>
+      {% endif %}
+      <a href="{{ url_for('channels.channel_studio') }}" class="ch-btn-secondary">Channel Studio</a>
+      <a href="{{ url_for('app_pages.upload') }}" class="ch-btn-primary">+ Upload New Material &rarr;</a>
     </div>
   </div>
 
-  <div id="creator-live-dashboard" style="display: none;">
-  <!-- Top Banner -->
-  <div class="hub-banner">
-    <div>
-      <h1><span>👑</span> Creator Hub & Community</h1>
-      <p>Recognize your most loyal student supporters, analyze purchase engagement, and share private study group updates directly with your audience.</p>
+  <!-- 4 Metric Highlight Cards -->
+  <div class="ch-metrics-grid">
+    <div class="ch-metric-card">
+      <div class="ch-metric-label">Total Student Readers</div>
+      <div class="ch-metric-val">{{ stats.total_customers or 0 }}</div>
+      <div class="ch-metric-sub">Unique buyers &amp; unlocks</div>
     </div>
-    <div class="hub-banner-actions">
-      <a href="{{ url_for('channels.channel_studio') }}" class="btn-banner btn-banner-secondary">Channel Studio</a>
-      <a href="{{ url_for('app_pages.upload') }}" class="btn-banner btn-banner-primary">+ Upload New Material</a>
+    <div class="ch-metric-card">
+      <div class="ch-metric-label">Total Royalties Earned</div>
+      <div class="ch-metric-val">₹{{ '%.2f'|format(stats.total_revenue|float) if stats.total_revenue is defined else '0.00' }}</div>
+      <div class="ch-metric-sub">
+        {% if stats.withdrawable_balance and stats.withdrawable_balance > 0 %}
+          ₹{{ '%.2f'|format(stats.withdrawable_balance|float) }} withdrawable
+        {% elif stats.pending_balance and stats.pending_balance > 0 %}
+          ₹{{ '%.2f'|format(stats.pending_balance|float) }} pending clearance
+        {% else %}
+          Direct peer payouts in T+9d
+        {% endif %}
+      </div>
+    </div>
+    <div class="ch-metric-card">
+      <div class="ch-metric-label">VIP Supporters</div>
+      <div class="ch-metric-val">{{ stats.vip_count or 0 }}</div>
+      <div class="ch-metric-sub">High-engagement students</div>
+    </div>
+    <div class="ch-metric-card">
+      <div class="ch-metric-label">Repeat Buyer Rate</div>
+      <div class="ch-metric-val">{{ stats.repeat_rate or 0 }}%</div>
+      <div class="ch-metric-sub">Classmates buying 2+ packs</div>
     </div>
   </div>
 
-  <!-- Metric Overview -->
-  <div class="metrics-grid">
-    <div class="metric-card">
-      <div class="metric-label">Total Customers</div>
-      <div class="metric-val">{{ stats.total_customers or 0 }}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Total Revenue</div>
-      <div class="metric-val">₹{{ stats.total_revenue or '0.00' }}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">VIP Supporters</div>
-      <div class="metric-val">{{ stats.vip_count or 0 }}</div>
-    </div>
-    <div class="metric-card">
-      <div class="metric-label">Repeat Buyer Rate</div>
-      <div class="metric-val">{{ stats.repeat_rate or 0 }}%</div>
-    </div>
-  </div>
-
-  <!-- Main Grid -->
-  <div class="hub-main-grid">
+  <!-- Main Grid: Top Customers & Community Broadcasts -->
+  <div class="ch-main-grid">
     <!-- Left Column: Top Customers -->
-    <div class="hub-box">
-      <div class="hub-box-header">
-        <h2 class="hub-box-title"><span>🌟</span> Top Customer Leaderboard</h2>
-        <span style="font-size: 0.8rem; color: #64748b; font-weight: 600;">Ranked by LTV</span>
+    <div class="ch-panel">
+      <div class="ch-panel-header">
+        <h2 class="ch-panel-title">Top Student Supporters</h2>
+        <span class="ch-panel-badge">Ranked by Engagement</span>
       </div>
 
       {% if customers %}
-      <div class="customer-list">
+      <div class="ch-customer-list">
         {% for c in customers %}
-        <div class="customer-row">
-          <div class="customer-meta">
-            <span class="customer-rank">#{{ loop.index }}</span>
-            <img class="customer-avatar" src="{{ c.avatar_url }}" alt="{{ c.name }}" />
-            <div class="customer-info">
-              <h4>
+        <div class="ch-customer-row">
+          <div class="ch-cust-meta">
+            <span class="ch-cust-rank">#{{ loop.index }}</span>
+            <div class="ch-cust-avatar">{{ c.name[:1]|upper if c.name else 'S' }}</div>
+            <div class="ch-cust-info">
+              <div class="ch-cust-name">
                 {{ c.name }}
-                <span class="tier-badge tier-{{ c.vip_tier }}">{{ c.vip_tier }}</span>
-              </h4>
-              <span>{{ c.total_notes }} note{{ 's' if c.total_notes != 1 else '' }} unlocked • Active {{ c.last_active }}</span>
+                <span class="ch-tier-pill tier-{{ c.vip_tier }}">{{ c.vip_tier }}</span>
+              </div>
+              <div class="ch-cust-sub">
+                {{ c.total_notes }} note{{ 's' if c.total_notes != 1 else '' }} unlocked &bull; Active {{ c.last_active }}
+              </div>
             </div>
           </div>
-          <div style="display: flex; align-items: center;">
-            <div class="customer-stats">
-              <div class="customer-spent">₹{{ c.total_spent }}</div>
-              <div class="customer-notes">Total Spent</div>
-            </div>
-            <div class="customer-actions">
-              {% if c.email_link %}
-              <a href="{{ c.email_link }}" class="btn-connect btn-connect-email" title="Send Email">✉️ Connect</a>
-              {% endif %}
-              {% if c.whatsapp_link %}
-              <a href="{{ c.whatsapp_link }}" target="_blank" class="btn-connect btn-connect-wa" title="WhatsApp Message">💬 WhatsApp</a>
-              {% endif %}
-            </div>
+          <div class="ch-cust-spent">
+            <div class="ch-cust-amount">₹{{ c.total_spent }}</div>
+            <div class="ch-cust-spent-label">Contributed</div>
           </div>
         </div>
         {% endfor %}
       </div>
       {% else %}
-      <div style="text-align: center; padding: 3rem 1rem; color: #64748b;">
-        <div style="font-size: 2.5rem; margin-bottom: 0.75rem;">📚</div>
-        <h3 style="margin: 0 0 0.5rem; color: #1e293b; font-size: 1.1rem;">No Customer Unlocks Yet</h3>
-        <p style="margin: 0 0 1.25rem; font-size: 0.88rem; max-width: 380px; margin-inline: auto;">
-          When students unlock your paid notes or tip your resources, they will appear here as your top supporters.
-        </p>
-        <a href="{{ url_for('app_pages.upload') }}" class="btn-banner btn-banner-primary" style="display: inline-block;">Upload Your First Paid Note</a>
+      <div class="ch-empty-box">
+        <h4>No Customer Unlocks Yet</h4>
+        <p>When classmates purchase your paid notes or tip your solutions, their support will appear here.</p>
+        <a href="{{ url_for('app_pages.upload') }}" class="ch-btn-primary" style="display: inline-flex; height: 38px;">
+          Publish Your First Note &rarr;
+        </a>
       </div>
       {% endif %}
     </div>
 
-    <!-- Right Column: Broadcast & Announcements -->
-    <div class="hub-box">
-      <div class="hub-box-header">
-        <h2 class="hub-box-title"><span>📢</span> Community Broadcast</h2>
+    <!-- Right Column: Community Broadcast -->
+    <div class="ch-panel">
+      <div class="ch-panel-header">
+        <h2 class="ch-panel-title">Community Broadcast</h2>
+        <span class="ch-panel-badge">Direct Reach</span>
       </div>
-      <p style="font-size: 0.82rem; color: #64748b; margin-top: -0.5rem; margin-bottom: 1.25rem;">
-        Publish an announcement or share exclusive Telegram/WhatsApp study links with your past customers.
+      <p style="font-size: 13px; color: var(--apple-text-secondary); margin: 0 0 1.25rem; line-height: 1.5;">
+        Share exam updates, Telegram study group links, or newly uploaded formulas directly with your readers.
       </p>
 
       <form id="broadcastForm">
-        <div class="form-group">
-          <label class="form-label">Announcement Title</label>
-          <input type="text" name="title" id="bcTitle" class="form-input" placeholder="e.g. Unit 3 PYQs with solved answers uploaded!" required />
+        <div id="bcAlert" style="display: none; padding: 10px 14px; border-radius: 12px; margin-bottom: 1rem; font-size: 13px; font-weight: 550;"></div>
+        <div class="ch-form-group">
+          <label class="ch-form-label">Announcement Title</label>
+          <input type="text" name="title" id="bcTitle" class="ch-input" placeholder="e.g. Unit 3 PYQs with solved answers uploaded!" required />
         </div>
-        <div class="form-group">
-          <label class="form-label">Message</label>
-          <textarea name="message" id="bcMessage" class="form-textarea" rows="3" placeholder="Share quick exam tips, new note links, or answer keys..." required></textarea>
+        <div class="ch-form-group">
+          <label class="ch-form-label">Message</label>
+          <textarea name="message" id="bcMessage" class="ch-textarea" rows="3" placeholder="Share quick exam tips, new note links, or answer keys..." required></textarea>
         </div>
-        <div class="form-group">
-          <label class="form-label">Community / Channel Link (Optional)</label>
-          <input type="url" name="channel_url" id="bcChannel" class="form-input" placeholder="https://t.me/your_study_channel" />
+        <div class="ch-form-group">
+          <label class="ch-form-label">Community / Channel Link (Optional)</label>
+          <input type="url" name="channel_url" id="bcChannel" class="ch-input" placeholder="https://t.me/your_study_channel" />
         </div>
-        <div class="form-group">
-          <label class="form-label">Audience Target</label>
-          <select name="target_tier" id="bcTarget" class="form-select">
+        <div class="ch-form-group">
+          <label class="ch-form-label">Audience Target</label>
+          <select name="target_tier" id="bcTarget" class="ch-select">
             <option value="all">All Note Buyers</option>
             <option value="vip">VIP Supporters Only</option>
             <option value="superfan">Superfans Only</option>
           </select>
         </div>
-        <button type="submit" class="btn-submit" id="btnBroadcast">Publish Broadcast</button>
+        <button type="submit" class="ch-btn-primary" id="btnBroadcast" style="width: 100%;">
+          Publish Broadcast &rarr;
+        </button>
       </form>
 
       <!-- Broadcast History -->
-      <div class="broadcast-feed" id="broadcastFeed">
-        <h3 style="font-size: 0.95rem; font-weight: 700; color: #1e293b; margin: 0.5rem 0 0;">Recent Announcements</h3>
+      <div style="margin-top: 1.75rem;">
+        <h3 style="font-size: 13.5px; font-weight: 650; color: var(--apple-text); margin: 0 0 0.75rem;">Recent Announcements</h3>
         {% if broadcasts %}
           {% for b in broadcasts %}
-          <div class="broadcast-item">
+          <div class="ch-broadcast-item">
             <h5>{{ b.title }}</h5>
             <p>{{ b.message }}</p>
             {% if b.channel_url %}
-            <a href="{{ b.channel_url }}" target="_blank" style="font-size: 0.78rem; color: #4f46e5; font-weight: 600; text-decoration: none;">Join Channel Link &rarr;</a>
+            <a href="{{ b.channel_url }}" target="_blank" style="font-size: 12px; color: var(--apple-blue); font-weight: 600; text-decoration: none; display: inline-block; margin-bottom: 4px;">Join Community Link &rarr;</a>
             <br/>
             {% endif %}
-            <small>{{ b.created_at[:10] }} • Audience: {{ b.target_tier | upper }}</small>
+            <div class="ch-broadcast-meta">{{ b.created_at[:10] }} &bull; Target: {{ b.target_tier|upper }}</div>
           </div>
           {% endfor %}
         {% else %}
-          <div style="font-size: 0.8rem; color: #94a3b8; padding: 1rem 0; text-align: center;">No broadcasts sent yet.</div>
+          <div style="font-size: 12px; color: var(--apple-text-muted); padding: 1rem 0; text-align: center;">No broadcasts sent yet.</div>
         {% endif %}
       </div>
     </div>
@@ -523,13 +587,15 @@
   document.getElementById('broadcastForm')?.addEventListener('submit', async function(e) {
     e.preventDefault();
     const btn = document.getElementById('btnBroadcast');
+    const alertBox = document.getElementById('bcAlert');
     btn.disabled = true;
     btn.textContent = 'Publishing...';
+    if (alertBox) alertBox.style.display = 'none';
 
     const payload = {
-      title: document.getElementById('bcTitle').value,
-      message: document.getElementById('bcMessage').value,
-      channel_url: document.getElementById('bcChannel').value,
+      title: document.getElementById('bcTitle').value.trim(),
+      message: document.getElementById('bcMessage').value.trim(),
+      channel_url: document.getElementById('bcChannel').value.trim(),
       target_tier: document.getElementById('bcTarget').value
     };
 
@@ -541,71 +607,36 @@
       });
       const data = await res.json();
       if (data.success) {
-        alert('Broadcast published successfully to your customer community!');
-        window.location.reload();
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.style.background = 'rgba(52, 199, 89, 0.12)';
+          alertBox.style.color = '#15803d';
+          alertBox.style.border = '1px solid rgba(52, 199, 89, 0.25)';
+          alertBox.textContent = '✓ Broadcast published successfully!';
+        }
+        document.getElementById('broadcastForm').reset();
+        setTimeout(() => { window.location.reload(); }, 900);
       } else {
-        alert(data.error || 'Failed to publish broadcast.');
+        if (alertBox) {
+          alertBox.style.display = 'block';
+          alertBox.style.background = 'rgba(255, 59, 48, 0.12)';
+          alertBox.style.color = '#b91c1c';
+          alertBox.style.border = '1px solid rgba(255, 59, 48, 0.25)';
+          alertBox.textContent = data.error || 'Failed to publish broadcast.';
+        }
       }
     } catch (err) {
-      alert('Network error publishing broadcast.');
+      if (alertBox) {
+        alertBox.style.display = 'block';
+        alertBox.style.background = 'rgba(255, 59, 48, 0.12)';
+        alertBox.style.color = '#b91c1c';
+        alertBox.style.border = '1px solid rgba(255, 59, 48, 0.25)';
+        alertBox.textContent = 'Network error publishing broadcast.';
+      }
     } finally {
       btn.disabled = false;
-      btn.textContent = 'Publish Broadcast';
+      btn.textContent = 'Publish Broadcast →';
     }
   });
-
-  window.toggleCreatorDashboard = function() {
-    const dash = document.getElementById('creator-live-dashboard');
-    const btn = document.getElementById('cs-toggle-btn');
-    if (!dash) return;
-    if (dash.style.display === 'none' || dash.style.display === '') {
-      dash.style.display = 'block';
-      if (btn) btn.innerHTML = '▲ Hide Dashboard Preview';
-      dash.scrollIntoView({ behavior: 'smooth' });
-    } else {
-      dash.style.display = 'none';
-      if (btn) btn.innerHTML = '👀 Explore Live Dashboard Preview ↓';
-    }
-  };
-
-  window.joinCreatorWaitlist = function() {
-    const emailInput = document.getElementById('cs-creator-email');
-    const statusEl = document.getElementById('cs-waitlist-status');
-    const joinBtn = document.getElementById('cs-join-btn');
-    const email = (emailInput?.value || '').trim();
-
-    if (!email || !email.includes('@')) {
-      if (statusEl) {
-        statusEl.style.color = '#f87171';
-        statusEl.textContent = '⚠️ Please enter a valid student/college email.';
-      }
-      return;
-    }
-
-    if (joinBtn) {
-      joinBtn.disabled = true;
-      joinBtn.textContent = 'Securing VIP Spot...';
-    }
-
-    fetch('/api/waitlist/join', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: email, name: 'Campus Creator' })
-    }).then(r => r.json())
-      .catch(() => ({ success: true }))
-      .then(res => {
-        if (statusEl) {
-          statusEl.style.color = '#34d399';
-          statusEl.innerHTML = '🎉 <strong>Ticket #143 Reserved!</strong> You are on the VIP Creator Early Access list. We will notify you before public rollout.';
-        }
-        if (joinBtn) {
-          joinBtn.textContent = '✓ Reserved VIP Pass';
-          joinBtn.style.background = '#059669';
-        }
-      });
-  };
 </script>
-</div>
-</div>
-
 {% endblock %}
